@@ -1654,10 +1654,10 @@ class Environment:
     def get_scratch_dir(self) -> str:
         return self.scratch_dir
 
-    def detect_objc_compiler(self, for_machine: MachineInfo) -> 'Compiler':
+    def detect_objc_compiler(self, for_machine: MachineChoice) -> 'Compiler':
         return self._detect_objc_or_objcpp_compiler(for_machine, True)
 
-    def detect_objcpp_compiler(self, for_machine: MachineInfo) -> 'Compiler':
+    def detect_objcpp_compiler(self, for_machine: MachineChoice) -> 'Compiler':
         return self._detect_objc_or_objcpp_compiler(for_machine, False)
 
     def _detect_objc_or_objcpp_compiler(self, for_machine: MachineChoice, objc: bool) -> 'Compiler':

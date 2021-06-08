@@ -59,7 +59,7 @@ def main() -> None:
     _cmds = get_backend_commands(backend, False)
     commands = (_cmds[0], _cmds[1], _cmds[3], _cmds[4])
 
-    results = [run_test(t, t.args, comp, backend, backend_args, commands, False, True) for t in tests]
+    results = [run_test(t, t.args, comp, backend, backend_args, commands, '', True) for t in tests]
     failed = False
     for test, result in zip(tests, results):
         if (result is None) or (('MESON_SKIP_TEST' in result.stdo) and (skippable(str(args.case.parent), test.path.as_posix()))):

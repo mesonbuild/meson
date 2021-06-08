@@ -40,7 +40,7 @@ SET
 # If on Windows and VS is installed but not set up in the environment,
 # set it to be runnable. In this way Meson can be directly invoked
 # from any shell, VS Code etc.
-def setup_vsenv():
+def setup_vsenv() -> None:
     import subprocess, json, pathlib
     if not mesonlib.is_windows():
         return

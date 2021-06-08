@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from concurrent.futures import ProcessPoolExecutor, CancelledError
+from concurrent.futures import ProcessPoolExecutor, CancelledError, Future
 from enum import Enum
 from io import StringIO
 from pathlib import Path, PurePath
@@ -52,6 +52,27 @@ from run_tests import get_backend_commands, get_backend_args_for_dir, Backend
 from run_tests import ensure_backend_detects_changes
 from run_tests import guess_backend
 
+if T.TYPE_CHECKING:
+    from types import FrameType
+    from mesonbuild.environment import Environment
+    from mesonbuild._typing import Protocol
+
+    class CompilerArgumentType(Protocol):
+        cross_file: str
+        native_file: str
+        use_tmpdir: bool
+
+
+    class ArgumentType(CompilerArgumentType):
+
+        """Typing information for command line arguments."""
+
+        extra_args: T.List[str]
+        backend: str
+        failfast: bool
+        no_unittests: bool
+        only: T.List[str]
+
 ALL_TESTS = ['cmake', 'common', 'native', 'warning-meson', 'failing-meson', 'failing-build', 'failing-test',
              'keyval', 'platform-osx', 'platform-windows', 'platform-linux',
              'java', 'C#', 'vala', 'cython', 'rust', 'd', 'objective c', 'objective c++',
@@ -69,17 +90,17 @@ class BuildStep(Enum):
 
 
 class TestResult(BaseException):
-    def __init__(self, cicmds):
-        self.msg = ''  # empty msg indicates test success
-        self.stdo = ''
-        self.stde = ''
-        self.mlog = ''
+    def __init__(self, cicmds: T.List[str]) -> None:
+        self.msg    = ''  # empty msg indicates test success
+        self.stdo   = ''
+        self.stde   = ''
+        self.mlog   = ''
         self.cicmds = cicmds
-        self.conftime = 0
-        self.buildtime = 0
-        self.testtime = 0
+        self.conftime:  float = 0
+        self.buildtime: float = 0
+        self.testtime:  float = 0
 
-    def add_step(self, step, stdo, stde, mlog='', time=0):
+    def add_step(self, step: BuildStep, stdo: str, stde: str, mlog: str = '', time: float = 0) -> None:
         self.step = step
         self.stdo += stdo
         self.stde += stde
@@ -91,7 +112,7 @@ class TestResult(BaseException):
         elif step == BuildStep.test:
             self.testtime = time
 
-    def fail(self, msg):
+    def fail(self, msg: str) -> None:
         self.msg = msg
 
 class InstalledFile:
@@ -226,29 +247,42 @@ class TestDef:
             return (s_id, self.path, self.name or '') < (o_id, other.path, other.name or '')
         return NotImplemented
 
-failing_logs = []
+failing_logs: T.List[str] = []
 print_debug = 'MESON_PRINT_TEST_OUTPUT' in os.environ
 under_ci = 'CI' in os.environ
 skip_scientific = under_ci and ('SKIP_SCIENTIFIC' in os.environ)
 do_debug = under_ci or print_debug
 no_meson_log_msg = 'No meson-log.txt found.'
 
-host_c_compiler = None
-compiler_id_map = {}  # type: T.Dict[str, str]
-tool_vers_map = {}    # type: T.Dict[str, str]
+host_c_compiler: T.Optional[str]   = None
+compiler_id_map: T.Dict[str, str]  = {}
+tool_vers_map:   T.Dict[str, str]  = {}
+
+compile_commands:   T.List[str]
+clean_commands:     T.List[str]
+test_commands:      T.List[str]
+install_commands:   T.List[str]
+uninstall_commands: T.List[str]
+
+backend:      'Backend'
+backend_flags: T.List[str]
+
+stop:     bool = False
+logfile:  T.TextIO
+executor: ProcessPoolExecutor
+futures:  T.List[T.Tuple[str, TestDef, Future[T.Optional[TestResult]]]]
 
 class StopException(Exception):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__('Stopped by user')
 
-stop = False
-def stop_handler(signal, frame):
+def stop_handler(signal: signal.Signals, frame: T.Optional['FrameType']) -> None:
     global stop
     stop = True
 signal.signal(signal.SIGINT, stop_handler)
 signal.signal(signal.SIGTERM, stop_handler)
 
-def setup_commands(optbackend):
+def setup_commands(optbackend: str) -> None:
     global do_debug, backend, backend_flags
     global compile_commands, clean_commands, test_commands, install_commands, uninstall_commands
     backend, backend_flags = guess_backend(optbackend, shutil.which('msbuild'))
@@ -317,12 +351,12 @@ def validate_install(test: TestDef, installdir: Path, compiler: str, env: enviro
     # List dir content on error
     if ret_msg != '':
         ret_msg += '\nInstall dir contents:\n'
-        for i in found:
-            ret_msg += f'  - {i}\n'
+        for p in found:
+            ret_msg += f'  - {p}\n'
     return ret_msg
 
-def log_text_file(logfile, testdir, stdo, stde):
-    global stop, executor, futures
+def log_text_file(testdir: Path, stdo: str, stde: str) -> None:
+    global stop, executor, futures, logfile
     logfile.write('%s\nstdout\n\n---\n' % testdir.as_posix())
     logfile.write(stdo)
     logfile.write('\n\n---\n\nstderr\n\n---\n')
@@ -384,11 +418,11 @@ class OutputMatch:
 
 def _compare_output(expected: T.List[T.Dict[str, str]], output: str, desc: str) -> str:
     if expected:
-        matches = []
-        nomatches = []
+        matches:   T.List[OutputMatch] = []
+        nomatches: T.List[OutputMatch] = []
         for item in expected:
             how = item.get('match', 'literal')
-            expected = item.get('line')
+            expected_line = item.get('line')
             count = int(item.get('count', -1))
 
             # Simple heuristic to automatically convert path separators for
@@ -405,9 +439,9 @@ def _compare_output(expected: T.List[T.Dict[str, str]], output: str, desc: str) 
                     sub = r'\\'
                 else:
                     sub = r'\\\\'
-                expected = re.sub(r'/(?=.*(WARNING|ERROR))', sub, expected)
+                expected_line = re.sub(r'/(?=.*(WARNING|ERROR))', sub, expected_line)
 
-            m = OutputMatch(how, expected, count)
+            m = OutputMatch(how, expected_line, count)
             if count == 0:
                 nomatches.append(m)
             else:
@@ -417,9 +451,9 @@ def _compare_output(expected: T.List[T.Dict[str, str]], output: str, desc: str) 
         i = 0
         for actual in output.splitlines():
             # Verify this line does not match any unexpected lines (item.count == 0)
-            for item in nomatches:
-                if item.match(actual):
-                    return f'unexpected "{item.expected}" found in {desc}'
+            for match in nomatches:
+                if match.match(actual):
+                    return f'unexpected "{match.expected}" found in {desc}'
             # If we matched all expected lines, continue to verify there are
             # no unexpected line. If nomatches is empty then we are done already.
             if i >= len(matches):
@@ -427,9 +461,9 @@ def _compare_output(expected: T.List[T.Dict[str, str]], output: str, desc: str) 
                     break
                 continue
             # Check if this line match current expected line
-            item = matches[i]
-            if item.match(actual):
-                if item.count < 0:
+            match = matches[i]
+            if match.match(actual):
+                if match.count < 0:
                     # count was not specified, continue with next expected line,
                     # it does not matter if this line will be matched again or
                     # not.
@@ -439,9 +473,9 @@ def _compare_output(expected: T.List[T.Dict[str, str]], output: str, desc: str) 
                     # same line. If count reached 0 we continue with next
                     # expected line but remember that this one must not match
                     # anymore.
-                    item.count -= 1
-                    if item.count == 0:
-                        nomatches.append(item)
+                    match.count -= 1
+                    if match.count == 0:
+                        nomatches.append(match)
                         i += 1
 
         if i < len(matches):
@@ -458,14 +492,14 @@ def validate_output(test: TestDef, stdo: str, stde: str) -> str:
 # would be to change the code so that no state is persisted
 # but that would be a lot of work given that Meson was originally
 # coded to run as a batch process.
-def clear_internal_caches():
+def clear_internal_caches() -> None:
     import mesonbuild.interpreterbase
     from mesonbuild.dependencies import CMakeDependency
     from mesonbuild.mesonlib import PerMachine
     mesonbuild.interpreterbase.FeatureNew.feature_registry = {}
     CMakeDependency.class_cmakeinfo = PerMachine(None, None)
 
-def run_test_inprocess(testdir):
+def run_test_inprocess(testdir: str) -> T.Tuple[int, str, str, str]:
     old_stdout = sys.stdout
     sys.stdout = mystdout = StringIO()
     old_stderr = sys.stderr
@@ -524,7 +558,7 @@ def detect_parameter_files(test: TestDef, test_build_dir: str) -> T.Tuple[Path, 
 
 def run_test(test: TestDef, extra_args: T.List[str], compiler: str, backend: Backend,
             flags: T.List[str], commands: T.Tuple[T.List[str], T.List[str], T.List[str], T.List[str]],
-            should_fail: bool, use_tmp: bool) -> T.Optional[TestResult]:
+            should_fail: str, use_tmp: bool) -> T.Optional[TestResult]:
     if test.skip:
         return None
     build_dir = create_deterministic_builddir(test, use_tmp)
@@ -542,7 +576,7 @@ def run_test(test: TestDef, extra_args: T.List[str], compiler: str, backend: Bac
 def _run_test(test: TestDef, test_build_dir: str, install_dir: str,
               extra_args: T.List[str], compiler: str, backend: Backend,
               flags: T.List[str], commands: T.Tuple[T.List[str], T.List[str], T.List[str], T.List[str]],
-              should_fail: bool) -> TestResult:
+              should_fail: str) -> TestResult:
     compile_commands, clean_commands, install_commands, uninstall_commands = commands
     gen_start = time.time()
     # Configure in-process
@@ -589,7 +623,7 @@ def _run_test(test: TestDef, test_build_dir: str, install_dir: str,
     dir_args = get_backend_args_for_dir(backend, test_build_dir)
 
     # Build with subprocess
-    def build_step():
+    def build_step() -> None:
         build_start = time.time()
         pc, o, e = Popen_safe(compile_commands + dir_args, cwd=test_build_dir)
         testresult.add_step(BuildStep.build, o, e, '', time.time() - build_start)
@@ -603,7 +637,7 @@ def _run_test(test: TestDef, test_build_dir: str, install_dir: str,
             raise testresult
 
     # Touch the meson.build file to force a regenerate
-    def force_regenerate():
+    def force_regenerate() -> None:
         ensure_backend_detects_changes(backend)
         os.utime(str(test.path / 'meson.build'))
 
@@ -797,7 +831,7 @@ def gather_tests(testdir: Path, stdout_mandatory: bool, only: T.List[str]) -> T.
     return sorted(all_tests)
 
 
-def have_d_compiler():
+def have_d_compiler() -> bool:
     if shutil.which("ldc2"):
         return True
     elif shutil.which("ldc"):
@@ -848,7 +882,7 @@ def have_objcpp_compiler(use_tmp: bool) -> bool:
             return False
     return True
 
-def have_java():
+def have_java() -> bool:
     if shutil.which('javac') and shutil.which('java'):
         return True
     return False
@@ -927,7 +961,7 @@ def skippable(suite: str, test: str) -> bool:
     # Other framework tests are allowed to be skipped on other platforms
     return True
 
-def skip_csharp(backend) -> bool:
+def skip_csharp(backend: Backend) -> bool:
     if backend is not Backend.ninja:
         return True
     if not shutil.which('resgen'):
@@ -1059,9 +1093,9 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
     global stop, executor, futures, host_c_compiler
     xmlname = log_name_base + '.xml'
     junit_root = ET.Element('testsuites')
-    conf_time = 0
-    build_time = 0
-    test_time = 0
+    conf_time:  float = 0
+    build_time: float = 0
+    test_time:  float = 0
     passing_tests = 0
     failing_tests = 0
     skipped_tests = 0
@@ -1099,7 +1133,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
             testname = '%.3d %s' % (int(testnum), testbase)
             if t.name:
                 testname += f' ({t.name})'
-            should_fail = False
+            should_fail = ''
             suite_args = []
             if name.startswith('failing'):
                 should_fail = name.split('failing-')[1]
@@ -1108,13 +1142,13 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
                 should_fail = name.split('warning-')[1]
 
             t.skip = skipped or t.skip
-            result = executor.submit(run_test, t, extra_args + suite_args + t.args,
-                                     host_c_compiler, backend, backend_flags, commands, should_fail, use_tmp)
-            futures.append((testname, t, result))
-        for (testname, t, result) in futures:
+            result_future = executor.submit(run_test, t, extra_args + suite_args + t.args,
+                                            host_c_compiler, backend, backend_flags, commands, should_fail, use_tmp)
+            futures.append((testname, t, result_future))
+        for (testname, t, result_future) in futures:
             sys.stdout.flush()
             try:
-                result = result.result()
+                result = result_future.result()
             except CancelledError:
                 continue
             if (result is None) or (('MESON_SKIP_TEST' in result.stdo) and (skippable(name, t.path.as_posix()))):
@@ -1156,7 +1190,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
                 build_time += result.buildtime
                 test_time += result.testtime
                 total_time = conf_time + build_time + test_time
-                log_text_file(logfile, t.path, result.stdo, result.stde)
+                log_text_file(t.path, result.stdo, result.stde)
                 current_test = ET.SubElement(current_suite, 'testcase', {'name': testname,
                                                                          'classname': name,
                                                                          'time': '%.3f' % total_time})
@@ -1176,7 +1210,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
     ET.ElementTree(element=junit_root).write(xmlname, xml_declaration=True, encoding='UTF-8')
     return passing_tests, failing_tests, skipped_tests
 
-def check_file(file: Path):
+def check_file(file: Path) -> None:
     lines = file.read_bytes().split(b'\n')
     tabdetector = re.compile(br' *\t')
     for i, line in enumerate(lines):
@@ -1185,7 +1219,7 @@ def check_file(file: Path):
         if line.endswith(b'\r'):
             raise SystemExit("File {} contains DOS line ending on line {:d}. Only unix-style line endings are permitted.".format(file, i + 1))
 
-def check_format():
+def check_format() -> None:
     check_suffixes = {'.c',
                       '.cpp',
                       '.cxx',
@@ -1223,7 +1257,7 @@ def check_format():
                     continue
                 check_file(root / file)
 
-def check_meson_commands_work(options):
+def check_meson_commands_work(options: argparse.Namespace) -> None:
     global backend, compile_commands, test_commands, install_commands
     testdir = PurePath('test cases', 'common', '1 trivial').as_posix()
     meson_commands = mesonlib.python_command + [get_meson_script()]
@@ -1254,7 +1288,7 @@ def check_meson_commands_work(options):
                 raise RuntimeError(f'Failed to install {testdir!r}:\n{e}\n{o}')
 
 
-def detect_system_compiler(options):
+def detect_system_compiler(options: 'CompilerArgumentType') -> None:
     global host_c_compiler, compiler_id_map
 
     with TemporaryDirectoryWinProof(prefix='b ', dir=None if options.use_tmpdir else '.') as build_dir:
@@ -1286,7 +1320,7 @@ def detect_system_compiler(options):
                     raise RuntimeError("Could not find C compiler.")
 
 
-def print_compilers(env, machine):
+def print_compilers(env: 'Environment', machine: MachineChoice) -> None:
     print()
     print(f'{machine.get_lower_case_name()} machine compilers')
     print()
@@ -1298,44 +1332,49 @@ def print_compilers(env, machine):
             details = '[not found]'
         print(f'{lang:<7}: {details}')
 
+class ToolInfo(T.NamedTuple):
+    tool: str
+    args: T.List[str]
+    regex: T.Pattern
+    match_group: int
 
-def print_tool_versions():
-    tools = [
-        {
-            'tool': 'ninja',
-            'args': ['--version'],
-            'regex': re.compile(r'^([0-9]+(\.[0-9]+)*(-[a-z0-9]+)?)$'),
-            'match_group': 1,
-        },
-        {
-            'tool': 'cmake',
-            'args': ['--version'],
-            'regex': re.compile(r'^cmake version ([0-9]+(\.[0-9]+)*(-[a-z0-9]+)?)$'),
-            'match_group': 1,
-        },
-        {
-            'tool': 'hotdoc',
-            'args': ['--version'],
-            'regex': re.compile(r'^([0-9]+(\.[0-9]+)*(-[a-z0-9]+)?)$'),
-            'match_group': 1,
-        },
+def print_tool_versions() -> None:
+    tools: T.List[ToolInfo] = [
+        ToolInfo(
+            'ninja',
+            ['--version'],
+            re.compile(r'^([0-9]+(\.[0-9]+)*(-[a-z0-9]+)?)$'),
+            1,
+        ),
+        ToolInfo(
+            'cmake',
+            ['--version'],
+            re.compile(r'^cmake version ([0-9]+(\.[0-9]+)*(-[a-z0-9]+)?)$'),
+            1,
+        ),
+        ToolInfo(
+            'hotdoc',
+            ['--version'],
+            re.compile(r'^([0-9]+(\.[0-9]+)*(-[a-z0-9]+)?)$'),
+            1,
+        ),
     ]
 
-    def get_version(t: dict) -> str:
-        exe = shutil.which(t['tool'])
+    def get_version(t: ToolInfo) -> str:
+        exe = shutil.which(t.tool)
         if not exe:
             return 'not found'
 
-        args = [t['tool']] + t['args']
+        args = [t.tool] + t.args
         pc, o, e = Popen_safe(args)
         if pc.returncode != 0:
-            return '{} (invalid {} executable)'.format(exe, t['tool'])
+            return '{} (invalid {} executable)'.format(exe, t.tool)
         for i in o.split('\n'):
             i = i.strip('\n\r\t ')
-            m = t['regex'].match(i)
+            m = t.regex.match(i)
             if m is not None:
-                tool_vers_map[t['tool']] = m.group(t['match_group'])
-                return '{} ({})'.format(exe, m.group(t['match_group']))
+                tool_vers_map[t.tool] = m.group(t.match_group)
+                return '{} ({})'.format(exe, m.group(t.match_group))
 
         return f'{exe} (unknown)'
 
@@ -1343,16 +1382,16 @@ def print_tool_versions():
     print('tools')
     print()
 
-    max_width = max([len(x['tool']) for x in tools] + [7])
+    max_width = max([len(x.tool) for x in tools] + [7])
     for tool in tools:
-        print('{0:<{2}}: {1}'.format(tool['tool'], get_version(tool), max_width))
+        print('{0:<{2}}: {1}'.format(tool.tool, get_version(tool), max_width))
     print()
 
-def clear_transitive_files():
+def clear_transitive_files() -> None:
     a = Path('test cases/common')
     for d in a.glob('*subproject subdir/subprojects/subsubsub*'):
         if d.is_dir():
-            mesonlib.windows_proof_rmtree(d)
+            mesonlib.windows_proof_rmtree(str(d))
         else:
             mesonlib.windows_proof_rm(str(d))
 
@@ -1371,7 +1410,7 @@ if __name__ == '__main__':
     parser.add_argument('--cross-file', action='store', help='File describing cross compilation environment.')
     parser.add_argument('--native-file', action='store', help='File describing native compilation environment.')
     parser.add_argument('--use-tmpdir', action='store_true', help='Use tmp directory for temporary files.')
-    options = parser.parse_args()
+    options = T.cast('ArgumentType', parser.parse_args())
 
     if options.cross_file:
         options.extra_args += ['--cross-file', options.cross_file]
@@ -1391,7 +1430,7 @@ if __name__ == '__main__':
     if script_dir != '':
         os.chdir(script_dir)
     check_format()
-    check_meson_commands_work(options)
+    check_meson_commands_work(options.use_tmpdir, options.extra_args)
     only = collections.defaultdict(list)
     for i in options.only:
         try:
