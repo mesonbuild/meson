@@ -330,12 +330,12 @@ def platform_fix_name(fname: str, canonical_compiler: str, env: environment.Envi
 
     return fname
 
-def validate_install(test: TestDef, installdir: Path, compiler: str, env: environment.Environment) -> str:
+def validate_install(test: TestDef, installdir: Path, env: environment.Environment) -> str:
     ret_msg = ''
     expected_raw = []  # type: T.List[Path]
     for i in test.installed_files:
         try:
-            expected_raw += i.get_paths(compiler, env, installdir)
+            expected_raw += i.get_paths(host_c_compiler, env, installdir)
         except RuntimeError as err:
             ret_msg += f'Expected path error: {err}\n'
     expected = {x: False for x in expected_raw}
@@ -551,12 +551,31 @@ def detect_parameter_files(test: TestDef, test_build_dir: str) -> T.Tuple[Path, 
 
     return nativefile, crossfile
 
+# In previous python versions the global variables are lost in ProcessPoolExecutor.
+# So, we use this tuple to restore some of them
+class GlobalState(T.NamedTuple):
+    compile_commands:   T.List[str]
+    clean_commands:     T.List[str]
+    test_commands:      T.List[str]
+    install_commands:   T.List[str]
+    uninstall_commands: T.List[str]
+
+    backend:      'Backend'
+    backend_flags: T.List[str]
+
+    host_c_compiler: T.Optional[str]
+
 def run_test(test: TestDef,
              extra_args: T.List[str],
              should_fail: str,
-             use_tmp: bool) -> T.Optional[TestResult]:
+             use_tmp: bool,
+             state: T.Optional[GlobalState] = None) -> T.Optional[TestResult]:
     if test.skip:
         return None
+    # Unpack the global state
+    global compile_commands, clean_commands, test_commands, install_commands, uninstall_commands, backend, backend_flags, host_c_compiler
+    if state is not None:
+        compile_commands, clean_commands, test_commands, install_commands, uninstall_commands, backend, backend_flags, host_c_compiler = state
     build_dir = create_deterministic_builddir(test, use_tmp)
     try:
         with TemporaryDirectoryWinProof(prefix='i ', dir=None if use_tmp else os.getcwd()) as install_dir:
@@ -684,7 +703,7 @@ def _run_test(test: TestDef,
     testresult.add_step(BuildStep.install, '', '')
     if not install_commands:
         return testresult
-    install_msg = validate_install(test, Path(install_dir), host_c_compiler, builddata.environment)
+    install_msg = validate_install(test, Path(install_dir), builddata.environment)
     if install_msg:
         testresult.fail('\n' + install_msg)
         return testresult
@@ -1152,6 +1171,9 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
     skipped_tests = 0
 
     print(f'\nRunning tests with {num_workers} workers')
+
+    # Pack the global state
+    state = (compile_commands, clean_commands, test_commands, install_commands, uninstall_commands, backend, backend_flags, host_c_compiler)
     executor = ProcessPoolExecutor(max_workers=num_workers)
 
     futures: T.List[RunFutureUnion] = []
@@ -1180,7 +1202,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
                 should_fail = name.split('warning-')[1]
 
             t.skip = skipped or t.skip
-            result_future = executor.submit(run_test, t, extra_args + suite_args + t.args, should_fail, use_tmp)
+            result_future = executor.submit(run_test, t, extra_args + suite_args + t.args, should_fail, use_tmp, state=state)
             futures += [TestRunFuture(testname, t, result_future)]
 
     # Ensure we only cancel once
