@@ -149,7 +149,7 @@ if mesonlib.is_windows() or mesonlib.is_cygwin():
 else:
     exe_suffix = ''
 
-def get_meson_script():
+def get_meson_script() -> str:
     '''
     Guess the meson that corresponds to the `mesonbuild` that has been imported
     so we can run configure and other commands in-process, since mesonmain.run
@@ -171,7 +171,7 @@ def get_meson_script():
         return meson_cmd
     raise RuntimeError(f'Could not find {meson_script!r} or a meson in PATH')
 
-def get_backend_args_for_dir(backend, builddir):
+def get_backend_args_for_dir(backend: Backend, builddir: str) -> T.List[str]:
     '''
     Visual Studio backend needs to be given the solution to build
     '''
@@ -195,7 +195,7 @@ def find_vcxproj_with_target(builddir, target):
                     return f
     raise RuntimeError(f'No vcxproj matching {p!r} in {builddir!r}')
 
-def get_builddir_target_args(backend, builddir, target):
+def get_builddir_target_args(backend: Backend, builddir, target):
     dir_args = []
     if not target:
         dir_args = get_backend_args_for_dir(backend, builddir)
@@ -240,7 +240,7 @@ def get_backend_commands(backend: Backend, debug: bool = False) -> \
         raise AssertionError(f'Unknown backend: {backend!r}')
     return cmd, clean_cmd, test_cmd, install_cmd, uninstall_cmd
 
-def ensure_backend_detects_changes(backend):
+def ensure_backend_detects_changes(backend: Backend) -> None:
     global NINJA_1_9_OR_NEWER
     if backend is not Backend.ninja:
         return
@@ -255,20 +255,20 @@ def ensure_backend_detects_changes(backend):
     if need_workaround:
         time.sleep(1)
 
-def run_mtest_inprocess(commandlist):
+def run_mtest_inprocess(commandlist: T.List[str]) -> T.Tuple[int, str, str]:
     stderr = StringIO()
     stdout = StringIO()
     with mock.patch.object(sys, 'stdout', stdout), mock.patch.object(sys, 'stderr', stderr):
         returncode = mtest.run_with_args(commandlist)
     return returncode, stdout.getvalue(), stderr.getvalue()
 
-def clear_meson_configure_class_caches():
+def clear_meson_configure_class_caches() -> None:
     compilers.CCompiler.find_library_cache = {}
     compilers.CCompiler.find_framework_cache = {}
     dependencies.PkgConfigDependency.pkgbin_cache = {}
     dependencies.PkgConfigDependency.class_pkgbin = mesonlib.PerMachine(None, None)
 
-def run_configure_inprocess(commandlist, env=None):
+def run_configure_inprocess(commandlist: T.List[str], env: T.Optional[T.Dict[str, str]] = None) -> T.Tuple[int, str, str]:
     stderr = StringIO()
     stdout = StringIO()
     with mock.patch.dict(os.environ, env or {}), mock.patch.object(sys, 'stdout', stdout), mock.patch.object(sys, 'stderr', stderr):
@@ -278,11 +278,11 @@ def run_configure_inprocess(commandlist, env=None):
             clear_meson_configure_class_caches()
     return returncode, stdout.getvalue(), stderr.getvalue()
 
-def run_configure_external(full_command, env=None):
+def run_configure_external(full_command: T.List[str], env: T.Optional[T.Dict[str, str]] = None) -> T.Tuple[int, str, str]:
     pc, o, e = mesonlib.Popen_safe(full_command, env=env)
     return pc.returncode, o, e
 
-def run_configure(commandlist, env=None):
+def run_configure(commandlist: T.List[str], env: T.Optional[T.Dict[str, str]] = None) -> T.Tuple[int, str, str]:
     global meson_exe
     if meson_exe:
         return run_configure_external(meson_exe + commandlist, env=env)

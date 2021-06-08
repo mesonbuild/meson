@@ -39,6 +39,7 @@ modules = [
     'mesonbuild/programs.py',
 
     'run_mypy.py',
+    'run_project_tests.py',
     'run_single_test.py',
     'tools'
 ]
