@@ -1955,7 +1955,10 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     @FeatureNewKwargs('benchmark', '0.46.0', ['depends'])
     @FeatureNewKwargs('benchmark', '0.52.0', ['priority'])
     @permittedKwargs(permitted_test_kwargs)
-    def func_benchmark(self, node, args, kwargs):
+    @typed_pos_args('benchmark', str, (ExecutableHolder, JarHolder, ExternalProgramHolder, mesonlib.File))
+    def func_benchmark(self, node: mparser.FunctionNode,
+                       args: T.Tuple[str, T.Union[ExecutableHolder, JarHolder, ExternalProgramHolder, mesonlib.File]],
+                       kwargs) -> None:
         # is_parallel isn't valid here, so make sure it isn't passed
         if 'is_parallel' in kwargs:
             del kwargs['is_parallel']
@@ -1964,7 +1967,10 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     @FeatureNewKwargs('test', '0.46.0', ['depends'])
     @FeatureNewKwargs('test', '0.52.0', ['priority'])
     @permittedKwargs(permitted_test_kwargs | {'is_parallel'})
-    def func_test(self, node, args, kwargs):
+    @typed_pos_args('test', str, (ExecutableHolder, JarHolder, ExternalProgramHolder, mesonlib.File))
+    def func_test(self, node: mparser.FunctionNode,
+                  args: T.Tuple[str, T.Union[ExecutableHolder, JarHolder, ExternalProgramHolder, mesonlib.File]],
+                  kwargs) -> None:
         if kwargs.get('protocol') == 'gtest':
             FeatureNew.single_use('"gtest" protocol for tests', '0.55.0', self.subproject)
         self.add_test(node, args, kwargs, True)
@@ -1983,22 +1989,18 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             env = env.held_object
         return env
 
-    def make_test(self, node: mparser.BaseNode, args: T.List, kwargs: T.Dict[str, T.Any]):
-        if len(args) != 2:
-            raise InterpreterException('test expects 2 arguments, {} given'.format(len(args)))
+    def make_test(self, node: mparser.FunctionNode,
+                  args: T.Tuple[str, T.Union[ExecutableHolder, JarHolder, ExternalProgramHolder, mesonlib.File]],
+                  kwargs: T.Dict[str, T.Any]) -> Test:
         name = args[0]
-        if not isinstance(name, str):
-            raise InterpreterException('First argument of test must be a string.')
         if ':' in name:
             mlog.deprecation(f'":" is not allowed in test name "{name}", it has been replaced with "_"',
                              location=node)
             name = name.replace(':', '_')
         exe = args[1]
-        if not isinstance(exe, (ExecutableHolder, JarHolder, ExternalProgramHolder)):
-            if isinstance(exe, mesonlib.File):
-                exe = self.func_find_program(node, args[1], {})
-            else:
-                raise InterpreterException('Second argument must be executable.')
+        if isinstance(exe, mesonlib.File):
+            exe = self.func_find_program(node, args[1], {})
+
         par = kwargs.get('is_parallel', True)
         if not isinstance(par, bool):
             raise InterpreterException('Keyword argument is_parallel must be a boolean.')

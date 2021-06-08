@@ -130,9 +130,11 @@ class RustModule(ExtensionModule):
             new_target_kwargs
         )
 
+        assert isinstance(self.interpreter.current_node, mparser.FunctionNode), 'for mypy'
+
         e = ExecutableHolder(new_target, self.interpreter)
         test = self.interpreter.make_test(
-            self.interpreter.current_node, [name, e], kwargs)
+            self.interpreter.current_node, (name, e), kwargs)
 
         return ModuleReturnValue(None, [e, test])
 
