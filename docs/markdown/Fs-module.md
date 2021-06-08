@@ -3,6 +3,10 @@
 This module provides functions to inspect the file system. It is
 available starting with version 0.53.0.
 
+Since 0.59.0, all functions accept `files()` objects if they can do something
+useful with them (this excludes `exists`, `is_dir`, `is_file`, `is_absolute`
+since a `files()` object is always the absolute path to an existing file).
+
 ## File lookup rules
 
 Non-absolute paths are looked up relative to the directory where the
@@ -35,8 +39,8 @@ name exists on the file system.
 
 ### is_symlink
 
-Takes a single string argument and returns true if the path pointed to
-by the string is a symbolic link.
+Takes a single string or (since 0.59.0) `files()` argument and returns true if
+the path pointed to by the string is a symbolic link.
 
 ## File Parameters
 
@@ -44,7 +48,8 @@ by the string is a symbolic link.
 
 *since 0.54.0*
 
-Return a boolean indicating if the path string specified is absolute, WITHOUT expanding `~`.
+Return a boolean indicating if the path string or (since 0.59.0) `files()`
+specified is absolute, WITHOUT expanding `~`.
 
 Examples:
 
