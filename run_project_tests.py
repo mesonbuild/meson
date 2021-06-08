@@ -1088,6 +1088,11 @@ class TestStatus(Enum):
     RUNNING = blue(' [RUNNING] ')  # Should never be actually printed
     LOG = bold('   [LOG]   ')      # Should never be actually printed
 
+def default_print(*args: mlog.TV_Loggable, sep: str = ' ') -> None:
+    print(*args, sep=sep)
+
+safe_print = default_print
+
 class TestRunFuture:
     def __init__(self, name: str, testdef: TestDef, future: 'Future[T.Optional[TestResult]]') -> None:
         super().__init__()
@@ -1102,7 +1107,7 @@ class TestRunFuture:
 
     def log(self) -> None:
         without_install = '' if install_commands else '(without install)'
-        print(self.status.value, without_install, *self.testdef.display_name())
+        safe_print(self.status.value, without_install, *self.testdef.display_name())
 
     def update_log(self, new_status: TestStatus) -> None:
         self.status = new_status
@@ -1118,10 +1123,12 @@ class LogRunFuture:
         self.status = TestStatus.LOG
 
     def log(self) -> None:
-        print(*self.msgs, sep='')
+        safe_print(*self.msgs, sep='')
 
     def cancel(self) -> None:
         pass
+
+RunFutureUnion = T.Union[TestRunFuture, LogRunFuture]
 
 def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
                log_name_base: str,
@@ -1155,7 +1162,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
         num_workers *= 2
     executor = ProcessPoolExecutor(max_workers=num_workers)
 
-    futures: T.List[T.Union[TestRunFuture, LogRunFuture]] = []
+    futures: T.List[RunFutureUnion] = []
 
     # First, collect and start all tests and also queue log messages
     for name, test_cases, skipped in all_tests:
@@ -1187,8 +1194,21 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
     # Ensure we only cancel once
     tests_canceled = False
 
+    global safe_print
+    futures_iter: T.Iterable[RunFutureUnion] = futures
+    try:
+        from tqdm import tqdm
+        futures_iter = tqdm(futures, desc='Running tests', unit='test')
+
+        def tqdm_print(*args: mlog.TV_Loggable, sep: str = ' ') -> None:
+            tqdm.write(sep.join([str(x) for x in args]))
+
+        safe_print = tqdm_print
+    except ImportError:
+        pass
+
     # Wait and handle the test results and print the stored log output
-    for f in futures:
+    for f in futures_iter:
         # Just a log entry to print something to stdout
         sys.stdout.flush()
         if isinstance(f, LogRunFuture):
@@ -1204,13 +1224,13 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
             f.status = TestStatus.CANCELED
 
         if stop and not tests_canceled:
-            num_running = sum([1 if f.status is TestStatus.RUNNING  else 0 for f in futures])
+            num_running = sum([1 if f2.status is TestStatus.RUNNING  else 0 for f2 in futures])
             for f2 in futures:
                 f2.cancel()
             executor.shutdown()
-            num_canceled = sum([1 if f.status is TestStatus.CANCELED else 0 for f in futures])
-            print(f'\nCanceled {num_canceled} out of {num_running} running tests.')
-            print(f'Finishing the remaining {num_running - num_canceled} tests.\n')
+            num_canceled = sum([1 if f2.status is TestStatus.CANCELED else 0 for f2 in futures])
+            safe_print(f'\nCanceled {num_canceled} out of {num_running} running tests.')
+            safe_print(f'Finishing the remaining {num_running - num_canceled} tests.\n')
             tests_canceled = True
 
         # Handle canceled tests
@@ -1229,8 +1249,8 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
         # Handle Failed tests
         if result.msg != '':
             f.update_log(TestStatus.ERROR)
-            print(bold('During:'), result.step.name)
-            print(bold('Reason:'), result.msg)
+            safe_print(bold('During:'), result.step.name)
+            safe_print(bold('Reason:'), result.msg)
             failing_tests += 1
             if result.step == BuildStep.configure and result.mlog != no_meson_log_msg:
                 # For configure failures, instead of printing stdout,
@@ -1249,9 +1269,9 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
                 failing_logs.append(cmd_res)
             failing_logs.append(result.stde)
             if failfast:
-                print("Cancelling the rest of the tests")
-                for f in futures:
-                    f.cancel()
+                safe_print("Cancelling the rest of the tests")
+                for f2 in futures:
+                    f2.cancel()
         else:
             f.update_log(TestStatus.OK)
             passing_tests += 1
@@ -1271,6 +1291,9 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
         stdoel.text = result.stdo
         stdeel = ET.SubElement(current_test, 'system-err')
         stdeel.text = result.stde
+
+    # Reset, just in case
+    safe_print = default_print
 
     print()
     print("Total configuration time: %.2fs" % conf_time)
