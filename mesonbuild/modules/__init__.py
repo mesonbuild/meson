@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This file contains the detection logic for external dependencies that
-# are UI-related.
+# This file contains the base representation for import('modname')
 
 import os
 import typing as T
