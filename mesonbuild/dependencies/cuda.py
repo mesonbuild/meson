@@ -285,8 +285,6 @@ class CudaDependency(ExternalDependency):
     def get_link_args(self, language: T.Optional[str] = None, raw: bool = False) -> T.List[str]:
         args = []
         if self.libdir:
-            from ..compilers import CLikeCompiler
-            assert isinstance(self.clib_compiler, CLikeCompiler)
             args += self.clib_compiler.get_linker_search_args(self.libdir)
         for lib in self.requested_modules:
             args += self.lib_modules[lib]

@@ -31,7 +31,7 @@ from .configtool import ConfigToolDependency
 from .pkgconfig import PkgConfigDependency
 from .factory import DependencyFactory
 from .misc import threads_factory
-from ..compilers import AppleClangCCompiler, AppleClangCPPCompiler, CLikeCompiler
+from ..compilers import AppleClangCCompiler, AppleClangCPPCompiler
 
 if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
@@ -261,7 +261,6 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
                 new_args.append(arg.lstrip('-l'))
             elif arg.startswith('-LIBPATH:'):
                 cpp = self.env.coredata.compilers[self.for_machine]['cpp']
-                assert isinstance(cpp, CLikeCompiler)
                 new_args.extend(cpp.get_linker_search_args(arg.lstrip('-LIBPATH:')))
             else:
                 new_args.append(arg)

@@ -586,6 +586,9 @@ class Compiler(metaclass=abc.ABCMeta):
     def get_linker_output_args(self, outputname: str) -> T.List[str]:
         return self.linker.get_output_args(outputname)
 
+    def get_linker_search_args(self, dirname: str) -> T.List[str]:
+        return self.linker.get_search_args(dirname)
+
     def get_builtin_define(self, define: str) -> T.Optional[str]:
         raise EnvironmentException('%s does not support get_builtin_define.' % self.id)
 
@@ -1050,6 +1053,22 @@ class Compiler(metaclass=abc.ABCMeta):
     def get_library_dirs(self, env: 'Environment',
                          elf_class: T.Optional[int] = None) -> T.List[str]:
         return []
+
+    def get_return_value(self,
+                         fname: str,
+                         rtype: str,
+                         prefix: str,
+                         env: 'Environment',
+                         extra_args: T.Optional[T.List[str]],
+                         dependencies: T.Optional[T.List['Dependency']]) -> T.Union[str, int]:
+        raise EnvironmentException(f'{self.id} does not support get_return_value')
+
+    def find_framework(self,
+                       name: str,
+                       env: 'Environment',
+                       extra_dirs: T.List[str],
+                       allow_system: bool = True) -> T.Optional[T.List[str]]:
+        raise EnvironmentException(f'{self.id} does not support find_framework')
 
     def find_framework_paths(self, env: 'Environment') -> T.List[str]:
         raise EnvironmentException(f'{self.id} does not support find_framework_paths')

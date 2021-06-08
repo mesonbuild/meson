@@ -273,9 +273,6 @@ class CLikeCompiler(Compiler):
     def get_pch_name(self, header_name: str) -> str:
         return os.path.basename(header_name) + '.' + self.get_pch_suffix()
 
-    def get_linker_search_args(self, dirname: str) -> T.List[str]:
-        return self.linker.get_search_args(dirname)
-
     def get_default_include_dirs(self) -> T.List[str]:
         return []
 
