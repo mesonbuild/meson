@@ -188,17 +188,24 @@ known_build_target_kwargs = (
     {'target_type'}
 )
 
-permitted_test_kwargs = {
-    'args',
-    'depends',
-    'env',
-    'priority',
-    'protocol',
-    'should_fail',
-    'suite',
-    'timeout',
-    'workdir',
-}
+TEST_KWARGS: T.List[KwargInfo] = [
+    KwargInfo('args', ContainerTypeInfo(list, (str, mesonlib.File, TargetHolder)),
+              listify=True, default=[]),
+    KwargInfo('should_fail', bool, default=False),
+    KwargInfo('timeout', int, default=30),
+    KwargInfo('workdir', str, default=None,
+              validator=lambda x: 'must be an absolute path' if not os.path.isabs(x) else None),
+    KwargInfo('protocol', str,
+              default='exitcode',
+              validator=lambda x: 'value must be one of "exitcode", "tap", "gtest", "rust"' if x not in {'exitcode', 'tap', 'gtest', 'rust'} else None,
+              since_values={'gtest': '0.55.0', 'rust': '0.57.0'}),
+    KwargInfo('depends', ContainerTypeInfo(list, (CustomTargetHolder, BuildTargetHolder)),
+              listify=True, default=[], since='0.46.0'),
+    KwargInfo('priority', int, default=0, since='0.52.0'),
+    # TODO: env needs reworks of the way the environment variable holder itself works probably
+    KwargInfo('env', (EnvironmentVariablesHolder, list, dict, str)),
+    KwargInfo('suite', ContainerTypeInfo(list, str), listify=True, default=['']),  # yes, a list of empty string
+]
 
 permitted_dependency_kwargs = {
     'allow_fallback',
@@ -1952,30 +1959,21 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         self.generators.append(gen)
         return gen
 
-    @FeatureNewKwargs('benchmark', '0.46.0', ['depends'])
-    @FeatureNewKwargs('benchmark', '0.52.0', ['priority'])
-    @permittedKwargs(permitted_test_kwargs)
     @typed_pos_args('benchmark', str, (ExecutableHolder, JarHolder, ExternalProgramHolder, mesonlib.File))
-    def func_benchmark(self, node: mparser.FunctionNode,
+    @typed_kwargs('benchmark', *TEST_KWARGS)
+    def func_benchmark(self, node: mparser.BaseNode,
                        args: T.Tuple[str, T.Union[ExecutableHolder, JarHolder, ExternalProgramHolder, mesonlib.File]],
-                       kwargs) -> None:
-        # is_parallel isn't valid here, so make sure it isn't passed
-        if 'is_parallel' in kwargs:
-            del kwargs['is_parallel']
+                       kwargs: 'kwargs.FuncBenchmark') -> None:
         self.add_test(node, args, kwargs, False)
 
-    @FeatureNewKwargs('test', '0.46.0', ['depends'])
-    @FeatureNewKwargs('test', '0.52.0', ['priority'])
-    @permittedKwargs(permitted_test_kwargs | {'is_parallel'})
     @typed_pos_args('test', str, (ExecutableHolder, JarHolder, ExternalProgramHolder, mesonlib.File))
-    def func_test(self, node: mparser.FunctionNode,
+    @typed_kwargs('benchmark', *TEST_KWARGS, KwargInfo('is_parallel', bool, default=True))
+    def func_test(self, node: mparser.BaseNode,
                   args: T.Tuple[str, T.Union[ExecutableHolder, JarHolder, ExternalProgramHolder, mesonlib.File]],
-                  kwargs) -> None:
-        if kwargs.get('protocol') == 'gtest':
-            FeatureNew.single_use('"gtest" protocol for tests', '0.55.0', self.subproject)
+                  kwargs: 'kwargs.FuncTest') -> None:
         self.add_test(node, args, kwargs, True)
 
-    def unpack_env_kwarg(self, kwargs) -> build.EnvironmentVariables:
+    def unpack_env_kwarg(self, kwargs: T.Union[EnvironmentVariablesHolder, T.Dict[str, str], T.List[str]]) -> build.EnvironmentVariables:
         envlist = kwargs.get('env', EnvironmentVariablesHolder())
         if isinstance(envlist, EnvironmentVariablesHolder):
             env = envlist.held_object
@@ -1989,9 +1987,9 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             env = env.held_object
         return env
 
-    def make_test(self, node: mparser.FunctionNode,
+    def make_test(self, node: mparser.BaseNode,
                   args: T.Tuple[str, T.Union[ExecutableHolder, JarHolder, ExternalProgramHolder, mesonlib.File]],
-                  kwargs: T.Dict[str, T.Any]) -> Test:
+                  kwargs: 'kwargs.BaseTest') -> Test:
         name = args[0]
         if ':' in name:
             mlog.deprecation(f'":" is not allowed in test name "{name}", it has been replaced with "_"',
@@ -2001,48 +1999,32 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         if isinstance(exe, mesonlib.File):
             exe = self.func_find_program(node, args[1], {})
 
-        par = kwargs.get('is_parallel', True)
-        if not isinstance(par, bool):
-            raise InterpreterException('Keyword argument is_parallel must be a boolean.')
-        cmd_args = unholder(extract_as_list(kwargs, 'args'))
-        for i in cmd_args:
-            if not isinstance(i, (str, mesonlib.File, build.Target)):
-                raise InterpreterException('Command line arguments must be strings, files or targets.')
         env = self.unpack_env_kwarg(kwargs)
-        should_fail = kwargs.get('should_fail', False)
-        if not isinstance(should_fail, bool):
-            raise InterpreterException('Keyword argument should_fail must be a boolean.')
-        timeout = kwargs.get('timeout', 30)
-        if not isinstance(timeout, int):
-            raise InterpreterException('Timeout must be an integer.')
-        if timeout <= 0:
-            FeatureNew('test() timeout <= 0', '0.57.0').use(self.subproject)
-        if 'workdir' in kwargs:
-            workdir = kwargs['workdir']
-            if not isinstance(workdir, str):
-                raise InterpreterException('Workdir keyword argument must be a string.')
-            if not os.path.isabs(workdir):
-                raise InterpreterException('Workdir keyword argument must be an absolute path.')
-        else:
-            workdir = None
-        protocol = kwargs.get('protocol', 'exitcode')
-        if protocol not in {'exitcode', 'tap', 'gtest', 'rust'}:
-            raise InterpreterException('Protocol must be one of "exitcode", "tap", "gtest", or "rust".')
-        suite = []
+
+        if kwargs['timeout'] <= 0:
+            FeatureNew.single_use('test() timeout <= 0', '0.57.0', self.subproject)
+
         prj = self.subproject if self.is_subproject() else self.build.project_name
-        for s in mesonlib.stringlistify(kwargs.get('suite', '')):
-            if len(s) > 0:
+
+        suite: T.List[str] = []
+        for s in kwargs['suite']:
+            if s:
                 s = ':' + s
             suite.append(prj.replace(' ', '_').replace(':', '_') + s)
-        depends = unholder(extract_as_list(kwargs, 'depends'))
-        for dep in depends:
-            if not isinstance(dep, (build.CustomTarget, build.BuildTarget)):
-                raise InterpreterException('Depends items must be build targets.')
-        priority = kwargs.get('priority', 0)
-        if not isinstance(priority, int):
-            raise InterpreterException('Keyword argument priority must be an integer.')
-        return Test(name, prj, suite, exe.held_object, depends, par, cmd_args,
-                    env, should_fail, timeout, workdir, protocol, priority)
+
+        return Test(name,
+                    prj,
+                    suite,
+                    exe.held_object,
+                    [d.held_object for d in kwargs['depends']],
+                    kwargs.get('is_parallel', False),
+                    [c.held_object if isinstance(c, ObjectHolder) else c for c in kwargs['args']],
+                    env,
+                    kwargs['should_fail'],
+                    kwargs['timeout'],
+                    kwargs['workdir'],
+                    kwargs['protocol'],
+                    kwargs['priority'])
 
     def add_test(self, node: mparser.BaseNode, args: T.List, kwargs: T.Dict[str, T.Any], is_base_test: bool):
         t = self.make_test(node, args, kwargs)

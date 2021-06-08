@@ -18,16 +18,28 @@ import typing as T
 from . import ExtensionModule, ModuleReturnValue
 from .. import mlog
 from ..build import BuildTarget, CustomTargetIndex, Executable, GeneratedList, InvalidArguments, IncludeDirs, CustomTarget
-from ..dependencies import Dependency, ExternalLibrary
-from ..interpreter import ExecutableHolder, BuildTargetHolder, CustomTargetHolder, permitted_test_kwargs
-from ..interpreterbase import InterpreterException, permittedKwargs, FeatureNew, typed_pos_args, noPosargs
+from ..interpreter.interpreter import TEST_KWARGS
+from ..interpreter.interpreterobjects import (
+    BuildTargetHolder,
+    CustomTargetHolder,
+    DependencyHolder,
+    ExecutableHolder,
+    ExternalLibraryHolder,
+)
+from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, permittedKwargs, FeatureNew, typed_kwargs, typed_pos_args, noPosargs
 from ..mesonlib import stringlistify, unholder, listify, typeslistify, File
 
 if T.TYPE_CHECKING:
     from . import ModuleState
     from ..interpreter import Interpreter
-    from ..programs import ExternalProgram
+    from ..interpreter import kwargs as _kwargs
     from ..interpreter.interpreter import SourceOutputs
+    from ..programs import ExternalProgram
+
+    class FuncTest(_kwargs.BaseTest):
+
+        dependencies: T.List[T.Union[DependencyHolder, ExternalLibraryHolder]]
+        is_parallel: bool
 
 
 class RustModule(ExtensionModule):
@@ -43,9 +55,18 @@ class RustModule(ExtensionModule):
             'bindgen': self.bindgen,
         })
 
-    @permittedKwargs(permitted_test_kwargs | {'dependencies'} ^ {'protocol'})
     @typed_pos_args('rust.test', str, BuildTargetHolder)
-    def test(self, state: 'ModuleState', args: T.Tuple[str, BuildTargetHolder], kwargs: T.Dict[str, T.Any]) -> ModuleReturnValue:
+    @typed_kwargs(
+        'rust.test',
+        *TEST_KWARGS,
+        KwargInfo('is_parallel', bool, default=False),
+        KwargInfo(
+            'dependencies',
+            ContainerTypeInfo(list, (DependencyHolder, ExternalLibraryHolder)),
+            listify=True,
+            default=[]),
+    )
+    def test(self, state: 'ModuleState', args: T.Tuple[str, BuildTargetHolder], kwargs: 'FuncTest') -> ModuleReturnValue:
         """Generate a rust test target from a given rust target.
 
         Rust puts it's unitests inside it's main source files, unlike most
@@ -91,7 +112,7 @@ class RustModule(ExtensionModule):
         base_target: BuildTarget = unholder(args[1])
         if not base_target.uses_rust():
             raise InterpreterException('Second positional argument to rustmod.test() must be a rust based target')
-        extra_args = stringlistify(kwargs.get('args', []))
+        extra_args = kwargs['args']
 
         # Delete any arguments we don't want passed
         if '--test' in extra_args:
@@ -104,17 +125,17 @@ class RustModule(ExtensionModule):
             del extra_args[i + 1]
             del extra_args[i]
         for i, a in enumerate(extra_args):
-            if a.startswith('--format='):
+            if isinstance(a, str) and a.startswith('--format='):
                 del extra_args[i]
                 break
 
-        dependencies = unholder(listify(kwargs.get('dependencies', [])))
-        for d in dependencies:
-            if not isinstance(d, (Dependency, ExternalLibrary)):
-                raise InvalidArguments('dependencies must be a dependency or external library')
+        dependencies = [d.held_object for d in kwargs['dependencies']]
 
-        kwargs['args'] = extra_args + ['--test', '--format', 'pretty']
-        kwargs['protocol'] = 'rust'
+        # We need to cast here, as currently these don't have protocol in them, but test itself does.
+        tkwargs = T.cast('_kwargs.FuncTest', kwargs.copy())
+
+        tkwargs['args'] = extra_args + ['--test', '--format', 'pretty']
+        tkwargs['protocol'] = 'rust'
 
         new_target_kwargs = base_target.kwargs.copy()
         # Don't mutate the shallow copied list, instead replace it with a new
@@ -130,11 +151,9 @@ class RustModule(ExtensionModule):
             new_target_kwargs
         )
 
-        assert isinstance(self.interpreter.current_node, mparser.FunctionNode), 'for mypy'
-
         e = ExecutableHolder(new_target, self.interpreter)
         test = self.interpreter.make_test(
-            self.interpreter.current_node, (name, e), kwargs)
+            self.interpreter.current_node, (name, e), tkwargs)
 
         return ModuleReturnValue(None, [e, test])
 
