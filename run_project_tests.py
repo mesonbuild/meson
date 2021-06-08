@@ -546,16 +546,17 @@ def detect_parameter_files(test: TestDef, test_build_dir: str) -> T.Tuple[Path, 
 
     return nativefile, crossfile
 
-def run_test(test: TestDef, extra_args: T.List[str], compiler: str, backend: Backend,
-            flags: T.List[str], commands: T.Tuple[T.List[str], T.List[str], T.List[str], T.List[str]],
-            should_fail: str, use_tmp: bool) -> T.Optional[TestResult]:
+def run_test(test: TestDef,
+             extra_args: T.List[str],
+             should_fail: str,
+             use_tmp: bool) -> T.Optional[TestResult]:
     if test.skip:
         return None
     build_dir = create_deterministic_builddir(test, use_tmp)
     try:
         with TemporaryDirectoryWinProof(prefix='i ', dir=None if use_tmp else os.getcwd()) as install_dir:
             try:
-                return _run_test(test, build_dir, install_dir, extra_args, compiler, backend, flags, commands, should_fail)
+                return _run_test(test, build_dir, install_dir, extra_args, should_fail)
             except TestResult as r:
                 return r
             finally:
@@ -563,11 +564,11 @@ def run_test(test: TestDef, extra_args: T.List[str], compiler: str, backend: Bac
     finally:
         mesonlib.windows_proof_rmtree(build_dir)
 
-def _run_test(test: TestDef, test_build_dir: str, install_dir: str,
-              extra_args: T.List[str], compiler: str, backend: Backend,
-              flags: T.List[str], commands: T.Tuple[T.List[str], T.List[str], T.List[str], T.List[str]],
+def _run_test(test: TestDef,
+              test_build_dir: str,
+              install_dir: str,
+              extra_args: T.List[str],
               should_fail: str) -> TestResult:
-    compile_commands, clean_commands, install_commands, uninstall_commands = commands
     gen_start = time.time()
     # Configure in-process
     gen_args = []  # type: T.List[str]
@@ -575,7 +576,7 @@ def _run_test(test: TestDef, test_build_dir: str, install_dir: str,
         gen_args += ['--prefix', 'x:/usr'] if mesonlib.is_windows() else ['--prefix', '/usr']
     if 'libdir' not in test.do_not_set_opts:
         gen_args += ['--libdir', 'lib']
-    gen_args += [test.path.as_posix(), test_build_dir] + flags + extra_args
+    gen_args += [test.path.as_posix(), test_build_dir] + backend_flags + extra_args
 
     nativefile, crossfile = detect_parameter_files(test, test_build_dir)
 
@@ -678,7 +679,7 @@ def _run_test(test: TestDef, test_build_dir: str, install_dir: str,
     testresult.add_step(BuildStep.install, '', '')
     if not install_commands:
         return testresult
-    install_msg = validate_install(test, Path(install_dir), compiler, builddata.environment)
+    install_msg = validate_install(test, Path(install_dir), host_c_compiler, builddata.environment)
     if install_msg:
         testresult.fail('\n' + install_msg)
         return testresult
@@ -1090,7 +1091,6 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
     passing_tests = 0
     failing_tests = 0
     skipped_tests = 0
-    commands = (compile_commands, clean_commands, install_commands, uninstall_commands)
 
     try:
         # This fails in some CI environments for unknown reasons.
@@ -1133,8 +1133,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
                 should_fail = name.split('warning-')[1]
 
             t.skip = skipped or t.skip
-            result_future = executor.submit(run_test, t, extra_args + suite_args + t.args,
-                                            host_c_compiler, backend, backend_flags, commands, should_fail, use_tmp)
+            result_future = executor.submit(run_test, t, extra_args + suite_args + t.args, should_fail, use_tmp)
             futures.append((testname, t, result_future))
         for (testname, t, result_future) in futures:
             sys.stdout.flush()
@@ -1255,13 +1254,13 @@ def check_format() -> None:
                     continue
                 check_file(root / file)
 
-def check_meson_commands_work(options: argparse.Namespace) -> None:
+def check_meson_commands_work(use_tmpdir: bool, extra_args: T.List[str]) -> None:
     global backend, compile_commands, test_commands, install_commands
     testdir = PurePath('test cases', 'common', '1 trivial').as_posix()
     meson_commands = mesonlib.python_command + [get_meson_script()]
-    with TemporaryDirectoryWinProof(prefix='b ', dir=None if options.use_tmpdir else '.') as build_dir:
+    with TemporaryDirectoryWinProof(prefix='b ', dir=None if use_tmpdir else '.') as build_dir:
         print('Checking that configuring works...')
-        gen_cmd = meson_commands + [testdir, build_dir] + backend_flags + options.extra_args
+        gen_cmd = meson_commands + [testdir, build_dir] + backend_flags + extra_args
         pc, o, e = Popen_safe(gen_cmd)
         if pc.returncode != 0:
             raise RuntimeError(f'Failed to configure {testdir!r}:\n{e}\n{o}')
