@@ -1106,7 +1106,7 @@ def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List
 
     if only:
         for key in only.keys():
-            assert key in categories, 'key `{}` is not a recognized category'.format(key)
+            assert key in categories, f'key `{key}` is not a recognized category'
         all_tests = [t for t in all_tests if t.category in only.keys()]
 
     gathered_tests = [(t.category, gather_tests(Path('test cases', t.subdir), t.stdout_mandatory, only[t.category]), t.skip) for t in all_tests]
