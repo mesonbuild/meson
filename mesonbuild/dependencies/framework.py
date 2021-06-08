@@ -14,7 +14,6 @@
 
 from .base import ExternalDependency, DependencyException, DependencyMethods
 from ..mesonlib import MesonException, Version, stringlistify
-from ..compilers import CLikeCompiler
 from .. import mlog
 from pathlib import Path
 import typing as T
@@ -31,7 +30,7 @@ class ExtraFrameworkDependency(ExternalDependency):
         self.name = name
         # Full path to framework directory
         self.framework_path: T.Optional[str] = None
-        if not isinstance(self.clib_compiler, CLikeCompiler):
+        if not self.clib_compiler:
             raise DependencyException('No C-like compilers are available')
         if self.system_framework_paths is None:
             try:
@@ -64,7 +63,6 @@ class ExtraFrameworkDependency(ExternalDependency):
             # Python.framework. We need to know for sure that the framework was
             # found in the path we expect.
             allow_system = p in self.system_framework_paths
-            assert isinstance(self.clib_compiler, CLikeCompiler)
             args = self.clib_compiler.find_framework(name, self.env, [p], allow_system)
             if args is None:
                 continue

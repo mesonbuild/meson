@@ -106,7 +106,6 @@ __all__ = [
     'VisualStudioLikeCompiler',
     'VisualStudioCCompiler',
     'VisualStudioCPPCompiler',
-    'CLikeCompiler',
     'CythonCompiler',
 ]
 
@@ -213,5 +212,4 @@ from .mixins.visualstudio import VisualStudioLikeCompiler
 from .mixins.gnu import GnuCompiler, GnuLikeCompiler
 from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
 from .mixins.clang import ClangCompiler
-from .mixins.clike import CLikeCompiler
 from .cython import CythonCompiler

@@ -23,7 +23,6 @@ import typing as T
 from .. import mlog
 from .. import mesonlib
 from ..environment import detect_cpu_family
-from ..compilers import CLikeCompiler
 
 from .base import DependencyException, DependencyMethods, ExternalDependency
 from .cmake import CMakeDependency
@@ -300,7 +299,6 @@ class PcapDependencyConfigTool(ConfigToolDependency):
         if not self.env.machines.matches_build_machine(self.for_machine):
             return None
 
-        assert isinstance(self.clib_compiler, CLikeCompiler)
         v = self.clib_compiler.get_return_value('pcap_lib_version', 'string',
                                                 '#include <pcap.h>', self.env, [], [self])
         v = re.sub(r'libpcap version ', '', str(v))
