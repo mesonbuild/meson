@@ -570,12 +570,12 @@ def run_test(test: TestDef,
              should_fail: str,
              use_tmp: bool,
              state: T.Optional[GlobalState] = None) -> T.Optional[TestResult]:
-    if test.skip:
-        return None
     # Unpack the global state
     global compile_commands, clean_commands, test_commands, install_commands, uninstall_commands, backend, backend_flags, host_c_compiler
     if state is not None:
         compile_commands, clean_commands, test_commands, install_commands, uninstall_commands, backend, backend_flags, host_c_compiler = state
+    # Setup the test environment
+    assert not test.skip, 'Skipped thest should not be run'
     build_dir = create_deterministic_builddir(test, use_tmp)
     try:
         with TemporaryDirectoryWinProof(prefix='i ', dir=None if use_tmp else os.getcwd()) as install_dir:
@@ -1117,16 +1117,16 @@ def default_print(*args: mlog.TV_Loggable, sep: str = ' ') -> None:
 safe_print = default_print
 
 class TestRunFuture:
-    def __init__(self, name: str, testdef: TestDef, future: 'Future[T.Optional[TestResult]]') -> None:
+    def __init__(self, name: str, testdef: TestDef, future: T.Optional['Future[T.Optional[TestResult]]']) -> None:
         super().__init__()
         self.name = name
         self.testdef = testdef
         self.future = future
-        self.status = TestStatus.RUNNING
+        self.status = TestStatus.RUNNING if self.future is not None else TestStatus.SKIP
 
     @property
     def result(self) -> T.Optional[TestResult]:
-        return self.future.result()
+        return self.future.result() if self.future else None
 
     def log(self) -> None:
         without_install = '' if install_commands else '(without install)'
@@ -1137,7 +1137,7 @@ class TestRunFuture:
         self.log()
 
     def cancel(self) -> None:
-        if self.future.cancel():
+        if self.future is not None and self.future.cancel():
             self.status = TestStatus.CANCELED
 
 class LogRunFuture:
@@ -1201,7 +1201,9 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
                 suite_args = ['--fatal-meson-warnings']
                 should_fail = name.split('warning-')[1]
 
-            t.skip = skipped or t.skip
+            if skipped or t.skip:
+                futures += [TestRunFuture(testname, t, None)]
+                continue
             result_future = executor.submit(run_test, t, extra_args + suite_args + t.args, should_fail, use_tmp, state=state)
             futures += [TestRunFuture(testname, t, result_future)]
 
