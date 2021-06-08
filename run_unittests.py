@@ -1599,6 +1599,7 @@ class InternalTests(unittest.TestCase):
             _(None, mock.Mock(), [], {'input': ['a']})
         self.assertEqual(str(cm.exception), "testfunc keyword argument \"input\" container should be of even length, but is not")
 
+    @mock.patch.dict(mesonbuild.mesonlib.project_meson_versions, {})
     def test_typed_kwarg_since(self) -> None:
         @typed_kwargs(
             'testfunc',
