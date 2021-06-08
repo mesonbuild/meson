@@ -5,8 +5,8 @@ Meson now supports Cython as a first class language. This means you can write:
 ```meson
 project('my project', 'cython')
 
-py = import('python')
-dep_py3 = py.dependency()
+py = import('python').find_installation()
+dep_py = py.dependency()
 
 py.extension_module(
     'foo',
