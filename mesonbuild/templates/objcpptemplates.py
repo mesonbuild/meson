@@ -164,4 +164,3 @@ class ObjCppProject(SampleImpl):
         open(lib_objcpp_name, 'w', encoding='utf-8').write(lib_objcpp_template.format(**kwargs))
         open(test_objcpp_name, 'w', encoding='utf-8').write(lib_objcpp_test_template.format(**kwargs))
         open('meson.build', 'w', encoding='utf-8').write(lib_objcpp_meson_template.format(**kwargs))
-

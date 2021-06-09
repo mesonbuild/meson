@@ -289,4 +289,3 @@ class TAPParserTests(unittest.TestCase):
         self.assert_error(events)
         self.assert_test(events, number=2, name='', result=TestResult.FAIL)
         self.assert_last(events)
-

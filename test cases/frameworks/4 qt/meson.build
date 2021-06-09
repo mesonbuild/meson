@@ -51,7 +51,7 @@ foreach qt : ['qt4', 'qt5', 'qt6']
     # requires you to do it properly or you get linker symbol clashes.
 
     prep = qtmodule.preprocess(
-      moc_headers : ['mainWindow.h'],           # These need to be fed through the moc tool before use. 
+      moc_headers : ['mainWindow.h'],           # These need to be fed through the moc tool before use.
       method : get_option('method')
     )
     # XML files that need to be compiled with the uic tol.

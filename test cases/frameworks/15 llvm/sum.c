@@ -1,4 +1,4 @@
-/** This code is public domain, and taken from 
+/** This code is public domain, and taken from
  * https://github.com/paulsmith/getting-started-llvm-c-api/blob/master/sum.c
  */
 /**

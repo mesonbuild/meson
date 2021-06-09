@@ -3,7 +3,7 @@
 #include "parser.tab.h"
 
 extern int yylex(void);
-extern int yyerror(); 
+extern int yyerror();
 %}
 
 %option noyywrap nounput noinput

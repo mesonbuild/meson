@@ -41,4 +41,3 @@ p = executable('simdtest', 'simdchecker.c', 'fallback.c',
   link_with : simdlibs)
 
 test('simdtest', p)
-

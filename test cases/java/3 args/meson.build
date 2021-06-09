@@ -6,4 +6,3 @@ javaprog = jar('myprog', 'com/mesonbuild/Simple.java',
   main_class : 'com.mesonbuild.Simple',
   java_args : ['-source', '1.7'])
 test('mytest', javaprog)
-

@@ -3761,5 +3761,3 @@ class AllPlatformTests(BasePlatformTests):
                 cc =  detect_compiler_for(env, 'c', MachineChoice.HOST)
                 link_args = env.coredata.get_external_link_args(cc.for_machine, cc.language)
                 self.assertEqual(sorted(link_args), sorted(['-flto']))
-
-

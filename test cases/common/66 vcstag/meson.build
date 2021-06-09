@@ -15,4 +15,3 @@ output : 'vcstag-fallback.c')
 executable('tagprog', 'tagprog.c', version_src)
 executable('tagprog-custom', 'tagprog.c', version_src_custom)
 executable('tagprog-fallback', 'tagprog.c', version_src_fallback)
-

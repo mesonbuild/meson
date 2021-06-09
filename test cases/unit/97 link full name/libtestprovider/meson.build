@@ -16,5 +16,5 @@ pkg.generate(
         requires: [],
         libraries_private: ['-Wl,--whole-archive'] +
             ['-L${libdir}','-l:libtestprovider.a']+
-            ['-Wl,--no-whole-archive'] 
+            ['-Wl,--no-whole-archive']
 )

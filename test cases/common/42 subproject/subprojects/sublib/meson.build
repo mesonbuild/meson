@@ -1,4 +1,4 @@
-project('subproject', 'c', 
+project('subproject', 'c',
   version : '1.0.0',
   license : ['sublicense1', 'sublicense2'])
 

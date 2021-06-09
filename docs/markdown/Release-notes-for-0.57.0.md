@@ -105,7 +105,7 @@ Run Time Checking can be enabled by manually adding `/RTC1` or other RTC flags o
 
 The `debug` buildtype for clang-cl added additional arguments compared to MSVC, which had more to do with optimization than debug. The arguments removed are `/Ob0`, `/Od`, `/RTC1`. (`/Zi` was also removed, but it is already added by default when debug is enabled.)
 
-If these are important issues for you and would like builtin toggle options, 
+If these are important issues for you and would like builtin toggle options,
 please file an issue in the Meson bug tracker.
 
 ## Buildtype remains even if dependent options are changed
@@ -154,17 +154,17 @@ Currently supports `glib-compile-schemas`, `gio-querymodules`, and
 
 ## "Edit and continue" (/ZI) is no longer used by default for Visual Studio
 
-Meson was adding the `/ZI` compiler argument as an argument for Visual Studio 
-in debug mode. This enables the `edit-and-continue` debugging in 
+Meson was adding the `/ZI` compiler argument as an argument for Visual Studio
+in debug mode. This enables the `edit-and-continue` debugging in
 Visual Studio IDE's.
 
-Unfortunately, it is also extremely expensive and breaks certain use cases such 
-as link time code generation. Edit and continue can be enabled by manually by 
+Unfortunately, it is also extremely expensive and breaks certain use cases such
+as link time code generation. Edit and continue can be enabled by manually by
 adding `/ZI` to compiler arguments.
 
 The `/ZI` argument has now been replaced by the `/Zi` argument for debug builds.
 
-If this is an important issue for you and would like a builtin toggle option, 
+If this is an important issue for you and would like a builtin toggle option,
 please file an issue in the Meson bug tracker.
 
 ## Minimum required Python version updated to 3.6
@@ -357,4 +357,3 @@ also allows `//` as the id.  This way, `meson rewrite kwargs set project
 
 All keys of the `configuration_data` object can be obtained with the `keys()`
 method as an alphabetically sorted array.
-

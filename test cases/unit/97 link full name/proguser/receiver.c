@@ -16,4 +16,3 @@ int main(void) {
     fprintf(stdout,"bad\n");
     return TEST_FAILTURE;
 }
-

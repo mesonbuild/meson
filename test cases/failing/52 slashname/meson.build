@@ -9,4 +9,3 @@ subdir('sub')
 executable('sub/prog', pf)
 
 error('Re-enable me once slash in name is finally prohibited.')
-

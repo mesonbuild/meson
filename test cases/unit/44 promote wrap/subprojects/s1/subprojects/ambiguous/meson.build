@@ -1,2 +1,1 @@
 project('ambiguous', 'c')
-

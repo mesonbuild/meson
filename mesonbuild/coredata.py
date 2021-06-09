@@ -1224,4 +1224,3 @@ FORBIDDEN_TARGET_NAMES = {'clean': None,
                           'dist': None,
                           'distcheck': None,
                           }
-

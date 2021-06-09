@@ -10,9 +10,9 @@ void inthread(void * args) {
 int main() {
 #ifdef __EMSCRIPTEN_PTHREADS__
     pthread_t thread_id;
-    printf("Before Thread\n"); 
-    pthread_create(&thread_id, NULL, (void *)*inthread, NULL); 
-    pthread_join(thread_id, NULL); 
+    printf("Before Thread\n");
+    pthread_create(&thread_id, NULL, (void *)*inthread, NULL);
+    pthread_join(thread_id, NULL);
     printf("After Thread\n");
     return 0;
 #else

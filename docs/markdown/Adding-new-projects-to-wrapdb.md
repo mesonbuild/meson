@@ -130,7 +130,7 @@ git commit -a -m 'Add wrap files for libfoo-1.0.0'
 git push -u origin libfoo
 ```
 
-Now you should create a pull request on GitHub. 
+Now you should create a pull request on GitHub.
 
 If packaging review requires you to do changes, use the `--amend`
 argument to `commit` so that your branch will have only one commit.

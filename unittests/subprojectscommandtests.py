@@ -284,4 +284,3 @@ class SubprojectsCommandTests(BasePlatformTests):
         self.assertFalse(Path(self.subprojects_dir / 'sub_file').exists())
         self.assertFalse(Path(self.subprojects_dir / 'sub_git').exists())
         self.assertFalse(Path(self.subprojects_dir / 'redirect.wrap').exists())
-

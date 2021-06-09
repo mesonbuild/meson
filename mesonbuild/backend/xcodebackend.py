@@ -534,7 +534,7 @@ class XCodeBackend(backends.Backend):
         target_dependencies = list(map(lambda t: self.pbx_dep_map[t], self.build_targets))
         custom_target_dependencies = [self.pbx_custom_dep_map[t] for t in self.custom_targets]
         aggregated_targets = []
-        aggregated_targets.append((self.all_id, 'ALL_BUILD', 
+        aggregated_targets.append((self.all_id, 'ALL_BUILD',
                                    self.all_buildconf_id,
                                    [],
                                    [self.regen_dependency_id] + target_dependencies + custom_target_dependencies))
@@ -554,7 +554,7 @@ class XCodeBackend(backends.Backend):
             build_phases = []
             dependencies = [self.regen_dependency_id]
             generator_id = 0
-            for s in t.sources: 
+            for s in t.sources:
                 if not isinstance(s, build.GeneratedList):
                     continue
                 build_phases.append(self.shell_targets[(tname, generator_id)])
@@ -602,7 +602,7 @@ class XCodeBackend(backends.Backend):
                     if s.is_built:
                         in_build_dir = True
                     s = os.path.join(s.subdir, s.fname)
-                    
+
                 if not isinstance(s, str):
                     continue
                 sdict = PbxDict()
@@ -610,7 +610,7 @@ class XCodeBackend(backends.Backend):
                 idval = self.buildfile_ids[k]
                 fileref = self.fileref_ids[k]
                 if in_build_dir:
-                    fullpath = os.path.join(self.environment.get_build_dir(), s)    
+                    fullpath = os.path.join(self.environment.get_build_dir(), s)
                 else:
                     fullpath = os.path.join(self.environment.get_source_dir(), s)
                 compiler_args = ''
@@ -644,7 +644,7 @@ class XCodeBackend(backends.Backend):
             for g in t.generated:
                 if not isinstance(g, build.GeneratedList):
                     continue
-                self.create_generator_shellphase(objects_dict, tname, generator_id) 
+                self.create_generator_shellphase(objects_dict, tname, generator_id)
                 generator_id += 1
 
         # Custom targets are shell build phases in Xcode terminology.
@@ -661,7 +661,7 @@ class XCodeBackend(backends.Backend):
             for g in t.sources:
                 if not isinstance(g, build.GeneratedList):
                     continue
-                self.create_generator_shellphase(objects_dict, tname, generator_id) 
+                self.create_generator_shellphase(objects_dict, tname, generator_id)
                 generator_id += 1
 
     def create_generator_shellphase(self, objects_dict, tname, generator_id):
@@ -752,7 +752,7 @@ class XCodeBackend(backends.Backend):
                     name = os.path.basename(o)
                     objects_dict.add_item(ref_id, odict, o)
                     xcodetype = self.get_xcodetype(o)
-                    rel_name = mesonlib.relpath(o, self.environment.get_source_dir())   
+                    rel_name = mesonlib.relpath(o, self.environment.get_source_dir())
                     odict.add_item('isa', 'PBXFileReference')
                     odict.add_item('explicitFileType', '"' + xcodetype + '"')
                     odict.add_item('fileEncoding', '4')
@@ -773,7 +773,7 @@ class XCodeBackend(backends.Backend):
                     o = os.path.join(t.subdir, o)
                     fullpath = os.path.join(self.environment.get_source_dir(), o)
                 idval = self.fileref_ids[(tname, o)]
-                rel_name = mesonlib.relpath(fullpath, self.environment.get_source_dir())   
+                rel_name = mesonlib.relpath(fullpath, self.environment.get_source_dir())
                 o_dict = PbxDict()
                 name = os.path.basename(o)
                 objects_dict.add_item(idval, o_dict, fullpath)
@@ -974,7 +974,7 @@ class XCodeBackend(backends.Backend):
             target_children.add_item(self.fileref_ids[(tid, s)], s)
         for o in t.objects:
             if isinstance(o, build.ExtractedObjects):
-                # Do not show built object files in the project tree.   
+                # Do not show built object files in the project tree.
                 continue
             if isinstance(o, mesonlib.File):
                 o = os.path.join(o.subdir, o.fname)
@@ -1083,7 +1083,7 @@ class XCodeBackend(backends.Backend):
                     dep_array.add_item(self.pbx_custom_dep_map[o.get_id()], o.name)
                 elif isinstance(o, build.CustomTargetIndex):
                     dep_array.add_item(self.pbx_custom_dep_map[o.target.get_id()], o.target.name)
-                
+
                 generator_id += 1
 
             ntarget_dict.add_item('name', f'"{tname}"')
@@ -1353,7 +1353,7 @@ class XCodeBackend(backends.Backend):
             warn_array = PbxArray()
             warn_array.add_item('"$(inherited)"')
             settings_dict.add_item('WARNING_CFLAGS', warn_array)
-        
+
             bt_dict.add_item('name', f'"{buildtype}"')
 
         # Then the test target.
@@ -1410,7 +1410,7 @@ class XCodeBackend(backends.Backend):
                 dep_libs += sub_libs
                 links_dylib = links_dylib or sub_links_dylib
         return (dep_libs, links_dylib)
-        
+
     def generate_single_build_target(self, objects_dict, target_name, target):
         for buildtype in self.buildtypes:
             dep_libs = []
@@ -1444,7 +1444,7 @@ class XCodeBackend(backends.Backend):
                 product_name = target.get_basename()
             ldargs += target.link_args
             # Swift is special. Again. You can't mix Swift with other languages
-            # in the same target. Thus for Swift we only use 
+            # in the same target. Thus for Swift we only use
             if self.is_swift_target(target):
                 linker, stdlib_args = target.compilers['swift'], []
             else:
@@ -1468,7 +1468,7 @@ class XCodeBackend(backends.Backend):
             generator_id = 0
             for o in target.generated:
                 if isinstance(o, build.GeneratedList):
-                    outputs = self.generator_outputs[target_name, generator_id] 
+                    outputs = self.generator_outputs[target_name, generator_id]
                     generator_id += 1
                     for o_abs in outputs:
                         if o_abs.endswith('.o') or o_abs.endswith('.obj'):
@@ -1701,7 +1701,7 @@ class XCodeBackend(backends.Backend):
         pbxdict.add_item('objectVersion', '46')
         objects_dict = PbxDict()
         pbxdict.add_item('objects', objects_dict)
-        
+
         return objects_dict
 
     def generate_suffix(self, pbxdict):

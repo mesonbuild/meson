@@ -31,11 +31,11 @@ def copy_files(files: T.List[str], input_dir: PathLike, output_dir: PathLike) ->
         raise ValueError(f'Input directory value is not set')
     if not output_dir:
         raise ValueError(f'Output directory value is not set')
-    
+
     input_dir = Path(input_dir).resolve()
     output_dir = Path(output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     for f in files:
         if (input_dir/f).is_dir():
             shutil.copytree(input_dir/f, output_dir/f)
@@ -47,7 +47,7 @@ if __name__ == '__main__':
     parser.add_argument('files', metavar='FILE', nargs='*')
     parser.add_argument('-C', dest='input_dir', required=True)
     parser.add_argument('--output-dir', required=True)
-    
+
     args = parser.parse_args()
 
     copy_files(files=args.files,

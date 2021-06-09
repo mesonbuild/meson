@@ -7,7 +7,7 @@ executable('prog', 'prog.c')
 
 if not meson.is_cross_build()
   executable('prog2', 'prog.c', native: true)
-  
+
   # Check that even deps marked as native are found
   # by default when not cross compiling.
   dependency('ylib', method: 'pkg-config')

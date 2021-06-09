@@ -4,4 +4,3 @@
 int EXPORT_PUBLIC libbar(void) {
   return 0;
 }
-

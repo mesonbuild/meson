@@ -11,4 +11,3 @@ print *, 'Good!'
 end procedure good
 
 end submodule parent
-

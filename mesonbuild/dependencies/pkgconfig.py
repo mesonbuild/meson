@@ -278,9 +278,9 @@ class PkgConfigDependency(ExternalDependency):
                 continue
             elif lib.startswith('-l:'):
                 # see: https://stackoverflow.com/questions/48532868/gcc-library-option-with-a-colon-llibevent-a
-                # also : See the documentation of -lnamespec | --library=namespec in the linker manual  
+                # also : See the documentation of -lnamespec | --library=namespec in the linker manual
                 #                     https://sourceware.org/binutils/docs-2.18/ld/Options.html
-                
+
                 # Don't resolve the same -l:libfoo.a argument again
                 if lib in libs_found:
                     continue

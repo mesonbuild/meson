@@ -34,4 +34,3 @@ void increment_sse2(float arr[4]) {
     arr[2] = (float)darr[3];
     arr[3] = (float)darr[2];
 }
-

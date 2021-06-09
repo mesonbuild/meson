@@ -24,4 +24,3 @@ if cuda.version().version_compare('>=4.0')
     assert (cuda.has_header_symbol('thrust/device_vector.h', 'thrust::device_vector'), 'thrust::device_vector not found')
     assert (not cuda.has_header_symbol('thrust/fill.h', 'thrust::sort'), 'thrust::sort should not be defined in thrust/fill.h')
 endif
-

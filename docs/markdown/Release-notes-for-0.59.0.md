@@ -121,7 +121,7 @@ if intl_found
   conf.set('ENABLE_NLS', 1)
 endif
 ```
-  
+
 one may simply use:
 
 ```
@@ -232,4 +232,3 @@ the cache upon installation. Most applications do that using a custom script,
 but it can now be done by Meson directly.
 
 See [`gnome.post_install()`](Gnome-module.md#gnomepost_install).
-

@@ -1,10 +1,10 @@
-project('pkgconfig dep', 'c', 
+project('pkgconfig dep', 'c',
   version : '1.0.0')
 
 # This is not used in the code, only to check that it does not
 # leak out to --libs.
 glib_dep = dependency('glib-2.0')
-  
+
 pkgconfig = import('pkgconfig')
 
 intlib = static_library('libpkgdep-int', 'privatelib.c')
@@ -15,7 +15,7 @@ lib = shared_library('pkgdep', 'pkgdep.c',
   install : true)
 
 install_headers('pkgdep.h')
-  
+
 pkgconfig.generate(
   filebase : 'libpkgdep',
   name : 'Libpkgdep',

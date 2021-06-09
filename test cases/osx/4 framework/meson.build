@@ -3,7 +3,7 @@
 # "Target Membership" of ...
 # - OpenGL.framework should be only to prog@exe
 # - Foundation.framework should be only to stat@sta
-# "Build Phase" / "Link Binary with Libraries" for the target 
+# "Build Phase" / "Link Binary with Libraries" for the target
 # - "prog@exe" should be only "Foundation.framework"
 # - "stat@sta" should be only "OpenGL.framework"
 # see "xcode-frameworks.png" for an example

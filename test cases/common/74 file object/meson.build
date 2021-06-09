@@ -6,4 +6,3 @@ test('fobj', executable('fobj', prog0, lib0))
 
 subdir('subdir1')
 subdir('subdir2')
-

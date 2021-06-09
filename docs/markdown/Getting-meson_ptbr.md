@@ -1,6 +1,6 @@
 # Obtendo o Meson
 
-Meson é implementado em Python 3, e requer a versão 3.6 ou mais nova. 
+Meson é implementado em Python 3, e requer a versão 3.6 ou mais nova.
 se o seu sistema operacional provê um gerenciador de pacotes, você deve
 instalar o Meson com ele. Para plataformas que não tem um gerenciador de
 pacotes, você precisa baixa-lo da [página inicial do Python]. Veja abaixo
@@ -26,7 +26,7 @@ plataformas.
 O Meson está disponível no [Indice de Pacotes do Python] e pode ser instalado com
 `sudo pip3 install meson` que requer root e vai instala-lo para todo o sistema.
 
-Se você já baixou uma cópia do código do Meson, você pode instalar com 
+Se você já baixou uma cópia do código do Meson, você pode instalar com
 `sudo pip3 install path/to/source/root/`.
 
 Como alternativa, você pode usar o `pip3 install --user meson` que vai instalar
@@ -54,7 +54,7 @@ Clang, Visual Studio, MinGW, ICC, ARMCC, etc.
 Você deve usar a versão provida pelo seu gerenciador de pacotes se possível, caso contrário,
 baixe o binário executável da [página de *release* do projeto Ninja](https://github.com/ninja-build/ninja/releases).
 
-Se você apenas usa o *backend* do Visual Studio (`--backend=vs`) para gerar soluções do Visual Studio no Windows ou o 
+Se você apenas usa o *backend* do Visual Studio (`--backend=vs`) para gerar soluções do Visual Studio no Windows ou o
 *backend* do XCode (`--backend=xcode`) para gerar projetos no macOS, você não precisa do Ninja.
 
 
@@ -72,7 +72,7 @@ que você selecione as opções do instalador como a seguir:
 
 ![passo 3 do instalador](images/py3-install-3.png "Opções Avançadas: ative 'Instalar para todos usuários'")
 
-Com isso, você terá o `python` e o `pip` no `PATH`, e você poderá instalar o Meson com o pip. Você também vai poder 
+Com isso, você terá o `python` e o `pip` no `PATH`, e você poderá instalar o Meson com o pip. Você também vai poder
 executar o comando `meson` em qualquer shell no Windows ao invés de ter que executar `py -3` com o caminho completo para
 o *script* `meson.py`.
 
@@ -80,7 +80,7 @@ o *script* `meson.py`.
 
 Se você está usando o MSYS2 no Windows como seu ambiente de desenvolvimento,
 por favor se certifique que você não esteja usando o pacote `msys/python` para
-fornecer o Python 3. Uso o `mingw32/mingw-w64-i686-python3` ou o 
+fornecer o Python 3. Uso o `mingw32/mingw-w64-i686-python3` ou o
 If you are using MSYS2 on Windows as your development environment,
 please make sure that you **do not use** the `msys/python` package to
 provide Python 3. Use either `mingw32/mingw-w64-i686-python3` or `mingw64/mingw-w64-x86_64-python3`

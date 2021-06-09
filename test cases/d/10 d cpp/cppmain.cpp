@@ -6,13 +6,13 @@ int main(int, char**) {
     // initialize D runtime
     if (!rt_init())
         return 1;
-    
+
     print_hello(1);
-    
+
     // terminate D runtime, each initialize call
     // must be paired with a terminate call.
     if (!rt_term())
         return 1;
-    
+
     return 0;
 }

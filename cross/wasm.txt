@@ -15,4 +15,3 @@ system = 'emscripten'
 cpu_family = 'wasm32'
 cpu = 'wasm32'
 endian = 'little'
-

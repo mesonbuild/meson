@@ -114,4 +114,3 @@ if __name__ == '__main__':
     pg = PkgGenerator()
     pg.build_dist()
     pg.build_package()
-

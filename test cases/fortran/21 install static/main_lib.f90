@@ -1,5 +1,5 @@
 module main_lib
-    
+
   use static_hello
   implicit none
 

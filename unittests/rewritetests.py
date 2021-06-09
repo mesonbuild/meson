@@ -345,4 +345,3 @@ class RewriterTests(BasePlatformTests):
             }
         }
         self.assertDictEqual(out, expected)
-

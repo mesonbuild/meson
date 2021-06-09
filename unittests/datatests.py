@@ -269,4 +269,3 @@ class DataTests(unittest.TestCase):
                 errors += [i[0]]
 
         self.assertListEqual(errors, [], err_msg + 'Files were changed')
-

@@ -15,6 +15,3 @@ endif
 if fc.run(code).returncode() != 123
   error('Fortran 2008 code failed to run')
 endif
-
-
-

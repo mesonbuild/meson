@@ -190,4 +190,3 @@ class LinuxCrossMingwTests(BaseLinuxCrossTests):
             '-Dbuild.pkg_config_path=' + os.path.join(testdir, 'build_extra_path'),
             '-Dpkg_config_path=' + os.path.join(testdir, 'host_extra_path'),
         ])
-

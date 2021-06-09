@@ -80,4 +80,3 @@ class PythonTests(BasePlatformTests):
         with self.assertRaises(unittest.SkipTest):
             self.init(testdir, extra_args=['-Dpython=dir'])
         self.wipe()
-

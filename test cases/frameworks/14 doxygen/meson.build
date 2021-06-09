@@ -25,4 +25,3 @@ else
 endif
 
 subdir('doc')
-

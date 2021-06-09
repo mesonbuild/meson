@@ -266,7 +266,7 @@ argument that will be separated by space.
 ## Specify man page locale during installation
 
 Locale directories can now be passed to `install_man`:
-    
+
 ```meson
 # instead of
 # install_data('foo.fr.1', install_dir: join_paths(get_option('mandir'), 'fr', 'man1'), rename: 'foo.1')`
@@ -354,4 +354,3 @@ The `b_sanitize` option for enabling Address sanitizer now works with
 the Visual Studio compilers. This requires [a sufficiently new version
 of Visual
 Studio](https://devblogs.microsoft.com/cppblog/address-sanitizer-for-msvc-now-generally-available/).
-

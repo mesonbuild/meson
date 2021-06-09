@@ -148,4 +148,3 @@ class DarwinTests(BasePlatformTests):
         testdir = os.path.join(self.objcpp_test_dir, '1 simple')
         self.init(testdir)
         self.assertIn('-std=c++14', self.get_compdb()[0]['command'])
-

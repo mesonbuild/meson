@@ -13,5 +13,5 @@ print '(A,I1,A1,I0.2,A1,I1)','Fortran HDF5 version ',major,'.',minor,'.',rel
 
 call h5close_f(ier)
 if (ier /= 0) error stop 'Unable to close HDF5 library'
-  
+
 end program

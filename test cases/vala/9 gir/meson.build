@@ -15,4 +15,3 @@ custom_target('foo-typelib',
               input: meson.current_build_dir() + '/Foo-1.0.gir',
               output: 'Foo-1.0.typelib',
               depends: foo)
-

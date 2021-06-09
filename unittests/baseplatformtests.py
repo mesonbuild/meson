@@ -435,4 +435,3 @@ class BasePlatformTests(TestCase):
     def assertPathDoesNotExist(self, path):
         m = f'Path {path!r} should not exist'
         self.assertFalse(os.path.exists(path), msg=m)
-

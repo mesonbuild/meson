@@ -933,4 +933,3 @@ class CrossFileTests(BasePlatformTests):
                 break
         else:
             self.fail('Did not find expected option.')
-

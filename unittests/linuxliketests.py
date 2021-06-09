@@ -1297,7 +1297,7 @@ class LinuxlikeTests(BasePlatformTests):
             out = self._run(['otool', '-L', f])
             # Ensure that the otool output does not contain self.installdir
             self.assertNotRegex(out, self.installdir + '.*dylib ')
-    
+
     @skipIfNoPkgconfig
     def test_link_arg_fullname(self):
         '''
@@ -1320,19 +1320,19 @@ class LinuxlikeTests(BasePlatformTests):
                'PKG_CONFIG_PATH': os.path.join(installdir, self.libdir, 'pkgconfig')}
         testdir = os.path.join(self.unit_test_dir, '97 link full name','proguser')
         self.init(testdir,override_envvars=env)
-        
+
         # test for link with full path
         with open(os.path.join(self.builddir, 'build.ninja'), encoding='utf-8') as bfile:
             for line in bfile:
                 if 'build dprovidertest:' in line:
                     self.assertIn('/libtestprovider.a', line)
-                    
+
         if is_osx():
             # macOS's ld do not supports `--whole-archive`, skip build & run
             return
-        
+
         self.build(override_envvars=env)
-        
+
         # skip test if pkg-config is too old.
         #   before v0.28, Libs flags like -Wl will not kept in context order with -l flags.
         #   see https://gitlab.freedesktop.org/pkg-config/pkg-config/-/blob/master/NEWS
@@ -1689,4 +1689,3 @@ class LinuxlikeTests(BasePlatformTests):
         obj_files = p.stdout.strip().split('\n')
         self.assertEqual(len(obj_files), 1)
         self.assertTrue(obj_files[0].endswith('-prelink.o'))
-

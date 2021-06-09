@@ -11,6 +11,6 @@ if get_option('generate')
                 output: 'crossfile',
                 configuration: conf_data)
     message('Written cross file')
-else               
+else
     assert(meson.is_cross_build(), 'not setup as cross build')
 endif

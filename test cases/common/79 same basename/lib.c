@@ -20,4 +20,3 @@ int func(void) {
 #else
 #error "Missing type definition."
 #endif
-
