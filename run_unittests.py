@@ -6221,7 +6221,7 @@ class FailureTests(BasePlatformTests):
 
     def test_wrap_nofallback(self):
         self.assertMesonRaises("dependency('notfound', fallback : ['foo', 'foo_dep'])",
-                               r"Dependency \'notfound\' not found and fallback is disabled",
+                               r"Dependency 'notfound' is required but not found.",
                                extra_args=['--wrap-mode=nofallback'])
 
     def test_message(self):
