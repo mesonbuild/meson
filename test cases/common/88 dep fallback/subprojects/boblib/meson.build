@@ -14,3 +14,5 @@ bobinc = include_directories('.')
 bob_dep = declare_dependency(link_with : boblib,
   sources : [genbob_h],
   include_directories : bobinc)
+
+notfound_dep = dependency('', required: false)

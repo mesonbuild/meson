@@ -248,19 +248,19 @@ class Resolver:
         for k, v in other_resolver.provided_programs.items():
             self.provided_programs.setdefault(k, v)
 
-    def find_dep_provider(self, packagename: str) -> T.Optional[T.Union[str, T.List[str]]]:
+    def find_dep_provider(self, packagename: str) -> T.Tuple[T.Optional[str], T.Optional[str]]:
         # Python's ini parser converts all key values to lowercase.
         # Thus the query name must also be in lower case.
         packagename = packagename.lower()
-        # Return value is in the same format as fallback kwarg:
-        # ['subproject_name', 'variable_name'], or 'subproject_name'.
         wrap = self.provided_deps.get(packagename)
         if wrap:
             dep_var = wrap.provided_deps.get(packagename)
-            if dep_var:
-                return [wrap.name, dep_var]
-            return wrap.name
-        return None
+            return wrap.name, dep_var
+        return None, None
+
+    def get_varname(self, subp_name: str, depname: str) -> T.Optional[str]:
+        wrap = self.wraps.get(subp_name)
+        return wrap.provided_deps.get(depname) if wrap else None
 
     def find_program_provider(self, names: T.List[str]) -> T.Optional[str]:
         for name in names:

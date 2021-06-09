@@ -5,8 +5,21 @@ bob = dependency('boblib', fallback : ['boblib', 'bob_dep'], required: false,
 if not bob.found()
     error('Bob is actually needed')
 endif
+
+# boblib subproject exists, but bobinc is not a dependency variable
+sita = dependency('sitalib', fallback : ['boblib', 'bobinc'], required: false)
+assert(not sita.found())
 # boblib subproject exists, but sita_dep doesn't exist
 sita = dependency('sitalib', fallback : ['boblib', 'sita_dep'], required: false)
+assert(not sita.found())
+# boblib has been configured so zlib cannot be searched on the system
+zlib = dependency('zlib', fallback : ['boblib', 'notfound_dep'], required: false)
+assert(not zlib.found())
+# boblib has been configured so zlib cannot be searched on the system.
+# Not variable name provided and the subproject does not override zlib.
+zlib = dependency('zlib', fallback : 'boblib', required: false)
+assert(not zlib.found())
+
 # jimmylib subproject doesn't exist
 jimmy = dependency('jimmylib', fallback : ['jimmylib', 'jimmy_dep'], required: false)
 # dummylib subproject fails to configure
