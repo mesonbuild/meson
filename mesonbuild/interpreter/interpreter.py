@@ -1540,6 +1540,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             FeatureNew.single_use('OpenMP Dependency', '0.46.0', self.subproject)
 
     @FeatureNewKwargs('dependency', '0.57.0', ['cmake_package_version'])
+    @FeatureNewKwargs('dependency', '0.56.0', ['allow_fallback'])
     @FeatureNewKwargs('dependency', '0.54.0', ['components'])
     @FeatureNewKwargs('dependency', '0.52.0', ['include_type'])
     @FeatureNewKwargs('dependency', '0.50.0', ['not_found_message', 'cmake_module_path', 'cmake_args'])
@@ -1594,7 +1595,6 @@ external dependencies (including libraries) must go to "dependencies".''')
         fallback = kwargs.get('fallback', None)
         allow_fallback = kwargs.get('allow_fallback', None)
         if allow_fallback is not None:
-            FeatureNew.single_use('"allow_fallback" keyword argument for dependency', '0.56.0', self.subproject)
             if fallback is not None:
                 raise InvalidArguments('"fallback" and "allow_fallback" arguments are mutually exclusive')
             if not isinstance(allow_fallback, bool):
