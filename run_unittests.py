@@ -10237,6 +10237,9 @@ def main():
         # time spawning a lot of processes to distribute tests to in that case.
         if not running_single_tests(sys.argv, cases):
             pytest_args += ['-n', 'auto']
+        # Let there be colors!
+        if 'CI' in os.environ:
+            pytest_args += ['--color=yes']
         pytest_args += ['./run_unittests.py']
         pytest_args += convert_args(sys.argv[1:])
         return subprocess.run(python_command + ['-m', 'pytest'] + pytest_args).returncode

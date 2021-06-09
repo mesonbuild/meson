@@ -273,6 +273,14 @@ backend:      'Backend'
 backend_flags: T.List[str]
 
 stop: bool = False
+is_worker_process: bool = False
+
+# Let's have colors in our CI output
+if under_ci:
+    def _ci_colorize_console() -> bool:
+        return not is_worker_process
+
+    mlog.colorize_console = _ci_colorize_console
 
 class StopException(Exception):
     def __init__(self) -> None:
@@ -574,6 +582,9 @@ def run_test(test: TestDef,
     global compile_commands, clean_commands, test_commands, install_commands, uninstall_commands, backend, backend_flags, host_c_compiler
     if state is not None:
         compile_commands, clean_commands, test_commands, install_commands, uninstall_commands, backend, backend_flags, host_c_compiler = state
+    # Store that this is a worker process
+    global is_worker_process
+    is_worker_process = True
     # Setup the test environment
     assert not test.skip, 'Skipped thest should not be run'
     build_dir = create_deterministic_builddir(test, use_tmp)
@@ -1210,6 +1221,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
     # Ensure we only cancel once
     tests_canceled = False
 
+    # Optionally enable the tqdm progress bar
     global safe_print
     futures_iter: T.Iterable[RunFutureUnion] = futures
     try:
