@@ -85,7 +85,10 @@ class CPPCompiler(CLikeCompiler, Compiler):
         return 'C++'
 
     def get_no_stdinc_args(self) -> T.List[str]:
-        return ['-nostdinc++']
+        if self.get_id() == 'msvc':
+            return ['/X']
+        else:
+            return ['-nostdinc++']
 
     def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
         code = 'class breakCCompiler;int main(void) { return 0; }\n'
