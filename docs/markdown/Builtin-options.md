@@ -69,7 +69,7 @@ machine](#specifying-options-per-machine) section for details.
 | Option                               | Default value | Description                                                    | Is per machine | Is per subproject |
 | ------                               | ------------- | -----------                                                    | -------------- | ----------------- |
 | auto_features {enabled, disabled, auto} | auto       | Override value of all 'auto' features                          | no             | no                |
-| backend {ninja, vs,<br>vs2010, vs2015, vs2017, vs2019, xcode} | ninja | Backend to use                                | no             | no                |
+| backend {ninja, vs,<br>vs2010, vs2012, vs2013, vs2015, vs2017, vs2019, xcode} | ninja | Backend to use                | no             | no                |
 | buildtype {plain, debug,<br>debugoptimized, release, minsize, custom} | debug |  Build type to use                    | no             | no                |
 | debug                                | true          | Debug                                                          | no             | no                |
 | default_library {shared, static, both} | shared      | Default library type                                           | no             | yes               |
