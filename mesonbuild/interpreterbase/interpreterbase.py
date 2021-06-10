@@ -39,6 +39,7 @@ from .exceptions import (
     BreakRequest
 )
 
+from .disabler import Disabler, is_disabled
 from .helpers import check_stringlist, default_resolve_key, flatten, get_callee_args
 
 from functools import wraps
@@ -590,36 +591,6 @@ class FeatureNewKwargs(FeatureCheckKwargsBase):
 
 class FeatureDeprecatedKwargs(FeatureCheckKwargsBase):
     feature_check_class = FeatureDeprecated
-
-
-class Disabler(InterpreterObject):
-    def __init__(self) -> None:
-        super().__init__()
-        self.methods.update({'found': self.found_method})
-
-    def found_method(self, args: T.Sequence[T.Any], kwargs: T.Dict[str, T.Any]) -> bool:
-        return False
-
-def is_disabler(i: T.Any) -> bool:
-    return isinstance(i, Disabler)
-
-def is_arg_disabled(arg: T.Any) -> bool:
-    if is_disabler(arg):
-        return True
-    if isinstance(arg, list):
-        for i in arg:
-            if is_arg_disabled(i):
-                return True
-    return False
-
-def is_disabled(args: T.Sequence[T.Any], kwargs: T.Dict[str, T.Any]) -> bool:
-    for i in args:
-        if is_arg_disabled(i):
-            return True
-    for i in kwargs.values():
-        if is_arg_disabled(i):
-            return True
-    return False
 
 class InterpreterBase:
     elementary_types = (int, float, str, bool, list)
