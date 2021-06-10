@@ -24,6 +24,8 @@ jobs:
         include:
           - NAME: gccx64ninja
             ARCH: x86_64
+    env:
+      MESON_CI_JOBNAME: cygwin-${{ matrix.NAME }}
 
     steps:
       # cache should be saved on failure, but the action doesn't support that
