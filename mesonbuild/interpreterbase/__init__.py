@@ -79,21 +79,7 @@ from .baseobjects import (
     TYPE_key_resolver,
 )
 
-from .exceptions import (
-    InterpreterException,
-    InvalidCode,
-    InvalidArguments,
-    SubdirDoneRequest,
-    ContinueRequest,
-    BreakRequest,
-)
-
-from .disabler import Disabler, is_disabled
-from .helpers import check_stringlist, default_resolve_key, flatten
-
-from .interpreterbase import (
-    MesonVersionString,
-
+from .decorators import (
     noPosargs,
     builtinMethodNoKwargs,
     noKwargs,
@@ -109,6 +95,17 @@ from .interpreterbase import (
     FeatureDeprecated,
     FeatureNewKwargs,
     FeatureDeprecatedKwargs,
-
-    InterpreterBase,
 )
+
+from .exceptions import (
+    InterpreterException,
+    InvalidCode,
+    InvalidArguments,
+    SubdirDoneRequest,
+    ContinueRequest,
+    BreakRequest,
+)
+
+from .disabler import Disabler, is_disabled
+from .helpers import check_stringlist, default_resolve_key, flatten
+from .interpreterbase import MesonVersionString, InterpreterBase
