@@ -20,8 +20,6 @@ __all__ = [
     'MutableInterpreterObject',
 
     'Disabler',
-    'is_disabler',
-    'is_arg_disabled',
     'is_disabled',
 
     'InterpreterException',
@@ -90,15 +88,11 @@ from .exceptions import (
     BreakRequest,
 )
 
+from .disabler import Disabler, is_disabled
 from .helpers import check_stringlist, default_resolve_key, flatten
 
 from .interpreterbase import (
     MesonVersionString,
-
-    Disabler,
-    is_disabler,
-    is_arg_disabled,
-    is_disabled,
 
     noPosargs,
     builtinMethodNoKwargs,
