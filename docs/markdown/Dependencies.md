@@ -667,6 +667,29 @@ both `ncurses` (preferred) and other curses implementations.
 
 *New in 0.56.0* The `config-tool` and `system` methods.
 
+To define some of the the preprocessor symbols mentioned in the
+[curses autoconf documentation](http://git.savannah.gnu.org/gitweb/?p=autoconf-archive.git;a=blob_plain;f=m4/ax_with_curses.m4):
+
+```meson
+conf = configuration_data()
+check_headers = [
+	['ncursesw/menu.h', 'HAVE_NCURSESW_MENU_H'],
+	['ncurses/menu.h', 'HAVE_NCURSES_MENU_H'],
+	['menu.h', 'HAVE_MENU_H'],
+	['ncursesw/curses.h', 'HAVE_NCURSESW_CURSES_H'],
+	['ncursesw.h', 'HAVE_NCURSESW_H'],
+	['ncurses/curses.h', 'HAVE_NCURSES_CURSES_H'],
+	['ncurses.h', 'HAVE_NCURSES_H'],
+	['curses.h', 'HAVE_CURSES_H'],
+]
+
+foreach h : check_headers
+	if compiler.has_header(h.get(0))
+		conf.set(h.get(1), 1)
+	endif
+endforeach
+```
+
 <hr>
 <a name="footnote1">1</a>: They may appear to be case-insensitive, if the
     underlying file system happens to be case-insensitive.
