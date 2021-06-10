@@ -634,6 +634,15 @@ class CoreData:
 
         if key.name == 'buildtype':
             self._set_others_from_buildtype(value)
+        elif key.name in {'wrap_mode', 'force_fallback_for'}:
+            # We could have the system dependency cached for a dependency that
+            # is now forced to use subproject fallback. We probably could have
+            # more fine grained cache invalidation, but better be safe.
+            self.clear_deps_cache()
+
+    def clear_deps_cache(self):
+        self.deps.host.clear()
+        self.deps.build.clear()
 
     def get_nondefault_buildtype_args(self):
         result= []
