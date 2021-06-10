@@ -24,8 +24,17 @@ __all__ = [
     'is_arg_disabled',
     'is_disabled',
 
+    'InterpreterException',
+    'InvalidCode',
+    'InvalidArguments',
+    'SubdirDoneRequest',
+    'ContinueRequest',
+    'BreakRequest',
+
     'check_stringlist',
+    'default_resolve_key',
     'flatten',
+
     'noPosargs',
     'builtinMethodNoKwargs',
     'noKwargs',
@@ -43,14 +52,6 @@ __all__ = [
     'FeatureDeprecatedKwargs',
 
     'InterpreterBase',
-    'default_resolve_key',
-
-    'InterpreterException',
-    'InvalidCode',
-    'InvalidArguments',
-    'SubdirDoneRequest',
-    'ContinueRequest',
-    'BreakRequest',
 
     'TV_fw_var',
     'TV_fw_args',
@@ -63,6 +64,23 @@ __all__ = [
     'TYPE_key_resolver',
 ]
 
+from .baseobjects import (
+    InterpreterObject,
+    ObjectHolder,
+    RangeHolder,
+    MutableInterpreterObject,
+
+    TV_fw_var,
+    TV_fw_args,
+    TV_fw_kwargs,
+    TV_func,
+    TYPE_elementary,
+    TYPE_var,
+    TYPE_nvar,
+    TYPE_nkwargs,
+    TYPE_key_resolver,
+)
+
 from .exceptions import (
     InterpreterException,
     InvalidCode,
@@ -72,20 +90,16 @@ from .exceptions import (
     BreakRequest,
 )
 
+from .helpers import check_stringlist, default_resolve_key, flatten
+
 from .interpreterbase import (
-    InterpreterObject,
-    ObjectHolder,
-    RangeHolder,
     MesonVersionString,
-    MutableInterpreterObject,
 
     Disabler,
     is_disabler,
     is_arg_disabled,
     is_disabled,
 
-    check_stringlist,
-    flatten,
     noPosargs,
     builtinMethodNoKwargs,
     noKwargs,
@@ -103,15 +117,4 @@ from .interpreterbase import (
     FeatureDeprecatedKwargs,
 
     InterpreterBase,
-    default_resolve_key,
-
-    TV_fw_var,
-    TV_fw_args,
-    TV_fw_kwargs,
-    TV_func,
-    TYPE_elementary,
-    TYPE_var,
-    TYPE_nvar,
-    TYPE_nkwargs,
-    TYPE_key_resolver,
 )
