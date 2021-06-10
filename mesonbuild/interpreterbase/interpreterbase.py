@@ -18,6 +18,15 @@
 from .. import mparser, mesonlib, mlog
 from .. import environment, dependencies
 
+from .exceptions import (
+    InterpreterException,
+    InvalidCode,
+    InvalidArguments,
+    SubdirDoneRequest,
+    ContinueRequest,
+    BreakRequest
+)
+
 from functools import wraps
 import abc
 import collections.abc
@@ -702,24 +711,6 @@ class FeatureNewKwargs(FeatureCheckKwargsBase):
 class FeatureDeprecatedKwargs(FeatureCheckKwargsBase):
     feature_check_class = FeatureDeprecated
 
-
-class InterpreterException(mesonlib.MesonException):
-    pass
-
-class InvalidCode(InterpreterException):
-    pass
-
-class InvalidArguments(InterpreterException):
-    pass
-
-class SubdirDoneRequest(BaseException):
-    pass
-
-class ContinueRequest(BaseException):
-    pass
-
-class BreakRequest(BaseException):
-    pass
 
 class MutableInterpreterObject(InterpreterObject):
     def __init__(self) -> None:

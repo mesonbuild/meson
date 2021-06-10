@@ -63,6 +63,15 @@ __all__ = [
     'TYPE_key_resolver',
 ]
 
+from .exceptions import (
+    InterpreterException,
+    InvalidCode,
+    InvalidArguments,
+    SubdirDoneRequest,
+    ContinueRequest,
+    BreakRequest,
+)
+
 from .interpreterbase import (
     InterpreterObject,
     ObjectHolder,
@@ -95,13 +104,6 @@ from .interpreterbase import (
 
     InterpreterBase,
     default_resolve_key,
-
-    InterpreterException,
-    InvalidCode,
-    InvalidArguments,
-    SubdirDoneRequest,
-    ContinueRequest,
-    BreakRequest,
 
     TV_fw_var,
     TV_fw_args,
