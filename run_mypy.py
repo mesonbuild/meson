@@ -13,6 +13,7 @@ modules = [
     'mesonbuild/cmake',
     'mesonbuild/compilers',
     'mesonbuild/dependencies',
+    'mesonbuild/interpreterbase',
     'mesonbuild/scripts',
     'mesonbuild/wrap',
 
@@ -20,7 +21,6 @@ modules = [
     'mesonbuild/arglist.py',
     # 'mesonbuild/coredata.py',
     'mesonbuild/envconfig.py',
-    'mesonbuild/interpreterbase.py',
     'mesonbuild/linkers.py',
     'mesonbuild/mcompile.py',
     'mesonbuild/mdevenv.py',

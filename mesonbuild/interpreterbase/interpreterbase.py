@@ -15,8 +15,8 @@
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool.
 
-from . import mparser, mesonlib, mlog
-from . import environment, dependencies
+from .. import mparser, mesonlib, mlog
+from .. import environment, dependencies
 
 from functools import wraps
 import abc
