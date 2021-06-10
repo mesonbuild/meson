@@ -18,6 +18,18 @@
 from .. import mparser, mesonlib, mlog
 from .. import environment, dependencies
 
+from .baseobjects import (
+    InterpreterObject,
+    MutableInterpreterObject,
+    ObjectHolder,
+    RangeHolder,
+
+    TV_func,
+    TYPE_var,
+    TYPE_nvar,
+    TYPE_nkwargs,
+)
+
 from .exceptions import (
     InterpreterException,
     InvalidCode,
@@ -27,157 +39,25 @@ from .exceptions import (
     BreakRequest
 )
 
+from .helpers import check_stringlist, default_resolve_key, flatten, get_callee_args
+
 from functools import wraps
 import abc
-import collections.abc
 import itertools
 import os, copy, re
 import typing as T
 
-TV_fw_var = T.Union[str, int, float, bool, list, dict, 'InterpreterObject', 'ObjectHolder']
-TV_fw_args = T.List[T.Union[mparser.BaseNode, TV_fw_var]]
-TV_fw_kwargs = T.Dict[str, T.Union[mparser.BaseNode, TV_fw_var]]
-
-TV_func = T.TypeVar('TV_func', bound=T.Callable[..., T.Any])
-
-TYPE_elementary = T.Union[str, int, float, bool]
-TYPE_var = T.Union[TYPE_elementary, T.List[T.Any], T.Dict[str, T.Any], 'InterpreterObject', 'ObjectHolder']
-TYPE_nvar = T.Union[TYPE_var, mparser.BaseNode]
-TYPE_nkwargs = T.Dict[str, TYPE_nvar]
-TYPE_key_resolver = T.Callable[[mparser.BaseNode], str]
-
-class InterpreterObject:
-    def __init__(self) -> None:
-        self.methods = {}  # type: T.Dict[str, T.Callable[[T.List[TYPE_nvar], TYPE_nkwargs], TYPE_var]]
-        # Current node set during a method call. This can be used as location
-        # when printing a warning message during a method call.
-        self.current_node = None  # type: mparser.BaseNode
-
-    def method_call(
-                self,
-                method_name: str,
-                args: TV_fw_args,
-                kwargs: TV_fw_kwargs
-            ) -> TYPE_var:
-        if method_name in self.methods:
-            method = self.methods[method_name]
-            if not getattr(method, 'no-args-flattening', False):
-                args = flatten(args)
-            return method(args, kwargs)
-        raise InvalidCode('Unknown method "%s" in object.' % method_name)
-
-TV_InterpreterObject = T.TypeVar('TV_InterpreterObject')
-
-class ObjectHolder(T.Generic[TV_InterpreterObject]):
-    def __init__(self, obj: TV_InterpreterObject, subproject: str = '') -> None:
-        self.held_object = obj
-        self.subproject = subproject
-
-    def __repr__(self) -> str:
-        return f'<Holder: {self.held_object!r}>'
 
 class MesonVersionString(str):
     pass
 
-class RangeHolder(InterpreterObject):
-    def __init__(self, start: int, stop: int, step: int) -> None:
-        super().__init__()
-        self.range = range(start, stop, step)
-
-    def __iter__(self) -> T.Iterator[int]:
-        return iter(self.range)
-
-    def __getitem__(self, key: int) -> int:
-        return self.range[key]
-
-    def __len__(self) -> int:
-        return len(self.range)
 
 # Decorators for method calls.
-
-def check_stringlist(a: T.Any, msg: str = 'Arguments must be strings.') -> None:
-    if not isinstance(a, list):
-        mlog.debug('Not a list:', str(a))
-        raise InvalidArguments('Argument not a list.')
-    if not all(isinstance(s, str) for s in a):
-        mlog.debug('Element not a string:', str(a))
-        raise InvalidArguments(msg)
-
-def _get_callee_args(wrapped_args: T.Sequence[T.Any], want_subproject: bool = False) -> T.Tuple[T.Any, mparser.BaseNode, TV_fw_args, TV_fw_kwargs, T.Optional[str]]:
-    s = wrapped_args[0]
-    n = len(wrapped_args)
-    # Raise an error if the codepaths are not there
-    subproject = None  # type: T.Optional[str]
-    if want_subproject and n == 2:
-        if hasattr(s, 'subproject'):
-            # Interpreter base types have 2 args: self, node
-            node = wrapped_args[1]
-            # args and kwargs are inside the node
-            args = None
-            kwargs = None
-            subproject = s.subproject
-        elif hasattr(wrapped_args[1], 'subproject'):
-            # Module objects have 2 args: self, interpreter
-            node = wrapped_args[1].current_node
-            # args and kwargs are inside the node
-            args = None
-            kwargs = None
-            subproject = wrapped_args[1].subproject
-        else:
-            raise AssertionError(f'Unknown args: {wrapped_args!r}')
-    elif n == 3:
-        # Methods on objects (*Holder, MesonMain, etc) have 3 args: self, args, kwargs
-        node = s.current_node
-        args = wrapped_args[1]
-        kwargs = wrapped_args[2]
-        if want_subproject:
-            if hasattr(s, 'subproject'):
-                subproject = s.subproject
-            elif hasattr(s, 'interpreter'):
-                subproject = s.interpreter.subproject
-    elif n == 4:
-        # Meson functions have 4 args: self, node, args, kwargs
-        # Module functions have 4 args: self, state, args, kwargs
-        if isinstance(s, InterpreterBase):
-            node = wrapped_args[1]
-        else:
-            node = wrapped_args[1].current_node
-        args = wrapped_args[2]
-        kwargs = wrapped_args[3]
-        if want_subproject:
-            if isinstance(s, InterpreterBase):
-                subproject = s.subproject
-            else:
-                subproject = wrapped_args[1].subproject
-    else:
-        raise AssertionError(f'Unknown args: {wrapped_args!r}')
-    # Sometimes interpreter methods are called internally with None instead of
-    # empty list/dict
-    args = args if args is not None else []
-    kwargs = kwargs if kwargs is not None else {}
-    return s, node, args, kwargs, subproject
-
-def flatten(args: T.Union[TYPE_nvar, T.List[TYPE_nvar]]) -> T.List[TYPE_nvar]:
-    if isinstance(args, mparser.StringNode):
-        assert isinstance(args.value, str)
-        return [args.value]
-    if not isinstance(args, collections.abc.Sequence):
-        return [args]
-    result = []  # type: T.List[TYPE_nvar]
-    for a in args:
-        if isinstance(a, list):
-            rest = flatten(a)
-            result = result + rest
-        elif isinstance(a, mparser.StringNode):
-            result.append(a.value)
-        else:
-            result.append(a)
-    return result
 
 def noPosargs(f: TV_func) -> TV_func:
     @wraps(f)
     def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
-        args = _get_callee_args(wrapped_args)[2]
+        args = get_callee_args(wrapped_args)[2]
         if args:
             raise InvalidArguments('Function does not take positional arguments.')
         return f(*wrapped_args, **wrapped_kwargs)
@@ -199,7 +79,7 @@ def builtinMethodNoKwargs(f: TV_func) -> TV_func:
 def noKwargs(f: TV_func) -> TV_func:
     @wraps(f)
     def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
-        kwargs = _get_callee_args(wrapped_args)[3]
+        kwargs = get_callee_args(wrapped_args)[3]
         if kwargs:
             raise InvalidArguments('Function does not take keyword arguments.')
         return f(*wrapped_args, **wrapped_kwargs)
@@ -208,7 +88,7 @@ def noKwargs(f: TV_func) -> TV_func:
 def stringArgs(f: TV_func) -> TV_func:
     @wraps(f)
     def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
-        args = _get_callee_args(wrapped_args)[2]
+        args = get_callee_args(wrapped_args)[2]
         assert(isinstance(args, list))
         check_stringlist(args)
         return f(*wrapped_args, **wrapped_kwargs)
@@ -221,7 +101,7 @@ def noArgsFlattening(f: TV_func) -> TV_func:
 def disablerIfNotFound(f: TV_func) -> TV_func:
     @wraps(f)
     def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
-        kwargs = _get_callee_args(wrapped_args)[3]
+        kwargs = get_callee_args(wrapped_args)[3]
         disabler = kwargs.pop('disabler', False)
         ret = f(*wrapped_args, **wrapped_kwargs)
         if disabler and not ret.held_object.found():
@@ -237,7 +117,7 @@ class permittedKwargs:
     def __call__(self, f: TV_func) -> TV_func:
         @wraps(f)
         def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
-            s, node, args, kwargs, _ = _get_callee_args(wrapped_args)
+            s, node, args, kwargs, _ = get_callee_args(wrapped_args)
             for k in kwargs:
                 if k not in self.permitted:
                     mlog.warning(f'''Passed invalid keyword argument "{k}".''', location=node)
@@ -298,7 +178,7 @@ def typed_pos_args(name: str, *types: T.Union[T.Type, T.Tuple[T.Type, ...]],
 
         @wraps(f)
         def wrapper(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
-            args = _get_callee_args(wrapped_args)[2]
+            args = get_callee_args(wrapped_args)[2]
 
             # These are implementation programming errors, end users should never see them.
             assert isinstance(args, list), args
@@ -480,7 +360,7 @@ def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
 
         @wraps(f)
         def wrapper(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
-            kwargs, subproject = _get_callee_args(wrapped_args, want_subproject=True)[3:5]
+            kwargs, subproject = get_callee_args(wrapped_args, want_subproject=True)[3:5]
 
             all_names = {t.name for t in types}
             unknowns = set(kwargs).difference(all_names)
@@ -606,7 +486,7 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
     def __call__(self, f: TV_func) -> TV_func:
         @wraps(f)
         def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
-            subproject = _get_callee_args(wrapped_args, want_subproject=True)[4]
+            subproject = get_callee_args(wrapped_args, want_subproject=True)[4]
             if subproject is None:
                 raise AssertionError(f'{wrapped_args!r}')
             self.use(subproject)
@@ -693,7 +573,7 @@ class FeatureCheckKwargsBase(metaclass=abc.ABCMeta):
     def __call__(self, f: TV_func) -> TV_func:
         @wraps(f)
         def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
-            kwargs, subproject = _get_callee_args(wrapped_args, want_subproject=True)[3:5]
+            kwargs, subproject = get_callee_args(wrapped_args, want_subproject=True)[3:5]
             if subproject is None:
                 raise AssertionError(f'{wrapped_args!r}')
             for arg in self.kwargs:
@@ -711,10 +591,6 @@ class FeatureNewKwargs(FeatureCheckKwargsBase):
 class FeatureDeprecatedKwargs(FeatureCheckKwargsBase):
     feature_check_class = FeatureDeprecated
 
-
-class MutableInterpreterObject(InterpreterObject):
-    def __init__(self) -> None:
-        super().__init__()
 
 class Disabler(InterpreterObject):
     def __init__(self) -> None:
@@ -744,11 +620,6 @@ def is_disabled(args: T.Sequence[T.Any], kwargs: T.Dict[str, T.Any]) -> bool:
         if is_arg_disabled(i):
             return True
     return False
-
-def default_resolve_key(key: mparser.BaseNode) -> str:
-    if not isinstance(key, mparser.IdNode):
-        raise InterpreterException('Invalid kwargs format.')
-    return key.value
 
 class InterpreterBase:
     elementary_types = (int, float, str, bool, list)
