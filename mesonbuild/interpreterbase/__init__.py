@@ -14,6 +14,7 @@
 
 __all__ = [
     'InterpreterObject',
+    'MesonInterpreterObject',
     'ObjectHolder',
     'RangeHolder',
     'MesonVersionString',
@@ -64,6 +65,7 @@ __all__ = [
 
 from .baseobjects import (
     InterpreterObject,
+    MesonInterpreterObject,
     ObjectHolder,
     RangeHolder,
     MutableInterpreterObject,

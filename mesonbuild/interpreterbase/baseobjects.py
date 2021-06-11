@@ -51,12 +51,15 @@ class InterpreterObject:
             return method(args, kwargs)
         raise InvalidCode('Unknown method "%s" in object.' % method_name)
 
+class MesonInterpreterObject(InterpreterObject):
+    ''' All non-elementary objects should be derived from this '''
+
 class MutableInterpreterObject:
     ''' Dummy class to mark the object type as mutable '''
 
 TV_InterpreterObject = T.TypeVar('TV_InterpreterObject')
 
-class ObjectHolder(InterpreterObject, T.Generic[TV_InterpreterObject]):
+class ObjectHolder(MesonInterpreterObject, T.Generic[TV_InterpreterObject]):
     def __init__(self, obj: TV_InterpreterObject, *, subproject: T.Optional[str] = None) -> None:
         super().__init__(subproject=subproject)
         self.held_object = obj
@@ -64,7 +67,7 @@ class ObjectHolder(InterpreterObject, T.Generic[TV_InterpreterObject]):
     def __repr__(self) -> str:
         return f'<Holder: {self.held_object!r}>'
 
-class RangeHolder(InterpreterObject):
+class RangeHolder(MesonInterpreterObject):
     def __init__(self, start: int, stop: int, step: int, *, subproject: T.Optional[str] = None) -> None:
         super().__init__(subproject=subproject)
         self.range = range(start, stop, step)

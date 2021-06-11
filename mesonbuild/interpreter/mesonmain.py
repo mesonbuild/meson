@@ -7,7 +7,7 @@ from .. import mlog
 
 from ..mesonlib import unholder, MachineChoice, OptionKey
 from ..programs import OverrideProgram, ExternalProgram
-from ..interpreterbase import (InterpreterObject, FeatureNewKwargs, FeatureNew, FeatureDeprecated,
+from ..interpreterbase import (MesonInterpreterObject, FeatureNewKwargs, FeatureNew, FeatureDeprecated,
                                typed_pos_args, permittedKwargs, noArgsFlattening, noPosargs, noKwargs,
                                MesonVersionString, InterpreterException)
 
@@ -18,9 +18,12 @@ from .interpreterobjects import (ExecutableHolder, ExternalProgramHolder,
 
 import typing as T
 
-class MesonMain(InterpreterObject):
+if T.TYPE_CHECKING:
+    from .interpreter import Interpreter
+
+class MesonMain(MesonInterpreterObject):
     def __init__(self, build: 'build.Build', interpreter: 'Interpreter'):
-        InterpreterObject.__init__(self)
+        super().__init__()
         self.build = build
         self.interpreter = interpreter
         self.methods.update({'get_compiler': self.get_compiler_method,
@@ -55,7 +58,7 @@ class MesonMain(InterpreterObject):
                              })
 
     def _find_source_script(self, prog: T.Union[str, mesonlib.File, ExecutableHolder], args):
-        
+
         if isinstance(prog, (ExecutableHolder, ExternalProgramHolder)):
             return self.interpreter.backend.get_executable_serialisation([unholder(prog)] + args)
         found = self.interpreter.func_find_program({}, prog, {}).held_object

@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .baseobjects import InterpreterObject
+from .baseobjects import MesonInterpreterObject
 import typing as T
 
-class Disabler(InterpreterObject):
+class Disabler(MesonInterpreterObject):
     def __init__(self) -> None:
         super().__init__()
         self.methods.update({'found': self.found_method})

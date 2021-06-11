@@ -13,8 +13,8 @@ from .. import mlog
 
 from ..modules import ModuleReturnValue, ModuleObject, ModuleState, ExtensionModule
 from ..backend.backends import TestProtocol
-from ..interpreterbase import (ContainerTypeInfo, InterpreterObject, KwargInfo,
-                               ObjectHolder, MutableInterpreterObject,
+from ..interpreterbase import (ContainerTypeInfo, KwargInfo,
+                               MesonInterpreterObject, ObjectHolder, MutableInterpreterObject,
                                FeatureNewKwargs, FeatureNew, FeatureDeprecated,
                                typed_kwargs, typed_pos_args, stringArgs,
                                permittedKwargs, noArgsFlattening, noPosargs,
@@ -145,7 +145,7 @@ class FeatureOptionHolder(ObjectHolder[coredata.UserFeatureOption]):
         return self if self.value != 'auto' or not args[0] else self.as_disabled()
 
 
-class RunProcess(InterpreterObject):
+class RunProcess(MesonInterpreterObject):
 
     def __init__(self, cmd, args, env, source_dir, build_dir, subdir, mesonintrospect, in_builddir=False, check=False, capture=True):
         super().__init__()
@@ -718,13 +718,13 @@ class GeneratedObjectsHolder(ObjectHolder[build.ExtractedObjects]):
     def __init__(self, held_object: build.ExtractedObjects):
         super().__init__(held_object)
 
-class Test(InterpreterObject):
+class Test(MesonInterpreterObject):
     def __init__(self, name: str, project: str, suite: T.List[str], exe: build.Executable,
                  depends: T.List[T.Union[build.CustomTarget, build.BuildTarget]],
                  is_parallel: bool, cmd_args: T.List[str], env: build.EnvironmentVariables,
                  should_fail: bool, timeout: int, workdir: T.Optional[str], protocol: str,
                  priority: int):
-        InterpreterObject.__init__(self)
+        super().__init__()
         self.name = name
         self.suite = suite
         self.project_name = project
