@@ -31,6 +31,8 @@ import typing as T
 if T.TYPE_CHECKING:
     from . import kwargs
     from .interpreter import Interpreter
+    from ..environment import Environment
+    from ..envconfig import MachineInfo
 
 
 def extract_required_kwarg(kwargs: 'kwargs.ExtractRequired', subproject: str,
