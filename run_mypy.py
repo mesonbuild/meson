@@ -7,6 +7,8 @@ import subprocess
 import sys
 import typing as T
 
+from mesonbuild.mesonlib import version_compare
+
 modules = [
     # fully typed submodules
     'mesonbuild/ast',
@@ -54,6 +56,10 @@ def check_mypy() -> None:
         import mypy
     except ImportError:
         print('Failed import mypy')
+        sys.exit(1)
+    from mypy.version import __version__ as mypy_version
+    if not version_compare(mypy_version, '>=0.902'):
+        print('mypy >=0.902 is required, older versions report spurious errors')
         sys.exit(1)
 
 def main() -> int:
