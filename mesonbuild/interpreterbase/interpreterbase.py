@@ -50,7 +50,7 @@ class MesonVersionString(str):
     pass
 
 class InterpreterBase:
-    elementary_types = (int, float, str, bool, list)
+    elementary_types = (int, str, bool, list)
 
     def __init__(self, source_root: str, subdir: str, subproject: str):
         self.source_root = source_root

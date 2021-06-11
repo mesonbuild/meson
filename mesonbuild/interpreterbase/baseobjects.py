@@ -18,13 +18,13 @@ from .helpers import flatten
 
 import typing as T
 
-TV_fw_var = T.Union[str, int, float, bool, list, dict, 'InterpreterObject']
+TV_fw_var = T.Union[str, int, bool, list, dict, 'InterpreterObject']
 TV_fw_args = T.List[T.Union[mparser.BaseNode, TV_fw_var]]
 TV_fw_kwargs = T.Dict[str, T.Union[mparser.BaseNode, TV_fw_var]]
 
 TV_func = T.TypeVar('TV_func', bound=T.Callable[..., T.Any])
 
-TYPE_elementary = T.Union[str, int, float, bool]
+TYPE_elementary = T.Union[str, int, bool]
 TYPE_var = T.Union[TYPE_elementary, T.List[T.Any], T.Dict[str, T.Any], 'InterpreterObject']
 TYPE_nvar = T.Union[TYPE_var, mparser.BaseNode]
 TYPE_nkwargs = T.Dict[str, TYPE_nvar]
