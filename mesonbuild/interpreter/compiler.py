@@ -6,17 +6,20 @@ from .interpreterobjects import (IncludeDirsHolder, ExternalLibraryHolder,
 from .. import mesonlib
 from .. import mlog
 from .. import dependencies
-from ..interpreterbase import (InterpreterObject, noPosargs, noKwargs, permittedKwargs,
+from ..interpreterbase import (ObjectHolder, noPosargs, noKwargs, permittedKwargs,
                                FeatureNew, FeatureNewKwargs, disablerIfNotFound,
-                               check_stringlist, InterpreterException, InvalidArguments,
-                               InvalidCode)
+                               check_stringlist, InterpreterException, InvalidArguments)
 
 import typing as T
+import os
 
-class TryRunResultHolder(InterpreterObject):
-    def __init__(self, res):
-        super().__init__()
-        self.res = res
+if T.TYPE_CHECKING:
+    from ..environment import Environment
+    from ..compilers import Compiler, RunResult
+
+class TryRunResultHolder(ObjectHolder['RunResult']):
+    def __init__(self, res: 'RunResult'):
+        super().__init__(res)
         self.methods.update({'returncode': self.returncode_method,
                              'compiled': self.compiled_method,
                              'stdout': self.stdout_method,
@@ -26,22 +29,22 @@ class TryRunResultHolder(InterpreterObject):
     @noPosargs
     @permittedKwargs({})
     def returncode_method(self, args, kwargs):
-        return self.res.returncode
+        return self.held_object.returncode
 
     @noPosargs
     @permittedKwargs({})
     def compiled_method(self, args, kwargs):
-        return self.res.compiled
+        return self.held_object.compiled
 
     @noPosargs
     @permittedKwargs({})
     def stdout_method(self, args, kwargs):
-        return self.res.stdout
+        return self.held_object.stdout
 
     @noPosargs
     @permittedKwargs({})
     def stderr_method(self, args, kwargs):
-        return self.res.stderr
+        return self.held_object.stderr
 
 header_permitted_kwargs = {
     'required',
@@ -61,12 +64,10 @@ find_library_permitted_kwargs = {
 
 find_library_permitted_kwargs |= {'header_' + k for k in header_permitted_kwargs}
 
-class CompilerHolder(InterpreterObject):
+class CompilerHolder(ObjectHolder['Compiler']):
     def __init__(self, compiler: 'Compiler', env: 'Environment', subproject: str):
-        InterpreterObject.__init__(self)
-        self.compiler = compiler
+        super().__init__(compiler, subproject=subproject)
         self.environment = env
-        self.subproject = subproject
         self.methods.update({'compiles': self.compiles_method,
                              'links': self.links_method,
                              'get_id': self.get_id_method,
@@ -100,6 +101,10 @@ class CompilerHolder(InterpreterObject):
                              'symbols_have_underscore_prefix': self.symbols_have_underscore_prefix_method,
                              'get_argument_syntax': self.get_argument_syntax_method,
                              })
+
+    @property
+    def compiler(self) -> 'Compiler':
+        return self.held_object
 
     def _dep_msg(self, deps, endl):
         msg_single = 'with dependency {}'
