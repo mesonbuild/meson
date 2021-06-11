@@ -31,11 +31,12 @@ TYPE_nkwargs = T.Dict[str, TYPE_nvar]
 TYPE_key_resolver = T.Callable[[mparser.BaseNode], str]
 
 class InterpreterObject:
-    def __init__(self) -> None:
+    def __init__(self, *, subproject: T.Optional[str] = None) -> None:
         self.methods = {}  # type: T.Dict[str, T.Callable[[T.List[TYPE_nvar], TYPE_nkwargs], TYPE_var]]
         # Current node set during a method call. This can be used as location
         # when printing a warning message during a method call.
-        self.current_node = None  # type: mparser.BaseNode
+        self.current_node:  mparser.BaseNode = None
+        self.subproject: str = subproject or ''
 
     def method_call(
                 self,
@@ -50,23 +51,22 @@ class InterpreterObject:
             return method(args, kwargs)
         raise InvalidCode('Unknown method "%s" in object.' % method_name)
 
-class MutableInterpreterObject(InterpreterObject):
-    def __init__(self) -> None:
-        super().__init__()
+class MutableInterpreterObject:
+    ''' Dummy class to mark the object type as mutable '''
 
 TV_InterpreterObject = T.TypeVar('TV_InterpreterObject')
 
-class ObjectHolder(T.Generic[TV_InterpreterObject]):
-    def __init__(self, obj: TV_InterpreterObject, subproject: str = '') -> None:
+class ObjectHolder(InterpreterObject, T.Generic[TV_InterpreterObject]):
+    def __init__(self, obj: TV_InterpreterObject, *, subproject: T.Optional[str] = None) -> None:
+        super().__init__(subproject=subproject)
         self.held_object = obj
-        self.subproject = subproject
 
     def __repr__(self) -> str:
         return f'<Holder: {self.held_object!r}>'
 
 class RangeHolder(InterpreterObject):
-    def __init__(self, start: int, stop: int, step: int) -> None:
-        super().__init__()
+    def __init__(self, start: int, stop: int, step: int, *, subproject: T.Optional[str] = None) -> None:
+        super().__init__(subproject=subproject)
         self.range = range(start, stop, step)
 
     def __iter__(self) -> T.Iterator[int]:

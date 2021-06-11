@@ -76,10 +76,9 @@ def extract_search_dirs(kwargs):
             raise InvalidCode(f'Search directory {d} is not an absolute path.')
     return list(map(str, search_dirs))
 
-class FeatureOptionHolder(InterpreterObject, ObjectHolder[coredata.UserFeatureOption]):
+class FeatureOptionHolder(ObjectHolder[coredata.UserFeatureOption]):
     def __init__(self, env: 'Environment', name: str, option: coredata.UserFeatureOption):
-        InterpreterObject.__init__(self)
-        ObjectHolder.__init__(self, option)
+        super().__init__(option)
         if option and option.is_auto():
             # TODO: we need to case here because options is not a TypedDict
             self.held_object = T.cast(coredata.UserFeatureOption, env.coredata.options[OptionKey('auto_features')])
@@ -212,8 +211,7 @@ class RunProcess(InterpreterObject):
 
 class EnvironmentVariablesHolder(MutableInterpreterObject, ObjectHolder[build.EnvironmentVariables]):
     def __init__(self, initial_values=None, subproject: str = ''):
-        MutableInterpreterObject.__init__(self)
-        ObjectHolder.__init__(self, build.EnvironmentVariables(), subproject)
+        super().__init__(build.EnvironmentVariables(), subproject=subproject)
         self.methods.update({'set': self.set_method,
                              'append': self.append_method,
                              'prepend': self.prepend_method,
@@ -279,10 +277,9 @@ class EnvironmentVariablesHolder(MutableInterpreterObject, ObjectHolder[build.En
 
 
 class ConfigurationDataHolder(MutableInterpreterObject, ObjectHolder[build.ConfigurationData]):
-    def __init__(self, pv, initial_values=None):
-        MutableInterpreterObject.__init__(self)
+    def __init__(self, subproject: str, initial_values=None):
         self.used = False # These objects become immutable after use in configure_file.
-        ObjectHolder.__init__(self, build.ConfigurationData(), pv)
+        super().__init__(build.ConfigurationData(), subproject=subproject)
         self.methods.update({'set': self.set_method,
                              'set10': self.set10_method,
                              'set_quoted': self.set_quoted_method,
@@ -404,10 +401,9 @@ permitted_partial_dependency_kwargs = {
     'compile_args', 'link_args', 'links', 'includes', 'sources'
 }
 
-class DependencyHolder(InterpreterObject, ObjectHolder[Dependency]):
-    def __init__(self, dep: Dependency, pv: str):
-        InterpreterObject.__init__(self)
-        ObjectHolder.__init__(self, dep, pv)
+class DependencyHolder(ObjectHolder[Dependency]):
+    def __init__(self, dep: Dependency, subproject: str):
+        super().__init__(dep, subproject=subproject)
         self.methods.update({'found': self.found_method,
                              'type_name': self.type_name_method,
                              'version': self.version_method,
@@ -517,11 +513,9 @@ class DependencyHolder(InterpreterObject, ObjectHolder[Dependency]):
         new_dep = self.held_object.generate_link_whole_dependency()
         return DependencyHolder(new_dep, self.subproject)
 
-class ExternalProgramHolder(InterpreterObject, ObjectHolder[ExternalProgram]):
+class ExternalProgramHolder(ObjectHolder[ExternalProgram]):
     def __init__(self, ep: ExternalProgram, subproject: str, backend=None):
-        InterpreterObject.__init__(self)
-        ObjectHolder.__init__(self, ep)
-        self.subproject = subproject
+        super().__init__(ep, subproject=subproject)
         self.backend = backend
         self.methods.update({'found': self.found_method,
                              'path': self.path_method,
@@ -584,10 +578,9 @@ class ExternalProgramHolder(InterpreterObject, ObjectHolder[ExternalProgram]):
             self.cached_version = match.group(1)
         return self.cached_version
 
-class ExternalLibraryHolder(InterpreterObject, ObjectHolder[ExternalLibrary]):
-    def __init__(self, el: ExternalLibrary, pv: str):
-        InterpreterObject.__init__(self)
-        ObjectHolder.__init__(self, el, pv)
+class ExternalLibraryHolder(ObjectHolder[ExternalLibrary]):
+    def __init__(self, el: ExternalLibrary, subproject: str):
+        super().__init__(el, subproject=subproject)
         self.methods.update({'found': self.found_method,
                              'type_name': self.type_name_method,
                              'partial_dependency': self.partial_dependency_method,
@@ -626,10 +619,9 @@ class ExternalLibraryHolder(InterpreterObject, ObjectHolder[ExternalLibrary]):
         return DependencyHolder(pdep, self.subproject)
 
 
-class GeneratedListHolder(InterpreterObject, ObjectHolder[build.GeneratedList]):
+class GeneratedListHolder(ObjectHolder[build.GeneratedList]):
     def __init__(self, arg1: 'build.GeneratedList'):
-        InterpreterObject.__init__(self)
-        ObjectHolder.__init__(self, arg1)
+        super().__init__(arg1)
 
     def __repr__(self) -> str:
         r = '<{}: {!r}>'
@@ -637,10 +629,9 @@ class GeneratedListHolder(InterpreterObject, ObjectHolder[build.GeneratedList]):
 
 
 # A machine that's statically known from the cross file
-class MachineHolder(InterpreterObject, ObjectHolder['MachineInfo']):
+class MachineHolder(ObjectHolder['MachineInfo']):
     def __init__(self, machine_info: 'MachineInfo'):
-        InterpreterObject.__init__(self)
-        ObjectHolder.__init__(self, machine_info)
+        super().__init__(machine_info)
         self.methods.update({'system': self.system_method,
                              'cpu': self.cpu_method,
                              'cpu_family': self.cpu_family_method,
@@ -667,16 +658,13 @@ class MachineHolder(InterpreterObject, ObjectHolder['MachineInfo']):
     def endian_method(self, args: T.List[TYPE_var], kwargs: TYPE_nkwargs) -> str:
         return self.held_object.endian
 
-class IncludeDirsHolder(InterpreterObject, ObjectHolder[build.IncludeDirs]):
+class IncludeDirsHolder(ObjectHolder[build.IncludeDirs]):
     def __init__(self, idobj: build.IncludeDirs):
-        InterpreterObject.__init__(self)
-        ObjectHolder.__init__(self, idobj)
+        super().__init__(idobj)
 
-class HeadersHolder(InterpreterObject, ObjectHolder[build.Headers]):
-
+class HeadersHolder(ObjectHolder[build.Headers]):
     def __init__(self, obj: build.Headers):
-        InterpreterObject.__init__(self)
-        ObjectHolder.__init__(self, obj)
+        super().__init__(obj)
 
     def set_install_subdir(self, subdir):
         self.held_object.install_subdir = subdir
@@ -693,10 +681,9 @@ class HeadersHolder(InterpreterObject, ObjectHolder[build.Headers]):
     def get_custom_install_mode(self):
         return self.held_object.custom_install_mode
 
-class DataHolder(InterpreterObject, ObjectHolder[build.Data]):
+class DataHolder(ObjectHolder[build.Data]):
     def __init__(self, data: build.Data):
-        InterpreterObject.__init__(self)
-        ObjectHolder.__init__(self, data)
+        super().__init__(data)
 
     def get_source_subdir(self):
         return self.held_object.source_subdir
@@ -707,17 +694,13 @@ class DataHolder(InterpreterObject, ObjectHolder[build.Data]):
     def get_install_dir(self):
         return self.held_object.install_dir
 
-class InstallDirHolder(InterpreterObject, ObjectHolder[build.IncludeDirs]):
-
+class InstallDirHolder(ObjectHolder[build.IncludeDirs]):
     def __init__(self, obj: build.InstallDir):
-        InterpreterObject.__init__(self)
-        ObjectHolder.__init__(self, obj)
+        super().__init__(obj)
 
-class ManHolder(InterpreterObject, ObjectHolder[build.Man]):
-
+class ManHolder(ObjectHolder[build.Man]):
     def __init__(self, obj: build.Man):
-        InterpreterObject.__init__(self)
-        ObjectHolder.__init__(self, obj)
+        super().__init__(obj)
 
     def get_custom_install_dir(self) -> T.Optional[str]:
         return self.held_object.custom_install_dir
@@ -731,10 +714,9 @@ class ManHolder(InterpreterObject, ObjectHolder[build.Man]):
     def get_sources(self) -> T.List[mesonlib.File]:
         return self.held_object.sources
 
-class GeneratedObjectsHolder(InterpreterObject, ObjectHolder[build.ExtractedObjects]):
+class GeneratedObjectsHolder(ObjectHolder[build.ExtractedObjects]):
     def __init__(self, held_object: build.ExtractedObjects):
-        InterpreterObject.__init__(self)
-        ObjectHolder.__init__(self, held_object)
+        super().__init__(held_object)
 
 class Test(InterpreterObject):
     def __init__(self, name: str, project: str, suite: T.List[str], exe: build.Executable,
@@ -763,12 +745,11 @@ class Test(InterpreterObject):
     def get_name(self):
         return self.name
 
-class SubprojectHolder(InterpreterObject, ObjectHolder[T.Optional['Interpreter']]):
+class SubprojectHolder(ObjectHolder[T.Optional['Interpreter']]):
 
     def __init__(self, subinterpreter: T.Optional['Interpreter'], subdir: str, warnings=0, disabled_feature=None,
                  exception=None):
-        InterpreterObject.__init__(self)
-        ObjectHolder.__init__(self, subinterpreter)
+        super().__init__(subinterpreter)
         self.warnings = warnings
         self.disabled_feature = disabled_feature
         self.exception = exception
@@ -805,10 +786,9 @@ class SubprojectHolder(InterpreterObject, ObjectHolder[T.Optional['Interpreter']
 
         raise InvalidArguments(f'Requested variable "{varname}" not found.')
 
-class ModuleObjectHolder(InterpreterObject, ObjectHolder['ModuleObject']):
+class ModuleObjectHolder(ObjectHolder['ModuleObject']):
     def __init__(self, modobj: 'ModuleObject', interpreter: 'Interpreter'):
-        InterpreterObject.__init__(self)
-        ObjectHolder.__init__(self, modobj)
+        super().__init__(modobj)
         self.interpreter = interpreter
 
     def method_call(self, method_name, args, kwargs):
@@ -840,10 +820,9 @@ class MutableModuleObjectHolder(ModuleObjectHolder, MutableInterpreterObject):
 _Target = T.TypeVar('_Target', bound=build.Target)
 
 
-class TargetHolder(InterpreterObject, ObjectHolder[_Target]):
+class TargetHolder(ObjectHolder[_Target]):
     def __init__(self, target: _Target, interp: 'Interpreter'):
-        InterpreterObject.__init__(self)
-        ObjectHolder.__init__(self, target, interp.subproject)
+        super().__init__(target, subproject=interp.subproject)
         self.interpreter = interp
 
 
@@ -1021,11 +1000,10 @@ class RunTargetHolder(TargetHolder):
         return r.format(self.__class__.__name__, h.get_id(), h.command)
 
 
-class GeneratorHolder(InterpreterObject, ObjectHolder[build.Generator]):
+class GeneratorHolder(ObjectHolder[build.Generator]):
 
     def __init__(self, gen: 'build.Generator', interpreter: 'Interpreter'):
-        InterpreterObject.__init__(self)
-        ObjectHolder.__init__(self, gen, interpreter.subproject)
+        self().__init__(self, gen, interpreter.subproject)
         self.interpreter = interpreter
         self.methods.update({'process': self.process_method})
 
