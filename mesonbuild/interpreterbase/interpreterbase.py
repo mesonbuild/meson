@@ -545,8 +545,6 @@ The result of this is undefined and will become a hard error in a future Meson r
             return self.array_method_call(obj, method_name, args, kwargs)
         if isinstance(obj, dict):
             return self.dict_method_call(obj, method_name, args, kwargs)
-        if isinstance(obj, mesonlib.File):
-            raise InvalidArguments('File object "%s" is not callable.' % obj)
         if not isinstance(obj, InterpreterObject):
             raise InvalidArguments('Variable "%s" is not callable.' % object_name)
         # Special case. This is the only thing you can do with a disabler
@@ -867,7 +865,7 @@ To specify a keyword argument, use : instead of =.''')
 
     def is_assignable(self, value: T.Any) -> bool:
         return isinstance(value, (InterpreterObject, dependencies.Dependency,
-                                  str, int, list, dict, mesonlib.File))
+                                  str, int, list, dict))
 
     def validate_extraction(self, buildtarget: InterpreterObject) -> None:
         raise InterpreterException('validate_extraction is not implemented in this context (please file a bug)')

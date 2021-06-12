@@ -662,6 +662,10 @@ class IncludeDirsHolder(ObjectHolder[build.IncludeDirs]):
     def __init__(self, idobj: build.IncludeDirs):
         super().__init__(idobj)
 
+class FileHolder(ObjectHolder[mesonlib.File]):
+    def __init__(self, fobj: mesonlib.File):
+        super().__init__(fobj)
+
 class HeadersHolder(ObjectHolder[build.Headers]):
     def __init__(self, obj: build.Headers):
         super().__init__(obj)
