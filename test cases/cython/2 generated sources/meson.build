@@ -59,3 +59,12 @@ test(
   args : [files('test.py'), 'g'],
   env : ['PYTHONPATH=' + meson.current_build_dir()]
 )
+
+subdir('libdir')
+
+test(
+  'custom target in subdir',
+  py3,
+  args : [files('test.py'), 'ct2'],
+  env : ['PYTHONPATH=' + pydir]
+)
