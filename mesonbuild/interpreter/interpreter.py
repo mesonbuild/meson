@@ -46,7 +46,7 @@ from .interpreterobjects import (SubprojectHolder, MachineHolder, EnvironmentVar
                                  SharedModuleHolder, HeadersHolder, BothLibrariesHolder,
                                  BuildTargetHolder, DataHolder, JarHolder, Test, RunProcess,
                                  ManHolder, GeneratorHolder, InstallDirHolder, extract_required_kwarg,
-                                 extract_search_dirs, MutableModuleObjectHolder)
+                                 extract_search_dirs, MutableModuleObjectHolder, FileHolder)
 from .dependencyfallbacks import DependencyFallbacksHolder
 
 from pathlib import Path
@@ -64,7 +64,7 @@ if T.TYPE_CHECKING:
     from . import kwargs
 
     # Input source types passed to Targets
-    SourceInputs = T.Union[mesonlib.File, GeneratedListHolder, TargetHolder,
+    SourceInputs = T.Union[FileHolder, GeneratedListHolder, TargetHolder,
                            CustomTargetIndexHolder, GeneratedObjectsHolder, str]
     # Input source types passed to the build.Target5 classes
     SourceOutputs = T.Union[mesonlib.File, build.GeneratedList,
@@ -394,7 +394,7 @@ class Interpreter(InterpreterBase):
 
         if isinstance(item, build.CustomTarget):
             return CustomTargetHolder(item, self)
-        elif isinstance(item, (int, str, bool, InterpreterObject, mesonlib.File)) or item is None:
+        elif isinstance(item, (int, str, bool, InterpreterObject)) or item is None:
             return item
         elif isinstance(item, build.Executable):
             return ExecutableHolder(item, self)
@@ -414,8 +414,8 @@ class Interpreter(InterpreterBase):
             return MutableModuleObjectHolder(item, self)
         elif isinstance(item, ModuleObject):
             return ModuleObjectHolder(item, self)
-        elif isinstance(item, InterpreterObject):
-            return item
+        elif isinstance(item, mesonlib.File):
+            return FileHolder(item)
         else:
             raise InterpreterException('Module returned a value of unknown type.')
 
