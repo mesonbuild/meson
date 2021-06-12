@@ -1583,6 +1583,8 @@ int dummy;
             for ssrc in gen.get_outputs():
                 if isinstance(gen, GeneratedList):
                     ssrc = os.path.join(self.get_target_private_dir(target) , ssrc)
+                else:
+                    ssrc = os.path.join(gen.get_subdir(), ssrc)
                 if ssrc.endswith('.pyx'):
                     args = args.copy()
                     output = os.path.join(self.get_target_private_dir(target), f'{ssrc}.c')
