@@ -20,7 +20,7 @@ from ..mesonlib import MachineChoice
 from .base import DependencyException, DependencyMethods
 from .base import ExternalDependency
 from .base import process_method_kw
-from .base import SystemDependency
+from .base import BuiltinDependency, SystemDependency
 from .cmake import CMakeDependency
 from .framework import ExtraFrameworkDependency
 from .pkgconfig import PkgConfigDependency
@@ -81,6 +81,7 @@ class DependencyFactory:
                  configtool_class: 'T.Optional[T.Type[ConfigToolDependency]]' = None,
                  framework_name: T.Optional[str] = None,
                  framework_class: 'T.Type[ExtraFrameworkDependency]' = ExtraFrameworkDependency,
+                 builtin_class: 'T.Type[BuiltinDependency]' = BuiltinDependency,
                  system_class: 'T.Type[SystemDependency]' = SystemDependency):
 
         if DependencyMethods.CONFIG_TOOL in methods and not configtool_class:
@@ -98,6 +99,7 @@ class DependencyFactory:
             DependencyMethods.PKGCONFIG:      lambda env, kwargs: pkgconfig_class(pkgconfig_name or name, env, kwargs),
             DependencyMethods.CMAKE:          lambda env, kwargs: cmake_class(cmake_name or name, env, kwargs),
             DependencyMethods.SYSTEM:         lambda env, kwargs: system_class(name, env, kwargs),
+            DependencyMethods.BUILTIN:        lambda env, kwargs: builtin_class(name, env, kwargs),
             DependencyMethods.CONFIG_TOOL:    None,
         }
         if configtool_class is not None:

@@ -42,6 +42,8 @@ class DependencyMethods(Enum):
     AUTO = 'auto'
     PKGCONFIG = 'pkg-config'
     CMAKE = 'cmake'
+    # The dependency is provided by the standard library and does not need to be linked
+    BUILTIN = 'builtin'
     # Just specify the standard link arguments, assuming the operating system provides the library.
     SYSTEM = 'system'
     # This is only supported on OSX - search the frameworks directory by name.
@@ -551,3 +553,20 @@ class SystemDependency(ExternalDependency):
 
     def log_tried(self) -> str:
         return 'system'
+
+
+class BuiltinDependency(ExternalDependency):
+
+    """Dependency base for Builtin type dependencies."""
+
+    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
+                 language: T.Optional[str] = None) -> None:
+        super().__init__(DependencyTypeName('builtin'), env, kwargs, language=language)
+        self.name = name
+
+    @staticmethod
+    def get_methods() -> T.List[DependencyMethods]:
+        return [DependencyMethods.BUILTIN]
+
+    def log_tried(self) -> str:
+        return 'builtin'
