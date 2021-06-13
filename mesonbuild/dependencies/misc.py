@@ -24,7 +24,7 @@ from .. import mesonlib
 from .. import mlog
 from ..environment import detect_cpu_family
 from .base import DependencyException, DependencyMethods
-from .base import SystemDependency
+from .base import BuiltinDependency, SystemDependency
 from .cmake import CMakeDependency
 from .configtool import ConfigToolDependency
 from .factory import DependencyFactory, factory_methods
@@ -487,6 +487,25 @@ class CursesSystemDependency(SystemDependency):
         return [DependencyMethods.SYSTEM]
 
 
+class IntlBuiltinDependency(BuiltinDependency):
+    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]):
+        super().__init__(name, env, kwargs)
+
+        if self.clib_compiler.has_function('ngettext', '', env)[0]:
+            self.is_found = True
+
+
+class IntlSystemDependency(SystemDependency):
+    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]):
+        super().__init__(name, env, kwargs)
+
+        h = self.clib_compiler.has_header('libintl.h', '', env)
+        self.link_args =  self.clib_compiler.find_library('intl', env, [])
+
+        if h and self.link_args:
+            self.is_found = True
+
+
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.SYSTEM})
 def curses_factory(env: 'Environment',
                    for_machine: 'MachineChoice',
@@ -595,4 +614,11 @@ threads_factory = DependencyFactory(
     [DependencyMethods.SYSTEM, DependencyMethods.CMAKE],
     cmake_name='Threads',
     system_class=ThreadDependency,
+)
+
+intl_factory = DependencyFactory(
+    'intl',
+    [DependencyMethods.BUILTIN, DependencyMethods.SYSTEM],
+    builtin_class=IntlBuiltinDependency,
+    system_class=IntlSystemDependency,
 )

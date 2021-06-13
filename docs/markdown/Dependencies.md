@@ -141,7 +141,7 @@ of all the work behind the scenes to make this work.
 You can use the keyword `method` to let Meson know what method to use
 when searching for the dependency. The default value is `auto`.
 Additional dependencies methods are `pkg-config`, `config-tool`, `cmake`,
-`system`, `sysconfig`, `qmake`, `extraframework` and `dub`.
+`builtin`, `system`, `sysconfig`, `qmake`, `extraframework` and `dub`.
 
 ```meson
 cups_dep = dependency('cups', method : 'pkg-config')
@@ -282,6 +282,15 @@ in the build system DSL or with a script, likely calling
 putting these in meson upstream the barrier of using them is lowered, as
 projects using meson don't have to re-implement the logic.
 
+## Builtin
+
+Some dependencies provide no valid methods for discovery on some systems,
+because they are provided internally by the language. One example of this is
+intl, which is built into GNU or musl libc but otherwise comes as a `system`
+dependency.
+
+In these cases meson provides convenience wrappers for the `system` dependency,
+but first checks if the functionality is usable by default.
 
 ## Blocks
 
@@ -399,6 +408,16 @@ language.
 *New in 0.56.0* the `config-tool` method.
 *New in 0.56.0* the dependencies now return proper dependency types
  and `get_variable` and similar methods should work as expected.
+
+## intl
+
+*(added 0.59.0)*
+
+Provides access to the `*gettext` family of C functions. On systems where this
+is not built into libc, tries to find an external library providing them
+instead.
+
+`method` may be `auto`, `builtin` or `system`.
 
 ## libwmf
 
