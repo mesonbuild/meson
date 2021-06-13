@@ -84,3 +84,26 @@ from your build folder.
 ```console
 $ meson compile intltest-update-po
 ```
+
+### libintl issues
+
+In [GNU libc][gnu_libc_gettext], the gettext symbols are defined. On
+some systems, such as BSD or MacOS, you may get linker errors regarding
+`intl` or `_libintl_gettext`. This example should adequately work
+around that problem for most cases:
+
+```meson
+cc = meson.get_compiler('c')
+
+if host_machine.system() == 'linux' or host_machine.system() == 'gnu'
+  gettext_deps = []
+elif host_machine.system() == 'freebsd' or host_machine.system() == 'openbsd' or host_machine.system() == 'dragonfly'
+  gettext_deps = [cc.find_library('intl', has_headers: ['libintl.h'], dirs: ['/usr/local/lib'], header_args: c_args)]
+elif host_machine.system() == 'netbsd'
+  gettext_deps = [cc.find_library('intl', has_headers: ['libintl.h'], dirs: ['/usr/pkg/lib'], header_args: c_args)]
+else # darwin, cygwin
+  gettext_deps = [cc.find_library('intl', has_headers: ['libintl.h'])]
+endif
+```
+
+[gnu_libc_gettext]: https://www.gnu.org/software/libc/manual/html_node/Message-catalogs-with-gettext.html
