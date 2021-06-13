@@ -105,7 +105,7 @@ def autodetect_options(options: 'argparse.Namespace', sample: bool = False) -> N
             if f.suffix in ('.cc', '.cpp'):
                 options.language = 'cpp'
                 break
-            if f.suffix in '.cs':
+            if f.suffix == '.cs':
                 options.language = 'cs'
                 break
             if f.suffix == '.cu':
