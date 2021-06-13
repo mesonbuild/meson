@@ -79,12 +79,11 @@ details.
 
 #### IRC
 
-The irc channel for Meson is `#mesonbuild` over at Freenode.
+The channel to use is `#mesonbuild` either via Matrix ([web
+interface][matrix_web]) or [OFTC IRC][oftc_irc].
 
-You can use [FreeNode's official webchat][meson_irc]
-to connect to this channel.
-
-[meson_irc]: https://webchat.freenode.net/?channels=%23mesonbuild
+[matrix_web]: https://app.element.io/#/room/#mesonbuild:matrix.org
+[oftc_irc]: https://www.oftc.net/
 
 #### Further info
 
