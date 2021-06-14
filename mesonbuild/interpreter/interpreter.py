@@ -1884,10 +1884,11 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             self.build.benchmarks.append(t)
             mlog.debug('Adding benchmark', mlog.bold(t.name, True))
 
-    @FeatureNewKwargs('install_headers', '0.47.0', ['install_mode'])
-    @permittedKwargs({'install_dir', 'install_mode', 'subdir'})
-    def func_install_headers(self, node, args, kwargs):
-        source_files = self.source_strings_to_files(args)
+    @typed_pos_args('install_headers', varargs=(str, mesonlib.File), min_varargs=1)
+    def func_install_headers(self, node: mparser.BaseNode,
+                             args: T.Tuple[T.List['mesonlib.FileOrString']],
+                             kwargs) -> build.Headers:
+        source_files = self.source_strings_to_files(args[0])
         install_mode = self._get_kwarg_install_mode(kwargs)
 
         install_subdir = kwargs.get('subdir', '')
