@@ -1965,13 +1965,9 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     @FeatureNewKwargs('install_subdir', '0.42.0', ['exclude_files', 'exclude_directories'])
     @FeatureNewKwargs('install_subdir', '0.38.0', ['install_mode'])
     @permittedKwargs({'exclude_files', 'exclude_directories', 'install_dir', 'install_mode', 'strip_directory'})
-    @stringArgs
-    def func_install_subdir(self, node, args, kwargs):
-        if len(args) != 1:
-            raise InvalidArguments('Install_subdir requires exactly one argument.')
-        subdir: str = args[0]
-        if not isinstance(subdir, str):
-            raise InvalidArguments('install_subdir positional argument 1 must be a string.')
+    @typed_pos_args('install_subdir', str)
+    def func_install_subdir(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs):
+        subdir = args[0]
         if 'install_dir' not in kwargs:
             raise InvalidArguments('Missing keyword argument install_dir')
         install_dir: str = kwargs['install_dir']
