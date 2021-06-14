@@ -1915,11 +1915,12 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         sources = self.source_strings_to_files(args[0])
         for s in sources:
             try:
-                num = int(s.split('.')[-1])
+                num = int(s.rsplit('.', 1)[-1])
             except (IndexError, ValueError):
                 num = 0
-            if num < 1 or num > 8:
-                raise InvalidArguments('Man file must have a file extension of a number between 1 and 8')
+            if not 1 <= num <= 9:
+                raise InvalidArguments('Man file must have a file extension of a number between 1 and 9')
+
         custom_install_mode = self._get_kwarg_install_mode(kwargs)
         custom_install_dir = kwargs.get('install_dir', None)
         locale = kwargs.get('locale')
