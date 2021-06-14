@@ -8219,8 +8219,6 @@ class LinuxlikeTests(BasePlatformTests):
         # remove limitations as necessary.
         if is_osx():
             raise unittest.SkipTest('Prelinking not supported on Darwin.')
-        if 'clang' in os.environ.get('CC', 'dummy'):
-            raise unittest.SkipTest('Prelinking not supported with Clang.')
         gccver = subprocess.check_output(['cc', '--version'])
         if b'7.5.0' in gccver:
             raise unittest.SkipTest('GCC on Bionic is too old to be supported.')

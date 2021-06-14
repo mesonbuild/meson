@@ -2891,8 +2891,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         elem = NinjaBuildElement(self.all_outputs, [prelink_name], 'CUSTOM_COMMAND', obj_list)
 
         prelinker = target.get_prelinker()
-        cmd = prelinker.exelist[:]
-        cmd += prelinker.get_prelink_args(prelink_name, obj_list)
+        cmd = prelinker.get_prelink_args(prelink_name, obj_list)
 
         cmd = self.replace_paths(target, cmd)
         elem.add_item('COMMAND', cmd)

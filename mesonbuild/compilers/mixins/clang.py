@@ -138,6 +138,9 @@ class ClangCompiler(GnuLikeCompiler):
     def get_coverage_link_args(self) -> T.List[str]:
         return ['--coverage']
 
+    def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.List[str]:
+        return self.linker.get_prelink_args(prelink_name, obj_list)
+
     def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
         args: T.List[str] = []
         if mode == 'thin':

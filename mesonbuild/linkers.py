@@ -523,6 +523,9 @@ class DynamicLinker(metaclass=abc.ABCMeta):
                         is_shared_module: bool) -> T.List[str]:
         return []
 
+    def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.List[str]:
+        raise EnvironmentException(f'{self.id} does not know how to do prelinking.')
+
 
 class PosixDynamicLinkerMixin:
 
@@ -791,6 +794,9 @@ class GnuDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dynam
     def get_accepts_rsp(self) -> bool:
         return True
 
+    def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.List[str]:
+        return [self.id, '-r', '-o', prelink_name] + obj_list
+
 
 class GnuGoldDynamicLinker(GnuDynamicLinker):
 
@@ -825,6 +831,9 @@ class LLVMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dyna
         if self.has_allow_shlib_undefined:
             return self._apply_prefix('--allow-shlib-undefined')
         return []
+
+    def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.List[str]:
+        return [self.id, '-r', '-o', prelink_name] + obj_list
 
 
 class WASMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, DynamicLinker):
