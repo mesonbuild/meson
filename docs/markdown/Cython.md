@@ -1,7 +1,7 @@
 ---
 title: Cython
 short-description: Support for Cython in Meson
----
+...
 
 # Cython
 
