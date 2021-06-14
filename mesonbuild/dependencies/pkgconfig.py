@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .base import ExternalDependency, DependencyException, DependencyMethods, sort_libpaths
+from .base import ExternalDependency, DependencyException, DependencyMethods, sort_libpaths, DependencyTypeName
 from ..mesonlib import LibType, MachineChoice, OptionKey, OrderedSet, PerMachine, Popen_safe
 from ..programs import find_external_program, ExternalProgram
 from .. import mlog
@@ -36,7 +36,7 @@ class PkgConfigDependency(ExternalDependency):
     ] = {}
 
     def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None) -> None:
-        super().__init__('pkgconfig', environment, kwargs, language=language)
+        super().__init__(DependencyTypeName('pkgconfig'), environment, kwargs, language=language)
         self.name = name
         self.is_libtool = False
         # Store a copy of the pkg-config path on the object itself so it is

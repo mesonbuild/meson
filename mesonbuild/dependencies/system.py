@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright © 2021 Intel Corporation
 
-from .base import ExternalDependency, DependencyMethods
+from .base import DependencyTypeName, ExternalDependency, DependencyMethods
 import typing as T
 
 if T.TYPE_CHECKING:
@@ -18,7 +18,7 @@ class SystemDependency(ExternalDependency):
 
     def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
                  language: T.Optional[str] = None) -> None:
-        super().__init__('system', env, kwargs, language=language)
+        super().__init__(DependencyTypeName('system'), env, kwargs, language=language)
         self.name = name
 
     @staticmethod

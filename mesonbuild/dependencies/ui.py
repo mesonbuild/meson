@@ -25,7 +25,7 @@ from ..mesonlib import (
 )
 from ..environment import detect_cpu_family
 
-from .base import DependencyException, DependencyMethods
+from .base import DependencyException, DependencyMethods, DependencyTypeName
 from .configtool import ConfigToolDependency
 from .factory import DependencyFactory
 from .system import SystemDependency
@@ -233,7 +233,8 @@ class VulkanDependencySystem(SystemDependency):
             if not os.path.isfile(header):
                 raise DependencyException('VULKAN_SDK point to invalid directory (no include)')
 
-            self.type_name = 'vulkan_sdk'
+            # XXX: this is very odd, and may deserve being removed
+            self.type_name = DependencyTypeName('vulkan_sdk')
             self.is_found = True
             self.compile_args.append('-I' + inc_path)
             self.link_args.append('-L' + lib_path)
@@ -246,7 +247,6 @@ class VulkanDependencySystem(SystemDependency):
             # simply try to guess it, usually works on linux
             libs = self.clib_compiler.find_library('vulkan', environment, [])
             if libs is not None and self.clib_compiler.has_header('vulkan/vulkan.h', '', environment, disable_cache=True)[0]:
-                self.type_name = 'system'
                 self.is_found = True
                 for lib in libs:
                     self.link_args.append(lib)
