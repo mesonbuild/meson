@@ -298,8 +298,8 @@ class FileMode:
                                       '[r-][w-][xsS-]' # Group perms
                                       '[r-][w-][xtT-]') # Others perms
 
-    def __init__(self, perms: T.Optional[str] = None, owner: T.Optional[str] = None,
-                 group: T.Optional[str] = None):
+    def __init__(self, perms: T.Optional[str] = None, owner: T.Union[str, int, None] = None,
+                 group: T.Union[str, int, None] = None):
         self.perms_s = perms
         self.perms = self.perms_s_to_bits(perms)
         self.owner = owner

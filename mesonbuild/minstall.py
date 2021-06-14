@@ -130,7 +130,8 @@ def append_to_log(lf: T.TextIO, line: str) -> None:
     lf.flush()
 
 
-def set_chown(path: str, user: T.Optional[str] = None, group: T.Optional[str] = None,
+def set_chown(path: str, user: T.Union[str, int, None] = None,
+              group: T.Union[str, int, None] = None,
               dir_fd: T.Optional[int] = None, follow_symlinks: bool = True) -> None:
     # shutil.chown will call os.chown without passing all the parameters
     # and particularly follow_symlinks, thus we replace it temporary
