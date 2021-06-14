@@ -1698,6 +1698,18 @@ class InternalTests(unittest.TestCase):
             _(None, mock.Mock(subproject=''), [], {'mode': 'since'})
             self.assertRegex(out.getvalue(), r"""WARNING:.Project targeting '1.0'.*introduced in '1.1': "testfunc" keyword argument "mode" value "since".*""")
 
+    def test_typed_kwarg_evolve(self) -> None:
+        k = KwargInfo('foo', str, required=True, default='foo')
+        v = k.evolve(default='bar')
+        self.assertEqual(k.name, 'foo')
+        self.assertEqual(k.name, v.name)
+        self.assertEqual(k.types, str)
+        self.assertEqual(k.types, v.types)
+        self.assertEqual(k.required, True)
+        self.assertEqual(k.required, v.required)
+        self.assertEqual(k.default, 'foo')
+        self.assertEqual(v.default, 'bar')
+
 
 @unittest.skipIf(is_tarball(), 'Skipping because this is a tarball release')
 class DataTests(unittest.TestCase):
