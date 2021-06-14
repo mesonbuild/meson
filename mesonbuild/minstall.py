@@ -64,7 +64,7 @@ build definitions so that it will not break when the change happens.'''
 
 selinux_updates: T.List[str] = []
 
-def add_arguments(parser: argparse.Namespace) -> None:
+def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('-C', default='.', dest='wd',
                         help='directory to cd into before running')
     parser.add_argument('--profile-self', action='store_true', dest='profile',
