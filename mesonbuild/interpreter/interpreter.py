@@ -1905,13 +1905,18 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
 
         return h
 
-    @FeatureNewKwargs('install_man', '0.47.0', ['install_mode'])
-    @FeatureNewKwargs('install_man', '0.58.0', ['locale'])
-    @permittedKwargs({'install_dir', 'install_mode', 'locale'})
     @typed_pos_args('install_man', varargs=(str, mesonlib.File), min_varargs=1)
+    @typed_kwargs(
+        'install_man',
+        KwargInfo('install_dir', (str, None)),
+        KwargInfo('locale', (str, None), since='0.58.0'),
+        _INSTALL_MODE_KW.evolve(since='0.47.0')
+    )
     def func_install_man(self, node: mparser.BaseNode,
-                         args: T.Tuple[T.List['SourceInputs']],
-                         kwargs) -> build.Man:
+                         args: T.Tuple[T.List['mesonlib.FileOrString']],
+                         kwargs: 'kwargs.FuncInstallMan') -> build.Man:
+        # We just need to narrow this, because the input is limited to files and
+        # Strings as inputs, so only Files will be returned
         sources = self.source_strings_to_files(args[0])
         for s in sources:
             try:
@@ -1921,13 +1926,8 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             if not 1 <= num <= 9:
                 raise InvalidArguments('Man file must have a file extension of a number between 1 and 9')
 
-        custom_install_mode = self._get_kwarg_install_mode(kwargs)
-        custom_install_dir = kwargs.get('install_dir', None)
-        locale = kwargs.get('locale')
-        if custom_install_dir is not None and not isinstance(custom_install_dir, str):
-            raise InterpreterException('install_dir must be a string.')
-
-        m = build.Man(sources, custom_install_dir, custom_install_mode, self.subproject, locale)
+        m = build.Man(sources, kwargs['install_dir'], kwargs['install_mode'],
+                      self.subproject, kwargs['locale'])
         self.build.man.append(m)
 
         return m
