@@ -183,12 +183,12 @@ def sanitize_permissions(path: str, umask: T.Union[str, int]) -> None:
 
 
 def set_mode(path: str, mode: T.Optional['FileMode'], default_umask: T.Union[str, int]) -> None:
-    if mode is None or (mode.perms_s or mode.owner or mode.group) is None:
+    if mode is None or all(m is None for m in [mode.perms_s, mode.owner, mode.group]):
         # Just sanitize permissions with the default umask
         sanitize_permissions(path, default_umask)
         return
     # No chown() on Windows, and must set one of owner/group
-    if not is_windows() and (mode.owner or mode.group) is not None:
+    if not is_windows() and (mode.owner is not None or mode.group is not None):
         try:
             set_chown(path, mode.owner, mode.group, follow_symlinks=False)
         except PermissionError as e:
