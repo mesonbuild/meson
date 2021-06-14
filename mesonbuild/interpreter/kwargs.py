@@ -118,3 +118,10 @@ class FuncInstallData(TypedDict):
     sources: T.List[FileOrString]
     rename: T.List[str]
     install_mode: FileMode
+
+
+class FuncInstallHeaders(TypedDict):
+
+    install_dir: T.Optional[str]
+    install_mode: FileMode
+    subdir: T.Optional[str]

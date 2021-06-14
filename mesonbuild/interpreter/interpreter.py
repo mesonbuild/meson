@@ -1885,23 +1885,22 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             mlog.debug('Adding benchmark', mlog.bold(t.name, True))
 
     @typed_pos_args('install_headers', varargs=(str, mesonlib.File), min_varargs=1)
+    @typed_kwargs(
+        'install_headers',
+        KwargInfo('install_dir', (str, None)),
+        KwargInfo('subdir', (str, None)),
+        _INSTALL_MODE_KW.evolve(since='0.47.0'),
+    )
     def func_install_headers(self, node: mparser.BaseNode,
                              args: T.Tuple[T.List['mesonlib.FileOrString']],
-                             kwargs) -> build.Headers:
+                             kwargs: 'kwargs.FuncInstallHeaders') -> build.Headers:
         source_files = self.source_strings_to_files(args[0])
-        install_mode = self._get_kwarg_install_mode(kwargs)
-
-        install_subdir = kwargs.get('subdir', '')
-        if not isinstance(install_subdir, str):
-            raise InterpreterException('subdir keyword argument must be a string')
-        elif os.path.isabs(install_subdir):
+        install_subdir = kwargs['subdir']
+        if install_subdir is not None and os.path.isabs(install_subdir):
             mlog.deprecation('Subdir keyword must not be an absolute path. This will be a hard error in the next release.')
 
-        install_dir = kwargs.get('install_dir', None)
-        if install_dir is not None and not isinstance(install_dir, str):
-            raise InterpreterException('install_dir keyword argument must be a string if provided')
-
-        h = build.Headers(source_files, install_subdir, install_dir, install_mode, self.subproject)
+        h = build.Headers(source_files, install_subdir, kwargs['install_dir'],
+                          kwargs['install_mode'], self.subproject)
         self.build.headers.append(h)
 
         return h
