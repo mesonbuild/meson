@@ -26,15 +26,15 @@ from ..mesonlib import (
 from ..environment import detect_cpu_family
 
 from .base import DependencyException, DependencyMethods
-from .base import ExternalDependency
 from .configtool import ConfigToolDependency
 from .factory import DependencyFactory
+from .system import SystemDependency
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
 
 
-class GLDependencySystem(ExternalDependency):
+class GLDependencySystem(SystemDependency):
     def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
         super().__init__(name, environment, kwargs)
 
@@ -196,7 +196,7 @@ class WxDependency(ConfigToolDependency):
         return candidates
 
 
-class VulkanDependencySystem(ExternalDependency):
+class VulkanDependencySystem(SystemDependency):
 
     def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None) -> None:
         super().__init__(name, environment, kwargs, language=language)

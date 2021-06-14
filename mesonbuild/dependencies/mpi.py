@@ -17,11 +17,12 @@ import typing as T
 import os
 import re
 
-from .base import DependencyMethods, detect_compiler, ExternalDependency
-from .configtool import ConfigToolDependency
-from .pkgconfig import PkgConfigDependency
-from .factory import factory_methods
 from ..environment import detect_cpu_family
+from .base import DependencyMethods, detect_compiler
+from .configtool import ConfigToolDependency
+from .factory import factory_methods
+from .pkgconfig import PkgConfigDependency
+from .system import SystemDependency
 
 if T.TYPE_CHECKING:
     from .factory import DependencyGenerator
@@ -200,7 +201,7 @@ class OpenMPIConfigToolDependency(_MPIConfigToolDependency):
         return out
 
 
-class MSMPIDependency(ExternalDependency):
+class MSMPIDependency(SystemDependency):
 
     """The Microsoft MPI."""
 

@@ -21,9 +21,10 @@ from .. import mlog
 from .. import mesonlib
 from ..environment import Environment
 
-from .base import DependencyException, ExternalDependency
+from .base import DependencyException
 from .pkgconfig import PkgConfigDependency
 from .misc import threads_factory
+from .system import SystemDependency
 
 if T.TYPE_CHECKING:
     from ..environment import Properties
@@ -340,7 +341,7 @@ class BoostLibraryFile():
     def get_link_args(self) -> T.List[str]:
         return [self.path.as_posix()]
 
-class BoostDependency(ExternalDependency):
+class BoostDependency(SystemDependency):
     def __init__(self, environment: Environment, kwargs: T.Dict[str, T.Any]) -> None:
         super().__init__('boost', environment, kwargs, language='cpp')
         buildtype = environment.coredata.get_option(mesonlib.OptionKey('buildtype'))

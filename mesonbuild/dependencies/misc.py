@@ -20,15 +20,15 @@ import re
 import sysconfig
 import typing as T
 
-from .. import mlog
 from .. import mesonlib
+from .. import mlog
 from ..environment import detect_cpu_family
-
-from .base import DependencyException, DependencyMethods, ExternalDependency
+from .base import DependencyException, DependencyMethods
 from .cmake import CMakeDependency
 from .configtool import ConfigToolDependency
-from .pkgconfig import PkgConfigDependency
 from .factory import DependencyFactory, factory_methods
+from .pkgconfig import PkgConfigDependency
+from .system import SystemDependency
 
 if T.TYPE_CHECKING:
     from ..environment import Environment, MachineChoice
@@ -60,7 +60,7 @@ def netcdf_factory(env: 'Environment',
     return candidates
 
 
-class OpenMPDependency(ExternalDependency):
+class OpenMPDependency(SystemDependency):
     # Map date of specification release (which is the macro value) to a version.
     VERSIONS = {
         '201811': '5.0',
@@ -112,7 +112,7 @@ class OpenMPDependency(ExternalDependency):
                 mlog.log(mlog.yellow('WARNING:'), 'OpenMP found but omp.h missing.')
 
 
-class ThreadDependency(ExternalDependency):
+class ThreadDependency(SystemDependency):
     def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
         super().__init__(name, environment, kwargs)
         self.is_found = True
@@ -130,7 +130,7 @@ class ThreadDependency(ExternalDependency):
         return [DependencyMethods.AUTO, DependencyMethods.CMAKE]
 
 
-class BlocksDependency(ExternalDependency):
+class BlocksDependency(SystemDependency):
     def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
         super().__init__('blocks', environment, kwargs)
         self.name = 'blocks'
@@ -163,7 +163,7 @@ class BlocksDependency(ExternalDependency):
             self.is_found = True
 
 
-class Python3DependencySystem(ExternalDependency):
+class Python3DependencySystem(SystemDependency):
     def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
         super().__init__(name, environment, kwargs)
 
@@ -379,7 +379,7 @@ class GpgmeDependencyConfigTool(ConfigToolDependency):
         return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL]
 
 
-class ShadercDependency(ExternalDependency):
+class ShadercDependency(SystemDependency):
 
     def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
         super().__init__('shaderc', environment, kwargs)
@@ -428,7 +428,7 @@ class CursesConfigToolDependency(ConfigToolDependency):
         self.link_args = self.get_config_value(['--libs'], 'link_args')
 
 
-class CursesSystemDependency(ExternalDependency):
+class CursesSystemDependency(SystemDependency):
 
     """Curses dependency the hard way.
 
