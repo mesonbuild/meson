@@ -1908,8 +1908,11 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     @FeatureNewKwargs('install_man', '0.47.0', ['install_mode'])
     @FeatureNewKwargs('install_man', '0.58.0', ['locale'])
     @permittedKwargs({'install_dir', 'install_mode', 'locale'})
-    def func_install_man(self, node, args, kwargs):
-        sources = self.source_strings_to_files(args)
+    @typed_pos_args('install_man', varargs=(str, mesonlib.File), min_varargs=1)
+    def func_install_man(self, node: mparser.BaseNode,
+                         args: T.Tuple[T.List['SourceInputs']],
+                         kwargs) -> build.Man:
+        sources = self.source_strings_to_files(args[0])
         for s in sources:
             try:
                 num = int(s.split('.')[-1])
