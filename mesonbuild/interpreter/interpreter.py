@@ -128,7 +128,7 @@ def _install_mode_validator(mode: T.List[T.Union[str, bool, int]]) -> T.Optional
     return None
 
 
-def _install_mode_convertor(mode: T.Optional[T.List[T.Union[str, bool, int]]]) -> T.Optional[FileMode]:
+def _install_mode_convertor(mode: T.Optional[T.List[T.Union[str, bool, int]]]) -> FileMode:
     """Convert the DSL form of the `install_mode` keyword arugment to `FileMode`
 
     This is not required, and if not required returns None
@@ -136,8 +136,6 @@ def _install_mode_convertor(mode: T.Optional[T.List[T.Union[str, bool, int]]]) -
     TODO: It's not clear to me why this needs to be None and not just return an
     emtpy FileMode.
     """
-    if mode is None:
-        return None
     # this has already been validated by the validator
     return FileMode(*[m if isinstance(m, str) else None for m in mode])
 

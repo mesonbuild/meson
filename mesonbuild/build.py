@@ -135,7 +135,7 @@ class DependencyOverride(HoldableObject):
 class Headers(HoldableObject):
 
     def __init__(self, sources: T.List[File], install_subdir: T.Optional[str],
-                 install_dir: T.Optional[str], install_mode: T.Optional['FileMode'],
+                 install_dir: T.Optional[str], install_mode: 'FileMode',
                  subproject: str):
         self.sources = sources
         self.install_subdir = install_subdir
@@ -158,14 +158,14 @@ class Headers(HoldableObject):
     def get_custom_install_dir(self) -> T.Optional[str]:
         return self.custom_install_dir
 
-    def get_custom_install_mode(self) -> T.Optional['FileMode']:
+    def get_custom_install_mode(self) -> 'FileMode':
         return self.custom_install_mode
 
 
 class Man(HoldableObject):
 
     def __init__(self, sources: T.List[File], install_dir: T.Optional[str],
-                 install_mode: T.Optional['FileMode'], subproject: str,
+                 install_mode: 'FileMode', subproject: str,
                  locale: T.Optional[str]):
         self.sources = sources
         self.custom_install_dir = install_dir
@@ -176,7 +176,7 @@ class Man(HoldableObject):
     def get_custom_install_dir(self) -> T.Optional[str]:
         return self.custom_install_dir
 
-    def get_custom_install_mode(self) -> T.Optional['FileMode']:
+    def get_custom_install_mode(self) -> 'FileMode':
         return self.custom_install_mode
 
     def get_sources(self) -> T.List['File']:
@@ -186,7 +186,7 @@ class Man(HoldableObject):
 class InstallDir(HoldableObject):
 
     def __init__(self, src_subdir: str, inst_subdir: str, install_dir: str,
-                 install_mode: T.Optional['FileMode'],
+                 install_mode: 'FileMode',
                  exclude: T.Tuple[T.Set[str], T.Set[str]],
                  strip_directory: bool, subproject: str,
                  from_source_dir: bool = True):
@@ -2611,7 +2611,7 @@ class ConfigurationData(HoldableObject):
 # during install.
 class Data(HoldableObject):
     def __init__(self, sources: T.List[File], install_dir: str,
-                 install_mode: T.Optional['FileMode'], subproject: str,
+                 install_mode: 'FileMode', subproject: str,
                  rename: T.List[str] = None):
         self.sources = sources
         self.install_dir = install_dir
