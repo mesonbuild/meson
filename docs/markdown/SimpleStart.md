@@ -91,47 +91,31 @@ versions.
 
 ### macOS
 
-Due to the way Apple has set things up, getting macOS working is a bit
-more complicated. The first thing you need to do is to install the
-newest version of Python 3 [from the project's web
-site](https://www.python.org/downloads/mac-osx/).
+Start by downloading the installation package from [the Releases
+page](https://github.com/mesonbuild/meson/releases).
 
-![Downloading the Python for macOS installer](images/osx_download.png)
+![Downloading the macOS installer](images/meson_mac1.png)
 
-Once you have a working Python you can install the necessary bits
-using Python's Pip package manager.
+Double click the downloaded installer to start. If you are running a
+new macOS version, it might refuse to run the application with the
+following error message:
 
-    pip install --user meson ninja
+![A macOS signing warning](images/mac_meson2.png)
 
-This will install the necessary files in your home directory, but
-sadly they are not directly usable. You need to add the directory they
-are written to in the system's `PATH` environment variable so the
-programs can be used directly from the terminal. This requires editing
-a text configuration file.
+This can be fixed by starting System Preferences, selecting the
+Security and Privacy entry. At the bottom it shows the blocked app and
+you can enable it by clicking on the "Open anyway" button.
 
-The correct file to edit depends on which shell you are currently
-using. If you have an old macOS install it is probably Bash and the
-file you need to edit is `.bash_profile`. If, on the other hand, you
-have a new macOS install then you are probably using Zsh and the file
-to edit is `.zshrc`. In either case the file should be in your home
-directory.
+![Security settings](images/mac_meson3.png)
 
-For Bash the line you need to add is this:
+Now the installer should start. If not, double click on the downloaded
+installer file again.
 
-    PATH=$PATH:/Users/username/Library/Python/3.9/bin
+![Installer running](images/mac_meson4.png)
 
-whereas for Zsh it is this:
+Once the installation is finished you can verify that the system is working via the terminal app.
 
-    export PATH=$PATH:/Users/username/Library/Python/3.9/bin
-
-In both case you need to change the values for `username` and `3.9`.
-The former needs to be substituted with your Unix username while the
-latter needs to contain the actual Python version you installed.
-
-Once this is done close the terminal application and start it again.
-Now you should be able to run the `meson` command.
-
-![A working macOS install](images/osx_working.png)
+![A successful install](images/mac_meson5.png)
 
 ## Running Meson
 
