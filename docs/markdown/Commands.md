@@ -228,7 +228,9 @@ meson setup builddir
 
 {{ subprojects_usage.inc }}
 
-Manages subprojects of the Meson project.
+Manages subprojects of the Meson project. *Since 0.59.0* commands are run on
+multiple subprojects in parallel by default, use `--num-processes=1` if it is
+not desired.
 
 {{ subprojects_arguments.inc }}
 
