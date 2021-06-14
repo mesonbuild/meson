@@ -4,13 +4,13 @@
 
 """Keyword Argument type annotations."""
 
-from mesonbuild import coredata
 import typing as T
 
 from typing_extensions import TypedDict, Literal
 
 from .. import build
-from ..mesonlib import MachineChoice, File
+from .. import coredata
+from ..mesonlib import MachineChoice, File, FileMode
 from .interpreterobjects import EnvironmentVariablesObject
 
 
@@ -102,3 +102,11 @@ class DependencyMethodPartialDependency(TypedDict):
 
 class BuildTargeMethodExtractAllObjects(TypedDict):
     recursive: bool
+
+class FuncInstallSubdir(TypedDict):
+
+    install_dir: str
+    strip_directory: bool
+    exclude_files: T.List[str]
+    exclude_directories: T.List[str]
+    install_mode: FileMode

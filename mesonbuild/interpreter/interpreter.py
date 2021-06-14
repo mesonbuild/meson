@@ -85,6 +85,63 @@ def _language_validator(l: T.List[str]) -> T.Optional[str]:
     return None
 
 
+def _install_mode_validator(mode: T.List[T.Union[str, bool, int]]) -> T.Optional[str]:
+    """Validate the `install_mode` keyword argument.
+
+    This is a rather odd thing, it's a scalar, or an array of 3 values in the form:
+    [(str | False), (str | int | False) = False, (str | int | False) = False]
+    Where the second and third arguments are not required, and are considered to
+    default to False.
+    """
+    if not mode:
+        return None
+    if True in mode:
+        return 'can only be a string or false, not true'
+    if len(mode) > 3:
+        return 'may have at most 3 elements'
+
+    perms = mode[0]
+    if not isinstance(perms, (str, bool)):
+        return 'permissions part must be a string or false'
+
+    if isinstance(perms, str):
+        if not len(perms) == 9:
+            return (f'permissions string must be exactly 9 characters, got "{len(perms)}" '
+                   'in the form rwxr-xr-x')
+        for i in [0, 3, 6]:
+            if perms[i] not in {'-', 'r'}:
+                return f'bit {i} must be "-" or "r", not {perms[i]}'
+        for i in [1, 4, 7]:
+            if perms[i] not in {'-', 'w'}:
+                return f'bit {i} must be "-" or "w", not {perms[i]}'
+        for i in [2, 5]:
+            if perms[i] not in {'-', 'x', 's', 'S'}:
+                return f'bit {i} must be "-", "s", "S", or "x", not {perms[i]}'
+        if perms[8] not in {'-', 'x', 't', 'T'}:
+            return f'bit 8 must be "-", "t", "T", or "x", not {perms[8]}'
+
+        if len(mode) >= 2 and not isinstance(mode[1], (int, str, bool)):
+            return 'second componenent must be a string, number, or False if provided'
+        if len(mode) >= 3 and not isinstance(mode[2], (int, str, bool)):
+            return 'third componenent must be a string, number, or False if provided'
+
+    return None
+
+
+def _install_mode_convertor(mode: T.Optional[T.List[T.Union[str, bool, int]]]) -> T.Optional[FileMode]:
+    """Convert the DSL form of the `install_mode` keyword arugment to `FileMode`
+
+    This is not required, and if not required returns None
+
+    TODO: It's not clear to me why this needs to be None and not just return an
+    emtpy FileMode.
+    """
+    if mode is None:
+        return None
+    # this has already been validated by the validator
+    return FileMode(*[m if isinstance(m, str) else None for m in mode])
+
+
 _NATIVE_KW = KwargInfo(
     'native', bool,
     default=False,
@@ -96,6 +153,15 @@ _LANGUAGE_KW = KwargInfo(
     required=True,
     validator=_language_validator,
     convertor=lambda x: [i.lower() for i in x])
+
+_INSTALL_MODE_KW = KwargInfo(
+    'install_mode',
+    ContainerTypeInfo(list, (str, bool, int)),
+    listify=True,
+    default=[],
+    validator=_install_mode_validator,
+    convertor=_install_mode_convertor,
+)
 
 
 def stringifyUserArguments(args, quote=False):
@@ -1962,46 +2028,30 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         self.build.data.append(data)
         return data
 
-    @FeatureNewKwargs('install_subdir', '0.42.0', ['exclude_files', 'exclude_directories'])
-    @FeatureNewKwargs('install_subdir', '0.38.0', ['install_mode'])
-    @permittedKwargs({'exclude_files', 'exclude_directories', 'install_dir', 'install_mode', 'strip_directory'})
     @typed_pos_args('install_subdir', str)
-    def func_install_subdir(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs):
-        subdir = args[0]
-        if 'install_dir' not in kwargs:
-            raise InvalidArguments('Missing keyword argument install_dir')
-        install_dir: str = kwargs['install_dir']
-        if not isinstance(install_dir, str):
-            raise InvalidArguments('Keyword argument install_dir not a string.')
-        if 'strip_directory' in kwargs:
-            strip_directory: bool = kwargs['strip_directory']
-            if not isinstance(strip_directory, bool):
-                raise InterpreterException('"strip_directory" keyword must be a boolean.')
-        else:
-            strip_directory = False
-        if 'exclude_files' in kwargs:
-            exclude: T.List[str] = extract_as_list(kwargs, 'exclude_files')
-            for f in exclude:
-                if not isinstance(f, str):
-                    raise InvalidArguments('Exclude argument not a string.')
-                elif os.path.isabs(f):
-                    raise InvalidArguments('Exclude argument cannot be absolute.')
-            exclude_files: T.Set[str] = set(exclude)
-        else:
-            exclude_files = set()
-        if 'exclude_directories' in kwargs:
-            exclude: T.List[str] = extract_as_list(kwargs, 'exclude_directories')
-            for d in exclude:
-                if not isinstance(d, str):
-                    raise InvalidArguments('Exclude argument not a string.')
-                elif os.path.isabs(d):
-                    raise InvalidArguments('Exclude argument cannot be absolute.')
-            exclude_directories: T.Set[str] = set(exclude)
-        else:
-            exclude_directories = set()
-        exclude = (exclude_files, exclude_directories)
-        install_mode = self._get_kwarg_install_mode(kwargs)
-        idir = build.InstallDir(self.subdir, subdir, install_dir, install_mode, exclude, strip_directory, self.subproject)
+    @typed_kwargs(
+        'install_subdir',
+        KwargInfo('install_dir', str, required=True),
+        KwargInfo('strip_directory', bool, default=False),
+        KwargInfo('exclude_files', ContainerTypeInfo(list, str),
+                  default=[], listify=True, since='0.42.0',
+                  validator=lambda x: 'cannot be absolute' if any(os.path.isabs(d) for d in x) else None),
+        KwargInfo('exclude_directories', ContainerTypeInfo(list, str),
+                  default=[], listify=True, since='0.42.0',
+                  validator=lambda x: 'cannot be absolute' if any(os.path.isabs(d) for d in x) else None),
+        _INSTALL_MODE_KW.evolve(since='0.38.0'),
+    )
+    def func_install_subdir(self, node: mparser.BaseNode, args: T.Tuple[str],
+                            kwargs: 'kwargs.FuncInstallSubdir') -> build.InstallDir:
+        exclude = (set(kwargs['exclude_files']), set(kwargs['exclude_directories']))
+        idir = build.InstallDir(
+            self.subdir,
+            args[0],
+            kwargs['install_dir'],
+            kwargs['install_mode'],
+            exclude,
+            kwargs['strip_directory'],
+            self.subproject)
         self.build.install_dirs.append(idir)
         return idir
 
