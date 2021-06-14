@@ -1999,9 +1999,11 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     @FeatureNewKwargs('install_data', '0.46.0', ['rename'])
     @FeatureNewKwargs('install_data', '0.38.0', ['install_mode'])
     @permittedKwargs({'install_dir', 'install_mode', 'rename', 'sources'})
-    def func_install_data(self, node, args: T.List, kwargs: T.Dict[str, T.Any]):
+    @typed_pos_args('install_data', varargs=(str, mesonlib.File))
+    def func_install_data(self, node: mparser.BaseNode, args: T.Tuple[T.List['mesonlib.FileOrString']],
+                          kwargs: T.Dict[str, T.Any]):
         kwsource = mesonlib.stringlistify(kwargs.get('sources', []))
-        raw_sources = args + kwsource
+        raw_sources = args[0] + kwsource
         sources: T.List[mesonlib.File] = []
         source_strings: T.List[str] = []
         for s in raw_sources:
