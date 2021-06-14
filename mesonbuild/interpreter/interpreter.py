@@ -1996,37 +1996,28 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
                                    'permissions arg to be a string or false')
         return FileMode(*install_mode)
 
-    @FeatureNewKwargs('install_data', '0.46.0', ['rename'])
-    @FeatureNewKwargs('install_data', '0.38.0', ['install_mode'])
-    @permittedKwargs({'install_dir', 'install_mode', 'rename', 'sources'})
     @typed_pos_args('install_data', varargs=(str, mesonlib.File))
-    def func_install_data(self, node: mparser.BaseNode, args: T.Tuple[T.List['mesonlib.FileOrString']],
-                          kwargs: T.Dict[str, T.Any]):
-        kwsource = mesonlib.stringlistify(kwargs.get('sources', []))
-        raw_sources = args[0] + kwsource
-        sources: T.List[mesonlib.File] = []
-        source_strings: T.List[str] = []
-        for s in raw_sources:
-            if isinstance(s, mesonlib.File):
-                sources.append(s)
-            elif isinstance(s, str):
-                source_strings.append(s)
-            else:
-                raise InvalidArguments('Argument must be string or file.')
-        sources += self.source_strings_to_files(source_strings)
-        install_dir: T.Optional[str] = kwargs.get('install_dir', None)
-        if install_dir is not None and not isinstance(install_dir, str):
-            raise InvalidArguments('Keyword argument install_dir not a string.')
-        install_mode = self._get_kwarg_install_mode(kwargs)
-        rename: T.Optional[T.List[str]] = kwargs.get('rename', None)
-        if rename is not None:
-            rename = mesonlib.stringlistify(rename)
+    @typed_kwargs(
+        'install_data',
+        KwargInfo('install_dir', str),
+        KwargInfo('sources', ContainerTypeInfo(list, (str, mesonlib.File)), listify=True, default=[]),
+        KwargInfo('rename', ContainerTypeInfo(list, str), default=[], listify=True, since='0.46.0'),
+        _INSTALL_MODE_KW.evolve(since='0.38.0'),
+    )
+    def func_install_data(self, node: mparser.BaseNode,
+                          args: T.Tuple[T.List['mesonlib.FileOrString']],
+                          kwargs: 'kwargs.FuncInstallData') -> build.Data:
+        sources = self.source_strings_to_files(args[0] + kwargs['sources'])
+        rename = kwargs['rename'] or None
+        if rename:
             if len(rename) != len(sources):
                 raise InvalidArguments(
                     '"rename" and "sources" argument lists must be the same length if "rename" is given. '
                     f'Rename has {len(rename)} elements and sources has {len(sources)}.')
 
-        data = build.Data(sources, install_dir, install_mode, self.subproject, rename)
+        data = build.Data(
+            sources, kwargs['install_dir'], kwargs['install_mode'],
+            self.subproject, rename)
         self.build.data.append(data)
         return data
 

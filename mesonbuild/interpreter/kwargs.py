@@ -10,7 +10,7 @@ from typing_extensions import TypedDict, Literal
 
 from .. import build
 from .. import coredata
-from ..mesonlib import MachineChoice, File, FileMode
+from ..mesonlib import MachineChoice, File, FileMode, FileOrString
 from .interpreterobjects import EnvironmentVariablesObject
 
 
@@ -109,4 +109,12 @@ class FuncInstallSubdir(TypedDict):
     strip_directory: bool
     exclude_files: T.List[str]
     exclude_directories: T.List[str]
+    install_mode: FileMode
+
+
+class FuncInstallData(TypedDict):
+
+    install_dir: str
+    sources: T.List[FileOrString]
+    rename: T.List[str]
     install_mode: FileMode
