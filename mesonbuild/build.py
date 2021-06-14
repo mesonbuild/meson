@@ -149,7 +149,7 @@ class Headers(HoldableObject):
     def set_install_subdir(self, subdir: str) -> None:
         self.install_subdir = subdir
 
-    def get_install_subdir(self) -> str:
+    def get_install_subdir(self) -> T.Optional[str]:
         return self.install_subdir
 
     def get_sources(self) -> T.List[File]:
