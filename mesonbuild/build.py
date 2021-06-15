@@ -20,6 +20,7 @@ import itertools, pathlib
 import os
 import pickle
 import re
+import textwrap
 import typing as T
 
 from . import environment
@@ -464,9 +465,11 @@ class Target:
     def __init__(self, name: str, subdir: str, subproject: str, build_by_default: bool, for_machine: MachineChoice):
         if has_path_sep(name):
             # Fix failing test 53 when this becomes an error.
-            mlog.warning(f'''Target "{name}" has a path separator in its name.
-This is not supported, it can cause unexpected failures and will become
-a hard error in the future.''')
+            mlog.warning(textwrap.dedent(f'''\
+                Target "{name}" has a path separator in its name.
+                This is not supported, it can cause unexpected failures and will become
+                a hard error in the future.\
+            '''))
         self.name = name
         self.subdir = subdir
         self.subproject = subproject
@@ -959,11 +962,13 @@ class BuildTarget(Target):
         llist = extract_as_list(kwargs, 'link_with')
         for linktarget in unholder(llist):
             if isinstance(linktarget, dependencies.ExternalLibrary):
-                raise MesonException('''An external library was used in link_with keyword argument, which
-is reserved for libraries built as part of this project. External
-libraries must be passed using the dependencies keyword argument
-instead, because they are conceptually "external dependencies",
-just like those detected with the dependency() function.''')
+                raise MesonException(textwrap.dedent('''\
+                    An external library was used in link_with keyword argument, which
+                    is reserved for libraries built as part of this project. External
+                    libraries must be passed using the dependencies keyword argument
+                    instead, because they are conceptually "external dependencies",
+                    just like those detected with the dependency() function.\
+                '''))
             self.link(linktarget)
         lwhole = extract_as_list(kwargs, 'link_whole')
         for linktarget in lwhole:
@@ -1012,8 +1017,11 @@ just like those detected with the dependency() function.''')
                 raise InvalidArguments('Link_args arguments must be strings.')
         for l in self.link_args:
             if '-Wl,-rpath' in l or l.startswith('-rpath'):
-                mlog.warning('''Please do not define rpath with a linker argument, use install_rpath or build_rpath properties instead.
-This will become a hard error in a future Meson release.''')
+                mlog.warning(textwrap.dedent('''\
+                    Please do not define rpath with a linker argument, use install_rpath
+                    or build_rpath properties instead.
+                    This will become a hard error in a future Meson release.\
+                '''))
         self.process_link_depends(kwargs.get('link_depends', []), environment)
         # Target-specific include dirs must be added BEFORE include dirs from
         # internal deps (added inside self.add_deps()) to override them.
