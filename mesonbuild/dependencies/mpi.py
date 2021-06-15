@@ -18,11 +18,10 @@ import os
 import re
 
 from ..environment import detect_cpu_family
-from .base import DependencyMethods, detect_compiler
+from .base import DependencyMethods, detect_compiler, SystemDependency
 from .configtool import ConfigToolDependency
 from .factory import factory_methods
 from .pkgconfig import PkgConfigDependency
-from .system import SystemDependency
 
 if T.TYPE_CHECKING:
     from .factory import DependencyGenerator

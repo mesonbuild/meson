@@ -534,3 +534,20 @@ def detect_compiler(name: str, env: 'Environment', for_machine: MachineChoice,
             except KeyError:
                 continue
     return None
+
+
+class SystemDependency(ExternalDependency):
+
+    """Dependency base for System type dependencies."""
+
+    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
+                 language: T.Optional[str] = None) -> None:
+        super().__init__(DependencyTypeName('system'), env, kwargs, language=language)
+        self.name = name
+
+    @staticmethod
+    def get_methods() -> T.List[DependencyMethods]:
+        return [DependencyMethods.SYSTEM]
+
+    def log_tried(self) -> str:
+        return 'system'

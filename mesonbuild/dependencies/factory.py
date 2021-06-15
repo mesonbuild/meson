@@ -20,10 +20,10 @@ from ..mesonlib import MachineChoice
 from .base import DependencyException, DependencyMethods
 from .base import ExternalDependency
 from .base import process_method_kw
+from .base import SystemDependency
 from .cmake import CMakeDependency
 from .framework import ExtraFrameworkDependency
 from .pkgconfig import PkgConfigDependency
-from .system import SystemDependency
 
 if T.TYPE_CHECKING:
     from ..environment import Environment

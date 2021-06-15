@@ -21,10 +21,9 @@ from .. import mlog
 from .. import mesonlib
 from ..environment import Environment
 
-from .base import DependencyException
+from .base import DependencyException, SystemDependency
 from .pkgconfig import PkgConfigDependency
 from .misc import threads_factory
-from .system import SystemDependency
 
 if T.TYPE_CHECKING:
     from ..environment import Properties

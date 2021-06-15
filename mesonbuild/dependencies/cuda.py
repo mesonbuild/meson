@@ -21,8 +21,7 @@ from pathlib import Path
 from .. import mesonlib
 from .. import mlog
 from ..environment import detect_cpu_family
-from .base import DependencyException
-from .system import SystemDependency
+from .base import DependencyException, SystemDependency
 
 
 if T.TYPE_CHECKING:

@@ -26,13 +26,12 @@ from .. import mesonlib, mlog
 from ..compilers import AppleClangCCompiler, AppleClangCPPCompiler
 from ..environment import get_llvm_tool_names
 from ..mesonlib import version_compare, stringlistify, extract_as_list, MachineChoice
-from .base import DependencyException, DependencyMethods, strip_system_libdirs
+from .base import DependencyException, DependencyMethods, strip_system_libdirs, SystemDependency
 from .cmake import CMakeDependency
 from .configtool import ConfigToolDependency
 from .factory import DependencyFactory
 from .misc import threads_factory
 from .pkgconfig import PkgConfigDependency
-from .system import SystemDependency
 
 if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo

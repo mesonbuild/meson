@@ -25,10 +25,9 @@ from ..mesonlib import (
 )
 from ..environment import detect_cpu_family
 
-from .base import DependencyException, DependencyMethods, DependencyTypeName
+from .base import DependencyException, DependencyMethods, DependencyTypeName, SystemDependency
 from .configtool import ConfigToolDependency
 from .factory import DependencyFactory
-from .system import SystemDependency
 
 if T.TYPE_CHECKING:
     from ..environment import Environment

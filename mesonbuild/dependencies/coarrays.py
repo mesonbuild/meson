@@ -15,11 +15,10 @@
 import functools
 import typing as T
 
-from .base import DependencyMethods, detect_compiler
+from .base import DependencyMethods, detect_compiler, SystemDependency
 from .cmake import CMakeDependency
 from .pkgconfig import PkgConfigDependency
 from .factory import factory_methods
-from .system import SystemDependency
 
 if T.TYPE_CHECKING:
     from . factory import DependencyGenerator
