@@ -233,6 +233,9 @@ class TestDef:
         self.do_not_set_opts = []  # type: T.List[str]
         self.stdout = [] # type: T.List[T.Dict[str, str]]
 
+        # Always print a stack trace for Meson exceptions
+        self.env['MESON_FORCE_BACKTRACE'] = '1'
+
     def __repr__(self) -> str:
         return '<{}: {:<48} [{}: {}] -- {}>'.format(type(self).__name__, str(self.path), self.name, self.args, self.skip)
 
@@ -619,7 +622,7 @@ def _run_test(test: TestDef,
         gen_args.extend(['--native-file', nativefile.as_posix()])
     if crossfile.exists():
         gen_args.extend(['--cross-file', crossfile.as_posix()])
-    (returncode, stdo, stde) = run_configure(gen_args, env=test.env)
+    (returncode, stdo, stde) = run_configure(gen_args, env=test.env, catch_exception=True)
     try:
         logfile = Path(test_build_dir, 'meson-logs', 'meson-log.txt')
         mesonlog = logfile.open(errors='ignore', encoding='utf-8').read()

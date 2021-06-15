@@ -57,7 +57,7 @@ def main() -> None:
             failed = True
         else:
             msg = mlog.green('PASS:')
-        mlog.log(msg, test.display_name())
+        mlog.log(msg, *test.display_name())
         if result is not None and result.msg and 'MESON_SKIP_TEST' not in result.stdo:
             mlog.log('reason:', result.msg)
             if result.step is BuildStep.configure:
