@@ -34,7 +34,7 @@ class PkgGenerator:
         self.identifier = 'com.mesonbuild.meson'
         self.version = coredata.version.replace('dev', '')
         self.mesonstashdir = os.path.join(self.sharedir, f'meson-{self.version}')
-        self.pkgname = f'meson.pkg'
+        self.pkgname = 'meson.pkg'
         self.productname = f'meson-{self.version}.pkg'
         self.distribution_file = 'meson-distribution.xml'
         self.resourcedir = 'packaging/macpages'
@@ -51,7 +51,7 @@ class PkgGenerator:
         for m in get_modules():
             pyinst_cmd += ['--hidden-import', m]
         pyinst_cmd += ['meson.py']
-        subprocess.check_call(pyinst_cmd    )
+        subprocess.check_call(pyinst_cmd)
         tmpdir = os.path.join(self.pkg_dir, 'meson')
         shutil.move(tmpdir, self.mesonstashdir)
         os.makedirs(self.bindir)
@@ -64,11 +64,11 @@ class PkgGenerator:
 
     def build_package(self):
         subprocess.check_call(['pkgbuild',
-                                '--root',
-                                self.pkg_dir,
-                                '--identifier',
-                                self.identifier,
-                                self.pkgname])
+                               '--root',
+                               self.pkg_dir,
+                               '--identifier',
+                               self.identifier,
+                               self.pkgname])
         self.generate_distribution()
         subprocess.check_call(['productbuild',
                                '--distribution',
@@ -96,7 +96,7 @@ class PkgGenerator:
         choice = ET.SubElement(root, 'choice', {'id': self.identifier, 'visible': 'false'})
         ET.SubElement(choice, 'pkg-ref', {'id': self.identifier})
         ET.SubElement(root, 'pkg-ref', {'id': self.identifier,
-                                        'version': '0',#self.version,
+                                        'version': '0', # self.version,
                                         'onConclusion': 'none'}).text = self.pkgname
         ET.ElementTree(root).write(self.distribution_file, encoding='utf-8', xml_declaration=True)
         # ElementTree can not do prettyprinting so do it manually
