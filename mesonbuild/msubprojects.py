@@ -17,6 +17,8 @@ class Runner:
     lock = threading.Lock()
 
     def __init__(self, r: Resolver, wrap: PackageDefinition, repo_dir: str, options: argparse.Namespace) -> None:
+        # FIXME: Do a copy because Resolver.resolve() is stateful method that
+        # cannot be called from multiple threads.
         self.wrap_resolver = copy.copy(r)
         self.wrap = wrap
         self.repo_dir = repo_dir
@@ -402,6 +404,12 @@ class Runner:
 
         return True
 
+    @staticmethod
+    def post_purge(options):
+        if not options.confirm:
+            mlog.log('')
+            mlog.log('Nothing has been deleted, run again with --confirm to apply.')
+
 def add_common_arguments(p):
     p.add_argument('--sourcedir', default='.',
                    help='Path to source directory')
@@ -459,6 +467,7 @@ def add_arguments(parser):
     p.add_argument('--include-cache', action='store_true', default=False, help='Remove the package cache as well')
     p.add_argument('--confirm', action='store_true', default=False, help='Confirm the removal of subproject artifacts')
     p.set_defaults(subprojects_func=Runner.purge)
+    p.set_defaults(post_func=Runner.post_purge)
 
 def run(options):
     src_dir = os.path.relpath(os.path.realpath(options.sourcedir))
@@ -491,6 +500,9 @@ def run(options):
         tasks.append(task)
         task_names.append(wrap.name)
     results = loop.run_until_complete(asyncio.gather(*tasks))
+    post_func = getattr(options, 'post_func', None)
+    if post_func:
+        post_func(options)
     failures = [name for name, success in zip(task_names, results) if not success]
     if failures:
         m = 'Please check logs above as command failed in some subprojects which could have been left in conflict state: '
