@@ -1280,6 +1280,15 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
             safe_print(bold('During:'), result.step.name)
             safe_print(bold('Reason:'), result.msg)
             failing_tests += 1
+            # Append a visual seperator for the different test cases
+            cols = shutil.get_terminal_size((100, 20)).columns
+            name_str = ' '.join([str(x) for x in f.testdef.display_name()])
+            name_len = len(re.sub(r'\x1B[^m]+m', '', name_str))  # Do not count escape sequences
+            left_w = (cols // 2) - (name_len // 2) - 1
+            left_w = max(3, left_w)
+            right_w = cols - left_w - name_len - 2
+            right_w = max(3, right_w)
+            failing_logs.append(f'\n\x1b[31m{"="*left_w}\x1b[0m {name_str} \x1b[31m{"="*right_w}\x1b[0m\n')
             if result.step == BuildStep.configure and result.mlog != no_meson_log_msg:
                 # For configure failures, instead of printing stdout,
                 # print the meson log if available since it's a superset
