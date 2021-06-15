@@ -22,6 +22,7 @@ import subprocess
 import tempfile
 import platform
 import argparse
+import traceback
 from io import StringIO
 from enum import Enum
 from glob import glob
@@ -268,12 +269,19 @@ def clear_meson_configure_class_caches() -> None:
     dependencies.PkgConfigDependency.pkgbin_cache = {}
     dependencies.PkgConfigDependency.class_pkgbin = mesonlib.PerMachine(None, None)
 
-def run_configure_inprocess(commandlist: T.List[str], env: T.Optional[T.Dict[str, str]] = None) -> T.Tuple[int, str, str]:
+def run_configure_inprocess(commandlist: T.List[str], env: T.Optional[T.Dict[str, str]] = None, catch_exception: bool = False) -> T.Tuple[int, str, str]:
     stderr = StringIO()
     stdout = StringIO()
+    returncode = 0
     with mock.patch.dict(os.environ, env or {}), mock.patch.object(sys, 'stdout', stdout), mock.patch.object(sys, 'stderr', stderr):
         try:
             returncode = mesonmain.run(commandlist, get_meson_script())
+        except Exception:
+            if catch_exception:
+                returncode = 1
+                traceback.print_exc()
+            else:
+                raise
         finally:
             clear_meson_configure_class_caches()
     return returncode, stdout.getvalue(), stderr.getvalue()
@@ -282,11 +290,11 @@ def run_configure_external(full_command: T.List[str], env: T.Optional[T.Dict[str
     pc, o, e = mesonlib.Popen_safe(full_command, env=env)
     return pc.returncode, o, e
 
-def run_configure(commandlist: T.List[str], env: T.Optional[T.Dict[str, str]] = None) -> T.Tuple[int, str, str]:
+def run_configure(commandlist: T.List[str], env: T.Optional[T.Dict[str, str]] = None, catch_exception: bool = False) -> T.Tuple[int, str, str]:
     global meson_exe
     if meson_exe:
         return run_configure_external(meson_exe + commandlist, env=env)
-    return run_configure_inprocess(commandlist, env=env)
+    return run_configure_inprocess(commandlist, env=env, catch_exception=catch_exception)
 
 def print_system_info():
     print(mlog.bold('System information.'))

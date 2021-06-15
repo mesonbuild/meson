@@ -6165,7 +6165,7 @@ class FailureTests(BasePlatformTests):
         '''
         tdir = os.path.join(self.unit_test_dir, '21 exit status')
         with self.assertRaises(subprocess.CalledProcessError) as cm:
-            self.init(tdir, inprocess=False, override_envvars = {'MESON_UNIT_TEST': '1'})
+            self.init(tdir, inprocess=False, override_envvars = {'MESON_UNIT_TEST': '1', 'MESON_FORCE_BACKTRACE': ''})
         self.assertEqual(cm.exception.returncode, 2)
         self.wipe()
 
