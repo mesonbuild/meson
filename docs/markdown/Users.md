@@ -11,7 +11,7 @@ for it. All the software on this list is tested for regressions before
 release, so it's highly recommended that projects add themselves
 here. Some additional projects are listed in the [`meson` GitHub
 topic](https://github.com/topics/meson).
- 
+
  - [2048.cpp](https://github.com/plibither8/2048.cpp), a fully featured terminal version of the game "2048" written in C++
  - [Aravis](https://github.com/AravisProject/aravis), a glib/gobject based library for video acquisition using Genicam cameras
  - [Akira](https://github.com/akiraux/Akira), a native Linux app for UI and UX design built in Vala and Gtk
@@ -21,6 +21,7 @@ topic](https://github.com/topics/meson).
  - [Budgie Desktop](https://github.com/budgie-desktop/budgie-desktop), a desktop environment built on GNOME technologies
  - [Bzip2](https://gitlab.com/federicomenaquintero/bzip2), the bzip2 compressor/decompressor
  - [Cage](https://github.com/Hjdskes/cage), a Wayland kiosk
+ - [canfigger](https://github.com/andy5995/canfigger), simple configuration file parser library
  - [casync](https://github.com/systemd/casync), Content-Addressable Data Synchronization Tool
  - [Chicken Libraries](https://github.com/chicken-libraries), Collection of C libraries. Data structures, algorithms, and more.
  - [cinnamon-desktop](https://github.com/linuxmint/cinnamon-desktop), the cinnamon desktop library
