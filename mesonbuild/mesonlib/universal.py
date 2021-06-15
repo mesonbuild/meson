@@ -52,6 +52,7 @@ __all__ = [
     'LibType',
     'MachineChoice',
     'MesonException',
+    'MesonBugException',
     'EnvironmentException',
     'FileOrString',
     'GitException',
@@ -163,6 +164,14 @@ class MesonException(Exception):
         self.lineno = lineno
         self.colno = colno
 
+
+class MesonBugException(MesonException):
+    '''Exceptions thrown when there is a clear Meson bug that should be reported'''
+
+    def __init__(self, msg: str, file: T.Optional[str] = None,
+                 lineno: T.Optional[int] = None, colno: T.Optional[int] = None):
+        super().__init__(msg + '\n\n    This is a Meson bug and should be reported!',
+                         file=file, lineno=lineno, colno=colno)
 
 class EnvironmentException(MesonException):
     '''Exceptions thrown while processing and creating the build environment'''
