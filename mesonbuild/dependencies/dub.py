@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .base import ExternalDependency, DependencyException, DependencyMethods
+from .base import ExternalDependency, DependencyException, DependencyMethods, DependencyTypeName
 from .pkgconfig import PkgConfigDependency
 from ..mesonlib import Popen_safe
 from ..programs import ExternalProgram
@@ -32,7 +32,7 @@ class DubDependency(ExternalDependency):
     class_dubbin = None
 
     def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
-        super().__init__('dub', environment, kwargs, language='d')
+        super().__init__(DependencyTypeName('dub'), environment, kwargs, language='d')
         self.name = name
         self.module_path: T.Optional[str] = None
 

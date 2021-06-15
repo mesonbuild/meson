@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .base import ExternalDependency, DependencyException, DependencyMethods
+from .base import DependencyTypeName, ExternalDependency, DependencyException, DependencyMethods
 from ..mesonlib import MesonException, Version, stringlistify
 from .. import mlog
 from pathlib import Path
@@ -26,7 +26,7 @@ class ExtraFrameworkDependency(ExternalDependency):
 
     def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None) -> None:
         paths = stringlistify(kwargs.get('paths', []))
-        super().__init__('extraframeworks', env, kwargs, language=language)
+        super().__init__(DependencyTypeName('extraframeworks'), env, kwargs, language=language)
         self.name = name
         # Full path to framework directory
         self.framework_path: T.Optional[str] = None

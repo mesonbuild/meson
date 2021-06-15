@@ -58,8 +58,8 @@ def check_mypy() -> None:
         print('Failed import mypy')
         sys.exit(1)
     from mypy.version import __version__ as mypy_version
-    if not version_compare(mypy_version, '>=0.902'):
-        print('mypy >=0.902 is required, older versions report spurious errors')
+    if not version_compare(mypy_version, '>=0.812'):
+        print('mypy >=0.812 is required, older versions report spurious errors')
         sys.exit(1)
 
 def main() -> int:

@@ -60,6 +60,9 @@ class DependencyMethods(Enum):
     DUB = 'dub'
 
 
+DependencyTypeName = T.NewType('DependencyTypeName', str)
+
+
 class Dependency:
 
     @classmethod
@@ -72,7 +75,7 @@ class Dependency:
             raise DependencyException("include_type may only be one of ['preserve', 'system', 'non-system']")
         return kwargs['include_type']
 
-    def __init__(self, type_name: str, kwargs: T.Dict[str, T.Any]) -> None:
+    def __init__(self, type_name: DependencyTypeName, kwargs: T.Dict[str, T.Any]) -> None:
         self.name = "null"
         self.version:  T.Optional[str] = None
         self.language: T.Optional[str] = None # None means C-like
@@ -220,7 +223,7 @@ class InternalDependency(Dependency):
                  link_args: T.List[str], libraries: T.List['BuildTarget'],
                  whole_libraries: T.List['BuildTarget'], sources: T.List['FileOrString'],
                  ext_deps: T.List[Dependency], variables: T.Dict[str, T.Any]):
-        super().__init__('internal', {})
+        super().__init__(DependencyTypeName('internal'), {})
         self.version = version
         self.is_found = True
         self.include_directories = incdirs
@@ -307,7 +310,7 @@ class HasNativeKwarg:
         return MachineChoice.BUILD if kwargs.get('native', False) else MachineChoice.HOST
 
 class ExternalDependency(Dependency, HasNativeKwarg):
-    def __init__(self, type_name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None):
+    def __init__(self, type_name: DependencyTypeName, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None):
         Dependency.__init__(self, type_name, kwargs)
         self.env = environment
         self.name = type_name # default
@@ -392,7 +395,7 @@ class ExternalDependency(Dependency, HasNativeKwarg):
 
 class NotFoundDependency(Dependency):
     def __init__(self, environment: 'Environment') -> None:
-        super().__init__('not-found', {})
+        super().__init__(DependencyTypeName('not-found'), {})
         self.env = environment
         self.name = 'not-found'
         self.is_found = False
@@ -406,7 +409,7 @@ class NotFoundDependency(Dependency):
 class ExternalLibrary(ExternalDependency):
     def __init__(self, name: str, link_args: T.List[str], environment: 'Environment',
                  language: str, silent: bool = False) -> None:
-        super().__init__('library', environment, {}, language=language)
+        super().__init__(DependencyTypeName('library'), environment, {}, language=language)
         self.name = name
         self.language = language
         self.is_found = False

@@ -18,11 +18,12 @@ import os
 import typing as T
 from pathlib import Path
 
-from .. import mlog
 from .. import mesonlib
+from .. import mlog
 from ..environment import detect_cpu_family
+from .base import DependencyException
+from .system import SystemDependency
 
-from .base import (DependencyException, ExternalDependency)
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
@@ -30,7 +31,7 @@ if T.TYPE_CHECKING:
 
 TV_ResultTuple = T.Tuple[T.Optional[str], T.Optional[str], bool]
 
-class CudaDependency(ExternalDependency):
+class CudaDependency(SystemDependency):
 
     supported_languages = ['cuda', 'cpp', 'c'] # see also _default_language
 

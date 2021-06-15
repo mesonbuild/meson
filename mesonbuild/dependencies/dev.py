@@ -23,15 +23,16 @@ import shutil
 import typing as T
 
 from .. import mesonlib, mlog
-from ..mesonlib import version_compare, stringlistify, extract_as_list, MachineChoice
+from ..compilers import AppleClangCCompiler, AppleClangCPPCompiler
 from ..environment import get_llvm_tool_names
-from .base import DependencyException, DependencyMethods, ExternalDependency, strip_system_libdirs
+from ..mesonlib import version_compare, stringlistify, extract_as_list, MachineChoice
+from .base import DependencyException, DependencyMethods, strip_system_libdirs
 from .cmake import CMakeDependency
 from .configtool import ConfigToolDependency
-from .pkgconfig import PkgConfigDependency
 from .factory import DependencyFactory
 from .misc import threads_factory
-from ..compilers import AppleClangCCompiler, AppleClangCPPCompiler
+from .pkgconfig import PkgConfigDependency
+from .system import SystemDependency
 
 if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
@@ -50,7 +51,7 @@ def get_shared_library_suffix(environment: 'Environment', for_machine: MachineCh
     return '.so'
 
 
-class GTestDependencySystem(ExternalDependency):
+class GTestDependencySystem(SystemDependency):
     def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
         super().__init__(name, environment, kwargs, language='cpp')
         self.main = kwargs.get('main', False)
@@ -120,7 +121,7 @@ class GTestDependencyPC(PkgConfigDependency):
         super().__init__(name, environment, kwargs)
 
 
-class GMockDependencySystem(ExternalDependency):
+class GMockDependencySystem(SystemDependency):
     def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
         super().__init__(name, environment, kwargs, language='cpp')
         self.main = kwargs.get('main', False)
@@ -464,7 +465,7 @@ class ValgrindDependency(PkgConfigDependency):
         return []
 
 
-class ZlibSystemDependency(ExternalDependency):
+class ZlibSystemDependency(SystemDependency):
 
     def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
         super().__init__(name, environment, kwargs)
@@ -513,7 +514,7 @@ class ZlibSystemDependency(ExternalDependency):
         return [DependencyMethods.SYSTEM]
 
 
-class JDKSystemDependency(ExternalDependency):
+class JDKSystemDependency(SystemDependency):
     def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
         super().__init__('jdk', environment, kwargs)
 

@@ -30,17 +30,15 @@ from ..interpreter import ExternalProgramHolder, extract_required_kwarg, permitt
 from ..build import known_shmod_kwargs
 from .. import mlog
 from ..environment import detect_cpu_family
-from ..dependencies import (
-    DependencyMethods, ExternalDependency,
-    PkgConfigDependency, NotFoundDependency
-)
+from ..dependencies import DependencyMethods, PkgConfigDependency, NotFoundDependency
+from ..dependencies.system import SystemDependency
 from ..programs import ExternalProgram, NonExistingExternalProgram
 
 mod_kwargs = {'subdir'}
 mod_kwargs.update(known_shmod_kwargs)
 mod_kwargs -= {'name_prefix', 'name_suffix'}
 
-class PythonDependency(ExternalDependency):
+class PythonDependency(SystemDependency):
 
     def __init__(self, python_holder, environment, kwargs):
         super().__init__('python', environment, kwargs)

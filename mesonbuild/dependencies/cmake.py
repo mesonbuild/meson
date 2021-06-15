@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .base import ExternalDependency, DependencyException, DependencyMethods
+from .base import ExternalDependency, DependencyException, DependencyMethods, DependencyTypeName
 from ..mesonlib import is_windows, MesonException, OptionKey, PerMachine, stringlistify, extract_as_list
 from ..mesondata import mesondata
 from ..cmake import CMakeExecutor, CMakeTraceParser, CMakeException, CMakeToolchain, CMakeExecScope, check_cmake_args
@@ -98,7 +98,7 @@ class CMakeDependency(ExternalDependency):
         # Ensure that the list is unique
         self.language_list = list(set(self.language_list))
 
-        super().__init__('cmake', environment, kwargs, language=language)
+        super().__init__(DependencyTypeName('cmake'), environment, kwargs, language=language)
         self.name = name
         self.is_libtool = False
         # Store a copy of the CMake path on the object itself so it is
