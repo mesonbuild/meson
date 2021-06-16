@@ -1251,6 +1251,8 @@ You probably should put it in link_with instead.''')
 
     def link(self, target):
         for t in unholder(listify(target)):
+            if isinstance(t, BothLibraries):
+                t = t.get_preferred_library()
             if isinstance(self, StaticLibrary) and self.need_install:
                 if isinstance(t, (CustomTarget, CustomTargetIndex)):
                     if not t.should_install():
@@ -1279,6 +1281,9 @@ You probably should put it in link_with instead.''')
 
     def link_whole(self, target):
         for t in unholder(listify(target)):
+            # Always use the static library from BothLibraries, since shared libs aren't supported anyway
+            if isinstance(t, BothLibraries):
+                t = t.static
             if isinstance(t, (CustomTarget, CustomTargetIndex)):
                 if not t.is_linkable_target():
                     raise InvalidArguments(f'Custom target {t!r} is not linkable.')
@@ -1840,6 +1845,8 @@ class SharedLibrary(BuildTarget):
         self.gcc_import_filename = None
         # The debugging information file this target will generate
         self.debug_filename = None
+        # Use by the pkgconfig module
+        self.shared_library_only = False
         super().__init__(name, subdir, subproject, for_machine, sources, objects, environment, kwargs)
         if 'rust' in self.compilers:
             # If no crate type is specified, or it's the generic lib type, use dylib
@@ -2158,6 +2165,19 @@ class SharedModule(SharedLibrary):
 
     def get_default_install_dir(self, environment):
         return environment.get_shared_module_dir()
+
+class BothLibraries(HoldableObject):
+    def __init__(self, shared: SharedLibrary, static: StaticLibrary) -> None:
+        self._preferred_library = 'shared'
+        self.shared = shared
+        self.static = static
+
+    def get_preferred_library(self) -> BuildTarget:
+        if self._preferred_library == 'shared':
+            return self.shared
+        elif self._preferred_library == 'static':
+            return self.static
+        raise MesonBugException(f'self._preferred_library == "{self._preferred_library}" is neither "shared" nor "static".')
 
 class CommandBase:
     def flatten_command(self, cmd):
