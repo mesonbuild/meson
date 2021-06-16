@@ -520,7 +520,6 @@ class ExternalProgramHolder(ObjectHolder[ExternalProgram]):
         self.methods.update({'found': self.found_method,
                              'path': self.path_method,
                              'full_path': self.full_path_method})
-        self.cached_version = None
 
     @noPosargs
     @permittedKwargs({})
@@ -557,26 +556,6 @@ class ExternalProgramHolder(ObjectHolder[ExternalProgram]):
         if isinstance(exe, build.Executable):
             return exe.name
         return exe.get_name()
-
-    def get_version(self, interpreter):
-        if isinstance(self.held_object, build.Executable):
-            return self.held_object.project_version
-        if not self.cached_version:
-            raw_cmd = self.get_command() + ['--version']
-            cmd = [self, '--version']
-            res = interpreter.run_command_impl(interpreter.current_node, cmd, {}, True)
-            if res.returncode != 0:
-                m = 'Running {!r} failed'
-                raise InterpreterException(m.format(raw_cmd))
-            output = res.stdout.strip()
-            if not output:
-                output = res.stderr.strip()
-            match = re.search(r'([0-9][0-9\.]+)', output)
-            if not match:
-                m = 'Could not find a version number in output of {!r}'
-                raise InterpreterException(m.format(raw_cmd))
-            self.cached_version = match.group(1)
-        return self.cached_version
 
 class ExternalLibraryHolder(ObjectHolder[ExternalLibrary]):
     def __init__(self, el: ExternalLibrary, subproject: str):
