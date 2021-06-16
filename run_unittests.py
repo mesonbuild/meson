@@ -1846,7 +1846,7 @@ class DataTests(unittest.TestCase):
         markdownfiles = [f.name for f in Path("docs/markdown").iterdir() if f.is_file() and f.suffix == '.md']
         exceptions = ['_Sidebar.md']
         for f in markdownfiles:
-            if f not in exceptions:
+            if f not in exceptions and not f.startswith('_include'):
                 self.assertIn(f, toc)
 
     def test_vim_syntax_highlighting(self):

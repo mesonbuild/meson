@@ -52,9 +52,10 @@ foreach qt : ['qt4', 'qt5', 'qt6']
 
     prep = qtmodule.preprocess(
       moc_headers : ['mainWindow.h'],           # These need to be fed through the moc tool before use. 
-      ui_files : 'mainWindow.ui',               # XML files that need to be compiled with the uic tol.
       method : get_option('method')
     )
+    # XML files that need to be compiled with the uic tol.
+    prep += qtmodule.compile_ui(sources : 'mainWindow.ui', method: get_option('method'))
 
     # Resource file(s) for rcc compiler
     extra_cpp_args = []
@@ -66,7 +67,11 @@ foreach qt : ['qt4', 'qt5', 'qt6']
     endif
 
     # Test that setting a unique name with a positional argument works
-    qtmodule.preprocess(qt + 'teststuff', qresources : files(['stuff.qrc', 'stuff2.qrc']), method : get_option('method'))
+    qtmodule.compile_resources(
+      name : qt + 'teststuff',
+      sources : files(['stuff.qrc', 'stuff2.qrc']),
+      method : get_option('method')
+    )
 
     # Test that passing extra arguments to rcc works
     # qt4-rcc and qt5-rcc take different arguments, for example qt4: ['-compress', '3']; qt5: '--compress=3'
@@ -95,10 +100,10 @@ foreach qt : ['qt4', 'qt5', 'qt6']
     # The build system needs to include the cpp files from
     # headers but the user must manually include moc
     # files from sources.
-    manpreprocessed = qtmodule.preprocess(
-      moc_extra_arguments : ['-DMOC_EXTRA_FLAG'], # This is just a random macro to test `moc_extra_arguments`
-      moc_sources : 'manualinclude.cpp',
-      moc_headers : 'manualinclude.h',
+    manpreprocessed = qtmodule.compile_moc(
+      extra_args : ['-DMOC_EXTRA_FLAG'], # This is just a random macro to test `extra_arguments`
+      sources : 'manualinclude.cpp',
+      headers : 'manualinclude.h',
       method : get_option('method'))
 
     qtmaninclude = executable(qt + 'maninclude',

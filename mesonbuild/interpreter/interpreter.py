@@ -267,7 +267,7 @@ class Interpreter(InterpreterBase):
             self.ast = ast
             self.sanity_check_ast()
         self.builtin.update({'meson': MesonMain(build, self)})
-        self.generators = []
+        self.generators: T.List['GeneratorHolder'] = []
         self.processed_buildfiles = set() # type: T.Set[str]
         self.project_args_frozen = False
         self.global_args_frozen = False  # implies self.project_args_frozen
@@ -1954,10 +1954,34 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
 
     @permittedKwargs({'arguments', 'output', 'depends', 'depfile', 'capture',
                       'preserve_path_from'})
-    def func_generator(self, node, args, kwargs):
-        gen = GeneratorHolder(self, args, kwargs)
-        self.generators.append(gen)
-        return gen
+    @typed_pos_args('generator', (ExecutableHolder, ExternalProgramHolder))
+    @typed_kwargs(
+        'generator',
+        KwargInfo('arguments', ContainerTypeInfo(list, str, allow_empty=False), required=True, listify=True),
+        KwargInfo('output', ContainerTypeInfo(list, str, allow_empty=False), required=True, listify=True),
+        KwargInfo('depfile', str, validator=lambda x: 'Depfile must be a plain filename with a subdirectory' if has_path_sep(x) else None),
+        KwargInfo('capture', bool, default=False, since='0.43.0'),
+        KwargInfo('depends', ContainerTypeInfo(list, (BuildTargetHolder, CustomTargetHolder)), default=[], listify=True),
+    )
+    def func_generator(self, node: mparser.FunctionNode,
+                       args: T.Tuple[T.Union[ExecutableHolder, ExternalProgramHolder]],
+                       kwargs: 'kwargs.FuncGenerator') -> GeneratorHolder:
+        for rule in kwargs['output']:
+            if '@BASENAME@' not in rule and '@PLAINNAME@' not in rule:
+                raise InvalidArguments('Every element of "output" must contain @BASENAME@ or @PLAINNAME@.')
+            if has_path_sep(rule):
+                raise InvalidArguments('"output" must not contain a directory separator.')
+        if len(kwargs['output']) > 1:
+            for o in kwargs['output']:
+                if '@OUTPUT@' in o:
+                    raise InvalidArguments('Tried to use @OUTPUT@ in a rule with more than one output.')
+
+        depends = [d.held_object for d in kwargs.pop('depends')]
+
+        gen = build.Generator(args[0].held_object, depends=depends, **kwargs)
+        holder = GeneratorHolder(gen, self)
+        self.generators.append(holder)
+        return holder
 
     @typed_pos_args('benchmark', str, (ExecutableHolder, JarHolder, ExternalProgramHolder, mesonlib.File))
     @typed_kwargs('benchmark', *TEST_KWARGS)

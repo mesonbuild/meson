@@ -23,7 +23,9 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
+    from ..interpreter.interpreterobjects import IncludeDirsHolder, ExternalProgramHolder
     from ..interpreterbase import TYPE_var, TYPE_nvar, TYPE_nkwargs
+    from ..programs import ExternalProgram
 
 class ModuleState:
     """Object passed to all module methods.
@@ -59,14 +61,14 @@ class ModuleState:
         self.target_machine = interpreter.builtin['target_machine'].held_object
         self.current_node = interpreter.current_node
 
-    def get_include_args(self, include_dirs, prefix='-I'):
+    def get_include_args(self, include_dirs: T.Iterable[T.Union[str, 'IncludeDirsHolder']], prefix: str = '-I') -> T.List[str]:
         if not include_dirs:
             return []
 
         srcdir = self.environment.get_source_dir()
         builddir = self.environment.get_build_dir()
 
-        dirs_str = []
+        dirs_str: T.List[str] = []
         for dirs in unholder(include_dirs):
             if isinstance(dirs, str):
                 dirs_str += [f'{prefix}{dirs}']
@@ -88,7 +90,7 @@ class ModuleState:
     def find_program(self, prog: T.Union[str, T.List[str]], required: bool = True,
                      version_func: T.Optional[T.Callable[['ExternalProgram'], str]] = None,
                      wanted: T.Optional[str] = None) -> 'ExternalProgramHolder':
-        return self._interpreter.find_program_impl(prog, required=required)
+        return self._interpreter.find_program_impl(prog, required=required, version_func=version_func, wanted=wanted)
 
 class ModuleObject:
     """Base class for all objects returned by modules

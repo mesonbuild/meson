@@ -43,6 +43,7 @@ if T.TYPE_CHECKING:
     from ._typing import ImmutableListProtocol, ImmutableSetProtocol
     from .interpreter.interpreter import Test, SourceOutputs, Interpreter
     from .mesonlib import FileMode, FileOrString
+    from .modules import ModuleState
     from .backend.backends import Backend
     from .interpreter.interpreterobjects import GeneratorHolder
 
@@ -1498,113 +1499,71 @@ You probably should put it in link_with instead.''')
                 return
 
 class Generator:
-    def __init__(self, args, kwargs):
-        if len(args) != 1:
-            raise InvalidArguments('Generator requires exactly one positional argument: the executable')
-        exe = unholder(args[0])
-        if not isinstance(exe, (Executable, programs.ExternalProgram)):
-            raise InvalidArguments('First generator argument must be an executable.')
+    def __init__(self, exe: T.Union['Executable', programs.ExternalProgram],
+                 arguments: T.List[str],
+                 output: T.List[str],
+                 *,
+                 depfile: T.Optional[str] = None,
+                 capture: bool = False,
+                 depends: T.Optional[T.List[T.Union[BuildTarget, 'CustomTarget']]] = None,
+                 name: str = 'Generator'):
         self.exe = exe
-        self.depfile = None
-        self.capture = False
-        self.depends = []
-        self.process_kwargs(kwargs)
+        self.depfile = depfile
+        self.capture = capture
+        self.depends: T.List[T.Union[BuildTarget, 'CustomTarget']] = depends or []
+        self.arglist = arguments
+        self.outputs = output
+        self.name = name
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         repr_str = "<{0}: {1}>"
         return repr_str.format(self.__class__.__name__, self.exe)
 
-    def get_exe(self):
+    def get_exe(self) -> T.Union['Executable', programs.ExternalProgram]:
         return self.exe
 
-    def process_kwargs(self, kwargs):
-        if 'arguments' not in kwargs:
-            raise InvalidArguments('Generator must have "arguments" keyword argument.')
-        args = kwargs['arguments']
-        if isinstance(args, str):
-            args = [args]
-        if not isinstance(args, list):
-            raise InvalidArguments('"Arguments" keyword argument must be a string or a list of strings.')
-        for a in args:
-            if not isinstance(a, str):
-                raise InvalidArguments('A non-string object in "arguments" keyword argument.')
-        self.arglist = args
-        if 'output' not in kwargs:
-            raise InvalidArguments('Generator must have "output" keyword argument.')
-        outputs = listify(kwargs['output'])
-        for rule in outputs:
-            if not isinstance(rule, str):
-                raise InvalidArguments('"output" may only contain strings.')
-            if '@BASENAME@' not in rule and '@PLAINNAME@' not in rule:
-                raise InvalidArguments('Every element of "output" must contain @BASENAME@ or @PLAINNAME@.')
-            if has_path_sep(rule):
-                raise InvalidArguments('"outputs" must not contain a directory separator.')
-        if len(outputs) > 1:
-            for o in outputs:
-                if '@OUTPUT@' in o:
-                    raise InvalidArguments('Tried to use @OUTPUT@ in a rule with more than one output.')
-        self.outputs = outputs
-        if 'depfile' in kwargs:
-            depfile = kwargs['depfile']
-            if not isinstance(depfile, str):
-                raise InvalidArguments('Depfile must be a string.')
-            if os.path.basename(depfile) != depfile:
-                raise InvalidArguments('Depfile must be a plain filename without a subdirectory.')
-            self.depfile = depfile
-        if 'capture' in kwargs:
-            capture = kwargs['capture']
-            if not isinstance(capture, bool):
-                raise InvalidArguments('Capture must be boolean.')
-            self.capture = capture
-        if 'depends' in kwargs:
-            depends = unholder(listify(kwargs['depends']))
-            for d in depends:
-                if not (isinstance(d, (BuildTarget, CustomTarget))):
-                    raise InvalidArguments('Depends entries must be build targets.')
-                self.depends.append(d)
-
-    def get_base_outnames(self, inname) -> T.List[str]:
+    def get_base_outnames(self, inname: str) -> T.List[str]:
         plainname = os.path.basename(inname)
         basename = os.path.splitext(plainname)[0]
         bases = [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.outputs]
         return bases
 
-    def get_dep_outname(self, inname):
+    def get_dep_outname(self, inname: str) -> T.List[str]:
         if self.depfile is None:
             raise InvalidArguments('Tried to get dep name for rule that does not have dependency file defined.')
         plainname = os.path.basename(inname)
         basename = os.path.splitext(plainname)[0]
         return self.depfile.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname)
 
-    def get_arglist(self, inname):
+    def get_arglist(self, inname: str) -> T.List[str]:
         plainname = os.path.basename(inname)
         basename = os.path.splitext(plainname)[0]
         return [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.arglist]
 
-    def is_parent_path(self, parent, trial):
+    @staticmethod
+    def is_parent_path(parent: str, trial: str) -> bool:
         relpath = pathlib.PurePath(trial).relative_to(parent)
         return relpath.parts[0] != '..' # For subdirs we can only go "down".
 
-    def process_files(self, name, files, state: 'Interpreter', preserve_path_from=None, extra_args=None):
-        new = False
+    def process_files(self, files: T.Iterable[T.Union[str, File, 'CustomTarget', 'CustomTargetIndex', 'GeneratedList']],
+                      state: T.Union['Interpreter', 'ModuleState'],
+                      preserve_path_from: T.Optional[str] = None,
+                      extra_args: T.Optional[T.List[str]] = None) -> 'GeneratedList':
         output = GeneratedList(self, state.subdir, preserve_path_from, extra_args=extra_args if extra_args is not None else [])
-        #XXX
-        for e in unholder(files):
-            fs = [e]
+
+        for e in files:
             if isinstance(e, CustomTarget):
                 output.depends.add(e)
             if isinstance(e, CustomTargetIndex):
                 output.depends.add(e.target)
+
             if isinstance(e, (CustomTarget, CustomTargetIndex, GeneratedList)):
                 self.depends.append(e) # BUG: this should go in the GeneratedList object, not this object.
-                fs = []
-                for f in e.get_outputs():
-                    fs.append(File.from_built_file(state.subdir, f))
-                new = True
+                fs = [File.from_built_file(state.subdir, f) for f in e.get_outputs()]
             elif isinstance(e, str):
                 fs = [File.from_source_file(state.environment.source_dir, state.subdir, e)]
-            elif not isinstance(e, File):
-                raise InvalidArguments(f'{name} arguments must be strings, files or CustomTargets, not {e!r}.')
+            else:
+                fs = [e]
 
             for f in fs:
                 if preserve_path_from:
@@ -1612,26 +1571,28 @@ class Generator:
                     if not self.is_parent_path(preserve_path_from, abs_f):
                         raise InvalidArguments('generator.process: When using preserve_path_from, all input files must be in a subdirectory of the given dir.')
                 output.add_file(f, state)
-        if new:
-            FeatureNew.single_use(
-                f'Calling "{name}" with CustomTaget or Index of CustomTarget.',
-                '0.57.0', state.subproject)
         return output
 
 
 class GeneratedList:
-    def __init__(self, generator: 'GeneratorHolder', subdir: str, preserve_path_from=None, extra_args=None):
-        self.generator = unholder(generator)
-        self.name = self.generator.exe
-        self.depends = set() # Things this target depends on (because e.g. a custom target was used as input)
+
+    """The output of generator.process."""
+
+    def __init__(self, generator: Generator, subdir: str,
+                 preserve_path_from: T.Optional[str],
+                 extra_args: T.List[str]):
+        self.generator = generator
+        self.name = generator.exe
+        self.depends: T.Set['CustomTarget'] = set() # Things this target depends on (because e.g. a custom target was used as input)
         self.subdir = subdir
         self.infilelist: T.List['File'] = []
         self.outfilelist: T.List[str] = []
-        self.outmap: T.Dict['File', str] = {}
-        self.extra_depends = []
-        self.depend_files = []
+        self.outmap: T.Dict[File, T.List[str]] = {}
+        self.extra_depends = []  # XXX: Doesn't seem to be used?
+        self.depend_files: T.List[File] = []
         self.preserve_path_from = preserve_path_from
-        self.extra_args = extra_args if extra_args is not None else []
+        self.extra_args: T.List[str] = extra_args if extra_args is not None else []
+
         if isinstance(self.generator.exe, programs.ExternalProgram):
             if not self.generator.exe.found():
                 raise InvalidArguments('Tried to use not-found external program as generator')
@@ -1641,7 +1602,7 @@ class GeneratedList:
                 # know the absolute path of
                 self.depend_files.append(File.from_absolute_file(path))
 
-    def add_preserved_path_segment(self, infile: 'File', outfiles: T.List[str], state: 'Interpreter') -> T.List[str]:
+    def add_preserved_path_segment(self, infile: File, outfiles: T.List[str], state: T.Union['Interpreter', 'ModuleState']) -> T.List[str]:
         result: T.List[str] = []
         in_abs = infile.absolute_path(state.environment.source_dir, state.environment.build_dir)
         assert os.path.isabs(self.preserve_path_from)
@@ -1651,7 +1612,7 @@ class GeneratedList:
             result.append(os.path.join(path_segment, of))
         return result
 
-    def add_file(self, newfile: 'File', state: 'Interpreter') -> None:
+    def add_file(self, newfile: File, state: T.Union['Interpreter', 'ModuleState']) -> None:
         self.infilelist.append(newfile)
         outfiles = self.generator.get_base_outnames(newfile.fname)
         if self.preserve_path_from:
@@ -1671,7 +1632,7 @@ class GeneratedList:
     def get_generator(self) -> 'Generator':
         return self.generator
 
-    def get_extra_args(self):
+    def get_extra_args(self) -> T.List[str]:
         return self.extra_args
 
 class Executable(BuildTarget):

@@ -13,22 +13,33 @@ from .. import mlog
 
 from ..modules import ModuleReturnValue, ModuleObject, ModuleState, ExtensionModule
 from ..backend.backends import TestProtocol
-from ..interpreterbase import (InterpreterObject, ObjectHolder, MutableInterpreterObject,
+from ..interpreterbase import (ContainerTypeInfo, InterpreterObject, KwargInfo,
+                               ObjectHolder, MutableInterpreterObject,
                                FeatureNewKwargs, FeatureNew, FeatureDeprecated,
-                               typed_pos_args, stringArgs, permittedKwargs,
-                               noArgsFlattening, noPosargs, TYPE_var, TYPE_nkwargs,
-                               flatten, InterpreterException, InvalidArguments, InvalidCode)
+                               typed_kwargs, typed_pos_args, stringArgs,
+                               permittedKwargs, noArgsFlattening, noPosargs,
+                               TYPE_var, TYPE_nkwargs, flatten,
+                               InterpreterException, InvalidArguments,
+                               InvalidCode)
+from ..interpreterbase.decorators import FeatureCheckBase
 from ..dependencies import Dependency, ExternalLibrary, InternalDependency
 from ..programs import ExternalProgram
 from ..mesonlib import FileMode, OptionKey, listify, Popen_safe
 
 import typing as T
 
-def extract_required_kwarg(kwargs, subproject, feature_check=None, default=True):
+if T.TYPE_CHECKING:
+    from . import kwargs
+    from .interpreter import Interpreter
+
+
+def extract_required_kwarg(kwargs: 'kwargs.ExtractRequired', subproject: str,
+                           feature_check: T.Optional['FeatureCheckBase'] = None,
+                           default: bool = True) -> T.Tuple[bool, bool, T.Optional[str]]:
     val = kwargs.get('required', default)
     disabled = False
     required = False
-    feature = None
+    feature: T.Optional[str] = None
     if isinstance(val, FeatureOptionHolder):
         if not feature_check:
             feature_check = FeatureNew('User option "feature"', '0.47.0')
@@ -46,6 +57,7 @@ def extract_required_kwarg(kwargs, subproject, feature_check=None, default=True)
 
     # Keep boolean value in kwargs to simplify other places where this kwarg is
     # checked.
+    # TODO: this should be removed, and those callers should learn about FeatureOptions
     kwargs['required'] = required
 
     return disabled, required, feature
@@ -611,47 +623,16 @@ class ExternalLibraryHolder(InterpreterObject, ObjectHolder[ExternalLibrary]):
         pdep = self.held_object.get_partial_dependency(**kwargs)
         return DependencyHolder(pdep, self.subproject)
 
-class GeneratorHolder(InterpreterObject, ObjectHolder[build.Generator]):
-    @FeatureNewKwargs('generator', '0.43.0', ['capture'])
-    def __init__(self, interp, args, kwargs):
-        self.interpreter = interp
-        InterpreterObject.__init__(self)
-        ObjectHolder.__init__(self, build.Generator(args, kwargs), interp.subproject)
-        self.methods.update({'process': self.process_method})
-
-    @FeatureNewKwargs('generator.process', '0.45.0', ['preserve_path_from'])
-    @permittedKwargs({'extra_args', 'preserve_path_from'})
-    def process_method(self, args, kwargs):
-        extras = mesonlib.stringlistify(kwargs.get('extra_args', []))
-        if 'preserve_path_from' in kwargs:
-            preserve_path_from = kwargs['preserve_path_from']
-            if not isinstance(preserve_path_from, str):
-                raise InvalidArguments('Preserve_path_from must be a string.')
-            preserve_path_from = os.path.normpath(preserve_path_from)
-            if not os.path.isabs(preserve_path_from):
-                # This is a bit of a hack. Fix properly before merging.
-                raise InvalidArguments('Preserve_path_from must be an absolute path for now. Sorry.')
-        else:
-            preserve_path_from = None
-        gl = self.held_object.process_files('Generator', args, self.interpreter,
-                                            preserve_path_from, extra_args=extras)
-        return GeneratedListHolder(gl)
-
 
 class GeneratedListHolder(InterpreterObject, ObjectHolder[build.GeneratedList]):
-    def __init__(self, arg1, extra_args=None):
+    def __init__(self, arg1: 'build.GeneratedList'):
         InterpreterObject.__init__(self)
-        if isinstance(arg1, GeneratorHolder):
-            ObjectHolder.__init__(self, build.GeneratedList(arg1.held_object, extra_args if extra_args is not None else []))
-        else:
-            ObjectHolder.__init__(self, arg1)
+        ObjectHolder.__init__(self, arg1)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         r = '<{}: {!r}>'
         return r.format(self.__class__.__name__, self.held_object.get_outputs())
 
-    def add_file(self, a):
-        self.held_object.add_file(a)
 
 # A machine that's statically known from the cross file
 class MachineHolder(InterpreterObject, ObjectHolder['MachineInfo']):
@@ -1036,3 +1017,37 @@ class RunTargetHolder(TargetHolder):
         r = '<{} {}: {}>'
         h = self.held_object
         return r.format(self.__class__.__name__, h.get_id(), h.command)
+
+
+class GeneratorHolder(InterpreterObject, ObjectHolder[build.Generator]):
+
+    def __init__(self, gen: 'build.Generator', interpreter: 'Interpreter'):
+        InterpreterObject.__init__(self)
+        ObjectHolder.__init__(self, gen, interpreter.subproject)
+        self.interpreter = interpreter
+        self.methods.update({'process': self.process_method})
+
+    @typed_pos_args('generator.process', min_varargs=1, varargs=(str, mesonlib.File, CustomTargetHolder, CustomTargetIndexHolder, GeneratedListHolder))
+    @typed_kwargs(
+        'generator.process',
+        KwargInfo('preserve_path_from', str, since='0.45.0'),
+        KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
+    )
+    def process_method(self, args: T.Tuple[T.List[T.Union[str, mesonlib.File, CustomTargetHolder, CustomTargetIndexHolder, GeneratedListHolder]]],
+                       kwargs: 'kwargs.GeneratorProcess') -> GeneratedListHolder:
+        preserve_path_from = kwargs['preserve_path_from']
+        if preserve_path_from is not None:
+            preserve_path_from = os.path.normpath(preserve_path_from)
+            if not os.path.isabs(preserve_path_from):
+                # This is a bit of a hack. Fix properly before merging.
+                raise InvalidArguments('Preserve_path_from must be an absolute path for now. Sorry.')
+
+        if any(isinstance(a, (CustomTargetHolder, CustomTargetIndexHolder, GeneratedListHolder)) for a in args[0]):
+            FeatureNew.single_use(
+                f'Calling generator.process with CustomTaget or Index of CustomTarget.',
+                '0.57.0', self.interpreter.subproject)
+
+        gl = self.held_object.process_files(mesonlib.unholder(args[0]), self.interpreter,
+                                            preserve_path_from, extra_args=kwargs['extra_args'])
+
+        return GeneratedListHolder(gl)
