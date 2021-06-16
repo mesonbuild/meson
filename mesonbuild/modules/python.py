@@ -30,8 +30,7 @@ from ..interpreter import ExternalProgramHolder, extract_required_kwarg, permitt
 from ..build import known_shmod_kwargs
 from .. import mlog
 from ..environment import detect_cpu_family
-from ..dependencies import DependencyMethods, PkgConfigDependency, NotFoundDependency
-from ..dependencies.base import SystemDependency
+from ..dependencies import DependencyMethods, PkgConfigDependency, NotFoundDependency, SystemDependency
 from ..programs import ExternalProgram, NonExistingExternalProgram
 
 mod_kwargs = {'subdir'}

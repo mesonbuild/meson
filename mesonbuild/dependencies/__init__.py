@@ -16,7 +16,9 @@ from .boost import BoostDependency
 from .cuda import CudaDependency
 from .hdf5 import hdf5_factory
 from .base import Dependency, InternalDependency, ExternalDependency, NotFoundDependency
-from .base import ExternalLibrary, DependencyException, DependencyMethods
+from .base import (
+        ExternalLibrary, DependencyException, DependencyMethods,
+        BuiltinDependency, SystemDependency)
 from .cmake import CMakeDependency
 from .configtool import ConfigToolDependency
 from .dub import DubDependency
@@ -43,6 +45,8 @@ __all__ = [
     'Dependency',
     'InternalDependency',
     'ExternalDependency',
+    'SystemDependency',
+    'BuiltinDependency',
     'NotFoundDependency',
     'ExternalLibrary',
     'DependencyException',
