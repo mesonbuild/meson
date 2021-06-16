@@ -19,15 +19,15 @@ import collections.abc
 import typing as T
 
 if T.TYPE_CHECKING:
-    from .baseobjects import TYPE_nvar, TV_fw_args, TV_fw_kwargs
+    from .baseobjects import TYPE_var, TYPE_kwargs
 
-def flatten(args: T.Union['TYPE_nvar', T.List['TYPE_nvar']]) -> T.List['TYPE_nvar']:
+def flatten(args: T.Union['TYPE_var', T.List['TYPE_var']]) -> T.List['TYPE_var']:
     if isinstance(args, mparser.StringNode):
         assert isinstance(args.value, str)
         return [args.value]
     if not isinstance(args, collections.abc.Sequence):
         return [args]
-    result: T.List['TYPE_nvar'] = []
+    result: T.List['TYPE_var'] = []
     for a in args:
         if isinstance(a, list):
             rest = flatten(a)
@@ -51,7 +51,7 @@ def default_resolve_key(key: mparser.BaseNode) -> str:
         raise InterpreterException('Invalid kwargs format.')
     return key.value
 
-def get_callee_args(wrapped_args: T.Sequence[T.Any], want_subproject: bool = False) -> T.Tuple[T.Any, mparser.BaseNode, 'TV_fw_args', 'TV_fw_kwargs', T.Optional[str]]:
+def get_callee_args(wrapped_args: T.Sequence[T.Any], want_subproject: bool = False) -> T.Tuple[T.Any, mparser.BaseNode, T.List['TYPE_var'], 'TYPE_kwargs', T.Optional[str]]:
     s = wrapped_args[0]
     n = len(wrapped_args)
     # Raise an error if the codepaths are not there

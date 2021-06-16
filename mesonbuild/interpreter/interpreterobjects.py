@@ -13,15 +13,13 @@ from .. import mlog
 
 from ..modules import ModuleReturnValue, ModuleObject, ModuleState, ExtensionModule
 from ..backend.backends import TestProtocol
-from ..interpreterbase import (ContainerTypeInfo, KwargInfo,
-                               MesonInterpreterObject, ObjectHolder, MutableInterpreterObject,
-                               FeatureNewKwargs, FeatureNew, FeatureDeprecated,
-                               typed_kwargs, typed_pos_args, stringArgs,
-                               permittedKwargs, noArgsFlattening, noPosargs,
-                               TYPE_var, TYPE_nkwargs, flatten,
-                               InterpreterException, InvalidArguments,
-                               InvalidCode)
-from ..interpreterbase.decorators import FeatureCheckBase
+from ..interpreterbase import (
+                               ContainerTypeInfo, KwargInfo,
+                               InterpreterObject, MesonInterpreterObject, ObjectHolder, MutableInterpreterObject,
+                               FeatureCheckBase, FeatureNewKwargs, FeatureNew, FeatureDeprecated,
+                               typed_pos_args, typed_kwargs, KwargInfo, stringArgs, permittedKwargs,
+                               noArgsFlattening, noPosargs, noKwargs, unholder_return, TYPE_var, TYPE_kwargs, TYPE_nvar, TYPE_nkwargs,
+                               flatten, InterpreterException, InvalidArguments, InvalidCode)
 from ..dependencies import Dependency, ExternalLibrary, InternalDependency
 from ..programs import ExternalProgram
 from ..mesonlib import HoldableObject, MesonException, OptionKey, listify, Popen_safe
@@ -751,7 +749,8 @@ class SubprojectHolder(ObjectHolder[T.Optional['Interpreter']]):
 
     @permittedKwargs({})
     @noArgsFlattening
-    def get_variable_method(self, args, kwargs):
+    @unholder_return
+    def get_variable_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.Union[TYPE_var, InterpreterObject]:
         if len(args) < 1 or len(args) > 2:
             raise InterpreterException('Get_variable takes one or two arguments.')
         if not self.found():
