@@ -292,7 +292,7 @@ class KwargInfo(T.Generic[_T]):
         validation, just converstion.
     :param deprecated_values: a dictionary mapping a value to the version of
         meson it was deprecated in.
-    :param since: a dictionary mapping a value to the version of meson it was
+    :param since_values: a dictionary mapping a value to the version of meson it was
         added in.
     """
 
