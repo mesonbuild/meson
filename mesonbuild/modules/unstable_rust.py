@@ -19,15 +19,11 @@ from . import ExtensionModule, ModuleReturnValue
 from .. import mlog
 from ..build import BuildTarget, CustomTargetIndex, Executable, GeneratedList, InvalidArguments, IncludeDirs, CustomTarget
 from ..interpreter.interpreter import TEST_KWARGS
-from ..interpreter.interpreterobjects import (
-    BuildTargetHolder,
-    CustomTargetHolder,
-    DependencyHolder,
-    ExecutableHolder,
-    ExternalLibraryHolder,
-)
 from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, permittedKwargs, FeatureNew, typed_kwargs, typed_pos_args, noPosargs
-from ..mesonlib import stringlistify, unholder, listify, typeslistify, File
+from ..mesonlib import stringlistify, listify, typeslistify, File
+from ..dependencies import Dependency, ExternalLibrary
+from ..interpreterbase import InterpreterException, permittedKwargs, FeatureNew, typed_pos_args, noPosargs
+from ..mesonlib import stringlistify, listify, typeslistify, File
 
 if T.TYPE_CHECKING:
     from . import ModuleState
@@ -38,7 +34,7 @@ if T.TYPE_CHECKING:
 
     class FuncTest(_kwargs.BaseTest):
 
-        dependencies: T.List[T.Union[DependencyHolder, ExternalLibraryHolder]]
+        dependencies: T.List[T.Union[Dependency, ExternalLibrary]]
         is_parallel: bool
 
 
@@ -55,18 +51,18 @@ class RustModule(ExtensionModule):
             'bindgen': self.bindgen,
         })
 
-    @typed_pos_args('rust.test', str, BuildTargetHolder)
+    @typed_pos_args('rust.test', str, BuildTarget)
     @typed_kwargs(
         'rust.test',
         *TEST_KWARGS,
         KwargInfo('is_parallel', bool, default=False),
         KwargInfo(
             'dependencies',
-            ContainerTypeInfo(list, (DependencyHolder, ExternalLibraryHolder)),
+            ContainerTypeInfo(list, (Dependency, ExternalLibrary)),
             listify=True,
             default=[]),
     )
-    def test(self, state: 'ModuleState', args: T.Tuple[str, BuildTargetHolder], kwargs: 'FuncTest') -> ModuleReturnValue:
+    def test(self, state: 'ModuleState', args: T.Tuple[str, BuildTarget], kwargs: 'FuncTest') -> ModuleReturnValue:
         """Generate a rust test target from a given rust target.
 
         Rust puts it's unitests inside it's main source files, unlike most
@@ -151,11 +147,10 @@ class RustModule(ExtensionModule):
             new_target_kwargs
         )
 
-        e = ExecutableHolder(new_target, self.interpreter)
         test = self.interpreter.make_test(
-            self.interpreter.current_node, (name, e), tkwargs)
+            self.interpreter.current_node, (name, new_target), tkwargs)
 
-        return ModuleReturnValue(None, [e, test])
+        return ModuleReturnValue(None, [new_target, test])
 
     @noPosargs
     @permittedKwargs({'input', 'output', 'include_directories', 'c_args', 'args'})
@@ -184,7 +179,7 @@ class RustModule(ExtensionModule):
         bind_args: T.List[str] = stringlistify(listify(kwargs.get('args', [])))
 
         # Split File and Target dependencies to add pass to CustomTarget
-        depends: T.List[T.Union[GeneratedList, BuildTarget, CustomTargetIndex]] = []
+        depends: T.List[T.Union[GeneratedList, BuildTarget, CustomTargetIndex, CustomTarget]] = []
         depend_files: T.List[File] = []
         for d in _deps:
             if isinstance(d, File):
@@ -225,7 +220,7 @@ class RustModule(ExtensionModule):
             backend=state.backend,
         )
 
-        return ModuleReturnValue([target], [CustomTargetHolder(target, self.interpreter)])
+        return ModuleReturnValue([target], [target])
 
 
 def initialize(*args: T.List, **kwargs: T.Dict) -> RustModule:

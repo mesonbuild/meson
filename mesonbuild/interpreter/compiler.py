@@ -1,7 +1,6 @@
 import functools
 
-from .interpreterobjects import (IncludeDirsHolder, ExternalLibraryHolder,
-                                 extract_required_kwarg, extract_search_dirs)
+from .interpreterobjects import (extract_required_kwarg, extract_search_dirs)
 
 from .. import mesonlib
 from .. import mlog
@@ -14,12 +13,12 @@ import typing as T
 import os
 
 if T.TYPE_CHECKING:
-    from ..environment import Environment
+    from ..interpreter import Interpreter
     from ..compilers import Compiler, RunResult
 
 class TryRunResultHolder(ObjectHolder['RunResult']):
-    def __init__(self, res: 'RunResult'):
-        super().__init__(res)
+    def __init__(self, res: 'RunResult', interpreter: 'Interpreter'):
+        super().__init__(res, interpreter)
         self.methods.update({'returncode': self.returncode_method,
                              'compiled': self.compiled_method,
                              'stdout': self.stdout_method,
@@ -65,9 +64,9 @@ find_library_permitted_kwargs = {
 find_library_permitted_kwargs |= {'header_' + k for k in header_permitted_kwargs}
 
 class CompilerHolder(ObjectHolder['Compiler']):
-    def __init__(self, compiler: 'Compiler', env: 'Environment', subproject: str):
-        super().__init__(compiler, subproject=subproject)
-        self.environment = env
+    def __init__(self, compiler: 'Compiler', interpreter: 'Interpreter'):
+        super().__init__(compiler, interpreter)
+        self.environment = self.env
         self.methods.update({'compiles': self.compiles_method,
                              'links': self.links_method,
                              'get_id': self.get_id_method,
@@ -144,9 +143,10 @@ class CompilerHolder(ObjectHolder['Compiler']):
         args = []
         incdirs = mesonlib.extract_as_list(kwargs, 'include_directories')
         for i in incdirs:
-            if not isinstance(i, IncludeDirsHolder):
+            from ..build import IncludeDirs
+            if not isinstance(i, IncludeDirs):
                 raise InterpreterException('Include directories argument must be an include_directories object.')
-            for idir in i.held_object.to_string_list(self.environment.get_source_dir()):
+            for idir in i.to_string_list(self.environment.get_source_dir()):
                 args += self.compiler.get_include_args(idir, False)
         if not nobuiltins:
             opts = self.environment.coredata.options
@@ -162,7 +162,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             final_deps = []
             while deps:
                 next_deps = []
-                for d in mesonlib.unholder(mesonlib.listify(deps)):
+                for d in mesonlib.listify(deps):
                     if not isinstance(d, dependencies.Dependency) or d.is_built():
                         raise InterpreterException('Dependencies must be external dependencies')
                     final_deps.append(d)
@@ -223,7 +223,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             else:
                 h = mlog.red('NO (%d)' % result.returncode)
             mlog.log('Checking if', mlog.bold(testname, True), msg, 'runs:', h)
-        return TryRunResultHolder(result)
+        return result
 
     @noPosargs
     @permittedKwargs({})
@@ -614,7 +614,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
                                            self.environment,
                                            self.compiler.language,
                                            silent=True)
-        return ExternalLibraryHolder(lib, self.subproject)
+        return lib
 
     @FeatureNewKwargs('compiler.find_library', '0.51.0', ['static'])
     @FeatureNewKwargs('compiler.find_library', '0.50.0', ['has_headers'])
@@ -659,7 +659,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
                                                libtype, libname))
         lib = dependencies.ExternalLibrary(libname, linkargs, self.environment,
                                            self.compiler.language)
-        return ExternalLibraryHolder(lib, self.subproject)
+        return lib
 
     @permittedKwargs({})
     def has_argument_method(self, args: T.Sequence[str], kwargs) -> bool:

@@ -40,7 +40,7 @@ from .compilers import (
     is_known_suffix
 )
 from .linkers import StaticLinker
-from .interpreterbase import FeatureNew, TYPE_nkwargs, TYPE_nvar
+from .interpreterbase import FeatureNew
 
 if T.TYPE_CHECKING:
     from ._typing import ImmutableListProtocol, ImmutableSetProtocol

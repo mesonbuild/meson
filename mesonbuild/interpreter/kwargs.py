@@ -4,15 +4,14 @@
 
 """Keyword Argument type annotations."""
 
+from mesonbuild import coredata
 import typing as T
 
 from typing_extensions import TypedDict, Literal
 
+from .. import build
 from ..mesonlib import MachineChoice, File
-from .interpreterobjects import (
-    BuildTargetHolder, CustomTargetHolder, EnvironmentVariablesHolder,
-    FeatureOptionHolder, TargetHolder
-)
+from .interpreterobjects import EnvironmentVariablesObject
 
 
 class FuncAddProjectArgs(TypedDict):
@@ -34,13 +33,13 @@ class BaseTest(TypedDict):
 
     """Shared base for the Rust module."""
 
-    args: T.List[T.Union[str, File, TargetHolder]]
+    args: T.List[T.Union[str, File, build.Target]]
     should_fail: bool
     timeout: int
     workdir: T.Optional[str]
-    depends: T.List[T.Union[CustomTargetHolder, BuildTargetHolder]]
+    depends: T.List[T.Union[build.CustomTarget, build.BuildTarget]]
     priority: int
-    env: T.Union[EnvironmentVariablesHolder, T.List[str], T.Dict[str, str], str]
+    env: T.Union[EnvironmentVariablesObject, T.List[str], T.Dict[str, str], str]
     suite: T.List[str]
 
 
@@ -70,7 +69,7 @@ class ExtractRequired(TypedDict):
     a boolean or a feature option should inherit it's arguments from this class.
     """
 
-    required: T.Union[bool, 'FeatureOptionHolder']
+    required: T.Union[bool, coredata.UserFeatureOption]
 
 
 class FuncGenerator(TypedDict):
@@ -81,7 +80,7 @@ class FuncGenerator(TypedDict):
     output: T.List[str]
     depfile: bool
     capture:  bool
-    depends: T.List[T.Union['BuildTargetHolder', 'CustomTargetHolder']]
+    depends: T.List[T.Union[build.BuildTarget, build.CustomTarget]]
 
 
 class GeneratorProcess(TypedDict):
@@ -90,3 +89,16 @@ class GeneratorProcess(TypedDict):
 
     preserve_path_from: T.Optional[str]
     extra_args: T.List[str]
+
+class DependencyMethodPartialDependency(TypedDict):
+
+    """ Keyword Arguments for the dep.partial_dependency methods """
+
+    compile_args: bool
+    link_args: bool
+    links: bool
+    includes: bool
+    sources: bool
+
+class BuildTargeMethodExtractAllObjects(TypedDict):
+    recursive: bool
