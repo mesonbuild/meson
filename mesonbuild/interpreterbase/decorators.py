@@ -13,10 +13,11 @@
 # limitations under the License.
 
 from .. import mesonlib, mlog
-from .baseobjects import TV_func, TYPE_nvar
+from .baseobjects import TV_func, TYPE_var
 from .disabler import Disabler
 from .exceptions import InterpreterException, InvalidArguments
 from .helpers import check_stringlist, get_callee_args
+from ._unholder import _unholder
 
 from functools import wraps
 import abc
@@ -67,13 +68,20 @@ def noArgsFlattening(f: TV_func) -> TV_func:
     setattr(f, 'no-args-flattening', True)  # noqa: B010
     return f
 
+def unholder_return(f: TV_func) -> T.Callable[..., TYPE_var]:
+    @wraps(f)
+    def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
+        res = f(*wrapped_args, **wrapped_kwargs)
+        return _unholder(res)
+    return T.cast(T.Callable[..., TYPE_var], wrapped)
+
 def disablerIfNotFound(f: TV_func) -> TV_func:
     @wraps(f)
     def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
         kwargs = get_callee_args(wrapped_args)[3]
         disabler = kwargs.pop('disabler', False)
         ret = f(*wrapped_args, **wrapped_kwargs)
-        if disabler and not ret.held_object.found():
+        if disabler and not ret.found():
             return Disabler()
         return ret
     return T.cast(TV_func, wrapped)

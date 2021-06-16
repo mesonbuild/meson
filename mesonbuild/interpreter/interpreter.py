@@ -21,33 +21,35 @@ from .. import optinterpreter
 from .. import compilers
 from ..wrap import wrap, WrapMode
 from .. import mesonlib
-from ..mesonlib import FileMode, MachineChoice, OptionKey, listify, extract_as_list, has_path_sep, unholder
+from ..mesonlib import HoldableObject, FileMode, MachineChoice, OptionKey, listify, extract_as_list, has_path_sep
 from ..programs import ExternalProgram, NonExistingExternalProgram
 from ..dependencies import Dependency
 from ..depfile import DepFile
 from ..interpreterbase import ContainerTypeInfo, InterpreterBase, KwargInfo, typed_kwargs, typed_pos_args
-from ..interpreterbase import noPosargs, noKwargs, stringArgs, permittedKwargs, noArgsFlattening
+from ..interpreterbase import noPosargs, noKwargs, stringArgs, permittedKwargs, noArgsFlattening, unholder_return
 from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
 from ..interpreterbase import InterpreterObject, Disabler, disablerIfNotFound
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs, FeatureDeprecatedKwargs
 from ..interpreterbase import ObjectHolder, RangeHolder
+from ..interpreterbase import TYPE_nkwargs, TYPE_nvar, TYPE_var
 from ..modules import ModuleObject, MutableModuleObject
 from ..cmake import CMakeInterpreter
 from ..backend.backends import Backend, ExecutableSerialisation
 
+from . import interpreterobjects as OBJ
+from . import compiler as compilerOBJ
 from .mesonmain import MesonMain
-from .compiler import CompilerHolder
-from .interpreterobjects import (SubprojectHolder, MachineHolder, EnvironmentVariablesHolder,
-                                 FeatureOptionHolder, ExternalProgramHolder, CustomTargetHolder,
-                                 RunTargetHolder, IncludeDirsHolder, ConfigurationDataHolder,
-                                 DependencyHolder, ModuleObjectHolder, GeneratedListHolder,
-                                 TargetHolder, CustomTargetIndexHolder, GeneratedObjectsHolder,
-                                 StaticLibraryHolder, ExecutableHolder, SharedLibraryHolder,
-                                 SharedModuleHolder, HeadersHolder, BothLibrariesHolder,
-                                 BuildTargetHolder, DataHolder, JarHolder, Test, RunProcess,
-                                 ManHolder, GeneratorHolder, InstallDirHolder, extract_required_kwarg,
-                                 extract_search_dirs, MutableModuleObjectHolder, FileHolder)
 from .dependencyfallbacks import DependencyFallbacksHolder
+from .interpreterobjects import (
+    SubprojectHolder,
+    EnvironmentVariablesObject,
+    ConfigurationDataObject,
+    Test,
+    RunProcess,
+    extract_required_kwarg,
+    extract_search_dirs,
+    NullSubprojectInterpreter,
+)
 
 from pathlib import Path
 import os
@@ -386,45 +388,70 @@ class Interpreter(InterpreterBase, HoldableObject):
         if 'MESON_UNIT_TEST' in os.environ:
             self.funcs.update({'exception': self.func_exception})
 
-    def holderify(self, item):
-        if isinstance(item, list):
-            return [self.holderify(x) for x in item]
-        if isinstance(item, dict):
-            return {k: self.holderify(v) for k, v in item.items()}
+    def build_holder_map(self) -> None:
+        '''
+            Build a mapping of `HoldableObject` types to their corresponding
+            `ObjectHolder`s. This mapping is used in `InterpreterBase` to automatically
+            holderify all returned values from methods and functions.
+        '''
+        self.holder_map.update({
+            mesonlib.File: OBJ.FileHolder,
+            build.SharedLibrary: OBJ.SharedLibraryHolder,
+            build.StaticLibrary: OBJ.StaticLibraryHolder,
+            build.BothLibraries: OBJ.BothLibrariesHolder,
+            build.SharedModule: OBJ.SharedModuleHolder,
+            build.Executable: OBJ.ExecutableHolder,
+            build.Jar: OBJ.JarHolder,
+            build.CustomTarget: OBJ.CustomTargetHolder,
+            build.CustomTargetIndex: OBJ.CustomTargetIndexHolder,
+            build.Generator: OBJ.GeneratorHolder,
+            build.GeneratedList: OBJ.GeneratedListHolder,
+            build.ExtractedObjects: OBJ.GeneratedObjectsHolder,
+            build.RunTarget: OBJ.RunTargetHolder,
+            build.AliasTarget: OBJ.AliasTargetHolder,
+            build.Headers: OBJ.HeadersHolder,
+            build.Man: OBJ.ManHolder,
+            build.Data: OBJ.DataHolder,
+            build.InstallDir: OBJ.InstallDirHolder,
+            build.IncludeDirs: OBJ.IncludeDirsHolder,
+            compilers.RunResult: compilerOBJ.TryRunResultHolder,
+            dependencies.ExternalLibrary: OBJ.ExternalLibraryHolder,
+            coredata.UserFeatureOption: OBJ.FeatureOptionHolder,
+        })
 
-        if isinstance(item, build.CustomTarget):
-            return CustomTargetHolder(item, self)
-        elif isinstance(item, (int, str, bool, InterpreterObject)) or item is None:
-            return item
-        elif isinstance(item, build.Executable):
-            return ExecutableHolder(item, self)
-        elif isinstance(item, build.GeneratedList):
-            return GeneratedListHolder(item)
-        elif isinstance(item, build.RunTarget):
-            raise RuntimeError('This is not a pipe.')
-        elif isinstance(item, ExecutableSerialisation):
-            raise RuntimeError('Do not do this.')
-        elif isinstance(item, build.Data):
-            return DataHolder(item)
-        elif isinstance(item, dependencies.Dependency):
-            return DependencyHolder(item, self.subproject)
-        elif isinstance(item, ExternalProgram):
-            return ExternalProgramHolder(item, self.subproject)
-        elif isinstance(item, MutableModuleObject):
-            return MutableModuleObjectHolder(item, self)
-        elif isinstance(item, ModuleObject):
-            return ModuleObjectHolder(item, self)
-        elif isinstance(item, mesonlib.File):
-            return FileHolder(item)
-        else:
-            raise InterpreterException('Module returned a value of unknown type.')
+        '''
+            Build a mapping of `HoldableObject` base classes to their
+            corresponding `ObjectHolder`s. The difference to `self.holder_map`
+            is that the keys here define an upper bound instead of requireing an
+            exact match.
 
-    def process_new_values(self, invalues):
+            The mappings defined here are only used when there was no direct hit
+            found in `self.holder_map`.
+        '''
+        self.bound_holder_map.update({
+            dependencies.Dependency: OBJ.DependencyHolder,
+            ExternalProgram: OBJ.ExternalProgramHolder,
+            compilers.Compiler: compilerOBJ.CompilerHolder,
+            ModuleObject: OBJ.ModuleObjectHolder,
+            MutableModuleObject: OBJ.MutableModuleObjectHolder,
+        })
+
+    def append_holder_map(self, held_type: T.Type[mesonlib.HoldableObject], holder_type: T.Type[ObjectHolder]) -> None:
+        '''
+            Adds one additional mapping to the `holder_map`.
+
+            The intended use for this function is in the `initialize` method of
+            modules to register custom object holders.
+        '''
+        self.holder_map.update({
+            held_type: holder_type
+        })
+
+    def process_new_values(self, invalues: T.List[TYPE_var]) -> None:
         invalues = listify(invalues)
         for v in invalues:
-            if isinstance(v, (RunTargetHolder, CustomTargetHolder, BuildTargetHolder)):
-                v = v.held_object
-
+            if isinstance(v, ObjectHolder):
+                raise InterpreterException('Modules must not return ObjectHolders')
             if isinstance(v, (build.BuildTarget, build.CustomTarget, build.RunTarget)):
                 self.add_target(v.name, v)
             elif isinstance(v, list):
@@ -2647,6 +2674,7 @@ This will become a hard error in the future.''', location=self.current_node)
 
     @noKwargs
     @noArgsFlattening
+    @unholder_return
     def func_get_variable(self, node, args, kwargs):
         if len(args) < 1 or len(args) > 2:
             raise InvalidCode('Get_variable takes one or two arguments.')
