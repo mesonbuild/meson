@@ -294,6 +294,8 @@ class KwargInfo(T.Generic[_T]):
         meson it was deprecated in.
     :param since_values: a dictionary mapping a value to the version of meson it was
         added in.
+    :param not_set_warning: A warning messsage that is logged if the kwarg is not
+        set by the user.
     """
 
     def __init__(self, name: str, types: T.Union[T.Type[_T], T.Tuple[T.Type[_T], ...], ContainerTypeInfo],
@@ -304,7 +306,8 @@ class KwargInfo(T.Generic[_T]):
                  deprecated: T.Optional[str] = None,
                  deprecated_values: T.Optional[T.Dict[str, str]] = None,
                  validator: T.Optional[T.Callable[[_T], T.Optional[str]]] = None,
-                 convertor: T.Optional[T.Callable[[_T], TYPE_nvar]] = None):
+                 convertor: T.Optional[T.Callable[[_T], TYPE_var]] = None,
+                 not_set_warning: T.Optional[str] = None):
         self.name = name
         self.types = types
         self.required = required
@@ -316,6 +319,7 @@ class KwargInfo(T.Generic[_T]):
         self.deprecated_values = deprecated_values
         self.validator = validator
         self.convertor = convertor
+        self.not_set_warning = not_set_warning
 
 
 def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
@@ -410,6 +414,8 @@ def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
                         kwargs[info.name] = info.types.container(info.default)
                     else:
                         kwargs[info.name] = info.default
+                    if info.not_set_warning:
+                        mlog.warning(info.not_set_warning)
 
                 if info.convertor:
                     kwargs[info.name] = info.convertor(kwargs[info.name])
