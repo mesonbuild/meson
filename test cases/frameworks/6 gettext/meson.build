@@ -10,8 +10,9 @@ if not xgettext.found()
   error('MESON_SKIP_TEST xgettext not found.')
 endif
 
-if not meson.get_compiler('c').has_header('libintl.h')
-  error('MESON_SKIP_TEST libintl.h not found.')
+intl = dependency('intl', required: false)
+if not intl.found()
+  error('MESON_SKIP_TEST libintl/gettext functions not found.')
 endif
 
 i18n = import('i18n')
