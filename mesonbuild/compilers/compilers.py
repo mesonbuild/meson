@@ -23,6 +23,7 @@ from .. import coredata
 from .. import mlog
 from .. import mesonlib
 from ..mesonlib import (
+    HoldableObject,
     EnvironmentException, MachineChoice, MesonException,
     Popen_safe, LibType, TemporaryDirectoryWinProof, OptionKey,
 )
@@ -435,7 +436,7 @@ def get_base_link_args(options: 'KeyedOptionDictType', linker: 'Compiler',
 class CrossNoRunException(MesonException):
     pass
 
-class RunResult:
+class RunResult(HoldableObject):
     def __init__(self, compiled: bool, returncode: int = 999,
                  stdout: str = 'UNDEFINED', stderr: str = 'UNDEFINED'):
         self.compiled = compiled
@@ -444,7 +445,7 @@ class RunResult:
         self.stderr = stderr
 
 
-class CompileResult:
+class CompileResult(HoldableObject):
 
     """The result of Compiler.compiles (and friends)."""
 
@@ -467,7 +468,7 @@ class CompileResult:
         self.text_mode = text_mode
 
 
-class Compiler(metaclass=abc.ABCMeta):
+class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     # Libraries to ignore in find_library() since they are provided by the
     # compiler or the C library. Currently only used for MSVC.
     ignore_libs = []  # type: T.List[str]

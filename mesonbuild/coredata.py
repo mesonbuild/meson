@@ -19,6 +19,7 @@ from itertools import chain
 from pathlib import PurePath
 from collections import OrderedDict
 from .mesonlib import (
+    HoldableObject,
     MesonException, EnvironmentException, MachineChoice, PerMachine,
     PerMachineDefaultable, default_libdir, default_libexecdir,
     default_prefix, split_args, OptionKey, OptionType, stringlistify,
@@ -61,7 +62,7 @@ class MesonVersionMismatchException(MesonException):
         self.current_version = current_version
 
 
-class UserOption(T.Generic[_T]):
+class UserOption(T.Generic[_T], HoldableObject):
     def __init__(self, description: str, choices: T.Optional[T.Union[str, T.List[_T]]], yielding: T.Optional[bool]):
         super().__init__()
         self.choices = choices
@@ -255,6 +256,7 @@ class UserFeatureOption(UserComboOption):
 
     def __init__(self, description: str, value: T.Any, yielding: T.Optional[bool] = None):
         super().__init__(description, self.static_choices, value, yielding)
+        self.name: T.Optional[str] = None  # TODO: Refactor options to all store their name
 
     def is_enabled(self) -> bool:
         return self.value == 'enabled'

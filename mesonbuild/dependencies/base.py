@@ -22,7 +22,7 @@ from enum import Enum
 
 from .. import mlog
 from ..compilers import clib_langs
-from ..mesonlib import MachineChoice, MesonException
+from ..mesonlib import MachineChoice, MesonException, HoldableObject
 from ..mesonlib import version_compare_many
 from ..interpreterbase import FeatureDeprecated
 
@@ -65,7 +65,7 @@ class DependencyMethods(Enum):
 DependencyTypeName = T.NewType('DependencyTypeName', str)
 
 
-class Dependency:
+class Dependency(HoldableObject):
 
     @classmethod
     def _process_include_type_kw(cls, kwargs: T.Dict[str, T.Any]) -> str:

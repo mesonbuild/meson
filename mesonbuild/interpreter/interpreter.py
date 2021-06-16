@@ -230,7 +230,7 @@ permitted_dependency_kwargs = {
     'version',
 }
 
-class Interpreter(InterpreterBase):
+class Interpreter(InterpreterBase, HoldableObject):
 
     def __init__(
                 self,

@@ -30,7 +30,7 @@ if T.TYPE_CHECKING:
     from .environment import Environment
 
 
-class ExternalProgram:
+class ExternalProgram(mesonlib.HoldableObject):
 
     """A program that is found on the system."""
 

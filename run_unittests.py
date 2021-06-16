@@ -727,7 +727,15 @@ class InternalTests(unittest.TestCase):
         self.assertEqual([1, 2, 3], listify([1, [2, [3]]]))
         self.assertEqual([1, [2, [3]]], listify([1, [2, [3]]], flatten=False))
         # Test flattening and unholdering
-        holder1 = ObjectHolder(1)
+        class TestHeldObj(mesonbuild.mesonlib.HoldableObject):
+            def __init__(self, val: int) -> None:
+                self._val = val
+        class MockInterpreter:
+            def __init__(self) -> None:
+                self.subproject = ''
+                self.environment = None
+        heldObj1 = TestHeldObj(1)
+        holder1 = ObjectHolder(heldObj1, MockInterpreter())
         self.assertEqual([holder1], listify(holder1))
         self.assertEqual([holder1], listify([holder1]))
         self.assertEqual([holder1, 2], listify([holder1, 2]))
@@ -753,8 +761,16 @@ class InternalTests(unittest.TestCase):
         self.assertEqual([1, 2, 3], extract(kwargs, 'sources', pop=True))
         self.assertEqual(kwargs, {})
 
+        class TestHeldObj(mesonbuild.mesonlib.HoldableObject):
+            pass
+        class MockInterpreter:
+            def __init__(self) -> None:
+                self.subproject = ''
+                self.environment = None
+        heldObj = TestHeldObj()
+
         # Test unholding
-        holder3 = ObjectHolder(3)
+        holder3 = ObjectHolder(heldObj, MockInterpreter())
         kwargs = {'sources': [1, 2, holder3]}
         self.assertEqual(kwargs, {'sources': [1, 2, holder3]})
 
@@ -769,7 +785,6 @@ class InternalTests(unittest.TestCase):
         _mock.pcdep = mock.Mock()
         _mock.pcdep.name = "some_name"
         _mock.version_reqs = []
-        _mock = mock.Mock(held_object=_mock)
 
         # pkgconfig dependency as lib
         deps = mesonbuild.modules.pkgconfig.DependenciesHelper(dummystate, "thislib")
