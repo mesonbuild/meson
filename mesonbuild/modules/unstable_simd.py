@@ -54,11 +54,11 @@ class SimdModule(ExtensionModule):
         for key, value in kwargs.items():
             if key not in self.isets and key != 'compiler':
                 basic_kwargs[key] = value
-        compiler = kwargs['compiler'].compiler
+        compiler = kwargs['compiler']
         if not isinstance(compiler, compilers.compilers.Compiler):
             raise mesonlib.MesonException('Compiler argument must be a compiler object.')
         cdata = self.interpreter.func_configuration_data(None, [], {})
-        conf = cdata.held_object
+        conf = cdata.conf_data
         for iset in self.isets:
             if iset not in kwargs:
                 continue

@@ -32,7 +32,7 @@ from .. import mlog
 from ..compilers import LANGUAGES_USING_LDFLAGS
 from ..mesonlib import (
     File, MachineChoice, MesonException, OptionType, OrderedSet, OptionOverrideProxy,
-    classify_unity_sources, unholder, OptionKey, join_args
+    classify_unity_sources, OptionKey, join_args
 )
 
 if T.TYPE_CHECKING:
@@ -237,7 +237,7 @@ class Backend:
     def generate(self) -> None:
         raise RuntimeError(f'generate is not implemented in {type(self).__name__}')
 
-    def get_target_filename(self, t, *, warn_multi_output: bool = True):
+    def get_target_filename(self, t: T.Union[build.Target, build.CustomTargetIndex], *, warn_multi_output: bool = True):
         if isinstance(t, build.CustomTarget):
             if warn_multi_output and len(t.get_outputs()) != 1:
                 mlog.warning(f'custom_target {t.name!r} has more than one output! '
@@ -250,7 +250,7 @@ class Backend:
             filename = t.get_filename()
         return os.path.join(self.get_target_dir(t), filename)
 
-    def get_target_filename_abs(self, target):
+    def get_target_filename_abs(self, target: T.Union[build.Target, build.CustomTargetIndex]) -> str:
         return os.path.join(self.environment.get_build_dir(), self.get_target_filename(target))
 
     def get_base_options_for_target(self, target: build.BuildTarget) -> OptionOverrideProxy:
@@ -309,7 +309,7 @@ class Backend:
         raise AssertionError(f'BUG: Tried to link to {target!r} which is not linkable')
 
     @lru_cache(maxsize=None)
-    def get_target_dir(self, target):
+    def get_target_dir(self, target: build.Target) -> str:
         if self.environment.coredata.get_option(OptionKey('layout')) == 'mirror':
             dirname = target.get_subdir()
         else:
@@ -329,7 +329,7 @@ class Backend:
             return os.path.join(self.build_to_src, target_dir)
         return self.build_to_src
 
-    def get_target_private_dir(self, target):
+    def get_target_private_dir(self, target: build.Target) -> str:
         return os.path.join(self.get_target_filename(target, warn_multi_output=False) + '.p')
 
     def get_target_private_dir_abs(self, target):
@@ -963,7 +963,7 @@ class Backend:
             depends = set(t.depends)
             if isinstance(exe, build.Target):
                 depends.add(exe)
-            for a in unholder(t.cmd_args):
+            for a in t.cmd_args:
                 if isinstance(a, build.Target):
                     depends.add(a)
                 if isinstance(a, build.BuildTarget):
@@ -1091,10 +1091,10 @@ class Backend:
         # also be built by default. XXX: Sometime in the future these should be
         # built only before running tests.
         for t in self.build.get_tests():
-            exe = unholder(t.exe)
+            exe = t.exe
             if isinstance(exe, (build.CustomTarget, build.BuildTarget)):
                 result[exe.get_id()] = exe
-            for arg in unholder(t.cmd_args):
+            for arg in t.cmd_args:
                 if not isinstance(arg, (build.CustomTarget, build.BuildTarget)):
                     continue
                 result[arg.get_id()] = arg
@@ -1133,7 +1133,7 @@ class Backend:
         Returns the path to them relative to the build root directory.
         '''
         srcs = []
-        for i in unholder(target.get_sources()):
+        for i in target.get_sources():
             if isinstance(i, str):
                 fname = [os.path.join(self.build_to_src, target.subdir, i)]
             elif isinstance(i, build.BuildTarget):

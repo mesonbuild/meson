@@ -75,7 +75,6 @@ class MesonMain(MesonInterpreterObject):
         script_args = []  # T.List[str]
         new = False
         for a in args:
-            a = unholder(a)
             if isinstance(a, str):
                 script_args.append(a)
             elif isinstance(a, mesonlib.File):
@@ -287,7 +286,6 @@ class MesonMain(MesonInterpreterObject):
         name, exe = args
         if not isinstance(name, str):
             raise InterpreterException('First argument must be a string')
-        exe = unholder(exe)
         if isinstance(exe, mesonlib.File):
             abspath = exe.absolute_path(self.interpreter.environment.source_dir,
                                         self.interpreter.environment.build_dir)
@@ -307,7 +305,6 @@ class MesonMain(MesonInterpreterObject):
         dep = args[1]
         if not isinstance(name, str) or not name:
             raise InterpreterException('First argument must be a string and cannot be empty')
-        dep = unholder(dep)
         if not isinstance(dep, dependencies.Dependency):
             raise InterpreterException('Second argument must be a dependency object')
         identifier = dependencies.get_dep_identifier(name, kwargs)

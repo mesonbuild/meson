@@ -101,7 +101,6 @@ class SourceSet(MutableModuleObject):
             if_true = args
         elif args:
             raise InterpreterException('add_all called with both positional and keyword arguments')
-        if_true = mesonlib.unholder(if_true)
         keys, dependencies = self.check_conditions(when)
         for s in if_true:
             if not isinstance(s, SourceSet):

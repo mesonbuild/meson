@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, types
+import os
 from pathlib import PurePath
 
 from .. import build
@@ -22,7 +22,9 @@ from .. import mesonlib
 from .. import mlog
 from . import ModuleReturnValue
 from . import ExtensionModule
-from ..interpreterbase import permittedKwargs, FeatureNew, FeatureNewKwargs
+from ..interpreterbase import permittedKwargs, FeatureNew, FeatureNewKwargs, TYPE_var, TYPE_kwargs
+
+import typing as T
 
 already_warned_objs = set()
 
@@ -75,7 +77,7 @@ class DependenciesHelper:
     def _process_reqs(self, reqs):
         '''Returns string names of requirements'''
         processed_reqs = []
-        for obj in mesonlib.unholder(mesonlib.listify(reqs)):
+        for obj in mesonlib.listify(reqs):
             if not isinstance(obj, str):
                 FeatureNew.single_use('pkgconfig.generate requirement from non-string object', '0.46.0', self.state.subproject)
             if hasattr(obj, 'generated_pc'):
@@ -108,14 +110,13 @@ class DependenciesHelper:
     def add_cflags(self, cflags):
         self.cflags += mesonlib.stringlistify(cflags)
 
-    def _process_libs(self, libs, public):
-        libs = mesonlib.unholder(mesonlib.listify(libs))
+    def _process_libs(self, libs, public: bool):
+        libs = mesonlib.listify(libs)
         libs = [x.get_preferred_library() if isinstance(x, build.BothLibraries) else x for x in libs]
         processed_libs = []
         processed_reqs = []
         processed_cflags = []
         for obj in libs:
-            shared_library_only = getattr(obj, 'shared_library_only', False)
             if hasattr(obj, 'pcdep'):
                 pcdeps = mesonlib.listify(obj.pcdep)
                 for d in pcdeps:
@@ -488,7 +489,7 @@ class PkgConfigModule(ExtensionModule):
             FeatureNew.single_use('pkgconfig.generate implicit version keyword', '0.46.0', state.subproject)
         elif len(args) == 1:
             FeatureNew.single_use('pkgconfig.generate optional positional argument', '0.46.0', state.subproject)
-            mainlib = getattr(args[0], 'held_object', args[0])
+            mainlib = args[0]
             if not isinstance(mainlib, (build.StaticLibrary, build.SharedLibrary)):
                 raise mesonlib.MesonException('Pkgconfig_gen first positional argument must be a library object')
             default_name = mainlib.name

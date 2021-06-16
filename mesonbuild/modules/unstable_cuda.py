@@ -16,8 +16,7 @@ import typing as T
 import re
 
 from ..mesonlib import version_compare
-from ..interpreter import CompilerHolder
-from ..compilers import CudaCompiler
+from ..compilers import CudaCompiler, Compiler
 
 from . import ModuleObject
 
@@ -83,7 +82,7 @@ class CudaModule(ModuleObject):
 
     @permittedKwargs(['detected'])
     def nvcc_arch_flags(self, state: 'ModuleState',
-                              args: T.Tuple[T.Union[CompilerHolder, CudaCompiler, str]],
+                              args: T.Tuple[T.Union[Compiler, CudaCompiler, str]],
                               kwargs: T.Dict[str, T.Any]) -> T.List[str]:
         nvcc_arch_args = self._validate_nvcc_arch_args(args, kwargs)
         ret = self._nvcc_arch_flags(*nvcc_arch_args)[0]
@@ -91,7 +90,7 @@ class CudaModule(ModuleObject):
 
     @permittedKwargs(['detected'])
     def nvcc_arch_readable(self, state: 'ModuleState',
-                                 args: T.Tuple[T.Union[CompilerHolder, CudaCompiler, str]],
+                                 args: T.Tuple[T.Union[Compiler, CudaCompiler, str]],
                                  kwargs: T.Dict[str, T.Any]) -> T.List[str]:
         nvcc_arch_args = self._validate_nvcc_arch_args(args, kwargs)
         ret = self._nvcc_arch_flags(*nvcc_arch_args)[1]
@@ -105,16 +104,12 @@ class CudaModule(ModuleObject):
 
     @staticmethod
     def _detected_cc_from_compiler(c):
-        if isinstance(c, CompilerHolder):
-            c = c.compiler
         if isinstance(c, CudaCompiler):
             return c.detected_cc
         return ''
 
     @staticmethod
     def _version_from_compiler(c):
-        if isinstance(c, CompilerHolder):
-            c = c.compiler
         if isinstance(c, CudaCompiler):
             return c.version
         if isinstance(c, str):

@@ -1,12 +1,12 @@
-from .interpreterobjects import DependencyHolder, SubprojectHolder, extract_required_kwarg
+from .interpreterobjects import SubprojectHolder, extract_required_kwarg
 
 from .. import mlog
 from .. import dependencies
 from .. import build
 from ..wrap import WrapMode
 from ..mesonlib import OptionKey, extract_as_list, stringlistify, version_compare_many
-from ..dependencies import DependencyException, NotFoundDependency
-from ..interpreterbase import (InterpreterObject, FeatureNew,
+from ..dependencies import Dependency, DependencyException, NotFoundDependency
+from ..interpreterbase import (MesonInterpreterObject, FeatureNew,
                                InterpreterException, InvalidArguments,
                                TYPE_nkwargs, TYPE_nvar)
 
@@ -15,7 +15,7 @@ if T.TYPE_CHECKING:
     from .interpreter import Interpreter
 
 
-class DependencyFallbacksHolder(InterpreterObject):
+class DependencyFallbacksHolder(MesonInterpreterObject):
     def __init__(self, interpreter: 'Interpreter', names: T.List[str], allow_fallback: T.Optional[bool] = None) -> None:
         super().__init__()
         self.interpreter = interpreter
@@ -75,14 +75,14 @@ class DependencyFallbacksHolder(InterpreterObject):
         self.subproject_varname = varname
         self.subproject_kwargs = kwargs
 
-    def _do_dependency_cache(self, kwargs: TYPE_nkwargs, func_args: TYPE_nvar, func_kwargs: TYPE_nkwargs) -> T.Optional[DependencyHolder]:
+    def _do_dependency_cache(self, kwargs: TYPE_nkwargs, func_args: TYPE_nvar, func_kwargs: TYPE_nkwargs) -> T.Optional[Dependency]:
         name = func_args[0]
         cached_dep = self._get_cached_dep(name, kwargs)
         if cached_dep:
             self._verify_fallback_consistency(cached_dep)
         return cached_dep
 
-    def _do_dependency(self, kwargs: TYPE_nkwargs, func_args: TYPE_nvar, func_kwargs: TYPE_nkwargs) -> T.Optional[DependencyHolder]:
+    def _do_dependency(self, kwargs: TYPE_nkwargs, func_args: TYPE_nvar, func_kwargs: TYPE_nkwargs) -> T.Optional[Dependency]:
         # Note that there is no df.dependency() method, this is called for names
         # given as positional arguments to dependency_fallbacks(name1, ...).
         # We use kwargs from the dependency() function, for things like version,
@@ -94,17 +94,17 @@ class DependencyFallbacksHolder(InterpreterObject):
             for_machine = self.interpreter.machine_from_native_kwarg(kwargs)
             identifier = dependencies.get_dep_identifier(name, kwargs)
             self.coredata.deps[for_machine].put(identifier, dep)
-            return DependencyHolder(dep, self.subproject)
+            return dep
         return None
 
-    def _do_existing_subproject(self, kwargs: TYPE_nkwargs, func_args: TYPE_nvar, func_kwargs: TYPE_nkwargs) -> T.Optional[DependencyHolder]:
+    def _do_existing_subproject(self, kwargs: TYPE_nkwargs, func_args: TYPE_nvar, func_kwargs: TYPE_nkwargs) -> T.Optional[Dependency]:
         subp_name = func_args[0]
         varname = self.subproject_varname
         if subp_name and self._get_subproject(subp_name):
             return self._get_subproject_dep(subp_name, varname, kwargs)
         return None
 
-    def _do_subproject(self, kwargs: TYPE_nkwargs, func_args: TYPE_nvar, func_kwargs: TYPE_nkwargs) -> T.Optional[DependencyHolder]:
+    def _do_subproject(self, kwargs: TYPE_nkwargs, func_args: TYPE_nvar, func_kwargs: TYPE_nkwargs) -> T.Optional[Dependency]:
         if self.nofallback:
             mlog.log('Not looking for a fallback subproject for the dependency',
                      mlog.bold(self.display_name), 'because:\nUse of fallback dependencies is disabled.')
@@ -128,7 +128,7 @@ class DependencyFallbacksHolder(InterpreterObject):
             return sub
         return None
 
-    def _get_subproject_dep(self, subp_name: str, varname: str, kwargs: TYPE_nkwargs) -> T.Optional[DependencyHolder]:
+    def _get_subproject_dep(self, subp_name: str, varname: str, kwargs: TYPE_nkwargs) -> T.Optional[Dependency]:
         # Verify the subproject is found
         subproject = self._get_subproject(subp_name)
         if not subproject:
@@ -170,7 +170,7 @@ class DependencyFallbacksHolder(InterpreterObject):
             return var_dep
 
         wanted = stringlistify(kwargs.get('version', []))
-        found = var_dep.held_object.get_version()
+        found = var_dep.get_version()
         if not self._check_version(wanted, found):
             mlog.log('Dependency', mlog.bold(self.display_name), 'from subproject',
                      mlog.bold(subproject.subdir), 'found:', mlog.red('NO'),
@@ -183,7 +183,7 @@ class DependencyFallbacksHolder(InterpreterObject):
                  mlog.normal_cyan(found) if found else None)
         return var_dep
 
-    def _get_cached_dep(self, name: str, kwargs: TYPE_nkwargs) -> T.Optional[DependencyHolder]:
+    def _get_cached_dep(self, name: str, kwargs: TYPE_nkwargs) -> T.Optional[Dependency]:
         # Unlike other methods, this one returns not-found dependency instead
         # of None in the case the dependency is cached as not-found, or if cached
         # version does not match. In that case we don't want to continue with
@@ -202,7 +202,7 @@ class DependencyFallbacksHolder(InterpreterObject):
             if not cached_dep.found():
                 mlog.log('Dependency', mlog.bold(self.display_name),
                          'found:', mlog.red('NO'), *info)
-                return DependencyHolder(cached_dep, self.subproject)
+                return cached_dep
         else:
             info = [mlog.blue('(cached)')]
             cached_dep = self.coredata.deps[for_machine].get(identifier)
@@ -220,24 +220,27 @@ class DependencyFallbacksHolder(InterpreterObject):
                 info = [mlog.normal_cyan(found_vers), *info]
             mlog.log('Dependency', mlog.bold(self.display_name),
                      'found:', mlog.green('YES'), *info)
-            return DependencyHolder(cached_dep, self.subproject)
+            return cached_dep
         return None
 
-    def _get_subproject_variable(self, subproject: SubprojectHolder, varname: str) -> T.Optional[DependencyHolder]:
-        var_dep = subproject.held_object.variables.get(varname)
-        if not isinstance(var_dep, DependencyHolder):
+    def _get_subproject_variable(self, subproject: SubprojectHolder, varname: str) -> T.Optional[Dependency]:
+        try:
+            var_dep = subproject.get_variable_method([varname], {})
+        except InvalidArguments:
+            var_dep = None
+        if not isinstance(var_dep, Dependency):
             mlog.warning(f'Variable {varname!r} in the subproject {subproject.subdir!r} is',
                          'not found' if var_dep is None else 'not a dependency object')
             return None
         return var_dep
 
-    def _verify_fallback_consistency(self, cached_dep: DependencyHolder):
+    def _verify_fallback_consistency(self, cached_dep: Dependency):
         subp_name = self.subproject_name
         varname = self.subproject_varname
         subproject = self._get_subproject(subp_name)
         if subproject and varname:
             var_dep = self._get_subproject_variable(subproject, varname)
-            if var_dep and cached_dep.found() and var_dep.held_object != cached_dep.held_object:
+            if var_dep and cached_dep.found() and var_dep != cached_dep:
                 mlog.warning(f'Inconsistency: Subproject has overridden the dependency with another variable than {varname!r}')
 
     def _handle_featurenew_dependencies(self, name: str) -> None:
@@ -253,8 +256,8 @@ class DependencyFallbacksHolder(InterpreterObject):
         elif name == 'openmp':
             FeatureNew.single_use('OpenMP Dependency', '0.46.0', self.subproject)
 
-    def _notfound_dependency(self) -> DependencyHolder:
-        return DependencyHolder(NotFoundDependency(self.environment), self.subproject)
+    def _notfound_dependency(self) -> NotFoundDependency:
+        return NotFoundDependency(self.environment)
 
     @staticmethod
     def _check_version(wanted: T.Optional[str], found: str) -> bool:
@@ -264,7 +267,7 @@ class DependencyFallbacksHolder(InterpreterObject):
             return False
         return True
 
-    def _get_candidates(self) -> T.List[T.Tuple[T.Callable[[TYPE_nkwargs, TYPE_nvar, TYPE_nkwargs], T.Optional[DependencyHolder]], TYPE_nvar, TYPE_nkwargs]]:
+    def _get_candidates(self) -> T.List[T.Tuple[T.Callable[[TYPE_nkwargs, TYPE_nvar, TYPE_nkwargs], T.Optional[Dependency]], TYPE_nvar, TYPE_nkwargs]]:
         candidates = []
         # 1. check if any of the names is cached already.
         for name in self.names:
@@ -281,7 +284,7 @@ class DependencyFallbacksHolder(InterpreterObject):
             candidates.append((self._do_subproject, [self.subproject_name], self.subproject_kwargs))
         return candidates
 
-    def lookup(self, kwargs: TYPE_nkwargs, force_fallback: bool = False) -> DependencyHolder:
+    def lookup(self, kwargs: TYPE_nkwargs, force_fallback: bool = False) -> Dependency:
         self.display_name = self.names[0] if self.names else '(anonymous)'
         mods = extract_as_list(kwargs, 'modules')
         if mods:
@@ -329,7 +332,7 @@ class DependencyFallbacksHolder(InterpreterObject):
             func_kwargs['required'] = required and (i == last)
             kwargs['required'] = required and (i == last)
             dep = func(kwargs, func_args, func_kwargs)
-            if dep and dep.held_object.found():
+            if dep and dep.found():
                 # Override this dependency to have consistent results in subsequent
                 # dependency lookups.
                 for name in self.names:
@@ -337,7 +340,7 @@ class DependencyFallbacksHolder(InterpreterObject):
                     identifier = dependencies.get_dep_identifier(name, kwargs)
                     if identifier not in self.build.dependency_overrides[for_machine]:
                         self.build.dependency_overrides[for_machine][identifier] = \
-                            build.DependencyOverride(dep.held_object, self.interpreter.current_node, explicit=False)
+                            build.DependencyOverride(dep, self.interpreter.current_node, explicit=False)
                 return dep
             elif required and (dep or i == last):
                 # This was the last candidate or the dependency has been cached

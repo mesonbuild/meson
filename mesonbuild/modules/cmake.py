@@ -18,9 +18,9 @@ import typing as T
 
 from . import ExtensionModule, ModuleReturnValue, ModuleObject
 
-from .. import build, mesonlib, mlog
+from .. import build, mesonlib, mlog, dependencies
 from ..cmake import SingleTargetOptions, TargetOptions, cmake_defines_to_args
-from ..interpreter import ConfigurationDataHolder, SubprojectHolder, DependencyHolder
+from ..interpreter import ConfigurationDataObject, SubprojectHolder
 from ..interpreterbase import (
     FeatureNew,
     FeatureNewKwargs,
@@ -32,6 +32,7 @@ from ..interpreterbase import (
     noKwargs,
 
     InvalidArguments,
+    InterpreterException,
 )
 from ..programs import ExternalProgram
 
@@ -109,11 +110,11 @@ class CMakeSubproject(ModuleObject):
     def dependency(self, state, args, kwargs):
         info = self._args_to_info(args)
         orig = self.get_variable(state, [info['dep']], {})
-        assert isinstance(orig, DependencyHolder)
-        actual = orig.include_type_method([], {})
+        assert isinstance(orig, dependencies.Dependency)
+        actual = orig.include_type
         if 'include_type' in kwargs and kwargs['include_type'] != actual:
             mlog.debug('Current include type is {}. Converting to requested {}'.format(actual, kwargs['include_type']))
-            return orig.as_system_method([kwargs['include_type']], {})
+            return orig.generate_system_dependency(kwargs['include_type'])
         return orig
 
     @noKwargs
@@ -351,7 +352,7 @@ class CmakeModule(ExtensionModule):
         if 'configuration' not in kwargs:
             raise mesonlib.MesonException('"configuration" not specified.')
         conf = kwargs['configuration']
-        if not isinstance(conf, ConfigurationDataHolder):
+        if not isinstance(conf, ConfigurationDataObject):
             raise mesonlib.MesonException('Argument "configuration" is not of type configuration_data')
 
         prefix = state.environment.coredata.get_option(mesonlib.OptionKey('prefix'))
@@ -365,7 +366,7 @@ class CmakeModule(ExtensionModule):
             extra = PACKAGE_INIT_EXT.replace('@absInstallDir@', abs_install_dir)
             extra = extra.replace('@installPrefix@', prefix)
 
-        self.create_package_file(ifile_abs, ofile_abs, PACKAGE_RELATIVE_PATH, extra, conf.held_object)
+        self.create_package_file(ifile_abs, ofile_abs, PACKAGE_RELATIVE_PATH, extra, conf.conf_data)
         conf.mark_used()
 
         conffile = os.path.normpath(inputfile.relative_name())
@@ -389,7 +390,7 @@ class CmakeModule(ExtensionModule):
             raise InterpreterException('"options" cannot be used together with "cmake_options"')
         dirname = args[0]
         subp = self.interpreter.do_subproject(dirname, 'cmake', kwargs)
-        if not subp.held_object:
+        if not subp.found():
             return subp
         return CMakeSubproject(subp, dirname)
 

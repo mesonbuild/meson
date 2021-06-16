@@ -108,7 +108,8 @@ class I18nModule(ExtensionModule):
         kwargs['command'] = command
 
         inputfile = kwargs['input']
-        if hasattr(inputfile, 'held_object'):
+        # I have no idea why/how this if isinstance(inputfile, mesonlib.HoldableObject) works / used to work...
+        if isinstance(inputfile, mesonlib.HoldableObject):
             ct = build.CustomTarget(kwargs['output'] + '_merge', state.subdir, state.subproject, kwargs)
         else:
             if isinstance(inputfile, list):

@@ -40,7 +40,7 @@ from ..compilers import (
 from ..linkers import ArLinker, RSPFileSyntax
 from ..mesonlib import (
     File, LibType, MachineChoice, MesonException, OrderedSet, PerMachine,
-    ProgressBar, quote_arg, unholder,
+    ProgressBar, quote_arg
 )
 from ..mesonlib import get_compiler_for_source, has_path_sep, OptionKey
 from .backends import CleanTrees
@@ -937,7 +937,7 @@ int dummy;
                 self.generate_target(t)
 
     def custom_target_generator_inputs(self, target):
-        for s in unholder(target.sources):
+        for s in target.sources:
             if isinstance(s, build.GeneratedList):
                 self.generate_genlist_for_target(s, target)
 
