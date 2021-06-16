@@ -2517,7 +2517,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
 
     @FeatureNew('both_libraries', '0.46.0')
     def build_both_libraries(self, node, args, kwargs):
-        shared_holder = self.build_target(node, args, kwargs, SharedLibraryHolder)
+        shared_lib = self.build_target(node, args, kwargs, build.SharedLibrary)
 
         # Check if user forces non-PIC static library.
         pic = True
@@ -2543,21 +2543,21 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
             static_args = [args[0]]
             static_kwargs = kwargs.copy()
             static_kwargs['sources'] = []
-            static_kwargs['objects'] = shared_holder.held_object.extract_all_objects()
+            static_kwargs['objects'] = shared_lib.extract_all_objects()
         else:
             static_args = args
             static_kwargs = kwargs
 
-        static_holder = self.build_target(node, static_args, static_kwargs, StaticLibraryHolder)
+        static_lib = self.build_target(node, static_args, static_kwargs, build.StaticLibrary)
 
-        return BothLibrariesHolder(shared_holder, static_holder, self)
+        return build.BothLibraries(shared_lib, static_lib)
 
     def build_library(self, node, args, kwargs):
         default_library = self.coredata.get_option(OptionKey('default_library', subproject=self.subproject))
         if default_library == 'shared':
-            return self.build_target(node, args, kwargs, SharedLibraryHolder)
+            return self.build_target(node, args, kwargs, build.SharedLibrary)
         elif default_library == 'static':
-            return self.build_target(node, args, kwargs, StaticLibraryHolder)
+            return self.build_target(node, args, kwargs, build.StaticLibrary)
         elif default_library == 'both':
             return self.build_both_libraries(node, args, kwargs)
         else:

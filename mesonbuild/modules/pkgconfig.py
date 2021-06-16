@@ -110,6 +110,7 @@ class DependenciesHelper:
 
     def _process_libs(self, libs, public):
         libs = mesonlib.unholder(mesonlib.listify(libs))
+        libs = [x.get_preferred_library() if isinstance(x, build.BothLibraries) else x for x in libs]
         processed_libs = []
         processed_reqs = []
         processed_cflags = []
@@ -136,7 +137,7 @@ class DependenciesHelper:
                 if obj.found():
                     processed_libs += obj.get_link_args()
                     processed_cflags += obj.get_compile_args()
-            elif isinstance(obj, build.SharedLibrary) and shared_library_only:
+            elif isinstance(obj, build.SharedLibrary) and obj.shared_library_only:
                 # Do not pull dependencies for shared libraries because they are
                 # only required for static linking. Adding private requires has
                 # the side effect of exposing their cflags, which is the
@@ -161,7 +162,7 @@ class DependenciesHelper:
             elif isinstance(obj, str):
                 processed_libs.append(obj)
             else:
-                raise mesonlib.MesonException('library argument not a string, library or dependency object.')
+                raise mesonlib.MesonException(f'library argument of type {type(obj).__name__} not a string, library or dependency object.')
 
         return processed_libs, processed_reqs, processed_cflags
 
@@ -330,9 +331,9 @@ class PkgConfigModule(ExtensionModule):
         except ValueError:
             return subdir.as_posix()
 
-    def generate_pkgconfig_file(self, state, deps, subdirs, name, description,
-                                url, version, pcfile, conflicts, variables,
-                                unescaped_variables, uninstalled=False, dataonly=False):
+    def _generate_pkgconfig_file(self, state, deps, subdirs, name, description,
+                                 url, version, pcfile, conflicts, variables,
+                                 unescaped_variables, uninstalled=False, dataonly=False):
         coredata = state.environment.get_coredata()
         if uninstalled:
             outdir = os.path.join(state.environment.build_dir, 'meson-uninstalled')
@@ -452,6 +453,19 @@ class PkgConfigModule(ExtensionModule):
             if cflags and not dataonly:
                 ofile.write('Cflags: {}\n'.format(' '.join(cflags)))
 
+
+    @staticmethod
+    def _handle_both_libraries(args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.Tuple[T.List[TYPE_var], TYPE_kwargs]:
+        def _do_extract(arg: TYPE_var) -> TYPE_var:
+            if isinstance(arg, list):
+                return [_do_extract(x) for x in arg]
+            elif isinstance(arg, dict):
+                return {k: _do_extract(v) for k, v in arg.items()}
+            elif isinstance(arg, build.BothLibraries):
+                return arg.get_preferred_library()
+            return arg
+        return [_do_extract(x) for x in args], {k: _do_extract(v) for k, v in kwargs.items()}
+
     @FeatureNewKwargs('pkgconfig.generate', '0.59.0', ['unescaped_variables', 'unescaped_uninstalled_variables'])
     @FeatureNewKwargs('pkgconfig.generate', '0.54.0', ['uninstalled_variables'])
     @FeatureNewKwargs('pkgconfig.generate', '0.42.0', ['extra_cflags'])
@@ -469,6 +483,7 @@ class PkgConfigModule(ExtensionModule):
         default_name = None
         mainlib = None
         default_subdirs = ['.']
+        args, kwargs = PkgConfigModule._handle_both_libraries(args, kwargs)
         if not args and 'version' not in kwargs:
             FeatureNew.single_use('pkgconfig.generate implicit version keyword', '0.46.0', state.subproject)
         elif len(args) == 1:
@@ -556,7 +571,7 @@ class PkgConfigModule(ExtensionModule):
                 pkgroot = os.path.join(state.environment.coredata.get_option(mesonlib.OptionKey('libdir')), 'pkgconfig')
         if not isinstance(pkgroot, str):
             raise mesonlib.MesonException('Install_dir must be a string.')
-        self.generate_pkgconfig_file(state, deps, subdirs, name, description, url,
+        self._generate_pkgconfig_file(state, deps, subdirs, name, description, url,
                                      version, pcfile, conflicts, variables,
                                      unescaped_variables, False, dataonly)
         res = build.Data([mesonlib.File(True, state.environment.get_scratch_dir(), pcfile)], pkgroot, None, state.subproject)
@@ -566,7 +581,7 @@ class PkgConfigModule(ExtensionModule):
         unescaped_variables = parse_variable_list(unescaped_variables)
 
         pcfile = filebase + '-uninstalled.pc'
-        self.generate_pkgconfig_file(state, deps, subdirs, name, description, url,
+        self._generate_pkgconfig_file(state, deps, subdirs, name, description, url,
                                      version, pcfile, conflicts, variables,
                                      unescaped_variables, uninstalled=True, dataonly=dataonly)
         # Associate the main library with this generated pc file. If the library

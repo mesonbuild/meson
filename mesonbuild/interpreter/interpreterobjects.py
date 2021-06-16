@@ -799,18 +799,10 @@ class MutableModuleObjectHolder(ModuleObjectHolder, MutableInterpreterObject):
         modobj = copy.deepcopy(self.held_object, memo)
         return MutableModuleObjectHolder(modobj, self.interpreter)
 
-_Target = T.TypeVar('_Target', bound=build.Target)
 
+_BuildTarget = T.TypeVar('_BuildTarget', bound=T.Union[build.BuildTarget, build.BothLibraries])
 
-class TargetHolder(ObjectHolder[_Target]):
-    def __init__(self, target: _Target, interp: 'Interpreter'):
-        super().__init__(target, subproject=interp.subproject)
-        self.interpreter = interp
-
-
-_BuildTarget = T.TypeVar('_BuildTarget', bound=build.BuildTarget)
-
-class BuildTargetHolder(TargetHolder[_BuildTarget]):
+class BuildTargetHolder(ObjectHolder[_BuildTarget]):
     def __init__(self, target: _BuildTarget, interp: 'Interpreter'):
         super().__init__(target, interp)
         self.methods.update({'extract_objects': self.extract_objects_method,
@@ -822,59 +814,67 @@ class BuildTargetHolder(TargetHolder[_BuildTarget]):
                              'private_dir_include': self.private_dir_include_method,
                              })
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         r = '<{} {}: {}>'
         h = self.held_object
         return r.format(self.__class__.__name__, h.get_id(), h.filename)
 
-    def is_cross(self):
-        return not self.held_object.environment.machines.matches_build_machine(self.held_object.for_machine)
+    @property
+    def _target_object(self) -> build.BuildTarget:
+        if isinstance(self.held_object, build.BothLibraries):
+            return self.held_object.get_preferred_library()
+        assert isinstance(self.held_object, build.BuildTarget)
+        return self.held_object
+
+    def is_cross(self) -> bool:
+        return not self._target_object.environment.machines.matches_build_machine(self._target_object.for_machine)
 
     @noPosargs
-    @permittedKwargs({})
-    def private_dir_include_method(self, args, kwargs):
-        return IncludeDirsHolder(build.IncludeDirs('', [], False,
-                                                   [self.interpreter.backend.get_target_private_dir(self.held_object)]))
+    @noKwargs
+    def private_dir_include_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> build.IncludeDirs:
+        return build.IncludeDirs('', [], False, [self.interpreter.backend.get_target_private_dir(self._target_object)])
 
     @noPosargs
-    @permittedKwargs({})
-    def full_path_method(self, args, kwargs):
-        return self.interpreter.backend.get_target_filename_abs(self.held_object)
+    @noKwargs
+    def full_path_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
+        return self.interpreter.backend.get_target_filename_abs(self._target_object)
 
     @noPosargs
-    @permittedKwargs({})
-    def outdir_method(self, args, kwargs):
-        return self.interpreter.backend.get_target_dir(self.held_object)
+    @noKwargs
+    def outdir_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
+        return self.interpreter.backend.get_target_dir(self._target_object)
 
-    @permittedKwargs({})
-    def extract_objects_method(self, args, kwargs):
-        gobjs = self.held_object.extract_objects(args)
-        return GeneratedObjectsHolder(gobjs)
-
-    @FeatureNewKwargs('extract_all_objects', '0.46.0', ['recursive'])
-    @noPosargs
-    @permittedKwargs({'recursive'})
-    def extract_all_objects_method(self, args, kwargs):
-        recursive = kwargs.get('recursive', False)
-        gobjs = self.held_object.extract_all_objects(recursive)
-        if gobjs.objlist and 'recursive' not in kwargs:
-            mlog.warning('extract_all_objects called without setting recursive '
-                         'keyword argument. Meson currently defaults to '
-                         'non-recursive to maintain backward compatibility but '
-                         'the default will be changed in the future.',
-                         location=self.current_node)
-        return GeneratedObjectsHolder(gobjs)
+    @noKwargs
+    @typed_pos_args('extract_objects', varargs=(mesonlib.File, str))
+    def extract_objects_method(self, args: T.Tuple[T.List[mesonlib.FileOrString]], kwargs: TYPE_nkwargs) -> build.ExtractedObjects:
+        return self._target_object.extract_objects(args[0])
 
     @noPosargs
-    @permittedKwargs({})
-    def get_id_method(self, args, kwargs):
-        return self.held_object.get_id()
+    @typed_kwargs(
+        'extract_all_objects',
+        KwargInfo(
+            'recursive', bool, default=False, since='0.46.0',
+            not_set_warning=textwrap.dedent('''\
+                extract_all_objects called without setting recursive
+                keyword argument. Meson currently defaults to
+                non-recursive to maintain backward compatibility but
+                the default will be changed in the future.
+            ''')
+        )
+    )
+    def extract_all_objects_method(self, args: T.List[TYPE_nvar], kwargs: 'kwargs.BuildTargeMethodExtractAllObjects') -> build.ExtractedObjects:
+        return self._target_object.extract_all_objects(kwargs['recursive'])
+
+    @noPosargs
+    @noKwargs
+    def get_id_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
+        return self._target_object.get_id()
 
     @FeatureNew('name', '0.54.0')
     @noPosargs
-    @permittedKwargs({})
-    def name_method(self, args, kwargs):
-        return self.held_object.name
+    @noKwargs
+    def name_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
+        return self._target_object.name
 
 class ExecutableHolder(BuildTargetHolder[build.Executable]):
     pass
@@ -883,37 +883,32 @@ class StaticLibraryHolder(BuildTargetHolder[build.StaticLibrary]):
     pass
 
 class SharedLibraryHolder(BuildTargetHolder[build.SharedLibrary]):
-    def __init__(self, target: build.SharedLibrary, interp: 'Interpreter'):
-        super().__init__(target, interp)
-        # Set to True only when called from self.func_shared_lib().
-        target.shared_library_only = False
+    pass
 
-class BothLibrariesHolder(BuildTargetHolder):
-    def __init__(self, shared_holder, static_holder, interp):
+class BothLibrariesHolder(BuildTargetHolder[build.BothLibraries]):
+    def __init__(self, libs: build.BothLibraries, interp: 'Interpreter'):
         # FIXME: This build target always represents the shared library, but
         # that should be configurable.
-        super().__init__(shared_holder.held_object, interp)
-        self.shared_holder = shared_holder
-        self.static_holder = static_holder
+        super().__init__(libs, interp)
         self.methods.update({'get_shared_lib': self.get_shared_lib_method,
                              'get_static_lib': self.get_static_lib_method,
                              })
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         r = '<{} {}: {}, {}: {}>'
-        h1 = self.shared_holder.held_object
-        h2 = self.static_holder.held_object
+        h1 = self.held_object.shared
+        h2 = self.held_object.static
         return r.format(self.__class__.__name__, h1.get_id(), h1.filename, h2.get_id(), h2.filename)
 
     @noPosargs
-    @permittedKwargs({})
-    def get_shared_lib_method(self, args, kwargs):
-        return self.shared_holder
+    @noKwargs
+    def get_shared_lib_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> build.SharedLibrary:
+        return self.held_object.shared
 
     @noPosargs
-    @permittedKwargs({})
-    def get_static_lib_method(self, args, kwargs):
-        return self.static_holder
+    @noKwargs
+    def get_static_lib_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> build.StaticLibrary:
+        return self.held_object.static
 
 class SharedModuleHolder(BuildTargetHolder[build.SharedModule]):
     pass
