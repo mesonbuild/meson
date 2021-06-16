@@ -31,15 +31,16 @@ from .mesonlib import (
     HoldableObject,
     File, MesonException, MachineChoice, PerMachine, OrderedSet, listify,
     extract_as_list, typeslistify, stringlistify, classify_unity_sources,
-    get_filenames_templates_dict, substitute_values, has_path_sep, unholder,
+    get_filenames_templates_dict, substitute_values, has_path_sep,
     OptionKey, PerMachineDefaultable,
+    MesonBugException, FileOrString,
 )
 from .compilers import (
     Compiler, is_object, clink_langs, sort_clink, lang_suffixes,
     is_known_suffix
 )
 from .linkers import StaticLinker
-from .interpreterbase import FeatureNew
+from .interpreterbase import FeatureNew, TYPE_nkwargs, TYPE_nvar
 
 if T.TYPE_CHECKING:
     from ._typing import ImmutableListProtocol, ImmutableSetProtocol
@@ -47,7 +48,6 @@ if T.TYPE_CHECKING:
     from .mesonlib import FileMode, FileOrString
     from .modules import ModuleState
     from .backend.backends import Backend
-    from .interpreter.interpreterobjects import GeneratorHolder
 
 pch_kwargs = {'c_pch', 'cpp_pch'}
 
@@ -680,7 +680,7 @@ class BuildTarget(Target):
 
     def process_objectlist(self, objects):
         assert(isinstance(objects, list))
-        for s in unholder(objects):
+        for s in objects:
             if isinstance(s, (str, File, ExtractedObjects)):
                 self.objects.append(s)
             elif isinstance(s, (GeneratedList, CustomTarget)):
@@ -776,7 +776,7 @@ class BuildTarget(Target):
                 # which is what we need.
                 if not is_object(s):
                     sources.append(s)
-        for d in unholder(self.external_deps):
+        for d in self.external_deps:
             for s in d.sources:
                 if isinstance(s, (str, File)):
                     sources.append(s)
@@ -847,7 +847,7 @@ class BuildTarget(Target):
         link_depends.
         """
         sources = listify(sources)
-        for s in unholder(sources):
+        for s in sources:
             if isinstance(s, File):
                 self.link_depends.append(s)
             elif isinstance(s, str):
@@ -864,35 +864,16 @@ class BuildTarget(Target):
     def get_original_kwargs(self):
         return self.kwargs
 
-    def unpack_holder(self, d):
-        d = listify(d)
-        newd = []
-        for i in d:
-            if isinstance(i, list):
-                i = self.unpack_holder(i)
-            elif hasattr(i, 'held_object'):
-                i = i.held_object
-            for t in ['dependencies', 'link_with', 'include_directories', 'sources']:
-                if hasattr(i, t):
-                    setattr(i, t, self.unpack_holder(getattr(i, t)))
-            newd.append(i)
-        return newd
-
     def copy_kwargs(self, kwargs):
         self.kwargs = copy.copy(kwargs)
-        # This sucks quite badly. Arguments
-        # are holders but they can't be pickled
-        # so unpack those known.
         for k, v in self.kwargs.items():
             if isinstance(v, list):
-                self.kwargs[k] = self.unpack_holder(v)
-            if hasattr(v, 'held_object'):
-                self.kwargs[k] = v.held_object
+                self.kwargs[k] = listify(v, flatten=True)
         for t in ['dependencies', 'link_with', 'include_directories', 'sources']:
             if t in self.kwargs:
-                self.kwargs[t] = self.unpack_holder(self.kwargs[t])
+                self.kwargs[t] = listify(self.kwargs[t], flatten=True)
 
-    def extract_objects(self, srclist):
+    def extract_objects(self, srclist: T.List[FileOrString]) -> ExtractedObjects:
         obj_src = []
         sources_set = set(self.sources)
         for src in srclist:
@@ -901,14 +882,14 @@ class BuildTarget(Target):
             elif isinstance(src, File):
                 FeatureNew.single_use('File argument for extract_objects', '0.50.0', self.subproject)
             else:
-                raise MesonException('Object extraction arguments must be strings or Files.')
+                raise MesonException(f'Object extraction arguments must be strings or Files (got {type(src).__name__}).')
             # FIXME: It could be a generated source
             if src not in sources_set:
                 raise MesonException(f'Tried to extract unknown source {src}.')
             obj_src.append(src)
         return ExtractedObjects(self, obj_src)
 
-    def extract_all_objects(self, recursive=True):
+    def extract_all_objects(self, recursive: bool = True) -> ExtractedObjects:
         return ExtractedObjects(self, self.sources, self.generated, self.objects,
                                 recursive)
 
@@ -960,7 +941,7 @@ class BuildTarget(Target):
         kwargs.get('modules', [])
         self.need_install = kwargs.get('install', self.need_install)
         llist = extract_as_list(kwargs, 'link_with')
-        for linktarget in unholder(llist):
+        for linktarget in llist:
             if isinstance(linktarget, dependencies.ExternalLibrary):
                 raise MesonException(textwrap.dedent('''\
                     An external library was used in link_with keyword argument, which
@@ -1003,7 +984,7 @@ class BuildTarget(Target):
         if dfeature_debug:
             dfeatures['debug'] = dfeature_debug
         if 'd_import_dirs' in kwargs:
-            dfeature_import_dirs = unholder(extract_as_list(kwargs, 'd_import_dirs'))
+            dfeature_import_dirs = extract_as_list(kwargs, 'd_import_dirs')
             for d in dfeature_import_dirs:
                 if not isinstance(d, IncludeDirs):
                     raise InvalidArguments('Arguments to d_import_dirs must be include_directories.')
@@ -1200,7 +1181,7 @@ class BuildTarget(Target):
 
     def add_deps(self, deps):
         deps = listify(deps)
-        for dep in unholder(deps):
+        for dep in deps:
             if dep in self.added_deps:
                 continue
             if isinstance(dep, dependencies.InternalDependency):
@@ -1250,7 +1231,7 @@ You probably should put it in link_with instead.''')
         return isinstance(self, StaticLibrary) and not self.need_install
 
     def link(self, target):
-        for t in unholder(listify(target)):
+        for t in listify(target):
             if isinstance(t, BothLibraries):
                 t = t.get_preferred_library()
             if isinstance(self, StaticLibrary) and self.need_install:
@@ -1280,7 +1261,7 @@ You probably should put it in link_with instead.''')
             self.link_targets.append(t)
 
     def link_whole(self, target):
-        for t in unholder(listify(target)):
+        for t in listify(target):
             # Always use the static library from BothLibraries, since shared libs aren't supported anyway
             if isinstance(t, BothLibraries):
                 t = t.static
@@ -1349,7 +1330,7 @@ You probably should put it in link_with instead.''')
 
     def add_include_dirs(self, args, set_is_system: T.Optional[str] = None):
         ids = []
-        for a in unholder(args):
+        for a in args:
             if not isinstance(a, IncludeDirs):
                 raise InvalidArguments('Include directory to be added is not an include directory object.')
             ids.append(a)
@@ -2063,7 +2044,7 @@ class SharedLibrary(BuildTarget):
 
         # Visual Studio module-definitions file
         if 'vs_module_defs' in kwargs:
-            path = unholder(kwargs['vs_module_defs'])
+            path = kwargs['vs_module_defs']
             if isinstance(path, str):
                 if os.path.isabs(path):
                     self.vs_module_defs = File.from_absolute_file(path)
@@ -2181,7 +2162,7 @@ class BothLibraries(HoldableObject):
 
 class CommandBase:
     def flatten_command(self, cmd):
-        cmd = unholder(listify(cmd))
+        cmd = listify(cmd)
         final_cmd = []
         for c in cmd:
             if isinstance(c, str):
@@ -2256,7 +2237,7 @@ class CustomTarget(Target, CommandBase):
     def get_target_dependencies(self):
         deps = self.dependencies[:]
         deps += self.extra_depends
-        for c in unholder(self.sources):
+        for c in self.sources:
             if isinstance(c, (BuildTarget, CustomTarget)):
                 deps.append(c)
         return deps
@@ -2281,7 +2262,7 @@ class CustomTarget(Target, CommandBase):
 
     def process_kwargs(self, kwargs, backend):
         self.process_kwargs_base(kwargs)
-        self.sources = unholder(extract_as_list(kwargs, 'input'))
+        self.sources = extract_as_list(kwargs, 'input')
         if 'output' not in kwargs:
             raise InvalidArguments('Missing keyword argument "output".')
         self.outputs = listify(kwargs['output'])
@@ -2360,7 +2341,7 @@ class CustomTarget(Target, CommandBase):
         if not isinstance(self.build_always_stale, bool):
             raise InvalidArguments('Argument build_always_stale must be a boolean.')
         extra_deps, depend_files = [extract_as_list(kwargs, c, pop=False) for c in ['depends', 'depend_files']]
-        for ed in unholder(extra_deps):
+        for ed in extra_deps:
             if not isinstance(ed, (CustomTarget, BuildTarget)):
                 raise InvalidArguments('Can only depend on toplevel targets: custom_target or build_target '
                                        f'(executable or a library) got: {type(ed)}({ed})')
@@ -2396,7 +2377,7 @@ class CustomTarget(Target, CommandBase):
 
     def get_generated_lists(self):
         genlists = []
-        for c in unholder(self.sources):
+        for c in self.sources:
             if isinstance(c, GeneratedList):
                 genlists.append(c)
         return genlists
@@ -2447,7 +2428,7 @@ class CustomTarget(Target, CommandBase):
     def type_suffix(self):
         return "@cus"
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: int) -> 'CustomTargetIndex':
         return CustomTargetIndex(self, self.outputs[index])
 
     def __setitem__(self, index, value):
@@ -2606,7 +2587,13 @@ class CustomTargetIndex(HoldableObject):
 class ConfigurationData(HoldableObject):
     def __init__(self) -> None:
         super().__init__()
-        self.values = {}  # T.Dict[str, T.Union[str, int, bool]]
+        self.values: T.Dict[
+            str,
+            T.Tuple[
+                T.Union[str, int, bool],
+                T.Optional[str]
+            ]
+        ] = {}
 
     def __repr__(self):
         return repr(self.values)
@@ -2651,7 +2638,7 @@ def get_sources_string_names(sources, backend):
     get all the output basenames.
     '''
     names = []
-    for s in unholder(sources):
+    for s in sources:
         if isinstance(s, str):
             names.append(s)
         elif isinstance(s, (BuildTarget, CustomTarget, CustomTargetIndex, GeneratedList)):

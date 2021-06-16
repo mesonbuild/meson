@@ -741,17 +741,6 @@ class InternalTests(unittest.TestCase):
         self.assertEqual([holder1, 2], listify([holder1, 2]))
         self.assertEqual([holder1, 2, 3], listify([holder1, 2, [3]]))
 
-    def test_unholder(self):
-        unholder = mesonbuild.mesonlib.unholder
-
-        holder1 = ObjectHolder(1)
-        holder3 = ObjectHolder(3)
-        holders = [holder1, holder3]
-
-        self.assertEqual(1, unholder(holder1))
-        self.assertEqual([1], unholder([holder1]))
-        self.assertEqual([1, 3], unholder(holders))
-
     def test_extract_as_list(self):
         extract = mesonbuild.mesonlib.extract_as_list
         # Test sanity

@@ -109,7 +109,7 @@ class RustModule(ExtensionModule):
         ```
         """
         name = args[0]
-        base_target: BuildTarget = unholder(args[1])
+        base_target: BuildTarget = args[1]
         if not base_target.uses_rust():
             raise InterpreterException('Second positional argument to rustmod.test() must be a rust based target')
         extra_args = kwargs['args']
@@ -129,7 +129,7 @@ class RustModule(ExtensionModule):
                 del extra_args[i]
                 break
 
-        dependencies = [d.held_object for d in kwargs['dependencies']]
+        dependencies = [d for d in kwargs['dependencies']]
 
         # We need to cast here, as currently these don't have protocol in them, but test itself does.
         tkwargs = T.cast('_kwargs.FuncTest', kwargs.copy())
@@ -168,7 +168,7 @@ class RustModule(ExtensionModule):
         header: 'SourceOutputs'
         _deps: T.Sequence['SourceOutputs']
         try:
-            header, *_deps = unholder(self.interpreter.source_strings_to_files(listify(kwargs['input'])))
+            header, *_deps = self.interpreter.source_strings_to_files(listify(kwargs['input']))
         except KeyError:
             raise InvalidArguments('rustmod.bindgen() `input` argument must have at least one element.')
 
@@ -179,7 +179,7 @@ class RustModule(ExtensionModule):
         if not isinstance(output, str):
             raise InvalidArguments('rustmod.bindgen() `output` argument must be a string.')
 
-        include_dirs: T.List[IncludeDirs] = typeslistify(unholder(listify(kwargs.get('include_directories', []))), IncludeDirs)
+        include_dirs: T.List[IncludeDirs] = typeslistify(listify(kwargs.get('include_directories', [])), IncludeDirs)
         c_args: T.List[str] = stringlistify(listify(kwargs.get('c_args', [])))
         bind_args: T.List[str] = stringlistify(listify(kwargs.get('args', [])))
 
@@ -198,8 +198,7 @@ class RustModule(ExtensionModule):
             inc_strs.extend([f'-I{x}' for x in i.to_string_list(state.environment.get_source_dir())])
 
         if self._bindgen_bin is None:
-            # there's some bugs in the interpreter typeing.
-            self._bindgen_bin = state.find_program('bindgen').held_object
+            self._bindgen_bin = state.find_program('bindgen')
 
         name: str
         if isinstance(header, File):

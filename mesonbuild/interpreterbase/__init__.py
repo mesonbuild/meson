@@ -46,6 +46,7 @@ __all__ = [
     'ContainerTypeInfo',
     'KwargInfo',
     'typed_kwargs',
+    'FeatureCheckBase',
     'FeatureNew',
     'FeatureDeprecated',
     'FeatureNewKwargs',
@@ -60,6 +61,7 @@ __all__ = [
     'TYPE_elementary',
     'TYPE_var',
     'TYPE_nvar',
+    'TYPE_kwargs',
     'TYPE_nkwargs',
     'TYPE_key_resolver',
 ]
@@ -78,6 +80,7 @@ from .baseobjects import (
     TYPE_elementary,
     TYPE_var,
     TYPE_nvar,
+    TYPE_kwargs,
     TYPE_nkwargs,
     TYPE_key_resolver,
 )
@@ -95,6 +98,7 @@ from .decorators import (
     ContainerTypeInfo,
     KwargInfo,
     typed_kwargs,
+    FeatureCheckBase,
     FeatureNew,
     FeatureDeprecated,
     FeatureNewKwargs,

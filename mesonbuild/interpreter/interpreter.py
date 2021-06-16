@@ -128,7 +128,6 @@ class Summary:
                 raise InterpreterException(f'Summary section {section!r} already have key {k!r}')
             formatted_values = []
             for i in listify(v):
-                i = unholder(i)
                 if isinstance(i, bool) and bool_yn:
                     formatted_values.append(mlog.green('YES') if i else mlog.red('NO'))
                 elif isinstance(i, (str, int, bool)):
@@ -609,20 +608,16 @@ class Interpreter(InterpreterBase, HoldableObject):
         if not isinstance(version, str):
             raise InterpreterException('Version must be a string.')
         incs = self.extract_incdirs(kwargs)
-        libs = unholder(extract_as_list(kwargs, 'link_with'))
-        libs_whole = unholder(extract_as_list(kwargs, 'link_whole'))
+        libs = extract_as_list(kwargs, 'link_with')
+        libs_whole = extract_as_list(kwargs, 'link_whole')
         sources = extract_as_list(kwargs, 'sources')
-        sources = unholder(listify(self.source_strings_to_files(sources)))
-        deps = unholder(extract_as_list(kwargs, 'dependencies'))
+        sources = listify(self.source_strings_to_files(sources))
+        deps = extract_as_list(kwargs, 'dependencies')
         compile_args = mesonlib.stringlistify(kwargs.get('compile_args', []))
         link_args = mesonlib.stringlistify(kwargs.get('link_args', []))
         variables = self.extract_variables(kwargs, list_new=True)
         final_deps = []
         for d in deps:
-            try:
-                d = d.held_object
-            except Exception:
-                pass
             if not isinstance(d, (dependencies.Dependency, dependencies.ExternalLibrary, dependencies.InternalDependency)):
                 raise InterpreterException('Dependencies must be external deps')
             final_deps.append(d)
@@ -690,17 +685,16 @@ external dependencies (including libraries) must go to "dependencies".''')
         m = 'must be a string, or the output of find_program(), files() '\
             'or configure_file(), or a compiler object; not {!r}'
         expanded_args = []
-        if isinstance(cmd, ExternalProgramHolder):
-            cmd = cmd.held_object
-            if isinstance(cmd, build.Executable):
-                progname = node.args.arguments[0].value
-                msg = 'Program {!r} was overridden with the compiled executable {!r}'\
-                      ' and therefore cannot be used during configuration'
-                raise InterpreterException(msg.format(progname, cmd.description()))
+        if isinstance(cmd, build.Executable):
+            progname = node.args.arguments[0].value
+            msg = 'Program {!r} was overridden with the compiled executable {!r}'\
+                    ' and therefore cannot be used during configuration'
+            raise InterpreterException(msg.format(progname, cmd.description()))
+        if isinstance(cmd, ExternalProgram):
             if not cmd.found():
                 raise InterpreterException(f'command {cmd.get_name()!r} not found or not executable')
-        elif isinstance(cmd, CompilerHolder):
-            exelist = cmd.compiler.get_exelist()
+        elif isinstance(cmd, compilers.Compiler):
+            exelist = cmd.get_exelist()
             cmd = exelist[0]
             prog = ExternalProgram(cmd, silent=True)
             if not prog.found():
@@ -725,8 +719,8 @@ external dependencies (including libraries) must go to "dependencies".''')
                 expanded_args.append(a)
             elif isinstance(a, mesonlib.File):
                 expanded_args.append(a.absolute_path(srcdir, builddir))
-            elif isinstance(a, ExternalProgramHolder):
-                expanded_args.append(a.held_object.get_path())
+            elif isinstance(a, ExternalProgram):
+                expanded_args.append(a.get_path())
             else:
                 raise InterpreterException('Arguments ' + m.format(a))
         # If any file that was used as an argument to the command
@@ -880,7 +874,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             prefix = self.coredata.options[OptionKey('prefix')].value
 
             from ..modules.cmake import CMakeSubprojectOptions
-            options = unholder(kwargs.get('options', CMakeSubprojectOptions()))
+            options = kwargs.get('options', CMakeSubprojectOptions())
             if not isinstance(options, CMakeSubprojectOptions):
                 raise InterpreterException('"options" kwarg must be CMakeSubprojectOptions'
                                            ' object (created by cmake.subproject_options())')
@@ -1290,14 +1284,14 @@ external dependencies (including libraries) must go to "dependencies".''')
         return success
 
     def program_from_file_for(self, for_machine, prognames):
-        for p in unholder(prognames):
+        for p in prognames:
             if isinstance(p, mesonlib.File):
                 continue # Always points to a local (i.e. self generated) file.
             if not isinstance(p, str):
                 raise InterpreterException('Executable name must be a string')
             prog = ExternalProgram.from_bin_list(self.environment, for_machine, p)
             if prog.found():
-                return ExternalProgramHolder(prog, self.subproject)
+                return prog
         return None
 
     def program_from_system(self, args, search_dirs, extra_info):
@@ -1368,7 +1362,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         if progobj is None:
             progobj = self.notfound_program(args)
 
-        if not progobj.found():
+        if isinstance(progobj, ExternalProgram) and not progobj.found():
             mlog.log('Program', mlog.bold(progobj.get_name()), 'found:', mlog.red('NO'))
             if required:
                 m = 'Program {!r} not found'
@@ -1484,7 +1478,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             if not_found_message:
                 self.message_impl([not_found_message])
             raise
-        assert isinstance(d, DependencyHolder)
+        assert isinstance(d, Dependency)
         if not d.found() and not_found_message:
             self.message_impl([not_found_message])
             self.message_impl([not_found_message])
@@ -1653,12 +1647,12 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             if 'command' not in kwargs:
                 raise InterpreterException('Missing "command" keyword argument')
             all_args = extract_as_list(kwargs, 'command')
-            deps = unholder(extract_as_list(kwargs, 'depends'))
+            deps = extract_as_list(kwargs, 'depends')
         else:
             raise InterpreterException('Run_target needs at least one positional argument.')
 
         cleaned_args = []
-        for i in unholder(listify(all_args)):
+        for i in listify(all_args):
             if not isinstance(i, (str, build.BuildTarget, build.CustomTarget, ExternalProgram, mesonlib.File)):
                 mlog.debug('Wrong type:', str(i))
                 raise InterpreterException('Invalid argument to run_target.')
@@ -1676,8 +1670,8 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
                 raise InterpreterException('Depends items must be build targets.')
             cleaned_deps.append(d)
         env = self.unpack_env_kwarg(kwargs)
-        tg = RunTargetHolder(build.RunTarget(name, cleaned_args, cleaned_deps, self.subdir, self.subproject, env), self)
-        self.add_target(name, tg.held_object)
+        tg = build.RunTarget(name, cleaned_args, cleaned_deps, self.subdir, self.subproject, env)
+        self.add_target(name, tg)
         full_name = (self.subproject, name)
         assert(full_name not in self.build.run_target_names)
         self.build.run_target_names.add(full_name)
@@ -1691,28 +1685,28 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         name = args[0]
         if not isinstance(name, str):
             raise InterpreterException('First argument must be a string.')
-        deps = unholder(listify(args[1:]))
+        deps = listify(args[1:])
         for d in deps:
             if not isinstance(d, (build.BuildTarget, build.CustomTarget)):
                 raise InterpreterException('Depends items must be build targets.')
-        tg = RunTargetHolder(build.AliasTarget(name, deps, self.subdir, self.subproject), self)
-        self.add_target(name, tg.held_object)
+        tg = build.AliasTarget(name, deps, self.subdir, self.subproject)
+        self.add_target(name, tg)
         return tg
 
     @permittedKwargs({'arguments', 'output', 'depends', 'depfile', 'capture',
                       'preserve_path_from'})
-    @typed_pos_args('generator', (ExecutableHolder, ExternalProgramHolder))
+    @typed_pos_args('generator', (build.Executable, ExternalProgram))
     @typed_kwargs(
         'generator',
         KwargInfo('arguments', ContainerTypeInfo(list, str, allow_empty=False), required=True, listify=True),
         KwargInfo('output', ContainerTypeInfo(list, str, allow_empty=False), required=True, listify=True),
         KwargInfo('depfile', str, validator=lambda x: 'Depfile must be a plain filename with a subdirectory' if has_path_sep(x) else None),
         KwargInfo('capture', bool, default=False, since='0.43.0'),
-        KwargInfo('depends', ContainerTypeInfo(list, (BuildTargetHolder, CustomTargetHolder)), default=[], listify=True),
+        KwargInfo('depends', ContainerTypeInfo(list, (build.BuildTarget, build.CustomTarget)), default=[], listify=True),
     )
     def func_generator(self, node: mparser.FunctionNode,
-                       args: T.Tuple[T.Union[ExecutableHolder, ExternalProgramHolder]],
-                       kwargs: 'kwargs.FuncGenerator') -> GeneratorHolder:
+                       args: T.Tuple[T.Union[build.Executable, ExternalProgram]],
+                       kwargs: 'kwargs.FuncGenerator') -> build.Generator:
         for rule in kwargs['output']:
             if '@BASENAME@' not in rule and '@PLAINNAME@' not in rule:
                 raise InvalidArguments('Every element of "output" must contain @BASENAME@ or @PLAINNAME@.')
@@ -1723,12 +1717,9 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
                 if '@OUTPUT@' in o:
                     raise InvalidArguments('Tried to use @OUTPUT@ in a rule with more than one output.')
 
-        depends = [d.held_object for d in kwargs.pop('depends')]
-
-        gen = build.Generator(args[0].held_object, depends=depends, **kwargs)
-        holder = GeneratorHolder(gen, self)
-        self.generators.append(holder)
-        return holder
+        gen = build.Generator(args[0], **kwargs)
+        self.generators.append(gen)
+        return gen
 
     @typed_pos_args('benchmark', str, (ExecutableHolder, JarHolder, ExternalProgramHolder, mesonlib.File))
     @typed_kwargs('benchmark', *TEST_KWARGS)
@@ -1786,10 +1777,10 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         return Test(name,
                     prj,
                     suite,
-                    exe.held_object,
-                    [d.held_object for d in kwargs['depends']],
+                    exe,
+                    kwargs['depends'],
                     kwargs.get('is_parallel', False),
-                    [c.held_object if isinstance(c, ObjectHolder) else c for c in kwargs['args']],
+                    kwargs['args'],
                     env,
                     kwargs['should_fail'],
                     kwargs['timeout'],
@@ -1862,9 +1853,9 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         if self.subdir == '' and args[0].startswith('meson-'):
             raise InvalidArguments('The "meson-" prefix is reserved and cannot be used for top-level subdir().')
         for i in mesonlib.extract_as_list(kwargs, 'if_found'):
-            if not hasattr(i, 'found_method'):
+            if not hasattr(i, 'found'):
                 raise InterpreterException('Object used in if_found does not have a found method.')
-            if not i.found_method([], {}):
+            if not i.found():
                 return
         prev_subdir = self.subdir
         subdir = os.path.join(prev_subdir, args[0])
@@ -2102,7 +2093,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
                 os.makedirs(os.path.join(self.environment.build_dir, self.subdir), exist_ok=True)
                 file_encoding = kwargs.setdefault('encoding', 'utf-8')
                 missing_variables, confdata_useless = \
-                    mesonlib.do_conf_file(inputs_abs[0], ofile_abs, conf.held_object,
+                    mesonlib.do_conf_file(inputs_abs[0], ofile_abs, conf.conf_data,
                                           fmt, file_encoding)
                 if missing_variables:
                     var_list = ", ".join(map(repr, sorted(missing_variables)))
@@ -2117,7 +2108,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
                                  'copy a file to the build dir, use the \'copy:\' keyword '
                                  'argument added in 0.47.0'.format(ifbase), location=node)
             else:
-                mesonlib.dump_conf_header(ofile_abs, conf.held_object, output_format)
+                mesonlib.dump_conf_header(ofile_abs, conf.conf_data, output_format)
             conf.mark_used()
         elif 'command' in kwargs:
             if len(inputs) > 1:
@@ -2275,7 +2266,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         if ":" not in setup_name:
             setup_name = (self.subproject if self.subproject else self.build.project_name) + ":" + setup_name
         try:
-            inp = unholder(extract_as_list(kwargs, 'exe_wrapper'))
+            inp = extract_as_list(kwargs, 'exe_wrapper')
             exe_wrapper = []
             for i in inp:
                 if isinstance(i, str):
@@ -2611,10 +2602,9 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
         target.project_version = self.project_version
 
         self.add_stdlib_info(target)
-        l = targetholder(target, self)
-        self.add_target(name, l.held_object)
+        self.add_target(name, target)
         self.project_args_frozen = True
-        return l
+        return target
 
     def kwarg_strings_to_includedirs(self, kwargs):
         if 'd_import_dirs' in kwargs:

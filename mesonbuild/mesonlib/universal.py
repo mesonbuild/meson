@@ -131,7 +131,6 @@ __all__ = [
     'substitute_values',
     'substring_is_in_list',
     'typeslistify',
-    'unholder',
     'verbose_git',
     'version_compare',
     'version_compare_condition_with_min',
@@ -1245,26 +1244,6 @@ def replace_if_different(dst: str, dst_tmp: str) -> None:
     else:
         os.unlink(dst_tmp)
 
-
-@T.overload
-def unholder(item: 'ObjectHolder[_T]') -> _T: ...
-
-@T.overload
-def unholder(item: T.List['ObjectHolder[_T]']) -> T.List[_T]: ...
-
-@T.overload
-def unholder(item: T.List[_T]) -> T.List[_T]: ...
-
-@T.overload
-def unholder(item: T.List[T.Union[_T, 'ObjectHolder[_T]']]) -> T.List[_T]: ...
-
-def unholder(item):  # type: ignore  # TODO fix overload (somehow)
-    """Get the held item of an object holder or list of object holders."""
-    if isinstance(item, list):
-        return [i.held_object if hasattr(i, 'held_object') else i for i in item]
-    if hasattr(item, 'held_object'):
-        return item.held_object
-    return item
 
 
 def listify(item: T.Any, flatten: bool = True) -> T.List[T.Any]:
