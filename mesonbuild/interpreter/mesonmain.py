@@ -5,16 +5,15 @@ from .. import dependencies
 from .. import build
 from .. import mlog
 
-from ..mesonlib import unholder, MachineChoice, OptionKey
+from ..mesonlib import MachineChoice, OptionKey
 from ..programs import OverrideProgram, ExternalProgram
 from ..interpreterbase import (MesonInterpreterObject, FeatureNewKwargs, FeatureNew, FeatureDeprecated,
                                typed_pos_args, permittedKwargs, noArgsFlattening, noPosargs, noKwargs,
                                MesonVersionString, InterpreterException)
 
-from .compiler import CompilerHolder
 from .interpreterobjects import (ExecutableHolder, ExternalProgramHolder,
                                  CustomTargetHolder, CustomTargetIndexHolder,
-                                 EnvironmentVariablesHolder)
+                                 EnvironmentVariablesObject)
 
 import typing as T
 
@@ -57,11 +56,11 @@ class MesonMain(MesonInterpreterObject):
                              'add_devenv': self.add_devenv_method,
                              })
 
-    def _find_source_script(self, prog: T.Union[str, mesonlib.File, ExecutableHolder], args):
+    def _find_source_script(self, prog: T.Union[str, mesonlib.File, build.Executable, ExternalProgram], args):
 
-        if isinstance(prog, (ExecutableHolder, ExternalProgramHolder)):
-            return self.interpreter.backend.get_executable_serialisation([unholder(prog)] + args)
-        found = self.interpreter.func_find_program({}, prog, {}).held_object
+        if isinstance(prog, (build.Executable, ExternalProgram)):
+            return self.interpreter.backend.get_executable_serialisation([prog] + args)
+        found = self.interpreter.func_find_program({}, prog, {})
         es = self.interpreter.backend.get_executable_serialisation([found] + args)
         es.subproject = self.interpreter.subproject
         return es
@@ -254,7 +253,7 @@ class MesonMain(MesonInterpreterObject):
         for_machine = self.interpreter.machine_from_native_kwarg(kwargs)
         clist = self.interpreter.coredata.compilers[for_machine]
         if cname in clist:
-            return CompilerHolder(clist[cname], self.build.environment, self.interpreter.subproject)
+            return clist[cname]
         raise InterpreterException(f'Tried to access compiler for language "{cname}", not specified for {for_machine.get_lower_case_name()} machine.')
 
     @noPosargs
@@ -375,9 +374,9 @@ class MesonMain(MesonInterpreterObject):
 
     @FeatureNew('add_devenv', '0.58.0')
     @noKwargs
-    @typed_pos_args('add_devenv', (str, list, dict, EnvironmentVariablesHolder))
-    def add_devenv_method(self, args: T.Union[str, list, dict, EnvironmentVariablesHolder], kwargs: T.Dict[str, T.Any]) -> None:
+    @typed_pos_args('add_devenv', (str, list, dict, EnvironmentVariablesObject))
+    def add_devenv_method(self, args: T.Union[str, list, dict, EnvironmentVariablesObject], kwargs: T.Dict[str, T.Any]) -> None:
         env = args[0]
         if isinstance(env, (str, list, dict)):
-            env = EnvironmentVariablesHolder(env)
-        self.build.devenv.append(env.held_object)
+            env = EnvironmentVariablesObject(env)
+        self.build.devenv.append(env.vars)

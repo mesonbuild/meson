@@ -76,6 +76,9 @@ class MockRunTarget(MesonInterpreterObject):
 ADD_SOURCE = 0
 REMOVE_SOURCE = 1
 
+_T = T.TypeVar('_T')
+_V = T.TypeVar('_V')
+
 class AstInterpreter(InterpreterBase):
     def __init__(self, source_root: str, subdir: str, subproject: str, visitors: T.Optional[T.List[AstVisitor]] = None):
         super().__init__(source_root, subdir, subproject)
@@ -140,6 +143,12 @@ class AstInterpreter(InterpreterBase):
                            'summary': self.func_do_nothing,
                            'range': self.func_do_nothing,
                            })
+
+    def _unholder_args(self, args: _T, kwargs: _V) -> T.Tuple[_T, _V]:
+        return args, kwargs
+
+    def _holderify(self, res: _T) -> _T:
+        return res
 
     def func_do_nothing(self, node: BaseNode, args: T.List[TYPE_nvar], kwargs: T.Dict[str, TYPE_nvar]) -> bool:
         return True

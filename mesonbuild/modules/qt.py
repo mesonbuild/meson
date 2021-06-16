@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from mesonbuild import coredata
 import os
 import shutil
 import typing as T
@@ -20,21 +21,19 @@ import xml.etree.ElementTree as ET
 
 from . import ModuleReturnValue, ExtensionModule
 from .. import build
-from .. import mesonlib
 from .. import mlog
-from ..dependencies import find_external_dependency
+from ..dependencies import find_external_dependency, Dependency, ExternalLibrary
+from ..mesonlib import MesonException, File, FileOrString, version_compare, Popen_safe
+from . import ModuleReturnValue, ExtensionModule
 from ..interpreter import extract_required_kwarg
-from ..interpreter.interpreterobjects import DependencyHolder, ExternalLibraryHolder, IncludeDirsHolder, FeatureOptionHolder, GeneratedListHolder
 from ..interpreterbase import ContainerTypeInfo, FeatureDeprecated, KwargInfo, noPosargs, FeatureNew, typed_kwargs
-from ..mesonlib import MesonException, File
-from ..programs import NonExistingExternalProgram
+from ..programs import ExternalProgram, NonExistingExternalProgram
 
 if T.TYPE_CHECKING:
     from . import ModuleState
     from ..dependencies.qt import QtPkgConfigDependency, QmakeQtDependency
     from ..interpreter import Interpreter
     from ..interpreter import kwargs
-    from ..programs import ExternalProgram
 
     QtDependencyType = T.Union[QtPkgConfigDependency, QmakeQtDependency]
 
@@ -45,7 +44,7 @@ if T.TYPE_CHECKING:
         """Keyword arguments for the Resource Compiler method."""
 
         name: T.Optional[str]
-        sources: T.List[mesonlib.FileOrString]
+        sources: T.List[FileOrString]
         extra_args: T.List[str]
         method: str
 
@@ -53,7 +52,7 @@ if T.TYPE_CHECKING:
 
         """Keyword arguments for the Ui Compiler method."""
 
-        sources: T.List[mesonlib.FileOrString]
+        sources: T.List[FileOrString]
         extra_args: T.List[str]
         method: str
 
@@ -61,25 +60,25 @@ if T.TYPE_CHECKING:
 
         """Keyword arguments for the Moc Compiler method."""
 
-        sources: T.List[mesonlib.FileOrString]
-        headers: T.List[mesonlib.FileOrString]
+        sources: T.List[FileOrString]
+        headers: T.List[FileOrString]
         extra_args: T.List[str]
         method: str
-        include_directories: T.List[T.Union[str, IncludeDirsHolder]]
-        dependencies: T.List[T.Union[DependencyHolder, ExternalLibraryHolder]]
+        include_directories: T.List[T.Union[str, build.IncludeDirs]]
+        dependencies: T.List[T.Union[Dependency, ExternalLibrary]]
 
     class PreprocessKwArgs(TypedDict):
 
-        sources: T.List[mesonlib.FileOrString]
-        moc_sources: T.List[mesonlib.FileOrString]
-        moc_headers: T.List[mesonlib.FileOrString]
-        qresources: T.List[mesonlib.FileOrString]
-        ui_files: T.List[mesonlib.FileOrString]
+        sources: T.List[FileOrString]
+        moc_sources: T.List[FileOrString]
+        moc_headers: T.List[FileOrString]
+        qresources: T.List[FileOrString]
+        ui_files: T.List[FileOrString]
         moc_extra_arguments: T.List[str]
         rcc_extra_arguments: T.List[str]
         uic_extra_arguments: T.List[str]
-        include_directories: T.List[T.Union[str, IncludeDirsHolder]]
-        dependencies: T.List[T.Union[DependencyHolder, ExternalLibraryHolder]]
+        include_directories: T.List[T.Union[str, build.IncludeDirs]]
+        dependencies: T.List[T.Union[Dependency, ExternalLibrary]]
         method: str
 
     class HasToolKwArgs(kwargs.ExtractRequired):
@@ -104,10 +103,10 @@ class QtBaseModule(ExtensionModule):
     def __init__(self, interpreter: 'Interpreter', qt_version: int = 5):
         ExtensionModule.__init__(self, interpreter)
         self.qt_version = qt_version
-        self.moc: 'ExternalProgram' = NonExistingExternalProgram('moc')
-        self.uic: 'ExternalProgram' = NonExistingExternalProgram('uic')
-        self.rcc: 'ExternalProgram' = NonExistingExternalProgram('rcc')
-        self.lrelease: 'ExternalProgram' = NonExistingExternalProgram('lrelease')
+        self.moc: ExternalProgram = NonExistingExternalProgram('moc')
+        self.uic: ExternalProgram = NonExistingExternalProgram('uic')
+        self.rcc: ExternalProgram = NonExistingExternalProgram('rcc')
+        self.lrelease: ExternalProgram = NonExistingExternalProgram('lrelease')
         self.methods.update({
             'has_tools': self.has_tools,
             'preprocess': self.preprocess,
@@ -141,14 +140,14 @@ class QtBaseModule(ExtensionModule):
 
             if name == 'lrelease':
                 arg = ['-version']
-            elif mesonlib.version_compare(qt_dep.version, '>= 5'):
+            elif version_compare(qt_dep.version, '>= 5'):
                 arg = ['--version']
             else:
                 arg = ['-v']
 
             # Ensure that the version of qt and each tool are the same
-            def get_version(p: 'ExternalProgram') -> str:
-                _, out, err = mesonlib.Popen_safe(p.get_command() + arg)
+            def get_version(p: ExternalProgram) -> str:
+                _, out, err = Popen_safe(p.get_command() + arg)
                 if b.startswith('lrelease') or not qt_dep.version.startswith('4'):
                     care = out
                 else:
@@ -157,7 +156,7 @@ class QtBaseModule(ExtensionModule):
 
             p = state.find_program(b, required=False,
                                    version_func=get_version,
-                                   wanted=wanted).held_object
+                                   wanted=wanted)
             if p.found():
                 setattr(self, name, p)
 
@@ -172,7 +171,7 @@ class QtBaseModule(ExtensionModule):
         if qt.found():
             # Get all tools and then make sure that they are the right version
             self.compilers_detect(state, qt)
-            if mesonlib.version_compare(qt.version, '>=5.14.0'):
+            if version_compare(qt.version, '>=5.14.0'):
                 self._rcc_supports_depfiles = True
             else:
                 mlog.warning('rcc dependencies will not work properly until you move to Qt >= 5.14:',
@@ -185,7 +184,7 @@ class QtBaseModule(ExtensionModule):
             self.lrelease = NonExistingExternalProgram(name='lrelease' + suffix)
 
     @staticmethod
-    def _qrc_nodes(state: 'ModuleState', rcc_file: 'mesonlib.FileOrString') -> T.Tuple[str, T.List[str]]:
+    def _qrc_nodes(state: 'ModuleState', rcc_file: 'FileOrString') -> T.Tuple[str, T.List[str]]:
         abspath: str
         if isinstance(rcc_file, str):
             abspath = os.path.join(state.environment.source_dir, state.subdir, rcc_file)
@@ -210,7 +209,7 @@ class QtBaseModule(ExtensionModule):
         except Exception:
             raise MesonException(f'Unable to parse resource file {abspath}')
 
-    def _parse_qrc_deps(self, state: 'ModuleState', rcc_file: 'mesonlib.FileOrString') -> T.List[File]:
+    def _parse_qrc_deps(self, state: 'ModuleState', rcc_file: 'FileOrString') -> T.List[File]:
         rcc_dirname, nodes = self._qrc_nodes(state, rcc_file)
         result: T.List[File] = []
         for resource_path in nodes:
@@ -243,7 +242,7 @@ class QtBaseModule(ExtensionModule):
     @noPosargs
     @typed_kwargs(
         'qt.has_tools',
-        KwargInfo('required', (bool, FeatureOptionHolder), default=False),
+        KwargInfo('required', (bool, coredata.UserFeatureOption), default=False),
         KwargInfo('method', str, default='auto'),
     )
     def has_tools(self, state: 'ModuleState', args: T.Tuple, kwargs: 'HasToolKwArgs') -> bool:
@@ -351,7 +350,7 @@ class QtBaseModule(ExtensionModule):
             kwargs['extra_args'] + ['-o', '@OUTPUT@', '@INPUT@'],
             ['ui_@BASENAME@.h'],
             name=f'Qt{self.qt_version} ui')
-        out = GeneratedListHolder(gen.process_files(kwargs['sources'], state))
+        out = gen.process_files(kwargs['sources'], state)
         return ModuleReturnValue(out, [out])
 
     @FeatureNew('qt.compile_moc', '0.59.0')
@@ -362,8 +361,8 @@ class QtBaseModule(ExtensionModule):
         KwargInfo('headers', ContainerTypeInfo(list, (File, str)), listify=True, default=[]),
         KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
         KwargInfo('method', str, default='auto'),
-        KwargInfo('include_directories', ContainerTypeInfo(list, (IncludeDirsHolder, str)), listify=True, default=[]),
-        KwargInfo('dependencies', ContainerTypeInfo(list, (DependencyHolder, ExternalLibraryHolder)), listify=True, default=[]),
+        KwargInfo('include_directories', ContainerTypeInfo(list, (build.IncludeDirs, str)), listify=True, default=[]),
+        KwargInfo('dependencies', ContainerTypeInfo(list, (Dependency, ExternalLibrary)), listify=True, default=[]),
     )
     def compile_moc(self, state: 'ModuleState', args: T.Tuple, kwargs: 'MocCompilerKwArgs') -> ModuleReturnValue:
         self._detect_tools(state, kwargs['method'])
@@ -378,7 +377,7 @@ class QtBaseModule(ExtensionModule):
         inc = state.get_include_args(include_dirs=kwargs['include_directories'])
         compile_args: T.List[str] = []
         for dep in kwargs['dependencies']:
-            compile_args.extend([a for a in dep.held_object.get_all_compile_args() if a.startswith(('-I', '-D'))])
+            compile_args.extend([a for a in dep.get_all_compile_args() if a.startswith(('-I', '-D'))])
 
         output: T.List[build.GeneratedList] = []
 
@@ -408,8 +407,8 @@ class QtBaseModule(ExtensionModule):
         KwargInfo('rcc_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[], since='0.49.0'),
         KwargInfo('uic_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[], since='0.49.0'),
         KwargInfo('method', str, default='auto'),
-        KwargInfo('include_directories', ContainerTypeInfo(list, (IncludeDirsHolder, str)), listify=True, default=[]),
-        KwargInfo('dependencies', ContainerTypeInfo(list, (DependencyHolder, ExternalLibraryHolder)), listify=True, default=[]),
+        KwargInfo('include_directories', ContainerTypeInfo(list, (build.IncludeDirs, str)), listify=True, default=[]),
+        KwargInfo('dependencies', ContainerTypeInfo(list, (Dependency, ExternalLibrary)), listify=True, default=[]),
     )
     def preprocess(self, state: 'ModuleState', args: T.List[T.Union[str, File]], kwargs: 'PreprocessKwArgs') -> ModuleReturnValue:
         _sources = args[1:]
