@@ -28,6 +28,7 @@ from . import dependencies
 from . import mlog
 from . import programs
 from .mesonlib import (
+    HoldableObject,
     File, MesonException, MachineChoice, PerMachine, OrderedSet, listify,
     extract_as_list, typeslistify, stringlistify, classify_unity_sources,
     get_filenames_templates_dict, substitute_values, has_path_sep, unholder,
@@ -125,13 +126,13 @@ def get_target_macos_dylib_install_name(ld) -> str:
 class InvalidArguments(MesonException):
     pass
 
-class DependencyOverride:
+class DependencyOverride(HoldableObject):
     def __init__(self, dep, node, explicit=True):
         self.dep = dep
         self.node = node
         self.explicit = explicit
 
-class Headers:
+class Headers(HoldableObject):
 
     def __init__(self, sources: T.List[File], install_subdir: T.Optional[str],
                  install_dir: T.Optional[str], install_mode: T.Optional['FileMode'],
@@ -161,7 +162,7 @@ class Headers:
         return self.custom_install_mode
 
 
-class Man:
+class Man(HoldableObject):
 
     def __init__(self, sources: T.List[File], install_dir: T.Optional[str],
                  install_mode: T.Optional['FileMode'], subproject: str,
@@ -182,7 +183,7 @@ class Man:
         return self.sources
 
 
-class InstallDir:
+class InstallDir(HoldableObject):
 
     def __init__(self, src_subdir: str, inst_subdir: str, install_dir: str,
                  install_mode: T.Optional['FileMode'],
@@ -327,12 +328,11 @@ class Build:
 
         return link_args.get(compiler.get_language(), [])
 
-class IncludeDirs:
+class IncludeDirs(HoldableObject):
 
     """Internal representation of an include_directories call."""
 
-    def __init__(self, curdir: str, dirs: T.List[str], is_system: bool,
-                 extra_build_dirs: T.Optional[T.List[str]] = None):
+    def __init__(self, curdir: str, dirs: T.List[str], is_system: bool, extra_build_dirs: T.Optional[T.List[str]] = None):
         self.curdir = curdir
         self.incdirs = dirs
         self.is_system = is_system
@@ -361,7 +361,7 @@ class IncludeDirs:
             strlist.append(os.path.join(sourcedir, self.curdir, idir))
         return strlist
 
-class ExtractedObjects:
+class ExtractedObjects(HoldableObject):
     '''
     Holds a list of sources for which the objects must be extracted
     '''
@@ -416,7 +416,7 @@ class ExtractedObjects:
             for source in self.srclist
         ]
 
-class EnvironmentVariables:
+class EnvironmentVariables(HoldableObject):
     def __init__(self) -> None:
         self.envvars = []
         # The set of all env vars we have operations for. Only used for self.has_name()
@@ -458,7 +458,7 @@ class EnvironmentVariables:
             env[name] = method(env, name, values, separator)
         return env
 
-class Target:
+class Target(HoldableObject):
 
     # TODO: should Target be an abc.ABCMeta?
 
@@ -1508,7 +1508,7 @@ You probably should put it in link_with instead.''')
                                  'platforms')
                 return
 
-class Generator:
+class Generator(HoldableObject):
     def __init__(self, exe: T.Union['Executable', programs.ExternalProgram],
                  arguments: T.List[str],
                  output: T.List[str],
@@ -1584,7 +1584,7 @@ class Generator:
         return output
 
 
-class GeneratedList:
+class GeneratedList(HoldableObject):
 
     """The output of generator.process."""
 
@@ -2527,7 +2527,7 @@ class Jar(BuildTarget):
             return ['-cp', os.pathsep.join(cp_paths)]
         return []
 
-class CustomTargetIndex:
+class CustomTargetIndex(HoldableObject):
 
     """A special opaque object returned by indexing a CustomTarget. This object
     exists in Meson, but acts as a proxy in the backends, making targets depend
@@ -2583,7 +2583,7 @@ class CustomTargetIndex:
     def get_custom_install_dir(self):
         return self.target.get_custom_install_dir()
 
-class ConfigurationData:
+class ConfigurationData(HoldableObject):
     def __init__(self) -> None:
         super().__init__()
         self.values = {}  # T.Dict[str, T.Union[str, int, bool]]
@@ -2602,7 +2602,7 @@ class ConfigurationData:
 
 # A bit poorly named, but this represents plain data files to copy
 # during install.
-class Data:
+class Data(HoldableObject):
     def __init__(self, sources: T.List[File], install_dir: str,
                  install_mode: T.Optional['FileMode'], subproject: str,
                  rename: T.List[str] = None):

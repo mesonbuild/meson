@@ -17,7 +17,7 @@ import typing as T
 from enum import Enum
 
 from . import mesonlib
-from .mesonlib import EnvironmentException
+from .mesonlib import EnvironmentException, HoldableObject
 from . import mlog
 from pathlib import Path
 
@@ -232,7 +232,7 @@ class Properties:
     def get(self, key: str, default: T.Optional[T.Union[str, bool, int, T.List[str]]] = None) -> T.Optional[T.Union[str, bool, int, T.List[str]]]:
         return self.properties.get(key, default)
 
-class MachineInfo:
+class MachineInfo(HoldableObject):
     def __init__(self, system: str, cpu_family: str, cpu: str, endian: str):
         self.system = system
         self.cpu_family = cpu_family

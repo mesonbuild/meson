@@ -24,7 +24,7 @@ from ..interpreterbase import (ContainerTypeInfo, KwargInfo,
 from ..interpreterbase.decorators import FeatureCheckBase
 from ..dependencies import Dependency, ExternalLibrary, InternalDependency
 from ..programs import ExternalProgram
-from ..mesonlib import FileMode, OptionKey, listify, Popen_safe
+from ..mesonlib import HoldableObject, MesonException, OptionKey, listify, Popen_safe
 
 import typing as T
 

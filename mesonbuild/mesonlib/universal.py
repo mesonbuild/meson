@@ -18,6 +18,7 @@ import enum
 import sys
 import stat
 import time
+import abc
 import platform, subprocess, operator, os, shlex, shutil, re
 import collections
 from functools import lru_cache, wraps, total_ordering
@@ -46,6 +47,7 @@ __all__ = [
     'an_unpicklable_object',
     'python_command',
     'project_meson_versions',
+    'HoldableObject',
     'File',
     'FileMode',
     'GitException',
@@ -267,6 +269,10 @@ def check_direntry_issues(direntry_array: T.Union[T.List[T.Union[str, bytes]], s
 import threading
 an_unpicklable_object = threading.Lock()
 
+class HoldableObject(metaclass=abc.ABCMeta):
+    ''' Dummy base class for all objects that can be
+        held by an interpreter.baseobjects.ObjectHolder '''
+
 class FileMode:
     # The first triad is for owner permissions, the second for group permissions,
     # and the third for others (everyone else).
@@ -366,7 +372,7 @@ dot_C_dot_H_warning = """You are using .C or .H files in your project. This is d
          Visual Studio compiler, as it treats .C files as C code, unless you add
          the /TP compiler flag, but this is unreliable.
          See https://github.com/mesonbuild/meson/pull/8747 for the discussions."""
-class File:
+class File(HoldableObject):
     def __init__(self, is_built: bool, subdir: str, fname: str):
         if fname.endswith(".C") or fname.endswith(".H"):
             mlog.warning(dot_C_dot_H_warning, once=True)
