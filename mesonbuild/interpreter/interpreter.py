@@ -2402,10 +2402,13 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
 
         try:
             if kwargs['required']:
-                compilers = self.coredata.compilers.build.values() if kwargs['native'] \
+                compilers = self.coredata.compilers.build.values() if kwargs['native'] == MachineChoice.BUILD \
                     else self.coredata.compilers.host.values()
 
                 for c in compilers:
+                    if not c.language in kwargs['language']:
+                        continue
+
                     for arg in args:
                         if not c.has_multi_arguments([arg], self.environment)[0]:
                             raise mesonlib.MesonException(f'C compiler does not support "{arg}"')
