@@ -27,7 +27,6 @@ class FuncAddProjectArgs(TypedDict):
 
     native: MachineChoice
     language: T.List[str]
-    required: bool
 
 
 class BaseTest(TypedDict):
