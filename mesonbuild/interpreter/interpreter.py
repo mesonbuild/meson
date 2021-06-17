@@ -2321,8 +2321,9 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         self.build.test_setups[setup_name] = build.TestSetup(exe_wrapper, gdb, timeout_multiplier, env,
                                                              exclude_suites)
 
+    @FeatureNewKwargs('add_global_arguments', '0.59.0', ['required'])
     @typed_pos_args('add_global_arguments', varargs=str)
-    @typed_kwargs('add_global_arguments', _NATIVE_KW, _LANGUAGE_KW)
+    @typed_kwargs('add_global_arguments', _NATIVE_KW, _LANGUAGE_KW, KwargInfo('required', bool, default=False))
     def func_add_global_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwargs.FuncAddProjectArgs') -> None:
         self._add_global_arguments(node, self.build.global_args[kwargs['native']], args[0], kwargs)
 
@@ -2331,8 +2332,9 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     def func_add_global_link_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwargs.FuncAddProjectArgs') -> None:
         self._add_global_arguments(node, self.build.global_link_args[kwargs['native']], args[0], kwargs)
 
+    @FeatureNewKwargs('add_project_arguments', '0.59.0', ['required'])
     @typed_pos_args('add_project_arguments', varargs=str)
-    @typed_kwargs('add_global_arguments', _NATIVE_KW, _LANGUAGE_KW)
+    @typed_kwargs('add_project_arguments', _NATIVE_KW, _LANGUAGE_KW, KwargInfo('required', bool, default=False))
     def func_add_project_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwargs.FuncAddProjectArgs') -> None:
         self._add_project_arguments(node, self.build.projects_args[kwargs['native']], args[0], kwargs)
 
@@ -2397,6 +2399,18 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             raise InvalidCode(msg)
 
         self._warn_about_builtin_args(args)
+
+        try:
+            if kwargs['required']:
+                compilers = self.coredata.compilers.build.values() if kwargs['native'] \
+                    else self.coredata.compilers.host.values()
+
+                for c in compilers:
+                    for arg in args:
+                        if not c.has_multi_arguments([arg], self.environment)[0]:
+                            raise mesonlib.MesonException(f'C compiler does not support "{arg}"')
+        except KeyError:
+            pass
 
         for lang in kwargs['language']:
             argsdict[lang] = argsdict.get(lang, []) + args
