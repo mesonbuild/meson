@@ -1,0 +1,5 @@
+[wrap-file]
+
+[provide]
+dependency_names = foo-1.0
+bar-1.0 = bar_dep
