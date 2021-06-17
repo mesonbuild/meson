@@ -57,6 +57,10 @@ foreach qt : ['qt4', 'qt5', 'qt6']
     # XML files that need to be compiled with the uic tol.
     prep += qtmodule.compile_ui(sources : 'mainWindow.ui', method: get_option('method'))
 
+    qtmodule.preprocess(
+      ui_files : 'mainWindow.ui',
+      method: get_option('method'))
+
     # Resource file(s) for rcc compiler
     extra_cpp_args = []
     if meson.is_unity()
@@ -100,6 +104,12 @@ foreach qt : ['qt4', 'qt5', 'qt6']
     # The build system needs to include the cpp files from
     # headers but the user must manually include moc
     # files from sources.
+    qtmodule.preprocess(
+      moc_extra_arguments : ['-DMOC_EXTRA_FLAG'], # This is just a random macro to test `extra_arguments`
+      moc_sources : 'manualinclude.cpp',
+      moc_headers : 'manualinclude.h',
+      method : get_option('method'))
+
     manpreprocessed = qtmodule.compile_moc(
       extra_args : ['-DMOC_EXTRA_FLAG'], # This is just a random macro to test `extra_arguments`
       sources : 'manualinclude.cpp',
