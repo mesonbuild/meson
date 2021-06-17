@@ -1849,6 +1849,22 @@ class DataTests(unittest.TestCase):
             if f not in exceptions and not f.startswith('_include'):
                 self.assertIn(f, toc)
 
+    def test_modules_in_navbar(self):
+        '''
+        Test that each module is referenced in navbar_links.html
+        '''
+        with open("docs/theme/extra/templates/navbar_links.html", encoding='utf-8') as f:
+            html = f.read().lower()
+        self.assertIsNotNone(html)
+        for f in Path('mesonbuild/modules').glob('*.py'):
+            if f.name in {'modtest.py', 'qt.py', '__init__.py'}:
+                continue
+            name = f'{f.stem}-module.html'
+            name = name.replace('unstable_', '')
+            name = name.replace('python3', 'python-3')
+            name = name.replace('_', '-')
+            self.assertIn(name, html)
+
     def test_vim_syntax_highlighting(self):
         '''
         Ensure that vim syntax highlighting files were updated for new
