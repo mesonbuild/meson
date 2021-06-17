@@ -195,7 +195,7 @@ class OptionInterpreter:
     def combo_parser(self, description: str, kwargs: 'ParserArgs') -> coredata.UserOption:
         choices = kwargs.get('choices')
         if not choices:
-            raise OptionException('Combo option missing "choices" keyword.')
+            raise OptionException(f'Choice list for combo choice option with description "{description}" misses "choices" keyword.')
         value = kwargs.get('value', choices[0])
         return coredata.UserComboOption(description, choices, value, kwargs['yield'])
 
@@ -203,7 +203,7 @@ class OptionInterpreter:
     def integer_parser(self, description: str, kwargs: 'ParserArgs') -> coredata.UserOption:
         value = kwargs.get('value')
         if value is None:
-            raise OptionException('Integer option must contain value argument.')
+            raise OptionException(f'Integer option must with description "{description}" must contain a "value" argument.')
         inttuple = (kwargs.get('min'), kwargs.get('max'), value)
         return coredata.UserIntegerOption(description, inttuple, kwargs['yield'])
 
@@ -212,7 +212,7 @@ class OptionInterpreter:
         choices = kwargs.get('choices', [])
         value = kwargs.get('value', choices)
         if not isinstance(value, list):
-            raise OptionException('Array choices must be passed as an array.')
+            raise OptionException(f'Choice options "{choices}" for array option with description "{description}" must be passed as an array.')
         return coredata.UserArrayOption(description, value,
                                         choices=choices,
                                         yielding=kwargs['yield'])

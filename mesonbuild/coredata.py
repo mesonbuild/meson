@@ -97,7 +97,7 @@ class UserStringOption(UserOption[str]):
 
     def validate_value(self, value: T.Any) -> str:
         if not isinstance(value, str):
-            raise MesonException('Value "%s" for string option is not a string.' % str(value))
+            raise MesonException(f'Value "{value}" for string option with description "{self.description}" is not a string.')
         return value
 
 class UserBooleanOption(UserOption[bool]):
@@ -112,12 +112,12 @@ class UserBooleanOption(UserOption[bool]):
         if isinstance(value, bool):
             return value
         if not isinstance(value, str):
-            raise MesonException(f'Value {value} cannot be converted to a boolean')
+            raise MesonException(f'Value "{value}" for boolean option with description "{self.description}" cannot be converted to a boolean.')
         if value.lower() == 'true':
             return True
         if value.lower() == 'false':
             return False
-        raise MesonException('Value %s is not boolean (true or false).' % value)
+        raise MesonException(f'Value "{value}" for boolean option with description "{self.description}" is not boolean (true or false).')
 
 class UserIntegerOption(UserOption[int]):
     def __init__(self, description: str, value: T.Any, yielding: T.Optional[bool] = None):
@@ -137,18 +137,18 @@ class UserIntegerOption(UserOption[int]):
         if isinstance(value, str):
             value = self.toint(value)
         if not isinstance(value, int):
-            raise MesonException('New value for integer option is not an integer.')
+            raise MesonException(f'Value "{value}" for integer option with description "{self.description}" is not an integer.')
         if self.min_value is not None and value < self.min_value:
-            raise MesonException('New value %d is less than minimum value %d.' % (value, self.min_value))
+            raise MesonException(f'Value "{value}" for integer option with description "{self.description}" is less than minimum value {self.min_value}.')
         if self.max_value is not None and value > self.max_value:
-            raise MesonException('New value %d is more than maximum value %d.' % (value, self.max_value))
+            raise MesonException(f'Value "{value}" for integer option with description "{self.description}" is more than maximum value {self.max_value}.')
         return value
 
     def toint(self, valuestring: str) -> int:
         try:
             return int(valuestring)
         except ValueError:
-            raise MesonException('Value string "%s" is not convertible to an integer.' % valuestring)
+            raise MesonException(f'Value "{valuestring}" for integer option with description "{self.description}" is not convertible to an integer.')
 
 class OctalInt(int):
     # NinjaBackend.get_user_option_args uses str() to converts it to a command line option
@@ -182,10 +182,10 @@ class UserComboOption(UserOption[str]):
     def __init__(self, description: str, choices: T.List[str], value: T.Any, yielding: T.Optional[bool] = None):
         super().__init__(description, choices, yielding)
         if not isinstance(self.choices, list):
-            raise MesonException('Combo choices must be an array.')
+            raise MesonException(f'Choice list "{self.choices}" for combo choice option with description "{self.description}" must be an array.')
         for i in self.choices:
             if not isinstance(i, str):
-                raise MesonException('Combo choice elements must be strings.')
+                raise MesonException(f'Choice list "{self.choices}" for combo choice option with description "{self.description}": elements must be strings.')
         self.set_value(value)
 
     def validate_value(self, value: T.Any) -> str:
@@ -197,9 +197,8 @@ class UserComboOption(UserOption[str]):
             else:
                 _type = 'string'
             optionsstring = ', '.join([f'"{item}"' for item in self.choices])
-            raise MesonException('Value "{}" (of type "{}") for combo option "{}" is not one of the choices.'
-                                 ' Possible choices are (as string): {}.'.format(
-                                     value, _type, self.description, optionsstring))
+            raise MesonException(f'Value "{value}" (of type "{_type}") for combo option with description "{self.description}" is not one of the choices.'\
+                                 f' Possible choices are (as string): {optionsstring}.')
         return value
 
 class UserArrayOption(UserOption[T.List[str]]):
@@ -215,14 +214,14 @@ class UserArrayOption(UserOption[T.List[str]]):
         # string, but for defining options in meson_options.txt the format
         # should match that of a combo
         if not user_input and isinstance(value, str) and not value.startswith('['):
-            raise MesonException('Value does not define an array: ' + value)
+            raise MesonException(f'Value "{value}" for array option with description "{self.description}" does not define an array.')
 
         if isinstance(value, str):
             if value.startswith('['):
                 try:
                     newvalue = ast.literal_eval(value)
                 except ValueError:
-                    raise MesonException(f'malformed option {value}')
+                    raise MesonException(f'Value "{value}" for array option with description "{self.description}" is malformed.')
             elif value == '':
                 newvalue = []
             else:
@@ -233,7 +232,7 @@ class UserArrayOption(UserOption[T.List[str]]):
         elif isinstance(value, list):
             newvalue = value
         else:
-            raise MesonException(f'"{newvalue}" should be a string array, but it is not')
+            raise MesonException(f'Value "{newvalue}" for array option with description "{self.description}" is not a string array.')
         return newvalue
 
     def validate_value(self, value: T.Union[str, T.List[str]], user_input: bool = True) -> T.List[str]:
@@ -245,12 +244,13 @@ class UserArrayOption(UserOption[T.List[str]]):
             mlog.deprecation(msg)
         for i in newvalue:
             if not isinstance(i, str):
-                raise MesonException(f'String array element "{newvalue!s}" is not a string.')
+                raise MesonException(f'Value "{value}" for array option with description "{self.description}": String array element "{i}" is not a string.')
         if self.choices:
             bad = [x for x in newvalue if x not in self.choices]
             if bad:
-                raise MesonException('Options "{}" are not in allowed choices: "{}"'.format(
-                    ', '.join(bad), ', '.join(self.choices)))
+                badstring = ', '.join([f'"{item}"' for item in bad])
+                optionsstring = ', '.join([f'"{item}"' for item in self.choices])
+                raise MesonException(f'Value "{value}" for array option with description "{self.description}": Option(s) {badstring} is/are not in allowed choices: {optionsstring}.')
         return newvalue
 
     def extend_value(self, value: T.Union[str, T.List[str]]) -> None:
