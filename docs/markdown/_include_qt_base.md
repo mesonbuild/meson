@@ -41,7 +41,7 @@ It takes no positional arguments, and the following keyword arguments:
   - `extra_args` string[]: Extra arguments to pass directly to `qt-moc`
   - `method` string: The method to use to detect qt, see `dependency()` for more
     information.
-  - `include_directories` IncludeDirectory[]: A list of `include_directory()`
+  - `include_directories` (string | IncludeDirectory)[]: A list of `include_directory()`
     objects used when transpiling the .moc files
 
 ## preprocess
@@ -62,16 +62,16 @@ sources += qt.preprocess(qresources : ['resources'])
 ```
 
 This method takes the following keyword arguments:
- - `qresources`: a list of strings, Files, Custom Targets, or Build Targets to pass the `rcc` compiler
- - `ui_files`: a list of strings, Files, Custom Targets, or Build Targets to pass the `uic` compiler
- - `moc_sources`: a list of strings, Files, Custom Targets, or Build Targets to pass the `moc` compiler the
- - `moc_headers`: a list of strings, Files, Custom Targets, or Build Targets to pass the `moc` compiler. These will be converted into .cpp files
- - `include_directories`, the directories to add to header search path for `moc` (optional)
- - `moc_extra_arguments`, any additional arguments to `moc` (optional). Available since v0.44.0.
- - `uic_extra_arguments`, any additional arguments to `uic` (optional). Available since v0.49.0.
- - `rcc_extra_arguments`, any additional arguments to `rcc` (optional). Available since v0.49.0.
- - `dependencies`, dependency objects needed by moc. Available since v0.48.0.
- - `sources`, a list of extra sources, which are added to the output unchaged. Deprecated in 0.59.0
+ - `qresources` (string | File | CustomTarget | BuildTarget)[]: Passed to the RCC compiler
+ - `ui_files`: (string | File | CustomTarget | BuilduTarget)[]: Passed the `uic` compiler
+ - `moc_sources`: (string | File | CustomTarget | BuildTarget)[]: Passed the `moc` compiler the
+ - `moc_headers`: (string | File | CustomTarget | BuildTarget)[]: Passied the `moc` compiler. These will be converted into .cpp files
+ - `include_directories` (IncludeDirectories | string)[], the directories to add to header search path for `moc`
+ - `moc_extra_arguments` string[]: any additional arguments to `moc`. Since v0.44.0.
+ - `uic_extra_arguments` string[]: any additional arguments to `uic`. Since v0.49.0.
+ - `rcc_extra_arguments` string[]: any additional arguments to `rcc`. Since v0.49.0.
+ - `dependencies` Dependency[]: dependency objects needed by moc. Available since v0.48.0.
+ - `sources`: a list of extra sources, which are added to the output unchaged. Deprecated in 0.59.0.
 
 It returns an array of targets and sources to pass to a compilation target.
 

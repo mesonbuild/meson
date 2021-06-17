@@ -65,7 +65,7 @@ if T.TYPE_CHECKING:
         headers: T.List[mesonlib.FileOrString]
         extra_args: T.List[str]
         method: str
-        include_directories: T.List[IncludeDirsHolder]
+        include_directories: T.List[T.Union[str, IncludeDirsHolder]]
         dependencies: T.List[T.Union[DependencyHolder, ExternalLibraryHolder]]
 
     class PreprocessKwArgs(TypedDict):
@@ -78,7 +78,7 @@ if T.TYPE_CHECKING:
         moc_extra_arguments: T.List[str]
         rcc_extra_arguments: T.List[str]
         uic_extra_arguments: T.List[str]
-        include_directories: T.List[IncludeDirsHolder]
+        include_directories: T.List[T.Union[str, IncludeDirsHolder]]
         dependencies: T.List[T.Union[DependencyHolder, ExternalLibraryHolder]]
         method: str
 
@@ -362,7 +362,7 @@ class QtBaseModule(ExtensionModule):
         KwargInfo('headers', ContainerTypeInfo(list, (File, str)), listify=True, default=[]),
         KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
         KwargInfo('method', str, default='auto'),
-        KwargInfo('include_directories', ContainerTypeInfo(list, IncludeDirsHolder), listify=True, default=[]),
+        KwargInfo('include_directories', ContainerTypeInfo(list, (IncludeDirsHolder, str)), listify=True, default=[]),
         KwargInfo('dependencies', ContainerTypeInfo(list, (DependencyHolder, ExternalLibraryHolder)), listify=True, default=[]),
     )
     def compile_moc(self, state: 'ModuleState', args: T.Tuple, kwargs: 'MocCompilerKwArgs') -> ModuleReturnValue:
@@ -408,7 +408,7 @@ class QtBaseModule(ExtensionModule):
         KwargInfo('rcc_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[], since='0.49.0'),
         KwargInfo('uic_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[], since='0.49.0'),
         KwargInfo('method', str, default='auto'),
-        KwargInfo('include_directories', ContainerTypeInfo(list, IncludeDirsHolder), listify=True, default=[]),
+        KwargInfo('include_directories', ContainerTypeInfo(list, (IncludeDirsHolder, str)), listify=True, default=[]),
         KwargInfo('dependencies', ContainerTypeInfo(list, (DependencyHolder, ExternalLibraryHolder)), listify=True, default=[]),
     )
     def preprocess(self, state: 'ModuleState', args: T.List[T.Union[str, File]], kwargs: 'PreprocessKwArgs') -> ModuleReturnValue:
