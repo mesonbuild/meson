@@ -76,13 +76,13 @@ def boolean_parser(description: str, kwargs: T.Dict[str, T.Any]) -> coredata.Use
 @permitted_kwargs({'value', 'yield', 'choices'})
 def combo_parser(description: str, kwargs: T.Dict[str, T.Any]) -> coredata.UserComboOption:
     if 'choices' not in kwargs:
-        raise OptionException('Combo option missing "choices" keyword.')
+        raise OptionException(f'Choice list for combo choice option with description "{description}" misses "choices" keyword.')
     choices = kwargs['choices']
     if not isinstance(choices, list):
-        raise OptionException('Combo choices must be an array.')
+        raise OptionException(f'Choice list "{choices}" for combo choice option with description "{description}" must be an array.')
     for i in choices:
         if not isinstance(i, str):
-            raise OptionException('Combo choice elements must be strings.')
+            raise OptionException(f'Choice list "{choices}" for combo choice option with description "{description}": elements must be strings.')
     return coredata.UserComboOption(description,
                                     choices,
                                     kwargs.get('value', choices[0]),
@@ -92,7 +92,7 @@ def combo_parser(description: str, kwargs: T.Dict[str, T.Any]) -> coredata.UserC
 @permitted_kwargs({'value', 'min', 'max', 'yield'})
 def integer_parser(description: str, kwargs: T.Dict[str, T.Any]) -> coredata.UserIntegerOption:
     if 'value' not in kwargs:
-        raise OptionException('Integer option must contain value argument.')
+        raise OptionException(f'Integer option must with description "{description}" must contain a "value" argument.')
     inttuple = (kwargs.get('min', None), kwargs.get('max', None), kwargs['value'])
     return coredata.UserIntegerOption(description,
                                       inttuple,
@@ -106,16 +106,16 @@ def string_array_parser(description: str, kwargs: T.Dict[str, T.Any]) -> coredat
     if 'choices' in kwargs:
         choices = kwargs['choices']
         if not isinstance(choices, list):
-            raise OptionException('Array choices must be an array.')
+            raise OptionException(f'Choice options "{choices}" for array option with description "{description}" must be an array.')
         for i in choices:
             if not isinstance(i, str):
-                raise OptionException('Array choice elements must be strings.')
+                raise OptionException(f'Choice options "{choices}" for array option with description "{description}": elements must be strings.')
         value = kwargs.get('value', choices)
     else:
         choices = None
         value = kwargs.get('value', [])
     if not isinstance(value, list):
-        raise OptionException('Array choices must be passed as an array.')
+        raise OptionException(f'Value "{value}" for array option with description "{description}" must be passed as an array.')
     return coredata.UserArrayOption(description,
                                     value,
                                     choices=choices,
