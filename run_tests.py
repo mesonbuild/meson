@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import collections
 import os
 import sys
 import time
@@ -268,6 +269,7 @@ def clear_meson_configure_class_caches() -> None:
     compilers.CCompiler.find_framework_cache = {}
     dependencies.PkgConfigDependency.pkgbin_cache = {}
     dependencies.PkgConfigDependency.class_pkgbin = mesonlib.PerMachine(None, None)
+    mesonlib.project_meson_versions = collections.defaultdict(str)
 
 def run_configure_inprocess(commandlist: T.List[str], env: T.Optional[T.Dict[str, str]] = None, catch_exception: bool = False) -> T.Tuple[int, str, str]:
     stderr = StringIO()
