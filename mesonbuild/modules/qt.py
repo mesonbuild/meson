@@ -428,11 +428,11 @@ class QtBaseModule(ExtensionModule):
                 if not isinstance(args[0], str):
                     raise build.InvalidArguments('First argument to qt.preprocess must be a string')
                 rcc_kwargs['name'] = args[0]
-            sources.extend(self.compile_resources(state, tuple(), rcc_kwargs).return_value)
+            sources.append(self.compile_resources(state, tuple(), rcc_kwargs).return_value)
 
         if kwargs['ui_files']:
             ui_kwargs: 'UICompilerKwArgs' = {'sources': kwargs['ui_files'], 'extra_args': kwargs['uic_extra_arguments'], 'method': method}
-            sources.extend(self.compile_ui(state, tuple(), ui_kwargs).return_value)
+            sources.append(self.compile_ui(state, tuple(), ui_kwargs).return_value)
 
         if kwargs['moc_headers'] or kwargs['moc_sources']:
             moc_kwargs: 'MocCompilerKwArgs' = {
@@ -443,7 +443,7 @@ class QtBaseModule(ExtensionModule):
                 'dependencies': kwargs['dependencies'],
                 'method': method,
             }
-            sources.extend(self.compile_moc(state, tuple(), moc_kwargs).return_value)
+            sources.append(self.compile_moc(state, tuple(), moc_kwargs).return_value)
 
         return ModuleReturnValue(sources, [sources])
 
