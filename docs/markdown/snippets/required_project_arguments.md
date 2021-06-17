@@ -1,4 +1,4 @@
-# Required project & global arguments
+## Required project & global arguments
 
 The `add_global_arguments` & `add_project_arguments` functions now
 support an optional keyword argument named `required`. Setting it
