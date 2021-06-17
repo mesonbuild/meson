@@ -327,28 +327,30 @@ class Build:
         return link_args.get(compiler.get_language(), [])
 
 class IncludeDirs:
-    def __init__(self, curdir, dirs, is_system, extra_build_dirs=None):
+
+    """Internal representation of an include_directories call."""
+
+    def __init__(self, curdir: str, dirs: T.List[str], is_system: bool,
+                 extra_build_dirs: T.Optional[T.List[str]] = None):
         self.curdir = curdir
         self.incdirs = dirs
         self.is_system = is_system
+
         # Interpreter has validated that all given directories
         # actually exist.
-        if extra_build_dirs is None:
-            self.extra_build_dirs = []
-        else:
-            self.extra_build_dirs = extra_build_dirs
+        self.extra_build_dirs: T.List[str] = extra_build_dirs or []
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         r = '<{} {}/{}>'
         return r.format(self.__class__.__name__, self.curdir, self.incdirs)
 
-    def get_curdir(self):
+    def get_curdir(self) -> str:
         return self.curdir
 
-    def get_incdirs(self):
+    def get_incdirs(self) -> T.List[str]:
         return self.incdirs
 
-    def get_extra_build_dirs(self):
+    def get_extra_build_dirs(self) -> T.List[str]:
         return self.extra_build_dirs
 
     def to_string_list(self, sourcedir: str) -> T.List[str]:
