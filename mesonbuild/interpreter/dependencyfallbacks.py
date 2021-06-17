@@ -47,6 +47,10 @@ class DependencyFallbacksHolder(InterpreterObject):
                              location=self.interpreter.current_node)
             return
         fbinfo = stringlistify(fbinfo)
+        if len(fbinfo) == 0:
+            # dependency('foo', fallback: []) is the same as dependency('foo', allow_fallback: false)
+            self.allow_fallback = False
+            return
         if len(fbinfo) == 1:
             FeatureNew.single_use('Fallback without variable name', '0.53.0', self.subproject)
             subp_name, varname = fbinfo[0], None

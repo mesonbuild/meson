@@ -515,6 +515,8 @@ This function supports the following keyword arguments:
   in this case the subproject must use
   `meson.override_dependency('dependency_name', subproj_dep)`
   to specify the dependency object used in the superproject.
+  If the value is an empty list, it has the same effect as
+  `allow_fallback: false`.
 - `language` *(since 0.42.0)*: defines what language-specific
   dependency to find if it's available for multiple languages.
 - `method`: defines the way the dependency is detected, the default is
