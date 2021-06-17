@@ -57,7 +57,7 @@ import re
 import stat
 import collections
 import typing as T
-
+import textwrap
 import importlib
 
 if T.TYPE_CHECKING:
@@ -2178,7 +2178,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     def func_include_directories(self, node, args, kwargs):
         return self.build_incdir_object(args, kwargs.get('is_system', False))
 
-    def build_incdir_object(self, incdir_strings, is_system=False):
+    def build_incdir_object(self, incdir_strings: T.List[str], is_system: bool = False) -> IncludeDirsHolder:
         if not isinstance(is_system, bool):
             raise InvalidArguments('Is_system must be boolean.')
         src_root = self.environment.get_source_dir()
@@ -2188,46 +2188,47 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
 
         for a in incdir_strings:
             if a.startswith(src_root):
-                raise InvalidArguments('Tried to form an absolute path to a source dir. '
-                                       'You should not do that but use relative paths instead.'
-                                       '''
+                raise InvalidArguments(textwrap.dedent('''\
+                    Tried to form an absolute path to a source dir.
+                    You should not do that but use relative paths instead.
 
-To get include path to any directory relative to the current dir do
+                    To get include path to any directory relative to the current dir do
 
-incdir = include_directories(dirname)
+                    incdir = include_directories(dirname)
 
-After this incdir will contain both the current source dir as well as the
-corresponding build dir. It can then be used in any subdirectory and
-Meson will take care of all the busywork to make paths work.
+                    After this incdir will contain both the current source dir as well as the
+                    corresponding build dir. It can then be used in any subdirectory and
+                    Meson will take care of all the busywork to make paths work.
 
-Dirname can even be '.' to mark the current directory. Though you should
-remember that the current source and build directories are always
-put in the include directories by default so you only need to do
-include_directories('.') if you intend to use the result in a
-different subdirectory.
-''')
+                    Dirname can even be '.' to mark the current directory. Though you should
+                    remember that the current source and build directories are always
+                    put in the include directories by default so you only need to do
+                    include_directories('.') if you intend to use the result in a
+                    different subdirectory.
+                    '''))
             else:
                 try:
                     self.validate_within_subproject(self.subdir, a)
                 except InterpreterException:
                     mlog.warning('include_directories sandbox violation!')
-                    print(f'''The project is trying to access the directory {a} which belongs to a different
-subproject. This is a problem as it hardcodes the relative paths of these two projeccts.
-This makes it impossible to compile the project in any other directory layout and also
-prevents the subproject from changing its own directory layout.
+                    print(textwrap.dedent(f'''\
+                        The project is trying to access the directory {a} which belongs to a different
+                        subproject. This is a problem as it hardcodes the relative paths of these two projeccts.
+                        This makes it impossible to compile the project in any other directory layout and also
+                        prevents the subproject from changing its own directory layout.
 
-Instead of poking directly at the internals the subproject should be executed and
-it should set a variable that the caller can then use. Something like:
+                        Instead of poking directly at the internals the subproject should be executed and
+                        it should set a variable that the caller can then use. Something like:
 
-# In subproject
-some_dep = declare_depencency(include_directories: include_directories('include'))
+                        # In subproject
+                        some_dep = declare_depencency(include_directories: include_directories('include'))
 
-# In parent project
-some_dep = depencency('some')
-executable(..., dependencies: [some_dep])
+                        # In parent project
+                        some_dep = depencency('some')
+                        executable(..., dependencies: [some_dep])
 
-This warning will become a hard error in a future Meson release.
-''')
+                        This warning will become a hard error in a future Meson release.
+                        '''))
             absdir_src = os.path.join(absbase_src, a)
             absdir_build = os.path.join(absbase_build, a)
             if not os.path.isdir(absdir_src) and not os.path.isdir(absdir_build):
