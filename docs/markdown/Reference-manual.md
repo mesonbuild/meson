@@ -449,6 +449,58 @@ keyword arguments:
   in subprojects where special variables would be provided via cmake or
   pkg-config. *since 0.56.0* it can also be a list of `'key=value'` strings.
 
+### dependency_fallbacks()
+
+``` meson
+    dependency_fallbacks_object dependency_fallbacks('name1', 'name2', ...)
+```
+
+*Since 0.59.0*
+
+Declare a serie of fallbacks to find a given dependency. The returned object
+is intended to be passed to `dependency()` function.
+
+Positional arguments are names of the dependency, they are looked up in
+order on the system, using pkg-config, cmake, etc.
+
+This function supports the following keyword arguments:
+- `wraps`: Wheter or not to allow Meson to lookup in wrap files if one
+  of the dependency names are provided. Defaults to `true`.
+
+Extra lookup methods can be added by calling methods on the returned object:
+- `has_function(compiler, func_name)`: Takes the same positional and keyword
+  arguments as [Compiler Object](#compiler-object)'s `has_function()` method,
+  but with the compiler object as first positional argument. This is typically
+  used to check if the dependency is provided by the compiler or the libc by
+  default without the need of extra library. Note that if `include_directories`
+  and `dependencies` keyword arguments are passed and the function is found,
+  those dependencies will be part of the returned found dependency object.
+  This function can be called multiple times, the first one to succeed will be
+  used.
+- `find_library(compiler, library_name)`: Takes the same positional and keyword
+  arguments as [Compiler Object](#compiler-object)'s `find_library()` method,
+  but with the compiler object as first positional argument, except `required`
+  and `static` keyword arguments that are taken from `dependency()` arguments.
+  This is typically used to check if the dependency is provided by a system library.
+  This function can be called multiple times, the first one to succeed will be
+  used.
+- `subproject(name)`: Configure a subproject that provides this dependency.
+  options can be passed with the `default_options` keyword argument, see
+  [`dependency()`](#dependency) documentation for details). The subproject must
+  use `meson.override_dependency()` to override at least one of the names
+  provided as `dependency_fallbacks()` arguments, or the variable name must be
+  specified in the wrap [`[provide]` section](Wrap-dependency-system-manual.html#provide-section).
+  This function can only be called once and will always be tried last. If the
+  subproject has already been configured all other lookup methods are ignored.
+
+```meson
+df = dependency_fallbacks('foo-1.0', 'foo-1.1')
+df.has_function(cc, 'foo_do_something')
+df.find_library(cc, 'foo', has_headers: 'foo.h')
+df.subproject('foo', default_options: ['werror=false'])
+foo_dep = dependency(df)
+```
+
 ### dependency()
 
 ``` meson
@@ -483,6 +535,15 @@ Dependencies can also be resolved in two other ways:
   [Wrap documentation](Wrap-dependency-system-manual.md#provide-section)
   for more details.  This automatic search can be controlled using the
   `allow_fallback` keyword argument.
+
+*Since 0.59.0* The first argument can be a
+[`dependency_fallbacks()`](#dependency_fallbacks) object.
+```meson
+df = dependency_fallbacks('foo-1.0', 'foo-1.1')
+df.find_library(cc, 'foo', has_headers: 'foo.h')
+df.subproject('foo', default_options: ['werror=false'])
+foo_dep = dependency(df)
+```
 
 This function supports the following keyword arguments:
 

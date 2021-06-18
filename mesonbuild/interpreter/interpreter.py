@@ -47,7 +47,7 @@ from .interpreterobjects import (SubprojectHolder, MachineHolder, EnvironmentVar
                                  BuildTargetHolder, DataHolder, JarHolder, Test, RunProcess,
                                  ManHolder, GeneratorHolder, InstallDirHolder, extract_required_kwarg,
                                  extract_search_dirs, MutableModuleObjectHolder)
-from .dependencyfallbacks import DependencyFallbacksHolder
+from .dependencyfallbacks import DependencyFallbacks, DependencyFallbacksHolder
 
 from pathlib import Path
 import os
@@ -342,6 +342,7 @@ class Interpreter(InterpreterBase):
                            'custom_target': self.func_custom_target,
                            'declare_dependency': self.func_declare_dependency,
                            'dependency': self.func_dependency,
+                           'dependency_fallbacks': self.func_dependency_fallbacks,
                            'disabler': self.func_disabler,
                            'environment': self.func_environment,
                            'error': self.func_error,
@@ -505,7 +506,7 @@ class Interpreter(InterpreterBase):
                 kwargs = {'native': for_machine is MachineChoice.BUILD,
                           }
                 name = l + '_stdlib'
-                df = DependencyFallbacksHolder(self, [name])
+                df = DependencyFallbacks(self, [name])
                 df.set_fallback(di)
                 dep = df.lookup(kwargs, force_fallback=True)
                 self.build.stdlibs[for_machine][l] = dep
@@ -1426,6 +1427,13 @@ external dependencies (including libraries) must go to "dependencies".''')
                           'Look here for example: http://mesonbuild.com/howtox.html#add-math-library-lm-portably\n'
                           )
 
+    @FeatureNew('dependency_fallbacks', '0.59.0')
+    @typed_pos_args('dependency_fallbacks', varargs=str)
+    @typed_kwargs('dependency_fallbacks', KwargInfo('wraps', bool, default=True))
+    def func_dependency_fallbacks(self, node, args, kwargs):
+        df = DependencyFallbacks(self, args[0], kwargs['wraps'])
+        return DependencyFallbacksHolder(df)
+
     # When adding kwargs, please check if they make sense in dependencies.get_dep_identifier()
     @FeatureNewKwargs('dependency', '0.57.0', ['cmake_package_version'])
     @FeatureNewKwargs('dependency', '0.56.0', ['allow_fallback'])
@@ -1437,17 +1445,26 @@ external dependencies (including libraries) must go to "dependencies".''')
     @FeatureNewKwargs('dependency', '0.38.0', ['default_options'])
     @disablerIfNotFound
     @permittedKwargs(permitted_dependency_kwargs)
-    @typed_pos_args('dependency', str)
+    @typed_pos_args('dependency', (str, DependencyFallbacksHolder))
     def func_dependency(self, node, args, kwargs):
-        # Replace '' by empty list of names
-        names = [args[0]] if args[0] else []
-        allow_fallback = kwargs.get('allow_fallback')
-        if allow_fallback is not None and not isinstance(allow_fallback, bool):
-            raise InvalidArguments('"allow_fallback" argument must be boolean')
-        fallback = kwargs.get('fallback')
-        default_options = kwargs.get('default_options')
-        df = DependencyFallbacksHolder(self, names, allow_fallback)
-        df.set_fallback(fallback, default_options)
+        if isinstance(args[0], str):
+            # Replace '' by empty list of names
+            names = [args[0]] if args[0] else []
+            allow_fallback = kwargs.get('allow_fallback')
+            if allow_fallback is not None and not isinstance(allow_fallback, bool):
+                raise InvalidArguments('"allow_fallback" argument must be boolean')
+            fallback = kwargs.get('fallback')
+            default_options = kwargs.get('default_options')
+            df = DependencyFallbacks(self, names, allow_fallback)
+            df.set_fallback(fallback, default_options)
+        else:
+            holder = args[0]
+            holder.mark_used()
+            df = holder.held_object
+            # Can't mix legacy kwargs with new dependency_fallbacks() API.
+            for k in {'fallback', 'default_options', 'allow_fallback'}:
+                if k in kwargs:
+                    raise InvalidArguments(f'Argument {k!r} is not allowed when using dependency_fallbacks()')
         not_found_message = kwargs.get('not_found_message', '')
         if not isinstance(not_found_message, str):
             raise InvalidArguments('The not_found_message must be a string.')
@@ -1466,7 +1483,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             wanted = kwargs['include_type']
             actual = d.include_type_method([], {})
             if wanted != actual:
-                mlog.debug(f'Current include type of {names[0]} is {actual}. Converting to requested {wanted}')
+                mlog.debug(f'Current include type of {df.display_name} is {actual}. Converting to requested {wanted}')
                 d = d.as_system_method([wanted], {})
         return d
 

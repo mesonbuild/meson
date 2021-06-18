@@ -61,6 +61,14 @@ find_library_permitted_kwargs = {
 
 find_library_permitted_kwargs |= {'header_' + k for k in header_permitted_kwargs}
 
+has_function_permitted_kwargs = {
+    'prefix',
+    'no_builtin_args',
+    'include_directories',
+    'args',
+    'dependencies',
+}
+
 class CompilerHolder(InterpreterObject):
     def __init__(self, compiler: 'Compiler', env: 'Environment', subproject: str):
         InterpreterObject.__init__(self)
@@ -313,13 +321,7 @@ class CompilerHolder(InterpreterObject):
                  'has members', members, msg, hadtxt, cached)
         return had
 
-    @permittedKwargs({
-        'prefix',
-        'no_builtin_args',
-        'include_directories',
-        'args',
-        'dependencies',
-    })
+    @permittedKwargs(has_function_permitted_kwargs)
     def has_function_method(self, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Has_function takes exactly one argument.')

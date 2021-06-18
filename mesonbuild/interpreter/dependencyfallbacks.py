@@ -1,13 +1,15 @@
 from .interpreterobjects import DependencyHolder, SubprojectHolder, extract_required_kwarg
+from .compiler import CompilerHolder, find_library_permitted_kwargs, has_function_permitted_kwargs
 
 from .. import mlog
 from .. import dependencies
 from .. import build
 from ..wrap import WrapMode
-from ..mesonlib import OptionKey, extract_as_list, stringlistify, version_compare_many
-from ..dependencies import DependencyException, NotFoundDependency
-from ..interpreterbase import (InterpreterObject, FeatureNew,
+from ..mesonlib import OptionKey, extract_as_list, stringlistify, version_compare_many, unholder
+from ..dependencies import DependencyException, NotFoundDependency, InternalDependency
+from ..interpreterbase import (InterpreterObject, ObjectHolder, FeatureNew,
                                InterpreterException, InvalidArguments,
+                               permittedKwargs, typed_pos_args,
                                TYPE_nkwargs, TYPE_nvar)
 
 import typing as T
@@ -15,9 +17,8 @@ if T.TYPE_CHECKING:
     from .interpreter import Interpreter
 
 
-class DependencyFallbacksHolder(InterpreterObject):
+class DependencyFallbacks:
     def __init__(self, interpreter: 'Interpreter', names: T.List[str], allow_fallback: T.Optional[bool] = None) -> None:
-        super().__init__()
         self.interpreter = interpreter
         self.subproject = interpreter.subproject
         self.coredata = interpreter.coredata
@@ -28,6 +29,7 @@ class DependencyFallbacksHolder(InterpreterObject):
         self.subproject_name = None
         self.subproject_varname = None
         self.subproject_kwargs = None
+        self.candidates = []
         self.names: T.List[str] = []
         for name in names:
             if not name:
@@ -38,6 +40,17 @@ class DependencyFallbacksHolder(InterpreterObject):
             if name in self.names:
                 raise InterpreterException('dependency_fallbacks name {name!r} is duplicated')
             self.names.append(name)
+
+    def add_find_library(self, args, kwargs):
+        self.candidates.append((self._do_find_library, args, kwargs))
+
+    def add_has_function(self, args, kwargs):
+        self.candidates.append((self._do_has_function, args, kwargs))
+
+    def set_subproject(self, args, kwargs):
+        if self.subproject_name:
+            raise InterpreterException('dependency_fallbacks.subproject is only allowed once')
+        self._subproject_impl(args[0], None, kwargs)
 
     def set_fallback(self, fbinfo: T.Optional[T.Union[T.List[str], str]], default_options: T.Optional[T.List[str]] = None) -> None:
         # Legacy: This converts dependency()'s fallback and default_options kwargs.
@@ -71,6 +84,12 @@ class DependencyFallbacksHolder(InterpreterObject):
         self.subproject_varname = varname
         self.subproject_kwargs = kwargs
 
+    def _make_internal_dep(self, ext_deps=None, incdirs=None):
+        # Wrap ext_deps (e.g. ExternalLibrary) into an InternalDependency
+        # because dependency() function garantees the return type is DependencyHolder.
+        dep = InternalDependency('undefined', incdirs or [], [], [], [], [], [], ext_deps or [], {})
+        return DependencyHolder(dep, self.subproject)
+
     def _do_dependency_cache(self, kwargs: TYPE_nkwargs, func_args: TYPE_nvar, func_kwargs: TYPE_nkwargs) -> T.Optional[DependencyHolder]:
         name = func_args[0]
         cached_dep = self._get_cached_dep(name, kwargs)
@@ -91,6 +110,22 @@ class DependencyFallbacksHolder(InterpreterObject):
             identifier = dependencies.get_dep_identifier(name, kwargs)
             self.coredata.deps[for_machine].put(identifier, dep)
             return DependencyHolder(dep, self.subproject)
+        return None
+
+    def _do_has_function(self, kwargs, func_args, func_kwargs):
+        compiler, *args = func_args
+        del func_kwargs['required']
+        if compiler.has_function_method(args, func_kwargs):
+            ext_deps = func_kwargs.get('dependencies', [])
+            incdirs = func_kwargs.get('include_directories', [])
+            return self._make_internal_dep(ext_deps, incdirs)
+        return None
+
+    def _do_find_library(self, kwargs, func_args, func_kwargs):
+        compiler, *args = func_args
+        lib = unholder(compiler.find_library_method(args, func_kwargs))
+        if lib.found():
+            return self._make_internal_dep(lib)
         return None
 
     def _do_existing_subproject(self, kwargs: TYPE_nkwargs, func_args: TYPE_nvar, func_kwargs: TYPE_nkwargs) -> T.Optional[DependencyHolder]:
@@ -270,8 +305,11 @@ class DependencyFallbacksHolder(InterpreterObject):
             candidates.append((self._do_existing_subproject, [self.subproject_name], self.subproject_kwargs))
         # 3. check external dependency if we are not forced to use subproject
         if not self.forcefallback or not self.subproject_name:
+            # 3.1. check if any of the names is found on the system (i.e. pkgconfig, cmake).
             for name in self.names:
                 candidates.append((self._do_dependency, [name], {}))
+            # 3.2. check custom candidates (i.e. find_library, has_function).
+            candidates += self.candidates
         # 4. configure the subproject
         if self.subproject_name:
             candidates.append((self._do_subproject, [self.subproject_name], self.subproject_kwargs))
@@ -344,3 +382,39 @@ class DependencyFallbacksHolder(InterpreterObject):
                 # Same as above, but the dependency is not required.
                 return dep
         return self._notfound_dependency()
+
+
+class DependencyFallbacksHolder(InterpreterObject, ObjectHolder[DependencyFallbacks]):
+    def __init__(self, df: DependencyFallbacks) -> None:
+        InterpreterObject.__init__(self)
+        ObjectHolder.__init__(self, df)
+        self.used = False
+        self.methods.update({'find_library': self.find_library_method,
+                             'has_function': self.has_function_method,
+                             'subproject': self.subproject_method,
+                             })
+
+    @permittedKwargs(find_library_permitted_kwargs - {'required', 'static'})
+    @typed_pos_args('dependency_fallbacks.find_library', CompilerHolder, str)
+    def find_library_method(self, args, kwargs):
+        self._check_mutable()
+        self.held_object.add_find_library(args, kwargs)
+
+    @permittedKwargs(has_function_permitted_kwargs - {'required'})
+    @typed_pos_args('dependency_fallbacks.has_function', CompilerHolder, str)
+    def has_function_method(self, args, kwargs):
+        self._check_mutable()
+        self.held_object.add_has_function(args, kwargs)
+
+    @permittedKwargs({'default_options'})
+    @typed_pos_args('dependency_fallbacks.subproject', str)
+    def subproject_method(self, args, kwargs):
+        self._check_mutable()
+        self.held_object.set_subproject(args, kwargs)
+
+    def mark_used(self):
+        self.used = True
+
+    def _check_mutable(self):
+        if self.used:
+            raise InterpreterException('dependency_fallbacks object is immutable after first usage')
