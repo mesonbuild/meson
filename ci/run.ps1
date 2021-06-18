@@ -13,6 +13,11 @@ $env:Path += ";$HOME/.rustup/toolchains/stable-x86_64-pc-windows-msvc/bin"
 # Set the CI env var for the meson test framework
 $env:CI = '1'
 
+# unset MESON_RSP_THRESHOLD if it's empty, as otherwise that might mean zero
+if ((Test-Path env:MESON_RSP_THRESHOLD) -and ($env:MESON_RSP_THRESHOLD -eq '')) {
+   Remove-Item env:MESON_RSP_THRESHOLD
+}
+
 # download and install prerequisites
 function DownloadFile([String] $Source, [String] $Destination) {
   $retries = 10

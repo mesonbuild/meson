@@ -1,0 +1,88 @@
+name: windows
+
+on:
+  push:
+    paths:
+      - "mesonbuild/**"
+      - "test cases/**"
+      - ".github/workflows/windows.yml"
+      - "run*tests.py"
+  pull_request:
+    paths:
+      - "mesonbuild/**"
+      - "test cases/**"
+      - ".github/workflows/windows.yml"
+      - "run*tests.py"
+
+jobs:
+  windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - NAME: vc2017x86ninja
+          arch: x86
+          backend: ninja
+          compiler: msvc2017
+          python-version: '3.6'
+          vm-label: windows-2016
+          MESON_RSP_THRESHOLD: 0
+        - NAME: vc2017x64vs
+          arch: x64
+          backend: vs2017
+          compiler: msvc2017
+          python-version: '3.6'
+          vm-label: windows-2016
+        - NAME: clangclx64ninja
+          arch: x64
+          backend: ninja
+          compiler: clang-cl
+          python-version: '3.6'
+          vm-label: windows-2016
+        - NAME: vc2019x64ninja
+          arch: x64
+          backend: ninja
+          compiler: msvc2019
+          python-version: '3.7'
+          vm-label: windows-2019
+        - NAME: vc2019x64vs
+          arch: x64
+          backend: vs2019
+          compiler: msvc2019
+          python-version: '3.7'
+          vm-label: windows-2019
+        - NAME: vc2019arm64ninjacross
+          arch: arm64
+          backend: ninja
+          compiler: msvc2019
+          python-version: '3.7'
+          extraargs: --cross arm64cl.txt --cross-only
+          vm-label: windows-2019
+
+    name: ${{ matrix.NAME }}
+    runs-on: ${{ matrix.vm-label }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Run tests
+        run: .\ci\run.ps1
+        env:
+          AGENT_WORKFOLDER: ${{ runner.temp }}
+          arch: ${{ matrix.arch }}
+          backend: ${{ matrix.backend }}
+          compiler: ${{ matrix.compiler }}
+          extraargs: ${{ matrix.extraargs }}
+          MESON_RSP_THRESHOLD: ${{ matrix.MESON_RSP_THRESHOLD }}
+          BUILD_SOURCEVERSIONMESSAGE: 'keep install.ps1 happy'
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.NAME }}
+          path: meson-test-run.*
+        # test log should be saved on failure
+        if: ${{ !cancelled() }}
