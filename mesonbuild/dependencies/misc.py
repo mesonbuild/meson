@@ -455,10 +455,13 @@ class IntlSystemDependency(SystemDependency):
         super().__init__(name, env, kwargs)
 
         h = self.clib_compiler.has_header('libintl.h', '', env)
-        self.link_args =  self.clib_compiler.find_library('intl', env, [])
+        self.link_args =  self.clib_compiler.find_library('intl', env, [], self.libtype)
 
         if h[0] and self.link_args:
             self.is_found = True
+
+            if self.static:
+                self.link_args += self.clib_compiler.find_library('iconv', env, [], self.libtype)
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.SYSTEM})
