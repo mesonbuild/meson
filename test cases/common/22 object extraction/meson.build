@@ -16,6 +16,12 @@ else
   e3 = executable('main3', 'main.c', objects : obj3)
   e4 = executable('main4', 'main.c', objects : obj4)
 
+  custom_target('custom_target with object inputs', output: 'objs',
+                input: [obj1, obj2, obj3],
+                build_by_default: true,
+                command: [find_program('check-obj.py'), meson.backend(), '@INPUT@'],
+                capture: true)
+
   test('extraction test 1', e1)
   test('extraction test 2', e2)
   test('extraction test 3', e3)
