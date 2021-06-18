@@ -457,7 +457,7 @@ class IntlSystemDependency(SystemDependency):
         h = self.clib_compiler.has_header('libintl.h', '', env)
         self.link_args =  self.clib_compiler.find_library('intl', env, [])
 
-        if h and self.link_args:
+        if h[0] and self.link_args:
             self.is_found = True
 
 
