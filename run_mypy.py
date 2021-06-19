@@ -37,6 +37,7 @@ modules = [
     'mesonbuild/mintro.py',
     'mesonbuild/mlog.py',
     'mesonbuild/modules/fs.py',
+    'mesonbuild/modules/java.py',
     'mesonbuild/modules/unstable_rust.py',
     'mesonbuild/modules/qt.py',
     'mesonbuild/mparser.py',
