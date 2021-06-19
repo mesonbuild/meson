@@ -799,7 +799,7 @@ The result of this is undefined and will become a hard error in a future Meson r
             index = posargs[0]
             fallback = None
             if len(posargs) == 2:
-                fallback = posargs[1]
+                fallback = self._holderify(posargs[1])
             elif len(posargs) > 2:
                 m = 'Array method \'get()\' only takes two arguments: the ' \
                     'index and an optional fallback value if the index is ' \
@@ -845,7 +845,7 @@ The result of this is undefined and will become a hard error in a future Meson r
                 return obj[key]
 
             if len(posargs) == 2:
-                fallback = posargs[1]
+                fallback = self._holderify(posargs[1])
                 if isinstance(fallback, mparser.BaseNode):
                     return self.evaluate_statement(fallback)
                 return fallback
