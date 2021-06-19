@@ -2671,7 +2671,7 @@ This will become a hard error in the future.''', location=self.current_node)
         if len(args) != 2:
             raise InvalidCode('Set_variable takes two arguments.')
         varname, value = args
-        self.set_variable(varname, value)
+        self.set_variable(varname, value, holderify=True)
 
     @noKwargs
     @noArgsFlattening
