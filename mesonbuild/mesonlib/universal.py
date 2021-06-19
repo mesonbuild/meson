@@ -1385,7 +1385,7 @@ def partition(pred: T.Callable[[_T], object], iterable: T.Iterable[_T]) -> T.Tup
 def Popen_safe(args: T.List[str], write: T.Optional[str] = None,
                stdout: T.Union[T.TextIO, T.BinaryIO, int] = subprocess.PIPE,
                stderr: T.Union[T.TextIO, T.BinaryIO, int] = subprocess.PIPE,
-               **kwargs: T.Any) -> T.Tuple[subprocess.Popen, str, str]:
+               **kwargs: T.Any) -> T.Tuple['subprocess.Popen[str]', str, str]:
     import locale
     encoding = locale.getpreferredencoding()
     # Redirect stdin to DEVNULL otherwise the command run by us here might mess
@@ -1408,7 +1408,7 @@ def Popen_safe(args: T.List[str], write: T.Optional[str] = None,
 def Popen_safe_legacy(args: T.List[str], write: T.Optional[str] = None,
                       stdout: T.Union[T.TextIO, T.BinaryIO, int] = subprocess.PIPE,
                       stderr: T.Union[T.TextIO, T.BinaryIO, int] = subprocess.PIPE,
-                      **kwargs: T.Any) -> T.Tuple[subprocess.Popen, str, str]:
+                      **kwargs: T.Any) -> T.Tuple['subprocess.Popen[str]', str, str]:
     p = subprocess.Popen(args, universal_newlines=False, close_fds=False,
                          stdout=stdout, stderr=stderr, **kwargs)
     input_ = None  # type: T.Optional[bytes]
