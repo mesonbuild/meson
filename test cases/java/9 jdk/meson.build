@@ -9,10 +9,13 @@ if build_machine.system() == 'windows' and build_machine.cpu_family() == 'x86'
 endif
 
 fs = import('fs')
+javamod = import('java')
 
 java = find_program('java')
 
 jdk = dependency('jdk', version : '>=1.8')
 
+# generate native headers
+subdir('src/com/mesonbuild')
 subdir('lib')
 subdir('src')

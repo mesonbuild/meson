@@ -44,6 +44,7 @@ index.md
 			Gnome-module.md
 			Hotdoc-module.md
 			Icestorm-module.md
+			Java-module.md
 			Keyval-module.md
 			Pkgconfig-module.md
 			Python-3-module.md
