@@ -2561,12 +2561,23 @@ module](#shared_module).
   this and will also allow Meson to setup inter-target dependencies
   correctly. Please file a bug if that doesn't work for you.
 
+- `path()` *(since 0.59.0)* **(deprecated)**: does the exact same
+  as `full_path()`. **NOTE:** This function is solely kept for compatebility
+  with [`external program`](#external-program-object) objects. It will be
+  removed once the, also deprecated, corresponding `path()` function in the
+  `external program` object is removed.
+
 - `private_dir_include()`: returns a opaque value that works like
   `include_directories` but points to the private directory of this
   target, usually only needed if an another target needs to access
   some generated internal headers of this target
 
 - `name()` *(since 0.54.0)*: returns the target name.
+
+- `found()` *(since 0.59.0)*: Always returns `true`. This function is meant
+  to make executables objects feature compatible with
+  [`external program`](#external-program-object) objects. This simplifies
+  use-cases where an executable is used instead of an external program.
 
 
 ### `configuration` data object

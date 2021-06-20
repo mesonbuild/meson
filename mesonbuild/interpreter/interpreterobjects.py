@@ -582,19 +582,14 @@ class ExternalProgramHolder(ObjectHolder[ExternalProgram]):
         return self._full_path()
 
     def _full_path(self) -> str:
-        exe = self.held_object
-        # TODO: How is this case even possible? Why can this hold a build.Executable?
-        if isinstance(exe, build.Executable):
-            assert self.interpreter.backend is not None
-            return self.interpreter.backend.get_target_filename_abs(exe)
         if not self.found():
             raise InterpreterException('Unable to get the path of a not-found external program')
-        path = exe.get_path()
+        path = self.held_object.get_path()
         assert path is not None
-        return exe.get_path()
+        return path
 
     def found(self) -> bool:
-        return isinstance(self.held_object, build.Executable) or self.held_object.found()
+        return self.held_object.found()
 
 class ExternalLibraryHolder(ObjectHolder[ExternalLibrary]):
     def __init__(self, el: ExternalLibrary, interpreter: 'Interpreter'):
@@ -790,6 +785,8 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
                              'get_id': self.get_id_method,
                              'outdir': self.outdir_method,
                              'full_path': self.full_path_method,
+                             'path': self.path_method,
+                             'found': self.found_method,
                              'private_dir_include': self.private_dir_include_method,
                              })
 
@@ -810,12 +807,24 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
 
     @noPosargs
     @noKwargs
+    @FeatureNew('BuildTarget.found', '0.59.0')
+    def found_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
+        return True
+
+    @noPosargs
+    @noKwargs
     def private_dir_include_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> build.IncludeDirs:
         return build.IncludeDirs('', [], False, [self.interpreter.backend.get_target_private_dir(self._target_object)])
 
     @noPosargs
     @noKwargs
     def full_path_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
+        return self.interpreter.backend.get_target_filename_abs(self._target_object)
+
+    @noPosargs
+    @noKwargs
+    @FeatureDeprecated('BuildTarget.path', '0.55.0', 'Use BuildTarget.full_path instead')
+    def path_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.interpreter.backend.get_target_filename_abs(self._target_object)
 
     @noPosargs
