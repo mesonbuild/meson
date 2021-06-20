@@ -224,6 +224,7 @@ class InstalledFile:
 @functools.total_ordering
 class TestDef:
     def __init__(self, path: Path, name: T.Optional[str], args: T.List[str], skip: bool = False):
+        self.category = path.parts[1]
         self.path = path
         self.name = name
         self.args = args
@@ -1270,9 +1271,9 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
             continue
 
         # Handle skipped tests
-        if (result is None) or (('MESON_SKIP_TEST' in result.stdo) and (skippable(name, t.path.as_posix()))):
+        if (result is None) or (('MESON_SKIP_TEST' in result.stdo) and (skippable(t.category, t.path.as_posix()))):
             f.update_log(TestStatus.SKIP)
-            current_test = ET.SubElement(current_suite, 'testcase', {'name': testname, 'classname': name})
+            current_test = ET.SubElement(current_suite, 'testcase', {'name': testname, 'classname': t.category})
             ET.SubElement(current_test, 'skipped', {})
             skipped_tests += 1
             continue
@@ -1323,7 +1324,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
         current_test = ET.SubElement(
             current_suite,
             'testcase',
-            {'name': testname, 'classname': name, 'time': '%.3f' % total_time}
+            {'name': testname, 'classname': t.category, 'time': '%.3f' % total_time}
         )
         if result.msg != '':
             ET.SubElement(current_test, 'failure', {'message': result.msg})
