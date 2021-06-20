@@ -58,7 +58,7 @@ class InterpreterObject:
             if not getattr(method, 'no-args-flattening', False):
                 args = flatten(args)
             return method(args, kwargs)
-        raise InvalidCode('Unknown method "%s" in object.' % method_name)
+        raise InvalidCode(f'Unknown method "{method_name}" in object {self} of type {type(self).__name__}.')
 
 class MesonInterpreterObject(InterpreterObject):
     ''' All non-elementary objects and non-object-holders should be derived from this '''
