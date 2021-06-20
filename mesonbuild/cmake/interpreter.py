@@ -24,7 +24,7 @@ from .traceparser import CMakeTraceParser, CMakeGeneratorTarget
 from .. import mlog, mesonlib
 from ..mesonlib import MachineChoice, OrderedSet, version_compare, path_is_in_root, relative_to_if_possible, OptionKey
 from ..mesondata import mesondata
-from ..compilers.compilers import lang_suffixes, header_suffixes, obj_suffixes, lib_suffixes, is_header
+from ..compilers.compilers import assembler_suffixes, lang_suffixes, header_suffixes, obj_suffixes, lib_suffixes, is_header
 from ..programs import ExternalProgram
 from enum import Enum
 from functools import lru_cache
@@ -435,7 +435,7 @@ class ConverterTarget:
         self.link_libraries = temp
 
         # Filter out files that are not supported by the language
-        supported = list(header_suffixes) + list(obj_suffixes)
+        supported = list(assembler_suffixes) + list(header_suffixes) + list(obj_suffixes)
         for i in self.languages:
             supported += list(lang_suffixes[i])
         supported = [f'.{x}' for x in supported]
