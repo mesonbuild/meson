@@ -13,7 +13,7 @@ import pathlib
 import typing as T
 
 from mesonbuild import mlog
-from run_project_tests import TestDef, load_test_json, run_test, BuildStep, skippable
+from run_project_tests import TestDef, load_test_json, run_test, BuildStep
 from run_project_tests import setup_commands, detect_system_compiler, print_tool_versions
 
 if T.TYPE_CHECKING:
@@ -50,7 +50,7 @@ def main() -> None:
     results = [run_test(t, t.args, '', True) for t in tests]
     failed = False
     for test, result in zip(tests, results):
-        if (result is None) or (('MESON_SKIP_TEST' in result.stdo) and (skippable(str(args.case.parent), test.path.as_posix()))):
+        if (result is None) or ('MESON_SKIP_TEST' in result.stdo):
             msg = mlog.yellow('SKIP:')
         elif result.msg:
             msg = mlog.red('FAIL:')
