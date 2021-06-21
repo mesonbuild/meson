@@ -6,5 +6,6 @@
         { "val": "config-tool" }
       ]
     }
-  }
+  },
+  "skip_on_jobname": ["fedora", "opensuse"]
 }

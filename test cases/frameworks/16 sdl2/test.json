@@ -6,7 +6,7 @@
         { "val": "pkg-config" },
         { "val": "config-tool" },
         { "val": "sdlconfig" },
-        { "val": "extraframework" }
+        { "val": "extraframework", "skip_on_os": ["!macos"] }
       ]
     }
   }
