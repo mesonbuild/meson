@@ -2,7 +2,7 @@
 
 extern const int32_t cmTestArea;
 
-int32_t cmTestFunc()
+int32_t cmTestFunc(void)
 {
     return cmTestArea;
 }
