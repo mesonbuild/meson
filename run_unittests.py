@@ -10181,7 +10181,7 @@ class SubprojectsCommandTests(BasePlatformTests):
         self._git_create_local_repo('sub_git')
         self._wrap_create_git('sub_git')
 
-        def deleting(s) -> T.List[str]:
+        def deleting(s: str) -> T.List[str]:
             ret = []
             prefix = 'Deleting '
             for l in s.splitlines():
