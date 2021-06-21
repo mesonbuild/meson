@@ -74,8 +74,7 @@ c_suffixes = lang_suffixes['c'] + ('h',)  # type: T.Tuple[str, ...]
 # C ABI; these can generally be used interchangeably
 clib_langs = ('objcpp', 'cpp', 'objc', 'c', 'fortran',)  # type: T.Tuple[str, ...]
 # List of assembler suffixes that can be linked with C code directly by the linker
-assembler_suffixes = tuple() # type: T.Tuple[str, ...]
-assembler_suffixes += ('s', 'S')
+assembler_suffixes: T.Tuple[str, ...] = ('s', 'S')
 # List of languages that can be linked with C code directly by the linker
 # used in build.py:process_compilers() and build.py:get_dynamic_linker()
 clink_langs = ('d', 'cuda') + clib_langs  # type: T.Tuple[str, ...]
