@@ -26,7 +26,7 @@ endif
 
 gobject = dependency('gobject-2.0')
 
-libfoo = library('foo', 'foo.c',
+libfoo = shared_library('foo', 'foo.c',
   include_directories: inc,
   dependencies: gobject,
 )

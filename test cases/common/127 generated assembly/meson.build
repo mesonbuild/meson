@@ -50,7 +50,7 @@ copygen = generator(copy,
   arguments : ['@INPUT@', '@OUTPUT@'],
   output : '@BASENAME@')
 
-l = shared_library('square-gen', crt_workaround + [copygen.process(input)],
+l = library('square-gen', crt_workaround + [copygen.process(input)],
   vs_module_defs: 'square.def')
 
 test('square-gen-test', executable('square-gen-test', 'main.c', link_with : l))
@@ -60,7 +60,7 @@ copyct = custom_target('square',
   output : output,
   command : [copy, '@INPUT@', '@OUTPUT@'])
 
-l = shared_library('square-ct', crt_workaround + [copyct],
+l = library('square-ct', crt_workaround + [copyct],
   vs_module_defs: 'square.def')
 
 test('square-ct-test', executable('square-ct-test', 'main.c', link_with : l))

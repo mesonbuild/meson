@@ -3,8 +3,8 @@ project('object extraction', 'c')
 if meson.is_unity()
   message('Skipping extraction test because this is a Unity build.')
 else
-  lib1 = shared_library('somelib', 'src/lib.c')
-  lib2 = shared_library('somelib2', 'lib.c', 'header.h', 'lib2.c')
+  lib1 = library('somelib', 'src/lib.c')
+  lib2 = library('somelib2', 'lib.c', 'header.h', 'lib2.c')
 
   obj1 = lib1.extract_objects('src/lib.c')
   obj2 = lib2.extract_objects(['lib.c'])

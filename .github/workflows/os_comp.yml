@@ -52,7 +52,11 @@ jobs:
         cfg:
           - CC: 'gcc'
             CXX: 'g++'
-          - MESON_ARGS: '--unity=on'
+          - MESON_ARGS: '--unity=on -Ddefault_library=static'
+            RUN_TESTS_ARGS: '--no-unittests'
+            CC: 'gcc'
+            CXX: 'g++'
+          - MESON_ARGS: '-Ddefault_library=both'
             RUN_TESTS_ARGS: '--no-unittests'
             CC: 'gcc'
             CXX: 'g++'
