@@ -1,4 +1,4 @@
-project('assembler test', ['c'])
+project('assembler test', ['c', 'cpp'])
 
 cm = import('cmake')
 

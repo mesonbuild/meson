@@ -1,9 +1,9 @@
 #include <stdint.h>
 #include <stdio.h>
 
-int32_t cmTestFunc();
+int32_t cmTestFunc(void);
 
-int main(int argc, char* argv[])
+int main(void)
 {
     if (cmTestFunc() > 4200)
     {
