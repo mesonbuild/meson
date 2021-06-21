@@ -930,10 +930,6 @@ def skippable(suite: str, test: str) -> bool:
     if not suite.endswith('frameworks'):
         return True
 
-    # this test assumptions aren't valid for Windows paths
-    if test.endswith('38 libdir must be inside prefix'):
-        return True
-
     # gtk-doc test may be skipped, pending upstream fixes for spaces in
     # filenames landing in the distro used for CI
     if test.endswith('10 gtk-doc'):
@@ -941,10 +937,6 @@ def skippable(suite: str, test: str) -> bool:
 
     # NetCDF is not in the CI Docker image
     if test.endswith('netcdf'):
-        return True
-
-    # MSVC doesn't link with GFortran
-    if test.endswith('14 fortran links c'):
         return True
 
     # Blocks are not supported on all compilers
@@ -983,10 +975,6 @@ def skippable(suite: str, test: str) -> bool:
     # On macOS we should have all of the requirements at all times.
     if test.endswith('4 qt'):
         return not mesonlib.is_osx()
-
-    # Bindgen isn't available in all distros
-    if test.endswith('12 bindgen'):
-        return False
 
     # No frameworks test should be skipped on linux CI, as we expect all
     # prerequisites to be installed
