@@ -17,7 +17,7 @@ from ..interpreterbase import (
                                ContainerTypeInfo, KwargInfo,
                                InterpreterObject, MesonInterpreterObject, ObjectHolder, MutableInterpreterObject,
                                FeatureCheckBase, FeatureNewKwargs, FeatureNew, FeatureDeprecated,
-                               typed_pos_args, typed_kwargs, KwargInfo, stringArgs, permittedKwargs,
+                               typed_pos_args, typed_kwargs, stringArgs, permittedKwargs,
                                noArgsFlattening, noPosargs, noKwargs, permissive_unholder_return, TYPE_var, TYPE_kwargs, TYPE_nvar, TYPE_nkwargs,
                                flatten, resolve_second_level_holders, InterpreterException, InvalidArguments, InvalidCode)
 from ..dependencies import Dependency, ExternalLibrary, InternalDependency
@@ -675,7 +675,7 @@ class Test(MesonInterpreterObject):
                  priority: int):
         super().__init__()
         self.name = name
-        self.suite = suite
+        self.suite = listify(suite)
         self.project_name = project
         self.exe = exe
         self.depends = depends
