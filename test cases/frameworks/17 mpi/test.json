@@ -4,12 +4,14 @@
       "method": [
         { "val": "auto" },
         { "val": "pkg-config" },
-        { "val": "config-tool" },
+        { "val": "config-tool",
+          "skip_on_jobname": ["fedora"] },
         {
           "val": "system",
           "compilers": { "c" :"msvc", "cpp": "msvc" }
         }
       ]
     }
-  }
+  },
+  "skip_on_jobname": ["opensuse"]
 }

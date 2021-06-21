@@ -6,7 +6,7 @@
         { "val": "cmake" }
       ],
       "link-static": [
-        { "val": true },
+        { "val": true, "skip_on_jobname": ["opensuse"] },
         { "val": false }
       ]
     },

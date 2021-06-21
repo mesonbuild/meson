@@ -1,4 +1,4 @@
-name: OS Comp Tests
+name: linux
 
 on:
   push:
@@ -34,6 +34,9 @@ jobs:
           - { name: OpenSUSE,         id: opensuse }
           - { name: Ubuntu Bionic,    id: bionic   }
     container: mesonbuild/${{ matrix.cfg.id }}:latest
+    env:
+      MESON_CI_JOBNAME: linux-${{ matrix.cfg.id }}-gcc
+
     steps:
     - uses: actions/checkout@v2
     - name: Run tests
@@ -76,6 +79,9 @@ jobs:
             MESON_ARGS: '--unity=on'
             CC: 'gcc'
             CXX: 'g++'
+
+    env:
+      MESON_CI_JOBNAME: linux-${{ github.job }}-${{ matrix.cfg.CC }}
 
     container:
       image: mesonbuild/ubuntu-rolling

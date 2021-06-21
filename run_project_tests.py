@@ -265,7 +265,6 @@ class TestDef:
 failing_logs: T.List[str] = []
 print_debug = 'MESON_PRINT_TEST_OUTPUT' in os.environ
 under_ci = 'CI' in os.environ
-skip_scientific = under_ci and ('SKIP_SCIENTIFIC' in os.environ)
 ci_jobname = os.environ.get('MESON_CI_JOBNAME', None)
 do_debug = under_ci or print_debug
 no_meson_log_msg = 'No meson-log.txt found.'
@@ -955,8 +954,6 @@ def have_java() -> bool:
     return False
 
 def skip_dont_care(t: TestDef) -> bool:
-    test = t.path.as_posix()
-
     # Everything is optional when not running on CI
     if not under_ci:
         return True
@@ -971,59 +968,7 @@ def skip_dont_care(t: TestDef) -> bool:
     if ci_jobname is None:
         return True
 
-    # gtk-doc test may be skipped, pending upstream fixes for spaces in
-    # filenames landing in the distro used for CI
-    if test.endswith('10 gtk-doc'):
-        return True
-
-    # NetCDF is not in the CI Docker image
-    if test.endswith('netcdf'):
-        return True
-
-    # Blocks are not supported on all compilers
-    if test.endswith('29 blocks'):
-        return True
-
-    # Scientific libraries are skippable on certain systems
-    # See the discussion here: https://github.com/mesonbuild/meson/pull/6562
-    if any([x in test for x in ['17 mpi', '25 hdf5', '30 scalapack']]) and skip_scientific:
-        return True
-
-    # These create OS specific tests, and need to be skippable
-    if any([x in test for x in ['16 sdl', '17 mpi']]):
-        return True
-
-    # We test cmake, and llvm-config. Some linux spins don't provide cmake or
-    # don't provide either the static or shared llvm libraries (fedora and
-    # opensuse only have the dynamic ones, for example).
-    if test.endswith('15 llvm'):
-        return True
-
-    # This test breaks with gobject-introspection <= 1.58.1
-    if test.endswith('34 gir static lib'):
-        return True
-
-    # Boost test should only be skipped for windows CI build matrix entries
-    # which don't define BOOST_ROOT
-    if test.endswith('1 boost'):
-        if mesonlib.is_windows():
-            return 'BOOST_ROOT' not in os.environ
-        return False
-
-    # Not all OSes have all of the methods for qt (qmake and pkg-config), don't
-    # fail if that happens.
-    #
-    # On macOS we should have all of the requirements at all times.
-    if test.endswith('4 qt'):
-        return not mesonlib.is_osx()
-
-    # No frameworks test should be skipped on linux CI, as we expect all
-    # prerequisites to be installed
-    if mesonlib.is_linux():
-        return False
-
-    # Other framework tests are allowed to be skipped on other platforms
-    return True
+    return False
 
 def skip_csharp(backend: Backend) -> bool:
     if backend is not Backend.ninja:
