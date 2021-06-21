@@ -480,9 +480,11 @@ class GnomeModule(ExtensionModule):
             return cflags, internal_ldflags, external_ldflags, external_ldflags_nodedup, gi_includes
 
     def _unwrap_gir_target(self, girtarget, state):
+        if isinstance(girtarget, build.BothLibraries):
+            girtarget = girtarget.get_preferred_library()
         if not isinstance(girtarget, (build.Executable, build.SharedLibrary,
                                       build.StaticLibrary)):
-            raise MesonException('Gir target must be an executable or library')
+            raise MesonException(f'Gir target must be an executable or library but is "{girtarget}" of type {type(girtarget).__name__}')
 
         STATIC_BUILD_REQUIRED_VERSION = ">=1.58.1"
         if isinstance(girtarget, (build.StaticLibrary)) and \

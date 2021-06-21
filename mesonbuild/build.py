@@ -1715,6 +1715,9 @@ class Executable(BuildTarget):
         # Only linkwithable if using export_dynamic
         self.is_linkwithable = self.export_dynamic
 
+        # Remember that this exe was returned by `find_program()` through an override
+        self.was_returned_by_find_program = False
+
     def get_default_install_dir(self, environment: environment.Environment) -> str:
         return environment.get_bindir()
 
@@ -2154,6 +2157,10 @@ class BothLibraries(HoldableObject):
         self._preferred_library = 'shared'
         self.shared = shared
         self.static = static
+        self.subproject = self.shared.subproject
+
+    def __repr__(self) -> str:
+        return f'<BothLibraries: static={repr(self.static)}; shared={repr(self.shared)}>'
 
     def get_preferred_library(self) -> BuildTarget:
         if self._preferred_library == 'shared':
@@ -2167,6 +2174,8 @@ class CommandBase:
         cmd = listify(cmd)
         final_cmd = []
         for c in cmd:
+            if isinstance(c, BothLibraries):
+                c = c.get_preferred_library()
             if isinstance(c, str):
                 final_cmd.append(c)
             elif isinstance(c, File):
@@ -2265,6 +2274,7 @@ class CustomTarget(Target, CommandBase):
     def process_kwargs(self, kwargs, backend):
         self.process_kwargs_base(kwargs)
         self.sources = extract_as_list(kwargs, 'input')
+        self.sources = [x.get_preferred_library() if isinstance(x, BothLibraries) else x for x in self.sources]
         if 'output' not in kwargs:
             raise InvalidArguments('Missing keyword argument "output".')
         self.outputs = listify(kwargs['output'])
@@ -2641,6 +2651,8 @@ def get_sources_string_names(sources, backend):
     '''
     names = []
     for s in sources:
+        if isinstance(s, BothLibraries):
+            s = s.get_preferred_library()
         if isinstance(s, str):
             names.append(s)
         elif isinstance(s, (BuildTarget, CustomTarget, CustomTargetIndex, GeneratedList)):
