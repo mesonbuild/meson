@@ -390,6 +390,14 @@ for whatever reason).
 
 The test is failed if it skips or runs unexpectedly.
 
+#### skip_on_os
+
+The `skip_on_os` key can be used to specify a list of OS names (or their
+negations, prefixed with a `!`).  If at least one item in the `skip_on_os` list
+is matched, the test is expected to be skipped.
+
+The test is failed if it skips or runs unexpectedly.
+
 ### Skipping integration tests
 
 Meson uses several continuous integration testing systems that have

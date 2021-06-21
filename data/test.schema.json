@@ -147,6 +147,12 @@
       "items": {
         "type": "string"
       }
+    },
+    "skip_on_os": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     }
   }
 }
