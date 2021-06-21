@@ -779,6 +779,17 @@ def load_test_json(t: TestDef, stdout_mandatory: bool) -> T.List[TestDef]:
     else:
         skip_expected = False
 
+    # Test is expected to skip if os matches
+    if 'skip_on_os' in test_def:
+        mesonenv = environment.Environment(None, None, get_fake_options('/'))
+        for skip_os in test_def['skip_on_os']:
+            if skip_os.startswith('!'):
+                if mesonenv.machines.host.system != skip_os[1:]:
+                    skip_expected = True
+            else:
+                if mesonenv.machines.host.system == skip_os:
+                    skip_expected = True
+
     # Skip the matrix code and just update the existing test
     if 'matrix' not in test_def:
         t.env.update(env)
