@@ -12,6 +12,7 @@
       "type": "array",
       "items": {
         "type": "object",
+        "additionalProperties": false,
         "properties": {
           "file": {
             "type": "string"
@@ -59,6 +60,7 @@
             "type": "array",
             "items": {
               "type": "object",
+              "additionalProperties": false,
               "properties": {
                 "val": {
                   "type": "string"
@@ -110,6 +112,7 @@
       "type": "array",
       "items": {
         "type": "object",
+        "additionalProperties": false,
         "properties": {
           "line": {
             "type": "string"
@@ -120,6 +123,12 @@
               "literal",
               "re"
             ]
+          },
+          "count": {
+            "type": "integer"
+          },
+          "comment": {
+            "type": "string"
           }
         },
         "required": [
