@@ -1,5 +1,7 @@
 import functools
 
+from ..interpreterbase.decorators import typed_kwargs, KwargInfo
+
 from .interpreterobjects import (extract_required_kwarg, extract_search_dirs)
 
 from .. import mesonlib
@@ -684,12 +686,24 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return result
 
     @FeatureNew('compiler.get_supported_arguments', '0.43.0')
-    @permittedKwargs({})
-    def get_supported_arguments_method(self, args, kwargs):
+    @typed_kwargs(
+        'compiler.get_supported_arguments',
+        KwargInfo('checked', str, default='off', since='0.59.0',
+                  validator=lambda s: 'must be one of "warn", "require" or "off"' if s not in ['warn', 'require', 'off'] else None)
+    )
+    def get_supported_arguments_method(self, args: T.Sequence[str], kwargs: T.Dict[str, T.Any]):
         args = mesonlib.stringlistify(args)
         supported_args = []
+        checked = kwargs.pop('checked')
+
         for arg in args:
-            if self.has_argument_method(arg, kwargs):
+            if not self.has_argument_method(arg, kwargs):
+                msg = f'Compiler for {self.compiler.get_display_language()} does not support "{arg}"'
+                if checked == 'warn':
+                    mlog.warning(msg)
+                elif checked == 'require':
+                    raise mesonlib.MesonException(msg)
+            else:
                 supported_args.append(arg)
         return supported_args
 

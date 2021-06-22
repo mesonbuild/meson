@@ -2332,7 +2332,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         self._add_global_arguments(node, self.build.global_link_args[kwargs['native']], args[0], kwargs)
 
     @typed_pos_args('add_project_arguments', varargs=str)
-    @typed_kwargs('add_global_arguments', _NATIVE_KW, _LANGUAGE_KW)
+    @typed_kwargs('add_project_arguments', _NATIVE_KW, _LANGUAGE_KW)
     def func_add_project_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwargs.FuncAddProjectArgs') -> None:
         self._add_project_arguments(node, self.build.projects_args[kwargs['native']], args[0], kwargs)
 
