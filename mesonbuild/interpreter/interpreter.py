@@ -752,14 +752,7 @@ external dependencies (including libraries) must go to "dependencies".''')
     def func_subproject(self, nodes, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Subproject takes exactly one argument')
-        subp_name = args[0]
-        subp = self.do_subproject(subp_name, 'meson', kwargs)
-        # Update the holder maps from the subproject. Additional entries to the
-        # holder maps can be added through imported Meson modules
-        if isinstance(subp.held_object, Interpreter):
-            self.holder_map.update(subp.held_object.holder_map)
-            self.bound_holder_map.update(subp.held_object.bound_holder_map)
-        return subp
+        return self.do_subproject(args[0], 'meson', kwargs)
 
     def disabled_subproject(self, subp_name, disabled_feature=None, exception=None):
         sub = SubprojectHolder(NullSubprojectInterpreter(), os.path.join(self.subproject_dir, subp_name),
@@ -824,7 +817,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             elif method == 'cmake':
                 return self._do_subproject_cmake(subp_name, subdir, subdir_abs, default_options, kwargs)
             else:
-                raise InterpreterException(f'The method {method} is invalid for the subproject {subp_name}')
+                raise mesonlib.MesonBugException(f'The method {method} is invalid for the subproject {subp_name}')
         # Invalid code is always an error
         except InvalidCode:
             raise
@@ -879,6 +872,10 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.build.subprojects[subp_name] = subi.project_version
         self.coredata.initialized_subprojects.add(subp_name)
         self.summary.update(subi.summary)
+        # Update the holder maps from the subproject. Additional entries to the
+        # holder maps can be added through imported Meson modules
+        self.holder_map.update(subi.holder_map)
+        self.bound_holder_map.update(subi.bound_holder_map)
         return self.subprojects[subp_name]
 
     def _do_subproject_cmake(self, subp_name, subdir, subdir_abs, default_options, kwargs):
@@ -2671,7 +2668,7 @@ This will become a hard error in the future.''', location=self.current_node)
         if len(args) != 2:
             raise InvalidCode('Set_variable takes two arguments.')
         varname, value = args
-        self.set_variable(varname, value)
+        self.set_variable(varname, value, holderify=True)
 
     @noKwargs
     @noArgsFlattening

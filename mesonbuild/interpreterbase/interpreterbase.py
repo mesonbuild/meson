@@ -16,7 +16,7 @@
 # or an interpreter-based tool.
 
 from .. import mparser, mesonlib, mlog
-from .. import environment, dependencies
+from .. import environment
 
 from .baseobjects import (
     InterpreterObject,
@@ -592,7 +592,7 @@ The result of this is undefined and will become a hard error in a future Meson r
         obj.current_node = node
         return self._holderify(obj.method_call(method_name, args, kwargs))
 
-    def _holderify(self, res: T.Optional[TYPE_var]) -> T.Union[TYPE_elementary, InterpreterObject]:
+    def _holderify(self, res: T.Union[TYPE_var, InterpreterObject, None]) -> T.Union[TYPE_elementary, InterpreterObject]:
         if res is None:
             return None
         if isinstance(res, (int, bool, str)):
@@ -799,7 +799,7 @@ The result of this is undefined and will become a hard error in a future Meson r
             index = posargs[0]
             fallback = None
             if len(posargs) == 2:
-                fallback = posargs[1]
+                fallback = self._holderify(posargs[1])
             elif len(posargs) > 2:
                 m = 'Array method \'get()\' only takes two arguments: the ' \
                     'index and an optional fallback value if the index is ' \
@@ -845,7 +845,7 @@ The result of this is undefined and will become a hard error in a future Meson r
                 return obj[key]
 
             if len(posargs) == 2:
-                fallback = posargs[1]
+                fallback = self._holderify(posargs[1])
                 if isinstance(fallback, mparser.BaseNode):
                     return self.evaluate_statement(fallback)
                 return fallback
@@ -909,20 +909,34 @@ To specify a keyword argument, use : instead of =.''')
             raise InvalidArguments('Tried to assign value to a non-variable.')
         value = self.evaluate_statement(node.value)
         if not self.is_assignable(value):
-            raise InvalidCode('Tried to assign an invalid value to variable.')
+            raise InvalidCode(f'Tried to assign the invalid value "{value}" of type {type(value).__name__} to variable.')
         # For mutable objects we need to make a copy on assignment
         if isinstance(value, MutableInterpreterObject):
             value = copy.deepcopy(value)
         self.set_variable(var_name, value)
         return None
 
-    def set_variable(self, varname: str, variable: T.Union[TYPE_var, InterpreterObject]) -> None:
+    def set_variable(self, varname: str, variable: T.Union[TYPE_var, InterpreterObject], *, holderify: bool = False) -> None:
         if variable is None:
             raise InvalidCode('Can not assign None to variable.')
+        if holderify:
+            variable = self._holderify(variable)
+        else:
+            # Ensure that we are never storing a HoldableObject
+            def check(x: T.Union[TYPE_var, InterpreterObject]) -> None:
+                if isinstance(x, mesonlib.HoldableObject):
+                    raise mesonlib.MesonBugException(f'set_variable in InterpreterBase called with a HoldableObject {x} of type {type(x).__name__}')
+                elif isinstance(x, list):
+                    for y in x:
+                        check(y)
+                elif isinstance(x, dict):
+                    for v in x.values():
+                        check(v)
+            check(variable)
         if not isinstance(varname, str):
             raise InvalidCode('First argument to set_variable must be a string.')
         if not self.is_assignable(variable):
-            raise InvalidCode('Assigned value not of assignable type.')
+            raise InvalidCode(f'Assigned value "{variable}" of type {type(variable).__name__} is not an assignable type.')
         if re.match('[_a-zA-Z][_0-9a-zA-Z]*$', varname) is None:
             raise InvalidCode('Invalid variable name: ' + varname)
         if varname in self.builtin:
@@ -937,8 +951,7 @@ To specify a keyword argument, use : instead of =.''')
         raise InvalidCode('Unknown variable "%s".' % varname)
 
     def is_assignable(self, value: T.Any) -> bool:
-        return isinstance(value, (InterpreterObject, dependencies.Dependency,
-                                  str, int, list, dict, mesonlib.File))
+        return isinstance(value, (InterpreterObject, str, int, list, dict))
 
     def validate_extraction(self, buildtarget: mesonlib.HoldableObject) -> None:
         raise InterpreterException('validate_extraction is not implemented in this context (please file a bug)')
