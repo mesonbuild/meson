@@ -14,8 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
+# Work around some pathlib bugs...
+from mesonbuild import _pathlib
 import sys
+sys.modules['pathlib'] = _pathlib
+
+import os
 import time
 import shutil
 import subprocess
