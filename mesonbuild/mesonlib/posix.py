@@ -27,7 +27,7 @@ __all__ = ['BuildDirLock']
 class BuildDirLock(BuildDirLockBase):
 
     def __enter__(self) -> None:
-        self.lockfile = open(self.lockfilename, 'w')
+        self.lockfile = open(self.lockfilename, 'w', encoding='utf-8')
         try:
             fcntl.flock(self.lockfile, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except (BlockingIOError, PermissionError):

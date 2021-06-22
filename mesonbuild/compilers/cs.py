@@ -87,7 +87,7 @@ class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):
         src = 'sanity.cs'
         obj = 'sanity.exe'
         source_name = os.path.join(work_dir, src)
-        with open(source_name, 'w') as ofile:
+        with open(source_name, 'w', encoding='utf-8') as ofile:
             ofile.write(textwrap.dedent('''
                 public class Sanity {
                     static public void Main () {

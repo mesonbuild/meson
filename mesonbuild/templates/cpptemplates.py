@@ -149,11 +149,12 @@ class CppProject(SampleImpl):
     def create_executable(self) -> None:
         lowercase_token = re.sub(r'[^a-z0-9]', '_', self.name.lower())
         source_name = lowercase_token + '.cpp'
-        open(source_name, 'w').write(hello_cpp_template.format(project_name=self.name))
-        open('meson.build', 'w').write(hello_cpp_meson_template.format(project_name=self.name,
-                                                                       exe_name=lowercase_token,
-                                                                       source_name=source_name,
-                                                                       version=self.version))
+        open(source_name, 'w', encoding='utf-8').write(hello_cpp_template.format(project_name=self.name))
+        open('meson.build', 'w', encoding='utf-8').write(
+            hello_cpp_meson_template.format(project_name=self.name,
+                                            exe_name=lowercase_token,
+                                            source_name=source_name,
+                                            version=self.version))
 
     def create_library(self) -> None:
         lowercase_token = re.sub(r'[^a-z0-9]', '_', self.name.lower())
@@ -178,7 +179,7 @@ class CppProject(SampleImpl):
                   'test_name': lowercase_token,
                   'version': self.version,
                   }
-        open(lib_hpp_name, 'w').write(lib_hpp_template.format(**kwargs))
-        open(lib_cpp_name, 'w').write(lib_cpp_template.format(**kwargs))
-        open(test_cpp_name, 'w').write(lib_cpp_test_template.format(**kwargs))
-        open('meson.build', 'w').write(lib_cpp_meson_template.format(**kwargs))
+        open(lib_hpp_name, 'w', encoding='utf-8').write(lib_hpp_template.format(**kwargs))
+        open(lib_cpp_name, 'w', encoding='utf-8').write(lib_cpp_template.format(**kwargs))
+        open(test_cpp_name, 'w', encoding='utf-8').write(lib_cpp_test_template.format(**kwargs))
+        open('meson.build', 'w', encoding='utf-8').write(lib_cpp_meson_template.format(**kwargs))

@@ -1291,7 +1291,7 @@ def expand_arguments(args: T.Iterable[str]) -> T.Optional[T.List[str]]:
 
         args_file = arg[1:]
         try:
-            with open(args_file) as f:
+            with open(args_file, encoding='utf-8') as f:
                 extended_args = f.read().split()
             expended_args += extended_args
         except Exception as e:
@@ -1786,11 +1786,11 @@ def get_wine_shortpath(winecmd: T.List[str], wine_paths: T.Sequence[str]) -> str
     wine_paths = list(OrderedSet(wine_paths))
 
     getShortPathScript = '%s.bat' % str(uuid.uuid4()).lower()[:5]
-    with open(getShortPathScript, mode='w') as f:
+    with open(getShortPathScript, mode='w', encoding='utf-8') as f:
         f.write("@ECHO OFF\nfor %%x in (%*) do (\n echo|set /p=;%~sx\n)\n")
         f.flush()
     try:
-        with open(os.devnull, 'w') as stderr:
+        with open(os.devnull, 'w', encoding='utf-8') as stderr:
             wine_path = subprocess.check_output(
                 winecmd +
                 ['cmd', '/C', getShortPathScript] + wine_paths,

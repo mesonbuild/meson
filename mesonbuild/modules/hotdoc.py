@@ -313,7 +313,7 @@ class HotdocTargetBuilder:
         hotdoc_config_name = fullname + '.json'
         hotdoc_config_path = os.path.join(
             self.builddir, self.subdir, hotdoc_config_name)
-        with open(hotdoc_config_path, 'w') as f:
+        with open(hotdoc_config_path, 'w', encoding='utf-8') as f:
             f.write('{}')
 
         self.cmd += ['--conf-file', hotdoc_config_path]

@@ -196,7 +196,7 @@ class Vs2010Backend(backends.Backend):
 
     @staticmethod
     def touch_regen_timestamp(build_dir: str) -> None:
-        with open(Vs2010Backend.get_regen_stampfile(build_dir), 'w'):
+        with open(Vs2010Backend.get_regen_stampfile(build_dir), 'w', encoding='utf-8'):
             pass
 
     def get_vcvars_command(self):

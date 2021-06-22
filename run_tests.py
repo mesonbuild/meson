@@ -354,7 +354,7 @@ def main():
     with tempfile.TemporaryDirectory() as temp_dir:
         # Enable coverage on all subsequent processes.
         if enable_coverage:
-            Path(temp_dir, 'usercustomize.py').open('w').write(
+            Path(temp_dir, 'usercustomize.py').open('w', encoding='utf-8').write(
                 'import coverage\n'
                 'coverage.process_startup()\n')
             env['COVERAGE_PROCESS_START'] = '.coveragerc'

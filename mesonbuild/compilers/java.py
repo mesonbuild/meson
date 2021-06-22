@@ -70,7 +70,7 @@ class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
         src = 'SanityCheck.java'
         obj = 'SanityCheck'
         source_name = os.path.join(work_dir, src)
-        with open(source_name, 'w') as ofile:
+        with open(source_name, 'w', encoding='utf-8') as ofile:
             ofile.write(textwrap.dedent(
                 '''class SanityCheck {
                   public static void main(String[] args) {

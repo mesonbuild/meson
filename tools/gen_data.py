@@ -107,7 +107,7 @@ def main() -> int:
 
             def write_once(self, path: Path) -> None:
                 if not path.exists():
-                    path.write_text(self.data)
+                    path.write_text(self.data, encoding='utf-8')
 
             def write_to_private(self, env: 'Environment') -> Path:
                 out_file = Path(env.scratch_dir) / 'data' / self.path.name
@@ -133,7 +133,7 @@ def main() -> int:
     ''')
 
     print(f'Updating {out_file}')
-    out_file.write_text(data)
+    out_file.write_text(data, encoding='utf-8')
     return 0
 
 if __name__ == '__main__':

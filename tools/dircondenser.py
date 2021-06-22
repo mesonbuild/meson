@@ -54,11 +54,11 @@ def get_entries() -> T.List[T.Tuple[int, str]]:
     return entries
 
 def replace_source(sourcefile: str, replacements: T.List[T.Tuple[str, str]]) -> None:
-    with open(sourcefile) as f:
+    with open(sourcefile, encoding='utf-8') as f:
         contents = f.read()
     for old_name, new_name in replacements:
         contents = contents.replace(old_name, new_name)
-    with open(sourcefile, 'w') as f:
+    with open(sourcefile, 'w', encoding='utf-8') as f:
         f.write(contents)
 
 def condense(dirname: str) -> None:

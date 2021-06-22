@@ -57,7 +57,7 @@ class DependencyScanner:
     def scan_fortran_file(self, fname: str) -> None:
         fpath = pathlib.Path(fname)
         modules_in_this_file = set()
-        for line in fpath.read_text().split('\n'):
+        for line in fpath.read_text(encoding='utf-8').split('\n'):
             import_match = FORTRAN_USE_RE.match(line)
             export_match = FORTRAN_MODULE_RE.match(line)
             submodule_export_match = FORTRAN_SUBMOD_RE.match(line)
@@ -108,7 +108,7 @@ class DependencyScanner:
 
     def scan_cpp_file(self, fname: str) -> None:
         fpath = pathlib.Path(fname)
-        for line in fpath.read_text().split('\n'):
+        for line in fpath.read_text(encoding='utf-8').split('\n'):
             import_match = CPP_IMPORT_RE.match(line)
             export_match = CPP_EXPORT_RE.match(line)
             if import_match:
@@ -150,7 +150,7 @@ class DependencyScanner:
     def scan(self) -> int:
         for s in self.sources:
             self.scan_file(s)
-        with open(self.outfile, 'w') as ofile:
+        with open(self.outfile, 'w', encoding='utf-8') as ofile:
             ofile.write('ninja_dyndep_version = 1\n')
             for src in self.sources:
                 objfilename = self.objname_for(src)

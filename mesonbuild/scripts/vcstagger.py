@@ -22,15 +22,15 @@ def config_vcs_tag(infile: str, outfile: str, fallback: str, source_dir: str, re
     except Exception:
         new_string = fallback
 
-    with open(infile, encoding='utf8') as f:
+    with open(infile, encoding='utf-8') as f:
         new_data = f.read().replace(replace_string, new_string)
     if os.path.exists(outfile):
-        with open(outfile, encoding='utf8') as f:
+        with open(outfile, encoding='utf-8') as f:
             needs_update = (f.read() != new_data)
     else:
         needs_update = True
     if needs_update:
-        with open(outfile, 'w', encoding='utf8') as f:
+        with open(outfile, 'w', encoding='utf-8') as f:
             f.write(new_data)
 
 

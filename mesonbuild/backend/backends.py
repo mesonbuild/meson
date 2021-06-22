@@ -370,7 +370,7 @@ class Backend:
             if not os.path.exists(outfileabs_tmp_dir):
                 os.makedirs(outfileabs_tmp_dir)
             result.append(unity_src)
-            return open(outfileabs_tmp, 'w')
+            return open(outfileabs_tmp, 'w', encoding='utf-8')
 
         # For each language, generate unity source files and return the list
         for comp, srcs in compsrcs.items():
@@ -748,7 +748,7 @@ class Backend:
 
         content = '#include "{}"'.format(os.path.basename(pch_header))
         pch_file_tmp = pch_file + '.tmp'
-        with open(pch_file_tmp, 'w') as f:
+        with open(pch_file_tmp, 'w', encoding='utf-8') as f:
             f.write(content)
         mesonlib.replace_if_different(pch_file, pch_file_tmp)
         return pch_rel_to_build
@@ -1002,7 +1002,7 @@ class Backend:
         ifilename = os.path.join(self.environment.get_build_dir(), 'depmf.json')
         ofilename = os.path.join(self.environment.get_prefix(), self.build.dep_manifest_name)
         mfobj = {'type': 'dependency manifest', 'version': '1.0', 'projects': self.build.dep_manifest}
-        with open(ifilename, 'w') as f:
+        with open(ifilename, 'w', encoding='utf-8') as f:
             f.write(json.dumps(mfobj))
         # Copy file from, to, and with mode unchanged
         d.data.append(InstallDataBase(ifilename, ofilename, None, ''))

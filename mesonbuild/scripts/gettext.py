@@ -34,7 +34,7 @@ def read_linguas(src_sub: str) -> T.List[str]:
     linguas = os.path.join(src_sub, 'LINGUAS')
     try:
         langs = []
-        with open(linguas) as f:
+        with open(linguas, encoding='utf-8') as f:
             for line in f:
                 line = line.strip()
                 if line and not line.startswith('#'):

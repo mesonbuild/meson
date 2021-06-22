@@ -801,16 +801,9 @@ class InternalTests(unittest.TestCase):
         if platform != 'openbsd':
             return
         with tempfile.TemporaryDirectory() as tmpdir:
-            with open(os.path.join(tmpdir, 'libfoo.so.6.0'), 'w') as f:
-                f.write('')
-            with open(os.path.join(tmpdir, 'libfoo.so.5.0'), 'w') as f:
-                f.write('')
-            with open(os.path.join(tmpdir, 'libfoo.so.54.0'), 'w') as f:
-                f.write('')
-            with open(os.path.join(tmpdir, 'libfoo.so.66a.0b'), 'w') as f:
-                f.write('')
-            with open(os.path.join(tmpdir, 'libfoo.so.70.0.so.1'), 'w') as f:
-                f.write('')
+            for i in ['libfoo.so.6.0', 'libfoo.so.5.0', 'libfoo.so.54.0', 'libfoo.so.66a.0b', 'libfoo.so.70.0.so.1']:
+                libpath = Path(tmpdir) / i
+                libpath.write_text('', encoding='utf-8')
             found = cc._find_library_real('foo', env, [tmpdir], '', LibType.PREFER_SHARED)
             self.assertEqual(os.path.basename(found[0]), 'libfoo.so.54.0')
 
@@ -868,11 +861,11 @@ class InternalTests(unittest.TestCase):
         '''
         def create_static_lib(name):
             if not is_osx():
-                name.open('w').close()
+                name.open('w', encoding='utf-8').close()
                 return
             src = name.with_suffix('.c')
             out = name.with_suffix('.o')
-            with src.open('w') as f:
+            with src.open('w', encoding='utf-8') as f:
                 f.write('int meson_foobar (void) { return 0; }')
             subprocess.check_call(['clang', '-c', str(src), '-o', str(out)])
             subprocess.check_call(['ar', 'csr', str(name), str(out)])
@@ -1076,7 +1069,7 @@ class InternalTests(unittest.TestCase):
         else:
             self.assertIn('VCINSTALLDIR', os.environ)
             # See https://devblogs.microsoft.com/cppblog/finding-the-visual-c-compiler-tools-in-visual-studio-2017/
-            vctools_ver = (Path(os.environ['VCINSTALLDIR']) / 'Auxiliary' / 'Build' / 'Microsoft.VCToolsVersion.default.txt').read_text()
+            vctools_ver = (Path(os.environ['VCINSTALLDIR']) / 'Auxiliary' / 'Build' / 'Microsoft.VCToolsVersion.default.txt').read_text(encoding='utf-8')
         self.assertTrue(vctools_ver.startswith(toolset_ver),
                         msg=f'{vctools_ver!r} does not start with {toolset_ver!r}')
 
@@ -1283,16 +1276,14 @@ class InternalTests(unittest.TestCase):
                 raise
             raise unittest.SkipTest('Python jsonschema module not found.')
 
-        with Path('data/test.schema.json').open() as f:
-            schema = json.load(f)
+        schema = json.loads(Path('data/test.schema.json').read_text(encoding='utf-8'))
 
         errors = []  # type: T.Tuple[str, Exception]
         for p in Path('test cases').glob('**/test.json'):
-            with p.open() as f:
-                try:
-                    validate(json.load(f), schema=schema)
-                except ValidationError as e:
-                    errors.append((p.resolve(), e))
+            try:
+                validate(json.loads(p.read_text(encoding='utf-8')), schema=schema)
+            except ValidationError as e:
+                errors.append((p.resolve(), e))
 
         for f, e in errors:
             print(f'Failed to validate: "{f}"')
@@ -1502,7 +1493,7 @@ class DataTests(unittest.TestCase):
                 continue
             if f.suffix == '.md':
                 in_code_block = False
-                with f.open() as snippet:
+                with f.open(encoding='utf-8') as snippet:
                     for line in snippet:
                         if line.startswith('    '):
                             continue
@@ -1650,7 +1641,7 @@ class DataTests(unittest.TestCase):
         '''
         env = get_fake_env()
         interp = Interpreter(FakeBuild(env), mock=True)
-        with open('data/syntax-highlighting/vim/syntax/meson.vim') as f:
+        with open('data/syntax-highlighting/vim/syntax/meson.vim', encoding='utf-8') as f:
             res = re.search(r'syn keyword mesonBuiltin(\s+\\\s\w+)+', f.read(), re.MULTILINE)
             defined = set([a.strip() for a in res.group().split('\\')][1:])
             self.assertEqual(defined, set(chain(interp.funcs.keys(), interp.builtin.keys())))
@@ -1916,7 +1907,7 @@ class BasePlatformTests(unittest.TestCase):
         if self.backend is not Backend.ninja:
             raise unittest.SkipTest(f'Compiler db not available with {self.backend.name} backend')
         try:
-            with open(os.path.join(self.builddir, 'compile_commands.json')) as ifile:
+            with open(os.path.join(self.builddir, 'compile_commands.json'), encoding='utf-8') as ifile:
                 contents = json.load(ifile)
         except FileNotFoundError:
             raise unittest.SkipTest('Compiler db not found')
@@ -1935,7 +1926,7 @@ class BasePlatformTests(unittest.TestCase):
         return contents
 
     def get_meson_log(self):
-        with open(os.path.join(self.builddir, 'meson-logs', 'meson-log.txt')) as f:
+        with open(os.path.join(self.builddir, 'meson-logs', 'meson-log.txt'), encoding='utf-8') as f:
             return f.readlines()
 
     def get_meson_log_compiler_checks(self):
@@ -2479,7 +2470,7 @@ class AllPlatformTests(BasePlatformTests):
             expected[name] = 0
         def read_logs():
             # Find logged files and directories
-            with Path(self.builddir, 'meson-logs', 'install-log.txt').open() as f:
+            with Path(self.builddir, 'meson-logs', 'install-log.txt').open(encoding='utf-8') as f:
                 return list(map(lambda l: Path(l.strip()),
                                   filter(lambda l: not l.startswith('#'),
                                          f.readlines())))
@@ -3165,7 +3156,7 @@ class AllPlatformTests(BasePlatformTests):
 
         def hg_init(project_dir):
             subprocess.check_call(['hg', 'init'], cwd=project_dir)
-            with open(os.path.join(project_dir, '.hg', 'hgrc'), 'w') as f:
+            with open(os.path.join(project_dir, '.hg', 'hgrc'), 'w', encoding='utf-8') as f:
                 print('[ui]', file=f)
                 print('username=Author Person <teh_coderz@example.com>', file=f)
             subprocess.check_call(['hg', 'add', 'meson.build', 'distexe.c'], cwd=project_dir)
@@ -3206,7 +3197,7 @@ class AllPlatformTests(BasePlatformTests):
     def create_dummy_subproject(self, project_dir, name):
         path = os.path.join(project_dir, 'subprojects', name)
         os.makedirs(path)
-        with open(os.path.join(path, 'meson.build'), 'w') as ofile:
+        with open(os.path.join(path, 'meson.build'), 'w', encoding='utf-8') as ofile:
             ofile.write(f"project('{name}', version: '1.0')")
         return path
 
@@ -3214,7 +3205,7 @@ class AllPlatformTests(BasePlatformTests):
         # Create this on the fly because having rogue .git directories inside
         # the source tree leads to all kinds of trouble.
         with tempfile.TemporaryDirectory() as project_dir:
-            with open(os.path.join(project_dir, 'meson.build'), 'w') as ofile:
+            with open(os.path.join(project_dir, 'meson.build'), 'w', encoding='utf-8') as ofile:
                 ofile.write(textwrap.dedent('''\
                     project('disttest', 'c', version : '1.4.3')
                     e = executable('distexe', 'distexe.c')
@@ -3223,7 +3214,7 @@ class AllPlatformTests(BasePlatformTests):
                     subproject('tarballsub', required : false)
                     subproject('samerepo', required : false)
                     '''))
-            with open(os.path.join(project_dir, 'distexe.c'), 'w') as ofile:
+            with open(os.path.join(project_dir, 'distexe.c'), 'w', encoding='utf-8') as ofile:
                 ofile.write(textwrap.dedent('''\
                     #include<stdio.h>
 
@@ -3313,7 +3304,7 @@ class AllPlatformTests(BasePlatformTests):
                 xz_checksumfile = xz_distfile + '.sha256sum'
                 self.assertPathExists(xz_distfile)
                 self.assertPathExists(xz_checksumfile)
-                tar = tarfile.open(xz_distfile, "r:xz")
+                tar = tarfile.open(xz_distfile, "r:xz")  # [ignore encoding]
                 self.assertEqual(sorted(['samerepo-1.0',
                                          'samerepo-1.0/meson.build']),
                                  sorted([i.name for i in tar]))
@@ -3847,12 +3838,12 @@ class AllPlatformTests(BasePlatformTests):
             # test directory with existing code file
             if lang in {'c', 'cpp', 'd'}:
                 with tempfile.TemporaryDirectory() as tmpdir:
-                    with open(os.path.join(tmpdir, 'foo.' + lang), 'w') as f:
+                    with open(os.path.join(tmpdir, 'foo.' + lang), 'w', encoding='utf-8') as f:
                         f.write('int main(void) {}')
                     self._run(self.meson_command + ['init', '-b'], workdir=tmpdir)
             elif lang in {'java'}:
                 with tempfile.TemporaryDirectory() as tmpdir:
-                    with open(os.path.join(tmpdir, 'Foo.' + lang), 'w') as f:
+                    with open(os.path.join(tmpdir, 'Foo.' + lang), 'w', encoding='utf-8') as f:
                         f.write('public class Foo { public static void main() {} }')
                     self._run(self.meson_command + ['init', '-b'], workdir=tmpdir)
 
@@ -4244,7 +4235,7 @@ class AllPlatformTests(BasePlatformTests):
         with tempfile.TemporaryDirectory() as containing:
             with tempfile.TemporaryDirectory(dir=containing) as srcdir:
                 mfile = os.path.join(srcdir, 'meson.build')
-                of = open(mfile, 'w')
+                of = open(mfile, 'w', encoding='utf-8')
                 of.write("project('foobar', 'c')\n")
                 of.close()
                 pc = subprocess.run(self.setup_command,
@@ -4369,7 +4360,7 @@ class AllPlatformTests(BasePlatformTests):
 
         # Create a file in builddir and verify wipe command removes it
         filename = os.path.join(self.builddir, 'something')
-        open(filename, 'w').close()
+        open(filename, 'w', encoding='utf-8').close()
         self.assertTrue(os.path.exists(filename))
         out = self.init(testdir, extra_args=['--wipe', '-Dopt4=val4'])
         self.assertFalse(os.path.exists(filename))
@@ -4526,13 +4517,13 @@ class AllPlatformTests(BasePlatformTests):
             shutil.copyfile(badfile, testfile)
             shutil.copyfile(badheader, testheader)
             self.init(testdir)
-            self.assertNotEqual(Path(testfile).read_text(),
-                                Path(goodfile).read_text())
-            self.assertNotEqual(Path(testheader).read_text(),
-                                Path(goodheader).read_text())
+            self.assertNotEqual(Path(testfile).read_text(encoding='utf-8'),
+                                Path(goodfile).read_text(encoding='utf-8'))
+            self.assertNotEqual(Path(testheader).read_text(encoding='utf-8'),
+                                Path(goodheader).read_text(encoding='utf-8'))
             self.run_target('clang-format')
-            self.assertEqual(Path(testheader).read_text(),
-                             Path(goodheader).read_text())
+            self.assertEqual(Path(testheader).read_text(encoding='utf-8'),
+                             Path(goodheader).read_text(encoding='utf-8'))
         finally:
             if os.path.exists(testfile):
                 os.unlink(testfile)
@@ -4592,7 +4583,7 @@ class AllPlatformTests(BasePlatformTests):
         infodir = os.path.join(self.builddir, 'meson-info')
         self.assertPathExists(infodir)
 
-        with open(os.path.join(infodir, 'intro-targets.json')) as fp:
+        with open(os.path.join(infodir, 'intro-targets.json'), encoding='utf-8') as fp:
             targets = json.load(fp)
 
         for i in targets:
@@ -4701,7 +4692,7 @@ class AllPlatformTests(BasePlatformTests):
         for i in root_keylist:
             curr = os.path.join(infodir, 'intro-{}.json'.format(i[0]))
             self.assertPathExists(curr)
-            with open(curr) as fp:
+            with open(curr, encoding='utf-8') as fp:
                 res[i[0]] = json.load(fp)
 
         assertKeyTypes(root_keylist, res)
@@ -4823,7 +4814,7 @@ class AllPlatformTests(BasePlatformTests):
         for i in root_keylist:
             curr = os.path.join(infodir, f'intro-{i}.json')
             self.assertPathExists(curr)
-            with open(curr) as fp:
+            with open(curr, encoding='utf-8') as fp:
                 res_file[i] = json.load(fp)
 
         self.assertEqual(res_all, res_file)
@@ -4833,7 +4824,7 @@ class AllPlatformTests(BasePlatformTests):
         introfile = os.path.join(self.builddir, 'meson-info', 'meson-info.json')
         self.init(testdir)
         self.assertPathExists(introfile)
-        with open(introfile) as fp:
+        with open(introfile, encoding='utf-8') as fp:
             res1 = json.load(fp)
 
         for i in ['meson_version', 'directories', 'introspection', 'build_files_updated', 'error']:
@@ -4847,7 +4838,7 @@ class AllPlatformTests(BasePlatformTests):
         introfile = os.path.join(self.builddir, 'meson-info', 'intro-buildoptions.json')
         self.init(testdir)
         self.assertPathExists(introfile)
-        with open(introfile) as fp:
+        with open(introfile, encoding='utf-8') as fp:
             res1 = json.load(fp)
 
         for i in res1:
@@ -4865,7 +4856,7 @@ class AllPlatformTests(BasePlatformTests):
         self.setconf('-Dcpp_std=c++14')
         self.setconf('-Dbuildtype=release')
 
-        with open(introfile) as fp:
+        with open(introfile, encoding='utf-8') as fp:
             res2 = json.load(fp)
 
         self.assertListEqual(res1, res2)
@@ -4876,7 +4867,7 @@ class AllPlatformTests(BasePlatformTests):
         introfile = os.path.join(self.builddir, 'meson-info', 'intro-targets.json')
         self.init(testdir)
         self.assertPathExists(introfile)
-        with open(introfile) as fp:
+        with open(introfile, encoding='utf-8') as fp:
             res_wb = json.load(fp)
 
         res_nb = self.introspect_directory(testfile, ['--targets'] + self.meson_args)
@@ -5418,13 +5409,13 @@ class AllPlatformTests(BasePlatformTests):
 
     def test_cross_file_constants(self):
         with temp_filename() as crossfile1, temp_filename() as crossfile2:
-            with open(crossfile1, 'w') as f:
+            with open(crossfile1, 'w', encoding='utf-8') as f:
                 f.write(textwrap.dedent(
                     '''
                     [constants]
                     compiler = 'gcc'
                     '''))
-            with open(crossfile2, 'w') as f:
+            with open(crossfile2, 'w', encoding='utf-8') as f:
                 f.write(textwrap.dedent(
                     '''
                     [constants]
@@ -5454,7 +5445,7 @@ class AllPlatformTests(BasePlatformTests):
             upstream = os.path.join(srcdir, 'subprojects', 'wrap_git_upstream')
             upstream_uri = Path(upstream).as_uri()
             _git_init(upstream)
-            with open(os.path.join(srcdir, 'subprojects', 'wrap_git.wrap'), 'w') as f:
+            with open(os.path.join(srcdir, 'subprojects', 'wrap_git.wrap'), 'w', encoding='utf-8') as f:
                 f.write(textwrap.dedent('''
                   [wrap-git]
                   url = {}
@@ -5478,7 +5469,7 @@ class AllPlatformTests(BasePlatformTests):
     def test_nostdlib(self):
         testdir = os.path.join(self.unit_test_dir, '78 nostdlib')
         machinefile = os.path.join(self.builddir, 'machine.txt')
-        with open(machinefile, 'w') as f:
+        with open(machinefile, 'w', encoding='utf-8') as f:
             f.write(textwrap.dedent('''
                 [properties]
                 c_stdlib = 'mylibc'
@@ -5507,7 +5498,7 @@ class AllPlatformTests(BasePlatformTests):
         os.makedirs(os.path.dirname(real_wrap))
 
         # Invalid redirect, filename must have .wrap extension
-        with open(redirect_wrap, 'w') as f:
+        with open(redirect_wrap, 'w', encoding='utf-8') as f:
             f.write(textwrap.dedent('''
                 [wrap-redirect]
                 filename = foo/subprojects/real.wrapper
@@ -5516,7 +5507,7 @@ class AllPlatformTests(BasePlatformTests):
             PackageDefinition(redirect_wrap)
 
         # Invalid redirect, filename cannot be in parent directory
-        with open(redirect_wrap, 'w') as f:
+        with open(redirect_wrap, 'w', encoding='utf-8') as f:
             f.write(textwrap.dedent('''
                 [wrap-redirect]
                 filename = ../real.wrap
@@ -5525,7 +5516,7 @@ class AllPlatformTests(BasePlatformTests):
             PackageDefinition(redirect_wrap)
 
         # Invalid redirect, filename must be in foo/subprojects/real.wrap
-        with open(redirect_wrap, 'w') as f:
+        with open(redirect_wrap, 'w', encoding='utf-8') as f:
             f.write(textwrap.dedent('''
                 [wrap-redirect]
                 filename = foo/real.wrap
@@ -5534,12 +5525,12 @@ class AllPlatformTests(BasePlatformTests):
             wrap = PackageDefinition(redirect_wrap)
 
         # Correct redirect
-        with open(redirect_wrap, 'w') as f:
+        with open(redirect_wrap, 'w', encoding='utf-8') as f:
             f.write(textwrap.dedent('''
                 [wrap-redirect]
                 filename = foo/subprojects/real.wrap
                 '''))
-        with open(real_wrap, 'w') as f:
+        with open(real_wrap, 'w', encoding='utf-8') as f:
             f.write(textwrap.dedent('''
                 [wrap-git]
                 url = http://invalid
@@ -5556,7 +5547,7 @@ class AllPlatformTests(BasePlatformTests):
         cmakefile = Path(testdir) / 'subprojects' / 'sub2' / 'CMakeLists.txt'
         self.init(testdir)
         self.build()
-        with cmakefile.open('a') as f:
+        with cmakefile.open('a', encoding='utf-8') as f:
             os.utime(str(cmakefile))
         self.assertReconfiguredBuildIsNoop()
 
@@ -5746,7 +5737,7 @@ class FailureTests(BasePlatformTests):
         '''
         if langs is None:
             langs = []
-        with open(self.mbuild, 'w') as f:
+        with open(self.mbuild, 'w', encoding='utf-8') as f:
             f.write("project('failure test', 'c', 'cpp'")
             if meson_version:
                 f.write(f", meson_version: '{meson_version}'")
@@ -5755,7 +5746,7 @@ class FailureTests(BasePlatformTests):
                 f.write(f"add_languages('{lang}', required : false)\n")
             f.write(contents)
         if options is not None:
-            with open(self.moptions, 'w') as f:
+            with open(self.moptions, 'w', encoding='utf-8') as f:
                 f.write(options)
         o = {'MESON_FORCE_BACKTRACE': '1'}
         if override_envvars is None:
@@ -5772,7 +5763,7 @@ class FailureTests(BasePlatformTests):
     def obtainMesonOutput(self, contents, match, extra_args, langs, meson_version=None):
         if langs is None:
             langs = []
-        with open(self.mbuild, 'w') as f:
+        with open(self.mbuild, 'w', encoding='utf-8') as f:
             f.write("project('output test', 'c', 'cpp'")
             if meson_version:
                 f.write(f", meson_version: '{meson_version}'")
@@ -6579,7 +6570,7 @@ class LinuxlikeTests(BasePlatformTests):
         }
         if is_osx() or is_haiku():
             expected['Cflags'] = expected['Cflags'].replace('-pthread ', '')
-        with open(os.path.join(privatedir2, 'dependency-test.pc')) as f:
+        with open(os.path.join(privatedir2, 'dependency-test.pc'), encoding='utf-8') as f:
             matched_lines = 0
             for line in f:
                 parts = line.split(':', 1)
@@ -6610,16 +6601,16 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertEqual(out, ['-llibmain2', '-llibinternal'])
 
         # See common/44 pkgconfig-gen/meson.build for description of the case this test
-        with open(os.path.join(privatedir1, 'simple2.pc')) as f:
+        with open(os.path.join(privatedir1, 'simple2.pc'), encoding='utf-8') as f:
             content = f.read()
             self.assertIn('Libs: -L${libdir} -lsimple2 -lsimple1', content)
             self.assertIn('Libs.private: -lz', content)
 
-        with open(os.path.join(privatedir1, 'simple3.pc')) as f:
+        with open(os.path.join(privatedir1, 'simple3.pc'), encoding='utf-8') as f:
             content = f.read()
             self.assertEqual(1, content.count('-lsimple3'))
 
-        with open(os.path.join(privatedir1, 'simple5.pc')) as f:
+        with open(os.path.join(privatedir1, 'simple5.pc'), encoding='utf-8') as f:
             content = f.read()
             self.assertNotIn('-lstat2', content)
 
@@ -6642,7 +6633,7 @@ class LinuxlikeTests(BasePlatformTests):
     def test_pkg_unfound(self):
         testdir = os.path.join(self.unit_test_dir, '23 unfound pkgconfig')
         self.init(testdir)
-        with open(os.path.join(self.privatedir, 'somename.pc')) as f:
+        with open(os.path.join(self.privatedir, 'somename.pc'), encoding='utf-8') as f:
             pcfile = f.read()
         self.assertFalse('blub_blob_blib' in pcfile)
 
@@ -7162,7 +7153,7 @@ class LinuxlikeTests(BasePlatformTests):
                           ('-L/me/fourth', '-lfoo4'),
                           ('-lfoo3', '-lfoo4'),
                           ]
-        with open(os.path.join(self.builddir, 'build.ninja')) as ifile:
+        with open(os.path.join(self.builddir, 'build.ninja'), encoding='utf-8') as ifile:
             for line in ifile:
                 if expected_order[0][0] in line:
                     for first, second in expected_order:
@@ -7574,7 +7565,7 @@ class LinuxlikeTests(BasePlatformTests):
         '''
         testdir = os.path.join(self.unit_test_dir, '43 dep order')
         self.init(testdir)
-        with open(os.path.join(self.builddir, 'build.ninja')) as bfile:
+        with open(os.path.join(self.builddir, 'build.ninja'), encoding='utf-8') as bfile:
             for line in bfile:
                 if 'build myexe:' in line or 'build myexe.exe:' in line:
                     self.assertIn('liblib1.a liblib2.a', line)
@@ -7593,7 +7584,7 @@ class LinuxlikeTests(BasePlatformTests):
             rpathre = re.compile(r'-rpath,.*/subprojects/sub1.*-rpath,.*/subprojects/sub2')
         else:
             rpathre = re.compile(r'-rpath,\$\$ORIGIN/subprojects/sub1:\$\$ORIGIN/subprojects/sub2')
-        with open(os.path.join(self.builddir, 'build.ninja')) as bfile:
+        with open(os.path.join(self.builddir, 'build.ninja'), encoding='utf-8') as bfile:
             for line in bfile:
                 if '-rpath' in line:
                     self.assertRegex(line, rpathre)
@@ -7606,7 +7597,7 @@ class LinuxlikeTests(BasePlatformTests):
         '''
         testdir = os.path.join(self.src_root, 'test cases', 'native', '9 override with exe')
         self.init(testdir)
-        with open(os.path.join(self.builddir, 'build.ninja')) as bfile:
+        with open(os.path.join(self.builddir, 'build.ninja'), encoding='utf-8') as bfile:
             for line in bfile:
                 if 'main1.c:' in line or 'main2.c:' in line:
                     self.assertIn('| subprojects/sub/foobar', line)
@@ -7947,7 +7938,7 @@ class LinuxlikeTests(BasePlatformTests):
             patch_filename = foo-patch.tar.xz
             patch_hash = {}
             """.format(source_filename, source_hash, patch_filename, patch_hash))
-        with open(wrap_filename, 'w') as f:
+        with open(wrap_filename, 'w', encoding='utf-8') as f:
             f.write(wrap)
         self.init(testdir)
         self.build()
@@ -7975,7 +7966,7 @@ class LinuxlikeTests(BasePlatformTests):
         # the 2nd dependency() to lookup on system.
         self.new_builddir()
         with tempfile.TemporaryDirectory() as d:
-            with open(os.path.join(d, 'meson.build'), 'w') as f:
+            with open(os.path.join(d, 'meson.build'), 'w', encoding='utf-8') as f:
                 f.write(textwrap.dedent('''\
                     project('test')
                     dependency('notfound', fallback: 'broken', required: false)
@@ -7986,10 +7977,10 @@ class LinuxlikeTests(BasePlatformTests):
     def test_as_link_whole(self):
         testdir = os.path.join(self.unit_test_dir, '77 as link whole')
         self.init(testdir)
-        with open(os.path.join(self.privatedir, 'bar1.pc')) as f:
+        with open(os.path.join(self.privatedir, 'bar1.pc'), encoding='utf-8') as f:
             content = f.read()
             self.assertIn('-lfoo', content)
-        with open(os.path.join(self.privatedir, 'bar2.pc')) as f:
+        with open(os.path.join(self.privatedir, 'bar2.pc'), encoding='utf-8') as f:
             content = f.read()
             self.assertNotIn('-lfoo', content)
 
@@ -8589,7 +8580,7 @@ class NativeFileTests(BasePlatformTests):
         """
         filename = os.path.join(self.builddir, f'generated{self.current_config}.config')
         self.current_config += 1
-        with open(filename, 'wt') as f:
+        with open(filename, 'wt', encoding='utf-8') as f:
             for section, entries in values.items():
                 f.write(f'[{section}]\n')
                 for k, v in entries.items():
@@ -8611,7 +8602,7 @@ class NativeFileTests(BasePlatformTests):
         else:
             chbang = '#!/usr/bin/env python3'
 
-        with open(filename, 'wt') as f:
+        with open(filename, 'wt', encoding='utf-8') as f:
             f.write(textwrap.dedent('''\
                 {}
                 import argparse
@@ -8649,7 +8640,7 @@ class NativeFileTests(BasePlatformTests):
         # invoke python files itself, so instead we generate a .bat file, which
         # invokes our python wrapper
         batfile = os.path.join(self.builddir, f'binary_wrapper{self.current_wrapper}.bat')
-        with open(batfile, 'wt') as f:
+        with open(batfile, 'wt', encoding='utf-8') as f:
             f.write(fr'@{sys.executable} {filename} %*')
         return batfile
 
@@ -8684,7 +8675,7 @@ class NativeFileTests(BasePlatformTests):
             wrapper = self.helper_create_binary_wrapper('bash', d, version='12345')
 
             def filler():
-                with open(fifo, 'w') as f:
+                with open(fifo, 'w', encoding='utf-8') as f:
                     f.write('[binaries]\n')
                     f.write(f"bash = '{wrapper}'\n")
 
@@ -9171,7 +9162,7 @@ class CrossFileTests(BasePlatformTests):
         testdir = os.path.join(self.unit_test_dir, '71 cross test passed')
         with tempfile.TemporaryDirectory() as d:
             p = Path(d) / 'crossfile'
-            with p.open('wt') as f:
+            with p.open('wt', encoding='utf-8') as f:
                 f.write(self._cross_file_generator(needs_exe_wrapper=True))
             self.init(testdir, extra_args=['--cross-file=' + str(p)])
             out = self.run_target('test')
@@ -9181,7 +9172,7 @@ class CrossFileTests(BasePlatformTests):
         testdir = os.path.join(self.unit_test_dir, '71 cross test passed')
         with tempfile.TemporaryDirectory() as d:
             p = Path(d) / 'crossfile'
-            with p.open('wt') as f:
+            with p.open('wt', encoding='utf-8') as f:
                 f.write(self._cross_file_generator(needs_exe_wrapper=False))
             self.init(testdir, extra_args=['--cross-file=' + str(p)])
             out = self.run_target('test')
@@ -9191,11 +9182,11 @@ class CrossFileTests(BasePlatformTests):
         testdir = os.path.join(self.unit_test_dir, '71 cross test passed')
         with tempfile.TemporaryDirectory() as d:
             s = Path(d) / 'wrapper.py'
-            with s.open('wt') as f:
+            with s.open('wt', encoding='utf-8') as f:
                 f.write(self._stub_exe_wrapper())
             s.chmod(0o774)
             p = Path(d) / 'crossfile'
-            with p.open('wt') as f:
+            with p.open('wt', encoding='utf-8') as f:
                 f.write(self._cross_file_generator(
                     needs_exe_wrapper=True,
                     exe_wrapper=[str(s)]))
@@ -9208,7 +9199,7 @@ class CrossFileTests(BasePlatformTests):
         testdir = os.path.join(self.unit_test_dir, '71 cross test passed')
         with tempfile.TemporaryDirectory() as d:
             p = Path(d) / 'crossfile'
-            with p.open('wt') as f:
+            with p.open('wt', encoding='utf-8') as f:
                 f.write(self._cross_file_generator(needs_exe_wrapper=True))
 
             self.init(testdir, extra_args=['--cross-file=' + str(p)])
@@ -9266,7 +9257,7 @@ class CrossFileTests(BasePlatformTests):
         """
         filename = os.path.join(self.builddir, f'generated{self.current_config}.config')
         self.current_config += 1
-        with open(filename, 'wt') as f:
+        with open(filename, 'wt', encoding='utf-8') as f:
             for section, entries in values.items():
                 f.write(f'[{section}]\n')
                 for k, v in entries.items():
@@ -9740,7 +9731,7 @@ class SubprojectsCommandTests(BasePlatformTests):
 
     def _create_project(self, path, project_name='dummy'):
         os.makedirs(str(path), exist_ok=True)
-        with open(str(path / 'meson.build'), 'w') as f:
+        with open(str(path / 'meson.build'), 'w', encoding='utf-8') as f:
             f.write(f"project('{project_name}')")
 
     def _git(self, cmd, workdir):
@@ -9802,7 +9793,7 @@ class SubprojectsCommandTests(BasePlatformTests):
 
     def _wrap_create_git(self, name, revision='master'):
         path = self.root_dir / name
-        with open(str((self.subprojects_dir / name).with_suffix('.wrap')), 'w') as f:
+        with open(str((self.subprojects_dir / name).with_suffix('.wrap')), 'w', encoding='utf-8') as f:
             f.write(textwrap.dedent(
                 '''
                 [wrap-git]
@@ -9812,7 +9803,7 @@ class SubprojectsCommandTests(BasePlatformTests):
 
     def _wrap_create_file(self, name, tarball='dummy.tar.gz'):
         path = self.root_dir / tarball
-        with open(str((self.subprojects_dir / name).with_suffix('.wrap')), 'w') as f:
+        with open(str((self.subprojects_dir / name).with_suffix('.wrap')), 'w', encoding='utf-8') as f:
             f.write(textwrap.dedent(
                 f'''
                 [wrap-file]
