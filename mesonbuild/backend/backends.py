@@ -199,6 +199,12 @@ def get_backend_from_name(backend: str, build: T.Optional[build.Build] = None, i
     elif backend == 'vs2010':
         from . import vs2010backend
         return vs2010backend.Vs2010Backend(build, interpreter)
+    elif backend == 'vs2012':
+        from . import vs2012backend
+        return vs2012backend.Vs2012Backend(build, interpreter)
+    elif backend == 'vs2013':
+        from . import vs2013backend
+        return vs2013backend.Vs2013Backend(build, interpreter)
     elif backend == 'vs2015':
         from . import vs2015backend
         return vs2015backend.Vs2015Backend(build, interpreter)

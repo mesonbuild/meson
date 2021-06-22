@@ -1984,8 +1984,8 @@ the following methods.
   *used as the `script_name` parameter.
 
 - `backend()` *(since 0.37.0)*: returns a string representing the
-  current backend: `ninja`, `vs2010`, `vs2015`, `vs2017`, `vs2019`,
-  or `xcode`.
+  current backend: `ninja`, `vs2010`, `vs2012`, `vs2013`, `vs2015`,
+  `vs2017`, `vs2019`, or `xcode`.
 
 - `build_root()`: returns a string with the absolute path to the build
   root directory. *(deprecated since 0.56.0)*: this function will return the

@@ -27,7 +27,7 @@ from .. import mlog
 from .. import compilers
 from ..interpreter import Interpreter
 from ..mesonlib import (
-    MesonException, python_command, replace_if_different, OptionKey,
+    File, MesonException, python_command, replace_if_different, OptionKey, version_compare,
 )
 from ..environment import Environment, build_filename
 
@@ -37,8 +37,14 @@ def autodetect_vs_version(build: T.Optional[build.Build], interpreter: T.Optiona
     if not vs_install_dir:
         raise MesonException('Could not detect Visual Studio: Environment variable VSINSTALLDIR is not set!\n'
                              'Are you running meson from the Visual Studio Developer Command Prompt?')
-    # VisualStudioVersion is set since Visual Studio 12.0, but sometimes
+    # VisualStudioVersion is set since Visual Studio 11.0, but sometimes
     # vcvarsall.bat doesn't set it, so also use VSINSTALLDIR
+    if vs_version == '11.0' or 'Visual Studio 11' in vs_install_dir:
+        from mesonbuild.backend.vs2012backend import Vs2012Backend
+        return Vs2012Backend(build, interpreter)
+    if vs_version == '12.0' or 'Visual Studio 12' in vs_install_dir:
+        from mesonbuild.backend.vs2013backend import Vs2013Backend
+        return Vs2013Backend(build, interpreter)
     if vs_version == '14.0' or 'Visual Studio 14' in vs_install_dir:
         from mesonbuild.backend.vs2015backend import Vs2015Backend
         return Vs2015Backend(build, interpreter)
@@ -210,7 +216,7 @@ class Vs2010Backend(backends.Backend):
         if 'VCINSTALLDIR' in os.environ:
             vs_version = os.environ['VisualStudioVersion'] \
                 if 'VisualStudioVersion' in os.environ else None
-            relative_path = 'Auxiliary\\Build\\' if vs_version >= '15.0' else ''
+            relative_path = 'Auxiliary\\Build\\' if vs_version is not None and vs_version >= '15.0' else ''
             script_path = os.environ['VCINSTALLDIR'] + relative_path + 'vcvarsall.bat'
             if os.path.exists(script_path):
                 if has_arch_values:
@@ -1149,8 +1155,32 @@ class Vs2010Backend(backends.Backend):
                 lobj = self.build.targets[t.get_id()]
             linkname = os.path.join(down, self.get_target_filename_for_linking(lobj))
             if t in target.link_whole_targets:
-                # /WHOLEARCHIVE:foo must go into AdditionalOptions
-                extra_link_args += compiler.get_link_whole_for(linkname)
+                if compiler.id == 'msvc' and version_compare(compiler.version, '<19.00.23918'):
+                    # Expand our object lists manually if we are on pre-Visual Studio 2015 Update 2
+                    l = t.extract_all_objects(False)
+
+                    # Unforunately, we can't use self.object_filename_from_source()
+                    gensrclist: T.List[File] = []
+                    for gen in l.genlist:
+                        for src in gen.get_outputs():
+                            if self.environment.is_source(src) and not self.environment.is_header(src):
+                                path = self.get_target_generated_dir(t, gen, src)
+                                gen_src_ext = '.' + os.path.splitext(path)[1][1:]
+                                extra_link_args.append(path[:-len(gen_src_ext)] + '.obj')
+
+                    for src in l.srclist:
+                        obj_basename = None
+                        if self.environment.is_source(src) and not self.environment.is_header(src):
+                            obj_basename = self.object_filename_from_source(t, src)
+                            target_private_dir = self.relpath(self.get_target_private_dir(t),
+                                                              self.get_target_dir(t))
+                            rel_obj = os.path.join(target_private_dir, obj_basename)
+                            extra_link_args.append(rel_obj)
+
+                    extra_link_args.extend(self.flatten_object_list(t))
+                else:
+                    # /WHOLEARCHIVE:foo must go into AdditionalOptions
+                    extra_link_args += compiler.get_link_whole_for(linkname)
                 # To force Visual Studio to build this project even though it
                 # has no sources, we include a reference to the vcxproj file
                 # that builds this target. Technically we should add this only
