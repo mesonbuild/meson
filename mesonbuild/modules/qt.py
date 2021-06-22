@@ -276,6 +276,11 @@ class QtBaseModule(ExtensionModule):
 
         Uses CustomTargets to generate .cpp files from .qrc files.
         """
+        out = self._compile_resources_impl(state, kwargs)
+        return ModuleReturnValue(out, [out])
+
+    def _compile_resources_impl(self, state: 'ModuleState', kwargs: 'ResourceCompilerKwArgs') -> T.List[build.CustomTarget]:
+        # Avoid the FeatureNew when dispatching from preprocess
         self._detect_tools(state, kwargs['method'])
         if not self.rcc.found():
             err_msg = ("{0} sources specified and couldn't find {1}, "
@@ -326,7 +331,7 @@ class QtBaseModule(ExtensionModule):
                 res_target = build.CustomTarget(name, state.subdir, state.subproject, rcc_kwargs)
                 targets.append(res_target)
 
-        return ModuleReturnValue(targets, [targets])
+        return targets
 
     @FeatureNew('qt.compile_ui', '0.59.0')
     @noPosargs
@@ -336,8 +341,13 @@ class QtBaseModule(ExtensionModule):
         KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
         KwargInfo('method', str, default='auto')
     )
-    def compile_ui(self, state: 'ModuleState', args: T.Tuple, kwargs: 'ResourceCompilerKwArgs') -> ModuleReturnValue:
+    def compile_ui(self, state: 'ModuleState', args: T.Tuple, kwargs: 'UICompilerKwArgs') -> ModuleReturnValue:
         """Compile UI resources into cpp headers."""
+        out = self._compile_ui_impl(state, kwargs)
+        return ModuleReturnValue(out, [out])
+
+    def _compile_ui_impl(self, state: 'ModuleState', kwargs: 'UICompilerKwArgs') -> build.GeneratedList:
+        # Avoid the FeatureNew when dispatching from preprocess
         self._detect_tools(state, kwargs['method'])
         if not self.uic.found():
             err_msg = ("{0} sources specified and couldn't find {1}, "
@@ -350,8 +360,7 @@ class QtBaseModule(ExtensionModule):
             kwargs['extra_args'] + ['-o', '@OUTPUT@', '@INPUT@'],
             ['ui_@BASENAME@.h'],
             name=f'Qt{self.qt_version} ui')
-        out = gen.process_files(kwargs['sources'], state)
-        return ModuleReturnValue(out, [out])
+        return gen.process_files(kwargs['sources'], state)
 
     @FeatureNew('qt.compile_moc', '0.59.0')
     @noPosargs
@@ -365,6 +374,11 @@ class QtBaseModule(ExtensionModule):
         KwargInfo('dependencies', ContainerTypeInfo(list, (Dependency, ExternalLibrary)), listify=True, default=[]),
     )
     def compile_moc(self, state: 'ModuleState', args: T.Tuple, kwargs: 'MocCompilerKwArgs') -> ModuleReturnValue:
+        out = self._compile_moc_impl(state, kwargs)
+        return ModuleReturnValue(out, [out])
+
+    def _compile_moc_impl(self, state: 'ModuleState', kwargs: 'MocCompilerKwArgs') -> T.List[build.GeneratedList]:
+        # Avoid the FeatureNew when dispatching from preprocess
         self._detect_tools(state, kwargs['method'])
         if not self.moc.found():
             err_msg = ("{0} sources specified and couldn't find {1}, "
@@ -393,7 +407,7 @@ class QtBaseModule(ExtensionModule):
                 name=f'Qt{self.qt_version} moc source')
             output.append(moc_gen.process_files(kwargs['sources'], state))
 
-        return ModuleReturnValue(output, [output])
+        return output
 
     # We can't use typed_pos_args here, the signature is ambiguious
     @typed_kwargs(
@@ -414,7 +428,9 @@ class QtBaseModule(ExtensionModule):
         _sources = args[1:]
         if _sources:
             FeatureDeprecated.single_use('qt.preprocess positional sources', '0.59', state.subproject)
-        sources = _sources + kwargs['sources']
+        # List is invariant, os we have to cast...
+        sources = T.cast(T.List[T.Union[str, File, build.GeneratedList, build.CustomTarget]],
+                         _sources + kwargs['sources'])
         for s in sources:
             if not isinstance(s, (str, File)):
                 raise build.InvalidArguments('Variadic arguments to qt.preprocess must be Strings or Files')
@@ -424,14 +440,15 @@ class QtBaseModule(ExtensionModule):
             # custom output name set? -> one output file, multiple otherwise
             rcc_kwargs: 'ResourceCompilerKwArgs' = {'name': '', 'sources': kwargs['qresources'], 'extra_args': kwargs['rcc_extra_arguments'], 'method': method}
             if args:
-                if not isinstance(args[0], str):
+                name = args[0]
+                if not isinstance(name, str):
                     raise build.InvalidArguments('First argument to qt.preprocess must be a string')
-                rcc_kwargs['name'] = args[0]
-            sources.append(self.compile_resources(state, tuple(), rcc_kwargs).return_value)
+                rcc_kwargs['name'] = name
+            sources.extend(self._compile_resources_impl(state, rcc_kwargs))
 
         if kwargs['ui_files']:
             ui_kwargs: 'UICompilerKwArgs' = {'sources': kwargs['ui_files'], 'extra_args': kwargs['uic_extra_arguments'], 'method': method}
-            sources.append(self.compile_ui(state, tuple(), ui_kwargs).return_value)
+            sources.append(self._compile_ui_impl(state, ui_kwargs))
 
         if kwargs['moc_headers'] or kwargs['moc_sources']:
             moc_kwargs: 'MocCompilerKwArgs' = {
@@ -442,7 +459,7 @@ class QtBaseModule(ExtensionModule):
                 'dependencies': kwargs['dependencies'],
                 'method': method,
             }
-            sources.append(self.compile_moc(state, tuple(), moc_kwargs).return_value)
+            sources.extend(self._compile_moc_impl(state, moc_kwargs))
 
         return ModuleReturnValue(sources, [sources])
 
