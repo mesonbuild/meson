@@ -28,7 +28,7 @@ from ..depfile import DepFile
 from ..interpreterbase import ContainerTypeInfo, InterpreterBase, KwargInfo, typed_kwargs, typed_pos_args
 from ..interpreterbase import noPosargs, noKwargs, stringArgs, permittedKwargs, noArgsFlattening, unholder_return
 from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
-from ..interpreterbase import InterpreterObject, Disabler, disablerIfNotFound
+from ..interpreterbase import Disabler, disablerIfNotFound
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs, FeatureDeprecatedKwargs
 from ..interpreterbase import ObjectHolder, RangeHolder
 from ..interpreterbase import TYPE_nkwargs, TYPE_nvar, TYPE_var
@@ -66,7 +66,7 @@ if T.TYPE_CHECKING:
     from . import kwargs
 
     # Input source types passed to Targets
-    SourceInputs = T.Union[mesonlib.File, build.GeneratedList, build.BuildTarget,
+    SourceInputs = T.Union[mesonlib.File, build.GeneratedList, build.BuildTarget, build.BothLibraries,
                            build.CustomTargetIndex, build.CustomTarget, build.GeneratedList, str]
     # Input source types passed to the build.Target5 classes
     SourceOutputs = T.Union[mesonlib.File, build.GeneratedList,
@@ -1404,6 +1404,8 @@ external dependencies (including libraries) must go to "dependencies".''')
         # Only store successful lookups
         self.store_name_lookups(args)
         mlog.log('Program', mlog.bold(progobj.name), 'found:', mlog.green('YES'), *extra_info)
+        if isinstance(progobj, build.Executable):
+            progobj.was_returned_by_find_program = True
         return progobj
 
     def program_lookup(self, args, for_machine, required, search_dirs, extra_info):
@@ -2490,6 +2492,8 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
             sources = [sources]
         results: T.List['SourceOutputs'] = []
         for s in sources:
+            if isinstance(s, build.BothLibraries):
+                s = s.get_preferred_library()
             if isinstance(s, str):
                 self.validate_within_subproject(self.subdir, s)
                 results.append(mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, s))
@@ -2655,7 +2659,7 @@ This will become a hard error in the future.''', location=self.current_node)
                 raise InterpreterException('Tried to add non-existing source file %s.' % s)
 
     # Only permit object extraction from the same subproject
-    def validate_extraction(self, buildtarget: InterpreterObject) -> None:
+    def validate_extraction(self, buildtarget: mesonlib.HoldableObject) -> None:
         if self.subproject != buildtarget.subproject:
             raise InterpreterException('Tried to extract objects from a different subproject.')
 

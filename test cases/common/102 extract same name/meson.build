@@ -12,7 +12,7 @@ if meson.backend() == 'xcode'
     error('MESON_SKIP_TEST, Xcode can not extract objs when they would have the same filename.')
 endif
 
-lib = shared_library('somelib', ['lib.c', 'src/lib.c'])
+lib = library('somelib', ['lib.c', 'src/lib.c'])
 # Also tests that the object list is flattened properly
 obj = lib.extract_objects(['lib.c', ['src/lib.c']])
 exe = executable('main', 'main.c', objects: obj)

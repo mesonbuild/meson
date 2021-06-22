@@ -1,2 +1,2 @@
 project('C', 'c')
-c = shared_library('c', 'c.c')
+c = library('c', 'c.c')
