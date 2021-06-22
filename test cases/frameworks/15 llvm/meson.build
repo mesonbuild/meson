@@ -34,8 +34,12 @@ llvm_dep = dependency(
   static : static,
   method : method,
 )
-if llvm_dep.found()
-  executable(
+
+if not llvm_dep.found()
+  error('MESON_SKIP_TEST required llvm modules not found.')
+endif
+
+executable(
     'sum',
     'sum.c',
     dependencies : [
@@ -45,4 +49,3 @@ if llvm_dep.found()
       meson.get_compiler('c').find_library('dl', required : false),
     ]
   )
-endif
