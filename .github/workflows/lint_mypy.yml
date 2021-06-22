@@ -23,6 +23,15 @@ jobs:
     - run: python -m pip install pylint==2.4.4
     - run: pylint mesonbuild
 
+  custom_lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+    - run: python ./run_custom_lint.py
+
   mypy:
     runs-on: ubuntu-latest
     steps:
