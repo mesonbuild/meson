@@ -3,8 +3,10 @@ import argparse
 import asyncio
 import threading
 import copy
+import shutil
 from concurrent.futures.thread import ThreadPoolExecutor
 from pathlib import Path
+import typing as T
 
 from . import mlog
 from .mesonlib import quiet_git, GitException, Popen_safe, MesonException, windows_proof_rmtree
@@ -13,10 +15,46 @@ from .wrap import wraptool
 
 ALL_TYPES_STRING = ', '.join(ALL_TYPES)
 
-class Runner:
-    lock = threading.Lock()
+class Logger:
+    def __init__(self, total_tasks: int) -> None:
+        self.lock = threading.Lock()
+        self.total_tasks = total_tasks
+        self.completed_tasks = 0
+        self.running_tasks = set()
+        self.should_erase_line = ''
 
-    def __init__(self, r: Resolver, wrap: PackageDefinition, repo_dir: str, options: argparse.Namespace) -> None:
+    def flush(self) -> None:
+        if self.should_erase_line:
+            print(self.should_erase_line, end='\r')
+            self.should_erase_line = ''
+
+    def print_progress(self) -> None:
+        line = f'Progress: {self.completed_tasks} / {self.total_tasks}'
+        max_len = shutil.get_terminal_size().columns - len(line)
+        running = ', '.join(self.running_tasks)
+        if len(running) + 3 > max_len:
+            running = running[:max_len - 6] + '...'
+        line = line + f' ({running})'
+        print(self.should_erase_line, line, sep='', end='\r')
+        self.should_erase_line = '\x1b[K'
+
+    def start(self, wrap_name: str) -> None:
+        with self.lock:
+            self.running_tasks.add(wrap_name)
+            self.print_progress()
+
+    def done(self, wrap_name: str, log_queue: T.List[T.Tuple[mlog.TV_LoggableList, T.Any]]) -> None:
+        with self.lock:
+            self.flush()
+            for args, kwargs in log_queue:
+                mlog.log(*args, **kwargs)
+            self.running_tasks.remove(wrap_name)
+            self.completed_tasks += 1
+            self.print_progress()
+
+
+class Runner:
+    def __init__(self, logger: Logger, r: Resolver, wrap: PackageDefinition, repo_dir: str, options: argparse.Namespace) -> None:
         # FIXME: Do a copy because Resolver.resolve() is stateful method that
         # cannot be called from multiple threads.
         self.wrap_resolver = copy.copy(r)
@@ -25,15 +63,15 @@ class Runner:
         self.options = options
         self.run_method = options.subprojects_func.__get__(self)
         self.log_queue = []
+        self.logger = logger
 
     def log(self, *args, **kwargs):
         self.log_queue.append((args, kwargs))
 
     def run(self):
+        self.logger.start(self.wrap.name)
         result = self.run_method()
-        with self.lock:
-            for args, kwargs in self.log_queue:
-                mlog.log(*args, **kwargs)
+        self.logger.done(self.wrap.name, self.log_queue)
         return result
 
     def update_wrapdb_file(self):
@@ -491,15 +529,17 @@ def run(options):
     task_names = []
     loop = asyncio.get_event_loop()
     executor = ThreadPoolExecutor(options.num_processes)
+    if types:
+        wraps = [wrap for wrap in wraps if wrap.type in types]
+    logger = Logger(len(wraps))
     for wrap in wraps:
-        if types and wrap.type not in types:
-            continue
         dirname = Path(subprojects_dir, wrap.directory).as_posix()
-        runner = Runner(r, wrap, dirname, options)
+        runner = Runner(logger, r, wrap, dirname, options)
         task = loop.run_in_executor(executor, runner.run)
         tasks.append(task)
         task_names.append(wrap.name)
     results = loop.run_until_complete(asyncio.gather(*tasks))
+    logger.flush()
     post_func = getattr(options, 'post_func', None)
     if post_func:
         post_func(options)
