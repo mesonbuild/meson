@@ -104,12 +104,14 @@ class JavaProject(SampleImpl):
         uppercase_token = lowercase_token.upper()
         class_name = uppercase_token[0] + lowercase_token[1:]
         source_name = uppercase_token[0] + lowercase_token[1:] + '.java'
-        open(source_name, 'w').write(hello_java_template.format(project_name=self.name,
-                                                                class_name=class_name))
-        open('meson.build', 'w').write(hello_java_meson_template.format(project_name=self.name,
-                                                                        exe_name=class_name,
-                                                                        source_name=source_name,
-                                                                        version=self.version))
+        open(source_name, 'w', encoding='utf-8').write(
+            hello_java_template.format(project_name=self.name,
+                                       class_name=class_name))
+        open('meson.build', 'w', encoding='utf-8').write(
+            hello_java_meson_template.format(project_name=self.name,
+                                             exe_name=class_name,
+                                             source_name=source_name,
+                                             version=self.version))
 
     def create_library(self) -> None:
         lowercase_token = re.sub(r'[^a-z0-9]', '_', self.name.lower())
@@ -129,6 +131,6 @@ class JavaProject(SampleImpl):
                   'test_name': lowercase_token,
                   'version': self.version,
                   }
-        open(lib_java_name, 'w').write(lib_java_template.format(**kwargs))
-        open(test_java_name, 'w').write(lib_java_test_template.format(**kwargs))
-        open('meson.build', 'w').write(lib_java_meson_template.format(**kwargs))
+        open(lib_java_name, 'w', encoding='utf-8').write(lib_java_template.format(**kwargs))
+        open(test_java_name, 'w', encoding='utf-8').write(lib_java_test_template.format(**kwargs))
+        open('meson.build', 'w', encoding='utf-8').write(lib_java_meson_template.format(**kwargs))

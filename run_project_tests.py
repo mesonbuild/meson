@@ -480,7 +480,7 @@ def run_test_inprocess(testdir):
     try:
         returncode_test = mtest.run_with_args(['--no-rebuild'])
         if test_log_fname.exists():
-            test_log = test_log_fname.open(errors='ignore').read()
+            test_log = test_log_fname.open(encoding='utf-8', errors='ignore').read()
         else:
             test_log = ''
         returncode_benchmark = mtest.run_with_args(['--no-rebuild', '--benchmark', '--logbase', 'benchmarklog'])
@@ -671,7 +671,7 @@ def load_test_json(t: TestDef, stdout_mandatory: bool) -> T.List[TestDef]:
     test_def = {}
     test_def_file = t.path / 'test.json'
     if test_def_file.is_file():
-        test_def = json.loads(test_def_file.read_text())
+        test_def = json.loads(test_def_file.read_text(encoding='utf-8'))
 
     # Handle additional environment variables
     env = {}  # type: T.Dict[str, str]
@@ -957,18 +957,17 @@ def skip_csharp(backend) -> bool:
 # on all compilation attempts.
 
 def has_broken_rustc() -> bool:
-    dirname = 'brokenrusttest'
-    if os.path.exists(dirname):
-        mesonlib.windows_proof_rmtree(dirname)
-    os.mkdir(dirname)
-    open(dirname + '/sanity.rs', 'w').write('''fn main() {
-}
-''')
+    dirname = Path('brokenrusttest')
+    if dirname.exists():
+        mesonlib.windows_proof_rmtree(dirname.as_posix())
+    dirname.mkdir()
+    sanity_file = dirname / 'sanity.rs'
+    sanity_file.write_text('fn main() {\n}\n', encoding='utf-8')
     pc = subprocess.run(['rustc', '-o', 'sanity.exe', 'sanity.rs'],
-                        cwd=dirname,
+                        cwd=dirname.as_posix(),
                         stdout = subprocess.DEVNULL,
                         stderr = subprocess.DEVNULL)
-    mesonlib.windows_proof_rmtree(dirname)
+    mesonlib.windows_proof_rmtree(dirname.as_posix())
     return pc.returncode != 0
 
 def should_skip_rust(backend: Backend) -> bool:

@@ -18,7 +18,7 @@ install_script = 'install.sh'
 class ImageDef:
     def __init__(self, image_dir: Path) -> None:
         path = image_dir / image_def_file
-        data = json.loads(path.read_text())
+        data = json.loads(path.read_text(encoding='utf-8'))
 
         assert isinstance(data, dict)
         assert all([x in data for x in ['base_image', 'env']])
@@ -74,7 +74,7 @@ class Builder(BuilderBase):
         # Also add /ci to PATH
         out_data += 'export PATH="/ci:$PATH"\n'
 
-        out_file.write_text(out_data)
+        out_file.write_text(out_data, encoding='utf-8')
 
         # make it executable
         mode = out_file.stat().st_mode
@@ -91,7 +91,7 @@ class Builder(BuilderBase):
             RUN /ci/install.sh
         ''')
 
-        out_file.write_text(out_data)
+        out_file.write_text(out_data, encoding='utf-8')
 
     def do_build(self) -> None:
         # copy files
@@ -131,7 +131,7 @@ class ImageTester(BuilderBase):
             ADD meson /meson
         ''')
 
-        out_file.write_text(out_data)
+        out_file.write_text(out_data, encoding='utf-8')
 
     def copy_meson(self) -> None:
         shutil.copytree(

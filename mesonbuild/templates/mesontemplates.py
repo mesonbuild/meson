@@ -71,5 +71,5 @@ def create_meson_build(options: argparse.Namespace) -> None:
                                             sourcespec=sourcespec,
                                             depspec=depspec,
                                             default_options=formatted_default_options)
-    open('meson.build', 'w').write(content)
+    open('meson.build', 'w', encoding='utf-8').write(content)
     print('Generated meson.build file:\n\n' + content)

@@ -297,7 +297,7 @@ class CmakeModule(ExtensionModule):
         package_init += PACKAGE_INIT_SET_AND_CHECK
 
         try:
-            with open(infile) as fin:
+            with open(infile, encoding='utf-8') as fin:
                 data = fin.readlines()
         except Exception as e:
             raise mesonlib.MesonException('Could not read input file {}: {}'.format(infile, str(e)))

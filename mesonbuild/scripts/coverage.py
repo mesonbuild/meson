@@ -68,11 +68,11 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
                 # Create a shim to allow using llvm-cov as a gcov tool.
                 if mesonlib.is_windows():
                     llvm_cov_shim_path = os.path.join(log_dir, 'llvm-cov.bat')
-                    with open(llvm_cov_shim_path, 'w') as llvm_cov_bat:
+                    with open(llvm_cov_shim_path, 'w', encoding='utf-8') as llvm_cov_bat:
                         llvm_cov_bat.write(f'@"{llvm_cov_exe}" gcov %*')
                 else:
                     llvm_cov_shim_path = os.path.join(log_dir, 'llvm-cov.sh')
-                    with open(llvm_cov_shim_path, 'w') as llvm_cov_sh:
+                    with open(llvm_cov_shim_path, 'w', encoding='utf-8') as llvm_cov_sh:
                         llvm_cov_sh.write(f'#!/usr/bin/env sh\nexec "{llvm_cov_exe}" gcov $@')
                     os.chmod(llvm_cov_shim_path, os.stat(llvm_cov_shim_path).st_mode | stat.S_IEXEC)
                 gcov_tool_args = ['--gcov-tool', llvm_cov_shim_path]

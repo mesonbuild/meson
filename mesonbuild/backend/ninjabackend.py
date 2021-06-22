@@ -20,6 +20,7 @@ import subprocess
 from collections import OrderedDict
 from enum import Enum, unique
 import itertools
+from textwrap import dedent
 from pathlib import PurePath, Path
 from functools import lru_cache
 
@@ -460,10 +461,11 @@ class NinjaBackend(backends.Backend):
             return open(tempfilename, 'a', encoding='utf-8')
         filename = os.path.join(self.environment.get_scratch_dir(),
                                 'incdetect.c')
-        with open(filename, 'w') as f:
-            f.write('''#include<stdio.h>
-int dummy;
-''')
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write(dedent('''\
+                #include<stdio.h>
+                int dummy;
+            '''))
 
         # The output of cl dependency information is language
         # and locale dependent. Any attempt at converting it to
@@ -1205,7 +1207,7 @@ int dummy;
         manifest_path = os.path.join(self.get_target_private_dir(target), 'META-INF', 'MANIFEST.MF')
         manifest_fullpath = os.path.join(self.environment.get_build_dir(), manifest_path)
         os.makedirs(os.path.dirname(manifest_fullpath), exist_ok=True)
-        with open(manifest_fullpath, 'w') as manifest:
+        with open(manifest_fullpath, 'w', encoding='utf-8') as manifest:
             if any(target.link_targets):
                 manifest.write('Class-Path: ')
                 cp_paths = [os.path.join(self.get_target_dir(l), l.get_filename()) for l in target.link_targets]

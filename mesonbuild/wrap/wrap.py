@@ -293,7 +293,7 @@ class Resolver:
                 mlog.log('Using', mlog.bold(rel))
                 # Write a dummy wrap file in main project that redirect to the
                 # wrap we picked.
-                with open(main_fname, 'w') as f:
+                with open(main_fname, 'w', encoding='utf-8') as f:
                     f.write(textwrap.dedent('''\
                         [wrap-redirect]
                         filename = {}

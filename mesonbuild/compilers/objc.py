@@ -57,7 +57,7 @@ class ObjCCompiler(CLikeCompiler, Compiler):
             extra_flags += self.get_compile_only_args()
         else:
             extra_flags += environment.coredata.get_external_link_args(self.for_machine, self.language)
-        with open(source_name, 'w') as ofile:
+        with open(source_name, 'w', encoding='utf-8') as ofile:
             ofile.write('#import<stddef.h>\n'
                         'int main(void) { return 0; }\n')
         pc = subprocess.Popen(self.exelist + extra_flags + [source_name, '-o', binary_name])

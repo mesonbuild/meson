@@ -38,18 +38,18 @@ RELINKING_WARNING = 'Relinking will always happen on source changes.'
 
 def dummy_syms(outfilename: str) -> None:
     """Just touch it so relinking happens always."""
-    with open(outfilename, 'w'):
+    with open(outfilename, 'w', encoding='utf-8'):
         pass
 
 def write_if_changed(text: str, outfilename: str) -> None:
     try:
-        with open(outfilename) as f:
+        with open(outfilename, encoding='utf-8') as f:
             oldtext = f.read()
         if text == oldtext:
             return
     except FileNotFoundError:
         pass
-    with open(outfilename, 'w') as f:
+    with open(outfilename, 'w', encoding='utf-8') as f:
         f.write(text)
 
 def print_tool_warning(tools: T.List[str], msg: str, stderr: T.Optional[str] = None) -> None:
@@ -61,7 +61,7 @@ def print_tool_warning(tools: T.List[str], msg: str, stderr: T.Optional[str] = N
         m += '\n' + stderr
     mlog.warning(m)
     # Write it out so we don't warn again
-    with open(TOOL_WARNING_FILE, 'w'):
+    with open(TOOL_WARNING_FILE, 'w', encoding='utf-8'):
         pass
 
 def get_tool(name: str) -> T.List[str]:
@@ -309,7 +309,7 @@ def gen_symbols(libfilename: str, impfilename: str, outfilename: str, cross_host
             mlog.warning('Symbol extracting has not been implemented for this '
                          'platform. ' + RELINKING_WARNING)
             # Write it out so we don't warn again
-            with open(TOOL_WARNING_FILE, 'w'):
+            with open(TOOL_WARNING_FILE, 'w', encoding='utf-8'):
                 pass
         dummy_syms(outfilename)
 

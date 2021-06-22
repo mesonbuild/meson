@@ -70,7 +70,7 @@ class CMakeToolchain:
     def write(self) -> Path:
         if not self.toolchain_file.parent.exists():
             self.toolchain_file.parent.mkdir(parents=True)
-        self.toolchain_file.write_text(self.generate())
+        self.toolchain_file.write_text(self.generate(), encoding='utf-8')
         mlog.cmd_ci_include(self.toolchain_file.as_posix())
         return self.toolchain_file
 

@@ -280,13 +280,13 @@ class Converter:
             subdir = self.cmake_root
         cfile = Path(subdir).expanduser() / 'CMakeLists.txt'
         try:
-            with cfile.open() as f:
+            with cfile.open(encoding='utf-8') as f:
                 cmakecode = f.read()
         except FileNotFoundError:
             print('\nWarning: No CMakeLists.txt in', subdir, '\n', file=sys.stderr)
             return
         p = Parser(cmakecode)
-        with (subdir / 'meson.build').open('w') as outfile:
+        with (subdir / 'meson.build').open('w', encoding='utf-8') as outfile:
             for t in p.parse():
                 if t.name == 'add_subdirectory':
                     # print('\nRecursing to subdir',
@@ -300,7 +300,7 @@ class Converter:
 
     def write_options(self) -> None:
         filename = self.cmake_root / 'meson_options.txt'
-        with filename.open('w') as optfile:
+        with filename.open('w', encoding='utf-8') as optfile:
             for o in self.options:
                 (optname, description, default) = o
                 if default is None:

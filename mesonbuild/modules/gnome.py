@@ -1684,7 +1684,7 @@ G_END_DECLS'''
     def _generate_deps(self, state, library, packages, install_dir):
         outdir = state.environment.scratch_dir
         fname = os.path.join(outdir, library + '.deps')
-        with open(fname, 'w') as ofile:
+        with open(fname, 'w', encoding='utf-8') as ofile:
             for package in packages:
                 ofile.write(package + '\n')
         return build.Data([mesonlib.File(True, outdir, fname)], install_dir, None, state.subproject)

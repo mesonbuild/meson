@@ -818,9 +818,9 @@ class Rewriter:
             fdata = ''
             # Create an empty file if it does not exist
             if not os.path.exists(fpath):
-                with open(fpath, 'w'):
+                with open(fpath, 'w', encoding='utf-8'):
                     pass
-            with open(fpath) as fp:
+            with open(fpath, encoding='utf-8') as fp:
                 fdata = fp.read()
 
             # Generate line offsets numbers
@@ -871,7 +871,7 @@ class Rewriter:
         # Write the files back
         for key, val in files.items():
             mlog.log('Rewriting', mlog.yellow(key))
-            with open(val['path'], 'w') as fp:
+            with open(val['path'], 'w', encoding='utf-8') as fp:
                 fp.write(val['raw'])
 
 target_operation_map = {
@@ -923,7 +923,7 @@ def generate_def_opts(options) -> T.List[dict]:
 
 def generate_cmd(options) -> T.List[dict]:
     if os.path.exists(options.json):
-        with open(options.json) as fp:
+        with open(options.json, encoding='utf-8') as fp:
             return json.load(fp)
     else:
         return json.loads(options.json)
