@@ -64,7 +64,7 @@ build definitions so that it will not break when the change happens.'''
 
 selinux_updates: T.List[str] = []
 
-def add_arguments(parser: argparse.Namespace) -> None:
+def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('-C', default='.', dest='wd',
                         help='directory to cd into before running')
     parser.add_argument('--profile-self', action='store_true', dest='profile',
@@ -130,7 +130,8 @@ def append_to_log(lf: T.TextIO, line: str) -> None:
     lf.flush()
 
 
-def set_chown(path: str, user: T.Optional[str] = None, group: T.Optional[str] = None,
+def set_chown(path: str, user: T.Union[str, int, None] = None,
+              group: T.Union[str, int, None] = None,
               dir_fd: T.Optional[int] = None, follow_symlinks: bool = True) -> None:
     # shutil.chown will call os.chown without passing all the parameters
     # and particularly follow_symlinks, thus we replace it temporary
@@ -182,12 +183,12 @@ def sanitize_permissions(path: str, umask: T.Union[str, int]) -> None:
 
 
 def set_mode(path: str, mode: T.Optional['FileMode'], default_umask: T.Union[str, int]) -> None:
-    if mode is None or (mode.perms_s or mode.owner or mode.group) is None:
+    if mode is None or all(m is None for m in [mode.perms_s, mode.owner, mode.group]):
         # Just sanitize permissions with the default umask
         sanitize_permissions(path, default_umask)
         return
     # No chown() on Windows, and must set one of owner/group
-    if not is_windows() and (mode.owner or mode.group) is not None:
+    if not is_windows() and (mode.owner is not None or mode.group is not None):
         try:
             set_chown(path, mode.owner, mode.group, follow_symlinks=False)
         except PermissionError as e:

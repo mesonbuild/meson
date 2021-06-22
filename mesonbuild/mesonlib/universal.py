@@ -298,8 +298,8 @@ class FileMode:
                                       '[r-][w-][xsS-]' # Group perms
                                       '[r-][w-][xtT-]') # Others perms
 
-    def __init__(self, perms: T.Optional[str] = None, owner: T.Optional[str] = None,
-                 group: T.Optional[str] = None):
+    def __init__(self, perms: T.Optional[str] = None, owner: T.Union[str, int, None] = None,
+                 group: T.Union[str, int, None] = None):
         self.perms_s = perms
         self.perms = self.perms_s_to_bits(perms)
         self.owner = owner
@@ -422,8 +422,11 @@ class File(HoldableObject):
     def endswith(self, ending: str) -> bool:
         return self.fname.endswith(ending)
 
-    def split(self, s: str) -> T.List[str]:
-        return self.fname.split(s)
+    def split(self, s: str, maxsplit: int = -1) -> T.List[str]:
+        return self.fname.split(s, maxsplit=maxsplit)
+
+    def rsplit(self, s: str, maxsplit: int = -1) -> T.List[str]:
+        return self.fname.rsplit(s, maxsplit=maxsplit)
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, File):

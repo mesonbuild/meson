@@ -85,6 +85,61 @@ def _language_validator(l: T.List[str]) -> T.Optional[str]:
     return None
 
 
+def _install_mode_validator(mode: T.List[T.Union[str, bool, int]]) -> T.Optional[str]:
+    """Validate the `install_mode` keyword argument.
+
+    This is a rather odd thing, it's a scalar, or an array of 3 values in the form:
+    [(str | False), (str | int | False) = False, (str | int | False) = False]
+    Where the second and third arguments are not required, and are considered to
+    default to False.
+    """
+    if not mode:
+        return None
+    if True in mode:
+        return 'can only be a string or false, not true'
+    if len(mode) > 3:
+        return 'may have at most 3 elements'
+
+    perms = mode[0]
+    if not isinstance(perms, (str, bool)):
+        return 'permissions part must be a string or false'
+
+    if isinstance(perms, str):
+        if not len(perms) == 9:
+            return (f'permissions string must be exactly 9 characters, got "{len(perms)}" '
+                   'in the form rwxr-xr-x')
+        for i in [0, 3, 6]:
+            if perms[i] not in {'-', 'r'}:
+                return f'bit {i} must be "-" or "r", not {perms[i]}'
+        for i in [1, 4, 7]:
+            if perms[i] not in {'-', 'w'}:
+                return f'bit {i} must be "-" or "w", not {perms[i]}'
+        for i in [2, 5]:
+            if perms[i] not in {'-', 'x', 's', 'S'}:
+                return f'bit {i} must be "-", "s", "S", or "x", not {perms[i]}'
+        if perms[8] not in {'-', 'x', 't', 'T'}:
+            return f'bit 8 must be "-", "t", "T", or "x", not {perms[8]}'
+
+        if len(mode) >= 2 and not isinstance(mode[1], (int, str, bool)):
+            return 'second componenent must be a string, number, or False if provided'
+        if len(mode) >= 3 and not isinstance(mode[2], (int, str, bool)):
+            return 'third componenent must be a string, number, or False if provided'
+
+    return None
+
+
+def _install_mode_convertor(mode: T.Optional[T.List[T.Union[str, bool, int]]]) -> FileMode:
+    """Convert the DSL form of the `install_mode` keyword arugment to `FileMode`
+
+    This is not required, and if not required returns None
+
+    TODO: It's not clear to me why this needs to be None and not just return an
+    emtpy FileMode.
+    """
+    # this has already been validated by the validator
+    return FileMode(*[m if isinstance(m, str) else None for m in mode])
+
+
 _NATIVE_KW = KwargInfo(
     'native', bool,
     default=False,
@@ -96,6 +151,15 @@ _LANGUAGE_KW = KwargInfo(
     required=True,
     validator=_language_validator,
     convertor=lambda x: [i.lower() for i in x])
+
+_INSTALL_MODE_KW = KwargInfo(
+    'install_mode',
+    ContainerTypeInfo(list, (str, bool, int)),
+    listify=True,
+    default=[],
+    validator=_install_mode_validator,
+    convertor=_install_mode_convertor,
+)
 
 
 def stringifyUserArguments(args, quote=False):
@@ -1817,46 +1881,50 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             self.build.benchmarks.append(t)
             mlog.debug('Adding benchmark', mlog.bold(t.name, True))
 
-    @FeatureNewKwargs('install_headers', '0.47.0', ['install_mode'])
-    @permittedKwargs({'install_dir', 'install_mode', 'subdir'})
-    def func_install_headers(self, node, args, kwargs):
-        source_files = self.source_strings_to_files(args)
-        install_mode = self._get_kwarg_install_mode(kwargs)
-
-        install_subdir = kwargs.get('subdir', '')
-        if not isinstance(install_subdir, str):
-            raise InterpreterException('subdir keyword argument must be a string')
-        elif os.path.isabs(install_subdir):
+    @typed_pos_args('install_headers', varargs=(str, mesonlib.File), min_varargs=1)
+    @typed_kwargs(
+        'install_headers',
+        KwargInfo('install_dir', (str, None)),
+        KwargInfo('subdir', (str, None)),
+        _INSTALL_MODE_KW.evolve(since='0.47.0'),
+    )
+    def func_install_headers(self, node: mparser.BaseNode,
+                             args: T.Tuple[T.List['mesonlib.FileOrString']],
+                             kwargs: 'kwargs.FuncInstallHeaders') -> build.Headers:
+        source_files = self.source_strings_to_files(args[0])
+        install_subdir = kwargs['subdir']
+        if install_subdir is not None and os.path.isabs(install_subdir):
             mlog.deprecation('Subdir keyword must not be an absolute path. This will be a hard error in the next release.')
 
-        install_dir = kwargs.get('install_dir', None)
-        if install_dir is not None and not isinstance(install_dir, str):
-            raise InterpreterException('install_dir keyword argument must be a string if provided')
-
-        h = build.Headers(source_files, install_subdir, install_dir, install_mode, self.subproject)
+        h = build.Headers(source_files, install_subdir, kwargs['install_dir'],
+                          kwargs['install_mode'], self.subproject)
         self.build.headers.append(h)
 
         return h
 
-    @FeatureNewKwargs('install_man', '0.47.0', ['install_mode'])
-    @FeatureNewKwargs('install_man', '0.58.0', ['locale'])
-    @permittedKwargs({'install_dir', 'install_mode', 'locale'})
-    def func_install_man(self, node, args, kwargs):
-        sources = self.source_strings_to_files(args)
+    @typed_pos_args('install_man', varargs=(str, mesonlib.File), min_varargs=1)
+    @typed_kwargs(
+        'install_man',
+        KwargInfo('install_dir', (str, None)),
+        KwargInfo('locale', (str, None), since='0.58.0'),
+        _INSTALL_MODE_KW.evolve(since='0.47.0')
+    )
+    def func_install_man(self, node: mparser.BaseNode,
+                         args: T.Tuple[T.List['mesonlib.FileOrString']],
+                         kwargs: 'kwargs.FuncInstallMan') -> build.Man:
+        # We just need to narrow this, because the input is limited to files and
+        # Strings as inputs, so only Files will be returned
+        sources = self.source_strings_to_files(args[0])
         for s in sources:
             try:
-                num = int(s.split('.')[-1])
+                num = int(s.rsplit('.', 1)[-1])
             except (IndexError, ValueError):
                 num = 0
-            if num < 1 or num > 8:
-                raise InvalidArguments('Man file must have a file extension of a number between 1 and 8')
-        custom_install_mode = self._get_kwarg_install_mode(kwargs)
-        custom_install_dir = kwargs.get('install_dir', None)
-        locale = kwargs.get('locale')
-        if custom_install_dir is not None and not isinstance(custom_install_dir, str):
-            raise InterpreterException('install_dir must be a string.')
+            if not 1 <= num <= 9:
+                raise InvalidArguments('Man file must have a file extension of a number between 1 and 9')
 
-        m = build.Man(sources, custom_install_dir, custom_install_mode, self.subproject, locale)
+        m = build.Man(sources, kwargs['install_dir'], kwargs['install_mode'],
+                      self.subproject, kwargs['locale'])
         self.build.man.append(m)
 
         return m
@@ -1929,82 +1997,55 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
                                    'permissions arg to be a string or false')
         return FileMode(*install_mode)
 
-    @FeatureNewKwargs('install_data', '0.46.0', ['rename'])
-    @FeatureNewKwargs('install_data', '0.38.0', ['install_mode'])
-    @permittedKwargs({'install_dir', 'install_mode', 'rename', 'sources'})
-    def func_install_data(self, node, args: T.List, kwargs: T.Dict[str, T.Any]):
-        kwsource = mesonlib.stringlistify(kwargs.get('sources', []))
-        raw_sources = args + kwsource
-        sources: T.List[mesonlib.File] = []
-        source_strings: T.List[str] = []
-        for s in raw_sources:
-            if isinstance(s, mesonlib.File):
-                sources.append(s)
-            elif isinstance(s, str):
-                source_strings.append(s)
-            else:
-                raise InvalidArguments('Argument must be string or file.')
-        sources += self.source_strings_to_files(source_strings)
-        install_dir: T.Optional[str] = kwargs.get('install_dir', None)
-        if install_dir is not None and not isinstance(install_dir, str):
-            raise InvalidArguments('Keyword argument install_dir not a string.')
-        install_mode = self._get_kwarg_install_mode(kwargs)
-        rename: T.Optional[T.List[str]] = kwargs.get('rename', None)
-        if rename is not None:
-            rename = mesonlib.stringlistify(rename)
+    @typed_pos_args('install_data', varargs=(str, mesonlib.File))
+    @typed_kwargs(
+        'install_data',
+        KwargInfo('install_dir', str),
+        KwargInfo('sources', ContainerTypeInfo(list, (str, mesonlib.File)), listify=True, default=[]),
+        KwargInfo('rename', ContainerTypeInfo(list, str), default=[], listify=True, since='0.46.0'),
+        _INSTALL_MODE_KW.evolve(since='0.38.0'),
+    )
+    def func_install_data(self, node: mparser.BaseNode,
+                          args: T.Tuple[T.List['mesonlib.FileOrString']],
+                          kwargs: 'kwargs.FuncInstallData') -> build.Data:
+        sources = self.source_strings_to_files(args[0] + kwargs['sources'])
+        rename = kwargs['rename'] or None
+        if rename:
             if len(rename) != len(sources):
                 raise InvalidArguments(
                     '"rename" and "sources" argument lists must be the same length if "rename" is given. '
                     f'Rename has {len(rename)} elements and sources has {len(sources)}.')
 
-        data = build.Data(sources, install_dir, install_mode, self.subproject, rename)
+        data = build.Data(
+            sources, kwargs['install_dir'], kwargs['install_mode'],
+            self.subproject, rename)
         self.build.data.append(data)
         return data
 
-    @FeatureNewKwargs('install_subdir', '0.42.0', ['exclude_files', 'exclude_directories'])
-    @FeatureNewKwargs('install_subdir', '0.38.0', ['install_mode'])
-    @permittedKwargs({'exclude_files', 'exclude_directories', 'install_dir', 'install_mode', 'strip_directory'})
-    @stringArgs
-    def func_install_subdir(self, node, args, kwargs):
-        if len(args) != 1:
-            raise InvalidArguments('Install_subdir requires exactly one argument.')
-        subdir: str = args[0]
-        if not isinstance(subdir, str):
-            raise InvalidArguments('install_subdir positional argument 1 must be a string.')
-        if 'install_dir' not in kwargs:
-            raise InvalidArguments('Missing keyword argument install_dir')
-        install_dir: str = kwargs['install_dir']
-        if not isinstance(install_dir, str):
-            raise InvalidArguments('Keyword argument install_dir not a string.')
-        if 'strip_directory' in kwargs:
-            strip_directory: bool = kwargs['strip_directory']
-            if not isinstance(strip_directory, bool):
-                raise InterpreterException('"strip_directory" keyword must be a boolean.')
-        else:
-            strip_directory = False
-        if 'exclude_files' in kwargs:
-            exclude: T.List[str] = extract_as_list(kwargs, 'exclude_files')
-            for f in exclude:
-                if not isinstance(f, str):
-                    raise InvalidArguments('Exclude argument not a string.')
-                elif os.path.isabs(f):
-                    raise InvalidArguments('Exclude argument cannot be absolute.')
-            exclude_files: T.Set[str] = set(exclude)
-        else:
-            exclude_files = set()
-        if 'exclude_directories' in kwargs:
-            exclude: T.List[str] = extract_as_list(kwargs, 'exclude_directories')
-            for d in exclude:
-                if not isinstance(d, str):
-                    raise InvalidArguments('Exclude argument not a string.')
-                elif os.path.isabs(d):
-                    raise InvalidArguments('Exclude argument cannot be absolute.')
-            exclude_directories: T.Set[str] = set(exclude)
-        else:
-            exclude_directories = set()
-        exclude = (exclude_files, exclude_directories)
-        install_mode = self._get_kwarg_install_mode(kwargs)
-        idir = build.InstallDir(self.subdir, subdir, install_dir, install_mode, exclude, strip_directory, self.subproject)
+    @typed_pos_args('install_subdir', str)
+    @typed_kwargs(
+        'install_subdir',
+        KwargInfo('install_dir', str, required=True),
+        KwargInfo('strip_directory', bool, default=False),
+        KwargInfo('exclude_files', ContainerTypeInfo(list, str),
+                  default=[], listify=True, since='0.42.0',
+                  validator=lambda x: 'cannot be absolute' if any(os.path.isabs(d) for d in x) else None),
+        KwargInfo('exclude_directories', ContainerTypeInfo(list, str),
+                  default=[], listify=True, since='0.42.0',
+                  validator=lambda x: 'cannot be absolute' if any(os.path.isabs(d) for d in x) else None),
+        _INSTALL_MODE_KW.evolve(since='0.38.0'),
+    )
+    def func_install_subdir(self, node: mparser.BaseNode, args: T.Tuple[str],
+                            kwargs: 'kwargs.FuncInstallSubdir') -> build.InstallDir:
+        exclude = (set(kwargs['exclude_files']), set(kwargs['exclude_directories']))
+        idir = build.InstallDir(
+            self.subdir,
+            args[0],
+            kwargs['install_dir'],
+            kwargs['install_mode'],
+            exclude,
+            kwargs['strip_directory'],
+            self.subproject)
         self.build.install_dirs.append(idir)
         return idir
 
@@ -2478,6 +2519,10 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
             raise InterpreterException(f'Sandbox violation: Tried to grab {inputtype} {norm.name} outside current (sub)project.')
         if project_root / self.subproject_dir in norm.parents:
             raise InterpreterException(f'Sandbox violation: Tried to grab {inputtype} {norm.name} from a nested subproject.')
+
+
+    @T.overload
+    def source_strings_to_files(self, sources: T.List['mesonlib.FileOrString']) -> T.List['mesonlib.File']: ...
 
     def source_strings_to_files(self, sources: T.List['SourceInputs']) -> T.List['SourceOutputs']:
         """Lower inputs to a list of Targets and Files, replacing any strings.
