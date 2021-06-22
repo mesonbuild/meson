@@ -54,16 +54,19 @@
     },
     "matrix": {
       "type": "object",
-      "additionalProperties": {
-        "properties": {
-          "options": {
+      "properties": {
+        "options": {
+          "additionalProperties": {
             "type": "array",
             "items": {
               "type": "object",
               "additionalProperties": false,
               "properties": {
                 "val": {
-                  "type": "string"
+                  "type": ["string", "boolean", "null", "array"],
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "compilers": {
                   "type": "object",
@@ -88,7 +91,10 @@
             "items": {
               "type": "object",
               "additionalProperties": {
-                "type": "string"
+                "type": ["string", "boolean", "array"],
+                "items": {
+                  "type": "string"
+                }
               }
             }
           }
