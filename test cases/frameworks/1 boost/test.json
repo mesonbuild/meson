@@ -7,10 +7,10 @@
       ],
       "b_vscrt": [
         { "val": null },
-        { "val": "md",  "compilers": { "cpp": [ "msvc" ] } },
-        { "val": "mdd", "compilers": { "cpp": [ "msvc" ] } },
-        { "val": "mt",  "compilers": { "cpp": [ "msvc" ] } },
-        { "val": "mtd", "compilers": { "cpp": [ "msvc" ] } }
+        { "val": "md",  "compilers": { "cpp": "msvc" } },
+        { "val": "mdd", "compilers": { "cpp": "msvc" } },
+        { "val": "mt",  "compilers": { "cpp": "msvc" } },
+        { "val": "mtd", "compilers": { "cpp": "msvc" } }
       ]
     },
     "exclude": [
