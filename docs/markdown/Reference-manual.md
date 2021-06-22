@@ -2554,7 +2554,9 @@ module](#shared_module).
   object files generated for those source files. This is typically used
   to take single object files and link them to unit tests or to compile
   some source files with custom flags. To use the object file(s)
-  in another build target, use the `objects:` keyword argument.
+  in another build target, use the [`objects:`](#executable) keyword
+  argument or include them in the command line of a
+  [`custom_target`](#custom_target)`.
 
 - `full_path()`: returns a full path pointing to the result target file.
   NOTE: In most cases using the object itself will do the same job as

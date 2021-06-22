@@ -378,7 +378,8 @@ class ExtractedObjects(HoldableObject):
         r = '<{0} {1!r}: {2}>'
         return r.format(self.__class__.__name__, self.target.name, self.srclist)
 
-    def classify_all_sources(self, sources, generated_sources):
+    @staticmethod
+    def get_sources(sources, generated_sources):
         # Merge sources and generated sources
         sources = list(sources)
         for gensrc in generated_sources:
@@ -389,8 +390,10 @@ class ExtractedObjects(HoldableObject):
                 sources.append(s)
 
         # Filter out headers and all non-source files
-        sources = [s for s in sources if environment.is_source(s) and not environment.is_header(s)]
+        return [s for s in sources if environment.is_source(s) and not environment.is_header(s)]
 
+    def classify_all_sources(self, sources, generated_sources):
+        sources = self.get_sources(sources, generated_sources)
         return classify_unity_sources(self.target.compilers.values(), sources)
 
     def check_unity_compatible(self):
@@ -410,10 +413,9 @@ class ExtractedObjects(HoldableObject):
                                      'the object files for each compiler at once.')
 
     def get_outputs(self, backend):
-        # TODO: Consider if we need to handle genlist here
         return [
             backend.object_filename_from_source(self.target, source)
-            for source in self.srclist
+            for source in self.get_sources(self.srclist, self.genlist)
         ]
 
 class EnvironmentVariables(HoldableObject):
