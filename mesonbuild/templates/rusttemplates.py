@@ -80,11 +80,12 @@ class RustProject(SampleImpl):
     def create_executable(self) -> None:
         lowercase_token = re.sub(r'[^a-z0-9]', '_', self.name.lower())
         source_name = lowercase_token + '.rs'
-        open(source_name, 'w').write(hello_rust_template.format(project_name=self.name))
-        open('meson.build', 'w').write(hello_rust_meson_template.format(project_name=self.name,
-                                                                        exe_name=lowercase_token,
-                                                                        source_name=source_name,
-                                                                        version=self.version))
+        open(source_name, 'w', encoding='utf-8').write(hello_rust_template.format(project_name=self.name))
+        open('meson.build', 'w', encoding='utf-8').write(
+            hello_rust_meson_template.format(project_name=self.name,
+                                             exe_name=lowercase_token,
+                                             source_name=source_name,
+                                             version=self.version))
 
     def create_library(self) -> None:
         lowercase_token = re.sub(r'[^a-z0-9]', '_', self.name.lower())
@@ -107,6 +108,6 @@ class RustProject(SampleImpl):
                   'test_name': lowercase_token,
                   'version': self.version,
                   }
-        open(lib_rs_name, 'w').write(lib_rust_template.format(**kwargs))
-        open(test_rs_name, 'w').write(lib_rust_test_template.format(**kwargs))
-        open('meson.build', 'w').write(lib_rust_meson_template.format(**kwargs))
+        open(lib_rs_name, 'w', encoding='utf-8').write(lib_rust_template.format(**kwargs))
+        open(test_rs_name, 'w', encoding='utf-8').write(lib_rust_test_template.format(**kwargs))
+        open('meson.build', 'w', encoding='utf-8').write(lib_rust_meson_template.format(**kwargs))

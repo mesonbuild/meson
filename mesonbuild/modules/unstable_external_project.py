@@ -162,7 +162,7 @@ class ExternalProject(ModuleObject):
         log_filename = Path(mlog.log_dir, f'{self.name}-{step}.log')
         output = None
         if not self.verbose:
-            output = open(log_filename, 'w')
+            output = open(log_filename, 'w', encoding='utf-8')
             output.write(m + '\n')
             output.flush()
         else:

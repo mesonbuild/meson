@@ -51,7 +51,7 @@ class CMakeFileAPI:
         }
 
         query_file = self.request_dir / 'query.json'
-        query_file.write_text(json.dumps(query, indent=2))
+        query_file.write_text(json.dumps(query, indent=2), encoding='utf-8')
 
     def load_reply(self) -> None:
         if not self.reply_dir.is_dir():
@@ -75,7 +75,7 @@ class CMakeFileAPI:
         # Debug output
         debug_json = self.build_dir / '..' / 'fileAPI.json'
         debug_json = debug_json.resolve()
-        debug_json.write_text(json.dumps(index, indent=2))
+        debug_json.write_text(json.dumps(index, indent=2), encoding='utf-8')
         mlog.cmd_ci_include(debug_json.as_posix())
 
         # parse the JSON
@@ -313,7 +313,7 @@ class CMakeFileAPI:
         if not real_path.exists():
             raise CMakeException(f'File "{real_path}" does not exist')
 
-        data = json.loads(real_path.read_text())
+        data = json.loads(real_path.read_text(encoding='utf-8'))
         assert isinstance(data, dict)
         for i in data.keys():
             assert isinstance(i, str)

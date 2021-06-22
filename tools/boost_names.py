@@ -78,7 +78,7 @@ class BoostModule():
 
 
 def get_boost_version() -> T.Optional[str]:
-    raw = jamroot.read_text()
+    raw = jamroot.read_text(encoding='utf-8')
     m = re.search(r'BOOST_VERSION\s*:\s*([0-9\.]+)\s*;', raw)
     if m:
         return m.group(1)
@@ -91,7 +91,7 @@ def get_libraries(jamfile: Path) -> T.List[BoostLibrary]:
     #  - compiler flags
 
     libs: T.List[BoostLibrary] = []
-    raw = jamfile.read_text()
+    raw = jamfile.read_text(encoding='utf-8')
     raw = re.sub(r'#.*\n', '\n', raw)  # Remove comments
     raw = re.sub(r'\s+', ' ', raw)     # Force single space
     raw = re.sub(r'}', ';', raw)       # Cheat code blocks by converting } to ;
@@ -185,7 +185,7 @@ def process_lib_dir(ldir: Path) -> T.List[BoostModule]:
         libs = get_libraries(bjam_file)
 
     # Extract metadata
-    data = json.loads(meta_file.read_text())
+    data = json.loads(meta_file.read_text(encoding='utf-8'))
     if not isinstance(data, list):
         data = [data]
 

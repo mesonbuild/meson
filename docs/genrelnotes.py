@@ -36,10 +36,10 @@ def add_to_sitemap(from_version, to_version):
        Adds release note entry to sitemap.txt.
     '''
     sitemapfile = '../sitemap.txt'
-    s_f = open(sitemapfile)
+    s_f = open(sitemapfile, encoding='utf-8')
     lines = s_f.readlines()
     s_f.close()
-    with open(sitemapfile, 'w') as s_f:
+    with open(sitemapfile, 'w', encoding='utf-8') as s_f:
         for line in lines:
             if 'Release-notes' in line and from_version in line:
                 new_line = line.replace(from_version, to_version)
@@ -51,10 +51,10 @@ def generate(from_version, to_version):
        Generate notes for Meson build next release.
     '''
     ofilename = f'Release-notes-for-{to_version}.md'
-    with open(ofilename, 'w') as ofile:
+    with open(ofilename, 'w', encoding='utf-8') as ofile:
         ofile.write(RELNOTE_TEMPLATE.format(to_version, to_version))
         for snippetfile in glob('snippets/*.md'):
-            snippet = open(snippetfile).read()
+            snippet = open(snippetfile, encoding='utf-8').read()
             ofile.write(snippet)
             if not snippet.endswith('\n'):
                 ofile.write('\n')

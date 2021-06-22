@@ -708,7 +708,7 @@ def run(opts: 'ArgumentType') -> int:
         if not rebuild_all(opts.wd):
             sys.exit(-1)
     os.chdir(opts.wd)
-    with open(os.path.join(log_dir, 'install-log.txt'), 'w') as lf:
+    with open(os.path.join(log_dir, 'install-log.txt'), 'w', encoding='utf-8') as lf:
         installer = Installer(opts, lf)
         append_to_log(lf, '# List of files installed by Meson')
         append_to_log(lf, '# Does not contain files installed by custom scripts.')

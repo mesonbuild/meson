@@ -481,8 +481,8 @@ class CoreData:
                     # the contents of that file into the meson private (scratch)
                     # directory so that it can be re-read when wiping/reconfiguring
                     copy = os.path.join(scratch_dir, f'{uuid.uuid4()}.{ftype}.ini')
-                    with open(f) as rf:
-                        with open(copy, 'w') as wf:
+                    with open(f, encoding='utf-8') as rf:
+                        with open(copy, 'w', encoding='utf-8') as wf:
                             wf.write(rf.read())
                     real.append(copy)
 
@@ -973,7 +973,7 @@ def write_cmd_line_file(build_dir: str, options: argparse.Namespace) -> None:
 
     config['options'] = {str(k): str(v) for k, v in options.cmd_line_options.items()}
     config['properties'] = properties
-    with open(filename, 'w') as f:
+    with open(filename, 'w', encoding='utf-8') as f:
         config.write(f)
 
 def update_cmd_line_file(build_dir: str, options: argparse.Namespace):
@@ -981,7 +981,7 @@ def update_cmd_line_file(build_dir: str, options: argparse.Namespace):
     config = CmdLineFileParser()
     config.read(filename)
     config['options'].update({str(k): str(v) for k, v in options.cmd_line_options.items()})
-    with open(filename, 'w') as f:
+    with open(filename, 'w', encoding='utf-8') as f:
         config.write(f)
 
 def get_cmd_line_options(build_dir: str, options: argparse.Namespace) -> str:

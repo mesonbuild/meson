@@ -371,7 +371,7 @@ if len(sys.argv) != 2:
     print(help_message.format(sys.argv[0]))
     sys.exit(0)
 
-with open(sys.argv[1]) as f:
+with open(sys.argv[1], encoding='utf-8') as f:
     for line in f:
         line = line.strip()
         arr = line.split()

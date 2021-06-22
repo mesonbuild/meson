@@ -973,7 +973,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 ast.accept(printer)
                 printer.post_process()
                 meson_filename = os.path.join(self.build.environment.get_build_dir(), subdir, 'meson.build')
-                with open(meson_filename, "w") as f:
+                with open(meson_filename, "w", encoding='utf-8') as f:
                     f.write(printer.result)
 
                 mlog.log('Build file:', meson_filename)
@@ -1964,7 +1964,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         if not os.path.isfile(absname):
             self.subdir = prev_subdir
             raise InterpreterException(f"Non-existent build file '{buildfilename!s}'")
-        with open(absname, encoding='utf8') as f:
+        with open(absname, encoding='utf-8') as f:
             code = f.read()
         assert(isinstance(code, str))
         try:
@@ -2198,7 +2198,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
                 mesonlib.replace_if_different(ofile_abs, dst_tmp)
             if depfile:
                 mlog.log('Reading depfile:', mlog.bold(depfile))
-                with open(depfile) as f:
+                with open(depfile, encoding='utf-8') as f:
                     df = DepFile(f.readlines())
                     deps = df.get_all_dependencies(ofile_fname)
                     for dep in deps:

@@ -49,7 +49,7 @@ def main():
     options = parser.parse_args()
     cf_path = Path(options.cross_file)
     try:
-        data = json.loads(cf_path.read_text())
+        data = json.loads(cf_path.read_text(encoding='utf-8'))
         real_cf = cf_path.resolve().parent / data['file']
         assert real_cf.exists()
         env = os.environ.copy()

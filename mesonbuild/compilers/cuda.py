@@ -504,7 +504,7 @@ class CudaCompiler(Compiler):
         binname += '_cross' if self.is_cross else ''
         source_name = os.path.join(work_dir, sname)
         binary_name = os.path.join(work_dir, binname + '.exe')
-        with open(source_name, 'w') as ofile:
+        with open(source_name, 'w', encoding='utf-8') as ofile:
             ofile.write(code)
 
         # The Sanity Test for CUDA language will serve as both a sanity test

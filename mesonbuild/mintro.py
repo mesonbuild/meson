@@ -394,7 +394,7 @@ def get_info_file(infodir: str, kind: T.Optional[str] = None) -> str:
                         'meson-info.json' if not kind else f'intro-{kind}.json')
 
 def load_info_file(infodir: str, kind: T.Optional[str] = None) -> T.Any:
-    with open(get_info_file(infodir, kind)) as fp:
+    with open(get_info_file(infodir, kind), encoding='utf-8') as fp:
         return json.load(fp)
 
 def run(options: argparse.Namespace) -> int:
@@ -464,7 +464,7 @@ def write_intro_info(intro_info: T.Sequence[T.Tuple[str, T.Union[dict, T.List[T.
     for i in intro_info:
         out_file = os.path.join(info_dir, 'intro-{}.json'.format(i[0]))
         tmp_file = os.path.join(info_dir, 'tmp_dump.json')
-        with open(tmp_file, 'w') as fp:
+        with open(tmp_file, 'w', encoding='utf-8') as fp:
             json.dump(i[1], fp)
             fp.flush() # Not sure if this is needed
         os.replace(tmp_file, out_file)
@@ -535,7 +535,7 @@ def write_meson_info_file(builddata: build.Build, errors: list, build_files_upda
 
     # Write the data to disc
     tmp_file = os.path.join(info_dir, 'tmp_dump.json')
-    with open(tmp_file, 'w') as fp:
+    with open(tmp_file, 'w', encoding='utf-8') as fp:
         json.dump(info_data, fp)
         fp.flush()
     os.replace(tmp_file, info_file)

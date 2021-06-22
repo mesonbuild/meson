@@ -306,7 +306,7 @@ class CLikeCompiler(Compiler):
         binname += '.exe'
         # Write binary check source
         binary_name = os.path.join(work_dir, binname)
-        with open(source_name, 'w') as ofile:
+        with open(source_name, 'w', encoding='utf-8') as ofile:
             ofile.write(code)
         # Compile sanity check
         # NOTE: extra_flags must be added at the end. On MSVC, it might contain a '/link' argument

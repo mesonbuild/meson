@@ -77,7 +77,7 @@ class RPMModule(ExtensionModule):
 
         filename = os.path.join(state.environment.get_build_dir(),
                                 '%s.spec' % proj)
-        with open(filename, 'w+') as fn:
+        with open(filename, 'w+', encoding='utf-8') as fn:
             fn.write('Name: %s\n' % proj)
             fn.write('Version: # FIXME\n')
             fn.write('Release: 1%{?dist}\n')

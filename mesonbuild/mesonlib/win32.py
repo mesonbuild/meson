@@ -27,7 +27,7 @@ __all__ = ['BuildDirLock']
 class BuildDirLock(BuildDirLockBase):
 
     def __enter__(self) -> None:
-        self.lockfile = open(self.lockfilename, 'w')
+        self.lockfile = open(self.lockfilename, 'w', encoding='utf-8')
         try:
             msvcrt.locking(self.lockfile.fileno(), msvcrt.LK_NBLCK, 1)
         except (BlockingIOError, PermissionError):

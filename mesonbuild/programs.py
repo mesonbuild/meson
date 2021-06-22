@@ -176,7 +176,7 @@ class ExternalProgram(mesonlib.HoldableObject):
         or if we're on Windows (which does not understand shebangs).
         """
         try:
-            with open(script) as f:
+            with open(script, encoding='utf-8') as f:
                 first_line = f.readline().strip()
             if first_line.startswith('#!'):
                 # In a shebang, everything before the first space is assumed to

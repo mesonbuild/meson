@@ -100,7 +100,7 @@ def setup_vsenv() -> None:
 
     bat_separator = '---SPLIT---'
     bat_contents = bat_template.format(bat_path, bat_separator)
-    bat_file.write_text(bat_contents)
+    bat_file.write_text(bat_contents, encoding='utf-8')
     try:
         bat_output = subprocess.check_output(str(bat_file), universal_newlines=True)
     finally:
