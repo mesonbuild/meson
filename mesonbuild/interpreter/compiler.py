@@ -1,5 +1,6 @@
 import functools
-from mesonbuild.interpreterbase.decorators import typed_kwargs, KwargInfo
+
+from ..interpreterbase.decorators import typed_kwargs, KwargInfo
 
 from .interpreterobjects import (extract_required_kwarg, extract_search_dirs)
 
@@ -685,15 +686,15 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return result
 
     @FeatureNew('compiler.get_supported_arguments', '0.43.0')
-    @FeatureNewKwargs('compiler.get_supported_arguments', '0.59.0', ['checked'])
-    @typed_kwargs('compiler.get_supported_arguments', KwargInfo('checked', str, default='off'))
+    @typed_kwargs(
+        'compiler.get_supported_arguments',
+        KwargInfo('checked', str, default='off', since='0.59.0',
+                  validator=lambda s: 'must be one of "warn", "require" or "off"' if s not in ['warn', 'require', 'off'] else None)
+    )
     def get_supported_arguments_method(self, args: T.Sequence[str], kwargs: T.Dict[str, T.Any]):
         args = mesonlib.stringlistify(args)
         supported_args = []
         checked = kwargs.pop('checked')
-
-        if checked not in ['warn', 'require', 'off']:
-            raise mesonlib.MesonException('"checked" kwarg must be one of "warn", "require" or "off"')
 
         for arg in args:
             if not self.has_argument_method(arg, kwargs):
