@@ -383,6 +383,10 @@ following.
   `{'NAME1': 'value1', 'NAME2': 'value2'}` or `['NAME1=value1', 'NAME2=value2']`,
   or an [`environment()` object](#environment-object) which allows more
   sophisticated environment juggling.
+- `feed` *(since 0.59.0)*: there are some compilers that can't be told to read
+  their input from a file and instead read it from standard input. When this
+  argument is set to true, Meson feeds the input file to `stdin`. Note that
+  your argument list may not contain `@INPUT@` when feed mode is active.
 
 The list of strings passed to the `command` keyword argument accept
 the following special string substitutions:
