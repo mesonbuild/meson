@@ -160,6 +160,7 @@ class FortranCompiler(CLikeCompiler, Compiler):
                 'Fortran language standard to use',
                 ['none'],
                 'none',
+                'std',
             ),
         })
         return opts

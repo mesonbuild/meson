@@ -93,6 +93,7 @@ class ClangObjCPPCompiler(ClangCompiler, ObjCPPCompiler):
                 'C++ language standard to use',
                 ['none', 'c++98', 'c++11', 'c++14', 'c++17'],
                 'none',
+                'std',
             )
         })
         return opts

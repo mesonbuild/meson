@@ -54,7 +54,7 @@ def permitted_kwargs(permitted: T.Set[str]) -> T.Callable[..., T.Any]:
             if bad:
                 raise OptionException('Invalid kwargs for option "{}": "{}"'.format(
                     name, ' '.join(bad)))
-            return func(description, kwargs)
+            return func(name,description, kwargs)
         return T.cast('TV_func', _inner)
     return _wraps
 
@@ -62,69 +62,75 @@ def permitted_kwargs(permitted: T.Set[str]) -> T.Callable[..., T.Any]:
 optname_regex = re.compile('[^a-zA-Z0-9_-]')
 
 @permitted_kwargs({'value', 'yield'})
-def string_parser(description: str, kwargs: T.Dict[str, T.Any]) -> coredata.UserStringOption:
-    return coredata.UserStringOption(description,
-                                     kwargs.get('value', ''),
-                                     kwargs.get('yield', coredata.default_yielding))
+def string_parser(opt_name:str, description: str, kwargs: T.Dict[str, T.Any]) -> coredata.UserStringOption:
+    return coredata.UserStringOption(description=description,
+                                     value=kwargs.get('value', ''),
+                                     opt_name=opt_name,
+                                     yielding=kwargs.get('yield', coredata.default_yielding))
 
 @permitted_kwargs({'value', 'yield'})
-def boolean_parser(description: str, kwargs: T.Dict[str, T.Any]) -> coredata.UserBooleanOption:
-    return coredata.UserBooleanOption(description,
-                                      kwargs.get('value', True),
-                                      kwargs.get('yield', coredata.default_yielding))
+def boolean_parser(opt_name:str, description: str, kwargs: T.Dict[str, T.Any]) -> coredata.UserBooleanOption:
+    return coredata.UserBooleanOption(description=description,
+                                      value=kwargs.get('value', True),
+                                      opt_name=opt_name,
+                                      yielding=kwargs.get('yield', coredata.default_yielding))
 
 @permitted_kwargs({'value', 'yield', 'choices'})
-def combo_parser(description: str, kwargs: T.Dict[str, T.Any]) -> coredata.UserComboOption:
+def combo_parser(opt_name:str, description: str, kwargs: T.Dict[str, T.Any]) -> coredata.UserComboOption:
     if 'choices' not in kwargs:
-        raise OptionException(f'Choice list for combo choice option with description "{description}" misses "choices" keyword.')
+        raise OptionException(f'Choice list for combo option "{opt_name}" misses "choices" keyword.')
     choices = kwargs['choices']
     if not isinstance(choices, list):
-        raise OptionException(f'Choice list "{choices}" for combo choice option with description "{description}" must be an array.')
+        raise OptionException(f'Choice list "{choices}" for combo option "{opt_name}" must be an array.')
     for i in choices:
         if not isinstance(i, str):
-            raise OptionException(f'Choice list "{choices}" for combo choice option with description "{description}": elements must be strings.')
-    return coredata.UserComboOption(description,
-                                    choices,
-                                    kwargs.get('value', choices[0]),
-                                    kwargs.get('yield', coredata.default_yielding),)
+            raise OptionException(f'Choice list "{choices}" for combo option "{opt_name}": elements must be strings.')
+    return coredata.UserComboOption(description=description,
+                                    choices=choices,
+                                    opt_name=opt_name,
+                                    value=kwargs.get('value', choices[0]),
+                                    yielding=kwargs.get('yield', coredata.default_yielding),)
 
 
 @permitted_kwargs({'value', 'min', 'max', 'yield'})
-def integer_parser(description: str, kwargs: T.Dict[str, T.Any]) -> coredata.UserIntegerOption:
+def integer_parser(opt_name:str, description: str, kwargs: T.Dict[str, T.Any]) -> coredata.UserIntegerOption:
     if 'value' not in kwargs:
-        raise OptionException(f'Integer option must with description "{description}" must contain a "value" argument.')
+        raise OptionException(f'Integer option "{opt_name}" must contain a "value" argument.')
     inttuple = (kwargs.get('min', None), kwargs.get('max', None), kwargs['value'])
-    return coredata.UserIntegerOption(description,
-                                      inttuple,
-                                      kwargs.get('yield', coredata.default_yielding))
+    return coredata.UserIntegerOption(description=description,
+                                      value=inttuple,
+                                      opt_name=opt_name,
+                                      yielding=kwargs.get('yield', coredata.default_yielding))
 
 # FIXME: Cannot use FeatureNew while parsing options because we parse it before
 # reading options in project(). See func_project() in interpreter.py
 #@FeatureNew('array type option()', '0.44.0')
 @permitted_kwargs({'value', 'yield', 'choices'})
-def string_array_parser(description: str, kwargs: T.Dict[str, T.Any]) -> coredata.UserArrayOption:
+def string_array_parser(opt_name:str, description: str, kwargs: T.Dict[str, T.Any]) -> coredata.UserArrayOption:
     if 'choices' in kwargs:
         choices = kwargs['choices']
         if not isinstance(choices, list):
-            raise OptionException(f'Choice options "{choices}" for array option with description "{description}" must be an array.')
+            raise OptionException(f'Choice options "{choices}" for array option "{opt_name}" must be an array.')
         for i in choices:
             if not isinstance(i, str):
-                raise OptionException(f'Choice options "{choices}" for array option with description "{description}": elements must be strings.')
+                raise OptionException(f'Choice options "{choices}" for array option "{opt_name}": elements must be strings.')
         value = kwargs.get('value', choices)
     else:
         choices = None
         value = kwargs.get('value', [])
     if not isinstance(value, list):
-        raise OptionException(f'Value "{value}" for array option with description "{description}" must be passed as an array.')
-    return coredata.UserArrayOption(description,
-                                    value,
+        raise OptionException(f'Value "{value}" for array option "{opt_name}" must be passed as an array.')
+    return coredata.UserArrayOption(description=description,
+                                    value=value,
                                     choices=choices,
+                                    opt_name=opt_name,
                                     yielding=kwargs.get('yield', coredata.default_yielding))
 
 @permitted_kwargs({'value', 'yield'})
-def feature_parser(description: str, kwargs: T.Dict[str, T.Any]) -> coredata.UserFeatureOption:
-    return coredata.UserFeatureOption(description,
-                                      kwargs.get('value', 'auto'),
+def feature_parser(opt_name:str, description: str, kwargs: T.Dict[str, T.Any]) -> coredata.UserFeatureOption:
+    return coredata.UserFeatureOption(description=description,
+                                      value=kwargs.get('value', 'auto'),
+                                      opt_name=opt_name,
                                       yielding=kwargs.get('yield', coredata.default_yielding))
 
 option_types = {'string': string_parser,
@@ -243,8 +249,7 @@ class OptionInterpreter:
         description = kwargs.pop('description', '')
         if not isinstance(description, str):
             raise OptionException('Option descriptions must be strings.')
-
-        opt = option_types[opt_type](opt_name, description, kwargs)
+        opt = option_types[opt_type](name=opt_name, description=description, kwargs=kwargs)
         if opt.description == '':
             opt.description = opt_name
         self.options[key] = opt

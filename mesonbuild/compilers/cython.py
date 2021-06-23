@@ -68,6 +68,7 @@ class CythonCompiler(Compiler):
                 'Python version to target',
                 ['2', '3'],
                 '3',
+                'version',
             )
         })
         return opts
