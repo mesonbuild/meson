@@ -932,6 +932,7 @@ class GnomeModule(ExtensionModule):
         else:
             targetname = 'gsettings-compile-' + state.subdir.replace('/', '_')
         target_g = build.CustomTarget(targetname, state.subdir, state.subproject, kwargs)
+        self._devenv_append('GSETTINGS_SCHEMA_DIR', os.path.join(state.environment.get_build_dir(), state.subdir))
         return ModuleReturnValue(target_g, [target_g])
 
     @permittedKwargs({'sources', 'media', 'symlink_media', 'languages'})
