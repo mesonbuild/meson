@@ -412,7 +412,14 @@ class Backend:
                                  self.build_to_src, target.get_subdir(), obj)
                 obj_list.append(o)
             elif isinstance(obj, mesonlib.File):
-                obj_list.append(obj.rel_to_builddir(self.build_to_src))
+                if obj.is_built:
+                    o = os.path.join(proj_dir_to_build_root,
+                                     obj.rel_to_builddir(self.build_to_src))
+                    obj_list.append(o)
+                else:
+                    o = os.path.join(proj_dir_to_build_root,
+                                     self.build_to_src)
+                    obj_list.append(obj.rel_to_builddir(o))
             elif isinstance(obj, build.ExtractedObjects):
                 if obj.recursive:
                     obj_list += self._flatten_object_list(obj.target, obj.objlist, proj_dir_to_build_root)
