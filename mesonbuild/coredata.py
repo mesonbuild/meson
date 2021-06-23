@@ -63,10 +63,13 @@ class MesonVersionMismatchException(MesonException):
 
 
 class UserOption(T.Generic[_T], HoldableObject):
-    def __init__(self, description: str, choices: T.Optional[T.Union[str, T.List[_T]]], yielding: T.Optional[bool]):
+    def __init__(self, description: str, choices: T.Optional[T.Union[str, T.List[_T]]], yielding: T.Optional[bool], opt_name: str='', opt_type: str=''):
+
         super().__init__()
         self.choices = choices
         self.description = description
+        self.opt_name = opt_name
+        self.opt_type = opt_type
         if yielding is None:
             yielding = default_yielding
         if not isinstance(yielding, bool):
@@ -91,18 +94,18 @@ class UserOption(T.Generic[_T], HoldableObject):
         self.value = self.validate_value(newvalue)
 
 class UserStringOption(UserOption[str]):
-    def __init__(self, description: str, value: T.Any, yielding: T.Optional[bool] = None):
-        super().__init__(description, None, yielding)
+    def __init__(self, description: str, value: T.Any, opt_name: str, yielding: T.Optional[bool] = None):
+        super().__init__(description, None, yielding, opt_name, 'string')
         self.set_value(value)
 
     def validate_value(self, value: T.Any) -> str:
         if not isinstance(value, str):
-            raise MesonException(f'Value "{value}" for string option with description "{self.description}" is not a string.')
+            raise MesonException(f'Value "{value}" for {self.opt_type} option "{self.opt_name}" is not a string.')
         return value
 
 class UserBooleanOption(UserOption[bool]):
-    def __init__(self, description: str, value, yielding: T.Optional[bool] = None) -> None:
-        super().__init__(description, [True, False], yielding)
+    def __init__(self, description: str, value, opt_name: str, yielding: T.Optional[bool] = None) -> None:
+        super().__init__(description, [True, False], yielding, opt_name, 'boolean')
         self.set_value(value)
 
     def __bool__(self) -> bool:
@@ -112,15 +115,15 @@ class UserBooleanOption(UserOption[bool]):
         if isinstance(value, bool):
             return value
         if not isinstance(value, str):
-            raise MesonException(f'Value "{value}" for boolean option with description "{self.description}" cannot be converted to a boolean.')
+            raise MesonException(f'Value "{value}" for {self.opt_type} option "{self.opt_name}" cannot be converted to a boolean.')
         if value.lower() == 'true':
             return True
         if value.lower() == 'false':
             return False
-        raise MesonException(f'Value "{value}" for boolean option with description "{self.description}" is not boolean (true or false).')
+        raise MesonException(f'Value "{value}" for {self.opt_type} option "{self.opt_name}" is not boolean (true or false).')
 
 class UserIntegerOption(UserOption[int]):
-    def __init__(self, description: str, value: T.Any, yielding: T.Optional[bool] = None):
+    def __init__(self, description: str, value: T.Any, opt_name: str, yielding: T.Optional[bool] = None, opt_type:str='integer'):
         min_value, max_value, default_value = value
         self.min_value = min_value
         self.max_value = max_value
@@ -130,25 +133,25 @@ class UserIntegerOption(UserOption[int]):
         if max_value is not None:
             c.append('<=' + str(max_value))
         choices = ', '.join(c)
-        super().__init__(description, choices, yielding)
+        super().__init__(description, choices, yielding, opt_name, opt_type)
         self.set_value(default_value)
 
     def validate_value(self, value: T.Any) -> int:
         if isinstance(value, str):
             value = self.toint(value)
         if not isinstance(value, int):
-            raise MesonException(f'Value "{value}" for integer option with description "{self.description}" is not an integer.')
+            raise MesonException(f'Value "{value}" for {self.opt_type} option "{self.opt_name}" is not an integer.')
         if self.min_value is not None and value < self.min_value:
-            raise MesonException(f'Value "{value}" for integer option with description "{self.description}" is less than minimum value {self.min_value}.')
+            raise MesonException(f'Value "{value}" for {self.opt_type} option "{self.opt_name}" is less than minimum value {self.min_value}.')
         if self.max_value is not None and value > self.max_value:
-            raise MesonException(f'Value "{value}" for integer option with description "{self.description}" is more than maximum value {self.max_value}.')
+            raise MesonException(f'Value "{value}" for {self.opt_type} option "{self.opt_name}" is more than maximum value {self.max_value}.')
         return value
 
     def toint(self, valuestring: str) -> int:
         try:
             return int(valuestring)
         except ValueError:
-            raise MesonException(f'Value "{valuestring}" for integer option with description "{self.description}" is not convertible to an integer.')
+            raise MesonException(f'Value "{valuestring}" for {self.opt_type} option "{self.opt_name}" is not convertible to an integer.')
 
 class OctalInt(int):
     # NinjaBackend.get_user_option_args uses str() to converts it to a command line option
@@ -158,8 +161,9 @@ class OctalInt(int):
         return oct(int(self))
 
 class UserUmaskOption(UserIntegerOption, UserOption[T.Union[str, OctalInt]]):
-    def __init__(self, description: str, value: T.Any, yielding: T.Optional[bool] = None):
-        super().__init__(description, (0, 0o777, value), yielding)
+    def __init__(self, description: str, value: T.Any, opt_name: str, yielding: T.Optional[bool] = None):
+        super().__init__(description, (0, 0o777, value), opt_name, yielding, 'umask')
+        # this calls the Integer Option constuctor -> different order of arguments as in the User Option constructor
         self.choices = ['preserve', '0000-0777']
 
     def printable_value(self) -> str:
@@ -179,13 +183,13 @@ class UserUmaskOption(UserIntegerOption, UserOption[T.Union[str, OctalInt]]):
             raise MesonException(f'Invalid mode: {e}')
 
 class UserComboOption(UserOption[str]):
-    def __init__(self, description: str, choices: T.List[str], value: T.Any, yielding: T.Optional[bool] = None):
-        super().__init__(description, choices, yielding)
+    def __init__(self, description: str, choices: T.List[str], value: T.Any, opt_name: str, yielding: T.Optional[bool] = None, opt_type:str = 'combo'):
+        super().__init__(description, choices, yielding, opt_name, opt_type)
         if not isinstance(self.choices, list):
-            raise MesonException(f'Choice list "{self.choices}" for combo choice option with description "{self.description}" must be an array.')
+            raise MesonException(f'Choice list "{self.choices}" for {self.opt_type} option "{self.opt_name}" must be an array.')
         for i in self.choices:
             if not isinstance(i, str):
-                raise MesonException(f'Choice list "{self.choices}" for combo choice option with description "{self.description}": elements must be strings.')
+                raise MesonException(f'Choice list "{self.choices}" for {self.opt_type} option "{self.opt_name}": elements must be strings.')
         self.set_value(value)
 
     def validate_value(self, value: T.Any) -> str:
@@ -197,13 +201,13 @@ class UserComboOption(UserOption[str]):
             else:
                 _type = 'string'
             optionsstring = ', '.join([f'"{item}"' for item in self.choices])
-            raise MesonException(f'Value "{value}" (of type "{_type}") for combo option with description "{self.description}" is not one of the choices.'\
+            raise MesonException(f'Value "{value}" (of type "{_type}") for {self.opt_type} option "{self.opt_name}" is not one of the choices.'\
                                  f' Possible choices are (as string): {optionsstring}.')
         return value
 
 class UserArrayOption(UserOption[T.List[str]]):
-    def __init__(self, description: str, value: T.Union[str, T.List[str]], split_args: bool = False, user_input: bool = False, allow_dups: bool = False, **kwargs: T.Any) -> None:
-        super().__init__(description, kwargs.get('choices', []), yielding=kwargs.get('yielding', None))
+    def __init__(self, description: str, value: T.Union[str, T.List[str]], opt_name: str, split_args: bool = False, user_input: bool = False, allow_dups: bool = False, **kwargs: T.Any) -> None:
+        super().__init__(description, kwargs.get('choices', []), yielding=kwargs.get('yielding', None), opt_name=opt_name, opt_type='combo')
         self.split_args = split_args
         self.allow_dups = allow_dups
         self.value = self.validate_value(value, user_input=user_input)
@@ -214,14 +218,14 @@ class UserArrayOption(UserOption[T.List[str]]):
         # string, but for defining options in meson_options.txt the format
         # should match that of a combo
         if not user_input and isinstance(value, str) and not value.startswith('['):
-            raise MesonException(f'Value "{value}" for array option with description "{self.description}" does not define an array.')
+            raise MesonException(f'Value "{value}" for {self.opt_type} option "{self.opt_name}" does not define an array.')
 
         if isinstance(value, str):
             if value.startswith('['):
                 try:
                     newvalue = ast.literal_eval(value)
                 except ValueError:
-                    raise MesonException(f'Value "{value}" for array option with description "{self.description}" is malformed.')
+                    raise MesonException(f'Value "{value}" for {self.opt_type} option "{self.opt_name}" is malformed.')
             elif value == '':
                 newvalue = []
             else:
@@ -232,7 +236,7 @@ class UserArrayOption(UserOption[T.List[str]]):
         elif isinstance(value, list):
             newvalue = value
         else:
-            raise MesonException(f'Value "{newvalue}" for array option with description "{self.description}" is not a string array.')
+            raise MesonException(f'Value "{newvalue}" for {self.opt_type} option "{self.opt_name}" is not a string array.')
         return newvalue
 
     def validate_value(self, value: T.Union[str, T.List[str]], user_input: bool = True) -> T.List[str]:
@@ -244,13 +248,13 @@ class UserArrayOption(UserOption[T.List[str]]):
             mlog.deprecation(msg)
         for i in newvalue:
             if not isinstance(i, str):
-                raise MesonException(f'Value "{value}" for array option with description "{self.description}": String array element "{i}" is not a string.')
+                raise MesonException(f'Value "{value}" for {self.opt_type} option "{self.opt_name}": String array element "{i}" is not a string.')
         if self.choices:
             bad = [x for x in newvalue if x not in self.choices]
             if bad:
                 badstring = ', '.join([f'"{item}"' for item in bad])
                 optionsstring = ', '.join([f'"{item}"' for item in self.choices])
-                raise MesonException(f'Value "{value}" for array option with description "{self.description}": Option(s) {badstring} is/are not in allowed choices: {optionsstring}.')
+                raise MesonException(f'Value "{value}" for {self.opt_type} option "{self.opt_name}": Option(s) {badstring} is/are not in allowed choices: {optionsstring}.')
         return newvalue
 
     def extend_value(self, value: T.Union[str, T.List[str]]) -> None:
@@ -262,9 +266,9 @@ class UserArrayOption(UserOption[T.List[str]]):
 class UserFeatureOption(UserComboOption):
     static_choices = ['enabled', 'disabled', 'auto']
 
-    def __init__(self, description: str, value: T.Any, yielding: T.Optional[bool] = None):
-        super().__init__(description, self.static_choices, value, yielding)
-        self.name: T.Optional[str] = None  # TODO: Refactor options to all store their name
+    def __init__(self, description: str, value: T.Any, opt_name: str, yielding: T.Optional[bool] = None):
+        super().__init__(description, self.static_choices, value, opt_name, yielding, 'feature')
+        # this calls the User Combo Option constuctor -> different order of arguments as in the User Option constructor
 
     def is_enabled(self) -> bool:
         return self.value == 'enabled'
@@ -602,11 +606,13 @@ class CoreData:
             self.options[OptionKey('backend_max_links')] = UserIntegerOption(
                 'Maximum number of linker processes to run or 0 for no '
                 'limit',
-                (0, None, 0))
+                (0, None, 0),
+                'backend_max_links')
         elif backend_name.startswith('vs'):
             self.options[OptionKey('backend_startup_project')] = UserStringOption(
                 'Default project to execute in Visual Studio',
-                '')
+                '',
+                'backend_startup_project')
 
     def get_option(self, key: OptionKey) -> T.Union[str, int, bool, WrapMode]:
         try:
@@ -1109,13 +1115,14 @@ class BuiltinOption(T.Generic[_T, _U]):
     There are some cases that are not fully supported yet.
     """
 
-    def __init__(self, opt_type: T.Type[_U], description: str, default: T.Any, yielding: bool = True, *,
-                 choices: T.Any = None):
+    def __init__(self, opt_type: T.Type[_U], description: str, default: T.Any, opt_name:str , yielding: bool = True, *,
+            choices: T.Any = None):
         self.opt_type = opt_type
         self.description = description
         self.default = default
         self.choices = choices
         self.yielding = yielding
+        self.opt_name = opt_name
 
     def init_option(self, name: 'OptionKey', value: T.Optional[T.Any], prefix: str) -> _U:
         """Create an instance of opt_type and return it."""
@@ -1124,6 +1131,8 @@ class BuiltinOption(T.Generic[_T, _U]):
         keywords = {'yielding': self.yielding, 'value': value}
         if self.choices:
             keywords['choices'] = self.choices
+        if self.opt_name:
+            keywords['opt_name'] = self.opt_name
         return self.opt_type(self.description, **keywords)
 
     def _argparse_action(self) -> T.Optional[str]:
@@ -1179,41 +1188,41 @@ class BuiltinOption(T.Generic[_T, _U]):
 # Update `docs/markdown/Builtin-options.md` after changing the options below
 # Also update mesonlib._BUILTIN_NAMES. See the comment there for why this is required.
 BUILTIN_DIR_OPTIONS: 'KeyedOptionDictType' = OrderedDict([
-    (OptionKey('prefix'),          BuiltinOption(UserStringOption, 'Installation prefix', default_prefix())),
-    (OptionKey('bindir'),          BuiltinOption(UserStringOption, 'Executable directory', 'bin')),
-    (OptionKey('datadir'),         BuiltinOption(UserStringOption, 'Data file directory', 'share')),
-    (OptionKey('includedir'),      BuiltinOption(UserStringOption, 'Header file directory', 'include')),
-    (OptionKey('infodir'),         BuiltinOption(UserStringOption, 'Info page directory', 'share/info')),
-    (OptionKey('libdir'),          BuiltinOption(UserStringOption, 'Library directory', default_libdir())),
-    (OptionKey('libexecdir'),      BuiltinOption(UserStringOption, 'Library executable directory', default_libexecdir())),
-    (OptionKey('localedir'),       BuiltinOption(UserStringOption, 'Locale data directory', 'share/locale')),
-    (OptionKey('localstatedir'),   BuiltinOption(UserStringOption, 'Localstate data directory', 'var')),
-    (OptionKey('mandir'),          BuiltinOption(UserStringOption, 'Manual page directory', 'share/man')),
-    (OptionKey('sbindir'),         BuiltinOption(UserStringOption, 'System executable directory', 'sbin')),
-    (OptionKey('sharedstatedir'),  BuiltinOption(UserStringOption, 'Architecture-independent data directory', 'com')),
-    (OptionKey('sysconfdir'),      BuiltinOption(UserStringOption, 'Sysconf data directory', 'etc')),
+    (OptionKey('prefix'),          BuiltinOption(UserStringOption, 'Installation prefix', default_prefix(), 'prefix')),
+    (OptionKey('bindir'),          BuiltinOption(UserStringOption, 'Executable directory', 'bin', 'bindir')),
+    (OptionKey('datadir'),         BuiltinOption(UserStringOption, 'Data file directory', 'share', 'datadir')),
+    (OptionKey('includedir'),      BuiltinOption(UserStringOption, 'Header file directory', 'include', 'includedir')),
+    (OptionKey('infodir'),         BuiltinOption(UserStringOption, 'Info page directory', 'share/info', 'infodir')),
+    (OptionKey('libdir'),          BuiltinOption(UserStringOption, 'Library directory', default_libdir(), 'libdir')),
+    (OptionKey('libexecdir'),      BuiltinOption(UserStringOption, 'Library executable directory', default_libexecdir(), 'libexecdir')),
+    (OptionKey('localedir'),       BuiltinOption(UserStringOption, 'Locale data directory', 'share/locale','localedir')),
+    (OptionKey('localstatedir'),   BuiltinOption(UserStringOption, 'Localstate data directory', 'var','localstatedir')),
+    (OptionKey('mandir'),          BuiltinOption(UserStringOption, 'Manual page directory', 'share/man','mandir')),
+    (OptionKey('sbindir'),         BuiltinOption(UserStringOption, 'System executable directory', 'sbin', 'sbindir')),
+    (OptionKey('sharedstatedir'),  BuiltinOption(UserStringOption, 'Architecture-independent data directory', 'com', 'sharedstatedir')),
+    (OptionKey('sysconfdir'),      BuiltinOption(UserStringOption, 'Sysconf data directory', 'etc', 'sysconfdir')),
 ])
 
 BUILTIN_CORE_OPTIONS: 'KeyedOptionDictType' = OrderedDict([
-    (OptionKey('auto_features'),   BuiltinOption(UserFeatureOption, "Override value of all 'auto' features", 'auto')),
-    (OptionKey('backend'),         BuiltinOption(UserComboOption, 'Backend to use', 'ninja', choices=backendlist)),
+    (OptionKey('auto_features'),   BuiltinOption(UserFeatureOption, "Override value of all 'auto' features", 'auto', 'auto_features')),
+    (OptionKey('backend'),         BuiltinOption(UserComboOption, 'Backend to use', 'ninja', choices=backendlist, opt_name='backend')),
     (OptionKey('buildtype'),       BuiltinOption(UserComboOption, 'Build type to use', 'debug',
-                                                 choices=['plain', 'debug', 'debugoptimized', 'release', 'minsize', 'custom'])),
-    (OptionKey('debug'),           BuiltinOption(UserBooleanOption, 'Debug', True)),
+                                                 choices=['plain', 'debug', 'debugoptimized', 'release', 'minsize', 'custom'], opt_name='buildtype')),
+    (OptionKey('debug'),           BuiltinOption(UserBooleanOption, 'Debug', True, 'debug')),
     (OptionKey('default_library'), BuiltinOption(UserComboOption, 'Default library type', 'shared', choices=['shared', 'static', 'both'],
-                                                 yielding=False)),
-    (OptionKey('errorlogs'),       BuiltinOption(UserBooleanOption, "Whether to print the logs from failing tests", True)),
-    (OptionKey('install_umask'),   BuiltinOption(UserUmaskOption, 'Default umask to apply on permissions of installed files', '022')),
-    (OptionKey('layout'),          BuiltinOption(UserComboOption, 'Build directory layout', 'mirror', choices=['mirror', 'flat'])),
-    (OptionKey('optimization'),    BuiltinOption(UserComboOption, 'Optimization level', '0', choices=['0', 'g', '1', '2', '3', 's'])),
-    (OptionKey('stdsplit'),        BuiltinOption(UserBooleanOption, 'Split stdout and stderr in test logs', True)),
-    (OptionKey('strip'),           BuiltinOption(UserBooleanOption, 'Strip targets on install', False)),
-    (OptionKey('unity'),           BuiltinOption(UserComboOption, 'Unity build', 'off', choices=['on', 'off', 'subprojects'])),
-    (OptionKey('unity_size'),      BuiltinOption(UserIntegerOption, 'Unity block size', (2, None, 4))),
-    (OptionKey('warning_level'),   BuiltinOption(UserComboOption, 'Compiler warning level to use', '1', choices=['0', '1', '2', '3'], yielding=False)),
-    (OptionKey('werror'),          BuiltinOption(UserBooleanOption, 'Treat warnings as errors', False, yielding=False)),
-    (OptionKey('wrap_mode'),       BuiltinOption(UserComboOption, 'Wrap mode', 'default', choices=['default', 'nofallback', 'nodownload', 'forcefallback', 'nopromote'])),
-    (OptionKey('force_fallback_for'), BuiltinOption(UserArrayOption, 'Force fallback for those subprojects', [])),
+                                                 opt_name='default_library', yielding=False)),
+    (OptionKey('errorlogs'),       BuiltinOption(UserBooleanOption, "Whether to print the logs from failing tests", True, 'errorlogs')),
+    (OptionKey('install_umask'),   BuiltinOption(UserUmaskOption, 'Default umask to apply on permissions of installed files', '022', 'install_umask')),
+    (OptionKey('layout'),          BuiltinOption(UserComboOption, 'Build directory layout', 'mirror', choices=['mirror', 'flat'], opt_name='layout')),
+    (OptionKey('optimization'),    BuiltinOption(UserComboOption, 'Optimization level', '0', choices=['0', 'g', '1', '2', '3', 's'], opt_name='optimization')),
+    (OptionKey('stdsplit'),        BuiltinOption(UserBooleanOption, 'Split stdout and stderr in test logs', True, 'stdsplit')),
+    (OptionKey('strip'),           BuiltinOption(UserBooleanOption, 'Strip targets on install', False, 'strip')),
+    (OptionKey('unity'),           BuiltinOption(UserComboOption, 'Unity build', 'off', choices=['on', 'off', 'subprojects'], opt_name='unity')),
+    (OptionKey('unity_size'),      BuiltinOption(UserIntegerOption, 'Unity block size', (2, None, 4), 'unity_size')),
+    (OptionKey('warning_level'),   BuiltinOption(UserComboOption, 'Compiler warning level to use', '1', choices=['0', '1', '2', '3'], opt_name='warning_level', yielding=False)),
+    (OptionKey('werror'),          BuiltinOption(UserBooleanOption, 'Treat warnings as errors', False, 'werror', yielding=False)),
+    (OptionKey('wrap_mode'),       BuiltinOption(UserComboOption, 'Wrap mode', 'default', choices=['default', 'nofallback', 'nodownload', 'forcefallback', 'nopromote'], opt_name='wrap_mode')),
+    (OptionKey('force_fallback_for'), BuiltinOption(UserArrayOption, 'Force fallback for those subprojects', [], 'force_fallback_for')),
 
     # Python module
     (OptionKey('platlibdir', module='python'),
@@ -1225,8 +1234,8 @@ BUILTIN_CORE_OPTIONS: 'KeyedOptionDictType' = OrderedDict([
 BUILTIN_OPTIONS = OrderedDict(chain(BUILTIN_DIR_OPTIONS.items(), BUILTIN_CORE_OPTIONS.items()))
 
 BUILTIN_OPTIONS_PER_MACHINE: 'KeyedOptionDictType' = OrderedDict([
-    (OptionKey('pkg_config_path'), BuiltinOption(UserArrayOption, 'List of additional paths for pkg-config to search', [])),
-    (OptionKey('cmake_prefix_path'), BuiltinOption(UserArrayOption, 'List of additional prefixes for cmake to search', [])),
+    (OptionKey('pkg_config_path'), BuiltinOption(UserArrayOption, 'List of additional paths for pkg-config to search', [], 'pkg_config_path')),
+    (OptionKey('cmake_prefix_path'), BuiltinOption(UserArrayOption, 'List of additional prefixes for cmake to search', [], 'cmake_prefix_path')),
 ])
 
 # Special prefix-dependent defaults for installation directories that reside in

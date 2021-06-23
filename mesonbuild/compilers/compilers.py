@@ -275,32 +275,32 @@ clike_debug_args = {False: [],
                     True: ['-g']}  # type: T.Dict[bool, T.List[str]]
 
 base_options: 'KeyedOptionDictType' = {
-    OptionKey('b_pch'): coredata.UserBooleanOption('Use precompiled headers', True),
-    OptionKey('b_lto'): coredata.UserBooleanOption('Use link time optimization', False),
-    OptionKey('b_lto'): coredata.UserBooleanOption('Use link time optimization', False),
-    OptionKey('b_lto_threads'): coredata.UserIntegerOption('Use multiple threads for Link Time Optimization', (None, None, 0)),
+    OptionKey('b_pch'): coredata.UserBooleanOption('Use precompiled headers', True, 'b_pch'),
+    OptionKey('b_lto'): coredata.UserBooleanOption('Use link time optimization', False, 'b_lto'),
+    OptionKey('b_lto'): coredata.UserBooleanOption('Use link time optimization', False, 'b_lto'),
+    OptionKey('b_lto_threads'): coredata.UserIntegerOption('Use multiple threads for Link Time Optimization', (None, None, 0), 'b_lto_threads'),
     OptionKey('b_lto_mode'): coredata.UserComboOption('Select between different LTO modes.',
                                                       ['default', 'thin'],
-                                                      'default'),
+                                                      'default', 'b_lto_mode'),
     OptionKey('b_sanitize'): coredata.UserComboOption('Code sanitizer to use',
                                                       ['none', 'address', 'thread', 'undefined', 'memory', 'address,undefined'],
-                                                      'none'),
-    OptionKey('b_lundef'): coredata.UserBooleanOption('Use -Wl,--no-undefined when linking', True),
-    OptionKey('b_asneeded'): coredata.UserBooleanOption('Use -Wl,--as-needed when linking', True),
+                                                      'none', 'b_sanitize'),
+    OptionKey('b_lundef'): coredata.UserBooleanOption('Use -Wl,--no-undefined when linking', True, 'b_lundef'),
+    OptionKey('b_asneeded'): coredata.UserBooleanOption('Use -Wl,--as-needed when linking', True, 'b_asneeded'),
     OptionKey('b_pgo'): coredata.UserComboOption('Use profile guided optimization',
                                                  ['off', 'generate', 'use'],
-                                                 'off'),
-    OptionKey('b_coverage'): coredata.UserBooleanOption('Enable coverage tracking.', False),
+                                                 'off', 'b_pgo'),
+    OptionKey('b_coverage'): coredata.UserBooleanOption('Enable coverage tracking.', False, 'b_coverage'),
     OptionKey('b_colorout'): coredata.UserComboOption('Use colored output',
                                                       ['auto', 'always', 'never'],
-                                                      'always'),
-    OptionKey('b_ndebug'): coredata.UserComboOption('Disable asserts', ['true', 'false', 'if-release'], 'false'),
-    OptionKey('b_staticpic'): coredata.UserBooleanOption('Build static libraries as position independent', True),
-    OptionKey('b_pie'): coredata.UserBooleanOption('Build executables as position independent', False),
-    OptionKey('b_bitcode'): coredata.UserBooleanOption('Generate and embed bitcode (only macOS/iOS/tvOS)', False),
+                                                      'always', 'b_colorout'),
+    OptionKey('b_ndebug'): coredata.UserComboOption('Disable asserts', ['true', 'false', 'if-release'], 'false', 'b_ndebug'),
+    OptionKey('b_staticpic'): coredata.UserBooleanOption('Build static libraries as position independent', True, 'b_staticpic'),
+    OptionKey('b_pie'): coredata.UserBooleanOption('Build executables as position independent', False, 'b_pie'),
+    OptionKey('b_bitcode'): coredata.UserBooleanOption('Generate and embed bitcode (only macOS/iOS/tvOS)', False, 'b_bitcode'),
     OptionKey('b_vscrt'): coredata.UserComboOption('VS run-time library type to use.',
                                                    ['none', 'md', 'mdd', 'mt', 'mtd', 'from_buildtype', 'static_from_buildtype'],
-                                                   'from_buildtype'),
+                                                   'from_buildtype', 'b_vscrt'),
 }
 
 def option_enabled(boptions: T.Set[OptionKey], options: 'KeyedOptionDictType',
@@ -1295,11 +1295,11 @@ def get_global_options(lang: str,
 
     cargs = coredata.UserArrayOption(
         description + ' compiler',
-        comp_options, split_args=True, user_input=True, allow_dups=True)
+        comp_options, split_args=True, user_input=True, allow_dups=True, opt_name='args')
 
     largs = coredata.UserArrayOption(
         description + ' linker',
-        link_options, split_args=True, user_input=True, allow_dups=True)
+        link_options, split_args=True, user_input=True, allow_dups=True, opt_name='link_args')
 
     if comp.INVOKES_LINKER and comp_key == envkey:
         # If the compiler acts as a linker driver, and we're using the

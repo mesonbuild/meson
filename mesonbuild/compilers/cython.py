@@ -68,6 +68,7 @@ class CythonCompiler(Compiler):
                 'Python version to target',
                 ['2', '3'],
                 '3',
+                'version',
             ),
             OptionKey('language', machine=self.for_machine, lang=self.language): coredata.UserComboOption(
                 'Output C or C++ files',

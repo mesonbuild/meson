@@ -103,6 +103,7 @@ class CCompiler(CLikeCompiler, Compiler):
                 'C language standard to use',
                 ['none'],
                 'none',
+                'std',
             )
         })
         return opts
@@ -161,6 +162,7 @@ class ClangCCompiler(_ClangCStds, ClangCompiler, CCompiler):
                 OptionKey('winlibs', machine=self.for_machine, lang=self.language): coredata.UserArrayOption(
                     'Standard Win libraries to link against',
                     gnu_winlibs,
+                    'winlibs',
                 ),
             })
         return opts
@@ -276,6 +278,7 @@ class GnuCCompiler(GnuCompiler, CCompiler):
                 key.evolve('winlibs'): coredata.UserArrayOption(
                     'Standard Win libraries to link against',
                     gnu_winlibs,
+                    'winlibs',
                 ),
             })
         return opts
@@ -402,6 +405,7 @@ class VisualStudioLikeCCompilerMixin(CompilerMixinBase):
             OptionKey('winlibs', machine=self.for_machine, lang=self.language): coredata.UserArrayOption(
                 'Windows libs to link against.',
                 msvc_winlibs,
+                'winlibs',
             ),
         })
         return opts
