@@ -29,6 +29,7 @@ def buildparser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description='Custom executable wrapper for Meson. Do not run on your own, mmm\'kay?')
     parser.add_argument('--unpickle')
     parser.add_argument('--capture')
+    parser.add_argument('--feed')
     return parser
 
 def run_exe(exe: ExecutableSerialisation, extra_env: T.Optional[dict] = None) -> int:
@@ -53,13 +54,17 @@ def run_exe(exe: ExecutableSerialisation, extra_env: T.Optional[dict] = None) ->
                 ['Z:' + p for p in exe.extra_paths] + child_env.get('WINEPATH', '').split(';')
             )
 
+    stdin = None
+    if exe.feed:
+        stdin = open(exe.feed, 'rb')
+
     pipe = subprocess.PIPE
     if exe.verbose:
         assert not exe.capture, 'Cannot capture and print to console at the same time'
         pipe = None
 
     p = subprocess.Popen(cmd_args, env=child_env, cwd=exe.workdir,
-                         close_fds=False, stdout=pipe, stderr=pipe)
+                         close_fds=False, stdin=stdin, stdout=pipe, stderr=pipe)
     stdout, stderr = p.communicate()
 
     if p.returncode == 0xc0000135:
@@ -103,13 +108,13 @@ def run(args: T.List[str]) -> int:
     if not options.unpickle and not cmd_args:
         parser.error('either --unpickle or executable and arguments are required')
     if options.unpickle:
-        if cmd_args or options.capture:
+        if cmd_args or options.capture or options.feed:
             parser.error('no other arguments can be used with --unpickle')
         with open(options.unpickle, 'rb') as f:
             exe = pickle.load(f)
             exe.pickled = True
     else:
-        exe = ExecutableSerialisation(cmd_args, capture=options.capture)
+        exe = ExecutableSerialisation(cmd_args, capture=options.capture, feed=options.feed)
 
     return run_exe(exe)
 

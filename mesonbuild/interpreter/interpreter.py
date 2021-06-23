@@ -1694,9 +1694,11 @@ external dependencies (including libraries) must go to "dependencies".''')
     @FeatureNewKwargs('custom_target', '0.48.0', ['console'])
     @FeatureNewKwargs('custom_target', '0.47.0', ['install_mode', 'build_always_stale'])
     @FeatureNewKwargs('custom_target', '0.40.0', ['build_by_default'])
+    @FeatureNewKwargs('custom_target', '0.59.0', ['feed'])
     @permittedKwargs({'input', 'output', 'command', 'install', 'install_dir', 'install_mode',
                       'build_always', 'capture', 'depends', 'depend_files', 'depfile',
-                      'build_by_default', 'build_always_stale', 'console', 'env'})
+                      'build_by_default', 'build_always_stale', 'console', 'env',
+                      'feed'})
     def func_custom_target(self, node, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('custom_target: Only one positional argument is allowed, and it must be a string name')

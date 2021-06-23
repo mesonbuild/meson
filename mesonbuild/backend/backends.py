@@ -141,7 +141,7 @@ class SubdirInstallData(InstallDataBase):
 
 class ExecutableSerialisation:
     def __init__(self, cmd_args, env: T.Optional[build.EnvironmentVariables] = None, exe_wrapper=None,
-                 workdir=None, extra_paths=None, capture=None) -> None:
+                 workdir=None, extra_paths=None, capture=None, feed=None) -> None:
         self.cmd_args = cmd_args
         self.env = env
         if exe_wrapper is not None:
@@ -150,6 +150,7 @@ class ExecutableSerialisation:
         self.workdir = workdir
         self.extra_paths = extra_paths
         self.capture = capture
+        self.feed = feed
         self.pickled = False
         self.skip_if_destdir = False
         self.verbose = False
@@ -441,7 +442,7 @@ class Backend:
         return result
 
     def get_executable_serialisation(self, cmd, workdir=None,
-                                     extra_bdeps=None, capture=None,
+                                     extra_bdeps=None, capture=None, feed=None,
                                      env: T.Optional[build.EnvironmentVariables] = None):
         exe = cmd[0]
         cmd_args = cmd[1:]
@@ -489,17 +490,18 @@ class Backend:
         workdir = workdir or self.environment.get_build_dir()
         return ExecutableSerialisation(exe_cmd + cmd_args, env,
                                        exe_wrapper, workdir,
-                                       extra_paths, capture)
+                                       extra_paths, capture, feed)
 
     def as_meson_exe_cmdline(self, tname, exe, cmd_args, workdir=None,
-                             extra_bdeps=None, capture=None, force_serialize=False,
+                             extra_bdeps=None, capture=None, feed=None,
+                             force_serialize=False,
                              env: T.Optional[build.EnvironmentVariables] = None,
                              verbose: bool = False):
         '''
         Serialize an executable for running with a generator or a custom target
         '''
         cmd = [exe] + cmd_args
-        es = self.get_executable_serialisation(cmd, workdir, extra_bdeps, capture, env)
+        es = self.get_executable_serialisation(cmd, workdir, extra_bdeps, capture, feed, env)
         es.verbose = verbose
         reasons = []
         if es.extra_paths:
@@ -521,12 +523,19 @@ class Backend:
 
         if capture:
             reasons.append('to capture output')
+        if feed:
+            reasons.append('to feed input')
 
         if not force_serialize:
-            if not capture:
+            if not capture and not feed:
                 return es.cmd_args, ''
+            args = []
+            if capture:
+                args += ['--capture', capture]
+            if feed:
+                args += ['--feed', feed]
             return ((self.environment.get_build_command() +
-                    ['--internal', 'exe', '--capture', capture, '--'] + es.cmd_args),
+                    ['--internal', 'exe'] + args + ['--'] + es.cmd_args),
                     ', '.join(reasons))
 
         if isinstance(exe, (programs.ExternalProgram,
@@ -538,10 +547,11 @@ class Backend:
             basename = os.path.basename(exe)
 
         # Can't just use exe.name here; it will likely be run more than once
-        # Take a digest of the cmd args, env, workdir, and capture. This avoids
-        # collisions and also makes the name deterministic over regenerations
-        # which avoids a rebuild by Ninja because the cmdline stays the same.
-        data = bytes(str(es.env) + str(es.cmd_args) + str(es.workdir) + str(capture),
+        # Take a digest of the cmd args, env, workdir, capture, and feed. This
+        # avoids collisions and also makes the name deterministic over
+        # regenerations which avoids a rebuild by Ninja because the cmdline
+        # stays the same.
+        data = bytes(str(es.env) + str(es.cmd_args) + str(es.workdir) + str(capture) + str(feed),
                      encoding='utf-8')
         digest = hashlib.sha1(data).hexdigest()
         scratch_file = f'meson_exe_{basename}_{digest}.dat'

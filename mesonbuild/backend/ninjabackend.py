@@ -975,6 +975,7 @@ class NinjaBackend(backends.Backend):
         cmd, reason = self.as_meson_exe_cmdline(target.name, target.command[0], cmd[1:],
                                                 extra_bdeps=target.get_transitive_build_target_deps(),
                                                 capture=ofilenames[0] if target.capture else None,
+                                                feed=srcs[0] if target.feed else None,
                                                 env=target.env)
         if reason:
             cmd_type = f' (wrapped by meson {reason})'

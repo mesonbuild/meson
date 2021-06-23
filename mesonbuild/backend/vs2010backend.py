@@ -563,6 +563,7 @@ class Vs2010Backend(backends.Backend):
                                                    workdir=tdir_abs,
                                                    extra_bdeps=extra_bdeps,
                                                    capture=ofilenames[0] if target.capture else None,
+                                                   feed=srcs[0] if target.feed else None,
                                                    force_serialize=True,
                                                    env=target.env)
         if target.build_always_stale:

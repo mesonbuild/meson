@@ -2198,6 +2198,7 @@ class CustomTarget(Target, CommandBase):
         'output',
         'command',
         'capture',
+        'feed',
         'install',
         'install_dir',
         'install_mode',
@@ -2296,6 +2297,9 @@ class CustomTarget(Target, CommandBase):
         self.capture = kwargs.get('capture', False)
         if self.capture and len(self.outputs) != 1:
             raise InvalidArguments('Capturing can only output to a single file.')
+        self.feed = kwargs.get('feed', False)
+        if self.feed and len(self.sources) != 1:
+            raise InvalidArguments('Feeding can only input from a single file.')
         self.console = kwargs.get('console', False)
         if not isinstance(self.console, bool):
             raise InvalidArguments('"console" kwarg only accepts booleans')
@@ -2311,10 +2315,11 @@ class CustomTarget(Target, CommandBase):
                 raise InvalidArguments('Depfile must be a plain filename without a subdirectory.')
             self.depfile = depfile
         self.command = self.flatten_command(kwargs['command'])
-        if self.capture:
-            for c in self.command:
-                if isinstance(c, str) and '@OUTPUT@' in c:
-                    raise InvalidArguments('@OUTPUT@ is not allowed when capturing output.')
+        for c in self.command:
+            if self.capture and isinstance(c, str) and '@OUTPUT@' in c:
+                raise InvalidArguments('@OUTPUT@ is not allowed when capturing output.')
+            if self.feed and isinstance(c, str) and '@INPUT@' in c:
+                raise InvalidArguments('@INPUT@ is not allowed when feeding input.')
         if 'install' in kwargs:
             self.install = kwargs['install']
             if not isinstance(self.install, bool):
