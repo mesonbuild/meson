@@ -95,7 +95,7 @@ def main() -> int:
 
     print('Running mypy (this can take some time) ...')
     p = subprocess.run(
-        [sys.executable, '-m', 'mypy'] + args + modules,
+        [sys.executable, '-m', 'mypy', '--install-types', '--non-interactive'] + args + modules,
         cwd=root,
     )
     return p.returncode

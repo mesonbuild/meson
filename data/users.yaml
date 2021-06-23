@@ -1,0 +1,435 @@
+#
+# Corpus of meson projects for regression testing
+#
+# desc:             project description (may contain markdown)
+# homepage:         homepage URL
+# repo:             git repo URL (mandatory)
+# notable:          boolean
+#
+
+2048.cpp:
+  descr: a fully featured terminal version of the game "2048" written in C++
+  repo: https://github.com/plibither8/2048.cpp
+Akira:
+  descr: a native Linux app for UI and UX design built in Vala and Gtk
+  repo: https://github.com/akiraux/Akira
+AQEMU:
+  descr: a Qt GUI for QEMU virtual machines, since version 0.9.3
+  repo: https://github.com/tobimensch/aqemu
+Aravis:
+  descr: a glib/gobject based library for video acquisition using Genicam cameras
+  repo: https://github.com/AravisProject/aravis
+bolt:
+  descr: "userspace daemon to enable security levels for Thunderbolt™ 3 on Linux"
+  repo: https://gitlab.freedesktop.org/bolt/bolt
+Budgie Desktop:
+  descr: a desktop environment built on GNOME technologies
+  repo: https://github.com/budgie-desktop/budgie-desktop
+Bzip2:
+  descr: the bzip2 compressor/decompressor
+  repo: https://gitlab.com/federicomenaquintero/bzip2
+Cage:
+  descr: a Wayland kiosk
+  repo: https://github.com/Hjdskes/cage
+canfigger:
+  descr: simple configuration file parser library
+  repo: https://github.com/andy5995/canfigger
+casync:
+  descr: Content-Addressable Data Synchronization Tool
+  repo: https://github.com/systemd/casync
+cinnamon-desktop:
+  descr: the cinnamon desktop library
+  repo: https://github.com/linuxmint/cinnamon-desktop
+Cozy:
+  descr: a modern audio book player for Linux and macOS using GTK+ 3
+  repo: https://github.com/geigi/cozy
+dav1d:
+  descr: an AV1 decoder
+  repo: https://code.videolan.org/videolan/dav1d
+dbus-broker:
+  descr: Linux D-Bus Message Broker
+  repo: https://github.com/bus1/dbus-broker
+DOSBox Staging:
+  descr: DOS/x86 emulator
+  repo: https://github.com/dosbox-staging/dosbox-staging
+DPDK:
+  descr: Data Plane Development Kit, a set of libraries and drivers for fast packet
+    processing
+  repo: http://dpdk.org/browse/dpdk
+DXVK:
+  descr: a Vulkan-based Direct3D 11 implementation for Linux using Wine
+  repo: https://github.com/doitsujin/dxvk
+Emeus:
+  descr: constraint based layout manager for GTK+
+  repo: https://github.com/ebassi/emeus
+Entangle:
+  descr: tethered camera control and capture desktop application
+  homepage: https://entangle-photo.org/
+  repo: https://gitlab.com/entangle/entangle.git
+FeedReader:
+  descr: a modern desktop application designed to complement existing web-based RSS
+    accounts
+  repo: https://github.com/jangernert/FeedReader
+Flecs:
+  descr: a Fast and Lightweight ECS (Entity Component System) C library
+  repo: https://github.com/SanderMertens/flecs
+Foliate:
+  descr: a simple and modern GTK eBook reader, built with GJS and Epub.js
+  repo: https://github.com/johnfactotum/foliate
+Fractal:
+  descr: a Matrix messaging client for GNOME
+  homepage: https://wiki.gnome.org/Apps/Fractal/
+  repo: https://gitlab.gnome.org/World/fractal.git
+fwupd:
+  descr: a simple daemon to allow session software to update firmware
+  repo: https://github.com/hughsie/fwupd
+GameMode:
+  descr: a daemon/lib combo for Linux that allows games to request a set of optimisations
+    be temporarily applied to the host OS
+  repo: https://github.com/FeralInteractive/gamemode
+Geary:
+  descr: an email application built around conversations, for the GNOME 3 desktop.
+  homepage: https://wiki.gnome.org/Apps/Geary
+  repo: https://git.gnome.org/browse/geary
+GLib:
+  descr: cross-platform C library used by GTK+ and GStreamer
+  repo: https://gitlab.gnome.org/GNOME/glib
+Glorytun:
+  descr: a multipath UDP tunnel
+  repo: https://github.com/angt/glorytun
+GNOME Boxes:
+  descr: a GNOME hypervisor
+  repo: https://gitlab.gnome.org/GNOME/gnome-boxes
+GNOME Builder:
+  descr: an IDE for the GNOME platform
+  repo: https://gitlab.gnome.org/GNOME/gnome-builder
+GNOME MPV:
+  descr: GNOME frontend to the mpv video player
+  repo: https://github.com/celluloid-player/celluloid.git
+GNOME Recipes:
+  descr: application for cooking recipes
+  repo: https://gitlab.gnome.org/GNOME/recipes
+GNOME Software:
+  descr: an app store for GNOME
+  repo: https://gitlab.gnome.org/GNOME/gnome-software
+GNOME Twitch:
+  descr: an app for viewing Twitch streams on GNOME desktop
+  repo: https://github.com/vinszent/gnome-twitch
+GNOME Usage:
+  descr: a GNOME application for visualizing system resources
+  repo: https://gitlab.gnome.org/GNOME/gnome-usage
+GNU FriBidi:
+  descr: the open source implementation of the Unicode Bidirectional Algorithm
+  repo: https://github.com/fribidi/fribidi
+Graphene:
+  descr: a thin type library for graphics
+  homepage: https://ebassi.github.io/graphene/
+  repo: git://github.com/ebassi/graphene
+Grilo:
+  descr: the Grilo multimedia framework
+  repo: https://git.gnome.org/browse/grilo
+Grilo plugins:
+  descr: Grilo plugins
+  repo: https://git.gnome.org/browse/grilo-plugins
+GStreamer:
+  descr: multimedia framework
+  repo: https://gitlab.freedesktop.org/gstreamer/gstreamer
+GTK+:
+  descr: the multi-platform toolkit used by GNOME
+  repo: https://gitlab.gnome.org/GNOME/gtk
+GtkDApp:
+  descr: an application template for developing Flatpak apps with Gtk+ and D
+  repo: https://gitlab.com/csoriano/GtkDApp
+GVfs:
+  descr: a userspace virtual filesystem designed to work with the I/O abstraction
+    of GIO
+  repo: https://git.gnome.org/browse/gvfs/
+Hardcode-Tray:
+  descr: fixes hardcoded tray icons in Linux
+  repo: https://github.com/bil-elmoussaoui/Hardcode-Tray
+HarfBuzz:
+  descr: a text shaping engine
+  repo: https://github.com/harfbuzz/harfbuzz
+HexChat:
+  descr: a cross-platform IRC client in C
+  repo: https://github.com/hexchat/hexchat
+IGT:
+  descr: Linux kernel graphics driver test suite
+  repo: https://gitlab.freedesktop.org/drm/igt-gpu-tools
+inih:
+  descr: a small and simple .INI file parser written in C
+  repo: https://github.com/benhoyt/inih) (INI Not Invented Here
+Irssi:
+  descr: a terminal chat client in C
+  repo: https://github.com/irssi/irssi
+iSH:
+  descr: Linux shell for iOS
+  repo: https://github.com/tbodt/ish
+Janet:
+  descr: a functional and imperative programming language and bytecode interpreter
+  repo: https://github.com/janet-lang/janet
+json:
+  descr: JSON for Modern C++
+  repo: https://github.com/nlohmann/json
+Json-glib:
+  descr: GLib-based JSON manipulation library
+  repo: https://gitlab.gnome.org/GNOME/json-glib
+JsonCpp:
+  descr: a C++ library for interacting with JSON
+  repo: https://github.com/open-source-parsers/jsoncpp
+kiwix-libraries:
+  descr: ''
+  repo: https://github.com/kiwix/libkiwix.git
+Knot Resolver:
+  descr: Full caching DNS resolver implementation
+  repo: https://gitlab.labs.nic.cz/knot/knot-resolver
+Ksh:
+  descr: a Korn Shell
+  repo: https://github.com/att/ast
+Lc0:
+  descr: LeelaChessZero is a UCI-compliant chess engine designed to play chess via
+    neural network
+  repo: https://github.com/LeelaChessZero/lc0
+Le:
+  descr: machine learning framework
+  repo: https://github.com/kirushyk/le
+libcamera:
+  descr: a library to handle complex cameras on Linux, ChromeOS and Android
+  repo: https://git.linuxtv.org/libcamera.git/
+Libdrm:
+  descr: a library for abstracting DRM kernel interfaces
+  repo: https://gitlab.freedesktop.org/mesa/drm
+libeconf:
+  descr: Enhanced config file parsing library, which merges config files placed in
+    several locations into one
+  repo: https://github.com/openSUSE/libeconf
+Libepoxy:
+  descr: a library for handling OpenGL function pointer management
+  repo: https://github.com/anholt/libepoxy/
+libfuse:
+  descr: the reference implementation of the Linux FUSE (Filesystem in Userspace)
+    interface
+  repo: https://github.com/libfuse/libfuse
+Libgit2-glib:
+  descr: a GLib wrapper for libgit2
+  repo: https://git.gnome.org/browse/libgit2-glib
+libglvnd:
+  descr: Vendor neutral OpenGL dispatch library for Unix-like OSes
+  repo: https://gitlab.freedesktop.org/glvnd/libglvnd
+Libhttpseverywhere:
+  descr: a library to enable httpseverywhere on any desktop app
+  repo: https://git.gnome.org/browse/libhttpseverywhere
+libmodulemd:
+  descr: a GObject Introspected library for managing [Fedora Project](https://getfedora.org/)
+    module metadata.
+  repo: https://github.com/fedora-modularity/libmodulemd
+Libosmscout:
+  descr: a C++ library for offline map rendering, routing and location
+  repo: https://github.com/Framstag/libosmscout
+libratbag:
+  descr: provides a DBus daemon to configure input devices, mainly gaming mice.
+  repo: https://github.com/libratbag/libratbag
+libspng:
+  descr: a C library for reading and writing Portable Network Graphics (PNG)
+  repo: https://github.com/randy408/libspng
+libui:
+  descr: a simple and portable (but not inflexible) GUI library in C that uses the
+    native GUI technologies of each platform it supports
+  repo: https://github.com/andlabs/libui
+Libva:
+  descr: an implementation for the VA (VIdeo Acceleration) API
+  repo: https://github.com/intel/libva
+Libvirt:
+  descr: a toolkit to manage virtualization platforms
+  homepage: https://libvirt.org
+  repo: https://libvirt.org/git/libvirt.git
+Libzim:
+  descr: the reference implementation for the ZIM file format
+  repo: https://github.com/openzim/libzim
+Marker:
+  descr: a GTK-3 markdown editor
+  repo: https://github.com/fabiocolacio/Marker
+Mesa:
+  descr: an open source graphics driver project
+  repo: https://gitlab.freedesktop.org/mesa/mesa/
+MiracleCast:
+  descr: connect external monitors to your system via Wifi-Display specification aka
+    Miracast
+  repo: https://github.com/albfan/miraclecast
+mpv:
+  descr: a free, open source, and cross-platform media player
+  repo: https://github.com/mpv-player/mpv
+mrsh:
+  descr: a minimal POSIX shell
+  repo: https://github.com/emersion/mrsh
+Nautilus:
+  descr: the GNOME file manager
+  repo: https://gitlab.gnome.org/GNOME/nautilus
+Nemo:
+  descr: the file manager for the Cinnamon desktop environment
+  repo: https://github.com/linuxmint/nemo
+OcherBook:
+  descr: an open source book reader for Kobo devices
+  repo: https://github.com/ccoffing/OcherBook
+oomd:
+  descr: a userspace Out-Of-Memory (OOM) killer for Linux systems
+  repo: https://github.com/facebookincubator/oomd
+OpenH264:
+  descr: open source H.264 codec
+  repo: https://github.com/cisco/openh264
+OpenHMD:
+  descr: a free and open source API and drivers for immersive technology, such as
+    head mounted displays with built in head tracking
+  repo: https://github.com/OpenHMD/OpenHMD
+Orc:
+  descr: the Optimized Inner Loop Runtime Compiler
+  repo: https://gitlab.freedesktop.org/gstreamer/orc
+OTS:
+  descr: the OpenType Sanitizer, parses and serializes OpenType files (OTF, TTF) and
+    WOFF and WOFF2 font files, validating and sanitizing them as it goes. Used by
+    Chromium and Firefox
+  repo: https://github.com/khaledhosny/ots
+Outlier:
+  descr: a small Hello World style Meson example project
+  repo: https://github.com/kerolasa/outlier
+p11-kit:
+  descr: PKCS#11 module aggregator
+  repo: https://github.com/p11-glue/p11-kit
+Pacman:
+  descr: a package manager for Arch Linux
+  repo: https://gitlab.archlinux.org/pacman/pacman.git
+Pango:
+  descr: an Internationalized text layout and rendering library
+  repo: https://git.gnome.org/browse/pango/
+Paper Rock Scissors:
+  descr: a game with weapons themed at home paper rock scissors style.
+  repo: https://github.com/michaelbrockus/paper_rock_scissors
+Parzip:
+  descr: a multithreaded reimplementation of Zip
+  repo: https://github.com/jpakkane/parzip
+Peek:
+  descr: simple animated GIF screen recorder with an easy to use interface
+  repo: https://github.com/phw/peek
+PicoLibc:
+  descr: a standard C library for small embedded systems with limited RAM
+  repo: https://github.com/keith-packard/picolibc
+PipeWire:
+  descr: a framework for video and audio for containerized applications
+  repo: https://github.com/PipeWire/pipewire
+Pithos:
+  descr: a Pandora Radio client
+  repo: https://github.com/pithos/pithos
+Pitivi:
+  descr: a nonlinear video editor
+  repo: https://github.com/pitivi/pitivi/
+Playerctl:
+  descr: mpris command-line controller and library for spotify, vlc, audacious, bmp,
+    cmus, and others
+  repo: https://github.com/acrisci/playerctl
+Polari:
+  descr: an IRC client
+  repo: https://gitlab.gnome.org/GNOME/polari
+qboot:
+  descr: a minimal x86 firmware for booting Linux kernels
+  repo: https://github.com/bonzini/qboot
+QEMU:
+  descr: a processor emulator and virtualizer
+  homepage: https://qemu.org
+  repo: https://gitlab.com/qemu-project/qemu
+radare2:
+  descr: unix-like reverse engineering framework and commandline tools (not the default)
+  repo: https://github.com/radare/radare2
+Rizin:
+  descr: Free and Open Source Reverse Engineering Framework
+  homepage: https://rizin.re
+  repo: https://github.com/rizinorg/rizin.git
+rmw:
+  descr: safe-remove utility for the command line
+  homepage: https://remove-to-waste.info
+  repo: https://github.com/theimpossibleastronaut/rmw.git
+RxDock:
+  descr: a protein-ligand docking software designed for high throughput virtual screening
+    (fork of rDock)
+  repo: https://gitlab.com/rxdock/rxdock
+scrcpy:
+  descr: a cross platform application that provides display and control of Android
+    devices connected on USB or over TCP/IP
+  repo: https://github.com/Genymobile/scrcpy
+Sequeler:
+  descr: a friendly SQL client for Linux, built with Vala and Gtk
+  repo: https://github.com/Alecaddd/sequeler
+Siril:
+  descr: an image processing software for amateur astronomy
+  repo: https://gitlab.com/free-astro/siril
+SSHFS:
+  descr: allows you to mount a remote filesystem using SFTP
+  repo: https://github.com/libfuse/sshfs
+sway:
+  descr: i3-compatible Wayland compositor
+  repo: https://github.com/swaywm/sway
+Sysprof:
+  descr: a profiling tool
+  repo: https://git.gnome.org/browse/sysprof
+systemd:
+  descr: the init system
+  repo: https://github.com/systemd/systemd
+szl:
+  descr: a lightweight, embeddable scripting language
+  repo: https://github.com/dimkr/szl
+Taisei Project:
+  descr: an open-source Touhou Project clone and fangame
+  homepage: https://taisei-project.org/
+  repo: https://github.com/taisei-project/taisei.git
+Terminology:
+  descr: a terminal emulator based on the Enlightenment Foundation Libraries
+  repo: https://github.com/billiob/terminology
+Tilix:
+  descr: a tiling terminal emulator for Linux using GTK+ 3
+  repo: https://github.com/gnunn1/tilix
+Tizonia:
+  descr: a command-line cloud music player for Linux with support for Spotify, Google
+    Play Music, YouTube, SoundCloud, TuneIn, Plex servers and Chromecast devices
+  repo: https://github.com/tizonia/tizonia-openmax-il
+UFJF-MLTK:
+  descr: A C++ cross-platform framework for machine learning algorithms development
+    and testing
+  repo: https://github.com/mateus558/UFJF-Machine-Learning-Toolkit
+Vala Language Server:
+  descr: code intelligence engine for the Vala and Genie programming languages
+  repo: https://github.com/benwaffle/vala-language-server
+Valum:
+  descr: a micro web framework written in Vala
+  repo: https://github.com/valum-framework/valum
+VMAF:
+  descr: a perceptual video quality assessment based on multi-method fusion
+  repo: https://github.com/Netflix/vmaf) (by Netflix
+Wayland:
+  descr: a next generation display server
+  repo: https://github.com/wayland-project/wayland
+Weston:
+  descr: compositor for a next generation display server
+  repo: https://github.com/wayland-project/weston.git
+wlroots:
+  descr: a modular Wayland compositor library
+  repo: https://github.com/swaywm/wlroots
+wxFormBuilder:
+  descr: RAD tool for wxWidgets GUI design
+  repo: https://github.com/wxFormBuilder/wxFormBuilder
+X Test Suite:
+  descr: The X.org test suite
+  repo: https://gitlab.freedesktop.org/xorg/test/xts
+xi-gtk:
+  descr: a GTK+ front-end for the Xi editor
+  repo: https://github.com/eyelash/xi-gtk
+Xorg:
+  descr: the X.org display server (not the default yet)
+  repo: https://gitlab.freedesktop.org/xorg/xserver
+zathura:
+  descr: a highly customizable and functional document viewer based on the
+  repo: https://github.com/pwmt/zathura
+Zrythm:
+  descr: a cross-platform digital audio workstation using GTK+ 3
+  repo: https://github.com/zrythm/zrythm.git
+ZStandard:
+  descr: a compression algorithm developed at Facebook (not used by default)
+  repo: https://github.com/facebook/zstd.git

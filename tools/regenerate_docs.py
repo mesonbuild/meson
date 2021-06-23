@@ -27,6 +27,7 @@ import sys
 import textwrap
 import json
 import typing as T
+import yaml
 from pathlib import Path
 from urllib.request import urlopen
 
@@ -133,6 +134,16 @@ def generate_wrapdb_table(output_dir: Path) -> None:
             program_names_str = ', '.join(program_names)
             f.write(f'| {name} | {versions_str} | {dependency_names_str} | {program_names_str} |\n')
 
+def generate_users_list(root_dir: Path, output_dir: Path) -> None:
+    with open(root_dir / 'data' / 'users.yaml', encoding='utf-8') as f:
+        users = yaml.load(f, Loader=yaml.BaseLoader)
+
+    with open(output_dir / 'users-list.md', 'w', encoding='utf-8') as f:
+        for u, p in sorted(users.items(), key=lambda k: k[0].lower()):  # type: ignore
+            if users[u].get('notable', True):  # TODO: Change default to false when notable users are noted
+                url = p.get('homepage', p['repo'])
+                f.write(f" - [{u}]({url}), {p['descr']}\n")
+
 def regenerate_docs(output_dir: PathLike,
                     dummy_output_file: T.Optional[PathLike]) -> None:
     if not output_dir:
@@ -145,6 +156,7 @@ def regenerate_docs(output_dir: PathLike,
 
     generate_hotdoc_includes(root_dir, output_dir)
     generate_wrapdb_table(output_dir)
+    generate_users_list(root_dir, output_dir)
 
     if dummy_output_file:
         with open(output_dir/dummy_output_file, 'w', encoding='utf-8') as f:
