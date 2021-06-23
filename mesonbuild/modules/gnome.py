@@ -34,6 +34,7 @@ from ..mesonlib import (
 )
 from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
 from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, FeatureNew, FeatureNewKwargs, FeatureDeprecatedKwargs
+from ..interpreterbase import typed_kwargs, KwargInfo, ContainerTypeInfo
 from ..programs import ExternalProgram, OverrideProgram
 from ..build import CustomTarget, CustomTargetIndex, GeneratedList
 
@@ -57,6 +58,7 @@ class GnomeModule(ExtensionModule):
         self.install_glib_compile_schemas = False
         self.install_gio_querymodules = []
         self.install_gtk_update_icon_cache = False
+        self.install_update_desktop_database = False
         self.devenv = None
         self.methods.update({
             'post_install': self.post_install,
@@ -127,20 +129,25 @@ class GnomeModule(ExtensionModule):
         # Normal program lookup
         return state.find_program(name, required=required)
 
-    @permittedKwargs({'glib_compile_schemas', 'gio_querymodules', 'gtk_update_icon_cache'})
+    @typed_kwargs('gnome.post_install',
+        KwargInfo('glib_compile_schemas', bool, default=False),
+        KwargInfo('gio_querymodules', ContainerTypeInfo(list, str), default=[], listify=True),
+        KwargInfo('gtk_update_icon_cache', bool, default=False),
+        KwargInfo('update_desktop_database', bool, default=False, since='0.59.0'),
+    )
     @noPosargs
     @FeatureNew('gnome.post_install', '0.57.0')
     def post_install(self, state, args, kwargs):
         rv = []
         datadir_abs = os.path.join(state.environment.get_prefix(), state.environment.get_datadir())
-        if kwargs.get('glib_compile_schemas', False) and not self.install_glib_compile_schemas:
+        if kwargs['glib_compile_schemas'] and not self.install_glib_compile_schemas:
             self.install_glib_compile_schemas = True
             prog = self._get_native_binary(state, 'glib-compile-schemas', 'gio-2.0', 'glib_compile_schemas')
             schemasdir = os.path.join(datadir_abs, 'glib-2.0', 'schemas')
             script = state.backend.get_executable_serialisation([prog, schemasdir])
             script.skip_if_destdir = True
             rv.append(script)
-        for d in mesonlib.extract_as_list(kwargs, 'gio_querymodules'):
+        for d in kwargs['gio_querymodules']:
             if d not in self.install_gio_querymodules:
                 self.install_gio_querymodules.append(d)
                 prog = self._get_native_binary(state, 'gio-querymodules', 'gio-2.0', 'gio_querymodules')
@@ -148,7 +155,7 @@ class GnomeModule(ExtensionModule):
                 script = state.backend.get_executable_serialisation([prog, moduledir])
                 script.skip_if_destdir = True
                 rv.append(script)
-        if kwargs.get('gtk_update_icon_cache', False) and not self.install_gtk_update_icon_cache:
+        if kwargs['gtk_update_icon_cache'] and not self.install_gtk_update_icon_cache:
             self.install_gtk_update_icon_cache = True
             prog = self._get_native_binary(state, 'gtk4-update-icon-cache', 'gtk-4.0', 'gtk4_update_icon_cache', required=False)
             found = isinstance(prog, build.Executable) or prog.found()
@@ -156,6 +163,13 @@ class GnomeModule(ExtensionModule):
                 prog = self._get_native_binary(state, 'gtk-update-icon-cache', 'gtk+-3.0', 'gtk_update_icon_cache')
             icondir = os.path.join(datadir_abs, 'icons', 'hicolor')
             script = state.backend.get_executable_serialisation([prog, '-q', '-t' ,'-f', icondir])
+            script.skip_if_destdir = True
+            rv.append(script)
+        if kwargs['update_desktop_database'] and not self.install_update_desktop_database:
+            self.install_update_desktop_database = True
+            prog = self._get_native_binary(state, 'update-desktop-database', 'desktop-file-utils', 'update_desktop_database')
+            appdir = os.path.join(datadir_abs, 'applications')
+            script = state.backend.get_executable_serialisation([prog, '-q', appdir])
             script.skip_if_destdir = True
             rv.append(script)
         return ModuleReturnValue(None, rv)
