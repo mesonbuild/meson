@@ -43,7 +43,9 @@ generated2 = gen2.process(['source3.c'])
 
 stc = static_library('stc', generated2)
 
-e = executable('prog', 'prog.c', link_with : [obj, shr, stc],
+subdir('objdir')
+
+e = executable('prog', 'prog.c', link_with : [obj, shr, stc, subdirfilebuilt_obj, subdirfile_obj, subdirstr_obj],
   install : true)
 
 test('objgen', e)
