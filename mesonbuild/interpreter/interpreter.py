@@ -1881,7 +1881,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             self.build.benchmarks.append(t)
             mlog.debug('Adding benchmark', mlog.bold(t.name, True))
 
-    @typed_pos_args('install_headers', varargs=(str, mesonlib.File), min_varargs=1)
+    @typed_pos_args('install_headers', varargs=(str, mesonlib.File))
     @typed_kwargs(
         'install_headers',
         KwargInfo('install_dir', (str, None)),
@@ -1902,7 +1902,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
 
         return h
 
-    @typed_pos_args('install_man', varargs=(str, mesonlib.File), min_varargs=1)
+    @typed_pos_args('install_man', varargs=(str, mesonlib.File))
     @typed_kwargs(
         'install_man',
         KwargInfo('install_dir', (str, None)),
