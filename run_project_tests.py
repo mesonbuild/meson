@@ -733,6 +733,37 @@ def _run_test(test: TestDef,
     return testresult
 
 
+# processing of test.json 'skip_*' keys, which can appear at top level, or in
+# matrix:
+def _skip_keys(test_def: T.Dict) -> T.Tuple[bool, bool]:
+    skip_expected = False
+
+    # Test is expected to skip if MESON_CI_JOBNAME contains any of the list of
+    # substrings
+    if ('skip_on_jobname' in test_def) and (ci_jobname is not None):
+        skip_expected = any(s in ci_jobname for s in test_def['skip_on_jobname'])
+
+    # Test is expected to skip if os matches
+    if 'skip_on_os' in test_def:
+        mesonenv = environment.Environment(None, None, get_fake_options('/'))
+        for skip_os in test_def['skip_on_os']:
+            if skip_os.startswith('!'):
+                if mesonenv.machines.host.system != skip_os[1:]:
+                    skip_expected = True
+            else:
+                if mesonenv.machines.host.system == skip_os:
+                    skip_expected = True
+
+    # Skip if environment variable is present
+    skip = False
+    if 'skip_on_env' in test_def:
+        for skip_env_var in test_def['skip_on_env']:
+            if skip_env_var in os.environ:
+                skip = True
+
+    return (skip, skip_expected)
+
+
 def load_test_json(t: TestDef, stdout_mandatory: bool) -> T.List[TestDef]:
     all_tests: T.List[TestDef] = []
     test_def = {}
@@ -763,6 +794,8 @@ def load_test_json(t: TestDef, stdout_mandatory: bool) -> T.List[TestDef]:
     # Handle the do_not_set_opts list
     do_not_set_opts = test_def.get('do_not_set_opts', [])  # type: T.List[str]
 
+    (t.skip, t.skip_expected) = _skip_keys(test_def)
+
     # Skip tests if the tool requirements are not met
     if 'tools' in test_def:
         assert isinstance(test_def['tools'], dict)
@@ -772,52 +805,28 @@ def load_test_json(t: TestDef, stdout_mandatory: bool) -> T.List[TestDef]:
             elif not mesonlib.version_compare(tool_vers_map[tool], vers_req):
                 t.skip = True
 
-    # Test is expected to skip if MESON_CI_JOBNAME contains any of the list of
-    # substrings
-    if ('skip_on_jobname' in test_def) and (ci_jobname is not None):
-        skip_expected = any(s in ci_jobname for s in test_def['skip_on_jobname'])
-    else:
-        skip_expected = False
-
-    # Test is expected to skip if os matches
-    if 'skip_on_os' in test_def:
-        mesonenv = environment.Environment(None, None, get_fake_options('/'))
-        for skip_os in test_def['skip_on_os']:
-            if skip_os.startswith('!'):
-                if mesonenv.machines.host.system != skip_os[1:]:
-                    skip_expected = True
-            else:
-                if mesonenv.machines.host.system == skip_os:
-                    skip_expected = True
-
     # Skip the matrix code and just update the existing test
     if 'matrix' not in test_def:
         t.env.update(env)
         t.installed_files = installed
         t.do_not_set_opts = do_not_set_opts
         t.stdout = stdout
-        t.skip_expected = skip_expected
         return [t]
 
-    new_opt_list: T.List[T.List[T.Tuple[str, bool]]]
+    new_opt_list: T.List[T.List[T.Tuple[str, bool, bool]]]
 
     # 'matrix; entry is present, so build multiple tests from matrix definition
-    opt_list = []  # type: T.List[T.List[T.Tuple[str, bool]]]
+    opt_list = []  # type: T.List[T.List[T.Tuple[str, bool, bool]]]
     matrix = test_def['matrix']
     assert "options" in matrix
     for key, val in matrix["options"].items():
         assert isinstance(val, list)
-        tmp_opts = []  # type: T.List[T.Tuple[str, bool]]
+        tmp_opts = []  # type: T.List[T.Tuple[str, bool, bool]]
         for i in val:
             assert isinstance(i, dict)
             assert "val" in i
-            skip = False
 
-            # Skip the matrix entry if environment variable is present
-            if 'skip_on_env' in i:
-                for skip_env_var in i['skip_on_env']:
-                    if skip_env_var in os.environ:
-                        skip = True
+            (skip, skip_expected) = _skip_keys(i)
 
             # Only run the test if all compiler ID's match
             if 'compilers' in i:
@@ -828,10 +837,10 @@ def load_test_json(t: TestDef, stdout_mandatory: bool) -> T.List[TestDef]:
 
             # Add an empty matrix entry
             if i['val'] is None:
-                tmp_opts += [(None, skip)]
+                tmp_opts += [(None, skip, skip_expected)]
                 continue
 
-            tmp_opts += [('{}={}'.format(key, i['val']), skip)]
+            tmp_opts += [('{}={}'.format(key, i['val']), skip, skip_expected)]
 
         if opt_list:
             new_opt_list = []
@@ -864,12 +873,13 @@ def load_test_json(t: TestDef, stdout_mandatory: bool) -> T.List[TestDef]:
         name = ' '.join([x[0] for x in i if x[0] is not None])
         opts = ['-D' + x[0] for x in i if x[0] is not None]
         skip = any([x[1] for x in i])
+        skip_expected = any([x[2] for x in i])
         test = TestDef(t.path, name, opts, skip or t.skip)
         test.env.update(env)
         test.installed_files = installed
         test.do_not_set_opts = do_not_set_opts
         test.stdout = stdout
-        test.skip_expected = skip_expected
+        test.skip_expected = skip_expected or t.skip_expected
         all_tests.append(test)
 
     return all_tests

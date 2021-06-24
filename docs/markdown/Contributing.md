@@ -305,17 +305,15 @@ project tests with different Meson options.
 
 In the `options` dict, all possible options and their values are
 specified. Each key in the `options` dict is a Meson option. It stores
-a list of all potential values in a dict format, which allows to skip
-specific values based on the current environment.
+a list of all potential values in a dict format.
 
 Each value must contain the `val` key for the value of the option.
 `null` can be used for adding matrix entries without the current
 option.
 
-Additionally, the `skip_on_env` key can be used to specify a list of
-environment variables. If at least one environment variable in
-`skip_on_env` is present, all matrix entries containing this value are
-skipped.
+The `skip_on_env`, `skip_on_jobname` and `skip_on_os` keys (as described below)
+may be used in the value to skip that matrix entry, based on the current
+environment.
 
 Similarly, the `compilers` key can be used to define a mapping of
 compilers to languages that are required for this value.
@@ -379,6 +377,12 @@ matched:
 | --------  | ----------------------- |
 | `literal` | Literal match (default) |
 | `re`      | regex match             |
+
+#### skip_on_env
+
+The `skip_on_env` key can be used to specify a list of environment variables. If
+at least one environment variable in the `skip_on_env` list is present, the test
+is skipped.
 
 #### skip_on_jobname
 
