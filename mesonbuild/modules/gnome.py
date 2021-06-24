@@ -369,6 +369,8 @@ class GnomeModule(ExtensionModule):
                        use_gir_args=False):
         link_command = []
         # Construct link args
+        if isinstance(lib, build.BothLibraries):
+            lib = lib.get_preferred_library()
         if isinstance(lib, build.SharedLibrary):
             libdir = os.path.join(state.environment.get_build_dir(), state.backend.get_target_dir(lib))
             link_command.append('-L' + libdir)

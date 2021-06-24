@@ -18,11 +18,11 @@ girlib = shared_library(
   install : true
 )
 
-girlib2 = shared_library(
+girlib2 = both_libraries(
   'gir_lib2',
   sources : lib2sources,
   dependencies : [gobj],
-  install : true
+  install : false
 )
 
 girexe = executable(
@@ -42,6 +42,7 @@ gnome.generate_gir(
   symbol_prefix : 'meson',
   identifier_prefix : 'Meson',
   includes : ['GObject-2.0', 'MesonDep1-1.0'],
+  link_with : [girlib2],
   # dep1_dep pulls in dep2_dep for us
   dependencies : [[fake_dep, dep1_dep]],
   install : true,

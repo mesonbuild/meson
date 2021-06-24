@@ -7,8 +7,6 @@
     {"type": "file", "file": "usr/include/marshaller.h"},
     {"type": "expr", "file": "usr/lib/?libgir_lib.so"},
     {"type": "file", "platform": "cygwin", "file": "usr/lib/libgir_lib.dll.a"},
-    {"type": "expr", "file": "usr/lib/?libgir_lib2.so"},
-    {"type": "file", "platform": "cygwin", "file": "usr/lib/libgir_lib2.dll.a"},
     {"type": "expr", "file": "usr/lib/?libdep1lib.so"},
     {"type": "file", "platform": "cygwin", "file": "usr/lib/libdep1lib.dll.a"},
     {"type": "expr", "file": "usr/lib/?libdep2lib.so"},
