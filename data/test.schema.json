@@ -79,6 +79,18 @@
                   "items": {
                     "type": "string"
                   }
+                },
+                "skip_on_jobname": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "skip_on_os": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
                 }
               },
               "required": [
@@ -140,6 +152,12 @@
         "required": [
           "line"
         ]
+      }
+    },
+    "skip_on_env": {
+      "type": "array",
+      "items": {
+        "type": "string"
       }
     },
     "skip_on_jobname": {
