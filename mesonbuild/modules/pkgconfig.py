@@ -22,9 +22,7 @@ from .. import mesonlib
 from .. import mlog
 from . import ModuleReturnValue
 from . import ExtensionModule
-from ..interpreterbase import permittedKwargs, FeatureNew, FeatureNewKwargs, TYPE_var, TYPE_kwargs
-
-import typing as T
+from ..interpreterbase import permittedKwargs, FeatureNew, FeatureNewKwargs
 
 already_warned_objs = set()
 
@@ -112,7 +110,6 @@ class DependenciesHelper:
 
     def _process_libs(self, libs, public: bool):
         libs = mesonlib.listify(libs)
-        libs = [x.get_preferred_library() if isinstance(x, build.BothLibraries) else x for x in libs]
         processed_libs = []
         processed_reqs = []
         processed_cflags = []
@@ -454,19 +451,6 @@ class PkgConfigModule(ExtensionModule):
             if cflags and not dataonly:
                 ofile.write('Cflags: {}\n'.format(' '.join(cflags)))
 
-
-    @staticmethod
-    def _handle_both_libraries(args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.Tuple[T.List[TYPE_var], TYPE_kwargs]:
-        def _do_extract(arg: TYPE_var) -> TYPE_var:
-            if isinstance(arg, list):
-                return [_do_extract(x) for x in arg]
-            elif isinstance(arg, dict):
-                return {k: _do_extract(v) for k, v in arg.items()}
-            elif isinstance(arg, build.BothLibraries):
-                return arg.get_preferred_library()
-            return arg
-        return [_do_extract(x) for x in args], {k: _do_extract(v) for k, v in kwargs.items()}
-
     @FeatureNewKwargs('pkgconfig.generate', '0.59.0', ['unescaped_variables', 'unescaped_uninstalled_variables'])
     @FeatureNewKwargs('pkgconfig.generate', '0.54.0', ['uninstalled_variables'])
     @FeatureNewKwargs('pkgconfig.generate', '0.42.0', ['extra_cflags'])
@@ -484,7 +468,6 @@ class PkgConfigModule(ExtensionModule):
         default_name = None
         mainlib = None
         default_subdirs = ['.']
-        args, kwargs = PkgConfigModule._handle_both_libraries(args, kwargs)
         if not args and 'version' not in kwargs:
             FeatureNew.single_use('pkgconfig.generate implicit version keyword', '0.46.0', state.subproject)
         elif len(args) == 1:

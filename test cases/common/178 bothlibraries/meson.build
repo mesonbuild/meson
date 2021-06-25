@@ -34,8 +34,16 @@ exe_static2 = executable('prog-static2', 'main.c',
                          link_with : both_libs2.get_static_lib())
 exe_both2 = executable('prog-both2', 'main.c', link_with : both_libs2)
 
+# Test {set,get}_variable
+set_variable('both_libs2', both_libs)
+both_libs3 = get_variable('both_libs')
+
 # Ensure that calling the build target methods also works
 assert(both_libs.name() == 'mylib')
+assert(both_libs2.name() == 'mylib')
+assert(both_libs3.name() == 'mylib')
+assert(both_libs2.get_shared_lib().name() == 'mylib')
+assert(both_libs3.get_static_lib().name() == 'mylib')
 
 test('runtest-shared-2', exe_shared2)
 test('runtest-static-2', exe_static2)

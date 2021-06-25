@@ -42,7 +42,7 @@ from .exceptions import (
 
 from .decorators import FeatureNew, builtinMethodNoKwargs
 from .disabler import Disabler, is_disabled
-from .helpers import check_stringlist, default_resolve_key, flatten
+from .helpers import check_stringlist, default_resolve_key, flatten, resolve_second_level_holders
 from ._unholder import _unholder
 
 import os, copy, re
@@ -546,6 +546,8 @@ The result of this is undefined and will become a hard error in a future Meson r
             func_args = posargs
             if not getattr(func, 'no-args-flattening', False):
                 func_args = flatten(posargs)
+            if not getattr(func, 'no-second-level-holder-flattening', False):
+                func_args, kwargs = resolve_second_level_holders(func_args, kwargs)
             res = func(node, func_args, kwargs)
             return self._holderify(res)
         else:

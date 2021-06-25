@@ -26,7 +26,7 @@ from ..programs import ExternalProgram, NonExistingExternalProgram
 from ..dependencies import Dependency
 from ..depfile import DepFile
 from ..interpreterbase import ContainerTypeInfo, InterpreterBase, KwargInfo, typed_kwargs, typed_pos_args
-from ..interpreterbase import noPosargs, noKwargs, stringArgs, permittedKwargs, noArgsFlattening, unholder_return
+from ..interpreterbase import noPosargs, noKwargs, stringArgs, permittedKwargs, noArgsFlattening, noSecondLevelHolderResolving, unholder_return
 from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
 from ..interpreterbase import Disabler, disablerIfNotFound
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs, FeatureDeprecatedKwargs
@@ -2537,8 +2537,6 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
             sources = [sources]
         results: T.List['SourceOutputs'] = []
         for s in sources:
-            if isinstance(s, build.BothLibraries):
-                s = s.get_preferred_library()
             if isinstance(s, str):
                 self.validate_within_subproject(self.subdir, s)
                 results.append(mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, s))
@@ -2713,6 +2711,7 @@ This will become a hard error in the future.''', location=self.current_node)
 
     @noKwargs
     @noArgsFlattening
+    @noSecondLevelHolderResolving
     def func_set_variable(self, node, args, kwargs):
         if len(args) != 2:
             raise InvalidCode('Set_variable takes two arguments.')
