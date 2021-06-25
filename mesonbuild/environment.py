@@ -1483,7 +1483,7 @@ class Environment:
             if 'TMS320C2000 C/C++' in out:
                 cls = C2000CCompiler if lang == 'c' else C2000CPPCompiler
                 self.coredata.add_lang_args(cls.language, cls, for_machine, self)
-                linker = C2000DynamicLinker(for_machine, version=version)
+                linker = C2000DynamicLinker(compiler, for_machine, version=version)
                 return cls(
                     ccache + compiler, version, for_machine, is_cross, info,
                     exe_wrap, full_version=full_version, linker=linker)

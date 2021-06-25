@@ -982,9 +982,9 @@ class C2000DynamicLinker(DynamicLinker):
 
     id = 'cl2000'
 
-    def __init__(self, for_machine: mesonlib.MachineChoice,
+    def __init__(self, exelist: T.List[str], for_machine: mesonlib.MachineChoice,
                  *, version: str = 'unknown version'):
-        super().__init__(['cl2000.exe'], for_machine, '', [],
+        super().__init__(exelist or ['cl2000.exe'], for_machine, '', [],
                          version=version)
 
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
