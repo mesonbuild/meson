@@ -28,7 +28,7 @@ from . import dependencies
 from . import mlog
 from . import programs
 from .mesonlib import (
-    HoldableObject,
+    HoldableObject, SecondLevelHolder,
     File, MesonException, MachineChoice, PerMachine, OrderedSet, listify,
     extract_as_list, typeslistify, stringlistify, classify_unity_sources,
     get_filenames_templates_dict, substitute_values, has_path_sep,
@@ -1234,8 +1234,6 @@ You probably should put it in link_with instead.''')
 
     def link(self, target):
         for t in listify(target):
-            if isinstance(t, BothLibraries):
-                t = t.get_preferred_library()
             if isinstance(self, StaticLibrary) and self.need_install:
                 if isinstance(t, (CustomTarget, CustomTargetIndex)):
                     if not t.should_install():
@@ -1264,9 +1262,6 @@ You probably should put it in link_with instead.''')
 
     def link_whole(self, target):
         for t in listify(target):
-            # Always use the static library from BothLibraries, since shared libs aren't supported anyway
-            if isinstance(t, BothLibraries):
-                t = t.static
             if isinstance(t, (CustomTarget, CustomTargetIndex)):
                 if not t.is_linkable_target():
                     raise InvalidArguments(f'Custom target {t!r} is not linkable.')
@@ -2152,7 +2147,7 @@ class SharedModule(SharedLibrary):
     def get_default_install_dir(self, environment):
         return environment.get_shared_module_dir()
 
-class BothLibraries(HoldableObject):
+class BothLibraries(SecondLevelHolder):
     def __init__(self, shared: SharedLibrary, static: StaticLibrary) -> None:
         self._preferred_library = 'shared'
         self.shared = shared
@@ -2162,7 +2157,7 @@ class BothLibraries(HoldableObject):
     def __repr__(self) -> str:
         return f'<BothLibraries: static={repr(self.static)}; shared={repr(self.shared)}>'
 
-    def get_preferred_library(self) -> BuildTarget:
+    def get_default_object(self) -> BuildTarget:
         if self._preferred_library == 'shared':
             return self.shared
         elif self._preferred_library == 'static':
@@ -2174,8 +2169,6 @@ class CommandBase:
         cmd = listify(cmd)
         final_cmd = []
         for c in cmd:
-            if isinstance(c, BothLibraries):
-                c = c.get_preferred_library()
             if isinstance(c, str):
                 final_cmd.append(c)
             elif isinstance(c, File):
@@ -2274,7 +2267,6 @@ class CustomTarget(Target, CommandBase):
     def process_kwargs(self, kwargs, backend):
         self.process_kwargs_base(kwargs)
         self.sources = extract_as_list(kwargs, 'input')
-        self.sources = [x.get_preferred_library() if isinstance(x, BothLibraries) else x for x in self.sources]
         if 'output' not in kwargs:
             raise InvalidArguments('Missing keyword argument "output".')
         self.outputs = listify(kwargs['output'])
@@ -2651,8 +2643,6 @@ def get_sources_string_names(sources, backend):
     '''
     names = []
     for s in sources:
-        if isinstance(s, BothLibraries):
-            s = s.get_preferred_library()
         if isinstance(s, str):
             names.append(s)
         elif isinstance(s, (BuildTarget, CustomTarget, CustomTargetIndex, GeneratedList)):

@@ -33,12 +33,14 @@ __all__ = [
     'check_stringlist',
     'default_resolve_key',
     'flatten',
+    'resolve_second_level_holders',
 
     'noPosargs',
     'builtinMethodNoKwargs',
     'noKwargs',
     'stringArgs',
     'noArgsFlattening',
+    'noSecondLevelHolderResolving',
     'unholder_return',
     'disablerIfNotFound',
     'permittedKwargs',
@@ -91,6 +93,7 @@ from .decorators import (
     noKwargs,
     stringArgs,
     noArgsFlattening,
+    noSecondLevelHolderResolving,
     unholder_return,
     disablerIfNotFound,
     permittedKwargs,
@@ -115,5 +118,5 @@ from .exceptions import (
 )
 
 from .disabler import Disabler, is_disabled
-from .helpers import check_stringlist, default_resolve_key, flatten
+from .helpers import check_stringlist, default_resolve_key, flatten, resolve_second_level_holders
 from .interpreterbase import MesonVersionString, InterpreterBase
