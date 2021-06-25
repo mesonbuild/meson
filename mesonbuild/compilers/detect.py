@@ -721,7 +721,7 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
                     compiler, version, for_machine, is_cross, info,
                     exe_wrap, full_version=full_version, linker=linker)
 
-            if 'Intel(R) Visual Fortran' in err:
+            if 'Intel(R) Visual Fortran' in err or 'Intel(R) Fortran' in err:
                 version = search_version(err)
                 target = 'x86' if 'IA-32' in err else 'x86_64'
                 cls = IntelClFortranCompiler
