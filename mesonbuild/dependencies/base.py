@@ -29,7 +29,7 @@ from ..interpreterbase import FeatureDeprecated
 if T.TYPE_CHECKING:
     from ..compilers.compilers import Compiler
     from ..environment import Environment
-    from ..build import BuildTarget, BothLibraries
+    from ..build import BuildTarget
     from ..mesonlib import FileOrString
 
 
@@ -222,8 +222,8 @@ class Dependency(HoldableObject):
 
 class InternalDependency(Dependency):
     def __init__(self, version: str, incdirs: T.List[str], compile_args: T.List[str],
-                 link_args: T.List[str], libraries: T.List[T.Union['BuildTarget', 'BothLibraries']],
-                 whole_libraries: T.List[T.Union['BuildTarget', 'BothLibraries']], sources: T.List['FileOrString'],
+                 link_args: T.List[str], libraries: T.List['BuildTarget'],
+                 whole_libraries: T.List['BuildTarget'], sources: T.List['FileOrString'],
                  ext_deps: T.List[Dependency], variables: T.Dict[str, T.Any]):
         super().__init__(DependencyTypeName('internal'), {})
         self.version = version
@@ -236,11 +236,6 @@ class InternalDependency(Dependency):
         self.sources = sources
         self.ext_deps = ext_deps
         self.variables = variables
-
-        # Deal with BothLibraries
-        from ..build import BothLibraries
-        self.libraries = [x.get_preferred_library() if isinstance(x, BothLibraries) else x for x in self.libraries]
-        self.whole_libraries = [x.static if isinstance(x, BothLibraries) else x for x in self.whole_libraries]
 
     def __deepcopy__(self, memo: T.Dict[int, 'InternalDependency']) -> 'InternalDependency':
         result = self.__class__.__new__(self.__class__)

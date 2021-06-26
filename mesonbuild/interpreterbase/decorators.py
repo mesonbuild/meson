@@ -68,6 +68,10 @@ def noArgsFlattening(f: TV_func) -> TV_func:
     setattr(f, 'no-args-flattening', True)  # noqa: B010
     return f
 
+def noSecondLevelHolderResolving(f: TV_func) -> TV_func:
+    setattr(f, 'no-second-level-holder-flattening', True)  # noqa: B010
+    return f
+
 def unholder_return(f: TV_func) -> T.Callable[..., TYPE_var]:
     @wraps(f)
     def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:

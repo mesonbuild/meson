@@ -14,7 +14,7 @@
 
 from .. import mparser
 from .exceptions import InvalidCode
-from .helpers import flatten
+from .helpers import flatten, resolve_second_level_holders
 from ..mesonlib import HoldableObject
 
 import typing as T
@@ -57,6 +57,8 @@ class InterpreterObject:
             method = self.methods[method_name]
             if not getattr(method, 'no-args-flattening', False):
                 args = flatten(args)
+            if not getattr(method, 'no-second-level-holder-flattening', False):
+                args, kwargs = resolve_second_level_holders(args, kwargs)
             return method(args, kwargs)
         raise InvalidCode(f'Unknown method "{method_name}" in object {self} of type {type(self).__name__}.')
 

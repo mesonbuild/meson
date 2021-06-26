@@ -48,6 +48,7 @@ __all__ = [
     'python_command',
     'project_meson_versions',
     'HoldableObject',
+    'SecondLevelHolder',
     'File',
     'FileMode',
     'GitException',
@@ -272,6 +273,14 @@ an_unpicklable_object = threading.Lock()
 class HoldableObject(metaclass=abc.ABCMeta):
     ''' Dummy base class for all objects that can be
         held by an interpreter.baseobjects.ObjectHolder '''
+
+class SecondLevelHolder(HoldableObject, metaclass=abc.ABCMeta):
+    ''' A second level object holder. The primary purpose
+        of such objects is to hold multiple objects with one
+        default option. '''
+
+    @abc.abstractmethod
+    def get_default_object(self) -> HoldableObject: ...
 
 class FileMode:
     # The first triad is for owner permissions, the second for group permissions,

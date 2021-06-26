@@ -19,7 +19,7 @@ from ..interpreterbase import (
                                FeatureCheckBase, FeatureNewKwargs, FeatureNew, FeatureDeprecated,
                                typed_pos_args, typed_kwargs, KwargInfo, stringArgs, permittedKwargs,
                                noArgsFlattening, noPosargs, noKwargs, unholder_return, TYPE_var, TYPE_kwargs, TYPE_nvar, TYPE_nkwargs,
-                               flatten, InterpreterException, InvalidArguments, InvalidCode)
+                               flatten, resolve_second_level_holders, InterpreterException, InvalidArguments, InvalidCode)
 from ..dependencies import Dependency, ExternalLibrary, InternalDependency
 from ..programs import ExternalProgram
 from ..mesonlib import HoldableObject, MesonException, OptionKey, listify, Popen_safe
@@ -754,6 +754,8 @@ class ModuleObjectHolder(ObjectHolder[ModuleObject]):
             raise InvalidCode(f'Unknown method {method_name!r} in object.')
         if not getattr(method, 'no-args-flattening', False):
             args = flatten(args)
+        if not getattr(method, 'no-second-level-holder-flattening', False):
+            args, kwargs = resolve_second_level_holders(args, kwargs)
         state = ModuleState(self.interpreter)
         # Many modules do for example self.interpreter.find_program_impl(),
         # so we have to ensure they use the current interpreter and not the one
@@ -798,7 +800,7 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
     @property
     def _target_object(self) -> build.BuildTarget:
         if isinstance(self.held_object, build.BothLibraries):
-            return self.held_object.get_preferred_library()
+            return self.held_object.get_default_object()
         assert isinstance(self.held_object, build.BuildTarget)
         return self.held_object
 

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .. import mparser, mlog
+from .. import mesonlib, mparser, mlog
 from .exceptions import InvalidArguments, InterpreterException
 
 import collections.abc
@@ -37,6 +37,17 @@ def flatten(args: T.Union['TYPE_var', T.List['TYPE_var']]) -> T.List['TYPE_var']
         else:
             result.append(a)
     return result
+
+def resolve_second_level_holders(args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> T.Tuple[T.List['TYPE_var'], 'TYPE_kwargs']:
+    def resolver(arg: 'TYPE_var') -> 'TYPE_var':
+        if isinstance(arg, list):
+            return [resolver(x) for x in arg]
+        if isinstance(arg, dict):
+            return {k: resolver(v) for k, v in arg.items()}
+        if isinstance(arg, mesonlib.SecondLevelHolder):
+            return arg.get_default_object()
+        return arg
+    return [resolver(x) for x in args], {k: resolver(v) for k, v in kwargs.items()}
 
 def check_stringlist(a: T.Any, msg: str = 'Arguments must be strings.') -> None:
     if not isinstance(a, list):
