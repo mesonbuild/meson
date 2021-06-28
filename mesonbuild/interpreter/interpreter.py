@@ -26,7 +26,7 @@ from ..programs import ExternalProgram, NonExistingExternalProgram
 from ..dependencies import Dependency
 from ..depfile import DepFile
 from ..interpreterbase import ContainerTypeInfo, InterpreterBase, KwargInfo, typed_kwargs, typed_pos_args
-from ..interpreterbase import noPosargs, noKwargs, stringArgs, permittedKwargs, noArgsFlattening, noSecondLevelHolderResolving, unholder_return
+from ..interpreterbase import noPosargs, noKwargs, stringArgs, permittedKwargs, noArgsFlattening, noSecondLevelHolderResolving, permissive_unholder_return
 from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
 from ..interpreterbase import Disabler, disablerIfNotFound
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs, FeatureDeprecatedKwargs
@@ -2720,7 +2720,7 @@ This will become a hard error in the future.''', location=self.current_node)
 
     @noKwargs
     @noArgsFlattening
-    @unholder_return
+    @permissive_unholder_return
     def func_get_variable(self, node, args, kwargs):
         if len(args) < 1 or len(args) > 2:
             raise InvalidCode('Get_variable takes one or two arguments.')
