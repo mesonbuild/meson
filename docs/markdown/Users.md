@@ -11,7 +11,7 @@ for it. All the software on this list is tested for regressions before
 release, so it's highly recommended that projects add themselves
 here. Some additional projects are listed in the [`meson` GitHub
 topic](https://github.com/topics/meson).
- 
+
  - [2048.cpp](https://github.com/plibither8/2048.cpp), a fully featured terminal version of the game "2048" written in C++
  - [Aravis](https://github.com/AravisProject/aravis), a glib/gobject based library for video acquisition using Genicam cameras
  - [Akira](https://github.com/akiraux/Akira), a native Linux app for UI and UX design built in Vala and Gtk
@@ -121,6 +121,7 @@ format files
  - [Polari](https://gitlab.gnome.org/GNOME/polari), an IRC client
  - [qboot](https://github.com/bonzini/qboot), a minimal x86 firmware for booting Linux kernels
  - [radare2](https://github.com/radare/radare2), unix-like reverse engineering framework and commandline tools (not the default)
+ - [rmw](https://remove-to-waste.info), safe-remove utility for the command line
  - [Rizin](https://rizin.re), Free and Open Source Reverse Engineering Framework
  - [QEMU](https://qemu.org), a processor emulator and virtualizer
  - [RxDock](https://gitlab.com/rxdock/rxdock), a protein-ligand docking software designed for high throughput virtual screening (fork of rDock)
