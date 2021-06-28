@@ -238,6 +238,64 @@ module.
 
 It exposes the same methods as its parent class.
 
+## A note about Debian installation paths
+
+Debian and derivatives (Ubuntu, Linux Mint etc.) [change default installation
+and import paths][debian-dist-packages] in the system Python interpreter. The
+problem is, the way they do this is inconsistent with documented ways of
+discovering those paths inside Python. Specifically, the [`sysconfig`
+module][python-sysconfig] returns values that are not in
+[`sys.path`][python-sys-path]. This module is used internally by Meson. But it
+is generally expected that if you configure a&nbsp;build with `--prefix=/usr` or
+`--prefix=/usr/local` (the latter is the default), Python modules should be
+available without adjusting [`$PYTHONPATH`][python-pythonpath]. Therefore,
+a&nbsp;workaround is needed. There are two options that can be used in
+combination:
+
+### option to override
+
+An option in `meson_options.txt` might allow overriding the value obtained from
+[][`get_install_dir()`], and the files are installed using `install_data()`.
+This solution is very simple, but requires that all users on Debian and
+derivatives supply said option when running `meson setup`, so it's perfect when
+end users install the software from packages (and usually won't compile from
+sources).
+
+### a script to discover
+
+A variant of a following script might be used to get the path (`platlib` in this
+example):
+
+```python
+import distutils.command.install
+import distutils.sysconfig
+import distutils.util
+import pathlib
+import sys
+
+def get_platlib(prefix):
+    is_debian = 'deb_system' in distutils.command.install.INSTALL_SCHEMES
+
+    # this takes care of `/` at the end, though not `/usr/../usr/local`
+    is_usr_local = pathlib.PurePosixPath(prefix).as_posix() == '/usr/local'
+
+    if is_debian and is_usr_local:
+        return distutils.util.subst_vars(
+            distutils.command.install.INSTALL_SCHEMES['unix_local']['platlib'],
+            {
+                'platbase': '/usr',
+                'py_version_short': '.'.join(map(str, sys.version_info[:2])),
+            })
+
+    return distutils.sysconfig.get_python_lib(plat_specific=True, prefix=prefix)
+```
+
+This solution is worth considering if the audience mainly builds from source,
+because, while more complicated, should work automatically.
+
+Note that since Python 3.10 [`distutils` module][python-distutils] is deprecated
+by [PEP 632][pep-632] and this script will need revision.
+
 [find_program]: Reference-manual.md#find_program
 [shared_module]: Reference-manual.md#shared_module
 [external program]: Reference-manual.md#external-program-object
@@ -246,3 +304,9 @@ It exposes the same methods as its parent class.
 [configure_file]: Reference-manual.md#configure_file
 [dependency object]: Reference-manual.md#dependency-object
 [buildtarget object]: Reference-manual.md#build-target-object
+[debian-dist-packages]: https://wiki.debian.org/Python#Deviations_from_upstream
+[python-sysconfig]: https://docs.python.org/library/sysconfig
+[python-sys-path]: https://docs.python.org/library/sys#sys.path
+[python-pythonpath]: https://docs.python.org/using/cmdline.html#envvar-PYTHONPATH
+[python-distutils]: https://docs.python.org/distutils/apiref.html
+[pep-632]: https://www.python.org/dev/peps/pep-0632/
