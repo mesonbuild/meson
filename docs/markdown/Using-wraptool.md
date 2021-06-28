@@ -82,3 +82,17 @@ straightforward:
 Wraptool can do other things besides these. Documentation for these
 can be found in the command line help, which can be accessed by
 `meson wrap --help`.
+
+## Automatic dependency fallback
+
+Since *0.64.0* Meson can use WrapDB to automatically find missing dependencies.
+
+The user simply needs to download latest database, the following command stores
+it in `subprojects/wrapdb.json`:
+    $ meson wrap update-db
+
+Once the database is available locally, any dependency not found on the system
+but available in WrapDB will automatically be downloaded.
+
+Automatic fetch of WrapDB subprojects can be disabled by removing the file
+`subprojects/wrapdb.json`, or by using `--wrap-mode=nodownload`.

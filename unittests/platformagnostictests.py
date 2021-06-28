@@ -14,7 +14,10 @@
 
 import os
 import tempfile
+import subprocess
+import textwrap
 from unittest import skipIf
+from pathlib import Path
 
 from .baseplatformtests import BasePlatformTests
 from .helpers import is_ci
@@ -94,3 +97,19 @@ class PlatformAgnosticTests(BasePlatformTests):
         # https://github.com/mesonbuild/meson/issues/10225.
         self.setconf('-Dfoo=enabled')
         self.build('reconfigure')
+
+    def test_update_wrapdb(self):
+        # Write the project into a temporary directory because it will add files
+        # into subprojects/ and we don't want to pollute meson source tree.
+        with tempfile.TemporaryDirectory() as testdir:
+            with Path(testdir, 'meson.build').open('w', encoding='utf-8') as f:
+                f.write(textwrap.dedent(
+                    '''
+                    project('wrap update-db',
+                      default_options: ['wrap_mode=forcefallback'])
+
+                    zlib_dep = dependency('zlib')
+                    assert(zlib_dep.type_name() == 'internal')
+                    '''))
+            subprocess.check_call(self.wrap_command + ['update-db'], cwd=testdir)
+            self.init(testdir, workdir=testdir)
