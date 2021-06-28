@@ -21,6 +21,7 @@ import typing as T
 from glob import glob
 from urllib.parse import urlparse
 from .wrap import open_wrapdburl, WrapException
+from pathlib import Path
 
 from .. import mesonlib
 
@@ -69,9 +70,18 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     p.add_argument('project_path')
     p.set_defaults(wrap_func=promote)
 
-def get_releases(allow_insecure: bool) -> T.Dict[str, T.Any]:
+    p = subparsers.add_parser('update-db', help='Update list of projects available in WrapDB (Since 0.61.0)')
+    p.add_argument('--allow-insecure', default=False, action='store_true',
+                   help='Allow insecure server connections.')
+    p.set_defaults(wrap_func=update_db)
+
+def get_releases_data(allow_insecure: bool) -> bytes:
     url = open_wrapdburl('https://wrapdb.mesonbuild.com/v2/releases.json', allow_insecure, True)
-    return T.cast('T.Dict[str, T.Any]', json.loads(url.read().decode()))
+    return url.read()
+
+def get_releases(allow_insecure: bool) -> T.Dict[str, T.Any]:
+    data = get_releases_data(allow_insecure)
+    return T.cast('T.Dict[str, T.Any]', json.loads(data.decode()))
 
 def list_projects(options: 'argparse.Namespace') -> None:
     releases = get_releases(options.allow_insecure)
@@ -243,6 +253,12 @@ def status(options: 'argparse.Namespace') -> None:
             print('', name, f'up to date. Branch {current_branch}, revision {current_revision}.')
         else:
             print('', name, f'not up to date. Have {current_branch} {current_revision}, but {latest_branch} {latest_revision} is available.')
+
+def update_db(options: 'argparse.Namespace') -> None:
+    data = get_releases_data(options.allow_insecure)
+    Path('subprojects').mkdir(exist_ok=True)
+    with Path('subprojects/wrapdb.json').open('wb') as f:
+        f.write(data)
 
 def run(options: 'argparse.Namespace') -> int:
     options.wrap_func(options)
