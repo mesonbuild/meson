@@ -268,7 +268,7 @@ class InterpreterBase:
         return True
 
     def evaluate_in(self, val1: T.Any, val2: T.Any) -> bool:
-        if not isinstance(val1, (str, int, float, ObjectHolder)):
+        if not isinstance(val1, (str, int, float, mesonlib.HoldableObject)):
             raise InvalidArguments('lvalue of "in" operator must be a string, integer, float, or object')
         if not isinstance(val2, (list, dict)):
             raise InvalidArguments('rvalue of "in" operator must be an array or a dict')
@@ -281,6 +281,9 @@ class InterpreterBase:
         val2 = self.evaluate_statement(node.right)
         if isinstance(val2, Disabler):
             return val2
+        # Do not compare the ObjectHolders but the actual held objects
+        val1 = _unholder(val1)
+        val2 = _unholder(val2)
         if node.ctype == 'in':
             return self.evaluate_in(val1, val2)
         elif node.ctype == 'notin':

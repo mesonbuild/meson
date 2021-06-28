@@ -14,6 +14,10 @@ set_variable('var4', files('test2.txt')[0])
 assert(var3 == 'test2.txt')
 assert(not is_disabler(var4))
 
+# Test Equality
+assert(var1 == get_variable('var1'))
+assert(var2 == get_variable('var2'))
+
 # Test get_variable directly
 assert(get_variable('var1') == 'test1.txt')
 assert(not is_disabler(get_variable('var2')))
@@ -35,6 +39,8 @@ assert(var7 == 'test2.txt')
 assert(not is_disabler(var8))
 assert(get_variable('var9') == 'test2.txt')
 assert(not is_disabler(get_variable('var0')))
+assert(not is_disabler(get_variable('var0', var8)))
+assert(not is_disabler(get_variable('----', var8)))
 
 # test dict get
 dict = {'a': var2}
