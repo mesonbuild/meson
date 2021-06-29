@@ -32,7 +32,7 @@ class KeyvalModule(ExtensionModule):
     def _load_file(self, path_to_config):
         result = dict()
         try:
-            with open(path_to_config) as f:
+            with open(path_to_config, encoding='utf-8') as f:
                 for line in f:
                     if '#' in line:
                         comment_idx = line.index('#')

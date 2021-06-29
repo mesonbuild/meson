@@ -165,7 +165,7 @@ class CommandTests(unittest.TestCase):
         builddir = str(self.tmpdir / 'build4')
         (bindir / 'meson').rename(bindir / 'meson.real')
         wrapper = (bindir / 'meson')
-        wrapper.open('w').write('#!/bin/sh\n\nmeson.real "$@"')
+        wrapper.write_text('#!/bin/sh\n\nmeson.real "$@"', encoding='utf-8')
         wrapper.chmod(0o755)
         meson_setup = [str(wrapper), 'setup']
         meson_command = meson_setup + self.meson_args

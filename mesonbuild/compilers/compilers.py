@@ -765,14 +765,14 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             if isinstance(code, str):
                 srcname = os.path.join(tmpdirname,
                                     'testfile.' + self.default_suffix)
-                with open(srcname, 'w') as ofile:
+                with open(srcname, 'w', encoding='utf-8') as ofile:
                     ofile.write(code)
                 # ccache would result in a cache miss
                 no_ccache = True
                 contents = code
             elif isinstance(code, mesonlib.File):
                 srcname = code.fname
-                with open(code.fname) as f:
+                with open(code.fname, encoding='utf-8') as f:
                     contents = f.read()
 
             # Construct the compiler command-line

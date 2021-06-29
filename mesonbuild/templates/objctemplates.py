@@ -132,11 +132,12 @@ class ObjCProject(SampleImpl):
     def create_executable(self) -> None:
         lowercase_token = re.sub(r'[^a-z0-9]', '_', self.name.lower())
         source_name = lowercase_token + '.m'
-        open(source_name, 'w').write(hello_objc_template.format(project_name=self.name))
-        open('meson.build', 'w').write(hello_objc_meson_template.format(project_name=self.name,
-                                                                        exe_name=lowercase_token,
-                                                                        source_name=source_name,
-                                                                        version=self.version))
+        open(source_name, 'w', encoding='utf-8').write(hello_objc_template.format(project_name=self.name))
+        open('meson.build', 'w', encoding='utf-8').write(
+            hello_objc_meson_template.format(project_name=self.name,
+                                             exe_name=lowercase_token,
+                                             source_name=source_name,
+                                             version=self.version))
 
     def create_library(self) -> None:
         lowercase_token = re.sub(r'[^a-z0-9]', '_', self.name.lower())
@@ -159,7 +160,7 @@ class ObjCProject(SampleImpl):
                   'test_name': lowercase_token,
                   'version': self.version,
                   }
-        open(lib_h_name, 'w').write(lib_h_template.format(**kwargs))
-        open(lib_objc_name, 'w').write(lib_objc_template.format(**kwargs))
-        open(test_objc_name, 'w').write(lib_objc_test_template.format(**kwargs))
-        open('meson.build', 'w').write(lib_objc_meson_template.format(**kwargs))
+        open(lib_h_name, 'w', encoding='utf-8').write(lib_h_template.format(**kwargs))
+        open(lib_objc_name, 'w', encoding='utf-8').write(lib_objc_template.format(**kwargs))
+        open(test_objc_name, 'w', encoding='utf-8').write(lib_objc_test_template.format(**kwargs))
+        open('meson.build', 'w', encoding='utf-8').write(lib_objc_meson_template.format(**kwargs))

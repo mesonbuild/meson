@@ -468,7 +468,7 @@ def fix_darwin(fname: str, new_rpath: str, final_path: str, install_name_mapping
 
 def fix_jar(fname: str) -> None:
     subprocess.check_call(['jar', 'xfv', fname, 'META-INF/MANIFEST.MF'])
-    with open('META-INF/MANIFEST.MF', 'r+') as f:
+    with open('META-INF/MANIFEST.MF', 'r+', encoding='utf-8') as f:
         lines = f.readlines()
         f.seek(0)
         for line in lines:

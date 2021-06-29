@@ -717,7 +717,7 @@ class BoostDependency(SystemDependency):
         # also work, however, this is slower (since it the compiler has to be
         # invoked) and overkill since the layout of the header is always the same.
         assert hfile.exists()
-        raw = hfile.read_text()
+        raw = hfile.read_text(encoding='utf-8')
         m = re.search(r'#define\s+BOOST_VERSION\s+([0-9]+)', raw)
         if not m:
             mlog.debug(f'Failed to extract version information from {hfile}')

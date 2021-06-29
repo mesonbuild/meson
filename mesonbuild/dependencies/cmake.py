@@ -620,7 +620,7 @@ class CMakeDependency(ExternalDependency):
         """).format(' '.join(cmake_language)) + cmake_txt
 
         cm_file = build_dir / 'CMakeLists.txt'
-        cm_file.write_text(cmake_txt)
+        cm_file.write_text(cmake_txt, encoding='utf-8')
         mlog.cmd_ci_include(cm_file.absolute().as_posix())
 
         return build_dir

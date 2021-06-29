@@ -28,9 +28,9 @@ from mesonbuild import mesonlib
 def generate_coveragerc() -> Path:
     i_file = (root_path / 'data' / '.coveragerc.in')
     o_file = (root_path / '.coveragerc')
-    raw = i_file.read_text()
+    raw = i_file.read_text(encoding='utf-8')
     raw = raw.replace('@ROOT@', root_path.as_posix())
-    o_file.write_text(raw)
+    o_file.write_text(raw, encoding='utf-8')
     return o_file
 
 def main() -> int:

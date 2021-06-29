@@ -95,7 +95,7 @@ class InterpreterBase:
         mesonfile = os.path.join(self.source_root, self.subdir, environment.build_filename)
         if not os.path.isfile(mesonfile):
             raise InvalidArguments('Missing Meson file in %s' % mesonfile)
-        with open(mesonfile, encoding='utf8') as mf:
+        with open(mesonfile, encoding='utf-8') as mf:
             code = mf.read()
         if code.isspace():
             raise InvalidCode('Builder file is empty.')

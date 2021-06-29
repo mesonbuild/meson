@@ -70,7 +70,7 @@ class DlangModule(ExtensionModule):
 
         config_path = os.path.join(args[1], 'dub.json')
         if os.path.exists(config_path):
-            with open(config_path, encoding='utf8') as ofile:
+            with open(config_path, encoding='utf-8') as ofile:
                 try:
                     config = json.load(ofile)
                 except ValueError:
@@ -108,7 +108,7 @@ class DlangModule(ExtensionModule):
             else:
                 config[key] = value
 
-        with open(config_path, 'w', encoding='utf8') as ofile:
+        with open(config_path, 'w', encoding='utf-8') as ofile:
             ofile.write(json.dumps(config, indent=4, ensure_ascii=False))
 
     def _call_dubbin(self, args, env=None):

@@ -66,8 +66,8 @@ class CMakeToolchain:
     def write(self) -> Path:
         if not self.toolchain_file.parent.exists():
             self.toolchain_file.parent.mkdir(parents=True)
-        self.toolchain_file.write_text(self.generate())
-        self.cmcache_file.write_text(self.generate_cache())
+        self.toolchain_file.write_text(self.generate(), encoding='utf-8')
+        self.cmcache_file.write_text(self.generate_cache(), encoding='utf-8')
         mlog.cmd_ci_include(self.toolchain_file.as_posix())
         return self.toolchain_file
 
@@ -215,11 +215,11 @@ class CMakeToolchain:
         build_dir = Path(self.env.scratch_dir) / '__CMake_compiler_info__'
         build_dir.mkdir(parents=True, exist_ok=True)
         cmake_file = build_dir / 'CMakeLists.txt'
-        cmake_file.write_text(cmake_content)
+        cmake_file.write_text(cmake_content, encoding='utf-8')
 
         # Generate the temporary toolchain file
         temp_toolchain_file = build_dir / 'CMakeMesonTempToolchainFile.cmake'
-        temp_toolchain_file.write_text(CMakeToolchain._print_vars(self.variables))
+        temp_toolchain_file.write_text(CMakeToolchain._print_vars(self.variables), encoding='utf-8')
 
         # Configure
         trace = CMakeTraceParser(self.cmakebin.version(), build_dir)

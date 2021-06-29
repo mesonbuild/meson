@@ -114,13 +114,13 @@ def generate_hotdoc_includes(root_dir: Path, output_dir: Path) -> None:
 
     for cmd, parsed in cmd_data.items():
         for typ in parsed.keys():
-            with open(output_dir / (cmd+'_'+typ+'.inc'), 'w') as f:
+            with open(output_dir / (cmd+'_'+typ+'.inc'), 'w', encoding='utf-8') as f:
                 f.write(parsed[typ])
 
 def generate_wrapdb_table(output_dir: Path) -> None:
     url = urlopen('https://wrapdb.mesonbuild.com/v2/releases.json')
     releases = json.loads(url.read().decode())
-    with open(output_dir / 'wrapdb-table.md', 'w') as f:
+    with open(output_dir / 'wrapdb-table.md', 'w', encoding='utf-8') as f:
         f.write('| Project | Versions | Provided dependencies | Provided programs |\n')
         f.write('| ------- | -------- | --------------------- | ----------------- |\n')
         for name, info in releases.items():
@@ -147,7 +147,7 @@ def regenerate_docs(output_dir: PathLike,
     generate_wrapdb_table(output_dir)
 
     if dummy_output_file:
-        with open(output_dir/dummy_output_file, 'w') as f:
+        with open(output_dir/dummy_output_file, 'w', encoding='utf-8') as f:
             f.write('dummy file for custom_target output')
 
 if __name__ == '__main__':

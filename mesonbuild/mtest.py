@@ -467,7 +467,7 @@ class TestLogger:
 class TestFileLogger(TestLogger):
     def __init__(self, filename: str, errors: str = 'replace') -> None:
         self.filename = filename
-        self.file = open(filename, 'w', encoding='utf8', errors=errors)
+        self.file = open(filename, 'w', encoding='utf-8', errors=errors)
 
     def close(self) -> None:
         if self.file:

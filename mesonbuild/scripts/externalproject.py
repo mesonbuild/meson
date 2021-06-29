@@ -34,7 +34,7 @@ class ExternalProject:
         self.make = options.make
 
     def write_depfile(self) -> None:
-        with open(self.depfile, 'w') as f:
+        with open(self.depfile, 'w', encoding='utf-8') as f:
             f.write(f'{self.stampfile}: \\\n')
             for dirpath, dirnames, filenames in os.walk(self.src_dir):
                 dirnames[:] = [d for d in dirnames if not d.startswith('.')]
@@ -45,7 +45,7 @@ class ExternalProject:
                     f.write('  {} \\\n'.format(path.as_posix().replace(' ', '\\ ')))
 
     def write_stampfile(self) -> None:
-        with open(self.stampfile, 'w') as f:
+        with open(self.stampfile, 'w', encoding='utf-8') as f:
             pass
 
     def gnu_make(self) -> bool:
@@ -78,7 +78,7 @@ class ExternalProject:
         log_filename = Path(self.log_dir, f'{self.name}-{step}.log')
         output = None
         if not self.verbose:
-            output = open(log_filename, 'w')
+            output = open(log_filename, 'w', encoding='utf-8')
             output.write(m + '\n')
             output.flush()
         else:

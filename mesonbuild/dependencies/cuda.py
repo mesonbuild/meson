@@ -184,7 +184,7 @@ class CudaDependency(SystemDependency):
     def _read_cuda_runtime_api_version(self, path_str: str) -> T.Optional[str]:
         path = Path(path_str)
         for i in path.rglob('cuda_runtime_api.h'):
-            raw = i.read_text()
+            raw = i.read_text(encoding='utf-8')
             m = self.cudart_version_regex.search(raw)
             if not m:
                 continue
@@ -202,7 +202,7 @@ class CudaDependency(SystemDependency):
         # Read 'version.txt' at the root of the CUDA Toolkit directory to determine the tookit version
         version_file_path = os.path.join(path, 'version.txt')
         try:
-            with open(version_file_path) as version_file:
+            with open(version_file_path, encoding='utf-8') as version_file:
                 version_str = version_file.readline() # e.g. 'CUDA Version 10.1.168'
                 m = self.toolkit_version_regex.match(version_str)
                 if m:

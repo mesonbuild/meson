@@ -179,7 +179,7 @@ class AstInterpreter(InterpreterBase):
         if not os.path.isfile(absname):
             sys.stderr.write(f'Unable to find build file {buildfilename} --> Skipping\n')
             return
-        with open(absname, encoding='utf8') as f:
+        with open(absname, encoding='utf-8') as f:
             code = f.read()
         assert(isinstance(code, str))
         try:
