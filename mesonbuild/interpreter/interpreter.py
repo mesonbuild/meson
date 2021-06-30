@@ -601,9 +601,24 @@ class Interpreter(InterpreterBase, HoldableObject):
                 dep = df.lookup(kwargs, force_fallback=True)
                 self.build.stdlibs[for_machine][l] = dep
 
-    def import_module(self, modname):
+    @typed_pos_args('import', str)
+    @noKwargs
+    def func_import(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs) -> ModuleObject:
+        modname = args[0]
+        if modname.startswith('unstable-'):
+            plainname = modname.split('-', 1)[1]
+            try:
+                # check if stable module exists
+                self._import_module(plainname)
+                mlog.warning(f'Module {modname} is now stable, please use the {plainname} module instead.')
+                modname = plainname
+            except InvalidArguments:
+                mlog.warning('Module %s has no backwards or forwards compatibility and might not exist in future releases.' % modname, location=node)
+                modname = 'unstable_' + plainname
+
         if modname in self.modules:
-            return
+            return self.modules[modname]
+
         try:
             module = importlib.import_module('mesonbuild.modules.' + modname)
         except ImportError:
@@ -612,24 +627,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         assert isinstance(ext_module, ModuleObject)
         self.modules[modname] = ext_module
 
-    @stringArgs
-    @noKwargs
-    def func_import(self, node, args, kwargs):
-        if len(args) != 1:
-            raise InvalidCode('Import takes one argument.')
-        modname = args[0]
-        if modname.startswith('unstable-'):
-            plainname = modname.split('-', 1)[1]
-            try:
-                # check if stable module exists
-                self.import_module(plainname)
-                mlog.warning(f'Module {modname} is now stable, please use the {plainname} module instead.')
-                modname = plainname
-            except InvalidArguments:
-                mlog.warning('Module %s has no backwards or forwards compatibility and might not exist in future releases.' % modname, location=node)
-                modname = 'unstable_' + plainname
-        self.import_module(modname)
-        return self.modules[modname]
+        return ext_module
 
     @stringArgs
     @noKwargs
