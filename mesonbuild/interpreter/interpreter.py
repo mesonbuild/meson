@@ -32,7 +32,7 @@ from ..interpreterbase import Disabler, disablerIfNotFound
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs, FeatureDeprecatedKwargs
 from ..interpreterbase import ObjectHolder, RangeHolder
 from ..interpreterbase import TYPE_nkwargs, TYPE_nvar, TYPE_var
-from ..modules import ModuleObject, MutableModuleObject
+from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule
 from ..cmake import CMakeInterpreter
 from ..backend.backends import Backend, ExecutableSerialisation
 
@@ -304,7 +304,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 subproject: str = '',
                 subdir: str = '',
                 subproject_dir: str = 'subprojects',
-                modules: T.Optional[T.Dict[str, ModuleObject]] = None,
+                modules: T.Optional[T.Dict[str, T.Union[ExtensionModule, NewExtensionModule]]] = None,
                 default_project_options: T.Optional[T.Dict[str, str]] = None,
                 mock: bool = False,
                 ast: T.Optional[mparser.CodeBlockNode] = None,

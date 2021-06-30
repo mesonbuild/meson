@@ -16,7 +16,7 @@ import os, subprocess, shlex
 from pathlib import Path
 import typing as T
 
-from . import ExtensionModule, ModuleReturnValue, ModuleState, ModuleObject
+from . import ExtensionModule, ModuleReturnValue, ModuleState, NewExtensionModule
 from .. import mlog, build
 from ..mesonlib import (MesonException, Popen_safe, MachineChoice,
                        get_variable_regex, do_replacement, extract_as_list)
@@ -26,7 +26,7 @@ from ..compilers.compilers import CFLAGS_MAPPING, CEXE_MAPPING
 from ..dependencies import InternalDependency, PkgConfigDependency
 from ..mesonlib import OptionKey
 
-class ExternalProject(ModuleObject):
+class ExternalProject(NewExtensionModule):
     def __init__(self,
                  state: ModuleState,
                  configure_command: str,
