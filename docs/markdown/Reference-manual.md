@@ -973,18 +973,20 @@ a non-existing variable will cause a fatal error.
 
 ### import()
 
-``` meson
-    module_object import(module_name)
+```
+  module_object import(string, required : bool | feature, disabler : bool)
 ```
 
-Imports the given extension module. Returns an opaque object that can
-be used to call the methods of the module. Here's an example for a
-hypothetical `testmod` module.
+Imports the given extension module. Returns an object that can be used to call
+the methods of the module. Here's an example for a hypothetical `testmod`
+module.
 
 ```meson
     tmod = import('testmod')
     tmod.do_something()
 ```
+
+*Since 0.59.0* the required and disabler keyword arguments
 
 ### include_directories()
 
@@ -2911,3 +2913,11 @@ sample piece of code with [`compiler.run()`](#compiler-object) or
 - `returncode()`: the return code of executing the compiled binary
 - `stderr()`: the standard error produced when the command was run
 - `stdout()`: the standard out produced when the command was run
+
+### `module` object
+
+Modules provide their own specific implementation methods, but all modules
+proivide the following methods:
+
+- `bool found()`: returns True if the module was successfully imported,
+  otherwise false. *Since 0.59.0*

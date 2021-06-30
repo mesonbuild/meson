@@ -132,3 +132,8 @@ class FuncInstallMan(TypedDict):
     install_dir: T.Optional[str]
     install_mode: FileMode
     locale: T.Optional[str]
+
+
+class FuncImportModule(ExtractRequired):
+
+    disabler: bool
