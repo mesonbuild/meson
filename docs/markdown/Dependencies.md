@@ -154,6 +154,31 @@ The dependency method order for `auto` is:
   3. `extraframework` (OSX only)
   4. `system`
 
+## System
+
+Some dependencies provide no valid methods for discovery, or do so only in
+some cases. Some examples of this are Zlib, which provides both pkg-config
+and cmake, except when it is part of the base OS image (such as in FreeBSD
+and macOS); OpenGL which has pkg-config on Unices from glvnd or mesa, but has
+no pkg-config on macOS and Windows.
+
+In these cases meson provides convenience wrappers in the form of `system`
+dependencies. Internally these dependencies do exactly what a user would do
+in the build system DSL or with a script, likely calling
+`compiler.find_library()`, setting `link_with` and `include_directories`. By
+putting these in meson upstream the barrier of using them is lowered, as
+projects using meson don't have to re-implement the logic.
+
+## Builtin
+
+Some dependencies provide no valid methods for discovery on some systems,
+because they are provided internally by the language. One example of this is
+intl, which is built into GNU or musl libc but otherwise comes as a `system`
+dependency.
+
+In these cases meson provides convenience wrappers for the `system` dependency,
+but first checks if the functionality is usable by default.
+
 ## CMake
 
 Meson can use the CMake `find_package()` function to detect
@@ -216,6 +241,26 @@ dub build urld --compiler=dmd
 DC="dmd" meson builddir
 ```
 
+## Config tool
+
+[CUPS](#cups), [LLVM](#llvm), [pcap](#pcap), [WxWidgets](#wxwidgets),
+[libwmf](#libwmf), [GCrypt](#libgcrypt), [GPGME](#gpgme), and GnuStep either do not provide pkg-config
+modules or additionally can be detected via a config tool
+(cups-config, llvm-config, libgcrypt-config, etc). Meson has native support for these
+tools, and they can be found like other dependencies:
+
+```meson
+pcap_dep = dependency('pcap', version : '>=1.0')
+cups_dep = dependency('cups', version : '>=1.4')
+llvm_dep = dependency('llvm', version : '>=4.0')
+libgcrypt_dep = dependency('libgcrypt', version: '>= 1.8')
+gpgme_dep = dependency('gpgme', version: '>= 1.0')
+```
+
+*Since 0.55.0* Meson won't search $PATH any more for a config tool
+binary when cross compiling if the config tool did not have an entry
+in the cross file.
+
 # Dependencies with custom lookup functionality
 
 Some dependencies have specific detection logic.
@@ -237,26 +282,6 @@ cups_dep = dependency('cups', method : 'pkg-config')
 wmf_dep = dependency('libwmf', method : 'config-tool')
 ```
 
-## Dependencies using config tools
-
-[CUPS](#cups), [LLVM](#llvm), [pcap](#pcap), [WxWidgets](#wxwidgets),
-[libwmf](#libwmf), [GCrypt](#libgcrypt), [GPGME](#gpgme), and GnuStep either do not provide pkg-config
-modules or additionally can be detected via a config tool
-(cups-config, llvm-config, libgcrypt-config, etc). Meson has native support for these
-tools, and they can be found like other dependencies:
-
-```meson
-pcap_dep = dependency('pcap', version : '>=1.0')
-cups_dep = dependency('cups', version : '>=1.4')
-llvm_dep = dependency('llvm', version : '>=4.0')
-libgcrypt_dep = dependency('libgcrypt', version: '>= 1.8')
-gpgme_dep = dependency('gpgme', version: '>= 1.0')
-```
-
-*Since 0.55.0* Meson won't search $PATH any more for a config tool
-binary when cross compiling if the config tool did not have an entry
-in the cross file.
-
 ## AppleFrameworks
 
 Use the `modules` keyword to list frameworks required, e.g.
@@ -266,31 +291,6 @@ dep = dependency('appleframeworks', modules : 'foundation')
 ```
 
 These dependencies can never be found for non-OSX hosts.
-
-## System
-
-Some dependencies provide no valid methods for discovery, or do so only in
-some cases. Some examples of this are Zlib, which provides both pkg-config
-and cmake, except when it is part of the base OS image (such as in FreeBSD
-and macOS); OpenGL which has pkg-config on Unices from glvnd or mesa, but has
-no pkg-config on macOS and Windows.
-
-In these cases meson provides convenience wrappers in the form of `system`
-dependencies. Internally these dependencies do exactly what a user would do
-in the build system DSL or with a script, likely calling
-`compiler.find_library()`, setting `link_with` and `include_directories`. By
-putting these in meson upstream the barrier of using them is lowered, as
-projects using meson don't have to re-implement the logic.
-
-## Builtin
-
-Some dependencies provide no valid methods for discovery on some systems,
-because they are provided internally by the language. One example of this is
-intl, which is built into GNU or musl libc but otherwise comes as a `system`
-dependency.
-
-In these cases meson provides convenience wrappers for the `system` dependency,
-but first checks if the functionality is usable by default.
 
 ## Blocks
 
