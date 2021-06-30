@@ -16,10 +16,11 @@
 # are UI-related.
 
 import os
+import typing as T
 
 from .. import build
 from ..mesonlib import relpath, HoldableObject
-import typing as T
+from ..interpreterbase.decorators import noKwargs, noPosargs
 
 if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
@@ -91,14 +92,16 @@ class ModuleState:
                      wanted: T.Optional[str] = None) -> 'ExternalProgram':
         return self._interpreter.find_program_impl(prog, required=required, version_func=version_func, wanted=wanted)
 
+
 class ModuleObject(HoldableObject):
     """Base class for all objects returned by modules
     """
     def __init__(self) -> None:
         self.methods: T.Dict[
             str,
-            T.Callable[[ModuleState, T.List[TYPE_var], TYPE_kwargs], T.Union[ModuleReturnValue, TYPE_var]]
+            T.Callable[[ModuleState, T.List['TYPE_var'], 'TYPE_kwargs'], T.Union[ModuleReturnValue, 'TYPE_var']]
         ] = {}
+
 
 class MutableModuleObject(ModuleObject):
     pass
@@ -110,6 +113,53 @@ class ExtensionModule(ModuleObject):
     def __init__(self, interpreter: 'Interpreter') -> None:
         super().__init__()
         self.interpreter = interpreter
+        self.methods.update({
+            'found': self.found_method,
+        })
+
+    @noPosargs
+    @noKwargs
+    def found_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> bool:
+        return True
+
+
+class NewExtensionModule(ModuleObject):
+
+    """Class for modern modules
+
+    provides the found method.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.methods.update({
+            'found': self.found_method,
+        })
+
+    @noPosargs
+    @noKwargs
+    def found_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> bool:
+        return True
+
+
+class NotFoundExtensionModule(ModuleObject):
+
+    """Class for modern modules
+
+    provides the found method.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.methods.update({
+            'found': self.found_method,
+        })
+
+    @noPosargs
+    @noKwargs
+    def found_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> bool:
+        return False
+
 
 def is_module_library(fname):
     '''
