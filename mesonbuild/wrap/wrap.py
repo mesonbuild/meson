@@ -27,11 +27,12 @@ import sys
 import configparser
 import typing as T
 import textwrap
+import ast
 
 from pathlib import Path
 from . import WrapMode
 from .. import coredata
-from ..mesonlib import quiet_git, GIT, ProgressBar, MesonException
+from ..mesonlib import quiet_git, GIT, ProgressBar, MesonException, Popen_safe
 from  .. import mesonlib
 
 if T.TYPE_CHECKING:
@@ -50,6 +51,8 @@ SSL_WARNING_PRINTED = False
 WHITELIST_SUBDOMAIN = 'wrapdb.mesonbuild.com'
 
 ALL_TYPES = ['file', 'git', 'hg', 'svn']
+
+PATCH = shutil.which('patch')
 
 def whitelist_wrapdb(urlstr: str) -> urllib.parse.ParseResult:
     """ raises WrapException if not whitelisted subdomain """
@@ -96,6 +99,7 @@ class PackageDefinition:
         self.values = {} # type: T.Dict[str, str]
         self.provided_deps = {} # type: T.Dict[str, T.Optional[str]]
         self.provided_programs = [] # type: T.List[str]
+        self.patches: T.List[str] = []
         self.basename = os.path.basename(fname)
         self.has_wrap = self.basename.endswith('.wrap')
         self.name = self.basename[:-5] if self.has_wrap else self.basename
@@ -139,6 +143,7 @@ class PackageDefinition:
             self.parse_wrap()
             return
         self.parse_provide_section(config)
+        self.parse_patch_files_section(config)
 
     def parse_wrap_section(self, config: configparser.ConfigParser) -> None:
         if len(config.sections()) < 1:
@@ -170,6 +175,12 @@ class PackageDefinition:
                          'it can be added in the "dependency_names" special key.')
                     raise WrapException(m.format(k, self.basename))
                 self.provided_deps[k] = v
+
+    def parse_patch_files_section(self, config: configparser.ConfigParser) -> None:
+        if config.has_section('patch-files'):
+            values = config['patch-files']
+            self.patches = ast.literal_eval(values.get('patches', '[]'))
+            self.strip = int(values.get('strip', '1'))
 
     def get(self, key: str) -> str:
         try:
@@ -582,6 +593,30 @@ class Resolver:
             if not os.path.isdir(src_dir):
                 raise WrapException(f'patch directory does not exists: {patch_dir}')
             self.copy_tree(src_dir, self.dirname)
+        for i in self.wrap.patches:
+            from ..interpreterbase import FeatureNew
+            FeatureNew('patch-files section', '0.59.0').use(self.current_subproject)
+            mlog.log(f'Applying patch {i}')
+            fname = os.path.join(self.wrap.filesdir, i)
+            if GIT:
+                if self.wrap.type == 'git':
+                    # Assume patches are made with `git format-patch`
+                    cmd = [GIT, 'am', fname]
+                else:
+                    # `git apply` can be used outside of a git repository, but
+                    # when used inside a git repository paths are assumed to be
+                    # relative to root git dir instead of current working dir.
+                    # Override that behaviour by using --work-tree.
+                    cmd = [GIT, '--work-tree', self.dirname, 'apply', fname]
+            elif PATCH:
+                cmd = [PATCH, '-f', '-i', fname]
+            else:
+                raise WrapException('Missing "git" or "patch" commands to apply patch files')
+            cmd += ['-p' + str(self.wrap.strip), '--ignore-whitespace']
+            p, o, e = Popen_safe(cmd, cwd=self.dirname, stderr=subprocess.STDOUT)
+            if p.returncode != 0:
+                mlog.log(o.strip())
+                raise WrapException('Failed to apply patch')
 
     def copy_tree(self, root_src_dir: str, root_dst_dir: str) -> None:
         """

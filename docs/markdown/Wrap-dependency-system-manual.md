@@ -247,6 +247,34 @@ With such wrap file, `find_program('myprog')` will automatically
 fallback to use the subproject, assuming it uses
 `meson.override_find_program('myprog')`.
 
+## Patch files
+
+*Since: 0.59.0*
+
+A list of local patch files can be provided in the `[patch-files]` section. They
+will be applied after the project has been extracted or cloned, and after the
+`patch_filename` has been applied. `git` or `patch` command-line tool must be
+available.
+
+The `[patch-files]` section is optional and might contain the following keys:
+- `strip`: Number of leading components from file names to strip. Defaults to 1
+  if omitted.
+- `patches`: A list of patch filenames relative to `subprojects/packagefiles`
+  directory. It must be in the python string list format (e.g. `['foo', 'bar']`).
+
+```ini
+[wrap-file]
+directory = libfoobar-1.0
+
+source_url = https://example.com/foobar-1.0.tar.gz
+source_filename = foobar-1.0.tar.gz
+source_hash = 5ebeea0dfb75d090ea0e7ff84799b2a7a1550db3fe61eb5f6f61c2e971e57663
+
+[patch-files]
+strip = 1
+patches = ['0001.patch', '0002.patch']
+```
+
 ## Using wrapped projects
 
 Wraps provide a convenient way of obtaining a project into your
