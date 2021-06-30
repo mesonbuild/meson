@@ -355,6 +355,41 @@ additional toolkit libraries that need to be explicitly linked to.
 
 `method` may be `auto`, `config-tool`, `pkg-config`, `cmake` or `extraframework`.
 
+## Curses
+
+*(Since 0.54.0)*
+
+Curses (and ncurses) are a cross platform pain in the butt. Meson
+wraps up these dependencies in the `curses` dependency. This covers
+both `ncurses` (preferred) and other curses implementations.
+
+`method` may be `auto`, `pkg-config`, `config-tool`, or `system`.
+
+*New in 0.56.0* The `config-tool` and `system` methods.
+
+To define some of the the preprocessor symbols mentioned in the
+[curses autoconf documentation](http://git.savannah.gnu.org/gitweb/?p=autoconf-archive.git;a=blob_plain;f=m4/ax_with_curses.m4):
+
+```meson
+conf = configuration_data()
+check_headers = [
+  ['ncursesw/menu.h', 'HAVE_NCURSESW_MENU_H'],
+  ['ncurses/menu.h', 'HAVE_NCURSES_MENU_H'],
+  ['menu.h', 'HAVE_MENU_H'],
+  ['ncursesw/curses.h', 'HAVE_NCURSESW_CURSES_H'],
+  ['ncursesw.h', 'HAVE_NCURSESW_H'],
+  ['ncurses/curses.h', 'HAVE_NCURSES_CURSES_H'],
+  ['ncurses.h', 'HAVE_NCURSES_H'],
+  ['curses.h', 'HAVE_CURSES_H'],
+]
+
+foreach h : check_headers
+  if compiler.has_header(h.get(0))
+    conf.set(h.get(1), 1)
+  endif
+endforeach
+```
+
 ## Fortran Coarrays
 
 *(added 0.50.0)*
@@ -364,6 +399,12 @@ additional toolkit libraries that need to be explicitly linked to.
 
 GCC will use OpenCoarrays if present to implement coarrays, while Intel and NAG
 use internal coarray support.
+
+## GPGME
+
+*(added 0.51.0)*
+
+`method` may be `auto`, `config-tool` or `pkg-config`.
 
 ## GL
 
@@ -418,6 +459,12 @@ is not built into libc, tries to find an external library providing them
 instead.
 
 `method` may be `auto`, `builtin` or `system`.
+
+## libgcrypt
+
+*(added 0.49.0)*
+
+`method` may be `auto`, `config-tool` or `pkg-config`.
 
 ## libwmf
 
@@ -507,7 +554,6 @@ language-specific, you must specify the requested language using the
 
 Meson uses pkg-config to find NetCDF.
 
-
 ## OpenMP
 
 *(added 0.46.0)*
@@ -520,18 +566,6 @@ The `language` keyword may used.
 ## pcap
 
 *(added 0.42.0)*
-
-`method` may be `auto`, `config-tool` or `pkg-config`.
-
-## libgcrypt
-
-*(added 0.49.0)*
-
-`method` may be `auto`, `config-tool` or `pkg-config`.
-
-## GPGME
-
-*(added 0.51.0)*
 
 `method` may be `auto`, `config-tool` or `pkg-config`.
 
@@ -603,6 +637,19 @@ or as an OSX framework.
 `method` may be `auto`, `config-tool`, `extraframework` or
 `pkg-config`.
 
+## Shaderc
+
+*(added 0.51.0)*
+
+Shaderc currently does not ship with any means of detection.
+Nevertheless, Meson can try to detect it using `pkg-config`, but will
+default to looking for the appropriate library manually. If the
+`static` keyword argument is `true`, `shaderc_combined` is preferred.
+Otherwise, `shaderc_shared` is preferred. Note that it is not possible
+to obtain the shaderc version using this method.
+
+`method` may be `auto`, `pkg-config` or `system`.
+
 ## Threads
 
 This dependency selects the appropriate compiler flags and/or
@@ -649,19 +696,6 @@ $ wx-config --cxxflags std stc
 $ wx-config --libs std stc
 ```
 
-## Shaderc
-
-*(added 0.51.0)*
-
-Shaderc currently does not ship with any means of detection.
-Nevertheless, Meson can try to detect it using `pkg-config`, but will
-default to looking for the appropriate library manually. If the
-`static` keyword argument is `true`, `shaderc_combined` is preferred.
-Otherwise, `shaderc_shared` is preferred. Note that it is not possible
-to obtain the shaderc version using this method.
-
-`method` may be `auto`, `pkg-config` or `system`.
-
 ## Zlib
 
 Zlib ships with pkg-config and cmake support, but on some operating
@@ -673,41 +707,6 @@ version.
 `method` may be `auto`, `pkg-config`, `cmake`, or `system`.
 
 *New in 0.54.0* the `system` method.
-
-## Curses
-
-*(Since 0.54.0)*
-
-Curses (and ncurses) are a cross platform pain in the butt. Meson
-wraps up these dependencies in the `curses` dependency. This covers
-both `ncurses` (preferred) and other curses implementations.
-
-`method` may be `auto`, `pkg-config`, `config-tool`, or `system`.
-
-*New in 0.56.0* The `config-tool` and `system` methods.
-
-To define some of the the preprocessor symbols mentioned in the
-[curses autoconf documentation](http://git.savannah.gnu.org/gitweb/?p=autoconf-archive.git;a=blob_plain;f=m4/ax_with_curses.m4):
-
-```meson
-conf = configuration_data()
-check_headers = [
-  ['ncursesw/menu.h', 'HAVE_NCURSESW_MENU_H'],
-  ['ncurses/menu.h', 'HAVE_NCURSES_MENU_H'],
-  ['menu.h', 'HAVE_MENU_H'],
-  ['ncursesw/curses.h', 'HAVE_NCURSESW_CURSES_H'],
-  ['ncursesw.h', 'HAVE_NCURSESW_H'],
-  ['ncurses/curses.h', 'HAVE_NCURSES_CURSES_H'],
-  ['ncurses.h', 'HAVE_NCURSES_H'],
-  ['curses.h', 'HAVE_CURSES_H'],
-]
-
-foreach h : check_headers
-  if compiler.has_header(h.get(0))
-    conf.set(h.get(1), 1)
-  endif
-endforeach
-```
 
 <hr>
 <a name="footnote1">1</a>: They may appear to be case-insensitive, if the
