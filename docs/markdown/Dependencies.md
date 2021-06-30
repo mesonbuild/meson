@@ -136,23 +136,24 @@ Since they can be used interchangeably, the rest of the build
 definitions do not need to care which one it is. Meson will take care
 of all the work behind the scenes to make this work.
 
-# Dependency method
+# Dependency detection method
 
 You can use the keyword `method` to let Meson know what method to use
 when searching for the dependency. The default value is `auto`.
-Additional dependencies methods are `pkg-config`, `config-tool`, `cmake`,
+Additional methods are `pkg-config`, `config-tool`, `cmake`,
 `builtin`, `system`, `sysconfig`, `qmake`, `extraframework` and `dub`.
 
 ```meson
 cups_dep = dependency('cups', method : 'pkg-config')
 ```
 
-The dependency method order for `auto` is:
+For dependencies without [specific detection
+logic](#dependencies-with-custom-lookup-functionality), the dependency method
+order for `auto` is:
 
   1. `pkg-config`
   2. `cmake`
   3. `extraframework` (OSX only)
-  4. `system`
 
 ## System
 
