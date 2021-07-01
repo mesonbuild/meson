@@ -2753,13 +2753,10 @@ This will become a hard error in the future.''', location=self.current_node)
             return args[1]
         raise InterpreterException('Tried to get unknown variable "%s".' % varname)
 
-    @stringArgs
+    @typed_pos_args('is_variable', str)
     @noKwargs
-    def func_is_variable(self, node, args, kwargs):
-        if len(args) != 1:
-            raise InvalidCode('Is_variable takes two arguments.')
-        varname = args[0]
-        return varname in self.variables
+    def func_is_variable(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> bool:
+        return args[0] in self.variables
 
     @staticmethod
     def machine_from_native_kwarg(kwargs: T.Dict[str, T.Any]) -> MachineChoice:
