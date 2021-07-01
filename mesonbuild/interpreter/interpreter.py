@@ -11,7 +11,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from mesonbuild.interpreterbase.baseobjects import TYPE_kwargs
 from .. import mparser
 from .. import environment
 from .. import coredata
@@ -32,7 +31,7 @@ from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCod
 from ..interpreterbase import Disabler, disablerIfNotFound
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs, FeatureDeprecatedKwargs
 from ..interpreterbase import ObjectHolder, RangeHolder
-from ..interpreterbase import TYPE_nkwargs, TYPE_nvar, TYPE_var
+from ..interpreterbase.baseobjects import TYPE_nkwargs, TYPE_nvar, TYPE_var, TYPE_kwargs
 from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule
 from ..cmake import CMakeInterpreter
 from ..backend.backends import Backend, ExecutableSerialisation
@@ -2734,24 +2733,22 @@ This will become a hard error in the future.''', location=self.current_node)
         varname, value = args
         self.set_variable(varname, value, holderify=True)
 
+    @typed_pos_args('get_variable', (str, Disabler), optargs=[object])
     @noKwargs
     @noArgsFlattening
     @permissive_unholder_return
-    def func_get_variable(self, node, args, kwargs):
-        if len(args) < 1 or len(args) > 2:
-            raise InvalidCode('Get_variable takes one or two arguments.')
-        varname = args[0]
+    def func_get_variable(self, node: mparser.BaseNode, args: T.Tuple[T.Union[str, Disabler], T.Optional[object]],
+                          kwargs: 'TYPE_kwargs') -> 'TYPE_var':
+        varname, fallback = args
         if isinstance(varname, Disabler):
             return varname
-        if not isinstance(varname, str):
-            raise InterpreterException('First argument must be a string.')
+
         try:
             return self.variables[varname]
         except KeyError:
-            pass
-        if len(args) == 2:
-            return args[1]
-        raise InterpreterException('Tried to get unknown variable "%s".' % varname)
+            if fallback is not None:
+                return fallback
+        raise InterpreterException(f'Tried to get unknown variable "{varname}".')
 
     @typed_pos_args('is_variable', str)
     @noKwargs
