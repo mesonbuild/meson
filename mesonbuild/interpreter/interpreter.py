@@ -1778,17 +1778,11 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         return tg
 
     @FeatureNew('alias_target', '0.52.0')
+    @typed_pos_args('alias_target', str, varargs=build.Target, min_varargs=1)
     @noKwargs
-    def func_alias_target(self, node, args, kwargs):
-        if len(args) < 2:
-            raise InvalidCode('alias_target takes at least 2 arguments.')
-        name = args[0]
-        if not isinstance(name, str):
-            raise InterpreterException('First argument must be a string.')
-        deps = listify(args[1:])
-        for d in deps:
-            if not isinstance(d, (build.BuildTarget, build.CustomTarget)):
-                raise InterpreterException('Depends items must be build targets.')
+    def func_alias_target(self, node: mparser.BaseNode, args: T.Tuple[str, T.List[build.Target]],
+                          kwargs: 'TYPE_kwargs') -> build.AliasTarget:
+        name, deps = args
         tg = build.AliasTarget(name, deps, self.subdir, self.subproject)
         self.add_target(name, tg)
         return tg
