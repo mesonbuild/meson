@@ -1929,8 +1929,8 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
 
     @FeatureNewKwargs('subdir', '0.44.0', ['if_found'])
     @permittedKwargs({'if_found'})
-    def func_subdir(self, node, args, kwargs):
-        self.validate_arguments(args, 1, [str])
+    @typed_pos_args('subdir', str)
+    def func_subdir(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> None:
         mesonlib.check_direntry_issues(args)
         if '..' in args[0]:
             raise InvalidArguments('Subdir contains ..')
