@@ -26,7 +26,7 @@ from ..programs import ExternalProgram, NonExistingExternalProgram
 from ..dependencies import Dependency
 from ..depfile import DepFile
 from ..interpreterbase import ContainerTypeInfo, InterpreterBase, KwargInfo, typed_kwargs, typed_pos_args
-from ..interpreterbase import noPosargs, noKwargs, stringArgs, permittedKwargs, noArgsFlattening, noSecondLevelHolderResolving, permissive_unholder_return
+from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, noArgsFlattening, noSecondLevelHolderResolving, permissive_unholder_return
 from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
 from ..interpreterbase import Disabler, disablerIfNotFound
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs, FeatureDeprecatedKwargs
@@ -814,7 +814,6 @@ external dependencies (including libraries) must go to "dependencies".''')
                           self.environment.get_build_command() + ['introspect'],
                           in_builddir=in_builddir, check=check, capture=capture)
 
-    @stringArgs
     def func_gettext(self, nodes, args, kwargs):
         raise InterpreterException('Gettext() function has been moved to module i18n. Import it and use i18n.gettext() instead')
 
