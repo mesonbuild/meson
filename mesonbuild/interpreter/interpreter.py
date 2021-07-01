@@ -1037,11 +1037,10 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         raise InterpreterException('Tried to access unknown option "%s".' % optname)
 
-    @stringArgs
+    @typed_pos_args('get_option', str)
     @noKwargs
-    def func_get_option(self, nodes, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('Argument required for get_option.')
+    def func_get_option(self, nodes: mparser.BaseNode, args: T.Tuple[str],
+                        kwargs: 'TYPE_kwargs') -> T.Union[coredata.UserOption, 'TYPE_var']:
         optname = args[0]
         if ':' in optname:
             raise InterpreterException('Having a colon in option name is forbidden, '
