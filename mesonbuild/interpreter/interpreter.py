@@ -829,10 +829,8 @@ external dependencies (including libraries) must go to "dependencies".''')
 
     @FeatureNewKwargs('subproject', '0.38.0', ['default_options'])
     @permittedKwargs({'version', 'default_options', 'required'})
-    @stringArgs
-    def func_subproject(self, nodes, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('Subproject takes exactly one argument')
+    @typed_pos_args('subproject', str)
+    def func_subproject(self, nodes: mparser.BaseNode, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> SubprojectHolder:
         return self.do_subproject(args[0], 'meson', kwargs)
 
     def disabled_subproject(self, subp_name, disabled_feature=None, exception=None):
