@@ -2724,12 +2724,11 @@ This will become a hard error in the future.''', location=self.current_node)
     def is_subproject(self):
         return self.subproject != ''
 
+    @typed_pos_args('set_variable', str, object)
     @noKwargs
     @noArgsFlattening
     @noSecondLevelHolderResolving
-    def func_set_variable(self, node, args, kwargs):
-        if len(args) != 2:
-            raise InvalidCode('Set_variable takes two arguments.')
+    def func_set_variable(self, node: mparser.BaseNode, args: T.Tuple[str, object], kwargs: 'TYPE_kwargs') -> None:
         varname, value = args
         self.set_variable(varname, value, holderify=True)
 
