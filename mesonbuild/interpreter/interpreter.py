@@ -714,20 +714,14 @@ external dependencies (including libraries) must go to "dependencies".''')
                                               variables)
         return dep
 
+    @typed_pos_args('assert', bool, optargs=[str])
     @noKwargs
-    def func_assert(self, node, args, kwargs):
-        if len(args) == 1:
+    def func_assert(self, node: mparser.FunctionNode, args: T.Tuple[bool, T.Optional[str]],
+                    kwargs: 'TYPE_kwargs') -> None:
+        value, message = args
+        if message is None:
             FeatureNew.single_use('assert function without message argument', '0.53.0', self.subproject)
-            value = args[0]
-            message = None
-        elif len(args) == 2:
-            value, message = args
-            if not isinstance(message, str):
-                raise InterpreterException('Assert message not a string.')
-        else:
-            raise InterpreterException('Assert takes between one and two arguments')
-        if not isinstance(value, bool):
-            raise InterpreterException('Assert value not bool.')
+
         if not value:
             if message is None:
                 from ..ast import AstPrinter
