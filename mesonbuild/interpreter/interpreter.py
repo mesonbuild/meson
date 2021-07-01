@@ -2268,11 +2268,11 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
                 raise InterpreterException('Include directory objects can only be created from strings or include directories.')
         return result
 
-    @permittedKwargs({'is_system'})
     @typed_pos_args('include_directories', varargs=str)
+    @typed_kwargs('include_directories', KwargInfo('is_system', bool, default=False))
     def func_include_directories(self, node: mparser.BaseNode, args: T.Tuple[T.List[str]],
-                                 kwargs: 'TYPE_kwargs') -> build.IncludeDirs:
-        return self.build_incdir_object(args[0], kwargs.get('is_system', False))
+                                 kwargs: 'kwargs.FuncIncludeDirectories') -> build.IncludeDirs:
+        return self.build_incdir_object(args[0], kwargs['is_system'])
 
     def build_incdir_object(self, incdir_strings: T.List[str], is_system: bool = False) -> build.IncludeDirs:
         if not isinstance(is_system, bool):
