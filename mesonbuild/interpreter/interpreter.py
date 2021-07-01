@@ -1194,15 +1194,16 @@ external dependencies (including libraries) must go to "dependencies".''')
 
     @FeatureNewKwargs('add_languages', '0.54.0', ['native'])
     @permittedKwargs({'required', 'native'})
-    @stringArgs
-    def func_add_languages(self, node, args, kwargs):
+    @typed_pos_args('add_languages', varargs=str)
+    def func_add_languages(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> bool:
+        langs = args[0]
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
-            for lang in sorted(args, key=compilers.sort_clink):
+            for lang in sorted(langs, key=compilers.sort_clink):
                 mlog.log('Compiler for language', mlog.bold(lang), 'skipped: feature', mlog.bold(feature), 'disabled')
             return False
         if 'native' in kwargs:
-            return self.add_languages(args, required, self.machine_from_native_kwarg(kwargs))
+            return self.add_languages(langs, required, self.machine_from_native_kwarg(kwargs))
         else:
             # absent 'native' means 'both' for backwards compatibility
             tv = FeatureNew.get_target_version(self.subproject)
@@ -1210,8 +1211,8 @@ external dependencies (including libraries) must go to "dependencies".''')
                 mlog.warning('add_languages is missing native:, assuming languages are wanted for both host and build.',
                              location=self.current_node)
 
-            success = self.add_languages(args, False, MachineChoice.BUILD)
-            success &= self.add_languages(args, required, MachineChoice.HOST)
+            success = self.add_languages(langs, False, MachineChoice.BUILD)
+            success &= self.add_languages(langs, required, MachineChoice.HOST)
             return success
 
     @noArgsFlattening
