@@ -2999,7 +2999,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def get_user_option_args(self):
         cmds = []
         for (k, v) in self.environment.coredata.options.items():
-            cmds.append('-D' + str(k) + '=' + (v.value if isinstance(v.value, str) else str(v.value).lower()))
+            if k.is_project():
+                cmds.append('-D' + str(k) + '=' + (v.value if isinstance(v.value, str) else str(v.value).lower()))
         # The order of these arguments must be the same between runs of Meson
         # to ensure reproducible output. The order we pass them shouldn't
         # affect behavior in any other way.
