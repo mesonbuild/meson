@@ -650,10 +650,10 @@ class Interpreter(InterpreterBase, HoldableObject):
                 modname = 'unstable_' + plainname
         return self._import_module(modname, required)
 
-    @stringArgs
+    @typed_pos_args('files', varargs=str)
     @noKwargs
-    def func_files(self, node, args, kwargs):
-        return [mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, fname) for fname in args]
+    def func_files(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> T.List[mesonlib.File]:
+        return [mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, fname) for fname in args[0]]
 
     # Used by declare_dependency() and pkgconfig.generate()
     def extract_variables(self, kwargs, argname='variables', list_new=False, dict_new=False):
@@ -1690,7 +1690,6 @@ external dependencies (including libraries) must go to "dependencies".''')
     def func_subdir_done(self, node, args, kwargs):
         raise SubdirDoneRequest()
 
-    @stringArgs
     @FeatureNewKwargs('custom_target', '0.57.0', ['env'])
     @FeatureNewKwargs('custom_target', '0.48.0', ['console'])
     @FeatureNewKwargs('custom_target', '0.47.0', ['install_mode', 'build_always_stale'])
@@ -1700,9 +1699,8 @@ external dependencies (including libraries) must go to "dependencies".''')
                       'build_always', 'capture', 'depends', 'depend_files', 'depfile',
                       'build_by_default', 'build_always_stale', 'console', 'env',
                       'feed'})
-    def func_custom_target(self, node, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('custom_target: Only one positional argument is allowed, and it must be a string name')
+    @typed_pos_args('custom_target', str)
+    def func_custom_target(self, node: mparser.FunctionNode, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> build.CustomTarget:
         if 'depfile' in kwargs and ('@BASENAME@' in kwargs['depfile'] or '@PLAINNAME@' in kwargs['depfile']):
             FeatureNew.single_use('substitutions in custom_target depfile', '0.47.0', self.subproject)
         return self._func_custom_target_impl(node, args, kwargs)
@@ -1727,16 +1725,12 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
 
     @FeatureNewKwargs('run_target', '0.57.0', ['env'])
     @permittedKwargs({'command', 'depends', 'env'})
-    def func_run_target(self, node, args, kwargs):
-        if len(args) > 1:
-            raise InvalidCode('Run_target takes only one positional argument: the target name.')
-        elif len(args) == 1:
-            if 'command' not in kwargs:
-                raise InterpreterException('Missing "command" keyword argument')
-            all_args = extract_as_list(kwargs, 'command')
-            deps = extract_as_list(kwargs, 'depends')
-        else:
-            raise InterpreterException('Run_target needs at least one positional argument.')
+    @typed_pos_args('run_target', str)
+    def func_run_target(self, node: mparser.FunctionNode, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> build.RunTarget:
+        if 'command' not in kwargs:
+            raise InterpreterException('Missing "command" keyword argument')
+        all_args = extract_as_list(kwargs, 'command')
+        deps = extract_as_list(kwargs, 'depends')
 
         cleaned_args = []
         for i in listify(all_args):
