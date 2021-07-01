@@ -1079,12 +1079,10 @@ external dependencies (including libraries) must go to "dependencies".''')
         options = {k: v for k, v in self.environment.options.items() if k.is_backend()}
         self.coredata.set_options(options)
 
-    @stringArgs
     @permittedKwargs({'version', 'meson_version', 'default_options', 'license', 'subproject_dir'})
-    def func_project(self, node, args, kwargs):
-        if len(args) < 1:
-            raise InvalidArguments('Not enough arguments to project(). Needs at least the project name.')
-        proj_name, *proj_langs = args
+    @typed_pos_args('project', str, varargs=str)
+    def func_project(self, node: mparser.FunctionNode, args: T.Tuple[str, T.List[str]], kwargs: 'TYPE_kwargs') -> None:
+        proj_name, proj_langs = args
         if ':' in proj_name:
             raise InvalidArguments(f"Project name {proj_name!r} must not contain ':'")
 
