@@ -2470,10 +2470,10 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             initial_values = {}
         return EnvironmentVariablesObject(initial_values, self.subproject)
 
-    @stringArgs
+    @typed_pos_args('join_paths', varargs=str, min_varargs=1)
     @noKwargs
-    def func_join_paths(self, node, args, kwargs):
-        return self.join_path_strings(args)
+    def func_join_paths(self, node: mparser.BaseNode, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> str:
+        return self.join_path_strings(args[0])
 
     def run(self) -> None:
         super().run()
