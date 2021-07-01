@@ -2333,10 +2333,8 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
 
     @permittedKwargs({'exe_wrapper', 'gdb', 'timeout_multiplier', 'env', 'is_default',
                       'exclude_suites'})
-    @stringArgs
-    def func_add_test_setup(self, node, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('Add_test_setup needs one argument for the setup name.')
+    @typed_pos_args('add_test_setup', str)
+    def func_add_test_setup(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> None:
         setup_name = args[0]
         if re.fullmatch('([_a-zA-Z][_0-9a-zA-Z]*:)?[_a-zA-Z][_0-9a-zA-Z]*', setup_name) is None:
             raise InterpreterException('Setup name may only contain alphanumeric characters.')
