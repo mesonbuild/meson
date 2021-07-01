@@ -11,6 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from mesonbuild.interpreterbase.baseobjects import TYPE_kwargs
 from .. import mparser
 from .. import environment
 from .. import coredata
@@ -2768,12 +2769,10 @@ This will become a hard error in the future.''', location=self.current_node)
         return MachineChoice.BUILD if native else MachineChoice.HOST
 
     @FeatureNew('is_disabler', '0.52.0')
+    @typed_pos_args('is_disabler', object)
     @noKwargs
-    def func_is_disabler(self, node, args, kwargs):
-        if len(args) != 1:
-            raise InvalidCode('Is_disabler takes one argument.')
-        varname = args[0]
-        return isinstance(varname, Disabler)
+    def func_is_disabler(self, node: mparser.BaseNode, args: T.Tuple[object], kwargs: 'TYPE_kwargs') -> bool:
+        return isinstance(args[0], Disabler)
 
     @noKwargs
     @FeatureNew('range', '0.58.0')
