@@ -1055,15 +1055,12 @@ external dependencies (including libraries) must go to "dependencies".''')
             return opt.value
         return opt
 
+    @typed_pos_args('configuration_data', optargs=[dict])
     @noKwargs
-    def func_configuration_data(self, node, args, kwargs):
-        if len(args) > 1:
-            raise InterpreterException('configuration_data takes only one optional positional arguments')
-        elif len(args) == 1:
+    def func_configuration_data(self, node: mparser.BaseNode, args: T.Optional[dict], kwargs: 'TYPE_kwargs') -> ConfigurationDataObject:
+        if args is not None:
             FeatureNew.single_use('configuration_data dictionary', '0.49.0', self.subproject)
             initial_values = args[0]
-            if not isinstance(initial_values, dict):
-                raise InterpreterException('configuration_data first argument must be a dictionary')
         else:
             initial_values = {}
         return ConfigurationDataObject(self.subproject, initial_values)
