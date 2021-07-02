@@ -18,7 +18,7 @@ from ..mesonlib import HoldableObject, MesonBugException
 
 import typing as T
 
-def _unholder(obj: T.Union[TYPE_var, InterpreterObject]) -> TYPE_var:
+def _unholder(obj: T.Union[TYPE_var, InterpreterObject], *, permissive: bool = False) -> TYPE_var:
     if isinstance(obj, (int, bool, str)):
         return obj
     elif isinstance(obj, list):
@@ -29,6 +29,8 @@ def _unholder(obj: T.Union[TYPE_var, InterpreterObject]) -> TYPE_var:
         assert isinstance(obj.held_object, HoldableObject)
         return obj.held_object
     elif isinstance(obj, MesonInterpreterObject):
+        return obj
+    elif isinstance(obj, HoldableObject) and permissive:
         return obj
     elif isinstance(obj, HoldableObject):
         raise MesonBugException(f'Argument {obj} of type {type(obj).__name__} is not held by an ObjectHolder.')
