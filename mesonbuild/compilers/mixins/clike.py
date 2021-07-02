@@ -347,18 +347,6 @@ class CLikeCompiler(Compiler):
                      dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         code = f'''{prefix}
         #include <{hname}>'''
-
-        # Change extra_args to list of strings
-        if callable(extra_args):
-            extra_args = extra_args("compile")
-
-        if extra_args is not None:
-            builddir = Path(env.build_dir)
-
-            # Append builddir to include directories in case config_header is used before check header
-            if any(arg.startswith("-I") and not builddir.samefile(arg[2:]) for arg in extra_args):
-                extra_args.append(f"-I{builddir.as_posix()}")
-
         return self.compiles(code, env, extra_args=extra_args,
                              dependencies=dependencies)
 

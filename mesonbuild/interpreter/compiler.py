@@ -535,6 +535,14 @@ class CompilerHolder(ObjectHolder['Compiler']):
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_header must be a string.')
+
+        # Append build dir to be able to find previously configured headers.    
+        incdirs = kwargs.get("include_directories", None)
+        if incdirs is not None:
+            incdirs.get_incdirs().append(self.environment.get_build_dir())
+        else:
+            kwargs["include_directories"] = self.interpreter.build_incdir_object([self.environment.get_build_dir()])
+
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
         if disabled:
             mlog.log('Check usable header', mlog.bold(hname, True), 'skipped: feature', mlog.bold(feature), 'disabled')
