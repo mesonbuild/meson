@@ -339,6 +339,7 @@ class KwargInfo(T.Generic[_T]):
         self.not_set_warning = not_set_warning
 
     def evolve(self, *,
+               name: T.Union[str, _NULL_T] = _NULL,
                required: T.Union[bool, _NULL_T] = _NULL,
                listify: T.Union[bool, _NULL_T] = _NULL,
                default: T.Union[_T, None, _NULL_T] = _NULL,
@@ -360,7 +361,7 @@ class KwargInfo(T.Generic[_T]):
         being replaced by either the copy in self, or the provided new version.
         """
         return type(self)(
-            self.name,
+            name if not isinstance(name, _NULL_T) else self.name,
             self.types,
             listify=listify if not isinstance(listify, _NULL_T) else self.listify,
             required=required if not isinstance(required, _NULL_T) else self.required,
