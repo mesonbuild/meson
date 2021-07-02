@@ -27,6 +27,7 @@ from ..programs import ExternalProgram
 class ResourceCompilerType(enum.Enum):
     windres = 1
     rc = 2
+    wrc = 3
 
 class WindowsModule(ExtensionModule):
     def __init__(self, interpreter):
@@ -66,6 +67,7 @@ class WindowsModule(ExtensionModule):
         for (arg, match, rc_type) in [
                 ('/?', '^.*Microsoft.*Resource Compiler.*$', ResourceCompilerType.rc),
                 ('--version', '^.*GNU windres.*$', ResourceCompilerType.windres),
+                ('--version', '^.*Wine Resource Compiler.*$', ResourceCompilerType.wrc),
         ]:
             p, o, e = mesonlib.Popen_safe(rescomp.get_command() + [arg])
             m = re.search(match, o, re.MULTILINE)
@@ -102,7 +104,7 @@ class WindowsModule(ExtensionModule):
             # CVTRES internally to convert this to a COFF object)
             suffix = 'res'
             res_args = extra_args + ['/nologo', '/fo@OUTPUT@', '@INPUT@']
-        else:
+        elif rescomp_type == ResourceCompilerType.windres:
             # ld only supports object files, so windres is used to generate a
             # COFF object
             suffix = 'o'
@@ -113,6 +115,9 @@ class WindowsModule(ExtensionModule):
             for arg in extra_args:
                 if ' ' in arg:
                     mlog.warning(m.format(arg), fatal=False)
+        else:
+            suffix = 'o'
+            res_args = extra_args + ['@INPUT@', '-o', '@OUTPUT@']
 
         res_targets = []
 
