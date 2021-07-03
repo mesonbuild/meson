@@ -116,6 +116,7 @@ documentation = hotdoc.generate_doc(meson.project_name(),
     keep_markup_in_code_blocks: true,
     extra_extension: meson.current_source_dir() / 'extensions' / 'refman_links.py',
     refman_data_file: refman_md[1],
+    fatal_warnings: true,
 )
 
 run_target('upload',
