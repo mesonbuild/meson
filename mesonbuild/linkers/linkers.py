@@ -407,8 +407,7 @@ class DynamicLinker(metaclass=abc.ABCMeta):
         return []
 
     def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
-        m = f'Language {self.id} does not support has_multi_link_arguments.'
-        raise EnvironmentException(m)
+        raise EnvironmentException(f'Language {self.id} does not support has_multi_link_arguments.')
 
     def get_debugfile_name(self, targetfile: str) -> str:
         '''Name of debug file written out (see below)'''
@@ -433,8 +432,7 @@ class DynamicLinker(metaclass=abc.ABCMeta):
         # TODO: this really needs to take a boolean and return the args to
         # disable pie, otherwise it only acts to enable pie if pie *isn't* the
         # default.
-        m = f'Linker {self.id} does not support position-independent executable'
-        raise EnvironmentException(m)
+        raise EnvironmentException(f'Linker {self.id} does not support position-independent executable')
 
     def get_lto_args(self) -> T.List[str]:
         return []
@@ -463,8 +461,7 @@ class DynamicLinker(metaclass=abc.ABCMeta):
         pass
 
     def get_coverage_args(self) -> T.List[str]:
-        m = f"Linker {self.id} doesn't implement coverage data generation."
-        raise EnvironmentException(m)
+        raise EnvironmentException(f"Linker {self.id} doesn't implement coverage data generation.")
 
     @abc.abstractmethod
     def get_search_args(self, dirname: str) -> T.List[str]:

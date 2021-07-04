@@ -82,16 +82,13 @@ class BasicLinkerIsCompilerMixin(Compiler):
         return self.get_std_shared_lib_link_args()
 
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
-        raise EnvironmentException(
-            f'Linker {self.id} does not support link_whole')
+        raise EnvironmentException(f'Linker {self.id} does not support link_whole')
 
     def get_allow_undefined_link_args(self) -> T.List[str]:
-        raise EnvironmentException(
-            f'Linker {self.id} does not support allow undefined')
+        raise EnvironmentException(f'Linker {self.id} does not support allow undefined')
 
     def get_pie_link_args(self) -> T.List[str]:
-        m = f'Linker {self.id} does not support position-independent executable'
-        raise EnvironmentException(m)
+        raise EnvironmentException(f'Linker {self.id} does not support position-independent executable')
 
     def get_undefined_link_args(self) -> T.List[str]:
         return []

@@ -330,11 +330,9 @@ class FileMode:
             return -1
         eg = 'rwxr-xr-x'
         if not isinstance(perms_s, str):
-            msg = f'Install perms must be a string. For example, {eg!r}'
-            raise MesonException(msg)
+            raise MesonException(f'Install perms must be a string. For example, {eg!r}')
         if len(perms_s) != 9 or not cls.symbolic_perms_regex.match(perms_s):
-            msg = f'File perms {perms_s!r} must be exactly 9 chars. For example, {eg!r}'
-            raise MesonException(msg)
+            raise MesonException(f'File perms {perms_s!r} must be exactly 9 chars. For example, {eg!r}')
         perms = 0
         # Owner perms
         if perms_s[0] == 'r':
@@ -1451,8 +1449,7 @@ def _substitute_values_check_errors(command: T.List[str], values: T.Dict[str, st
         # Error out if any input-derived templates are present in the command
         match = iter_regexin_iter(inregex, command)
         if match:
-            m = f'Command cannot have {match!r}, since no input files were specified'
-            raise MesonException(m)
+            raise MesonException(f'Command cannot have {match!r}, since no input files were specified')
     else:
         if len(values['@INPUT@']) > 1:
             # Error out if @PLAINNAME@ or @BASENAME@ is present in the command

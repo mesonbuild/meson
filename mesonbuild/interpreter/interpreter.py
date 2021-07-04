@@ -2448,8 +2448,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
                        args_frozen: bool, args: T.List[str], kwargs: 'kwargs.FuncAddProjectArgs') -> None:
         if args_frozen:
             msg = f'Tried to use \'{node.func_name}\' after a build target has been declared.\n' \
-                  'This is not permitted. Please declare all ' \
-                  'arguments before your targets.'
+                  'This is not permitted. Please declare all arguments before your targets.'
             raise InvalidCode(msg)
 
         self._warn_about_builtin_args(args)
