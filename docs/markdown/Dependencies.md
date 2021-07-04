@@ -163,12 +163,12 @@ and cmake, except when it is part of the base OS image (such as in FreeBSD
 and macOS); OpenGL which has pkg-config on Unices from glvnd or mesa, but has
 no pkg-config on macOS and Windows.
 
-In these cases meson provides convenience wrappers in the form of `system`
+In these cases Meson provides convenience wrappers in the form of `system`
 dependencies. Internally these dependencies do exactly what a user would do
 in the build system DSL or with a script, likely calling
 `compiler.find_library()`, setting `link_with` and `include_directories`. By
-putting these in meson upstream the barrier of using them is lowered, as
-projects using meson don't have to re-implement the logic.
+putting these in Meson upstream the barrier of using them is lowered, as
+projects using Meson don't have to re-implement the logic.
 
 ## Builtin
 
@@ -177,7 +177,7 @@ because they are provided internally by the language. One example of this is
 intl, which is built into GNU or musl libc but otherwise comes as a `system`
 dependency.
 
-In these cases meson provides convenience wrappers for the `system` dependency,
+In these cases Meson provides convenience wrappers for the `system` dependency,
 but first checks if the functionality is usable by default.
 
 ## CMake
