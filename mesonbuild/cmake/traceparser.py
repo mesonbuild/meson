@@ -652,7 +652,7 @@ class CMakeTraceParser:
         if not args:
             mlog.error('Invalid preload.cmake script! At least one argument to `meson_ps_disabled_function` is expected')
             return
-        mlog.warning('The CMake function "{}" was disabed to avoid compatibility issues with Meson.'.format(args[0]))
+        mlog.warning('The CMake function "{}" was disabled to avoid compatibility issues with Meson.'.format(args[0]))
 
     def _lex_trace_human(self, trace: str) -> T.Generator[CMakeTraceLine, None, None]:
         # The trace format is: '<file>(<line>):  <func>(<args -- can contain \n> )\n'
