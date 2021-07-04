@@ -136,23 +136,49 @@ Since they can be used interchangeably, the rest of the build
 definitions do not need to care which one it is. Meson will take care
 of all the work behind the scenes to make this work.
 
-# Dependency method
+# Dependency detection method
 
 You can use the keyword `method` to let Meson know what method to use
 when searching for the dependency. The default value is `auto`.
-Additional dependencies methods are `pkg-config`, `config-tool`, `cmake`,
+Additional methods are `pkg-config`, `config-tool`, `cmake`,
 `builtin`, `system`, `sysconfig`, `qmake`, `extraframework` and `dub`.
 
 ```meson
 cups_dep = dependency('cups', method : 'pkg-config')
 ```
 
-The dependency method order for `auto` is:
+For dependencies without [specific detection
+logic](#dependencies-with-custom-lookup-functionality), the dependency method
+order for `auto` is:
 
   1. `pkg-config`
   2. `cmake`
   3. `extraframework` (OSX only)
-  4. `system`
+
+## System
+
+Some dependencies provide no valid methods for discovery, or do so only in
+some cases. Some examples of this are Zlib, which provides both pkg-config
+and cmake, except when it is part of the base OS image (such as in FreeBSD
+and macOS); OpenGL which has pkg-config on Unices from glvnd or mesa, but has
+no pkg-config on macOS and Windows.
+
+In these cases Meson provides convenience wrappers in the form of `system`
+dependencies. Internally these dependencies do exactly what a user would do
+in the build system DSL or with a script, likely calling
+`compiler.find_library()`, setting `link_with` and `include_directories`. By
+putting these in Meson upstream the barrier of using them is lowered, as
+projects using Meson don't have to re-implement the logic.
+
+## Builtin
+
+Some dependencies provide no valid methods for discovery on some systems,
+because they are provided internally by the language. One example of this is
+intl, which is built into GNU or musl libc but otherwise comes as a `system`
+dependency.
+
+In these cases Meson provides convenience wrappers for the `system` dependency,
+but first checks if the functionality is usable by default.
 
 ## CMake
 
@@ -216,6 +242,26 @@ dub build urld --compiler=dmd
 DC="dmd" meson builddir
 ```
 
+## Config tool
+
+[CUPS](#cups), [LLVM](#llvm), [pcap](#pcap), [WxWidgets](#wxwidgets),
+[libwmf](#libwmf), [GCrypt](#libgcrypt), [GPGME](#gpgme), and GnuStep either do not provide pkg-config
+modules or additionally can be detected via a config tool
+(cups-config, llvm-config, libgcrypt-config, etc). Meson has native support for these
+tools, and they can be found like other dependencies:
+
+```meson
+pcap_dep = dependency('pcap', version : '>=1.0')
+cups_dep = dependency('cups', version : '>=1.4')
+llvm_dep = dependency('llvm', version : '>=4.0')
+libgcrypt_dep = dependency('libgcrypt', version: '>= 1.8')
+gpgme_dep = dependency('gpgme', version: '>= 1.0')
+```
+
+*Since 0.55.0* Meson won't search $PATH any more for a config tool
+binary when cross compiling if the config tool did not have an entry
+in the cross file.
+
 # Dependencies with custom lookup functionality
 
 Some dependencies have specific detection logic.
@@ -237,26 +283,6 @@ cups_dep = dependency('cups', method : 'pkg-config')
 wmf_dep = dependency('libwmf', method : 'config-tool')
 ```
 
-## Dependencies using config tools
-
-[CUPS](#cups), [LLVM](#llvm), [pcap](#pcap), [WxWidgets](#wxwidgets),
-[libwmf](#libwmf), [GCrypt](#libgcrypt), [GPGME](#gpgme), and GnuStep either do not provide pkg-config
-modules or additionally can be detected via a config tool
-(cups-config, llvm-config, libgcrypt-config, etc). Meson has native support for these
-tools, and they can be found like other dependencies:
-
-```meson
-pcap_dep = dependency('pcap', version : '>=1.0')
-cups_dep = dependency('cups', version : '>=1.4')
-llvm_dep = dependency('llvm', version : '>=4.0')
-libgcrypt_dep = dependency('libgcrypt', version: '>= 1.8')
-gpgme_dep = dependency('gpgme', version: '>= 1.0')
-```
-
-*Since 0.55.0* Meson won't search $PATH any more for a config tool
-binary when cross compiling if the config tool did not have an entry
-in the cross file.
-
 ## AppleFrameworks
 
 Use the `modules` keyword to list frameworks required, e.g.
@@ -266,31 +292,6 @@ dep = dependency('appleframeworks', modules : 'foundation')
 ```
 
 These dependencies can never be found for non-OSX hosts.
-
-## System
-
-Some dependencies provide no valid methods for discovery, or do so only in
-some cases. Some examples of this are Zlib, which provides both pkg-config
-and cmake, except when it is part of the base OS image (such as in FreeBSD
-and macOS); OpenGL which has pkg-config on Unices from glvnd or mesa, but has
-no pkg-config on macOS and Windows.
-
-In these cases meson provides convenience wrappers in the form of `system`
-dependencies. Internally these dependencies do exactly what a user would do
-in the build system DSL or with a script, likely calling
-`compiler.find_library()`, setting `link_with` and `include_directories`. By
-putting these in meson upstream the barrier of using them is lowered, as
-projects using meson don't have to re-implement the logic.
-
-## Builtin
-
-Some dependencies provide no valid methods for discovery on some systems,
-because they are provided internally by the language. One example of this is
-intl, which is built into GNU or musl libc but otherwise comes as a `system`
-dependency.
-
-In these cases meson provides convenience wrappers for the `system` dependency,
-but first checks if the functionality is usable by default.
 
 ## Blocks
 
@@ -355,6 +356,41 @@ additional toolkit libraries that need to be explicitly linked to.
 
 `method` may be `auto`, `config-tool`, `pkg-config`, `cmake` or `extraframework`.
 
+## Curses
+
+*(Since 0.54.0)*
+
+Curses (and ncurses) are a cross platform pain in the butt. Meson
+wraps up these dependencies in the `curses` dependency. This covers
+both `ncurses` (preferred) and other curses implementations.
+
+`method` may be `auto`, `pkg-config`, `config-tool`, or `system`.
+
+*New in 0.56.0* The `config-tool` and `system` methods.
+
+To define some of the the preprocessor symbols mentioned in the
+[curses autoconf documentation](http://git.savannah.gnu.org/gitweb/?p=autoconf-archive.git;a=blob_plain;f=m4/ax_with_curses.m4):
+
+```meson
+conf = configuration_data()
+check_headers = [
+  ['ncursesw/menu.h', 'HAVE_NCURSESW_MENU_H'],
+  ['ncurses/menu.h', 'HAVE_NCURSES_MENU_H'],
+  ['menu.h', 'HAVE_MENU_H'],
+  ['ncursesw/curses.h', 'HAVE_NCURSESW_CURSES_H'],
+  ['ncursesw.h', 'HAVE_NCURSESW_H'],
+  ['ncurses/curses.h', 'HAVE_NCURSES_CURSES_H'],
+  ['ncurses.h', 'HAVE_NCURSES_H'],
+  ['curses.h', 'HAVE_CURSES_H'],
+]
+
+foreach h : check_headers
+  if compiler.has_header(h.get(0))
+    conf.set(h.get(1), 1)
+  endif
+endforeach
+```
+
 ## Fortran Coarrays
 
 *(added 0.50.0)*
@@ -364,6 +400,12 @@ additional toolkit libraries that need to be explicitly linked to.
 
 GCC will use OpenCoarrays if present to implement coarrays, while Intel and NAG
 use internal coarray support.
+
+## GPGME
+
+*(added 0.51.0)*
+
+`method` may be `auto`, `config-tool` or `pkg-config`.
 
 ## GL
 
@@ -418,6 +460,12 @@ is not built into libc, tries to find an external library providing them
 instead.
 
 `method` may be `auto`, `builtin` or `system`.
+
+## libgcrypt
+
+*(added 0.49.0)*
+
+`method` may be `auto`, `config-tool` or `pkg-config`.
 
 ## libwmf
 
@@ -507,7 +555,6 @@ language-specific, you must specify the requested language using the
 
 Meson uses pkg-config to find NetCDF.
 
-
 ## OpenMP
 
 *(added 0.46.0)*
@@ -520,18 +567,6 @@ The `language` keyword may used.
 ## pcap
 
 *(added 0.42.0)*
-
-`method` may be `auto`, `config-tool` or `pkg-config`.
-
-## libgcrypt
-
-*(added 0.49.0)*
-
-`method` may be `auto`, `config-tool` or `pkg-config`.
-
-## GPGME
-
-*(added 0.51.0)*
 
 `method` may be `auto`, `config-tool` or `pkg-config`.
 
@@ -603,6 +638,19 @@ or as an OSX framework.
 `method` may be `auto`, `config-tool`, `extraframework` or
 `pkg-config`.
 
+## Shaderc
+
+*(added 0.51.0)*
+
+Shaderc currently does not ship with any means of detection.
+Nevertheless, Meson can try to detect it using `pkg-config`, but will
+default to looking for the appropriate library manually. If the
+`static` keyword argument is `true`, `shaderc_combined` is preferred.
+Otherwise, `shaderc_shared` is preferred. Note that it is not possible
+to obtain the shaderc version using this method.
+
+`method` may be `auto`, `pkg-config` or `system`.
+
 ## Threads
 
 This dependency selects the appropriate compiler flags and/or
@@ -649,19 +697,6 @@ $ wx-config --cxxflags std stc
 $ wx-config --libs std stc
 ```
 
-## Shaderc
-
-*(added 0.51.0)*
-
-Shaderc currently does not ship with any means of detection.
-Nevertheless, Meson can try to detect it using `pkg-config`, but will
-default to looking for the appropriate library manually. If the
-`static` keyword argument is `true`, `shaderc_combined` is preferred.
-Otherwise, `shaderc_shared` is preferred. Note that it is not possible
-to obtain the shaderc version using this method.
-
-`method` may be `auto`, `pkg-config` or `system`.
-
 ## Zlib
 
 Zlib ships with pkg-config and cmake support, but on some operating
@@ -673,41 +708,6 @@ version.
 `method` may be `auto`, `pkg-config`, `cmake`, or `system`.
 
 *New in 0.54.0* the `system` method.
-
-## Curses
-
-*(Since 0.54.0)*
-
-Curses (and ncurses) are a cross platform pain in the butt. Meson
-wraps up these dependencies in the `curses` dependency. This covers
-both `ncurses` (preferred) and other curses implementations.
-
-`method` may be `auto`, `pkg-config`, `config-tool`, or `system`.
-
-*New in 0.56.0* The `config-tool` and `system` methods.
-
-To define some of the the preprocessor symbols mentioned in the
-[curses autoconf documentation](http://git.savannah.gnu.org/gitweb/?p=autoconf-archive.git;a=blob_plain;f=m4/ax_with_curses.m4):
-
-```meson
-conf = configuration_data()
-check_headers = [
-  ['ncursesw/menu.h', 'HAVE_NCURSESW_MENU_H'],
-  ['ncurses/menu.h', 'HAVE_NCURSES_MENU_H'],
-  ['menu.h', 'HAVE_MENU_H'],
-  ['ncursesw/curses.h', 'HAVE_NCURSESW_CURSES_H'],
-  ['ncursesw.h', 'HAVE_NCURSESW_H'],
-  ['ncurses/curses.h', 'HAVE_NCURSES_CURSES_H'],
-  ['ncurses.h', 'HAVE_NCURSES_H'],
-  ['curses.h', 'HAVE_CURSES_H'],
-]
-
-foreach h : check_headers
-  if compiler.has_header(h.get(0))
-    conf.set(h.get(1), 1)
-  endif
-endforeach
-```
 
 <hr>
 <a name="footnote1">1</a>: They may appear to be case-insensitive, if the
