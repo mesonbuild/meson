@@ -134,8 +134,7 @@ class ConfigToolDependency(ExternalDependency):
         p, out, err = Popen_safe(self.config + args)
         if p.returncode != 0:
             if self.required:
-                raise DependencyException(
-                    f'Could not generate {stage} for {self.name}.\n{err}')
+                raise DependencyException(f'Could not generate {stage} for {self.name}.\n{err}')
             return []
         return split_args(out)
 

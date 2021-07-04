@@ -548,8 +548,7 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
                 if version != 'unknown version':
                     break
             else:
-                m = f'Failed to detect MSVC compiler version: stderr was\n{err!r}'
-                raise EnvironmentException(m)
+                raise EnvironmentException(f'Failed to detect MSVC compiler version: stderr was\n{err!r}')
             cl_signature = lookat.split('\n')[0]
             match = re.search(r'.*(x86|x64|ARM|ARM64)([^_A-Za-z0-9]|$)', cl_signature)
             if match:
