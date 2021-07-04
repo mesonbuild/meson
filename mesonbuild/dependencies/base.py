@@ -22,7 +22,7 @@ from enum import Enum
 
 from .. import mlog
 from ..compilers import clib_langs
-from ..mesonlib import MachineChoice, MesonException, HoldableObject
+from ..mesonlib import LibType, MachineChoice, MesonException, HoldableObject
 from ..mesonlib import version_compare_many
 from ..interpreterbase import FeatureDeprecated
 
@@ -319,6 +319,7 @@ class ExternalDependency(Dependency, HasNativeKwarg):
         self.required = kwargs.get('required', True)
         self.silent = kwargs.get('silent', False)
         self.static = kwargs.get('static', False)
+        self.libtype = LibType.STATIC if self.static else LibType.PREFER_SHARED
         if not isinstance(self.static, bool):
             raise DependencyException('Static keyword must be boolean')
         # Is this dependency to be run on the build platform?

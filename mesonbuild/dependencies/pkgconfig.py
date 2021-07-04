@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from .base import ExternalDependency, DependencyException, sort_libpaths, DependencyTypeName
-from ..mesonlib import LibType, MachineChoice, OptionKey, OrderedSet, PerMachine, Popen_safe
+from ..mesonlib import MachineChoice, OptionKey, OrderedSet, PerMachine, Popen_safe
 from ..programs import find_external_program, ExternalProgram
 from .. import mlog
 from pathlib import PurePath
@@ -267,7 +267,6 @@ class PkgConfigDependency(ExternalDependency):
         libs_found: OrderedSet[str] = OrderedSet()
         # Track not-found libraries to know whether to add library paths
         libs_notfound = []
-        libtype = LibType.STATIC if self.static else LibType.PREFER_SHARED
         # Generate link arguments for this library
         link_args = []
         for lib in full_args:
@@ -283,7 +282,7 @@ class PkgConfigDependency(ExternalDependency):
                     continue
                 if self.clib_compiler:
                     args = self.clib_compiler.find_library(lib[2:], self.env,
-                                                           libpaths, libtype)
+                                                           libpaths, self.libtype)
                 # If the project only uses a non-clib language such as D, Rust,
                 # C#, Python, etc, all we can do is limp along by adding the
                 # arguments as-is and then adding the libpaths at the end.
