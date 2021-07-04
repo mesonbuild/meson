@@ -10,7 +10,7 @@ if not xgettext.found()
   error('MESON_SKIP_TEST xgettext not found.')
 endif
 
-intl = dependency('intl', required: false)
+intl = dependency('intl', required: false, static: get_option('static'))
 if not intl.found()
   error('MESON_SKIP_TEST libintl/gettext functions not found.')
 endif
