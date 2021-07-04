@@ -219,7 +219,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
         # the C linker works fine if only using the C API.
         super().__init__(name, environment, kwargs, language='cpp')
         self.provided_modules: T.List[str] = []
-        self.required_modules: T.Set[str]  = set()
+        self.required_modules: mesonlib.OrderedSet[str]  = mesonlib.OrderedSet()
         self.module_details:   T.List[str] = []
         if not self.is_found:
             return
@@ -230,8 +230,8 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
         opt_modules = stringlistify(extract_as_list(kwargs, 'optional_modules'))
         self.check_components(opt_modules, required=False)
 
-        cargs = set(self.get_config_value(['--cppflags'], 'compile_args'))
-        self.compile_args = sorted(cargs.difference(self.__cpp_blacklist))
+        cargs = mesonlib.OrderedSet(self.get_config_value(['--cppflags'], 'compile_args'))
+        self.compile_args = list(cargs.difference(self.__cpp_blacklist))
 
         if version_compare(self.version, '>= 3.9'):
             self._set_new_link_args(environment)
@@ -334,7 +334,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
 
         link_args = ['--link-static', '--system-libs'] if self.static else ['--link-shared']
         self.link_args = self.get_config_value(
-            ['--libs', '--ldflags'] + link_args + sorted(self.required_modules),
+            ['--libs', '--ldflags'] + link_args + list(self.required_modules),
             'link_args')
 
     def _set_old_link_args(self) -> None:
@@ -347,7 +347,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
         """
         if self.static:
             self.link_args = self.get_config_value(
-                ['--libs', '--ldflags', '--system-libs'] + sorted(self.required_modules),
+                ['--libs', '--ldflags', '--system-libs'] + list(self.required_modules),
                 'link_args')
         else:
             # llvm-config will provide arguments for static linking, so we get
