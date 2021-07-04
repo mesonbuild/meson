@@ -32,7 +32,7 @@ from ..interpreterbase import Disabler, disablerIfNotFound
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs, FeatureDeprecatedKwargs
 from ..interpreterbase import ObjectHolder, RangeHolder
 from ..interpreterbase import TYPE_nkwargs, TYPE_nvar, TYPE_var
-from ..modules import ModuleObject, MutableModuleObject
+from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule
 from ..cmake import CMakeInterpreter
 from ..backend.backends import Backend, ExecutableSerialisation
 
@@ -159,6 +159,13 @@ _INSTALL_MODE_KW = KwargInfo(
     default=[],
     validator=_install_mode_validator,
     convertor=_install_mode_convertor,
+)
+
+_REQUIRED_KW = KwargInfo(
+    'required',
+    (bool, coredata.UserFeatureOption),
+    default=True,
+    # TODO: extract_required_kwarg could be converted to a convertor
 )
 
 
@@ -304,7 +311,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 subproject: str = '',
                 subdir: str = '',
                 subproject_dir: str = 'subprojects',
-                modules: T.Optional[T.Dict[str, ModuleObject]] = None,
+                modules: T.Optional[T.Dict[str, T.Union[ExtensionModule, NewExtensionModule, NotFoundExtensionModule]]] = None,
                 default_project_options: T.Optional[T.Dict[str, str]] = None,
                 mock: bool = False,
                 ast: T.Optional[mparser.CodeBlockNode] = None,
@@ -601,35 +608,47 @@ class Interpreter(InterpreterBase, HoldableObject):
                 dep = df.lookup(kwargs, force_fallback=True)
                 self.build.stdlibs[for_machine][l] = dep
 
-    def import_module(self, modname):
+    def _import_module(self, modname: str, required: bool) -> T.Union[ExtensionModule, NewExtensionModule, NotFoundExtensionModule]:
         if modname in self.modules:
-            return
+            return self.modules[modname]
         try:
             module = importlib.import_module('mesonbuild.modules.' + modname)
         except ImportError:
-            raise InvalidArguments(f'Module "{modname}" does not exist')
-        ext_module = module.initialize(self)
-        assert isinstance(ext_module, ModuleObject)
+            if required:
+                raise InvalidArguments(f'Module "{modname}" does not exist')
+            ext_module = NotFoundExtensionModule()
+        else:
+            ext_module = module.initialize(self)
+            assert isinstance(ext_module, (ExtensionModule, NewExtensionModule))
         self.modules[modname] = ext_module
+        return ext_module
 
-    @stringArgs
-    @noKwargs
-    def func_import(self, node, args, kwargs):
-        if len(args) != 1:
-            raise InvalidCode('Import takes one argument.')
+    @typed_pos_args('import', str)
+    @typed_kwargs(
+        'import',
+        _REQUIRED_KW.evolve(since='0.59.0'),
+        KwargInfo('disabler', bool, default=False, since='0.59.0'),
+    )
+    @disablerIfNotFound
+    def func_import(self, node: mparser.BaseNode, args: T.Tuple[str],
+                    kwargs: 'kwargs.FuncImportModule') -> T.Union[ExtensionModule, NewExtensionModule, NotFoundExtensionModule]:
         modname = args[0]
+        disabled, required, _ = extract_required_kwarg(kwargs, self.subproject)
+        if disabled:
+            return NotFoundExtensionModule()
+
         if modname.startswith('unstable-'):
             plainname = modname.split('-', 1)[1]
             try:
                 # check if stable module exists
-                self.import_module(plainname)
+                mod = self._import_module(plainname, required)
+                # XXX: this is acutally not helpful, since it doesn't do a version check
                 mlog.warning(f'Module {modname} is now stable, please use the {plainname} module instead.')
-                modname = plainname
+                return mod
             except InvalidArguments:
                 mlog.warning('Module %s has no backwards or forwards compatibility and might not exist in future releases.' % modname, location=node)
                 modname = 'unstable_' + plainname
-        self.import_module(modname)
-        return self.modules[modname]
+        return self._import_module(modname, required)
 
     @stringArgs
     @noKwargs

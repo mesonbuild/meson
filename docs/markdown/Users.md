@@ -108,7 +108,7 @@ format files
  - [OTS](https://github.com/khaledhosny/ots), the OpenType Sanitizer, parses and serializes OpenType files (OTF, TTF) and WOFF and WOFF2 font files, validating and sanitizing them as it goes. Used by Chromium and Firefox
  - [Outlier](https://github.com/kerolasa/outlier), a small Hello World style Meson example project
  - [p11-kit](https://github.com/p11-glue/p11-kit), PKCS#11 module aggregator
- - [Pacman](https://git.archlinux.org/pacman.git/tree/), a package manager for Arch Linux
+ - [Pacman](https://gitlab.archlinux.org/pacman/pacman.git), a package manager for Arch Linux
  - [Pango](https://git.gnome.org/browse/pango/), an Internationalized text layout and rendering library
  - [Parzip](https://github.com/jpakkane/parzip), a multithreaded reimplementation of Zip
  - [Peek](https://github.com/phw/peek), simple animated GIF screen recorder with an easy to use interface

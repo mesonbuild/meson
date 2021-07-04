@@ -101,6 +101,8 @@ class PackageDefinition:
         self.name = self.basename[:-5] if self.has_wrap else self.basename
         self.directory = self.name
         self.provided_deps[self.name] = None
+        self.original_filename = fname
+        self.redirected = False
         if self.has_wrap:
             self.parse_wrap()
         self.directory = self.values.get('directory', self.name)
@@ -109,6 +111,7 @@ class PackageDefinition:
         if self.type and self.type not in ALL_TYPES:
             raise WrapException(f'Unknown wrap type {self.type!r}')
         self.filesdir = os.path.join(os.path.dirname(self.filename), 'packagefiles')
+        # What the original file name was before redirection
 
     def parse_wrap(self) -> None:
         try:
@@ -137,6 +140,7 @@ class PackageDefinition:
                 raise WrapException(f'wrap-redirect {fname} filename does not exist')
             self.filename = str(fname)
             self.parse_wrap()
+            self.redirected = True
             return
         self.parse_provide_section(config)
 
