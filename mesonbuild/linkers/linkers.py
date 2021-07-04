@@ -18,6 +18,7 @@ import os
 import typing as T
 
 from .. import mesonlib
+from ..mesonlib import EnvironmentException, MesonException
 from ..arglist import CompilerArgs
 
 if T.TYPE_CHECKING:
@@ -112,7 +113,7 @@ class StaticLinker:
         be implemented
         """
         assert not self.can_linker_accept_rsp(), f'{self.id} linker accepts RSP, but doesn\' provide a supported format, this is a bug'
-        raise mesonlib.EnvironmentException(f'{self.id} does not implemnt rsp format, this shouldn\'t be called')
+        raise EnvironmentException(f'{self.id} does not implemnt rsp format, this shouldn\'t be called')
 
 
 class VisualStudioLikeLinker:
@@ -407,7 +408,7 @@ class DynamicLinker(metaclass=abc.ABCMeta):
 
     def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
         m = f'Language {self.id} does not support has_multi_link_arguments.'
-        raise mesonlib.EnvironmentException(m)
+        raise EnvironmentException(m)
 
     def get_debugfile_name(self, targetfile: str) -> str:
         '''Name of debug file written out (see below)'''
@@ -433,7 +434,7 @@ class DynamicLinker(metaclass=abc.ABCMeta):
         # disable pie, otherwise it only acts to enable pie if pie *isn't* the
         # default.
         m = f'Linker {self.id} does not support position-independent executable'
-        raise mesonlib.EnvironmentException(m)
+        raise EnvironmentException(m)
 
     def get_lto_args(self) -> T.List[str]:
         return []
@@ -450,11 +451,11 @@ class DynamicLinker(metaclass=abc.ABCMeta):
         return []
 
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
-        raise mesonlib.EnvironmentException(
+        raise EnvironmentException(
             f'Linker {self.id} does not support link_whole')
 
     def get_allow_undefined_args(self) -> T.List[str]:
-        raise mesonlib.EnvironmentException(
+        raise EnvironmentException(
             f'Linker {self.id} does not support allow undefined')
 
     @abc.abstractmethod
@@ -463,7 +464,7 @@ class DynamicLinker(metaclass=abc.ABCMeta):
 
     def get_coverage_args(self) -> T.List[str]:
         m = f"Linker {self.id} doesn't implement coverage data generation."
-        raise mesonlib.EnvironmentException(m)
+        raise EnvironmentException(m)
 
     @abc.abstractmethod
     def get_search_args(self, dirname: str) -> T.List[str]:
@@ -511,7 +512,7 @@ class DynamicLinker(metaclass=abc.ABCMeta):
         return []
 
     def bitcode_args(self) -> T.List[str]:
-        raise mesonlib.MesonException('This linker does not support bitcode bundles')
+        raise MesonException('This linker does not support bitcode bundles')
 
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: str, build_rpath: str,
@@ -698,7 +699,7 @@ class GnuLikeDynamicLinkerMixin:
         elif 'console' in value:
             args = ['--subsystem,console']
         else:
-            raise mesonlib.MesonException(f'Only "windows" and "console" are supported for win_subsystem with MinGW, not "{value}".')
+            raise MesonException(f'Only "windows" and "console" are supported for win_subsystem with MinGW, not "{value}".')
         if ',' in value:
             args[-1] = args[-1] + ':' + value.split(',')[1]
 
@@ -842,7 +843,7 @@ class WASMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dyna
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str, darwin_versions: T.Tuple[str, str],
                         is_shared_module: bool) -> T.List[str]:
-        raise mesonlib.MesonException(f'{self.id} does not support shared libraries.')
+        raise MesonException(f'{self.id} does not support shared libraries.')
 
     def get_asneeded_args(self) -> T.List[str]:
         return []
@@ -969,7 +970,7 @@ class CompCertDynamicLinker(DynamicLinker):
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str, darwin_versions: T.Tuple[str, str],
                         is_shared_module: bool) -> T.List[str]:
-        raise mesonlib.MesonException(f'{self.id} does not support shared libraries.')
+        raise MesonException(f'{self.id} does not support shared libraries.')
 
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: str, build_rpath: str,
@@ -1029,7 +1030,7 @@ class ArmDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         return False
 
     def get_std_shared_lib_args(self) -> 'T.NoReturn':
-        raise mesonlib.MesonException('The Arm Linkers do not support shared libraries')
+        raise MesonException('The Arm Linkers do not support shared libraries')
 
     def get_allow_undefined_args(self) -> T.List[str]:
         return []
