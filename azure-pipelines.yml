@@ -6,6 +6,28 @@ trigger:
     - 'master'
     # Release branches
     - '0.*'
+  paths:
+    include:
+      - 'mesonbuild'
+      - 'test cases'
+      - 'azure-pipelines.yml'
+      - 'ci/azure-steps.yml'
+      - 'run_project_tests.py'
+      - 'run_tests.py'
+      - 'run_unittests.py'
+pr:
+  branches:
+    include:
+    - '*'
+  paths:
+    include:
+      - 'mesonbuild'
+      - 'test cases'
+      - 'azure-pipelines.yml'
+      - 'ci/azure-steps.yml'
+      - 'run_project_tests.py'
+      - 'run_tests.py'
+      - 'run_unittests.py'
 
 variables:
   CI: 1
