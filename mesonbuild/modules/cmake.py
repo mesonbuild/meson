@@ -109,6 +109,8 @@ class CMakeSubproject(ModuleObject):
     @stringArgs
     def dependency(self, state, args, kwargs):
         info = self._args_to_info(args)
+        if info['func'] == 'executable':
+            raise InvalidArguments(f'{args[0]} is an executable and does not support the dependency() method. Use target() instead.')
         orig = self.get_variable(state, [info['dep']], {})
         assert isinstance(orig, dependencies.Dependency)
         actual = orig.include_type
