@@ -21,3 +21,7 @@ test('test2', exe2)
 # Test if we can also extract executables
 assert(sub_pro.target_type('testEXE') == 'executable', 'The type must be executable for obvious reasons')
 test('test3', sub_pro.target('testEXE'))
+
+# Test that we can add a new target with the same name as the CMake subproject
+exe4 = executable('testEXE', ['main.cpp'], dependencies: [sub_sta])
+test('test4', exe4)
