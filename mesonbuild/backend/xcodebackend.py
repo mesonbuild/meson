@@ -1565,7 +1565,7 @@ class XCodeBackend(backends.Backend):
                 pchs = [pch for pch in pchs if pch.endswith('.h') or pch.endswith('.hh') or pch.endswith('hpp')]
                 if pchs:
                     if len(pchs) > 1:
-                        mlog.warning('Unsupported Xcode configuration: More than 1 precompiled header found "{}". Target "{}" might not compile correctly.'.format(str(pchs), target.name))
+                        mlog.warning(f'Unsupported Xcode configuration: More than 1 precompiled header found "{pchs!s}". Target "{target.name}" might not compile correctly.')
                     relative_pch_path = os.path.join(target.get_subdir(), pchs[0]) # Path relative to target so it can be used with "$(PROJECT_DIR)"
                     settings_dict.add_item('GCC_PRECOMPILE_PREFIX_HEADER', 'YES')
                     settings_dict.add_item('GCC_PREFIX_HEADER', f'"$(PROJECT_DIR)/{relative_pch_path}"')
