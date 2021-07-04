@@ -135,8 +135,7 @@ class ConfigToolDependency(ExternalDependency):
         if p.returncode != 0:
             if self.required:
                 raise DependencyException(
-                    'Could not generate {} for {}.\n{}'.format(
-                        stage, self.name, err))
+                    f'Could not generate {stage} for {self.name}.\n{err}')
             return []
         return split_args(out)
 

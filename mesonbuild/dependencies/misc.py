@@ -188,8 +188,7 @@ class Python3DependencySystem(SystemDependency):
             elif pycc.startswith(('i686', 'i386')):
                 return '32'
             else:
-                mlog.log('MinGW Python built with unknown CC {!r}, please file'
-                         'a bug'.format(pycc))
+                mlog.log(f'MinGW Python built with unknown CC {pycc!r}, please file a bug')
                 return None
         elif pyplat == 'win32':
             return '32'
@@ -399,8 +398,8 @@ class ShadercDependency(SystemDependency):
                 self.is_found = True
 
                 if self.static and lib != static_lib:
-                    mlog.warning('Static library {!r} not found for dependency {!r}, may '
-                                 'not be statically linked'.format(static_lib, self.name))
+                    mlog.warning(f'Static library {static_lib!r} not found for dependency '
+                                 f'{self.name!r}, may not be statically linked')
 
                 break
 

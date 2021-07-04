@@ -406,8 +406,8 @@ class DynamicLinker(metaclass=abc.ABCMeta):
         return []
 
     def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
-        m = 'Language {} does not support has_multi_link_arguments.'
-        raise mesonlib.EnvironmentException(m.format(self.id))
+        m = f'Language {self.id} does not support has_multi_link_arguments.'
+        raise mesonlib.EnvironmentException(m)
 
     def get_debugfile_name(self, targetfile: str) -> str:
         '''Name of debug file written out (see below)'''
@@ -432,8 +432,8 @@ class DynamicLinker(metaclass=abc.ABCMeta):
         # TODO: this really needs to take a boolean and return the args to
         # disable pie, otherwise it only acts to enable pie if pie *isn't* the
         # default.
-        m = 'Linker {} does not support position-independent executable'
-        raise mesonlib.EnvironmentException(m.format(self.id))
+        m = f'Linker {self.id} does not support position-independent executable'
+        raise mesonlib.EnvironmentException(m)
 
     def get_lto_args(self) -> T.List[str]:
         return []

@@ -90,8 +90,8 @@ class BasicLinkerIsCompilerMixin(Compiler):
             f'Linker {self.id} does not support allow undefined')
 
     def get_pie_link_args(self) -> T.List[str]:
-        m = 'Linker {} does not support position-independent executable'
-        raise mesonlib.EnvironmentException(m.format(self.id))
+        m = f'Linker {self.id} does not support position-independent executable'
+        raise mesonlib.EnvironmentException(m)
 
     def get_undefined_link_args(self) -> T.List[str]:
         return []

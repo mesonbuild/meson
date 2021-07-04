@@ -38,10 +38,10 @@ def array_arg(value: str) -> T.List[str]:
 
 def validate_builddir(builddir: Path) -> None:
     if not (builddir / 'meson-private' / 'coredata.dat' ).is_file():
-        raise MesonException('Current directory is not a meson build directory: `{}`.\n'
+        raise MesonException(f'Current directory is not a meson build directory: `{builddir}`.\n'
                              'Please specify a valid build dir or change the working directory to it.\n'
                              'It is also possible that the build directory was generated with an old\n'
-                             'meson version. Please regenerate it in this case.'.format(builddir))
+                             'meson version. Please regenerate it in this case.')
 
 def get_backend_from_coredata(builddir: Path) -> str:
     """

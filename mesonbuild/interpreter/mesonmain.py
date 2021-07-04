@@ -98,12 +98,12 @@ class MesonMain(MesonInterpreterObject):
                 new = True
             else:
                 raise InterpreterException(
-                    'Arguments to {} must be strings, Files, or CustomTargets, '
-                    'Indexes of CustomTargets'.format(name))
+                   f'Arguments to {name} must be strings, Files, or CustomTargets, '
+                    'Indexes of CustomTargets')
         if new:
             FeatureNew.single_use(
-                'Calling "{}" with File, CustomTaget, Index of CustomTarget, '
-                'Executable, or ExternalProgram'.format(name),
+                f'Calling "{name}" with File, CustomTaget, Index of CustomTarget, '
+                'Executable, or ExternalProgram',
                 '0.55.0', self.interpreter.subproject)
         return script_args
 

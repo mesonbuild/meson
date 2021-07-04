@@ -222,9 +222,8 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
         __has_include which breaks with GCC-Fortran 10:
         https://github.com/mesonbuild/meson/issues/7017
         '''
-        fargs = {'prefix': prefix, 'header': hname}
-        code = '{prefix}\n#include <{header}>'
-        return self.compiles(code.format(**fargs), env, extra_args=extra_args,
+        code = f'{prefix}\n#include <{hname}>'
+        return self.compiles(code, env, extra_args=extra_args,
                              dependencies=dependencies, mode='preprocess', disable_cache=disable_cache)
 
 

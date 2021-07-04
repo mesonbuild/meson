@@ -55,9 +55,8 @@ _T = T.TypeVar('_T')
 class MesonVersionMismatchException(MesonException):
     '''Build directory generated with Meson version is incompatible with current version'''
     def __init__(self, old_version: str, current_version: str) -> None:
-        super().__init__('Build directory has been generated with Meson version {}, '
-                         'which is incompatible with the current version {}.'
-                         .format(old_version, current_version))
+        super().__init__(f'Build directory has been generated with Meson version {old_version}, '
+                         f'which is incompatible with the current version {current_version}.')
         self.old_version = old_version
         self.current_version = current_version
 
@@ -237,7 +236,7 @@ class UserArrayOption(UserOption[T.List[str]]):
             mlog.deprecation(msg)
         for i in newvalue:
             if not isinstance(i, str):
-                raise MesonException('String array element "{}" is not a string.'.format(str(newvalue)))
+                raise MesonException(f'String array element "{newvalue!s}" is not a string.')
         if self.choices:
             bad = [x for x in newvalue if x not in self.choices]
             if bad:
@@ -521,8 +520,7 @@ class CoreData:
     def sanitize_prefix(self, prefix):
         prefix = os.path.expanduser(prefix)
         if not os.path.isabs(prefix):
-            raise MesonException('prefix value {!r} must be an absolute path'
-                                 ''.format(prefix))
+            raise MesonException(f'prefix value {prefix!r} must be an absolute path')
         if prefix.endswith('/') or prefix.endswith('\\'):
             # On Windows we need to preserve the trailing slash if the
             # string is of type 'C:\' because 'C:' is not an absolute path.
@@ -904,7 +902,7 @@ class MachineFileParser():
             except MesonException:
                 raise EnvironmentException(f'Malformed value in machine file variable {entry!r}.')
             except KeyError as e:
-                raise EnvironmentException('Undefined constant {!r} in machine file variable {!r}.'.format(e.args[0], entry))
+                raise EnvironmentException(f'Undefined constant {e.args[0]!r} in machine file variable {entry!r}.')
             section[entry] = res
             self.scope[entry] = res
         return section
@@ -1007,9 +1005,9 @@ def load(build_dir: str) -> CoreData:
         raise MesonException(load_fail_msg)
     except (ModuleNotFoundError, AttributeError):
         raise MesonException(
-            "Coredata file {!r} references functions or classes that don't "
+            f"Coredata file {filename!r} references functions or classes that don't "
             "exist. This probably means that it was generated with an old "
-            "version of meson.".format(filename))
+            "version of meson.")
     if not isinstance(obj, CoreData):
         raise MesonException(load_fail_msg)
     if major_versions_differ(obj.version, version):
@@ -1070,7 +1068,7 @@ def parse_cmd_line_options(args: argparse.Namespace) -> None:
             if key in args.cmd_line_options:
                 cmdline_name = BuiltinOption.argparse_name_to_arg(name)
                 raise MesonException(
-                    'Got argument {0} as both -D{0} and {1}. Pick one.'.format(name, cmdline_name))
+                    f'Got argument {name} as both -D{name} and {cmdline_name}. Pick one.')
             args.cmd_line_options[key] = value
             delattr(args, name)
 
