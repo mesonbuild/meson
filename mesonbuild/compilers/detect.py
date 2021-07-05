@@ -548,15 +548,14 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
                 if version != 'unknown version':
                     break
             else:
-                m = 'Failed to detect MSVC compiler version: stderr was\n{!r}'
-                raise EnvironmentException(m.format(err))
+                raise EnvironmentException(f'Failed to detect MSVC compiler version: stderr was\n{err!r}')
             cl_signature = lookat.split('\n')[0]
             match = re.search(r'.*(x86|x64|ARM|ARM64)([^_A-Za-z0-9]|$)', cl_signature)
             if match:
                 target = match.group(1)
             else:
-                m = 'Failed to detect MSVC compiler target architecture: \'cl /?\' output is\n{}'
-                raise EnvironmentException(m.format(cl_signature))
+                m = f'Failed to detect MSVC compiler target architecture: \'cl /?\' output is\n{cl_signature}'
+                raise EnvironmentException(m)
             cls = VisualStudioCCompiler if lang == 'c' else VisualStudioCPPCompiler
             linker = guess_win_linker(env, ['link'], cls, for_machine)
             return cls(
@@ -1049,8 +1048,8 @@ def detect_d_compiler(env: 'Environment', for_machine: MachineChoice) -> Compile
         # up to date language version at time (2016).
         if os.path.basename(exelist[-1]).startswith(('ldmd', 'gdmd')):
             raise EnvironmentException(
-                'Meson does not support {} as it is only a DMD frontend for another compiler.'
-                'Please provide a valid value for DC or unset it so that Meson can resolve the compiler by itself.'.format(exelist[-1]))
+                f'Meson does not support {exelist[-1]} as it is only a DMD frontend for another compiler.'
+                'Please provide a valid value for DC or unset it so that Meson can resolve the compiler by itself.')
         try:
             p, out = Popen_safe(exelist + ['--version'])[0:2]
         except OSError as e:

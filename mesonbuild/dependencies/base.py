@@ -373,8 +373,8 @@ class ExternalDependency(Dependency, HasNativeKwarg):
                 mlog.log(*found_msg)
 
                 if self.required:
-                    m = 'Unknown version of dependency {!r}, but need {!r}.'
-                    raise DependencyException(m.format(self.name, self.version_reqs))
+                    m = f'Unknown version of dependency {self.name!r}, but need {self.version_reqs!r}.'
+                    raise DependencyException(m)
 
             else:
                 (self.is_found, not_found, found) = \

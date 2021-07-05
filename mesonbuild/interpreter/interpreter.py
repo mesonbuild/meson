@@ -786,8 +786,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             cmd = exelist[0]
             prog = ExternalProgram(cmd, silent=True)
             if not prog.found():
-                raise InterpreterException('Program {!r} not found '
-                                           'or not executable'.format(cmd))
+                raise InterpreterException(f'Program {cmd!r} not found or not executable')
             cmd = prog
             expanded_args = exelist[1:]
         else:
@@ -799,8 +798,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             search_dir = os.path.join(srcdir, self.subdir)
             prog = ExternalProgram(cmd, silent=True, search_dir=search_dir)
             if not prog.found():
-                raise InterpreterException('Program or command {!r} not found '
-                                           'or not executable'.format(cmd))
+                raise InterpreterException(f'Program or command {cmd!r} not found or not executable')
             cmd = prog
         for a in listify(cargs):
             if isinstance(a, str):
@@ -1407,8 +1405,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 search_dir = source_dir
                 extra_search_dirs = search_dirs
             else:
-                raise InvalidArguments('find_program only accepts strings and '
-                                       'files, not {!r}'.format(exename))
+                raise InvalidArguments(f'find_program only accepts strings and files, not {exename!r}')
             extprog = ExternalProgram(exename, search_dir=search_dir,
                                       extra_search_dirs=extra_search_dirs,
                                       silent=True)
@@ -1433,11 +1430,9 @@ external dependencies (including libraries) must go to "dependencies".''')
 
     def add_find_program_override(self, name, exe):
         if name in self.build.searched_programs:
-            raise InterpreterException('Tried to override finding of executable "%s" which has already been found.'
-                                       % name)
+            raise InterpreterException(f'Tried to override finding of executable "{name}" which has already been found.')
         if name in self.build.find_overrides:
-            raise InterpreterException('Tried to override executable "%s" which has already been overridden.'
-                                       % name)
+            raise InterpreterException(f'Tried to override executable "{name}" which has already been overridden.')
         self.build.find_overrides[name] = exe
 
     def notfound_program(self, args):
@@ -2186,9 +2181,9 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
                 if confdata_useless:
                     ifbase = os.path.basename(inputs_abs[0])
                     mlog.warning('Got an empty configuration_data() object and found no '
-                                 'substitutions in the input file {!r}. If you want to '
+                                 f'substitutions in the input file {ifbase!r}. If you want to '
                                  'copy a file to the build dir, use the \'copy:\' keyword '
-                                 'argument added in 0.47.0'.format(ifbase), location=node)
+                                 'argument added in 0.47.0', location=node)
             else:
                 mesonlib.dump_conf_header(ofile_abs, conf.conf_data, output_format)
             conf.mark_used()
@@ -2432,12 +2427,12 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     def _add_global_arguments(self, node: mparser.FunctionNode, argsdict: T.Dict[str, T.List[str]],
                               args: T.List[str], kwargs: 'kwargs.FuncAddProjectArgs') -> None:
         if self.is_subproject():
-            msg = 'Function \'{}\' cannot be used in subprojects because ' \
+            msg = f'Function \'{node.func_name}\' cannot be used in subprojects because ' \
                   'there is no way to make that reliable.\nPlease only call ' \
                   'this if is_subproject() returns false. Alternatively, ' \
                   'define a variable that\ncontains your language-specific ' \
                   'arguments and add it to the appropriate *_args kwarg ' \
-                  'in each target.'.format(node.func_name)
+                  'in each target.'
             raise InvalidCode(msg)
         frozen = self.project_args_frozen or self.global_args_frozen
         self._add_arguments(node, argsdict, frozen, args, kwargs)
@@ -2452,9 +2447,8 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     def _add_arguments(self, node: mparser.FunctionNode, argsdict: T.Dict[str, T.List[str]],
                        args_frozen: bool, args: T.List[str], kwargs: 'kwargs.FuncAddProjectArgs') -> None:
         if args_frozen:
-            msg = 'Tried to use \'{}\' after a build target has been declared.\n' \
-                  'This is not permitted. Please declare all ' \
-                  'arguments before your targets.'.format(node.func_name)
+            msg = f'Tried to use \'{node.func_name}\' after a build target has been declared.\n' \
+                  'This is not permitted. Please declare all arguments before your targets.'
             raise InvalidCode(msg)
 
         self._warn_about_builtin_args(args)

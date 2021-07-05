@@ -177,7 +177,7 @@ class CudaDependency(SystemDependency):
             else:
                 mlog.warning(f'Could not detect CUDA Toolkit version for {path}')
         except Exception as e:
-            mlog.warning('Could not detect CUDA Toolkit version for {}: {}'.format(path, str(e)))
+            mlog.warning(f'Could not detect CUDA Toolkit version for {path}: {e!s}')
 
         return '0.0'
 
@@ -208,7 +208,7 @@ class CudaDependency(SystemDependency):
                 if m:
                     return self._strip_patch_version(m.group(1))
         except Exception as e:
-            mlog.debug('Could not read CUDA Toolkit\'s version file {}: {}'.format(version_file_path, str(e)))
+            mlog.debug(f'Could not read CUDA Toolkit\'s version file {version_file_path}: {e!s}')
 
         return None
 

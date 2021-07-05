@@ -132,7 +132,7 @@ class FeatureOptionHolder(ObjectHolder[coredata.UserFeatureOption]):
 
         assert isinstance(error_message, str)
         if self.value == 'enabled':
-            prefix = 'Feature {} cannot be enabled'.format(self.held_object.name)
+            prefix = f'Feature {self.held_object.name} cannot be enabled'
             prefix = prefix + ': ' if error_message else ''
             raise InterpreterException(prefix + error_message)
         return self.as_disabled()
@@ -340,10 +340,10 @@ class ConfigurationDataObject(MutableInterpreterObject, MesonInterpreterObject):
             raise InterpreterException("Can not set values on configuration object that has been used.")
         name, val = args
         if not isinstance(val, (int, str)):
-            msg = 'Setting a configuration data value to {!r} is invalid, ' \
+            msg = f'Setting a configuration data value to {val!r} is invalid, ' \
                   'and will fail at configure_file(). If you are using it ' \
                   'just to store some values, please use a dict instead.'
-            mlog.deprecation(msg.format(val), location=self.current_node)
+            mlog.deprecation(msg, location=self.current_node)
         desc = kwargs.get('description', None)
         if not isinstance(name, str):
             raise InterpreterException("First argument to set must be a string.")

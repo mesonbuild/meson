@@ -675,13 +675,11 @@ The result of this is undefined and will become a hard error in a future Meson r
     @staticmethod
     def _get_one_string_posarg(posargs: T.List[TYPE_var], method_name: str) -> str:
         if len(posargs) > 1:
-            m = '{}() must have zero or one arguments'
-            raise InterpreterException(m.format(method_name))
+            raise InterpreterException(f'{method_name}() must have zero or one arguments')
         elif len(posargs) == 1:
             s = posargs[0]
             if not isinstance(s, str):
-                m = '{}() argument must be a string'
-                raise InterpreterException(m.format(method_name))
+                raise InterpreterException(f'{method_name}() argument must be a string')
             return s
         return None
 
@@ -820,8 +818,7 @@ The result of this is undefined and will become a hard error in a future Meson r
                     return self.evaluate_statement(fallback)
                 return fallback
             return obj[index]
-        m = 'Arrays do not have a method called {!r}.'
-        raise InterpreterException(m.format(method_name))
+        raise InterpreterException(f'Arrays do not have a method called {method_name!r}.')
 
     @builtinMethodNoKwargs
     def dict_method_call(self,

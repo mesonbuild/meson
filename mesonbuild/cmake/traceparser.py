@@ -157,7 +157,7 @@ class CMakeTraceParser:
         # First load the trace (if required)
         if not self.requires_stderr():
             if not self.trace_file_path.exists and not self.trace_file_path.is_file():
-                raise CMakeException('CMake: Trace file "{}" not found'.format(str(self.trace_file_path)))
+                raise CMakeException(f'CMake: Trace file "{self.trace_file_path!s}" not found')
             trace = self.trace_file_path.read_text(errors='ignore', encoding='utf-8')
         if not trace:
             raise CMakeException('CMake: The CMake trace was not provided or is empty')
@@ -652,7 +652,7 @@ class CMakeTraceParser:
         if not args:
             mlog.error('Invalid preload.cmake script! At least one argument to `meson_ps_disabled_function` is expected')
             return
-        mlog.warning('The CMake function "{}" was disabed to avoid compatibility issues with Meson.'.format(args[0]))
+        mlog.warning(f'The CMake function "{args[0]}" was disabled to avoid compatibility issues with Meson.')
 
     def _lex_trace_human(self, trace: str) -> T.Generator[CMakeTraceLine, None, None]:
         # The trace format is: '<file>(<line>):  <func>(<args -- can contain \n> )\n'

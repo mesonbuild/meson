@@ -258,11 +258,11 @@ def check_direntry_issues(direntry_array: T.Union[T.List[T.Union[str, bytes]], s
         for de in direntry_array:
             if is_ascii_string(de):
                 continue
-            mlog.warning(textwrap.dedent('''
-                You are using {!r} which is not a Unicode-compatible
-                locale but you are trying to access a file system entry called {!r} which is
+            mlog.warning(textwrap.dedent(f'''
+                You are using {e!r} which is not a Unicode-compatible
+                locale but you are trying to access a file system entry called {de!r} which is
                 not pure ASCII. This may cause problems.
-                '''.format(e, de)), file=sys.stderr)
+                '''), file=sys.stderr)
 
 
 # Put this in objects that should not get dumped to pickle files
@@ -330,11 +330,9 @@ class FileMode:
             return -1
         eg = 'rwxr-xr-x'
         if not isinstance(perms_s, str):
-            msg = 'Install perms must be a string. For example, {!r}'
-            raise MesonException(msg.format(eg))
+            raise MesonException(f'Install perms must be a string. For example, {eg!r}')
         if len(perms_s) != 9 or not cls.symbolic_perms_regex.match(perms_s):
-            msg = 'File perms {!r} must be exactly 9 chars. For example, {!r}'
-            raise MesonException(msg.format(perms_s, eg))
+            raise MesonException(f'File perms {perms_s!r} must be exactly 9 chars. For example, {eg!r}')
         perms = 0
         # Owner perms
         if perms_s[0] == 'r':
@@ -1126,9 +1124,9 @@ def do_replacement(regex: T.Pattern[str], line: str, variable_format: str,
                 elif isinstance(var, int):
                     var_str = str(var)
                 else:
-                    msg = 'Tried to replace variable {!r} value with ' \
-                          'something other than a string or int: {!r}'
-                    raise MesonException(msg.format(varname, var))
+                    msg = f'Tried to replace variable {varname!r} value with ' \
+                          f'something other than a string or int: {var!r}'
+                    raise MesonException(msg)
             else:
                 missing_variables.add(varname)
             return var_str
@@ -1227,7 +1225,7 @@ def do_conf_file(src: str, dst: str, confdata: 'ConfigurationData', variable_for
         with open(src, encoding=encoding, newline='') as f:
             data = f.readlines()
     except Exception as e:
-        raise MesonException('Could not read input file {}: {}'.format(src, str(e)))
+        raise MesonException(f'Could not read input file {src}: {e!s}')
 
     (result, missing_variables, confdata_useless) = do_conf_str(src, data, confdata, variable_format, encoding)
     dst_tmp = dst + '~'
@@ -1235,7 +1233,7 @@ def do_conf_file(src: str, dst: str, confdata: 'ConfigurationData', variable_for
         with open(dst_tmp, 'w', encoding=encoding, newline='') as f:
             f.writelines(result)
     except Exception as e:
-        raise MesonException('Could not write output file {}: {}'.format(dst, str(e)))
+        raise MesonException(f'Could not write output file {dst}: {e!s}')
     shutil.copymode(src, dst_tmp)
     replace_if_different(dst, dst_tmp)
     return missing_variables, confdata_useless
@@ -1451,15 +1449,14 @@ def _substitute_values_check_errors(command: T.List[str], values: T.Dict[str, st
         # Error out if any input-derived templates are present in the command
         match = iter_regexin_iter(inregex, command)
         if match:
-            m = 'Command cannot have {!r}, since no input files were specified'
-            raise MesonException(m.format(match))
+            raise MesonException(f'Command cannot have {match!r}, since no input files were specified')
     else:
         if len(values['@INPUT@']) > 1:
             # Error out if @PLAINNAME@ or @BASENAME@ is present in the command
             match = iter_regexin_iter(inregex[1:], command)
             if match:
-                raise MesonException('Command cannot have {!r} when there is '
-                                     'more than one input file'.format(match))
+                raise MesonException(f'Command cannot have {match!r} when there is '
+                                     'more than one input file')
         # Error out if an invalid @INPUTnn@ template was specified
         for each in command:
             if not isinstance(each, str):

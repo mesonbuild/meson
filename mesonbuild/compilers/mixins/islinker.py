@@ -22,7 +22,7 @@ classes for those cases.
 
 import typing as T
 
-from ... import mesonlib
+from ...mesonlib import EnvironmentException, MesonException, is_windows
 
 if T.TYPE_CHECKING:
     from ...coredata import KeyedOptionDictType
@@ -52,7 +52,7 @@ class BasicLinkerIsCompilerMixin(Compiler):
         return []
 
     def can_linker_accept_rsp(self) -> bool:
-        return mesonlib.is_windows()
+        return is_windows()
 
     def get_linker_exelist(self) -> T.List[str]:
         return self.exelist.copy()
@@ -82,16 +82,13 @@ class BasicLinkerIsCompilerMixin(Compiler):
         return self.get_std_shared_lib_link_args()
 
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
-        raise mesonlib.EnvironmentException(
-            f'Linker {self.id} does not support link_whole')
+        raise EnvironmentException(f'Linker {self.id} does not support link_whole')
 
     def get_allow_undefined_link_args(self) -> T.List[str]:
-        raise mesonlib.EnvironmentException(
-            f'Linker {self.id} does not support allow undefined')
+        raise EnvironmentException(f'Linker {self.id} does not support allow undefined')
 
     def get_pie_link_args(self) -> T.List[str]:
-        m = 'Linker {} does not support position-independent executable'
-        raise mesonlib.EnvironmentException(m.format(self.id))
+        raise EnvironmentException(f'Linker {self.id} does not support position-independent executable')
 
     def get_undefined_link_args(self) -> T.List[str]:
         return []
@@ -103,13 +100,13 @@ class BasicLinkerIsCompilerMixin(Compiler):
         return []
 
     def bitcode_args(self) -> T.List[str]:
-        raise mesonlib.MesonException("This linker doesn't support bitcode bundles")
+        raise MesonException("This linker doesn't support bitcode bundles")
 
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str,
                         darwin_versions: T.Tuple[str, str],
                         is_shared_module: bool) -> T.List[str]:
-        raise mesonlib.MesonException("This linker doesn't support soname args")
+        raise MesonException("This linker doesn't support soname args")
 
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: str, build_rpath: str,
