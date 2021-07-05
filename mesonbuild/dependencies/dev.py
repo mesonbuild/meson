@@ -219,7 +219,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
         # the C linker works fine if only using the C API.
         super().__init__(name, environment, kwargs, language='cpp')
         self.provided_modules: T.List[str] = []
-        self.required_modules: T.Set[str]  = set()
+        self.required_modules: mesonlib.OrderedSet[str]  = mesonlib.OrderedSet()
         self.module_details:   T.List[str] = []
         if not self.is_found:
             return
@@ -230,7 +230,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
         opt_modules = stringlistify(extract_as_list(kwargs, 'optional_modules'))
         self.check_components(opt_modules, required=False)
 
-        cargs = set(self.get_config_value(['--cppflags'], 'compile_args'))
+        cargs = mesonlib.OrderedSet(self.get_config_value(['--cppflags'], 'compile_args'))
         self.compile_args = list(cargs.difference(self.__cpp_blacklist))
 
         if version_compare(self.version, '>= 3.9'):
