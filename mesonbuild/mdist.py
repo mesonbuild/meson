@@ -56,11 +56,13 @@ def create_hash(fname):
 
 
 def del_gitfiles(dirname):
+    gitfiles = ('.git', '.gitattributes', '.gitignore', '.gitmodules')
     for f in glob(os.path.join(dirname, '.git*')):
-        if os.path.isdir(f) and not os.path.islink(f):
-            windows_proof_rmtree(f)
-        else:
-            os.unlink(f)
+        if os.path.split(f)[1] in gitfiles:
+            if os.path.isdir(f) and not os.path.islink(f):
+                windows_proof_rmtree(f)
+            else:
+                os.unlink(f)
 
 def process_submodules(dirname):
     module_file = os.path.join(dirname, '.gitmodules')

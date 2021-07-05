@@ -14,5 +14,6 @@ test('test1', exe1)
 test('test2', exe2)
 
 # Test if we can also extract executables
-assert(sub_pro.target_type('testEXE') == 'executable', 'The type must be executable for obvious reasons')
-test('test3', sub_pro.target('testEXE'))
+assert(sub_pro.target_type('meson-testEXE') == 'executable', 'The type must be executable for obvious reasons')
+test('test3', sub_pro.target('meson-testEXE'))
+test('test4', sub_pro.target('benchmark'))

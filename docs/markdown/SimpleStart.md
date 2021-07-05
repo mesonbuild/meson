@@ -100,22 +100,22 @@ Double click the downloaded installer to start. If you are running a
 new macOS version, it might refuse to run the application with the
 following error message:
 
-![A macOS signing warning](images/mac_meson2.png)
+![A macOS signing warning](images/meson_mac2.png)
 
 This can be fixed by starting System Preferences, selecting the
 Security and Privacy entry. At the bottom it shows the blocked app and
 you can enable it by clicking on the "Open anyway" button.
 
-![Security settings](images/mac_meson3.png)
+![Security settings](images/meson_mac3.png)
 
 Now the installer should start. If not, double click on the downloaded
 installer file again.
 
-![Installer running](images/mac_meson4.png)
+![Installer running](images/meson_mac4.png)
 
 Once the installation is finished you can verify that the system is working via the terminal app.
 
-![A successful install](images/mac_meson5.png)
+![A successful install](images/meson_mac5.png)
 
 ## Running Meson
 

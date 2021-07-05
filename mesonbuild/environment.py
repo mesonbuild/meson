@@ -524,7 +524,7 @@ class Environment:
         if self.coredata.cross_files:
             config = coredata.parse_machine_files(self.coredata.cross_files)
             properties.host = Properties(config.get('properties', {}))
-            binaries.host = BinaryTable(config.get('binaries', {}))
+            binaries.host = BinaryTable(self._find_binaries_relative(config.get('binaries', {})))
             cmakevars.host = CMakeVariables(config.get('cmake', {}))
             if 'host_machine' in config:
                 machines.host = MachineInfo.from_literal(config['host_machine'])
@@ -572,6 +572,17 @@ class Environment:
         self.default_cmake = ['cmake']
         self.default_pkgconfig = ['pkg-config']
         self.wrap_resolver = None
+    
+    def _find_binaries_relative(self, binaries: dict) -> dict:
+        """Adds the current working directory in front of the binary if it is declared with a relative path.""" 
+        cwd = os.getcwd()
+        for key, value in binaries.items():
+            binary_path, binary_name = os.path.split(value)
+            if binary_path and not os.path.isabs(value):                    
+                binary_with_path = os.path.normpath(os.path.join(cwd, value))
+                if os.path.exists(binary_with_path):                        
+                    binaries[key] = binary_with_path
+        return binaries
 
     def _load_machine_file_options(self, config: 'ConfigParser', properties: Properties, machine: MachineChoice) -> None:
         """Read the contents of a Machine file and put it in the options store."""

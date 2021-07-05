@@ -386,6 +386,12 @@ class Runner:
         if not self.wrap.type:
             return True
 
+        if self.wrap.redirected:
+            redirect_file = Path(self.wrap.original_filename).resolve()
+            if self.options.confirm:
+                redirect_file.unlink()
+            mlog.log(f'Deleting {redirect_file}')
+
         if self.wrap.type == 'redirect':
             redirect_file = Path(self.wrap.filename).resolve()
             if self.options.confirm:
@@ -416,7 +422,7 @@ class Runner:
             # parallelized, another thread could have deleted it already.
             try:
                 if not any(packagecache.iterdir()):
-                    packagecache.rmdir()
+                    windows_proof_rmtree(str(packagecache))
             except FileNotFoundError:
                 pass
 

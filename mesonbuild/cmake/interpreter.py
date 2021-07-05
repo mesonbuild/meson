@@ -26,6 +26,7 @@ from ..mesonlib import MachineChoice, OrderedSet, version_compare, path_is_in_ro
 from ..mesondata import mesondata
 from ..compilers.compilers import assembler_suffixes, lang_suffixes, header_suffixes, obj_suffixes, lib_suffixes, is_header
 from ..programs import ExternalProgram
+from ..coredata import FORBIDDEN_TARGET_NAMES
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
@@ -120,7 +121,9 @@ transfer_dependencies_from = ['header_only']
 _cmake_name_regex = re.compile(r'[^_a-zA-Z0-9]')
 def _sanitize_cmake_name(name: str) -> str:
     name = _cmake_name_regex.sub('_', name)
-    return 'cm_' + name
+    if name in FORBIDDEN_TARGET_NAMES or name.startswith('meson'):
+        name = 'cm_' + name
+    return name
 
 class OutputTargetMap:
     rm_so_version = re.compile(r'(\.[0-9]+)+$')
