@@ -577,20 +577,20 @@ class Environment:
         """Adds the current working directory in front of the binary if it is declared with a relative path."""
         cwd = os.getcwd()
         for key, value in binaries.items():
-            # if the binary entry is a list the first item is expected to be the executable
-            if type(value) is list:
-                binary = value[0]
-            else:
-                binary = value
-
-            binary_path, binary_name = os.path.split(binary)
-            if binary_path and not os.path.isabs(binary):
-                binary_with_path = os.path.normpath(os.path.join(cwd, binary))
-                if os.path.exists(binary_with_path):
-                    if type(value) is list:
-                        # restore the list with the binary entry
-                        binary_with_path = [binary_with_path] + value[1:]
-                    binaries[key] = binary_with_path
+            if value:
+                if type(value) is list:
+                    # if the binary entry is a list the first item is expected to be the executables
+                    binary = value[0]
+                else:
+                    binary = value
+                binary_path, binary_name = os.path.split(binary)
+                if binary_path and not os.path.isabs(binary):
+                    binary_with_path = os.path.normpath(os.path.join(cwd, binary))
+                    if os.path.exists(binary_with_path):
+                        if type(value) is list:
+                            # restore the list with the binary entry
+                            binary_with_path = [binary_with_path] + value[1:]
+                        binaries[key] = binary_with_path
         return binaries
 
     def _load_machine_file_options(self, config: 'ConfigParser', properties: Properties, machine: MachineChoice) -> None:
