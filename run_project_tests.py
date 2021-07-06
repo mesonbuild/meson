@@ -1386,33 +1386,32 @@ def check_meson_commands_work(use_tmpdir: bool, extra_args: T.List[str]) -> None
 def detect_system_compiler(options: 'CompilerArgumentType') -> None:
     global host_c_compiler, compiler_id_map
 
-    with TemporaryDirectoryWinProof(prefix='b ', dir=None if options.use_tmpdir else '.') as build_dir:
-        fake_opts = get_fake_options('/')
-        if options.cross_file:
-            fake_opts.cross_file = [options.cross_file]
-        if options.native_file:
-            fake_opts.native_file = [options.native_file]
+    fake_opts = get_fake_options('/')
+    if options.cross_file:
+        fake_opts.cross_file = [options.cross_file]
+    if options.native_file:
+        fake_opts.native_file = [options.native_file]
 
-        env = environment.Environment(None, build_dir, fake_opts)
+    env = environment.Environment(None, None, fake_opts)
 
-        print_compilers(env, MachineChoice.HOST)
-        if options.cross_file:
-            print_compilers(env, MachineChoice.BUILD)
+    print_compilers(env, MachineChoice.HOST)
+    if options.cross_file:
+        print_compilers(env, MachineChoice.BUILD)
 
-        for lang in sorted(compilers.all_languages):
-            try:
-                comp = compiler_from_language(env, lang, MachineChoice.HOST)
-                # note compiler id for later use with test.json matrix
-                compiler_id_map[lang] = comp.get_id()
-            except mesonlib.MesonException:
-                comp = None
+    for lang in sorted(compilers.all_languages):
+        try:
+            comp = compiler_from_language(env, lang, MachineChoice.HOST)
+            # note compiler id for later use with test.json matrix
+            compiler_id_map[lang] = comp.get_id()
+        except mesonlib.MesonException:
+            comp = None
 
-            # note C compiler for later use by platform_fix_name()
-            if lang == 'c':
-                if comp:
-                    host_c_compiler = comp.get_id()
-                else:
-                    raise RuntimeError("Could not find C compiler.")
+        # note C compiler for later use by platform_fix_name()
+        if lang == 'c':
+            if comp:
+                host_c_compiler = comp.get_id()
+            else:
+                raise RuntimeError("Could not find C compiler.")
 
 
 def print_compilers(env: 'Environment', machine: MachineChoice) -> None:
