@@ -269,7 +269,6 @@ def determine_archives_to_generate(options):
     return result
 
 def run(options):
-    options.wd = os.path.abspath(options.wd)
     buildfile = Path(options.wd) / 'meson-private' / 'build.dat'
     if not buildfile.is_file():
         raise MesonException(f'Directory {options.wd!r} does not seem to be a Meson build directory.')

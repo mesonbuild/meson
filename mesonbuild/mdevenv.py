@@ -37,7 +37,6 @@ def get_env(b: build.Build, build_dir: str) -> T.Dict[str, str]:
     return extra_env.get_env(env)
 
 def run(options: argparse.Namespace) -> int:
-    options.wd = os.path.abspath(options.wd)
     buildfile = Path(options.wd) / 'meson-private' / 'build.dat'
     if not buildfile.is_file():
         raise MesonException(f'Directory {options.wd!r} does not seem to be a Meson build directory.')
