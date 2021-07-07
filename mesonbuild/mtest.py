@@ -1486,8 +1486,7 @@ class TestHarness:
 
         startdir = os.getcwd()
         try:
-            if self.options.wd:
-                os.chdir(self.options.wd)
+            os.chdir(self.options.wd)
             self.build_data = build.load(os.getcwd())
             if not self.options.setup:
                 self.options.setup = self.build_data.test_setup_default_name
@@ -1657,8 +1656,7 @@ class TestHarness:
         self.name_max_len = max([uniwidth(self.get_pretty_suite(test)) for test in tests])
         startdir = os.getcwd()
         try:
-            if self.options.wd:
-                os.chdir(self.options.wd)
+            os.chdir(self.options.wd)
             runners = []             # type: T.List[SingleTestRunner]
             for i in range(self.options.repeat):
                 runners.extend(self.get_test_runner(test) for test in tests)
