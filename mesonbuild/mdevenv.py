@@ -4,12 +4,12 @@ import tempfile
 
 from pathlib import Path
 from . import build
-from .mesonlib import MesonException, is_windows
+from .mesonlib import MesonException, RealPathAction, is_windows
 
 import typing as T
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument('-C', default='.', dest='wd',
+    parser.add_argument('-C', dest='wd', action=RealPathAction,
                         help='directory to cd into before running')
     parser.add_argument('command', nargs=argparse.REMAINDER,
                         help='Command to run in developer environment (default: interactive shell)')

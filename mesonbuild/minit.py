@@ -139,7 +139,8 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     Meson project.
     '''
     parser.add_argument("srcfiles", metavar="sourcefile", nargs="*", help="source files. default: all recognized files in current directory")
-    parser.add_argument('-C', default='.', dest='wd', help='directory to cd into before running')
+    parser.add_argument('-C', dest='wd', action=mesonlib.RealPathAction,
+                        help='directory to cd into before running')
     parser.add_argument("-n", "--name", help="project name. default: name of current directory")
     parser.add_argument("-e", "--executable", help="executable name. default: project name")
     parser.add_argument("-d", "--deps", help="dependencies, comma-separated")
