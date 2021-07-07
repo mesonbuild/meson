@@ -3,9 +3,10 @@
     "options": {
       "method": [
         { "val": "pkg-config" },
-        { "val": "config-tool" },
-        { "val": "system" }
+        { "val": "config-tool", "skip_on_jobname": ["msys2"] },
+        { "val": "system", "skip_on_os": ["windows"] }
       ]
     }
-  }
+  },
+  "skip_on_jobname": ["azure", "cygwin"]
 }

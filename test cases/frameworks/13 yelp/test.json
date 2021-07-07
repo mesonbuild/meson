@@ -18,5 +18,6 @@
     {"type": "file", "file": "usr/share/help/es/meson-linguas/index.page"},
     {"type": "file", "file": "usr/share/help/de/meson-linguas/index.page"},
     {"type": "file", "file": "usr/share/help/de/meson-linguas/media/test.txt"}
-  ]
+  ],
+  "skip_on_jobname": ["azure", "cygwin", "macos", "msys2"]
 }
