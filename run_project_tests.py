@@ -962,12 +962,6 @@ def skip_dont_care(t: TestDef) -> bool:
     if not t.category.endswith('frameworks'):
         return True
 
-    # For the moment, all skips in jobs which don't set MESON_CI_JOBNAME are
-    # treated as expected.  In the future, we should make it mandatory to set
-    # MESON_CI_JOBNAME for all CI jobs.
-    if ci_jobname is None:
-        return True
-
     return False
 
 def skip_csharp(backend: Backend) -> bool:
@@ -1490,6 +1484,9 @@ def clear_transitive_files() -> None:
             mesonlib.windows_proof_rm(str(d))
 
 if __name__ == '__main__':
+    if under_ci and not ci_jobname:
+        raise SystemExit('Running under CI but MESON_CI_JOBNAME is not set')
+
     setup_vsenv()
 
     try:
