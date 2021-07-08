@@ -22,9 +22,9 @@ def _unholder(obj: T.Union[TYPE_var, InterpreterObject], *, permissive: bool = F
     if isinstance(obj, (int, bool, str)):
         return obj
     elif isinstance(obj, list):
-        return [_unholder(x) for x in obj]
+        return [_unholder(x, permissive=permissive) for x in obj]
     elif isinstance(obj, dict):
-        return {k: _unholder(v) for k, v in obj.items()}
+        return {k: _unholder(v, permissive=permissive) for k, v in obj.items()}
     elif isinstance(obj, ObjectHolder):
         assert isinstance(obj.held_object, HoldableObject)
         return obj.held_object
