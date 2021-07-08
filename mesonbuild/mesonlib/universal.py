@@ -1467,8 +1467,8 @@ def _substitute_values_check_errors(command: T.List[str], values: T.Dict[str, T.
         # Error out if any output-derived templates are present in the command
         match = iter_regexin_iter(outregex, command)
         if match:
-            m = 'Command cannot have {!r} since there are no outputs'
-            raise MesonException(m.format(match))
+            m = f'Command cannot have {match!r} since there are no outputs'
+            raise MesonException(m)
     else:
         # Error out if an invalid @OUTPUTnn@ template was specified
         for each in command:

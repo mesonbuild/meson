@@ -75,14 +75,12 @@ def autodetect_options(options: 'argparse.Namespace', sample: bool = False) -> N
     if not options.name:
         options.name = Path().resolve().stem
         if not re.match('[a-zA-Z_][a-zA-Z0-9]*', options.name) and sample:
-            raise SystemExit('Name of current directory "{}" is not usable as a sample project name.\n'
-                             'Specify a project name with --name.'.format(options.name))
-        print('Using "{}" (name of current directory) as project name.'
-              .format(options.name))
+            raise SystemExit(f'Name of current directory "{options.name}" is not usable as a sample project name.\n'
+                             'Specify a project name with --name.')
+        print(f'Using "{options.name}" (name of current directory) as project name.')
     if not options.executable:
         options.executable = options.name
-        print('Using "{}" (project name) as name of executable to build.'
-              .format(options.executable))
+        print(f'Using "{options.executable}" (project name) as name of executable to build.')
     if sample:
         # The rest of the autodetection is not applicable to generating sample projects.
         return

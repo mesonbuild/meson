@@ -406,8 +406,7 @@ class HotDocModule(ExtensionModule):
             from hotdoc.run_hotdoc import run  # noqa: F401
             self.hotdoc.run_hotdoc = run
         except Exception as e:
-            raise MesonException('hotdoc {} required but not found. ({})'.format(
-                MIN_HOTDOC_VERSION, e))
+            raise MesonException(f'hotdoc {MIN_HOTDOC_VERSION} required but not found. ({e})')
         self.methods.update({
             'has_extensions': self.has_extensions,
             'generate_doc': self.generate_doc,

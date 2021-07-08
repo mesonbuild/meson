@@ -230,7 +230,7 @@ class I18nModule(ExtensionModule):
         lang_arg = '--langs=' + '@@'.join(languages) if languages else None
 
         _datadirs = ':'.join(self._get_data_dirs(state, kwargs['data_dirs']))
-        datadirs = '--datadirs={}'.format(_datadirs) if _datadirs else None
+        datadirs = f'--datadirs={_datadirs}' if _datadirs else None
 
         extra_args = kwargs['args']
         targets: T.List['Target'] = []

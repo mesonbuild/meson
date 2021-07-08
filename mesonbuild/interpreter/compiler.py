@@ -719,7 +719,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         result, cached = self.compiler.has_func_attribute(attr, self.environment)
         cached_msg = mlog.blue('(cached)') if cached else ''
         h = mlog.green('YES') if result else mlog.red('NO')
-        mlog.log('Compiler for {} supports function attribute {}:'.format(self.compiler.get_display_language(), attr), h, cached_msg)
+        mlog.log(f'Compiler for {self.compiler.get_display_language()} supports function attribute {attr}:', h, cached_msg)
         return result
 
     @FeatureNew('compiler.has_function_attribute', '0.48.0')

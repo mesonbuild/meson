@@ -307,7 +307,7 @@ class CmakeModule(ExtensionModule):
             with open(infile, encoding='utf-8') as fin:
                 data = fin.readlines()
         except Exception as e:
-            raise mesonlib.MesonException('Could not read input file {}: {}'.format(infile, str(e)))
+            raise mesonlib.MesonException(f'Could not read input file {infile}: {e!s}')
 
         result = []
         regex = re.compile(r'(?:\\\\)+(?=\\?@)|\\@|@([-a-zA-Z0-9_]+)@')

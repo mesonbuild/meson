@@ -205,10 +205,10 @@ class GnomeModule(ExtensionModule):
                         '<https://bugzilla.gnome.org/show_bug.cgi?id=774368>'
                     raise MesonException(m)
             else:
-                m = 'Unexpected dependency type {!r} for gnome.compile_resources() ' \
+                m = f'Unexpected dependency type {dep!r} for gnome.compile_resources() ' \
                     '"dependencies" argument.\nPlease pass the return value of ' \
                     'custom_target() or configure_file()'
-                raise MesonException(m.format(dep))
+                raise MesonException(m)
 
         if not mesonlib.version_compare(glib_version, gresource_dep_needed_version):
             ifile = args[1]
@@ -327,8 +327,8 @@ class GnomeModule(ExtensionModule):
         except (FileNotFoundError, PermissionError):
             raise MesonException('Could not execute glib-compile-resources.')
         if pc.returncode != 0:
-            m = 'glib-compile-resources failed to get dependencies for {}:\n{}'
-            mlog.warning(m.format(cmd[1], stderr))
+            m = f'glib-compile-resources failed to get dependencies for {cmd[1]}:\n{stderr}'
+            mlog.warning(m)
             raise subprocess.CalledProcessError(pc.returncode, cmd)
 
         dep_files = stdout.split('\n')[:-1]
@@ -1224,8 +1224,8 @@ class GnomeModule(ExtensionModule):
         if not mesonlib.version_compare(glib_version, '>= 2.49.1'):
             # Warn if requested, silently disable if not
             if 'autocleanup' in kwargs:
-                mlog.warning('Glib version ({}) is too old to support the \'autocleanup\' '
-                             'kwarg, need 2.49.1 or newer'.format(glib_version))
+                mlog.warning(f'Glib version ({glib_version}) is too old to support the \'autocleanup\' '
+                             'kwarg, need 2.49.1 or newer')
             return []
         autocleanup = kwargs.pop('autocleanup', 'all')
         values = ('none', 'objects', 'all')
@@ -1518,7 +1518,7 @@ class GnomeModule(ExtensionModule):
             fhead += '%s\n' % body_prefix
         fhead += '#include "%s"\n' % hdr_filename
         for hdr in sources:
-            fhead += '#include "%s"\n' % os.path.basename(str(hdr))
+            fhead += '#include "{}"\n'.format(os.path.basename(str(hdr)))
         fhead += '''
 #define C_ENUM(v) ((gint) v)
 #define C_FLAGS(v) ((guint) v)
@@ -1529,12 +1529,12 @@ class GnomeModule(ExtensionModule):
 /* enumerations from "@basename@" */
 '''
 
-        c_file_kwargs['vhead'] = '''
+        c_file_kwargs['vhead'] = f'''
 GType
-%s@enum_name@_get_type (void)
-{
+{func_prefix}@enum_name@_get_type (void)
+{{
   static gsize gtype_id = 0;
-  static const G@Type@Value values[] = {''' % func_prefix
+  static const G@Type@Value values[] = {{'''
 
         c_file_kwargs['vprod'] = '    { C_@TYPE@(@VALUENAME@), "@VALUENAME@", "@valuenick@" },'
 
@@ -1553,22 +1553,22 @@ GType
         # .h file generation
         h_file_kwargs = copy.deepcopy(mkenums_kwargs)
 
-        h_file_kwargs['fhead'] = '''#pragma once
+        h_file_kwargs['fhead'] = f'''#pragma once
 
 #include <glib-object.h>
-{}
+{header_prefix}
 
 G_BEGIN_DECLS
-'''.format(header_prefix)
+'''
 
         h_file_kwargs['fprod'] = '''
 /* enumerations from "@basename@" */
 '''
 
-        h_file_kwargs['vhead'] = '''
-{}
-GType {}@enum_name@_get_type (void);
-#define @ENUMPREFIX@_TYPE_@ENUMSHORT@ ({}@enum_name@_get_type())'''.format(decl_decorator, func_prefix, func_prefix)
+        h_file_kwargs['vhead'] = f'''
+{decl_decorator}
+GType {func_prefix}@enum_name@_get_type (void);
+#define @ENUMPREFIX@_TYPE_@ENUMSHORT@ ({func_prefix}@enum_name@_get_type())'''
 
         h_file_kwargs['ftail'] = '''
 G_END_DECLS'''
@@ -1630,9 +1630,7 @@ G_END_DECLS'''
             elif arg in known_kwargs and value:
                 cmd += ['--' + arg.replace('_', '-')]
             elif arg not in known_custom_target_kwargs:
-                raise MesonException(
-                    'Genmarshal does not take a {} keyword argument.'.format(
-                        arg))
+                raise MesonException(f'Genmarshal does not take a {arg} keyword argument.')
 
         install_header = kwargs.pop('install_header', False)
         install_dir = kwargs.pop('install_dir', None)

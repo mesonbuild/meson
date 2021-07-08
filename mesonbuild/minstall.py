@@ -181,8 +181,8 @@ def sanitize_permissions(path: str, umask: T.Union[str, int]) -> None:
     try:
         set_chmod(path, new_perms, follow_symlinks=False)
     except PermissionError as e:
-        msg = '{!r}: Unable to set permissions {!r}: {}, ignoring...'
-        print(msg.format(path, new_perms, e.strerror))
+        msg = f'{path!r}: Unable to set permissions {new_perms!r}: {e.strerror}, ignoring...'
+        print(msg)
 
 
 def set_mode(path: str, mode: T.Optional['FileMode'], default_umask: T.Union[str, int]) -> None:
@@ -195,15 +195,15 @@ def set_mode(path: str, mode: T.Optional['FileMode'], default_umask: T.Union[str
         try:
             set_chown(path, mode.owner, mode.group, follow_symlinks=False)
         except PermissionError as e:
-            msg = '{!r}: Unable to set owner {!r} and group {!r}: {}, ignoring...'
-            print(msg.format(path, mode.owner, mode.group, e.strerror))
+            msg = f'{path!r}: Unable to set owner {mode.owner!r} and group {mode.group!r}: {e.strerror}, ignoring...'
+            print(msg)
         except LookupError:
-            msg = '{!r}: Non-existent owner {!r} or group {!r}: ignoring...'
-            print(msg.format(path, mode.owner, mode.group))
+            msg = f'{path!r}: Non-existent owner {mode.owner!r} or group {mode.group!r}: ignoring...'
+            print(msg)
         except OSError as e:
             if e.errno == errno.EINVAL:
-                msg = '{!r}: Non-existent numeric owner {!r} or group {!r}: ignoring...'
-                print(msg.format(path, mode.owner, mode.group))
+                msg = f'{path!r}: Non-existent numeric owner {mode.owner!r} or group {mode.group!r}: ignoring...'
+                print(msg)
             else:
                 raise
     # Must set permissions *after* setting owner/group otherwise the
@@ -213,8 +213,8 @@ def set_mode(path: str, mode: T.Optional['FileMode'], default_umask: T.Union[str
         try:
             set_chmod(path, mode.perms, follow_symlinks=False)
         except PermissionError as e:
-            msg = '{!r}: Unable to set permissions {!r}: {}, ignoring...'
-            print(msg.format(path, mode.perms_s, e.strerror))
+            msg = '{path!r}: Unable to set permissions {mode.perms_s!r}: {e.strerror}, ignoring...'
+            print(msg)
     else:
         sanitize_permissions(path, default_umask)
 
@@ -400,15 +400,13 @@ class Installer:
                     makedirs: T.Optional[T.Tuple[T.Any, str]] = None) -> bool:
         outdir = os.path.split(to_file)[0]
         if not os.path.isfile(from_file) and not os.path.islink(from_file):
-            raise RuntimeError('Tried to install something that isn\'t a file:'
-                               '{!r}'.format(from_file))
+            raise RuntimeError(f'Tried to install something that isn\'t a file: {from_file!r}')
         # copyfile fails if the target file already exists, so remove it to
         # allow overwriting a previous install. If the target is not a file, we
         # want to give a readable error.
         if os.path.exists(to_file):
             if not os.path.isfile(to_file):
-                raise RuntimeError('Destination {!r} already exists and is not '
-                                   'a file'.format(to_file))
+                raise RuntimeError(f'Destination {to_file!r} already exists and is not a file')
             if self.should_preserve_existing_file(from_file, to_file):
                 append_to_log(self.lf, f'# Preserving old file {to_file}\n')
                 self.preserved_file_count += 1

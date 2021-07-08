@@ -141,8 +141,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
             elif pycc.startswith(('i686', 'i386')):
                 return '32'
             else:
-                mlog.log('MinGW Python built with unknown CC {!r}, please file'
-                         'a bug'.format(pycc))
+                mlog.log(f'MinGW Python built with unknown CC {pycc!r}, please file a bug')
                 return None
         elif self.platform == 'win32':
             return '32'
@@ -199,8 +198,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
             return
         # Pyarch ends in '32' or '64'
         if arch != pyarch:
-            mlog.log('Need', mlog.bold(self.name), 'for {}-bit, but '
-                     'found {}-bit'.format(arch, pyarch))
+            mlog.log('Need', mlog.bold(self.name), f'for {arch}-bit, but found {pyarch}-bit')
             self.is_found = False
             return
         # This can fail if the library is not found

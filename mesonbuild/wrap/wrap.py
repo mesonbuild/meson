@@ -118,7 +118,7 @@ class PackageDefinition:
             config = configparser.ConfigParser(interpolation=None)
             config.read(self.filename)
         except configparser.Error as e:
-            raise WrapException('Failed to parse {}: {}'.format(self.basename, str(e)))
+            raise WrapException(f'Failed to parse {self.basename}: {e!s}')
         self.parse_wrap_section(config)
         if self.type == 'redirect':
             # [wrap-redirect] have a `filename` value pointing to the real wrap
@@ -149,8 +149,8 @@ class PackageDefinition:
             raise WrapException(f'Missing sections in {self.basename}')
         self.wrap_section = config.sections()[0]
         if not self.wrap_section.startswith('wrap-'):
-            m = '{!r} is not a valid first section in {}'
-            raise WrapException(m.format(self.wrap_section, self.basename))
+            m = f'{self.wrap_section!r} is not a valid first section in {self.basename}'
+            raise WrapException(m)
         self.type = self.wrap_section[5:]
         self.values = dict(config[self.wrap_section])
 
@@ -169,18 +169,18 @@ class PackageDefinition:
                     self.provided_programs += names_list
                     continue
                 if not v:
-                    m = ('Empty dependency variable name for {!r} in {}. '
+                    m = (f'Empty dependency variable name for {k!r} in {self.basename}. '
                          'If the subproject uses meson.override_dependency() '
                          'it can be added in the "dependency_names" special key.')
-                    raise WrapException(m.format(k, self.basename))
+                    raise WrapException(m)
                 self.provided_deps[k] = v
 
     def get(self, key: str) -> str:
         try:
             return self.values[key]
         except KeyError:
-            m = 'Missing key {!r} in {}'
-            raise WrapException(m.format(key, self.basename))
+            m = f'Missing key {key!r} in {self.basename}'
+            raise WrapException(m)
 
 def get_directory(subdir_root: str, packagename: str) -> str:
     fname = os.path.join(subdir_root, packagename + '.wrap')
@@ -234,14 +234,14 @@ class Resolver:
             for k in wrap.provided_deps.keys():
                 if k in self.provided_deps:
                     prev_wrap = self.provided_deps[k]
-                    m = 'Multiple wrap files provide {!r} dependency: {} and {}'
-                    raise WrapException(m.format(k, wrap.basename, prev_wrap.basename))
+                    m = f'Multiple wrap files provide {k!r} dependency: {wrap.basename} and {prev_wrap.basename}'
+                    raise WrapException(m)
                 self.provided_deps[k] = wrap
             for k in wrap.provided_programs:
                 if k in self.provided_programs:
                     prev_wrap = self.provided_programs[k]
-                    m = 'Multiple wrap files provide {!r} program: {} and {}'
-                    raise WrapException(m.format(k, wrap.basename, prev_wrap.basename))
+                    m = f'Multiple wrap files provide {k!r} program: {wrap.basename} and {prev_wrap.basename}'
+                    raise WrapException(m)
                 self.provided_programs[k] = wrap
 
     def merge_wraps(self, other_resolver: 'Resolver') -> None:
@@ -279,8 +279,8 @@ class Resolver:
         self.directory = packagename
         self.wrap = self.wraps.get(packagename)
         if not self.wrap:
-            m = 'Neither a subproject directory nor a {}.wrap file was found.'
-            raise WrapNotFoundException(m.format(self.packagename))
+            m = f'Neither a subproject directory nor a {self.packagename}.wrap file was found.'
+            raise WrapNotFoundException(m)
         self.directory = self.wrap.directory
 
         if self.wrap.has_wrap:
@@ -387,8 +387,8 @@ class Resolver:
         elif out == '':
             # It is not a submodule, just a folder that exists in the main repository.
             return False
-        m = 'Unknown git submodule output: {!r}'
-        raise WrapException(m.format(out))
+        m = f'Unknown git submodule output: {out!r}'
+        raise WrapException(m)
 
     def get_file(self) -> None:
         path = self.get_file_internal('source')
@@ -568,8 +568,8 @@ class Resolver:
 
     def apply_patch(self) -> None:
         if 'patch_filename' in self.wrap.values and 'patch_directory' in self.wrap.values:
-            m = 'Wrap file {!r} must not have both "patch_filename" and "patch_directory"'
-            raise WrapException(m.format(self.wrap.basename))
+            m = f'Wrap file {self.wrap.basename!r} must not have both "patch_filename" and "patch_directory"'
+            raise WrapException(m)
         if 'patch_filename' in self.wrap.values:
             path = self.get_file_internal('patch')
             try:
