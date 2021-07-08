@@ -7,7 +7,7 @@ compilation](Cross-compilation.md) and [native
 environments](Native-environments.md).
 
 *Changed in 0.56.0* Keys within sections are now case sensitive. This
-*is required to make project options work correctly.
+is required to make project options work correctly.
 
 ## Data Types
 
@@ -144,8 +144,8 @@ linker for Meson to invoke, such as `link.exe` or `lld-link.exe`.
 Support for `ld` is *new in 0.53.0*
 
 *changed in 0.53.1* the `ld` variable was replaced by `<lang>_ld`,
-*because it regressed a large number of projects. in 0.53.0 the `ld`
-*variable was used instead.
+because it regressed a large number of projects. in 0.53.0 the `ld`
+variable was used instead.
 
 Native example:
 
@@ -268,7 +268,7 @@ following code in the CMake toolchain file:
 
 ```cmake
 set(CMAKE_C_COMPILER    "/usr/bin/gcc")
-set(CMAKE_C_COMPILER    "C:/usr/bin/g++")
+set(CMAKE_CXX_COMPILER  "C:/usr/bin/g++")
 set(CMAKE_SOME_VARIABLE "some" "value with spaces")
 ```
 
