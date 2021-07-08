@@ -77,6 +77,8 @@ echo "=== Start running tests ==="
 # does that by default so we need to forward it.
 cmd /c "python 2>&1 ./tools/run_with_cov.py  run_tests.py --backend $env:backend $env:extraargs"
 
+$result = $LastExitCode
+
 echo ""
 echo ""
 echo "=== Gathering coverage report ==="
@@ -91,3 +93,5 @@ python3 -m coverage report
 git clone https://github.com/mensinda/codecov-python
 python3 -m pip install --ignore-installed ./codecov-python
 python3 -m codecov -f .coverage/coverage.xml -n "VS$env:compiler $env:arch $env:backend" -c $env:SOURCE_VERSION
+
+exit $result
