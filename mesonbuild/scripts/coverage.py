@@ -84,7 +84,19 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
             exitcode = 1
 
     if not outputs or 'html' in outputs:
-        if lcov_exe and genhtml_exe:
+        if gcovr_exe:
+            htmloutdir = os.path.join(log_dir, 'coveragereport')
+            if not os.path.isdir(htmloutdir):
+                os.mkdir(htmloutdir)
+            subprocess.check_call(gcovr_base_cmd +
+                                  ['--html',
+                                   '--html-details',
+                                   '--print-summary',
+                                   '-e', subproject_root,
+                                   '-o', os.path.join(htmloutdir, 'index.html'),
+                                   ])
+            outfiles.append(('Html', pathlib.Path(htmloutdir, 'index.html')))
+        elif lcov_exe and genhtml_exe:
             htmloutdir = os.path.join(log_dir, 'coveragereport')
             covinfo = os.path.join(log_dir, 'coverage.info')
             initial_tracefile = covinfo + '.initial'
