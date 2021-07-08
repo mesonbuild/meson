@@ -4333,9 +4333,11 @@ class AllPlatformTests(BasePlatformTests):
             self.assertEqual(obj.options[OptionKey('default_library')].value, 'shared')
         self.wipe()
 
-        # Should warn on unknown options
-        out = self.init(testdir, extra_args=['-Dbad=1', '-Dfoo=2', '-Dwrong_link_args=foo'])
-        self.assertIn('Unknown options: "bad, foo, wrong_link_args"', out)
+        # Should fail on unknown options
+        with self.assertRaises((subprocess.CalledProcessError, RuntimeError)) as cm:
+            self.init(testdir, extra_args=['-Dbad=1', '-Dfoo=2', '-Dwrong_link_args=foo'])
+            self.assertNotEqual(0, cm.exception.returncode)
+            self.assertIn(msg, cm.exception.output)
         self.wipe()
 
         # Should fail on malformed option

@@ -758,7 +758,7 @@ class CoreData:
                 except KeyError:
                     continue
 
-    def set_options(self, options: T.Dict[OptionKey, T.Any], subproject: str = '', warn_unknown: bool = True) -> None:
+    def set_options(self, options: T.Dict[OptionKey, T.Any], subproject: str = '') -> None:
         if not self.is_cross_build():
             options = {k: v for k, v in options.items() if k.machine is not MachineChoice.BUILD}
         # Set prefix first because it's needed to sanitize other options
@@ -778,12 +778,11 @@ class CoreData:
                 unknown_options.append(k)
             else:
                 self.set_option(k, v)
-        if unknown_options and warn_unknown:
+        if unknown_options:
             unknown_options_str = ', '.join(sorted(str(s) for s in unknown_options))
             sub = f'In subproject {subproject}: ' if subproject else ''
-            mlog.warning(f'{sub}Unknown options: "{unknown_options_str}"')
-            mlog.log('The value of new options can be set with:')
-            mlog.log(mlog.bold('meson setup <builddir> --reconfigure -Dnew_option=new_value ...'))
+            raise MesonException(f'{sub}Unknown options: "{unknown_options_str}"')
+
         if not self.is_cross_build():
             self.copy_build_options_from_regular_ones()
 
