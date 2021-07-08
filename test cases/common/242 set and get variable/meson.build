@@ -41,6 +41,8 @@ assert(get_variable('var9') == 'test2.txt')
 assert(not is_disabler(get_variable('var0')))
 assert(not is_disabler(get_variable('var0', var8)))
 assert(not is_disabler(get_variable('----', var8)))
+assert(not is_disabler(get_variable('----', [var8])))
+assert(not is_disabler(get_variable('----', {'asd': var8})))
 
 # test dict get
 dict = {'a': var2}
