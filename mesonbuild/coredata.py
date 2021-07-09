@@ -774,10 +774,10 @@ class CoreData:
         for k, v in options.items():
             if k == pfk:
                 continue
-            elif k not in self.options:
-                unknown_options.append(k)
-            else:
+            elif k in self.options:
                 self.set_option(k, v)
+            elif k.machine != MachineChoice.BUILD:
+                unknown_options.append(k)
         if unknown_options:
             unknown_options_str = ', '.join(sorted(str(s) for s in unknown_options))
             sub = f'In subproject {subproject}: ' if subproject else ''
