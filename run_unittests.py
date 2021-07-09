@@ -3324,8 +3324,6 @@ class AllPlatformTests(BasePlatformTests):
         if cc.get_id() == 'clang':
             if is_windows():
                 raise unittest.SkipTest('LTO not (yet) supported by windows clang')
-            else:
-                extra_args.append('-D_cargs=-Werror=unused-command-line-argument')
 
         self.init(testdir, extra_args=['-Db_lto=true', '-Db_lto_threads=8'] + extra_args)
         self.build()
