@@ -79,7 +79,8 @@ def setup_vsenv() -> None:
             '-requires', 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64',
             '-products', '*',
             '-format',
-            'json'
+            'json',
+            '-utf8'
         ]
     )
     bat_info = json.loads(bat_json)
