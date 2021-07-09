@@ -54,10 +54,6 @@ def setup_vsenv() -> None:
         return
     if shutil.which('gcc'):
         return
-    if shutil.which('clang'):
-        return
-    if shutil.which('clang-cl'):
-        return
     if os.environ.get('OSTYPE', bat_placeholder) == 'cygwin':
         return
     if 'Visual Studio' in os.environ['PATH']:
