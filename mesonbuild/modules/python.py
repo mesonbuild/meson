@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from os import name
 from pathlib import Path
 import os
 import json
@@ -27,7 +28,7 @@ from ..environment import detect_cpu_family
 from ..interpreter import ExternalProgramHolder, extract_required_kwarg, permitted_dependency_kwargs
 from ..interpreterbase import (
     noPosargs, noKwargs, permittedKwargs,
-    InvalidArguments,
+    InvalidArguments, typed_pos_args,
     FeatureNew, FeatureNewKwargs, disablerIfNotFound
 )
 from ..mesonlib import MachineChoice, MesonException
@@ -525,7 +526,8 @@ class PythonModule(ExtensionModule):
     @FeatureNewKwargs('python.find_installation', '0.51.0', ['modules'])
     @disablerIfNotFound
     @permittedKwargs({'required', 'modules'})
-    def find_installation(self, state: 'ModuleState', args: T.List['TYPE_var'],
+    @typed_pos_args('python.find_installation', optargs=[str])
+    def find_installation(self, state: 'ModuleState', args: T.Tuple[T.Optional[str]],
                           kwargs: 'TYPE_kwargs') -> ExternalProgram:
         feature_check = FeatureNew('Passing "feature" option to find_installation', '0.48.0')
         disabled, required, feature = extract_required_kwarg(kwargs, state.subproject, feature_check)
@@ -533,14 +535,17 @@ class PythonModule(ExtensionModule):
         found_modules: T.List[str] = []
         missing_modules: T.List[str] = []
 
-        if len(args) > 1:
-            raise InvalidArguments('find_installation takes zero or one positional argument.')
-
-        name_or_path = state.environment.lookup_binary_entry(MachineChoice.HOST, 'python')
-        if name_or_path is None and args:
-            name_or_path = args[0]
-            if not isinstance(name_or_path, str):
-                raise InvalidArguments('find_installation argument must be a string.')
+        # FIXME: this code is *full* of sharp corners. It assumes that it's
+        # going to get a string value (or now a list of lenght 1), of `python2`
+        # or `python3` which is completely nonsense.  On windows the value could
+        # easily be `['py', '-3']`, or `['py', '-3.7']` to get a very specific
+        # version of python. On Linux we might want a python that's not in
+        # $PATH, or that uses a wrapper of some kind.
+        np: T.List[str] = state.environment.lookup_binary_entry(MachineChoice.HOST, 'python') or []
+        fallback = args[0]
+        if not np and fallback is not None:
+            np = [fallback]
+        name_or_path = np[0] if np else None
 
         if disabled:
             mlog.log('Program', name_or_path or 'python', 'found:', mlog.red('NO'), '(disabled by:', mlog.bold(feature), ')')
