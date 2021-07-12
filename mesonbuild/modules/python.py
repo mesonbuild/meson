@@ -23,7 +23,7 @@ from . import ExtensionModule
 from .. import mesonlib
 from .. import mlog
 from ..build import known_shmod_kwargs
-from ..dependencies import DependencyMethods, PkgConfigDependency, NotFoundDependency, SystemDependency
+from ..dependencies import DependencyMethods, PkgConfigDependency, NotFoundDependency, SystemDependency, ExtraFrameworkDependency
 from ..dependencies.base import process_method_kw
 from ..environment import detect_cpu_family
 from ..interpreter import ExternalProgramHolder, extract_required_kwarg, permitted_dependency_kwargs
@@ -79,6 +79,14 @@ class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
     def __init__(self, name: str, environment: 'Environment',
                  kwargs: T.Dict[str, T.Any], installation: 'PythonInstallation'):
         PkgConfigDependency.__init__(self, name, environment, kwargs)
+        _PythonDependencyBase.__init__(self, installation, kwargs.get('embed', False))
+
+
+class PythonFrameworkDependency(ExtraFrameworkDependency, _PythonDependencyBase):
+
+    def __init__(self, name: str, environment: 'Environment',
+                 kwargs: T.Dict[str, T.Any], installation: 'PythonInstallation'):
+        ExtraFrameworkDependency.__init__(self, name, environment, kwargs)
         _PythonDependencyBase.__init__(self, installation, kwargs.get('embed', False))
 
 
@@ -218,9 +226,9 @@ def python_factory(env: 'Environment', for_machine: 'MachineChoice',
     # extra installation argument
     embed = kwargs.get('embed', False)
     candidates: T.List['DependencyGenerator'] = []
+    pkg_version = installation.variables.get('LDVERSION') or installation.version
 
     if DependencyMethods.PKGCONFIG in methods:
-        pkg_version = installation.variables.get('LDVERSION') or installation.version
         pkg_libdir = installation.variables.get('LIBPC')
         pkg_embed = '-embed' if embed and mesonlib.version_compare(installation.version, '>=3.8') else ''
         pkg_name = f'python-{pkg_version}{pkg_embed}'
@@ -247,6 +255,14 @@ def python_factory(env: 'Environment', for_machine: 'MachineChoice',
 
     if DependencyMethods.SYSTEM in methods:
         candidates.append(functools.partial(PythonSystemDependency, 'python', env, kwargs, installation))
+
+    if DependencyMethods.EXTRAFRAMEWORK in methods:
+        nkwargs = kwargs.copy()
+        if mesonlib.version_compare(pkg_version, '>= 3'):
+            # There is a python in /System/Library/Frameworks, but thats python 2.x,
+            # Python 3 will always be in /Library
+            nkwargs['paths'] = ['/Library/Frameworks']
+        candidates.append(functools.partial(PythonFrameworkDependency, 'Python', env, nkwargs, installation))
 
     return candidates
 
