@@ -13,8 +13,9 @@
 # limitations under the License.
 
 from pathlib import Path
-import os
+import functools
 import json
+import os
 import shutil
 import typing as T
 
@@ -23,6 +24,7 @@ from .. import mesonlib
 from .. import mlog
 from ..build import known_shmod_kwargs
 from ..dependencies import DependencyMethods, PkgConfigDependency, NotFoundDependency, SystemDependency
+from ..dependencies.base import process_method_kw
 from ..environment import detect_cpu_family
 from ..interpreter import ExternalProgramHolder, extract_required_kwarg, permitted_dependency_kwargs
 from ..interpreterbase import (
@@ -30,13 +32,14 @@ from ..interpreterbase import (
     InvalidArguments, typed_pos_args, typed_kwargs, KwargInfo,
     FeatureNew, FeatureNewKwargs, disablerIfNotFound
 )
-from ..mesonlib import MachineChoice, MesonException
+from ..mesonlib import MachineChoice
 from ..programs import ExternalProgram, NonExistingExternalProgram
 
 if T.TYPE_CHECKING:
     from . import ModuleState
     from ..build import SharedModule, Data
-    from ..dependencies import ExternalDependency
+    from ..dependencies import ExternalDependency, Dependency
+    from ..dependencies.factory import DependencyGenerator
     from ..environment import Environment
     from ..interpreter import Interpreter
     from ..interpreterbase.interpreterbase import TYPE_var, TYPE_kwargs
@@ -49,17 +52,18 @@ mod_kwargs.update(known_shmod_kwargs)
 mod_kwargs -= {'name_prefix', 'name_suffix'}
 
 
-class PythonDependency(SystemDependency):
+if T.TYPE_CHECKING:
+    _Base = ExternalDependency
+else:
+    _Base = object
 
-    def __init__(self, python_holder: 'PythonInstallation', environment: 'Environment',
-                 kwargs: T.Dict[str, T.Any]):
-        super().__init__('python', environment, kwargs)
-        self.name = 'python'
-        self.static = kwargs.get('static', False)
-        self.embed = kwargs.get('embed', False)
-        self.version = python_holder.version
+class _PythonDependencyBase(_Base):
+
+    def __init__(self, python_holder: 'PythonInstallation', embed: bool):
+        self.name = 'python'  # override the name from the "real" dependency lookup
+        self.embed = embed
+        self.version: str = python_holder.version
         self.platform = python_holder.platform
-        self.pkgdep = None
         self.variables = python_holder.variables
         self.paths = python_holder.paths
         self.link_libpython = python_holder.link_libpython
@@ -69,73 +73,26 @@ class PythonDependency(SystemDependency):
         else:
             self.major_version = 2
 
-        # We first try to find the necessary python variables using pkgconfig
-        if DependencyMethods.PKGCONFIG in self.methods and not python_holder.is_pypy:
-            pkg_version = self.variables.get('LDVERSION') or self.version
-            pkg_libdir = self.variables.get('LIBPC')
-            pkg_embed = '-embed' if self.embed and mesonlib.version_compare(self.version, '>=3.8') else ''
-            pkg_name = f'python-{pkg_version}{pkg_embed}'
 
-            # If python-X.Y.pc exists in LIBPC, we will try to use it
-            if pkg_libdir is not None and Path(os.path.join(pkg_libdir, f'{pkg_name}.pc')).is_file():
-                old_pkg_libdir = os.environ.get('PKG_CONFIG_LIBDIR')
-                old_pkg_path = os.environ.get('PKG_CONFIG_PATH')
+class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
 
-                os.environ.pop('PKG_CONFIG_PATH', None)
+    def __init__(self, name: str, environment: 'Environment',
+                 kwargs: T.Dict[str, T.Any], installation: 'PythonInstallation'):
+        PkgConfigDependency.__init__(self, name, environment, kwargs)
+        _PythonDependencyBase.__init__(self, installation, kwargs.get('embed', False))
 
-                if pkg_libdir:
-                    os.environ['PKG_CONFIG_LIBDIR'] = pkg_libdir
 
-                try:
-                    self.pkgdep = PkgConfigDependency(pkg_name, environment, kwargs)
-                    mlog.debug(f'Found "{pkg_name}" via pkgconfig lookup in LIBPC ({pkg_libdir})')
-                    py_lookup_method = 'pkgconfig'
-                except MesonException as e:
-                    mlog.debug(f'"{pkg_name}" could not be found in LIBPC ({pkg_libdir})')
-                    mlog.debug(e)
+class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
 
-                if old_pkg_path is not None:
-                    os.environ['PKG_CONFIG_PATH'] = old_pkg_path
+    def __init__(self, name: str, environment: 'Environment',
+                 kwargs: T.Dict[str, T.Any], installation: 'PythonInstallation'):
+        SystemDependency.__init__(self, name, environment, kwargs)
+        _PythonDependencyBase.__init__(self, installation, kwargs.get('embed', False))
 
-                if old_pkg_libdir is not None:
-                    os.environ['PKG_CONFIG_LIBDIR'] = old_pkg_libdir
-                else:
-                    os.environ.pop('PKG_CONFIG_LIBDIR', None)
-            else:
-                mlog.debug(f'"{pkg_name}" could not be found in LIBPC ({pkg_libdir}), this is likely due to a relocated python installation')
-
-            # If lookup via LIBPC failed, try to use fallback PKG_CONFIG_LIBDIR/PKG_CONFIG_PATH mechanisms
-            if self.pkgdep is None or not self.pkgdep.found():
-                try:
-                    self.pkgdep = PkgConfigDependency(pkg_name, environment, kwargs)
-                    mlog.debug(f'Found "{pkg_name}" via fallback pkgconfig lookup in PKG_CONFIG_LIBDIR/PKG_CONFIG_PATH')
-                    py_lookup_method = 'pkgconfig-fallback'
-                except MesonException as e:
-                    mlog.debug(f'"{pkg_name}" could not be found via fallback pkgconfig lookup in PKG_CONFIG_LIBDIR/PKG_CONFIG_PATH')
-                    mlog.debug(e)
-
-        if self.pkgdep and self.pkgdep.found():
-            self.compile_args = self.pkgdep.get_compile_args()
-            self.link_args = self.pkgdep.get_link_args()
-            self.is_found = True
-            self.pcdep = self.pkgdep
+        if mesonlib.is_windows():
+            self._find_libpy_windows(environment)
         else:
-            self.pkgdep = None
-
-            # Finally, try to find python via SYSCONFIG as a final measure
-            if DependencyMethods.SYSCONFIG in self.methods:
-                if mesonlib.is_windows():
-                    self._find_libpy_windows(environment)
-                else:
-                    self._find_libpy(python_holder, environment)
-                if self.is_found:
-                    mlog.debug(f'Found "python-{self.version}" via SYSCONFIG module')
-                    py_lookup_method = 'sysconfig'
-
-        if self.is_found:
-            mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.green(f'YES ({py_lookup_method})'))
-        else:
-            mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.red('NO'))
+            self._find_libpy(installation, environment)
 
     def _find_libpy(self, python_holder: 'PythonInstallation', environment: 'Environment') -> None:
         if python_holder.is_pypy:
@@ -253,20 +210,45 @@ class PythonDependency(SystemDependency):
 
         self.is_found = True
 
-    @staticmethod
-    def get_methods() -> T.List[DependencyMethods]:
-        if mesonlib.is_windows():
-            return [DependencyMethods.PKGCONFIG, DependencyMethods.SYSCONFIG]
-        elif mesonlib.is_osx():
-            return [DependencyMethods.PKGCONFIG, DependencyMethods.EXTRAFRAMEWORK]
-        else:
-            return [DependencyMethods.PKGCONFIG, DependencyMethods.SYSCONFIG]
 
-    def get_pkgconfig_variable(self, variable_name: str, kwargs: T.Dict[str, T.Any]) -> str:
-        if self.pkgdep:
-            return self.pkgdep.get_pkgconfig_variable(variable_name, kwargs)
-        else:
-            return super().get_pkgconfig_variable(variable_name, kwargs)
+def python_factory(env: 'Environment', for_machine: 'MachineChoice',
+                   kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods],
+                   installation: 'PythonInstallation') -> T.List['DependencyGenerator']:
+    # We can't use the factory_methods decorator here, as we need to pass the
+    # extra installation argument
+    embed = kwargs.get('embed', False)
+    candidates: T.List['DependencyGenerator'] = []
+
+    if DependencyMethods.PKGCONFIG in methods:
+        pkg_version = installation.variables.get('LDVERSION') or installation.version
+        pkg_libdir = installation.variables.get('LIBPC')
+        pkg_embed = '-embed' if embed and mesonlib.version_compare(installation.version, '>=3.8') else ''
+        pkg_name = f'python-{pkg_version}{pkg_embed}'
+
+        # If python-X.Y.pc exists in LIBPC, we will try to use it
+        def wrap_in_pythons_pc_dir(name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
+                                   installation: 'PythonInstallation') -> 'ExternalDependency':
+            old_pkg_libdir = os.environ.pop('PKG_CONFIG_LIBDIR', None)
+            old_pkg_path = os.environ.pop('PKG_CONFIG_PATH', None)
+            if pkg_libdir:
+                os.environ['PKG_CONFIG_LIBDIR'] = pkg_libdir
+            try:
+                return PythonPkgConfigDependency(name, env, kwargs, installation)
+            finally:
+                if old_pkg_libdir is not None:
+                    os.environ['PKG_CONFIG_LIBDIR'] = old_pkg_libdir
+                if old_pkg_path is not None:
+                    os.environ['PKG_CONFIG_PATH'] = old_pkg_path
+
+        candidates.extend([
+            functools.partial(wrap_in_pythons_pc_dir, pkg_name, env, kwargs, installation),
+            functools.partial(PythonPkgConfigDependency, pkg_name, env, kwargs, installation)
+        ])
+
+    if DependencyMethods.SYSTEM in methods:
+        candidates.append(functools.partial(PythonSystemDependency, 'python', env, kwargs, installation))
+
+    return candidates
 
 
 INTROSPECT_COMMAND = '''\
@@ -388,7 +370,7 @@ class PythonInstallation(ExternalProgramHolder):
         if not self.link_libpython:
             new_deps = []
             for dep in mesonlib.extract_as_list(kwargs, 'dependencies'):
-                if isinstance(dep, PythonDependency):
+                if isinstance(dep, _PythonDependencyBase):
                     dep = dep.get_partial_dependency(compile_args=True)
                 new_deps.append(dep)
             kwargs['dependencies'] = new_deps
@@ -408,15 +390,26 @@ class PythonInstallation(ExternalProgramHolder):
     @permittedKwargs(permitted_dependency_kwargs | {'embed'})
     @FeatureNewKwargs('python_installation.dependency', '0.53.0', ['embed'])
     @noPosargs
-    def dependency_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> 'ExternalDependency':
+    def dependency_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> 'Dependency':
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
+
+        # it's theoretically (though not practically) possible for the else clse
+        # to not bind dep, let's ensure it is.
+        dep: 'Dependency' = NotFoundDependency(self.interpreter.environment)
         if disabled:
             mlog.log('Dependency', mlog.bold('python'), 'skipped: feature', mlog.bold(feature), 'disabled')
-            dep = NotFoundDependency(self.interpreter.environment)
         else:
-            dep = PythonDependency(self, self.interpreter.environment, kwargs)
+            for d in python_factory(self.interpreter.environment,
+                                      MachineChoice.BUILD if kwargs.get('native', False) else MachineChoice.HOST,
+                                      kwargs,
+                                      process_method_kw({DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM}, kwargs),
+                                      self):
+                dep = d()
+                if dep.found():
+                    break
             if required and not dep.found():
                 raise mesonlib.MesonException('Python dependency not found')
+
         return dep
 
     @typed_pos_args('install_data', varargs=(str, mesonlib.File))
@@ -509,7 +502,7 @@ class PythonModule(ExtensionModule):
             return None
 
     @staticmethod
-    def _check_version(name_or_path: str, version) -> bool:
+    def _check_version(name_or_path: str, version: str) -> bool:
         if name_or_path == 'python2':
             return mesonlib.version_compare(version, '< 3.0')
         elif name_or_path == 'python3':
