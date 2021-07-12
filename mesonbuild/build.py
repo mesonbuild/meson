@@ -835,8 +835,9 @@ class BuildTarget(Target):
                     m = '{0} targets can only contain {0} files:\n'.format(lang.capitalize())
                     m += '\n'.join([repr(c) for c in check_sources])
                     raise InvalidArguments(m)
-                # CSharp and Java targets can't contain any other file types
-                assert(len(self.compilers) == 1)
+                # Java targets can't contain any other file types
+                if lang == 'java':
+                    assert(len(self.compilers) == 1)
                 return
 
     def process_link_depends(self, sources, environment):
