@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from os import name
 from pathlib import Path
 import os
 import json
@@ -28,7 +27,7 @@ from ..environment import detect_cpu_family
 from ..interpreter import ExternalProgramHolder, extract_required_kwarg, permitted_dependency_kwargs
 from ..interpreterbase import (
     noPosargs, noKwargs, permittedKwargs,
-    InvalidArguments, typed_pos_args,
+    InvalidArguments, typed_pos_args, typed_kwargs, KwargInfo,
     FeatureNew, FeatureNewKwargs, disablerIfNotFound
 )
 from ..mesonlib import MachineChoice, MesonException
@@ -331,6 +330,17 @@ class PythonExternalProgram(ExternalProgram):
         }
 
 
+_PURE_KW = KwargInfo('pure', bool, default=True)
+_SUBDIR_KW = KwargInfo('subdir', str, default='')
+
+if T.TYPE_CHECKING:
+
+    class PyInstallKw(TypedDict):
+
+        pure: bool
+        subdir: str
+
+
 class PythonInstallation(ExternalProgramHolder):
     def __init__(self, python: 'PythonExternalProgram', interpreter: 'Interpreter'):
         ExternalProgramHolder.__init__(self, python, interpreter)
@@ -409,40 +419,24 @@ class PythonInstallation(ExternalProgramHolder):
                 raise mesonlib.MesonException('Python dependency not found')
         return dep
 
-    @permittedKwargs(['pure', 'subdir'])
-    def install_sources_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> 'Data':
-        pure = kwargs.pop('pure', True)
-        if not isinstance(pure, bool):
-            raise InvalidArguments('"pure" argument must be a boolean.')
-
-        subdir = kwargs.pop('subdir', '')
-        if not isinstance(subdir, str):
-            raise InvalidArguments('"subdir" argument must be a string.')
-
-        if pure:
-            kwargs['install_dir'] = os.path.join(self.purelib_install_path, subdir)
-        else:
-            kwargs['install_dir'] = os.path.join(self.platlib_install_path, subdir)
-
-        return self.interpreter.func_install_data(None, args, kwargs)
+    @typed_pos_args('install_data', varargs=(str, mesonlib.File))
+    @typed_kwargs('python_installation.install_sources', _PURE_KW, _SUBDIR_KW)
+    def install_sources_method(self, args: T.Tuple[T.List[T.Union[str, mesonlib.File]]],
+                               kwargs: 'PyInstallKw') -> 'Data':
+        return self.interpreter.install_data_impl(
+            self.interpreter.source_strings_to_files(args[0]),
+            self._get_install_dir_impl(kwargs['pure'], kwargs['subdir']),
+            mesonlib.FileMode(),
+            None)
 
     @noPosargs
-    @permittedKwargs(['pure', 'subdir'])
-    def get_install_dir_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
-        pure = kwargs.pop('pure', True)
-        if not isinstance(pure, bool):
-            raise InvalidArguments('"pure" argument must be a boolean.')
+    @typed_kwargs('python_installation.install_dir', _PURE_KW, _SUBDIR_KW)
+    def get_install_dir_method(self, args: T.List['TYPE_var'], kwargs: 'PyInstallKw') -> str:
+        return self._get_install_dir_impl(kwargs['pure'], kwargs['subdir'])
 
-        subdir = kwargs.pop('subdir', '')
-        if not isinstance(subdir, str):
-            raise InvalidArguments('"subdir" argument must be a string.')
-
-        if pure:
-            res = os.path.join(self.purelib_install_path, subdir)
-        else:
-            res = os.path.join(self.platlib_install_path, subdir)
-
-        return res
+    def _get_install_dir_impl(self, pure: bool, subdir: str) -> str:
+        return os.path.join(
+            self.purelib_install_path if pure else self.platlib_install_path, subdir)
 
     @noPosargs
     @noKwargs

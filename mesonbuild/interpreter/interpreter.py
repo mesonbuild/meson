@@ -2032,9 +2032,12 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
                     '"rename" and "sources" argument lists must be the same length if "rename" is given. '
                     f'Rename has {len(rename)} elements and sources has {len(sources)}.')
 
-        data = build.Data(
-            sources, kwargs['install_dir'], kwargs['install_mode'],
-            self.subproject, rename)
+        return self.install_data_impl(sources, kwargs['install_dir'], kwargs['install_mode'], rename)
+
+    def install_data_impl(self, sources: T.List[mesonlib.File], install_dir: str,
+                          install_mode: FileMode, rename: T.Optional[str]) -> build.Data:
+        """Just the implementation with no validation."""
+        data = build.Data(sources, install_dir, install_mode, self.subproject, rename)
         self.build.data.append(data)
         return data
 
