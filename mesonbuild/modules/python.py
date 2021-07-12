@@ -123,7 +123,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
 
         self.compile_args += ['-I' + path for path in inc_paths if path]
 
-    def get_windows_python_arch(self) -> T.Optional[str]:
+    def _get_windows_python_arch(self) -> T.Optional[str]:
         if self.platform == 'mingw':
             pycc = self.variables.get('CC')
             if pycc.startswith('x86_64'):
@@ -141,7 +141,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
         mlog.log(f'Unknown Windows Python platform {self.platform!r}')
         return None
 
-    def get_windows_link_args(self) -> T.Optional[T.List[str]]:
+    def _get_windows_link_args(self) -> T.Optional[T.List[str]]:
         if self.platform.startswith('win'):
             vernum = self.variables.get('py_version_nodot')
             if self.static:
@@ -169,7 +169,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
         Find python3 libraries on Windows and also verify that the arch matches
         what we are building for.
         '''
-        pyarch = self.get_windows_python_arch()
+        pyarch = self._get_windows_python_arch()
         if pyarch is None:
             self.is_found = False
             return
@@ -191,7 +191,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
             self.is_found = False
             return
         # This can fail if the library is not found
-        largs = self.get_windows_link_args()
+        largs = self._get_windows_link_args()
         if largs is None:
             self.is_found = False
             return
