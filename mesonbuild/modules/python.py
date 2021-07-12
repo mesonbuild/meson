@@ -12,30 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from pathlib import Path
 import os
 import json
 import shutil
 import typing as T
 
-from pathlib import Path
-from .. import mesonlib
-from ..mesonlib import MachineChoice, MesonException
 from . import ExtensionModule
+from .. import mesonlib
+from .. import mlog
+from ..build import known_shmod_kwargs
+from ..dependencies import DependencyMethods, PkgConfigDependency, NotFoundDependency, SystemDependency
+from ..environment import detect_cpu_family
+from ..interpreter import ExternalProgramHolder, extract_required_kwarg, permitted_dependency_kwargs
 from ..interpreterbase import (
     noPosargs, noKwargs, permittedKwargs,
     InvalidArguments,
     FeatureNew, FeatureNewKwargs, disablerIfNotFound
 )
-from ..interpreter import ExternalProgramHolder, extract_required_kwarg, permitted_dependency_kwargs
-from ..build import known_shmod_kwargs
-from .. import mlog
-from ..environment import detect_cpu_family
-from ..dependencies import DependencyMethods, PkgConfigDependency, NotFoundDependency, SystemDependency
+from ..mesonlib import MachineChoice, MesonException
 from ..programs import ExternalProgram, NonExistingExternalProgram
 
 mod_kwargs = {'subdir'}
 mod_kwargs.update(known_shmod_kwargs)
 mod_kwargs -= {'name_prefix', 'name_suffix'}
+
 
 class PythonDependency(SystemDependency):
 
