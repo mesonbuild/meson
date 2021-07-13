@@ -26,6 +26,8 @@ Coverage
 When doing a code coverage build, Meson will check for existence of
 the binaries `gcovr`, `lcov` and `genhtml`. If version 3.3 or higher
 of the first is found, targets called *coverage-text*, *coverage-xml*
+and *coverage-html* are generated. If version 4.2 or higher of the
+first is found, targets *coverage-text*, *coverage-xml*, *coverage-sonarqube*
 and *coverage-html* are generated. Alternatively, if the latter two
 are found, only the target *coverage-html* is generated. Coverage
 reports can then be produced simply by calling e.g. `meson compile

@@ -1064,6 +1064,13 @@ class NinjaBackend(backends.Backend):
         # Alias that runs the target defined above
         self.create_target_alias('meson-coverage-xml')
 
+        e = NinjaBuildElement(self.all_outputs, 'meson-coverage-sonarqube', 'CUSTOM_COMMAND', 'PHONY')
+        self.generate_coverage_command(e, ['--sonarqube'])
+        e.add_item('description', 'Generates Sonarqube XML coverage report')
+        self.add_build(e)
+        # Alias that runs the target defined above
+        self.create_target_alias('meson-coverage-sonarqube')
+
         e = NinjaBuildElement(self.all_outputs, 'meson-coverage-text', 'CUSTOM_COMMAND', 'PHONY')
         self.generate_coverage_command(e, ['--text'])
         e.add_item('description', 'Generates text coverage report')
