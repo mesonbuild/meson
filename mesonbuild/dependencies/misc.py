@@ -125,10 +125,6 @@ class ThreadDependency(SystemDependency):
             self.compile_args = self.clib_compiler.thread_flags(environment)
             self.link_args = self.clib_compiler.thread_link_flags(environment)
 
-    @staticmethod
-    def get_methods() -> T.List[DependencyMethods]:
-        return [DependencyMethods.AUTO, DependencyMethods.CMAKE]
-
 
 class BlocksDependency(SystemDependency):
     def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
@@ -262,15 +258,6 @@ class Python3DependencySystem(SystemDependency):
         self.version = sysconfig.get_config_var('py_version')
         self.is_found = True
 
-    @staticmethod
-    def get_methods() -> T.List[DependencyMethods]:
-        if mesonlib.is_windows():
-            return [DependencyMethods.PKGCONFIG, DependencyMethods.SYSCONFIG]
-        elif mesonlib.is_osx():
-            return [DependencyMethods.PKGCONFIG, DependencyMethods.EXTRAFRAMEWORK]
-        else:
-            return [DependencyMethods.PKGCONFIG]
-
     def log_tried(self) -> str:
         return 'sysconfig'
 
@@ -286,10 +273,6 @@ class PcapDependencyConfigTool(ConfigToolDependency):
         self.compile_args = self.get_config_value(['--cflags'], 'compile_args')
         self.link_args = self.get_config_value(['--libs'], 'link_args')
         self.version = self.get_pcap_lib_version()
-
-    @staticmethod
-    def get_methods() -> T.List[DependencyMethods]:
-        return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL]
 
     def get_pcap_lib_version(self) -> T.Optional[str]:
         # Since we seem to need to run a program to discover the pcap version,
@@ -317,13 +300,6 @@ class CupsDependencyConfigTool(ConfigToolDependency):
         self.compile_args = self.get_config_value(['--cflags'], 'compile_args')
         self.link_args = self.get_config_value(['--ldflags', '--libs'], 'link_args')
 
-    @staticmethod
-    def get_methods() -> T.List[DependencyMethods]:
-        if mesonlib.is_osx():
-            return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK, DependencyMethods.CMAKE]
-        else:
-            return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.CMAKE]
-
 
 class LibWmfDependencyConfigTool(ConfigToolDependency):
 
@@ -336,10 +312,6 @@ class LibWmfDependencyConfigTool(ConfigToolDependency):
             return
         self.compile_args = self.get_config_value(['--cflags'], 'compile_args')
         self.link_args = self.get_config_value(['--libs'], 'link_args')
-
-    @staticmethod
-    def get_methods() -> T.List[DependencyMethods]:
-        return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL]
 
 
 class LibGCryptDependencyConfigTool(ConfigToolDependency):
@@ -355,10 +327,6 @@ class LibGCryptDependencyConfigTool(ConfigToolDependency):
         self.link_args = self.get_config_value(['--libs'], 'link_args')
         self.version = self.get_config_value(['--version'], 'version')[0]
 
-    @staticmethod
-    def get_methods() -> T.List[DependencyMethods]:
-        return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL]
-
 
 class GpgmeDependencyConfigTool(ConfigToolDependency):
 
@@ -372,10 +340,6 @@ class GpgmeDependencyConfigTool(ConfigToolDependency):
         self.compile_args = self.get_config_value(['--cflags'], 'compile_args')
         self.link_args = self.get_config_value(['--libs'], 'link_args')
         self.version = self.get_config_value(['--version'], 'version')[0]
-
-    @staticmethod
-    def get_methods() -> T.List[DependencyMethods]:
-        return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL]
 
 
 class ShadercDependency(SystemDependency):
@@ -405,10 +369,6 @@ class ShadercDependency(SystemDependency):
 
     def log_tried(self) -> str:
         return 'system'
-
-    @staticmethod
-    def get_methods() -> T.List[DependencyMethods]:
-        return [DependencyMethods.SYSTEM, DependencyMethods.PKGCONFIG]
 
 
 class CursesConfigToolDependency(ConfigToolDependency):
@@ -480,10 +440,6 @@ class CursesSystemDependency(SystemDependency):
                             break
             if self.is_found:
                 break
-
-    @staticmethod
-    def get_methods() -> T.List[DependencyMethods]:
-        return [DependencyMethods.SYSTEM]
 
 
 class IntlBuiltinDependency(BuiltinDependency):

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .base import ExternalDependency, DependencyException, DependencyMethods, DependencyTypeName
+from .base import ExternalDependency, DependencyException, DependencyTypeName
 from ..mesonlib import listify, Popen_safe, split_args, version_compare, version_compare_many
 from ..programs import find_external_program
 from .. import mlog
@@ -137,10 +137,6 @@ class ConfigToolDependency(ExternalDependency):
                 raise DependencyException(f'Could not generate {stage} for {self.name}.\n{err}')
             return []
         return split_args(out)
-
-    @staticmethod
-    def get_methods() -> T.List[DependencyMethods]:
-        return [DependencyMethods.AUTO, DependencyMethods.CONFIG_TOOL]
 
     def get_configtool_variable(self, variable_name: str) -> str:
         p, out, _ = Popen_safe(self.config + [f'--{variable_name}'])

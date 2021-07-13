@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .base import ExternalDependency, DependencyException, DependencyMethods, sort_libpaths, DependencyTypeName
+from .base import ExternalDependency, DependencyException, sort_libpaths, DependencyTypeName
 from ..mesonlib import LibType, MachineChoice, OptionKey, OrderedSet, PerMachine, Popen_safe
 from ..programs import find_external_program, ExternalProgram
 from .. import mlog
@@ -395,10 +395,6 @@ class PkgConfigDependency(ExternalDependency):
 
         mlog.debug(f'Got pkgconfig variable {variable_name} : {variable}')
         return variable
-
-    @staticmethod
-    def get_methods() -> T.List[DependencyMethods]:
-        return [DependencyMethods.PKGCONFIG]
 
     def check_pkgconfig(self, pkgbin: ExternalProgram) -> T.Optional[str]:
         if not pkgbin.found():

@@ -84,7 +84,3 @@ class CoarrayDependency(SystemDependency):
         elif cid == 'nagfor':
             # NAG doesn't require any special arguments for Coarray
             self.is_found = True
-
-    @staticmethod
-    def get_methods() -> T.List[DependencyMethods]:
-        return [DependencyMethods.AUTO, DependencyMethods.CMAKE, DependencyMethods.PKGCONFIG]
