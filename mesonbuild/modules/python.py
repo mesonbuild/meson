@@ -22,13 +22,14 @@ import typing as T
 from . import ExtensionModule
 from .. import mesonlib
 from .. import mlog
+from ..coredata import UserFeatureOption
 from ..build import known_shmod_kwargs
 from ..dependencies import DependencyMethods, PkgConfigDependency, NotFoundDependency, SystemDependency, ExtraFrameworkDependency
 from ..dependencies.base import process_method_kw
 from ..environment import detect_cpu_family
 from ..interpreter import ExternalProgramHolder, extract_required_kwarg, permitted_dependency_kwargs
 from ..interpreterbase import (
-    noPosargs, noKwargs, permittedKwargs,
+    noPosargs, noKwargs, permittedKwargs, ContainerTypeInfo,
     InvalidArguments, typed_pos_args, typed_kwargs, KwargInfo,
     FeatureNew, FeatureNewKwargs, disablerIfNotFound
 )
@@ -157,7 +158,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
             else:
                 comp = self.get_compiler()
                 if comp.id == "gcc":
-                    libpath = f'python{vernum}.dll'
+                    libpath = Path(f'python{vernum}.dll')
                 else:
                     libpath = Path('libs') / f'python{vernum}.lib'
             lib = Path(self.variables.get('base')) / libpath
@@ -167,6 +168,9 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
             else:
                 libname = self.variables.get('LDLIBRARY')
             lib = Path(self.variables.get('LIBDIR')) / libname
+        else:
+            raise mesonlib.MesonBugException(
+                'On a Windows path, but the OS doesn\'t appear to be Windows or MinGW.')
         if not lib.exists():
             mlog.log('Could not find Python3 library {!r}'.format(str(lib)))
             return None
@@ -491,6 +495,15 @@ class PythonInstallation(ExternalProgramHolder):
         return super().path_method(args, kwargs)
 
 
+if T.TYPE_CHECKING:
+    from ..interpreter.kwargs import ExtractRequired
+
+    class FindInstallationKw(ExtractRequired):
+
+        disabler: bool
+        modules: T.List[str]
+
+
 class PythonModule(ExtensionModule):
 
     @FeatureNew('Python Module', '0.46.0')
@@ -525,16 +538,19 @@ class PythonModule(ExtensionModule):
             return mesonlib.version_compare(version, '>= 3.0')
         return True
 
-    @FeatureNewKwargs('python.find_installation', '0.49.0', ['disabler'])
-    @FeatureNewKwargs('python.find_installation', '0.51.0', ['modules'])
     @disablerIfNotFound
-    @permittedKwargs({'required', 'modules'})
     @typed_pos_args('python.find_installation', optargs=[str])
+    @typed_kwargs(
+        'python.find_installation',
+        KwargInfo('required', (bool, UserFeatureOption), default=True),
+        KwargInfo('disabler', bool, default=False, since='0.49.0'),
+        KwargInfo('modules', ContainerTypeInfo(list, str), listify=True, default=[], since='0.51.0'),
+    )
     def find_installation(self, state: 'ModuleState', args: T.Tuple[T.Optional[str]],
-                          kwargs: 'TYPE_kwargs') -> ExternalProgram:
+                          kwargs: 'FindInstallationKw') -> ExternalProgram:
         feature_check = FeatureNew('Passing "feature" option to find_installation', '0.48.0')
         disabled, required, feature = extract_required_kwarg(kwargs, state.subproject, feature_check)
-        want_modules = mesonlib.extract_as_list(kwargs, 'modules')  # type: T.List[str]
+        want_modules = kwargs['modules']
         found_modules: T.List[str] = []
         missing_modules: T.List[str] = []
 
@@ -575,7 +591,7 @@ class PythonModule(ExtensionModule):
 
         if python.found() and want_modules:
             for mod in want_modules:
-                p, out, err = mesonlib.Popen_safe(
+                p, *_ = mesonlib.Popen_safe(
                     python.command +
                     ['-c', f'import {mod}'])
                 if p.returncode != 0:
