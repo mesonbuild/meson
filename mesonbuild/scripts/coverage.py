@@ -46,6 +46,18 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
             print('gcovr >= 3.3 needed to generate Xml coverage report')
             exitcode = 1
 
+    if not outputs or 'sonarqube' in outputs:
+        if gcovr_exe:
+            subprocess.check_call(gcovr_base_cmd +
+                                  ['--sonarqube',
+                                   '-o', os.path.join(log_dir, 'sonarqube.xml'),
+                                   '-e', subproject_root
+                                   ] + gcov_exe_args)
+            outfiles.append(('Sonarqube', pathlib.Path(log_dir, 'sonarqube.xml')))
+        elif outputs:
+            print('gcovr >= 4.2 needed to generate Xml coverage report')
+            exitcode = 1
+
     if not outputs or 'text' in outputs:
         if gcovr_exe:
             subprocess.check_call(gcovr_base_cmd +
@@ -156,6 +168,8 @@ def run(args: T.List[str]) -> int:
                         const='text', help='generate Text report')
     parser.add_argument('--xml', dest='outputs', action='append_const',
                         const='xml', help='generate Xml report')
+    parser.add_argument('--sonarqube', dest='outputs', action='append_const',
+                        const='sonarqube', help='generate Sonarqube Xml report')
     parser.add_argument('--html', dest='outputs', action='append_const',
                         const='html', help='generate Html report')
     parser.add_argument('--use_llvm_cov', action='store_true',

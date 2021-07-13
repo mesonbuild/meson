@@ -47,6 +47,7 @@ functions that get called). Meson will autodetect what coverage
 generator tools you have installed and will generate the corresponding
 targets. These targets are `coverage-xml` and `coverage-text` which
 are both provided by [Gcovr](http://gcovr.com) (version 3.3 or higher)
+`coverage-sonarqube` which is provided by [Gcovr](http://gcovr.com) (version 4.2 or higher)
 and `coverage-html`, which requires
 [Lcov](https://ltp.sourceforge.io/coverage/lcov.php) and
 [GenHTML](https://linux.die.net/man/1/genhtml) or
