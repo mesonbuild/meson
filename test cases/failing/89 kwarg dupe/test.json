@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/failing/89 kwarg dupe/meson.build:5:0: ERROR: Entry \"install\" defined both as a keyword argument and in a \"kwarg\" entry."
+    }
+  ]
+}

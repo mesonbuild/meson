@@ -2756,7 +2756,7 @@ class AllPlatformTests(BasePlatformTests):
         self.run_tests()
 
     def test_implicit_forcefallback(self):
-        testdir = os.path.join(self.unit_test_dir, '95 implicit force fallback')
+        testdir = os.path.join(self.unit_test_dir, '96 implicit force fallback')
         with self.assertRaises(subprocess.CalledProcessError) as cm:
             self.init(testdir)
         self.init(testdir, extra_args=['--wrap-mode=forcefallback'])
@@ -4016,9 +4016,9 @@ class AllPlatformTests(BasePlatformTests):
         for (t, f) in [
             ('10 out of bounds', 'meson.build'),
             ('18 wrong plusassign', 'meson.build'),
-            ('61 bad option argument', 'meson_options.txt'),
-            ('102 subdir parse error', os.path.join('subdir', 'meson.build')),
-            ('103 invalid option file', 'meson_options.txt'),
+            ('60 bad option argument', 'meson_options.txt'),
+            ('98 subdir parse error', os.path.join('subdir', 'meson.build')),
+            ('99 invalid option file', 'meson_options.txt'),
         ]:
             tdir = os.path.join(self.src_root, 'test cases', 'failing', t)
 

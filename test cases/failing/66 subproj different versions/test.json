@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/failing/66 subproj different versions/subprojects/b/meson.build:3:0: ERROR: Dependency 'c' is required but not found."
+    }
+  ]
+}
