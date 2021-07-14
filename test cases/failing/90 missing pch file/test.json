@@ -1,0 +1,8 @@
+{
+  "stdout": [
+    {
+      "comment": "literal 'pch/prog.h' from meson.build appears in output, irrespective of os.path.sep",
+      "line": "test cases/failing/90 missing pch file/meson.build:2:0: ERROR: File pch/prog.h does not exist."
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+        "line": "test cases/failing/111 compiler argument checking/meson.build:4:0: ERROR: Compiler for C does not support \"-meson-goober-arg-for-testing\""
+    }
+  ]
+}
