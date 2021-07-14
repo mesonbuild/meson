@@ -640,14 +640,18 @@ class GnomeModule(ExtensionModule):
                 # Because of https://gitlab.gnome.org/GNOME/gobject-introspection/merge_requests/72
                 # we can't use the full path until this is merged.
                 libpath = os.path.join(girtarget.get_subdir(), girtarget.get_filename())
+                # Must use absolute paths here because g-ir-scanner will not
+                # add them to the runtime path list if they're relative. This
+                # means we cannot use @BUILD_ROOT@
+                build_root = state.environment.get_build_dir()
                 if isinstance(girtarget, build.SharedLibrary):
                     # need to put our output directory first as we need to use the
                     # generated libraries instead of any possibly installed system/prefix
                     # ones.
-                    ret += ["-L@BUILD_ROOT@/{}".format(os.path.dirname(libpath))]
+                    ret += ["-L{}/{}".format(build_root, os.path.dirname(libpath))]
                     libname = girtarget.get_basename()
                 else:
-                    libname = os.path.join(f"@BUILD_ROOT@/{libpath}")
+                    libname = os.path.join(f"{build_root}/{libpath}")
                 ret += ['--library', libname]
                 # Needed for the following binutils bug:
                 # https://github.com/mesonbuild/meson/issues/1911
