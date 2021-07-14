@@ -1244,6 +1244,12 @@ class XilinkDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
                  direct: bool = True):
         super().__init__(['xilink.exe'], for_machine, '', always_args, version=version)
 
+    def get_gui_app_args(self, value: bool) -> T.List[str]:
+        return self.get_win_subsystem_args("windows" if value else "console")
+
+    def get_win_subsystem_args(self, value: str) -> T.List[str]:
+        return self._apply_prefix([f'/SUBSYSTEM:{value.upper()}'])
+
 
 class SolarisDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
