@@ -611,17 +611,17 @@ class BoostDependency(SystemDependency):
         return libs
 
     def detect_libraries(self, libdir: Path) -> T.List[BoostLibraryFile]:
-        libs = []  # type: T.List[Path]
+        libs = set()  # type: T.Set[Path]
         for i in libdir.iterdir():
             if not i.is_file():
                 continue
             if not any([i.name.startswith(x) for x in ['libboost_', 'boost_']]):
                 continue
 
-            libs += [i.resolve()]
+            libs.add(i.resolve())
 
         # Remove duplicate libraries caused by resolving symlinks
-        blibs = [BoostLibraryFile(i) for i in set(libs)] # type: T.List[BoostLibraryFile]
+        blibs = [BoostLibraryFile(i) for i in libs] # type: T.List[BoostLibraryFile]
 
         return [x for x in blibs if x.is_boost()]  # Filter out no boost libraries
 
