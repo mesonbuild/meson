@@ -1104,6 +1104,8 @@ class BuiltinOption(T.Generic[_T, _U]):
         keywords = {'yielding': self.yielding, 'value': value}
         if self.choices:
             keywords['choices'] = self.choices
+        if self.opt_name:
+            keywords['opt_name'] = self.opt_name
         return self.opt_type(self.description, **keywords)
 
     def _argparse_action(self) -> T.Optional[str]:
