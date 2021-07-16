@@ -14,3 +14,4 @@
 * [pkgconfig](Pkgconfig-module.md)
 * [rust](Rust-module.md)
 * [wayland](Wayland-module.md)
+* [xorg](Xorg-module.md)

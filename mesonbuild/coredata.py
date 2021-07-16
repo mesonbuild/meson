@@ -1239,6 +1239,10 @@ BUILTIN_CORE_OPTIONS: 'MutableKeyedOptionDictType' = OrderedDict([
      BuiltinOption(UserStringOption, 'Directory for site-specific, platform-specific files.', '')),
     (OptionKey('purelibdir', module='python'),
      BuiltinOption(UserStringOption, 'Directory for site-specific, non-platform-specific files.', '')),
+
+    # Xorg module
+    (OptionKey('man-sections', module='xorg'),
+     BuiltinOption(UserComboOption, 'Which man sections to use', 'auto', choices=['auto', 'traditional', 'sysv'])),
 ])
 
 BUILTIN_OPTIONS = OrderedDict(chain(BUILTIN_DIR_OPTIONS.items(), BUILTIN_CORE_OPTIONS.items()))
