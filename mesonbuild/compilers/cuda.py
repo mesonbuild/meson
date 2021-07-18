@@ -759,3 +759,6 @@ class CudaCompiler(Compiler):
             return [self._shield_nvcc_list_arg('-ccbin='+ccbindir, False)]
         else:
             return []
+
+    def get_disable_assert_args(self) -> T.List[str]:
+        return self.host_compiler.get_disable_assert_args()
