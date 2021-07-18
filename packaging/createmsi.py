@@ -176,12 +176,21 @@ class PackageGenerator:
         pyinst_cmd += ['meson.py']
         subprocess.check_call(pyinst_cmd)
         shutil.move(pyinstaller_tmpdir + '/meson', main_stage)
+        self.del_infodirs(main_stage)
         if not os.path.exists(os.path.join(main_stage, 'meson.exe')):
             sys.exit('Meson exe missing from staging dir.')
         os.mkdir(ninja_stage)
         shutil.copy(shutil.which('ninja'), ninja_stage)
         if not os.path.exists(os.path.join(ninja_stage, 'ninja.exe')):
             sys.exit('Ninja exe missing from staging dir.')
+
+    def del_infodirs(self, dirname):
+        # Starting with 3.9.something there are some
+        # extra metadatadirs that have a hyphen in their
+        # file names. This is a forbidden character in WiX
+        # filenames so delete them.
+        for d in glob(os.path.join(dirname, '*-info')):
+            shutil.rmtree(d)
 
     def generate_files(self):
         '''
