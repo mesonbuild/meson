@@ -767,5 +767,11 @@ class CudaCompiler(Compiler):
         else:
             return []
 
+    def get_profile_generate_args(self) -> T.List[str]:
+        return ['-Xcompiler=' + x for x in self.host_compiler.get_profile_generate_args()]
+
+    def get_profile_use_args(self) -> T.List[str]:
+        return ['-Xcompiler=' + x for x in self.host_compiler.get_profile_use_args()]
+
     def get_disable_assert_args(self) -> T.List[str]:
         return self.host_compiler.get_disable_assert_args()
