@@ -21,21 +21,22 @@ notfound    = dependency('boost', static: s, modules : ['this_should_not_exist_o
 
 assert(not notfound.found())
 
+require_bp = host_machine.system() in ['linux', 'darwin']
 pymod = import('python')
 python2 = pymod.find_installation('python2', required: false                           , disabler: true)
-python3 = pymod.find_installation('python3', required: host_machine.system() == 'linux', disabler: true)
+python3 = pymod.find_installation('python3', required: require_bp , disabler: true)
 python2dep = python2.dependency(required: false                           , embed: true, disabler: true)
-python3dep = python3.dependency(required: host_machine.system() == 'linux', embed: true, disabler: true)
+python3dep = python3.dependency(required: require_bp, embed: true, disabler: true)
 
 # compile python 2/3 modules only if we found a corresponding python version
-if(python2dep.found() and host_machine.system() == 'linux' and not s)
+if(python2dep.found() and require_bp and not s)
   bpython2dep = dependency('boost', static: s, modules : ['python'], required: false, disabler: true)
 else
   python2dep = disabler()
   bpython2dep = disabler()
 endif
 
-if(python3dep.found() and host_machine.system() == 'linux' and not s)
+if(python3dep.found() and require_bp and not s)
   bpython3dep = dependency('boost', static: s, modules : ['python3'])
 else
   python3dep = disabler()
@@ -48,8 +49,9 @@ nomodexe = executable('nomod', 'nomod.cpp', dependencies : nomoddep)
 extralibexe = executable('extralibexe', 'extralib.cpp', dependencies : extralibdep)
 
 # python modules are shared libraries
-python2module = shared_library('python2_module', ['python_module.cpp'], dependencies: [python2dep, bpython2dep], name_prefix: '', cpp_args: ['-DMOD_NAME=python2_module'])
-python3module = shared_library('python3_module', ['python_module.cpp'], dependencies: [python3dep, bpython3dep], name_prefix: '', cpp_args: ['-DMOD_NAME=python3_module'])
+python2module = python2.extension_module('python2_module', ['python_module.cpp'], dependencies: [python2dep, bpython2dep], cpp_args: ['-DMOD_NAME=python2_module'])
+python3module = python3.extension_module('python3_module', ['python_module.cpp'], dependencies: [python3dep, bpython3dep], cpp_args: ['-DMOD_NAME=python3_module'])
+
 
 test('Boost linktest', linkexe, timeout: 60)
 test('Boost UTF test', unitexe, timeout: 60)
