@@ -26,12 +26,12 @@ from ..programs import ExternalProgram, NonExistingExternalProgram
 from ..dependencies import Dependency
 from ..depfile import DepFile
 from ..interpreterbase import ContainerTypeInfo, InterpreterBase, KwargInfo, typed_kwargs, typed_pos_args
-from ..interpreterbase import noPosargs, noKwargs, stringArgs, permittedKwargs, noArgsFlattening, noSecondLevelHolderResolving, permissive_unholder_return
+from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, noArgsFlattening, noSecondLevelHolderResolving, permissive_unholder_return
 from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
 from ..interpreterbase import Disabler, disablerIfNotFound
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs, FeatureDeprecatedKwargs
 from ..interpreterbase import ObjectHolder, RangeHolder
-from ..interpreterbase import TYPE_nkwargs, TYPE_nvar, TYPE_var
+from ..interpreterbase.baseobjects import TYPE_nkwargs, TYPE_nvar, TYPE_var, TYPE_kwargs
 from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule
 from ..cmake import CMakeInterpreter
 from ..backend.backends import Backend, ExecutableSerialisation
@@ -650,10 +650,10 @@ class Interpreter(InterpreterBase, HoldableObject):
                 modname = 'unstable_' + plainname
         return self._import_module(modname, required)
 
-    @stringArgs
+    @typed_pos_args('files', varargs=str)
     @noKwargs
-    def func_files(self, node, args, kwargs):
-        return [mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, fname) for fname in args]
+    def func_files(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> T.List[mesonlib.File]:
+        return [mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, fname) for fname in args[0]]
 
     # Used by declare_dependency() and pkgconfig.generate()
     def extract_variables(self, kwargs, argname='variables', list_new=False, dict_new=False):
@@ -714,20 +714,14 @@ external dependencies (including libraries) must go to "dependencies".''')
                                               variables)
         return dep
 
+    @typed_pos_args('assert', bool, optargs=[str])
     @noKwargs
-    def func_assert(self, node, args, kwargs):
-        if len(args) == 1:
+    def func_assert(self, node: mparser.FunctionNode, args: T.Tuple[bool, T.Optional[str]],
+                    kwargs: 'TYPE_kwargs') -> None:
+        value, message = args
+        if message is None:
             FeatureNew.single_use('assert function without message argument', '0.53.0', self.subproject)
-            value = args[0]
-            message = None
-        elif len(args) == 2:
-            value, message = args
-            if not isinstance(message, str):
-                raise InterpreterException('Assert message not a string.')
-        else:
-            raise InterpreterException('Assert takes between one and two arguments')
-        if not isinstance(value, bool):
-            raise InterpreterException('Assert value not bool.')
+
         if not value:
             if message is None:
                 from ..ast import AstPrinter
@@ -820,7 +814,6 @@ external dependencies (including libraries) must go to "dependencies".''')
                           self.environment.get_build_command() + ['introspect'],
                           in_builddir=in_builddir, check=check, capture=capture)
 
-    @stringArgs
     def func_gettext(self, nodes, args, kwargs):
         raise InterpreterException('Gettext() function has been moved to module i18n. Import it and use i18n.gettext() instead')
 
@@ -829,10 +822,8 @@ external dependencies (including libraries) must go to "dependencies".''')
 
     @FeatureNewKwargs('subproject', '0.38.0', ['default_options'])
     @permittedKwargs({'version', 'default_options', 'required'})
-    @stringArgs
-    def func_subproject(self, nodes, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('Subproject takes exactly one argument')
+    @typed_pos_args('subproject', str)
+    def func_subproject(self, nodes: mparser.BaseNode, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> SubprojectHolder:
         return self.do_subproject(args[0], 'meson', kwargs)
 
     def disabled_subproject(self, subp_name, disabled_feature=None, exception=None):
@@ -1037,11 +1028,10 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         raise InterpreterException('Tried to access unknown option "%s".' % optname)
 
-    @stringArgs
+    @typed_pos_args('get_option', str)
     @noKwargs
-    def func_get_option(self, nodes, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('Argument required for get_option.')
+    def func_get_option(self, nodes: mparser.BaseNode, args: T.Tuple[str],
+                        kwargs: 'TYPE_kwargs') -> T.Union[coredata.UserOption, 'TYPE_var']:
         optname = args[0]
         if ':' in optname:
             raise InterpreterException('Having a colon in option name is forbidden, '
@@ -1055,15 +1045,12 @@ external dependencies (including libraries) must go to "dependencies".''')
             return opt.value
         return opt
 
+    @typed_pos_args('configuration_data', optargs=[dict])
     @noKwargs
-    def func_configuration_data(self, node, args, kwargs):
-        if len(args) > 1:
-            raise InterpreterException('configuration_data takes only one optional positional arguments')
-        elif len(args) == 1:
+    def func_configuration_data(self, node: mparser.BaseNode, args: T.Optional[dict], kwargs: 'TYPE_kwargs') -> ConfigurationDataObject:
+        if args is not None:
             FeatureNew.single_use('configuration_data dictionary', '0.49.0', self.subproject)
             initial_values = args[0]
-            if not isinstance(initial_values, dict):
-                raise InterpreterException('configuration_data first argument must be a dictionary')
         else:
             initial_values = {}
         return ConfigurationDataObject(self.subproject, initial_values)
@@ -1091,12 +1078,10 @@ external dependencies (including libraries) must go to "dependencies".''')
         options = {k: v for k, v in self.environment.options.items() if k.is_backend()}
         self.coredata.set_options(options)
 
-    @stringArgs
     @permittedKwargs({'version', 'meson_version', 'default_options', 'license', 'subproject_dir'})
-    def func_project(self, node, args, kwargs):
-        if len(args) < 1:
-            raise InvalidArguments('Not enough arguments to project(). Needs at least the project name.')
-        proj_name, *proj_langs = args
+    @typed_pos_args('project', str, varargs=str)
+    def func_project(self, node: mparser.FunctionNode, args: T.Tuple[str, T.List[str]], kwargs: 'TYPE_kwargs') -> None:
+        proj_name, proj_langs = args
         if ':' in proj_name:
             raise InvalidArguments(f"Project name {proj_name!r} must not contain ':'")
 
@@ -1208,15 +1193,16 @@ external dependencies (including libraries) must go to "dependencies".''')
 
     @FeatureNewKwargs('add_languages', '0.54.0', ['native'])
     @permittedKwargs({'required', 'native'})
-    @stringArgs
-    def func_add_languages(self, node, args, kwargs):
+    @typed_pos_args('add_languages', varargs=str)
+    def func_add_languages(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> bool:
+        langs = args[0]
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
-            for lang in sorted(args, key=compilers.sort_clink):
+            for lang in sorted(langs, key=compilers.sort_clink):
                 mlog.log('Compiler for language', mlog.bold(lang), 'skipped: feature', mlog.bold(feature), 'disabled')
             return False
         if 'native' in kwargs:
-            return self.add_languages(args, required, self.machine_from_native_kwarg(kwargs))
+            return self.add_languages(langs, required, self.machine_from_native_kwarg(kwargs))
         else:
             # absent 'native' means 'both' for backwards compatibility
             tv = FeatureNew.get_target_version(self.subproject)
@@ -1224,8 +1210,8 @@ external dependencies (including libraries) must go to "dependencies".''')
                 mlog.warning('add_languages is missing native:, assuming languages are wanted for both host and build.',
                              location=self.current_node)
 
-            success = self.add_languages(args, False, MachineChoice.BUILD)
-            success &= self.add_languages(args, required, MachineChoice.HOST)
+            success = self.add_languages(langs, False, MachineChoice.BUILD)
+            success &= self.add_languages(langs, required, MachineChoice.HOST)
             return success
 
     @noArgsFlattening
@@ -1703,7 +1689,6 @@ external dependencies (including libraries) must go to "dependencies".''')
     def func_subdir_done(self, node, args, kwargs):
         raise SubdirDoneRequest()
 
-    @stringArgs
     @FeatureNewKwargs('custom_target', '0.57.0', ['env'])
     @FeatureNewKwargs('custom_target', '0.48.0', ['console'])
     @FeatureNewKwargs('custom_target', '0.47.0', ['install_mode', 'build_always_stale'])
@@ -1713,9 +1698,8 @@ external dependencies (including libraries) must go to "dependencies".''')
                       'build_always', 'capture', 'depends', 'depend_files', 'depfile',
                       'build_by_default', 'build_always_stale', 'console', 'env',
                       'feed'})
-    def func_custom_target(self, node, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('custom_target: Only one positional argument is allowed, and it must be a string name')
+    @typed_pos_args('custom_target', str)
+    def func_custom_target(self, node: mparser.FunctionNode, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> build.CustomTarget:
         if 'depfile' in kwargs and ('@BASENAME@' in kwargs['depfile'] or '@PLAINNAME@' in kwargs['depfile']):
             FeatureNew.single_use('substitutions in custom_target depfile', '0.47.0', self.subproject)
         return self._func_custom_target_impl(node, args, kwargs)
@@ -1740,16 +1724,12 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
 
     @FeatureNewKwargs('run_target', '0.57.0', ['env'])
     @permittedKwargs({'command', 'depends', 'env'})
-    def func_run_target(self, node, args, kwargs):
-        if len(args) > 1:
-            raise InvalidCode('Run_target takes only one positional argument: the target name.')
-        elif len(args) == 1:
-            if 'command' not in kwargs:
-                raise InterpreterException('Missing "command" keyword argument')
-            all_args = extract_as_list(kwargs, 'command')
-            deps = extract_as_list(kwargs, 'depends')
-        else:
-            raise InterpreterException('Run_target needs at least one positional argument.')
+    @typed_pos_args('run_target', str)
+    def func_run_target(self, node: mparser.FunctionNode, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> build.RunTarget:
+        if 'command' not in kwargs:
+            raise InterpreterException('Missing "command" keyword argument')
+        all_args = extract_as_list(kwargs, 'command')
+        deps = extract_as_list(kwargs, 'depends')
 
         cleaned_args = []
         for i in listify(all_args):
@@ -1778,17 +1758,11 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         return tg
 
     @FeatureNew('alias_target', '0.52.0')
+    @typed_pos_args('alias_target', str, varargs=build.Target, min_varargs=1)
     @noKwargs
-    def func_alias_target(self, node, args, kwargs):
-        if len(args) < 2:
-            raise InvalidCode('alias_target takes at least 2 arguments.')
-        name = args[0]
-        if not isinstance(name, str):
-            raise InterpreterException('First argument must be a string.')
-        deps = listify(args[1:])
-        for d in deps:
-            if not isinstance(d, (build.BuildTarget, build.CustomTarget)):
-                raise InterpreterException('Depends items must be build targets.')
+    def func_alias_target(self, node: mparser.BaseNode, args: T.Tuple[str, T.List[build.Target]],
+                          kwargs: 'TYPE_kwargs') -> build.AliasTarget:
+        name, deps = args
         tg = build.AliasTarget(name, deps, self.subdir, self.subproject)
         self.add_target(name, tg)
         return tg
@@ -1947,8 +1921,8 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
 
     @FeatureNewKwargs('subdir', '0.44.0', ['if_found'])
     @permittedKwargs({'if_found'})
-    def func_subdir(self, node, args, kwargs):
-        self.validate_arguments(args, 1, [str])
+    @typed_pos_args('subdir', str)
+    def func_subdir(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> None:
         mesonlib.check_direntry_issues(args)
         if '..' in args[0]:
             raise InvalidArguments('Subdir contains ..')
@@ -2268,10 +2242,11 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
                 raise InterpreterException('Include directory objects can only be created from strings or include directories.')
         return result
 
-    @permittedKwargs({'is_system'})
-    @stringArgs
-    def func_include_directories(self, node, args, kwargs):
-        return self.build_incdir_object(args, kwargs.get('is_system', False))
+    @typed_pos_args('include_directories', varargs=str)
+    @typed_kwargs('include_directories', KwargInfo('is_system', bool, default=False))
+    def func_include_directories(self, node: mparser.BaseNode, args: T.Tuple[T.List[str]],
+                                 kwargs: 'kwargs.FuncIncludeDirectories') -> build.IncludeDirs:
+        return self.build_incdir_object(args[0], kwargs['is_system'])
 
     def build_incdir_object(self, incdir_strings: T.List[str], is_system: bool = False) -> build.IncludeDirs:
         if not isinstance(is_system, bool):
@@ -2333,10 +2308,8 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
 
     @permittedKwargs({'exe_wrapper', 'gdb', 'timeout_multiplier', 'env', 'is_default',
                       'exclude_suites'})
-    @stringArgs
-    def func_add_test_setup(self, node, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('Add_test_setup needs one argument for the setup name.')
+    @typed_pos_args('add_test_setup', str)
+    def func_add_test_setup(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> None:
         setup_name = args[0]
         if re.fullmatch('([_a-zA-Z][_0-9a-zA-Z]*:)?[_a-zA-Z][_0-9a-zA-Z]*', setup_name) is None:
             raise InterpreterException('Setup name may only contain alphanumeric characters.')
@@ -2470,10 +2443,10 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             initial_values = {}
         return EnvironmentVariablesObject(initial_values, self.subproject)
 
-    @stringArgs
+    @typed_pos_args('join_paths', varargs=str, min_varargs=1)
     @noKwargs
-    def func_join_paths(self, node, args, kwargs):
-        return self.join_path_strings(args)
+    def func_join_paths(self, node: mparser.BaseNode, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> str:
+        return self.join_path_strings(args[0])
 
     def run(self) -> None:
         super().run()
@@ -2724,41 +2697,35 @@ This will become a hard error in the future.''', location=self.current_node)
     def is_subproject(self):
         return self.subproject != ''
 
+    @typed_pos_args('set_variable', str, object)
     @noKwargs
     @noArgsFlattening
     @noSecondLevelHolderResolving
-    def func_set_variable(self, node, args, kwargs):
-        if len(args) != 2:
-            raise InvalidCode('Set_variable takes two arguments.')
+    def func_set_variable(self, node: mparser.BaseNode, args: T.Tuple[str, object], kwargs: 'TYPE_kwargs') -> None:
         varname, value = args
         self.set_variable(varname, value, holderify=True)
 
+    @typed_pos_args('get_variable', (str, Disabler), optargs=[object])
     @noKwargs
     @noArgsFlattening
     @permissive_unholder_return
-    def func_get_variable(self, node, args, kwargs):
-        if len(args) < 1 or len(args) > 2:
-            raise InvalidCode('Get_variable takes one or two arguments.')
-        varname = args[0]
+    def func_get_variable(self, node: mparser.BaseNode, args: T.Tuple[T.Union[str, Disabler], T.Optional[object]],
+                          kwargs: 'TYPE_kwargs') -> 'TYPE_var':
+        varname, fallback = args
         if isinstance(varname, Disabler):
             return varname
-        if not isinstance(varname, str):
-            raise InterpreterException('First argument must be a string.')
+
         try:
             return self.variables[varname]
         except KeyError:
-            pass
-        if len(args) == 2:
-            return args[1]
-        raise InterpreterException('Tried to get unknown variable "%s".' % varname)
+            if fallback is not None:
+                return fallback
+        raise InterpreterException(f'Tried to get unknown variable "{varname}".')
 
-    @stringArgs
+    @typed_pos_args('is_variable', str)
     @noKwargs
-    def func_is_variable(self, node, args, kwargs):
-        if len(args) != 1:
-            raise InvalidCode('Is_variable takes two arguments.')
-        varname = args[0]
-        return varname in self.variables
+    def func_is_variable(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> bool:
+        return args[0] in self.variables
 
     @staticmethod
     def machine_from_native_kwarg(kwargs: T.Dict[str, T.Any]) -> MachineChoice:
@@ -2768,12 +2735,10 @@ This will become a hard error in the future.''', location=self.current_node)
         return MachineChoice.BUILD if native else MachineChoice.HOST
 
     @FeatureNew('is_disabler', '0.52.0')
+    @typed_pos_args('is_disabler', object)
     @noKwargs
-    def func_is_disabler(self, node, args, kwargs):
-        if len(args) != 1:
-            raise InvalidCode('Is_disabler takes one argument.')
-        varname = args[0]
-        return isinstance(varname, Disabler)
+    def func_is_disabler(self, node: mparser.BaseNode, args: T.Tuple[object], kwargs: 'TYPE_kwargs') -> bool:
+        return isinstance(args[0], Disabler)
 
     @noKwargs
     @FeatureNew('range', '0.58.0')

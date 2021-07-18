@@ -137,3 +137,8 @@ class FuncInstallMan(TypedDict):
 class FuncImportModule(ExtractRequired):
 
     disabler: bool
+
+
+class FuncIncludeDirectories(TypedDict):
+
+    is_system: bool
