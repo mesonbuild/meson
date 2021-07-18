@@ -61,7 +61,7 @@ jobs:
     - uses: actions/checkout@v2
     # use python3 from homebrew because it is a valid framework, unlike the actions one:
     # https://github.com/actions/setup-python/issues/58
-    - run: brew install pkg-config ninja llvm qt@5 boost ldc hdf5 openmpi lapack scalapack sdl2 python3
+    - run: brew install pkg-config ninja llvm qt@5 boost ldc hdf5 openmpi lapack scalapack sdl2 python3 boost-python3
     - run: |
         python3 -m pip install --upgrade setuptools
         python3 -m pip install --upgrade pip
