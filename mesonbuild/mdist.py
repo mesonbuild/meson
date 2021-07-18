@@ -23,7 +23,8 @@ import json
 from glob import glob
 from pathlib import Path
 from mesonbuild.environment import detect_ninja
-from mesonbuild.mesonlib import windows_proof_rmtree, MesonException, quiet_git
+from mesonbuild.mesonlib import (MesonException, RealPathAction, quiet_git,
+                                 windows_proof_rmtree)
 from mesonbuild.wrap import wrap
 from mesonbuild import mlog, build
 from .scripts.meson_exe import run_exe
@@ -35,7 +36,7 @@ archive_extension = {'gztar': '.tar.gz',
                      'zip': '.zip'}
 
 def add_arguments(parser):
-    parser.add_argument('-C', default='.', dest='wd',
+    parser.add_argument('-C', dest='wd', action=RealPathAction,
                         help='directory to cd into before running')
     parser.add_argument('--formats', default='xztar',
                         help='Comma separated list of archive types to create. Supports xztar (default), gztar, and zip.')
@@ -270,7 +271,6 @@ def determine_archives_to_generate(options):
     return result
 
 def run(options):
-    options.wd = os.path.abspath(options.wd)
     buildfile = Path(options.wd) / 'meson-private' / 'build.dat'
     if not buildfile.is_file():
         raise MesonException(f'Directory {options.wd!r} does not seem to be a Meson build directory.')

@@ -43,7 +43,8 @@ from . import environment
 from . import mlog
 from .coredata import major_versions_differ, MesonVersionMismatchException
 from .coredata import version as coredata_version
-from .mesonlib import MesonException, OrderedSet, get_wine_shortpath, split_args, join_args
+from .mesonlib import (MesonException, OrderedSet, RealPathAction,
+                       get_wine_shortpath, join_args, split_args)
 from .mintro import get_infodir, load_info_file
 from .programs import ExternalProgram
 from .backend.backends import TestProtocol, TestSerialisation
@@ -104,7 +105,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
                         help='List available tests.')
     parser.add_argument('--wrapper', default=None, dest='wrapper', type=split_args,
                         help='wrapper to run tests with (e.g. Valgrind)')
-    parser.add_argument('-C', default='.', dest='wd',
+    parser.add_argument('-C', dest='wd', action=RealPathAction,
                         # https://github.com/python/typeshed/issues/3107
                         # https://github.com/python/mypy/issues/7177
                         type=os.path.abspath,  # type: ignore
@@ -1485,8 +1486,7 @@ class TestHarness:
 
         startdir = os.getcwd()
         try:
-            if self.options.wd:
-                os.chdir(self.options.wd)
+            os.chdir(self.options.wd)
             self.build_data = build.load(os.getcwd())
             if not self.options.setup:
                 self.options.setup = self.build_data.test_setup_default_name
@@ -1656,8 +1656,7 @@ class TestHarness:
         self.name_max_len = max([uniwidth(self.get_pretty_suite(test)) for test in tests])
         startdir = os.getcwd()
         try:
-            if self.options.wd:
-                os.chdir(self.options.wd)
+            os.chdir(self.options.wd)
             runners = []             # type: T.List[SingleTestRunner]
             for i in range(self.options.repeat):
                 runners.extend(self.get_test_runner(test) for test in tests)

@@ -14,6 +14,7 @@
 
 """A library of random helper functionality."""
 from pathlib import Path
+import argparse
 import enum
 import sys
 import stat
@@ -70,6 +71,7 @@ __all__ = [
     'PerThreeMachine',
     'PerThreeMachineDefaultable',
     'ProgressBar',
+    'RealPathAction',
     'TemporaryDirectoryWinProof',
     'Version',
     'check_direntry_issues',
@@ -1841,6 +1843,17 @@ else:
             super().__init__(*args, **kwargs)
 
     ProgressBar = ProgressBarTqdm
+
+
+class RealPathAction(argparse.Action):
+    def __init__(self, option_strings: T.List[str], dest: str, default: str = '.', **kwargs: T.Any):
+        default = os.path.abspath(os.path.realpath(default))
+        super().__init__(option_strings, dest, nargs=None, default=default, **kwargs)
+
+    def __call__(self, parser: argparse.ArgumentParser, namespace: argparse.Namespace,
+                 values: T.Union[str, T.Sequence[T.Any], None], option_string: str = None) -> None:
+        assert isinstance(values, str)
+        setattr(namespace, self.dest, os.path.abspath(os.path.realpath(values)))
 
 
 def get_wine_shortpath(winecmd: T.List[str], wine_paths: T.Sequence[str]) -> str:
