@@ -650,11 +650,9 @@ class CudaCompiler(Compiler):
 
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str,
-                        darwin_versions: T.Tuple[str, str],
-                        is_shared_module: bool) -> T.List[str]:
+                        darwin_versions: T.Tuple[str, str]) -> T.List[str]:
         return self._to_host_flags(self.host_compiler.get_soname_args(
-            env, prefix, shlib_name, suffix, soversion, darwin_versions,
-            is_shared_module), _Phase.LINKER)
+            env, prefix, shlib_name, suffix, soversion, darwin_versions), _Phase.LINKER)
 
     def get_compile_only_args(self) -> T.List[str]:
         return ['-c']

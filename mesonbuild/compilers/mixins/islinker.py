@@ -104,8 +104,7 @@ class BasicLinkerIsCompilerMixin(Compiler):
 
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str,
-                        darwin_versions: T.Tuple[str, str],
-                        is_shared_module: bool) -> T.List[str]:
+                        darwin_versions: T.Tuple[str, str]) -> T.List[str]:
         raise MesonException("This linker doesn't support soname args")
 
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,

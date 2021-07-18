@@ -988,11 +988,10 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
 
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str,
-                        darwin_versions: T.Tuple[str, str],
-                        is_shared_module: bool) -> T.List[str]:
+                        darwin_versions: T.Tuple[str, str]) -> T.List[str]:
         return self.linker.get_soname_args(
             env, prefix, shlib_name, suffix, soversion,
-            darwin_versions, is_shared_module)
+            darwin_versions)
 
     def get_target_link_args(self, target: 'BuildTarget') -> T.List[str]:
         return target.link_args
