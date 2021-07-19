@@ -7956,6 +7956,49 @@ class LinuxlikeTests(BasePlatformTests):
             out = self._run(['otool', '-L', f])
             # Ensure that the otool output does not contain self.installdir
             self.assertNotRegex(out, self.installdir + '.*dylib ')
+    
+    @skipIfNoPkgconfig
+    def test_link_arg_fullname(self):
+        '''
+        Test for  support of -l:libfullname.a
+        see: https://github.com/mesonbuild/meson/issues/9000
+             https://stackoverflow.com/questions/48532868/gcc-library-option-with-a-colon-llibevent-a
+        '''
+        testdir = os.path.join(self.unit_test_dir, '97 link full name','libtestprovider')
+        oldprefix = self.prefix
+        # install into installdir without using DESTDIR
+        installdir = self.installdir
+        self.prefix = installdir
+        self.init(testdir)
+        self.prefix=oldprefix
+        self.build()
+        self.install(use_destdir=False)
+
+        self.new_builddir()
+        env = {'LIBRARY_PATH': os.path.join(installdir, self.libdir),
+               'PKG_CONFIG_PATH': os.path.join(installdir, self.libdir, 'pkgconfig')}
+        testdir = os.path.join(self.unit_test_dir, '97 link full name','proguser')
+        self.init(testdir,override_envvars=env)
+        
+        # test for link with full path
+        with open(os.path.join(self.builddir, 'build.ninja'), encoding='utf-8') as bfile:
+            for line in bfile:
+                if 'build dprovidertest:' in line:
+                    self.assertIn('/libtestprovider.a', line)
+                    
+        if is_osx():
+            # macOS's ld do not supports `--whole-archive`, skip build & run
+            return
+        
+        self.build(override_envvars=env)
+        
+        # skip test if pkg-config is too old.
+        #   before v0.28, Libs flags like -Wl will not kept in context order with -l flags.
+        #   see https://gitlab.freedesktop.org/pkg-config/pkg-config/-/blob/master/NEWS
+        pkgconfigver = subprocess.check_output(['pkg-config', '--version'])
+        if b'0.28' > pkgconfigver:
+            raise unittest.SkipTest('pkg-config is too old to be correctly done this.')
+        self.run_tests()
 
     @skipIfNoPkgconfig
     def test_usage_pkgconfig_prefixes(self):

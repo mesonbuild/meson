@@ -277,6 +277,30 @@ class PkgConfigDependency(ExternalDependency):
             elif lib.startswith('-L'):
                 # We already handled library paths above
                 continue
+            elif lib.startswith('-l:'):
+                # see: https://stackoverflow.com/questions/48532868/gcc-library-option-with-a-colon-llibevent-a
+                # also : See the documentation of -lnamespec | --library=namespec in the linker manual  
+                #                     https://sourceware.org/binutils/docs-2.18/ld/Options.html
+                
+                # Don't resolve the same -l:libfoo.a argument again
+                if lib in libs_found:
+                    continue
+                libfilename = lib[3:]
+                foundname = None
+                for libdir in libpaths:
+                    target = os.path.join(libdir, libfilename)
+                    if os.path.exists(target):
+                        foundname = target
+                        break
+                if foundname is None:
+                    if lib in libs_notfound:
+                        continue
+                    else:
+                        mlog.warning('Library {!r} not found for dependency {!r}, may '
+                                    'not be successfully linked'.format(libfilename, self.name))
+                    libs_notfound.append(lib)
+                else:
+                    lib = foundname
             elif lib.startswith('-l'):
                 # Don't resolve the same -lfoo argument again
                 if lib in libs_found:
