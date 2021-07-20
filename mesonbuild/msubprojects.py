@@ -70,7 +70,11 @@ class Runner:
 
     def run(self):
         self.logger.start(self.wrap.name)
-        result = self.run_method()
+        try:
+            result = self.run_method()
+        except MesonException as e:
+            self.log(mlog.red('Error:'), str(e))
+            result = False
         self.logger.done(self.wrap.name, self.log_queue)
         return result
 
