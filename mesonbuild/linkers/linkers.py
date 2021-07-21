@@ -1397,8 +1397,6 @@ class CudaLinker(PosixDynamicLinkerMixin, DynamicLinker):
         return False
 
     def get_lib_prefix(self) -> str:
-        if not mesonlib.is_windows():
-            return ''
         # nvcc doesn't recognize Meson's default .a extension for static libraries on
         # Windows and passes it to cl as an object file, resulting in 'warning D9024 :
         # unrecognized source file type 'xxx.a', object file assumed'.
@@ -1406,6 +1404,12 @@ class CudaLinker(PosixDynamicLinkerMixin, DynamicLinker):
         # nvcc's --library= option doesn't help: it takes the library name without the
         # extension and assumes that the extension on Windows is .lib; prefixing the
         # library with -Xlinker= seems to work.
+        #
+        # On Linux, we have to use rely on -Xlinker= too, since nvcc/nvlink chokes on
+        # versioned shared libraries:
+        #
+        #   nvcc fatal : Don't know what to do with 'subprojects/foo/libbar.so.0.1.2'
+        #
         from ..compilers import CudaCompiler
         return CudaCompiler.LINKER_PREFIX
 

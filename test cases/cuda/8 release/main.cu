@@ -1,6 +1,10 @@
 #include <cuda_runtime.h>
 #include <iostream>
 
+#ifndef NDEBUG
+#error "NDEBUG not defined, this is a Meson bug"
+#endif
+
 int cuda_devices(void) {
     int result = 0;
     cudaGetDeviceCount(&result);
