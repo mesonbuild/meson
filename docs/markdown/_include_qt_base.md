@@ -21,8 +21,9 @@ It takes no positional arguments, and the following keyword arguments:
 Compiles Qt's ui files (.ui) into header files.
 
 It takes no positional arguments, and the following keyword arguments:
-  - `sources` (File | string)[]: A list of sources to be transpiled. Required,
-    must have at least one source
+  - `sources` (File | string | custom_target | custom_target index | generator_output)[]:
+    A list of sources to be transpiled. Required, must have at least one source
+    *New in 0.60.0*: support for custom_target, custom_target_index, and generator_output.
   - `extra_args` string[]: Extra arguments to pass directly to `qt-uic`
   - `method` string: The method to use to detect qt, see `dependency()` for more
     information.
