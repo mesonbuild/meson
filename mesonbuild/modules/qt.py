@@ -93,7 +93,7 @@ if T.TYPE_CHECKING:
         method: str
         qresource: T.Optional[str]
         rcc_extra_arguments: T.List[str]
-        ts_files: T.List[str]
+        ts_files: T.List[T.Union[str, File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
 
 
 class QtBaseModule(ExtensionModule):
@@ -514,10 +514,12 @@ class QtBaseModule(ExtensionModule):
         KwargInfo('method', str, default='auto'),
         KwargInfo('qresource', str, since='0.56.0'),
         KwargInfo('rcc_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[], since='0.56.0'),
-        KwargInfo('ts_files', ContainerTypeInfo(list, (str, File)), listify=True, default=[]),
+        KwargInfo('ts_files', ContainerTypeInfo(list, (str, File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)), listify=True, default=[]),
     )
     def compile_translations(self, state: 'ModuleState', args: T.Tuple, kwargs: 'CompileTranslationsKwArgs') -> ModuleReturnValue:
         ts_files = kwargs['ts_files']
+        if any(isinstance(s, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)) for s in ts_files):
+            FeatureNew.single_use('qt.compile_translations: custom_target or generator for "ts_files" keyword argument', '0.60.0', state.subproject)
         install_dir = kwargs['install_dir']
         qresource = kwargs['qresource']
         if qresource:
@@ -546,6 +548,11 @@ class QtBaseModule(ExtensionModule):
                 raise MesonException('qt.compile_translations: ' +
                                      self.lrelease.name + ' not found')
             if qresource:
+                # In this case we know that ts_files is always a List[str], as
+                # it's generated above and no ts_files are passed in. However,
+                # mypy can't figure that out so we use assert to assure it that
+                # what we're doing is safe
+                assert isinstance(ts, str), 'for mypy'
                 outdir = os.path.dirname(os.path.normpath(os.path.join(state.subdir, ts)))
                 ts = os.path.basename(ts)
             else:
@@ -553,9 +560,9 @@ class QtBaseModule(ExtensionModule):
             cmd = [self.lrelease, '@INPUT@', '-qm', '@OUTPUT@']
             lrelease_kwargs = {'output': '@BASENAME@.qm',
                                'input': ts,
-                               'install': kwargs.get('install', False),
+                               'install': kwargs['install'],
                                'install_tag': 'i18n',
-                               'build_by_default': kwargs.get('build_by_default', False),
+                               'build_by_default': kwargs['build_by_default'],
                                'command': cmd}
             if install_dir is not None:
                 lrelease_kwargs['install_dir'] = install_dir

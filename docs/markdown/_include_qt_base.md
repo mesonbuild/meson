@@ -85,7 +85,9 @@ It returns an array of targets and sources to pass to a compilation target.
 This method generates the necessary targets to build translation files with
 lrelease, it takes no positional arguments, and the following keyword arguments:
 
- - `ts_files` (str | File)[], the list of input translation files produced by Qt's lupdate tool.
+ - `ts_files` (File | string | custom_target | custom_target index | generator_output)[]:
+    the list of input translation files produced by Qt's lupdate tool.
+    *New in 0.60.0*: support for custom_target, custom_target_index, and generator_output.
  - `install` bool: when true, this target is installed during the install step (optional).
  - `install_dir` string: directory to install to (optional).
  - `build_by_default` bool: when set to true, to have this target be built by
