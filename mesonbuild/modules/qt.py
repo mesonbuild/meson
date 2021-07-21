@@ -44,7 +44,7 @@ if T.TYPE_CHECKING:
         """Keyword arguments for the Resource Compiler method."""
 
         name: T.Optional[str]
-        sources: T.List[FileOrString]
+        sources: T.Sequence[T.Union[FileOrString, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
         extra_args: T.List[str]
         method: str
 
@@ -209,33 +209,41 @@ class QtBaseModule(ExtensionModule):
         except Exception:
             raise MesonException(f'Unable to parse resource file {abspath}')
 
-    def _parse_qrc_deps(self, state: 'ModuleState', rcc_file: 'FileOrString') -> T.List[File]:
-        rcc_dirname, nodes = self._qrc_nodes(state, rcc_file)
+    def _parse_qrc_deps(self, state: 'ModuleState',
+                        rcc_file_: T.Union['FileOrString', build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]) -> T.List[File]:
         result: T.List[File] = []
-        for resource_path in nodes:
-            # We need to guess if the pointed resource is:
-            #   a) in build directory -> implies a generated file
-            #   b) in source directory
-            #   c) somewhere else external dependency file to bundle
-            #
-            # Also from qrc documentation: relative path are always from qrc file
-            # So relative path must always be computed from qrc file !
-            if os.path.isabs(resource_path):
-                # a)
-                if resource_path.startswith(os.path.abspath(state.environment.build_dir)):
-                    resource_relpath = os.path.relpath(resource_path, state.environment.build_dir)
-                    result.append(File(is_built=True, subdir='', fname=resource_relpath))
-                # either b) or c)
+        inputs: T.Sequence['FileOrString'] = []
+        if isinstance(rcc_file_, (str, File)):
+            inputs = [rcc_file_]
+        else:
+            inputs = rcc_file_.get_outputs()
+
+        for rcc_file in inputs:
+            rcc_dirname, nodes = self._qrc_nodes(state, rcc_file)
+            for resource_path in nodes:
+                # We need to guess if the pointed resource is:
+                #   a) in build directory -> implies a generated file
+                #   b) in source directory
+                #   c) somewhere else external dependency file to bundle
+                #
+                # Also from qrc documentation: relative path are always from qrc file
+                # So relative path must always be computed from qrc file !
+                if os.path.isabs(resource_path):
+                    # a)
+                    if resource_path.startswith(os.path.abspath(state.environment.build_dir)):
+                        resource_relpath = os.path.relpath(resource_path, state.environment.build_dir)
+                        result.append(File(is_built=True, subdir='', fname=resource_relpath))
+                    # either b) or c)
+                    else:
+                        result.append(File(is_built=False, subdir=state.subdir, fname=resource_path))
                 else:
-                    result.append(File(is_built=False, subdir=state.subdir, fname=resource_path))
-            else:
-                path_from_rcc = os.path.normpath(os.path.join(rcc_dirname, resource_path))
-                # a)
-                if path_from_rcc.startswith(state.environment.build_dir):
-                    result.append(File(is_built=True, subdir=state.subdir, fname=resource_path))
-                # b)
-                else:
-                    result.append(File(is_built=False, subdir=state.subdir, fname=path_from_rcc))
+                    path_from_rcc = os.path.normpath(os.path.join(rcc_dirname, resource_path))
+                    # a)
+                    if path_from_rcc.startswith(state.environment.build_dir):
+                        result.append(File(is_built=True, subdir=state.subdir, fname=resource_path))
+                    # b)
+                    else:
+                        result.append(File(is_built=False, subdir=state.subdir, fname=path_from_rcc))
         return result
 
     @FeatureNew('qt.has_tools', '0.54.0')
@@ -267,7 +275,12 @@ class QtBaseModule(ExtensionModule):
     @typed_kwargs(
         'qt.compile_resources',
         KwargInfo('name', str),
-        KwargInfo('sources', ContainerTypeInfo(list, (File, str), allow_empty=False), listify=True, required=True),
+        KwargInfo(
+            'sources',
+            ContainerTypeInfo(list, (File, str, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList), allow_empty=False),
+            listify=True,
+            required=True,
+        ),
         KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
         KwargInfo('method', str, default='auto')
     )
@@ -276,6 +289,8 @@ class QtBaseModule(ExtensionModule):
 
         Uses CustomTargets to generate .cpp files from .qrc files.
         """
+        if any(isinstance(s, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)) for s in kwargs['sources']):
+            FeatureNew.single_use('qt.compile_resources: custom_target or generator for "sources" keyword argument', '0.60.0', state.subproject)
         out = self._compile_resources_impl(state, kwargs)
         return ModuleReturnValue(out, [out])
 
@@ -294,7 +309,12 @@ class QtBaseModule(ExtensionModule):
         DEPFILE_ARGS: T.List[str] = ['--depfile', '@DEPFILE@'] if self._rcc_supports_depfiles else []
 
         name = kwargs['name']
-        sources = kwargs['sources']
+        sources: T.List['FileOrString'] = []
+        for s in kwargs['sources']:
+            if isinstance(s, (str, File)):
+                sources.append(s)
+            else:
+                sources.extend(s.get_outputs())
         extra_args = kwargs['extra_args']
 
         # If a name was set generate a single .cpp file from all of the qrc

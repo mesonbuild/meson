@@ -8,8 +8,9 @@ It takes no positional arguments, and the following keyword arguments:
   - `name` (string | empty): if provided a single .cpp file will be generated,
     and the output of all qrc files will be combined in this file, otherwise
     each qrc file be written to it's own cpp file.
-  - `sources` (File | string)[]: A list of sources to be transpiled. Required,
-    must have at least one source
+  - `sources` (File | string | custom_target | custom_target index | generator_output)[]:
+    A list of sources to be transpiled. Required, must have at least one source
+    *New in 0.60.0*: support for custom_target, custom_target_index, and generator_output.
   - `extra_args` string[]: Extra arguments to pass directly to `qt-rcc`
   - `method` string: The method to use to detect qt, see `dependency()` for more
     information.
