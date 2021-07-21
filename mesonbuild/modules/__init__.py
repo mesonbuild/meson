@@ -18,7 +18,7 @@
 import os
 import typing as T
 
-from .. import build
+from .. import build, mesonlib
 from ..mesonlib import relpath, HoldableObject
 from ..interpreterbase.decorators import noKwargs, noPosargs
 
@@ -91,6 +91,17 @@ class ModuleState:
                      version_func: T.Optional[T.Callable[['ExternalProgram'], str]] = None,
                      wanted: T.Optional[str] = None) -> 'ExternalProgram':
         return self._interpreter.find_program_impl(prog, required=required, version_func=version_func, wanted=wanted)
+
+    def test(self, args: T.Tuple[str, T.Union[build.Executable, build.Jar, 'ExternalProgram', mesonlib.File]],
+             workdir: T.Optional[str] = None,
+             env: T.Union[T.List[str], T.Dict[str, str], str] = None,
+             depends: T.List[T.Union[build.CustomTarget, build.BuildTarget]] = None) -> None:
+        kwargs = {'workdir': workdir,
+                  'env': env,
+                  'depends': depends,
+                  }
+        # TODO: Use interpreter internal API, but we need to go through @typed_kwargs
+        self._interpreter.func_test(self.node, args, kwargs)
 
 
 class ModuleObject(HoldableObject):
