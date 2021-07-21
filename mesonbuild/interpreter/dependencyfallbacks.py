@@ -17,7 +17,7 @@ if T.TYPE_CHECKING:
 
 class DependencyFallbacksHolder(MesonInterpreterObject):
     def __init__(self, interpreter: 'Interpreter', names: T.List[str], allow_fallback: T.Optional[bool] = None) -> None:
-        super().__init__()
+        super().__init__(subproject=interpreter.subproject)
         self.interpreter = interpreter
         self.subproject = interpreter.subproject
         self.coredata = interpreter.coredata

@@ -22,7 +22,7 @@ if T.TYPE_CHECKING:
 
 class MesonMain(MesonInterpreterObject):
     def __init__(self, build: 'build.Build', interpreter: 'Interpreter'):
-        super().__init__()
+        super().__init__(subproject=interpreter.subproject)
         self.build = build
         self.interpreter = interpreter
         self.methods.update({'get_compiler': self.get_compiler_method,

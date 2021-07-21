@@ -82,7 +82,7 @@ class ObjectHolder(InterpreterObject, T.Generic[InterpreterObjectTypeVar]):
         return f'<[{type(self).__name__}] holds [{type(self.held_object).__name__}]: {self.held_object!r}>'
 
 class RangeHolder(MesonInterpreterObject):
-    def __init__(self, start: int, stop: int, step: int, *, subproject: T.Optional[str] = None) -> None:
+    def __init__(self, start: int, stop: int, step: int, *, subproject: str) -> None:
         super().__init__(subproject=subproject)
         self.range = range(start, stop, step)
 
