@@ -15,3 +15,5 @@ endif
 
 # This will error out if elif cause did not enter
 assert(foo_dep.found(), 'meson.version_compare did not work')
+
+subproject('foo')

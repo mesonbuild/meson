@@ -2759,4 +2759,4 @@ This will become a hard error in the future.''', location=self.current_node)
             raise InterpreterException('stop cannot be less than start')
         if step < 1:
             raise InterpreterException('step must be >=1')
-        return RangeHolder(start, stop, step)
+        return RangeHolder(start, stop, step, subproject=self.subproject)
