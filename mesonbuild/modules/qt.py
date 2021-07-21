@@ -52,7 +52,7 @@ if T.TYPE_CHECKING:
 
         """Keyword arguments for the Ui Compiler method."""
 
-        sources: T.List[FileOrString]
+        sources: T.Sequence[T.Union[FileOrString, build.CustomTarget]]
         extra_args: T.List[str]
         method: str
 
@@ -60,8 +60,8 @@ if T.TYPE_CHECKING:
 
         """Keyword arguments for the Moc Compiler method."""
 
-        sources: T.List[FileOrString]
-        headers: T.List[FileOrString]
+        sources: T.List[T.Union[FileOrString, build.CustomTarget]]
+        headers: T.List[T.Union[FileOrString, build.CustomTarget]]
         extra_args: T.List[str]
         method: str
         include_directories: T.List[T.Union[str, build.IncludeDirs]]
@@ -70,10 +70,10 @@ if T.TYPE_CHECKING:
     class PreprocessKwArgs(TypedDict):
 
         sources: T.List[FileOrString]
-        moc_sources: T.List[FileOrString]
-        moc_headers: T.List[FileOrString]
+        moc_sources: T.List[T.Union[FileOrString, build.CustomTarget]]
+        moc_headers: T.List[T.Union[FileOrString, build.CustomTarget]]
         qresources: T.List[FileOrString]
-        ui_files: T.List[FileOrString]
+        ui_files: T.List[T.Union[FileOrString, build.CustomTarget]]
         moc_extra_arguments: T.List[str]
         rcc_extra_arguments: T.List[str]
         uic_extra_arguments: T.List[str]
@@ -366,8 +366,8 @@ class QtBaseModule(ExtensionModule):
     @noPosargs
     @typed_kwargs(
         'qt.compile_moc',
-        KwargInfo('sources', ContainerTypeInfo(list, (File, str)), listify=True, default=[]),
-        KwargInfo('headers', ContainerTypeInfo(list, (File, str)), listify=True, default=[]),
+        KwargInfo('sources', ContainerTypeInfo(list, (File, str, build.CustomTarget)), listify=True, default=[]),
+        KwargInfo('headers', ContainerTypeInfo(list, (File, str, build.CustomTarget)), listify=True, default=[]),
         KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
         KwargInfo('method', str, default='auto'),
         KwargInfo('include_directories', ContainerTypeInfo(list, (build.IncludeDirs, str)), listify=True, default=[]),
@@ -414,9 +414,9 @@ class QtBaseModule(ExtensionModule):
         'qt.preprocess',
         KwargInfo('sources', ContainerTypeInfo(list, (File, str)), listify=True, default=[], deprecated='0.59.0'),
         KwargInfo('qresources', ContainerTypeInfo(list, (File, str)), listify=True, default=[]),
-        KwargInfo('ui_files', ContainerTypeInfo(list, (File, str)), listify=True, default=[]),
-        KwargInfo('moc_sources', ContainerTypeInfo(list, (File, str)), listify=True, default=[]),
-        KwargInfo('moc_headers', ContainerTypeInfo(list, (File, str)), listify=True, default=[]),
+        KwargInfo('ui_files', ContainerTypeInfo(list, (File, str, build.CustomTarget)), listify=True, default=[]),
+        KwargInfo('moc_sources', ContainerTypeInfo(list, (File, str, build.CustomTarget)), listify=True, default=[]),
+        KwargInfo('moc_headers', ContainerTypeInfo(list, (File, str, build.CustomTarget)), listify=True, default=[]),
         KwargInfo('moc_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[], since='0.44.0'),
         KwargInfo('rcc_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[], since='0.49.0'),
         KwargInfo('uic_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[], since='0.49.0'),
