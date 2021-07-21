@@ -1136,10 +1136,8 @@ class GnomeModule(ExtensionModule):
             check_env = ['DOC_MODULE=' + modulename,
                          'DOC_MAIN_SGML_FILE=' + main_file]
             check_args = [targetname + '-check', check_cmd]
-            check_kwargs = {'env': check_env,
-                            'workdir': os.path.join(state.environment.get_build_dir(), state.subdir),
-                            'depends': custom_target}
-            self.interpreter.add_test(state.current_node, check_args, check_kwargs, True)
+            check_workdir = os.path.join(state.environment.get_build_dir(), state.subdir)
+            state.test(check_args, env=check_env, workdir=check_workdir, depends=custom_target)
         res = [custom_target, alias_target]
         if kwargs.get('install', True):
             res.append(state.backend.get_executable_serialisation(command + args))
