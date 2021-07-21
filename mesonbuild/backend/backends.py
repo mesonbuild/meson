@@ -633,7 +633,7 @@ class Backend:
             if not isinstance(dep, (dependencies.ExternalLibrary, dependencies.PkgConfigDependency)):
                 continue
             la = dep.link_args
-            if len(la) != 1 or not os.path.isabs(la[0]):
+            if len(la) == 0 or not os.path.isabs(la[0]):
                 continue
             # The only link argument is an absolute path to a library file.
             libpath = la[0]
