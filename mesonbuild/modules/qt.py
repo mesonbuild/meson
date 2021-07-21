@@ -60,8 +60,8 @@ if T.TYPE_CHECKING:
 
         """Keyword arguments for the Moc Compiler method."""
 
-        sources: T.List[T.Union[FileOrString, build.CustomTarget]]
-        headers: T.List[T.Union[FileOrString, build.CustomTarget]]
+        sources: T.Sequence[T.Union[FileOrString, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
+        headers: T.Sequence[T.Union[FileOrString, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
         extra_args: T.List[str]
         method: str
         include_directories: T.List[T.Union[str, build.IncludeDirs]]
@@ -366,14 +366,28 @@ class QtBaseModule(ExtensionModule):
     @noPosargs
     @typed_kwargs(
         'qt.compile_moc',
-        KwargInfo('sources', ContainerTypeInfo(list, (File, str, build.CustomTarget)), listify=True, default=[]),
-        KwargInfo('headers', ContainerTypeInfo(list, (File, str, build.CustomTarget)), listify=True, default=[]),
+        KwargInfo(
+            'sources',
+            ContainerTypeInfo(list, (File, str, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)),
+            listify=True,
+            default=[],
+        ),
+        KwargInfo(
+            'headers',
+            ContainerTypeInfo(list, (File, str, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)),
+            listify=True,
+            default=[]
+        ),
         KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
         KwargInfo('method', str, default='auto'),
         KwargInfo('include_directories', ContainerTypeInfo(list, (build.IncludeDirs, str)), listify=True, default=[]),
         KwargInfo('dependencies', ContainerTypeInfo(list, (Dependency, ExternalLibrary)), listify=True, default=[]),
     )
     def compile_moc(self, state: 'ModuleState', args: T.Tuple, kwargs: 'MocCompilerKwArgs') -> ModuleReturnValue:
+        if any(isinstance(s, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)) for s in kwargs['headers']):
+            FeatureNew.single_use('qt.compile_moc: custom_target or generator for "headers" keyword argument', '0.60.0', state.subproject)
+        if any(isinstance(s, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)) for s in kwargs['sources']):
+            FeatureNew.single_use('qt.compile_moc: custom_target or generator for "sources" keyword argument', '0.60.0', state.subproject)
         out = self._compile_moc_impl(state, kwargs)
         return ModuleReturnValue(out, [out])
 

@@ -35,9 +35,12 @@ Compiles Qt's moc files (.moc) into header and/or source files. At least one of
 the keyword arguments `headers` and `sources` must be provided.
 
 It takes no positional arguments, and the following keyword arguments:
-  - `sources` (File | string)[]: A list of sources to be transpiled into .moc
-    files for manual inclusion.
-  - `headers` (File | string)[]: A list of headers to be transpiled into .cpp files
+  - `sources` (File | string | custom_target | custom_target index | generator_output)[]:
+    A list of sources to be transpiled into .moc files for manual inclusion.
+    *New in 0.60.0*: support for custom_target, custom_target_index, and generator_output.
+  - `headers` (File | string | custom_target | custom_target index | generator_output)[]:
+     A list of headers to be transpiled into .cpp files
+    *New in 0.60.0*: support for custom_target, custom_target_index, and generator_output.
   - `extra_args` string[]: Extra arguments to pass directly to `qt-moc`
   - `method` string: The method to use to detect qt, see `dependency()` for more
     information.
