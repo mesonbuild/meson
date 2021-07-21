@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .base import ExternalDependency, DependencyException, DependencyMethods, DependencyTypeName
+from .base import ExternalDependency, DependencyException, DependencyTypeName
 from .pkgconfig import PkgConfigDependency
 from ..mesonlib import Popen_safe
 from ..programs import ExternalProgram
@@ -234,7 +234,3 @@ class DubDependency(ExternalDependency):
         else:
             mlog.log('Found DUB:', mlog.red('NO'))
         return dubbin
-
-    @staticmethod
-    def get_methods() -> T.List[DependencyMethods]:
-        return [DependencyMethods.DUB]

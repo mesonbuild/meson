@@ -106,10 +106,6 @@ class GTestDependencySystem(SystemDependency):
     def log_tried(self) -> str:
         return 'system'
 
-    @staticmethod
-    def get_methods() -> T.List[DependencyMethods]:
-        return [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM]
-
 
 class GTestDependencyPC(PkgConfigDependency):
 
@@ -180,10 +176,6 @@ class GMockDependencySystem(SystemDependency):
 
     def log_tried(self) -> str:
         return 'system'
-
-    @staticmethod
-    def get_methods() -> T.List[DependencyMethods]:
-        return [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM]
 
 
 class GMockDependencyPC(PkgConfigDependency):
@@ -508,11 +500,6 @@ class ZlibSystemDependency(SystemDependency):
         self.version = v.strip('"')
 
 
-    @staticmethod
-    def get_methods() -> T.List[DependencyMethods]:
-        return [DependencyMethods.SYSTEM]
-
-
 class JDKSystemDependency(SystemDependency):
     def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
         super().__init__('jdk', environment, kwargs)
@@ -543,10 +530,6 @@ class JDKSystemDependency(SystemDependency):
         self.compile_args.append(f'-I{java_home_include}')
         self.compile_args.append(f'-I{java_home_include / platform_include_dir}')
         self.is_found = True
-
-    @staticmethod
-    def get_methods() -> T.List[DependencyMethods]:
-        return [DependencyMethods.SYSTEM]
 
     @staticmethod
     def __machine_info_to_platform_include_dir(m: 'MachineInfo') -> T.Optional[str]:

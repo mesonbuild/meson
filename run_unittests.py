@@ -774,24 +774,6 @@ class InternalTests(unittest.TestCase):
         kwargs = {'sources': [1, [2, [3]]]}
         self.assertEqual([1, 2, 3], extract(kwargs, 'sources'))
 
-    def test_pkgconfig_module(self):
-        dummystate = mock.Mock()
-        dummystate.subproject = 'dummy'
-        _mock = mock.Mock(spec=mesonbuild.dependencies.ExternalDependency)
-        _mock.pcdep = mock.Mock()
-        _mock.pcdep.name = "some_name"
-        _mock.version_reqs = []
-
-        # pkgconfig dependency as lib
-        deps = mesonbuild.modules.pkgconfig.DependenciesHelper(dummystate, "thislib")
-        deps.add_pub_libs([_mock])
-        self.assertEqual(deps.format_reqs(deps.pub_reqs), "some_name")
-
-        # pkgconfig dependency as requires
-        deps = mesonbuild.modules.pkgconfig.DependenciesHelper(dummystate, "thislib")
-        deps.add_pub_reqs([_mock])
-        self.assertEqual(deps.format_reqs(deps.pub_reqs), "some_name")
-
     def _test_all_naming(self, cc, env, patterns, platform):
         shr = patterns[platform]['shared']
         stc = patterns[platform]['static']

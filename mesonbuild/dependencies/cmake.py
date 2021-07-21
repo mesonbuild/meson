@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .base import ExternalDependency, DependencyException, DependencyMethods, DependencyTypeName
+from .base import ExternalDependency, DependencyException, DependencyTypeName
 from ..mesonlib import is_windows, MesonException, OptionKey, PerMachine, stringlistify, extract_as_list
 from ..mesondata import mesondata
 from ..cmake import CMakeExecutor, CMakeTraceParser, CMakeException, CMakeToolchain, CMakeExecScope, check_cmake_args
@@ -631,10 +631,6 @@ class CMakeDependency(ExternalDependency):
                     env: T.Optional[T.Dict[str, str]] = None) -> T.Tuple[int, T.Optional[str], T.Optional[str]]:
         build_dir = self._setup_cmake_dir(cmake_file)
         return self.cmakebin.call(args, build_dir, env=env)
-
-    @staticmethod
-    def get_methods() -> T.List[DependencyMethods]:
-        return [DependencyMethods.CMAKE]
 
     def log_tried(self) -> str:
         return self.type_name

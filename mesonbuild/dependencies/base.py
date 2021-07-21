@@ -89,7 +89,6 @@ class Dependency(HoldableObject):
         # If None, self.link_args will be used
         self.raw_link_args: T.Optional[T.List[str]] = None
         self.sources: T.List['FileOrString'] = []
-        self.methods = process_method_kw(self.get_methods(), kwargs)
         self.include_type = self._process_include_type_kw(kwargs)
         self.ext_deps: T.List[Dependency] = []
 
@@ -147,10 +146,6 @@ class Dependency(HoldableObject):
         """Source files that need to be added to the target.
         As an example, gtest-all.cc when using GTest."""
         return self.sources
-
-    @staticmethod
-    def get_methods() -> T.List[DependencyMethods]:
-        return [DependencyMethods.AUTO]
 
     def get_name(self) -> str:
         return self.name
@@ -547,10 +542,6 @@ class SystemDependency(ExternalDependency):
         super().__init__(DependencyTypeName('system'), env, kwargs, language=language)
         self.name = name
 
-    @staticmethod
-    def get_methods() -> T.List[DependencyMethods]:
-        return [DependencyMethods.SYSTEM]
-
     def log_tried(self) -> str:
         return 'system'
 
@@ -563,10 +554,6 @@ class BuiltinDependency(ExternalDependency):
                  language: T.Optional[str] = None) -> None:
         super().__init__(DependencyTypeName('builtin'), env, kwargs, language=language)
         self.name = name
-
-    @staticmethod
-    def get_methods() -> T.List[DependencyMethods]:
-        return [DependencyMethods.BUILTIN]
 
     def log_tried(self) -> str:
         return 'builtin'
