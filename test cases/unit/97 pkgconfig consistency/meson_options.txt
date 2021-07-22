@@ -1,0 +1,1 @@
+option('fail1', type: 'boolean', value: false)

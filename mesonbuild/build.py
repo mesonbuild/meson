@@ -126,9 +126,19 @@ class InvalidArguments(MesonException):
 
 @dataclass(eq=False)
 class DependencyOverride(HoldableObject):
-    dep: dependencies.Dependency
+    dep: T.Optional[dependencies.Dependency]
     node: 'BaseNode'
     explicit: bool = True
+    type_name: T.Optional[str] = None
+
+    def __post_init__(self) -> None:
+        # We could not have overridden a dependency yet, but we already know it
+        # must be of a certain type. For example if we found gtk from pkgconfig,
+        # we know that glib must come from pkgconfig too, even if we did not
+        # lookup for it explicitly yet.
+        if not self.type_name:
+            assert self.dep
+            self.type_name = self.dep.type_name
 
 @dataclass(eq=False)
 class Headers(HoldableObject):

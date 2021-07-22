@@ -1,0 +1,3 @@
+Name: Hidden Dep 1
+Description: Dummy
+Version: 1.0.0

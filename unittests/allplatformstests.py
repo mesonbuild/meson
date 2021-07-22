@@ -4265,3 +4265,15 @@ class AllPlatformTests(BasePlatformTests):
         if self.backend is Backend.ninja:
             self.assertIn('Generating file.txt with a custom command', out)
             self.assertIn('Generating subdir/file.txt with a custom command', out)
+
+    def test_pkgconfig_consistency(self):
+        testdir = os.path.join(self.unit_test_dir, '97 pkgconfig consistency')
+        pkg_config_opt = '-Dpkg_config_path=' + os.path.join(testdir, 'pkgconfig')
+
+        with self.assertRaises(subprocess.CalledProcessError) as cm:
+            self.init(testdir, extra_args=[pkg_config_opt, '-Dfail1=true'])
+        self.assertIn('Tried to override dependency \'hidden-dep1\' which has already been resolved', cm.exception.stdout)
+        self.wipe()
+
+        out = self.init(testdir, extra_args=['-Dpkg_config_path=' + os.path.join(testdir, 'pkgconfig')])
+        self.assertIn('Pkg-config dependency dep2 cannot be used because it depends on hidden-dep2 that has been overriden', out)

@@ -83,6 +83,8 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         cached_dep = self._get_cached_dep(name, kwargs)
         if cached_dep:
             self._verify_fallback_consistency(cached_dep)
+            if cached_dep.found() and not self._verify_override_consistency(cached_dep, kwargs):
+                return None
         return cached_dep
 
     def _do_dependency(self, kwargs: TYPE_nkwargs, func_args: TYPE_nvar, func_kwargs: TYPE_nkwargs) -> T.Optional[Dependency]:
@@ -94,6 +96,8 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         self._handle_featurenew_dependencies(name)
         dep = dependencies.find_external_dependency(name, self.environment, kwargs)
         if dep.found():
+            if not self._verify_override_consistency(dep, kwargs):
+                return None
             for_machine = self.interpreter.machine_from_native_kwarg(kwargs)
             identifier = dependencies.get_dep_identifier(name, kwargs)
             self.coredata.deps[for_machine].put(identifier, dep)
@@ -210,7 +214,7 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         wanted_vers = stringlistify(kwargs.get('version', []))
 
         override = self.build.dependency_overrides[for_machine].get(identifier)
-        if override:
+        if override and override.dep:
             info = [mlog.blue('(overridden)' if override.explicit else '(cached)')]
             cached_dep = override.dep
             # We don't implicitly override not-found dependencies, but user could
@@ -254,6 +258,28 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
                          'not found' if var_dep is None else 'not a dependency object')
             return None
         return var_dep
+
+    def _verify_override_consistency(self, dep: Dependency, kwargs: TYPE_nkwargs) -> bool:
+        for_machine = self.interpreter.machine_from_native_kwarg(kwargs)
+        names = [dep.name]
+        if isinstance(dep, dependencies.PkgConfigDependency) and dep.pkg:
+            names += dep.pkg.get_transitive_requires()
+        new_overrides = {}
+        for name in names:
+            identifier = dependencies.get_dep_identifier(name, kwargs)
+            override = self.build.dependency_overrides[for_machine].get(identifier)
+            if override and override.type_name != dep.type_name:
+                mlog.log('Pkg-config dependency', mlog.bold(dep.name),
+                         'cannot be used because it depends on', mlog.bold(name),
+                         'that has been overriden')
+                return False
+            if not override:
+                override = build.DependencyOverride(None, self.interpreter.current_node,
+                                                    explicit=False, type_name=dep.type_name)
+                new_overrides[identifier] = override
+        # Mark dep and all its sub-dependencies as coming from the same type.
+        self.build.dependency_overrides[for_machine].update(new_overrides)
+        return True
 
     def _verify_fallback_consistency(self, cached_dep: Dependency) -> None:
         subp_name = self.subproject_name
@@ -358,7 +384,8 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
                 for name in self.names:
                     for_machine = self.interpreter.machine_from_native_kwarg(kwargs)
                     identifier = dependencies.get_dep_identifier(name, kwargs)
-                    if identifier not in self.build.dependency_overrides[for_machine]:
+                    override = self.build.dependency_overrides[for_machine].get(identifier)
+                    if not override or not override.dep:
                         self.build.dependency_overrides[for_machine][identifier] = \
                             build.DependencyOverride(dep, self.interpreter.current_node, explicit=False)
                 return dep

@@ -16,7 +16,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from .base import ExternalDependency, DependencyException, sort_libpaths, DependencyTypeName
-from ..mesonlib import OptionKey, OrderedSet, PerMachine, Popen_safe
+from ..mesonlib import OptionKey, OrderedSet, PerMachine, Popen_safe, pkgconfig
 from ..programs import find_external_program, ExternalProgram
 from .. import mlog
 from pathlib import PurePath
@@ -48,6 +48,15 @@ class PkgConfigDependency(ExternalDependency):
         # Store a copy of the pkg-config path on the object itself so it is
         # stored in the pickled coredata and recovered.
         self.pkgbin: T.Union[None, bool, ExternalProgram] = None
+
+        # Lookup the package with our internal pkg-config implementation.
+        # It is currently only used for non essential use-cases, so just ignore
+        # any error if the package cannot be found or cannot be parsed.
+        try:
+            repo = environment.get_pkgconfig_repo(self.for_machine)
+            self.pkg = repo.lookup(name)
+        except pkgconfig.PkgConfigException:
+            self.pkg = None
 
         # Only search for pkg-config for each machine the first time and store
         # the result in the class definition

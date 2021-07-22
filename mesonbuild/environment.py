@@ -578,6 +578,7 @@ class Environment:
         self.default_cmake = ['cmake']
         self.default_pkgconfig = ['pkg-config']
         self.wrap_resolver: T.Optional['Resolver'] = None
+        self.pkgconfig_repo: T.Optional[PerMachineDefaultable[pkgconfig.Repository]] = None
 
     @staticmethod
     def create_pkgconfig_repo(for_machine: MachineChoice = MachineChoice.BUILD,
@@ -662,6 +663,21 @@ class Environment:
                                     sysroot_dir,
                                     sysroot_map,
                                     disable_uninstalled)
+
+    def _create_pkgconfig_repo(self, for_machine: MachineChoice) -> pkgconfig.Repository:
+        return Environment.create_pkgconfig_repo(for_machine, self.is_cross_build(),
+            self.properties[for_machine].get_pkg_config_libdir(),
+            self.coredata.options[OptionKey('pkg_config_path', machine=for_machine)].value,
+            self.properties[for_machine].get_sys_root())
+
+    def get_pkgconfig_repo(self, for_machine: MachineChoice) -> pkgconfig.Repository:
+        if self.pkgconfig_repo is None:
+            pkgconfig_repo = PerMachineDefaultable()
+            pkgconfig_repo.build = self._create_pkgconfig_repo(MachineChoice.BUILD)
+            if self.is_cross_build():
+                pkgconfig_repo.host = self._create_pkgconfig_repo(MachineChoice.HOST)
+            self.pkgconfig_repo = pkgconfig_repo.default_missing()
+        return self.pkgconfig_repo[for_machine]
 
     def _load_machine_file_options(self, config: 'ConfigParser', properties: Properties, machine: MachineChoice) -> None:
         """Read the contents of a Machine file and put it in the options store."""

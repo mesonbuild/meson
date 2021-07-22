@@ -1,0 +1,5 @@
+Name: Dep2
+Description: Dummy
+Version: 1.0.0
+
+Requires: hidden-dep2
