@@ -810,7 +810,7 @@ class BuildTarget(Target):
                         break
                 else:
                     if is_known_suffix(s):
-                        raise MesonException('No {} machine compiler for "{}"'.
+                        raise MesonException('No {} machine compiler for "{}". Check the documentation of `project` for how to specify required compilers!'.
                                              format(self.for_machine.get_lower_case_name(), s))
 
             # Re-sort according to clink_langs
