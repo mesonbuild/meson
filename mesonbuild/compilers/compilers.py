@@ -84,6 +84,8 @@ for _l in clink_langs + ('vala',):
     clink_suffixes += lang_suffixes[_l]
 clink_suffixes += ('h', 'll', 's')
 all_suffixes = set(itertools.chain(*lang_suffixes.values(), clink_suffixes))  # type: T.Set[str]
+SUFFIX_TO_LANG = dict(itertools.chain(*(
+    [(suffix, lang) for suffix in v] for lang, v in lang_suffixes.items()))) # type: T.Dict[str, str]
 
 # Languages that should use LDFLAGS arguments when linking.
 LANGUAGES_USING_LDFLAGS = {'objcpp', 'cpp', 'objc', 'c', 'fortran', 'd', 'cuda'}  # type: T.Set[str]

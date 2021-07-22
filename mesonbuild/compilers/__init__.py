@@ -34,6 +34,7 @@ __all__ = [
     'is_known_suffix',
     'lang_suffixes',
     'sort_clink',
+    'SUFFIX_TO_LANG',
 
     'compiler_from_language',
     'detect_compiler_for',
@@ -148,6 +149,7 @@ from .compilers import (
     lang_suffixes,
     LANGUAGES_USING_LDFLAGS,
     sort_clink,
+    SUFFIX_TO_LANG,
 )
 from .detect import (
     compiler_from_language,

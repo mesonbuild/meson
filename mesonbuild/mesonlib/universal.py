@@ -421,6 +421,10 @@ class File(HoldableObject):
             absdir = builddir
         return os.path.join(absdir, self.relative_name())
 
+    @property
+    def suffix(self) -> str:
+        return os.path.splitext(self.fname)[1][1:].lower()
+
     def endswith(self, ending: str) -> bool:
         return self.fname.endswith(ending)
 
