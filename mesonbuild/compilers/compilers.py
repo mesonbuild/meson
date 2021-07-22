@@ -791,7 +791,8 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             # extra_args must be last because it could contain '/link' to
             # pass args to VisualStudio's linker. In that case everything
             # in the command line after '/link' is given to the linker.
-            commands += extra_args
+            if extra_args:
+                commands += extra_args
             # Generate full command-line with the exelist
             command_list = self.get_exelist() + commands.to_native()
             mlog.debug('Running compile:')
