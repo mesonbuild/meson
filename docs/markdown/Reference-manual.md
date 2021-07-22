@@ -2513,7 +2513,10 @@ the following methods:
   positional argument compiles and links, you can specify external
   dependencies to use with `dependencies` keyword argument, `code` can
   be either a string containing source code or a `file` object
-  pointing to the source code.
+  pointing to the source code.  *Since 0.60.0*, if the `file` object's
+  suffix does not match the compiler object's language, the compiler
+  corresponding to the suffix is used to compile the source, while the
+  target of the `links` method is used to link the resulting object file.
 
 - `run(code)`: attempts to compile and execute the given code fragment,
   returns a run result object, you can specify external dependencies
