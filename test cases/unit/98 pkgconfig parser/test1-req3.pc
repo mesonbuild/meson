@@ -1,0 +1,6 @@
+Name: Test1 Req3
+Description: This is test 1 req3
+Version: 1.0.0
+
+Cflags: -Dtest1req3
+libs: -ltest1req3
