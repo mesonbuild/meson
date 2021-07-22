@@ -775,8 +775,11 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                 contents = code
             else:
                 srcname = code.fname
-                with open(code.fname, encoding='utf-8') as f:
-                    contents = f.read()
+                if not is_object(code.fname):
+                    with open(code.fname, encoding='utf-8') as f:
+                        contents = f.read()
+                else:
+                    contents = '<binary>'
 
             # Construct the compiler command-line
             commands = self.compiler_args()
@@ -1234,10 +1237,17 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             return p.returncode == 0, p.cached
 
     def links(self, code: 'mesonlib.FileOrString', env: 'Environment', *,
+              compiler: T.Optional['Compiler'] = None,
               extra_args: T.Union[None, T.List[str], CompilerArgs, T.Callable[[CompileCheckMode], T.List[str]]] = None,
               dependencies: T.Optional[T.List['Dependency']] = None,
               mode: str = 'compile',
               disable_cache: bool = False) -> T.Tuple[bool, bool]:
+        if compiler:
+            with compiler._build_wrapper(code, env, dependencies=dependencies, want_output=True) as r:
+                objfile = mesonlib.File.from_absolute_file(r.output_name)
+                return self.compiles(objfile, env, extra_args=extra_args,
+                                     dependencies=dependencies, mode='link', disable_cache=True)
+
         return self.compiles(code, env, extra_args=extra_args,
                              dependencies=dependencies, mode='link', disable_cache=disable_cache)
 
