@@ -1924,6 +1924,20 @@ class AllPlatformTests(BasePlatformTests):
                'recommended as it is not supported on some platforms')
         self.assertIn(msg, out)
 
+    def test_mixed_language_linker_check(self):
+        testdir = os.path.join(self.unit_test_dir, '97 compiler.links file arg')
+        self.init(testdir)
+        cmds = self.get_meson_log_compiler_checks()
+        self.assertEqual(len(cmds), 5)
+        # Path to the compilers, gleaned from cc.compiles tests
+        cc = cmds[0][0]
+        cxx = cmds[1][0]
+        # cc.links
+        self.assertEqual(cmds[2][0], cc)
+        # cxx.links with C source
+        self.assertEqual(cmds[3][0], cc)
+        self.assertEqual(cmds[4][0], cxx)
+
     def test_ndebug_if_release_disabled(self):
         testdir = os.path.join(self.unit_test_dir, '28 ndebug if-release')
         self.init(testdir, extra_args=['--buildtype=release', '-Db_ndebug=if-release'])
