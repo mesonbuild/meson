@@ -28,22 +28,22 @@ class TryRunResultHolder(ObjectHolder['RunResult']):
                              })
 
     @noPosargs
-    @permittedKwargs({})
+    @noKwargs
     def returncode_method(self, args, kwargs):
         return self.held_object.returncode
 
     @noPosargs
-    @permittedKwargs({})
+    @noKwargs
     def compiled_method(self, args, kwargs):
         return self.held_object.compiled
 
     @noPosargs
-    @permittedKwargs({})
+    @noKwargs
     def stdout_method(self, args, kwargs):
         return self.held_object.stdout
 
     @noPosargs
-    @permittedKwargs({})
+    @noKwargs
     def stderr_method(self, args, kwargs):
         return self.held_object.stderr
 
@@ -129,12 +129,12 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return tpl.format(', '.join(names)) + endl
 
     @noPosargs
-    @permittedKwargs({})
+    @noKwargs
     def version_method(self, args, kwargs):
         return self.compiler.version
 
     @noPosargs
-    @permittedKwargs({})
+    @noKwargs
     def cmd_array_method(self, args, kwargs):
         return self.compiler.exelist
 
@@ -228,18 +228,18 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return result
 
     @noPosargs
-    @permittedKwargs({})
+    @noKwargs
     def get_id_method(self, args, kwargs):
         return self.compiler.get_id()
 
     @noPosargs
-    @permittedKwargs({})
+    @noKwargs
     @FeatureNew('compiler.get_linker_id', '0.53.0')
     def get_linker_id_method(self, args, kwargs):
         return self.compiler.get_linker_id()
 
     @noPosargs
-    @permittedKwargs({})
+    @noKwargs
     def symbols_have_underscore_prefix_method(self, args, kwargs):
         '''
         Check if the compiler prefixes _ (underscore) to global C symbols
@@ -248,7 +248,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return self.compiler.symbols_have_underscore_prefix(self.environment)
 
     @noPosargs
-    @permittedKwargs({})
+    @noKwargs
     def unittest_args_method(self, args, kwargs):
         '''
         This function is deprecated and should not be used.
@@ -663,14 +663,14 @@ class CompilerHolder(ObjectHolder['Compiler']):
                                            self.compiler.language)
         return lib
 
-    @permittedKwargs({})
+    @noKwargs
     def has_argument_method(self, args: T.Sequence[str], kwargs) -> bool:
         args = mesonlib.stringlistify(args)
         if len(args) != 1:
             raise InterpreterException('has_argument takes exactly one argument.')
         return self.has_multi_arguments_method(args, kwargs)
 
-    @permittedKwargs({})
+    @noKwargs
     def has_multi_arguments_method(self, args: T.Sequence[str], kwargs: dict):
         args = mesonlib.stringlistify(args)
         result, cached = self.compiler.has_multi_arguments(args, self.environment)
@@ -707,7 +707,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
                 supported_args.append(arg)
         return supported_args
 
-    @permittedKwargs({})
+    @noKwargs
     def first_supported_argument_method(self, args: T.Sequence[str], kwargs: dict) -> T.List[str]:
         for arg in mesonlib.stringlistify(args):
             if self.has_argument_method(arg, kwargs):
@@ -717,7 +717,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return []
 
     @FeatureNew('compiler.has_link_argument', '0.46.0')
-    @permittedKwargs({})
+    @noKwargs
     def has_link_argument_method(self, args, kwargs):
         args = mesonlib.stringlistify(args)
         if len(args) != 1:
@@ -725,7 +725,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return self.has_multi_link_arguments_method(args, kwargs)
 
     @FeatureNew('compiler.has_multi_link_argument', '0.46.0')
-    @permittedKwargs({})
+    @noKwargs
     def has_multi_link_arguments_method(self, args, kwargs):
         args = mesonlib.stringlistify(args)
         result, cached = self.compiler.has_multi_link_arguments(args, self.environment)
@@ -741,7 +741,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return result
 
     @FeatureNew('compiler.get_supported_link_arguments_method', '0.46.0')
-    @permittedKwargs({})
+    @noKwargs
     def get_supported_link_arguments_method(self, args, kwargs):
         args = mesonlib.stringlistify(args)
         supported_args = []
@@ -751,7 +751,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return supported_args
 
     @FeatureNew('compiler.first_supported_link_argument_method', '0.46.0')
-    @permittedKwargs({})
+    @noKwargs
     def first_supported_link_argument_method(self, args, kwargs):
         for i in mesonlib.stringlistify(args):
             if self.has_link_argument_method(i, kwargs):
@@ -761,7 +761,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return []
 
     @FeatureNew('compiler.has_function_attribute', '0.48.0')
-    @permittedKwargs({})
+    @noKwargs
     def has_func_attribute_method(self, args, kwargs):
         args = mesonlib.stringlistify(args)
         if len(args) != 1:
@@ -773,7 +773,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return result
 
     @FeatureNew('compiler.get_supported_function_attributes', '0.48.0')
-    @permittedKwargs({})
+    @noKwargs
     def get_supported_function_attributes_method(self, args, kwargs):
         args = mesonlib.stringlistify(args)
         return [a for a in args if self.has_func_attribute_method(a, kwargs)]
