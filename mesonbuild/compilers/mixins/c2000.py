@@ -59,8 +59,10 @@ class C2000Compiler(Compiler):
         if not self.is_cross:
             raise EnvironmentException('c2000 supports only cross-compilation.')
         self.id = 'c2000'
-        # Assembly
-        self.can_compile_suffixes.add('asm')
+
+        self.can_compile_suffixes.add('asm')    # Assembly
+        self.can_compile_suffixes.add('cla')    # Control Law Accelerator (CLA)
+
         default_warn_args = []  # type: T.List[str]
         self.warn_args = {'0': [],
                           '1': default_warn_args,
