@@ -430,7 +430,8 @@ class Runner:
             except FileNotFoundError:
                 pass
 
-        subproject_source_dir = Path(self.repo_dir).resolve()
+        # NOTE: Do not use .resolve() here; the subproject directory may be a symlink
+        subproject_source_dir = Path(self.repo_dir)
 
         # Don't follow symlink. This is covered by the next if statement, but why
         # not be doubly sure.
