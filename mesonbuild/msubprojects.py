@@ -432,6 +432,8 @@ class Runner:
 
         # NOTE: Do not use .resolve() here; the subproject directory may be a symlink
         subproject_source_dir = Path(self.repo_dir)
+        # Resolve just the parent, just to print out the full path
+        subproject_source_dir = subproject_source_dir.parent.resolve() / subproject_source_dir.name
 
         # Don't follow symlink. This is covered by the next if statement, but why
         # not be doubly sure.
