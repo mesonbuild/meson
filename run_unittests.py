@@ -5730,7 +5730,7 @@ class AllPlatformTests(BasePlatformTests):
                 [wrap-redirect]
                 filename = foo/subprojects/real.wrapper
                 '''))
-        with self.assertRaisesRegex(WrapException, 'wrap-redirect filename must be a .wrap file'):
+        with self.assertRaisesRegex(WrapException, 'wrap-redirect foo/subprojects/real.wrapper filename must be a .wrap file'):
             PackageDefinition(redirect_wrap)
 
         # Invalid redirect, filename cannot be in parent directory
@@ -5739,7 +5739,7 @@ class AllPlatformTests(BasePlatformTests):
                 [wrap-redirect]
                 filename = ../real.wrap
                 '''))
-        with self.assertRaisesRegex(WrapException, 'wrap-redirect filename cannot contain ".."'):
+        with self.assertRaisesRegex(WrapException, 'wrap-redirect ../real.wrap filename cannot contain ".."'):
             PackageDefinition(redirect_wrap)
 
         # Invalid redirect, filename must be in foo/subprojects/real.wrap
@@ -5748,7 +5748,7 @@ class AllPlatformTests(BasePlatformTests):
                 [wrap-redirect]
                 filename = foo/real.wrap
                 '''))
-        with self.assertRaisesRegex(WrapException, 'wrap-redirect filename must be in the form foo/subprojects/bar.wrap'):
+        with self.assertRaisesRegex(WrapException, 'wrap-redirect foo/real.wrap filename must be in the form foo/subprojects/bar.wrap'):
             wrap = PackageDefinition(redirect_wrap)
 
         # Correct redirect
