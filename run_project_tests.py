@@ -1496,13 +1496,6 @@ if __name__ == '__main__':
         print('Could not determine number of CPUs due to the following reason:' + str(e))
         print('Defaulting to using only two processes')
         num_workers = 2
-    # Due to Ninja deficiency, almost 50% of build time
-    # is spent waiting. Do something useful instead.
-    #
-    # Remove this once the following issue has been resolved:
-    # https://github.com/mesonbuild/meson/pull/2082
-    if not mesonlib.is_windows():  # twice as fast on Windows by *not* multiplying by 2.
-        num_workers *= 2
 
     parser = argparse.ArgumentParser(description="Run the test suite of Meson.")
     parser.add_argument('extra_args', nargs='*',
