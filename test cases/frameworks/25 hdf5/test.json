@@ -2,10 +2,10 @@
   "matrix": {
     "options": {
       "method": [
-        { "val": "pkg-config" },
+        { "val": "pkg-config", "skip_on_jobname": ["macos"] },
         { "val": "config-tool" }
       ]
     }
   },
-  "skip_on_jobname": ["fedora", "opensuse"]
+  "skip_on_jobname": ["azure", "cygwin", "fedora", "msys2", "opensuse"]
 }

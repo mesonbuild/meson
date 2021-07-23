@@ -40,6 +40,8 @@ jobs:
             MSYS2_CURSES:
             COMPILER: clang
             TOOLCHAIN: clang
+    env:
+      MESON_CI_JOBNAME: msys2-${{ matrix.NAME }}
 
     defaults:
       run:

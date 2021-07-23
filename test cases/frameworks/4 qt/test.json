@@ -7,5 +7,6 @@
         { "val": "pkg-config" }
       ]
     }
-  }
+  },
+  "skip_on_jobname": ["cygwin", "msys2", "azure"]
 }

@@ -4,5 +4,6 @@
   ],
   "tools": {
     "hotdoc": ">=0.1.0"
-  }
+  },
+  "skip_on_jobname": ["msys2"]
 }

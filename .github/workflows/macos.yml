@@ -43,8 +43,18 @@ jobs:
   project-tests-appleclang:
     runs-on: macos-latest
     strategy:
+      fail-fast: false
       matrix:
-        unity: ["on", "off"]
+        include:
+        - NAME: macos-clang
+          unity: off
+        - NAME: macos-clang-unity
+          unity: on
+
+    name: ${{ matrix.NAME }}
+    env:
+      MESON_CI_JOBNAME: ${{ matrix.NAME }}
+
     steps:
     - uses: actions/checkout@v2
     # use python3 from homebrew because it is a valid framework, unlike the actions one:

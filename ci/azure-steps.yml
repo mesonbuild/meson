@@ -3,6 +3,8 @@ steps:
   inputs:
     targetType: 'filePath'
     filePath: .\ci\run.ps1
+  env:
+    MESON_CI_JOBNAME: azure-$(System.JobName)
 
 - task: PublishTestResults@2
   inputs:
