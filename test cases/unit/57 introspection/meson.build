@@ -27,6 +27,8 @@ var1 = '1'
 var2 = 2.to_string()
 var3 = 'test3'
 
+var4 = f'test @var1@ string' # TODO: Actually implement fstrings
+
 cus1 = custom_target('custom target test 1', output: 'file2', input: 'cp.py',
                      command: [find_program('cp.py'), '@INPUT@', '@OUTPUT@'])
 cus2 = custom_target('custom target test 2', output: 'file3', input: cus1,

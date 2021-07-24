@@ -197,6 +197,10 @@ class AstInterpreter(InterpreterBase):
     def method_call(self, node: BaseNode) -> bool:
         return True
 
+    def evaluate_fstring(self, node: mparser.FormatStringNode) -> str:
+        assert(isinstance(node, mparser.FormatStringNode))
+        return node.value
+
     def evaluate_arithmeticstatement(self, cur: ArithmeticNode) -> int:
         self.evaluate_statement(cur.left)
         self.evaluate_statement(cur.right)
