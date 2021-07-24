@@ -10,6 +10,7 @@ trigger:
     include:
       - 'mesonbuild'
       - 'test cases'
+      - 'unittests'
       - 'azure-pipelines.yml'
       - 'ci/azure-steps.yml'
       - 'run_project_tests.py'
@@ -23,6 +24,7 @@ pr:
     include:
       - 'mesonbuild'
       - 'test cases'
+      - 'unittests'
       - 'azure-pipelines.yml'
       - 'ci/azure-steps.yml'
       - 'run_project_tests.py'
