@@ -70,6 +70,10 @@ class AstPrinter(AstVisitor):
         assert isinstance(node.value, str)
         self.append("'" + node.value + "'", node)
 
+    def visit_FormatStringNode(self, node: mparser.FormatStringNode) -> None:
+        assert isinstance(node.value, str)
+        self.append("f'" + node.value + "'", node)
+
     def visit_ContinueNode(self, node: mparser.ContinueNode) -> None:
         self.append('continue', node)
 
@@ -254,6 +258,9 @@ class AstJSONPrinter(AstVisitor):
         self.gen_ElementaryNode(node)
 
     def visit_StringNode(self, node: mparser.StringNode) -> None:
+        self.gen_ElementaryNode(node)
+
+    def visit_FormatStringNode(self, node: mparser.FormatStringNode) -> None:
         self.gen_ElementaryNode(node)
 
     def visit_ArrayNode(self, node: mparser.ArrayNode) -> None:
