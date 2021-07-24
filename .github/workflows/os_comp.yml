@@ -9,6 +9,7 @@ on:
     paths:
       - "mesonbuild/**"
       - "test cases/**"
+      - "unittests/**"
       - ".github/workflows/images.yml"
       - ".github/workflows/os_comp.yml"
       - "run_unittests.py"
@@ -16,6 +17,7 @@ on:
     paths:
       - "mesonbuild/**"
       - "test cases/**"
+      - "unittests/**"
       - ".github/workflows/images.yml"
       - ".github/workflows/os_comp.yml"
       - "run_unittests.py"
