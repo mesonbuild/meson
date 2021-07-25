@@ -3306,8 +3306,6 @@ class AllPlatformTests(BasePlatformTests):
         if cc.get_id() == 'clang':
             if is_windows():
                 raise unittest.SkipTest('LTO not (yet) supported by windows clang')
-            else:
-                extra_args.append('-D_cargs=-Werror=unused-command-line-argument')
 
         self.init(testdir, extra_args=['-Db_lto=true', '-Db_lto_threads=8'] + extra_args)
         self.build()
@@ -4315,9 +4313,11 @@ class AllPlatformTests(BasePlatformTests):
             self.assertEqual(obj.options[OptionKey('default_library')].value, 'shared')
         self.wipe()
 
-        # Should warn on unknown options
-        out = self.init(testdir, extra_args=['-Dbad=1', '-Dfoo=2', '-Dwrong_link_args=foo'])
-        self.assertIn('Unknown options: "bad, foo, wrong_link_args"', out)
+        # Should fail on unknown options
+        with self.assertRaises((subprocess.CalledProcessError, RuntimeError)) as cm:
+            self.init(testdir, extra_args=['-Dbad=1', '-Dfoo=2', '-Dwrong_link_args=foo'])
+            self.assertNotEqual(0, cm.exception.returncode)
+            self.assertIn(msg, cm.exception.output)
         self.wipe()
 
         # Should fail on malformed option
