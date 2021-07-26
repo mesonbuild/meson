@@ -34,14 +34,14 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from . import dependencies
-    from .compilers.compilers import Compiler, CompileResult  # noqa: F401
+    from .compilers.compilers import Compiler
     from .environment import Environment
-    from .mesonlib import OptionOverrideProxy
+    from .mesonlib import OptionOverrideProxy, FileOrString
     from .cmake.traceparser import CMakeCacheEntry
 
     OptionDictType = T.Union[T.Dict[str, 'UserOption[T.Any]'], OptionOverrideProxy]
     KeyedOptionDictType = T.Union[T.Dict['OptionKey', 'UserOption[T.Any]'], OptionOverrideProxy]
-    CompilerCheckCacheKey = T.Tuple[T.Tuple[str, ...], str, str, T.Tuple[str, ...], str]
+    CompilerCheckCacheKey = T.Tuple[T.Tuple[str, ...], str, 'FileOrString', T.Tuple[str, ...], str]
 
 version = '0.59.99'
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2012', 'vs2013', 'vs2015', 'vs2017', 'vs2019', 'xcode']
