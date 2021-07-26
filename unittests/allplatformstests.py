@@ -1826,13 +1826,8 @@ class AllPlatformTests(BasePlatformTests):
 
     def test_permitted_method_kwargs(self):
         tdir = os.path.join(self.unit_test_dir, '25 non-permitted kwargs')
-        out = self.init(tdir)
-        for expected in [
-            r'WARNING: Passed invalid keyword argument "prefixxx".',
-            r'WARNING: Passed invalid keyword argument "argsxx".',
-            r'WARNING: Passed invalid keyword argument "invalidxx".',
-        ]:
-            self.assertRegex(out, re.escape(expected))
+        out = self.init(tdir, allow_fail=True)
+        self.assertIn('Function does not take keyword arguments.', out)
 
     def test_templates(self):
         ninja = mesonbuild.environment.detect_ninja()
