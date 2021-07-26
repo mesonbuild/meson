@@ -24,6 +24,7 @@ modules = [
     'mesonbuild/arglist.py',
     # 'mesonbuild/coredata.py',
     'mesonbuild/envconfig.py',
+    'mesonbuild/interpreter/compiler.py',
     'mesonbuild/interpreter/interpreterobjects.py',
     'mesonbuild/interpreter/type_checking.py',
     'mesonbuild/mcompile.py',
