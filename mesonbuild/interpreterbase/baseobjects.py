@@ -73,7 +73,11 @@ InterpreterObjectTypeVar = T.TypeVar('InterpreterObjectTypeVar', bound=HoldableO
 class ObjectHolder(InterpreterObject, T.Generic[InterpreterObjectTypeVar]):
     def __init__(self, obj: InterpreterObjectTypeVar, interpreter: 'Interpreter') -> None:
         super().__init__(subproject=interpreter.subproject)
-        assert isinstance(obj, HoldableObject), f'This is a bug: Trying to hold object of type `{type(obj).__name__}` that is not an `HoldableObject`'
+        # This causes some type checkers to assume that obj is a base
+        # HoldableObject, not the specialized type, so only do this assert in
+        # non-type checking situations
+        if not T.TYPE_CHECKING:
+            assert isinstance(obj, HoldableObject), f'This is a bug: Trying to hold object of type `{type(obj).__name__}` that is not an `HoldableObject`'
         self.held_object = obj
         self.interpreter = interpreter
         self.env = self.interpreter.environment
