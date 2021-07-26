@@ -42,6 +42,7 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..linkers import DynamicLinker
     from ..programs import ExternalProgram
+    from .compilers import CompileCheckMode
 
 
 class FortranCompiler(CLikeCompiler, Compiler):
@@ -214,7 +215,7 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
         return ['-lgfortran', '-lm']
 
     def has_header(self, hname: str, prefix: str, env: 'Environment', *,
-                   extra_args: T.Optional[T.List[str]] = None,
+                   extra_args: T.Union[None, T.List[str], T.Callable[['CompileCheckMode'], T.List[str]]] = None,
                    dependencies: T.Optional[T.List['Dependency']] = None,
                    disable_cache: bool = False) -> T.Tuple[bool, bool]:
         '''

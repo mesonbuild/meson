@@ -45,6 +45,7 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..linkers import DynamicLinker
     from ..programs import ExternalProgram
+    from .compilers import CompileCheckMode
 
     CompilerMixinBase = Compiler
 else:
@@ -81,7 +82,7 @@ class CCompiler(CLikeCompiler, Compiler):
 
     def has_header_symbol(self, hname: str, symbol: str, prefix: str,
                           env: 'Environment', *,
-                          extra_args: T.Optional[T.List[str]] = None,
+                          extra_args: T.Union[None, T.List[str], T.Callable[['CompileCheckMode'], T.List[str]]] = None,
                           dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         fargs = {'prefix': prefix, 'header': hname, 'symbol': symbol}
         t = '''{prefix}
