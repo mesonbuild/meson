@@ -29,22 +29,22 @@ class TryRunResultHolder(ObjectHolder['RunResult']):
 
     @noPosargs
     @noKwargs
-    def returncode_method(self, args, kwargs):
+    def returncode_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> int:
         return self.held_object.returncode
 
     @noPosargs
     @noKwargs
-    def compiled_method(self, args, kwargs):
+    def compiled_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> bool:
         return self.held_object.compiled
 
     @noPosargs
     @noKwargs
-    def stdout_method(self, args, kwargs):
+    def stdout_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         return self.held_object.stdout
 
     @noPosargs
     @noKwargs
-    def stderr_method(self, args, kwargs):
+    def stderr_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         return self.held_object.stderr
 
 header_permitted_kwargs = {
