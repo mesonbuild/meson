@@ -343,7 +343,7 @@ class CLikeCompiler(Compiler):
         return self._sanity_check_impl(work_dir, environment, 'sanitycheckc.c', code)
 
     def check_header(self, hname: str, prefix: str, env: 'Environment', *,
-                     extra_args: T.Optional[T.List[str]] = None,
+                     extra_args: T.Union[None, T.List[str], T.Callable[['CompileCheckMode'], T.List[str]]] = None,
                      dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         code = f'''{prefix}
         #include <{hname}>'''
@@ -351,7 +351,7 @@ class CLikeCompiler(Compiler):
                              dependencies=dependencies)
 
     def has_header(self, hname: str, prefix: str, env: 'Environment', *,
-                   extra_args: T.Optional[T.List[str]] = None,
+                   extra_args: T.Union[None, T.List[str], T.Callable[['CompileCheckMode'], T.List[str]]] = None,
                    dependencies: T.Optional[T.List['Dependency']] = None,
                    disable_cache: bool = False) -> T.Tuple[bool, bool]:
         code = f'''{prefix}
@@ -367,7 +367,7 @@ class CLikeCompiler(Compiler):
 
     def has_header_symbol(self, hname: str, symbol: str, prefix: str,
                           env: 'Environment', *,
-                          extra_args: T.Optional[T.List[str]] = None,
+                          extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
                           dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         t = f'''{prefix}
         #include <{hname}>
@@ -422,7 +422,7 @@ class CLikeCompiler(Compiler):
         return cargs, largs
 
     def build_wrapper_args(self, env: 'Environment',
-                           extra_args: T.Union[None, arglist.CompilerArgs, T.List[str]],
+                           extra_args: T.Union[None, arglist.CompilerArgs, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]],
                            dependencies: T.Optional[T.List['Dependency']],
                            mode: CompileCheckMode = CompileCheckMode.COMPILE) -> arglist.CompilerArgs:
         # TODO: the caller should handle the listfing of these arguments
@@ -463,7 +463,7 @@ class CLikeCompiler(Compiler):
         return args
 
     def run(self, code: 'mesonlib.FileOrString', env: 'Environment', *,
-            extra_args: T.Optional[T.List[str]] = None,
+            extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]], None] = None,
             dependencies: T.Optional[T.List['Dependency']] = None) -> compilers.RunResult:
         need_exe_wrapper = env.need_exe_wrapper(self.for_machine)
         if need_exe_wrapper and self.exe_wrapper is None:
@@ -489,7 +489,7 @@ class CLikeCompiler(Compiler):
         return compilers.RunResult(True, pe.returncode, so, se)
 
     def _compile_int(self, expression: str, prefix: str, env: 'Environment',
-                     extra_args: T.Optional[T.List[str]],
+                     extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]],
                      dependencies: T.Optional[T.List['Dependency']]) -> bool:
         t = f'''#include <stdio.h>
         {prefix}
@@ -499,7 +499,7 @@ class CLikeCompiler(Compiler):
 
     def cross_compute_int(self, expression: str, low: T.Optional[int], high: T.Optional[int],
                           guess: T.Optional[int], prefix: str, env: 'Environment',
-                          extra_args: T.Optional[T.List[str]] = None,
+                          extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
                           dependencies: T.Optional[T.List['Dependency']] = None) -> int:
         # Try user's guess first
         if isinstance(guess, int):
@@ -550,7 +550,7 @@ class CLikeCompiler(Compiler):
 
     def compute_int(self, expression: str, low: T.Optional[int], high: T.Optional[int],
                     guess: T.Optional[int], prefix: str, env: 'Environment', *,
-                    extra_args: T.Optional[T.List[str]] = None,
+                    extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]],
                     dependencies: T.Optional[T.List['Dependency']] = None) -> int:
         if extra_args is None:
             extra_args = []
@@ -571,7 +571,7 @@ class CLikeCompiler(Compiler):
         return int(res.stdout)
 
     def cross_sizeof(self, typename: str, prefix: str, env: 'Environment', *,
-                     extra_args: T.Optional[T.List[str]] = None,
+                     extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
                      dependencies: T.Optional[T.List['Dependency']] = None) -> int:
         if extra_args is None:
             extra_args = []
@@ -587,7 +587,7 @@ class CLikeCompiler(Compiler):
         return self.cross_compute_int(f'sizeof({typename})', None, None, None, prefix, env, extra_args, dependencies)
 
     def sizeof(self, typename: str, prefix: str, env: 'Environment', *,
-               extra_args: T.Optional[T.List[str]] = None,
+               extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
                dependencies: T.Optional[T.List['Dependency']] = None) -> int:
         if extra_args is None:
             extra_args = []
@@ -661,7 +661,7 @@ class CLikeCompiler(Compiler):
         return align
 
     def get_define(self, dname: str, prefix: str, env: 'Environment',
-                   extra_args: T.Optional[T.List[str]],
+                   extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]]],
                    dependencies: T.Optional[T.List['Dependency']],
                    disable_cache: bool = False) -> T.Tuple[str, bool]:
         delim = '"MESON_GET_DEFINE_DELIMITER"'
@@ -874,7 +874,7 @@ class CLikeCompiler(Compiler):
 
     def has_members(self, typename: str, membernames: T.List[str],
                     prefix: str, env: 'Environment', *,
-                    extra_args: T.Optional[T.List[str]] = None,
+                    extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
                     dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         if extra_args is None:
             extra_args = []
@@ -890,7 +890,8 @@ class CLikeCompiler(Compiler):
         return self.compiles(t, env, extra_args=extra_args,
                              dependencies=dependencies)
 
-    def has_type(self, typename: str, prefix: str, env: 'Environment', extra_args: T.List[str],
+    def has_type(self, typename: str, prefix: str, env: 'Environment',
+                 extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]]], *,
                  dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         t = f'''{prefix}
         void bar(void) {{

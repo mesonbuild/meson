@@ -550,13 +550,15 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         return self.default_suffix
 
     def get_define(self, dname: str, prefix: str, env: 'Environment',
-                   extra_args: T.List[str], dependencies: T.List['Dependency'],
+                   extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]]],
+                   dependencies: T.List['Dependency'],
                    disable_cache: bool = False) -> T.Tuple[str, bool]:
         raise EnvironmentException('%s does not support get_define ' % self.get_id())
 
     def compute_int(self, expression: str, low: T.Optional[int], high: T.Optional[int],
                     guess: T.Optional[int], prefix: str, env: 'Environment', *,
-                    extra_args: T.Optional[T.List[str]], dependencies: T.Optional[T.List['Dependency']]) -> int:
+                    extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]],
+                    dependencies: T.Optional[T.List['Dependency']]) -> int:
         raise EnvironmentException('%s does not support compute_int ' % self.get_id())
 
     def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
@@ -565,12 +567,12 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
 
     def has_members(self, typename: str, membernames: T.List[str],
                     prefix: str, env: 'Environment', *,
-                    extra_args: T.Optional[T.List[str]] = None,
+                    extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
                     dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         raise EnvironmentException('%s does not support has_member(s) ' % self.get_id())
 
     def has_type(self, typename: str, prefix: str, env: 'Environment',
-                 extra_args: T.List[str], *,
+                 extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]]], *,
                  dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         raise EnvironmentException('%s does not support has_type ' % self.get_id())
 
@@ -631,7 +633,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         return self.linker.get_option_args(options)
 
     def check_header(self, hname: str, prefix: str, env: 'Environment', *,
-                     extra_args: T.Optional[T.List[str]] = None,
+                     extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
                      dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         """Check that header is usable.
 
@@ -642,7 +644,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         raise EnvironmentException('Language %s does not support header checks.' % self.get_display_language())
 
     def has_header(self, hname: str, prefix: str, env: 'Environment', *,
-                   extra_args: T.Optional[T.List[str]] = None,
+                   extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
                    dependencies: T.Optional[T.List['Dependency']] = None,
                    disable_cache: bool = False) -> T.Tuple[bool, bool]:
         """Check that header is exists.
@@ -663,17 +665,17 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
 
     def has_header_symbol(self, hname: str, symbol: str, prefix: str,
                           env: 'Environment', *,
-                          extra_args: T.Optional[T.List[str]] = None,
+                          extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
                           dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support header symbol checks.' % self.get_display_language())
 
     def run(self, code: 'mesonlib.FileOrString', env: 'Environment', *,
-            extra_args: T.Optional[T.List[str]] = None,
+            extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]], None] = None,
             dependencies: T.Optional[T.List['Dependency']] = None) -> RunResult:
         raise EnvironmentException('Language %s does not support run checks.' % self.get_display_language())
 
     def sizeof(self, typename: str, prefix: str, env: 'Environment', *,
-               extra_args: T.Optional[T.List[str]] = None,
+               extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
                dependencies: T.Optional[T.List['Dependency']] = None) -> int:
         raise EnvironmentException('Language %s does not support sizeof checks.' % self.get_display_language())
 
@@ -1163,7 +1165,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         return []
 
     def build_wrapper_args(self, env: 'Environment',
-                           extra_args: T.Union[None, CompilerArgs, T.List[str]],
+                           extra_args: T.Union[None, CompilerArgs, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]],
                            dependencies: T.Optional[T.List['Dependency']],
                            mode: CompileCheckMode = CompileCheckMode.COMPILE) -> CompilerArgs:
         """Arguments to pass the build_wrapper helper.
@@ -1201,7 +1203,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
 
     @contextlib.contextmanager
     def _build_wrapper(self, code: 'mesonlib.FileOrString', env: 'Environment',
-                       extra_args: T.Union[None, CompilerArgs, T.List[str]] = None,
+                       extra_args: T.Union[None, CompilerArgs, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
                        dependencies: T.Optional[T.List['Dependency']] = None,
                        mode: str = 'compile', want_output: bool = False,
                        disable_cache: bool = False,
@@ -1220,7 +1222,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                 yield r
 
     def compiles(self, code: 'mesonlib.FileOrString', env: 'Environment', *,
-                 extra_args: T.Union[None, T.List[str], CompilerArgs] = None,
+                extra_args: T.Union[None, T.List[str], CompilerArgs, T.Callable[[CompileCheckMode], T.List[str]]] = None,
                  dependencies: T.Optional[T.List['Dependency']] = None,
                  mode: str = 'compile',
                  disable_cache: bool = False) -> T.Tuple[bool, bool]:
@@ -1229,7 +1231,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
 
 
     def links(self, code: 'mesonlib.FileOrString', env: 'Environment', *,
-              extra_args: T.Union[None, T.List[str], CompilerArgs] = None,
+              extra_args: T.Union[None, T.List[str], CompilerArgs, T.Callable[[CompileCheckMode], T.List[str]]] = None,
               dependencies: T.Optional[T.List['Dependency']] = None,
               mode: str = 'compile',
               disable_cache: bool = False) -> T.Tuple[bool, bool]:

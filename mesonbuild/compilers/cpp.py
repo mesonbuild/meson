@@ -99,7 +99,7 @@ class CPPCompiler(CLikeCompiler, Compiler):
 
     def has_header_symbol(self, hname: str, symbol: str, prefix: str,
                           env: 'Environment', *,
-                          extra_args: T.Optional[T.List[str]] = None,
+                          extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
                           dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         # Check if it's a C-like symbol
         found, cached = super().has_header_symbol(hname, symbol, prefix, env,

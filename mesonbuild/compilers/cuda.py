@@ -24,7 +24,7 @@ from ..mesonlib import (
     is_windows, LibType, OptionKey,
 )
 from .compilers import (Compiler, cuda_buildtype_args, cuda_optimization_args,
-                        cuda_debug_args)
+                        cuda_debug_args, CompileCheckMode)
 
 if T.TYPE_CHECKING:
     from ..build import BuildTarget
@@ -584,7 +584,7 @@ class CudaCompiler(Compiler):
 
     def has_header_symbol(self, hname: str, symbol: str, prefix: str,
                           env: 'Environment', *,
-                          extra_args: T.Optional[T.List[str]] = None,
+                          extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
                           dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         if extra_args is None:
             extra_args = []
