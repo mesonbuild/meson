@@ -98,7 +98,6 @@ class CompilerHolder(ObjectHolder['Compiler']):
                              'has_multi_link_arguments': self.has_multi_link_arguments_method,
                              'get_supported_link_arguments': self.get_supported_link_arguments_method,
                              'first_supported_link_argument': self.first_supported_link_argument_method,
-                             'unittest_args': self.unittest_args_method,
                              'symbols_have_underscore_prefix': self.symbols_have_underscore_prefix_method,
                              'get_argument_syntax': self.get_argument_syntax_method,
                              })
@@ -229,35 +228,23 @@ class CompilerHolder(ObjectHolder['Compiler']):
 
     @noPosargs
     @noKwargs
-    def get_id_method(self, args, kwargs):
+    def get_id_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         return self.compiler.get_id()
 
     @noPosargs
     @noKwargs
     @FeatureNew('compiler.get_linker_id', '0.53.0')
-    def get_linker_id_method(self, args, kwargs):
+    def get_linker_id_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         return self.compiler.get_linker_id()
 
     @noPosargs
     @noKwargs
-    def symbols_have_underscore_prefix_method(self, args, kwargs):
+    def symbols_have_underscore_prefix_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> bool:
         '''
         Check if the compiler prefixes _ (underscore) to global C symbols
         See: https://en.wikipedia.org/wiki/Name_mangling#C
         '''
         return self.compiler.symbols_have_underscore_prefix(self.environment)
-
-    @noPosargs
-    @noKwargs
-    def unittest_args_method(self, args, kwargs):
-        '''
-        This function is deprecated and should not be used.
-        It can be removed in a future version of Meson.
-        '''
-        if not hasattr(self.compiler, 'get_feature_args'):
-            raise InterpreterException(f'This {self.compiler.get_display_language()} compiler has no feature arguments.')
-        build_to_src = os.path.relpath(self.environment.get_source_dir(), self.environment.get_build_dir())
-        return self.compiler.get_feature_args({'unittest': 'true'}, build_to_src)
 
     @permittedKwargs({
         'prefix',
