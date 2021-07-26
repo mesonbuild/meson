@@ -462,7 +462,7 @@ class CLikeCompiler(Compiler):
         args = cargs + extra_args + largs
         return args
 
-    def run(self, code: str, env: 'Environment', *,
+    def run(self, code: 'mesonlib.FileOrString', env: 'Environment', *,
             extra_args: T.Optional[T.List[str]] = None,
             dependencies: T.Optional[T.List['Dependency']] = None) -> compilers.RunResult:
         need_exe_wrapper = env.need_exe_wrapper(self.for_machine)

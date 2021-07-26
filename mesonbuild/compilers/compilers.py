@@ -667,7 +667,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                           dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support header symbol checks.' % self.get_display_language())
 
-    def run(self, code: str, env: 'Environment', *,
+    def run(self, code: 'mesonlib.FileOrString', env: 'Environment', *,
             extra_args: T.Optional[T.List[str]] = None,
             dependencies: T.Optional[T.List['Dependency']] = None) -> RunResult:
         raise EnvironmentException('Language %s does not support run checks.' % self.get_display_language())
@@ -808,7 +808,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             yield result
 
     @contextlib.contextmanager
-    def cached_compile(self, code: str, cdata: coredata.CoreData, *,
+    def cached_compile(self, code: 'mesonlib.FileOrString', cdata: coredata.CoreData, *,
                        extra_args: T.Union[None, T.List[str], CompilerArgs] = None,
                        mode: str = 'link',
                        temp_dir: T.Optional[str] = None) -> T.Iterator[T.Optional[CompileResult]]:
@@ -1200,7 +1200,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         return args
 
     @contextlib.contextmanager
-    def _build_wrapper(self, code: str, env: 'Environment',
+    def _build_wrapper(self, code: 'mesonlib.FileOrString', env: 'Environment',
                        extra_args: T.Union[None, CompilerArgs, T.List[str]] = None,
                        dependencies: T.Optional[T.List['Dependency']] = None,
                        mode: str = 'compile', want_output: bool = False,
@@ -1219,7 +1219,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             with self.cached_compile(code, env.coredata, extra_args=args, mode=mode, temp_dir=env.scratch_dir) as r:
                 yield r
 
-    def compiles(self, code: str, env: 'Environment', *,
+    def compiles(self, code: 'mesonlib.FileOrString', env: 'Environment', *,
                  extra_args: T.Union[None, T.List[str], CompilerArgs] = None,
                  dependencies: T.Optional[T.List['Dependency']] = None,
                  mode: str = 'compile',
@@ -1228,7 +1228,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             return p.returncode == 0, p.cached
 
 
-    def links(self, code: str, env: 'Environment', *,
+    def links(self, code: 'mesonlib.FileOrString', env: 'Environment', *,
               extra_args: T.Union[None, T.List[str], CompilerArgs] = None,
               dependencies: T.Optional[T.List['Dependency']] = None,
               mode: str = 'compile',
