@@ -46,6 +46,12 @@ endif
 
 assert(mytarget_disabled, 'Disabled custom target should not be found.')
 
+mytarget_ci = custom_target('bindat_ci',
+output : 'data_ci.dat',
+input : 'data_source.txt',
+command : [python, comp, '--input=@INPUT@', '--output=@OUTPUT@', mytarget.to_list()],
+)
+
 mytarget_disabler = custom_target('bindat',
 output : 'data.dat',
 input : disabler(),
