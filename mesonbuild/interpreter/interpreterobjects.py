@@ -62,7 +62,7 @@ def extract_required_kwarg(kwargs: 'kwargs.ExtractRequired',
 
     return disabled, required, feature
 
-def extract_search_dirs(kwargs: T.Dict[str, T.Any]) -> T.List[str]:
+def extract_search_dirs(kwargs: 'kwargs.ExtractSearchDirs') -> T.List[str]:
     search_dirs_str = mesonlib.stringlistify(kwargs.get('dirs', []))
     search_dirs = [Path(d).expanduser() for d in search_dirs_str]
     for d in search_dirs:

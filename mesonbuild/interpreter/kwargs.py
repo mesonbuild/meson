@@ -72,6 +72,16 @@ class ExtractRequired(TypedDict):
     required: T.Union[bool, coredata.UserFeatureOption]
 
 
+class ExtractSearchDirs(TypedDict):
+
+    """Keyword arguments consumed by the `extract_search_dirs` function.
+
+    See the not in `ExtractRequired`
+    """
+
+    dirs: T.List[str]
+
+
 class FuncGenerator(TypedDict):
 
     """Keyword rguments for the generator function."""
