@@ -350,7 +350,9 @@ dep = dependency('cuda', version : '>=10', modules : ['cublas'])
 
 Note that explicitly adding this dependency is only necessary if you are
 using CUDA Toolkit from a C/C++ file or project, or if you are utilizing
-additional toolkit libraries that need to be explicitly linked to.
+additional toolkit libraries that need to be explicitly linked to. If the
+CUDA Toolkit cannot be found in the default paths on your system, you can
+set the path using `CUDA_PATH` explicitly.
 
 ## CUPS
 
