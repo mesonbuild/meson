@@ -32,7 +32,7 @@ def buildparser() -> argparse.ArgumentParser:
     parser.add_argument('--feed')
     return parser
 
-def run_exe(exe: ExecutableSerialisation, extra_env: T.Optional[dict] = None) -> int:
+def run_exe(exe: ExecutableSerialisation, extra_env: T.Optional[T.Dict[str, str]] = None) -> int:
     if exe.exe_runner:
         if not exe.exe_runner.found():
             raise AssertionError('BUG: Can\'t run cross-compiled exe {!r} with not-found '
