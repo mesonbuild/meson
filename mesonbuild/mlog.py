@@ -293,7 +293,7 @@ def log_once(*args: TV_Loggable, is_error: bool = False,
 #
 # This would more accurately embody what this function can handle, but we
 # don't have that yet, so instead we'll do some casting to work around it
-def get_error_location_string(fname: str, lineno: str) -> str:
+def get_error_location_string(fname: str, lineno: int) -> str:
     return f'{fname}:{lineno}:'
 
 def _log_error(severity: str, *rargs: TV_Loggable,
