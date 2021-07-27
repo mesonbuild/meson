@@ -773,7 +773,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                 # ccache would result in a cache miss
                 no_ccache = True
                 contents = code
-            elif isinstance(code, mesonlib.File):
+            else:
                 srcname = code.fname
                 with open(code.fname, encoding='utf-8') as f:
                     contents = f.read()
@@ -781,11 +781,13 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             # Construct the compiler command-line
             commands = self.compiler_args()
             commands.append(srcname)
+
             # Preprocess mode outputs to stdout, so no output args
+            output = self._get_compile_output(tmpdirname, mode)
             if mode != 'preprocess':
-                output = self._get_compile_output(tmpdirname, mode)
                 commands += self.get_output_args(output)
             commands.extend(self.get_compiler_args_for_mode(CompileCheckMode(mode)))
+
             # extra_args must be last because it could contain '/link' to
             # pass args to VisualStudio's linker. In that case everything
             # in the command line after '/link' is given to the linker.
