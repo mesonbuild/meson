@@ -67,6 +67,9 @@ def run_exe(exe: ExecutableSerialisation, extra_env: T.Optional[dict] = None) ->
                          close_fds=False, stdin=stdin, stdout=pipe, stderr=pipe)
     stdout, stderr = p.communicate()
 
+    if stdin is not None:
+        stdin.close()
+
     if p.returncode == 0xc0000135:
         # STATUS_DLL_NOT_FOUND on Windows indicating a common problem that is otherwise hard to diagnose
         raise FileNotFoundError('due to missing DLLs')
