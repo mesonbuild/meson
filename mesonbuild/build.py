@@ -206,6 +206,19 @@ class InstallDir(HoldableObject):
         self.install_tag = install_tag
 
 
+class DepManifest:
+
+    def __init__(self, version: str, license: T.List[str]):
+        self.version = version
+        self.license = license
+
+    def to_json(self) -> T.Dict[str, T.Union[str, T.List[str]]]:
+        return {
+            'version': self.version,
+            'license': self.license,
+        }
+
+
 class Build:
     """A class that holds the status of one build including
     all dependencies and so on.
@@ -235,7 +248,7 @@ class Build:
         self.dist_scripts: T.List['ExecutableSerialisation'] = []
         self.install_dirs: T.List[InstallDir] = []
         self.dep_manifest_name: T.Optional[str] = None
-        self.dep_manifest: T.Dict[str, T.Dict[str, T.Any]] = {}  # TODO: what should this dict be?
+        self.dep_manifest: T.Dict[str, DepManifest] = {}
         self.stdlibs = PerMachine({}, {})
         self.test_setups: T.Dict[str, TestSetup] = {}
         self.test_setup_default_name = None

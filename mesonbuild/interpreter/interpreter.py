@@ -1060,8 +1060,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         if self.build.project_version is None:
             self.build.project_version = self.project_version
         proj_license = mesonlib.stringlistify(kwargs.get('license', 'unknown'))
-        self.build.dep_manifest[proj_name] = {'version': self.project_version,
-                                              'license': proj_license}
+        self.build.dep_manifest[proj_name] = build.DepManifest(self.project_version, proj_license)
         if self.subproject in self.build.projects:
             raise InvalidCode('Second call to project().')
 

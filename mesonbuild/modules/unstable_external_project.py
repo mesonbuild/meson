@@ -232,7 +232,7 @@ class ExternalProject(NewExtensionModule):
             abs_includedir = Path(abs_includedir, subdir)
         abs_libdir = Path(self.install_dir, self.rel_prefix, self.libdir)
 
-        version = self.project_version['version']
+        version = self.project_version
         incdir = []
         compile_args = [f'-I{abs_includedir}']
         link_args = [f'-L{abs_libdir}', f'-l{libname}']

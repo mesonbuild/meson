@@ -1144,7 +1144,8 @@ class Backend:
         ifilename = os.path.join(self.environment.get_build_dir(), 'depmf.json')
         ofilename = os.path.join(self.environment.get_prefix(), self.build.dep_manifest_name)
         out_name = os.path.join('{prefix}', self.build.dep_manifest_name)
-        mfobj = {'type': 'dependency manifest', 'version': '1.0', 'projects': self.build.dep_manifest}
+        mfobj = {'type': 'dependency manifest', 'version': '1.0',
+                 'projects': {k: v.to_json() for k, v in self.build.dep_manifest.items()}}
         with open(ifilename, 'w', encoding='utf-8') as f:
             f.write(json.dumps(mfobj))
         # Copy file from, to, and with mode unchanged

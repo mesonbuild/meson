@@ -384,14 +384,14 @@ class MesonMain(MesonInterpreterObject):
 
     @noPosargs
     @noKwargs
-    def project_version_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
-        return self.build.dep_manifest[self.interpreter.active_projectname]['version']
+    def project_version_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> T.List[str]:
+        return self.build.dep_manifest[self.interpreter.active_projectname].version
 
     @FeatureNew('meson.project_license()', '0.45.0')
     @noPosargs
     @noKwargs
     def project_license_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
-        return self.build.dep_manifest[self.interpreter.active_projectname]['license']
+        return self.build.dep_manifest[self.interpreter.active_projectname].license
 
     @noPosargs
     @noKwargs

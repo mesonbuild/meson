@@ -12,17 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 from pathlib import PurePath
+import os
+import typing as T
 
+from . import ExtensionModule
+from . import ModuleReturnValue
 from .. import build
 from .. import dependencies
-from ..dependencies import ThreadDependency
 from .. import mesonlib
 from .. import mlog
-from . import ModuleReturnValue
-from . import ExtensionModule
+from ..dependencies import ThreadDependency
 from ..interpreterbase import permittedKwargs, FeatureNew, FeatureNewKwargs
+
+if T.TYPE_CHECKING:
+    from . import ModuleState
 
 already_warned_objs = set()
 
@@ -451,8 +455,8 @@ class PkgConfigModule(ExtensionModule):
                       'install_dir', 'extra_cflags', 'variables', 'url', 'd_module_versions',
                       'dataonly', 'conflicts', 'uninstalled_variables',
                       'unescaped_variables', 'unescaped_uninstalled_variables'})
-    def generate(self, state, args, kwargs):
-        default_version = state.project_version['version']
+    def generate(self, state: 'ModuleState', args, kwargs):
+        default_version = state.project_version
         default_install_dir = None
         default_description = None
         default_name = None
