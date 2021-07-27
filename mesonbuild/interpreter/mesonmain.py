@@ -72,9 +72,9 @@ class MesonMain(MesonInterpreterObject):
 
     def _process_script_args(
             self, name: str, args: T.List[T.Union[
-                str, mesonlib.File, CustomTargetHolder,
-                CustomTargetIndexHolder,
-                ExternalProgramHolder, ExecutableHolder,
+                str, mesonlib.File, build.CustomTarget,
+                build.CustomTargetIndex,
+                ExternalProgram, build.Executable,
             ]], allow_built: bool = False) -> T.List[str]:
         script_args = []  # T.List[str]
         new = False
