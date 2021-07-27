@@ -234,12 +234,12 @@ class Build:
         self.postconf_scripts: T.List['ExecutableSerialisation'] = []
         self.dist_scripts = []
         self.install_dirs: T.List[InstallDir] = []
-        self.dep_manifest_name = None
-        self.dep_manifest = {}
+        self.dep_manifest_name: T.Optional[str] = None
+        self.dep_manifest: T.Dict[str, T.Dict[str, T.Any]] = {}  # TODO: what should this dict be?
         self.stdlibs = PerMachine({}, {})
         self.test_setups: T.Dict[str, TestSetup] = {}
         self.test_setup_default_name = None
-        self.find_overrides = {}
+        self.find_overrides: T.Dict[str, T.Union['Executable', programs.ExternalProgram, programs.OverrideProgram]] = {}
         self.searched_programs = set() # The list of all programs that have been searched for.
 
         # If we are doing a cross build we need two caches, if we're doing a
