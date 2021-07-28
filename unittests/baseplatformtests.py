@@ -186,8 +186,10 @@ class BasePlatformTests(TestCase):
                     print('Stderr:\n')
                     print(err)
                     raise RuntimeError('Configure failed')
-            except Exception:
-                self._print_meson_log()
+            except Exception as e:
+                # Don't double print
+                if str(e) != 'Configure failed':
+                    self._print_meson_log()
                 raise
             finally:
                 # Close log file to satisfy Windows file locking
