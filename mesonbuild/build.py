@@ -212,14 +212,10 @@ class Build:
         self.projects = {}
         self.targets: T.MutableMapping[str, 'Target'] = OrderedDict()
         self.run_target_names: T.Set[T.Tuple[str, str]] = set()
-        self.global_args: PerMachine[T.Dict[str, T.List[str]]] = PerMachineDefaultable.default(
-            environment.is_cross_build(), {}, {})
-        self.global_link_args: PerMachine[T.Dict[str, T.List[str]]] = PerMachineDefaultable.default(
-            environment.is_cross_build(), {}, {})
-        self.projects_args: PerMachine[T.Dict[str, T.Dict[str, T.List[str]]]] = PerMachineDefaultable.default(
-            environment.is_cross_build(), {}, {})
-        self.projects_link_args: PerMachine[T.Dict[str, T.Dict[str, T.List[str]]]] = PerMachineDefaultable.default(
-            environment.is_cross_build(), {}, {})
+        self.global_args: PerMachine[T.Dict[str, T.List[str]]] = PerMachine({}, {})
+        self.global_link_args: PerMachine[T.Dict[str, T.List[str]]] = PerMachine({}, {})
+        self.projects_args: PerMachine[T.Dict[str, T.Dict[str, T.List[str]]]] = PerMachine({}, {})
+        self.projects_link_args: PerMachine[T.Dict[str, T.Dict[str, T.List[str]]]] = PerMachine({}, {})
         self.tests: T.List['Test'] = []
         self.benchmarks: T.List['Test'] = []
         self.headers: T.List[Headers] = []
