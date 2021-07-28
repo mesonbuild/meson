@@ -12,13 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import subprocess
-import re
-import json
-import tempfile
-import os
-from unittest import mock, TestCase, SkipTest
 from pathlib import PurePath
+from unittest import mock, TestCase, SkipTest
+import json
+import os
+import re
+import subprocess
+import sys
+import tempfile
+import typing as T
 
 import mesonbuild.mlog
 import mesonbuild.depfile
@@ -176,16 +178,7 @@ class BasePlatformTests(TestCase):
         self.privatedir = os.path.join(self.builddir, 'meson-private')
         if inprocess:
             try:
-                (returncode, out, err) = run_configure_inprocess(self.meson_args + args + extra_args, override_envvars)
-                if 'MESON_SKIP_TEST' in out:
-                    raise SkipTest('Project requested skipping.')
-                if returncode != 0:
-                    self._print_meson_log()
-                    print('Stdout:\n')
-                    print(out)
-                    print('Stderr:\n')
-                    print(err)
-                    raise RuntimeError('Configure failed')
+                returncode, out, err = run_configure_inprocess(self.meson_args + args + extra_args, override_envvars)
             except Exception as e:
                 # Don't double print
                 if str(e) != 'Configure failed':
@@ -196,6 +189,16 @@ class BasePlatformTests(TestCase):
                 mesonbuild.mlog.shutdown()
                 mesonbuild.mlog.log_dir = None
                 mesonbuild.mlog.log_file = None
+
+            if 'MESON_SKIP_TEST' in out:
+                raise SkipTest('Project requested skipping.')
+            if returncode != 0:
+                self._print_meson_log()
+                print('Stdout:\n')
+                print(out)
+                print('Stderr:\n')
+                print(err)
+                raise RuntimeError('Configure failed')
         else:
             try:
                 out = self._run(self.setup_command + args + extra_args, override_envvars=override_envvars, workdir=workdir)
