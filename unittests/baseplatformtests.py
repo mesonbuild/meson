@@ -112,13 +112,18 @@ class BasePlatformTests(TestCase):
         newdir = os.path.realpath(newdir)
         self.change_builddir(newdir)
 
-    def _print_meson_log(self):
+    def _get_meson_log(self) -> T.Optional[str]:
         log = os.path.join(self.logdir, 'meson-log.txt')
         if not os.path.isfile(log):
-            print(f"{log!r} doesn't exist")
-            return
+            print(f"{log!r} doesn't exist", file=sys.stderr)
+            return None
         with open(log, encoding='utf-8') as f:
-            print(f.read())
+            return f.read()
+
+    def _print_meson_log(self) -> None:
+        log = self._get_meson_log()
+        if log:
+            print(log)
 
     def tearDown(self):
         for path in self.builddirs:
@@ -160,7 +165,15 @@ class BasePlatformTests(TestCase):
              default_args=True,
              inprocess=False,
              override_envvars=None,
-             workdir=None):
+             workdir=None,
+             allow_fail: bool = False) -> str:
+        """Call `meson setup`
+
+        :param allow_fail: If set to true initialization is allowed to fail.
+            When it does the log will be returned instead of stdout.
+        :return: the value of stdout on success, or the meson log on failure
+            when :param allow_fail: is true
+        """
         self.assertPathExists(srcdir)
         if extra_args is None:
             extra_args = []
@@ -180,10 +193,12 @@ class BasePlatformTests(TestCase):
             try:
                 returncode, out, err = run_configure_inprocess(self.meson_args + args + extra_args, override_envvars)
             except Exception as e:
-                # Don't double print
-                if str(e) != 'Configure failed':
+                if not allow_fail:
                     self._print_meson_log()
-                raise
+                    raise
+                out = self._get_meson_log()  # Best we can do here
+                err = ''  # type checkers can't figure out that on this path returncode will always be 0
+                returncode = 0
             finally:
                 # Close log file to satisfy Windows file locking
                 mesonbuild.mlog.shutdown()
@@ -198,15 +213,18 @@ class BasePlatformTests(TestCase):
                 print(out)
                 print('Stderr:\n')
                 print(err)
-                raise RuntimeError('Configure failed')
+                if not allow_fail:
+                    raise RuntimeError('Configure failed')
         else:
             try:
                 out = self._run(self.setup_command + args + extra_args, override_envvars=override_envvars, workdir=workdir)
             except SkipTest:
                 raise SkipTest('Project requested skipping: ' + srcdir)
             except Exception:
-                self._print_meson_log()
-                raise
+                if not allow_fail:
+                    self._print_meson_log()
+                    raise
+                out = self._get_meson_log()  # best we can do here
         return out
 
     def build(self, target=None, *, extra_args=None, override_envvars=None):
