@@ -867,10 +867,16 @@ class GnomeModule(ExtensionModule):
         # are not used here.
         dep_cflags, dep_internal_ldflags, dep_external_ldflags, gi_includes = \
             self._get_dependencies_flags(deps, state, depends, use_gir_args=True)
-        cflags += list(self._get_scanner_cflags(dep_cflags))
-        cflags += list(self._get_scanner_cflags(self._get_external_args_for_langs(state, [lc[0] for lc in langs_compilers])))
-        internal_ldflags += list(self._get_scanner_ldflags(dep_internal_ldflags))
-        external_ldflags += list(self._get_scanner_ldflags(dep_external_ldflags))
+        scan_cflags = []
+        scan_cflags += list(self._get_scanner_cflags(cflags))
+        scan_cflags += list(self._get_scanner_cflags(dep_cflags))
+        scan_cflags += list(self._get_scanner_cflags(self._get_external_args_for_langs(state, [lc[0] for lc in langs_compilers])))
+        scan_internal_ldflags = []
+        scan_internal_ldflags += list(self._get_scanner_ldflags(internal_ldflags))
+        scan_internal_ldflags += list(self._get_scanner_ldflags(dep_internal_ldflags))
+        scan_external_ldflags = []
+        scan_external_ldflags += list(self._get_scanner_ldflags(external_ldflags))
+        scan_external_ldflags += list(self._get_scanner_ldflags(dep_external_ldflags))
         girtargets_inc_dirs = self._get_gir_targets_inc_dirs(girtargets)
         inc_dirs = self._scan_inc_dirs(kwargs)
 
@@ -890,14 +896,14 @@ class GnomeModule(ExtensionModule):
         scan_command += self._scan_identifier_prefix(kwargs)
         scan_command += self._scan_export_packages(kwargs)
         scan_command += ['--cflags-begin']
-        scan_command += cflags
+        scan_command += scan_cflags
         scan_command += ['--cflags-end']
         scan_command += state.get_include_args(inc_dirs)
         scan_command += state.get_include_args(list(gi_includes) + gir_inc_dirs + inc_dirs, prefix='--add-include-path=')
-        scan_command += list(internal_ldflags)
+        scan_command += list(scan_internal_ldflags)
         scan_command += self._scan_gir_targets(state, girtargets)
         scan_command += self._scan_langs(state, [lc[0] for lc in langs_compilers])
-        scan_command += list(external_ldflags)
+        scan_command += list(scan_external_ldflags)
 
         if self._gir_has_option('--sources-top-dirs'):
             scan_command += ['--sources-top-dirs', os.path.join(state.environment.get_source_dir(), self.interpreter.subproject_dir, state.subproject)]
