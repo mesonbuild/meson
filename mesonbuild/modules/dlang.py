@@ -19,16 +19,10 @@ import json
 import os
 
 from . import ExtensionModule
-
+from .. import dependencies
 from .. import mlog
-
-from ..mesonlib import (
-    Popen_safe, MesonException
-)
-
-from ..dependencies import DubDependency
+from ..mesonlib import Popen_safe, MesonException
 from ..programs import ExternalProgram
-from ..interpreter import DependencyHolder
 
 class DlangModule(ExtensionModule):
     class_dubbin = None
@@ -42,7 +36,7 @@ class DlangModule(ExtensionModule):
 
     def _init_dub(self):
         if DlangModule.class_dubbin is None:
-            self.dubbin = DubDependency.class_dubbin
+            self.dubbin = dependencies.DubDependency.class_dubbin
             DlangModule.class_dubbin = self.dubbin
         else:
             self.dubbin = DlangModule.class_dubbin
@@ -87,20 +81,20 @@ class DlangModule(ExtensionModule):
                 config[key] = {}
                 if isinstance(value, list):
                     for dep in value:
-                        if isinstance(dep, DependencyHolder):
-                            name = dep.method_call('name', [], [])
+                        if isinstance(dep, dependencies.Dependency):
+                            name = dep.get_name()
                             ret, res = self._call_dubbin(['describe', name])
                             if ret == 0:
-                                version = dep.method_call('version', [], [])
+                                version = dep.get_version()
                                 if version is None:
                                     config[key][name] = ''
                                 else:
                                     config[key][name] = version
-                elif isinstance(value, DependencyHolder):
-                    name = value.method_call('name', [], [])
+                elif isinstance(value, dependencies.Dependency):
+                    name = value.get_name()
                     ret, res = self._call_dubbin(['describe', name])
                     if ret == 0:
-                        version = value.method_call('version', [], [])
+                        version = value.get_version()
                         if version is None:
                             config[key][name] = ''
                         else:
