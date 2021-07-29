@@ -471,7 +471,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                                 ExternalProgram)):
                 pass
             else:
-                raise InterpreterException('Module returned a value of unknown type.')
+                raise InterpreterException(f'Module returned a value of unknown type {v!r}.')
 
     def get_build_def_files(self) -> T.List[str]:
         return self.build_def_files
