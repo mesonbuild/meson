@@ -23,6 +23,7 @@ from unittest import mock
 from configparser import ConfigParser
 from pathlib import Path
 import typing as T
+import unittest
 
 import mesonbuild.mlog
 import mesonbuild.depfile
@@ -64,6 +65,16 @@ class InternalTests(unittest.TestCase):
         self.assertEqual(search_version('oops v1.2.3'), '1.2.3')
         self.assertEqual(search_version('2016.oops 1.2.3'), '1.2.3')
         self.assertEqual(search_version('2016.x'), 'unknown version')
+        self.assertEqual(search_version(r'something version is \033[32;2m1.2.0\033[0m.'), '1.2.0')
+
+        # Literal output of mvn
+        self.assertEqual(search_version(r'''\
+            \033[1mApache Maven 3.8.1 (05c21c65bdfed0f71a2f2ada8b84da59348c4c5d)\033[0m
+            Maven home: /nix/store/g84a9wnid2h1d3z2wfydy16dky73wh7i-apache-maven-3.8.1/maven
+            Java version: 11.0.10, vendor: Oracle Corporation, runtime: /nix/store/afsnl4ahmm9svvl7s1a0cj41vw4nkmz4-openjdk-11.0.10+9/lib/openjdk
+            Default locale: en_US, platform encoding: UTF-8
+            OS name: "linux", version: "5.12.17", arch: "amd64", family: "unix"'''),
+            '3.8.1')
 
     def test_mode_symbolic_to_bits(self):
         modefunc = mesonbuild.mesonlib.FileMode.perms_s_to_bits
