@@ -211,8 +211,17 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
     def get_module_outdir_args(self, path: str) -> T.List[str]:
         return ['-J' + path]
 
-    def language_stdlib_only_link_flags(self) -> T.List[str]:
-        return ['-lgfortran', '-lm']
+    def language_stdlib_only_link_flags(self, env: 'Environment') -> T.List[str]:
+        # We need to apply the search prefix here, as these link arguments may
+        # be passed to a differen compiler with a different set of default
+        # search paths, such as when using Clang for C/C++ and gfortran for
+        # fortran,
+        search_dir = self._get_search_dirs(env)
+        search_dirs: T.List[str] = []
+        if search_dir is not None:
+            for d in search_dir.split()[-1][len('libraries: ='):].split(':'):
+                search_dirs.append(f'-L{d}')
+        return search_dirs + ['-lgfortran', '-lm']
 
     def has_header(self, hname: str, prefix: str, env: 'Environment', *,
                    extra_args: T.Union[None, T.List[str], T.Callable[['CompileCheckMode'], T.List[str]]] = None,
@@ -336,7 +345,8 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
     def get_preprocess_only_args(self) -> T.List[str]:
         return ['-cpp', '-EP']
 
-    def language_stdlib_only_link_flags(self) -> T.List[str]:
+    def language_stdlib_only_link_flags(self, env: 'Environment') -> T.List[str]:
+        # TODO: needs default search path added
         return ['-lifcore', '-limf']
 
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
@@ -420,7 +430,8 @@ class PGIFortranCompiler(PGICompiler, FortranCompiler):
                           '2': default_warn_args,
                           '3': default_warn_args + ['-Mdclchk']}
 
-    def language_stdlib_only_link_flags(self) -> T.List[str]:
+    def language_stdlib_only_link_flags(self, env: 'Environment') -> T.List[str]:
+        # TODO: needs default search path added
         return ['-lpgf90rtl', '-lpgf90', '-lpgf90_rpm1', '-lpgf902',
                 '-lpgf90rtl', '-lpgftnrtl', '-lrt']
 
@@ -461,8 +472,18 @@ class FlangFortranCompiler(ClangCompiler, FortranCompiler):
                           '2': default_warn_args,
                           '3': default_warn_args}
 
-    def language_stdlib_only_link_flags(self) -> T.List[str]:
-        return ['-lflang', '-lpgmath']
+    def language_stdlib_only_link_flags(self, env: 'Environment') -> T.List[str]:
+        # We need to apply the search prefix here, as these link arguments may
+        # be passed to a differen compiler with a different set of default
+        # search paths, such as when using Clang for C/C++ and gfortran for
+        # fortran,
+        # XXX: Untested....
+        search_dir = self._get_search_dirs(env)
+        search_dirs: T.List[str] = []
+        if search_dir is not None:
+            for d in search_dir.split()[-1][len('libraries: ='):].split(':'):
+                search_dirs.append(f'-L{d}')
+        return search_dirs + ['-lflang', '-lpgmath']
 
 class Open64FortranCompiler(FortranCompiler):
 

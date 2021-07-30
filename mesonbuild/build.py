@@ -1425,7 +1425,7 @@ You probably should put it in link_with instead.''')
         # If the user set the link_language, just return that.
         if self.link_language:
             comp = all_compilers[self.link_language]
-            return comp, comp.language_stdlib_only_link_flags()
+            return comp, comp.language_stdlib_only_link_flags(self.environment)
 
         # Languages used by dependencies
         dep_langs = self.get_langs_used_by_deps()
@@ -1443,7 +1443,7 @@ You probably should put it in link_with instead.''')
                 added_languages: T.Set[str] = set()
                 for dl in itertools.chain(self.compilers, dep_langs):
                     if dl != linker.language:
-                        stdlib_args += all_compilers[dl].language_stdlib_only_link_flags()
+                        stdlib_args += all_compilers[dl].language_stdlib_only_link_flags(self.environment)
                         added_languages.add(dl)
                 # Type of var 'linker' is Compiler.
                 # Pretty hard to fix because the return value is passed everywhere
