@@ -246,13 +246,31 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
             return libs
         return []
 
-    def language_stdlib_only_link_flags(self) -> T.List[str]:
-        return ['-lstdc++']
+    def language_stdlib_only_link_flags(self, env: 'Environment') -> T.List[str]:
+        # We need to apply the search prefix here, as these link arguments may
+        # be passed to a differen compiler with a different set of default
+        # search paths, such as when using Clang for C/C++ and gfortran for
+        # fortran,
+        search_dir = self._get_search_dirs(env)
+        search_dirs: T.List[str] = []
+        if search_dir is not None:
+            for d in search_dir.split()[-1][len('libraries: ='):].split(':'):
+                search_dirs.append(f'-L{d}')
+        return search_dirs + ['-lstdc++']
 
 
 class AppleClangCPPCompiler(ClangCPPCompiler):
-    def language_stdlib_only_link_flags(self) -> T.List[str]:
-        return ['-lc++']
+    def language_stdlib_only_link_flags(self, env: 'Environment') -> T.List[str]:
+        # We need to apply the search prefix here, as these link arguments may
+        # be passed to a differen compiler with a different set of default
+        # search paths, such as when using Clang for C/C++ and gfortran for
+        # fortran,
+        search_dir = self._get_search_dirs(env)
+        search_dirs: T.List[str] = []
+        if search_dir is not None:
+            for d in search_dir.split()[-1][len('libraries: ='):].split(':'):
+                search_dirs.append(f'-L{d}')
+        return search_dirs + ['-lc++']
 
 
 class EmscriptenCPPCompiler(EmscriptenMixin, ClangCPPCompiler):
@@ -396,7 +414,16 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
     def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
         return ['-fpch-preprocess', '-include', os.path.basename(header)]
 
-    def language_stdlib_only_link_flags(self) -> T.List[str]:
+    def language_stdlib_only_link_flags(self, env: 'Environment') -> T.List[str]:
+        # We need to apply the search prefix here, as these link arguments may
+        # be passed to a differen compiler with a different set of default
+        # search paths, such as when using Clang for C/C++ and gfortran for
+        # fortran,
+        search_dir = self._get_search_dirs(env)
+        search_dirs: T.List[str] = []
+        if search_dir is not None:
+            for d in search_dir.split()[-1][len('libraries: ='):].split(':'):
+                search_dirs.append(f'-L{d}')
         return ['-lstdc++']
 
 
