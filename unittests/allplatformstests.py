@@ -3428,6 +3428,26 @@ class AllPlatformTests(BasePlatformTests):
         self.run_target('coverage-xml')
         self._check_coverage_files(['xml'])
 
+    def test_coverage_escaping(self):
+        if mesonbuild.environment.detect_msys2_arch():
+            raise SkipTest('Skipped due to problems with coverage on MSYS2')
+        gcovr_exe, gcovr_new_rootdir = mesonbuild.environment.detect_gcovr()
+        if not gcovr_exe:
+            raise SkipTest('gcovr not found, or too old')
+        testdir = os.path.join(self.common_test_dir, '243 escape++')
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+        cc = detect_c_compiler(env, MachineChoice.HOST)
+        if cc.get_id() == 'clang':
+            if not mesonbuild.environment.detect_llvm_cov():
+                raise SkipTest('llvm-cov not found')
+        if cc.get_id() == 'msvc':
+            raise SkipTest('Test only applies to non-MSVC compilers')
+        self.init(testdir, extra_args=['-Db_coverage=true'])
+        self.build()
+        self.run_tests()
+        self.run_target('coverage')
+        self._check_coverage_files()
+
     def test_cross_file_constants(self):
         with temp_filename() as crossfile1, temp_filename() as crossfile2:
             with open(crossfile1, 'w', encoding='utf-8') as f:
