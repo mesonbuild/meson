@@ -14,7 +14,7 @@
 
 from mesonbuild import environment, mesonlib
 
-import argparse, sys, os, subprocess, pathlib, stat
+import argparse, re, sys, os, subprocess, pathlib, stat
 import typing as T
 
 def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build_root: str, log_dir: str, use_llvm_cov: bool) -> int:
@@ -38,7 +38,7 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
         if gcovr_exe:
             subprocess.check_call(gcovr_base_cmd +
                                   ['-x',
-                                   '-e', subproject_root,
+                                   '-e', re.escape(subproject_root),
                                    '-o', os.path.join(log_dir, 'coverage.xml')
                                    ] + gcov_exe_args)
             outfiles.append(('Xml', pathlib.Path(log_dir, 'coverage.xml')))
@@ -49,7 +49,7 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
     if not outputs or 'text' in outputs:
         if gcovr_exe:
             subprocess.check_call(gcovr_base_cmd +
-                                  ['-e', subproject_root,
+                                  ['-e', re.escape(subproject_root),
                                    '-o', os.path.join(log_dir, 'coverage.txt')
                                    ] + gcov_exe_args)
             outfiles.append(('Text', pathlib.Path(log_dir, 'coverage.txt')))
@@ -128,7 +128,7 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
                                   ['--html',
                                    '--html-details',
                                    '--print-summary',
-                                   '-e', subproject_root,
+                                   '-e', re.escape(subproject_root),
                                    '-o', os.path.join(htmloutdir, 'index.html'),
                                    ])
             outfiles.append(('Html', pathlib.Path(htmloutdir, 'index.html')))
