@@ -27,7 +27,7 @@ from .. import mlog
 from .. import compilers
 from ..interpreter import Interpreter
 from ..mesonlib import (
-    File, MesonException, python_command, replace_if_different, OptionKey, version_compare,
+    File, MesonException, python_command, replace_if_different, OptionKey, version_compare, MachineChoice
 )
 from ..environment import Environment, build_filename
 
@@ -184,6 +184,25 @@ class Vs2010Backend(backends.Backend):
             self.platform = 'ARM'
         else:
             raise MesonException('Unsupported Visual Studio platform: ' + target_machine)
+
+        build_machine = self.interpreter.builtin['build_machine'].cpu_family_method(None, None)
+        if build_machine == '64' or build_machine == 'x86_64':
+            # amd64 or x86_64
+            self.build_platform = 'x64'
+        elif build_machine == 'x86':
+            # x86
+            self.build_platform = 'Win32'
+        elif build_machine == 'aarch64' or build_machine == 'arm64':
+            target_cpu = self.interpreter.builtin['build_machine'].cpu_method(None, None)
+            if target_cpu == 'arm64ec':
+                self.build_platform = 'arm64ec'
+            else:
+                self.build_platform = 'arm64'
+        elif 'arm' in build_machine.lower():
+            self.build_platform = 'ARM'
+        else:
+            raise MesonException('Unsupported Visual Studio platform: ' + build_machine)
+
         self.buildtype = self.environment.coredata.get_option(OptionKey('buildtype'))
         self.optimization = self.environment.coredata.get_option(OptionKey('optimization'))
         self.debug = self.environment.coredata.get_option(OptionKey('debug'))
@@ -373,16 +392,20 @@ class Vs2010Backend(backends.Backend):
                          self.platform, self.buildtype, self.platform))
             # Create the solution configuration
             for p in projlist:
+                if p[3] is MachineChoice.BUILD:
+                    config_platform = self.build_platform
+                else:
+                    config_platform = self.platform
                 # Add to the list of projects in this solution
                 ofile.write('\t\t{%s}.%s|%s.ActiveCfg = %s|%s\n' %
                             (p[2], self.buildtype, self.platform,
-                             self.buildtype, self.platform))
+                             self.buildtype, config_platform))
                 if p[0] in default_projlist and \
                    not isinstance(self.build.targets[p[0]], build.RunTarget):
                     # Add to the list of projects to be built
                     ofile.write('\t\t{%s}.%s|%s.Build.0 = %s|%s\n' %
                                 (p[2], self.buildtype, self.platform,
-                                 self.buildtype, self.platform))
+                                 self.buildtype, config_platform))
             ofile.write('\t\t{%s}.%s|%s.ActiveCfg = %s|%s\n' %
                         (self.environment.coredata.test_guid, self.buildtype,
                          self.platform, self.buildtype, self.platform))
@@ -424,7 +447,7 @@ class Vs2010Backend(backends.Backend):
             projfile_path = outdir / fname
             proj_uuid = self.environment.coredata.target_guids[name]
             self.gen_vcxproj(target, str(projfile_path), proj_uuid)
-            projlist.append((name, relname, proj_uuid))
+            projlist.append((name, relname, proj_uuid, target.for_machine))
 
         # Put the startup project first in the project list
         if startup_idx:
@@ -785,16 +808,20 @@ class Vs2010Backend(backends.Backend):
         vscrt_type = self.environment.coredata.options[OptionKey('b_vscrt')]
         project_name = target.name
         target_name = target.name
+        if target.for_machine is MachineChoice.BUILD:
+            platform = self.build_platform
+        else:
+            platform = self.platform
         root = ET.Element('Project', {'DefaultTargets': "Build",
                                       'ToolsVersion': '4.0',
                                       'xmlns': 'http://schemas.microsoft.com/developer/msbuild/2003'})
         confitems = ET.SubElement(root, 'ItemGroup', {'Label': 'ProjectConfigurations'})
         prjconf = ET.SubElement(confitems, 'ProjectConfiguration',
-                                {'Include': self.buildtype + '|' + self.platform})
+                                {'Include': self.buildtype + '|' + platform})
         p = ET.SubElement(prjconf, 'Configuration')
         p.text = self.buildtype
         pl = ET.SubElement(prjconf, 'Platform')
-        pl.text = self.platform
+        pl.text = platform
         # Globals
         globalgroup = ET.SubElement(root, 'PropertyGroup', Label='Globals')
         guidelem = ET.SubElement(globalgroup, 'ProjectGuid')
@@ -804,7 +831,7 @@ class Vs2010Backend(backends.Backend):
         ns = ET.SubElement(globalgroup, 'RootNamespace')
         ns.text = target_name
         p = ET.SubElement(globalgroup, 'Platform')
-        p.text = self.platform
+        p.text = platform
         pname = ET.SubElement(globalgroup, 'ProjectName')
         pname.text = project_name
         if self.windows_target_platform_version:
@@ -924,9 +951,9 @@ class Vs2010Backend(backends.Backend):
         for l, comp in target.compilers.items():
             if l in file_args:
                 file_args[l] += compilers.get_base_compile_args(
-                        self.get_base_options_for_target(target), comp)
+                    self.get_base_options_for_target(target), comp)
                 file_args[l] += comp.get_option_compile_args(
-                        self.environment.coredata.options)
+                    self.environment.coredata.options)
 
         # Add compile args added using add_project_arguments()
         for l, args in self.build.projects_args[target.for_machine].get(target.subproject, {}).items():
@@ -1233,7 +1260,10 @@ class Vs2010Backend(backends.Backend):
             pdb = ET.SubElement(link, 'ProgramDataBaseFileName')
             pdb.text = '$(OutDir}%s.pdb' % target_name
         targetmachine = ET.SubElement(link, 'TargetMachine')
-        targetplatform = self.platform.lower()
+        if target.for_machine is MachineChoice.BUILD:
+            targetplatform = platform
+        else:
+            targetplatform = self.platform.lower()
         if targetplatform == 'win32':
             targetmachine.text = 'MachineX86'
         elif targetplatform == 'x64':
