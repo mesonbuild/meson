@@ -5,6 +5,22 @@ one = ['abc']
 two = ['def', 'ghi']
 combined = [empty, one, two]
 
+file_list = files('a.txt', 'b.txt')
+file_a = files('a.txt')
+file_c = files('c.txt')
+
+if file_a[0] != file_list[0]
+  error('Files are not equal')
+endif
+
+if not file_list.contains(file_a[0])
+  error('Contains with ObjectHolder lists does not work')
+endif
+
+if file_list.contains(file_c[0])
+  error('Contains with ObjectHolder lists found non existant object')
+endif
+
 if empty.contains('abc')
   error('Empty is not empty.')
 endif
@@ -39,6 +55,14 @@ endif
 
 if not combined.contains('abc')
   error('Combined claims not to contain abc.')
+endif
+
+if not combined.contains(one)
+  error('Combined claims not to contain [abc].')
+endif
+
+if not combined.contains(two)
+  error('Combined claims not to contain [def, ghi].')
 endif
 
 if not combined.contains('ghi')
