@@ -783,7 +783,7 @@ The result of this is undefined and will become a hard error in a future Meson r
                           posargs: T.List[TYPE_var],
                           kwargs: TYPE_kwargs) -> T.Union[TYPE_var, InterpreterObject]:
         if method_name == 'contains':
-            def check_contains(el: list) -> bool:
+            def check_contains(el: T.List[TYPE_var]) -> bool:
                 if len(posargs) != 1:
                     raise InterpreterException('Contains method takes exactly one argument.')
                 item = posargs[0]
@@ -795,7 +795,7 @@ The result of this is undefined and will become a hard error in a future Meson r
                     if element == item:
                         return True
                 return False
-            return check_contains(obj)
+            return check_contains([_unholder(x) for x in obj])
         elif method_name == 'length':
             return len(obj)
         elif method_name == 'get':
