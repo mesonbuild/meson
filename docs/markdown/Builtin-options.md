@@ -189,7 +189,7 @@ or compiler being used:
 | c_thread_count   | 4             | integer value ≥ 0                        | Number of threads to use with emcc when using threads |
 | cpp_args         |               | free-form comma-separated list           | C++ compile arguments to use |
 | cpp_link_args    |               | free-form comma-separated list           | C++ link arguments to use |
-| cpp_std          | none          | none, c++98, c++03, c++11, c++14, c++17, c++20 <br/>c++2a, c++1z, gnu++03, gnu++11, gnu++14, gnu++17, gnu++1z, <br/> gnu++2a, gnu++20, vc++14, vc++17, vc++latest | C++ language standard to use |
+| cpp_std          | none          | none, c++98, c++03, c++11, c++14, c++17, c++20 <br/> c++2a, c++1z, c++2b, <br/> gnu++03, gnu++11, gnu++14, gnu++17, gnu++1z, gnu++2a, gnu++20, <br/> vc++14, vc++17, vc++latest | C++ language standard to use |
 | cpp_debugstl     | false         | true, false                              | C++ STL debug mode |
 | cpp_eh           | default       | none, default, a, s, sc                  | C++ exception handling type |
 | cpp_rtti         | true          | true, false                              | Whether to enable RTTI (runtime type identification) |

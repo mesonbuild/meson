@@ -64,7 +64,7 @@ a sample output for a simple project.
       cpp_args      []                                                                                                                          Extra arguments passed to the C++ compiler
       cpp_debugstl  false         [true, false]                                                                                                 STL debug mode
       cpp_link_args []                                                                                                                          Extra arguments passed to the C++ linker
-      cpp_std       c++11         [none, c++98, c++03, c++11, c++14, c++17, c++1z, c++2a, c++20, gnu++03, gnu++11, gnu++14, gnu++17, gnu++1z, gnu++2a, gnu++20] C++ language standard to use
+      cpp_std       c++11         [none, c++98, c++03, c++11, c++14, c++17, c++1z, c++2a, c++20, c++2b, gnu++03, gnu++11, gnu++14, gnu++17, gnu++1z, gnu++2a, gnu++20, gnu++2b] C++ language standard to use
       fortran_std   []            [none, legacy, f95, f2003, f2008, f2018]                                                                      language standard to use
 
     Directories:
