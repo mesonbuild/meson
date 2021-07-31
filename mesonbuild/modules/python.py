@@ -247,10 +247,13 @@ def python_factory(env: 'Environment', for_machine: 'MachineChoice',
             try:
                 return PythonPkgConfigDependency(name, env, kwargs, installation)
             finally:
-                if old_pkg_libdir is not None:
-                    os.environ['PKG_CONFIG_LIBDIR'] = old_pkg_libdir
-                if old_pkg_path is not None:
-                    os.environ['PKG_CONFIG_PATH'] = old_pkg_path
+                def set_env(name, value):
+                    if value is not None:
+                        os.environ[name] = value
+                    elif name in os.environ:
+                        del os.environ[name]
+                set_env('PKG_CONFIG_LIBDIR', old_pkg_libdir)
+                set_env('PKG_CONFIG_PATH', old_pkg_path)
 
         candidates.extend([
             functools.partial(wrap_in_pythons_pc_dir, pkg_name, env, kwargs, installation),
