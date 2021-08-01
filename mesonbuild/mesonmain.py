@@ -82,6 +82,7 @@ def setup_vsenv() -> None:
             '-requiresAny',
             '-requires', 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64',
             '-products', '*',
+            '-utf8',
             '-format',
             'json'
         ]
