@@ -1720,19 +1720,18 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
                   kwargs: 'kwargs.FuncTest') -> None:
         self.add_test(node, args, kwargs, True)
 
-    def unpack_env_kwarg(self, kwargs: T.Union[EnvironmentVariablesObject, T.Dict[str, str], T.List[str]]) -> build.EnvironmentVariables:
+    def unpack_env_kwarg(self, kwargs: T.Dict[str, T.Union[EnvironmentVariablesObject, T.Dict[str, str], T.List[str], str, None]]) -> build.EnvironmentVariables:
         envlist = kwargs.get('env', EnvironmentVariablesObject())
-        if isinstance(envlist, EnvironmentVariablesObject):
-            env = envlist.vars
-        elif isinstance(envlist, dict):
+        if isinstance(envlist, dict):
             FeatureNew.single_use('environment dictionary', '0.52.0', self.subproject)
-            env = EnvironmentVariablesObject(envlist)
-            env = env.vars
-        else:
-            # Convert from array to environment object
-            env = EnvironmentVariablesObject(envlist)
-            env = env.vars
-        return env
+            envlist = EnvironmentVariablesObject(envlist)
+        elif isinstance(envlist, list):
+            envlist = EnvironmentVariablesObject(envlist)
+        elif isinstance(envlist, str):
+            envlist = EnvironmentVariablesObject([envlist])
+        elif envlist is None:
+            envlist = EnvironmentVariablesObject()
+        return envlist.vars
 
     def make_test(self, node: mparser.BaseNode,
                   args: T.Tuple[str, T.Union[build.Executable, build.Jar, ExternalProgram, mesonlib.File]],
