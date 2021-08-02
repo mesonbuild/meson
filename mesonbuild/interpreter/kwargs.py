@@ -11,6 +11,7 @@ from typing_extensions import TypedDict, Literal
 from .. import build
 from .. import coredata
 from ..mesonlib import MachineChoice, File, FileMode, FileOrString
+from ..programs import ExternalProgram
 from .interpreterobjects import EnvironmentVariablesObject
 
 
@@ -142,3 +143,10 @@ class FuncImportModule(ExtractRequired):
 class FuncIncludeDirectories(TypedDict):
 
     is_system: bool
+
+
+class RunTarget(TypedDict):
+
+    command: T.List[T.Union[str, File, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, ExternalProgram]]
+    depends: T.List[T.Union[build.BuildTarget, build.CustomTarget]]
+    env: T.Union[T.List[str], T.Dict[str, str], build.EnvironmentVariables, str]
