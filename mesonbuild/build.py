@@ -2474,7 +2474,12 @@ class CustomTarget(Target, CommandBase):
 class RunTarget(Target, CommandBase):
     typename = 'run'
 
-    def __init__(self, name, command, dependencies, subdir, subproject, env=None):
+    def __init__(self, name: str,
+                 command: T.Sequence[T.Union[str, File, programs.ExternalProgram, BuildTarget, 'CustomTarget', 'CustomTargetIndex']],
+                 dependencies: T.List[T.Union['BuildTarget', 'CustomTarget']],
+                 subdir: str,
+                 subproject: str,
+                 env: T.Optional['EnvironmentVariables'] = None):
         # These don't produce output artifacts
         super().__init__(name, subdir, subproject, False, MachineChoice.BUILD)
         self.dependencies = dependencies
@@ -2486,20 +2491,20 @@ class RunTarget(Target, CommandBase):
     def get_custom_install_dir(self) -> T.List:
         raise NotImplementedError('This should never be reached')
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.command[0])
 
-    def process_kwargs(self, kwargs):
-        return self.process_kwargs_base(kwargs)
+    def process_kwargs(self, kwargs: T.Dict[str, T.Any]) -> None:
+        self.process_kwargs_base(kwargs)
 
-    def get_dependencies(self):
+    def get_dependencies(self) -> T.List[T.Union[BuildTarget, 'CustomTarget']]:
         return self.dependencies
 
-    def get_generated_sources(self):
+    def get_generated_sources(self) -> T.List[T.Union['CustomTarget', 'CustomTargetIndex', 'GeneratedList']]:
         return []
 
-    def get_sources(self):
+    def get_sources(self) -> T.List[File]:
         return []
 
     def should_install(self) -> bool:
@@ -2512,11 +2517,12 @@ class RunTarget(Target, CommandBase):
         if isinstance(self.name, str):
             return [self.name]
         elif isinstance(self.name, list):
+            # XXX: can this actually be reached? Target names should be just strings, right?
             return self.name
         else:
             raise RuntimeError('RunTarget: self.name is neither a list nor a string. This is a bug')
 
-    def type_suffix(self):
+    def type_suffix(self) -> str:
         return "@run"
 
 class AliasTarget(RunTarget):
