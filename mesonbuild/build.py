@@ -2179,9 +2179,14 @@ class BothLibraries(SecondLevelHolder):
         raise MesonBugException(f'self._preferred_library == "{self._preferred_library}" is neither "shared" nor "static".')
 
 class CommandBase:
-    def flatten_command(self, cmd):
+
+    depend_files: T.List[File]
+    dependencies: T.List[T.Union[BuildTarget, 'CustomTarget']]
+    subproject: str
+
+    def flatten_command(self, cmd: T.Sequence[T.Union[str, File, programs.ExternalProgram, BuildTarget, 'CustomTarget', 'CustomTargetIndex']]) -> T.List[str]:
         cmd = listify(cmd)
-        final_cmd = []
+        final_cmd: T.List[str] = []
         for c in cmd:
             if isinstance(c, str):
                 final_cmd.append(c)
