@@ -1628,6 +1628,10 @@ class GeneratedList(HoldableObject):
     def get_extra_args(self) -> T.List[str]:
         return self.extra_args
 
+    def get_subdir(self) -> str:
+        return self.subdir
+
+
 class Executable(BuildTarget):
     known_kwargs = known_exe_kwargs
 
