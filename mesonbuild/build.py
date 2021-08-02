@@ -2209,8 +2209,6 @@ class CommandBase:
                 FeatureNew.single_use('CustomTargetIndex for command argument', '0.60', self.subproject)
                 self.dependencies.append(c.target)
                 final_cmd += self.flatten_command(File.from_built_file(c.get_subdir(), c.get_filename()))
-            elif isinstance(c, list):
-                final_cmd += self.flatten_command(c)
             else:
                 raise InvalidArguments(f'Argument {c!r} in "command" is invalid')
         return final_cmd
