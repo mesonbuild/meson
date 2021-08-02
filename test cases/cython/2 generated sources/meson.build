@@ -26,6 +26,16 @@ test(
   env : ['PYTHONPATH=' + meson.current_build_dir()]
 )
 
+# Test a CustomTargetIndex
+cti = custom_target(
+  'cti',
+  input : 'gen.py',
+  output : 'cti.pyx',
+  command : [py3, '@INPUT@', '@OUTPUT@'],
+)
+
+cti_ext = py3.extension_module('cti', cti[0], dependencies : py3_dep)
+
 cf = configure_file(
   input : 'configure.pyx.in',
   output : 'cf.pyx',
