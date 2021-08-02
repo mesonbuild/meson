@@ -2566,7 +2566,7 @@ class CustomTargetIndex(HoldableObject):
     def get_outputs(self) -> T.List[str]:
         return [self.output]
 
-    def get_subdir(self):
+    def get_subdir(self) -> str:
         return self.target.get_subdir()
 
     def get_filename(self):
