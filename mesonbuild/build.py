@@ -1644,10 +1644,10 @@ class GeneratedList(HoldableObject):
 
 class Executable(BuildTarget):
     known_kwargs = known_exe_kwargs
+    typename = 'executable'
 
     def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
                  sources: T.List[File], objects, environment: environment.Environment, kwargs):
-        self.typename = 'executable'
         key = OptionKey('b_pie')
         if 'pie' not in kwargs and key in environment.coredata.options:
             kwargs['pie'] = environment.coredata.options[key].value
@@ -1763,9 +1763,9 @@ class Executable(BuildTarget):
 
 class StaticLibrary(BuildTarget):
     known_kwargs = known_stlib_kwargs
+    typename = 'static library'
 
     def __init__(self, name, subdir, subproject, for_machine: MachineChoice, sources, objects, environment, kwargs):
-        self.typename = 'static library'
         super().__init__(name, subdir, subproject, for_machine, sources, objects, environment, kwargs)
         if 'cs' in self.compilers:
             raise InvalidArguments('Static libraries not supported for C#.')
@@ -1824,9 +1824,9 @@ class StaticLibrary(BuildTarget):
 
 class SharedLibrary(BuildTarget):
     known_kwargs = known_shlib_kwargs
+    typename = 'shared library'
 
     def __init__(self, name, subdir, subproject, for_machine: MachineChoice, sources, objects, environment, kwargs):
-        self.typename = 'shared library'
         self.soversion = None
         self.ltversion = None
         # Max length 2, first element is compatibility_version, second is current_version
@@ -2149,6 +2149,7 @@ class SharedLibrary(BuildTarget):
 # into something else.
 class SharedModule(SharedLibrary):
     known_kwargs = known_shmod_kwargs
+    typename = 'shared module'
 
     def __init__(self, name, subdir, subproject, for_machine: MachineChoice, sources, objects, environment, kwargs):
         if 'version' in kwargs:
@@ -2156,7 +2157,6 @@ class SharedModule(SharedLibrary):
         if 'soversion' in kwargs:
             raise MesonException('Shared modules must not specify the soversion kwarg.')
         super().__init__(name, subdir, subproject, for_machine, sources, objects, environment, kwargs)
-        self.typename = 'shared module'
 
     def get_default_install_dir(self, environment):
         return environment.get_shared_module_dir()
@@ -2230,10 +2230,10 @@ class CustomTarget(Target, CommandBase):
         'console',
         'env',
     }
+    typename = 'custom'
 
     def __init__(self, name: str, subdir: str, subproject: str, kwargs: T.Dict[str, T.Any],
                  absolute_paths: bool = False, backend: T.Optional['Backend'] = None):
-        self.typename = 'custom'
         # TODO expose keyword arg to make MachineChoice.HOST configurable
         super().__init__(name, subdir, subproject, False, MachineChoice.HOST)
         self.dependencies: T.List[T.Union[CustomTarget, BuildTarget]] = []
@@ -2469,8 +2469,9 @@ class CustomTarget(Target, CommandBase):
             yield CustomTargetIndex(self, i)
 
 class RunTarget(Target, CommandBase):
+    typename = 'run'
+
     def __init__(self, name, command, dependencies, subdir, subproject, env=None):
-        self.typename = 'run'
         # These don't produce output artifacts
         super().__init__(name, subdir, subproject, False, MachineChoice.BUILD)
         self.dependencies = dependencies
@@ -2525,9 +2526,9 @@ class AliasTarget(RunTarget):
 
 class Jar(BuildTarget):
     known_kwargs = known_jar_kwargs
+    typename = 'jar'
 
     def __init__(self, name, subdir, subproject, for_machine: MachineChoice, sources, objects, environment, kwargs):
-        self.typename = 'jar'
         super().__init__(name, subdir, subproject, for_machine, sources, objects, environment, kwargs)
         for s in self.sources:
             if not s.endswith('.java'):
@@ -2569,9 +2570,9 @@ class CustomTargetIndex(HoldableObject):
     on the CustomTarget it's derived from, but only adding one source file to
     the sources.
     """
+    typename = 'custom'
 
     def __init__(self, target: CustomTarget, output: int):
-        self.typename = 'custom'
         self.target = target
         self.output = output
         self.for_machine = target.for_machine
