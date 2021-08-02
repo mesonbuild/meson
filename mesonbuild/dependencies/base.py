@@ -367,6 +367,7 @@ class ExternalDependency(Dependency, HasNativeKwarg):
         if self.version_reqs:
             # an unknown version can never satisfy any requirement
             if not self.version:
+                self.is_found = False
                 found_msg: mlog.TV_LoggableList = []
                 found_msg += ['Dependency', mlog.bold(self.name), 'found:']
                 found_msg += [mlog.red('NO'), 'unknown version, but need:', self.version_reqs]
