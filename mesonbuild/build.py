@@ -14,6 +14,7 @@
 
 from collections import OrderedDict
 from functools import lru_cache
+import abc
 import copy
 import hashlib
 import itertools, pathlib
@@ -460,11 +461,10 @@ class EnvironmentVariables(HoldableObject):
             env[name] = method(env, name, values, separator)
         return env
 
-class Target(HoldableObject):
+class Target(HoldableObject, metaclass=abc.ABCMeta):
 
-    # TODO: should Target be an abc.ABCMeta?
-
-    def __init__(self, name: str, subdir: str, subproject: str, build_by_default: bool, for_machine: MachineChoice):
+    def __init__(self, name: str, subdir: str, subproject: str,
+                 build_by_default: bool, for_machine: MachineChoice):
         if has_path_sep(name):
             # Fix failing test 53 when this becomes an error.
             mlog.warning(textwrap.dedent(f'''\
@@ -482,8 +482,18 @@ class Target(HoldableObject):
         self.option_overrides_base: T.Dict[OptionKey, str] = {}
         self.option_overrides_compiler: T.Dict[OptionKey, str] = {}
         self.extra_files = []  # type: T.List[File]
-        if not hasattr(self, 'typename'):
-            raise RuntimeError(f'Target type is not set for target class "{type(self).__name__}". This is a bug')
+
+    @abc.abstractproperty
+    def typename(self) -> str:
+        pass
+
+    @abc.abstractmethod
+    def type_suffix(self) -> str:
+        pass
+
+    @abc.abstractmethod
+    def get_custom_install_dir(self) -> T.List:
+        pass
 
     def __lt__(self, other: object) -> bool:
         if not hasattr(other, 'get_id') and not callable(other.get_id):
@@ -532,7 +542,7 @@ class Target(HoldableObject):
         return self.typename
 
     @staticmethod
-    def _get_id_hash(target_id):
+    def _get_id_hash(target_id: str) -> str:
         # We don't really need cryptographic security here.
         # Small-digest hash function with unlikely collision is good enough.
         h = hashlib.sha256()
@@ -2469,6 +2479,9 @@ class RunTarget(Target, CommandBase):
         self.absolute_paths = False
         self.env = env
 
+    def get_custom_install_dir(self) -> T.List:
+        raise NotImplementedError('This should never be reached')
+
     def __repr__(self):
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.command[0])
@@ -2505,6 +2518,10 @@ class RunTarget(Target, CommandBase):
 class AliasTarget(RunTarget):
     def __init__(self, name, dependencies, subdir, subproject):
         super().__init__(name, [], dependencies, subdir, subproject)
+
+    def get_custom_install_dir(self) -> T.List:
+        raise NotImplementedError('This should never be reached')
+
 
 class Jar(BuildTarget):
     known_kwargs = known_jar_kwargs
