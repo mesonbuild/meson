@@ -190,6 +190,9 @@ Install project to `$DESTDIR/prefix`:
 DESTDIR=/path/to/staging/area meson install -C builddir
 ```
 
+Since *0.60.0* `DESTDIR` and `--destdir` can be a path relative to build
+directory. An absolute path will be set into environment when executing scripts.
+
 ### rewrite
 
 *(since 0.50.0)*

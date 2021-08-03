@@ -512,6 +512,12 @@ class AllPlatformTests(BasePlatformTests):
         self.assertEqual(logged, read_logs())
         self.assertFalse(os.path.exists(self.installdir))
 
+        # If destdir is relative to build directory it should install
+        # exactly the same files.
+        rel_installpath = os.path.relpath(self.installdir, self.builddir)
+        self._run(self.meson_command + ['install', '--dry-run', '--destdir', rel_installpath, '-C', self.builddir])
+        self.assertEqual(logged, read_logs())
+
     def test_uninstall(self):
         exename = os.path.join(self.installdir, 'usr/bin/prog' + exe_suffix)
         dirname = os.path.join(self.installdir, 'usr/share/dir')
