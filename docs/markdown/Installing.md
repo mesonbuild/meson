@@ -113,6 +113,12 @@ is used just like with other build systems:
 $ DESTDIR=/path/to/staging/area meson install
 ```
 
+Since *0.57.0* `--destdir` argument can be used instead of environment. In that
+case Meson will set `DESTDIR` into environment when runing install scripts.
+
+Since *0.60.0* `DESTDIR` and `--destdir` can be a path relative to build
+directory. An absolute path will be set into environment when executing scripts.
+
 ## Custom install behaviour
 
 Installation behaviour can be further customized using additional

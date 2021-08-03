@@ -494,11 +494,16 @@ class Installer:
         with open(datafilename, 'rb') as ifile:
             d = self.check_installdata(pickle.load(ifile))
 
-        # Override in the env because some scripts could be relying on it.
-        if self.options.destdir is not None:
-            os.environ['DESTDIR'] = self.options.destdir
-
-        destdir = os.environ.get('DESTDIR', '')
+        destdir = self.options.destdir
+        if destdir is None:
+            destdir = os.environ.get('DESTDIR')
+        if destdir and not os.path.isabs(destdir):
+            destdir = os.path.join(d.build_dir, destdir)
+        # Override in the env because some scripts could use it and require an
+        # absolute path.
+        if destdir is not None:
+            os.environ['DESTDIR'] = destdir
+        destdir = destdir or ''
         fullprefix = destdir_join(destdir, d.prefix)
 
         if d.install_umask != 'preserve':
