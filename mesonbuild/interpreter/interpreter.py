@@ -50,6 +50,12 @@ from .interpreterobjects import (
     extract_search_dirs,
     NullSubprojectInterpreter,
 )
+from .type_checking import (
+    INSTALL_MODE_KW,
+    LANGUAGE_KW,
+    NATIVE_KW,
+    REQUIRED_KW,
+)
 
 from pathlib import Path
 import os
@@ -72,101 +78,6 @@ if T.TYPE_CHECKING:
     SourceOutputs = T.Union[mesonlib.File, build.GeneratedList,
                             build.BuildTarget, build.CustomTargetIndex, build.CustomTarget,
                             build.GeneratedList]
-
-
-def _language_validator(l: T.List[str]) -> T.Optional[str]:
-    """Validate language keyword argument.
-
-    Particularly for functions like `add_compiler()`, and `add_*_args()`
-    """
-    diff = {a.lower() for a in l}.difference(compilers.all_languages)
-    if diff:
-        return f'unknown languages: {", ".join(diff)}'
-    return None
-
-
-def _install_mode_validator(mode: T.List[T.Union[str, bool, int]]) -> T.Optional[str]:
-    """Validate the `install_mode` keyword argument.
-
-    This is a rather odd thing, it's a scalar, or an array of 3 values in the form:
-    [(str | False), (str | int | False) = False, (str | int | False) = False]
-    Where the second and third arguments are not required, and are considered to
-    default to False.
-    """
-    if not mode:
-        return None
-    if True in mode:
-        return 'can only be a string or false, not true'
-    if len(mode) > 3:
-        return 'may have at most 3 elements'
-
-    perms = mode[0]
-    if not isinstance(perms, (str, bool)):
-        return 'permissions part must be a string or false'
-
-    if isinstance(perms, str):
-        if not len(perms) == 9:
-            return (f'permissions string must be exactly 9 characters, got "{len(perms)}" '
-                   'in the form rwxr-xr-x')
-        for i in [0, 3, 6]:
-            if perms[i] not in {'-', 'r'}:
-                return f'bit {i} must be "-" or "r", not {perms[i]}'
-        for i in [1, 4, 7]:
-            if perms[i] not in {'-', 'w'}:
-                return f'bit {i} must be "-" or "w", not {perms[i]}'
-        for i in [2, 5]:
-            if perms[i] not in {'-', 'x', 's', 'S'}:
-                return f'bit {i} must be "-", "s", "S", or "x", not {perms[i]}'
-        if perms[8] not in {'-', 'x', 't', 'T'}:
-            return f'bit 8 must be "-", "t", "T", or "x", not {perms[8]}'
-
-        if len(mode) >= 2 and not isinstance(mode[1], (int, str, bool)):
-            return 'second componenent must be a string, number, or False if provided'
-        if len(mode) >= 3 and not isinstance(mode[2], (int, str, bool)):
-            return 'third componenent must be a string, number, or False if provided'
-
-    return None
-
-
-def _install_mode_convertor(mode: T.Optional[T.List[T.Union[str, bool, int]]]) -> FileMode:
-    """Convert the DSL form of the `install_mode` keyword arugment to `FileMode`
-
-    This is not required, and if not required returns None
-
-    TODO: It's not clear to me why this needs to be None and not just return an
-    emtpy FileMode.
-    """
-    # this has already been validated by the validator
-    return FileMode(*[m if isinstance(m, str) else None for m in mode])
-
-
-_NATIVE_KW = KwargInfo(
-    'native', bool,
-    default=False,
-    convertor=lambda n: MachineChoice.BUILD if n else MachineChoice.HOST)
-
-_LANGUAGE_KW = KwargInfo(
-    'language', ContainerTypeInfo(list, str, allow_empty=False),
-    listify=True,
-    required=True,
-    validator=_language_validator,
-    convertor=lambda x: [i.lower() for i in x])
-
-_INSTALL_MODE_KW = KwargInfo(
-    'install_mode',
-    ContainerTypeInfo(list, (str, bool, int)),
-    listify=True,
-    default=[],
-    validator=_install_mode_validator,
-    convertor=_install_mode_convertor,
-)
-
-_REQUIRED_KW = KwargInfo(
-    'required',
-    (bool, coredata.UserFeatureOption),
-    default=True,
-    # TODO: extract_required_kwarg could be converted to a convertor
-)
 
 
 def stringifyUserArguments(args, quote=False):
@@ -626,7 +537,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_pos_args('import', str)
     @typed_kwargs(
         'import',
-        _REQUIRED_KW.evolve(since='0.59.0'),
+        REQUIRED_KW.evolve(since='0.59.0'),
         KwargInfo('disabler', bool, default=False, since='0.59.0'),
     )
     @disablerIfNotFound
@@ -1876,7 +1787,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         'install_headers',
         KwargInfo('install_dir', (str, None)),
         KwargInfo('subdir', (str, None)),
-        _INSTALL_MODE_KW.evolve(since='0.47.0'),
+        INSTALL_MODE_KW.evolve(since='0.47.0'),
     )
     def func_install_headers(self, node: mparser.BaseNode,
                              args: T.Tuple[T.List['mesonlib.FileOrString']],
@@ -1897,7 +1808,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         'install_man',
         KwargInfo('install_dir', (str, None)),
         KwargInfo('locale', (str, None), since='0.58.0'),
-        _INSTALL_MODE_KW.evolve(since='0.47.0')
+        INSTALL_MODE_KW.evolve(since='0.47.0')
     )
     def func_install_man(self, node: mparser.BaseNode,
                          args: T.Tuple[T.List['mesonlib.FileOrString']],
@@ -1993,7 +1904,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         KwargInfo('install_dir', str),
         KwargInfo('sources', ContainerTypeInfo(list, (str, mesonlib.File)), listify=True, default=[]),
         KwargInfo('rename', ContainerTypeInfo(list, str), default=[], listify=True, since='0.46.0'),
-        _INSTALL_MODE_KW.evolve(since='0.38.0'),
+        INSTALL_MODE_KW.evolve(since='0.38.0'),
     )
     def func_install_data(self, node: mparser.BaseNode,
                           args: T.Tuple[T.List['mesonlib.FileOrString']],
@@ -2026,7 +1937,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         KwargInfo('exclude_directories', ContainerTypeInfo(list, str),
                   default=[], listify=True, since='0.42.0',
                   validator=lambda x: 'cannot be absolute' if any(os.path.isabs(d) for d in x) else None),
-        _INSTALL_MODE_KW.evolve(since='0.38.0'),
+        INSTALL_MODE_KW.evolve(since='0.38.0'),
     )
     def func_install_subdir(self, node: mparser.BaseNode, args: T.Tuple[str],
                             kwargs: 'kwargs.FuncInstallSubdir') -> build.InstallDir:
@@ -2354,22 +2265,22 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
                                                              exclude_suites)
 
     @typed_pos_args('add_global_arguments', varargs=str)
-    @typed_kwargs('add_global_arguments', _NATIVE_KW, _LANGUAGE_KW)
+    @typed_kwargs('add_global_arguments', NATIVE_KW, LANGUAGE_KW)
     def func_add_global_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwargs.FuncAddProjectArgs') -> None:
         self._add_global_arguments(node, self.build.global_args[kwargs['native']], args[0], kwargs)
 
     @typed_pos_args('add_global_link_arguments', varargs=str)
-    @typed_kwargs('add_global_arguments', _NATIVE_KW, _LANGUAGE_KW)
+    @typed_kwargs('add_global_arguments', NATIVE_KW, LANGUAGE_KW)
     def func_add_global_link_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwargs.FuncAddProjectArgs') -> None:
         self._add_global_arguments(node, self.build.global_link_args[kwargs['native']], args[0], kwargs)
 
     @typed_pos_args('add_project_arguments', varargs=str)
-    @typed_kwargs('add_project_arguments', _NATIVE_KW, _LANGUAGE_KW)
+    @typed_kwargs('add_project_arguments', NATIVE_KW, LANGUAGE_KW)
     def func_add_project_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwargs.FuncAddProjectArgs') -> None:
         self._add_project_arguments(node, self.build.projects_args[kwargs['native']], args[0], kwargs)
 
     @typed_pos_args('add_project_link_arguments', varargs=str)
-    @typed_kwargs('add_global_arguments', _NATIVE_KW, _LANGUAGE_KW)
+    @typed_kwargs('add_global_arguments', NATIVE_KW, LANGUAGE_KW)
     def func_add_project_link_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwargs.FuncAddProjectArgs') -> None:
         self._add_project_arguments(node, self.build.projects_link_args[kwargs['native']], args[0], kwargs)
 
