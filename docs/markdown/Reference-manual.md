@@ -568,6 +568,8 @@ This function supports the following keyword arguments:
 - `static`: tells the dependency provider to try to get static
   libraries instead of dynamic ones (note that this is not supported
   by all dependency backends)
+  *Since 0.60.0* it also sets `default_library` option accordingly on the fallback
+  subproject if it was not set explicitly in `default_options` keyword argument.
 - `version` *(since 0.37.0)*: specifies the required version, a string containing a
   comparison operator followed by the version string, examples include
   `>1.0.0`, `<=2.3.5` or `3.1.4` for exact matching.
@@ -2151,6 +2153,9 @@ the following methods.
   `native` keyword arguments. Doing this in a subproject allows the parent
   project to retrieve the dependency without having to know the dependency
   variable name: `dependency(name, fallback : subproject_name)`.
+  *Since 0.60.0* `static` boolean keyword argument can be specified to override
+  static and/or shared dependencies separately. If not specified it is assumed
+  `dep_object` follows `default_library` option value.
 
 - `project_version()`: returns the version string specified in
   `project` function call.
