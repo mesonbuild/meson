@@ -89,7 +89,7 @@ LANGUAGE_KW = KwargInfo(
     validator=_language_validator,
     convertor=lambda x: [i.lower() for i in x])
 
-INSTALL_MODE_KW = KwargInfo(
+INSTALL_MODE_KW: KwargInfo[T.List[T.Union[str, bool, int]]] = KwargInfo(
     'install_mode',
     ContainerTypeInfo(list, (str, bool, int)),
     listify=True,
@@ -98,7 +98,7 @@ INSTALL_MODE_KW = KwargInfo(
     convertor=_install_mode_convertor,
 )
 
-REQUIRED_KW = KwargInfo(
+REQUIRED_KW: KwargInfo[T.Union[bool, UserFeatureOption]] = KwargInfo(
     'required',
     (bool, UserFeatureOption),
     default=True,
