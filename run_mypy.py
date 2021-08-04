@@ -25,6 +25,7 @@ modules = [
     # 'mesonbuild/coredata.py',
     'mesonbuild/envconfig.py',
     'mesonbuild/interpreter/interpreterobjects.py',
+    'mesonbuild/interpreter/type_checking.py',
     'mesonbuild/mcompile.py',
     'mesonbuild/mdevenv.py',
     'mesonbuild/mesonlib/platform.py',
