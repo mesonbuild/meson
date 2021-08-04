@@ -2488,6 +2488,11 @@ class AllPlatformTests(BasePlatformTests):
                     'version': '1.0',
                 },
                 {
+                    'descriptive_name': 'sub_static',
+                    'name': 'sub_static',
+                    'version': 'undefined'
+                },
+                {
                     'descriptive_name': 'subsub',
                     'name': 'subsub',
                     'version': 'undefined'

@@ -65,3 +65,30 @@ assert(d.found(), 'Should be able to fallback to sub-subproject')
 # file exists.
 d = dependency('subsubsub')
 assert(d.found(), 'Should be able to fallback to sub-sub-subproject')
+
+# Verify that `static: true` implies 'default_library=static'.
+d = dependency('sub_static', static: true)
+assert(d.found())
+# Verify that when not specifying static kwarg we can still get fallback dep.
+d = dependency('sub_static')
+assert(d.found())
+# But when asking for shared library explicitly, it is not found.
+d = dependency('sub_static', static: false, required: false)
+assert(not d.found())
+# The subproject also overrides sub_static2 with `static: true`
+d = dependency('sub_static2')
+assert(d.found())
+d = dependency('sub_static2', static: true)
+assert(d.found())
+d = dependency('sub_static2', static: false, required: false)
+assert(not d.found())
+# sub_static3 is overridden twice with `static: true` and `static: false`
+d = dependency('sub_static3')
+assert(d.found())
+assert(d.get_variable('static') == 'true')
+d = dependency('sub_static3', static: true)
+assert(d.found())
+assert(d.get_variable('static') == 'true')
+d = dependency('sub_static3', static: false)
+assert(d.found())
+assert(d.get_variable('static') == 'false')

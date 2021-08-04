@@ -14,11 +14,16 @@ from ..interpreterbase import (MesonInterpreterObject, FeatureNew, FeatureDeprec
 from .interpreterobjects import (ExecutableHolder, ExternalProgramHolder,
                                  CustomTargetHolder, CustomTargetIndexHolder,
                                  EnvironmentVariablesObject)
+from .type_checking import NATIVE_KW
 
 import typing as T
 
 if T.TYPE_CHECKING:
     from .interpreter import Interpreter
+    from typing_extensions import TypedDict
+    class FuncOverrideDependency(TypedDict):
+        native: mesonlib.MachineChoice
+        static: T.Optional[bool]
 
 class MesonMain(MesonInterpreterObject):
     def __init__(self, build: 'build.Build', interpreter: 'Interpreter'):
@@ -294,21 +299,54 @@ class MesonMain(MesonInterpreterObject):
             raise InterpreterException('Second argument must be an external program or executable.')
         self.interpreter.add_find_program_override(name, exe)
 
+    @typed_kwargs('meson.override_dependency', NATIVE_KW,
+                  KwargInfo('static', bool, since='0.60.0'))
+    @typed_pos_args('meson.override_dependency', str, dependencies.Dependency)
     @FeatureNew('meson.override_dependency', '0.54.0')
-    @permittedKwargs({'native'})
-    def override_dependency_method(self, args, kwargs):
-        if len(args) != 2:
-            raise InterpreterException('Override needs two arguments')
-        name = args[0]
-        dep = args[1]
-        if not isinstance(name, str) or not name:
+    def override_dependency_method(self, args: T.Tuple[str, dependencies.Dependency], kwargs: 'FuncOverrideDependency') -> None:
+        name, dep = args
+        if not name:
             raise InterpreterException('First argument must be a string and cannot be empty')
-        if not isinstance(dep, dependencies.Dependency):
-            raise InterpreterException('Second argument must be a dependency object')
+
+        optkey = OptionKey('default_library', subproject=self.interpreter.subproject)
+        default_library = self.interpreter.coredata.get_option(optkey)
+        assert isinstance(default_library, str), 'for mypy'
+        static = kwargs['static']
+        if static is None:
+            # We don't know if dep represents a static or shared library, could
+            # be a mix of both. We assume it is following default_library
+            # value.
+            self._override_dependency_impl(name, dep, kwargs, static=None)
+            if default_library == 'static':
+                self._override_dependency_impl(name, dep, kwargs, static=True)
+            elif default_library == 'shared':
+                self._override_dependency_impl(name, dep, kwargs, static=False)
+            else:
+                self._override_dependency_impl(name, dep, kwargs, static=True)
+                self._override_dependency_impl(name, dep, kwargs, static=False)
+        else:
+            # dependency('foo') without specifying static kwarg should find this
+            # override regardless of the static value here. But do not raise error
+            # if it has already been overridden, which would happend when overriding
+            # static and shared separately:
+            # meson.override_dependency('foo', shared_dep, static: false)
+            # meson.override_dependency('foo', static_dep, static: true)
+            # In that case dependency('foo') would return the first override.
+            self._override_dependency_impl(name, dep, kwargs, static=None, permissive=True)
+            self._override_dependency_impl(name, dep, kwargs, static=static)
+
+    def _override_dependency_impl(self, name: str, dep: dependencies.Dependency, kwargs: 'FuncOverrideDependency', static: T.Optional[bool], permissive: bool = False) -> None:
+        kwargs = kwargs.copy()
+        if static is None:
+            del kwargs['static']
+        else:
+            kwargs['static'] = static
         identifier = dependencies.get_dep_identifier(name, kwargs)
-        for_machine = self.interpreter.machine_from_native_kwarg(kwargs)
+        for_machine = kwargs['native']
         override = self.build.dependency_overrides[for_machine].get(identifier)
         if override:
+            if permissive:
+                return
             m = 'Tried to override dependency {!r} which has already been resolved or overridden at {}'
             location = mlog.get_error_location_string(override.node.filename, override.node.lineno)
             raise InterpreterException(m.format(name, location))
