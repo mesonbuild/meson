@@ -77,6 +77,14 @@ def _install_mode_convertor(mode: T.Optional[T.List[T.Union[str, bool, int]]]) -
     return FileMode(*[m if isinstance(m, str) else None for m in mode])
 
 
+def _lower_strlist(input: T.List[str]) -> T.List[str]:
+    """Lower a list of strings.
+
+    mypy (but not pyright) gets confused about using a lambda as the convertor function
+    """
+    return [i.lower() for i in input]
+
+
 NATIVE_KW = KwargInfo(
     'native', bool,
     default=False,
@@ -87,7 +95,7 @@ LANGUAGE_KW = KwargInfo(
     listify=True,
     required=True,
     validator=_language_validator,
-    convertor=lambda x: [i.lower() for i in x])
+    convertor=_lower_strlist)
 
 INSTALL_MODE_KW: KwargInfo[T.List[T.Union[str, bool, int]]] = KwargInfo(
     'install_mode',
