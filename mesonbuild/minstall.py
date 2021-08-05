@@ -229,9 +229,6 @@ def restore_selinux_contexts() -> None:
         # is ignored quietly.
         return
 
-    if os.environ.get('DESTDIR'):
-        return
-
     if not shutil.which('restorecon'):
         # If we don't have restorecon, failure is ignored quietly.
         return
@@ -355,8 +352,8 @@ class Installer:
         if not self.dry_run:
             set_mode(*args, **kwargs)
 
-    def restore_selinux_contexts(self) -> None:
-        if not self.dry_run:
+    def restore_selinux_contexts(self, destdir: str) -> None:
+        if not self.dry_run and not destdir:
             restore_selinux_contexts()
 
     def apply_ldconfig(self, destdir: str) -> None:
@@ -536,7 +533,7 @@ class Installer:
                 self.install_headers(d, dm, destdir, fullprefix)
                 self.install_man(d, dm, destdir, fullprefix)
                 self.install_data(d, dm, destdir, fullprefix)
-                self.restore_selinux_contexts()
+                self.restore_selinux_contexts(destdir)
                 self.apply_ldconfig(destdir)
                 self.run_install_script(d, destdir, fullprefix)
                 if not self.did_install_something:
