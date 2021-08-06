@@ -22,7 +22,7 @@ from . import mesonlib
 from .mesonlib import (
     MesonException, EnvironmentException, MachineChoice, Popen_safe, PerMachine,
     PerMachineDefaultable, PerThreeMachineDefaultable, split_args, quote_arg, OptionKey,
-    search_version
+    search_version, MesonBugException
 )
 from . import mlog
 from .programs import (
@@ -750,8 +750,12 @@ class Environment:
     def get_coredata(self) -> coredata.CoreData:
         return self.coredata
 
-    def get_build_command(self, unbuffered=False):
-        cmd = mesonlib.get_meson_command().copy()
+    @staticmethod
+    def get_build_command(unbuffered: bool = False) -> T.List[str]:
+        cmd = mesonlib.get_meson_command()
+        if cmd is None:
+            raise MesonBugException('No command?')
+        cmd = cmd.copy()
         if unbuffered and 'python' in os.path.basename(cmd[0]):
             cmd.insert(1, '-u')
         return cmd
