@@ -556,6 +556,12 @@ class AllPlatformTests(BasePlatformTests):
         self.build()
         self.run_tests()
 
+    def test_force_fallback_for_nofallback(self):
+        testdir = os.path.join(self.unit_test_dir, '31 forcefallback')
+        self.init(testdir, extra_args=['--force-fallback-for=zlib,foo', '--wrap-mode=nofallback'])
+        self.build()
+        self.run_tests()
+
     def test_testrepeat(self):
         testdir = os.path.join(self.common_test_dir, '206 tap tests')
         self.init(testdir)
