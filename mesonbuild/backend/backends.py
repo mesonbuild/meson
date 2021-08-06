@@ -789,15 +789,20 @@ class Backend:
         return pch_rel_to_build
 
     @staticmethod
-    def escape_extra_args(compiler, args):
+    def escape_extra_args(args: T.List[str]) -> T.List[str]:
         # all backslashes in defines are doubly-escaped
-        extra_args = []
+        extra_args: T.List[str] = []
         for arg in args:
-            if arg.startswith('-D') or arg.startswith('/D'):
+            if arg.startswith(('-D', '/D')):
                 arg = arg.replace('\\', '\\\\')
             extra_args.append(arg)
 
         return extra_args
+
+    def get_no_stdlib_args(self, target: 'build.BuildTarget', compiler: 'Compiler') -> T.List[str]:
+        if compiler.language in self.build.stdlibs[target.for_machine]:
+            return compiler.get_no_stdinc_args()
+        return []
 
     def generate_basic_compiler_args(self, target: build.BuildTarget, compiler: 'Compiler', no_warn_args: bool = False) -> 'CompilerArgs':
         # Create an empty commands list, and start adding arguments from
