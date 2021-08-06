@@ -35,8 +35,7 @@ if T.TYPE_CHECKING:
     from .._typing import ImmutableListProtocol
     from ..build import ConfigurationData
     from ..coredata import KeyedOptionDictType, UserOption
-    from ..compilers.compilers import CompilerType
-    from ..interpreterbase import ObjectHolder
+    from ..compilers.compilers import Compiler
 
 FileOrString = T.Union['File', str]
 
@@ -453,7 +452,7 @@ class File(HoldableObject):
         return os.path.join(self.subdir, self.fname)
 
 
-def get_compiler_for_source(compilers: T.Iterable['CompilerType'], src: str) -> 'CompilerType':
+def get_compiler_for_source(compilers: T.Iterable['Compiler'], src: 'FileOrString') -> 'Compiler':
     """Given a set of compilers and a source, find the compiler for that source type."""
     for comp in compilers:
         if comp.can_compile(src):
@@ -461,8 +460,8 @@ def get_compiler_for_source(compilers: T.Iterable['CompilerType'], src: str) -> 
     raise MesonException(f'No specified compiler can handle file {src!s}')
 
 
-def classify_unity_sources(compilers: T.Iterable['CompilerType'], sources: T.Iterable[str]) -> T.Dict['CompilerType', T.List[str]]:
-    compsrclist = {}  # type: T.Dict[CompilerType, T.List[str]]
+def classify_unity_sources(compilers: T.Iterable['Compiler'], sources: T.Sequence['FileOrString']) -> T.Dict['Compiler', T.List['FileOrString']]:
+    compsrclist: T.Dict['Compiler', T.List['FileOrString']] = {}
     for src in sources:
         comp = get_compiler_for_source(compilers, src)
         if comp not in compsrclist:
