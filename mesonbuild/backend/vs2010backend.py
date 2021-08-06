@@ -31,7 +31,7 @@ from ..mesonlib import (
 )
 from ..environment import Environment, build_filename
 
-def autodetect_vs_version(build: T.Optional[build.Build], interpreter: T.Optional[Interpreter]):
+def autodetect_vs_version(build: T.Optional[build.Build], interpreter: T.Optional[Interpreter]) -> backends.Backend:
     vs_version = os.getenv('VisualStudioVersion', None)
     vs_install_dir = os.getenv('VSINSTALLDIR', None)
     if not vs_install_dir:
