@@ -756,19 +756,19 @@ class Environment:
             cmd.insert(1, '-u')
         return cmd
 
-    def is_header(self, fname):
+    def is_header(self, fname: 'mesonlib.FileOrString') -> bool:
         return is_header(fname)
 
-    def is_source(self, fname):
+    def is_source(self, fname: 'mesonlib.FileOrString') -> bool:
         return is_source(fname)
 
-    def is_assembly(self, fname):
+    def is_assembly(self, fname: 'mesonlib.FileOrString') -> bool:
         return is_assembly(fname)
 
-    def is_llvm_ir(self, fname):
+    def is_llvm_ir(self, fname: 'mesonlib.FileOrString') -> bool:
         return is_llvm_ir(fname)
 
-    def is_object(self, fname):
+    def is_object(self, fname: 'mesonlib.FileOrString') -> bool:
         return is_object(fname)
 
     @lru_cache(maxsize=None)
