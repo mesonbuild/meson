@@ -1260,6 +1260,10 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         """Arguments required for a debug build."""
         return []
 
+    def get_no_warn_args(self) -> T.List[str]:
+        """Arguments to completely disable warnings."""
+        return []
+
 
 def get_global_options(lang: str,
                        comp: T.Type[Compiler],
