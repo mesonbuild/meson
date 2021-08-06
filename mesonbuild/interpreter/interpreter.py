@@ -2205,10 +2205,10 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
                         it should set a variable that the caller can then use. Something like:
 
                         # In subproject
-                        some_dep = declare_depencency(include_directories: include_directories('include'))
+                        some_dep = declare_dependency(include_directories: include_directories('include'))
 
                         # In parent project
-                        some_dep = depencency('some')
+                        some_dep = dependency('some')
                         executable(..., dependencies: [some_dep])
 
                         This warning will become a hard error in a future Meson release.
