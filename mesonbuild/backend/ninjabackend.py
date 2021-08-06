@@ -2313,11 +2313,6 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         mod_files = _scan_fortran_file_deps(src, srcdir, dirname, tdeps, compiler)
         return mod_files
 
-    def get_no_stdlib_args(self, target, compiler):
-        if compiler.language in self.build.stdlibs[target.for_machine]:
-            return compiler.get_no_stdinc_args()
-        return []
-
     def get_no_stdlib_link_args(self, target, linker):
         if hasattr(linker, 'language') and linker.language in self.build.stdlibs[target.for_machine]:
             return linker.get_no_stdlib_link_args()
