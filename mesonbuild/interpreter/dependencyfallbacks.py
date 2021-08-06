@@ -105,13 +105,13 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         return None
 
     def _do_subproject(self, kwargs: TYPE_nkwargs, func_args: TYPE_nvar, func_kwargs: TYPE_nkwargs) -> T.Optional[Dependency]:
-        if self.nofallback:
-            mlog.log('Not looking for a fallback subproject for the dependency',
-                     mlog.bold(self.display_name), 'because:\nUse of fallback dependencies is disabled.')
-            return None
         if self.forcefallback:
             mlog.log('Looking for a fallback subproject for the dependency',
                      mlog.bold(self.display_name), 'because:\nUse of fallback dependencies is forced.')
+        elif self.nofallback:
+            mlog.log('Not looking for a fallback subproject for the dependency',
+                     mlog.bold(self.display_name), 'because:\nUse of fallback dependencies is disabled.')
+            return None
         else:
             mlog.log('Looking for a fallback subproject for the dependency',
                      mlog.bold(self.display_name))
