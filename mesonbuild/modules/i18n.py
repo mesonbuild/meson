@@ -17,6 +17,7 @@ import shutil
 from os import path
 from .. import coredata, mesonlib, build, mlog
 from ..mesonlib import MesonException
+from ..scripts.gettext import read_linguas
 from . import ModuleReturnValue
 from . import ExtensionModule
 from ..interpreterbase import permittedKwargs, FeatureNew, FeatureNewKwargs
@@ -141,6 +142,7 @@ class I18nModule(ExtensionModule):
         languages = mesonlib.stringlistify(kwargs.get('languages', []))
         datadirs = self._get_data_dirs(state, mesonlib.stringlistify(kwargs.get('data_dirs', [])))
         extra_args = mesonlib.stringlistify(kwargs.get('args', []))
+        targets = []
 
         preset = kwargs.pop('preset', None)
         if preset:
@@ -161,11 +163,27 @@ class I18nModule(ExtensionModule):
         if extra_args:
             potargs.append(extra_args)
         pottarget = build.RunTarget(packagename + '-pot', potargs, [], state.subdir, state.subproject)
+        targets.append(pottarget)
 
-        gmoargs = state.environment.get_build_command() + ['--internal', 'gettext', 'gen_gmo']
-        if lang_arg:
-            gmoargs.append(lang_arg)
-        gmotarget = build.RunTarget(packagename + '-gmo', gmoargs, [], state.subdir, state.subproject)
+        install = kwargs.get('install', True)
+        install_dir = kwargs.get('install_dir', state.environment.coredata.get_option(mesonlib.OptionKey('localedir')))
+        if not languages:
+            languages = read_linguas(path.join(state.environment.source_dir, state.subdir))
+        for l in languages:
+            po_file = mesonlib.File.from_source_file(state.environment.source_dir,
+                                                     state.subdir, l+'.po')
+            gmo_kwargs = {'command': ['msgfmt', '@INPUT@', '-o', '@OUTPUT@'],
+                          'input': po_file,
+                          'output': packagename+'.mo',
+                          'install': install,
+                          # We have multiple files all installed as packagename+'.mo' in different install subdirs.
+                          # What we really wanted to do, probably, is have a rename: kwarg, but that's not available
+                          # to custom_targets. Crude hack: set the build target's subdir manually.
+                          # Bonus: the build tree has something usable as an uninstalled bindtextdomain() target dir.
+                          'install_dir': path.join(install_dir, l, 'LC_MESSAGES'),
+                          }
+            gmotarget = build.CustomTarget(l+'.mo', path.join(state.subdir, l, 'LC_MESSAGES'), state.subproject, gmo_kwargs)
+            targets.append(gmotarget)
 
         updatepoargs = state.environment.get_build_command() + ['--internal', 'gettext', 'update_po', pkg_arg]
         if lang_arg:
@@ -175,21 +193,7 @@ class I18nModule(ExtensionModule):
         if extra_args:
             updatepoargs.append(extra_args)
         updatepotarget = build.RunTarget(packagename + '-update-po', updatepoargs, [], state.subdir, state.subproject)
-
-        targets = [pottarget, gmotarget, updatepotarget]
-
-        install = kwargs.get('install', True)
-        if install:
-            install_dir = kwargs.get('install_dir', state.environment.coredata.get_option(mesonlib.OptionKey('localedir')))
-            script = state.environment.get_build_command()
-            args = ['--internal', 'gettext', 'install',
-                    '--subdir=' + state.subdir,
-                    '--localedir=' + install_dir,
-                    pkg_arg]
-            if lang_arg:
-                args.append(lang_arg)
-            iscript = state.backend.get_executable_serialisation(script + args)
-            targets.append(iscript)
+        targets.append(updatepotarget)
 
         return ModuleReturnValue(None, targets)
 

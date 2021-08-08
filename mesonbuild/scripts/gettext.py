@@ -13,10 +13,8 @@
 # limitations under the License.
 
 import os
-import shutil
 import argparse
 import subprocess
-from . import destdir_join
 import typing as T
 
 parser = argparse.ArgumentParser()
@@ -61,12 +59,6 @@ def run_potgen(src_sub: str, pkgname: str, datadirs: str, args: T.List[str]) -> 
                             '-D', os.environ['MESON_SOURCE_ROOT'], '-k_', '-o', ofile] + args,
                            env=child_env)
 
-def gen_gmo(src_sub: str, bld_sub: str, langs: T.List[str]) -> int:
-    for l in langs:
-        subprocess.check_call(['msgfmt', os.path.join(src_sub, l + '.po'),
-                               '-o', os.path.join(bld_sub, l + '.gmo')])
-    return 0
-
 def update_po(src_sub: str, pkgname: str, langs: T.List[str]) -> int:
     potfile = os.path.join(src_sub, pkgname + '.pot')
     for l in langs:
@@ -75,19 +67,6 @@ def update_po(src_sub: str, pkgname: str, langs: T.List[str]) -> int:
             subprocess.check_call(['msgmerge', '-q', '-o', pofile, pofile, potfile])
         else:
             subprocess.check_call(['msginit', '--input', potfile, '--output-file', pofile, '--locale', l, '--no-translator'])
-    return 0
-
-def do_install(src_sub: str, bld_sub: str, dest: str, pkgname: str, langs: T.List[str]) -> int:
-    for l in langs:
-        srcfile = os.path.join(bld_sub, l + '.gmo')
-        outfile = os.path.join(dest, l, 'LC_MESSAGES',
-                               pkgname + '.mo')
-        tempfile = outfile + '.tmp'
-        os.makedirs(os.path.dirname(outfile), exist_ok=True)
-        shutil.copy2(srcfile, tempfile)
-        os.replace(tempfile, outfile)
-        if not os.getenv('MESON_INSTALL_QUIET', False):
-            print(f'Installing {srcfile} to {outfile}')
     return 0
 
 def run(args: T.List[str]) -> int:
@@ -99,27 +78,16 @@ def run(args: T.List[str]) -> int:
     if options.subdir:
         subdir = options.subdir
     src_sub = os.path.join(os.environ['MESON_SOURCE_ROOT'], subdir)
-    bld_sub = os.path.join(os.environ['MESON_BUILD_ROOT'], subdir)
 
     if not langs:
         langs = read_linguas(src_sub)
 
     if subcmd == 'pot':
         return run_potgen(src_sub, options.pkgname, options.datadirs, extra_args)
-    elif subcmd == 'gen_gmo':
-        return gen_gmo(src_sub, bld_sub, langs)
     elif subcmd == 'update_po':
         if run_potgen(src_sub, options.pkgname, options.datadirs, extra_args) != 0:
             return 1
         return update_po(src_sub, options.pkgname, langs)
-    elif subcmd == 'install':
-        destdir = os.environ.get('DESTDIR', '')
-        dest = destdir_join(destdir, os.path.join(os.environ['MESON_INSTALL_PREFIX'],
-                                                  options.localedir))
-        if gen_gmo(src_sub, bld_sub, langs) != 0:
-            return 1
-        do_install(src_sub, bld_sub, dest, options.pkgname, langs)
     else:
         print('Unknown subcommand.')
         return 1
-    return 0
