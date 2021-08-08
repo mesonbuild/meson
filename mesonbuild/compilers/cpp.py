@@ -692,6 +692,17 @@ class VisualStudioCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixi
             del args[i]
         return args
 
+    def get_always_args(self) -> T.List[str]:
+        args = super().get_always_args()
+
+        # update the __cplusplus #define to match the version given on the
+        # command line with /std:NNN, but only for versions above 15.7 (2017)
+        # https://docs.microsoft.com/en-us/cpp/build/reference/zc-cplusplus?view=msvc-160
+        if version_compare(self.version, '>= 15.7'):
+            args.append('/Zc:__cplusplus')
+
+        return args
+
 class ClangClCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixin, ClangClCompiler, CPPCompiler):
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo', target: str,
