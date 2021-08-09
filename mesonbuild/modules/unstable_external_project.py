@@ -19,7 +19,7 @@ import typing as T
 from . import ExtensionModule, ModuleReturnValue, ModuleState, NewExtensionModule
 from .. import mlog, build
 from ..mesonlib import (MesonException, Popen_safe, MachineChoice,
-                       get_variable_regex, do_replacement, extract_as_list)
+                       get_variable_regex, do_replacement, extract_as_list, join_args)
 from ..interpreterbase import InterpreterException, FeatureNew
 from ..interpreterbase import permittedKwargs, typed_pos_args
 from ..compilers.compilers import CFLAGS_MAPPING, CEXE_MAPPING
@@ -67,19 +67,26 @@ class ExternalProject(NewExtensionModule):
         # self.prefix is an absolute path, so we cannot append it to another path.
         self.rel_prefix = self.prefix.relative_to(self.prefix.root)
 
-        self.make = state.find_program('make')
-        self.make = self.make.get_command()[0]
-
         self._configure(state)
 
         self.targets = self._create_targets()
 
     def _configure(self, state: ModuleState):
-        # Assume it's the name of a script in source dir, like 'configure',
-        # 'autogen.sh', etc).
-        configure_path = Path(self.src_dir, self.configure_command)
-        configure_prog = state.find_program(configure_path.as_posix())
-        configure_cmd = configure_prog.get_command()
+        if self.configure_command == 'waf':
+            FeatureNew('Waf external project', '0.60.0').use(self.subproject)
+            waf = state.find_program('waf')
+            configure_cmd = waf.get_command()
+            configure_cmd += ['configure', '-o', str(self.build_dir)]
+            workdir = self.src_dir
+            self.make = waf.get_command() + ['build']
+        else:
+            # Assume it's the name of a script in source dir, like 'configure',
+            # 'autogen.sh', etc).
+            configure_path = Path(self.src_dir, self.configure_command)
+            configure_prog = state.find_program(configure_path.as_posix())
+            configure_cmd = configure_prog.get_command()
+            workdir = self.build_dir
+            self.make = state.find_program('make').get_command()
 
         d = [('PREFIX', '--prefix=@PREFIX@', self.prefix.as_posix()),
              ('LIBDIR', '--libdir=@PREFIX@/@LIBDIR@', self.libdir.as_posix()),
@@ -122,7 +129,7 @@ class ExternalProject(NewExtensionModule):
                                       Path(self.env.get_build_dir(), 'meson-uninstalled').as_posix())
 
         self.build_dir.mkdir(parents=True, exist_ok=True)
-        self._run('configure', configure_cmd)
+        self._run('configure', configure_cmd, workdir)
 
     def _quote_and_join(self, array: T.List[str]) -> str:
         return ' '.join([shlex.quote(i) for i in array])
@@ -156,9 +163,9 @@ class ExternalProject(NewExtensionModule):
                 f"Variables {var_list} in configure options are missing.")
         return out
 
-    def _run(self, step: str, command: T.List[str]):
+    def _run(self, step: str, command: T.List[str], workdir: Path):
         mlog.log(f'External project {self.name}:', mlog.bold(step))
-        m = 'Running command ' + str(command) + ' in directory ' + str(self.build_dir) + '\n'
+        m = 'Running command ' + str(command) + ' in directory ' + str(workdir) + '\n'
         log_filename = Path(mlog.log_dir, f'{self.name}-{step}.log')
         output = None
         if not self.verbose:
@@ -167,9 +174,9 @@ class ExternalProject(NewExtensionModule):
             output.flush()
         else:
             mlog.log(m)
-        p, o, e = Popen_safe(command, cwd=str(self.build_dir), env=self.run_env,
-                                      stderr=subprocess.STDOUT,
-                                      stdout=output)
+        p, o, e = Popen_safe(command, cwd=str(workdir), env=self.run_env,
+                             stderr=subprocess.STDOUT,
+                             stdout=output)
         if p.returncode != 0:
             m = f'{step} step returned error code {p.returncode}.'
             if not self.verbose:
@@ -184,7 +191,7 @@ class ExternalProject(NewExtensionModule):
                 '--builddir', self.build_dir.as_posix(),
                 '--installdir', self.install_dir.as_posix(),
                 '--logdir', mlog.log_dir,
-                '--make', self.make,
+                '--make', join_args(self.make),
                 ]
         if self.verbose:
             cmd.append('--verbose')
