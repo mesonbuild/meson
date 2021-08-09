@@ -5310,6 +5310,10 @@ class AllPlatformTests(BasePlatformTests):
                 integer: 1
                 boolean: True
 
+            subsub undefined
+
+                Something: Some value
+
             My Project 1.0
 
               Configuration
@@ -5339,6 +5343,7 @@ class AllPlatformTests(BasePlatformTests):
               Subprojects
                 sub            : YES
                 sub2           : NO Problem encountered: This subproject failed
+                subsub         : YES
             ''')
         expected_lines = expected.split('\n')[1:]
         out_start = out.find(expected_lines[0])

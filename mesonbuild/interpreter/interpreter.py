@@ -923,6 +923,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             subi.modules = self.modules
             subi.holder_map = self.holder_map
             subi.bound_holder_map = self.bound_holder_map
+            subi.summary = self.summary
 
             subi.subproject_stack = self.subproject_stack + [subp_name]
             current_active = self.active_projectname
@@ -952,7 +953,6 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.build.merge(subi.build)
         self.build.subprojects[subp_name] = subi.project_version
         self.coredata.initialized_subprojects.add(subp_name)
-        self.summary.update(subi.summary)
         return self.subprojects[subp_name]
 
     def _do_subproject_cmake(self, subp_name, subdir, subdir_abs, default_options, kwargs):
@@ -1280,8 +1280,9 @@ external dependencies (including libraries) must go to "dependencies".''')
         # Print all summaries, main project last.
         mlog.log('')  # newline
         main_summary = self.summary.pop('', None)
-        for _, summary in sorted(self.summary.items()):
-            summary.dump()
+        for subp_name, summary in sorted(self.summary.items()):
+            if self.subprojects[subp_name].found():
+                summary.dump()
         if main_summary:
             main_summary.dump()
 
