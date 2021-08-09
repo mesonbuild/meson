@@ -955,9 +955,9 @@ external dependencies (including libraries) must go to "dependencies".''')
     @typed_pos_args('configuration_data', optargs=[dict])
     @noKwargs
     def func_configuration_data(self, node: mparser.BaseNode, args: T.Optional[dict], kwargs: 'TYPE_kwargs') -> ConfigurationDataObject:
-        if args is not None:
+        initial_values = args[0]
+        if initial_values is not None:
             FeatureNew.single_use('configuration_data dictionary', '0.49.0', self.subproject)
-            initial_values = args[0]
         else:
             initial_values = {}
         return ConfigurationDataObject(self.subproject, initial_values)
