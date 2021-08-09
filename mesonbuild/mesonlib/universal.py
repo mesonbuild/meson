@@ -1260,6 +1260,8 @@ def dump_conf_header(ofilename: str, cdata: 'ConfigurationData', output_format: 
     elif output_format == 'nasm':
         prelude = CONF_NASM_PRELUDE
         prefix = '%'
+    else:
+        raise MesonBugException(f'Undefined output_format: "{output_format}"')
 
     ofilename_tmp = ofilename + '~'
     with open(ofilename_tmp, 'w', encoding='utf-8') as ofile:
