@@ -101,7 +101,7 @@ class ModuleState:
                   'depends': depends,
                   }
         # TODO: Use interpreter internal API, but we need to go through @typed_kwargs
-        self._interpreter.func_test(self.node, args, kwargs)
+        self._interpreter.func_test(self.current_node, args, kwargs)
 
 
 class ModuleObject(HoldableObject):
