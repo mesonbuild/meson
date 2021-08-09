@@ -222,7 +222,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                 subproject: str = '',
                 subdir: str = '',
                 subproject_dir: str = 'subprojects',
-                modules: T.Optional[T.Dict[str, T.Union[ExtensionModule, NewExtensionModule, NotFoundExtensionModule]]] = None,
                 default_project_options: T.Optional[T.Dict[str, str]] = None,
                 mock: bool = False,
                 ast: T.Optional[mparser.CodeBlockNode] = None,
@@ -235,10 +234,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.coredata = self.environment.get_coredata()
         self.backend = backend
         self.summary = {}
-        if modules is None:
-            self.modules = {}
-        else:
-            self.modules = modules
+        self.modules = {}
         # Subproject directory is usually the name of the subproject, but can
         # be different for dependencies provided by wrap files.
         self.subproject_directory_name = subdir.split(os.path.sep)[-1]
@@ -821,10 +817,14 @@ external dependencies (including libraries) must go to "dependencies".''')
         with mlog.nested(subp_name):
             new_build = self.build.copy()
             subi = Interpreter(new_build, self.backend, subp_name, subdir, self.subproject_dir,
-                               self.modules, default_options, ast=ast, is_translated=is_translated)
+                               default_options, ast=ast, is_translated=is_translated)
+            # Those lists are shared by all interpreters. That means that
+            # even if the subproject fails, any modification that the subproject
+            # made to those lists will affect the parent project.
             subi.subprojects = self.subprojects
-            subi.holder_map.update(self.holder_map)
-            subi.bound_holder_map.update(self.bound_holder_map)
+            subi.modules = self.modules
+            subi.holder_map = self.holder_map
+            subi.bound_holder_map = self.bound_holder_map
 
             subi.subproject_stack = self.subproject_stack + [subp_name]
             current_active = self.active_projectname
@@ -855,10 +855,6 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.build.subprojects[subp_name] = subi.project_version
         self.coredata.initialized_subprojects.add(subp_name)
         self.summary.update(subi.summary)
-        # Update the holder maps from the subproject. Additional entries to the
-        # holder maps can be added through imported Meson modules
-        self.holder_map.update(subi.holder_map)
-        self.bound_holder_map.update(subi.bound_holder_map)
         return self.subprojects[subp_name]
 
     def _do_subproject_cmake(self, subp_name, subdir, subdir_abs, default_options, kwargs):
