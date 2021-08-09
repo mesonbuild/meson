@@ -107,18 +107,15 @@ class I18nModule(ExtensionModule):
 
         kwargs['command'] = command
 
-        inputfile = kwargs['input']
-        # I have no idea why/how this if isinstance(inputfile, mesonlib.HoldableObject) works / used to work...
-        if isinstance(inputfile, mesonlib.HoldableObject):
-            ct = build.CustomTarget(kwargs['output'] + '_merge', state.subdir, state.subproject, kwargs)
-        else:
-            if isinstance(inputfile, list):
-                # We only use this input file to create a name of the custom target.
-                # Thus we can ignore the other entries.
-                inputfile = inputfile[0]
-            if isinstance(inputfile, str):
-                inputfile = mesonlib.File.from_source_file(state.environment.source_dir,
-                                                           state.subdir, inputfile)
+        # We only use this input file to create a name of the custom target.
+        # Thus we can ignore the other entries.
+        inputfile = mesonlib.extract_as_list(kwargs, 'input')[0]
+        if isinstance(inputfile, str):
+            inputfile = mesonlib.File.from_source_file(state.environment.source_dir,
+                                                       state.subdir, inputfile)
+        if isinstance(inputfile, mesonlib.File):
+            # output could be '@BASENAME@' in which case we need to do substitutions
+            # to get a unique target name.
             output = kwargs['output']
             ifile_abs = inputfile.absolute_path(state.environment.source_dir,
                                                 state.environment.build_dir)
@@ -126,6 +123,9 @@ class I18nModule(ExtensionModule):
             outputs = mesonlib.substitute_values([output], values)
             output = outputs[0]
             ct = build.CustomTarget(output + '_' + state.subdir.replace('/', '@').replace('\\', '@') + '_merge', state.subdir, state.subproject, kwargs)
+        else:
+            ct = build.CustomTarget(kwargs['output'] + '_merge', state.subdir, state.subproject, kwargs)
+
         return ModuleReturnValue(ct, [ct])
 
     @FeatureNewKwargs('i18n.gettext', '0.37.0', ['preset'])
