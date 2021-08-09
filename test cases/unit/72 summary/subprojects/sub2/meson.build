@@ -1,5 +1,6 @@
 project('sub2')
 
-error('This subproject failed')
+subproject('subsub')
 
 summary('Section', 'Should not be seen')
+error('This subproject failed')
