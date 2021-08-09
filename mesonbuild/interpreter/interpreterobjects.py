@@ -668,9 +668,12 @@ class GeneratedObjectsHolder(ObjectHolder[build.ExtractedObjects]):
     pass
 
 class Test(MesonInterpreterObject):
-    def __init__(self, name: str, project: str, suite: T.List[str], exe: build.Executable,
+    def __init__(self, name: str, project: str, suite: T.List[str],
+                 exe: T.Union[ExternalProgram, build.Executable, build.CustomTarget],
                  depends: T.List[T.Union[build.CustomTarget, build.BuildTarget]],
-                 is_parallel: bool, cmd_args: T.List[str], env: build.EnvironmentVariables,
+                 is_parallel: bool,
+                 cmd_args: T.List[T.Union[str, mesonlib.File, build.Target]],
+                 env: build.EnvironmentVariables,
                  should_fail: bool, timeout: int, workdir: T.Optional[str], protocol: str,
                  priority: int):
         super().__init__()
@@ -688,7 +691,7 @@ class Test(MesonInterpreterObject):
         self.protocol = TestProtocol.from_str(protocol)
         self.priority = priority
 
-    def get_exe(self) -> build.Executable:
+    def get_exe(self) -> T.Union[ExternalProgram, build.Executable, build.CustomTarget]:
         return self.exe
 
     def get_name(self) -> str:
