@@ -9,6 +9,8 @@
     {"type": "file", "file": "usr/share/applications/test.plugin"},
     {"type": "file", "file": "usr/share/applications/test2.desktop"},
     {"type": "file", "file": "usr/share/applications/test3.desktop"},
-    {"type": "file", "file": "usr/share/applications/test4.desktop"}
+    {"type": "file", "file": "usr/share/applications/test4.desktop"},
+    {"type": "file", "file": "usr/share/applications/test5.desktop"},
+    {"type": "file", "file": "usr/share/applications/test6.desktop"}
   ]
 }
