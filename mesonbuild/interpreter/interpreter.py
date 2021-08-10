@@ -50,6 +50,7 @@ from .interpreterobjects import (
     NullSubprojectInterpreter,
 )
 from .type_checking import (
+    DEPENDS_KW,
     DEPFILE_KW,
     ENV_KW,
     INSTALL_MODE_KW,
@@ -1676,12 +1677,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             listify=True,
             default=[],
         ),
-        KwargInfo(
-            'depends',
-            ContainerTypeInfo(list, (build.BuildTarget, build.CustomTarget)),
-            listify=True,
-            default=[],
-        ),
+        DEPENDS_KW,
         ENV_KW.evolve(since='0.57.0'),
     )
     def func_run_target(self, node: mparser.FunctionNode, args: T.Tuple[str],
