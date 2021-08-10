@@ -2587,7 +2587,7 @@ class CustomTargetIndex(HoldableObject):
     def get_subdir(self) -> str:
         return self.target.get_subdir()
 
-    def get_filename(self):
+    def get_filename(self) -> str:
         return self.output
 
     def get_id(self):
@@ -2602,10 +2602,9 @@ class CustomTargetIndex(HoldableObject):
     def get_link_dep_subdirs(self):
         return self.target.get_link_dep_subdirs()
 
-    def is_linkable_target(self):
+    def is_linkable_target(self) -> bool:
         suf = os.path.splitext(self.output)[-1]
-        if suf == '.a' or suf == '.dll' or suf == '.lib' or suf == '.so':
-            return True
+        return suf in {'.a', '.dll', '.lib', '.so'}
 
     def should_install(self) -> bool:
         return self.target.should_install()
@@ -2613,7 +2612,7 @@ class CustomTargetIndex(HoldableObject):
     def is_internal(self) -> bool:
         return self.target.is_internal()
 
-    def extract_all_objects_recurse(self):
+    def extract_all_objects_recurse(self) -> T.List[T.Union[str, 'ExtractedObjects']]:
         return self.target.extract_all_objects_recurse()
 
     def get_custom_install_dir(self):
