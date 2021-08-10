@@ -1444,7 +1444,7 @@ def iter_regexin_iter(regexiter: T.Iterable[str], initer: T.Iterable[str]) -> T.
     return None
 
 
-def _substitute_values_check_errors(command: T.List[str], values: T.Dict[str, str]) -> None:
+def _substitute_values_check_errors(command: T.List[str], values: T.Dict[str, T.Union[str, T.List[str]]]) -> None:
     # Error checking
     inregex = ['@INPUT([0-9]+)?@', '@PLAINNAME@', '@BASENAME@']  # type: T.List[str]
     outregex = ['@OUTPUT([0-9]+)?@', '@OUTDIR@']                 # type: T.List[str]
@@ -1485,7 +1485,7 @@ def _substitute_values_check_errors(command: T.List[str], values: T.Dict[str, st
                 raise MesonException(m.format(match2.group(), len(values['@OUTPUT@'])))
 
 
-def substitute_values(command: T.List[str], values: T.Dict[str, str]) -> T.List[str]:
+def substitute_values(command: T.List[str], values: T.Dict[str, T.Union[str, T.List[str]]]) -> T.List[str]:
     '''
     Substitute the template strings in the @values dict into the list of
     strings @command and return a new list. For a full list of the templates,
@@ -1494,14 +1494,29 @@ def substitute_values(command: T.List[str], values: T.Dict[str, str]) -> T.List[
     If multiple inputs/outputs are given in the @values dictionary, we
     substitute @INPUT@ and @OUTPUT@ only if they are the entire string, not
     just a part of it, and in that case we substitute *all* of them.
+
+    The typing of this function is difficult, as only @OUTPUT@ and @INPUT@ can
+    be lists, everything else is a string. However, TypeDict cannot represent
+    this, as you can have optional keys, but not extra keys. We end up just
+    having to us asserts to convince type checkers that this is okay.
+
+    https://github.com/python/mypy/issues/4617
     '''
+
+    def replace(m: T.Match[str]) -> str:
+        v = values[m.group(0)]
+        assert isinstance(v, str), 'for mypy'
+        return v
+
     # Error checking
     _substitute_values_check_errors(command, values)
+
     # Substitution
     outcmd = []  # type: T.List[str]
     rx_keys = [re.escape(key) for key in values if key not in ('@INPUT@', '@OUTPUT@')]
     value_rx = re.compile('|'.join(rx_keys)) if rx_keys else None
     for vv in command:
+        more: T.Optional[str] = None
         if not isinstance(vv, str):
             outcmd.append(vv)
         elif '@INPUT@' in vv:
@@ -1522,15 +1537,22 @@ def substitute_values(command: T.List[str], values: T.Dict[str, str]) -> T.List[
             else:
                 raise MesonException("Command has '@OUTPUT@' as part of a "
                                      "string and more than one output file")
+
         # Append values that are exactly a template string.
         # This is faster than a string replace.
         elif vv in values:
-            outcmd.append(values[vv])
+            o = values[vv]
+            assert isinstance(o, str), 'for mypy'
+            more = o
         # Substitute everything else with replacement
         elif value_rx:
-            outcmd.append(value_rx.sub(lambda m: values[m.group(0)], vv))
+            more = value_rx.sub(replace, vv)
         else:
-            outcmd.append(vv)
+            more = vv
+
+        if more is not None:
+            outcmd.append(more)
+
     return outcmd
 
 
