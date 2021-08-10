@@ -8,8 +8,9 @@ import typing as T
 from .. import compilers
 from ..build import EnvironmentVariables
 from ..coredata import UserFeatureOption
+from ..interpreterbase import TYPE_var
 from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo
-from ..mesonlib import FileMode, MachineChoice
+from ..mesonlib import FileMode, MachineChoice, listify
 
 # Helper definition for type checks that are `Optional[T]`
 NoneType: T.Type[None] = type(None)
@@ -128,7 +129,38 @@ REQUIRED_KW: KwargInfo[T.Union[bool, UserFeatureOption]] = KwargInfo(
     # TODO: extract_required_kwarg could be converted to a convertor
 )
 
-ENV_KW: KwargInfo[T.Union[EnvironmentVariables, T.List, T.Dict, str, NoneType]] = KwargInfo(
+def _env_validator(value: T.Union[EnvironmentVariables, T.List['TYPE_var'], T.Dict[str, 'TYPE_var'], str, None]) -> T.Optional[str]:
+    def _splitter(v: str) -> T.Optional[str]:
+        split = v.split('=', 1)
+        if len(split) == 1:
+            return f'"{v}" is not two string values separated by an "="'
+        # We have to cast here, assert isn't good enough to narrow from
+        # Tuple[str, ...] -> Tuple[str, str]
+        return None
+
+    if isinstance(value, str):
+        v = _splitter(value)
+        if v is not None:
+            return v
+    elif isinstance(value, list):
+        for i in listify(value):
+            if not isinstance(i, str):
+                return f"All array elements must be a string, not {i!r}"
+            v = _splitter(i)
+            if v is not None:
+                return v
+    elif isinstance(value, dict):
+        # We don't need to spilt here, just do the type checking
+        for k, dv in value.items():
+            if not isinstance(dv, str):
+                return f"Dictionary element {k} must be a string not {dv!r}"
+    # We know that otherwise we have an EnvironmentVariables object or None, and
+    # we're okay at this point
+    return None
+
+
+ENV_KW: KwargInfo[T.Union[EnvironmentVariables, T.List, T.Dict, str, None]] = KwargInfo(
     'env',
     (EnvironmentVariables, list, dict, str),
+    validator=_env_validator,
 )
