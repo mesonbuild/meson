@@ -2472,7 +2472,8 @@ class CustomTarget(Target, CommandBase):
             yield CustomTargetIndex(self, i)
 
 class RunTarget(Target, CommandBase):
-    def __init__(self, name, command, dependencies, subdir, subproject, env=None):
+    def __init__(self, name: str, command, dependencies,
+                 subdir: str, subproject: str, env: T.Optional['EnvironmentVariables'] = None):
         self.typename = 'run'
         # These don't produce output artifacts
         super().__init__(name, subdir, subproject, False, MachineChoice.BUILD)
