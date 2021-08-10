@@ -2536,8 +2536,13 @@ class CustomTarget(Target, CommandBase):
         return len(self.outputs)
 
 class RunTarget(Target, CommandBase):
-    def __init__(self, name: str, command, dependencies,
-                 subdir: str, subproject: str, env: T.Optional['EnvironmentVariables'] = None):
+
+    def __init__(self, name: str,
+                 command: T.Sequence[T.Union[str, File, BuildTarget, 'CustomTarget', 'CustomTargetIndex', programs.ExternalProgram]],
+                 dependencies: T.Sequence[T.Union[BuildTarget, 'CustomTarget']],
+                 subdir: str,
+                 subproject: str,
+                 env: T.Optional['EnvironmentVariables'] = None):
         self.typename = 'run'
         # These don't produce output artifacts
         super().__init__(name, subdir, subproject, False, MachineChoice.BUILD)
@@ -2554,13 +2559,13 @@ class RunTarget(Target, CommandBase):
     def process_kwargs(self, kwargs):
         return self.process_kwargs_base(kwargs)
 
-    def get_dependencies(self):
+    def get_dependencies(self) -> T.List[T.Union[BuildTarget, 'CustomTarget']]:
         return self.dependencies
 
-    def get_generated_sources(self):
+    def get_generated_sources(self) -> T.List['GeneratedTypes']:
         return []
 
-    def get_sources(self):
+    def get_sources(self) -> T.List[File]:
         return []
 
     def should_install(self) -> bool:
