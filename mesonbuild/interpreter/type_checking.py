@@ -6,6 +6,7 @@
 import typing as T
 
 from .. import compilers
+from ..build import EnvironmentVariables
 from ..coredata import UserFeatureOption
 from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo
 from ..mesonlib import FileMode, MachineChoice
@@ -125,4 +126,9 @@ REQUIRED_KW: KwargInfo[T.Union[bool, UserFeatureOption]] = KwargInfo(
     (bool, UserFeatureOption),
     default=True,
     # TODO: extract_required_kwarg could be converted to a convertor
+)
+
+ENV_KW: KwargInfo[T.Union[EnvironmentVariables, T.List, T.Dict, str, NoneType]] = KwargInfo(
+    'env',
+    (EnvironmentVariables, list, dict, str),
 )

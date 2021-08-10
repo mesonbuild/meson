@@ -51,6 +51,7 @@ from .interpreterobjects import (
     NullSubprojectInterpreter,
 )
 from .type_checking import (
+    ENV_KW,
     INSTALL_MODE_KW,
     LANGUAGE_KW,
     NATIVE_KW,
@@ -189,7 +190,7 @@ TEST_KWARGS: T.List[KwargInfo] = [
               listify=True, default=[], since='0.46.0'),
     KwargInfo('priority', int, default=0, since='0.52.0'),
     # TODO: env needs reworks of the way the environment variable holder itself works probably
-    KwargInfo('env', (EnvironmentVariablesObject, list, dict, str, NoneType)),
+    ENV_KW,
     KwargInfo('suite', ContainerTypeInfo(list, str), listify=True, default=['']),  # yes, a list of empty string
 ]
 
