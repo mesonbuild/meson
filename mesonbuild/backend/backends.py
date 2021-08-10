@@ -500,7 +500,7 @@ class Backend:
                                        exe_wrapper, workdir,
                                        extra_paths, capture, feed, tag)
 
-    def as_meson_exe_cmdline(self, tname, exe, cmd_args, workdir=None,
+    def as_meson_exe_cmdline(self, exe, cmd_args, workdir=None,
                              extra_bdeps=None, capture=None, feed=None,
                              force_serialize=False,
                              env: T.Optional[build.EnvironmentVariables] = None,

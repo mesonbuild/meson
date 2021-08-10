@@ -150,7 +150,6 @@ class Vs2010Backend(backends.Backend):
                     # there are many arguments.
                     tdir_abs = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
                     cmd, _ = self.as_meson_exe_cmdline(
-                        'generator ' + cmd[0],
                         cmd[0],
                         cmd[1:],
                         workdir=tdir_abs,
@@ -560,7 +559,7 @@ class Vs2010Backend(backends.Backend):
             _, _, cmd_raw = self.eval_custom_target_command(target)
         depend_files = self.get_custom_target_depend_files(target)
         target_env = self.get_run_target_env(target)
-        wrapper_cmd, _ = self.as_meson_exe_cmdline(target.name, target.command[0], cmd_raw[1:],
+        wrapper_cmd, _ = self.as_meson_exe_cmdline(target.command[0], cmd_raw[1:],
                                                    force_serialize=True, env=target_env,
                                                    verbose=True)
         self.add_custom_build(root, 'run_target', ' '.join(self.quote_arguments(wrapper_cmd)),
@@ -581,7 +580,7 @@ class Vs2010Backend(backends.Backend):
         # there are many arguments.
         tdir_abs = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
         extra_bdeps = target.get_transitive_build_target_deps()
-        wrapper_cmd, _ = self.as_meson_exe_cmdline(target.name, target.command[0], cmd[1:],
+        wrapper_cmd, _ = self.as_meson_exe_cmdline(target.command[0], cmd[1:],
                                                    # All targets run from the target dir
                                                    workdir=tdir_abs,
                                                    extra_bdeps=extra_bdeps,
