@@ -2541,7 +2541,7 @@ class RunTarget(Target, CommandBase):
         self.absolute_paths = False
         self.env = env
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.command[0])
 
@@ -2571,7 +2571,7 @@ class RunTarget(Target, CommandBase):
         else:
             raise RuntimeError('RunTarget: self.name is neither a list nor a string. This is a bug')
 
-    def type_suffix(self):
+    def type_suffix(self) -> str:
         return "@run"
 
 class AliasTarget(RunTarget):
