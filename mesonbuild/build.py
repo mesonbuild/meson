@@ -2556,9 +2556,6 @@ class RunTarget(Target, CommandBase):
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.command[0])
 
-    def process_kwargs(self, kwargs):
-        return self.process_kwargs_base(kwargs)
-
     def get_dependencies(self) -> T.List[T.Union[BuildTarget, 'CustomTarget']]:
         return self.dependencies
 
