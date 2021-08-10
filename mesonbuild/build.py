@@ -49,6 +49,8 @@ if T.TYPE_CHECKING:
     from .modules import ModuleState
     from .backend.backends import Backend, ExecutableSerialisation
 
+    GeneratedTypes = T.Union['CustomTarget', 'CustomTargetIndex', 'GeneratedList']
+
 pch_kwargs = {'c_pch', 'cpp_pch'}
 
 lang_arg_kwargs = {
@@ -364,21 +366,26 @@ class ExtractedObjects(HoldableObject):
     '''
     Holds a list of sources for which the objects must be extracted
     '''
-    def __init__(self, target, srclist=None, genlist=None, objlist=None, recursive=True):
+    def __init__(self, target: 'BuildTarget',
+                 srclist: T.Optional[T.List[File]] = None,
+                 genlist: T.Optional[T.List['GeneratedTypes']] = None,
+                 objlist: T.Optional[T.List[T.Union[str, 'File', 'ExtractedObjects']]] = None,
+                 recursive: bool = True):
         self.target = target
         self.recursive = recursive
-        self.srclist = srclist if srclist is not None else []
-        self.genlist = genlist if genlist is not None else []
-        self.objlist = objlist if objlist is not None else []
+        self.srclist: T.List[File] = srclist if srclist is not None else []
+        self.genlist: T.List['GeneratedTypes'] = genlist if genlist is not None else []
+        self.objlist: T.Optional[T.List[T.Union[str, 'File', 'ExtractedObjects']]] = \
+             objlist if objlist is not None else []
         if self.target.is_unity:
             self.check_unity_compatible()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         r = '<{0} {1!r}: {2}>'
         return r.format(self.__class__.__name__, self.target.name, self.srclist)
 
     @staticmethod
-    def get_sources(sources, generated_sources):
+    def get_sources(sources: T.Sequence['FileOrString'], generated_sources: T.Sequence['GeneratedTypes']) -> T.List['FileOrString']:
         # Merge sources and generated sources
         sources = list(sources)
         for gensrc in generated_sources:
@@ -391,11 +398,11 @@ class ExtractedObjects(HoldableObject):
         # Filter out headers and all non-source files
         return [s for s in sources if environment.is_source(s) and not environment.is_header(s)]
 
-    def classify_all_sources(self, sources, generated_sources):
-        sources = self.get_sources(sources, generated_sources)
-        return classify_unity_sources(self.target.compilers.values(), sources)
+    def classify_all_sources(self, sources: T.List[str], generated_sources: T.Sequence['GeneratedTypes']) -> T.Dict['Compiler', T.List['FileOrString']]:
+        sources_ = self.get_sources(sources, generated_sources)
+        return classify_unity_sources(self.target.compilers.values(), sources_)
 
-    def check_unity_compatible(self):
+    def check_unity_compatible(self) -> None:
         # Figure out if the extracted object list is compatible with a Unity
         # build. When we're doing a Unified build, we go through the sources,
         # and create a single source file from each subset of the sources that
@@ -411,7 +418,7 @@ class ExtractedObjects(HoldableObject):
                                      'in Unity builds. You can only extract all '
                                      'the object files for each compiler at once.')
 
-    def get_outputs(self, backend):
+    def get_outputs(self, backend: 'Backend') -> T.List[str]:
         return [
             backend.object_filename_from_source(self.target, source)
             for source in self.get_sources(self.srclist, self.genlist)
