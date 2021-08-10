@@ -3,7 +3,7 @@
 " License:	VIM License
 " Maintainer:	Nirbheek Chauhan <nirbheek.chauhan@gmail.com>
 "		Liam Beguin <liambeguin@gmail.com>
-" Last Change:	2016 Dec 7
+" Last Change:	2021 Aug 16
 " Credits:	Zvezdan Petkovic <zpetkovic@acm.org>
 "		Neil Schemenauer <nas@meson.ca>
 "		Dmitry Vasiliev
@@ -118,6 +118,7 @@ syn keyword mesonBuiltin
   \ summary
   \ target_machine
   \ test
+  \ unset_variable
   \ vcs_tag
   \ warning
   \ range

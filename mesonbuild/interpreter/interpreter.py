@@ -364,6 +364,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                            'static_library': self.func_static_lib,
                            'both_libraries': self.func_both_lib,
                            'test': self.func_test,
+                           'unset_variable': self.func_unset_variable,
                            'vcs_tag': self.func_vcs_tag,
                            'range': self.func_range,
                            })
@@ -2638,6 +2639,16 @@ This will become a hard error in the future.''', location=self.current_node)
     @noKwargs
     def func_is_variable(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> bool:
         return args[0] in self.variables
+
+    @FeatureNew('unset_variable', '0.60.0')
+    @typed_pos_args('unset_variable', str)
+    @noKwargs
+    def func_unset_variable(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> None:
+        varname = args[0]
+        try:
+            del self.variables[varname]
+        except KeyError:
+            raise InterpreterException(f'Tried to unset unknown variable "{varname}".')
 
     @staticmethod
     def machine_from_native_kwarg(kwargs: T.Dict[str, T.Any]) -> MachineChoice:
