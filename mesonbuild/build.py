@@ -1744,7 +1744,7 @@ class Executable(BuildTarget):
             return [self.vs_import_filename, self.gcc_import_filename]
         return []
 
-    def get_debug_filename(self):
+    def get_debug_filename(self) -> T.Optional[str]:
         """
         The name of debuginfo file that will be created by the compiler
 
@@ -2087,7 +2087,7 @@ class SharedLibrary(BuildTarget):
         """
         return self.import_filename
 
-    def get_debug_filename(self):
+    def get_debug_filename(self) -> T.Optional[str]:
         """
         The name of debuginfo file that will be created by the compiler
 
