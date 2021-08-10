@@ -11,6 +11,7 @@ from typing_extensions import TypedDict, Literal
 from .. import build
 from .. import coredata
 from ..mesonlib import MachineChoice, File, FileMode, FileOrString
+from ..programs import ExternalProgram
 
 
 class FuncAddProjectArgs(TypedDict):
@@ -155,3 +156,9 @@ class FuncIncludeDirectories(TypedDict):
 class FuncAddLanguages(ExtractRequired):
 
     native: T.Optional[bool]
+
+class RunTarget(TypedDict):
+
+    command: T.List[T.Union[str, build.BuildTarget, build.CustomTarget, ExternalProgram, File]]
+    depends: T.List[T.Union[build.BuildTarget, build.CustomTarget]]
+    env: build.EnvironmentVariables
