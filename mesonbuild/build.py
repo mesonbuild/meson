@@ -513,22 +513,22 @@ class Target(HoldableObject):
             raise RuntimeError(f'Target type is not set for target class "{type(self).__name__}". This is a bug')
 
     def __lt__(self, other: object) -> bool:
-        if not hasattr(other, 'get_id') and not callable(other.get_id):
+        if not isinstance(other, Target):
             return NotImplemented
         return self.get_id() < other.get_id()
 
     def __le__(self, other: object) -> bool:
-        if not hasattr(other, 'get_id') and not callable(other.get_id):
+        if not isinstance(other, Target):
             return NotImplemented
         return self.get_id() <= other.get_id()
 
     def __gt__(self, other: object) -> bool:
-        if not hasattr(other, 'get_id') and not callable(other.get_id):
+        if not isinstance(other, Target):
             return NotImplemented
         return self.get_id() > other.get_id()
 
     def __ge__(self, other: object) -> bool:
-        if not hasattr(other, 'get_id') and not callable(other.get_id):
+        if not isinstance(other, Target):
             return NotImplemented
         return self.get_id() >= other.get_id()
 
