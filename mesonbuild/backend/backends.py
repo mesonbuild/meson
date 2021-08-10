@@ -113,10 +113,13 @@ class InstallData:
         self.version = version
 
 class TargetInstallData:
+
+    # TODO: install_mode should just always be a FileMode object
+
     def __init__(self, fname: str, outdir: str, aliases: T.Dict[str, str], strip: bool,
-                 install_name_mappings: T.Dict, rpath_dirs_to_remove: T.Set[bytes],
-                 install_rpath: str, install_mode: 'FileMode', subproject: str,
-                 optional: bool = False, tag: T.Optional[str] = None):
+                 install_name_mappings: T.Mapping[str, str], rpath_dirs_to_remove: T.Set[bytes],
+                 install_rpath: str, install_mode: T.Optional['FileMode'],
+                 subproject: str, optional: bool = False, tag: T.Optional[str] = None):
         self.fname = fname
         self.outdir = outdir
         self.aliases = aliases
