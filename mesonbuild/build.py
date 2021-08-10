@@ -2260,7 +2260,7 @@ class CustomTarget(Target, CommandBase):
                 deps.append(c)
         return deps
 
-    def get_transitive_build_target_deps(self):
+    def get_transitive_build_target_deps(self) -> T.Set[T.Union[BuildTarget, 'CustomTarget']]:
         '''
         Recursively fetch the build targets that this custom target depends on,
         whether through `command:`, `depends:`, or `sources:` The recursion is
@@ -2269,7 +2269,7 @@ class CustomTarget(Target, CommandBase):
         F.ex, if you have a python script that loads a C module that links to
         other DLLs in your project.
         '''
-        bdeps = set()
+        bdeps: T.Set[T.Union[BuildTarget, 'CustomTarget']] = set()
         deps = self.get_target_dependencies()
         for d in deps:
             if isinstance(d, BuildTarget):
@@ -2394,26 +2394,26 @@ class CustomTarget(Target, CommandBase):
     def get_custom_install_dir(self):
         return self.install_dir
 
-    def get_custom_install_mode(self):
+    def get_custom_install_mode(self) -> T.Optional['FileMode']:
         return self.install_mode
 
     def get_outputs(self) -> T.List[str]:
         return self.outputs
 
-    def get_filename(self):
+    def get_filename(self) -> str:
         return self.outputs[0]
 
-    def get_sources(self):
+    def get_sources(self) -> T.List[T.Union[str, File, 'CustomTarget', 'CustomTargetIndex', 'GeneratedList', 'ExtractedObjects']]:
         return self.sources
 
-    def get_generated_lists(self):
-        genlists = []
+    def get_generated_lists(self) -> T.List[GeneratedList]:
+        genlists: T.List[GeneratedList] = []
         for c in self.sources:
             if isinstance(c, GeneratedList):
                 genlists.append(c)
         return genlists
 
-    def get_generated_sources(self):
+    def get_generated_sources(self) -> T.List[GeneratedList]:
         return self.get_generated_lists()
 
     def get_dep_outname(self, infilenames):
@@ -2428,12 +2428,11 @@ class CustomTarget(Target, CommandBase):
                 raise InvalidArguments('Substitution in depfile for custom_target that does not have an input file.')
             return self.depfile
 
-    def is_linkable_target(self):
+    def is_linkable_target(self) -> bool:
         if len(self.outputs) != 1:
             return False
         suf = os.path.splitext(self.outputs[0])[-1]
-        if suf == '.a' or suf == '.dll' or suf == '.lib' or suf == '.so' or suf == '.dylib':
-            return True
+        return suf in {'.a', '.dll', '.lib', '.so', '.dylib'}
 
     def get_link_deps_mapping(self, prefix: str, environment: environment.Environment) -> T.Mapping[str, str]:
         return {}
@@ -2453,7 +2452,7 @@ class CustomTarget(Target, CommandBase):
                 return False
         return True
 
-    def extract_all_objects_recurse(self):
+    def extract_all_objects_recurse(self) -> T.List[T.Union[str, 'ExtractedObjects']]:
         return self.get_outputs()
 
     def type_suffix(self):
