@@ -2066,8 +2066,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
     def generate_compile_rule_for(self, langname, compiler):
         if langname == 'java':
-            if self.environment.machines.matches_build_machine(compiler.for_machine):
-                self.generate_java_compile_rule(compiler)
+            self.generate_java_compile_rule(compiler)
             return
         if langname == 'cs':
             if self.environment.machines.matches_build_machine(compiler.for_machine):
