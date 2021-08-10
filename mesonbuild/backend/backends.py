@@ -143,7 +143,8 @@ class InstallDataBase:
 
 class SubdirInstallData(InstallDataBase):
     def __init__(self, path: str, install_path: str, install_mode: 'FileMode',
-                 exclude, subproject: str, tag: T.Optional[str] = None):
+                 exclude: T.Tuple[T.Set[str], T.Set[str]], subproject: str,
+                 tag: T.Optional[str] = None):
         super().__init__(path, install_path, install_mode, subproject, tag)
         self.exclude = exclude
 
