@@ -48,7 +48,7 @@ if T.TYPE_CHECKING:
 LANGS_CANT_UNITY = ('d', 'fortran', 'vala')
 
 class RegenInfo:
-    def __init__(self, source_dir, build_dir, depfiles):
+    def __init__(self, source_dir: str, build_dir: str, depfiles: T.List[str]):
         self.source_dir = source_dir
         self.build_dir = build_dir
         self.depfiles = depfiles
