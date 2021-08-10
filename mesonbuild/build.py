@@ -2583,7 +2583,8 @@ class RunTarget(Target, CommandBase):
         return "@run"
 
 class AliasTarget(RunTarget):
-    def __init__(self, name, dependencies, subdir, subproject):
+    def __init__(self, name: str, dependencies: T.Sequence[T.Union[BuildTarget, 'CustomTarget']],
+                 subdir: str, subproject: str):
         super().__init__(name, [], dependencies, subdir, subproject)
 
     def __repr__(self):
