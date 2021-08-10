@@ -88,7 +88,7 @@ class CleanTrees:
     Directories outputted by custom targets that have to be manually cleaned
     because on Linux `ninja clean` only deletes empty directories.
     '''
-    def __init__(self, build_dir, trees):
+    def __init__(self, build_dir: str, trees: T.List[str]):
         self.build_dir = build_dir
         self.trees = trees
 
