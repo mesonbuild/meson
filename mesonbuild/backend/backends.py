@@ -45,6 +45,16 @@ if T.TYPE_CHECKING:
     from ..mesonlib import FileMode, FileOrString
     from ..wrap import WrapMode
 
+    from typing_extensions import TypedDict
+
+    class TargetIntrospectionData(TypedDict):
+
+        language: str
+        compiler : T.List[str]
+        parameters: T.List[str]
+        sources: T.List[str]
+        generated_sources: T.List[str]
+
 
 # Languages that can mix with C or C++ but don't support unity builds yet
 # because the syntax we use for unity builds is specific to C/++/ObjC/++.
@@ -1666,7 +1676,7 @@ class Backend:
             i = SubdirInstallData(src_dir, dst_dir, sd.install_mode, sd.exclude, sd.subproject)
             d.install_subdirs.append(i)
 
-    def get_introspection_data(self, target_id: str, target: build.Target) -> T.List[T.Dict[str, T.Union[bool, str, T.List[T.Union[str, T.Dict[str, T.Union[str, T.List[str], bool]]]]]]]:
+    def get_introspection_data(self, target_id: str, target: build.Target) -> T.List['TargetIntrospectionData']:
         '''
         Returns a list of source dicts with the following format for a given target:
         [
