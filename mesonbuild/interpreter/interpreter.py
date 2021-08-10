@@ -1711,8 +1711,6 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         self.add_target(name, tg)
         return tg
 
-    @permittedKwargs({'arguments', 'output', 'depends', 'depfile', 'capture',
-                      'preserve_path_from'})
     @typed_pos_args('generator', (build.Executable, ExternalProgram))
     @typed_kwargs(
         'generator',
