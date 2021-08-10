@@ -291,16 +291,16 @@ class Build:
     def get_benchmarks(self) -> T.List['Test']:
         return self.benchmarks
 
-    def get_headers(self):
+    def get_headers(self) -> T.List['Headers']:
         return self.headers
 
-    def get_man(self):
+    def get_man(self) -> T.List['Man']:
         return self.man
 
-    def get_data(self):
+    def get_data(self) -> T.List['Data']:
         return self.data
 
-    def get_install_subdirs(self):
+    def get_install_subdirs(self) -> T.List['InstallDir']:
         return self.install_dirs
 
     def get_global_args(self, compiler: 'Compiler', for_machine: 'MachineChoice') -> T.List[str]:
