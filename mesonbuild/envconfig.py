@@ -385,7 +385,24 @@ class BinaryTable:
                 if not isinstance(command, (list, str)):
                     raise mesonlib.MesonException(
                         f'Invalid type {command!r} for entry {name!r} in cross file')
+                command = self._rel2abs_path(command)
                 self.binaries[name] = mesonlib.listify(command)
+
+    def _rel2abs_path(self, command):
+        if command:
+            if isinstance(command, list):
+                binary = command[0]
+            else:
+                binary = command
+
+            if os.path.dirname(binary):
+                binary = os.path.abspath(binary)
+                if isinstance(command, list):
+                    command[0] = binary
+                else:
+                    command = binary
+
+        return command
 
     @staticmethod
     def detect_ccache() -> T.List[str]:
