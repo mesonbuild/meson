@@ -213,7 +213,7 @@ class Build:
         self.project_version = None
         self.environment = environment
         self.projects = {}
-        self.targets: T.MutableMapping[str, 'Target'] = OrderedDict()
+        self.targets: 'T.OrderedDict[str, T.Union[CustomTarget, BuildTarget]]' = OrderedDict()
         self.run_target_names: T.Set[T.Tuple[str, str]] = set()
         self.global_args: PerMachine[T.Dict[str, T.List[str]]] = PerMachine({}, {})
         self.global_link_args: PerMachine[T.Dict[str, T.List[str]]] = PerMachine({}, {})
@@ -282,7 +282,7 @@ class Build:
     def get_subproject_dir(self):
         return self.subproject_dir
 
-    def get_targets(self) -> T.Dict[str, 'Target']:
+    def get_targets(self) -> 'T.OrderedDict[str, T.Union[CustomTarget, BuildTarget]]':
         return self.targets
 
     def get_tests(self) -> T.List['Test']:
