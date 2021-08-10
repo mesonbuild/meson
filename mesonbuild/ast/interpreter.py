@@ -127,6 +127,7 @@ class AstInterpreter(InterpreterBase):
                            'subdir': self.func_subdir,
                            'set_variable': self.func_do_nothing,
                            'get_variable': self.func_do_nothing,
+                           'unset_variable': self.func_do_nothing,
                            'is_disabler': self.func_do_nothing,
                            'is_variable': self.func_do_nothing,
                            'disabler': self.func_do_nothing,

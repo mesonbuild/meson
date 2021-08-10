@@ -1852,6 +1852,17 @@ Defined tests can be run in a backend-agnostic way by calling
 `meson test` inside the build dir, or by using backend-specific
 commands, such as `ninja test` or `msbuild RUN_TESTS.vcxproj`.
 
+### unset_variable()
+
+*(since 0.60.0)*
+
+```meson
+    void unset_variable(varname)
+```
+
+Unsets a variable. Referencing a variable which has been unset is an error until
+it has been set again.
+
 ### vcs_tag()
 
 ``` meson
