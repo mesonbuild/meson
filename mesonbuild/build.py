@@ -47,7 +47,7 @@ if T.TYPE_CHECKING:
     from .interpreter.interpreter import Test, SourceOutputs, Interpreter
     from .mesonlib import FileMode, FileOrString
     from .modules import ModuleState
-    from .backend.backends import Backend
+    from .backend.backends import Backend, ExecutableSerialisation
 
 pch_kwargs = {'c_pch', 'cpp_pch'}
 
@@ -228,7 +228,7 @@ class Build:
         self.subprojects = {}
         self.subproject_dir = ''
         self.install_scripts = []
-        self.postconf_scripts = []
+        self.postconf_scripts: T.List['ExecutableSerialisation'] = []
         self.dist_scripts = []
         self.install_dirs: T.List[InstallDir] = []
         self.dep_manifest_name = None
