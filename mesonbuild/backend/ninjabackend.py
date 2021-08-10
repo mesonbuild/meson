@@ -2479,8 +2479,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 commands += compiler.get_include_args(d, i.is_system)
         # Add per-target compile args, f.ex, `c_args : ['-DFOO']`. We set these
         # near the end since these are supposed to override everything else.
-        commands += self.escape_extra_args(compiler,
-                                           target.get_extra_args(compiler.get_language()))
+        commands += self.escape_extra_args(target.get_extra_args(compiler.get_language()))
 
         # D specific additional flags
         if compiler.language == 'd':
