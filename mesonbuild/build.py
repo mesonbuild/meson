@@ -2567,7 +2567,7 @@ class CustomTargetIndex(HoldableObject):
     the sources.
     """
 
-    def __init__(self, target: CustomTarget, output: int):
+    def __init__(self, target: CustomTarget, output: str):
         self.typename = 'custom'
         self.target = target
         self.output = output
