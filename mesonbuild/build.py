@@ -426,10 +426,14 @@ class ExtractedObjects(HoldableObject):
         ]
 
 class EnvironmentVariables(HoldableObject):
-    def __init__(self) -> None:
+    def __init__(self, values: T.Optional[T.Dict[str, str]] = None) -> None:
         self.envvars: T.List[T.Tuple[T.Callable[[T.Dict[str, str], str, T.List[str], str], str], str, T.List[str], str]] = []
         # The set of all env vars we have operations for. Only used for self.has_name()
         self.varnames: T.Set[str] = set()
+
+        if values:
+            for name, value in values.items():
+                self.set(name, [value])
 
     def __repr__(self) -> str:
         repr_str = "<{0}: {1}>"
