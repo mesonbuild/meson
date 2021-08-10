@@ -2231,9 +2231,10 @@ class CommandBase:
     dependencies: T.List[T.Union[BuildTarget, 'CustomTarget']]
     subproject: str
 
-    def flatten_command(self, cmd):
+    def flatten_command(self, cmd: T.Sequence[T.Union[str, File, programs.ExternalProgram, 'BuildTarget', 'CustomTarget', 'CustomTargetIndex']]) -> \
+            T.List[T.Union[str, File, BuildTarget, 'CustomTarget']]:
         cmd = listify(cmd)
-        final_cmd = []
+        final_cmd: T.List[T.Union[str, File, BuildTarget, 'CustomTarget']] = []
         for c in cmd:
             if isinstance(c, str):
                 final_cmd.append(c)
