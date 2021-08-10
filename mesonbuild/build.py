@@ -1731,7 +1731,7 @@ class Executable(BuildTarget):
     def type_suffix(self):
         return "@exe"
 
-    def get_import_filename(self):
+    def get_import_filename(self) -> T.Optional[str]:
         """
         The name of the import library that will be outputted by the compiler
 
@@ -2079,7 +2079,7 @@ class SharedLibrary(BuildTarget):
             else:
                 raise InvalidArguments(f'Invalid rust_crate_type "{rust_crate_type}": must be a string.')
 
-    def get_import_filename(self):
+    def get_import_filename(self) -> T.Optional[str]:
         """
         The name of the import library that will be outputted by the compiler
 
