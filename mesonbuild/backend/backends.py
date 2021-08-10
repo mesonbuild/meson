@@ -160,6 +160,7 @@ class ExecutableSerialisation:
                  capture: T.Optional[bool] = None,
                  feed: T.Optional[bool] = None,
                  tag: T.Optional[str] = None,
+                 verbose: bool = False,
                  ) -> None:
         self.cmd_args = cmd_args
         self.env = env
@@ -172,7 +173,7 @@ class ExecutableSerialisation:
         self.feed = feed
         self.pickled = False
         self.skip_if_destdir = False
-        self.verbose = False
+        self.verbose = verbose
         self.subproject = ''
         self.tag = tag
 
