@@ -1664,35 +1664,36 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         self.add_target(tg.name, tg)
         return tg
 
-    @FeatureNewKwargs('run_target', '0.57.0', ['env'])
-    @permittedKwargs({'command', 'depends', 'env'})
     @typed_pos_args('run_target', str)
-    def func_run_target(self, node: mparser.FunctionNode, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> build.RunTarget:
-        if 'command' not in kwargs:
-            raise InterpreterException('Missing "command" keyword argument')
-        all_args = extract_as_list(kwargs, 'command')
-        deps = extract_as_list(kwargs, 'depends')
+    @typed_kwargs(
+        'run_target',
+        KwargInfo(
+            'command',
+            # TODO: should accept CustomTargetIndex as well?
+            ContainerTypeInfo(list, (str, build.BuildTarget, build.CustomTarget, ExternalProgram, mesonlib.File), allow_empty=False),
+            required=True,
+            listify=True,
+            default=[],
+        ),
+        KwargInfo(
+            'depends',
+            ContainerTypeInfo(list, (build.BuildTarget, build.CustomTarget)),
+            listify=True,
+            default=[],
+        ),
+        ENV_KW.evolve(since='0.57.0'),
+    )
+    def func_run_target(self, node: mparser.FunctionNode, args: T.Tuple[str],
+                        kwargs: 'kwargs.RunTarget') -> build.RunTarget:
+        all_args = kwargs['command'].copy()
 
-        cleaned_args = []
         for i in listify(all_args):
-            if not isinstance(i, (str, build.BuildTarget, build.CustomTarget, ExternalProgram, mesonlib.File)):
-                mlog.debug('Wrong type:', str(i))
-                raise InterpreterException('Invalid argument to run_target.')
             if isinstance(i, ExternalProgram) and not i.found():
                 raise InterpreterException(f'Tried to use non-existing executable {i.name!r}')
-            cleaned_args.append(i)
-        if isinstance(cleaned_args[0], str):
-            cleaned_args[0] = self.func_find_program(node, cleaned_args[0], {})
+        if isinstance(all_args[0], str):
+            all_args[0] = self.func_find_program(node, all_args[0], {})
         name = args[0]
-        if not isinstance(name, str):
-            raise InterpreterException('First argument must be a string.')
-        cleaned_deps = []
-        for d in deps:
-            if not isinstance(d, (build.BuildTarget, build.CustomTarget)):
-                raise InterpreterException('Depends items must be build targets.')
-            cleaned_deps.append(d)
-        env = self.unpack_env_kwarg(kwargs)
-        tg = build.RunTarget(name, cleaned_args, cleaned_deps, self.subdir, self.subproject, env)
+        tg = build.RunTarget(name, all_args, kwargs['depends'], self.subdir, self.subproject, kwargs['env'])
         self.add_target(name, tg)
         full_name = (self.subproject, name)
         assert full_name not in self.build.run_target_names
