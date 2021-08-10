@@ -975,7 +975,7 @@ class NinjaBackend(backends.Backend):
             for output in d.get_outputs():
                 elem.add_dep(os.path.join(self.get_target_dir(d), output))
 
-        cmd, reason = self.as_meson_exe_cmdline(target.name, target.command[0], cmd[1:],
+        cmd, reason = self.as_meson_exe_cmdline(target.command[0], cmd[1:],
                                                 extra_bdeps=target.get_transitive_build_target_deps(),
                                                 capture=ofilenames[0] if target.capture else None,
                                                 feed=srcs[0] if target.feed else None,
@@ -1013,7 +1013,7 @@ class NinjaBackend(backends.Backend):
         else:
             target_env = self.get_run_target_env(target)
             _, _, cmd = self.eval_custom_target_command(target)
-            meson_exe_cmd, reason = self.as_meson_exe_cmdline(target_name, target.command[0], cmd[1:],
+            meson_exe_cmd, reason = self.as_meson_exe_cmdline(target.command[0], cmd[1:],
                                                               force_serialize=True, env=target_env,
                                                               verbose=True)
             cmd_type = f' (wrapped by meson {reason})'
@@ -2209,8 +2209,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 outfilelist = outfilelist[len(generator.outputs):]
             args = self.replace_paths(target, args, override_subdir=subdir)
             cmdlist = exe_arr + self.replace_extra_args(args, genlist)
-            cmdlist, reason = self.as_meson_exe_cmdline('generator ' + cmdlist[0],
-                                                        cmdlist[0], cmdlist[1:],
+            cmdlist, reason = self.as_meson_exe_cmdline(cmdlist[0], cmdlist[1:],
                                                         capture=outfiles[0] if generator.capture else None)
             abs_pdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
             os.makedirs(abs_pdir, exist_ok=True)
