@@ -620,8 +620,8 @@ class BuildTarget(Target):
         self.is_unity = unity_opt == 'on' or (unity_opt == 'subprojects' and subproject != '')
         self.environment = environment
         self.compilers = OrderedDict() # type: OrderedDict[str, Compiler]
-        self.objects = []
-        self.external_deps = []
+        self.objects: T.List[T.Union[str, 'File', 'ExtractedObjects']] = []
+        self.external_deps: T.List[dependencies.Dependency] = []
         self.include_dirs = []
         self.link_language = kwargs.get('link_language')
         self.link_targets: T.List[BuildTarget] = []
@@ -635,10 +635,10 @@ class BuildTarget(Target):
         # as Vala which generates .vapi and .h besides the compiled output.
         self.outputs = [self.filename]
         self.need_install = False
-        self.pch = {}
+        self.pch: T.Dict[str, T.List[str]] = {}
         self.extra_args: T.Dict[str, T.List['FileOrString']] = {}
         self.sources: T.List[File] = []
-        self.generated: T.List[T.Union[GeneratedList, CustomTarget, CustomTargetIndex]] = []
+        self.generated: T.List['GeneratedTypes'] = []
         self.d_features = {}
         self.pic = False
         self.pie = False
@@ -882,7 +882,7 @@ class BuildTarget(Target):
                 self.kwargs[t] = listify(self.kwargs[t], flatten=True)
 
     def extract_objects(self, srclist: T.List[FileOrString]) -> ExtractedObjects:
-        obj_src = []
+        obj_src: T.List['File'] = []
         sources_set = set(self.sources)
         for src in srclist:
             if isinstance(src, str):
@@ -940,7 +940,7 @@ class BuildTarget(Target):
     def get_custom_install_dir(self):
         return self.install_dir
 
-    def get_custom_install_mode(self):
+    def get_custom_install_mode(self) -> T.Optional['FileMode']:
         return self.install_mode
 
     def process_kwargs(self, kwargs, environment):
@@ -1140,7 +1140,7 @@ class BuildTarget(Target):
             raise InvalidArguments(f'Argument {arg} to {self.name!r} must be boolean')
         return val
 
-    def get_filename(self):
+    def get_filename(self) -> str:
         return self.filename
 
     def get_outputs(self) -> T.List[str]:
@@ -1167,23 +1167,20 @@ class BuildTarget(Target):
     def get_sources(self):
         return self.sources
 
-    def get_objects(self):
+    def get_objects(self) -> T.List[T.Union[str, 'File', 'ExtractedObjects']]:
         return self.objects
 
-    def get_generated_sources(self):
+    def get_generated_sources(self) -> T.List['GeneratedTypes']:
         return self.generated
 
     def should_install(self) -> bool:
         return self.need_install
 
-    def has_pch(self):
-        return len(self.pch) > 0
+    def has_pch(self) -> bool:
+        return bool(self.pch)
 
-    def get_pch(self, language):
-        try:
-            return self.pch[language]
-        except KeyError:
-            return[]
+    def get_pch(self, language: str) -> T.List[str]:
+        return self.pch.get(language, [])
 
     def get_include_dirs(self):
         return self.include_dirs
@@ -1233,10 +1230,10 @@ You probably should put it in link_with instead.''')
                                        'declare_dependency()).')
             self.added_deps.add(dep)
 
-    def get_external_deps(self):
+    def get_external_deps(self) -> T.List[dependencies.Dependency]:
         return self.external_deps
 
-    def is_internal(self):
+    def is_internal(self) -> bool:
         return isinstance(self, StaticLibrary) and not self.need_install
 
     def link(self, target):
@@ -1295,14 +1292,14 @@ You probably should put it in link_with instead.''')
                 self.objects += t.extract_all_objects_recurse()
             self.link_whole_targets.append(t)
 
-    def extract_all_objects_recurse(self):
+    def extract_all_objects_recurse(self) -> T.List[T.Union[str, 'ExtractedObjects']]:
         objs = [self.extract_all_objects()]
         for t in self.link_targets:
             if t.is_internal():
                 objs += t.extract_all_objects_recurse()
         return objs
 
-    def add_pch(self, language, pchlist):
+    def add_pch(self, language: str, pchlist: T.List[str]) -> None:
         if not pchlist:
             return
         elif len(pchlist) == 1:
@@ -1403,7 +1400,7 @@ You probably should put it in link_with instead.''')
                 return prelinker
         raise MesonException(f'Could not determine prelinker for {self.name!r}.')
 
-    def get_clink_dynamic_linker_and_stdlibs(self):
+    def get_clink_dynamic_linker_and_stdlibs(self) -> T.Tuple['Compiler', T.List[str]]:
         '''
         We use the order of languages in `clink_langs` to determine which
         linker to use in case the target has sources compiled with multiple
@@ -1434,8 +1431,8 @@ You probably should put it in link_with instead.''')
                         f'Could not get a dynamic linker for build target {self.name!r}. '
                         f'Requires a linker for language "{l}", but that is not '
                         'a project language.')
-                stdlib_args = []
-                added_languages = set()
+                stdlib_args: T.List[str] = []
+                added_languages: T.Set[str] = set()
                 for dl in itertools.chain(self.compilers, dep_langs):
                     if dl != linker.language:
                         stdlib_args += all_compilers[dl].language_stdlib_only_link_flags()
@@ -1457,7 +1454,7 @@ You probably should put it in link_with instead.''')
                 return True
         return False
 
-    def get_using_msvc(self):
+    def get_using_msvc(self) -> bool:
         '''
         Check if the dynamic linker is MSVC. Used by Executable, StaticLibrary,
         and SharedLibrary for deciding when to use MSVC-specific file naming
