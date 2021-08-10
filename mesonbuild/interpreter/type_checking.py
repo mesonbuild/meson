@@ -134,8 +134,6 @@ def _env_validator(value: T.Union[EnvironmentVariables, T.List['TYPE_var'], T.Di
         split = v.split('=', 1)
         if len(split) == 1:
             return f'"{v}" is not two string values separated by an "="'
-        # We have to cast here, assert isn't good enough to narrow from
-        # Tuple[str, ...] -> Tuple[str, str]
         return None
 
     if isinstance(value, str):
@@ -159,8 +157,23 @@ def _env_validator(value: T.Union[EnvironmentVariables, T.List['TYPE_var'], T.Di
     return None
 
 
+def _env_convertor(value: T.Union[EnvironmentVariables, T.List[str], T.Dict[str, str], str, None]) -> EnvironmentVariables:
+    def splitter(input: str) -> T.Tuple[str, str]:
+        a, b = input.split('=', 1)
+        return (a.strip(), b.strip())
+
+    if isinstance(value, (str, list)):
+        return EnvironmentVariables(dict(splitter(v) for v in listify(value)))
+    elif isinstance(value, dict):
+        return EnvironmentVariables(value)
+    elif value is None:
+        return EnvironmentVariables()
+    return value
+
+
 ENV_KW: KwargInfo[T.Union[EnvironmentVariables, T.List, T.Dict, str, None]] = KwargInfo(
     'env',
-    (EnvironmentVariables, list, dict, str),
+    (EnvironmentVariables, list, dict, str, NoneType),
     validator=_env_validator,
+    convertor=_env_convertor,
 )
