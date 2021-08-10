@@ -10,7 +10,7 @@ from ..build import EnvironmentVariables
 from ..coredata import UserFeatureOption
 from ..interpreterbase import TYPE_var
 from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo
-from ..mesonlib import FileMode, MachineChoice, listify
+from ..mesonlib import FileMode, MachineChoice, listify, has_path_sep
 
 # Helper definition for type checks that are `Optional[T]`
 NoneType: T.Type[None] = type(None)
@@ -176,4 +176,10 @@ ENV_KW: KwargInfo[T.Union[EnvironmentVariables, T.List, T.Dict, str, None]] = Kw
     (EnvironmentVariables, list, dict, str, NoneType),
     validator=_env_validator,
     convertor=_env_convertor,
+)
+
+DEPFILE_KW = KwargInfo(
+    'depfile',
+    str,
+    validator=lambda x: 'Depfile must be a plain filename with a subdirectory' if has_path_sep(x) else None
 )

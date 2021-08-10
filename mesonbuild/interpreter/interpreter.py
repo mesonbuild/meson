@@ -50,6 +50,7 @@ from .interpreterobjects import (
     NullSubprojectInterpreter,
 )
 from .type_checking import (
+    DEPFILE_KW,
     ENV_KW,
     INSTALL_MODE_KW,
     LANGUAGE_KW,
@@ -1717,7 +1718,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         'generator',
         KwargInfo('arguments', ContainerTypeInfo(list, str, allow_empty=False), required=True, listify=True),
         KwargInfo('output', ContainerTypeInfo(list, str, allow_empty=False), required=True, listify=True),
-        KwargInfo('depfile', (str, NoneType), validator=lambda x: 'Depfile must be a plain filename with a subdirectory' if has_path_sep(x) else None),
+        DEPFILE_KW,
         KwargInfo('capture', bool, default=False, since='0.43.0'),
         KwargInfo('depends', ContainerTypeInfo(list, (build.BuildTarget, build.CustomTarget)), default=[], listify=True),
     )
