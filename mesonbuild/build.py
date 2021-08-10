@@ -2573,6 +2573,10 @@ class CustomTargetIndex(HoldableObject):
         self.output = output
         self.for_machine = target.for_machine
 
+    @property
+    def name(self) -> str:
+        return f'{self.target.name}[{self.output}]'
+
     def __repr__(self):
         return '<CustomTargetIndex: {!r}[{}]>'.format(
             self.target, self.target.get_outputs().index(self.output))
