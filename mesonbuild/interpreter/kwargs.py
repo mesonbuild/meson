@@ -88,7 +88,7 @@ class FuncGenerator(TypedDict):
 
     arguments: T.List[str]
     output: T.List[str]
-    depfile: bool
+    depfile: T.Optional[str]
     capture:  bool
     depends: T.List[T.Union[build.BuildTarget, build.CustomTarget]]
 

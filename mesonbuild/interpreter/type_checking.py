@@ -178,8 +178,8 @@ ENV_KW: KwargInfo[T.Union[EnvironmentVariables, T.List, T.Dict, str, None]] = Kw
     convertor=_env_convertor,
 )
 
-DEPFILE_KW = KwargInfo(
+DEPFILE_KW: KwargInfo[T.Optional[str]] = KwargInfo(
     'depfile',
-    str,
+    (str, type(None)),
     validator=lambda x: 'Depfile must be a plain filename with a subdirectory' if has_path_sep(x) else None
 )
