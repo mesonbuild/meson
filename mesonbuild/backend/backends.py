@@ -149,9 +149,18 @@ class SubdirInstallData(InstallDataBase):
         self.exclude = exclude
 
 class ExecutableSerialisation:
-    def __init__(self, cmd_args, env: T.Optional[build.EnvironmentVariables] = None, exe_wrapper=None,
-                 workdir=None, extra_paths=None, capture=None, feed=None,
-                 tag: T.Optional[str] = None) -> None:
+
+    # XXX: should capture and feed default to False, instead of None?
+
+    def __init__(self, cmd_args: T.List[str],
+                 env: T.Optional[build.EnvironmentVariables] = None,
+                 exe_wrapper: T.Optional['programs.ExternalProgram'] = None,
+                 workdir: T.Optional[str] = None,
+                 extra_paths: T.Optional[T.List] = None,
+                 capture: T.Optional[bool] = None,
+                 feed: T.Optional[bool] = None,
+                 tag: T.Optional[str] = None,
+                 ) -> None:
         self.cmd_args = cmd_args
         self.env = env
         if exe_wrapper is not None:
