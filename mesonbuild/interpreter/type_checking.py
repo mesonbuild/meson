@@ -6,7 +6,7 @@
 import typing as T
 
 from .. import compilers
-from ..build import EnvironmentVariables
+from ..build import EnvironmentVariables, CustomTarget, BuildTarget
 from ..coredata import UserFeatureOption
 from ..interpreterbase import TYPE_var
 from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo
@@ -182,4 +182,11 @@ DEPFILE_KW: KwargInfo[T.Optional[str]] = KwargInfo(
     'depfile',
     (str, type(None)),
     validator=lambda x: 'Depfile must be a plain filename with a subdirectory' if has_path_sep(x) else None
+)
+
+DEPENDS_KW: KwargInfo[T.List[T.Union[BuildTarget, CustomTarget]]] = KwargInfo(
+    'depends',
+    ContainerTypeInfo(list, (BuildTarget, CustomTarget)),
+    listify=True,
+    default=[],
 )
