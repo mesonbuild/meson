@@ -39,7 +39,7 @@ class BaseTest(TypedDict):
     workdir: T.Optional[str]
     depends: T.List[T.Union[build.CustomTarget, build.BuildTarget]]
     priority: int
-    env: T.Union[EnvironmentVariablesObject, T.List[str], T.Dict[str, str], str]
+    env: EnvironmentVariablesObject
     suite: T.List[str]
 
 
