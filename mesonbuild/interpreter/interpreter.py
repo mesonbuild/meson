@@ -50,6 +50,7 @@ from .interpreterobjects import (
     NullSubprojectInterpreter,
 )
 from .type_checking import (
+    COMMAND_KW,
     DEPENDS_KW,
     DEPFILE_KW,
     ENV_KW,
@@ -1669,14 +1670,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     @typed_pos_args('run_target', str)
     @typed_kwargs(
         'run_target',
-        KwargInfo(
-            'command',
-            # TODO: should accept CustomTargetIndex as well?
-            ContainerTypeInfo(list, (str, build.BuildTarget, build.CustomTarget, ExternalProgram, mesonlib.File), allow_empty=False),
-            required=True,
-            listify=True,
-            default=[],
-        ),
+        COMMAND_KW,
         DEPENDS_KW,
         ENV_KW.evolve(since='0.57.0'),
     )
