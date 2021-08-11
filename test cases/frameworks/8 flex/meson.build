@@ -30,4 +30,5 @@ pfiles = pgen.process('parser.y')
 e = executable('pgen', 'prog.c',
 lfiles, pfiles)
 
-test('parsertest', e)
+test('parsertest', e,
+    args: [meson.current_source_dir() / 'testfile'])

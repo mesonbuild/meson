@@ -11,7 +11,7 @@ extern int yyparse();
 int main(int argc, char **argv) {
     int input;
     if(argc != 2) {
-        printf("%s <input file>");
+        printf("%s <input file>\n", argv[0]);
         return 1;
     }
     input = open(argv[1], O_RDONLY);
