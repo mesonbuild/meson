@@ -535,18 +535,27 @@ class Target(HoldableObject):
     def get_default_install_dir(self, env: environment.Environment) -> T.Tuple[str, str]:
         raise NotImplementedError
 
+    def get_custom_install_dir(self) -> T.List[T.Union[str, bool]]:
+        raise NotImplementedError
+
     def get_install_dir(self, environment: environment.Environment) -> T.Tuple[T.Any, str, bool]:
         # Find the installation directory.
         default_install_dir, install_dir_name = self.get_default_install_dir(environment)
         outdirs = self.get_custom_install_dir()
-        if outdirs[0] is not None and outdirs[0] != default_install_dir and outdirs[0] is not True:
+        if outdirs and outdirs[0] != default_install_dir and outdirs[0] is not True:
             # Either the value is set to a non-default value, or is set to
             # False (which means we want this specific output out of many
             # outputs to not be installed).
             custom_install_dir = True
         else:
             custom_install_dir = False
-            outdirs[0] = default_install_dir
+            # if outdirs is empty we need to set to something, otherwise we set
+            # only the first value to the default
+            if outdirs:
+                outdirs[0] = default_install_dir
+            else:
+                outdirs = [default_install_dir]
+
         return outdirs, install_dir_name, custom_install_dir
 
     def get_basename(self) -> str:
@@ -640,6 +649,8 @@ class Target(HoldableObject):
 
 class BuildTarget(Target):
     known_kwargs = known_build_target_kwargs
+
+    install_dir: T.List[T.Union[str, bool]]
 
     def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
                  sources: T.List['SourceOutputs'], objects, environment: environment.Environment, kwargs):
@@ -997,7 +1008,7 @@ class BuildTarget(Target):
     def get_default_install_dir(self, environment: environment.Environment) -> T.Tuple[str, str]:
         return environment.get_libdir(), '{libdir}'
 
-    def get_custom_install_dir(self):
+    def get_custom_install_dir(self) -> T.List[T.Union[str, bool]]:
         return self.install_dir
 
     def get_custom_install_mode(self) -> T.Optional['FileMode']:
@@ -1081,7 +1092,7 @@ class BuildTarget(Target):
         self.add_deps(deplist)
         # If an item in this list is False, the output corresponding to
         # the list index of that item will not be installed
-        self.install_dir = typeslistify(kwargs.get('install_dir', [None]),
+        self.install_dir = typeslistify(kwargs.get('install_dir', []),
                                         (str, bool))
         self.install_mode = kwargs.get('install_mode', None)
         self.install_tag = stringlistify(kwargs.get('install_tag', [None]))
@@ -2292,6 +2303,8 @@ class CustomTarget(Target, CommandBase):
         'env',
     }
 
+    install_dir: T.List[T.Union[str, bool]]
+
     def __init__(self, name: str, subdir: str, subproject: str, kwargs: T.Dict[str, T.Any],
                  absolute_paths: bool = False, backend: T.Optional['Backend'] = None):
         self.typename = 'custom'
@@ -2418,15 +2431,19 @@ class CustomTarget(Target, CommandBase):
             self.install_mode = kwargs.get('install_mode', None)
             # If only one tag is provided, assume all outputs have the same tag.
             # Otherwise, we must have as much tags as outputs.
-            self.install_tag = typeslistify(kwargs.get('install_tag', [None]), (str, bool))
-            if len(self.install_tag) == 1:
-                self.install_tag = self.install_tag * len(self.outputs)
-            elif len(self.install_tag) != len(self.outputs):
-                m = f'Target {self.name!r} has {len(self.outputs)} outputs but {len(self.install_tag)} "install_tag"s were found.'
+            install_tag: T.List[T.Union[str, bool, None]] = typeslistify(kwargs.get('install_tag', []), (str, bool, type(None)))
+            if not install_tag:
+                self.install_tag = [None] * len(self.outputs)
+            elif len(install_tag) == 1:
+                self.install_tag = install_tag * len(self.outputs)
+            elif install_tag and len(install_tag) != len(self.outputs):
+                m = f'Target {self.name!r} has {len(self.outputs)} outputs but {len(install_tag)} "install_tag"s were found.'
                 raise InvalidArguments(m)
+            else:
+                self.install_tag = install_tag
         else:
             self.install = False
-            self.install_dir = [None]
+            self.install_dir = []
             self.install_mode = None
             self.install_tag = []
         if kwargs.get('build_always') is not None and kwargs.get('build_always_stale') is not None:
@@ -2459,7 +2476,7 @@ class CustomTarget(Target, CommandBase):
     def should_install(self) -> bool:
         return self.install
 
-    def get_custom_install_dir(self):
+    def get_custom_install_dir(self) -> T.List[T.Union[str, bool]]:
         return self.install_dir
 
     def get_custom_install_mode(self) -> T.Optional['FileMode']:
@@ -2693,7 +2710,7 @@ class CustomTargetIndex(HoldableObject):
     def extract_all_objects_recurse(self) -> T.List[T.Union[str, 'ExtractedObjects']]:
         return self.target.extract_all_objects_recurse()
 
-    def get_custom_install_dir(self):
+    def get_custom_install_dir(self) -> T.List[T.Union[str, bool]]:
         return self.target.get_custom_install_dir()
 
 class ConfigurationData(HoldableObject):

@@ -52,11 +52,12 @@ from .interpreterobjects import (
 from .type_checking import (
     COMMAND_KW,
     DEPENDS_KW,
+    DEPEND_FILES_KW,
     DEPFILE_KW,
     ENV_KW,
     INSTALL_MODE_KW,
     LANGUAGE_KW,
-    NATIVE_KW,
+    NATIVE_KW, OVERRIDE_OPTIONS_KW,
     REQUIRED_KW,
     NoneType,
     in_set_validator,
@@ -87,6 +88,18 @@ if T.TYPE_CHECKING:
     SourceOutputs = T.Union[mesonlib.File, build.GeneratedList,
                             build.BuildTarget, build.CustomTargetIndex, build.CustomTarget,
                             build.GeneratedList]
+
+
+def _output_validator(outputs: T.List[str]) -> T.Optional[str]:
+    for i in outputs:
+        if i == '':
+            return 'Output must not be empty.'
+        elif i.strip() == '':
+            return 'Output must not consist only of whitespace.'
+        elif has_path_sep(i):
+            return f'Output {i!r} must not contain a path segment.'
+
+    return None
 
 
 def stringifyUserArguments(args, quote=False):
@@ -1626,20 +1639,71 @@ external dependencies (including libraries) must go to "dependencies".''')
     def func_subdir_done(self, node, args, kwargs):
         raise SubdirDoneRequest()
 
-    @FeatureNewKwargs('custom_target', '0.60.0', ['install_tag'])
-    @FeatureNewKwargs('custom_target', '0.57.0', ['env'])
-    @FeatureNewKwargs('custom_target', '0.48.0', ['console'])
-    @FeatureNewKwargs('custom_target', '0.47.0', ['install_mode', 'build_always_stale'])
-    @FeatureNewKwargs('custom_target', '0.40.0', ['build_by_default'])
-    @FeatureNewKwargs('custom_target', '0.59.0', ['feed'])
-    @permittedKwargs({'input', 'output', 'command', 'install', 'install_dir', 'install_mode',
-                      'build_always', 'capture', 'depends', 'depend_files', 'depfile',
-                      'build_by_default', 'build_always_stale', 'console', 'env',
-                      'feed', 'install_tag'})
     @typed_pos_args('custom_target', optargs=[str])
-    def func_custom_target(self, node: mparser.FunctionNode, args: T.Tuple[T.Optional[str]], kwargs: 'TYPE_kwargs') -> build.CustomTarget:
-        if 'depfile' in kwargs and ('@BASENAME@' in kwargs['depfile'] or '@PLAINNAME@' in kwargs['depfile']):
+    @typed_kwargs(
+        'custom_target',
+        COMMAND_KW,
+        DEPEND_FILES_KW,
+        DEPENDS_KW,
+        DEPFILE_KW,
+        ENV_KW.evolve(since='0.57.0'),
+        INSTALL_MODE_KW.evolve(since='0.47.0'),
+        OVERRIDE_OPTIONS_KW,
+        KwargInfo('build_by_default', (bool, type(None)), since='0.40.0'),
+        KwargInfo('build_always', (bool, type(None)), deprecated='0.47.0'),
+        KwargInfo('build_always_stale', (bool, type(None)), since='0.47.0'),
+        KwargInfo('feed', bool, default=False, since='0.59.0'),
+        KwargInfo('capture', bool, default=False),
+        KwargInfo('console', bool, default=False, since='0.48.0'),
+        KwargInfo('install', bool, default=False),
+        KwargInfo('install_dir', ContainerTypeInfo(list, (str, bool)), listify=True, default=[]),
+        KwargInfo(
+            'output',
+            ContainerTypeInfo(list, str, allow_empty=False),
+            listify=True,
+            required=True,
+            default=[],
+            validator=_output_validator,
+        ),
+        KwargInfo(
+            'input',
+            ContainerTypeInfo(list, (str, mesonlib.File, ExternalProgram, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, build.ExtractedObjects, build.GeneratedList)),
+            listify=True,
+            default=[],
+        ),
+        KwargInfo('install_tag', ContainerTypeInfo(list, (str, bool)), listify=True, default=[], since='0.60.0'),
+    )
+    def func_custom_target(self, node: mparser.FunctionNode, args: T.Tuple[str],
+                           kwargs: 'kwargs.CustomTarget') -> build.CustomTarget:
+        if kwargs['depfile'] and ('@BASENAME@' in kwargs['depfile'] or '@PLAINNAME@' in kwargs['depfile']):
             FeatureNew.single_use('substitutions in custom_target depfile', '0.47.0', self.subproject)
+
+        # Don't mutate the kwargs
+        kwargs = kwargs.copy()
+
+        # Remap build_always to build_by_default and build_always_stale
+        if kwargs['build_always'] is not None and kwargs['build_always_stale'] is not None:
+            raise InterpreterException('CustomTarget: "build_always" and "build_always_stale" are mutually exclusive')
+
+        if kwargs['build_by_default'] is None and kwargs['install']:
+            kwargs['build_by_default'] = True
+
+        elif kwargs['build_always'] is not None:
+            if kwargs['build_by_default'] is None:
+                kwargs['build_by_default'] = kwargs['build_always']
+            kwargs['build_always_stale'] = kwargs['build_by_default']
+
+            # Set this to None to satisfy process_kwargs
+            kwargs['build_always'] = None
+
+        # These are are nullaable so that we can konw whether they're explicitly
+        # set or not. If they haven't been overwritten, set them to their true
+        # default
+        if kwargs['build_by_default'] is None:
+            kwargs['build_by_default'] = False
+        if kwargs['build_always_stale'] is None:
+            kwargs['build_always_stale'] = False
+
         return self._func_custom_target_impl(node, args, kwargs)
 
     def _func_custom_target_impl(self, node, args, kwargs):

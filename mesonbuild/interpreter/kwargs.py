@@ -10,7 +10,7 @@ from typing_extensions import TypedDict, Literal
 
 from .. import build
 from .. import coredata
-from ..mesonlib import MachineChoice, File, FileMode, FileOrString
+from ..mesonlib import MachineChoice, File, FileMode, FileOrString, OptionKey
 from ..programs import ExternalProgram
 
 
@@ -162,3 +162,27 @@ class RunTarget(TypedDict):
     command: T.List[T.Union[str, build.BuildTarget, build.CustomTarget, ExternalProgram, File]]
     depends: T.List[T.Union[build.BuildTarget, build.CustomTarget]]
     env: build.EnvironmentVariables
+
+
+class CustomTarget(TypedDict):
+
+    build_always: bool
+    build_always_stale: bool
+    build_by_default: bool
+    capture: bool
+    command: T.List[T.Union[str, build.BuildTarget, build.CustomTarget,
+                            build.CustomTargetIndex, ExternalProgram, File]]
+    consonle: bool
+    depend_files: T.List[FileOrString]
+    depends: T.List[T.Union[build.BuildTarget, build.CustomTarget]]
+    depfile: T.Optional[str]
+    env: build.EnvironmentVariables
+    feed: bool
+    input: T.List[T.Union[str, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex,
+                          build.ExtractedObjects, build.GeneratedList, ExternalProgram, File]]
+    install: bool
+    install_dir: T.List[T.Union[str, bool]]
+    install_mode: FileMode
+    install_tag: T.List[T.Union[str, bool]]
+    output: T.List[str]
+    override_options: T.Dict[OptionKey, str]
