@@ -11,6 +11,7 @@ from ..coredata import UserFeatureOption
 from ..interpreterbase import TYPE_var
 from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo
 from ..mesonlib import File, FileMode, MachineChoice, listify, has_path_sep
+from ..programs import ExternalProgram
 
 # Helper definition for type checks that are `Optional[T]`
 NoneType: T.Type[None] = type(None)
@@ -194,6 +195,15 @@ DEPENDS_KW: KwargInfo[T.List[T.Union[BuildTarget, CustomTarget]]] = KwargInfo(
 DEPEND_FILES_KW: KwargInfo[T.List[T.Union[str, File]]] = KwargInfo(
     'depend_files',
     ContainerTypeInfo(list, (File, str)),
+    listify=True,
+    default=[],
+)
+
+COMMAND_KW: KwargInfo[T.List[T.Union[BuildTarget, CustomTarget, ExternalProgram, File]]] = KwargInfo(
+    'command',
+    # TODO: should accept CustomTargetIndex as well?
+    ContainerTypeInfo(list, (str, BuildTarget, CustomTarget, ExternalProgram, File), allow_empty=False),
+    required=True,
     listify=True,
     default=[],
 )
