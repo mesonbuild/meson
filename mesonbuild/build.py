@@ -2388,7 +2388,7 @@ class CustomTarget(Target, CommandBase):
             raise InvalidArguments("Can't both capture output and output to console")
         if 'command' not in kwargs:
             raise InvalidArguments('Missing keyword argument "command".')
-        if 'depfile' in kwargs:
+        if kwargs.get('depfile') is not None:
             depfile = kwargs['depfile']
             if not isinstance(depfile, str):
                 raise InvalidArguments('Depfile must be a string.')
@@ -2410,32 +2410,32 @@ class CustomTarget(Target, CommandBase):
                     raise InvalidArguments('"install_dir" must be specified '
                                            'when installing a target')
 
-                if isinstance(kwargs['install_dir'], list):
-                    FeatureNew.single_use('multiple install_dir for custom_target', '0.40.0', self.subproject)
-                # If an item in this list is False, the output corresponding to
-                # the list index of that item will not be installed
-                self.install_dir = typeslistify(kwargs['install_dir'], (str, bool))
-                self.install_mode = kwargs.get('install_mode', None)
-                # If only one tag is provided, assume all outputs have the same tag.
-                # Otherwise, we must have as much tags as outputs.
-                self.install_tag = typeslistify(kwargs.get('install_tag', [None]), (str, bool))
-                if len(self.install_tag) == 1:
-                    self.install_tag = self.install_tag * len(self.outputs)
-                elif len(self.install_tag) != len(self.outputs):
-                    m = f'Target {self.name!r} has {len(self.outputs)} outputs but {len(self.install_tag)} "install_tag"s were found.'
-                    raise InvalidArguments(m)
+            if isinstance(kwargs['install_dir'], list):
+                FeatureNew.single_use('multiple install_dir for custom_target', '0.40.0', self.subproject)
+            # If an item in this list is False, the output corresponding to
+            # the list index of that item will not be installed
+            self.install_dir = typeslistify(kwargs['install_dir'], (str, bool))
+            self.install_mode = kwargs.get('install_mode', None)
+            # If only one tag is provided, assume all outputs have the same tag.
+            # Otherwise, we must have as much tags as outputs.
+            self.install_tag = typeslistify(kwargs.get('install_tag', [None]), (str, bool))
+            if len(self.install_tag) == 1:
+                self.install_tag = self.install_tag * len(self.outputs)
+            elif len(self.install_tag) != len(self.outputs):
+                m = f'Target {self.name!r} has {len(self.outputs)} outputs but {len(self.install_tag)} "install_tag"s were found.'
+                raise InvalidArguments(m)
         else:
             self.install = False
             self.install_dir = [None]
             self.install_mode = None
             self.install_tag = []
-        if 'build_always' in kwargs and 'build_always_stale' in kwargs:
+        if kwargs.get('build_always') is not None and kwargs.get('build_always_stale') is not None:
             raise InvalidArguments('build_always and build_always_stale are mutually exclusive. Combine build_by_default and build_always_stale.')
-        elif 'build_always' in kwargs:
-            if 'build_by_default' not in kwargs:
+        elif kwargs.get('build_always') is not None:
+            if kwargs.get('build_by_default') is not None:
                 self.build_by_default = kwargs['build_always']
             self.build_always_stale = kwargs['build_always']
-        elif 'build_always_stale' in kwargs:
+        elif kwargs.get('build_always_stale') is not None:
             self.build_always_stale = kwargs['build_always_stale']
         if not isinstance(self.build_always_stale, bool):
             raise InvalidArguments('Argument build_always_stale must be a boolean.')
