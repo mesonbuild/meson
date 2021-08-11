@@ -1898,6 +1898,8 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     def _get_kwarg_install_mode(self, kwargs: T.Dict[str, T.Any]) -> T.Optional[FileMode]:
         if kwargs.get('install_mode', None) is None:
             return None
+        if isinstance(kwargs['install_mode'], FileMode):
+            return kwargs['install_mode']
         install_mode: T.List[str] = []
         mode = mesonlib.typeslistify(kwargs.get('install_mode', []), (str, int))
         for m in mode:
