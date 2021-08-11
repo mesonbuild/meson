@@ -6,11 +6,11 @@
 import typing as T
 
 from .. import compilers
-from ..build import EnvironmentVariables, CustomTarget, BuildTarget
+from ..build import EnvironmentVariables, CustomTarget, BuildTarget, CustomTargetIndex
 from ..coredata import UserFeatureOption
 from ..interpreterbase import TYPE_var
 from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo
-from ..mesonlib import File, FileMode, MachineChoice, listify, has_path_sep
+from ..mesonlib import File, FileMode, MachineChoice, listify, has_path_sep, OptionKey
 from ..programs import ExternalProgram
 
 # Helper definition for type checks that are `Optional[T]`
@@ -158,13 +158,21 @@ def _env_validator(value: T.Union[EnvironmentVariables, T.List['TYPE_var'], T.Di
     return None
 
 
-def _env_convertor(value: T.Union[EnvironmentVariables, T.List[str], T.Dict[str, str], str, None]) -> EnvironmentVariables:
-    def splitter(input: str) -> T.Tuple[str, str]:
-        a, b = input.split('=', 1)
-        return (a.strip(), b.strip())
 
-    if isinstance(value, (str, list)):
-        return EnvironmentVariables(dict(splitter(v) for v in listify(value)))
+def split_equal_string(input: str) -> T.Tuple[str, str]:
+    """Split a string in the form `x=y`
+
+    This assumes that the string has already been validated to split properly.
+    """
+    a, b = input.split('=', 1)
+    return (a, b)
+
+
+def _env_convertor(value: T.Union[EnvironmentVariables, T.List[str], T.List[T.List[str]], T.Dict[str, str], str, None]) -> EnvironmentVariables:
+    if isinstance(value, str):
+        return EnvironmentVariables(dict([split_equal_string(value)]))
+    elif isinstance(value, list):
+        return EnvironmentVariables(dict(split_equal_string(v) for v in listify(value)))
     elif isinstance(value, dict):
         return EnvironmentVariables(value)
     elif value is None:
@@ -199,11 +207,29 @@ DEPEND_FILES_KW: KwargInfo[T.List[T.Union[str, File]]] = KwargInfo(
     default=[],
 )
 
-COMMAND_KW: KwargInfo[T.List[T.Union[BuildTarget, CustomTarget, ExternalProgram, File]]] = KwargInfo(
+COMMAND_KW: KwargInfo[T.List[T.Union[str, BuildTarget, CustomTarget, CustomTargetIndex, ExternalProgram, File]]] = KwargInfo(
     'command',
     # TODO: should accept CustomTargetIndex as well?
-    ContainerTypeInfo(list, (str, BuildTarget, CustomTarget, ExternalProgram, File), allow_empty=False),
+    ContainerTypeInfo(list, (str, BuildTarget, CustomTarget, CustomTargetIndex, ExternalProgram, File), allow_empty=False),
     required=True,
     listify=True,
     default=[],
+)
+
+def _override_options_convertor(raw: T.List[str]) -> T.Dict[OptionKey, str]:
+    output: T.Dict[OptionKey, str] = {}
+    for each in raw:
+        k, v = split_equal_string(each)
+        output[OptionKey.from_string(k)] = v
+    return output
+
+
+OVERRIDE_OPTIONS_KW: KwargInfo[T.List[str]] = KwargInfo(
+    'override_options',
+    ContainerTypeInfo(list, str),
+    listify=True,
+    default=[],
+    # Reusing the env validator is a littl overkill, but nicer than duplicating the code
+    validator=_env_validator,
+    convertor=_override_options_convertor,
 )

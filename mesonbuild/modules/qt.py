@@ -556,14 +556,14 @@ class QtBaseModule(ExtensionModule):
             else:
                 outdir = state.subdir
             cmd = [self.tools['lrelease'], '@INPUT@', '-qm', '@OUTPUT@']
-            lrelease_kwargs = {'output': '@BASENAME@.qm',
-                               'input': ts,
-                               'install': kwargs['install'],
-                               'install_tag': 'i18n',
-                               'build_by_default': kwargs['build_by_default'],
-                               'command': cmd}
-            if install_dir is not None:
-                lrelease_kwargs['install_dir'] = install_dir
+            lrelease_kwargs: T.Dict[str, T.Any] = {
+                'output': '@BASENAME@.qm',
+                'input': ts,
+                'install': kwargs['install'],
+                'install_dir': install_dir or [],
+                'install_tag': 'i18n',
+                'build_by_default': kwargs['build_by_default'],
+                'command': cmd}
             lrelease_target = build.CustomTarget(f'qt{self.qt_version}-compile-{ts}', outdir, state.subproject, lrelease_kwargs)
             translations.append(lrelease_target)
         if qresource:

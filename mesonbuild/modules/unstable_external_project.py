@@ -71,7 +71,7 @@ class ExternalProject(NewExtensionModule):
 
         self.targets = self._create_targets()
 
-    def _configure(self, state: ModuleState):
+    def _configure(self, state: ModuleState) -> None:
         if self.configure_command == 'waf':
             FeatureNew('Waf external project', '0.60.0').use(self.subproject)
             waf = state.find_program('waf')

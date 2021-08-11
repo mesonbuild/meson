@@ -381,7 +381,8 @@ class PkgConfigModule(ExtensionModule):
                         if uninstalled:
                             install_dir = os.path.dirname(state.backend.get_target_filename_abs(l))
                         else:
-                            install_dir = l.get_custom_install_dir()[0]
+                            _i = l.get_custom_install_dir()
+                            install_dir = _i[0] if _i else None
                         if install_dir is False:
                             continue
                         is_custom_target = isinstance(l, (build.CustomTarget, build.CustomTargetIndex))
@@ -471,9 +472,9 @@ class PkgConfigModule(ExtensionModule):
                 raise mesonlib.MesonException('Pkgconfig_gen first positional argument must be a library object')
             default_name = mainlib.name
             default_description = state.project_name + ': ' + mainlib.name
-            install_dir = mainlib.get_custom_install_dir()[0]
-            if isinstance(install_dir, str):
-                default_install_dir = os.path.join(install_dir, 'pkgconfig')
+            install_dir = mainlib.get_custom_install_dir()
+            if install_dir and isinstance(install_dir[0], str):
+                default_install_dir = os.path.join(install_dir[0], 'pkgconfig')
         elif len(args) > 1:
             raise mesonlib.MesonException('Too many positional arguments passed to Pkgconfig_gen.')
 
