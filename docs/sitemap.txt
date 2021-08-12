@@ -83,7 +83,6 @@ index.md
 		Using-the-WrapDB.md
 		Using-wraptool.md
 		Wrap-best-practices-and-tips.md
-		Wrap-review-guidelines.md
 		Shipping-prebuilt-binaries-as-wraps.md
 		fallback-wraptool.md
 	Release-notes.md
