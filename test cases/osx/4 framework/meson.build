@@ -21,6 +21,8 @@ else
       error('OpenGL framework not found')
     endif
     assert(dep_libs.type_name() == 'appleframeworks', 'type_name is wrong')
+    # Only add the C compiler now, to ensure all lookups above were done with the ObjC one.
+    add_languages('c')
     stlib = static_library('stat', 'stat.c', install : true, dependencies: dep_libs)
     exe = executable('prog', 'prog.c', install : true, dependencies: dep_main)
     uikit_dep = dependency('appleframeworks', modules: 'UIKit', required: false)
