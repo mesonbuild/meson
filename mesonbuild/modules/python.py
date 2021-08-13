@@ -344,6 +344,7 @@ if T.TYPE_CHECKING:
 
         pure: bool
         subdir: str
+        install_tag: T.Optional[str]
 
 
 class PythonInstallation(ExternalProgramHolder):
@@ -436,14 +437,15 @@ class PythonInstallation(ExternalProgramHolder):
         return dep
 
     @typed_pos_args('install_data', varargs=(str, mesonlib.File))
-    @typed_kwargs('python_installation.install_sources', _PURE_KW, _SUBDIR_KW)
+    @typed_kwargs('python_installation.install_sources', _PURE_KW, _SUBDIR_KW,
+                  KwargInfo('install_tag', str, since='0.60.0'))
     def install_sources_method(self, args: T.Tuple[T.List[T.Union[str, mesonlib.File]]],
                                kwargs: 'PyInstallKw') -> 'Data':
+        tag = kwargs['install_tag'] or 'runtime'
         return self.interpreter.install_data_impl(
             self.interpreter.source_strings_to_files(args[0]),
             self._get_install_dir_impl(kwargs['pure'], kwargs['subdir']),
-            mesonlib.FileMode(),
-            None)
+            mesonlib.FileMode(), rename=None, tag=tag)
 
     @noPosargs
     @typed_kwargs('python_installation.install_dir', _PURE_KW, _SUBDIR_KW)

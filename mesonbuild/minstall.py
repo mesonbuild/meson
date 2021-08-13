@@ -25,7 +25,7 @@ import sys
 import typing as T
 
 from . import environment
-from .backend.backends import InstallData
+from .backend.backends import InstallData, InstallDataBase, TargetInstallData, ExecutableSerialisation
 from .coredata import major_versions_differ, MesonVersionMismatchException
 from .coredata import version as coredata_version
 from .mesonlib import Popen_safe, RealPathAction, is_windows
@@ -56,6 +56,7 @@ if T.TYPE_CHECKING:
         destdir: str
         dry_run: bool
         skip_subprojects: str
+        tags: str
 
 
 symlink_warning = '''Warning: trying to copy a symlink that points to a file. This will copy the file,
@@ -81,6 +82,8 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
                         help='Doesn\'t actually install, but print logs. (Since 0.57.0)')
     parser.add_argument('--skip-subprojects', nargs='?', const='*', default='',
                         help='Do not install files from given subprojects. (Since 0.58.0)')
+    parser.add_argument('--tags', default=None,
+                        help='Install only targets having one of the given tags. (Since 0.60.0)')
 
 class DirMaker:
     def __init__(self, lf: T.TextIO, makedirs: T.Callable[..., None]):
@@ -303,6 +306,7 @@ class Installer:
         # ['*'] means skip all,
         # ['sub1', ...] means skip only those.
         self.skip_subprojects = [i.strip() for i in options.skip_subprojects.split(',')]
+        self.tags = [i.strip() for i in options.tags.split(',')] if options.tags else None
 
     def remove(self, *args: T.Any, **kwargs: T.Any) -> None:
         if not self.dry_run:
@@ -371,8 +375,10 @@ class Installer:
             return run_exe(*args, **kwargs)
         return 0
 
-    def install_subproject(self, subproject: str) -> bool:
-        if subproject and (subproject in self.skip_subprojects or '*' in self.skip_subprojects):
+    def should_install(self, d: T.Union[TargetInstallData, InstallDataBase, ExecutableSerialisation]) -> bool:
+        if d.subproject and (d.subproject in self.skip_subprojects or '*' in self.skip_subprojects):
+            return False
+        if self.tags and d.tag not in self.tags:
             return False
         return True
 
@@ -552,7 +558,7 @@ class Installer:
 
     def install_subdirs(self, d: InstallData, dm: DirMaker, destdir: str, fullprefix: str) -> None:
         for i in d.install_subdirs:
-            if not self.install_subproject(i.subproject):
+            if not self.should_install(i):
                 continue
             self.did_install_something = True
             full_dst_dir = get_destdir_path(destdir, fullprefix, i.install_path)
@@ -562,7 +568,7 @@ class Installer:
 
     def install_data(self, d: InstallData, dm: DirMaker, destdir: str, fullprefix: str) -> None:
         for i in d.data:
-            if not self.install_subproject(i.subproject):
+            if not self.should_install(i):
                 continue
             fullfilename = i.path
             outfilename = get_destdir_path(destdir, fullprefix, i.install_path)
@@ -573,7 +579,7 @@ class Installer:
 
     def install_man(self, d: InstallData, dm: DirMaker, destdir: str, fullprefix: str) -> None:
         for m in d.man:
-            if not self.install_subproject(m.subproject):
+            if not self.should_install(m):
                 continue
             full_source_filename = m.path
             outfilename = get_destdir_path(destdir, fullprefix, m.install_path)
@@ -584,7 +590,7 @@ class Installer:
 
     def install_headers(self, d: InstallData, dm: DirMaker, destdir: str, fullprefix: str) -> None:
         for t in d.headers:
-            if not self.install_subproject(t.subproject):
+            if not self.should_install(t):
                 continue
             fullfilename = t.path
             fname = os.path.basename(fullfilename)
@@ -605,7 +611,7 @@ class Installer:
             env['MESON_INSTALL_QUIET'] = '1'
 
         for i in d.install_scripts:
-            if not self.install_subproject(i.subproject):
+            if not self.should_install(i):
                 continue
             name = ' '.join(i.cmd_args)
             if i.skip_if_destdir and destdir:
@@ -625,7 +631,7 @@ class Installer:
 
     def install_targets(self, d: InstallData, dm: DirMaker, destdir: str, fullprefix: str) -> None:
         for t in d.targets:
-            if not self.install_subproject(t.subproject):
+            if not self.should_install(t):
                 continue
             if not os.path.exists(t.fname):
                 # For example, import libraries of shared modules are optional

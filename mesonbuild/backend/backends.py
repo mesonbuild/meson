@@ -115,7 +115,8 @@ class InstallData:
 class TargetInstallData:
     def __init__(self, fname: str, outdir: str, aliases: T.Dict[str, str], strip: bool,
                  install_name_mappings: T.Dict, rpath_dirs_to_remove: T.Set[bytes],
-                 install_rpath: str, install_mode: 'FileMode', subproject: str, optional: bool = False):
+                 install_rpath: str, install_mode: 'FileMode', subproject: str,
+                 optional: bool = False, tag: T.Optional[str] = None):
         self.fname = fname
         self.outdir = outdir
         self.aliases = aliases
@@ -126,22 +127,27 @@ class TargetInstallData:
         self.install_mode = install_mode
         self.subproject = subproject
         self.optional = optional
+        self.tag = tag
 
 class InstallDataBase:
-    def __init__(self, path: str, install_path: str, install_mode: 'FileMode', subproject: str):
+    def __init__(self, path: str, install_path: str, install_mode: 'FileMode',
+                 subproject: str, tag: T.Optional[str] = None):
         self.path = path
         self.install_path = install_path
         self.install_mode = install_mode
         self.subproject = subproject
+        self.tag = tag
 
 class SubdirInstallData(InstallDataBase):
-    def __init__(self, path: str, install_path: str, install_mode: 'FileMode', exclude, subproject: str):
-        super().__init__(path, install_path, install_mode, subproject)
+    def __init__(self, path: str, install_path: str, install_mode: 'FileMode',
+                 exclude, subproject: str, tag: T.Optional[str] = None):
+        super().__init__(path, install_path, install_mode, subproject, tag)
         self.exclude = exclude
 
 class ExecutableSerialisation:
     def __init__(self, cmd_args, env: T.Optional[build.EnvironmentVariables] = None, exe_wrapper=None,
-                 workdir=None, extra_paths=None, capture=None, feed=None) -> None:
+                 workdir=None, extra_paths=None, capture=None, feed=None,
+                 tag: T.Optional[str] = None) -> None:
         self.cmd_args = cmd_args
         self.env = env
         if exe_wrapper is not None:
@@ -155,6 +161,7 @@ class ExecutableSerialisation:
         self.skip_if_destdir = False
         self.verbose = False
         self.subproject = ''
+        self.tag = tag
 
 class TestSerialisation:
     def __init__(self, name: str, project: str, suite: T.List[str], fname: T.List[str],
@@ -443,7 +450,8 @@ class Backend:
 
     def get_executable_serialisation(self, cmd, workdir=None,
                                      extra_bdeps=None, capture=None, feed=None,
-                                     env: T.Optional[build.EnvironmentVariables] = None):
+                                     env: T.Optional[build.EnvironmentVariables] = None,
+                                     tag: T.Optional[str] = None):
         exe = cmd[0]
         cmd_args = cmd[1:]
         if isinstance(exe, programs.ExternalProgram):
@@ -490,7 +498,7 @@ class Backend:
         workdir = workdir or self.environment.get_build_dir()
         return ExecutableSerialisation(exe_cmd + cmd_args, env,
                                        exe_wrapper, workdir,
-                                       extra_paths, capture, feed)
+                                       extra_paths, capture, feed, tag)
 
     def as_meson_exe_cmdline(self, tname, exe, cmd_args, workdir=None,
                              extra_bdeps=None, capture=None, feed=None,
@@ -1032,7 +1040,7 @@ class Backend:
         with open(ifilename, 'w', encoding='utf-8') as f:
             f.write(json.dumps(mfobj))
         # Copy file from, to, and with mode unchanged
-        d.data.append(InstallDataBase(ifilename, ofilename, None, ''))
+        d.data.append(InstallDataBase(ifilename, ofilename, None, '', tag='devel'))
 
     def get_regen_filelist(self):
         '''List of all files whose alteration means that the build
@@ -1354,6 +1362,27 @@ class Backend:
         with open(install_data_file, 'wb') as ofile:
             pickle.dump(self.create_install_data(), ofile)
 
+    def guess_install_tag(self, fname: str, outdir: T.Optional[str] = None) -> T.Optional[str]:
+        prefix = self.environment.get_prefix()
+        bindir = Path(prefix, self.environment.get_bindir())
+        libdir = Path(prefix, self.environment.get_libdir())
+        incdir = Path(prefix, self.environment.get_includedir())
+        localedir = Path(prefix, self.environment.coredata.get_option(mesonlib.OptionKey('localedir')))
+        dest_path = Path(prefix, outdir, Path(fname).name) if outdir else Path(prefix, fname)
+        if bindir in dest_path.parents:
+            return 'runtime'
+        elif libdir in dest_path.parents:
+            if dest_path.suffix in {'.a', '.pc'}:
+                return 'devel'
+            elif dest_path.suffix in {'.so', '.dll'}:
+                return 'runtime'
+        elif incdir in dest_path.parents:
+            return 'devel'
+        elif localedir in dest_path.parents:
+            return 'i18n'
+        mlog.debug('Failed to guess install tag for', dest_path)
+        return None
+
     def generate_target_install(self, d: InstallData) -> None:
         for t in self.build.get_targets().values():
             if not t.should_install():
@@ -1366,6 +1395,7 @@ class Backend:
                     "Pass 'false' for outputs that should not be installed and 'true' for\n" \
                     'using the default installation directory for an output.'
                 raise MesonException(m.format(t.name, num_out, t.get_outputs(), num_outdirs))
+            assert len(t.install_tag) == num_out
             install_mode = t.get_custom_install_mode()
             # Install the target output(s)
             if isinstance(t, build.BuildTarget):
@@ -1387,11 +1417,13 @@ class Backend:
                 # Install primary build output (library/executable/jar, etc)
                 # Done separately because of strip/aliases/rpath
                 if outdirs[0] is not False:
+                    tag = t.install_tag[0] or ('devel' if isinstance(t, build.StaticLibrary) else 'runtime')
                     mappings = t.get_link_deps_mapping(d.prefix, self.environment)
                     i = TargetInstallData(self.get_target_filename(t), outdirs[0],
                                           t.get_aliases(), should_strip, mappings,
                                           t.rpath_dirs_to_remove,
-                                          t.install_rpath, install_mode, t.subproject)
+                                          t.install_rpath, install_mode, t.subproject,
+                                          tag=tag)
                     d.targets.append(i)
 
                     if isinstance(t, (build.SharedLibrary, build.SharedModule, build.Executable)):
@@ -1409,7 +1441,8 @@ class Backend:
                             # Install the import library; may not exist for shared modules
                             i = TargetInstallData(self.get_target_filename_for_linking(t),
                                                   implib_install_dir, {}, False, {}, set(), '', install_mode,
-                                                  t.subproject, optional=isinstance(t, build.SharedModule))
+                                                  t.subproject, optional=isinstance(t, build.SharedModule),
+                                                  tag='devel')
                             d.targets.append(i)
 
                         if not should_strip and t.get_debug_filename():
@@ -1417,17 +1450,19 @@ class Backend:
                             i = TargetInstallData(debug_file, outdirs[0],
                                                   {}, False, {}, set(), '',
                                                   install_mode, t.subproject,
-                                                  optional=True)
+                                                  optional=True, tag='devel')
                             d.targets.append(i)
                 # Install secondary outputs. Only used for Vala right now.
                 if num_outdirs > 1:
-                    for output, outdir in zip(t.get_outputs()[1:], outdirs[1:]):
+                    for output, outdir, tag in zip(t.get_outputs()[1:], outdirs[1:], t.install_tag[1:]):
                         # User requested that we not install this output
                         if outdir is False:
                             continue
                         f = os.path.join(self.get_target_dir(t), output)
+                        tag = tag or self.guess_install_tag(f, outdir)
                         i = TargetInstallData(f, outdir, {}, False, {}, set(), None,
-                                              install_mode, t.subproject)
+                                              install_mode, t.subproject,
+                                              tag=tag)
                         d.targets.append(i)
             elif isinstance(t, build.CustomTarget):
                 # If only one install_dir is specified, assume that all
@@ -1438,19 +1473,23 @@ class Backend:
                 # To selectively install only some outputs, pass `false` as
                 # the install_dir for the corresponding output by index
                 if num_outdirs == 1 and num_out > 1:
-                    for output in t.get_outputs():
+                    for output, tag in zip(t.get_outputs(), t.install_tag):
                         f = os.path.join(self.get_target_dir(t), output)
+                        tag = tag or self.guess_install_tag(f, outdirs[0])
                         i = TargetInstallData(f, outdirs[0], {}, False, {}, set(), None, install_mode,
-                                              t.subproject, optional=not t.build_by_default)
+                                              t.subproject, optional=not t.build_by_default,
+                                              tag=tag)
                         d.targets.append(i)
                 else:
-                    for output, outdir in zip(t.get_outputs(), outdirs):
+                    for output, outdir, tag in zip(t.get_outputs(), outdirs, t.install_tag):
                         # User requested that we not install this output
                         if outdir is False:
                             continue
                         f = os.path.join(self.get_target_dir(t), output)
+                        tag = tag or self.guess_install_tag(f, outdir)
                         i = TargetInstallData(f, outdir, {}, False, {}, set(), None, install_mode,
-                                              t.subproject, optional=not t.build_by_default)
+                                              t.subproject, optional=not t.build_by_default,
+                                              tag=tag)
                         d.targets.append(i)
 
     def generate_custom_install_script(self, d: InstallData) -> None:
@@ -1475,7 +1514,7 @@ class Backend:
                 if not isinstance(f, File):
                     raise MesonException(f'Invalid header type {f!r} can\'t be installed')
                 abspath = f.absolute_path(srcdir, builddir)
-                i = InstallDataBase(abspath, outdir, h.get_custom_install_mode(), h.subproject)
+                i = InstallDataBase(abspath, outdir, h.get_custom_install_mode(), h.subproject, tag='devel')
                 d.headers.append(i)
 
     def generate_man_install(self, d: InstallData) -> None:
@@ -1495,7 +1534,7 @@ class Backend:
                     fname = fname.replace(f'.{m.locale}', '')
                 srcabs = f.absolute_path(self.environment.get_source_dir(), self.environment.get_build_dir())
                 dstabs = os.path.join(subdir, os.path.basename(fname))
-                i = InstallDataBase(srcabs, dstabs, m.get_custom_install_mode(), m.subproject)
+                i = InstallDataBase(srcabs, dstabs, m.get_custom_install_mode(), m.subproject, tag='man')
                 d.man.append(i)
 
     def generate_data_install(self, d: InstallData):
@@ -1510,7 +1549,8 @@ class Backend:
             for src_file, dst_name in zip(de.sources, de.rename):
                 assert(isinstance(src_file, mesonlib.File))
                 dst_abs = os.path.join(subdir, dst_name)
-                i = InstallDataBase(src_file.absolute_path(srcdir, builddir), dst_abs, de.install_mode, de.subproject)
+                tag = de.install_tag or self.guess_install_tag(dst_abs)
+                i = InstallDataBase(src_file.absolute_path(srcdir, builddir), dst_abs, de.install_mode, de.subproject, tag=tag)
                 d.data.append(i)
 
     def generate_subdir_install(self, d: InstallData) -> None:

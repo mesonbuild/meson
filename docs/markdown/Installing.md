@@ -74,7 +74,7 @@ giving an absolute install path.
 install_data(sources : 'foo.dat', install_dir : '/etc') # -> /etc/foo.dat
 ```
 
-## Custom install behavior
+## Custom install script
 
 Sometimes you need to do more than just install basic targets. Meson
 makes this easy by allowing you to specify a custom script to execute
@@ -133,23 +133,57 @@ command in the build tree:
 $ meson install --no-rebuild --only-changed
 ```
 
-## Finer control over install locations
+## Installation tags
 
-Sometimes it is necessary to only install a subsection of output files
-or install them in different directories. This can be done by
-specifying `install_dir` as an array rather than a single string. The
-array must have as many items as there are outputs and each entry
-specifies how the corresponding output file should be installed. For
-example:
+*Since 0.60.0*
 
-```meson
-custom_target(...
-    output: ['file1', 'file2', 'file3'],
-    install_dir: ['path1', false, 'path3'],
-    ...
-)
-```
+It is possible to install only a subset of the installable files using
+`meson install --tags tag1,tag2` command line. When `--tags` is specified, only
+files that have been tagged with one of the tags are going to be installed.
 
-In this case `file1` would be installed to `/prefix/path1/file1`,
-`file2` would not be installed at all and `file3` would be installed
-to `/prefix/path3/file3'.
+This is intended to be used by packagers (e.g. distributions) who typically
+want to split `libfoo`, `libfoo-dev` and `libfoo-doc` packages. Instead of
+duplicating the list of installed files per category in each packaging system,
+it can be maintained in a single place, directly in upstream `meson.build` files.
+
+Meson sets predefined tags on some files. More tags are likely to be added over
+time, please help extending the list of well known categories.
+- `devel`:
+  * `static_library()`,
+  * `install_headers()`,
+  * `pkgconfig.generate()`,
+  * `gnome.generate_gir()` - `.gir` file,
+  * Files installed into `libdir` and with `.a` or `.pc` extension,
+  * File installed into `includedir`.
+- `runtime`:
+  * `executable()`,
+  * `shared_library()`,
+  * `shared_module()`,
+  * `jar()`,
+  * Files installed into `bindir`.
+  * Files installed into `libdir` and with `.so` or `.dll` extension.
+- `python-runtime`:
+  * `python.install_sources()`.
+- `man`:
+  * `install_man()`.
+- `doc`:
+  * `gnome.gtkdoc()`,
+  * `hotdoc.generate_doc()`.
+- `i18n`:
+  * `i18n.gettext()`,
+  * `qt.compile_translations()`,
+  * Files installed into `localedir`.
+- `typelib`:
+  * `gnome.generate_gir()` - `.typelib` file.
+
+Custom installation tag can be set using the `install_tag` keyword argument
+on various functions such as `custom_target()`, `configure_file()`,
+`install_subdir()` and `install_data()`. See their respective documentation
+in the reference manual for details. It is recommended to use one of the
+predefined tags above when possible.
+
+Installable files that have not been tagged either automatically by Meson, or
+manually using `install_tag` keyword argument won't be installed when `--tags`
+is used. They are reported at the end of `<builddir>/meson-logs/meson-log.txt`,
+it is recommended to add missing `install_tag` to have a tag on each installable
+files.

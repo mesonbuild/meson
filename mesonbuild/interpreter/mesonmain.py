@@ -7,9 +7,9 @@ from .. import mlog
 
 from ..mesonlib import MachineChoice, OptionKey
 from ..programs import OverrideProgram, ExternalProgram
-from ..interpreterbase import (MesonInterpreterObject, FeatureNewKwargs, FeatureNew, FeatureDeprecated,
+from ..interpreterbase import (MesonInterpreterObject, FeatureNew, FeatureDeprecated,
                                typed_pos_args, permittedKwargs, noArgsFlattening, noPosargs, noKwargs,
-                               MesonVersionString, InterpreterException)
+                               typed_kwargs, KwargInfo, MesonVersionString, InterpreterException)
 
 from .interpreterobjects import (ExecutableHolder, ExternalProgramHolder,
                                  CustomTargetHolder, CustomTargetIndexHolder,
@@ -107,20 +107,19 @@ class MesonMain(MesonInterpreterObject):
                 '0.55.0', self.interpreter.subproject)
         return script_args
 
-    @FeatureNewKwargs('add_install_script', '0.57.0', ['skip_if_destdir'])
-    @permittedKwargs({'skip_if_destdir'})
+    @typed_kwargs('add_install_script',
+                  KwargInfo('skip_if_destdir', bool, default=False, since='0.57.0'),
+                  KwargInfo('install_tag', str, since='0.60.0'))
     def add_install_script_method(self, args: 'T.Tuple[T.Union[str, mesonlib.File, ExecutableHolder], T.Union[str, mesonlib.File, CustomTargetHolder, CustomTargetIndexHolder], ...]', kwargs):
         if len(args) < 1:
             raise InterpreterException('add_install_script takes one or more arguments')
         if isinstance(args[0], mesonlib.File):
             FeatureNew.single_use('Passing file object to script parameter of add_install_script',
                                   '0.57.0', self.interpreter.subproject)
-        skip_if_destdir = kwargs.get('skip_if_destdir', False)
-        if not isinstance(skip_if_destdir, bool):
-            raise InterpreterException('skip_if_destdir keyword argument must be boolean')
         script_args = self._process_script_args('add_install_script', args[1:], allow_built=True)
         script = self._find_source_script(args[0], script_args)
-        script.skip_if_destdir = skip_if_destdir
+        script.skip_if_destdir = kwargs['skip_if_destdir']
+        script.tag = kwargs['install_tag']
         self.build.install_scripts.append(script)
 
     @permittedKwargs(set())

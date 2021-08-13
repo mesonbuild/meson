@@ -513,6 +513,7 @@ class QtBaseModule(ExtensionModule):
             lrelease_kwargs = {'output': '@BASENAME@.qm',
                                'input': ts,
                                'install': kwargs.get('install', False),
+                               'install_tag': 'i18n',
                                'build_by_default': kwargs.get('build_by_default', False),
                                'command': cmd}
             if install_dir is not None:

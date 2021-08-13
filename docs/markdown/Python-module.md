@@ -135,6 +135,9 @@ All positional and keyword arguments are the same as for
 - `subdir`: See documentation for the argument of the same name to
   [][`extension_module()`]
 
+- `install_tag` *(since 0.60.0)*: A string used by `meson install --tags` command
+  to install only a subset of the files. By default it has the tag `python-runtime`.
+
 #### `get_install_dir()`
 
 ``` meson

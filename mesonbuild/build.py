@@ -90,6 +90,7 @@ buildtarget_kwargs = {
     'install_rpath',
     'install_dir',
     'install_mode',
+    'install_tag',
     'name_prefix',
     'name_suffix',
     'native',
@@ -189,7 +190,8 @@ class InstallDir(HoldableObject):
                  install_mode: 'FileMode',
                  exclude: T.Tuple[T.Set[str], T.Set[str]],
                  strip_directory: bool, subproject: str,
-                 from_source_dir: bool = True):
+                 from_source_dir: bool = True,
+                 install_tag: T.Optional[str] = None):
         self.source_subdir = src_subdir
         self.installable_subdir = inst_subdir
         self.install_dir = install_dir
@@ -198,6 +200,7 @@ class InstallDir(HoldableObject):
         self.strip_directory = strip_directory
         self.from_source_dir = from_source_dir
         self.subproject = subproject
+        self.install_tag = install_tag
 
 
 class Build:
@@ -1014,6 +1017,7 @@ class BuildTarget(Target):
         self.install_dir = typeslistify(kwargs.get('install_dir', [None]),
                                         (str, bool))
         self.install_mode = kwargs.get('install_mode', None)
+        self.install_tag = stringlistify(kwargs.get('install_tag', [None]))
         main_class = kwargs.get('main_class', '')
         if not isinstance(main_class, str):
             raise InvalidArguments('Main class must be a string')
@@ -2206,6 +2210,7 @@ class CustomTarget(Target, CommandBase):
         'install',
         'install_dir',
         'install_mode',
+        'install_tag',
         'build_always',
         'build_always_stale',
         'depends',
@@ -2339,10 +2344,19 @@ class CustomTarget(Target, CommandBase):
                 # the list index of that item will not be installed
                 self.install_dir = typeslistify(kwargs['install_dir'], (str, bool))
                 self.install_mode = kwargs.get('install_mode', None)
+                # If only one tag is provided, assume all outputs have the same tag.
+                # Otherwise, we must have as much tags as outputs.
+                self.install_tag = typeslistify(kwargs.get('install_tag', [None]), (str, bool))
+                if len(self.install_tag) == 1:
+                    self.install_tag = self.install_tag * len(self.outputs)
+                elif len(self.install_tag) != len(self.outputs):
+                    m = f'Target {self.name!r} has {len(self.outputs)} outputs but {len(self.install_tag)} "install_tag"s were found.'
+                    raise InvalidArguments(m)
         else:
             self.install = False
             self.install_dir = [None]
             self.install_mode = None
+            self.install_tag = []
         if 'build_always' in kwargs and 'build_always_stale' in kwargs:
             raise InvalidArguments('build_always and build_always_stale are mutually exclusive. Combine build_by_default and build_always_stale.')
         elif 'build_always' in kwargs:
@@ -2625,10 +2639,12 @@ class ConfigurationData(HoldableObject):
 class Data(HoldableObject):
     def __init__(self, sources: T.List[File], install_dir: str,
                  install_mode: 'FileMode', subproject: str,
-                 rename: T.List[str] = None):
+                 rename: T.List[str] = None,
+                 install_tag: T.Optional[str] = None):
         self.sources = sources
         self.install_dir = install_dir
         self.install_mode = install_mode
+        self.install_tag = install_tag
         if rename is None:
             self.rename = [os.path.basename(f.fname) for f in self.sources]
         else:
