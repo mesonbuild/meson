@@ -375,7 +375,26 @@ following.
   in any one of these files triggers a recompilation
 - `input`: list of source files. *(since 0.41.0)* the list is flattened.
 - `install`: when true, this target is installed during the install step
-- `install_dir`: directory to install to
+- `install_dir`: If only one install_dir is provided, all outputs are installed there.
+   *Since 0.40.0* Allows you to specify the installation directory for each
+    corresponding output. For example:
+    ```
+    custom_target('different-install-dirs',
+      output : ['first.file', 'second.file'],
+      install : true,
+      install_dir : ['somedir', 'otherdir])
+    ```
+    This would install `first.file` to `somedir` and `second.file` to `otherdir`.
+
+    To only install some outputs, pass `false` for the outputs that you
+    don't want installed. For example:
+    ```
+        custom_target('only-install-second',
+          output : ['first.file', 'second.file'],
+          install : true,
+          install_dir : [false, 'otherdir])
+    ```
+    This would install `second.file` to `otherdir` and not install `first.file`.
 - `install_mode` *(since 0.47.0)*: the file mode and optionally the
   owner/uid and group/gid
 - `output`: list of output files
