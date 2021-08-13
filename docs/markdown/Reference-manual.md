@@ -304,6 +304,9 @@ false otherwise.
   string, the file is not installed.
 - `install_mode` *(since 0.47.0)*: specify the file mode in symbolic format
   and optionally the owner/uid and group/gid for the installed files.
+- `install_tag` *(since 0.60.0)*: A string used by `meson install --tags` command
+  to install only a subset of the files. By default the file has no install
+  tag which means it is not being installed when `--tags` argument is specified.
 - `output`: the output file name. *(since 0.41.0)* may contain
   `@PLAINNAME@` or `@BASENAME@` substitutions. In configuration mode,
   the permissions of the input file (if it is specified) are copied to
@@ -378,7 +381,7 @@ following.
 - `install_dir`: If only one install_dir is provided, all outputs are installed there.
    *Since 0.40.0* Allows you to specify the installation directory for each
     corresponding output. For example:
-    ```
+    ```meson
     custom_target('different-install-dirs',
       output : ['first.file', 'second.file'],
       install : true,
@@ -388,15 +391,21 @@ following.
 
     To only install some outputs, pass `false` for the outputs that you
     don't want installed. For example:
-    ```
-        custom_target('only-install-second',
-          output : ['first.file', 'second.file'],
-          install : true,
-          install_dir : [false, 'otherdir])
+    ```meson
+    custom_target('only-install-second',
+      output : ['first.file', 'second.file'],
+      install : true,
+      install_dir : [false, 'otherdir])
     ```
     This would install `second.file` to `otherdir` and not install `first.file`.
 - `install_mode` *(since 0.47.0)*: the file mode and optionally the
   owner/uid and group/gid
+- `install_tag` *(since 0.60.0)*: A list of strings, one per output, used by
+  `meson install --tags` command to install only a subset of the files.
+  By default all outputs have no install tag which means they are not being
+  installed when `--tags` argument is specified. If only one tag is specified,
+  it is assumed that all outputs have the same tag. `false` can be used for
+  outputs that have no tag or are not installed.
 - `output`: list of output files
 - `env` *(since 0.57.0)*: environment variables to set, such as
   `{'NAME1': 'value1', 'NAME2': 'value2'}` or `['NAME1=value1', 'NAME2=value2']`,
@@ -729,6 +738,9 @@ be passed to [shared and static libraries](#library).
   and optionally the owner/uid and group/gid for the installed files.
 - `install_rpath`: a string to set the target's rpath to after install
   (but *not* before that). On Windows, this argument has no effect.
+- `install_tag` *(since 0.60.0)*: A string used by `meson install --tags` command
+  to install only a subset of the files. By default all build targets have the
+  tag `runtime` except for static libraries that have the `devel` tag.
 - `objects`: list of prebuilt object files (usually for third party
   products you don't have source to) that should be linked in this
   target, **never** use this for object files that you build yourself.
@@ -1103,6 +1115,9 @@ arguments. The following keyword arguments are supported:
   file from `rename` list. Nested paths are allowed and they are
   joined with `install_dir`. Length of `rename` list must be equal to
   the number of sources.
+- `install_tag` *(since 0.60.0)*: A string used by `meson install --tags` command
+  to install only a subset of the files. By default these files have no install
+  tag which means they are not being installed when `--tags` argument is specified.
 
 See [Installing](Installing.md) for more examples.
 
@@ -1201,6 +1216,9 @@ The following keyword arguments are supported:
   the owner/uid and group/gid for the installed files.
 - `strip_directory` *(since 0.45.0)*: install directory contents. `strip_directory=false` by default.
   If `strip_directory=true` only the last component of the source path is used.
+- `install_tag` *(since 0.60.0)*: A string used by `meson install --tags` command
+  to install only a subset of the files. By default these files have no install
+  tag which means they are not being installed when `--tags` argument is specified.
 
 For a given directory `foo`:
 ```text
@@ -1975,6 +1993,9 @@ the following methods.
   can be specified. If `true` the script will not be run if DESTDIR is set during
   installation. This is useful in the case the script updates system wide
   cache that is only needed when copying files into final destination.
+  *(since 0.60.0)* `install_tag` string keyword argument can be specified.
+  By default the script has no install tag which means it is not being run when
+  `meson install --tags` argument is specified.
 
   *(since 0.54.0)* If `meson install` is called with the `--quiet` option, the
   environment variable `MESON_INSTALL_QUIET` will be set.

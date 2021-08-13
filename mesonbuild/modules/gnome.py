@@ -747,6 +747,7 @@ class GnomeModule(ExtensionModule):
             scankwargs['install'] = kwargs['install']
             scankwargs['install_dir'] = kwargs.get('install_dir_gir',
                                                    os.path.join(state.environment.get_datadir(), 'gir-1.0'))
+            scankwargs['install_tag'] = 'devel'
 
         if 'build_by_default' in kwargs:
             scankwargs['build_by_default'] = kwargs['build_by_default']
@@ -764,6 +765,7 @@ class GnomeModule(ExtensionModule):
             typelib_kwargs['install'] = kwargs['install']
             typelib_kwargs['install_dir'] = kwargs.get('install_dir_typelib',
                                                        os.path.join(state.environment.get_libdir(), 'girepository-1.0'))
+            typelib_kwargs['install_tag'] = 'typelib'
 
         if 'build_by_default' in kwargs:
             typelib_kwargs['build_by_default'] = kwargs['build_by_default']
@@ -1146,7 +1148,7 @@ class GnomeModule(ExtensionModule):
             state.test(check_args, env=check_env, workdir=check_workdir, depends=custom_target)
         res = [custom_target, alias_target]
         if kwargs.get('install', True):
-            res.append(state.backend.get_executable_serialisation(command + args))
+            res.append(state.backend.get_executable_serialisation(command + args, tag='doc'))
         return ModuleReturnValue(custom_target, res)
 
     def _get_build_args(self, kwargs, state, depends):

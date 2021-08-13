@@ -354,6 +354,7 @@ class HotdocTargetBuilder:
                 '--builddir', os.path.join(self.builddir, self.subdir)] +
                 self.hotdoc.get_command() +
                 ['run', '--conf-file', hotdoc_config_name])
+            install_script.tag = 'doc'
 
         return (target, install_script)
 

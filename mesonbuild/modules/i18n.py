@@ -181,6 +181,7 @@ class I18nModule(ExtensionModule):
                           # to custom_targets. Crude hack: set the build target's subdir manually.
                           # Bonus: the build tree has something usable as an uninstalled bindtextdomain() target dir.
                           'install_dir': path.join(install_dir, l, 'LC_MESSAGES'),
+                          'install_tag': 'i18n',
                           }
             gmotarget = build.CustomTarget(l+'.mo', path.join(state.subdir, l, 'LC_MESSAGES'), state.subproject, gmo_kwargs)
             targets.append(gmotarget)

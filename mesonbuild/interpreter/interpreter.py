@@ -1598,6 +1598,7 @@ external dependencies (including libraries) must go to "dependencies".''')
     def func_subdir_done(self, node, args, kwargs):
         raise SubdirDoneRequest()
 
+    @FeatureNewKwargs('custom_target', '0.60.0', ['install_tag'])
     @FeatureNewKwargs('custom_target', '0.57.0', ['env'])
     @FeatureNewKwargs('custom_target', '0.48.0', ['console'])
     @FeatureNewKwargs('custom_target', '0.47.0', ['install_mode', 'build_always_stale'])
@@ -1606,7 +1607,7 @@ external dependencies (including libraries) must go to "dependencies".''')
     @permittedKwargs({'input', 'output', 'command', 'install', 'install_dir', 'install_mode',
                       'build_always', 'capture', 'depends', 'depend_files', 'depfile',
                       'build_by_default', 'build_always_stale', 'console', 'env',
-                      'feed'})
+                      'feed', 'install_tag'})
     @typed_pos_args('custom_target', str)
     def func_custom_target(self, node: mparser.FunctionNode, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> build.CustomTarget:
         if 'depfile' in kwargs and ('@BASENAME@' in kwargs['depfile'] or '@PLAINNAME@' in kwargs['depfile']):
@@ -1903,6 +1904,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         KwargInfo('sources', ContainerTypeInfo(list, (str, mesonlib.File)), listify=True, default=[]),
         KwargInfo('rename', ContainerTypeInfo(list, str), default=[], listify=True, since='0.46.0'),
         INSTALL_MODE_KW.evolve(since='0.38.0'),
+        KwargInfo('install_tag', str, since='0.60.0'),
     )
     def func_install_data(self, node: mparser.BaseNode,
                           args: T.Tuple[T.List['mesonlib.FileOrString']],
@@ -1915,12 +1917,14 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
                     '"rename" and "sources" argument lists must be the same length if "rename" is given. '
                     f'Rename has {len(rename)} elements and sources has {len(sources)}.')
 
-        return self.install_data_impl(sources, kwargs['install_dir'], kwargs['install_mode'], rename)
+        return self.install_data_impl(sources, kwargs['install_dir'], kwargs['install_mode'], rename,
+                                      kwargs['install_tag'])
 
     def install_data_impl(self, sources: T.List[mesonlib.File], install_dir: str,
-                          install_mode: FileMode, rename: T.Optional[str]) -> build.Data:
+                          install_mode: FileMode, rename: T.Optional[str],
+                          tag: T.Optional[str]) -> build.Data:
         """Just the implementation with no validation."""
-        data = build.Data(sources, install_dir, install_mode, self.subproject, rename)
+        data = build.Data(sources, install_dir, install_mode, self.subproject, rename, tag)
         self.build.data.append(data)
         return data
 
@@ -1928,6 +1932,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     @typed_kwargs(
         'install_subdir',
         KwargInfo('install_dir', str, required=True),
+        KwargInfo('install_tag', str, since='0.60.0'),
         KwargInfo('strip_directory', bool, default=False),
         KwargInfo('exclude_files', ContainerTypeInfo(list, str),
                   default=[], listify=True, since='0.42.0',
@@ -1947,7 +1952,8 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             kwargs['install_mode'],
             exclude,
             kwargs['strip_directory'],
-            self.subproject)
+            self.subproject,
+            install_tag=kwargs['install_tag'])
         self.build.install_dirs.append(idir)
         return idir
 
@@ -1956,9 +1962,10 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     @FeatureNewKwargs('configure_file', '0.41.0', ['capture'])
     @FeatureNewKwargs('configure_file', '0.50.0', ['install'])
     @FeatureNewKwargs('configure_file', '0.52.0', ['depfile'])
+    @FeatureNewKwargs('configure_file', '0.60.0', ['install_tag'])
     @permittedKwargs({'input', 'output', 'configuration', 'command', 'copy', 'depfile',
                       'install_dir', 'install_mode', 'capture', 'install', 'format',
-                      'output_format', 'encoding'})
+                      'output_format', 'encoding', 'install_tag'})
     @noPosargs
     def func_configure_file(self, node, args, kwargs):
         if 'output' not in kwargs:
@@ -2139,7 +2146,10 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
                                            'is true')
             cfile = mesonlib.File.from_built_file(ofile_path, ofile_fname)
             install_mode = self._get_kwarg_install_mode(kwargs)
-            self.build.data.append(build.Data([cfile], idir, install_mode, self.subproject))
+            install_tag = kwargs.get('install_tag')
+            if install_tag is not None and not isinstance(install_tag, str):
+                raise InvalidArguments('install_tag keyword argument must be string')
+            self.build.data.append(build.Data([cfile], idir, install_mode, self.subproject, install_tag=install_tag))
         return mesonlib.File.from_built_file(self.subdir, output)
 
     def extract_incdirs(self, kwargs):

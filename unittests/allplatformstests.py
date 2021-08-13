@@ -476,6 +476,13 @@ class AllPlatformTests(BasePlatformTests):
         self.assertPathListEqual(intro[2]['install_filename'], ['/usr/include/first.h', None])
         self.assertPathListEqual(intro[3]['install_filename'], [None, '/usr/bin/second.sh'])
 
+    def read_install_logs(self):
+        # Find logged files and directories
+        with Path(self.builddir, 'meson-logs', 'install-log.txt').open(encoding='utf-8') as f:
+            return list(map(lambda l: Path(l.strip()),
+                              filter(lambda l: not l.startswith('#'),
+                                     f.readlines())))
+
     def test_install_log_content(self):
         '''
         Tests that the install-log.txt is consistent with the installed files and directories.
@@ -490,13 +497,7 @@ class AllPlatformTests(BasePlatformTests):
         expected = {installpath: 0}
         for name in installpath.rglob('*'):
             expected[name] = 0
-        def read_logs():
-            # Find logged files and directories
-            with Path(self.builddir, 'meson-logs', 'install-log.txt').open(encoding='utf-8') as f:
-                return list(map(lambda l: Path(l.strip()),
-                                  filter(lambda l: not l.startswith('#'),
-                                         f.readlines())))
-        logged = read_logs()
+        logged = self.read_install_logs()
         for name in logged:
             self.assertTrue(name in expected, f'Log contains extra entry {name}')
             expected[name] += 1
@@ -509,14 +510,14 @@ class AllPlatformTests(BasePlatformTests):
         # actually installed
         windows_proof_rmtree(self.installdir)
         self._run(self.meson_command + ['install', '--dry-run', '--destdir', self.installdir], workdir=self.builddir)
-        self.assertEqual(logged, read_logs())
+        self.assertEqual(logged, self.read_install_logs())
         self.assertFalse(os.path.exists(self.installdir))
 
         # If destdir is relative to build directory it should install
         # exactly the same files.
         rel_installpath = os.path.relpath(self.installdir, self.builddir)
         self._run(self.meson_command + ['install', '--dry-run', '--destdir', rel_installpath, '-C', self.builddir])
-        self.assertEqual(logged, read_logs())
+        self.assertEqual(logged, self.read_install_logs())
 
     def test_uninstall(self):
         exename = os.path.join(self.installdir, 'usr/bin/prog' + exe_suffix)
@@ -3756,3 +3757,109 @@ class AllPlatformTests(BasePlatformTests):
                 cc =  detect_compiler_for(env, 'c', MachineChoice.HOST)
                 link_args = env.coredata.get_external_link_args(cc.for_machine, cc.language)
                 self.assertEqual(sorted(link_args), sorted(['-flto']))
+
+    def test_install_tag(self) -> None:
+        testdir = os.path.join(self.unit_test_dir, '98 install tag')
+        self.init(testdir)
+        self.build()
+
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+        cc = detect_c_compiler(env, MachineChoice.HOST)
+
+        def shared_lib_name(name):
+            if cc.get_id() in {'msvc', 'clang-cl'}:
+                return f'bin/{name}.dll'
+            elif is_windows():
+                return f'bin/lib{name}.dll'
+            elif is_cygwin():
+                return f'bin/cyg{name}.dll'
+            elif is_osx():
+                return f'lib/lib{name}.dylib'
+            return f'lib/lib{name}.so'
+
+        def exe_name(name):
+            if is_windows() or is_cygwin():
+                return f'{name}.exe'
+            return name
+
+        installpath = Path(self.installdir)
+
+        expected_common = {
+            installpath,
+            Path(installpath, 'usr'),
+        }
+
+        expected_devel = expected_common | {
+            Path(installpath, 'usr/include'),
+            Path(installpath, 'usr/include/foo1-devel.h'),
+            Path(installpath, 'usr/include/bar-devel.h'),
+            Path(installpath, 'usr/include/foo2-devel.h'),
+            Path(installpath, 'usr/include/out-devel.h'),
+            Path(installpath, 'usr/lib'),
+            Path(installpath, 'usr/lib/libstatic.a'),
+            Path(installpath, 'usr/lib/libboth.a'),
+        }
+
+        if cc.get_id() in {'msvc', 'clang-cl'}:
+            expected_devel |= {
+                Path(installpath, 'usr/bin'),
+                Path(installpath, 'usr/bin/app.pdb'),
+                Path(installpath, 'usr/bin/both.pdb'),
+                Path(installpath, 'usr/bin/bothcustom.pdb'),
+                Path(installpath, 'usr/bin/shared.pdb'),
+                Path(installpath, 'usr/lib/both.lib'),
+                Path(installpath, 'usr/lib/bothcustom.lib'),
+                Path(installpath, 'usr/lib/shared.lib'),
+            }
+        elif is_windows() or is_cygwin():
+            expected_devel |= {
+                Path(installpath, 'usr/lib/libboth.dll.a'),
+                Path(installpath, 'usr/lib/libshared.dll.a'),
+                Path(installpath, 'usr/lib/libbothcustom.dll.a'),
+            }
+
+        expected_runtime = expected_common | {
+            Path(installpath, 'usr/bin'),
+            Path(installpath, 'usr/bin/' + exe_name('app')),
+            Path(installpath, 'usr/' + shared_lib_name('shared')),
+            Path(installpath, 'usr/' + shared_lib_name('both')),
+        }
+
+        expected_custom = expected_common | {
+            Path(installpath, 'usr/share'),
+            Path(installpath, 'usr/share/bar-custom.txt'),
+            Path(installpath, 'usr/share/foo-custom.h'),
+            Path(installpath, 'usr/share/out1-custom.txt'),
+            Path(installpath, 'usr/share/out2-custom.txt'),
+            Path(installpath, 'usr/share/out3-custom.txt'),
+            Path(installpath, 'usr/lib'),
+            Path(installpath, 'usr/lib/libbothcustom.a'),
+            Path(installpath, 'usr/' + shared_lib_name('bothcustom')),
+        }
+
+        if is_windows() or is_cygwin():
+            expected_custom |= {Path(installpath, 'usr/bin')}
+        else:
+            expected_runtime |= {Path(installpath, 'usr/lib')}
+
+        expected_runtime_custom = expected_runtime | expected_custom
+
+        expected_all = expected_devel | expected_runtime | expected_custom | {
+            Path(installpath, 'usr/share/foo-notag.h'),
+            Path(installpath, 'usr/share/bar-notag.txt'),
+            Path(installpath, 'usr/share/out1-notag.txt'),
+            Path(installpath, 'usr/share/out2-notag.txt'),
+            Path(installpath, 'usr/share/out3-notag.txt'),
+        }
+
+        def do_install(tags=None):
+            extra_args = ['--tags', tags] if tags else []
+            self._run(self.meson_command + ['install', '--dry-run', '--destdir', self.installdir] + extra_args, workdir=self.builddir)
+            installed = self.read_install_logs()
+            return sorted(installed)
+
+        self.assertEqual(sorted(expected_devel), do_install('devel'))
+        self.assertEqual(sorted(expected_runtime), do_install('runtime'))
+        self.assertEqual(sorted(expected_custom), do_install('custom'))
+        self.assertEqual(sorted(expected_runtime_custom), do_install('runtime,custom'))
+        self.assertEqual(sorted(expected_all), do_install())
