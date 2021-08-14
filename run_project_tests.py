@@ -1006,13 +1006,22 @@ def has_broken_rustc() -> bool:
     mesonlib.windows_proof_rmtree(dirname.as_posix())
     return pc.returncode != 0
 
+def has_broken_compiler_combination() -> bool:
+    # Rust and vs2017 do not work together. But only with 32 bits.
+    if os.environ['VisualStudioVersion'] == '15.0' and os.environ['Platform'] == 'x86':
+        return True
+    return False
+
 def should_skip_rust(backend: Backend) -> bool:
     if not shutil.which('rustc'):
         return True
     if backend is not Backend.ninja:
         return True
-    if mesonlib.is_windows() and has_broken_rustc():
-        return True
+    if mesonlib.is_windows():
+        if has_broken_rustc():
+            return True
+        if has_broken_compiler_combination():
+            return True
     return False
 
 def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List[T.Tuple[str, T.List[TestDef], bool]]:
