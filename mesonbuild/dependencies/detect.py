@@ -143,7 +143,7 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: T.Dict[str, 
     # otherwise, the dependency could not be found
     tried_methods = [d.log_tried() for d in pkgdep if d.log_tried()]
     if tried_methods:
-        tried = '{}'.format(mlog.format_list(tried_methods))
+        tried = mlog.format_list(tried_methods)
     else:
         tried = ''
 
