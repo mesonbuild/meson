@@ -1008,7 +1008,7 @@ def has_broken_rustc() -> bool:
 
 def has_broken_compiler_combination() -> bool:
     # Rust and vs2017 do not work together. But only with 32 bits.
-    if os.environ['VisualStudioVersion'] == '15.0' and os.environ['Platform'] == 'x86':
+    if os.environ.get('VisualStudioVersion') == '15.0' and os.environ.get('Platform') == 'x86':
         return True
     # Clang-cl also fails with Rust.
     if shutil.which('cl') is None and shutil.which('clang-cl'):
