@@ -264,7 +264,7 @@ class CudaModule(NewExtensionModule):
         elif isinstance(cuda_arch_list, str):
             cuda_arch_list = self._break_arch_string(cuda_arch_list)
 
-        cuda_arch_list = sorted([x for x in set(cuda_arch_list) if x])
+        cuda_arch_list = sorted(x for x in set(cuda_arch_list) if x)
 
         cuda_arch_bin = []
         cuda_arch_ptx = []

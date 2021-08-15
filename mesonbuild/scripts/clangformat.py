@@ -70,7 +70,7 @@ def clangformat(exelist: T.List[str], srcdir: Path, builddir: Path, check: bool)
                 any(fnmatch.fnmatch(strf, i) for i in ignore):
                 continue
             futures.append(e.submit(run_clang_format, exelist, f, check))
-        returncode = max([x.result().returncode for x in futures])
+        returncode = max(x.result().returncode for x in futures)
     return returncode
 
 def run(args: T.List[str]) -> int:

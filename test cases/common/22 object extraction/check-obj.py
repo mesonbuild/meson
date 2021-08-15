@@ -9,9 +9,9 @@ output = None
 
 # Only the ninja backend produces compile_commands.json
 if sys.argv[1] == 'ninja':
-    with open('compile_commands.json', 'r') as f:
+    with open('compile_commands.json') as f:
         cc = json.load(f)
-    output = set((x['output'] for x in cc))
+    output = {x['output'] for x in cc}
 
 for obj in sys.argv[2:]:
     if not os.path.exists(obj):

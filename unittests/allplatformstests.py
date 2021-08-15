@@ -1339,7 +1339,7 @@ class AllPlatformTests(BasePlatformTests):
                 tar = tarfile.open(xz_distfile, "r:xz")  # [ignore encoding]
                 self.assertEqual(sorted(['samerepo-1.0',
                                          'samerepo-1.0/meson.build']),
-                                 sorted([i.name for i in tar]))
+                                 sorted(i.name for i in tar))
 
     def test_rpath_uses_ORIGIN(self):
         '''
@@ -2625,7 +2625,7 @@ class AllPlatformTests(BasePlatformTests):
         def assertKeyTypes(key_type_list, obj, strict: bool = True):
             for i in key_type_list:
                 if isinstance(i[1], (list, tuple)) and None in i[1]:
-                    i = (i[0], tuple([x for x in i[1] if x is not None]))
+                    i = (i[0], tuple(x for x in i[1] if x is not None))
                     if i[0] not in obj or obj[i[0]] is None:
                         continue
                 self.assertIn(i[0], obj)

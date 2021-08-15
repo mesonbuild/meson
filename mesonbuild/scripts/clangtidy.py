@@ -36,7 +36,7 @@ def manual_clangtidy(srcdir_name: str, builddir_name: str) -> int:
             if strf.startswith(builddir_name):
                 continue
             futures.append(e.submit(subprocess.run, ['clang-tidy', '-p', builddir_name, strf]))
-        returncode = max([x.result().returncode for x in futures])
+        returncode = max(x.result().returncode for x in futures)
     return returncode
 
 def clangtidy(srcdir_name: str, builddir_name: str) -> int:

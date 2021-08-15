@@ -1660,7 +1660,7 @@ class TestHarness:
             # wrapper script.
             sys.exit(125)
 
-        self.name_max_len = max([uniwidth(self.get_pretty_suite(test)) for test in tests])
+        self.name_max_len = max(uniwidth(self.get_pretty_suite(test)) for test in tests)
         startdir = os.getcwd()
         try:
             os.chdir(self.options.wd)
@@ -1668,8 +1668,8 @@ class TestHarness:
             for i in range(self.options.repeat):
                 runners.extend(self.get_test_runner(test) for test in tests)
                 if i == 0:
-                    self.duration_max_len = max([len(str(int(runner.timeout or 99)))
-                                                 for runner in runners])
+                    self.duration_max_len = max(len(str(int(runner.timeout or 99)))
+                                                 for runner in runners)
                     # Disable the progress report if it gets in the way
                     self.need_console = any(runner.console_mode is not ConsoleUser.LOGGER
                                              for runner in runners)

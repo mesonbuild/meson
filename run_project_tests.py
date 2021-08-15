@@ -1253,11 +1253,11 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
             f.status = TestStatus.CANCELED
 
         if stop and not tests_canceled:
-            num_running = sum([1 if f2.status is TestStatus.RUNNING  else 0 for f2 in futures])
+            num_running = sum(1 if f2.status is TestStatus.RUNNING  else 0 for f2 in futures)
             for f2 in futures:
                 f2.cancel()
             executor.shutdown()
-            num_canceled = sum([1 if f2.status is TestStatus.CANCELED else 0 for f2 in futures])
+            num_canceled = sum(1 if f2.status is TestStatus.CANCELED else 0 for f2 in futures)
             safe_print(f'\nCanceled {num_canceled} out of {num_running} running tests.')
             safe_print(f'Finishing the remaining {num_running - num_canceled} tests.\n')
             tests_canceled = True
@@ -1297,7 +1297,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
             else:
                 skip_msg = 'Test ran, but was expected to be skipped'
                 status = TestStatus.UNEXRUN
-            result.msg = "%s for MESON_CI_JOBNAME '%s'" % (skip_msg, ci_jobname)
+            result.msg = f"{skip_msg} for MESON_CI_JOBNAME '{ci_jobname}'"
 
             f.update_log(status)
             current_test = ET.SubElement(current_suite, 'testcase', {'name': testname, 'classname': t.category})
@@ -1479,7 +1479,7 @@ def print_tool_versions() -> None:
         args = [t.tool] + t.args
         pc, o, e = Popen_safe(args)
         if pc.returncode != 0:
-            return '{} (invalid {} executable)'.format(exe, t.tool)
+            return f'{exe} (invalid {t.tool} executable)'
         for i in o.split('\n'):
             i = i.strip('\n\r\t ')
             m = t.regex.match(i)

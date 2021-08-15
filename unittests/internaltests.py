@@ -509,8 +509,8 @@ class InternalTests(unittest.TestCase):
     def _test_all_naming(self, cc, env, patterns, platform):
         shr = patterns[platform]['shared']
         stc = patterns[platform]['static']
-        shrstc = shr + tuple([x for x in stc if x not in shr])
-        stcshr = stc + tuple([x for x in shr if x not in stc])
+        shrstc = shr + tuple(x for x in stc if x not in shr)
+        stcshr = stc + tuple(x for x in shr if x not in stc)
         p = cc.get_library_naming(env, LibType.SHARED)
         self.assertEqual(p, shr)
         p = cc.get_library_naming(env, LibType.STATIC)

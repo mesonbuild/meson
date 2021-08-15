@@ -127,7 +127,7 @@ class Dependency(HoldableObject):
     def get_all_compile_args(self) -> T.List[str]:
         """Get the compile arguments from this dependency and it's sub dependencies."""
         return list(itertools.chain(self.get_compile_args(),
-                                    *[d.get_all_compile_args() for d in self.ext_deps]))
+                                    *(d.get_all_compile_args() for d in self.ext_deps)))
 
     def get_link_args(self, language: T.Optional[str] = None, raw: bool = False) -> T.List[str]:
         if raw and self.raw_link_args is not None:
@@ -137,7 +137,7 @@ class Dependency(HoldableObject):
     def get_all_link_args(self) -> T.List[str]:
         """Get the link arguments from this dependency and it's sub dependencies."""
         return list(itertools.chain(self.get_link_args(),
-                                    *[d.get_all_link_args() for d in self.ext_deps]))
+                                    *(d.get_all_link_args() for d in self.ext_deps)))
 
     def found(self) -> bool:
         return self.is_found

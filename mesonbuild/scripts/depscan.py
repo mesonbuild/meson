@@ -197,7 +197,7 @@ class DependencyScanner:
 def run(args: T.List[str]) -> int:
     assert len(args) == 3, 'got wrong number of arguments!'
     pickle_file, outfile, jsonfile = args
-    with open(jsonfile, 'r', encoding='utf-8') as f:
+    with open(jsonfile, encoding='utf-8') as f:
         sources = json.load(f)
     scanner = DependencyScanner(pickle_file, outfile, sources)
     return scanner.scan()

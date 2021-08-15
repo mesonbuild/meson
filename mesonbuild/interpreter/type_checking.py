@@ -90,7 +90,7 @@ def _install_mode_convertor(mode: T.Optional[T.List[T.Union[str, bool, int]]]) -
     emtpy FileMode.
     """
     # this has already been validated by the validator
-    return FileMode(*[m if isinstance(m, str) else None for m in mode])
+    return FileMode(*(m if isinstance(m, str) else None for m in mode))
 
 
 def _lower_strlist(input: T.List[str]) -> T.List[str]:

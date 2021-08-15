@@ -574,7 +574,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         KwargInfo('static', (bool, NoneType), since='0.51.0'),
         KwargInfo('disabler', bool, default=False, since='0.49.0'),
         KwargInfo('dirs', ContainerTypeInfo(list, str), listify=True, default=[]),
-        *[k.evolve(name=f'header_{k.name}') for k in _HEADER_KWS]
+        *(k.evolve(name=f'header_{k.name}') for k in _HEADER_KWS)
     )
     def find_library_method(self, args: T.Tuple[str], kwargs: 'FindLibraryKW') -> 'dependencies.ExternalLibrary':
         # TODO add dependencies support?

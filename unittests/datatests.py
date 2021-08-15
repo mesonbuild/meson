@@ -145,8 +145,8 @@ class DataTests(unittest.TestCase):
             found_entries |= options
 
         self.assertEqual(found_entries, {
-            *[str(k) for k in mesonbuild.coredata.BUILTIN_OPTIONS],
-            *[str(k) for k in mesonbuild.coredata.BUILTIN_OPTIONS_PER_MACHINE],
+            *(str(k) for k in mesonbuild.coredata.BUILTIN_OPTIONS),
+            *(str(k) for k in mesonbuild.coredata.BUILTIN_OPTIONS_PER_MACHINE),
         })
 
         # Check that `buildtype` table inside `Core options` matches how
