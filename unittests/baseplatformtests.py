@@ -160,7 +160,7 @@ class BasePlatformTests(TestCase):
         p = subprocess.run(command, stdout=subprocess.PIPE,
                            stderr=subprocess.STDOUT, env=env,
                            encoding='utf-8',
-                           universal_newlines=True, cwd=workdir, timeout=60 * 5)
+                           text=True, cwd=workdir, timeout=60 * 5)
         print(p.stdout)
         if p.returncode != 0:
             if 'MESON_SKIP_TEST' in p.stdout:

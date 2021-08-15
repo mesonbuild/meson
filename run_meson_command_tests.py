@@ -70,7 +70,7 @@ class CommandTests(unittest.TestCase):
         # between CI issue and test bug in that case. Set timeout and fail loud
         # instead.
         p = subprocess.run(command, stdout=subprocess.PIPE,
-                           env=os.environ.copy(), universal_newlines=True,
+                           env=os.environ.copy(), text=True,
                            cwd=workdir, timeout=60 * 5)
         print(p.stdout)
         if p.returncode != 0:
