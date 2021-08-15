@@ -222,6 +222,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 subproject: str = '',
                 subdir: str = '',
                 subproject_dir: str = 'subprojects',
+                modules: T.Optional[T.Dict[str, T.Union[ExtensionModule, NewExtensionModule, NotFoundExtensionModule]]] = None,
                 default_project_options: T.Optional[T.Dict[str, str]] = None,
                 mock: bool = False,
                 ast: T.Optional[mparser.CodeBlockNode] = None,
@@ -234,7 +235,10 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.coredata = self.environment.get_coredata()
         self.backend = backend
         self.summary = {}
-        self.modules = {}
+        if modules is None:
+            self.modules = {}
+        else:
+            self.modules = modules
         # Subproject directory is usually the name of the subproject, but can
         # be different for dependencies provided by wrap files.
         self.subproject_directory_name = subdir.split(os.path.sep)[-1]
@@ -817,10 +821,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         with mlog.nested(subp_name):
             new_build = self.build.copy()
             subi = Interpreter(new_build, self.backend, subp_name, subdir, self.subproject_dir,
-                               default_options, ast=ast, is_translated=is_translated)
-            # Those lists are shared by all interpreters. That means that
-            # even if the subproject fails, any modification that the subproject
-            # made to those lists will affect the parent project.
+                               self.modules, default_options, ast=ast, is_translated=is_translated)
             subi.subprojects = self.subprojects
             subi.modules = self.modules
             subi.holder_map = self.holder_map
