@@ -359,3 +359,4 @@ class WindowsTests(BasePlatformTests):
             raise SkipTest('C++ modules are only supported with VS 2019 Preview or newer.')
         self.init(os.path.join(self.unit_test_dir, '86 cpp modules'))
         self.build()
+
