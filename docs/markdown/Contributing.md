@@ -83,6 +83,21 @@ In a simplified list form the split would look like the following:
   - changes breaking backwards compatibility
   - support for new languages
 
+## A green CI run is mandatory for merging
+
+No merge request may be merged until it has a fully green CI run. It
+does not matter why CI fails, it is a hard blocker. Even if the MR
+could possibly not have anything to do with the failure and clearly
+should be permitted, it may not be merged. Only MRs that fix the CI
+issue are allowed to land in trunk.
+
+There is one, and only one, exception to this. At the time of writing
+the Apple CI is unreliable and sometimes fails with clock skew errors.
+
+If a merge causes CI failure any developer can revert it out of
+master. It is then the responsibility of the original submitter to
+resubmit a fixed version.
+
 ## Strategy for merging pull requests to trunk
 
 Meson's merge strategy should fulfill the following guidelines:
