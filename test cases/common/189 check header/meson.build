@@ -2,12 +2,11 @@ project('check header', 'c', 'cpp')
 
 host_system = host_machine.system()
 
-non_existent_header = 'ouagadougou.h'
-
-# Copy it into the builddir to ensure that it isn't found even if it's there
-configure_file(input : non_existent_header,
-  output : non_existent_header,
-  copy: true)
+# Configure file to place the output file in the build dir.
+configure_file(
+    input: 'config.h.in',
+    output: 'config.h',
+    configuration: configuration_data({'MACRO': true}))
 
 fallback = ''
 
@@ -41,8 +40,8 @@ foreach comp : [meson.get_compiler('c'), meson.get_compiler('cpp')]
     endif
   endif
 
-  # This header exists in the source and the builddir, but we still must not
-  # find it since we are looking in the system directories.
-  assert(not comp.check_header(non_existent_header, prefix : fallback),
-         'Found non-existent header.')
+  # The header was created in the build dir via configure_file and should be found
+  # even if the build dir is not manually added.
+  assert(comp.check_header('header.h', include_directories: include_directories('.')),
+          'configured header in build dir not found')
 endforeach
