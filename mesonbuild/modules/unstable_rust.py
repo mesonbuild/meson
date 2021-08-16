@@ -228,5 +228,5 @@ class RustModule(ExtensionModule):
         return ModuleReturnValue([target], [target])
 
 
-def initialize(*args: T.List, **kwargs: T.Dict) -> RustModule:
-    return RustModule(*args, **kwargs)  # type: ignore
+def initialize(interp: 'Interpreter') -> RustModule:
+    return RustModule(interp)
