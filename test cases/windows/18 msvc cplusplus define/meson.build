@@ -1,0 +1,15 @@
+project('msvc __cplusplus', 'cpp')
+
+cpp = meson.get_compiler('cpp')
+
+if cpp.get_id() != 'msvc'
+  error('MESON_SKIP_TEST: test is only relavent for msvc')
+elif meson.project_version().version_compare('< 15.7')
+  error('MESON_SKIP_TEST: test is only relavent for msvc versions >= 15.7')
+endif
+
+test(
+  'main',
+  executable('main', 'main.cpp'),
+  override_options : ['cpp_std=c++14']
+)
