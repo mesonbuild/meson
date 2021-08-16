@@ -2424,6 +2424,9 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
     @T.overload
     def source_strings_to_files(self, sources: T.List['mesonlib.FileOrString']) -> T.List['mesonlib.File']: ...
 
+    @T.overload
+    def source_strings_to_files(self, sources: T.List['SourceInputs']) -> T.List['SourceOutputs']: ...
+
     def source_strings_to_files(self, sources: T.List['SourceInputs']) -> T.List['SourceOutputs']:
         """Lower inputs to a list of Targets and Files, replacing any strings.
 
