@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
+import os
 import pathlib
 import pickle
 import re
-import os
 import sys
 import typing as T
 
@@ -194,8 +195,9 @@ class DependencyScanner:
         return 0
 
 def run(args: T.List[str]) -> int:
-    pickle_file = args[0]
-    outfile = args[1]
-    sources = args[2:]
+    assert len(args) == 3, 'got wrong number of arguments!'
+    pickle_file, outfile, jsonfile = args
+    with open(jsonfile, 'r', encoding='utf-8') as f:
+        sources = json.load(f)
     scanner = DependencyScanner(pickle_file, outfile, sources)
     return scanner.scan()
