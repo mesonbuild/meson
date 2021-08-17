@@ -21,11 +21,14 @@
             "type": "string",
             "enum": [
               "file",
+              "python_file",
               "dir",
               "exe",
               "shared_lib",
+              "python_lib",
               "pdb",
               "implib",
+              "py_implib",
               "implibempty",
               "expr"
             ]
