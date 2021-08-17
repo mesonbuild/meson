@@ -106,7 +106,7 @@ class Project():
             yield cls(os.path.abspath(source_dir), tmpdir)
 
     @functools.lru_cache()
-    def _info(self, name: str) -> Dict[str, str]:
+    def _info(self, name: str) -> Dict[str, Any]:
         """Read info from meson-info directory."""
         file = self._build_dir.joinpath('meson-info', f'{name}.json')
         return typing.cast(
@@ -117,12 +117,16 @@ class Project():
     @property
     def name(self) -> str:
         """Project name."""
-        return self._info('intro-projectinfo')['descriptive_name']
+        name = self._info('intro-projectinfo')['descriptive_name']
+        assert isinstance(name, str)
+        return name
 
     @property
     def version(self) -> str:
         """Project version."""
-        return self._info('intro-projectinfo')['version']
+        version = self._info('intro-projectinfo')['version']
+        assert isinstance(version, str)
+        return version
 
     @property
     def metadata(self) -> email.message.Message:
