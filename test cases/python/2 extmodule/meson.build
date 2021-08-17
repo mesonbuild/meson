@@ -18,11 +18,19 @@ endif
 
 subdir('ext')
 
+blaster = configure_file(
+  input: 'blaster.py.in',
+  output: 'blaster.py',
+  configuration: {'tachyon_module': 'tachyon'}
+)
+
 test('extmod',
   py,
-  args : files('blaster.py'),
+  args : blaster,
   env : ['PYTHONPATH=' + pypathdir])
 
+py.install_sources(blaster, pure: false)
+py.install_sources(blaster, subdir: 'pure')
 
 py3_pkg_dep = dependency('python3', method: 'pkg-config', required : false)
 if py3_pkg_dep.found()
