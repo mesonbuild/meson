@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import tachyon
+import @tachyon_module@ as tachyon
 
 result = tachyon.phaserize('shoot')
 
