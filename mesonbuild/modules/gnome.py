@@ -1728,7 +1728,7 @@ G_END_DECLS'''
         with open(fname, 'w', encoding='utf-8') as ofile:
             for package in packages:
                 ofile.write(package + '\n')
-        return build.Data([mesonlib.File(True, outdir, fname)], install_dir, None, state.subproject)
+        return build.Data([mesonlib.File(True, outdir, fname)], install_dir, install_dir, None, state.subproject)
 
     def _get_vapi_link_with(self, target):
         link_with = []

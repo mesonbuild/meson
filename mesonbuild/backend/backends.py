@@ -130,12 +130,13 @@ class TargetInstallData:
 
     # TODO: install_mode should just always be a FileMode object
 
-    def __init__(self, fname: str, outdir: str, aliases: T.Dict[str, str], strip: bool,
-                 install_name_mappings: T.Mapping[str, str], rpath_dirs_to_remove: T.Set[bytes],
+    def __init__(self, fname: str, outdir: str, outdir_name: str, aliases: T.Dict[str, str],
+                 strip: bool, install_name_mappings: T.Mapping[str, str], rpath_dirs_to_remove: T.Set[bytes],
                  install_rpath: str, install_mode: T.Optional['FileMode'],
                  subproject: str, optional: bool = False, tag: T.Optional[str] = None):
         self.fname = fname
         self.outdir = outdir
+        self.out_name = os.path.join(outdir_name, os.path.basename(fname))
         self.aliases = aliases
         self.strip = strip
         self.install_name_mappings = install_name_mappings
@@ -147,19 +148,22 @@ class TargetInstallData:
         self.tag = tag
 
 class InstallDataBase:
-    def __init__(self, path: str, install_path: str, install_mode: 'FileMode',
-                 subproject: str, tag: T.Optional[str] = None):
+    def __init__(self, path: str, install_path: str, install_path_name: str,
+                 install_mode: 'FileMode', subproject: str, tag: T.Optional[str] = None,
+                 data_type: T.Optional[str] = None):
         self.path = path
         self.install_path = install_path
+        self.install_path_name = install_path_name
         self.install_mode = install_mode
         self.subproject = subproject
         self.tag = tag
+        self.data_type = data_type
 
 class SubdirInstallData(InstallDataBase):
-    def __init__(self, path: str, install_path: str, install_mode: 'FileMode',
-                 exclude: T.Tuple[T.Set[str], T.Set[str]], subproject: str,
-                 tag: T.Optional[str] = None):
-        super().__init__(path, install_path, install_mode, subproject, tag)
+    def __init__(self, path: str, install_path: str, install_path_name: str,
+                 install_mode: 'FileMode', exclude: T.Tuple[T.Set[str], T.Set[str]],
+                 subproject: str, tag: T.Optional[str] = None, data_type: T.Optional[str] = None):
+        super().__init__(path, install_path, install_path_name, install_mode, subproject, tag, data_type)
         self.exclude = exclude
 
 class ExecutableSerialisation:
@@ -1139,11 +1143,13 @@ class Backend:
             return
         ifilename = os.path.join(self.environment.get_build_dir(), 'depmf.json')
         ofilename = os.path.join(self.environment.get_prefix(), self.build.dep_manifest_name)
+        out_name = os.path.join('{prefix}', self.build.dep_manifest_name)
         mfobj = {'type': 'dependency manifest', 'version': '1.0', 'projects': self.build.dep_manifest}
         with open(ifilename, 'w', encoding='utf-8') as f:
             f.write(json.dumps(mfobj))
         # Copy file from, to, and with mode unchanged
-        d.data.append(InstallDataBase(ifilename, ofilename, None, '', tag='devel'))
+        d.data.append(InstallDataBase(ifilename, ofilename, out_name, None, '',
+                                      tag='devel', data_type='depmf'))
 
     def get_regen_filelist(self) -> T.List[str]:
         '''List of all files whose alteration means that the build
@@ -1501,7 +1507,7 @@ class Backend:
         for t in self.build.get_targets().values():
             if not t.should_install():
                 continue
-            outdirs, custom_install_dir = t.get_install_dir(self.environment)
+            outdirs, install_dir_name, custom_install_dir = t.get_install_dir(self.environment)
             # Sanity-check the outputs and install_dirs
             num_outdirs, num_out = len(outdirs), len(t.get_outputs())
             if num_outdirs != 1 and num_outdirs != num_out:
@@ -1534,8 +1540,8 @@ class Backend:
                     tag = t.install_tag[0] or ('devel' if isinstance(t, build.StaticLibrary) else 'runtime')
                     mappings = t.get_link_deps_mapping(d.prefix, self.environment)
                     i = TargetInstallData(self.get_target_filename(t), outdirs[0],
-                                          t.get_aliases(), should_strip, mappings,
-                                          t.rpath_dirs_to_remove,
+                                          install_dir_name, t.get_aliases(),
+                                          should_strip, mappings, t.rpath_dirs_to_remove,
                                           t.install_rpath, install_mode, t.subproject,
                                           tag=tag)
                     d.targets.append(i)
@@ -1554,7 +1560,8 @@ class Backend:
                                 implib_install_dir = self.environment.get_import_lib_dir()
                             # Install the import library; may not exist for shared modules
                             i = TargetInstallData(self.get_target_filename_for_linking(t),
-                                                  implib_install_dir, {}, False, {}, set(), '', install_mode,
+                                                  implib_install_dir, install_dir_name,
+                                                  {}, False, {}, set(), '', install_mode,
                                                   t.subproject, optional=isinstance(t, build.SharedModule),
                                                   tag='devel')
                             d.targets.append(i)
@@ -1562,6 +1569,7 @@ class Backend:
                         if not should_strip and t.get_debug_filename():
                             debug_file = os.path.join(self.get_target_dir(t), t.get_debug_filename())
                             i = TargetInstallData(debug_file, outdirs[0],
+                                                  install_dir_name,
                                                   {}, False, {}, set(), '',
                                                   install_mode, t.subproject,
                                                   optional=True, tag='devel')
@@ -1573,8 +1581,7 @@ class Backend:
                         if outdir is False:
                             continue
                         f = os.path.join(self.get_target_dir(t), output)
-                        tag = tag or self.guess_install_tag(f, outdir)
-                        i = TargetInstallData(f, outdir, {}, False, {}, set(), None,
+                        i = TargetInstallData(f, outdir, install_dir_name, {}, False, {}, set(), None,
                                               install_mode, t.subproject,
                                               tag=tag)
                         d.targets.append(i)
@@ -1589,8 +1596,10 @@ class Backend:
                 if num_outdirs == 1 and num_out > 1:
                     for output, tag in zip(t.get_outputs(), t.install_tag):
                         f = os.path.join(self.get_target_dir(t), output)
-                        tag = tag or self.guess_install_tag(f, outdirs[0])
-                        i = TargetInstallData(f, outdirs[0], {}, False, {}, set(), None, install_mode,
+                        if not install_dir_name:
+                            dir_name = os.path.join('{prefix}', outdirs[0])
+                        i = TargetInstallData(f, outdirs[0], dir_name, {},
+                                              False, {}, set(), None, install_mode,
                                               t.subproject, optional=not t.build_by_default,
                                               tag=tag)
                         d.targets.append(i)
@@ -1600,8 +1609,10 @@ class Backend:
                         if outdir is False:
                             continue
                         f = os.path.join(self.get_target_dir(t), output)
-                        tag = tag or self.guess_install_tag(f, outdir)
-                        i = TargetInstallData(f, outdir, {}, False, {}, set(), None, install_mode,
+                        if not install_dir_name:
+                            dir_name = os.path.join('{prefix}', outdir)
+                        i = TargetInstallData(f, outdir, dir_name,
+                                              {}, False, {}, set(), None, install_mode,
                                               t.subproject, optional=not t.build_by_default,
                                               tag=tag)
                         d.targets.append(i)
@@ -1616,19 +1627,21 @@ class Backend:
         srcdir = self.environment.get_source_dir()
         builddir = self.environment.get_build_dir()
         for h in headers:
-            outdir = h.get_custom_install_dir()
+            outdir = outdir_name = h.get_custom_install_dir()
             if outdir is None:
                 subdir = h.get_install_subdir()
                 if subdir is None:
                     outdir = incroot
+                    outdir_name = '{includedir}'
                 else:
                     outdir = os.path.join(incroot, subdir)
+                    outdir_name = os.path.join('{includedir}', subdir)
 
             for f in h.get_sources():
                 if not isinstance(f, File):
                     raise MesonException(f'Invalid header type {f!r} can\'t be installed')
                 abspath = f.absolute_path(srcdir, builddir)
-                i = InstallDataBase(abspath, outdir, h.get_custom_install_mode(), h.subproject, tag='devel')
+                i = InstallDataBase(abspath, outdir, outdir_name, h.get_custom_install_mode(), h.subproject, tag='devel')
                 d.headers.append(i)
 
     def generate_man_install(self, d: InstallData) -> None:
@@ -1640,15 +1653,16 @@ class Backend:
                 subdir = m.get_custom_install_dir()
                 if subdir is None:
                     if m.locale:
-                        subdir = os.path.join(manroot, m.locale, 'man' + num)
+                        subdir = os.path.join('{mandir}', m.locale, 'man' + num)
                     else:
-                        subdir = os.path.join(manroot, 'man' + num)
+                        subdir = os.path.join('{mandir}', 'man' + num)
                 fname = f.fname
                 if m.locale: # strip locale from file name
                     fname = fname.replace(f'.{m.locale}', '')
                 srcabs = f.absolute_path(self.environment.get_source_dir(), self.environment.get_build_dir())
-                dstabs = os.path.join(subdir, os.path.basename(fname))
-                i = InstallDataBase(srcabs, dstabs, m.get_custom_install_mode(), m.subproject, tag='man')
+                dstname = os.path.join(subdir, os.path.basename(fname))
+                dstabs = dstname.replace('{mandir}', manroot)
+                i = InstallDataBase(srcabs, dstabs, dstname, m.get_custom_install_mode(), m.subproject, tag='man')
                 d.man.append(i)
 
     def generate_data_install(self, d: InstallData) -> None:
@@ -1658,13 +1672,17 @@ class Backend:
         for de in data:
             assert isinstance(de, build.Data)
             subdir = de.install_dir
+            subdir_name = de.install_dir_name
             if not subdir:
                 subdir = os.path.join(self.environment.get_datadir(), self.interpreter.build.project_name)
+                subdir_name = os.path.join('{datadir}', self.interpreter.build.project_name)
             for src_file, dst_name in zip(de.sources, de.rename):
                 assert isinstance(src_file, mesonlib.File)
                 dst_abs = os.path.join(subdir, dst_name)
+                dstdir_name = os.path.join(subdir_name, dst_name)
                 tag = de.install_tag or self.guess_install_tag(dst_abs)
-                i = InstallDataBase(src_file.absolute_path(srcdir, builddir), dst_abs, de.install_mode, de.subproject, tag=tag)
+                i = InstallDataBase(src_file.absolute_path(srcdir, builddir), dst_abs, dstdir_name,
+                                    de.install_mode, de.subproject, tag=tag, data_type=de.data_type)
                 d.data.append(i)
 
     def generate_subdir_install(self, d: InstallData) -> None:
@@ -1678,9 +1696,11 @@ class Backend:
                                    sd.installable_subdir).rstrip('/')
             dst_dir = os.path.join(self.environment.get_prefix(),
                                    sd.install_dir)
+            dst_name = os.path.join('{prefix}', sd.install_dir)
             if not sd.strip_directory:
                 dst_dir = os.path.join(dst_dir, os.path.basename(src_dir))
-            i = SubdirInstallData(src_dir, dst_dir, sd.install_mode, sd.exclude, sd.subproject)
+                dst_name = os.path.join(dst_dir, os.path.basename(src_dir))
+            i = SubdirInstallData(src_dir, dst_dir, dst_name, sd.install_mode, sd.exclude, sd.subproject)
             d.install_subdirs.append(i)
 
     def get_introspection_data(self, target_id: str, target: build.Target) -> T.List['TargetIntrospectionData']:
@@ -1740,7 +1760,7 @@ class Backend:
         for t in self.build.get_targets().values():
             cross_built = not self.environment.machines.matches_build_machine(t.for_machine)
             can_run = not cross_built or not self.environment.need_exe_wrapper()
-            in_default_dir = t.should_install() and not t.get_install_dir(self.environment)[1]
+            in_default_dir = t.should_install() and not t.get_install_dir(self.environment)[2]
             if not can_run or not in_default_dir:
                 continue
             tdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(t))

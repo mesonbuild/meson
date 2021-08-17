@@ -74,6 +74,7 @@ def get_meson_introspection_types(coredata: T.Optional[cdata.CoreData] = None,
         ('dependencies', IntroCommand('List external dependencies', func=lambda: list_deps(coredata), no_bd=list_deps_from_source)),
         ('scan_dependencies', IntroCommand('Scan for dependencies used in the meson.build file', no_bd=list_deps_from_source)),
         ('installed', IntroCommand('List all installed files and directories', func=lambda: list_installed(installdata))),
+        ('install_plan', IntroCommand('List all installed files and directories with their details', func=lambda: list_install_plan(installdata))),
         ('projectinfo', IntroCommand('Information about projects', func=lambda: list_projinfo(builddata), no_bd=list_projinfo_from_source)),
         ('targets', IntroCommand('List top level targets', func=lambda: list_targets(builddata, installdata, backend), no_bd=list_targets_from_source)),
         ('tests', IntroCommand('List all unit tests', func=lambda: list_tests(testdata))),
@@ -118,6 +119,36 @@ def list_installed(installdata: backends.InstallData) -> T.Dict[str, str]:
         for i in installdata.install_subdirs:
             res[i.path] = os.path.join(installdata.prefix, i.install_path)
     return res
+
+def list_install_plan(installdata: backends.InstallData) -> T.Dict[str, T.Dict[str, T.Dict[str, T.Optional[str]]]]:
+    plan = {
+        'targets': {
+            os.path.join(installdata.build_dir, target.fname): {
+                'destination': target.out_name,
+                'tag': target.tag or None,
+            }
+            for target in installdata.targets
+        },
+    }  # type: T.Dict[str, T.Dict[str, T.Dict[str, T.Optional[str]]]]
+    for key, data_list in {
+        'data': installdata.data,
+        'man': installdata.man,
+        'headers': installdata.headers,
+    }.items():
+        for data in data_list:
+            data_type = data.data_type or key
+            install_path_name = data.install_path_name
+            if key == 'headers':  # in the headers, install_path_name is the directory
+                install_path_name = os.path.join(install_path_name, os.path.basename(data.path))
+            elif data_type == 'configure':
+                install_path_name = os.path.join('{prefix}', install_path_name)
+
+            plan[data_type] = plan.get(data_type, {})
+            plan[data_type][data.path] = {
+                'destination': install_path_name,
+                'tag': data.tag or None,
+            }
+    return plan
 
 def get_target_dir(coredata: cdata.CoreData, subdir: str) -> str:
     if coredata.get_option(OptionKey('layout')) == 'flat':

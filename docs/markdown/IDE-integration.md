@@ -32,16 +32,17 @@ to be the last file written.
 
 The `meson-info` directory should contain the following files:
 
-| File                           | Description                                                         |
-| ------------------------------ | ------------------------------------------------------------------- |
-| `intro-benchmarks.json`        | Lists all benchmarks                                                |
-| `intro-buildoptions.json`      | Contains a full list of Meson configuration options for the project |
-| `intro-buildsystem_files.json` | Full list of all Meson build files                                  |
-| `intro-dependencies.json`      | Lists all dependencies used in the project                          |
-| `intro-installed.json`         | Contains mapping of files to their installed location               |
-| `intro-projectinfo.json`       | Stores basic information about the project (name, version, etc.)    |
-| `intro-targets.json`           | Full list of all build targets                                      |
-| `intro-tests.json`             | Lists all tests with instructions how to run them                   |
+| File                           | Description                                                                   |
+| ------------------------------ | ----------------------------------------------------------------------------- |
+| `intro-benchmarks.json`        | Lists all benchmarks                                                          |
+| `intro-buildoptions.json`      | Contains a full list of Meson configuration options for the project           |
+| `intro-buildsystem_files.json` | Full list of all Meson build files                                            |
+| `intro-dependencies.json`      | Lists all dependencies used in the project                                    |
+| `intro-installed.json`         | Contains mapping of files to their installed location                         |
+| `intro-install_plan.json`      | Dictionary of data types with the source files and their installation details |
+| `intro-projectinfo.json`       | Stores basic information about the project (name, version, etc.)              |
+| `intro-targets.json`           | Full list of all build targets                                                |
+| `intro-tests.json`             | Lists all tests with instructions how to run them                             |
 
 The content of the JSON files is further specified in the remainder of
 this document.
@@ -118,6 +119,57 @@ The following table shows all valid types for a target.
 | `custom`         | A custom target                                                                               |
 | `run`            | A Meson run target                                                                            |
 | `jar`            | A Java JAR target                                                                             |
+
+
+### Install plan
+
+The `intro-install_plan.json` file contains a list of the files that are going
+to be installed on the system.
+
+The data contains a list of files grouped by data type. Each file maps to a
+dictionary containing the `destination` and `tag` keys, with the key being the
+file location at build time. `destination` is the destination path using
+placeholders for the base directories. New keys may be added in the future.
+
+```json
+{
+    "targets": {
+        "/path/to/project/builddir/some_executable": {
+            "destination": "{bindir}/some_executable",
+            "tag": "runtime"
+        },
+        "/path/to/project/builddir/libsomelib.so": {
+            "destination": "{libdir_shared}/libsomelib.so",
+            "tag": "runtime"
+        }
+    },
+    "data": {
+        "/path/to/project/some_data": {
+            "destination": "{datadir}/some_data",
+            "tag": null
+        }
+    },
+    "headers": {
+        "/path/to/project/some_header.h": {
+            "destination": "{includedir}/some_header.h",
+            "tag": "devel"
+        }
+    }
+}
+```
+
+Additionally, the `intro-installed.json` file contains the mapping of the
+file path at build time to the absolute system location.
+
+```json
+{
+    "/path/to/project/builddir/some_executable": "/usr/bin/some_executable",
+    "/path/to/project/builddir/libsomelib.so": "/user/lib/libsomelib.so",
+    "/path/to/project/some_data": "/usr/share/some_data",
+    "/path/to/project/some_header.h": "/usr/include/some_header.h"
+}
+```
+
 
 ### Using `--targets` without a build directory
 

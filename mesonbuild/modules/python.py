@@ -493,7 +493,8 @@ class PythonInstallation(ExternalProgramHolder):
         return self.interpreter.install_data_impl(
             self.interpreter.source_strings_to_files(args[0]),
             self._get_install_dir_impl(kwargs['pure'], kwargs['subdir']),
-            mesonlib.FileMode(), rename=None, tag=tag)
+            mesonlib.FileMode(), rename=None, tag=tag, install_data_type='python',
+            install_dir_name=self._get_install_dir_name_impl(kwargs['pure'], kwargs['subdir']))
 
     @noPosargs
     @typed_kwargs('python_installation.install_dir', _PURE_KW, _SUBDIR_KW)
@@ -503,6 +504,9 @@ class PythonInstallation(ExternalProgramHolder):
     def _get_install_dir_impl(self, pure: bool, subdir: str) -> str:
         return os.path.join(
             self.purelib_install_path if pure else self.platlib_install_path, subdir)
+
+    def _get_install_dir_name_impl(self, pure: bool, subdir: str) -> str:
+        return os.path.join('{py_purelib}' if pure else '{py_platlib}', subdir)
 
     @noPosargs
     @noKwargs

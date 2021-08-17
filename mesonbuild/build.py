@@ -519,12 +519,12 @@ class Target(HoldableObject):
             return NotImplemented
         return self.get_id() >= other.get_id()
 
-    def get_default_install_dir(self, env: environment.Environment) -> str:
+    def get_default_install_dir(self, env: environment.Environment) -> T.Tuple[str, str]:
         raise NotImplementedError
 
-    def get_install_dir(self, environment: environment.Environment) -> T.Tuple[T.Any, bool]:
+    def get_install_dir(self, environment: environment.Environment) -> T.Tuple[T.Any, str, bool]:
         # Find the installation directory.
-        default_install_dir = self.get_default_install_dir(environment)
+        default_install_dir, install_dir_name = self.get_default_install_dir(environment)
         outdirs = self.get_custom_install_dir()
         if outdirs[0] is not None and outdirs[0] != default_install_dir and outdirs[0] is not True:
             # Either the value is set to a non-default value, or is set to
@@ -534,7 +534,7 @@ class Target(HoldableObject):
         else:
             custom_install_dir = False
             outdirs[0] = default_install_dir
-        return outdirs, custom_install_dir
+        return outdirs, install_dir_name, custom_install_dir
 
     def get_basename(self) -> str:
         return self.name
@@ -942,8 +942,8 @@ class BuildTarget(Target):
             result.update(i.get_link_dep_subdirs())
         return result
 
-    def get_default_install_dir(self, environment: environment.Environment) -> str:
-        return environment.get_libdir()
+    def get_default_install_dir(self, environment: environment.Environment) -> T.Tuple[str, str]:
+        return environment.get_libdir(), '{libdir}'
 
     def get_custom_install_dir(self):
         return self.install_dir
@@ -1729,8 +1729,8 @@ class Executable(BuildTarget):
         # Remember that this exe was returned by `find_program()` through an override
         self.was_returned_by_find_program = False
 
-    def get_default_install_dir(self, environment: environment.Environment) -> str:
-        return environment.get_bindir()
+    def get_default_install_dir(self, environment: environment.Environment) -> T.Tuple[str, str]:
+        return environment.get_bindir(), '{bindir}'
 
     def description(self):
         '''Human friendly description of the executable'''
@@ -1806,8 +1806,8 @@ class StaticLibrary(BuildTarget):
     def get_link_deps_mapping(self, prefix: str, environment: environment.Environment) -> T.Mapping[str, str]:
         return {}
 
-    def get_default_install_dir(self, environment):
-        return environment.get_static_lib_dir()
+    def get_default_install_dir(self, environment) -> T.Tuple[str, str]:
+        return environment.get_static_lib_dir(), '{libdir_static}'
 
     def type_suffix(self):
         return "@sta"
@@ -1866,14 +1866,14 @@ class SharedLibrary(BuildTarget):
         old = get_target_macos_dylib_install_name(self)
         if old not in mappings:
             fname = self.get_filename()
-            outdirs, _ = self.get_install_dir(self.environment)
+            outdirs, _, _ = self.get_install_dir(self.environment)
             new = os.path.join(prefix, outdirs[0], fname)
             result.update({old: new})
         mappings.update(result)
         return mappings
 
-    def get_default_install_dir(self, environment):
-        return environment.get_shared_lib_dir()
+    def get_default_install_dir(self, environment) -> T.Tuple[str, str]:
+        return environment.get_shared_lib_dir(), '{libdir_shared}'
 
     def determine_filenames(self, env):
         """
@@ -2160,8 +2160,8 @@ class SharedModule(SharedLibrary):
         super().__init__(name, subdir, subproject, for_machine, sources, objects, environment, kwargs)
         self.typename = 'shared module'
 
-    def get_default_install_dir(self, environment):
-        return environment.get_shared_module_dir()
+    def get_default_install_dir(self, environment) -> T.Tuple[str, str]:
+        return environment.get_shared_module_dir(), '{moduledir_shared}'
 
 class BothLibraries(SecondLevelHolder):
     def __init__(self, shared: SharedLibrary, static: StaticLibrary) -> None:
@@ -2253,8 +2253,8 @@ class CustomTarget(Target, CommandBase):
         if unknowns:
             mlog.warning('Unknown keyword arguments in target {}: {}'.format(self.name, ', '.join(unknowns)))
 
-    def get_default_install_dir(self, environment):
-        return None
+    def get_default_install_dir(self, environment) -> T.Tuple[str, str]:
+        return None, None
 
     def __repr__(self):
         repr_str = "<{0} {1}: {2}>"
@@ -2656,12 +2656,14 @@ class ConfigurationData(HoldableObject):
 # A bit poorly named, but this represents plain data files to copy
 # during install.
 class Data(HoldableObject):
-    def __init__(self, sources: T.List[File], install_dir: str,
+    def __init__(self, sources: T.List[File], install_dir: str, install_dir_name: str,
                  install_mode: 'FileMode', subproject: str,
                  rename: T.List[str] = None,
-                 install_tag: T.Optional[str] = None):
+                 install_tag: T.Optional[str] = None,
+                 data_type: str = None):
         self.sources = sources
         self.install_dir = install_dir
+        self.install_dir_name = install_dir_name
         self.install_mode = install_mode
         self.install_tag = install_tag
         if rename is None:
@@ -2669,6 +2671,7 @@ class Data(HoldableObject):
         else:
             self.rename = rename
         self.subproject = subproject
+        self.data_type = data_type
 
 class TestSetup:
     def __init__(self, exe_wrapper: T.Optional[T.List[str]], gdb: bool,
