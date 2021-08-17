@@ -1682,9 +1682,9 @@ class NinjaBackend(backends.Backend):
                 args += ['--extern', '{}={}'.format(d.name, os.path.join(d.subdir, d.filename))]
             elif d.typename == 'static library':
                 # Rustc doesn't follow Meson's convention that static libraries
-                # are called .a, and implementation libraries are .lib, so we
-                # have to manually handle that.
-                if rustc.linker.id == 'link':
+                # are called .a, and import libraries are .lib, so we have to
+                # manually handle that.
+                if rustc.linker.id in {'link', 'lld-link'}:
                     args += ['-C', f'link-arg={self.get_target_filename_for_linking(d)}']
                 else:
                     args += ['-l', f'static={d.name}']
