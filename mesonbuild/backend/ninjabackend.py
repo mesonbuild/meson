@@ -11,18 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import typing as T
-import os
-import re
-import pickle
-import shlex
-import subprocess
+
 from collections import OrderedDict
 from enum import Enum, unique
-import itertools
-from textwrap import dedent
-from pathlib import PurePath, Path
 from functools import lru_cache
+from pathlib import PurePath, Path
+from textwrap import dedent
+import itertools
+import json
+import os
+import pickle
+import re
+import shlex
+import subprocess
+import typing as T
 
 from . import backends
 from .. import modules
@@ -915,9 +917,16 @@ class NinjaBackend(backends.Backend):
         pickle_base = target.name + '.dat'
         pickle_file = os.path.join(self.get_target_private_dir(target), pickle_base).replace('\\', '/')
         pickle_abs = os.path.join(self.get_target_private_dir_abs(target), pickle_base).replace('\\', '/')
+        json_abs = os.path.join(self.get_target_private_dir_abs(target), f'{target.name}-deps.json').replace('\\', '/')
         rule_name = 'depscan'
         scan_sources = self.select_sources_to_scan(compiled_sources)
-        elem = NinjaBuildElement(self.all_outputs, depscan_file, rule_name, scan_sources)
+
+        # Dump the sources as a json list. This avoids potential probllems where
+        # the number of sources passed to depscan exceedes the limit imposed by
+        # the OS.
+        with open(json_abs, 'w', encoding='utf-8') as f:
+            json.dump(scan_sources, f)
+        elem = NinjaBuildElement(self.all_outputs, depscan_file, rule_name, json_abs)
         elem.add_item('picklefile', pickle_file)
         scaninfo = TargetDependencyScannerInfo(self.get_target_private_dir(target), source2object)
         with open(pickle_abs, 'wb') as p:
