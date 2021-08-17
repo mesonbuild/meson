@@ -402,9 +402,9 @@ class PythonInstallation(ExternalProgramHolder):
         suffix = self.variables.get('EXT_SUFFIX') or self.variables.get('SO') or self.variables.get('.so')
 
         # msys2's python3 has "-cpython-36m.dll", we have to be clever
-        split = suffix.rsplit('.', 1)
-        suffix = split.pop(-1)
-        args[0] += ''.join(s for s in split)
+        # FIXME: explain what the specific cleverness is here
+        split, suffix = suffix.rsplit('.', 1)
+        args[0] += split
 
         kwargs['name_prefix'] = ''
         kwargs['name_suffix'] = suffix
