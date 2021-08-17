@@ -306,6 +306,7 @@ if T.TYPE_CHECKING:
         link_libpython: bool
         paths: T.Dict[str, str]
         platform: str
+        suffix : str
         variables: T.Dict[str, str]
         version: str
 
@@ -334,6 +335,35 @@ class PythonExternalProgram(ExternalProgram):
             'version': '0.0',
         }
 
+    def _check_version(self, version: str) -> bool:
+        if self.name == 'python2':
+            return mesonlib.version_compare(version, '< 3.0')
+        elif self.name == 'python3':
+            return mesonlib.version_compare(version, '>= 3.0')
+        return True
+
+    def sanity(self) -> bool:
+        # Sanity check, we expect to have something that at least quacks in tune
+        cmd = self.get_command() + ['-c', INTROSPECT_COMMAND]
+        p, stdout, stderr = mesonlib.Popen_safe(cmd)
+        try:
+            info = json.loads(stdout)
+        except json.JSONDecodeError:
+            info = None
+            mlog.debug('Could not introspect Python (%s): exit code %d' % (str(p.args), p.returncode))
+            mlog.debug('Program stdout:\n')
+            mlog.debug(stdout)
+            mlog.debug('Program stderr:\n')
+            mlog.debug(stderr)
+
+        if info is not None and self._check_version(info['version']):
+            variables = info['variables']
+            info['suffix'] = variables.get('EXT_SUFFIX') or variables.get('SO') or variables.get('.so')
+            self.info = T.cast('PythonIntrospectionDict', info)
+            return True
+        else:
+            return False
+
 
 _PURE_KW = KwargInfo('pure', bool, default=True)
 _SUBDIR_KW = KwargInfo('subdir', str, default='')
@@ -354,6 +384,7 @@ class PythonInstallation(ExternalProgramHolder):
         prefix = self.interpreter.environment.coredata.get_option(mesonlib.OptionKey('prefix'))
         assert isinstance(prefix, str), 'for mypy'
         self.variables = info['variables']
+        self.suffix = info['suffix']
         self.paths = info['paths']
         install_paths = info['install_paths']
         self.platlib_install_path = os.path.join(prefix, install_paths['platlib'][1:])
@@ -399,11 +430,9 @@ class PythonInstallation(ExternalProgramHolder):
                 new_deps.append(dep)
             kwargs['dependencies'] = new_deps
 
-        suffix = self.variables.get('EXT_SUFFIX') or self.variables.get('SO') or self.variables.get('.so')
-
         # msys2's python3 has "-cpython-36m.dll", we have to be clever
         # FIXME: explain what the specific cleverness is here
-        split, suffix = suffix.rsplit('.', 1)
+        split, suffix = self.suffix.rsplit('.', 1)
         args[0] += split
 
         kwargs['name_prefix'] = ''
@@ -535,14 +564,6 @@ class PythonModule(ExtensionModule):
         else:
             return None
 
-    @staticmethod
-    def _check_version(name_or_path: str, version: str) -> bool:
-        if name_or_path == 'python2':
-            return mesonlib.version_compare(version, '< 3.0')
-        elif name_or_path == 'python3':
-            return mesonlib.version_compare(version, '>= 3.0')
-        return True
-
     @disablerIfNotFound
     @typed_pos_args('python.find_installation', optargs=[str])
     @typed_kwargs(
@@ -628,21 +649,9 @@ class PythonModule(ExtensionModule):
                 raise mesonlib.MesonException('{} is missing modules: {}'.format(name_or_path or 'python', ', '.join(missing_modules)))
             return NonExistingExternalProgram()
         else:
-            # Sanity check, we expect to have something that at least quacks in tune
-            cmd = python.get_command() + ['-c', INTROSPECT_COMMAND]
-            p, stdout, stderr = mesonlib.Popen_safe(cmd)
-            try:
-                info = json.loads(stdout)
-            except json.JSONDecodeError:
-                info = None
-                mlog.debug('Could not introspect Python (%s): exit code %d' % (str(p.args), p.returncode))
-                mlog.debug('Program stdout:\n')
-                mlog.debug(stdout)
-                mlog.debug('Program stderr:\n')
-                mlog.debug(stderr)
+            sane = python.sanity()
 
-            if isinstance(info, dict) and 'version' in info and self._check_version(name_or_path, info['version']):
-                python.info = T.cast('PythonIntrospectionDict', info)
+            if sane:
                 return python
             else:
                 if required:
