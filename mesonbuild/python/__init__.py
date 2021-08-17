@@ -94,6 +94,10 @@ class Project():
         with _cd(self._build_dir):
             mesonmain.run(args, mesonmain.__file__)  # type: ignore
 
+    @functools.lru_cache(maxsize=None)
+    def build(self) -> None:
+        self._meson('compile')
+
     @classmethod
     @contextlib.contextmanager
     def with_temp_builddir(cls, source_dir: PathLike = os.path.curdir) -> Iterator[Project]:
