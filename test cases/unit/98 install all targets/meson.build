@@ -1,5 +1,7 @@
 project('install tag', 'c')
 
+subdir('subdir')
+
 # Those files should not be tagged
 configure_file(input: 'foo.in', output: 'foo-notag.h',
   configuration: {'foo': 'bar'},

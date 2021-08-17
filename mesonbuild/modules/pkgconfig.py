@@ -537,18 +537,20 @@ class PkgConfigModule(ExtensionModule):
         unescaped_variables = parse_variable_list(unescaped_variables)
 
         pcfile = filebase + '.pc'
-        pkgroot = kwargs.get('install_dir', default_install_dir)
+        pkgroot = pkgroot_name = kwargs.get('install_dir', default_install_dir)
         if pkgroot is None:
             if mesonlib.is_freebsd():
                 pkgroot = os.path.join(state.environment.coredata.get_option(mesonlib.OptionKey('prefix')), 'libdata', 'pkgconfig')
+                pkgroot_name = os.path.join('{prefix}', 'libdata', 'pkgconfig')
             else:
                 pkgroot = os.path.join(state.environment.coredata.get_option(mesonlib.OptionKey('libdir')), 'pkgconfig')
+                pkgroot_name = os.path.join('{libdir}', 'pkgconfig')
         if not isinstance(pkgroot, str):
             raise mesonlib.MesonException('Install_dir must be a string.')
         self._generate_pkgconfig_file(state, deps, subdirs, name, description, url,
                                      version, pcfile, conflicts, variables,
                                      unescaped_variables, False, dataonly)
-        res = build.Data([mesonlib.File(True, state.environment.get_scratch_dir(), pcfile)], pkgroot, None, state.subproject, install_tag='devel')
+        res = build.Data([mesonlib.File(True, state.environment.get_scratch_dir(), pcfile)], pkgroot, pkgroot_name, None, state.subproject, install_tag='devel')
         variables = self.interpreter.extract_variables(kwargs, argname='uninstalled_variables', dict_new=True)
         variables = parse_variable_list(variables)
         unescaped_variables = self.interpreter.extract_variables(kwargs, argname='unescaped_uninstalled_variables')

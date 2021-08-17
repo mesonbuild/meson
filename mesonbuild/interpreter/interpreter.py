@@ -1917,14 +1917,24 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
                     '"rename" and "sources" argument lists must be the same length if "rename" is given. '
                     f'Rename has {len(rename)} elements and sources has {len(sources)}.')
 
-        return self.install_data_impl(sources, kwargs['install_dir'], kwargs['install_mode'], rename,
-                                      kwargs['install_tag'])
+        install_dir_name = kwargs['install_dir']
+        if install_dir_name:
+            if not os.path.isabs(install_dir_name):
+                install_dir_name = os.path.join('{datadir}', install_dir_name)
+        else:
+            install_dir_name = '{datadir}'
+        return self.install_data_impl(sources, kwargs['install_dir'], kwargs['install_mode'],
+                                      rename, kwargs['install_tag'], install_dir_name)
 
     def install_data_impl(self, sources: T.List[mesonlib.File], install_dir: str,
                           install_mode: FileMode, rename: T.Optional[str],
-                          tag: T.Optional[str]) -> build.Data:
+                          tag: T.Optional[str],
+                          install_dir_name: T.Optional[str] = None,
+                          install_data_type: T.Optional[str] = None) -> build.Data:
+
         """Just the implementation with no validation."""
-        data = build.Data(sources, install_dir, install_mode, self.subproject, rename, tag)
+        data = build.Data(sources, install_dir, install_dir_name or install_dir, install_mode,
+                          self.subproject, rename, tag, install_data_type)
         self.build.data.append(data)
         return data
 
@@ -2149,7 +2159,8 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             install_tag = kwargs.get('install_tag')
             if install_tag is not None and not isinstance(install_tag, str):
                 raise InvalidArguments('install_tag keyword argument must be string')
-            self.build.data.append(build.Data([cfile], idir, install_mode, self.subproject, install_tag=install_tag))
+            self.build.data.append(build.Data([cfile], idir, idir, install_mode, self.subproject,
+                                              install_tag=install_tag, data_type='configure'))
         return mesonlib.File.from_built_file(self.subdir, output)
 
     def extract_incdirs(self, kwargs):
