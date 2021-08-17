@@ -1006,12 +1006,6 @@ def has_broken_rustc() -> bool:
     mesonlib.windows_proof_rmtree(dirname.as_posix())
     return pc.returncode != 0
 
-def has_broken_compiler_combination() -> bool:
-    # Clang-cl fails with Rust on the CI
-    if shutil.which('cl') is None and shutil.which('clang-cl'):
-        return True
-    return False
-
 def should_skip_rust(backend: Backend) -> bool:
     if not shutil.which('rustc'):
         return True
@@ -1019,8 +1013,6 @@ def should_skip_rust(backend: Backend) -> bool:
         return True
     if mesonlib.is_windows():
         if has_broken_rustc():
-            return True
-        if has_broken_compiler_combination():
             return True
     return False
 
