@@ -38,7 +38,7 @@ static PyMethodDef TachyonMethods[] = {
 
 static struct PyModuleDef tachyonmodule = {
    PyModuleDef_HEAD_INIT,
-   "tachyon",
+   MESON_MODULENAME,
    NULL,
    -1,
    TachyonMethods
