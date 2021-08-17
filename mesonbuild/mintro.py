@@ -20,6 +20,7 @@ Currently only works for the Ninja backend. Others use generated
 project files and don't need this info."""
 
 import collections
+import itertools
 import json
 from . import build, coredata as cdata
 from . import mesonlib
@@ -74,6 +75,7 @@ def get_meson_introspection_types(coredata: T.Optional[cdata.CoreData] = None,
         ('dependencies', IntroCommand('List external dependencies', func=lambda: list_deps(coredata), no_bd=list_deps_from_source)),
         ('scan_dependencies', IntroCommand('Scan for dependencies used in the meson.build file', no_bd=list_deps_from_source)),
         ('installed', IntroCommand('List all installed files and directories', func=lambda: list_installed(installdata))),
+        ('installed_details', IntroCommand('List all installed files and directories with their details', func=lambda: list_installed_details(installdata))),
         ('projectinfo', IntroCommand('Information about projects', func=lambda: list_projinfo(builddata), no_bd=list_projinfo_from_source)),
         ('targets', IntroCommand('List top level targets', func=lambda: list_targets(builddata, installdata, backend), no_bd=list_targets_from_source)),
         ('tests', IntroCommand('List all unit tests', func=lambda: list_tests(testdata))),
@@ -117,6 +119,29 @@ def list_installed(installdata: backends.InstallData) -> T.Dict[str, str]:
             res[i.path] = os.path.join(installdata.prefix, i.install_path)
         for i in installdata.install_subdirs:
             res[i.path] = os.path.join(installdata.prefix, i.install_path)
+    return res
+
+def list_installed_details(installdata: backends.InstallData) -> T.Dict[str, T.Union[str, T.Dict[str, str]]]:
+    res = collections.defaultdict(dict)  # type: collections.defaultdict[str, T.Union[str, T.Dict[str, str]]]
+    if installdata is not None:
+        for t in installdata.targets:
+            for entry in [t.fname] + list(t.aliases.keys()):
+                res['targets'][entry] = {
+                    'path': os.path.join(installdata.build_dir, t.fname),
+                    'outdir': t.outdir,
+                }
+        for i in installdata.data:
+            assert isinstance(i.path, str)
+            res['data'][i.install_path] = i.path
+        for install_type, data in {
+            'headers': installdata.headers,
+            'man': installdata.man,
+            'subdirs': installdata.install_subdirs,
+        }.items():
+            res[install_type] = collections.defaultdict(list)
+            assert isinstance(data, list)
+            for i in data:
+                res[install_type][i.install_path].append(i.path)
     return res
 
 def get_target_dir(coredata: cdata.CoreData, subdir: str) -> str:
