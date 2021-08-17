@@ -409,10 +409,10 @@ class PythonInstallation(ExternalProgramHolder):
 
     @permittedKwargs(mod_kwargs)
     def extension_module_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> 'SharedModule':
-        if 'subdir' in kwargs and 'install_dir' in kwargs:
-            raise InvalidArguments('"subdir" and "install_dir" are mutually exclusive')
-
-        if 'subdir' in kwargs:
+        if 'install_dir' in kwargs:
+            if 'subdir' in kwargs:
+                raise InvalidArguments('"subdir" and "install_dir" are mutually exclusive')
+        else:
             subdir = kwargs.pop('subdir', '')
             if not isinstance(subdir, str):
                 raise InvalidArguments('"subdir" argument must be a string.')
