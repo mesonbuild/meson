@@ -38,7 +38,7 @@ map Vala code to the library's C programming interface. It is the
 [`pkg-config`](https://www.freedesktop.org/wiki/Software/pkg-config/)
 tool that makes finding these installed files all work seamlessly
 behind the scenes. When a `pkg-config` file doesn't exist for the
-library then the [`find_library()`](Reference-manual.md#find_library)
+library then the `find_library()`
 method of the [compiler object](Reference-manual.md#compiler-object)
 needs to be used. Examples are given later.
 

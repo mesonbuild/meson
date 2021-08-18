@@ -780,12 +780,6 @@ creating the final list.
 The returned object also has methods that are documented in the
 [object methods section](#build-target-object) below.
 
-### find_library()
-
-*(since 0.31.0)* **(deprecated)** Use `find_library()` method of
-[the compiler object](#compiler-object) as obtained from
-`meson.get_compiler(lang)`.
-
 ### find_program()
 
 ``` meson
@@ -2865,7 +2859,7 @@ env.prepend('MY_PATH', '0')
 
 ### `external library` object
 
-This object is returned by [`find_library()`](#find_library) and
+This object is returned by [`find_library()`](#compiler-object) and
 contains an external (i.e. not built as part of this project)
 library. This object has the following methods:
 

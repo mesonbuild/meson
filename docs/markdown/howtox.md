@@ -85,7 +85,7 @@ executable(..., override_options : ['c_std=c11'])
 
 ## Enable threads
 
-Lots of people seem to do this manually with `find_library('pthread')`
+Lots of people seem to do this manually with `cc.find_library('pthread')`
 or something similar. Do not do that. It is not portable. Instead do
 this.
 
