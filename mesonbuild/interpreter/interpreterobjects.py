@@ -17,7 +17,7 @@ from ..interpreterbase import (
                                ContainerTypeInfo, KwargInfo,
                                InterpreterObject, MesonInterpreterObject, ObjectHolder, MutableInterpreterObject,
                                FeatureCheckBase, FeatureNewKwargs, FeatureNew, FeatureDeprecated,
-                               typed_pos_args, typed_kwargs, stringArgs, permittedKwargs,
+                               typed_pos_args, typed_kwargs, permittedKwargs,
                                noArgsFlattening, noPosargs, noKwargs, permissive_unholder_return, TYPE_var, TYPE_kwargs, TYPE_nvar, TYPE_nkwargs,
                                flatten, resolve_second_level_holders, InterpreterException, InvalidArguments, InvalidCode)
 from ..interpreter.type_checking import NoneType
@@ -30,8 +30,13 @@ import typing as T
 if T.TYPE_CHECKING:
     from . import kwargs
     from .interpreter import Interpreter
-    from ..environment import Environment
     from ..envconfig import MachineInfo
+
+    from typing_extensions import TypedDict
+
+    class EnvironmentSeparatorKW(TypedDict):
+
+        separator: str
 
 
 def extract_required_kwarg(kwargs: 'kwargs.ExtractRequired',
@@ -230,6 +235,9 @@ class RunProcess(MesonInterpreterObject):
         return self.stderr
 
 
+_ENV_SEPARATOR_KW = KwargInfo('separator', str, default=os.pathsep)
+
+
 class EnvironmentVariablesObject(ObjectHolder[build.EnvironmentVariables], MutableInterpreterObject):
 
     def __init__(self, obj: build.EnvironmentVariables, interpreter: 'Interpreter'):
@@ -243,13 +251,6 @@ class EnvironmentVariablesObject(ObjectHolder[build.EnvironmentVariables], Mutab
         repr_str = "<{0}: {1}>"
         return repr_str.format(self.__class__.__name__, self.held_object.envvars)
 
-    def unpack_separator(self, kwargs: T.Dict[str, T.Any]) -> str:
-        separator = kwargs.get('separator', os.pathsep)
-        if not isinstance(separator, str):
-            raise InterpreterException("EnvironmentVariablesObject methods 'separator'"
-                                       " argument needs to be a string.")
-        return separator
-
     def __deepcopy__(self, memo: T.Dict[str, object]) -> 'EnvironmentVariablesObject':
         # Avoid trying to copy the intepreter
         return EnvironmentVariablesObject(copy.deepcopy(self.held_object), self.interpreter)
@@ -260,31 +261,25 @@ class EnvironmentVariablesObject(ObjectHolder[build.EnvironmentVariables], Mutab
             m = f'Overriding previous value of environment variable {name!r} with a new one'
             FeatureNew('0.58.0', m).use(self.subproject)
 
-    @stringArgs
-    @permittedKwargs({'separator'})
     @typed_pos_args('environment.set', str, varargs=str, min_varargs=1)
-    def set_method(self, args: T.Tuple[str, T.List[str]], kwargs: T.Dict[str, T.Any]) -> None:
+    @typed_kwargs('environment.set', _ENV_SEPARATOR_KW)
+    def set_method(self, args: T.Tuple[str, T.List[str]], kwargs: 'EnvironmentSeparatorKW') -> None:
         name, values = args
-        separator = self.unpack_separator(kwargs)
-        self.held_object.set(name, values, separator)
+        self.held_object.set(name, values, kwargs['separator'])
 
-    @stringArgs
-    @permittedKwargs({'separator'})
     @typed_pos_args('environment.append', str, varargs=str, min_varargs=1)
-    def append_method(self, args: T.Tuple[str, T.List[str]], kwargs: T.Dict[str, T.Any]) -> None:
+    @typed_kwargs('environment.append', _ENV_SEPARATOR_KW)
+    def append_method(self, args: T.Tuple[str, T.List[str]], kwargs: 'EnvironmentSeparatorKW') -> None:
         name, values = args
-        separator = self.unpack_separator(kwargs)
         self.warn_if_has_name(name)
-        self.held_object.append(name, values, separator)
+        self.held_object.append(name, values, kwargs['separator'])
 
-    @stringArgs
-    @permittedKwargs({'separator'})
     @typed_pos_args('environment.prepend', str, varargs=str, min_varargs=1)
-    def prepend_method(self, args: T.Tuple[str, T.List[str]], kwargs: T.Dict[str, T.Any]) -> None:
+    @typed_kwargs('environment.prepend', _ENV_SEPARATOR_KW)
+    def prepend_method(self, args: T.Tuple[str, T.List[str]], kwargs: 'EnvironmentSeparatorKW') -> None:
         name, values = args
-        separator = self.unpack_separator(kwargs)
         self.warn_if_has_name(name)
-        self.held_object.prepend(name, values, separator)
+        self.held_object.prepend(name, values, kwargs['separator'])
 
 
 class ConfigurationDataObject(MutableInterpreterObject, MesonInterpreterObject):
