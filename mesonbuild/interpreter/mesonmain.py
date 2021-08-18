@@ -7,13 +7,13 @@ from .. import mlog
 
 from ..mesonlib import MachineChoice, OptionKey
 from ..programs import OverrideProgram, ExternalProgram
+from ..interpreter.type_checking import ENV_KW
 from ..interpreterbase import (MesonInterpreterObject, FeatureNew, FeatureDeprecated,
                                typed_pos_args, permittedKwargs, noArgsFlattening, noPosargs, noKwargs,
                                typed_kwargs, KwargInfo, MesonVersionString, InterpreterException)
 
 from .interpreterobjects import (ExecutableHolder, ExternalProgramHolder,
-                                 CustomTargetHolder, CustomTargetIndexHolder,
-                                 EnvironmentVariablesObject)
+                                 CustomTargetHolder, CustomTargetIndexHolder)
 from .type_checking import NATIVE_KW, NoneType
 
 import typing as T
@@ -415,9 +415,10 @@ class MesonMain(MesonInterpreterObject):
 
     @FeatureNew('add_devenv', '0.58.0')
     @noKwargs
-    @typed_pos_args('add_devenv', (str, list, dict, EnvironmentVariablesObject))
-    def add_devenv_method(self, args: T.Union[str, list, dict, EnvironmentVariablesObject], kwargs: T.Dict[str, T.Any]) -> None:
+    @typed_pos_args('add_devenv', (str, list, dict, build.EnvironmentVariables))
+    def add_devenv_method(self, args: T.Tuple[T.Union[str, list, dict, build.EnvironmentVariables]], kwargs: T.Dict[str, T.Any]) -> None:
         env = args[0]
-        if isinstance(env, (str, list, dict)):
-            env = EnvironmentVariablesObject(env)
-        self.build.devenv.append(env.vars)
+        msg = ENV_KW.validator(env)
+        if msg:
+            raise build.InvalidArguments(f'"add_devenv": {msg}')
+        self.build.devenv.append(ENV_KW.convertor(env))

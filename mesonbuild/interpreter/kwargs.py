@@ -11,7 +11,6 @@ from typing_extensions import TypedDict, Literal
 from .. import build
 from .. import coredata
 from ..mesonlib import MachineChoice, File, FileMode, FileOrString
-from .interpreterobjects import EnvironmentVariablesObject
 
 
 class FuncAddProjectArgs(TypedDict):
@@ -39,7 +38,7 @@ class BaseTest(TypedDict):
     workdir: T.Optional[str]
     depends: T.List[T.Union[build.CustomTarget, build.BuildTarget]]
     priority: int
-    env: EnvironmentVariablesObject
+    env: build.EnvironmentVariables
     suite: T.List[str]
 
 

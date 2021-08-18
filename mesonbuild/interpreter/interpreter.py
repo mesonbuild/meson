@@ -42,7 +42,6 @@ from .mesonmain import MesonMain
 from .dependencyfallbacks import DependencyFallbacksHolder
 from .interpreterobjects import (
     SubprojectHolder,
-    EnvironmentVariablesObject,
     ConfigurationDataObject,
     Test,
     RunProcess,
@@ -396,6 +395,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             build.Data: OBJ.DataHolder,
             build.InstallDir: OBJ.InstallDirHolder,
             build.IncludeDirs: OBJ.IncludeDirsHolder,
+            build.EnvironmentVariables: OBJ.EnvironmentVariablesObject,
             compilers.RunResult: compilerOBJ.TryRunResultHolder,
             dependencies.ExternalLibrary: OBJ.ExternalLibraryHolder,
             coredata.UserFeatureOption: OBJ.FeatureOptionHolder,
@@ -1723,19 +1723,14 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
                   kwargs: 'kwargs.FuncTest') -> None:
         self.add_test(node, args, kwargs, True)
 
-    def unpack_env_kwarg(self, kwargs: T.Union[EnvironmentVariablesObject, T.Dict[str, str], T.List[str]]) -> build.EnvironmentVariables:
-        envlist = kwargs.get('env', EnvironmentVariablesObject())
-        if isinstance(envlist, EnvironmentVariablesObject):
-            env = envlist.vars
-        elif isinstance(envlist, dict):
-            FeatureNew.single_use('environment dictionary', '0.52.0', self.subproject)
-            env = EnvironmentVariablesObject(envlist)
-            env = env.vars
-        else:
-            # Convert from array to environment object
-            env = EnvironmentVariablesObject(envlist)
-            env = env.vars
-        return env
+    def unpack_env_kwarg(self, kwargs: T.Union[build.EnvironmentVariables, T.Dict[str, 'TYPE_var'], T.List['TYPE_var'], str]) -> build.EnvironmentVariables:
+        envlist = kwargs.get('env')
+        if envlist is None:
+            return build.EnvironmentVariables()
+        msg = ENV_KW.validator(envlist)
+        if msg:
+            raise InvalidArguments(f'"env": {msg}')
+        return ENV_KW.convertor(envlist)
 
     def make_test(self, node: mparser.BaseNode,
                   args: T.Tuple[str, T.Union[build.Executable, build.Jar, ExternalProgram, mesonlib.File]],
@@ -2361,17 +2356,17 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
 
     @noKwargs
     @noArgsFlattening
-    def func_environment(self, node, args, kwargs):
-        if len(args) > 1:
-            raise InterpreterException('environment takes only one optional positional arguments')
-        elif len(args) == 1:
+    @typed_pos_args('environment', optargs=[(str, list, dict)])
+    def func_environment(self, node: mparser.FunctionNode, args: T.Tuple[T.Union[None, str, T.List['TYPE_var'], T.Dict[str, 'TYPE_var']]],
+                         kwargs: 'TYPE_kwargs') -> build.EnvironmentVariables:
+        init = args[0]
+        if init is not None:
             FeatureNew.single_use('environment positional arguments', '0.52.0', self.subproject)
-            initial_values = args[0]
-            if not isinstance(initial_values, dict) and not isinstance(initial_values, list):
-                raise InterpreterException('environment first argument must be a dictionary or a list')
-        else:
-            initial_values = {}
-        return EnvironmentVariablesObject(initial_values, self.subproject)
+            msg = ENV_KW.validator(init)
+            if msg:
+                raise InvalidArguments(f'"environment": {msg}')
+            return ENV_KW.convertor(init)
+        return build.EnvironmentVariables()
 
     @typed_pos_args('join_paths', varargs=str, min_varargs=1)
     @noKwargs

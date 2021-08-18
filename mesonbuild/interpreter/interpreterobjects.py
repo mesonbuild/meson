@@ -229,39 +229,19 @@ class RunProcess(MesonInterpreterObject):
     def stderr_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.stderr
 
-# TODO: Parsing the initial values should be either done directly in the
-#       `Interpreter` or in `build.EnvironmentVariables`. This way, this class
-#       can be converted into a pure object holder.
-class EnvironmentVariablesObject(MutableInterpreterObject, MesonInterpreterObject):
-    # TODO: Move the type cheking for initial_values out of this class and replace T.Any
-    def __init__(self, initial_values: T.Optional[T.Any] = None, subproject: str = ''):
-        super().__init__(subproject=subproject)
-        self.vars = build.EnvironmentVariables()
+
+class EnvironmentVariablesObject(ObjectHolder[build.EnvironmentVariables], MutableInterpreterObject):
+
+    def __init__(self, obj: build.EnvironmentVariables, interpreter: 'Interpreter'):
+        super().__init__(obj, interpreter)
         self.methods.update({'set': self.set_method,
                              'append': self.append_method,
                              'prepend': self.prepend_method,
                              })
-        if isinstance(initial_values, build.EnvironmentVariables):
-            self.vars = initial_values
-        elif isinstance(initial_values, dict):
-            for k, v in initial_values.items():
-                self.set_method([k, v], {})
-        elif initial_values is not None:
-            for e in mesonlib.listify(initial_values):
-                if not isinstance(e, str):
-                    raise InterpreterException('Env var definition must be a list of strings.')
-                if '=' not in e:
-                    raise InterpreterException('Env var definition must be of type key=val.')
-                (k, val) = e.split('=', 1)
-                k = k.strip()
-                val = val.strip()
-                if ' ' in k:
-                    raise InterpreterException('Env var key must not have spaces in it.')
-                self.set_method([k, val], {})
 
     def __repr__(self) -> str:
         repr_str = "<{0}: {1}>"
-        return repr_str.format(self.__class__.__name__, self.vars.envvars)
+        return repr_str.format(self.__class__.__name__, self.held_object.envvars)
 
     def unpack_separator(self, kwargs: T.Dict[str, T.Any]) -> str:
         separator = kwargs.get('separator', os.pathsep)
@@ -270,9 +250,13 @@ class EnvironmentVariablesObject(MutableInterpreterObject, MesonInterpreterObjec
                                        " argument needs to be a string.")
         return separator
 
+    def __deepcopy__(self, memo: T.Dict[str, object]) -> 'EnvironmentVariablesObject':
+        # Avoid trying to copy the intepreter
+        return EnvironmentVariablesObject(copy.deepcopy(self.held_object), self.interpreter)
+
     def warn_if_has_name(self, name: str) -> None:
         # Multiple append/prepend operations was not supported until 0.58.0.
-        if self.vars.has_name(name):
+        if self.held_object.has_name(name):
             m = f'Overriding previous value of environment variable {name!r} with a new one'
             FeatureNew('0.58.0', m).use(self.subproject)
 
@@ -282,7 +266,7 @@ class EnvironmentVariablesObject(MutableInterpreterObject, MesonInterpreterObjec
     def set_method(self, args: T.Tuple[str, T.List[str]], kwargs: T.Dict[str, T.Any]) -> None:
         name, values = args
         separator = self.unpack_separator(kwargs)
-        self.vars.set(name, values, separator)
+        self.held_object.set(name, values, separator)
 
     @stringArgs
     @permittedKwargs({'separator'})
@@ -291,7 +275,7 @@ class EnvironmentVariablesObject(MutableInterpreterObject, MesonInterpreterObjec
         name, values = args
         separator = self.unpack_separator(kwargs)
         self.warn_if_has_name(name)
-        self.vars.append(name, values, separator)
+        self.held_object.append(name, values, separator)
 
     @stringArgs
     @permittedKwargs({'separator'})
@@ -300,7 +284,7 @@ class EnvironmentVariablesObject(MutableInterpreterObject, MesonInterpreterObjec
         name, values = args
         separator = self.unpack_separator(kwargs)
         self.warn_if_has_name(name)
-        self.vars.prepend(name, values, separator)
+        self.held_object.prepend(name, values, separator)
 
 
 class ConfigurationDataObject(MutableInterpreterObject, MesonInterpreterObject):
