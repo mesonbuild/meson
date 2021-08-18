@@ -316,7 +316,7 @@ class PythonExternalProgram(ExternalProgram):
         if ext_prog is None:
             super().__init__(name, command=command, silent=True)
         else:
-            self.name = ext_prog.name
+            self.name = name
             self.command = ext_prog.command
             self.path = ext_prog.path
 
@@ -567,6 +567,7 @@ class PythonModule(ExtensionModule):
         # $PATH, or that uses a wrapper of some kind.
         np: T.List[str] = state.environment.lookup_binary_entry(MachineChoice.HOST, 'python') or []
         fallback = args[0]
+        display_name = fallback or 'python'
         if not np and fallback is not None:
             np = [fallback]
         name_or_path = np[0] if np else None
@@ -578,8 +579,8 @@ class PythonModule(ExtensionModule):
         if not name_or_path:
             python = PythonExternalProgram('python3', mesonlib.python_command)
         else:
-            tmp_python = ExternalProgram.from_entry('python3', name_or_path)
-            python = PythonExternalProgram('python3', ext_prog=tmp_python)
+            tmp_python = ExternalProgram.from_entry(display_name, name_or_path)
+            python = PythonExternalProgram(display_name, ext_prog=tmp_python)
 
             if not python.found() and mesonlib.is_windows():
                 pythonpath = self._get_win_pythonpath(name_or_path)
