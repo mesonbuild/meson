@@ -241,7 +241,9 @@ class EnvironmentVariablesObject(MutableInterpreterObject, MesonInterpreterObjec
                              'append': self.append_method,
                              'prepend': self.prepend_method,
                              })
-        if isinstance(initial_values, dict):
+        if isinstance(initial_values, build.EnvironmentVariables):
+            self.vars = initial_values
+        elif isinstance(initial_values, dict):
             for k, v in initial_values.items():
                 self.set_method([k, v], {})
         elif initial_values is not None:
