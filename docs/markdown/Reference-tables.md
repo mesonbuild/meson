@@ -5,36 +5,37 @@
 These are return values of the `get_id` (Compiler family) and
 `get_argument_syntax` (Argument syntax) method in a compiler object.
 
-| Value     | Compiler family                  | Argument syntax |
-| -----     | ---------------                  | --------------- |
-| arm       | ARM compiler                     |                 |
-| armclang  | ARMCLANG compiler                |                 |
-| c2000     | Texas Instruments C2000 compiler |                 |
-| ccomp     | The CompCert formally-verified C compiler |        |
-| ccrx      | Renesas RX Family C/C++ compiler |                 |
-| clang     | The Clang compiler               | gcc             |
-| clang-cl  | The Clang compiler (MSVC compatible driver) | msvc |
-| dmd       | D lang reference compiler        |                 |
-| emscripten| Emscripten WASM compiler         |                 |
-| flang     | Flang Fortran compiler           |                 |
-| g95       | The G95 Fortran compiler         |                 |
-| gcc       | The GNU Compiler Collection      | gcc             |
-| intel     | Intel compiler (Linux and Mac)   | gcc             |
-| intel-cl  | Intel compiler (Windows)         | msvc            |
-| lcc       | Elbrus C/C++/Fortran Compiler    |                 |
-| llvm      | LLVM-based compiler (Swift, D)   |                 |
-| mono      | Xamarin C# compiler              |                 |
-| msvc      | Microsoft Visual Studio          | msvc            |
-| nagfor    | The NAG Fortran compiler         |                 |
-| nvidia_hpc| NVidia HPC SDK compilers         |                 |
-| open64    | The Open64 Fortran Compiler      |                 |
-| pathscale | The Pathscale Fortran compiler   |                 |
-| pgi       | Portland PGI C/C++/Fortran compilers |             |
-| rustc     | Rust compiler                    |                 |
-| sun       | Sun Fortran compiler             |                 |
-| valac     | Vala compiler                    |                 |
-| xc16      | Microchip XC16 C compiler        |                 |
-| cython    | The Cython compiler              |                 |
+| Value      | Compiler family                             | Argument syntax |
+|------------|---------------------------------------------|-----------------|
+| arm        | ARM compiler                                |                 |
+| armclang   | ARMCLANG compiler                           |                 |
+| c2000      | Texas Instruments C2000 compiler            |                 |
+| ccomp      | The CompCert formally-verified C compiler   |                 |
+| ccrx       | Renesas RX Family C/C++ compiler            |                 |
+| clang      | The Clang compiler                          | gcc             |
+| clang-cl   | The Clang compiler (MSVC compatible driver) | msvc            |
+| dmd        | D lang reference compiler                   |                 |
+| emscripten | Emscripten WASM compiler                    |                 |
+| flang      | Flang Fortran compiler                      |                 |
+| lfortran   | LFortran Fortran compiler                   |                 |
+| g95        | The G95 Fortran compiler                    |                 |
+| gcc        | The GNU Compiler Collection                 | gcc             |
+| intel      | Intel compiler (Linux and Mac)              | gcc             |
+| intel-cl   | Intel compiler (Windows)                    | msvc            |
+| lcc        | Elbrus C/C++/Fortran Compiler               |                 |
+| llvm       | LLVM-based compiler (Swift, D)              |                 |
+| mono       | Xamarin C# compiler                         |                 |
+| msvc       | Microsoft Visual Studio                     | msvc            |
+| nagfor     | The NAG Fortran compiler                    |                 |
+| nvidia_hpc | NVidia HPC SDK compilers                    |                 |
+| open64     | The Open64 Fortran Compiler                 |                 |
+| pathscale  | The Pathscale Fortran compiler              |                 |
+| pgi        | Portland PGI C/C++/Fortran compilers        |                 |
+| rustc      | Rust compiler                               |                 |
+| sun        | Sun Fortran compiler                        |                 |
+| valac      | Vala compiler                               |                 |
+| xc16       | Microchip XC16 C compiler                   |                 |
+| cython     | The Cython compiler                         |                 |
 
 ## Linker ids
 
