@@ -264,14 +264,18 @@ class LinuxlikeTests(BasePlatformTests):
             pcfile = f.read()
         self.assertFalse('blub_blob_blib' in pcfile)
 
-    def test_symlink_builddir(self):
+    def test_symlink_builddir(self) -> None:
         '''
         Test using a symlink as either the builddir for "setup" or
         the argument for "-C".
         '''
         testdir = os.path.join(self.common_test_dir, '1 trivial')
-        os.symlink(self.builddir, self.builddir + '-symlink')
-        self.change_builddir(self.builddir + '-symlink')
+
+        symdir = f'{self.builddir}-symlink'
+        os.symlink(self.builddir, symdir)
+        self.addCleanup(os.unlink, symdir)
+        self.change_builddir(symdir)
+
         self.init(testdir)
         self.build()
         self._run(self.mtest_command)
