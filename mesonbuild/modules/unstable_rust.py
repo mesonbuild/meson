@@ -17,25 +17,33 @@ import typing as T
 
 from . import ExtensionModule, ModuleReturnValue
 from .. import mlog
-from ..build import BuildTarget, CustomTargetIndex, Executable, GeneratedList, InvalidArguments, IncludeDirs, CustomTarget
-from ..interpreter.interpreter import TEST_KWARGS
-from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, permittedKwargs, FeatureNew, typed_kwargs, typed_pos_args, noPosargs
-from ..mesonlib import stringlistify, listify, typeslistify, File
+from ..build import BothLibraries, BuildTarget, CustomTargetIndex, Executable, GeneratedList, IncludeDirs, CustomTarget
 from ..dependencies import Dependency, ExternalLibrary
-from ..interpreterbase import InterpreterException, permittedKwargs, FeatureNew, typed_pos_args, noPosargs
-from ..mesonlib import stringlistify, listify, typeslistify, File
+from ..interpreter.interpreter import TEST_KWARGS
+from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, FeatureNew, typed_kwargs, typed_pos_args, noPosargs
+from ..mesonlib import File
 
 if T.TYPE_CHECKING:
     from . import ModuleState
     from ..interpreter import Interpreter
     from ..interpreter import kwargs as _kwargs
-    from ..interpreter.interpreter import SourceOutputs
+    from ..interpreter.interpreter import SourceInputs
     from ..programs import ExternalProgram
+
+    from typing_extensions import TypedDict
 
     class FuncTest(_kwargs.BaseTest):
 
         dependencies: T.List[T.Union[Dependency, ExternalLibrary]]
         is_parallel: bool
+
+    class FuncBindgen(TypedDict):
+
+        args: T.List[str]
+        c_args: T.List[str]
+        include_directories: T.List[IncludeDirs]
+        input: T.List[SourceInputs]
+        output: str
 
 
 class RustModule(ExtensionModule):
@@ -153,30 +161,27 @@ class RustModule(ExtensionModule):
         return ModuleReturnValue(None, [new_target, test])
 
     @noPosargs
-    @permittedKwargs({'input', 'output', 'include_directories', 'c_args', 'args'})
-    def bindgen(self, state: 'ModuleState', args: T.List, kwargs: T.Dict[str, T.Any]) -> ModuleReturnValue:
+    @typed_kwargs(
+        'rust.bindgen',
+        KwargInfo('c_args', ContainerTypeInfo(list, str), default=[], listify=True),
+        KwargInfo('args', ContainerTypeInfo(list, str), default=[], listify=True),
+        KwargInfo('include_directories', ContainerTypeInfo(list, IncludeDirs), default=[], listify=True),
+        KwargInfo(
+            'input',
+            ContainerTypeInfo(list, (File, GeneratedList, BuildTarget, BothLibraries, CustomTargetIndex, CustomTarget, str), allow_empty=False),
+            default=[],
+            listify=True,
+            required=True,
+        ),
+        KwargInfo('output', str, required=True),
+    )
+    def bindgen(self, state: 'ModuleState', args: T.List, kwargs: 'FuncBindgen') -> ModuleReturnValue:
         """Wrapper around bindgen to simplify it's use.
 
         The main thing this simplifies is the use of `include_directory`
         objects, instead of having to pass a plethora of `-I` arguments.
         """
-        header: 'SourceOutputs'
-        _deps: T.Sequence['SourceOutputs']
-        try:
-            header, *_deps = self.interpreter.source_strings_to_files(listify(kwargs['input']))
-        except KeyError:
-            raise InvalidArguments('rustmod.bindgen() `input` argument must have at least one element.')
-
-        try:
-            output: str = kwargs['output']
-        except KeyError:
-            raise InvalidArguments('rustmod.bindgen() `output` must be provided')
-        if not isinstance(output, str):
-            raise InvalidArguments('rustmod.bindgen() `output` argument must be a string.')
-
-        include_dirs: T.List[IncludeDirs] = typeslistify(listify(kwargs.get('include_directories', [])), IncludeDirs)
-        c_args: T.List[str] = stringlistify(listify(kwargs.get('c_args', [])))
-        bind_args: T.List[str] = stringlistify(listify(kwargs.get('args', [])))
+        header, *_deps = self.interpreter.source_strings_to_files(kwargs['input'])
 
         # Split File and Target dependencies to add pass to CustomTarget
         depends: T.List[T.Union[GeneratedList, BuildTarget, CustomTargetIndex, CustomTarget]] = []
@@ -188,7 +193,7 @@ class RustModule(ExtensionModule):
                 depends.append(d)
 
         inc_strs: T.List[str] = []
-        for i in include_dirs:
+        for i in kwargs['include_directories']:
             # bindgen always uses clang, so it's safe to hardcode -I here
             inc_strs.extend([f'-I{x}' for x in i.to_string_list(state.environment.get_source_dir())])
 
@@ -207,11 +212,11 @@ class RustModule(ExtensionModule):
             state.subproject,
             {
                 'input': header,
-                'output': output,
+                'output': kwargs['output'],
                 'command': self._bindgen_bin.get_command() + [
                     '@INPUT@', '--output',
                     os.path.join(state.environment.build_dir, '@OUTPUT@')] +
-                    bind_args + ['--'] + c_args + inc_strs +
+                    kwargs['args'] + ['--'] + kwargs['c_args'] + inc_strs +
                     ['-MD', '-MQ', '@INPUT@', '-MF', '@DEPFILE@'],
                 'depfile': '@PLAINNAME@.d',
                 'depends': depends,
@@ -223,5 +228,5 @@ class RustModule(ExtensionModule):
         return ModuleReturnValue([target], [target])
 
 
-def initialize(*args: T.List, **kwargs: T.Dict) -> RustModule:
-    return RustModule(*args, **kwargs)  # type: ignore
+def initialize(interp: 'Interpreter') -> RustModule:
+    return RustModule(interp)
