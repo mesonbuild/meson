@@ -326,7 +326,10 @@ class XCodeBackend(backends.Backend):
         self.generate_regen_info()
 
     def get_xcodetype(self, fname):
-        xcodetype = XCODETYPEMAP.get(fname.split('.')[-1].lower())
+        extension = fname.split('.')[-1]
+        if extension == 'C':
+            extension = 'cpp'
+        xcodetype = XCODETYPEMAP.get(extension.lower())
         if not xcodetype:
             xcodetype = 'sourcecode.unknown'
         return xcodetype
