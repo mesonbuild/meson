@@ -53,6 +53,7 @@ from .linkers import (
     QualcommLLVMDynamicLinker,
     PGIDynamicLinker,
     NvidiaHPC_DynamicLinker,
+    NAGDynamicLinker,
 
     VisualStudioLikeLinkerMixin,
     MSVCDynamicLinker,
@@ -110,6 +111,7 @@ __all__ = [
     'QualcommLLVMDynamicLinker',
     'PGIDynamicLinker',
     'NvidiaHPC_DynamicLinker',
+    'NAGDynamicLinker',
 
     'VisualStudioLikeLinkerMixin',
     'MSVCDynamicLinker',
