@@ -1350,7 +1350,18 @@ You probably should put it in link_with instead.''')
         if language in self.extra_args:
             self.extra_args[language] += args
         else:
-            self.extra_args[language] = args
+            arglist: T.List[FileOrString] = None
+            string = ''.join(args)
+            argslist = string.split(' ')
+            for argsanitizer in argslist:
+                if not len(argsanitizer):
+                    argslist = None
+                    break
+            if argslist != None:
+                arglist = argslist
+                self.extra_args[language] = arglist
+            else:
+                self.extra_args[language] = args
 
     def get_aliases(self) -> T.Dict[str, str]:
         return {}
