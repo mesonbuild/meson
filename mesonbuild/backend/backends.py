@@ -1269,13 +1269,17 @@ class Backend:
             elif isinstance(i, build.GeneratedList):
                 fname = [os.path.join(self.get_target_private_dir(target), p) for p in i.get_outputs()]
             elif isinstance(i, build.ExtractedObjects):
-                fname = [os.path.join(self.get_target_private_dir(i.target), p) for p in i.get_outputs(self)]
+                outputs = i.get_outputs(self)
+                fname = self.get_extracted_obj_paths(i.target, outputs)
             else:
                 fname = [i.rel_to_builddir(self.build_to_src)]
             if target.absolute_paths:
                 fname = [os.path.join(self.environment.get_build_dir(), f) for f in fname]
             srcs += fname
         return srcs
+
+    def get_extracted_obj_paths(self, target: build.BuildTarget, outputs: T.List[str]) -> T.List[str]:
+        return [os.path.join(self.get_target_private_dir(target), p) for p in outputs]
 
     def get_custom_target_depend_files(self, target: build.CustomTarget, absolute_paths: bool = False) -> T.List[str]:
         deps: T.List[str] = []

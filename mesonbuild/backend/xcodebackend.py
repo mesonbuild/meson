@@ -250,7 +250,11 @@ class XCodeBackend(backends.Backend):
         if isinstance(source, mesonlib.File):
             source = source.fname
         stem = os.path.splitext(os.path.basename(source))[0]
-        return f'{project}.build/{buildtype}/{tname}.build/Objects-normal/{arch}/{stem}.o'
+        obj_path = f'{project}.build/{buildtype}/{tname}.build/Objects-normal/{arch}/{stem}.o'
+        return obj_path
+
+    def get_extracted_obj_paths(self, target: build.BuildTarget, outputs: T.List[str])-> T.List[str]:
+        return outputs
 
     def generate(self):
         self.serialize_tests()
