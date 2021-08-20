@@ -136,6 +136,9 @@ class PbxDict:
         self.keys.add(key)
         self.items.append(item)
 
+    def has_item(self, key):
+        return key in self.keys
+
     def add_comment(self, comment):
         if isinstance(comment, str):
             self.items.append(PbxComment(str))
@@ -710,7 +713,10 @@ class XCodeBackend(backends.Backend):
                 if isinstance(dep, dependencies.AppleFrameworks):
                     for f in dep.frameworks:
                         fw_dict = PbxDict()
-                        objects_dict.add_item(self.native_frameworks_fileref[f], fw_dict, f)
+                        framework_fileref = self.native_frameworks_fileref[f]
+                        if objects_dict.has_item(framework_fileref):
+                            continue
+                        objects_dict.add_item(framework_fileref, fw_dict, f)
                         fw_dict.add_item('isa', 'PBXFileReference')
                         fw_dict.add_item('lastKnownFileType', 'wrapper.framework')
                         fw_dict.add_item('name', f'{f}.framework')
