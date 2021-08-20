@@ -15,7 +15,7 @@ if sys.argv[1] == 'ninja':
 
 for obj in sys.argv[2:]:
     if not os.path.exists(obj):
-        sys.exit(1)
+        sys.exit(f'File {obj} not found.')
     if sys.argv[1] == 'ninja' and obj not in output:
         sys.exit(1)
     print('Verified', obj)
