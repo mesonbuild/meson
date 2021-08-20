@@ -44,7 +44,7 @@ if T.TYPE_CHECKING:
         """Keyword arguments for the Resource Compiler method."""
 
         name: T.Optional[str]
-        sources: T.List[FileOrString]
+        sources: T.Sequence[T.Union[FileOrString, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
         extra_args: T.List[str]
         method: str
 
@@ -52,7 +52,7 @@ if T.TYPE_CHECKING:
 
         """Keyword arguments for the Ui Compiler method."""
 
-        sources: T.Sequence[T.Union[FileOrString, build.CustomTarget]]
+        sources: T.Sequence[T.Union[FileOrString, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
         extra_args: T.List[str]
         method: str
 
@@ -60,8 +60,8 @@ if T.TYPE_CHECKING:
 
         """Keyword arguments for the Moc Compiler method."""
 
-        sources: T.List[T.Union[FileOrString, build.CustomTarget]]
-        headers: T.List[T.Union[FileOrString, build.CustomTarget]]
+        sources: T.Sequence[T.Union[FileOrString, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
+        headers: T.Sequence[T.Union[FileOrString, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
         extra_args: T.List[str]
         method: str
         include_directories: T.List[T.Union[str, build.IncludeDirs]]
@@ -93,7 +93,7 @@ if T.TYPE_CHECKING:
         method: str
         qresource: T.Optional[str]
         rcc_extra_arguments: T.List[str]
-        ts_files: T.List[str]
+        ts_files: T.List[T.Union[str, File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
 
 
 class QtBaseModule(ExtensionModule):
@@ -209,33 +209,41 @@ class QtBaseModule(ExtensionModule):
         except Exception:
             raise MesonException(f'Unable to parse resource file {abspath}')
 
-    def _parse_qrc_deps(self, state: 'ModuleState', rcc_file: 'FileOrString') -> T.List[File]:
-        rcc_dirname, nodes = self._qrc_nodes(state, rcc_file)
+    def _parse_qrc_deps(self, state: 'ModuleState',
+                        rcc_file_: T.Union['FileOrString', build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]) -> T.List[File]:
         result: T.List[File] = []
-        for resource_path in nodes:
-            # We need to guess if the pointed resource is:
-            #   a) in build directory -> implies a generated file
-            #   b) in source directory
-            #   c) somewhere else external dependency file to bundle
-            #
-            # Also from qrc documentation: relative path are always from qrc file
-            # So relative path must always be computed from qrc file !
-            if os.path.isabs(resource_path):
-                # a)
-                if resource_path.startswith(os.path.abspath(state.environment.build_dir)):
-                    resource_relpath = os.path.relpath(resource_path, state.environment.build_dir)
-                    result.append(File(is_built=True, subdir='', fname=resource_relpath))
-                # either b) or c)
+        inputs: T.Sequence['FileOrString'] = []
+        if isinstance(rcc_file_, (str, File)):
+            inputs = [rcc_file_]
+        else:
+            inputs = rcc_file_.get_outputs()
+
+        for rcc_file in inputs:
+            rcc_dirname, nodes = self._qrc_nodes(state, rcc_file)
+            for resource_path in nodes:
+                # We need to guess if the pointed resource is:
+                #   a) in build directory -> implies a generated file
+                #   b) in source directory
+                #   c) somewhere else external dependency file to bundle
+                #
+                # Also from qrc documentation: relative path are always from qrc file
+                # So relative path must always be computed from qrc file !
+                if os.path.isabs(resource_path):
+                    # a)
+                    if resource_path.startswith(os.path.abspath(state.environment.build_dir)):
+                        resource_relpath = os.path.relpath(resource_path, state.environment.build_dir)
+                        result.append(File(is_built=True, subdir='', fname=resource_relpath))
+                    # either b) or c)
+                    else:
+                        result.append(File(is_built=False, subdir=state.subdir, fname=resource_path))
                 else:
-                    result.append(File(is_built=False, subdir=state.subdir, fname=resource_path))
-            else:
-                path_from_rcc = os.path.normpath(os.path.join(rcc_dirname, resource_path))
-                # a)
-                if path_from_rcc.startswith(state.environment.build_dir):
-                    result.append(File(is_built=True, subdir=state.subdir, fname=resource_path))
-                # b)
-                else:
-                    result.append(File(is_built=False, subdir=state.subdir, fname=path_from_rcc))
+                    path_from_rcc = os.path.normpath(os.path.join(rcc_dirname, resource_path))
+                    # a)
+                    if path_from_rcc.startswith(state.environment.build_dir):
+                        result.append(File(is_built=True, subdir=state.subdir, fname=resource_path))
+                    # b)
+                    else:
+                        result.append(File(is_built=False, subdir=state.subdir, fname=path_from_rcc))
         return result
 
     @FeatureNew('qt.has_tools', '0.54.0')
@@ -267,7 +275,12 @@ class QtBaseModule(ExtensionModule):
     @typed_kwargs(
         'qt.compile_resources',
         KwargInfo('name', str),
-        KwargInfo('sources', ContainerTypeInfo(list, (File, str), allow_empty=False), listify=True, required=True),
+        KwargInfo(
+            'sources',
+            ContainerTypeInfo(list, (File, str, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList), allow_empty=False),
+            listify=True,
+            required=True,
+        ),
         KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
         KwargInfo('method', str, default='auto')
     )
@@ -276,6 +289,8 @@ class QtBaseModule(ExtensionModule):
 
         Uses CustomTargets to generate .cpp files from .qrc files.
         """
+        if any(isinstance(s, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)) for s in kwargs['sources']):
+            FeatureNew.single_use('qt.compile_resources: custom_target or generator for "sources" keyword argument', '0.60.0', state.subproject)
         out = self._compile_resources_impl(state, kwargs)
         return ModuleReturnValue(out, [out])
 
@@ -294,7 +309,12 @@ class QtBaseModule(ExtensionModule):
         DEPFILE_ARGS: T.List[str] = ['--depfile', '@DEPFILE@'] if self._rcc_supports_depfiles else []
 
         name = kwargs['name']
-        sources = kwargs['sources']
+        sources: T.List['FileOrString'] = []
+        for s in kwargs['sources']:
+            if isinstance(s, (str, File)):
+                sources.append(s)
+            else:
+                sources.extend(s.get_outputs())
         extra_args = kwargs['extra_args']
 
         # If a name was set generate a single .cpp file from all of the qrc
@@ -337,12 +357,19 @@ class QtBaseModule(ExtensionModule):
     @noPosargs
     @typed_kwargs(
         'qt.compile_ui',
-        KwargInfo('sources', ContainerTypeInfo(list, (File, str), allow_empty=False), listify=True, required=True),
+        KwargInfo(
+            'sources',
+            ContainerTypeInfo(list, (File, str, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList), allow_empty=False),
+            listify=True,
+            required=True,
+        ),
         KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
         KwargInfo('method', str, default='auto')
     )
     def compile_ui(self, state: 'ModuleState', args: T.Tuple, kwargs: 'UICompilerKwArgs') -> ModuleReturnValue:
         """Compile UI resources into cpp headers."""
+        if any(isinstance(s, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)) for s in kwargs['sources']):
+            FeatureNew.single_use('qt.compile_ui: custom_target or generator for "sources" keyword argument', '0.60.0', state.subproject)
         out = self._compile_ui_impl(state, kwargs)
         return ModuleReturnValue(out, [out])
 
@@ -366,14 +393,28 @@ class QtBaseModule(ExtensionModule):
     @noPosargs
     @typed_kwargs(
         'qt.compile_moc',
-        KwargInfo('sources', ContainerTypeInfo(list, (File, str, build.CustomTarget)), listify=True, default=[]),
-        KwargInfo('headers', ContainerTypeInfo(list, (File, str, build.CustomTarget)), listify=True, default=[]),
+        KwargInfo(
+            'sources',
+            ContainerTypeInfo(list, (File, str, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)),
+            listify=True,
+            default=[],
+        ),
+        KwargInfo(
+            'headers',
+            ContainerTypeInfo(list, (File, str, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)),
+            listify=True,
+            default=[]
+        ),
         KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
         KwargInfo('method', str, default='auto'),
         KwargInfo('include_directories', ContainerTypeInfo(list, (build.IncludeDirs, str)), listify=True, default=[]),
         KwargInfo('dependencies', ContainerTypeInfo(list, (Dependency, ExternalLibrary)), listify=True, default=[]),
     )
     def compile_moc(self, state: 'ModuleState', args: T.Tuple, kwargs: 'MocCompilerKwArgs') -> ModuleReturnValue:
+        if any(isinstance(s, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)) for s in kwargs['headers']):
+            FeatureNew.single_use('qt.compile_moc: custom_target or generator for "headers" keyword argument', '0.60.0', state.subproject)
+        if any(isinstance(s, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)) for s in kwargs['sources']):
+            FeatureNew.single_use('qt.compile_moc: custom_target or generator for "sources" keyword argument', '0.60.0', state.subproject)
         out = self._compile_moc_impl(state, kwargs)
         return ModuleReturnValue(out, [out])
 
@@ -473,10 +514,12 @@ class QtBaseModule(ExtensionModule):
         KwargInfo('method', str, default='auto'),
         KwargInfo('qresource', str, since='0.56.0'),
         KwargInfo('rcc_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[], since='0.56.0'),
-        KwargInfo('ts_files', ContainerTypeInfo(list, (str, File)), listify=True, default=[]),
+        KwargInfo('ts_files', ContainerTypeInfo(list, (str, File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)), listify=True, default=[]),
     )
     def compile_translations(self, state: 'ModuleState', args: T.Tuple, kwargs: 'CompileTranslationsKwArgs') -> ModuleReturnValue:
         ts_files = kwargs['ts_files']
+        if any(isinstance(s, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)) for s in ts_files):
+            FeatureNew.single_use('qt.compile_translations: custom_target or generator for "ts_files" keyword argument', '0.60.0', state.subproject)
         install_dir = kwargs['install_dir']
         qresource = kwargs['qresource']
         if qresource:
@@ -505,6 +548,11 @@ class QtBaseModule(ExtensionModule):
                 raise MesonException('qt.compile_translations: ' +
                                      self.lrelease.name + ' not found')
             if qresource:
+                # In this case we know that ts_files is always a List[str], as
+                # it's generated above and no ts_files are passed in. However,
+                # mypy can't figure that out so we use assert to assure it that
+                # what we're doing is safe
+                assert isinstance(ts, str), 'for mypy'
                 outdir = os.path.dirname(os.path.normpath(os.path.join(state.subdir, ts)))
                 ts = os.path.basename(ts)
             else:
@@ -512,9 +560,9 @@ class QtBaseModule(ExtensionModule):
             cmd = [self.lrelease, '@INPUT@', '-qm', '@OUTPUT@']
             lrelease_kwargs = {'output': '@BASENAME@.qm',
                                'input': ts,
-                               'install': kwargs.get('install', False),
+                               'install': kwargs['install'],
                                'install_tag': 'i18n',
-                               'build_by_default': kwargs.get('build_by_default', False),
+                               'build_by_default': kwargs['build_by_default'],
                                'command': cmd}
             if install_dir is not None:
                 lrelease_kwargs['install_dir'] = install_dir
