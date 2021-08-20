@@ -1005,9 +1005,9 @@ class XCodeBackend(backends.Backend):
         self.write_tree(objects_dict, project_tree, target_children, '')
 
     def write_tree(self, objects_dict, tree_node, children_array, current_subdir):
-        subdir_dict = PbxDict()
-        subdir_children = PbxArray()
         for subdir_name, subdir_node in tree_node.subdirs.items():
+            subdir_dict = PbxDict()
+            subdir_children = PbxArray()
             subdir_id = self.gen_id()
             objects_dict.add_item(subdir_id, subdir_dict)
             children_array.add_item(subdir_id)
