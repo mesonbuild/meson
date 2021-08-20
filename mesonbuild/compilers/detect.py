@@ -34,6 +34,7 @@ from ..linkers import (
     C2000Linker,
     C2000DynamicLinker,
     DLinker,
+    NAGDynamicLinker,
     NvidiaHPC_DynamicLinker,
     PGIDynamicLinker,
     PGIStaticLinker,
@@ -774,9 +775,14 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
                     exe_wrap, full_version=full_version, linker=linker)
 
             if 'NAG Fortran' in err:
-                linker = guess_nix_linker(env,
-                    compiler, NAGFortranCompiler, for_machine)
-                return NAGFortranCompiler(
+                full_version = err.split('\n', 1)[0]
+                version = full_version.split()[-1]
+                cls = NAGFortranCompiler
+                env.coredata.add_lang_args(cls.language, cls, for_machine, env)
+                linker = NAGDynamicLinker(
+                    compiler, for_machine, cls.LINKER_PREFIX, [],
+                    version=version)
+                return cls(
                     compiler, version, for_machine, is_cross, info,
                     exe_wrap, full_version=full_version, linker=linker)
 

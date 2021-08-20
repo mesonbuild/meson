@@ -494,12 +494,28 @@ class NAGFortranCompiler(FortranCompiler):
                                  is_cross, info, exe_wrapper, linker=linker,
                                  full_version=full_version)
         self.id = 'nagfor'
+        self.warn_args = {
+            '0': ['-w=all'],
+            '1': [],
+            '2': [],
+            '3': [],
+        }
 
-    def get_warn_args(self, level: str) -> T.List[str]:
-        return []
+    def get_always_args(self) -> T.List[str]:
+        return self.get_nagfor_quiet(self.version)
 
     def get_module_outdir_args(self, path: str) -> T.List[str]:
         return ['-mdir', path]
+
+    @staticmethod
+    def get_nagfor_quiet(version: str) -> T.List[str]:
+        return ['-quiet'] if version_compare(version, '>=7100') else []
+
+    def get_pic_args(self) -> T.List[str]:
+        return ['-PIC']
+
+    def get_std_exe_link_args(self) -> T.List[str]:
+        return self.get_always_args()
 
     def openmp_flags(self) -> T.List[str]:
         return ['-openmp']
