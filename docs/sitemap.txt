@@ -71,6 +71,7 @@ index.md
 		Creating-OSX-packages.md
 		Creating-Linux-binaries.md
 		Project-templates.md
+	@REFMAN_PLACEHOLDER@
 	Reference-manual.md
 	Reference-tables.md
 	Style-guide.md

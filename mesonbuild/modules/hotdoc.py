@@ -110,7 +110,7 @@ class HotdocTargetBuilder:
                 self.check_extra_arg_type(arg, v)
             return
 
-        valid_types = (str, bool, mesonlib.File, build.IncludeDirs, build.CustomTarget, build.BuildTarget)
+        valid_types = (str, bool, mesonlib.File, build.IncludeDirs, build.CustomTarget, build.CustomTargetIndex, build.BuildTarget)
         if not isinstance(value, valid_types):
             raise InvalidArguments('Argument "{}={}" should be of type: {}.'.format(
                 arg, value, [t.__name__ for t in valid_types]))
@@ -210,6 +210,8 @@ class HotdocTargetBuilder:
                 self.add_extension_paths(dep.extra_extension_paths)
             elif isinstance(dep, build.CustomTarget) or isinstance(dep, build.BuildTarget):
                 self._dependencies.append(dep)
+            elif isinstance(dep, build.CustomTargetIndex):
+                self._dependencies.append(dep.target)
 
         return [f.strip('-I') for f in cflags]
 
@@ -239,8 +241,11 @@ class HotdocTargetBuilder:
                     cmd.append(os.path.join(self.builddir, arg.get_curdir(), inc_dir))
 
                 continue
-            elif isinstance(arg, build.CustomTarget) or isinstance(arg, build.BuildTarget):
+            elif isinstance(arg, (build.BuildTarget, build.CustomTarget)):
                 self._dependencies.append(arg)
+                arg = self.interpreter.backend.get_target_filename_abs(arg)
+            elif isinstance(arg, build.CustomTargetIndex):
+                self._dependencies.append(arg.target)
                 arg = self.interpreter.backend.get_target_filename_abs(arg)
 
             cmd.append(arg)
@@ -262,7 +267,7 @@ class HotdocTargetBuilder:
                 res.append(self.ensure_file(val))
             return res
 
-        if not isinstance(value, mesonlib.File):
+        if isinstance(value, str):
             return mesonlib.File.from_source_file(self.sourcedir, self.subdir, value)
 
         return value
@@ -288,7 +293,7 @@ class HotdocTargetBuilder:
 
     def make_targets(self):
         self.check_forbidden_args()
-        file_types = (str, mesonlib.File)
+        file_types = (str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex)
         self.process_known_arg("--index", file_types, mandatory=True, value_processor=self.ensure_file)
         self.process_known_arg("--project-version", str, mandatory=True)
         self.process_known_arg("--sitemap", file_types, mandatory=True, value_processor=self.ensure_file)
