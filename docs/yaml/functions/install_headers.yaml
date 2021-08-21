@@ -1,0 +1,53 @@
+name: install_headers
+returns: void
+description: |
+  Installs the specified header files from the source tree into the
+  system header directory (usually `/{prefix}/include`) during the
+  install step. This directory can be overridden by specifying it with
+  the `install_dir` keyword argument. If you just want to install into a
+  subdirectory of the system header directory, then use the `subdir`
+  argument. As an example if this has the value `myproj` then the
+  headers would be installed to `/{prefix}/include/myproj`.
+
+example: |
+  For example, this will install `common.h` and `kola.h` into
+  `/{prefix}/include`:
+
+  ```meson
+  install_headers('common.h', 'proj/kola.h')
+  ```
+
+  This will install `common.h` and `kola.h` into `/{prefix}/include/myproj`:
+
+  ```meson
+  install_headers('common.h', 'proj/kola.h', subdir : 'myproj')
+  ```
+
+  This will install `common.h` and `kola.h` into `/{prefix}/cust/myproj`:
+
+  ```meson
+  install_headers('common.h', 'proj/kola.h', install_dir : 'cust', subdir : 'myproj')
+  ```
+
+varargs:
+  name: file
+  type: file | str
+  description: Header files to install.
+
+kwargs:
+  install_dir:
+    type: str
+    description: Where to install to
+
+  subdir:
+    type: str
+    description: Use the `subdir` in the `install_dir`
+
+  install_mode:
+    type: list[str | int]
+    since: 0.47.0
+    description: |
+      Specify the file mode in symbolic format
+      and optionally the owner/uid and group/gid for the installed files.
+
+      See the `install_mode` kwarg of [[install_data]] for more information.
