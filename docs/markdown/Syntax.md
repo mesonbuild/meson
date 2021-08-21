@@ -260,6 +260,9 @@ string = 'xyxHelloxyx'.strip('xy')
 # 'string' now has the value 'Hello'
 ```
 
+Since 0.43.0, you can specify one positional string argument,
+and all characters in that string will be stripped.
+
 #### .to_upper(), .to_lower()
 
 ```meson
