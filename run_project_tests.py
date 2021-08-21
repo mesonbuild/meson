@@ -148,7 +148,6 @@ class InstalledFile:
                 (env.machines.host.is_windows() and compiler in {'pgi', 'dmd', 'ldc'})):
             canonical_compiler = 'msvc'
 
-        python_paths = python.info['install_paths']
         python_suffix = python.info['suffix']
 
         has_pdb = False
@@ -171,8 +170,8 @@ class InstalledFile:
         # Handle the different types
         if self.typ in {'py_implib', 'python_lib', 'python_file'}:
             val = p.as_posix()
-            val = val.replace('@PYTHON_PLATLIB@', python_paths['platlib'])
-            val = val.replace('@PYTHON_PURELIB@', python_paths['purelib'])
+            val = val.replace('@PYTHON_PLATLIB@', python.platlib)
+            val = val.replace('@PYTHON_PURELIB@', python.purelib)
             p = Path(val)
             if self.typ == 'python_file':
                 return p
