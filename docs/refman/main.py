@@ -23,13 +23,15 @@ from .loaderyaml import LoaderYAML
 
 from .generatorbase import GeneratorBase
 from .generatorprint import GeneratorPrint
+from .generatorpickle import GeneratorPickle
 
 meson_root = Path(__file__).absolute().parents[2]
 
 def main() -> int:
     parser = argparse.ArgumentParser(description='Meson reference manual generator')
     parser.add_argument('-l', '--loader', type=str, default='yaml', choices=['yaml'], help='Information loader backend')
-    parser.add_argument('-g', '--generator', type=str, choices=['print'], required=True, help='Generator backend')
+    parser.add_argument('-g', '--generator', type=str, choices=['print', 'pickle', 'md'], required=True, help='Generator backend')
+    parser.add_argument('-o', '--out', type=Path, required=True, help='Output directory for generated files')
     parser.add_argument('--depfile', type=Path, default=None, help='Set to generate a depfile')
     parser.add_argument('--force-color', action='store_true', help='Force enable colors')
     args = parser.parse_args()
@@ -46,6 +48,7 @@ def main() -> int:
 
     generators: T.Dict[str, T.Callable[[], GeneratorBase]] = {
         'print': lambda: GeneratorPrint(refMan),
+        'pickle': lambda: GeneratorPickle(refMan, args.out),
     }
     generator = generators[args.generator]()
 
