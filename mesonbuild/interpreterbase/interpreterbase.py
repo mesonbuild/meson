@@ -123,7 +123,10 @@ class InterpreterBase:
             raise InvalidCode('No statements in code.')
         first = self.ast.lines[0]
         if not isinstance(first, mparser.FunctionNode) or first.func_name != 'project':
-            raise InvalidCode('First statement must be a call to project')
+            raise InvalidCode('Could not find a meson.build with project() ' \
+                    'as the first statement.\nDid you point Meson to the source ' \
+                    'directory with the top-most meson.build file?\nCurrently '\
+                    f'using: {self.source_root}')
 
     def run(self) -> None:
         # Evaluate everything after the first line, which is project() because
