@@ -291,6 +291,7 @@ print(json.dumps({
   'variables': sysconfig.get_config_vars(),
   'paths': sysconfig.get_paths(),
   'install_paths': install_paths,
+  'sys_paths': sys.path,
   'version': sysconfig.get_python_version(),
   'platform': sysconfig.get_platform(),
   'is_pypy': '__pypy__' in sys.builtin_module_names,
@@ -360,9 +361,26 @@ class PythonExternalProgram(ExternalProgram):
             variables = info['variables']
             info['suffix'] = variables.get('EXT_SUFFIX') or variables.get('SO') or variables.get('.so')
             self.info = T.cast('PythonIntrospectionDict', info)
+            self.platlib = self._get_path('platlib')
+            self.purelib = self._get_path('purelib')
             return True
         else:
             return False
+
+    def _get_path(self, key: str) -> None:
+        user_dir = str(Path.home())
+        sys_paths = self.info['sys_paths']
+        rel_path = self.info['install_paths'][key][1:]
+        if not any(p.endswith(rel_path) for p in sys_paths if not p.startswith(user_dir)):
+            # On Debian derivatives sysconfig install path is broken and is not
+            # included in the locations python actually lookup.
+            # See https://github.com/mesonbuild/meson/issues/8739.
+            mlog.warning('Broken python installation detected. Python files',
+                         'installed by Meson might not be found by python interpreter.',
+                         once=True)
+            if mesonlib.is_debianlike():
+                rel_path = 'lib/python3/dist-packages'
+        return rel_path
 
 
 _PURE_KW = KwargInfo('pure', bool, default=True)
@@ -386,9 +404,8 @@ class PythonInstallation(ExternalProgramHolder):
         self.variables = info['variables']
         self.suffix = info['suffix']
         self.paths = info['paths']
-        install_paths = info['install_paths']
-        self.platlib_install_path = os.path.join(prefix, install_paths['platlib'][1:])
-        self.purelib_install_path = os.path.join(prefix, install_paths['purelib'][1:])
+        self.platlib_install_path = os.path.join(prefix, python.platlib)
+        self.purelib_install_path = os.path.join(prefix, python.purelib)
         self.version = info['version']
         self.platform = info['platform']
         self.is_pypy = info['is_pypy']
