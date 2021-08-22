@@ -45,7 +45,7 @@ from .disabler import Disabler, is_disabled
 from .helpers import check_stringlist, default_resolve_key, flatten, resolve_second_level_holders
 from ._unholder import _unholder
 
-import os, copy, re, pathlib
+import os, copy, re
 import typing as T
 
 if T.TYPE_CHECKING:
@@ -123,19 +123,7 @@ class InterpreterBase:
             raise InvalidCode('No statements in code.')
         first = self.ast.lines[0]
         if not isinstance(first, mparser.FunctionNode) or first.func_name != 'project':
-            p = pathlib.Path(self.source_root).resolve()
-            found = p
-            for parent in p.parents:
-                if (parent / 'meson.build').is_file():
-                    found = parent
-                else:
-                    break
-
-            error = 'first statement must be a call to project()'
-            if found != p:
-                raise InvalidCode(f'Not the project root: {error}\n\nDid you mean to run meson from the directory: "{found}"?')
-            else:
-                raise InvalidCode(f'Invalid source tree: {error}')
+            raise InvalidCode('First statement must be a call to project')
 
     def run(self) -> None:
         # Evaluate everything after the first line, which is project() because
