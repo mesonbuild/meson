@@ -15,7 +15,7 @@
 from abc import ABCMeta, abstractmethod
 import typing as T
 
-from .model import ReferenceManual, Function, Object, ObjectType, NamedObject
+from .model import ReferenceManual, Function, Method, Object, ObjectType, NamedObject
 
 _N = T.TypeVar('_N', bound=NamedObject)
 
@@ -37,7 +37,11 @@ class GeneratorBase(metaclass=ABCMeta):
 
     @staticmethod
     def sorted_and_filtered(raw: T.List[_N]) -> T.List[_N]:
-        return sorted([x for x in raw if not x.hidden], key=lambda x: x.name)
+        def key_fn(fn: Function) -> str:
+            if isinstance(fn, Method):
+                return f'1_{fn.obj.name}.{fn.name}'
+            return f'0_{fn.name}'
+        return sorted([x for x in raw if not x.hidden], key=key_fn)
 
     @property
     def functions(self) -> T.List[Function]:

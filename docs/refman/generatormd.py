@@ -14,6 +14,7 @@
 
 from .generatorbase import GeneratorBase
 import re
+import json
 
 from .model import (
     ReferenceManual,
@@ -72,10 +73,11 @@ def code_block(code: str) -> str:
     return f'<pre><code class="language-meson">{code}</code></pre>'
 
 class GeneratorMD(GeneratorBase):
-    def __init__(self, manual: ReferenceManual, sitemap_out: Path, sitemap_in: Path) -> None:
+    def __init__(self, manual: ReferenceManual, sitemap_out: Path, sitemap_in: Path, link_def_out: Path) -> None:
         super().__init__(manual)
         self.sitemap_out = sitemap_out.resolve()
         self.sitemap_in = sitemap_in.resolve()
+        self.link_def_out = link_def_out.resolve()
         self.out_dir = self.sitemap_out.parent
         self.generated_files: T.Dict[str, str] = {}
 
@@ -88,29 +90,6 @@ class GeneratorMD(GeneratorBase):
         parts = [re.sub(r'[0-9]+_', '', x) for x in parts]
         return f'{"_".join(parts)}.{extension}'
 
-    def _object_from_ref(self, ref_str: str) -> T.Union[Function, Object]:
-        ids = ref_str.split('.')
-        ids = [x.strip() for x in ids]
-        assert len(ids) in [1, 2], f'Invalid object id "{ref_str}"'
-        assert not (ids[0].startswith('@') and len(ids) == 2), f'Invalid object id "{ref_str}"'
-        if ids[0].startswith('@'):
-            for obj in self.objects:
-                if obj.name == ids[0][1:]:
-                    return obj
-        if len(ids) == 2:
-            for obj in self.objects:
-                if obj.name != ids[0]:
-                    continue
-                for m in obj.methods:
-                    if m.name == ids[1]:
-                        return m
-                raise RuntimeError(f'Unknown method {ids[1]} in object {ids[0]}')
-            raise RuntimeError(f'Unknown object {ids[0]}')
-        for func in self.functions:
-            if func.name == ids[0]:
-                return func
-        raise RuntimeError(f'Unknown function or object {ids[0]}')
-
     def _gen_object_file_id(self, obj: Object) -> str:
         '''
             Deterministically generate a unique file ID for the Object.
@@ -122,52 +101,25 @@ class GeneratorMD(GeneratorBase):
             return f'{base}.{obj.name}'
         return f'root.{_OBJ_ID_MAP[obj.obj_type]}.{obj.name}'
 
-    def _link_to_object(self, obj: T.Union[Function, Object], text: T.Optional[str] = None) -> str:
+    def _link_to_object(self, obj: T.Union[Function, Object], in_code_block: bool = False) -> str:
         '''
-            Generate a link to the function/method/object documentation.
-
-            The generated link is an HTML link (<a href="">text</a>) instead of
-            a Markdown link, so that the generated links can be used in custom
-            (or rather manual) code blocks.
+            Generate a palaceholder tag for the the function/method/object documentation.
+            This tag is then replaced in the custom hotdoc plugin.
         '''
+        prefix = '#' if in_code_block else ''
         if isinstance(obj, Object):
-            text = text or f'<ins><code>{obj.name}</code></ins>'
-            link = self._gen_filename(self._gen_object_file_id(obj), extension="html")
+            return f'[[{prefix}@{obj.name}]]'
         elif isinstance(obj, Method):
-            text = text or f'<ins><code>`{obj.obj.name}.{obj.name}()`</code></ins>'
-            file = self._gen_filename(self._gen_object_file_id(obj.obj), extension="html")
-            link = f'{file}#{obj.obj.name}{obj.name}'
+            return f'[[{prefix}{obj.obj.name}.{obj.name}]]'
         elif isinstance(obj, Function):
-            text = text or f'<ins><code>`{obj.name}()`</code></ins>'
-            link = f'{self._gen_filename("root.functions", extension="html")}#{obj.name}'
+            return f'[[{prefix}{obj.name}]]'
         else:
             raise RuntimeError(f'Invalid argument {obj}')
-        return f'<a href="{link}">{text}</a>'
 
     def _write_file(self, data: str, file_id: str) -> None:#
-        ''' Write the data to disk.
+        ''' Write the data to disk ans store the id for the generated data '''
 
-        Additionally, links of the form [[function]] are automatically replaced
-        with valid links to the correct URL. To reference objects / types use the
-        [[@object]] syntax.
-
-        Placeholders with the syntax [[!file_id]] will be replaced with the
-        corresponding generated markdown file.
-        '''
         self.generated_files[file_id] = self._gen_filename(file_id)
-
-        # Replace [[func_name]] and [[obj.method_name]] with links
-        link_regex = re.compile(r'\[\[[^\]]+\]\]')
-        matches = link_regex.findall(data)
-        for i in matches:
-            obj_id: str = i[2:-2]
-            if obj_id.startswith('!'):
-                link_file_id = obj_id[1:]
-                data = data.replace(i, self._gen_filename(link_file_id))
-            else:
-                obj = self._object_from_ref(obj_id)
-                data = data.replace(i, self._link_to_object(obj))
-
         out_file = self.out_dir / self.generated_files[file_id]
         out_file.write_text(data, encoding='ascii')
         mlog.log('Generated', mlog.bold(out_file.name))
@@ -193,11 +145,11 @@ class GeneratorMD(GeneratorBase):
 
     # Actual generator functions
     def _gen_func_or_method(self, func: Function) -> FunctionDictType:
-        def render_type(typ: Type) -> str:
+        def render_type(typ: Type, in_code_block: bool = False) -> str:
             def data_type_to_str(dt: DataTypeInfo) -> str:
-                base = self._link_to_object(dt.data_type, f'<ins>{dt.data_type.name}</ins>')
+                base = self._link_to_object(dt.data_type, in_code_block)
                 if dt.holds:
-                    return f'{base}[{render_type(dt.holds)}]'
+                    return f'{base}[{render_type(dt.holds, in_code_block)}]'
                 return base
             assert typ.resolved
             return ' | '.join([data_type_to_str(x) for x in typ.resolved])
@@ -208,11 +160,11 @@ class GeneratorMD(GeneratorBase):
         def render_signature() -> str:
             # Skip a lot of computations if the function does not take any arguments
             if not any([func.posargs, func.optargs, func.kwargs, func.varargs]):
-                return f'{render_type(func.returns)} {func.name}()'
+                return f'{render_type(func.returns, True)} {func.name}()'
 
             signature = dedent(f'''\
                 # {self.brief(func)}
-                {render_type(func.returns)} {func.name}(
+                {render_type(func.returns, True)} {func.name}(
             ''')
 
             # Calculate maximum lengths of the type and name
@@ -229,7 +181,7 @@ class GeneratorMD(GeneratorBase):
 
             # Generate some common strings
             def prepare(arg: ArgBase) -> T.Tuple[str, str, str, str]:
-                type_str = render_type(arg.type)
+                type_str = render_type(arg.type, True)
                 type_len = len_stripped(type_str)
                 type_space = ' ' * (max_type_len - type_len)
                 name_space = ' ' * (max_name_len - len(arg.name))
@@ -362,6 +314,7 @@ class GeneratorMD(GeneratorBase):
             return ret
 
         data = {
+            'root': self._gen_filename('root'),
             'elementary': gen_obj_links(self.elementary),
             'returned': gen_obj_links(self.returned),
             'builtins': gen_obj_links(self.builtins),
@@ -369,11 +322,13 @@ class GeneratorMD(GeneratorBase):
             'functions': [{'indent': '', 'link': self._link_to_object(x), 'brief': self.brief(x)} for x in self.functions],
         }
 
+        dummy = {'root': self._gen_filename('root')}
+
         self._write_template(data, 'root')
-        self._write_template({'name': 'Elementary types'}, f'root.{_OBJ_ID_MAP[ObjectType.ELEMENTARY]}', 'dummy')
-        self._write_template({'name': 'Builtin objects'},  f'root.{_OBJ_ID_MAP[ObjectType.BUILTIN]}',    'dummy')
-        self._write_template({'name': 'Returned objects'}, f'root.{_OBJ_ID_MAP[ObjectType.RETURNED]}',   'dummy')
-        self._write_template({'name': 'Modules'},          f'root.{_OBJ_ID_MAP[ObjectType.MODULE]}',     'dummy')
+        self._write_template({**dummy, 'name': 'Elementary types'}, f'root.{_OBJ_ID_MAP[ObjectType.ELEMENTARY]}', 'dummy')
+        self._write_template({**dummy, 'name': 'Builtin objects'},  f'root.{_OBJ_ID_MAP[ObjectType.BUILTIN]}',    'dummy')
+        self._write_template({**dummy, 'name': 'Returned objects'}, f'root.{_OBJ_ID_MAP[ObjectType.RETURNED]}',   'dummy')
+        self._write_template({**dummy, 'name': 'Modules'},          f'root.{_OBJ_ID_MAP[ObjectType.MODULE]}',     'dummy')
 
 
     def generate(self) -> None:
@@ -384,6 +339,7 @@ class GeneratorMD(GeneratorBase):
                 self._write_object(obj)
             self._root_refman_docs()
             self._configure_sitemap()
+            self._generate_link_def()
 
     def _configure_sitemap(self) -> None:
         '''
@@ -403,3 +359,25 @@ class GeneratorMD(GeneratorBase):
                 indent = base_indent + '\t' * k.count('.')
                 out += f'{indent}{self.generated_files[k]}\n'
         self.sitemap_out.write_text(out, encoding='utf-8')
+
+    def _generate_link_def(self) -> None:
+        '''
+            Generate the link definition file for the refman_links hotdoc
+            plugin. The plugin is then responsible for replacing the [[tag]]
+            tags with custom HTML elements.
+        '''
+        data: T.Dict[str, str] = {}
+
+        # Objects and methods
+        for obj in self.objects:
+            obj_file = self._gen_filename(self._gen_object_file_id(obj), extension='html')
+            data[f'@{obj.name}'] = obj_file
+            for m in obj.methods:
+                data[f'{obj.name}.{m.name}'] = f'{obj_file}#{obj.name}{m.name}'
+
+        # Functions
+        funcs_file = self._gen_filename('root.functions', extension='html')
+        for fn in self.functions:
+            data[fn.name] = f'{funcs_file}#{fn.name}'
+
+        self.link_def_out.write_text(json.dumps(data, indent=2), encoding='utf-8')

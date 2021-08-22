@@ -34,6 +34,7 @@ def main() -> int:
     parser.add_argument('-g', '--generator', type=str, choices=['print', 'pickle', 'md'], required=True, help='Generator backend')
     parser.add_argument('-s', '--sitemap', type=Path, default=meson_root / 'docs' / 'sitemap.txt', help='Path to the input sitemap.txt')
     parser.add_argument('-o', '--out', type=Path, required=True, help='Output directory for generated files')
+    parser.add_argument('--link-defs', type=Path, help='Output file for the MD generator link definition file')
     parser.add_argument('--depfile', type=Path, default=None, help='Set to generate a depfile')
     parser.add_argument('--force-color', action='store_true', help='Force enable colors')
     args = parser.parse_args()
@@ -51,7 +52,7 @@ def main() -> int:
     generators: T.Dict[str, T.Callable[[], GeneratorBase]] = {
         'print': lambda: GeneratorPrint(refMan),
         'pickle': lambda: GeneratorPickle(refMan, args.out),
-        'md': lambda: GeneratorMD(refMan, args.out, args.sitemap),
+        'md': lambda: GeneratorMD(refMan, args.out, args.sitemap, args.link_defs),
     }
     generator = generators[args.generator]()
 
