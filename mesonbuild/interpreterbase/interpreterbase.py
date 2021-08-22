@@ -127,7 +127,10 @@ class InterpreterBase:
             found = p
             for parent in p.parents:
                 if (parent / 'meson.build').is_file():
-                    found = parent
+                    with open(parent / 'meson.build', encoding='utf-8') as f:
+                        if f.readline().startswith('project('):
+                            found = parent
+                            break
                 else:
                     break
 
