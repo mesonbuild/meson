@@ -515,6 +515,9 @@ class NAGFortranCompiler(FortranCompiler):
     def get_pic_args(self) -> T.List[str]:
         return ['-PIC']
 
+    def get_preprocess_only_args(self) -> T.List[str]:
+        return ['-fpp']
+
     def get_std_exe_link_args(self) -> T.List[str]:
         return self.get_always_args()
 
