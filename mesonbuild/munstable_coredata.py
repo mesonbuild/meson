@@ -95,7 +95,7 @@ def run(options):
                 dump_compilers(v[for_machine])
         elif k == 'deps':
             def print_dep(dep_key, dep):
-                print('  ' + dep_key[0] + ": ")
+                print('  ' + dep_key[0][1] + ": ")
                 print('      compile args: ' + repr(dep.get_compile_args()))
                 print('      link args: ' + repr(dep.get_link_args()))
                 if dep.get_sources():
@@ -105,7 +105,7 @@ def run(options):
             for for_machine in iter(MachineChoice):
                 items_list = list(sorted(v[for_machine].items()))
                 if items_list:
-                    print('Cached dependencies for {} machine' % for_machine.get_lower_case_name())
+                    print(f'Cached dependencies for {for_machine.get_lower_case_name()} machine')
                     for dep_key, deps in items_list:
                         for dep in deps:
                             print_dep(dep_key, dep)
