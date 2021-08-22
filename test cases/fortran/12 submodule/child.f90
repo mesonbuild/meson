@@ -1,4 +1,4 @@
-submodule (parent) parent
+submodule (parent) child
 
 contains
 
@@ -10,4 +10,4 @@ module procedure good
 print *, 'Good!'
 end procedure good
 
-end submodule parent
+end submodule child
