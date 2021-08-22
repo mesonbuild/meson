@@ -42,7 +42,6 @@ class GeneratorPrint(GeneratorBase):
             mlog.log('Pos args:   ', mlog.bold(str([x.name for x in func.posargs])))
             mlog.log('Opt args:   ', mlog.bold(str([x.name for x in func.optargs])))
             mlog.log('Varargs:    ', mlog.bold(func.varargs.name if func.varargs is not None else 'null'))
-            mlog.log('Kwargs base:', mlog.bold(func.kwargs_inherit.name if func.kwargs_inherit else 'null'))
             mlog.log('Kwargs:     ', mlog.bold(str(list(func.kwargs.keys()))))
 
     def _generate_object(self, obj: Object) -> None:

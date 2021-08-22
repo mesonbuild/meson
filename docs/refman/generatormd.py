@@ -45,6 +45,7 @@ FunctionDictType = T.Dict[
         T.Dict[str, T.Dict[str, PlaceholderTypes]],
         T.Dict[str, T.List[T.Dict[str, PlaceholderTypes]]],
         T.List[T.Dict[str, PlaceholderTypes]],
+        T.List[str],
     ]
 ]
 

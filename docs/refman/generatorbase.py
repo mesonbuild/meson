@@ -37,7 +37,7 @@ class GeneratorBase(metaclass=ABCMeta):
 
     @staticmethod
     def sorted_and_filtered(raw: T.List[_N]) -> T.List[_N]:
-        def key_fn(fn: Function) -> str:
+        def key_fn(fn: NamedObject) -> str:
             if isinstance(fn, Method):
                 return f'1_{fn.obj.name}.{fn.name}'
             return f'0_{fn.name}'

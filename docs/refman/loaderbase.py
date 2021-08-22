@@ -21,6 +21,7 @@ from .model import (
     NamedObject,
     FetureCheck,
     ArgBase,
+    PosArg,
     DataTypeInfo,
     Type,
     Function,
@@ -123,7 +124,7 @@ class _Resolver:
             func.kwargs.update(missing)
 
         # Handloe other args inheritance
-        _T = T.TypeVar('_T', bound=T.Union[ArgBase, T.List[ArgBase]])
+        _T = T.TypeVar('_T', bound=T.Union[ArgBase, T.List[PosArg]])
         def resolve_inherit(name: str, curr: _T, resolver: T.Callable[[Function], _T]) -> _T:
             if name and not curr:
                 name = name.strip()
