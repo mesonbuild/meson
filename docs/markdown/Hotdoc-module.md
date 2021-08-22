@@ -31,21 +31,17 @@ Generates documentation using [hotdoc] and installs it into `$prefix/share/doc/h
 
 **Keyworded arguments:**
 
-* `sitemap` (*[string] or [file]*) (**required**): The hotdoc sitemap file
-* `index` (*[string] or [file]*) (**required**): Location of the index file
-* `dependencies`(*[targets]*): Targets on which the documentation generation depends on.
+* `sitemap` ([[@str]] or [[@file]]) (**required**): The hotdoc sitemap file
+* `index` ([[@str]] or [[@file]]) (**required**): Location of the index file
+* `dependencies`([[@build_tgt]]): Targets on which the documentation generation depends on.
 * `subprojects`: A list of `HotdocTarget` that are used as subprojects for hotdoc to generate
   the documentation.
 * ... Any argument of `hotdoc` can be used replacing dashes (`-`) with underscores (`_`).
   For a full list of available parameters, just have a look at `hotdoc help`.
 
-[file]: Reference-manual.md#files
-[string]: Reference-manual.md#string-object
-[targets]: Reference-manual.md#build-target-object
-
 **Returns:**
 
-`HotdocTarget`: A [`custom_target`](Reference-manual.md#custom-target-object) with the
+`HotdocTarget`: A [[custom_target]] with the
 following extra methods:
 
 * `config_path`: Path to the generated `hotdoc` configuration file.

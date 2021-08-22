@@ -30,7 +30,7 @@ runtime type system.
 
 ## Using libraries
 
-Meson uses the [`dependency()`](Reference-manual.md#dependency)
+Meson uses the [[dependency]]
 function to find the relevant VAPI, C headers and linker flags when it
 encounters a Vala source file in a build target. Vala needs a VAPI
 file and a C header or headers to use a library. The VAPI file helps
@@ -39,7 +39,7 @@ map Vala code to the library's C programming interface. It is the
 tool that makes finding these installed files all work seamlessly
 behind the scenes. When a `pkg-config` file doesn't exist for the
 library then the `find_library()`
-method of the [compiler object](Reference-manual.md#compiler-object)
+method of the [[@compiler]] object
 needs to be used. Examples are given later.
 
 Note Vala uses libraries that follow the C Application Binary Interface (C ABI).
@@ -86,7 +86,7 @@ standard search path and so works just as seamlessly using the
 
 ### Targeting a version of GLib
 
-Meson's [`dependency()`](Reference-manual.md#dependency) function
+Meson's [[dependency]] function
 allows a version check of a library. This is often used to check a
 minimum version is installed. When setting a minimum version of GLib,
 Meson will also pass this to the Vala compiler using the
@@ -287,7 +287,7 @@ add_project_arguments('-DFUSE_USE_VERSION=26', language: 'c')
 
 ### Changing C header and VAPI names
 
-Meson's [`library`](Reference-manual.md#library) target automatically
+Meson's [[library]] target automatically
 outputs the C header and the VAPI. They can be renamed by setting the
 `vala_header` and `vala_vapi` arguments respectively:
 

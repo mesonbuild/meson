@@ -56,8 +56,8 @@ configuration dependency on the file, and so if the `COPYING` file is modified,
 Meson will automatically reconfigure, guaranteeing the build is consistent. It
 can be used for any properly encoded text files. It supports specification of
 non utf-8 encodings too, so if you're stuck with text files in a different
-encoding, it can be passed as an argument. See the [`meson`
-object](Reference-manual.md#meson-object) documentation for details.
+encoding, it can be passed as an argument. See the [[@meson]]
+documentation for details.
 
 ## meson install --dry-run
 

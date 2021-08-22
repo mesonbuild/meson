@@ -114,7 +114,7 @@ dependency](Dependencies.md#mpi) for more information.
 
 ## Allow excluding files or directories from `install_subdir`
 
-The [`install_subdir`](Reference-manual.md#install_subdir) command
+The [[install_subdir]] command
 accepts the new `exclude_files` and `exclude_directories` keyword
 arguments that allow specified files or directories to be excluded
 from the installed subdirectory.

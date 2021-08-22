@@ -8,8 +8,8 @@ Sometimes source files need to be preprocessed before they are passed
 to the actual compiler. As an example you might want build an IDL
 compiler and then run some files through that to generate actual
 source files. In Meson this is done with
-[`generator()`](Reference-manual.md#generator) or
-[`custom_target()`](Reference-manual.md#custom_target).
+[[generator]] or
+[[custom_target]].
 
 ## Using custom_target()
 
@@ -120,7 +120,7 @@ idep_foo = declare_dependency(
 ```
 
 See [dependencies](Dependencies.md#declaring-your-own), and
-[reference](Reference-manual.md#declare_dependency) for more
+[[declare_dependency]] for more
 information.
 
 ## Using generator()
@@ -139,7 +139,7 @@ output will be created in a target-private directory `@BUILD_DIR@`.
 If you want to generate files for general purposes such as for
 generating headers to be used by several sources, or data that will be
 installed, and so on, use a
-[`custom_target()`](Reference-manual.md#custom_target) instead.
+[[custom_target]] instead.
 
 
 ```meson
