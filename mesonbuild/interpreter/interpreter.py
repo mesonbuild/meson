@@ -2215,6 +2215,10 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
                         # In subproject
                         some_dep = declare_dependency(include_directories: include_directories('include'))
 
+                        # In subproject wrap file
+                        [provide]
+                        some = some_dep
+
                         # In parent project
                         some_dep = dependency('some')
                         executable(..., dependencies: [some_dep])
