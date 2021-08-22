@@ -494,6 +494,7 @@ class NAGFortranCompiler(FortranCompiler):
                                  is_cross, info, exe_wrapper, linker=linker,
                                  full_version=full_version)
         self.id = 'nagfor'
+        # Warnings are on by default; -w disables (by category):
         self.warn_args = {
             '0': ['-w=all'],
             '1': [],

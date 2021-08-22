@@ -1047,7 +1047,14 @@ class QualcommLLVMDynamicLinker(LLVMDynamicLinker):
 
 class NAGDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
-    """NAG Fortran linker, ld via gcc indirection."""
+    """NAG Fortran linker, ld via gcc indirection.
+
+    Using nagfor -Wl,foo passes option foo to a backend gcc invocation.
+    (This linking gathers the correct objects needed from the nagfor runtime
+    system.)
+    To pass gcc -Wl,foo options (i.e., to ld) one must apply indirection
+    again: nagfor -Wl,-Wl,,foo
+    """
 
     id = 'nag'
 
