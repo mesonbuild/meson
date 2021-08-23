@@ -44,10 +44,11 @@ from .interpreterbase import FeatureNew
 
 if T.TYPE_CHECKING:
     from ._typing import ImmutableListProtocol, ImmutableSetProtocol
+    from .backend.backends import Backend, ExecutableSerialisation
     from .interpreter.interpreter import Test, SourceOutputs, Interpreter
     from .mesonlib import FileMode, FileOrString
     from .modules import ModuleState
-    from .backend.backends import Backend, ExecutableSerialisation
+    from .mparser import BaseNode
 
     GeneratedTypes = T.Union['CustomTarget', 'CustomTargetIndex', 'GeneratedList']
 
@@ -130,7 +131,7 @@ class InvalidArguments(MesonException):
     pass
 
 class DependencyOverride(HoldableObject):
-    def __init__(self, dep, node, explicit=True):
+    def __init__(self, dep: dependencies.Dependency, node: 'BaseNode', explicit: bool = True):
         self.dep = dep
         self.node = node
         self.explicit = explicit
