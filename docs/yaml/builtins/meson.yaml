@@ -358,6 +358,14 @@ methods:
           Otherwise, the dependency is overwritten for the host machine, which
           differs from the build machine when cross-compiling.
 
+      static:
+        type: bool
+        since: 0.60.0
+        description: |
+          Used to override static and/or shared dependencies separately.
+          If not specified it is assumed
+          `dep_object` follows `default_library` option value.
+
   - name: is_cross_build
     returns: bool
     description: Returns `true` if the current build is a [cross build](Cross-compilation.md) and `false` otherwise.

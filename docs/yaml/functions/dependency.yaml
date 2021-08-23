@@ -146,6 +146,9 @@ kwargs:
       libraries instead of dynamic ones (note that this is not supported
       by all dependency backends)
 
+      *Since 0.60.0* it also sets `default_library` option accordingly on the fallback
+      subproject if it was not set explicitly in `default_options` keyword argument.
+
   version:
     type: str
     since: 0.37.0
