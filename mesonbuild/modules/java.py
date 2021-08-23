@@ -24,7 +24,7 @@ from . import ExtensionModule, ModuleReturnValue, ModuleState
 from ..interpreter import Interpreter
 
 class JavaModule(ExtensionModule):
-    @FeatureNew('Java Module', '0.59.0')
+    @FeatureNew('Java Module', '0.60.0')
     def __init__(self, interpreter: Interpreter):
         super().__init__(interpreter)
         self.methods.update({
