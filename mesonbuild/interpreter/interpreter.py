@@ -55,6 +55,7 @@ from .type_checking import (
     LANGUAGE_KW,
     NATIVE_KW,
     REQUIRED_KW,
+    in_set_validator,
 )
 
 from pathlib import Path
@@ -181,7 +182,7 @@ TEST_KWARGS: T.List[KwargInfo] = [
               validator=lambda x: 'must be an absolute path' if not os.path.isabs(x) else None),
     KwargInfo('protocol', str,
               default='exitcode',
-              validator=lambda x: 'value must be one of "exitcode", "tap", "gtest", "rust"' if x not in {'exitcode', 'tap', 'gtest', 'rust'} else None,
+              validator=in_set_validator({'exitcode', 'tap', 'gtest', 'rust'}),
               since_values={'gtest': '0.55.0', 'rust': '0.57.0'}),
     KwargInfo('depends', ContainerTypeInfo(list, (build.CustomTarget, build.BuildTarget)),
               listify=True, default=[], since='0.46.0'),

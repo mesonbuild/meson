@@ -11,6 +11,17 @@ from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo
 from ..mesonlib import FileMode, MachineChoice
 
 
+def in_set_validator(choices: T.Set[str]) -> T.Callable[[str], T.Optional[str]]:
+    """Check that the choice given was one of the given set."""
+
+    def inner(check: str) -> T.Optional[str]:
+        if check not in choices:
+            return f"must be one of {', '.join(sorted(choices))}, not {check}"
+        return None
+
+    return inner
+
+
 def _language_validator(l: T.List[str]) -> T.Optional[str]:
     """Validate language keyword argument.
 

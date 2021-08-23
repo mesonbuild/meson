@@ -40,6 +40,7 @@ from mesonbuild.mesonlib import (
     LibType, MachineChoice, PerMachine, Version, is_windows, is_osx,
     is_cygwin, is_openbsd, search_version, MesonException, OptionKey,
 )
+from mesonbuild.interpreter.type_checking import in_set_validator
 from mesonbuild.dependencies import PkgConfigDependency
 from mesonbuild.programs import ExternalProgram
 import mesonbuild.modules.pkgconfig
@@ -1376,7 +1377,7 @@ class InternalTests(unittest.TestCase):
             KwargInfo('output', ContainerTypeInfo(dict, str), default={}, deprecated_values={'foo': '0.9'}, since_values={'bar': '1.1'}),
             KwargInfo(
                 'mode', str,
-                validator=lambda x: 'Should be one of "clean", "build", "rebuild"' if x not in {'clean', 'build', 'rebuild', 'deprecated', 'since'} else None,
+                validator=in_set_validator({'clean', 'build', 'rebuild', 'deprecated', 'since'}),
                 deprecated_values={'deprecated': '1.0'},
                 since_values={'since': '1.1'}),
         )
