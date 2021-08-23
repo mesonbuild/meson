@@ -50,6 +50,7 @@ if T.TYPE_CHECKING:
     from configparser import ConfigParser
 
     from .dependencies import ExternalProgram
+    from .wrap.wrap import Resolver
 
 build_filename = 'meson.build'
 
@@ -571,7 +572,7 @@ class Environment:
 
         self.default_cmake = ['cmake']
         self.default_pkgconfig = ['pkg-config']
-        self.wrap_resolver = None
+        self.wrap_resolver: T.Optional['Resolver'] = None
 
     def _load_machine_file_options(self, config: 'ConfigParser', properties: Properties, machine: MachineChoice) -> None:
         """Read the contents of a Machine file and put it in the options store."""
