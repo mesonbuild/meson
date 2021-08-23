@@ -572,6 +572,7 @@ class NinjaBackend(backends.Backend):
         # Refresh Ninja's caches. https://github.com/ninja-build/ninja/pull/1685
         if mesonlib.version_compare(self.ninja_version, '>=1.10.2') and os.path.exists('.ninja_deps'):
             subprocess.call(self.ninja_command + ['-t', 'restat'])
+            subprocess.call(self.ninja_command + ['-t', 'cleandead'])
         self.generate_compdb()
 
     # http://clang.llvm.org/docs/JSONCompilationDatabase.html
