@@ -17,7 +17,7 @@ from ..interpreterbase import (ObjectHolder, noPosargs, noKwargs,
                                InterpreterException)
 from ..interpreterbase.decorators import ContainerTypeInfo, typed_kwargs, KwargInfo, typed_pos_args
 from .interpreterobjects import (extract_required_kwarg, extract_search_dirs)
-from .type_checking import REQUIRED_KW
+from .type_checking import REQUIRED_KW, in_set_validator
 
 if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
@@ -638,7 +638,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
     @typed_kwargs(
         'compiler.get_supported_arguments',
         KwargInfo('checked', str, default='off', since='0.59.0',
-                  validator=lambda s: 'must be one of "warn", "require" or "off"' if s not in ['warn', 'require', 'off'] else None)
+                  validator=in_set_validator({'warn', 'require', 'off'})),
     )
     def get_supported_arguments_method(self, args: T.Tuple[T.List[str]], kwargs: 'GetSupportedArgumentKw') -> T.List[str]:
         supported_args: T.List[str] = []
