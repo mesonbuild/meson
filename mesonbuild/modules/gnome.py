@@ -817,7 +817,9 @@ class GnomeModule(ExtensionModule):
     def _get_scanner_cflags(cflags):
         'g-ir-scanner only accepts -I/-D/-U; must ignore all other flags'
         for f in cflags:
-            if f.startswith(('-D', '-U', '-I')):
+            # _FORTIFY_SOURCE depends on / works together with -O, on the other hand this
+            # just invokes the preprocessor anyway
+            if f.startswith(('-D', '-U', '-I')) and not f.startswith('-D_FORTIFY_SOURCE'):
                 yield f
 
     @staticmethod
