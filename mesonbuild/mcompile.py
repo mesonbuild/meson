@@ -19,6 +19,7 @@ import json
 import re
 import sys
 import shutil
+import argparse
 import typing as T
 from collections import defaultdict
 from pathlib import Path
@@ -29,9 +30,6 @@ from . import coredata
 from .mesonlib import MesonException
 from mesonbuild.environment import detect_ninja
 from mesonbuild.coredata import UserArrayOption
-
-if T.TYPE_CHECKING:
-    import argparse
 
 def array_arg(value: str) -> T.List[str]:
     return UserArrayOption(None, value, allow_dups=True, user_input=True).value
@@ -273,6 +271,28 @@ def get_parsed_args_xcode(options: 'argparse.Namespace', builddir: Path) -> T.Tu
     cmd += options.xcode_args
     return cmd, None
 
+def add_common_arguments(parser: 'argparse.ArgumentParser') -> None:
+    """Add compile specific arguments that can be set in MESONFLAGS too."""
+    parser.add_argument(
+        '-j', '--jobs',
+        action='store',
+        default=0,
+        type=int,
+        help='The number of worker jobs to run (if supported). If the value is less than 1 the build program will guess.'
+    )
+    parser.add_argument(
+        '-l', '--load-average',
+        action='store',
+        default=0,
+        type=int,
+        help='The system load average to try to maintain (if supported).'
+    )
+    parser.add_argument(
+        '-v', '--verbose',
+        action='store_true',
+        help='Show more verbose output.'
+    )
+
 def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     """Add compile specific arguments."""
     parser.add_argument(
@@ -294,25 +314,7 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
         default='.',
         help='The directory containing build files to be built.'
     )
-    parser.add_argument(
-        '-j', '--jobs',
-        action='store',
-        default=0,
-        type=int,
-        help='The number of worker jobs to run (if supported). If the value is less than 1 the build program will guess.'
-    )
-    parser.add_argument(
-        '-l', '--load-average',
-        action='store',
-        default=0,
-        type=int,
-        help='The system load average to try to maintain (if supported).'
-    )
-    parser.add_argument(
-        '-v', '--verbose',
-        action='store_true',
-        help='Show more verbose output.'
-    )
+    add_common_arguments(parser)
     parser.add_argument(
         '--ninja-args',
         type=array_arg,
@@ -332,7 +334,20 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
         help='Arguments to pass to `xcodebuild` (applied only on `xcode` backend).'
     )
 
+def parse_mesonflags(options: 'argparse.Namespace') -> None:
+    env = os.environ.get('MESONFLAGS')
+    if env:
+        parser = argparse.ArgumentParser(prog='MESONFLAGS', add_help=False)
+        add_common_arguments(parser)
+        env_argv = mesonlib.split_args(env)
+        env_options = parser.parse_args(env_argv)
+        options.jobs = options.jobs or env_options.jobs
+        options.load_average = options.load_average or env_options.load_average
+        options.verbose = options.verbose or env_options.verbose
+
 def run(options: 'argparse.Namespace') -> int:
+    parse_mesonflags(options)
+
     bdir = options.builddir  # type: Path
     validate_builddir(bdir.resolve())
 
