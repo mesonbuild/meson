@@ -37,7 +37,7 @@ from .mesonlib import (
 )
 from .compilers import (
     Compiler, is_object, clink_langs, sort_clink, lang_suffixes,
-    is_known_suffix, detect_static_linker
+    is_known_suffix, detect_static_linker, detect_compiler_for
 )
 from .linkers import StaticLinker
 from .interpreterbase import FeatureNew
@@ -833,8 +833,40 @@ class BuildTarget(Target):
 
         # If all our sources are Vala, our target also needs the C compiler but
         # it won't get added above.
-        if ('vala' in self.compilers or 'cython' in self.compilers) and 'c' not in self.compilers:
+        if 'vala' in self.compilers and 'c' not in self.compilers:
             self.compilers['c'] = compilers['c']
+        if 'cython' in self.compilers:
+            key = OptionKey('language', machine=self.for_machine, lang='cython')
+            if key in self.option_overrides_compiler:
+                value = self.option_overrides_compiler[key]
+            else:
+                value = self.environment.coredata.options[key].value
+
+            try:
+                self.compilers[value] = compilers[value]
+            except KeyError:
+                # TODO: it would be nice to not have to do this here, but we
+                # have two problems to work around:
+                # 1. If this is set via an override we have no way to know
+                #    before now that we need a compiler for the non-default language
+                # 2. Because Cython itself initializes the `cython_language`
+                #    option, we have no good place to insert that you need it
+                #    before now, so we just have to do it here.
+                comp = detect_compiler_for(self.environment, value, self.for_machine)
+
+                # This is copied verbatim from the interpreter
+                if self.for_machine == MachineChoice.HOST or self.environment.is_cross_build():
+                    logger_fun = mlog.log
+                else:
+                    logger_fun = mlog.debug
+                logger_fun(comp.get_display_language(), 'compiler for the', self.for_machine.get_lower_case_name(), 'machine:',
+                        mlog.bold(' '.join(comp.get_exelist())), comp.get_version_string())
+                if comp.linker is not None:
+                    logger_fun(comp.get_display_language(), 'linker for the', self.for_machine.get_lower_case_name(), 'machine:',
+                            mlog.bold(' '.join(comp.linker.get_exelist())), comp.linker.id, comp.linker.version)
+                if comp is None:
+                    raise MesonException(f'Cannot find required compiler {value}')
+                self.compilers[value] = comp
 
     def validate_sources(self):
         if not self.sources:

@@ -1598,9 +1598,11 @@ class NinjaBackend(backends.Backend):
         args += self.build.get_global_args(cython, target.for_machine)
         args += self.build.get_project_args(cython, target.subproject, target.for_machine)
 
+        ext = opt_proxy[OptionKey('language', machine=target.for_machine, lang='cython')].value
+
         for src in target.get_sources():
             if src.endswith('.pyx'):
-                output = os.path.join(self.get_target_private_dir(target), f'{src}.c')
+                output = os.path.join(self.get_target_private_dir(target), f'{src}.{ext}')
                 args = args.copy()
                 args += cython.get_output_args(output)
                 element = NinjaBuildElement(
@@ -1622,7 +1624,7 @@ class NinjaBackend(backends.Backend):
                     ssrc = os.path.join(gen.get_subdir(), ssrc)
                 if ssrc.endswith('.pyx'):
                     args = args.copy()
-                    output = os.path.join(self.get_target_private_dir(target), f'{ssrc}.c')
+                    output = os.path.join(self.get_target_private_dir(target), f'{ssrc}.{ext}')
                     args += cython.get_output_args(output)
                     element = NinjaBuildElement(
                         self.all_outputs, [output],

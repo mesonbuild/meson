@@ -68,6 +68,11 @@ class CythonCompiler(Compiler):
                 'Python version to target',
                 ['2', '3'],
                 '3',
+            ),
+            OptionKey('language', machine=self.for_machine, lang=self.language): coredata.UserComboOption(
+                'Output C or C++ files',
+                ['c', 'cpp'],
+                'c',
             )
         })
         return opts
@@ -76,4 +81,7 @@ class CythonCompiler(Compiler):
         args: T.List[str] = []
         key = options[OptionKey('version', machine=self.for_machine, lang=self.language)]
         args.append(f'-{key.value}')
+        lang = options[OptionKey('language', machine=self.for_machine, lang=self.language)]
+        if lang.value == 'cpp':
+            args.append('--cplus')
         return args

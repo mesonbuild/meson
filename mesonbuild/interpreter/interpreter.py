@@ -1241,9 +1241,14 @@ external dependencies (including libraries) must go to "dependencies".''')
         args = [a.lower() for a in args]
         langs = set(self.coredata.compilers[for_machine].keys())
         langs.update(args)
-        if ('vala' in langs or 'cython' in langs) and 'c' not in langs:
-            if 'vala' in langs:
-                FeatureNew.single_use('Adding Vala language without C', '0.59.0', self.subproject)
+        # We'd really like to add cython's default language here, but it can't
+        # actually be done because the cython compiler hasn't been initialized,
+        # so we can't actually get the option yet. Because we can't know what
+        # compiler to add by default, and we don't want to add unnecessary
+        # compilers we don't add anything for cython here, and instead do it
+        # When the first cython target using a particular language is used.
+        if 'vala' in langs and 'c' not in langs:
+            FeatureNew.single_use('Adding Vala language without C', '0.59.0', self.subproject)
             args.append('c')
 
         success = True
