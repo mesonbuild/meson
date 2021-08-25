@@ -81,7 +81,11 @@ class ClangCompiler(GnuLikeCompiler):
         return ['-include-pch', os.path.join(pch_dir, self.get_pch_name(header))]
 
     def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
-        myargs = []  # type: T.List[str]
+        # Clang is different than GCC, it will return True when a symbol isn't
+        # defined in a header. Specifically this seems ot have something to do
+        # with functions that may be in a header on some systems, but not all of
+        # them. `strlcat` specifically with can trigger this.
+        myargs: T.List[str] = ['-Werror=implicit-function-declaration']
         if mode is CompileCheckMode.COMPILE:
             myargs.extend(['-Werror=unknown-warning-option', '-Werror=unused-command-line-argument'])
             if mesonlib.version_compare(self.version, '>=3.6.0'):
