@@ -1099,17 +1099,18 @@ external dependencies (including libraries) must go to "dependencies".''')
         if not self.is_subproject():
             self.check_stdlibs()
 
-    @FeatureNewKwargs('add_languages', '0.54.0', ['native'])
-    @permittedKwargs({'required', 'native'})
+    @typed_kwargs('add_languages', KwargInfo('native', (bool, type(None)), since='0.54.0'), REQUIRED_KW)
     @typed_pos_args('add_languages', varargs=str)
-    def func_add_languages(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> bool:
+    def func_add_languages(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwargs.FuncAddLanguages') -> bool:
         langs = args[0]
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
+        native = kwargs['native']
+
         if disabled:
             for lang in sorted(langs, key=compilers.sort_clink):
                 mlog.log('Compiler for language', mlog.bold(lang), 'skipped: feature', mlog.bold(feature), 'disabled')
             return False
-        if 'native' in kwargs:
+        if native is not None:
             return self.add_languages(langs, required, self.machine_from_native_kwarg(kwargs))
         else:
             # absent 'native' means 'both' for backwards compatibility
