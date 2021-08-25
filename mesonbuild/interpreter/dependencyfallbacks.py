@@ -46,6 +46,8 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
                 mlog.warning('The "default_options" keyword argument does nothing without a fallback subproject.',
                              location=self.interpreter.current_node)
             return
+        if self.allow_fallback is not None:
+            raise InvalidArguments('"fallback" and "allow_fallback" arguments are mutually exclusive')
         fbinfo = stringlistify(fbinfo)
         if len(fbinfo) == 0:
             # dependency('foo', fallback: []) is the same as dependency('foo', allow_fallback: false)
