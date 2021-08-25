@@ -152,3 +152,7 @@ class FuncImportModule(ExtractRequired):
 class FuncIncludeDirectories(TypedDict):
 
     is_system: bool
+
+class FuncAddLanguages(ExtractRequired):
+
+    native: T.Optional[bool]
