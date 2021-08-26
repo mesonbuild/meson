@@ -78,7 +78,7 @@ def search(options: 'argparse.Namespace') -> None:
                 if dep.find(name) != -1:
                     print(f'Dependency {dep} found in wrap {p}')
 
-def get_latest_version(name: str) -> tuple:
+def get_latest_version(name: str) -> T.Tuple[str, str]:
     releases = get_releases()
     info = releases.get(name)
     if not info:
@@ -113,7 +113,7 @@ def parse_patch_url(patch_url: str) -> T.Tuple[str, str]:
     elif arr[0] == 'v2':
         # e.g. https://wrapdb.mesonbuild.com/v2/zlib_1.2.11-5/get_patch
         tag = arr[-2]
-        name, version = tag.rsplit('_', 1)
+        _, version = tag.rsplit('_', 1)
         version, revision = version.rsplit('-', 1)
         return version, revision
     else:

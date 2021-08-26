@@ -1671,7 +1671,7 @@ class TemporaryDirectoryWinProof(TemporaryDirectory):
 
 
 def detect_subprojects(spdir_name: str, current_dir: str = '',
-                       result: T.Optional[T.Dict[str, T.List[str]]] = None) -> T.Optional[T.Dict[str, T.List[str]]]:
+                       result: T.Optional[T.Dict[str, T.List[str]]] = None) -> T.Dict[str, T.List[str]]:
     if result is None:
         result = {}
     spdir = os.path.join(current_dir, spdir_name)
