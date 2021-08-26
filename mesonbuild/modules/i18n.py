@@ -188,6 +188,9 @@ class I18nModule(ExtensionModule):
             targets.append(gmotarget)
             gmotargets.append(gmotarget)
 
+        allgmotarget = build.AliasTarget(packagename + '-gmo', gmotargets, state.subdir, state.subproject)
+        targets.append(allgmotarget)
+
         updatepoargs = state.environment.get_build_command() + ['--internal', 'gettext', 'update_po', pkg_arg]
         if lang_arg:
             updatepoargs.append(lang_arg)
