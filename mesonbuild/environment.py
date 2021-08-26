@@ -49,7 +49,6 @@ from mesonbuild import envconfig
 if T.TYPE_CHECKING:
     from configparser import ConfigParser
 
-    from .dependencies import ExternalProgram
     from .wrap.wrap import Resolver
 
 build_filename = 'meson.build'

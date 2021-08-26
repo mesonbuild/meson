@@ -33,7 +33,7 @@ from .mesonlib import (
     extract_as_list, typeslistify, stringlistify, classify_unity_sources,
     get_filenames_templates_dict, substitute_values, has_path_sep,
     OptionKey, PerMachineDefaultable,
-    MesonBugException, FileOrString,
+    MesonBugException,
 )
 from .compilers import (
     Compiler, is_object, clink_langs, sort_clink, lang_suffixes,
@@ -902,7 +902,7 @@ class BuildTarget(Target):
             if t in self.kwargs:
                 self.kwargs[t] = listify(self.kwargs[t], flatten=True)
 
-    def extract_objects(self, srclist: T.List[FileOrString]) -> ExtractedObjects:
+    def extract_objects(self, srclist: T.List['FileOrString']) -> ExtractedObjects:
         obj_src: T.List['File'] = []
         sources_set = set(self.sources)
         for src in srclist:

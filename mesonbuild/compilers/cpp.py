@@ -47,7 +47,7 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..linkers import DynamicLinker
     from ..programs import ExternalProgram
-    from .mixins.clike import CLikeCompiler as CompilerMixinBase
+    CompilerMixinBase = CLikeCompiler
 else:
     CompilerMixinBase = object
 
