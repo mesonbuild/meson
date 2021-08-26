@@ -120,13 +120,10 @@ class MesonMain(MesonInterpreterObject):
                     a.target.build_by_default = True
                 else:
                     a.build_by_default = True
-            elif isinstance(a, ExternalProgram):
+            else:
                 script_args.extend(a.command)
                 new = True
-            else:
-                raise InterpreterException(
-                   f'Arguments to {name} must be strings, Files, or CustomTargets, '
-                    'Indexes of CustomTargets')
+
         if new:
             FeatureNew.single_use(
                 f'Calling "{name}" with File, CustomTaget, Index of CustomTarget, '
