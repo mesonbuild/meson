@@ -27,6 +27,9 @@ option('long_desc', type : 'string', value : 'optval',
 
 For built-in options, see [Built-in options][builtin_opts].
 
+*Since 0.60.0* Option names are case unsensitive, dash `-` and underscore `_`
+can be interchanged.
+
 ## Build option types
 
 All types allow a `description` value to be set describing the option,

@@ -1,0 +1,7 @@
+{
+    "stdout": [
+        {
+            "line": "test cases/failing/115 dup option/meson_options.txt:2:0: ERROR: Option foo_bar already exists"
+        }
+    ]
+}
