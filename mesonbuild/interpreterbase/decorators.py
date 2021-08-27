@@ -22,6 +22,7 @@ from ._unholder import _unholder
 from functools import wraps
 import abc
 import itertools
+import copy
 import typing as T
 
 def noPosargs(f: TV_func) -> TV_func:
@@ -255,24 +256,33 @@ class ContainerTypeInfo:
         """Check that a value is valid.
 
         :param value: A value to check
-        :return: If there is an error then a string message, otherwise None
+        :return: True if it is valid, False otherwise
         """
         if not isinstance(value, self.container):
-            return f'container type was "{type(value).__name__}", but should have been "{self.container.__name__}"'
+            return False
         iter_ = iter(value.values()) if isinstance(value, dict) else iter(value)
         for each in iter_:
             if not isinstance(each, self.contains):
-                if isinstance(self.contains, tuple):
-                    shouldbe = 'one of: {}'.format(", ".join(f'"{t.__name__}"' for t in self.contains))
-                else:
-                    shouldbe = f'"{self.contains.__name__}"'
-                return f'contained a value of type "{type(each).__name__}" but should have been {shouldbe}'
+                return False
         if self.pairs and len(value) % 2 != 0:
-            return 'container should be of even length, but is not'
+            return False
         if not value and not self.allow_empty:
-            return 'container is empty, but not allowed to be'
-        return None
+            return False
+        return True
 
+    def description(self):
+        """Human readable description of this container type.
+
+        :return: string to be printed
+        """
+        container = 'dict' if self.container is dict else 'list'
+        contains = self.contains.__name__
+        s = f'{container} of {contains}'
+        if self.pairs:
+            s += ' that has even size'
+        if not self.allow_empty:
+            s += ' that cannot be empty'
+        return s
 
 _T = T.TypeVar('_T')
 
@@ -420,17 +430,23 @@ def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
                         FeatureDeprecated.single_use(feature_name, info.deprecated, subproject)
                     if info.listify:
                         kwargs[info.name] = value = mesonlib.listify(value)
-                    if isinstance(info.types, ContainerTypeInfo):
-                        msg = info.types.check(value)
-                        if msg is not None:
-                            raise InvalidArguments(f'{name} keyword argument "{info.name}" {msg}')
+                    types_tuple = info.types if isinstance(info.types, tuple) else (info.types,)
+                    for t in types_tuple:
+                        if isinstance(t, ContainerTypeInfo):
+                            if t.check(value):
+                                break
+                        elif isinstance(value, t):
+                            break
                     else:
-                        if not isinstance(value, info.types):
-                            if isinstance(info.types, tuple):
-                                shouldbe = 'one of: {}'.format(", ".join(f'"{t.__name__}"' for t in info.types))
+                        candidates = []
+                        for t in types_tuple:
+                            if isinstance(t, ContainerTypeInfo):
+                                candidates.append(t.description())
                             else:
-                                shouldbe = f'"{info.types.__name__}"'
-                            raise InvalidArguments(f'{name} keyword argument "{info.name}"" was of type "{type(value).__name__}" but should have been {shouldbe}')
+                                candidates.append(t.__name__)
+                        shouldbe = 'one of: ' if len(candidates) > 1 else ''
+                        shouldbe += ', '.join(candidates)
+                        raise InvalidArguments(f'{name} keyword argument {info.name!r} was of type {type(value).__name__!r} but should have been {shouldbe}')
 
                     if info.validator is not None:
                         msg = info.validator(value)
@@ -463,13 +479,9 @@ def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
                 else:
                     # set the value to the default, this ensuring all kwargs are present
                     # This both simplifies the typing checking and the usage
-                    # Create a shallow copy of the container (and do a type
-                    # conversion if necessary). This allows mutable types to
-                    # be used safely as default values
-                    if isinstance(info.types, ContainerTypeInfo):
-                        kwargs[info.name] = info.types.container(info.default)
-                    else:
-                        kwargs[info.name] = info.default
+                    # Create a shallow copy of the container. This allows mutable
+                    # types to be used safely as default values
+                    kwargs[info.name] = copy.copy(info.default)
                     if info.not_set_warning:
                         mlog.warning(info.not_set_warning)
 
