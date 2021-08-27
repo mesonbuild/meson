@@ -40,7 +40,7 @@ from .exceptions import (
     BreakRequest
 )
 
-from .decorators import FeatureNew, builtinMethodNoKwargs
+from .decorators import FeatureNew, noKwargs
 from .disabler import Disabler, is_disabled
 from .helpers import check_stringlist, default_resolve_key, flatten, resolve_second_level_holders
 from ._unholder import _unholder
@@ -644,7 +644,7 @@ The result of this is undefined and will become a hard error in a future Meson r
                        kwargs: T.Dict[str, T.Union[TYPE_var, InterpreterObject]]) -> T.Tuple[T.List[TYPE_var], TYPE_kwargs]:
         return [_unholder(x) for x in args], {k: _unholder(v) for k, v in kwargs.items()}
 
-    @builtinMethodNoKwargs
+    @noKwargs
     def bool_method_call(self, obj: bool, method_name: str, posargs: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.Union[str, int]:
         if method_name == 'to_string':
             if not posargs:
@@ -667,7 +667,7 @@ The result of this is undefined and will become a hard error in a future Meson r
         else:
             raise InterpreterException('Unknown method "%s" for a boolean.' % method_name)
 
-    @builtinMethodNoKwargs
+    @noKwargs
     def int_method_call(self, obj: int, method_name: str, posargs: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.Union[str, bool]:
         if method_name == 'is_even':
             if not posargs:
@@ -698,7 +698,7 @@ The result of this is undefined and will become a hard error in a future Meson r
             return s
         return None
 
-    @builtinMethodNoKwargs
+    @noKwargs
     def string_method_call(self, obj: str, method_name: str, posargs: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.Union[str, int, bool, T.List[str]]:
         if method_name == 'strip':
             s1 = self._get_one_string_posarg(posargs, 'strip')
@@ -791,7 +791,7 @@ The result of this is undefined and will become a hard error in a future Meson r
     def unknown_function_called(self, func_name: str) -> None:
         raise InvalidCode('Unknown function "%s".' % func_name)
 
-    @builtinMethodNoKwargs
+    @noKwargs
     def array_method_call(self,
                           obj: T.List[T.Union[TYPE_elementary, InterpreterObject]],
                           method_name: str,
@@ -835,7 +835,7 @@ The result of this is undefined and will become a hard error in a future Meson r
             return obj[index]
         raise InterpreterException(f'Arrays do not have a method called {method_name!r}.')
 
-    @builtinMethodNoKwargs
+    @noKwargs
     def dict_method_call(self,
                          obj: T.Dict[str, T.Union[TYPE_elementary, InterpreterObject]],
                          method_name: str,

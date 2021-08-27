@@ -13,43 +13,47 @@
 # limitations under the License.
 
 from .. import mesonlib, mlog
-from .baseobjects import TV_func, TYPE_var
+from .baseobjects import TV_func, TYPE_var, TYPE_kwargs
 from .disabler import Disabler
 from .exceptions import InterpreterException, InvalidArguments
-from .helpers import check_stringlist, get_callee_args
+from .helpers import check_stringlist
 from ._unholder import _unholder
 
 from functools import wraps
 import abc
 import itertools
 import typing as T
+if T.TYPE_CHECKING:
+    from .. import mparser
+
+def get_callee_args(wrapped_args: T.Sequence[T.Any]) -> T.Tuple['mparser.BaseNode', T.List['TYPE_var'], 'TYPE_kwargs', str]:
+    # First argument could be InterpreterBase, InterpreterObject or ModuleObject.
+    # In the case of a ModuleObject it is the 2nd argument (ModuleState) that
+    # contains the needed information.
+    s = wrapped_args[0]
+    if not hasattr(s, 'current_node'):
+        s = wrapped_args[1]
+    node = s.current_node
+    subproject = s.subproject
+    args = kwargs = None
+    if len(wrapped_args) >= 3:
+        args = wrapped_args[-2]
+        kwargs = wrapped_args[-1]
+    return node, args, kwargs, subproject
 
 def noPosargs(f: TV_func) -> TV_func:
     @wraps(f)
     def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
-        args = get_callee_args(wrapped_args)[2]
+        args = get_callee_args(wrapped_args)[1]
         if args:
             raise InvalidArguments('Function does not take positional arguments.')
-        return f(*wrapped_args, **wrapped_kwargs)
-    return T.cast(TV_func, wrapped)
-
-def builtinMethodNoKwargs(f: TV_func) -> TV_func:
-    @wraps(f)
-    def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
-        node = wrapped_args[0].current_node
-        method_name = wrapped_args[2]
-        kwargs = wrapped_args[4]
-        if kwargs:
-            mlog.warning(f'Method {method_name!r} does not take keyword arguments.',
-                         'This will become a hard error in the future',
-                         location=node)
         return f(*wrapped_args, **wrapped_kwargs)
     return T.cast(TV_func, wrapped)
 
 def noKwargs(f: TV_func) -> TV_func:
     @wraps(f)
     def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
-        kwargs = get_callee_args(wrapped_args)[3]
+        kwargs = get_callee_args(wrapped_args)[2]
         if kwargs:
             raise InvalidArguments('Function does not take keyword arguments.')
         return f(*wrapped_args, **wrapped_kwargs)
@@ -58,7 +62,7 @@ def noKwargs(f: TV_func) -> TV_func:
 def stringArgs(f: TV_func) -> TV_func:
     @wraps(f)
     def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
-        args = get_callee_args(wrapped_args)[2]
+        args = get_callee_args(wrapped_args)[1]
         assert(isinstance(args, list))
         check_stringlist(args)
         return f(*wrapped_args, **wrapped_kwargs)
@@ -82,7 +86,7 @@ def permissive_unholder_return(f: TV_func) -> T.Callable[..., TYPE_var]:
 def disablerIfNotFound(f: TV_func) -> TV_func:
     @wraps(f)
     def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
-        kwargs = get_callee_args(wrapped_args)[3]
+        kwargs = get_callee_args(wrapped_args)[2]
         disabler = kwargs.pop('disabler', False)
         ret = f(*wrapped_args, **wrapped_kwargs)
         if disabler and not ret.found():
@@ -98,7 +102,7 @@ class permittedKwargs:
     def __call__(self, f: TV_func) -> TV_func:
         @wraps(f)
         def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
-            s, node, args, kwargs, _ = get_callee_args(wrapped_args)
+            node, args, kwargs, _ = get_callee_args(wrapped_args)
             for k in kwargs:
                 if k not in self.permitted:
                     mlog.warning(f'''Passed invalid keyword argument "{k}".''', location=node)
@@ -159,7 +163,7 @@ def typed_pos_args(name: str, *types: T.Union[T.Type, T.Tuple[T.Type, ...]],
 
         @wraps(f)
         def wrapper(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
-            args = get_callee_args(wrapped_args)[2]
+            args = get_callee_args(wrapped_args)[1]
 
             # These are implementation programming errors, end users should never see them.
             assert isinstance(args, list), args
@@ -395,7 +399,7 @@ def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
 
         @wraps(f)
         def wrapper(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
-            _kwargs, subproject = get_callee_args(wrapped_args, want_subproject=True)[3:5]
+            _kwargs, subproject = get_callee_args(wrapped_args)[2:4]
             # Cast here, as the convertor function may place something other than a TYPE_var in the kwargs
             kwargs = T.cast(T.Dict[str, object], _kwargs)
 
@@ -551,7 +555,7 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
     def __call__(self, f: TV_func) -> TV_func:
         @wraps(f)
         def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
-            subproject = get_callee_args(wrapped_args, want_subproject=True)[4]
+            subproject = get_callee_args(wrapped_args)[3]
             if subproject is None:
                 raise AssertionError(f'{wrapped_args!r}')
             self.use(subproject)
@@ -638,7 +642,7 @@ class FeatureCheckKwargsBase(metaclass=abc.ABCMeta):
     def __call__(self, f: TV_func) -> TV_func:
         @wraps(f)
         def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
-            kwargs, subproject = get_callee_args(wrapped_args, want_subproject=True)[3:5]
+            kwargs, subproject = get_callee_args(wrapped_args)[2:4]
             if subproject is None:
                 raise AssertionError(f'{wrapped_args!r}')
             for arg in self.kwargs:

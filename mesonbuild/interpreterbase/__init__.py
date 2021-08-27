@@ -36,7 +36,6 @@ __all__ = [
     'resolve_second_level_holders',
 
     'noPosargs',
-    'builtinMethodNoKwargs',
     'noKwargs',
     'stringArgs',
     'noArgsFlattening',
@@ -89,7 +88,6 @@ from .baseobjects import (
 
 from .decorators import (
     noPosargs,
-    builtinMethodNoKwargs,
     noKwargs,
     stringArgs,
     noArgsFlattening,
