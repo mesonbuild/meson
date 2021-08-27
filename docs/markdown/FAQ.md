@@ -333,6 +333,16 @@ that could fulfill these requirements:
 Out of these we have chosen Python because it is the best fit for our
 needs.
 
+## But I really want a version of Meson that doesn't use python!
+
+Ecosystem diversity is good. We encourage interested users to write this
+competing implementation of Meson themselves. As of September 2021, there are 3
+projects attempting to do just this:
+
+ - [muon](https://git.sr.ht/~lattis/muon)
+ - [Meson++](https://github.com/dcbaker/meson-plus-plus)
+ - [boson](https://git.sr.ht/~bl4ckb0ne/boson)
+
 ## I have proprietary compiler toolchain X that does not work with Meson, how can I make it work?
 
 Meson needs to know several details about each compiler in order to
