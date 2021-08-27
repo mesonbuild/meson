@@ -72,6 +72,10 @@ class UserOption(T.Generic[_T], HoldableObject):
         if not isinstance(yielding, bool):
             raise MesonException('Value of "yielding" must be a boolean.')
         self.yielding = yielding
+        self.deprecated: T.Union[bool, T.Dict[str, str], T.List[str]] = False
+
+    def listify(self, value: T.Any) -> T.List[T.Any]:
+        return [value]
 
     def printable_value(self) -> T.Union[str, int, bool, T.List[T.Union[str, int, bool]]]:
         assert isinstance(self.value, (str, int, bool, list))
@@ -205,7 +209,7 @@ class UserArrayOption(UserOption[T.List[str]]):
         self.allow_dups = allow_dups
         self.value = self.validate_value(value, user_input=user_input)
 
-    def validate_value(self, value: T.Union[str, T.List[str]], user_input: bool = True) -> T.List[str]:
+    def listify(self, value: T.Union[str, T.List[str]], user_input: bool = True) -> T.List[str]:
         # User input is for options defined on the command line (via -D
         # options). Users can put their input in as a comma separated
         # string, but for defining options in meson_options.txt the format
@@ -230,6 +234,10 @@ class UserArrayOption(UserOption[T.List[str]]):
             newvalue = value
         else:
             raise MesonException(f'"{newvalue}" should be a string array, but it is not')
+        return newvalue
+
+    def validate_value(self, value: T.Union[str, T.List[str]], user_input: bool = True) -> T.List[str]:
+        newvalue = self.listify(value, user_input)
 
         if not self.allow_dups and len(set(newvalue)) != len(newvalue):
             msg = 'Duplicated values in array option is deprecated. ' \
@@ -629,9 +637,27 @@ class CoreData:
                 value = self.sanitize_dir_option_value(prefix, key, value)
 
         try:
-            self.options[key].set_value(value)
+            opt = self.options[key]
         except KeyError:
             raise MesonException(f'Tried to set unknown builtin option {str(key)}')
+
+        if opt.deprecated is True:
+            mlog.deprecation(f'Option {key.name!r} is deprecated')
+        elif isinstance(opt.deprecated, list):
+            for v in opt.listify(value):
+                if v in opt.deprecated:
+                    mlog.deprecation(f'Option {key.name!r} value {v!r} is deprecated')
+        elif isinstance(opt.deprecated, dict):
+            def replace(v):
+                newvalue = opt.deprecated.get(v)
+                if newvalue is not None:
+                    mlog.deprecation(f'Option {key.name!r} value {v!r} is replaced by {newvalue!r}')
+                    return newvalue
+                return v
+            newvalue = [replace(v) for v in opt.listify(value)]
+            value = ','.join(newvalue)
+
+        opt.set_value(value)
 
         if key.name == 'buildtype':
             self._set_others_from_buildtype(value)
