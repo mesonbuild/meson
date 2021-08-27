@@ -1582,7 +1582,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 raise InvalidArguments('The `include_type` kwarg must be a string')
             actual = d.get_include_type()
             if wanted != actual:
-                mlog.debug(f'Current include type of {names[0]} is {actual}. Converting to requested {wanted}')
+                mlog.debug(f'Current include type of {args[0]} is {actual}. Converting to requested {wanted}')
                 d = d.generate_system_dependency(wanted)
         return d
 
