@@ -467,8 +467,12 @@ def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
                     # conversion if necessary). This allows mutable types to
                     # be used safely as default values
                     if isinstance(info.types, ContainerTypeInfo):
+                        assert isinstance(info.default, info.types.container), f'In function {name} default value of {info.name} is not a valid type, got {type(info.default)}, expected {info.types.container}[{info.types.contains}]'
+                        for item in info.default:
+                            assert isinstance(item, info.types.contains), f'In function {name} default value of {info.name}, container has invalid value of {item}, which is of type {type(item)}, but should be {info.types.contains}'
                         kwargs[info.name] = info.types.container(info.default)
                     else:
+                        assert isinstance(info.default, info.types), f'In funcion {name} default value of {info.name} is not a valid type, got {type(info.default)} expected {info.types}'
                         kwargs[info.name] = info.default
                     if info.not_set_warning:
                         mlog.warning(info.not_set_warning)
