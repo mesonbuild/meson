@@ -305,7 +305,7 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
         '-l', '--load-average',
         action='store',
         default=0,
-        type=int,
+        type=float,
         help='The system load average to try to maintain (if supported).'
     )
     parser.add_argument(
