@@ -174,6 +174,13 @@ class OptionInterpreter:
             lr = [self.reduce_single(curarg) for curarg in arg.args.arguments]
             # mypy really struggles with recursive flattening, help it out
             return T.cast(T.Sequence[T.Union[str, int, bool]], lr)
+        elif isinstance(arg, mparser.DictNode):
+            d = {}
+            for k, v in arg.args.kwargs.items():
+                if not isinstance(k, mparser.StringNode):
+                    raise OptionException('Dictionary keys must be a string literal')
+                d[k.value] = self.reduce_single(v)
+            return d
         elif isinstance(arg, mparser.UMinusNode):
             res = self.reduce_single(arg.value)
             if not isinstance(res, (int, float)):
