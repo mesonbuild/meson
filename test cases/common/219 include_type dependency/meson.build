@@ -36,6 +36,9 @@ assert(sp_dep.include_type() == 'preserve', 'as_system must not mutate the origi
 fallback = dependency('sdffgagf_does_not_exist', include_type: 'system', fallback: ['subDep', 'subDep_dep'])
 assert(fallback.include_type() == 'system', 'include_type works with dependency fallback')
 
+fallback_empty = dependency('', include_type: 'system', fallback: ['subDep', 'subDep_dep'])
+assert(fallback_empty.include_type() == 'system', 'include_type works with empty name dependency fallback')
+
 # Check that PCH works with `include_type : 'system'` See https://github.com/mesonbuild/meson/issues/7167
 main_exe = executable('main_exe', 'main.cpp', cpp_pch: 'pch/test.hpp', dependencies: boost_dep)
 test('main_test', main_exe)
