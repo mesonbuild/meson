@@ -17,7 +17,7 @@ from ..interpreterbase import (ObjectHolder, noPosargs, noKwargs,
                                InterpreterException)
 from ..interpreterbase.decorators import ContainerTypeInfo, typed_kwargs, KwargInfo, typed_pos_args
 from .interpreterobjects import (extract_required_kwarg, extract_search_dirs)
-from .type_checking import REQUIRED_KW, in_set_validator
+from .type_checking import REQUIRED_KW, in_set_validator, NoneType
 
 if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
@@ -387,9 +387,9 @@ class CompilerHolder(ObjectHolder['Compiler']):
     @typed_pos_args('compiler.compute_int', str)
     @typed_kwargs(
         'compiler.compute_int',
-        KwargInfo('low', (int, None)),
-        KwargInfo('high', (int, None)),
-        KwargInfo('guess', (int, None)),
+        KwargInfo('low', (int, NoneType)),
+        KwargInfo('high', (int, NoneType)),
+        KwargInfo('guess', (int, NoneType)),
         *_COMMON_KWS,
     )
     def compute_int_method(self, args: T.Tuple[str], kwargs: 'CompupteIntKW') -> int:
@@ -556,7 +556,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         'compiler.find_library',
         KwargInfo('required', (bool, coredata.UserFeatureOption), default=True),
         KwargInfo('has_headers', ContainerTypeInfo(list, str), listify=True, default=[], since='0.50.0'),
-        KwargInfo('static', (bool, None), since='0.51.0'),
+        KwargInfo('static', (bool, NoneType), since='0.51.0'),
         KwargInfo('disabler', bool, default=False, since='0.49.0'),
         KwargInfo('dirs', ContainerTypeInfo(list, str), listify=True, default=[]),
         *[k.evolve(name=f'header_{k.name}') for k in _HEADER_KWS]

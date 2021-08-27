@@ -20,6 +20,7 @@ from ..interpreterbase import (
                                typed_pos_args, typed_kwargs, stringArgs, permittedKwargs,
                                noArgsFlattening, noPosargs, noKwargs, permissive_unholder_return, TYPE_var, TYPE_kwargs, TYPE_nvar, TYPE_nkwargs,
                                flatten, resolve_second_level_holders, InterpreterException, InvalidArguments, InvalidCode)
+from ..interpreter.type_checking import NoneType
 from ..dependencies import Dependency, ExternalLibrary, InternalDependency
 from ..programs import ExternalProgram
 from ..mesonlib import HoldableObject, MesonException, OptionKey, listify, Popen_safe
@@ -975,7 +976,7 @@ class GeneratorHolder(ObjectHolder[build.Generator]):
     @typed_pos_args('generator.process', min_varargs=1, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList))
     @typed_kwargs(
         'generator.process',
-        KwargInfo('preserve_path_from', str, since='0.45.0'),
+        KwargInfo('preserve_path_from', (str, NoneType), since='0.45.0'),
         KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
     )
     def process_method(self,

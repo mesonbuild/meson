@@ -55,6 +55,7 @@ from .type_checking import (
     LANGUAGE_KW,
     NATIVE_KW,
     REQUIRED_KW,
+    NoneType,
     in_set_validator,
 )
 
@@ -178,7 +179,7 @@ TEST_KWARGS: T.List[KwargInfo] = [
               listify=True, default=[]),
     KwargInfo('should_fail', bool, default=False),
     KwargInfo('timeout', int, default=30),
-    KwargInfo('workdir', str, default=None,
+    KwargInfo('workdir', (str, NoneType), default=None,
               validator=lambda x: 'must be an absolute path' if not os.path.isabs(x) else None),
     KwargInfo('protocol', str,
               default='exitcode',
@@ -188,7 +189,7 @@ TEST_KWARGS: T.List[KwargInfo] = [
               listify=True, default=[], since='0.46.0'),
     KwargInfo('priority', int, default=0, since='0.52.0'),
     # TODO: env needs reworks of the way the environment variable holder itself works probably
-    KwargInfo('env', (EnvironmentVariablesObject, list, dict, str)),
+    KwargInfo('env', (EnvironmentVariablesObject, list, dict, str, NoneType)),
     KwargInfo('suite', ContainerTypeInfo(list, str), listify=True, default=['']),  # yes, a list of empty string
 ]
 
@@ -1100,7 +1101,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         if not self.is_subproject():
             self.check_stdlibs()
 
-    @typed_kwargs('add_languages', KwargInfo('native', (bool, type(None)), since='0.54.0'), REQUIRED_KW)
+    @typed_kwargs('add_languages', KwargInfo('native', (bool, NoneType), since='0.54.0'), REQUIRED_KW)
     @typed_pos_args('add_languages', varargs=str)
     def func_add_languages(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwargs.FuncAddLanguages') -> bool:
         langs = args[0]
@@ -1686,7 +1687,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         'generator',
         KwargInfo('arguments', ContainerTypeInfo(list, str, allow_empty=False), required=True, listify=True),
         KwargInfo('output', ContainerTypeInfo(list, str, allow_empty=False), required=True, listify=True),
-        KwargInfo('depfile', str, validator=lambda x: 'Depfile must be a plain filename with a subdirectory' if has_path_sep(x) else None),
+        KwargInfo('depfile', (str, NoneType), validator=lambda x: 'Depfile must be a plain filename with a subdirectory' if has_path_sep(x) else None),
         KwargInfo('capture', bool, default=False, since='0.43.0'),
         KwargInfo('depends', ContainerTypeInfo(list, (build.BuildTarget, build.CustomTarget)), default=[], listify=True),
     )
@@ -1786,8 +1787,8 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     @typed_pos_args('install_headers', varargs=(str, mesonlib.File))
     @typed_kwargs(
         'install_headers',
-        KwargInfo('install_dir', (str, None)),
-        KwargInfo('subdir', (str, None)),
+        KwargInfo('install_dir', (str, NoneType)),
+        KwargInfo('subdir', (str, NoneType)),
         INSTALL_MODE_KW.evolve(since='0.47.0'),
     )
     def func_install_headers(self, node: mparser.BaseNode,
@@ -1807,8 +1808,8 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     @typed_pos_args('install_man', varargs=(str, mesonlib.File))
     @typed_kwargs(
         'install_man',
-        KwargInfo('install_dir', (str, None)),
-        KwargInfo('locale', (str, None), since='0.58.0'),
+        KwargInfo('install_dir', (str, NoneType)),
+        KwargInfo('locale', (str, NoneType), since='0.58.0'),
         INSTALL_MODE_KW.evolve(since='0.47.0')
     )
     def func_install_man(self, node: mparser.BaseNode,
@@ -1902,11 +1903,11 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     @typed_pos_args('install_data', varargs=(str, mesonlib.File))
     @typed_kwargs(
         'install_data',
-        KwargInfo('install_dir', str),
+        KwargInfo('install_dir', (str, NoneType)),
         KwargInfo('sources', ContainerTypeInfo(list, (str, mesonlib.File)), listify=True, default=[]),
         KwargInfo('rename', ContainerTypeInfo(list, str), default=[], listify=True, since='0.46.0'),
         INSTALL_MODE_KW.evolve(since='0.38.0'),
-        KwargInfo('install_tag', str, since='0.60.0'),
+        KwargInfo('install_tag', (str, NoneType), since='0.60.0'),
     )
     def func_install_data(self, node: mparser.BaseNode,
                           args: T.Tuple[T.List['mesonlib.FileOrString']],
@@ -1934,7 +1935,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     @typed_kwargs(
         'install_subdir',
         KwargInfo('install_dir', str, required=True),
-        KwargInfo('install_tag', str, since='0.60.0'),
+        KwargInfo('install_tag', (str, NoneType), since='0.60.0'),
         KwargInfo('strip_directory', bool, default=False),
         KwargInfo('exclude_files', ContainerTypeInfo(list, str),
                   default=[], listify=True, since='0.42.0',
