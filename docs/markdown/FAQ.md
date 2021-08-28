@@ -181,7 +181,7 @@ problem that has caused complications for GNU Autotools and SCons.
 Either by using [GCC symbol
 visibility](https://gcc.gnu.org/wiki/Visibility) or by writing a
 [linker
-script](https://ftp.gnu.org/old-gnu/Manuals/ld-2.9.1/html_mono/ld.html). This
+script](https://sourceware.org/binutils/docs/ld.html). This
 has the added benefit that your symbol definitions are in a standalone
 file instead of being buried inside your build definitions. An example
 can be found
