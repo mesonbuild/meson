@@ -10,6 +10,9 @@ from ..coredata import UserFeatureOption
 from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo
 from ..mesonlib import FileMode, MachineChoice
 
+# Helper definition for type checks that are `Optional[T]`
+NoneType: T.Type[None] = type(None)
+
 
 def in_set_validator(choices: T.Set[str]) -> T.Callable[[str], T.Optional[str]]:
     """Check that the choice given was one of the given set."""

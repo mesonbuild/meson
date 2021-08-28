@@ -26,6 +26,7 @@ from ..dependencies import find_external_dependency, Dependency, ExternalLibrary
 from ..mesonlib import MesonException, File, FileOrString, version_compare, Popen_safe
 from . import ModuleReturnValue, ExtensionModule
 from ..interpreter import extract_required_kwarg
+from ..interpreter.type_checking import NoneType
 from ..interpreterbase import ContainerTypeInfo, FeatureDeprecated, KwargInfo, noPosargs, FeatureNew, typed_kwargs
 from ..programs import ExternalProgram, NonExistingExternalProgram
 
@@ -510,9 +511,9 @@ class QtBaseModule(ExtensionModule):
         'qt.compile_translations',
         KwargInfo('build_by_default', bool, default=False),
         KwargInfo('install', bool, default=False),
-        KwargInfo('install_dir', str),
+        KwargInfo('install_dir', (str, NoneType)),
         KwargInfo('method', str, default='auto'),
-        KwargInfo('qresource', str, since='0.56.0'),
+        KwargInfo('qresource', (str, NoneType), since='0.56.0'),
         KwargInfo('rcc_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[], since='0.56.0'),
         KwargInfo('ts_files', ContainerTypeInfo(list, (str, File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)), listify=True, default=[]),
     )

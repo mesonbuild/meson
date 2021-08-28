@@ -28,6 +28,7 @@ from ..dependencies import DependencyMethods, PkgConfigDependency, NotFoundDepen
 from ..dependencies.base import process_method_kw
 from ..environment import detect_cpu_family
 from ..interpreter import ExternalProgramHolder, extract_required_kwarg, permitted_dependency_kwargs
+from ..interpreter.type_checking import NoneType
 from ..interpreterbase import (
     noPosargs, noKwargs, permittedKwargs, ContainerTypeInfo,
     InvalidArguments, typed_pos_args, typed_kwargs, KwargInfo,
@@ -484,7 +485,7 @@ class PythonInstallation(ExternalProgramHolder):
 
     @typed_pos_args('install_data', varargs=(str, mesonlib.File))
     @typed_kwargs('python_installation.install_sources', _PURE_KW, _SUBDIR_KW,
-                  KwargInfo('install_tag', str, since='0.60.0'))
+                  KwargInfo('install_tag', (str, NoneType), since='0.60.0'))
     def install_sources_method(self, args: T.Tuple[T.List[T.Union[str, mesonlib.File]]],
                                kwargs: 'PyInstallKw') -> 'Data':
         tag = kwargs['install_tag'] or 'runtime'

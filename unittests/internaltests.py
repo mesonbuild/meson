@@ -1204,7 +1204,7 @@ class InternalTests(unittest.TestCase):
     def test_typed_kwarg_basic(self) -> None:
         @typed_kwargs(
             'testfunc',
-            KwargInfo('input', str)
+            KwargInfo('input', str, default='')
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
             self.assertIsInstance(kwargs['input'], str)
@@ -1227,7 +1227,7 @@ class InternalTests(unittest.TestCase):
     def test_typed_kwarg_missing_optional(self) -> None:
         @typed_kwargs(
             'testfunc',
-            KwargInfo('input', str),
+            KwargInfo('input', (str, type(None))),
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.Optional[str]]) -> None:
             self.assertIsNone(kwargs['input'])
@@ -1247,7 +1247,7 @@ class InternalTests(unittest.TestCase):
     def test_typed_kwarg_container_valid(self) -> None:
         @typed_kwargs(
             'testfunc',
-            KwargInfo('input', ContainerTypeInfo(list, str), required=True),
+            KwargInfo('input', ContainerTypeInfo(list, str), default=[], required=True),
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.List[str]]) -> None:
             self.assertEqual(kwargs['input'], ['str'])
@@ -1281,7 +1281,7 @@ class InternalTests(unittest.TestCase):
     def test_typed_kwarg_container_listify(self) -> None:
         @typed_kwargs(
             'testfunc',
-            KwargInfo('input', ContainerTypeInfo(list, str), listify=True),
+            KwargInfo('input', ContainerTypeInfo(list, str), default=[], listify=True),
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.List[str]]) -> None:
             self.assertEqual(kwargs['input'], ['str'])
@@ -1347,7 +1347,7 @@ class InternalTests(unittest.TestCase):
     def test_typed_kwarg_validator(self) -> None:
         @typed_kwargs(
             'testfunc',
-            KwargInfo('input', str, validator=lambda x: 'invalid!' if x != 'foo' else None)
+            KwargInfo('input', str, default='', validator=lambda x: 'invalid!' if x != 'foo' else None)
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
             pass
@@ -1362,7 +1362,7 @@ class InternalTests(unittest.TestCase):
     def test_typed_kwarg_convertor(self) -> None:
         @typed_kwargs(
             'testfunc',
-            KwargInfo('native', bool, convertor=lambda n: MachineChoice.BUILD if n else MachineChoice.HOST)
+            KwargInfo('native', bool, default=False, convertor=lambda n: MachineChoice.BUILD if n else MachineChoice.HOST)
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, MachineChoice]) -> None:
             assert isinstance(kwargs['native'], MachineChoice)
@@ -1376,7 +1376,8 @@ class InternalTests(unittest.TestCase):
             KwargInfo('input', ContainerTypeInfo(list, str), listify=True, default=[], deprecated_values={'foo': '0.9'}, since_values={'bar': '1.1'}),
             KwargInfo('output', ContainerTypeInfo(dict, str), default={}, deprecated_values={'foo': '0.9'}, since_values={'bar': '1.1'}),
             KwargInfo(
-                'mode', str,
+                'mode',
+                (str, type(None)),
                 validator=in_set_validator({'clean', 'build', 'rebuild', 'deprecated', 'since'}),
                 deprecated_values={'deprecated': '1.0'},
                 since_values={'since': '1.1'}),

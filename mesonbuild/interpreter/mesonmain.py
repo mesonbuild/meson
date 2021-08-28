@@ -14,7 +14,7 @@ from ..interpreterbase import (MesonInterpreterObject, FeatureNew, FeatureDeprec
 from .interpreterobjects import (ExecutableHolder, ExternalProgramHolder,
                                  CustomTargetHolder, CustomTargetIndexHolder,
                                  EnvironmentVariablesObject)
-from .type_checking import NATIVE_KW
+from .type_checking import NATIVE_KW, NoneType
 
 import typing as T
 
@@ -112,9 +112,11 @@ class MesonMain(MesonInterpreterObject):
                 '0.55.0', self.interpreter.subproject)
         return script_args
 
-    @typed_kwargs('add_install_script',
-                  KwargInfo('skip_if_destdir', bool, default=False, since='0.57.0'),
-                  KwargInfo('install_tag', str, since='0.60.0'))
+    @typed_kwargs(
+        'add_install_script',
+        KwargInfo('skip_if_destdir', bool, default=False, since='0.57.0'),
+        KwargInfo('install_tag', (str, NoneType), since='0.60.0'),
+    )
     def add_install_script_method(self, args: 'T.Tuple[T.Union[str, mesonlib.File, ExecutableHolder], T.Union[str, mesonlib.File, CustomTargetHolder, CustomTargetIndexHolder], ...]', kwargs):
         if len(args) < 1:
             raise InterpreterException('add_install_script takes one or more arguments')
@@ -299,8 +301,11 @@ class MesonMain(MesonInterpreterObject):
             raise InterpreterException('Second argument must be an external program or executable.')
         self.interpreter.add_find_program_override(name, exe)
 
-    @typed_kwargs('meson.override_dependency', NATIVE_KW,
-                  KwargInfo('static', bool, since='0.60.0'))
+    @typed_kwargs(
+        'meson.override_dependency',
+        NATIVE_KW,
+        KwargInfo('static', (bool, NoneType), since='0.60.0'),
+    )
     @typed_pos_args('meson.override_dependency', str, dependencies.Dependency)
     @FeatureNew('meson.override_dependency', '0.54.0')
     def override_dependency_method(self, args: T.Tuple[str, dependencies.Dependency], kwargs: 'FuncOverrideDependency') -> None:
