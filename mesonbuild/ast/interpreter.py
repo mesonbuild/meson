@@ -368,7 +368,8 @@ class AstInterpreter(InterpreterBase):
                 elif isinstance(src, bool):
                     result = self.bool_method_call(src, node.name, margs, mkwargs)
                 elif isinstance(src, int):
-                    result = self.int_method_call(src, node.name, margs, mkwargs)
+                    from ..interpreter import Interpreter, IntegerHolder
+                    result = IntegerHolder(src, T.cast(Interpreter, self)).method_call(node.name, margs, mkwargs)
                 elif isinstance(src, list):
                     result = self.array_method_call(src, node.name, margs, mkwargs)
                 elif isinstance(src, dict):
