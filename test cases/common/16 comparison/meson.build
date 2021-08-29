@@ -127,17 +127,6 @@ test('equaltrue', exe14)
 test('nequaltrue', exe15)
 test('nequalfalse', exe16)
 
-# Equality comparisons of different elementary types
-# (these all cause warnings currently, will become an error in future)
-
-assert([] != 'st', 'not equal')
-assert([] != 1, 'not equal')
-assert(2 != 'st', 'not equal')
-
-assert(not ([] == 'st'), 'not equal')
-assert(not ([] == 1), 'not equal')
-assert(not (2 == 'st'), 'not equal')
-
 # "in" and "not in" operators
 
 assert(1 in [1, 2], '''1 should be in [1, 2]''')
