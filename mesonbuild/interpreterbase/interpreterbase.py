@@ -43,6 +43,7 @@ from .exceptions import (
 from .decorators import FeatureNew, noKwargs
 from .disabler import Disabler, is_disabled
 from .helpers import check_stringlist, default_resolve_key, flatten, resolve_second_level_holders
+from .operator import MesonOperator
 from ._unholder import _unholder
 
 import os, copy, re, pathlib
@@ -290,13 +291,37 @@ class InterpreterBase:
             raise InvalidArguments('rvalue of "in" operator must be an array or a dict')
         return val1 in val2
 
-    def evaluate_comparison(self, node: mparser.ComparisonNode) -> T.Union[bool, Disabler]:
+    def evaluate_comparison(self, node: mparser.ComparisonNode) -> T.Union[TYPE_var, InterpreterObject]:
         val1 = self.evaluate_statement(node.left)
         if isinstance(val1, Disabler):
             return val1
         val2 = self.evaluate_statement(node.right)
         if isinstance(val2, Disabler):
             return val2
+
+        # New code based on InterpreterObjects
+        operator = {
+            'in': MesonOperator.IN,
+            'notin': MesonOperator.NOT_IN,
+            '==': MesonOperator.EQUALS,
+            '!=': MesonOperator.NOT_EQUALS,
+            '>': MesonOperator.GREATER,
+            '<': MesonOperator.LESS,
+            '>=': MesonOperator.GREATER_EQUALS,
+            '<=': MesonOperator.LESS_EQUALS,
+        }[node.ctype]
+
+        # Check if the arguments should be reversed for simplicity (this essentially converts `in` to `contains`)
+        if operator in (MesonOperator.IN, MesonOperator.NOT_IN) and isinstance(val2, InterpreterObject):
+            return self._holderify(val2.operator_call(operator, _unholder(val1)))
+
+        # Normal evaluation, with the same semantics
+        elif operator not in (MesonOperator.IN, MesonOperator.NOT_IN) and isinstance(val1, InterpreterObject):
+            return self._holderify(val1.operator_call(operator, _unholder(val2)))
+
+        # OLD CODE, based on the builtin types -- remove once we have switched
+        # over to all ObjectHolders.
+
         # Do not compare the ObjectHolders but the actual held objects
         val1 = _unholder(val1)
         val2 = _unholder(val2)
@@ -403,6 +428,21 @@ class InterpreterBase:
         r = self.evaluate_statement(cur.right)
         if isinstance(r, Disabler):
             return r
+
+        # New code based on InterpreterObjects
+        if isinstance(l, InterpreterObject):
+            mapping: T.Dict[str, MesonOperator] = {
+                'add': MesonOperator.PLUS,
+                'sub': MesonOperator.MINUS,
+                'mul': MesonOperator.TIMES,
+                'div': MesonOperator.DIV,
+                'mod': MesonOperator.MOD,
+            }
+            res = l.operator_call(mapping[cur.operation], _unholder(r))
+            return self._holderify(res)
+
+        # OLD CODE, based on the builtin types -- remove once we have switched
+        # over to all ObjectHolders.
 
         if cur.operation == 'add':
             if isinstance(l, dict) and isinstance(r, dict):

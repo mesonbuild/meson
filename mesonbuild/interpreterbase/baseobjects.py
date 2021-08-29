@@ -13,9 +13,11 @@
 # limitations under the License.
 
 from .. import mparser
-from .exceptions import InvalidCode
+from .exceptions import InvalidCode, InvalidArguments
 from .helpers import flatten, resolve_second_level_holders
-from ..mesonlib import HoldableObject
+from .operator import MesonOperator
+from ..mesonlib import HoldableObject, MesonBugException
+import textwrap
 
 import typing as T
 
@@ -36,16 +38,40 @@ TYPE_kwargs = T.Dict[str, TYPE_var]
 TYPE_nkwargs = T.Dict[str, TYPE_nvar]
 TYPE_key_resolver = T.Callable[[mparser.BaseNode], str]
 
+if T.TYPE_CHECKING:
+    from typing_extensions import Protocol
+    __T = T.TypeVar('__T', bound=TYPE_var, contravariant=True)
+    class OperatorCall(Protocol[__T]):
+        def __call__(self, other: __T) -> TYPE_var: ...
+
 class InterpreterObject:
     def __init__(self, *, subproject: T.Optional[str] = None) -> None:
         self.methods: T.Dict[
             str,
             T.Callable[[T.List[TYPE_var], TYPE_kwargs], TYPE_var]
         ] = {}
+        self.operators: T.Dict[MesonOperator, 'OperatorCall'] = {}
+        self.trivial_operators: T.Dict[
+            MesonOperator,
+            T.Tuple[
+                T.Type[T.Union[TYPE_var, T.Tuple[TYPE_var, ...]]],
+                'OperatorCall'
+            ]
+        ] = {}
         # Current node set during a method call. This can be used as location
         # when printing a warning message during a method call.
         self.current_node:  mparser.BaseNode = None
         self.subproject: str = subproject or ''
+
+        # Some default operators supported by all objects
+        self.operators.update({
+            MesonOperator.EQUALS: self.op_equals,
+            MesonOperator.NOT_EQUALS: self.op_not_equals,
+        })
+
+    # The type of the object that can be printed to the user
+    def display_name(self) -> str:
+        return type(self).__name__
 
     def method_call(
                 self,
@@ -62,13 +88,47 @@ class InterpreterObject:
             return method(args, kwargs)
         raise InvalidCode(f'Unknown method "{method_name}" in object {self} of type {type(self).__name__}.')
 
+    def operator_call(self, operator: MesonOperator, other: TYPE_var) -> TYPE_var:
+        if operator in self.trivial_operators:
+            op = self.trivial_operators[operator]
+            if op[0] is None and other is not None:
+                raise MesonBugException(f'The unary operator `{operator.value}` of {self.display_name()} was passed the object {other} of type {type(other).__name__}')
+            if op[0] is not None and not isinstance(other, op[0]):
+                raise InvalidArguments(f'The `{operator.value}` of {self.display_name()} does not accept objects of type {type(other).__name__} ({other})')
+            return op[1](other)
+        if operator in self.operators:
+            return self.operators[operator](other)
+        raise InvalidCode(f'Object {self} of type {self.display_name()} does not support the `{operator.value}` operator.')
+
+
+    # Default comparison operator support
+    def _throw_comp_exception(self, other: TYPE_var, opt_type: str) -> T.NoReturn:
+        raise InvalidArguments(textwrap.dedent(
+            f'''
+                Trying to compare values of different types ({self.display_name()}, {type(other).__name__}) using {opt_type}.
+                This was deprecated and undefined behavior previously and is as of 0.60.0 a hard error.
+            '''
+        ))
+
+    def op_equals(self, other: TYPE_var) -> bool:
+        if type(self) != type(other):
+            self._throw_comp_exception(other, '==')
+        return self == other
+
+    def op_not_equals(self, other: TYPE_var) -> bool:
+        if type(self) != type(other):
+            self._throw_comp_exception(other, '!=')
+        return self != other
+
 class MesonInterpreterObject(InterpreterObject):
     ''' All non-elementary objects and non-object-holders should be derived from this '''
 
 class MutableInterpreterObject:
     ''' Dummy class to mark the object type as mutable '''
 
-InterpreterObjectTypeVar = T.TypeVar('InterpreterObjectTypeVar', bound=HoldableObject)
+HoldableTypes = (HoldableObject, int)
+TYPE_HoldableTypes = T.Union[HoldableObject, int]
+InterpreterObjectTypeVar = T.TypeVar('InterpreterObjectTypeVar', bound=TYPE_HoldableTypes)
 
 class ObjectHolder(InterpreterObject, T.Generic[InterpreterObjectTypeVar]):
     def __init__(self, obj: InterpreterObjectTypeVar, interpreter: 'Interpreter') -> None:
@@ -77,10 +137,25 @@ class ObjectHolder(InterpreterObject, T.Generic[InterpreterObjectTypeVar]):
         # HoldableObject, not the specialized type, so only do this assert in
         # non-type checking situations
         if not T.TYPE_CHECKING:
-            assert isinstance(obj, HoldableObject), f'This is a bug: Trying to hold object of type `{type(obj).__name__}` that is not an `HoldableObject`'
+            assert isinstance(obj, HoldableTypes), f'This is a bug: Trying to hold object of type `{type(obj).__name__}` that is not in `{HoldableTypes}`'
         self.held_object = obj
         self.interpreter = interpreter
         self.env = self.interpreter.environment
+
+    # Hide the object holder abstrction from the user
+    def display_name(self) -> str:
+        return type(self.held_object).__name__
+
+    # Override default comparison operators for the held object
+    def op_equals(self, other: TYPE_var) -> bool:
+        if type(self.held_object) != type(other):
+            self._throw_comp_exception(other, '==')
+        return self.held_object == other
+
+    def op_not_equals(self, other: TYPE_var) -> bool:
+        if type(self.held_object) != type(other):
+            self._throw_comp_exception(other, '!=')
+        return self.held_object != other
 
     def __repr__(self) -> str:
         return f'<[{type(self).__name__}] holds [{type(self.held_object).__name__}]: {self.held_object!r}>'
