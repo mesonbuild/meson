@@ -35,6 +35,7 @@ __all__ = [
     'ExternalProgramHolder',
     'extract_required_kwarg',
 
+    'BooleanHolder',
     'IntegerHolder',
 ]
 
@@ -47,5 +48,6 @@ from .interpreterobjects import (ExecutableHolder, BuildTargetHolder, CustomTarg
                                  extract_required_kwarg)
 
 from .primitives import (
+    BooleanHolder,
     IntegerHolder,
 )

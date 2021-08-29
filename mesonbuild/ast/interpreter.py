@@ -366,7 +366,8 @@ class AstInterpreter(InterpreterBase):
                 if isinstance(src, str):
                     result = self.string_method_call(src, node.name, margs, mkwargs)
                 elif isinstance(src, bool):
-                    result = self.bool_method_call(src, node.name, margs, mkwargs)
+                    from ..interpreter import Interpreter, BooleanHolder
+                    result = BooleanHolder(src, T.cast(Interpreter, self)).method_call(node.name, margs, mkwargs)
                 elif isinstance(src, int):
                     from ..interpreter import Interpreter, IntegerHolder
                     result = IntegerHolder(src, T.cast(Interpreter, self)).method_call(node.name, margs, mkwargs)

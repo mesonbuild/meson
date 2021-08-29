@@ -51,6 +51,7 @@ from ._unholder import _unholder
 import os, copy, re, pathlib
 import typing as T
 import textwrap
+from functools import wraps
 
 if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
@@ -69,11 +70,23 @@ FunctionType = T.Dict[
     T.Callable[[mparser.BaseNode, T.List[TYPE_var], T.Dict[str, TYPE_var]], TYPE_var]
 ]
 
+__FN = T.TypeVar('__FN', bound=T.Callable[['InterpreterBase', T.Any], T.Union[TYPE_var, InterpreterObject]])
+def _holderify_result(types: T.Union[None, T.Type, T.Tuple[T.Type, ...]] = None) -> T.Callable[[__FN], __FN]:
+    def inner(f: __FN) -> __FN:
+        @wraps(f)
+        def wrapper(self: 'InterpreterBase', node: mparser.BaseNode) -> T.Union[TYPE_var, InterpreterObject]:
+            res = f(self, node)
+            if types is not None and not isinstance(res, types):
+                raise mesonlib.MesonBugException(f'Expected {types} but got object `{res}` of type {type(res).__name__}')
+            return self._holderify(res)
+        return T.cast(__FN, wrapper)
+    return inner
+
 class MesonVersionString(str):
     pass
 
 class InterpreterBase:
-    elementary_types = (str, bool, list)
+    elementary_types = (str, list)
 
     def __init__(self, source_root: str, subdir: str, subproject: str):
         self.source_root = source_root
@@ -190,7 +203,7 @@ class InterpreterBase:
         elif isinstance(cur, mparser.StringNode):
             return cur.value
         elif isinstance(cur, mparser.BooleanNode):
-            return cur.value
+            return self._holderify(cur.value)
         elif isinstance(cur, mparser.IfClauseNode):
             return self.evaluate_if(cur)
         elif isinstance(cur, mparser.IdNode):
@@ -252,13 +265,15 @@ class InterpreterBase:
         assert not arguments
         return kwargs
 
-    def evaluate_notstatement(self, cur: mparser.NotNode) -> T.Union[bool, Disabler]:
+    @_holderify_result((bool, Disabler))
+    def evaluate_notstatement(self, cur: mparser.NotNode) -> T.Union[TYPE_var, InterpreterObject]:
         v = self.evaluate_statement(cur.value)
         if isinstance(v, Disabler):
             return v
-        if not isinstance(v, bool):
-            raise InterpreterException('Argument to "not" is not a boolean.')
-        return not v
+        # TYPING TODO: Remove this check once `evaluate_statement` only returns InterpreterObjects
+        if not isinstance(v, InterpreterObject):
+            raise mesonlib.MesonBugException(f'Argument to not ({v}) is not an InterpreterObject but {type(v).__name__}.')
+        return v.operator_call(MesonOperator.NOT, None)
 
     def evaluate_if(self, node: mparser.IfClauseNode) -> T.Optional[Disabler]:
         assert isinstance(node, mparser.IfClauseNode)
@@ -269,6 +284,9 @@ class InterpreterBase:
             result = self.evaluate_statement(i.condition)
             if isinstance(result, Disabler):
                 return result
+            if not isinstance(result, InterpreterObject):
+                raise mesonlib.MesonBugException(f'Argument to not ({result}) is not an InterpreterObject but {type(result).__name__}.')
+            result = result.operator_call(MesonOperator.BOOL, None)
             if not isinstance(result, bool):
                 raise InvalidCode(f'If clause {result!r} does not evaluate to true or false.')
             if result:
@@ -289,13 +307,14 @@ class InterpreterBase:
             return False
         return True
 
-    def evaluate_in(self, val1: T.Any, val2: T.Any) -> bool:
+    def _evaluate_in(self, val1: T.Any, val2: T.Any) -> bool:
         if not isinstance(val1, (str, int, float, mesonlib.HoldableObject)):
             raise InvalidArguments('lvalue of "in" operator must be a string, integer, float, or object')
         if not isinstance(val2, (list, dict)):
             raise InvalidArguments('rvalue of "in" operator must be an array or a dict')
         return val1 in val2
 
+    @_holderify_result((bool, Disabler))
     def evaluate_comparison(self, node: mparser.ComparisonNode) -> T.Union[TYPE_var, InterpreterObject]:
         val1 = self.evaluate_statement(node.left)
         if isinstance(val1, Disabler):
@@ -318,11 +337,11 @@ class InterpreterBase:
 
         # Check if the arguments should be reversed for simplicity (this essentially converts `in` to `contains`)
         if operator in (MesonOperator.IN, MesonOperator.NOT_IN) and isinstance(val2, InterpreterObject):
-            return self._holderify(val2.operator_call(operator, _unholder(val1)))
+            return val2.operator_call(operator, _unholder(val1))
 
         # Normal evaluation, with the same semantics
         elif operator not in (MesonOperator.IN, MesonOperator.NOT_IN) and isinstance(val1, InterpreterObject):
-            return self._holderify(val1.operator_call(operator, _unholder(val2)))
+            return val1.operator_call(operator, _unholder(val2))
 
         # OLD CODE, based on the builtin types -- remove once we have switched
         # over to all ObjectHolders.
@@ -331,9 +350,9 @@ class InterpreterBase:
         val1 = _unholder(val1)
         val2 = _unholder(val2)
         if node.ctype == 'in':
-            return self.evaluate_in(val1, val2)
+            return self._evaluate_in(val1, val2)
         elif node.ctype == 'notin':
-            return not self.evaluate_in(val1, val2)
+            return not self._evaluate_in(val1, val2)
         valid = self.validate_comparison_types(val1, val2)
         # Ordering comparisons of different types isn't allowed since PR #1810
         # (0.41.0).  Since PR #2884 we also warn about equality comparisons of
@@ -371,36 +390,41 @@ class InterpreterBase:
         else:
             raise InvalidCode('You broke my compare eval.')
 
-    def evaluate_andstatement(self, cur: mparser.AndNode) -> T.Union[bool, Disabler]:
+    @_holderify_result((bool, Disabler))
+    def evaluate_andstatement(self, cur: mparser.AndNode) -> T.Union[TYPE_var, InterpreterObject]:
         l = self.evaluate_statement(cur.left)
         if isinstance(l, Disabler):
             return l
-        if not isinstance(l, bool):
-            raise InterpreterException('First argument to "and" is not a boolean.')
-        if not l:
-            return False
+        if not isinstance(l, InterpreterObject):
+            raise mesonlib.MesonBugException(f'Firtst argument to and ({l}) is not an InterpreterObject but {type(l).__name__}.')
+        l_bool = l.operator_call(MesonOperator.BOOL, None)
+        if not l_bool:
+            return l_bool
         r = self.evaluate_statement(cur.right)
         if isinstance(r, Disabler):
             return r
-        if not isinstance(r, bool):
-            raise InterpreterException('Second argument to "and" is not a boolean.')
-        return r
+        if not isinstance(r, InterpreterObject):
+            raise mesonlib.MesonBugException(f'Second argument to and ({r}) is not an InterpreterObject but {type(r).__name__}.')
+        return r.operator_call(MesonOperator.BOOL, None)
 
-    def evaluate_orstatement(self, cur: mparser.OrNode) -> T.Union[bool, Disabler]:
+    @_holderify_result((bool, Disabler))
+    def evaluate_orstatement(self, cur: mparser.OrNode) -> T.Union[TYPE_var, InterpreterObject]:
         l = self.evaluate_statement(cur.left)
         if isinstance(l, Disabler):
             return l
-        if not isinstance(l, bool):
-            raise InterpreterException('First argument to "or" is not a boolean.')
-        if l:
-            return True
+        if not isinstance(l, InterpreterObject):
+            raise mesonlib.MesonBugException(f'Firtst argument to or ({l}) is not an InterpreterObject but {type(l).__name__}.')
+        l_bool = l.operator_call(MesonOperator.BOOL, None)
+        if l_bool:
+            return l_bool
         r = self.evaluate_statement(cur.right)
         if isinstance(r, Disabler):
             return r
-        if not isinstance(r, bool):
-            raise InterpreterException('Second argument to "or" is not a boolean.')
-        return r
+        if not isinstance(r, InterpreterObject):
+            raise mesonlib.MesonBugException(f'Second argument to ot ({r}) is not an InterpreterObject but {type(r).__name__}.')
+        return r.operator_call(MesonOperator.BOOL, None)
 
+    @_holderify_result()
     def evaluate_uminusstatement(self, cur: mparser.UMinusNode) -> T.Union[TYPE_var, InterpreterObject]:
         v = self.evaluate_statement(cur.value)
         if isinstance(v, Disabler):
@@ -408,7 +432,7 @@ class InterpreterBase:
         # TYPING TODO: Remove this check once `evaluate_statement` only returns InterpreterObjects
         if not isinstance(v, InterpreterObject):
             raise InterpreterException(f'Argument to negation ({v}) is not an InterpreterObject but {type(v).__name__}.')
-        return self._holderify(v.operator_call(MesonOperator.UMINUS, None))
+        return v.operator_call(MesonOperator.UMINUS, None)
 
     @FeatureNew('/ with string arguments', '0.49.0')
     def evaluate_path_join(self, l: str, r: str) -> str:
@@ -473,9 +497,10 @@ class InterpreterBase:
         result = self.evaluate_statement(node.condition)
         if isinstance(result, Disabler):
             return result
-        if not isinstance(result, bool):
-            raise InterpreterException('Ternary condition is not boolean.')
-        if result:
+        if not isinstance(result, InterpreterObject):
+            raise mesonlib.MesonBugException(f'Ternary condition ({result}) is not an InterpreterObject but {type(result).__name__}.')
+        result_bool = result.operator_call(MesonOperator.BOOL, None)
+        if result_bool:
             return self.evaluate_statement(node.trueblock)
         else:
             return self.evaluate_statement(node.falseblock)
@@ -554,7 +579,7 @@ class InterpreterBase:
             new_value = {**old_variable, **addition}
         elif isinstance(old_variable, InterpreterObject):
             # TODO: don't make _unholder permissive
-            new_value = self._holderify(old_variable.operator_call(MesonOperator.PLUS, _unholder(addition, permissive=True)))
+            new_value = self._holderify(old_variable.operator_call(MesonOperator.PLUS, _unholder(addition)))
         # Add other data types here.
         else:
             raise InvalidArguments('The += operator currently only works with arrays, dicts, strings or ints')
@@ -596,7 +621,8 @@ class InterpreterBase:
                 # We are already checking for the existence of __getitem__, so this should be save
                 raise InterpreterException('Index %d out of bounds of array of size %d.' % (index, len(iobject)))  # type: ignore
 
-    def function_call(self, node: mparser.FunctionNode) -> T.Optional[T.Union[TYPE_elementary, InterpreterObject]]:
+    @_holderify_result()
+    def function_call(self, node: mparser.FunctionNode) -> T.Optional[T.Union[TYPE_var, InterpreterObject]]:
         func_name = node.func_name
         (h_posargs, h_kwargs) = self.reduce_arguments(node.args)
         (posargs, kwargs) = self._unholder_args(h_posargs, h_kwargs)
@@ -609,8 +635,7 @@ class InterpreterBase:
                 func_args = flatten(posargs)
             if not getattr(func, 'no-second-level-holder-flattening', False):
                 func_args, kwargs = resolve_second_level_holders(func_args, kwargs)
-            res = func(node, func_args, kwargs)
-            return self._holderify(res)
+            return func(node, func_args, kwargs)
         else:
             self.unknown_function_called(func_name)
             return None
@@ -631,7 +656,7 @@ class InterpreterBase:
         if isinstance(obj, str):
             return self._holderify(self.string_method_call(obj, method_name, args, kwargs))
         if isinstance(obj, bool):
-            return self._holderify(self.bool_method_call(obj, method_name, args, kwargs))
+            raise mesonlib.MesonBugException('Booleans are now wrapped in object holders!')
         if isinstance(obj, int):
             raise mesonlib.MesonBugException('Integers are now wrapped in object holders!')
         if isinstance(obj, list):
@@ -653,7 +678,7 @@ class InterpreterBase:
         # TODO: remove `permissive` once all primitives are ObjectHolders
         if res is None:
             return None
-        if isinstance(res, (bool, str)):
+        if isinstance(res, str):
             return res
         elif isinstance(res, list):
             return [self._holderify(x, permissive=permissive) for x in res]
@@ -683,29 +708,6 @@ class InterpreterBase:
                        args: T.List[T.Union[TYPE_var, InterpreterObject]],
                        kwargs: T.Dict[str, T.Union[TYPE_var, InterpreterObject]]) -> T.Tuple[T.List[TYPE_var], TYPE_kwargs]:
         return [_unholder(x) for x in args], {k: _unholder(v) for k, v in kwargs.items()}
-
-    @noKwargs
-    def bool_method_call(self, obj: bool, method_name: str, posargs: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.Union[str, int]:
-        if method_name == 'to_string':
-            if not posargs:
-                if obj:
-                    return 'true'
-                else:
-                    return 'false'
-            elif len(posargs) == 2 and isinstance(posargs[0], str) and isinstance(posargs[1], str):
-                if obj:
-                    return posargs[0]
-                else:
-                    return posargs[1]
-            else:
-                raise InterpreterException('bool.to_string() must have either no arguments or exactly two string arguments that signify what values to return for true and false.')
-        elif method_name == 'to_int':
-            if obj:
-                return 1
-            else:
-                return 0
-        else:
-            raise InterpreterException('Unknown method "%s" for a boolean.' % method_name)
 
     @staticmethod
     def _get_one_string_posarg(posargs: T.List[TYPE_var], method_name: str) -> str:
@@ -830,7 +832,7 @@ class InterpreterBase:
                     if element == item:
                         return True
                 return False
-            return check_contains([_unholder(x) for x in obj])
+            return self._holderify(check_contains([_unholder(x) for x in obj]))
         elif method_name == 'length':
             return self._holderify(len(obj))
         elif method_name == 'get':
@@ -876,7 +878,7 @@ class InterpreterBase:
             has_key = key in obj
 
             if method_name == 'has_key':
-                return has_key
+                return self._holderify(has_key)
 
             if has_key:
                 return obj[key]

@@ -77,11 +77,11 @@ def noSecondLevelHolderResolving(f: TV_func) -> TV_func:
     setattr(f, 'no-second-level-holder-flattening', True)  # noqa: B010
     return f
 
-def permissive_unholder_return(f: TV_func) -> T.Callable[..., TYPE_var]:
+def unholder_return(f: TV_func) -> T.Callable[..., TYPE_var]:
     @wraps(f)
     def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
         res = f(*wrapped_args, **wrapped_kwargs)
-        return _unholder(res, permissive=True)
+        return _unholder(res)
     return T.cast(T.Callable[..., TYPE_var], wrapped)
 
 def disablerIfNotFound(f: TV_func) -> TV_func:

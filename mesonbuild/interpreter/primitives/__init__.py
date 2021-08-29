@@ -2,7 +2,9 @@
 # SPDX-license-identifier: Apache-2.0
 
 __all__ = [
+    'BooleanHolder',
     'IntegerHolder',
 ]
 
+from .boolean import BooleanHolder
 from .integer import IntegerHolder
