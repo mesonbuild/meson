@@ -1422,3 +1422,13 @@ class InternalTests(unittest.TestCase):
         self.assertEqual(k.required, v.required)
         self.assertEqual(k.default, 'foo')
         self.assertEqual(v.default, 'bar')
+
+    def test_compile_mesonflags(self) -> None:
+        import mesonbuild.mcompile
+        import argparse
+        options = argparse.Namespace(jobs=5, load_average=0, verbose=False)
+        os.environ['MESONFLAGS'] = '-j10 -l 2 -v'
+        mesonbuild.mcompile.parse_mesonflags(options)
+        self.assertEqual(options.jobs, 5)
+        self.assertEqual(options.load_average, 2)
+        self.assertTrue(options.verbose)

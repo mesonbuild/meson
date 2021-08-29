@@ -54,6 +54,10 @@ Builds a default or a specified target of a configured Meson project.
 
 `--verbose` argument is available since 0.55.0.
 
+*Since 0.60* MESONFLAGS environment variable can also be used to pass `-j`, `-l`
+and `-v` options. Note that command line arguments always override the value
+passed by environment. Example: `MESONFLAGS=-j10 meson compile -C builddir`.
+
 #### Targets
 
 *(since 0.55.0)*
