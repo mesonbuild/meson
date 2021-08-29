@@ -18,7 +18,7 @@ from ..interpreterbase import (
                                InterpreterObject, MesonInterpreterObject, ObjectHolder, MutableInterpreterObject,
                                FeatureCheckBase, FeatureNewKwargs, FeatureNew, FeatureDeprecated,
                                typed_pos_args, typed_kwargs, permittedKwargs,
-                               noArgsFlattening, noPosargs, noKwargs, permissive_unholder_return, TYPE_var, TYPE_kwargs, TYPE_nvar, TYPE_nkwargs,
+                               noArgsFlattening, noPosargs, noKwargs, unholder_return, TYPE_var, TYPE_kwargs, TYPE_nvar, TYPE_nkwargs,
                                flatten, resolve_second_level_holders, InterpreterException, InvalidArguments, InvalidCode)
 from ..interpreter.type_checking import NoneType
 from ..dependencies import Dependency, ExternalLibrary, InternalDependency
@@ -712,7 +712,7 @@ class SubprojectHolder(MesonInterpreterObject):
 
     @noKwargs
     @noArgsFlattening
-    @permissive_unholder_return
+    @unholder_return
     def get_variable_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.Union[TYPE_var, InterpreterObject]:
         if len(args) < 1 or len(args) > 2:
             raise InterpreterException('Get_variable takes one or two arguments.')
@@ -727,7 +727,7 @@ class SubprojectHolder(MesonInterpreterObject):
             pass
 
         if len(args) == 2:
-            return args[1]
+            return self.held_object._holderify(args[1])
 
         raise InvalidArguments(f'Requested variable "{varname}" not found.')
 
