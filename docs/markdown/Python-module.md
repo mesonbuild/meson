@@ -112,6 +112,8 @@ following keyword argument:
 - `embed`: *(since 0.53.0)* If true, Meson will try to find a python
   dependency that can be used for embedding python into an
   application.
+- `disabler` *(since 0.60.0)*: if `true` and the dependency couldn't be found,
+  returns a [disabler object](#disabler-object) instead of a not-found dependency.
 
 **Returns**: a [python dependency][`python_dependency` object]
 

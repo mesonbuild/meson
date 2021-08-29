@@ -458,6 +458,7 @@ class PythonInstallation(ExternalProgramHolder):
 
         return self.interpreter.func_shared_module(None, args, kwargs)
 
+    @disablerIfNotFound
     @permittedKwargs(permitted_dependency_kwargs | {'embed'})
     @FeatureNewKwargs('python_installation.dependency', '0.53.0', ['embed'])
     @noPosargs
