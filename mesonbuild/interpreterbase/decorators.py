@@ -17,6 +17,7 @@ from .baseobjects import TV_func, TYPE_var, TYPE_kwargs
 from .disabler import Disabler
 from .exceptions import InterpreterException, InvalidArguments
 from .helpers import check_stringlist
+from .operator import MesonOperator
 from ._unholder import _unholder
 
 from functools import wraps
@@ -109,6 +110,49 @@ class permittedKwargs:
                 raise InvalidArguments(f'Got unknown keyword arguments {ustr}')
             return f(*wrapped_args, **wrapped_kwargs)
         return T.cast(TV_func, wrapped)
+
+if T.TYPE_CHECKING:
+    from .baseobjects import InterpreterObject
+    from typing_extensions import Protocol
+
+    _TV_IntegerObject = T.TypeVar('_TV_IntegerObject', bound=InterpreterObject, contravariant=True)
+    _TV_ARG1 = T.TypeVar('_TV_ARG1', bound=TYPE_var, contravariant=True)
+
+    class FN_Operator(Protocol[_TV_IntegerObject, _TV_ARG1]):
+        def __call__(s, self: _TV_IntegerObject, other: _TV_ARG1) -> TYPE_var: ...
+    _TV_FN_Operator = T.TypeVar('_TV_FN_Operator', bound=FN_Operator)
+
+def typed_operator(operator: MesonOperator,
+                   types: T.Union[T.Type, T.Tuple[T.Type, ...]]) -> T.Callable[['_TV_FN_Operator'], '_TV_FN_Operator']:
+    """Decorator that does type checking for operator calls.
+
+    The principle here is similar to typed_pos_args, however much simpler
+    since only one other object ever is passed
+    """
+    def inner(f: '_TV_FN_Operator') -> '_TV_FN_Operator':
+        @wraps(f)
+        def wrapper(self: 'InterpreterObject', other: TYPE_var) -> TYPE_var:
+            if not isinstance(other, types):
+                raise InvalidArguments(f'The `{operator.value}` of {self.display_name()} does not accept objects of type {type(other).__name__} ({other})')
+            return f(self, other)
+        return T.cast('_TV_FN_Operator', wrapper)
+    return inner
+
+def unary_operator(operator: MesonOperator) -> T.Callable[['_TV_FN_Operator'], '_TV_FN_Operator']:
+    """Decorator that does type checking for operator calls.
+
+    This decorator is for unary operators that do not take any other objects.
+    It should be impossible for a user to accidentally break this. Triggering
+    this check always indicates a bug in the Meson interpreter.
+    """
+    def inner(f: '_TV_FN_Operator') -> '_TV_FN_Operator':
+        @wraps(f)
+        def wrapper(self: 'InterpreterObject', other: TYPE_var) -> TYPE_var:
+            if other is not None:
+                raise mesonlib.MesonBugException(f'The unary operator `{operator.value}` of {self.display_name()} was passed the object {other} of type {type(other).__name__}')
+            return f(self, other)
+        return T.cast('_TV_FN_Operator', wrapper)
+    return inner
 
 
 def typed_pos_args(name: str, *types: T.Union[T.Type, T.Tuple[T.Type, ...]],

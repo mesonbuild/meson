@@ -20,6 +20,8 @@ __all__ = [
     'MesonVersionString',
     'MutableInterpreterObject',
 
+    'MesonOperator',
+
     'Disabler',
     'is_disabled',
 
@@ -43,6 +45,8 @@ __all__ = [
     'permissive_unholder_return',
     'disablerIfNotFound',
     'permittedKwargs',
+    'typed_operator',
+    'unary_operator',
     'typed_pos_args',
     'ContainerTypeInfo',
     'KwargInfo',
