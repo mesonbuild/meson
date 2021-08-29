@@ -237,13 +237,12 @@ class MesonMain(MesonInterpreterObject):
         return self.can_run_host_binaries_impl(args, kwargs)
 
     def can_run_host_binaries_impl(self, args, kwargs):
-        if (self.is_cross_build_method(None, None) and
-                self.build.environment.need_exe_wrapper()):
-            if self.build.environment.exe_wrapper is None:
-                return False
-        # We return True when exe_wrap is defined, when it's not needed, and
-        # when we're compiling natively. The last two are semantically confusing.
-        # Need to revisit this.
+        if (self.build.environment.is_cross_build() and
+            self.build.environment.need_exe_wrapper() and
+            self.build.environment.exe_wrapper is None):
+            return False
+        # We return True when exe_wrap is defined, when it's not needed, or
+        # when we're compiling natively.
         return True
 
     @noPosargs
