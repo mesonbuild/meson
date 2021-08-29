@@ -1777,7 +1777,6 @@ class AllPlatformTests(BasePlatformTests):
             r'sub' + os.path.sep + r'meson.build:4: WARNING: subdir warning',
             r'meson.build:7: WARNING: Module unstable-simd has no backwards or forwards compatibility and might not exist in future releases.',
             r"meson.build:11: WARNING: The variable(s) 'MISSING' in the input file 'conf.in' are not present in the given configuration data.",
-            r'meson.build:1: WARNING: Passed invalid keyword argument "invalid".',
         ]:
             self.assertRegex(out, re.escape(expected))
 
@@ -1827,8 +1826,9 @@ class AllPlatformTests(BasePlatformTests):
 
     def test_permitted_method_kwargs(self):
         tdir = os.path.join(self.unit_test_dir, '25 non-permitted kwargs')
-        out = self.init(tdir, allow_fail=True)
-        self.assertIn('Function does not take keyword arguments.', out)
+        with self.assertRaises(subprocess.CalledProcessError) as cm:
+            self.init(tdir)
+        self.assertIn('ERROR: compiler.has_header_symbol got unknown keyword arguments "prefixxx"', cm.exception.output)
 
     def test_templates(self):
         ninja = mesonbuild.environment.detect_ninja()

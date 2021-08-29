@@ -46,10 +46,6 @@ gnome.generate_gir(
   dependencies : [[fake_dep, dep1_dep]],
   install : true,
   build_by_default : true,
-  # Test that unknown kwargs do not crash the parser.
-  # Unknown kwargs will eventually become a hard error.
-  # Once that happens remove this.
-  unknown_kwarg : true,
 )
 
 test('gobject introspection/c', girexe)
