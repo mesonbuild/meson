@@ -2641,7 +2641,7 @@ This will become a hard error in the future.''', location=self.current_node)
     @typed_pos_args('get_variable', (str, Disabler), optargs=[object])
     @noKwargs
     @noArgsFlattening
-    @permissive_unholder_return
+    @unholder_return
     def func_get_variable(self, node: mparser.BaseNode, args: T.Tuple[T.Union[str, Disabler], T.Optional[object]],
                           kwargs: 'TYPE_kwargs') -> 'TYPE_var':
         varname, fallback = args
@@ -2652,7 +2652,7 @@ This will become a hard error in the future.''', location=self.current_node)
             return self.variables[varname]
         except KeyError:
             if fallback is not None:
-                return fallback
+                return self._holderify(fallback)
         raise InterpreterException(f'Tried to get unknown variable "{varname}".')
 
     @typed_pos_args('is_variable', str)
