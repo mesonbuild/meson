@@ -640,18 +640,12 @@ class InterpreterBase:
             return self.dict_method_call(obj, method_name, args, kwargs)
         if not isinstance(obj, InterpreterObject):
             raise InvalidArguments('Variable "%s" is not callable.' % object_name)
-        # Special case. This is the only thing you can do with a disabler
-        # object. Every other use immediately returns the disabler object.
-        if isinstance(obj, Disabler):
-            if method_name == 'found':
-                return False
-            else:
-                return Disabler()
         # TODO: InterpreterBase **really** shouldn't be in charge of checking this
         if method_name == 'extract_objects':
-            if not isinstance(obj, ObjectHolder):
+            if isinstance(obj, ObjectHolder):
+                self.validate_extraction(obj.held_object)
+            elif not isinstance(obj, Disabler):
                 raise InvalidArguments(f'Invalid operation "extract_objects" on variable "{object_name}" of type {type(obj).__name__}')
-            self.validate_extraction(obj.held_object)
         obj.current_node = node
         return self._holderify(obj.method_call(method_name, args, kwargs))
 
