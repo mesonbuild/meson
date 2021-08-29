@@ -1,4 +1,4 @@
-project('warning location', 'c', invalid: 'cheese')
+project('warning location', 'c')
 a = library('liba', 'a.c')
 b = library('libb', 'b.c')
 executable('main', 'main.c', link_with: a, link_with: b)

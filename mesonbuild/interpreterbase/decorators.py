@@ -102,11 +102,11 @@ class permittedKwargs:
     def __call__(self, f: TV_func) -> TV_func:
         @wraps(f)
         def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
-            node, args, kwargs, _ = get_callee_args(wrapped_args)
-            for k in kwargs:
-                if k not in self.permitted:
-                    mlog.warning(f'''Passed invalid keyword argument "{k}".''', location=node)
-                    mlog.warning('This will become a hard error in the future.')
+            kwargs = get_callee_args(wrapped_args)[2]
+            unknowns = set(kwargs).difference(self.permitted)
+            if unknowns:
+                ustr = ', '.join([f'"{u}"' for u in sorted(unknowns)])
+                raise InvalidArguments(f'Got unknown keyword arguments {ustr}')
             return f(*wrapped_args, **wrapped_kwargs)
         return T.cast(TV_func, wrapped)
 
@@ -406,12 +406,8 @@ def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
             all_names = {t.name for t in types}
             unknowns = set(kwargs).difference(all_names)
             if unknowns:
-                # Warn about unknown argumnts, delete them and continue. This
-                # keeps current behavior
                 ustr = ', '.join([f'"{u}"' for u in sorted(unknowns)])
-                mlog.warning(f'{name} got unknown keyword arguments {ustr}')
-                for u in unknowns:
-                    del kwargs[u]
+                raise InvalidArguments(f'{name} got unknown keyword arguments {ustr}')
 
             for info in types:
                 value = kwargs.get(info.name)
