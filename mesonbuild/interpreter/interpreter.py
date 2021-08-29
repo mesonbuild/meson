@@ -26,7 +26,7 @@ from ..programs import ExternalProgram, NonExistingExternalProgram
 from ..dependencies import Dependency
 from ..depfile import DepFile
 from ..interpreterbase import ContainerTypeInfo, InterpreterBase, KwargInfo, typed_kwargs, typed_pos_args
-from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, noArgsFlattening, noSecondLevelHolderResolving, permissive_unholder_return
+from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, noArgsFlattening, noSecondLevelHolderResolving, unholder_return
 from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
 from ..interpreterbase import Disabler, disablerIfNotFound
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs, FeatureDeprecatedKwargs
@@ -381,6 +381,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.holder_map.update({
             # Primitives
             int: P_OBJ.IntegerHolder,
+            bool: P_OBJ.BooleanHolder,
 
             # Meson types
             mesonlib.File: OBJ.FileHolder,
