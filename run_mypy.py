@@ -15,6 +15,7 @@ modules = [
     'mesonbuild/cmake',
     'mesonbuild/compilers',
     'mesonbuild/dependencies',
+    'mesonbuild/interpreter/primitives',
     'mesonbuild/interpreterbase',
     'mesonbuild/linkers',
     'mesonbuild/scripts',

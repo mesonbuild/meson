@@ -58,6 +58,7 @@ from .type_checking import (
     NoneType,
     in_set_validator,
 )
+from . import primitives as P_OBJ
 
 from pathlib import Path
 import os
@@ -376,6 +377,10 @@ class Interpreter(InterpreterBase, HoldableObject):
             holderify all returned values from methods and functions.
         '''
         self.holder_map.update({
+            # Primitives
+            int: P_OBJ.IntegerHolder,
+
+            # Meson types
             mesonlib.File: OBJ.FileHolder,
             build.SharedLibrary: OBJ.SharedLibraryHolder,
             build.StaticLibrary: OBJ.StaticLibraryHolder,

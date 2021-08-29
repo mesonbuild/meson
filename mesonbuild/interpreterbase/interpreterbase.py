@@ -15,7 +15,7 @@
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool.
 
-from .. import mparser, mesonlib, mlog
+from .. import mparser, mesonlib
 from .. import environment
 
 from .baseobjects import (
@@ -29,6 +29,8 @@ from .baseobjects import (
     TYPE_elementary,
     TYPE_var,
     TYPE_kwargs,
+
+    HoldableTypes,
 )
 
 from .exceptions import (
@@ -54,7 +56,10 @@ if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
 
 HolderMapType = T.Dict[
-    T.Type[mesonlib.HoldableObject],
+    T.Union[
+        T.Type[mesonlib.HoldableObject],
+        T.Type[int],
+    ],
     # For some reason, this has to be a callable and can't just be ObjectHolder[InterpreterObjectTypeVar]
     T.Callable[[InterpreterObjectTypeVar, 'Interpreter'], ObjectHolder[InterpreterObjectTypeVar]]
 ]
@@ -68,7 +73,7 @@ class MesonVersionString(str):
     pass
 
 class InterpreterBase:
-    elementary_types = (int, str, bool, list)
+    elementary_types = (str, bool, list)
 
     def __init__(self, source_root: str, subdir: str, subproject: str):
         self.source_root = source_root
@@ -197,7 +202,7 @@ class InterpreterBase:
         elif isinstance(cur, mparser.DictNode):
             return self.evaluate_dictstatement(cur)
         elif isinstance(cur, mparser.NumberNode):
-            return cur.value
+            return self._holderify(cur.value)
         elif isinstance(cur, mparser.AndNode):
             return self.evaluate_andstatement(cur)
         elif isinstance(cur, mparser.OrNode):
@@ -396,13 +401,14 @@ class InterpreterBase:
             raise InterpreterException('Second argument to "or" is not a boolean.')
         return r
 
-    def evaluate_uminusstatement(self, cur: mparser.UMinusNode) -> T.Union[int, Disabler]:
+    def evaluate_uminusstatement(self, cur: mparser.UMinusNode) -> T.Union[TYPE_var, InterpreterObject]:
         v = self.evaluate_statement(cur.value)
         if isinstance(v, Disabler):
             return v
-        if not isinstance(v, int):
-            raise InterpreterException('Argument to negation is not an integer.')
-        return -v
+        # TYPING TODO: Remove this check once `evaluate_statement` only returns InterpreterObjects
+        if not isinstance(v, InterpreterObject):
+            raise InterpreterException(f'Argument to negation ({v}) is not an InterpreterObject but {type(v).__name__}.')
+        return self._holderify(v.operator_call(MesonOperator.UMINUS, None))
 
     @FeatureNew('/ with string arguments', '0.49.0')
     def evaluate_path_join(self, l: str, r: str) -> str:
@@ -412,16 +418,7 @@ class InterpreterBase:
             raise InvalidCode('The division operator can only append a string.')
         return self.join_path_strings((l, r))
 
-    def evaluate_division(self, l: T.Any, r: T.Any) -> T.Union[int, str]:
-        if isinstance(l, str) or isinstance(r, str):
-            return self.evaluate_path_join(l, r)
-        if isinstance(l, int) and isinstance(r, int):
-            if r == 0:
-                raise InvalidCode('Division by zero.')
-            return l // r
-        raise InvalidCode('Division works only with strings or integers.')
-
-    def evaluate_arithmeticstatement(self, cur: mparser.ArithmeticNode) -> T.Union[int, str, dict, list, Disabler]:
+    def evaluate_arithmeticstatement(self, cur: mparser.ArithmeticNode) -> T.Union[TYPE_var, InterpreterObject]:
         l = self.evaluate_statement(cur.left)
         if isinstance(l, Disabler):
             return l
@@ -455,17 +452,19 @@ class InterpreterBase:
         elif cur.operation == 'sub':
             if not isinstance(l, int) or not isinstance(r, int):
                 raise InvalidCode('Subtraction works only with integers.')
-            return l - r
+            raise mesonlib.MesonBugException('The integer was not held by an ObjectHolder!')
         elif cur.operation == 'mul':
             if not isinstance(l, int) or not isinstance(r, int):
                 raise InvalidCode('Multiplication works only with integers.')
-            return l * r
+            raise mesonlib.MesonBugException('The integer was not held by an ObjectHolder!')
         elif cur.operation == 'div':
-            return self.evaluate_division(l, r)
+            if isinstance(l, str) and isinstance(r, str):
+                return self.evaluate_path_join(l, r)
+            raise InvalidCode('Division works only with strings or integers.')
         elif cur.operation == 'mod':
             if not isinstance(l, int) or not isinstance(r, int):
                 raise InvalidCode('Modulo works only with integers.')
-            return l % r
+            raise mesonlib.MesonBugException('The integer was not held by an ObjectHolder!')
         else:
             raise InvalidCode('You broke me.')
 
@@ -488,7 +487,7 @@ class InterpreterBase:
         def replace(match: T.Match[str]) -> str:
             var = str(match.group(1))
             try:
-                val = self.variables[var]
+                val = _unholder(self.variables[var])
                 if not isinstance(val, (str, int, float, bool)):
                     raise InvalidCode(f'Identifier "{var}" does not name a formattable variable ' +
                         '(has to be an integer, a string, a floating point number or a boolean).')
@@ -508,7 +507,7 @@ class InterpreterBase:
                 raise InvalidArguments('Foreach on array does not unpack')
             varname = node.varnames[0]
             for item in items:
-                self.set_variable(varname, item)
+                self.set_variable(varname, self._holderify(item, permissive=True))
                 try:
                     self.evaluate_codeblock(node.block)
                 except ContinueRequest:
@@ -538,14 +537,11 @@ class InterpreterBase:
         # Remember that all variables are immutable. We must always create a
         # full new variable and then assign it.
         old_variable = self.get_variable(varname)
-        new_value = None  # type: T.Union[str, int, float, bool, dict, list]
+        # TYPING TODO: This should only be InterpreterObject in the future
+        new_value: T.Union[None, TYPE_var, InterpreterObject] = None
         if isinstance(old_variable, str):
             if not isinstance(addition, str):
                 raise InvalidArguments('The += operator requires a string on the right hand side if the variable on the left is a string')
-            new_value = old_variable + addition
-        elif isinstance(old_variable, int):
-            if not isinstance(addition, int):
-                raise InvalidArguments('The += operator requires an int on the right hand side if the variable on the left is an int')
             new_value = old_variable + addition
         elif isinstance(old_variable, list):
             if isinstance(addition, list):
@@ -556,6 +552,9 @@ class InterpreterBase:
             if not isinstance(addition, dict):
                 raise InvalidArguments('The += operator requires a dict on the right hand side if the variable on the left is a dict')
             new_value = {**old_variable, **addition}
+        elif isinstance(old_variable, InterpreterObject):
+            # TODO: don't make _unholder permissive
+            new_value = self._holderify(old_variable.operator_call(MesonOperator.PLUS, _unholder(addition, permissive=True)))
         # Add other data types here.
         else:
             raise InvalidArguments('The += operator currently only works with arrays, dicts, strings or ints')
@@ -569,7 +568,7 @@ class InterpreterBase:
         if not hasattr(iobject, '__getitem__'):
             raise InterpreterException(
                 'Tried to index an object that doesn\'t support indexing.')
-        index = self.evaluate_statement(node.index)
+        index = _unholder(self.evaluate_statement(node.index))
 
         if isinstance(iobject, dict):
             if not isinstance(index, str):
@@ -630,11 +629,11 @@ class InterpreterBase:
         if is_disabled(args, kwargs):
             return Disabler()
         if isinstance(obj, str):
-            return self.string_method_call(obj, method_name, args, kwargs)
+            return self._holderify(self.string_method_call(obj, method_name, args, kwargs))
         if isinstance(obj, bool):
-            return self.bool_method_call(obj, method_name, args, kwargs)
+            return self._holderify(self.bool_method_call(obj, method_name, args, kwargs))
         if isinstance(obj, int):
-            return self.int_method_call(obj, method_name, args, kwargs)
+            raise mesonlib.MesonBugException('Integers are now wrapped in object holders!')
         if isinstance(obj, list):
             return self.array_method_call(obj, method_name, args, kwargs)
         if isinstance(obj, dict):
@@ -656,16 +655,17 @@ class InterpreterBase:
         obj.current_node = node
         return self._holderify(obj.method_call(method_name, args, kwargs))
 
-    def _holderify(self, res: T.Union[TYPE_var, InterpreterObject, None]) -> T.Union[TYPE_elementary, InterpreterObject]:
+    def _holderify(self, res: T.Union[TYPE_var, InterpreterObject, None], *, permissive: bool = False) -> T.Union[TYPE_elementary, InterpreterObject]:
+        # TODO: remove `permissive` once all primitives are ObjectHolders
         if res is None:
             return None
-        if isinstance(res, (int, bool, str)):
+        if isinstance(res, (bool, str)):
             return res
         elif isinstance(res, list):
-            return [self._holderify(x) for x in res]
+            return [self._holderify(x, permissive=permissive) for x in res]
         elif isinstance(res, dict):
-            return {k: self._holderify(v) for k, v in res.items()}
-        elif isinstance(res, mesonlib.HoldableObject):
+            return {k: self._holderify(v, permissive=permissive) for k, v in res.items()}
+        elif isinstance(res, HoldableTypes):
             # Always check for an exact match first.
             cls = self.holder_map.get(type(res), None)
             if cls is not None:
@@ -678,6 +678,8 @@ class InterpreterBase:
                     return cls(res, T.cast('Interpreter', self))
             raise mesonlib.MesonBugException(f'Object {res} of type {type(res).__name__} is neither in self.holder_map nor self.bound_holder_map.')
         elif isinstance(res, ObjectHolder):
+            if permissive:
+                return res
             raise mesonlib.MesonBugException(f'Returned object {res} of type {type(res).__name__} is an object holder.')
         elif isinstance(res, MesonInterpreterObject):
             return res
@@ -710,26 +712,6 @@ class InterpreterBase:
                 return 0
         else:
             raise InterpreterException('Unknown method "%s" for a boolean.' % method_name)
-
-    @noKwargs
-    def int_method_call(self, obj: int, method_name: str, posargs: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.Union[str, bool]:
-        if method_name == 'is_even':
-            if not posargs:
-                return obj % 2 == 0
-            else:
-                raise InterpreterException('int.is_even() must have no arguments.')
-        elif method_name == 'is_odd':
-            if not posargs:
-                return obj % 2 != 0
-            else:
-                raise InterpreterException('int.is_odd() must have no arguments.')
-        elif method_name == 'to_string':
-            if not posargs:
-                return str(obj)
-            else:
-                raise InterpreterException('int.to_string() must have no arguments.')
-        else:
-            raise InterpreterException('Unknown method "%s" for an integer.' % method_name)
 
     @staticmethod
     def _get_one_string_posarg(posargs: T.List[TYPE_var], method_name: str) -> str:
@@ -856,7 +838,7 @@ class InterpreterBase:
                 return False
             return check_contains([_unholder(x) for x in obj])
         elif method_name == 'length':
-            return len(obj)
+            return self._holderify(len(obj))
         elif method_name == 'get':
             index = posargs[0]
             fallback = None

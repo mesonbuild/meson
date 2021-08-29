@@ -139,7 +139,7 @@ def typed_operator(operator: MesonOperator,
     return inner
 
 def unary_operator(operator: MesonOperator) -> T.Callable[['_TV_FN_Operator'], '_TV_FN_Operator']:
-    """Decorator that does type checking for operator calls.
+    """Decorator that does type checking for unary operator calls.
 
     This decorator is for unary operators that do not take any other objects.
     It should be impossible for a user to accidentally break this. Triggering

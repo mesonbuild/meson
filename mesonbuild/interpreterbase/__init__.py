@@ -69,6 +69,9 @@ __all__ = [
     'TYPE_kwargs',
     'TYPE_nkwargs',
     'TYPE_key_resolver',
+    'TYPE_HoldableTypes',
+
+    'HoldableTypes',
 ]
 
 from .baseobjects import (
@@ -88,6 +91,9 @@ from .baseobjects import (
     TYPE_kwargs,
     TYPE_nkwargs,
     TYPE_key_resolver,
+    TYPE_HoldableTypes,
+
+    HoldableTypes,
 )
 
 from .decorators import (
@@ -102,6 +108,8 @@ from .decorators import (
     typed_pos_args,
     ContainerTypeInfo,
     KwargInfo,
+    typed_operator,
+    unary_operator,
     typed_kwargs,
     FeatureCheckBase,
     FeatureNew,
@@ -122,3 +130,4 @@ from .exceptions import (
 from .disabler import Disabler, is_disabled
 from .helpers import check_stringlist, default_resolve_key, flatten, resolve_second_level_holders
 from .interpreterbase import MesonVersionString, InterpreterBase
+from .operator import MesonOperator
