@@ -14,8 +14,6 @@ class MesonOperator(Enum):
 
     # Logic
     NOT = 'not'
-    AND = 'and'
-    OR = 'or'
 
     # Should return the boolsche interpretation of the value (`'' == false` for instance)
     BOOL = 'bool()'
