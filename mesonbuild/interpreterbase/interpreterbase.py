@@ -47,6 +47,7 @@ from ._unholder import _unholder
 
 import os, copy, re, pathlib
 import typing as T
+import textwrap
 
 if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
@@ -306,11 +307,14 @@ class InterpreterBase:
         valid = self.validate_comparison_types(val1, val2)
         # Ordering comparisons of different types isn't allowed since PR #1810
         # (0.41.0).  Since PR #2884 we also warn about equality comparisons of
-        # different types, which will one day become an error.
+        # different types, which is now an error.
         if not valid and (node.ctype == '==' or node.ctype == '!='):
-            mlog.warning('''Trying to compare values of different types ({}, {}) using {}.
-The result of this is undefined and will become a hard error in a future Meson release.'''
-                         .format(type(val1).__name__, type(val2).__name__, node.ctype), location=node)
+            raise InvalidArguments(textwrap.dedent(
+                f'''
+                    Trying to compare values of different types ({type(val1).__name__}, {type(val2).__name__}) using {node.ctype}.
+                    This was deprecated and undefined behavior previously and is as of 0.60.0 a hard error.
+                '''
+            ))
         if node.ctype == '==':
             return val1 == val2
         elif node.ctype == '!=':
