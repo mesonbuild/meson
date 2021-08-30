@@ -360,3 +360,16 @@ class WindowsTests(BasePlatformTests):
         self.init(os.path.join(self.unit_test_dir, '86 cpp modules'))
         self.build()
 
+    def test_non_utf8_fails(self):
+        # FIXME: VS backend does not use flags from compiler.get_always_args()
+        # and thus it's missing /utf-8 argument. Was that intentional? This needs
+        # to be revisited.
+        if self.backend is not Backend.ninja:
+            raise SkipTest(f'This test only pass with ninja backend (not {self.backend.name}).')
+        testdir = os.path.join(self.platform_test_dir, '18 msvc charset')
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+        cc = detect_c_compiler(env, MachineChoice.HOST)
+        if cc.get_argument_syntax() != 'msvc':
+            raise SkipTest('Not using MSVC')
+        self.init(testdir, extra_args=['-Dtest-failure=true'])
+        self.assertRaises(subprocess.CalledProcessError, self.build)
