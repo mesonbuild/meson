@@ -1708,6 +1708,61 @@ class InternalTests(unittest.TestCase):
         self.assertEqual(k.default, 'foo')
         self.assertEqual(v.default, 'bar')
 
+    def test_detect_cpu_family(self) -> None:
+        """Test the various cpu familes that we detect and normalize.
+
+        This is particularly useful as both documentation, and to keep testing
+        platforms that are less common.
+        """
+
+        @contextmanager
+        def mock_trial(value: str) -> T.Iterable[None]:
+            """Mock all of the ways we could get the trial at once."""
+            mocked = mock.Mock(return_value=value)
+
+            with mock.patch('mesonbuild.environment.detect_windows_arch', mocked), \
+                    mock.patch('mesonbuild.environment.platform.processor', mocked), \
+                    mock.patch('mesonbuild.environment.platform.machine', mocked):
+                yield
+
+        cases = [
+            ('x86', 'x86'),
+            ('i386', 'x86'),
+            ('bepc', 'x86'),  # Haiku
+            ('earm', 'arm'),  # NetBSD
+            ('arm', 'arm'),
+            ('ppc64', 'ppc64'),
+            ('powerpc64', 'ppc64'),
+            ('powerpc', 'ppc'),
+            ('ppc', 'ppc'),
+            ('macppc', 'ppc'),
+            ('power macintosh', 'ppc'),
+            ('mips64el', 'mips64'),
+            ('mips64', 'mips64'),
+            ('mips', 'mips'),
+            ('mipsel', 'mips'),
+            ('ip30', 'mips64'),
+            ('ip35', 'mips64'),
+            ('parisc64', 'parisc'),
+            ('sun4u', 'sparc64'),
+            ('sun4v', 'sparc64'),
+            ('amd64', 'x86_64'),
+            ('x64', 'x86_64'),
+            ('i86pc', 'x86_64'),  # Solaris
+        ]
+
+        with mock.patch('mesonbuild.environment.any_compiler_has_define', mock.Mock(return_value=False)):
+            for test, expected in cases:
+                with self.subTest(test, has_define=False), mock_trial(test):
+                    actual = mesonbuild.environment.detect_cpu_family({})
+                    self.assertEqual(actual, expected)
+
+        with mock.patch('mesonbuild.environment.any_compiler_has_define', mock.Mock(return_value=True)):
+            for test, expected in [('x86_64', 'x86'), ('aarch64', 'arm'), ('ppc', 'ppc64')]:
+                with self.subTest(test, has_define=True), mock_trial(test):
+                    actual = mesonbuild.environment.detect_cpu_family({})
+                    self.assertEqual(actual, expected)
+
 
 @unittest.skipIf(is_tarball(), 'Skipping because this is a tarball release')
 class DataTests(unittest.TestCase):
