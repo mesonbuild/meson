@@ -100,7 +100,9 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
 
     # /showIncludes is needed for build dependency tracking in Ninja
     # See: https://ninja-build.org/manual.html#_deps
-    always_args = ['/nologo', '/showIncludes']
+    # Assume UTF-8 sources by default, but self.unix_args_to_native() removes it
+    # if `/source-charset` is set too.
+    always_args = ['/nologo', '/showIncludes', '/utf-8']
     warn_args = {
         '0': [],
         '1': ['/W2'],
@@ -214,7 +216,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
 
     @classmethod
     def unix_args_to_native(cls, args: T.List[str]) -> T.List[str]:
-        result = []
+        result: T.List[str] = []
         for i in args:
             # -mms-bitfields is specific to MinGW-GCC
             # -pthread is only valid for GCC
@@ -248,6 +250,13 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
             # -pthread in link flags is only used on Linux
             elif i == '-pthread':
                 continue
+            # cl.exe does not allow specifying both, so remove /utf-8 that we
+            # added automatically in the case the user overrides it manually.
+            elif i.startswith('/source-charset:') or i.startswith('/execution-charset:'):
+                try:
+                    result.remove('/utf-8')
+                except ValueError:
+                    pass
             result.append(i)
         return result
 
