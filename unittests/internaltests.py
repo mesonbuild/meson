@@ -1465,6 +1465,8 @@ class InternalTests(unittest.TestCase):
             ('amd64', 'x86_64'),
             ('x64', 'x86_64'),
             ('i86pc', 'x86_64'),  # Solaris
+            ('aarch64', 'aarch64'),
+            ('aarch64_be', 'aarch64'),
         ]
 
         with mock.patch('mesonbuild.environment.any_compiler_has_define', mock.Mock(return_value=False)):
@@ -1500,6 +1502,8 @@ class InternalTests(unittest.TestCase):
             ('mips64', 'mips64'),
             ('mips', 'mips'),
             ('mipsel', 'mips'),
+            ('aarch64', 'aarch64'),
+            ('aarch64_be', 'aarch64'),
         ]
 
         with mock.patch('mesonbuild.environment.any_compiler_has_define', mock.Mock(return_value=False)):
