@@ -1793,7 +1793,7 @@ class InternalTests(unittest.TestCase):
                     self.assertEqual(actual, expected)
 
         with mock.patch('mesonbuild.environment.any_compiler_has_define', mock.Mock(return_value=True)):
-            for test, expected in [('x86_64', 'i686'), ('aarch64', 'arm')]:
+            for test, expected in [('x86_64', 'i686'), ('aarch64', 'arm'), ('ppc', 'ppc64')]:
                 with self.subTest(test, has_define=True), mock_trial(test):
                     actual = mesonbuild.environment.detect_cpu({})
                     self.assertEqual(actual, expected)
