@@ -387,6 +387,10 @@ def detect_cpu(compilers: CompilersDict) -> str:
             trial = 'mips'
         else:
             trial = 'mips64'
+    elif trial == 'ppc':
+        # AIX always returns powerpc, check here for 64-bit
+        if any_compiler_has_define(compilers, '__64BIT__'):
+            trial = 'ppc64'
 
     # Add more quirks here as bugs are reported. Keep in sync with
     # detect_cpu_family() above.
