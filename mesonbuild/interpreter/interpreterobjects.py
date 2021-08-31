@@ -117,7 +117,7 @@ class FeatureOptionHolder(ObjectHolder[coredata.UserFeatureOption]):
     @noPosargs
     @noKwargs
     def allowed_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
-        return not self.value == 'disabled'
+        return self.value != 'disabled'
 
     @noPosargs
     @noKwargs
