@@ -12,6 +12,7 @@ enable=
     bad-indentation,
     bare-except,
     compare-to-zero,
+    consider-iterating-dictionary,
     dangerous-default-value,
     deprecated-lambda,
     len-as-condition,
