@@ -649,7 +649,7 @@ class PythonModule(ExtensionModule):
                 return python
             else:
                 if required:
-                    raise mesonlib.MesonException(f'{python} is not a valid python or it is missing setuptools')
+                    raise mesonlib.MesonException(f'{python} is not a valid python or it is missing distutils')
                 return NonExistingExternalProgram()
 
         raise mesonlib.MesonBugException('Unreachable code was reached (PythonModule.find_installation).')
