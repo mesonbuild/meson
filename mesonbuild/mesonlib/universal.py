@@ -44,7 +44,6 @@ _U = T.TypeVar('_U')
 
 __all__ = [
     'GIT',
-    'an_unpicklable_object',
     'python_command',
     'project_meson_versions',
     'HoldableObject',
@@ -264,12 +263,6 @@ def check_direntry_issues(direntry_array: T.Union[T.List[T.Union[str, bytes]], s
                 locale but you are trying to access a file system entry called {de!r} which is
                 not pure ASCII. This may cause problems.
                 '''), file=sys.stderr)
-
-
-# Put this in objects that should not get dumped to pickle files
-# by accident.
-import threading
-an_unpicklable_object = threading.Lock()
 
 class HoldableObject(metaclass=abc.ABCMeta):
     ''' Dummy base class for all objects that can be
