@@ -3076,6 +3076,8 @@ class AllPlatformTests(BasePlatformTests):
         self.run_target('build-all')
         self.assertPathExists(os.path.join(self.builddir, 'prog' + exe_suffix))
         self.assertPathExists(os.path.join(self.builddir, 'hello.txt'))
+        out = self.run_target('aliased-run')
+        self.assertIn('a run target was here', out)
 
     def test_configure(self):
         testdir = os.path.join(self.common_test_dir, '2 cpp')

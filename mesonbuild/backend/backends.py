@@ -358,7 +358,10 @@ class Backend:
 
     @lru_cache(maxsize=None)
     def get_target_dir(self, target: T.Union[build.Target, build.CustomTargetIndex]) -> str:
-        if self.environment.coredata.get_option(OptionKey('layout')) == 'mirror':
+        if isinstance(target, build.RunTarget):
+            # this produces no output, only a dummy top-level name
+            dirname = ''
+        elif self.environment.coredata.get_option(OptionKey('layout')) == 'mirror':
             dirname = target.get_subdir()
         else:
             dirname = 'meson-out'
