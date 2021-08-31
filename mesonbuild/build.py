@@ -426,12 +426,16 @@ class ExtractedObjects(HoldableObject):
         ]
 
 class EnvironmentVariables(HoldableObject):
-    def __init__(self) -> None:
-        self.envvars = []
+    def __init__(self, values: T.Optional[T.Dict[str, str]] = None) -> None:
+        self.envvars: T.List[T.Tuple[T.Callable[[T.Dict[str, str], str, T.List[str], str], str], str, T.List[str], str]] = []
         # The set of all env vars we have operations for. Only used for self.has_name()
-        self.varnames = set()
+        self.varnames: T.Set[str] = set()
 
-    def __repr__(self):
+        if values:
+            for name, value in values.items():
+                self.set(name, [value])
+
+    def __repr__(self) -> str:
         repr_str = "<{0}: {1}>"
         return repr_str.format(self.__class__.__name__, self.envvars)
 
@@ -450,14 +454,17 @@ class EnvironmentVariables(HoldableObject):
         self.varnames.add(name)
         self.envvars.append((self._prepend, name, values, separator))
 
-    def _set(self, env: T.Dict[str, str], name: str, values: T.List[str], separator: str) -> str:
+    @staticmethod
+    def _set(env: T.Dict[str, str], name: str, values: T.List[str], separator: str) -> str:
         return separator.join(values)
 
-    def _append(self, env: T.Dict[str, str], name: str, values: T.List[str], separator: str) -> str:
+    @staticmethod
+    def _append(env: T.Dict[str, str], name: str, values: T.List[str], separator: str) -> str:
         curr = env.get(name)
         return separator.join(values if curr is None else [curr] + values)
 
-    def _prepend(self, env: T.Dict[str, str], name: str, values: T.List[str], separator: str) -> str:
+    @staticmethod
+    def _prepend(env: T.Dict[str, str], name: str, values: T.List[str], separator: str) -> str:
         curr = env.get(name)
         return separator.join(values if curr is None else values + [curr])
 
