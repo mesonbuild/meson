@@ -22,6 +22,7 @@ enable=
     no-value-for-parameter,
     redundant-keyword-arg,
     singleton-comparison,
+    superfluous-parens,
     too-many-function-args,
     unexpected-keyword-arg,
     unneeded-not,
