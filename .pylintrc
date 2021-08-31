@@ -10,6 +10,7 @@ enable=
     abstract-class-instantiated,
     assert-on-tuple,
     bad-indentation,
+    bare-except,
     compare-to-zero,
     dangerous-default-value,
     deprecated-lambda,
@@ -22,5 +23,5 @@ enable=
     singleton-comparison,
     too-many-function-args,
     unexpected-keyword-arg,
-    unreachable,
-    bare-except
+    unneeded-not,
+    unreachable
