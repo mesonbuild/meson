@@ -3,7 +3,7 @@
 import os
 import sys
 
-assert(os.path.exists(sys.argv[3]))
+assert os.path.exists(sys.argv[3])
 
 args = sys.argv[:-1]
 

@@ -406,28 +406,28 @@ class MethodNode(BaseNode):
         super().__init__(lineno, colno, filename)
         self.source_object = source_object  # type: BaseNode
         self.name = name                    # type: str
-        assert(isinstance(self.name, str))
+        assert isinstance(self.name, str)
         self.args = args                    # type: ArgumentNode
 
 class FunctionNode(BaseNode):
     def __init__(self, filename: str, lineno: int, colno: int, end_lineno: int, end_colno: int, func_name: str, args: ArgumentNode):
         super().__init__(lineno, colno, filename, end_lineno=end_lineno, end_colno=end_colno)
         self.func_name = func_name  # type: str
-        assert(isinstance(func_name, str))
+        assert isinstance(func_name, str)
         self.args = args  # type: ArgumentNode
 
 class AssignmentNode(BaseNode):
     def __init__(self, filename: str, lineno: int, colno: int, var_name: str, value: BaseNode):
         super().__init__(lineno, colno, filename)
         self.var_name = var_name  # type: str
-        assert(isinstance(var_name, str))
+        assert isinstance(var_name, str)
         self.value = value  # type: BaseNode
 
 class PlusAssignmentNode(BaseNode):
     def __init__(self, filename: str, lineno: int, colno: int, var_name: str, value: BaseNode):
         super().__init__(lineno, colno, filename)
         self.var_name = var_name  # type: str
-        assert(isinstance(var_name, str))
+        assert isinstance(var_name, str)
         self.value = value  # type: BaseNode
 
 class ForeachClauseNode(BaseNode):
@@ -727,7 +727,7 @@ class Parser:
 
     def method_call(self, source_object: BaseNode) -> MethodNode:
         methodname = self.e9()
-        if not(isinstance(methodname, IdNode)):
+        if not isinstance(methodname, IdNode):
             raise ParseException('Method name must be plain id',
                                  self.getline(), self.current.lineno, self.current.colno)
         assert isinstance(methodname.value, str)

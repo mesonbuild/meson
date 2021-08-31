@@ -182,7 +182,7 @@ class AstInterpreter(InterpreterBase):
             return
         with open(absname, encoding='utf-8') as f:
             code = f.read()
-        assert(isinstance(code, str))
+        assert isinstance(code, str)
         try:
             codeblock = mparser.Parser(code, absname).parse()
         except mesonlib.MesonException as me:
@@ -199,7 +199,7 @@ class AstInterpreter(InterpreterBase):
         return True
 
     def evaluate_fstring(self, node: mparser.FormatStringNode) -> str:
-        assert(isinstance(node, mparser.FormatStringNode))
+        assert isinstance(node, mparser.FormatStringNode)
         return node.value
 
     def evaluate_arithmeticstatement(self, cur: ArithmeticNode) -> int:
@@ -212,7 +212,7 @@ class AstInterpreter(InterpreterBase):
         return 0
 
     def evaluate_ternary(self, node: TernaryNode) -> None:
-        assert(isinstance(node, TernaryNode))
+        assert isinstance(node, TernaryNode)
         self.evaluate_statement(node.condition)
         self.evaluate_statement(node.trueblock)
         self.evaluate_statement(node.falseblock)
@@ -223,7 +223,7 @@ class AstInterpreter(InterpreterBase):
                 return node.value
             return '__AST_UNKNOWN__'
         arguments, kwargs = self.reduce_arguments(node.args, key_resolver=resolve_key)
-        assert (not arguments)
+        assert not arguments
         self.argument_depth += 1
         for key, value in kwargs.items():
             if isinstance(key, BaseNode):
@@ -232,7 +232,7 @@ class AstInterpreter(InterpreterBase):
         return {}
 
     def evaluate_plusassign(self, node: PlusAssignmentNode) -> None:
-        assert(isinstance(node, PlusAssignmentNode))
+        assert isinstance(node, PlusAssignmentNode)
         # Cheat by doing a reassignment
         self.assignments[node.var_name] = node.value  # Save a reference to the value node
         if node.value.ast_id:
@@ -298,7 +298,7 @@ class AstInterpreter(InterpreterBase):
         return 0
 
     def assignment(self, node: AssignmentNode) -> None:
-        assert(isinstance(node, AssignmentNode))
+        assert isinstance(node, AssignmentNode)
         self.assignments[node.var_name] = node.value # Save a reference to the value node
         if node.value.ast_id:
             self.reverse_assignment[node.value.ast_id] = node

@@ -736,7 +736,7 @@ class ConverterCustomTarget:
         # Check if the command is a build target
         commands = []  # type: T.List[T.List[T.Union[str, ConverterTarget]]]
         for curr_cmd in self._raw_target.command:
-            assert(isinstance(curr_cmd, list))
+            assert isinstance(curr_cmd, list)
             cmd = []  # type: T.List[T.Union[str, ConverterTarget]]
 
             for j in curr_cmd:
@@ -1139,7 +1139,7 @@ class CMakeInterpreter:
                 tgt_name = tgt.name
             elif isinstance(tgt, CustomTargetReference):
                 tgt_name = tgt.ctgt.name
-            assert(tgt_name is not None and tgt_name in processed)
+            assert tgt_name is not None and tgt_name in processed
             res_var = processed[tgt_name]['tgt']
             return id_node(res_var) if res_var else None
 
@@ -1167,12 +1167,12 @@ class CMakeInterpreter:
             custom_targets      = []  # type: T.List[ConverterCustomTarget]
             dependencies        = []  # type: T.List[IdNode]
             for i in tgt.link_with:
-                assert(isinstance(i, ConverterTarget))
+                assert isinstance(i, ConverterTarget)
                 if i.name not in processed:
                     process_target(i)
                 link_with += [extract_tgt(i)]
             for i in tgt.object_libs:
-                assert(isinstance(i, ConverterTarget))
+                assert isinstance(i, ConverterTarget)
                 if i.name not in processed:
                     process_target(i)
                 objec_libs += [extract_tgt(i)]
@@ -1361,7 +1361,7 @@ class CMakeInterpreter:
         # check if there exists a name mapping
         if target in self.internal_name_map:
             target = self.internal_name_map[target]
-            assert(target in self.generated_targets)
+            assert target in self.generated_targets
             return self.generated_targets[target]
         return None
 

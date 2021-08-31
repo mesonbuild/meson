@@ -180,7 +180,7 @@ class CMakeTraceParser:
 
             # "Execute" the CMake function if supported
             fn = self.functions.get(l.func, None)
-            if(fn):
+            if fn:
                 fn(l)
 
         # Postprocess
@@ -638,7 +638,7 @@ class CMakeTraceParser:
     def _meson_ps_execute_delayed_calls(self, tline: CMakeTraceLine) -> None:
         for l in self.stored_commands:
             fn = self.functions.get(l.func, None)
-            if(fn):
+            if fn:
                 fn(l)
 
         # clear the stored commands

@@ -2621,7 +2621,7 @@ class AllPlatformTests(BasePlatformTests):
 
         for i in targets:
             for out in i['filename']:
-                assert(os.path.relpath(out, self.builddir).startswith('meson-out'))
+                assert os.path.relpath(out, self.builddir).startswith('meson-out')
 
     def test_introspect_json_dump(self):
         testdir = os.path.join(self.unit_test_dir, '57 introspection')

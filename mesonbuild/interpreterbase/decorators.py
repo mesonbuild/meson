@@ -63,7 +63,7 @@ def stringArgs(f: TV_func) -> TV_func:
     @wraps(f)
     def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
         args = get_callee_args(wrapped_args)[1]
-        assert(isinstance(args, list))
+        assert isinstance(args, list)
         check_stringlist(args)
         return f(*wrapped_args, **wrapped_kwargs)
     return T.cast(TV_func, wrapped)

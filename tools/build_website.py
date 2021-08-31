@@ -2,7 +2,7 @@
 
 import os, sys, subprocess, shutil
 
-assert(os.getcwd() == '/home/jpakkane')
+assert os.getcwd() == '/home/jpakkane'
 
 from glob import glob
 
@@ -37,7 +37,7 @@ def update() -> None:
         if base == 'CNAME' or base == 'favicon.png':
             continue
         subprocess.check_call(['git', 'rm', '-rf', base], cwd=webdir)
-    assert(os.path.isdir(webdir))
+    assert os.path.isdir(webdir)
     new_entries = glob(os.path.join(htmldir, '*'))
     for e in new_entries:
         shutil.move(e, webdir)

@@ -252,7 +252,7 @@ class NinjaRule:
                 outfile.write(' rspfile = $out.rsp\n')
                 outfile.write(' rspfile_content = {}\n'.format(' '.join([self._quoter(x, rspfile_quote_func) for x in self.args])))
             else:
-                outfile.write(' command = {}\n'.format(' '.join([self._quoter(x) for x in (self.command + self.args)])))
+                outfile.write(' command = {}\n'.format(' '.join([self._quoter(x) for x in self.command + self.args])))
             if self.deps:
                 outfile.write(f' deps = {self.deps}\n')
             if self.depfile:
@@ -302,7 +302,7 @@ class NinjaBuildElement:
             self.outfilenames = [outfilenames]
         else:
             self.outfilenames = outfilenames
-        assert(isinstance(rulename, str))
+        assert isinstance(rulename, str)
         self.rulename = rulename
         if isinstance(infilenames, str):
             self.infilenames = [infilenames]
@@ -2619,8 +2619,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
         self.add_dependency_scanner_entries_to_element(target, compiler, element, src)
         self.add_build(element)
-        assert(isinstance(rel_obj, str))
-        assert(isinstance(rel_src, str))
+        assert isinstance(rel_obj, str)
+        assert isinstance(rel_src, str)
         return (rel_obj, rel_src.replace('\\', '/'))
 
     def add_dependency_scanner_entries_to_element(self, target, compiler, element, src):
@@ -2903,7 +2903,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         return guessed_dependencies + absolute_libs
 
     def generate_prelink(self, target, obj_list):
-        assert(isinstance(target, build.StaticLibrary))
+        assert isinstance(target, build.StaticLibrary)
         prelink_name = os.path.join(self.get_target_private_dir(target), target.name + '-prelink.o')
         elem = NinjaBuildElement(self.all_outputs, [prelink_name], 'CUSTOM_COMMAND', obj_list)
 

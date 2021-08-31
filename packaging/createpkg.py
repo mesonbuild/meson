@@ -57,7 +57,7 @@ class PkgGenerator:
         os.makedirs(self.bindir)
         ln_base = os.path.relpath(self.mesonstashdir, self.bindir)
         ninja_bin = shutil.which('ninja')
-        assert(ninja_bin)
+        assert ninja_bin
         shutil.copy(ninja_bin, self.bindir)
         subprocess.check_call(['strip', os.path.join(self.bindir, 'ninja')])
         os.symlink(os.path.join(ln_base, 'meson'), os.path.join(self.bindir, 'meson'))

@@ -211,7 +211,7 @@ class IntrospectionInterpreter(AstInterpreter):
             while inqueue:
                 curr = inqueue.pop(0)
                 arg_node = None
-                assert(isinstance(curr, BaseNode))
+                assert isinstance(curr, BaseNode)
                 if isinstance(curr, FunctionNode):
                     arg_node = curr.args
                 elif isinstance(curr, ArrayNode):

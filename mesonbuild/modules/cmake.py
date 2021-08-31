@@ -71,8 +71,8 @@ endmacro()
 
 class CMakeSubproject(ModuleObject):
     def __init__(self, subp, pv):
-        assert(isinstance(subp, SubprojectHolder))
-        assert(hasattr(subp, 'cm_interpreter'))
+        assert isinstance(subp, SubprojectHolder)
+        assert hasattr(subp, 'cm_interpreter')
         super().__init__()
         self.subp = subp
         self.methods.update({'get_variable': self.get_variable,
@@ -96,7 +96,7 @@ class CMakeSubproject(ModuleObject):
                                        '    message(\'CMaket targets:\\n - \' + \'\\n - \'.join(<cmake_subproject>.target_list()))')
 
         # Make sure that all keys are present (if not this is a bug)
-        assert(all([x in res for x in ['inc', 'src', 'dep', 'tgt', 'func']]))
+        assert all([x in res for x in ['inc', 'src', 'dep', 'tgt', 'func']])
         return res
 
     @noKwargs

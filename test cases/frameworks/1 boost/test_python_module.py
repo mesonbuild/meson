@@ -19,9 +19,9 @@ def run():
 
     w.set(msg)
 
-    assert(msg == w.greet())
+    assert msg == w.greet()
     version_string = str(sys.version_info[0]) + "." + str(sys.version_info[1])
-    assert(version_string == w.version())
+    assert version_string == w.version()
 
 if __name__ == '__main__':
     run()

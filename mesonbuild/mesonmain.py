@@ -319,7 +319,7 @@ def main():
     setup_vsenv()
     # Always resolve the command path so Ninja can find it for regen, tests, etc.
     if 'meson.exe' in sys.executable:
-        assert(os.path.isabs(sys.executable))
+        assert os.path.isabs(sys.executable)
         launcher = sys.executable
     else:
         launcher = os.path.realpath(sys.argv[0])

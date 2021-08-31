@@ -14,7 +14,7 @@ def permit_osx_workaround(m1,  m2):
     return True
 
 if len(sys.argv) == 2:
-    assert(os.path.exists(sys.argv[1]))
+    assert os.path.exists(sys.argv[1])
 elif len(sys.argv) == 3:
     f1 = sys.argv[1]
     f2 = sys.argv[2]

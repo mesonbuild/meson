@@ -443,7 +443,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
 
         if crt_val in self.mscrt_args:
             return self.mscrt_args[crt_val]
-        assert(crt_val in ['from_buildtype', 'static_from_buildtype'])
+        assert crt_val in ['from_buildtype', 'static_from_buildtype']
 
         dbg = 'mdd'
         rel = 'md'
@@ -463,7 +463,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
         elif buildtype == 'minsize':
             return self.mscrt_args[rel]
         else:
-            assert(buildtype == 'custom')
+            assert buildtype == 'custom'
             raise EnvironmentException('Requested C runtime based on buildtype, but buildtype is "custom".')
 
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,

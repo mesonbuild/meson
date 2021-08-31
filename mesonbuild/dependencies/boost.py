@@ -429,7 +429,7 @@ class BoostDependency(SystemDependency):
 
         rootdir = props.get('boost_root')
         # It shouldn't be possible to get here without something in boost_root
-        assert(rootdir)
+        assert rootdir
 
         raw_paths = mesonlib.stringlistify(rootdir)
         paths = [Path(x) for x in raw_paths]

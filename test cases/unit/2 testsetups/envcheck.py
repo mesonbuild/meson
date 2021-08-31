@@ -2,4 +2,4 @@
 
 import os
 
-assert('PATH' in os.environ)
+assert 'PATH' in os.environ

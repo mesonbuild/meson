@@ -7,4 +7,4 @@ if __name__ == '__main__':
     Gio.Resource._register(res)
 
     data = Gio.resources_lookup_data('/com/example/myprog/res1.txt', Gio.ResourceLookupFlags.NONE)
-    assert(data.get_data() == b'This is a resource.\n')
+    assert data.get_data() == b'This is a resource.\n'

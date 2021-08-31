@@ -315,7 +315,7 @@ class Elf(DataSizes):
                 basename = name.split(b'/')[-1]
                 padding = b'\0' * (len(name) - len(basename))
                 newname = basename + padding
-                assert(len(newname) == len(name))
+                assert len(newname) == len(name)
                 self.bf.seek(offset)
                 self.bf.write(newname)
 

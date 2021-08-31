@@ -11,7 +11,7 @@ subdir = Path(os.environ['MESON_SUBDIR'])
 inputf = Path(sys.argv[1])
 outputf = Path(sys.argv[2])
 
-assert(inputf.exists())
+assert inputf.exists()
 
 with outputf.open('w') as ofile:
     ofile.write("#define ZERO_RESULT 0\n")

@@ -698,7 +698,7 @@ class Rewriter:
                     arg_node = root.args
                 elif isinstance(root, ArgumentNode):
                     arg_node = root
-                assert(arg_node is not None)
+                assert arg_node is not None
                 mlog.log('  -- Removing source', mlog.green(i), 'from',
                          mlog.yellow(f'{string_node.filename}:{string_node.lineno}'))
                 arg_node.arguments.remove(string_node)
@@ -782,10 +782,10 @@ class Rewriter:
         self.functions[cmd['type']](cmd)
 
     def apply_changes(self):
-        assert(all(hasattr(x, 'lineno') and hasattr(x, 'colno') and hasattr(x, 'filename') for x in self.modified_nodes))
-        assert(all(hasattr(x, 'lineno') and hasattr(x, 'colno') and hasattr(x, 'filename') for x in self.to_remove_nodes))
-        assert(all(isinstance(x, (ArrayNode, FunctionNode)) for x in self.modified_nodes))
-        assert(all(isinstance(x, (ArrayNode, AssignmentNode, FunctionNode)) for x in self.to_remove_nodes))
+        assert all(hasattr(x, 'lineno') and hasattr(x, 'colno') and hasattr(x, 'filename') for x in self.modified_nodes)
+        assert all(hasattr(x, 'lineno') and hasattr(x, 'colno') and hasattr(x, 'filename') for x in self.to_remove_nodes)
+        assert all(isinstance(x, (ArrayNode, FunctionNode)) for x in self.modified_nodes)
+        assert all(isinstance(x, (ArrayNode, AssignmentNode, FunctionNode)) for x in self.to_remove_nodes)
         # Sort based on line and column in reversed order
         work_nodes = [{'node': x, 'action': 'modify'} for x in self.modified_nodes]
         work_nodes += [{'node': x, 'action': 'rm'} for x in self.to_remove_nodes]

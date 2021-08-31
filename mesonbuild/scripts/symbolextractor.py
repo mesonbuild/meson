@@ -104,7 +104,7 @@ def gnu_syms(libfilename: str, outfilename: str) -> None:
         dummy_syms(outfilename)
         return
     result = [x for x in output.split('\n') if 'SONAME' in x]
-    assert(len(result) <= 1)
+    assert len(result) <= 1
     # Get a list of all symbols exported
     output = call_tool('nm', ['--dynamic', '--extern-only', '--defined-only',
                               '--format=posix', libfilename])
@@ -161,7 +161,7 @@ def openbsd_syms(libfilename: str, outfilename: str) -> None:
         dummy_syms(outfilename)
         return
     result = [x for x in output.split('\n') if 'SONAME' in x]
-    assert(len(result) <= 1)
+    assert len(result) <= 1
     # Get a list of all symbols exported
     output = call_tool('nm', ['-D', '-P', '-g', libfilename])
     if not output:
@@ -178,7 +178,7 @@ def freebsd_syms(libfilename: str, outfilename: str) -> None:
         dummy_syms(outfilename)
         return
     result = [x for x in output.split('\n') if 'SONAME' in x]
-    assert(len(result) <= 1)
+    assert len(result) <= 1
     # Get a list of all symbols exported
     output = call_tool('nm', ['--dynamic', '--extern-only', '--defined-only',
                               '--format=posix', libfilename])
