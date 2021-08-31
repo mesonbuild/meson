@@ -342,7 +342,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
         if crt_val in self.crt_args:
             return self.crt_args[crt_val]
-        assert(crt_val in ['from_buildtype', 'static_from_buildtype'])
+        assert crt_val in ['from_buildtype', 'static_from_buildtype']
         dbg = 'mdd'
         rel = 'md'
         if crt_val == 'static_from_buildtype':
@@ -360,7 +360,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         elif buildtype == 'minsize':
             return self.crt_args[rel]
         else:
-            assert(buildtype == 'custom')
+            assert buildtype == 'custom'
             raise mesonlib.EnvironmentException('Requested C runtime based on buildtype, but buildtype is "custom".')
 
     def has_func_attribute(self, name: str, env: 'Environment') -> T.Tuple[bool, bool]:

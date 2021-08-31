@@ -119,7 +119,7 @@ class CPPCompiler(CLikeCompiler, Compiler):
 
     def _test_cpp_std_arg(self, cpp_std_value: str) -> bool:
         # Test whether the compiler understands a -std=XY argument
-        assert(cpp_std_value.startswith('-std='))
+        assert cpp_std_value.startswith('-std=')
 
         # This test does not use has_multi_arguments() for two reasons:
         # 1. has_multi_arguments() requires an env argument, which the compiler
@@ -155,7 +155,7 @@ class CPPCompiler(CLikeCompiler, Compiler):
         }
 
         # Currently, remapping is only supported for Clang, Elbrus and GCC
-        assert(self.id in frozenset(['clang', 'lcc', 'gcc', 'emscripten']))
+        assert self.id in frozenset(['clang', 'lcc', 'gcc', 'emscripten'])
 
         if cpp_std not in CPP_FALLBACKS:
             # 'c++03' and 'c++98' don't have fallback types

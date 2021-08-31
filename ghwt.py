@@ -45,7 +45,7 @@ def unpack(sproj, branch):
     shutil.rmtree(tmpdir, ignore_errors=True)
     subprocess.check_call(['git', 'clone', '-b', branch, f'https://github.com/mesonbuild/{sproj}.git', tmpdir])
     usfile = os.path.join(tmpdir, 'upstream.wrap')
-    assert(os.path.isfile(usfile))
+    assert os.path.isfile(usfile)
     config = configparser.ConfigParser(interpolation=None)
     config.read(usfile)
     outdir = os.path.join(spdir, sproj)
@@ -74,7 +74,7 @@ def unpack(sproj, branch):
         shutil.unpack_archive(ofilename, outdir)
     else:
         shutil.unpack_archive(ofilename, spdir)
-        assert(os.path.isdir(outdir))
+        assert os.path.isdir(outdir)
     shutil.move(os.path.join(tmpdir, '.git'), outdir)
     subprocess.check_call(['git', 'reset', '--hard'], cwd=outdir)
     shutil.rmtree(tmpdir)

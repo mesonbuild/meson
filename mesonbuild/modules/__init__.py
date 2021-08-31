@@ -187,7 +187,7 @@ def is_module_library(fname):
 class ModuleReturnValue:
     def __init__(self, return_value: T.Optional['TYPE_var'], new_objects: T.List['TYPE_var']) -> None:
         self.return_value = return_value
-        assert(isinstance(new_objects, list))
+        assert isinstance(new_objects, list)
         self.new_objects = new_objects
 
 class GResourceTarget(build.CustomTarget):

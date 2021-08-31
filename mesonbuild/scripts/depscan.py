@@ -73,7 +73,7 @@ class DependencyScanner:
                         self.needs[fname] = [needed]
             if export_match:
                 exported_module = export_match.group(1).lower()
-                assert(exported_module not in modules_in_this_file)
+                assert exported_module not in modules_in_this_file
                 modules_in_this_file.add(exported_module)
                 if exported_module in self.provided_by:
                     raise RuntimeError(f'Multiple files provide module {exported_module}.')
@@ -128,7 +128,7 @@ class DependencyScanner:
 
     def objname_for(self, src: str) -> str:
         objname = self.target_data.source2object[src]
-        assert(isinstance(objname, str))
+        assert isinstance(objname, str)
         return objname
 
     def module_name_for(self, src: str) -> str:

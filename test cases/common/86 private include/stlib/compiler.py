@@ -2,7 +2,7 @@
 
 import sys, os
 
-assert(len(sys.argv) == 3)
+assert len(sys.argv) == 3
 
 h_templ = '''#pragma once
 unsigned int %s(void);

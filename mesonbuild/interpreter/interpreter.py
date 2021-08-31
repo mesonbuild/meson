@@ -1666,7 +1666,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         tg = build.RunTarget(name, cleaned_args, cleaned_deps, self.subdir, self.subproject, env)
         self.add_target(name, tg)
         full_name = (self.subproject, name)
-        assert(full_name not in self.build.run_target_names)
+        assert full_name not in self.build.run_target_names
         self.build.run_target_names.add(full_name)
         return tg
 
@@ -1869,7 +1869,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             raise InterpreterException(f"Non-existent build file '{buildfilename!s}'")
         with open(absname, encoding='utf-8') as f:
             code = f.read()
-        assert(isinstance(code, str))
+        assert isinstance(code, str)
         try:
             codeblock = mparser.Parser(code, absname).parse()
         except mesonlib.MesonException as me:

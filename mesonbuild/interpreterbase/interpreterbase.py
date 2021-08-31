@@ -99,7 +99,7 @@ class InterpreterBase:
             code = mf.read()
         if code.isspace():
             raise InvalidCode('Builder file is empty.')
-        assert(isinstance(code, str))
+        assert isinstance(code, str)
         try:
             self.ast = mparser.Parser(code, mesonfile).parse()
         except mesonlib.MesonException as me:
@@ -254,7 +254,7 @@ class InterpreterBase:
         return not v
 
     def evaluate_if(self, node: mparser.IfClauseNode) -> T.Optional[Disabler]:
-        assert(isinstance(node, mparser.IfClauseNode))
+        assert isinstance(node, mparser.IfClauseNode)
         for i in node.ifs:
             # Reset self.tmp_meson_version to know if it gets set during this
             # statement evaluation.
@@ -262,7 +262,7 @@ class InterpreterBase:
             result = self.evaluate_statement(i.condition)
             if isinstance(result, Disabler):
                 return result
-            if not(isinstance(result, bool)):
+            if not isinstance(result, bool):
                 raise InvalidCode(f'If clause {result!r} does not evaluate to true or false.')
             if result:
                 prev_meson_version = mesonlib.project_meson_versions[self.subproject]
@@ -426,7 +426,7 @@ The result of this is undefined and will become a hard error in a future Meson r
             raise InvalidCode('You broke me.')
 
     def evaluate_ternary(self, node: mparser.TernaryNode) -> T.Union[TYPE_var, InterpreterObject]:
-        assert(isinstance(node, mparser.TernaryNode))
+        assert isinstance(node, mparser.TernaryNode)
         result = self.evaluate_statement(node.condition)
         if isinstance(result, Disabler):
             return result
@@ -439,7 +439,7 @@ The result of this is undefined and will become a hard error in a future Meson r
 
     @FeatureNew('format strings', '0.58.0')
     def evaluate_fstring(self, node: mparser.FormatStringNode) -> TYPE_var:
-        assert(isinstance(node, mparser.FormatStringNode))
+        assert isinstance(node, mparser.FormatStringNode)
 
         def replace(match: T.Match[str]) -> str:
             var = str(match.group(1))
@@ -456,7 +456,7 @@ The result of this is undefined and will become a hard error in a future Meson r
         return re.sub(r'@([_a-zA-Z][_0-9a-zA-Z]*)@', replace, node.value)
 
     def evaluate_foreach(self, node: mparser.ForeachClauseNode) -> None:
-        assert(isinstance(node, mparser.ForeachClauseNode))
+        assert isinstance(node, mparser.ForeachClauseNode)
         items = self.evaluate_statement(node.items)
 
         if isinstance(items, (list, RangeHolder)):
@@ -487,7 +487,7 @@ The result of this is undefined and will become a hard error in a future Meson r
             raise InvalidArguments('Items of foreach loop must be an array or a dict')
 
     def evaluate_plusassign(self, node: mparser.PlusAssignmentNode) -> None:
-        assert(isinstance(node, mparser.PlusAssignmentNode))
+        assert isinstance(node, mparser.PlusAssignmentNode)
         varname = node.var_name
         addition = self.evaluate_statement(node.value)
 
@@ -518,7 +518,7 @@ The result of this is undefined and will become a hard error in a future Meson r
         self.set_variable(varname, new_value)
 
     def evaluate_indexing(self, node: mparser.IndexNode) -> T.Union[TYPE_elementary, InterpreterObject]:
-        assert(isinstance(node, mparser.IndexNode))
+        assert isinstance(node, mparser.IndexNode)
         iobject = self.evaluate_statement(node.iobject)
         if isinstance(iobject, Disabler):
             return iobject
@@ -885,7 +885,7 @@ The result of this is undefined and will become a hard error in a future Meson r
                 T.List[T.Union[TYPE_var, InterpreterObject]],
                 T.Dict[str, T.Union[TYPE_var, InterpreterObject]]
             ]:
-        assert(isinstance(args, mparser.ArgumentNode))
+        assert isinstance(args, mparser.ArgumentNode)
         if args.incorrect_order():
             raise InvalidArguments('All keyword arguments must be after positional arguments.')
         self.argument_depth += 1
@@ -917,7 +917,7 @@ The result of this is undefined and will become a hard error in a future Meson r
         return kwargs
 
     def assignment(self, node: mparser.AssignmentNode) -> None:
-        assert(isinstance(node, mparser.AssignmentNode))
+        assert isinstance(node, mparser.AssignmentNode)
         if self.argument_depth != 0:
             raise InvalidArguments('''Tried to assign values inside an argument list.
 To specify a keyword argument, use : instead of =.''')

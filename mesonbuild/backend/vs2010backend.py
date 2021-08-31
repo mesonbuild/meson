@@ -1228,7 +1228,7 @@ class Vs2010Backend(backends.Backend):
             additional_links.append(self.relpath(lib, self.get_target_dir(target)))
         additional_objects = []
         for o in self.flatten_object_list(target, down):
-            assert(isinstance(o, str))
+            assert isinstance(o, str)
             additional_objects.append(o)
         for o in custom_objs:
             additional_objects.append(o)

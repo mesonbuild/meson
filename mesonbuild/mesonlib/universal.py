@@ -1059,7 +1059,7 @@ if is_windows():
             if c == '\\':
                 num_backslashes += 1
             else:
-                if c == '"' and not (num_backslashes % 2):
+                if c == '"' and not num_backslashes % 2:
                     # unescaped quote, eat it
                     arg += (num_backslashes // 2) * '\\'
                     num_quotes += 1

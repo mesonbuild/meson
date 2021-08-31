@@ -663,7 +663,7 @@ class CoreData:
             opt = 's'
             debug = True
         else:
-            assert(value == 'custom')
+            assert value == 'custom'
             return []
         actual_opt = self.options[OptionKey('optimization')].value
         actual_debug = self.options[OptionKey('debug')].value
@@ -690,7 +690,7 @@ class CoreData:
             opt = 's'
             debug = True
         else:
-            assert(value == 'custom')
+            assert value == 'custom'
             return
         self.options[OptionKey('optimization')].set_value(opt)
         self.options[OptionKey('debug')].set_value(debug)

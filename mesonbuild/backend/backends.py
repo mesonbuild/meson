@@ -179,7 +179,7 @@ class ExecutableSerialisation:
         self.cmd_args = cmd_args
         self.env = env
         if exe_wrapper is not None:
-            assert(isinstance(exe_wrapper, programs.ExternalProgram))
+            assert isinstance(exe_wrapper, programs.ExternalProgram)
         self.exe_runner = exe_wrapper
         self.workdir = workdir
         self.extra_paths = extra_paths
@@ -205,7 +205,7 @@ class TestSerialisation:
         self.fname = fname
         self.is_cross_built = is_cross_built
         if exe_wrapper is not None:
-            assert(isinstance(exe_wrapper, programs.ExternalProgram))
+            assert isinstance(exe_wrapper, programs.ExternalProgram)
         self.exe_runner = exe_wrapper
         self.is_parallel = is_parallel
         self.cmd_args = cmd_args
@@ -288,7 +288,7 @@ class Backend:
         elif isinstance(t, build.CustomTargetIndex):
             filename = t.get_outputs()[0]
         else:
-            assert(isinstance(t, build.BuildTarget))
+            assert isinstance(t, build.BuildTarget)
             filename = t.get_filename()
         return os.path.join(self.get_target_dir(t), filename)
 
@@ -985,7 +985,7 @@ class Backend:
     def build_target_link_arguments(self, compiler: 'Compiler', deps: T.List[build.Target]) -> T.List[str]:
         args: T.List[str] = []
         for d in deps:
-            if not (d.is_linkable_target()):
+            if not d.is_linkable_target():
                 raise RuntimeError(f'Tried to link with a non-library target "{d.get_basename()}".')
             arg = self.get_target_filename_for_linking(d)
             if not arg:
@@ -1127,7 +1127,7 @@ class Backend:
     def construct_target_rel_path(self, a: build.Target, workdir: T.Optional[str]) -> str:
         if workdir is None:
             return self.get_target_filename(a)
-        assert(os.path.isabs(workdir))
+        assert os.path.isabs(workdir)
         abs_path = self.get_target_filename_abs(a)
         return os.path.relpath(abs_path, workdir)
 
@@ -1653,12 +1653,12 @@ class Backend:
         srcdir = self.environment.get_source_dir()
         builddir = self.environment.get_build_dir()
         for de in data:
-            assert(isinstance(de, build.Data))
+            assert isinstance(de, build.Data)
             subdir = de.install_dir
             if not subdir:
                 subdir = os.path.join(self.environment.get_datadir(), self.interpreter.build.project_name)
             for src_file, dst_name in zip(de.sources, de.rename):
-                assert(isinstance(src_file, mesonlib.File))
+                assert isinstance(src_file, mesonlib.File)
                 dst_abs = os.path.join(subdir, dst_name)
                 tag = de.install_tag or self.guess_install_tag(dst_abs)
                 i = InstallDataBase(src_file.absolute_path(srcdir, builddir), dst_abs, de.install_mode, de.subproject, tag=tag)

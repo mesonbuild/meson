@@ -3,4 +3,4 @@
 import os
 import sys
 
-assert(os.environ['TEST_VAR'] == sys.argv[1])
+assert os.environ['TEST_VAR'] == sys.argv[1]

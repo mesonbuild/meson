@@ -688,7 +688,7 @@ class BuildTarget(Target):
             mlog.warning('Unknown keyword argument(s) in target {}: {}.'.format(self.name, ', '.join(unknowns)))
 
     def process_objectlist(self, objects):
-        assert(isinstance(objects, list))
+        assert isinstance(objects, list)
         for s in objects:
             if isinstance(s, (str, File, ExtractedObjects)):
                 self.objects.append(s)
@@ -843,7 +843,7 @@ class BuildTarget(Target):
                     m += '\n'.join([repr(c) for c in check_sources])
                     raise InvalidArguments(m)
                 # CSharp and Java targets can't contain any other file types
-                assert(len(self.compilers) == 1)
+                assert len(self.compilers) == 1
                 return
 
     def process_link_depends(self, sources, environment):
@@ -1047,9 +1047,9 @@ class BuildTarget(Target):
             raise InvalidArguments('Argument win_subsystem can only be used on executables.')
         extra_files = extract_as_list(kwargs, 'extra_files')
         for i in extra_files:
-            assert(isinstance(i, File))
+            assert isinstance(i, File)
             trial = os.path.join(environment.get_source_dir(), i.subdir, i.fname)
-            if not(os.path.isfile(trial)):
+            if not os.path.isfile(trial):
                 raise InvalidArguments(f'Tried to add non-existing extra file {i}.')
         self.extra_files = extra_files
         self.install_rpath: str = kwargs.get('install_rpath', '')
@@ -1317,7 +1317,7 @@ You probably should put it in link_with instead.''')
             else:
                 raise InvalidArguments(f'PCH argument {pchlist[0]} is of unknown type.')
 
-            if (os.path.dirname(pchlist[0]) != os.path.dirname(pchlist[1])):
+            if os.path.dirname(pchlist[0]) != os.path.dirname(pchlist[1]):
                 raise InvalidArguments('PCH files must be stored in the same folder.')
 
             mlog.warning('PCH source files are deprecated, only a single header file should be used.')
@@ -2289,7 +2289,7 @@ class CustomTarget(Target, CommandBase):
         inputs = get_sources_string_names(self.sources, backend)
         values = get_filenames_templates_dict(inputs, [])
         for i in self.outputs:
-            if not(isinstance(i, str)):
+            if not isinstance(i, str):
                 raise InvalidArguments('Output argument not a string.')
             if i == '':
                 raise InvalidArguments('Output must not be empty.')

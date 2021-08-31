@@ -80,15 +80,15 @@ class CMakeFileAPI:
 
         # parse the JSON
         for i in index['objects']:
-            assert(isinstance(i, dict))
-            assert('kind' in i)
-            assert(i['kind'] in self.kind_resolver_map)
+            assert isinstance(i, dict)
+            assert 'kind' in i
+            assert i['kind'] in self.kind_resolver_map
 
             self.kind_resolver_map[i['kind']](i)
 
     def _parse_codemodel(self, data: T.Dict[str, T.Any]) -> None:
-        assert('configurations' in data)
-        assert('paths' in data)
+        assert 'configurations' in data
+        assert 'paths' in data
 
         source_dir = data['paths']['source']
         build_dir = data['paths']['build']

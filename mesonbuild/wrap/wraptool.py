@@ -164,7 +164,7 @@ def info(options: 'argparse.Namespace') -> None:
 
 def do_promotion(from_path: str, spdir_name: str) -> None:
     if os.path.isfile(from_path):
-        assert(from_path.endswith('.wrap'))
+        assert from_path.endswith('.wrap')
         shutil.copy(from_path, spdir_name)
     elif os.path.isdir(from_path):
         sproj_name = os.path.basename(from_path)
