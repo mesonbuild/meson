@@ -2528,6 +2528,10 @@ class AliasTarget(RunTarget):
     def __init__(self, name, dependencies, subdir, subproject):
         super().__init__(name, [], dependencies, subdir, subproject)
 
+    def __repr__(self):
+        repr_str = "<{0} {1}>"
+        return repr_str.format(self.__class__.__name__, self.get_id())
+
 class Jar(BuildTarget):
     known_kwargs = known_jar_kwargs
 
