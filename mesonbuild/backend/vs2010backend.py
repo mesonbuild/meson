@@ -122,12 +122,11 @@ class Vs2010Backend(backends.Backend):
                 source_dir = os.path.join(down, self.build_to_src, genlist.subdir)
                 exe_arr = self.build_target_to_cmd_array(exe)
                 idgroup = ET.SubElement(parent_node, 'ItemGroup')
-                for i in range(len(infilelist)):
+                for i, curfile in enumerate(infilelist):
                     if len(infilelist) == len(outfilelist):
                         sole_output = os.path.join(target_private_dir, outfilelist[i])
                     else:
                         sole_output = ''
-                    curfile = infilelist[i]
                     infilename = os.path.join(down, curfile.rel_to_builddir(self.build_to_src))
                     deps = self.get_custom_target_depend_files(genlist, True)
                     base_args = generator.get_arglist(infilename)

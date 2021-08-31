@@ -13,6 +13,7 @@ enable=
     bare-except,
     compare-to-zero,
     consider-iterating-dictionary,
+    consider-using-enumerate,
     dangerous-default-value,
     deprecated-lambda,
     len-as-condition,

@@ -2193,8 +2193,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         infilelist = genlist.get_inputs()
         outfilelist = genlist.get_outputs()
         extra_dependencies = self.get_custom_target_depend_files(genlist)
-        for i in range(len(infilelist)):
-            curfile = infilelist[i]
+        for i, curfile in enumerate(infilelist):
             if len(generator.outputs) == 1:
                 sole_output = os.path.join(self.get_target_private_dir(target), outfilelist[i])
             else:
