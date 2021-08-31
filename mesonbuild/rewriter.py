@@ -76,7 +76,7 @@ class RequiredKeys:
     def __call__(self, f):
         @wraps(f)
         def wrapped(*wrapped_args, **wrapped_kwargs):
-            assert(len(wrapped_args) >= 2)
+            assert len(wrapped_args) >= 2
             cmd = wrapped_args[1]
             for key, val in self.keys.items():
                 typ = val[0] # The type of the value
@@ -92,7 +92,7 @@ class RequiredKeys:
                     raise RewriterException('Invalid type of "{}". Required is {} but provided was {}'
                                             .format(key, typ.__name__, type(cmd[key]).__name__))
                 if choices is not None:
-                    assert(isinstance(choices, list))
+                    assert isinstance(choices, list)
                     if cmd[key] not in choices:
                         raise RewriterException('Invalid value of "{}": Possible values are {} but provided was "{}"'
                                                 .format(key, choices, cmd[key]))
@@ -521,8 +521,8 @@ class Rewriter:
                 arg_node = node.args
         if not node:
             mlog.error('Unable to find the function node')
-        assert(isinstance(node, FunctionNode))
-        assert(isinstance(arg_node, ArgumentNode))
+        assert isinstance(node, FunctionNode)
+        assert isinstance(arg_node, ArgumentNode)
         # Transform the key nodes to plain strings
         arg_node.kwargs = {k.value: v for k, v in arg_node.kwargs.items()}
 
@@ -640,7 +640,7 @@ class Rewriter:
                 node = target['sources'][0]
             else:
                 node = target['node']
-            assert(node is not None)
+            assert node is not None
 
             # Generate the current source list
             src_list = []
@@ -666,7 +666,7 @@ class Rewriter:
                 arg_node = node.args
             elif isinstance(node, ArgumentNode):
                 arg_node = node
-            assert(arg_node is not None)
+            assert arg_node is not None
             arg_node.arguments += to_append
 
             # Mark the node as modified

@@ -83,7 +83,7 @@ def process_submodules(dirname):
 
 
 def run_dist_scripts(src_root, bld_root, dist_root, dist_scripts, subprojects):
-    assert(os.path.isabs(dist_root))
+    assert os.path.isabs(dist_root)
     env = {}
     env['MESON_DIST_ROOT'] = dist_root
     env['MESON_SOURCE_ROOT'] = src_root
@@ -243,7 +243,7 @@ def check_dist(packagename, meson_command, extra_meson_args, bld_root, privdir):
     ninja_args = detect_ninja()
     shutil.unpack_archive(packagename, unpackdir)
     unpacked_files = glob(os.path.join(unpackdir, '*'))
-    assert(len(unpacked_files) == 1)
+    assert len(unpacked_files) == 1
     unpacked_src_dir = unpacked_files[0]
     with open(os.path.join(bld_root, 'meson-info', 'intro-buildoptions.json'), encoding='utf-8') as boptions:
         meson_command += ['-D{name}={value}'.format(**o) for o in json.load(boptions)
