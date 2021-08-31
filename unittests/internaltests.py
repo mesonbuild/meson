@@ -12,17 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import contextlib
-import stat
-import subprocess
-import json
-import tempfile
-import os
-import io
-import operator
-from unittest import mock
 from configparser import ConfigParser
 from pathlib import Path
+from unittest import mock
+import contextlib
+import io
+import json
+import operator
+import os
+import pickle
+import stat
+import subprocess
+import tempfile
 import typing as T
 import unittest
 
@@ -1517,3 +1518,12 @@ class InternalTests(unittest.TestCase):
                 with self.subTest(test, has_define=True), mock_trial(test):
                     actual = mesonbuild.environment.detect_cpu({})
                     self.assertEqual(actual, expected)
+
+    def test_interpreter_unpicklable(self) -> None:
+        build = mock.Mock()
+        build.environment = mock.Mock()
+        build.environment.get_source_dir = mock.Mock(return_value='')
+        with mock.patch('mesonbuild.interpreter.Interpreter._redetect_machines', mock.Mock()), \
+                self.assertRaises(Exception):
+            i = mesonbuild.interpreter.Interpreter(build, mock=True)
+            pickle.dumps(i)
