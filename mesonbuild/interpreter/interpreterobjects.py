@@ -238,7 +238,7 @@ class RunProcess(MesonInterpreterObject):
 _ENV_SEPARATOR_KW = KwargInfo('separator', str, default=os.pathsep)
 
 
-class EnvironmentVariablesObject(ObjectHolder[build.EnvironmentVariables], MutableInterpreterObject):
+class EnvironmentVariablesHolder(ObjectHolder[build.EnvironmentVariables], MutableInterpreterObject):
 
     def __init__(self, obj: build.EnvironmentVariables, interpreter: 'Interpreter'):
         super().__init__(obj, interpreter)
@@ -251,9 +251,9 @@ class EnvironmentVariablesObject(ObjectHolder[build.EnvironmentVariables], Mutab
         repr_str = "<{0}: {1}>"
         return repr_str.format(self.__class__.__name__, self.held_object.envvars)
 
-    def __deepcopy__(self, memo: T.Dict[str, object]) -> 'EnvironmentVariablesObject':
+    def __deepcopy__(self, memo: T.Dict[str, object]) -> 'EnvironmentVariablesHolder':
         # Avoid trying to copy the intepreter
-        return EnvironmentVariablesObject(copy.deepcopy(self.held_object), self.interpreter)
+        return EnvironmentVariablesHolder(copy.deepcopy(self.held_object), self.interpreter)
 
     def warn_if_has_name(self, name: str) -> None:
         # Multiple append/prepend operations was not supported until 0.58.0.

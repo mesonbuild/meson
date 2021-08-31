@@ -395,7 +395,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             build.Data: OBJ.DataHolder,
             build.InstallDir: OBJ.InstallDirHolder,
             build.IncludeDirs: OBJ.IncludeDirsHolder,
-            build.EnvironmentVariables: OBJ.EnvironmentVariablesObject,
+            build.EnvironmentVariables: OBJ.EnvironmentVariablesHolder,
             compilers.RunResult: compilerOBJ.TryRunResultHolder,
             dependencies.ExternalLibrary: OBJ.ExternalLibraryHolder,
             coredata.UserFeatureOption: OBJ.FeatureOptionHolder,
