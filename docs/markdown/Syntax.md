@@ -695,7 +695,7 @@ additive_expression: multiplicative_expression | (additive_expression additive_o
 additive_operator: "+" | "-"
 argument_list: positional_arguments ["," keyword_arguments] | keyword_arguments
 array_literal: "[" [expression_list] "]"
-assignment_statement: conditional_expression | (logical_or_expression assignment_operator assignment_expression)
+assignment_statement: expression asssignment_operator expression
 assignment_operator: "=" | "*=" | "/=" | "%=" | "+=" | "-="
 boolean_literal: "true" | "false"
 build_definition: (NEWLINE | statement)*
@@ -706,7 +706,7 @@ DECIMAL_NUMBER: /[1-9][0-9]*/
 dictionary_literal: "{" [key_value_list] "}"
 equality_expression: relational_expression | (equality_expression equality_operator relational_expression)
 equality_operator: "==" | "!="
-expression: assignment_statement
+expression: conditional_expression | logical_or_expression
 expression_list: expression ("," expression)*
 expression_statement: expression
 function_expression: id_expression "(" [argument_list] ")"
