@@ -1524,6 +1524,6 @@ class InternalTests(unittest.TestCase):
         build.environment = mock.Mock()
         build.environment.get_source_dir = mock.Mock(return_value='')
         with mock.patch('mesonbuild.interpreter.Interpreter._redetect_machines', mock.Mock()), \
-                self.assertRaises(Exception):
+                self.assertRaises(mesonbuild.mesonlib.MesonBugException):
             i = mesonbuild.interpreter.Interpreter(build, mock=True)
             pickle.dumps(i)

@@ -21,7 +21,7 @@ from .. import optinterpreter
 from .. import compilers
 from ..wrap import wrap, WrapMode
 from .. import mesonlib
-from ..mesonlib import HoldableObject, FileMode, MachineChoice, OptionKey, listify, extract_as_list, has_path_sep
+from ..mesonlib import MesonBugException, HoldableObject, FileMode, MachineChoice, OptionKey, listify, extract_as_list, has_path_sep
 from ..programs import ExternalProgram, NonExistingExternalProgram
 from ..dependencies import Dependency
 from ..depfile import DepFile
@@ -231,7 +231,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                 is_translated: bool = False,
             ) -> None:
         super().__init__(_build.environment.get_source_dir(), subdir, subproject)
-        self.an_unpicklable_object = mesonlib.an_unpicklable_object
         self.build = _build
         self.environment = self.build.environment
         self.coredata = self.environment.get_coredata()
@@ -278,6 +277,9 @@ class Interpreter(InterpreterBase, HoldableObject):
         if not mock:
             self.parse_project()
         self._redetect_machines()
+
+    def __getnewargs_ex__(self) -> T.Tuple[T.Tuple[object], T.Dict[str, object]]:
+        raise MesonBugException('This class is unpicklable')
 
     def _redetect_machines(self):
         # Re-initialize machine descriptions. We can do a better job now because we
