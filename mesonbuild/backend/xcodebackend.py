@@ -1282,7 +1282,7 @@ class XCodeBackend(backends.Backend):
 
 
     def generate_pbx_sources_build_phase(self, objects_dict):
-        for name in self.source_phase.keys():
+        for name in self.source_phase:
             phase_dict = PbxDict()
             t = self.build_targets[name]
             objects_dict.add_item(t.buildphasemap[name], phase_dict, 'Sources')
