@@ -19,9 +19,7 @@ from ..mesonlib import HoldableObject, MesonBugException
 import typing as T
 
 def _unholder(obj: T.Union[TYPE_var, InterpreterObject]) -> TYPE_var:
-    if isinstance(obj, str):
-        return obj
-    elif isinstance(obj, list):
+    if isinstance(obj, list):
         return [_unholder(x) for x in obj]
     elif isinstance(obj, dict):
         return {k: _unholder(v) for k, v in obj.items()}

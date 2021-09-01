@@ -1,8 +1,7 @@
 {
   "stdout": [
     {
-      "match": "re",
-      "line": "test cases/failing/12 string arithmetic/meson\\.build:3:0: ERROR: Invalid use of addition: .*"
+      "line": "test cases/failing/12 string arithmetic/meson.build:3:0: ERROR: The `+` of str does not accept objects of type int (3)"
     }
   ]
 }

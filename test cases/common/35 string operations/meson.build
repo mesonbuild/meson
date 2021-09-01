@@ -61,6 +61,7 @@ assert('@0@'.format(true) == 'true', 'bool string formatting failed')
 assert(' '.join(['a', 'b', 'c']) == 'a b c', 'join() array broken')
 assert(''.join(['a', 'b', 'c']) == 'abc', 'empty join() broken')
 assert(' '.join(['a']) == 'a', 'single join broken')
+assert(' '.join(['a'], ['b', ['c']], 'd') == 'a b c d', 'varargs join broken')
 
 version_number = '1.2.8'
 

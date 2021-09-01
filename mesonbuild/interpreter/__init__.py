@@ -37,6 +37,7 @@ __all__ = [
 
     'BooleanHolder',
     'IntegerHolder',
+    'StringHolder',
 ]
 
 from .interpreter import Interpreter, permitted_dependency_kwargs
@@ -50,4 +51,5 @@ from .interpreterobjects import (ExecutableHolder, BuildTargetHolder, CustomTarg
 from .primitives import (
     BooleanHolder,
     IntegerHolder,
+    StringHolder,
 )

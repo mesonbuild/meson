@@ -129,8 +129,8 @@ class MesonInterpreterObject(InterpreterObject):
 class MutableInterpreterObject:
     ''' Dummy class to mark the object type as mutable '''
 
-HoldableTypes = (HoldableObject, int, bool)
-TYPE_HoldableTypes = T.Union[HoldableObject, int, bool]
+HoldableTypes = (HoldableObject, int, bool, str)
+TYPE_HoldableTypes = T.Union[HoldableObject, int, bool, str]
 InterpreterObjectTypeVar = T.TypeVar('InterpreterObjectTypeVar', bound=TYPE_HoldableTypes)
 
 class ObjectHolder(InterpreterObject, T.Generic[InterpreterObjectTypeVar]):
