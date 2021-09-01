@@ -1,1 +1,1 @@
-option('enabled_opt', type: 'feature', value: 'enabled')
+option('enabled_opt', type: 'feature', value: 'auto')

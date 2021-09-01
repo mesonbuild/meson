@@ -3086,7 +3086,7 @@ class AllPlatformTests(BasePlatformTests):
 
     def test_summary(self):
         testdir = os.path.join(self.unit_test_dir, '72 summary')
-        out = self.init(testdir)
+        out = self.init(testdir, extra_args=['-Denabled_opt=enabled'])
         expected = textwrap.dedent(r'''
             Some Subproject 2.0
 
@@ -3128,6 +3128,12 @@ class AllPlatformTests(BasePlatformTests):
                 sub            : YES
                 sub2           : NO Problem encountered: This subproject failed
                 subsub         : YES
+
+              User defined options
+                backend        : ''' + self.backend.name + '''
+                libdir         : lib
+                prefix         : /usr
+                enabled_opt    : enabled
             ''')
         expected_lines = expected.split('\n')[1:]
         out_start = out.find(expected_lines[0])

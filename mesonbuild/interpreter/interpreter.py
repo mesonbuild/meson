@@ -72,6 +72,7 @@ import textwrap
 import importlib
 
 if T.TYPE_CHECKING:
+    import argparse
     from . import kwargs
 
     # Input source types passed to Targets
@@ -229,6 +230,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 mock: bool = False,
                 ast: T.Optional[mparser.CodeBlockNode] = None,
                 is_translated: bool = False,
+                user_defined_options: T.Optional['argparse.Namespace'] = None,
             ) -> None:
         super().__init__(_build.environment.get_source_dir(), subdir, subproject)
         self.build = _build
@@ -264,6 +266,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.project_default_options = {}
         self.build_func_dict()
         self.build_holder_map()
+        self.user_defined_options = user_defined_options
 
         # build_def_files needs to be defined before parse_project is called
         #
@@ -298,18 +301,6 @@ class Interpreter(InterpreterBase, HoldableObject):
             OBJ.MachineHolder(self.build.environment.machines.host, self)
         self.builtin['target_machine'] = \
             OBJ.MachineHolder(self.build.environment.machines.target, self)
-
-    # TODO: Why is this in interpreter.py and not CoreData or Environment?
-    def get_non_matching_default_options(self) -> T.Iterator[T.Tuple[str, str, coredata.UserOption]]:
-        for def_opt_name, def_opt_value in self.project_default_options.items():
-            cur_opt_value = self.coredata.options.get(def_opt_name)
-            try:
-                if cur_opt_value is not None and cur_opt_value.validate_value(def_opt_value) != cur_opt_value.value:
-                    yield (str(def_opt_name), def_opt_value, cur_opt_value)
-            except mesonlib.MesonException:
-                # Since the default value does not validate, it cannot be in use
-                # Report the user-specified value as non-matching
-                yield (str(def_opt_name), def_opt_value, cur_opt_value)
 
     def build_func_dict(self):
         self.funcs.update({'add_global_arguments': self.func_add_global_arguments,
@@ -1187,6 +1178,17 @@ external dependencies (including libraries) must go to "dependencies".''')
                               {'bool_yn': True,
                                'list_sep': ' ',
                               })
+        # Add automatic section with all user defined options
+        if self.user_defined_options:
+            values = collections.OrderedDict()
+            if self.user_defined_options.cross_file:
+                values['Cross files'] = self.user_defined_options.cross_file
+            if self.user_defined_options.native_file:
+                values['Native files'] = self.user_defined_options.native_file
+            sorted_options = sorted(self.user_defined_options.cmd_line_options.items())
+            values.update({str(k): v for k, v in sorted_options})
+            if values:
+                self.summary_impl('User defined options', values, {})
         # Print all summaries, main project last.
         mlog.log('')  # newline
         main_summary = self.summary.pop('', None)
