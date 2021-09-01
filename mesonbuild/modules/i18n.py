@@ -184,7 +184,7 @@ class I18nModule(ExtensionModule):
                           'install_dir': path.join(install_dir, l, 'LC_MESSAGES'),
                           'install_tag': 'i18n',
                           }
-            gmotarget = build.CustomTarget(l+'.mo', path.join(state.subdir, l, 'LC_MESSAGES'), state.subproject, gmo_kwargs)
+            gmotarget = build.CustomTarget(f'{packagename}-{l}.mo', path.join(state.subdir, l, 'LC_MESSAGES'), state.subproject, gmo_kwargs)
             targets.append(gmotarget)
             gmotargets.append(gmotarget)
 
