@@ -44,7 +44,7 @@ from .exceptions import (
 
 from .decorators import FeatureNew, noKwargs
 from .disabler import Disabler, is_disabled
-from .helpers import check_stringlist, default_resolve_key, flatten, resolve_second_level_holders
+from .helpers import default_resolve_key, flatten, resolve_second_level_holders
 from .operator import MesonOperator
 from ._unholder import _unholder
 
@@ -579,11 +579,13 @@ class InterpreterBase:
         iobject = self.evaluate_statement(node.iobject)
         if isinstance(iobject, Disabler):
             return iobject
+        index = _unholder(self.evaluate_statement(node.index))
+
+        if isinstance(iobject, InterpreterObject):
+            return self._holderify(iobject.operator_call(MesonOperator.INDEX, index))
         if not hasattr(iobject, '__getitem__'):
             raise InterpreterException(
                 'Tried to index an object that doesn\'t support indexing.')
-        index = _unholder(self.evaluate_statement(node.index))
-
         if isinstance(iobject, dict):
             if not isinstance(index, str):
                 raise InterpreterException('Key is not a string')
@@ -887,7 +889,7 @@ To specify a keyword argument, use : instead of =.''')
         raise InvalidCode('Unknown variable "%s".' % varname)
 
     def is_assignable(self, value: T.Any) -> bool:
-        return isinstance(value, (InterpreterObject, str, int, list, dict))
+        return isinstance(value, (InterpreterObject, list, dict))
 
     def validate_extraction(self, buildtarget: mesonlib.HoldableObject) -> None:
         raise InterpreterException('validate_extraction is not implemented in this context (please file a bug)')

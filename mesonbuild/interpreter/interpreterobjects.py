@@ -14,10 +14,10 @@ from .. import mlog
 from ..modules import ModuleReturnValue, ModuleObject, ModuleState, ExtensionModule
 from ..backend.backends import TestProtocol
 from ..interpreterbase import (
-                               ContainerTypeInfo, KwargInfo,
+                               ContainerTypeInfo, KwargInfo, MesonOperator,
                                InterpreterObject, MesonInterpreterObject, ObjectHolder, MutableInterpreterObject,
                                FeatureCheckBase, FeatureNewKwargs, FeatureNew, FeatureDeprecated,
-                               typed_pos_args, typed_kwargs, permittedKwargs,
+                               typed_pos_args, typed_kwargs, typed_operator, permittedKwargs,
                                noArgsFlattening, noPosargs, noKwargs, unholder_return, TYPE_var, TYPE_kwargs, TYPE_nvar, TYPE_nkwargs,
                                flatten, resolve_second_level_holders, InterpreterException, InvalidArguments, InvalidCode)
 from ..interpreter.type_checking import NoneType
@@ -912,6 +912,10 @@ class CustomTargetHolder(ObjectHolder[build.CustomTarget]):
                              'to_list': self.to_list_method,
                              })
 
+        self.operators.update({
+            MesonOperator.INDEX: self.op_index,
+        })
+
     def __repr__(self) -> str:
         r = '<{} {}: {}>'
         h = self.held_object
@@ -931,14 +935,13 @@ class CustomTargetHolder(ObjectHolder[build.CustomTarget]):
             result.append(i)
         return result
 
-    def __getitem__(self, index: int) -> build.CustomTargetIndex:
-        return self.held_object[index]
-
-    def __setitem__(self, index: int, value: T.Any) -> None:  # lgtm[py/unexpected-raise-in-special-method]
-        raise InterpreterException('Cannot set a member of a CustomTarget')
-
-    def __delitem__(self, index: int) -> None:  # lgtm[py/unexpected-raise-in-special-method]
-        raise InterpreterException('Cannot delete a member of a CustomTarget')
+    @noKwargs
+    @typed_operator(MesonOperator.INDEX, int)
+    def op_index(self, other: int) -> build.CustomTargetIndex:
+        try:
+            return self.held_object[other]
+        except IndexError:
+            raise InvalidArguments(f'Index {other} out of bounds of custom target {self.held_object.name} output of size {len(self.held_object)}.')
 
 class RunTargetHolder(ObjectHolder[build.RunTarget]):
     pass

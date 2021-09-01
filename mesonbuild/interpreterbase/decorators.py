@@ -16,7 +16,6 @@ from .. import mesonlib, mlog
 from .baseobjects import TV_func, TYPE_var, TYPE_kwargs
 from .disabler import Disabler
 from .exceptions import InterpreterException, InvalidArguments
-from .helpers import check_stringlist
 from .operator import MesonOperator
 from ._unholder import _unholder
 
@@ -64,8 +63,12 @@ def stringArgs(f: TV_func) -> TV_func:
     @wraps(f)
     def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
         args = get_callee_args(wrapped_args)[1]
-        assert isinstance(args, list)
-        check_stringlist(args)
+        if not isinstance(args, list):
+            mlog.debug('Not a list:', str(args))
+            raise InvalidArguments('Argument not a list.')
+        if not all(isinstance(s, str) for s in args):
+            mlog.debug('Element not a string:', str(args))
+            raise InvalidArguments('Arguments must be strings.')
         return f(*wrapped_args, **wrapped_kwargs)
     return T.cast(TV_func, wrapped)
 

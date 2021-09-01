@@ -64,6 +64,7 @@ class StringHolder(ObjectHolder[str]):
         # Use actual methods for functions that require additional checks
         self.operators.update({
             MesonOperator.DIV: self.op_div,
+            MesonOperator.INDEX: self.op_index,
         })
 
     def display_name(self) -> str:
@@ -161,6 +162,13 @@ class StringHolder(ObjectHolder[str]):
     @typed_operator(MesonOperator.DIV, str)
     def op_div(self, other: str) -> str:
         return (PurePath(self.held_object) / other).as_posix()
+
+    @typed_operator(MesonOperator.INDEX, int)
+    def op_index(self, other: int) -> str:
+        try:
+            return self.held_object[other]
+        except IndexError:
+            raise InvalidArguments(f'Index {other} out of bounds of string of size {len(self.held_object)}.')
 
 
 class MesonVersionString(str):

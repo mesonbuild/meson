@@ -2524,6 +2524,9 @@ class CustomTarget(Target, CommandBase):
         for i in self.outputs:
             yield CustomTargetIndex(self, i)
 
+    def __len__(self) -> int:
+        return len(self.outputs)
+
 class RunTarget(Target, CommandBase):
     def __init__(self, name: str, command, dependencies,
                  subdir: str, subproject: str, env: T.Optional['EnvironmentVariables'] = None):

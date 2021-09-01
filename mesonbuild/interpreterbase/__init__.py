@@ -31,7 +31,6 @@ __all__ = [
     'ContinueRequest',
     'BreakRequest',
 
-    'check_stringlist',
     'default_resolve_key',
     'flatten',
     'resolve_second_level_holders',
@@ -127,6 +126,6 @@ from .exceptions import (
 )
 
 from .disabler import Disabler, is_disabled
-from .helpers import check_stringlist, default_resolve_key, flatten, resolve_second_level_holders
+from .helpers import default_resolve_key, flatten, resolve_second_level_holders
 from .interpreterbase import InterpreterBase
 from .operator import MesonOperator
