@@ -14,8 +14,9 @@ from ..mesonlib import MachineChoice, OptionKey
 from ..programs import OverrideProgram, ExternalProgram
 from ..interpreter.type_checking import ENV_KW
 from ..interpreterbase import (MesonInterpreterObject, FeatureNew, FeatureDeprecated,
-                               typed_pos_args, noArgsFlattening, noPosargs, noKwargs,
-                               typed_kwargs, KwargInfo, MesonVersionString, InterpreterException)
+                               typed_pos_args,  noArgsFlattening, noPosargs, noKwargs,
+                               typed_kwargs, KwargInfo, InterpreterException)
+from .primitives import MesonVersionString
 from .type_checking import NATIVE_KW, NoneType
 
 if T.TYPE_CHECKING:

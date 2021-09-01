@@ -364,7 +364,8 @@ class AstInterpreter(InterpreterBase):
             mkwargs = {} # type: T.Dict[str, TYPE_nvar]
             try:
                 if isinstance(src, str):
-                    result = self.string_method_call(src, node.name, margs, mkwargs)
+                    from ..interpreter import Interpreter, StringHolder
+                    result = StringHolder(src, T.cast(Interpreter, self)).method_call(node.name, margs, mkwargs)
                 elif isinstance(src, bool):
                     from ..interpreter import Interpreter, BooleanHolder
                     result = BooleanHolder(src, T.cast(Interpreter, self)).method_call(node.name, margs, mkwargs)

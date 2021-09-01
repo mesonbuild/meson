@@ -2268,6 +2268,7 @@ are immutable, all operations return their results as a new string.
 
 - `join(list_of_strings)`: the opposite of split, for example
   `'.'.join(['a', 'b', 'c']` yields `'a.b.c'`.
+  *(Since 0.60.0)* more than one argument is supported and lists will be flattened.
 
 - `replace('old_substr', 'new_str')` *(since 0.58.0)*: replaces instances of
   `old_substr` in the string with `new_str` and returns a new string

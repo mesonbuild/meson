@@ -62,6 +62,8 @@ HolderMapType = T.Dict[
     T.Union[
         T.Type[mesonlib.HoldableObject],
         T.Type[int],
+        T.Type[bool],
+        T.Type[str],
     ],
     # For some reason, this has to be a callable and can't just be ObjectHolder[InterpreterObjectTypeVar]
     T.Callable[[InterpreterObjectTypeVar, 'Interpreter'], ObjectHolder[InterpreterObjectTypeVar]]
@@ -84,11 +86,8 @@ def _holderify_result(types: T.Union[None, T.Type, T.Tuple[T.Type, ...]] = None)
         return T.cast(__FN, wrapper)
     return inner
 
-class MesonVersionString(str):
-    pass
-
 class InterpreterBase:
-    elementary_types = (str, list)
+    elementary_types = (list, )
 
     def __init__(self, source_root: str, subdir: str, subproject: str):
         self.source_root = source_root
@@ -127,9 +126,6 @@ class InterpreterBase:
         except mesonlib.MesonException as me:
             me.file = mesonfile
             raise me
-
-    def join_path_strings(self, args: T.Sequence[str]) -> str:
-        return os.path.join(*args).replace('\\', '/')
 
     def parse_project(self) -> None:
         """
@@ -203,7 +199,7 @@ class InterpreterBase:
         elif isinstance(cur, mparser.MethodNode):
             return self.method_call(cur)
         elif isinstance(cur, mparser.StringNode):
-            return cur.value
+            return self._holderify(cur.value)
         elif isinstance(cur, mparser.BooleanNode):
             return self._holderify(cur.value)
         elif isinstance(cur, mparser.IfClauseNode):
@@ -259,7 +255,7 @@ class InterpreterBase:
         def resolve_key(key: mparser.BaseNode) -> str:
             if not isinstance(key, mparser.StringNode):
                 FeatureNew.single_use('Dictionary entry using non literal key', '0.53.0', self.subproject)
-            str_key = self.evaluate_statement(key)
+            str_key = _unholder(self.evaluate_statement(key))
             if not isinstance(str_key, str):
                 raise InvalidArguments('Key must be a string')
             return str_key
@@ -382,13 +378,13 @@ class InterpreterBase:
         # Use type: ignore because mypy will complain that we are comparing two Unions,
         # but we actually guarantee earlier that both types are the same
         elif node.ctype == '<':
-            return val1 < val2   # type: ignore
+            return val1 < val2
         elif node.ctype == '<=':
-            return val1 <= val2  # type: ignore
+            return val1 <= val2
         elif node.ctype == '>':
-            return val1 > val2   # type: ignore
+            return val1 > val2
         elif node.ctype == '>=':
-            return val1 >= val2  # type: ignore
+            return val1 >= val2
         else:
             raise InvalidCode('You broke my compare eval.')
 
@@ -436,14 +432,6 @@ class InterpreterBase:
             raise InterpreterException(f'Argument to negation ({v}) is not an InterpreterObject but {type(v).__name__}.')
         return v.operator_call(MesonOperator.UMINUS, None)
 
-    @FeatureNew('/ with string arguments', '0.49.0')
-    def evaluate_path_join(self, l: str, r: str) -> str:
-        if not isinstance(l, str):
-            raise InvalidCode('The division operator can only append to a string.')
-        if not isinstance(r, str):
-            raise InvalidCode('The division operator can only append a string.')
-        return self.join_path_strings((l, r))
-
     def evaluate_arithmeticstatement(self, cur: mparser.ArithmeticNode) -> T.Union[TYPE_var, InterpreterObject]:
         l = self.evaluate_statement(cur.left)
         if isinstance(l, Disabler):
@@ -484,9 +472,7 @@ class InterpreterBase:
                 raise InvalidCode('Multiplication works only with integers.')
             raise mesonlib.MesonBugException('The integer was not held by an ObjectHolder!')
         elif cur.operation == 'div':
-            if isinstance(l, str) and isinstance(r, str):
-                return self.evaluate_path_join(l, r)
-            raise InvalidCode('Division works only with strings or integers.')
+            raise mesonlib.MesonBugException('The integer or string was not held by an ObjectHolder!')
         elif cur.operation == 'mod':
             if not isinstance(l, int) or not isinstance(r, int):
                 raise InvalidCode('Modulo works only with integers.')
@@ -508,7 +494,8 @@ class InterpreterBase:
             return self.evaluate_statement(node.falseblock)
 
     @FeatureNew('format strings', '0.58.0')
-    def evaluate_fstring(self, node: mparser.FormatStringNode) -> TYPE_var:
+    @_holderify_result(str)
+    def evaluate_fstring(self, node: mparser.FormatStringNode) -> str:
         assert isinstance(node, mparser.FormatStringNode)
 
         def replace(match: T.Match[str]) -> str:
@@ -545,8 +532,8 @@ class InterpreterBase:
             if len(node.varnames) != 2:
                 raise InvalidArguments('Foreach on dict unpacks key and value')
             for key, value in sorted(items.items()):
-                self.set_variable(node.varnames[0], key)
-                self.set_variable(node.varnames[1], value)
+                self.set_variable(node.varnames[0], self._holderify(key))
+                self.set_variable(node.varnames[1], self._holderify(value, permissive=True))
                 try:
                     self.evaluate_codeblock(node.block)
                 except ContinueRequest:
@@ -656,7 +643,7 @@ class InterpreterBase:
         if is_disabled(args, kwargs):
             return Disabler()
         if isinstance(obj, str):
-            return self._holderify(self.string_method_call(obj, method_name, args, kwargs))
+            raise mesonlib.MesonBugException('Strings are now wrapped in object holders!')
         if isinstance(obj, bool):
             raise mesonlib.MesonBugException('Booleans are now wrapped in object holders!')
         if isinstance(obj, int):
@@ -680,8 +667,6 @@ class InterpreterBase:
         # TODO: remove `permissive` once all primitives are ObjectHolders
         if res is None:
             return None
-        if isinstance(res, str):
-            return res
         elif isinstance(res, list):
             return [self._holderify(x, permissive=permissive) for x in res]
         elif isinstance(res, dict):
@@ -721,96 +706,6 @@ class InterpreterBase:
                 raise InterpreterException(f'{method_name}() argument must be a string')
             return s
         return None
-
-    @noKwargs
-    def string_method_call(self, obj: str, method_name: str, posargs: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.Union[str, int, bool, T.List[str]]:
-        if method_name == 'strip':
-            s1 = self._get_one_string_posarg(posargs, 'strip')
-            if s1 is not None:
-                return obj.strip(s1)
-            return obj.strip()
-        elif method_name == 'format':
-            return self.format_string(obj, posargs)
-        elif method_name == 'to_upper':
-            return obj.upper()
-        elif method_name == 'to_lower':
-            return obj.lower()
-        elif method_name == 'underscorify':
-            return re.sub(r'[^a-zA-Z0-9]', '_', obj)
-        elif method_name == 'split':
-            s2 = self._get_one_string_posarg(posargs, 'split')
-            if s2 is not None:
-                return obj.split(s2)
-            return obj.split()
-        elif method_name == 'startswith' or method_name == 'contains' or method_name == 'endswith':
-            s3 = posargs[0]
-            if not isinstance(s3, str):
-                raise InterpreterException('Argument must be a string.')
-            if method_name == 'startswith':
-                return obj.startswith(s3)
-            elif method_name == 'contains':
-                return obj.find(s3) >= 0
-            return obj.endswith(s3)
-        elif method_name == 'to_int':
-            try:
-                return int(obj)
-            except Exception:
-                raise InterpreterException(f'String {obj!r} cannot be converted to int')
-        elif method_name == 'join':
-            if len(posargs) != 1:
-                raise InterpreterException('Join() takes exactly one argument.')
-            strlist = posargs[0]
-            check_stringlist(strlist)
-            assert isinstance(strlist, list)  # Required for mypy
-            return obj.join(strlist)
-        elif method_name == 'version_compare':
-            if len(posargs) != 1:
-                raise InterpreterException('Version_compare() takes exactly one argument.')
-            cmpr = posargs[0]
-            if not isinstance(cmpr, str):
-                raise InterpreterException('Version_compare() argument must be a string.')
-            if isinstance(obj, MesonVersionString):
-                self.tmp_meson_version = cmpr
-            return mesonlib.version_compare(obj, cmpr)
-        elif method_name == 'substring':
-            if len(posargs) > 2:
-                raise InterpreterException('substring() takes maximum two arguments.')
-            start = 0
-            end = len(obj)
-            if len (posargs) > 0:
-                if not isinstance(posargs[0], int):
-                    raise InterpreterException('substring() argument must be an int')
-                start = posargs[0]
-            if len (posargs) > 1:
-                if not isinstance(posargs[1], int):
-                    raise InterpreterException('substring() argument must be an int')
-                end = posargs[1]
-            return obj[start:end]
-        elif method_name == 'replace':
-            FeatureNew.single_use('str.replace', '0.58.0', self.subproject)
-            if len(posargs) != 2:
-                raise InterpreterException('replace() takes exactly two arguments.')
-            if not isinstance(posargs[0], str) or not isinstance(posargs[1], str):
-                raise InterpreterException('replace() requires that both arguments be strings')
-            return obj.replace(posargs[0], posargs[1])
-        raise InterpreterException('Unknown method "%s" for a string.' % method_name)
-
-    def format_string(self, templ: str, args: T.List[TYPE_var]) -> str:
-        arg_strings = []
-        for arg in args:
-            if isinstance(arg, mparser.BaseNode):
-                arg = self.evaluate_statement(arg)
-            if isinstance(arg, bool): # Python boolean is upper case.
-                arg = str(arg).lower()
-            arg_strings.append(str(arg))
-
-        def arg_replace(match: T.Match[str]) -> str:
-            idx = int(match.group(1))
-            if idx >= len(arg_strings):
-                raise InterpreterException(f'Format placeholder @{idx}@ out of range.')
-            return arg_strings[idx]
-
-        return re.sub(r'@(\d+)@', arg_replace, templ)
 
     def unknown_function_called(self, func_name: str) -> None:
         raise InvalidCode('Unknown function "%s".' % func_name)

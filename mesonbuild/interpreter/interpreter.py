@@ -376,6 +376,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             # Primitives
             int: P_OBJ.IntegerHolder,
             bool: P_OBJ.BooleanHolder,
+            str: P_OBJ.StringHolder,
+            P_OBJ.MesonVersionString: P_OBJ.MesonVersionStringHolder,
 
             # Meson types
             mesonlib.File: OBJ.FileHolder,
@@ -2399,7 +2401,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     @typed_pos_args('join_paths', varargs=str, min_varargs=1)
     @noKwargs
     def func_join_paths(self, node: mparser.BaseNode, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> str:
-        return self.join_path_strings(args[0])
+        return os.path.join(*args[0]).replace('\\', '/')
 
     def run(self) -> None:
         super().run()
