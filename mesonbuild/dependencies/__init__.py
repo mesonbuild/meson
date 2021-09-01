@@ -35,7 +35,7 @@ from .scalapack import scalapack_factory
 from .misc import (
     BlocksDependency, OpenMPDependency, cups_factory, curses_factory, gpgme_factory,
     libgcrypt_factory, libwmf_factory, netcdf_factory, pcap_factory, python3_factory,
-    shaderc_factory, threads_factory, ThreadDependency, intl_factory,
+    shaderc_factory, threads_factory, ThreadDependency, iconv_factory, intl_factory,
 )
 from .platform import AppleFrameworks
 from .qt import qt4_factory, qt5_factory, qt6_factory
@@ -252,6 +252,7 @@ packages.update({
     'libgcrypt': libgcrypt_factory,
     'gpgme': gpgme_factory,
     'shaderc': shaderc_factory,
+    'iconv': iconv_factory,
     'intl': intl_factory,
 
     # From platform:

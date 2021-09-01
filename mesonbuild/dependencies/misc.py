@@ -448,6 +448,25 @@ class CursesSystemDependency(SystemDependency):
                 break
 
 
+class IconvBuiltinDependency(BuiltinDependency):
+    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]):
+        super().__init__(name, env, kwargs)
+
+        if self.clib_compiler.has_function('iconv_open', '', env)[0]:
+            self.is_found = True
+
+
+class IconvSystemDependency(SystemDependency):
+    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]):
+        super().__init__(name, env, kwargs)
+
+        h = self.clib_compiler.has_header('iconv.h', '', env)
+        self.link_args = self.clib_compiler.find_library('iconv', env, [], self.libtype)
+
+        if h[0] and self.link_args:
+            self.is_found = True
+
+
 class IntlBuiltinDependency(BuiltinDependency):
     def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]):
         super().__init__(name, env, kwargs)
@@ -467,7 +486,9 @@ class IntlSystemDependency(SystemDependency):
             self.is_found = True
 
             if self.static:
-                self.link_args += self.clib_compiler.find_library('iconv', env, [], self.libtype)
+                if not self._add_sub_dependency(iconv_factory(env, self.for_machine, {})):
+                    self.is_found = False
+                    return
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.SYSTEM})
@@ -578,6 +599,13 @@ threads_factory = DependencyFactory(
     [DependencyMethods.SYSTEM, DependencyMethods.CMAKE],
     cmake_name='Threads',
     system_class=ThreadDependency,
+)
+
+iconv_factory = DependencyFactory(
+    'iconv',
+    [DependencyMethods.BUILTIN, DependencyMethods.SYSTEM],
+    builtin_class=IconvBuiltinDependency,
+    system_class=IconvSystemDependency,
 )
 
 intl_factory = DependencyFactory(

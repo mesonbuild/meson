@@ -453,6 +453,15 @@ language.
 *New in 0.56.0* the dependencies now return proper dependency types
  and `get_variable` and similar methods should work as expected.
 
+## iconv
+
+*(added 0.60.0)*
+
+Provides access to the `iconv` family of C functions. On systems where this is
+not built into libc, tries to find an external library providing them instead.
+
+`method` may be `auto`, `builtin` or `system`.
+
 ## intl
 
 *(added 0.59.0)*
