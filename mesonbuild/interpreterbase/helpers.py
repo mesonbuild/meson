@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .. import mesonlib, mparser, mlog
-from .exceptions import InvalidArguments, InterpreterException
+from .. import mesonlib, mparser
+from .exceptions import InterpreterException
 
 import collections.abc
 import typing as T
@@ -48,14 +48,6 @@ def resolve_second_level_holders(args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs'
             return arg.get_default_object()
         return arg
     return [resolver(x) for x in args], {k: resolver(v) for k, v in kwargs.items()}
-
-def check_stringlist(a: T.Any, msg: str = 'Arguments must be strings.') -> None:
-    if not isinstance(a, list):
-        mlog.debug('Not a list:', str(a))
-        raise InvalidArguments('Argument not a list.')
-    if not all(isinstance(s, str) for s in a):
-        mlog.debug('Element not a string:', str(a))
-        raise InvalidArguments(msg)
 
 def default_resolve_key(key: mparser.BaseNode) -> str:
     if not isinstance(key, mparser.IdNode):

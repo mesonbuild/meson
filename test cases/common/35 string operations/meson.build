@@ -19,6 +19,9 @@ long = 'abcde'
 prefix = 'abc'
 suffix = 'cde'
 
+assert(long[0] == 'a')
+assert(long[2] == 'c')
+
 assert(long.replace('b', 'd') == 'adcde')
 assert(long.replace('z', 'x') == long)
 assert(long.replace(prefix, suffix) == 'cdede')

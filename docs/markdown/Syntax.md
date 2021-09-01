@@ -178,6 +178,18 @@ These are raw strings that do not support the escape sequences listed
 above.  These strings can also be combined with the string formatting
 functionality described below.
 
+### String index
+
+Stings support the indexing (`[<num>]`) operator. This operator allows (read
+only) acessing a specific character. The returned value is guaranteed to be
+a string of length 1.
+
+```meson
+foo = 'abcd'
+message(foo[1])  # Will print 'b'
+foo[2] = 'C'     # ERROR: Meson objects are immutable!
+```
+
 ### String formatting
 
 #### .format()
