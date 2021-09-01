@@ -981,10 +981,8 @@ def update_cmd_line_file(build_dir: str, options: argparse.Namespace):
     with open(filename, 'w', encoding='utf-8') as f:
         config.write(f)
 
-def get_cmd_line_options(build_dir: str, options: argparse.Namespace) -> str:
-    copy = argparse.Namespace(**vars(options))
-    read_cmd_line_file(build_dir, copy)
-    cmdline = ['-D{}={}'.format(str(k), v) for k, v in copy.cmd_line_options.items()]
+def format_cmd_line_options(options: argparse.Namespace) -> str:
+    cmdline = ['-D{}={}'.format(str(k), v) for k, v in options.cmd_line_options.items()]
     if options.cross_file:
         cmdline += [f'--cross-file {f}' for f in options.cross_file]
     if options.native_file:
