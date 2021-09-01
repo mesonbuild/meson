@@ -1154,11 +1154,12 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
         """Arguments to pass the compiler and/or linker for checks.
 
-        The default implementation turns off optimizations. mode should be
-        one of:
+        The default implementation turns off optimizations.
 
         Examples of things that go here:
           - extra arguments for error checking
+          - Arguments required to make the compiler exit with a non-zero status
+            when something is wrong.
         """
         return self.get_no_optimization_args()
 
