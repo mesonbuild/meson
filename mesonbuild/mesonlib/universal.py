@@ -644,7 +644,7 @@ def is_windows() -> bool:
     return platname == 'windows'
 
 def is_wsl() -> bool:
-    return is_linux() and 'microsoft' in platform.version().lower()
+    return is_linux() and 'microsoft' in platform.release().lower()
 
 def is_cygwin() -> bool:
     return sys.platform == 'cygwin'
