@@ -2360,6 +2360,8 @@ class CustomTarget(Target, CommandBase):
                     "there is more than one input (we can't know which to use)"
                 raise InvalidArguments(m)
         self.outputs = substitute_values(self.outputs, values)
+        if not self.name:
+            self.name = self.outputs[0]
         self.capture = kwargs.get('capture', False)
         if self.capture and len(self.outputs) != 1:
             raise InvalidArguments('Capturing can only output to a single file.')

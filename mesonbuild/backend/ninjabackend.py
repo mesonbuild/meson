@@ -1012,8 +1012,9 @@ class NinjaBackend(backends.Backend):
             elem.add_item('DEPFILE', rel_dfile)
         if target.console:
             elem.add_item('pool', 'console')
+        full_name = Path(target.subdir, target.name).as_posix()
         elem.add_item('COMMAND', cmd)
-        elem.add_item('description', f'Generating {target.name} with a custom command{cmd_type}')
+        elem.add_item('description', f'Generating {full_name} with a custom command{cmd_type}')
         self.add_build(elem)
         self.processed_targets.add(target.get_id())
 
