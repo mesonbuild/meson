@@ -1633,8 +1633,8 @@ external dependencies (including libraries) must go to "dependencies".''')
                       'build_always', 'capture', 'depends', 'depend_files', 'depfile',
                       'build_by_default', 'build_always_stale', 'console', 'env',
                       'feed', 'install_tag'})
-    @typed_pos_args('custom_target', str)
-    def func_custom_target(self, node: mparser.FunctionNode, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> build.CustomTarget:
+    @typed_pos_args('custom_target', optargs=[str])
+    def func_custom_target(self, node: mparser.FunctionNode, args: T.Tuple[T.Optional[str]], kwargs: 'TYPE_kwargs') -> build.CustomTarget:
         if 'depfile' in kwargs and ('@BASENAME@' in kwargs['depfile'] or '@PLAINNAME@' in kwargs['depfile']):
             FeatureNew.single_use('substitutions in custom_target depfile', '0.47.0', self.subproject)
         return self._func_custom_target_impl(node, args, kwargs)
@@ -1642,6 +1642,13 @@ external dependencies (including libraries) must go to "dependencies".''')
     def _func_custom_target_impl(self, node, args, kwargs):
         'Implementation-only, without FeatureNew checks, for internal use'
         name = args[0]
+        if name is None:
+            # name will default to first output, but we cannot do that yet because
+            # they could need substitutions (e.g. @BASENAME@) first. CustomTarget()
+            # will take care of setting a proper default but name must be an empty
+            # string in the meantime.
+            FeatureNew('custom_target() with no name argument', '0.60.0').use(self.subproject)
+            name = ''
         kwargs['install_mode'] = self._get_kwarg_install_mode(kwargs)
         if 'input' in kwargs:
             try:
@@ -1654,7 +1661,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             if isinstance(kwargs['command'][0], str):
                 kwargs['command'][0] = self.func_find_program(node, kwargs['command'][0], {})
         tg = build.CustomTarget(name, self.subdir, self.subproject, kwargs, backend=self.backend)
-        self.add_target(name, tg)
+        self.add_target(tg.name, tg)
         return tg
 
     @FeatureNewKwargs('run_target', '0.57.0', ['env'])

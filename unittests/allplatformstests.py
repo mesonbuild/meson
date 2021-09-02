@@ -4061,3 +4061,11 @@ class AllPlatformTests(BasePlatformTests):
         with self.assertRaises(subprocess.CalledProcessError) as cm:
             self.build()
         self.assertIn('error: use of a blacklisted/placeholder name `foo`', cm.exception.stdout)
+
+    def test_custom_target_name(self):
+        testdir = os.path.join(self.unit_test_dir, '99 custom target name')
+        self.init(testdir)
+        out = self.build()
+        if self.backend is Backend.ninja:
+            self.assertIn('Generating file.txt with a custom command', out)
+            self.assertIn('Generating subdir/file.txt with a custom command', out)

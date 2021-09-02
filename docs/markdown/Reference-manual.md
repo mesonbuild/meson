@@ -326,8 +326,20 @@ false otherwise.
 ```
 
 Create a custom top level build target. The only positional argument
-is the name of this target and the keyword arguments are the
-following.
+is the name of this target and cannot contain path separators (`/` or `\`).
+The name of custom target might not be used by every backends, for instance with
+the Ninja backend, `subdir/meson.build` containing the example below,
+`ninja -C builddir foo` or `ninja -C builddir subdir/foo` won't work,
+it is instead `ninja -C builddir subdir/file.txt`. Howerver, `meson compile subdir/foo`
+is accepted.
+```meson
+custom_target('foo', output: 'file.txt', ...)
+```
+
+*Since 0.60.0* the name argument is optional and defaults to the basename of the first
+output (`file.txt` in the example above).
+
+These are all the supported keyword arguments:
 
 - `build_by_default` *(since 0.38.0)*: causes, when set to true, to
   have this target be built by default. This means it will be built when
