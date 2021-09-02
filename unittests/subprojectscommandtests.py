@@ -83,7 +83,7 @@ class SubprojectsCommandTests(BasePlatformTests):
         self._git(['init'] + extra_cmd, path)
         self._git_config(path)
         self._git(['add', '.'], path)
-        self._git(['commit', '-m', 'Initial commit'], path)
+        self._git(['commit', '--no-gpg-sign', '-m', 'Initial commit'], path)
 
     def _git_create_remote_repo(self, name):
         self._git_create_repo(self.root_dir / name)
@@ -93,15 +93,15 @@ class SubprojectsCommandTests(BasePlatformTests):
 
     def _git_create_remote_commit(self, name, branch):
         self._git_remote(['checkout', branch], name)
-        self._git_remote(['commit', '--allow-empty', '-m', f'initial {branch} commit'], name)
+        self._git_remote(['commit', '--no-gpg-sign', '--allow-empty', '-m', f'initial {branch} commit'], name)
 
     def _git_create_remote_branch(self, name, branch):
         self._git_remote(['checkout', '-b', branch], name)
-        self._git_remote(['commit', '--allow-empty', '-m', f'initial {branch} commit'], name)
+        self._git_remote(['commit', '--no-gpg-sign', '--allow-empty', '-m', f'initial {branch} commit'], name)
 
     def _git_create_remote_tag(self, name, tag):
-        self._git_remote(['commit', '--allow-empty', '-m', f'tag {tag} commit'], name)
-        self._git_remote(['tag', tag], name)
+        self._git_remote(['commit', '--no-gpg-sign', '--allow-empty', '-m', f'tag {tag} commit'], name)
+        self._git_remote(['tag', '--no-sign', tag], name)
 
     def _wrap_create_git(self, name, revision='master'):
         path = self.root_dir / name
