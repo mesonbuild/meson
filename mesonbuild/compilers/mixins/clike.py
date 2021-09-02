@@ -1177,9 +1177,7 @@ class CLikeCompiler(Compiler):
         Finds the framework with the specified name, and returns link args for
         the same or returns None when the framework is not found.
         '''
-        # TODO: maybe this belongs in clang? also, should probably check for macOS?
-        if self.id != 'clang':
-            raise mesonlib.MesonException('Cannot find frameworks with non-clang compiler')
+        # TODO: should probably check for macOS?
         return self._find_framework_impl(name, env, extra_dirs, allow_system)
 
     def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
