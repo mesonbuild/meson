@@ -101,7 +101,7 @@ def _git_init(project_dir):
 def _git_add_all(project_dir):
     subprocess.check_call('git add *', cwd=project_dir, shell=True,
                           stdout=subprocess.DEVNULL)
-    subprocess.check_call(['git', 'commit', '-a', '-m', 'I am a project'], cwd=project_dir,
+    subprocess.check_call(['git', 'commit', '--no-gpg-sign', '-a', '-m', 'I am a project'], cwd=project_dir,
                           stdout=subprocess.DEVNULL)
 
 class AllPlatformTests(BasePlatformTests):
