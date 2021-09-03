@@ -2,6 +2,10 @@ name: File format check
 
 on: [push, pull_request]
 
+concurrency:
+  group: file_fmt-${{ github.head_ref }}
+  cancel-in-progress: true
+
 jobs:
   format:
     runs-on: ubuntu-latest

@@ -1,5 +1,9 @@
 name: LintMypy
 
+concurrency:
+  group: mypy-${{ github.head_ref }}
+  cancel-in-progress: true
+
 on:
   push:
     paths:

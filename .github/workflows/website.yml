@@ -1,5 +1,10 @@
 name: Update website
 
+concurrency:
+  group: mesonbuild.com
+  # We do NOT want `cancel-in-progress` here since only one website job
+  # should run at a time to avoid upload race condtions.
+
 on:
   push:
     branches:

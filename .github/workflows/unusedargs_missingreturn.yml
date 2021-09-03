@@ -9,6 +9,10 @@ env:
   CPPFLAGS: "-Werror=unused-parameter -Werror=return-type"
   FFLAGS: "-fimplicit-none"
 
+concurrency:
+  group: unusedargs-${{ github.head_ref }}
+  cancel-in-progress: true
+
 on:
   push:
     paths:
