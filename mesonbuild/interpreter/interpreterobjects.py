@@ -605,8 +605,25 @@ class DependencyHolder(ObjectHolder[Dependency]):
     @InterpreterObject.method('as_link_whole')
     def as_link_whole_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> Dependency:
         if not isinstance(self.held_object, InternalDependency):
-            raise InterpreterException('as_link_whole method is only supported on declare_dependency() objects')
-        new_dep = self.held_object.generate_link_whole_dependency()
+            FeatureNew('as_link_whole on external dependency', '1.1.0').use(self.subproject)
+        new_dep, archives = self.held_object.generate_link_whole_dependency()
+        new_dep.objects = new_dep.objects.copy()
+        for a in archives:
+            basename = os.path.basename(a.archive_filename)
+            outdir = os.path.join(self.interpreter.environment.get_scratch_dir(), f'{basename}.p')
+            cmd = self.interpreter.environment.get_build_command() + [
+                '--internal', 'ar', '--outdir', outdir, a.archive_filename,
+            ]
+            outputs = [os.path.join(outdir, i) for i in a.objects]
+            t = build.CustomTarget(f'{basename} objects',
+                                   self.interpreter.subdir,
+                                   self.interpreter.subproject,
+                                   self.interpreter.environment,
+                                   cmd,
+                                   [a.archive_filename],
+                                   outputs)
+            self.interpreter.add_target(t.name, t)
+            new_dep.objects.append(t)
         return new_dep
 
     @FeatureNew('dependency.as_static', '1.6.0')

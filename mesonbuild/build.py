@@ -1456,6 +1456,7 @@ class BuildTarget(Target):
                 if dep not in self.external_deps:
                     self.external_deps.append(dep)
                     self.process_sourcelist(dep.get_sources())
+                    self.process_objectlist(dep.objects)
                 self.add_deps(dep.ext_deps)
             elif isinstance(dep, BuildTarget):
                 raise InvalidArguments(f'Tried to use a build target {dep.name} as a dependency of target {self.name}.\n'
