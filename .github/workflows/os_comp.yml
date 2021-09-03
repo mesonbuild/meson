@@ -85,7 +85,7 @@ jobs:
             CXX: 'g++'
 
     env:
-      MESON_CI_JOBNAME: linux-${{ github.job }}-${{ matrix.cfg.CC }}
+      MESON_CI_JOBNAME_UPDATE: linux-${{ github.job }}-${{ matrix.cfg.CC }}
 
     container:
       image: mesonbuild/ubuntu-rolling
@@ -116,6 +116,7 @@ jobs:
           fi
 
           source /ci/env_vars.sh
+          export MESON_CI_JOBNAME=$MESON_CI_JOBNAME_UPDATE
 
           update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix
           update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
