@@ -402,7 +402,7 @@ class Resolver:
 
     def get_git(self) -> None:
         if not GIT:
-            raise WrapException('Git program not found.')
+            raise WrapException(f'Git program not found, cannot download {self.packagename}.wrap via git.')
         revno = self.wrap.get('revision')
         is_shallow = False
         depth_option = []    # type: T.List[str]
