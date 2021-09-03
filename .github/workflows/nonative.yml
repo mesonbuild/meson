@@ -1,5 +1,9 @@
 name: Cross-only compilation environment
 
+concurrency:
+  group: nonative-${{ github.head_ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches:
