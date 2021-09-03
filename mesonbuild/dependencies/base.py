@@ -14,6 +14,7 @@ import itertools
 import typing as T
 import uuid
 from enum import Enum
+from dataclasses import dataclass
 
 from .. import mlog, mesonlib
 from ..compilers import clib_langs
@@ -129,6 +130,12 @@ class DependencyMethods(Enum):
 
 
 DependencyTypeName = T.NewType('DependencyTypeName', str)
+
+
+@dataclass
+class ExtractArchives:
+    archive_filename: str
+    objects: T.List[str]
 
 
 class Dependency(HoldableObject):
@@ -303,6 +310,26 @@ class Dependency(HoldableObject):
         """Used as base case for internal_dependency"""
         return self
 
+    def generate_link_whole_dependency(self) -> T.Tuple[Dependency, T.List[ExtractArchives]]:
+        ''' Return a copy of this dependency suited for link-whole
+        Removes all external static libraries (*.a, *.lib) this dependency links
+        with, and return them as a list of ExtractArchives.
+        '''
+        from ..utils import ar
+
+        new_dep = copy.copy(self)
+        new_dep.link_args = []
+        archives: T.List[ExtractArchives] = []
+        for arg in self.link_args:
+            if arg.endswith('.a'):
+                objects = ar.extract(arg, dry_run=True)
+                if objects:
+                    t = ExtractArchives(arg, objects)
+                    archives.append(t)
+                    continue
+            new_dep.link_args.append(arg)
+        return new_dep, archives
+
 class InternalDependency(Dependency):
 
     type_name = DependencyTypeName('internal')
@@ -389,22 +416,21 @@ class InternalDependency(Dependency):
             return val
         raise DependencyException(f'Could not get an internal variable and no default provided for {self!r}')
 
-    def generate_link_whole_dependency(self) -> Dependency:
+    def generate_link_whole_dependency(self) -> T.Tuple[Dependency, T.List[ExtractArchives]]:
         from ..build import SharedLibrary, CustomTarget, CustomTargetIndex
-        new_dep = copy.deepcopy(self)
-        for x in new_dep.libraries:
+        new_dep, archives = super().generate_link_whole_dependency()
+        assert isinstance(new_dep, InternalDependency) # For mypy
+        new_dep.libraries = []
+        new_dep.whole_libraries = self.whole_libraries.copy()
+        for x in self.libraries:
             if isinstance(x, SharedLibrary):
                 raise MesonException('Cannot convert a dependency to link_whole when it contains a '
                                      'SharedLibrary')
             elif isinstance(x, (CustomTarget, CustomTargetIndex)) and x.links_dynamically():
                 raise MesonException('Cannot convert a dependency to link_whole when it contains a '
                                      'CustomTarget or CustomTargetIndex which is a shared library')
-
-        # Mypy doesn't understand that the above is a TypeGuard
-        new_dep.whole_libraries += T.cast('T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]]',
-                                          new_dep.libraries)
-        new_dep.libraries = []
-        return new_dep
+            new_dep.whole_libraries.append(x)
+        return new_dep, archives
 
     def get_as_static(self, recursive: bool) -> InternalDependency:
         new_dep = copy.copy(self)

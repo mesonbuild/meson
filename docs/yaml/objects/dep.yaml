@@ -101,12 +101,15 @@ methods:
     returns: dep
     since: 0.56.0
     description: |
-      Only dependencies created with [[declare_dependency]],
-      returns a copy of the dependency object with all
+      - For dependencies created with [[declare_dependency]]:
+      Returns a copy of the dependency object with all
       link_with arguments changed to link_whole. This is useful for example for
       fallback dependency from a subproject built with `default_library=static`.
       Note that all `link_with` objects must be static libraries otherwise an error
       will be raised when trying to `link_whole` a shared library.
+      - *(Since 1.11.0)* For external dependencies, returns a copy of the dependency
+      object with `*.a` arguments replaced with the list of `.o` files they contain.
+      This allows to merge together two static libraries.
 
   - name: partial_dependency
     returns: dep
