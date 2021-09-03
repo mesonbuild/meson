@@ -3,3 +3,4 @@
 * text eol=lf
 *.png binary
 *.icns binary
+*.a binary
