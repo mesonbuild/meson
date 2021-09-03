@@ -1,5 +1,9 @@
 name: macos
 
+concurrency:
+  group: macos-${{ github.head_ref }}
+  cancel-in-progress: true
+
 on:
   push:
     paths:

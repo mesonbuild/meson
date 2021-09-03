@@ -1,5 +1,9 @@
 name: msys2
 
+concurrency:
+  group: msys2-${{ github.head_ref }}
+  cancel-in-progress: true
+
 on:
   push:
     paths:
