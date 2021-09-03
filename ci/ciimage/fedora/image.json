@@ -2,6 +2,7 @@
   "base_image": "fedora:latest",
   "env": {
     "CI":                "1",
-    "SKIP_STATIC_BOOST": "1"
+    "SKIP_STATIC_BOOST": "1",
+    "MESON_CI_JOBNAME": "linux-fedora-gcc"
   }
 }
