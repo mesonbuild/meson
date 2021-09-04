@@ -184,10 +184,36 @@ class ImageTester(BuilderBase):
             cleanup_cmd = [self.docker, 'rmi', '-f', 'meson_test_image']
             subprocess.run(cleanup_cmd).returncode
 
+class ImageTTY(BuilderBase):
+    def __init__(self, data_dir: Path, temp_dir: Path, ci_root: Path) -> None:
+        super().__init__(data_dir, temp_dir)
+        self.meson_root = ci_root.parent.parent.resolve()
+
+    def do_run(self) -> None:
+        try:
+            tty_cmd = [
+                self.docker, 'run',
+                '--name', 'meson_test_container', '-t', '-i', '-v', f'{self.meson_root.as_posix()}:/meson',
+                f'{image_namespace}/{self.data_dir.name}',
+                '/bin/bash', '-c', ''
+                    + 'cd meson;'
+                    + 'source /ci/env_vars.sh;'
+                    + f'echo -e "\\n\\nInteractive test shell in the {image_namespace}/{self.data_dir.name} container with the current meson tree";'
+                    + 'echo -e "The file ci/ciimage/user.sh will be sourced if it exists to enable user specific configurations";'
+                    + 'echo -e "Run the following command to run all CI tests: ./run_tests.py $CI_ARGS\\n\\n";'
+                    + '[ -f ci/ciimage/user.sh ] && exec /bin/bash --init-file ci/ciimage/user.sh;'
+                    + 'exec /bin/bash;'
+            ]
+            subprocess.run(tty_cmd).returncode != 0
+        finally:
+            cleanup_cmd = [self.docker, 'rm', '-f', 'meson_test_container']
+            subprocess.run(cleanup_cmd).returncode
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description='Meson CI image builder')
     parser.add_argument('what', type=str, help='Which image to build / test')
-    parser.add_argument('-t', '--type', choices=['build', 'test', 'testTTY'], help='What to do', required=True)
+    parser.add_argument('-t', '--type', choices=['build', 'test', 'testTTY', 'TTY'], help='What to do', required=True)
 
     args = parser.parse_args()
 
@@ -207,6 +233,9 @@ def main() -> None:
         elif args.type == 'testTTY':
             tester = ImageTester(ci_data, ci_build, ci_root)
             tester.do_test(tty=True)
+        elif args.type == 'TTY':
+            tester = ImageTTY(ci_data, ci_build, ci_root)
+            tester.do_run()
 
 if __name__ == '__main__':
     main()
