@@ -21,7 +21,7 @@
 # http://cgit.freedesktop.org/libreoffice/core/commit/?id=3213cd54b76bc80a6f0516aac75a48ff3b2ad67c
 
 import typing as T
-import os, sys
+import shlex, os, sys
 from .. import mesonlib
 from .. import mlog
 from ..mesonlib import Popen_safe
@@ -31,8 +31,10 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument('--cross-host', default=None, dest='cross_host',
                     help='cross compilation host platform')
+parser.add_argument('--readelf', type=str, default=None, help='custom path to readelf binary')
 parser.add_argument('args', nargs='+')
 
+TOOL_CMD: T.Dict[str, T.List[str]] = {}
 TOOL_WARNING_FILE = None
 RELINKING_WARNING = 'Relinking will always happen on source changes.'
 
@@ -65,11 +67,14 @@ def print_tool_warning(tools: T.List[str], msg: str, stderr: T.Optional[str] = N
         pass
 
 def get_tool(name: str) -> T.List[str]:
+    if name in TOOL_CMD:
+        # prefer tools overridden via CLI, namely readelf
+        # also caches lookups to os.environ
+        return TOOL_CMD[name]
     evar = name.upper()
-    if evar in os.environ:
-        import shlex
-        return shlex.split(os.environ[evar])
-    return [name]
+    tool_cmd = shlex.split(os.environ[evar]) if evar in os.environ else [name]
+    TOOL_CMD[name] = tool_cmd
+    return tool_cmd
 
 def call_tool(name: str, args: T.List[str], **kwargs: T.Any) -> str:
     tool = get_tool(name)
@@ -314,12 +319,14 @@ def gen_symbols(libfilename: str, impfilename: str, outfilename: str, cross_host
         dummy_syms(outfilename)
 
 def run(args: T.List[str]) -> int:
-    global TOOL_WARNING_FILE
+    global TOOL_CMD, TOOL_WARNING_FILE
     options = parser.parse_args(args)
     if len(options.args) != 4:
         print('symbolextractor.py <shared library file> <import library> <output file>')
         sys.exit(1)
     privdir = os.path.join(options.args[0], 'meson-private')
+    if options.readelf:
+        TOOL_CMD['readelf'] = shlex.split(options.readelf)
     TOOL_WARNING_FILE = os.path.join(privdir, 'symbolextractor_tool_warning_printed')
     libfile = options.args[1]
     impfile = options.args[2] # Only used on Windows
