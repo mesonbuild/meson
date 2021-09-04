@@ -433,6 +433,18 @@ class CMakeDependency(ExternalDependency):
         modules = self._map_module_list(modules, components)
         autodetected_module_list = False
 
+        # Check if we need a DEBUG or RELEASE CMake dependencies
+        is_debug = False
+        if OptionKey('b_vscrt') in self.env.coredata.options:
+            is_debug = self.env.coredata.get_option(OptionKey('buildtype')) == 'debug'
+            if self.env.coredata.options[OptionKey('b_vscrt')].value in {'mdd', 'mtd'}:
+                is_debug = True
+        else:
+            # Don't directly assign to is_debug to make mypy happy
+            debug_opt = self.env.coredata.get_option(OptionKey('debug'))
+            assert isinstance(debug_opt, bool)
+            is_debug = debug_opt
+
         # Try guessing a CMake target if none is provided
         if len(modules) == 0:
             for i in self.traceparser.targets:
@@ -479,7 +491,26 @@ class CMakeDependency(ExternalDependency):
 
             incDirs = [x for x in self.traceparser.get_cmake_var('PACKAGE_INCLUDE_DIRS') if x]
             defs = [x for x in self.traceparser.get_cmake_var('PACKAGE_DEFINITIONS') if x]
-            libs = [x for x in self.traceparser.get_cmake_var('PACKAGE_LIBRARIES') if x]
+            libs_raw = [x for x in self.traceparser.get_cmake_var('PACKAGE_LIBRARIES') if x]
+
+            # CMake has a "fun" API, where certain keywords describing
+            # configurations can be in the *_LIBRARIES vraiables. See:
+            # - https://github.com/mesonbuild/meson/issues/9197
+            # - https://gitlab.freedesktop.org/libnice/libnice/-/issues/140
+            # - https://cmake.org/cmake/help/latest/command/target_link_libraries.html#overview  (the last point in the section)
+            libs: T.List[str] = []
+            cfg_matches = True
+            cm_tag_map = {'debug': is_debug, 'optimized': not is_debug, 'general': True}
+            for i in libs_raw:
+                if i.lower() in cm_tag_map:
+                    cfg_matches = cm_tag_map[i.lower()]
+                    continue
+                if cfg_matches:
+                    libs += [i]
+                # According to the CMake docs, a keyword only works for the
+                # directly the following item and all items without a keyword
+                # are implizitly `general`
+                cfg_matches = True
 
             # Try to use old style variables if no module is specified
             if len(libs) > 0:
@@ -545,15 +576,6 @@ class CMakeDependency(ExternalDependency):
                     cfgs = [x for x in tgt.properties['IMPORTED_CONFIGURATIONS'] if x]
                     cfg = cfgs[0]
 
-                if OptionKey('b_vscrt') in self.env.coredata.options:
-                    is_debug = self.env.coredata.get_option(OptionKey('buildtype')) == 'debug'
-                    if self.env.coredata.options[OptionKey('b_vscrt')].value in {'mdd', 'mtd'}:
-                        is_debug = True
-                else:
-                    # Don't directly assign to is_debug to make mypy happy
-                    debug_opt = self.env.coredata.get_option(OptionKey('debug'))
-                    assert isinstance(debug_opt, bool)
-                    is_debug = debug_opt
                 if is_debug:
                     if 'DEBUG' in cfgs:
                         cfg = 'DEBUG'
