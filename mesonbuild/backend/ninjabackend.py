@@ -50,6 +50,7 @@ from .backends import CleanTrees
 from ..build import GeneratedList, InvalidArguments, ExtractedObjects
 from ..interpreter import Interpreter
 from ..mesonmain import need_setup_vsenv
+from ..programs import ExternalProgram
 
 if T.TYPE_CHECKING:
     from .._typing import ImmutableListProtocol
@@ -1993,6 +1994,9 @@ class NinjaBackend(backends.Backend):
              '$in',
              '$IMPLIB',
              '$out']
+        readelf_cmd = ExternalProgram.from_bin_list(self.environment, MachineChoice.BUILD, 'readelf')
+        if readelf_cmd.found():
+            args.append('--readelf="{}"'.format(readelf_cmd.get_path()))
         symrule = 'SHSYM'
         symcmd = args + ['$CROSS']
         syndesc = 'Generating symbol file $out'
