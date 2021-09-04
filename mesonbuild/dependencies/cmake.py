@@ -15,7 +15,7 @@
 from .base import ExternalDependency, DependencyException, DependencyMethods, DependencyTypeName
 from ..mesonlib import is_windows, MesonException, OptionKey, PerMachine, stringlistify, extract_as_list
 from ..mesondata import mesondata
-from ..cmake import CMakeExecutor, CMakeTraceParser, CMakeException, CMakeToolchain, CMakeExecScope, check_cmake_args
+from ..cmake import CMakeExecutor, CMakeTraceParser, CMakeException, CMakeToolchain, CMakeExecScope, check_cmake_args, CMakeTarget
 from .. import mlog
 from pathlib import Path
 import functools
@@ -446,6 +446,37 @@ class CMakeDependency(ExternalDependency):
 
         # Failed to guess a target --> try the old-style method
         if len(modules) == 0:
+            # Warn when there might be matching imported targets but no automatic match was used
+            partial_modules: T.List[CMakeTarget] = []
+            for k, v in self.traceparser.targets.items():
+                tg = k.lower()
+                lname = name.lower()
+                if tg.startswith(f'{lname}::'):
+                    partial_modules += [v]
+            if partial_modules:
+                mlog.warning(textwrap.dedent(f'''\
+                    Could not find and exact match for the CMake dependency {name}.
+
+                    However, Meson found the following partial matches:
+
+                        {[x.name for x in partial_modules]}
+
+                    Using imported is recommended, since this approach is less error prone
+                    and better supported by Meson. Consider explicitly specifying one of
+                    these in the dependency call with:
+
+                        dependency('{name}', modules: ['{name}::<name>', ...])
+
+                    Meson will now continue to use the old-style {name}_LIBRARIES CMake
+                    variables to extract the dependency information since no explicit
+                    target is currently specified.
+
+                '''))
+                mlog.debug('More info for the partial match targets:')
+                for tgt in partial_modules:
+                    mlog.debug(tgt)
+
+
             incDirs = [x for x in self.traceparser.get_cmake_var('PACKAGE_INCLUDE_DIRS') if x]
             defs = [x for x in self.traceparser.get_cmake_var('PACKAGE_DEFINITIONS') if x]
             libs = [x for x in self.traceparser.get_cmake_var('PACKAGE_LIBRARIES') if x]
