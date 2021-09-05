@@ -1001,8 +1001,17 @@ a non-existing variable will cause a fatal error.
 ### import()
 
 ```
-  module_object import(string, required : bool | feature, disabler : bool)
+  module_object import(string, ...)
 ```
+
+Keyword arguments are the following:
+
+- `required` *(since 0.59.0)*: By default, `required` is `true` and
+  Meson will abort if the module could not be found.
+- `disabler` *(since 0.59.0)*: if `true` and the module couldn't be found,
+  returns a [disabler object](#disabler-object) instead of a not-found module.
+- `dirs` *(since 0.60.0)*: extra list of absolute paths where to look for program
+  names.
 
 Imports the given extension module. Returns an object that can be used to call
 the methods of the module. Here's an example for a hypothetical `testmod`
@@ -1012,8 +1021,6 @@ module.
     tmod = import('testmod')
     tmod.do_something()
 ```
-
-*Since 0.59.0* the required and disabler keyword arguments
 
 ### include_directories()
 

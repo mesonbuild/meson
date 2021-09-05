@@ -23,3 +23,12 @@ Meson has a selection of modules to make common requirements easy to
 use. Modules can be thought of like the standard library of a
 programming language. Currently Meson provides the modules listed on
 subpages.
+
+In addition to modules that come with Meson, it is possible to write
+your own. These can then be imported using the `dirs` kwarg:
+
+```meson
+mymod = import('somemodule', dirs : meson.project_source_root() / 'modules')
+```
+
+This will import the file `modules/somemodule.py` as a Meson module.
