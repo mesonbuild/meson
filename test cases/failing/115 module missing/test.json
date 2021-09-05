@@ -1,0 +1,7 @@
+{
+    "stdout": [
+        {
+            "line": "test cases/failing/115 module missing/meson.build:3:0: ERROR: Module \"no_such_module\" does not exist"
+        }
+    ]
+}
