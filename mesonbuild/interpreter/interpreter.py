@@ -70,6 +70,7 @@ import collections
 import typing as T
 import textwrap
 import importlib
+import importlib.util
 
 if T.TYPE_CHECKING:
     import argparse
@@ -518,9 +519,24 @@ class Interpreter(InterpreterBase, HoldableObject):
                 dep = df.lookup(kwargs, force_fallback=True)
                 self.build.stdlibs[for_machine][l] = dep
 
-    def _import_module(self, modname: str, required: bool) -> T.Union[ExtensionModule, NewExtensionModule, NotFoundExtensionModule]:
+    def _import_module(self, modname: str, required: bool, search_dirs: T.List[str]) -> T.Union[ExtensionModule, NewExtensionModule, NotFoundExtensionModule]:
         if modname in self.modules:
             return self.modules[modname]
+
+        for search_dir in search_dirs:
+            try:
+                module_file = os.path.join(search_dir, modname + '.py')
+                spec = importlib.util.spec_from_file_location(modname, module_file)
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+            except FileNotFoundError:
+                pass
+            else:
+                ext_module = module.initialize(self)
+                assert isinstance(ext_module, (ExtensionModule, NewExtensionModule))
+                self.modules[modname] = ext_module
+                return ext_module
+
         try:
             module = importlib.import_module('mesonbuild.modules.' + modname)
         except ImportError:
@@ -538,12 +554,14 @@ class Interpreter(InterpreterBase, HoldableObject):
         'import',
         REQUIRED_KW.evolve(since='0.59.0'),
         KwargInfo('disabler', bool, default=False, since='0.59.0'),
+        KwargInfo('dirs', ContainerTypeInfo(list, str), default=[], listify=True, since='0.60.0'),
     )
     @disablerIfNotFound
     def func_import(self, node: mparser.BaseNode, args: T.Tuple[str],
                     kwargs: 'kwargs.FuncImportModule') -> T.Union[ExtensionModule, NewExtensionModule, NotFoundExtensionModule]:
         modname = args[0]
         disabled, required, _ = extract_required_kwarg(kwargs, self.subproject)
+        search_dirs = extract_search_dirs(kwargs)
         if disabled:
             return NotFoundExtensionModule()
 
@@ -551,14 +569,14 @@ class Interpreter(InterpreterBase, HoldableObject):
             plainname = modname.split('-', 1)[1]
             try:
                 # check if stable module exists
-                mod = self._import_module(plainname, required)
+                mod = self._import_module(plainname, required, search_dirs)
                 # XXX: this is acutally not helpful, since it doesn't do a version check
                 mlog.warning(f'Module {modname} is now stable, please use the {plainname} module instead.')
                 return mod
             except InvalidArguments:
                 mlog.warning('Module %s has no backwards or forwards compatibility and might not exist in future releases.' % modname, location=node)
                 modname = 'unstable_' + plainname
-        return self._import_module(modname, required)
+        return self._import_module(modname, required, search_dirs)
 
     @typed_pos_args('files', varargs=str)
     @noKwargs
