@@ -389,7 +389,7 @@ class BinaryTable:
                 command = self._rel2abs_path(command)
                 self.binaries[name] = mesonlib.listify(command)
 
-    def _rel2abs_path(self, command):
+    def _rel2abs_path(self, command: T.Union[str, T.List[str]]) -> T.Union[str, T.List[str]]:
         if command:
             if isinstance(command, list):
                 binary = command[0]
