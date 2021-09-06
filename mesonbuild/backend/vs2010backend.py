@@ -1104,6 +1104,12 @@ class Vs2010Backend(backends.Backend):
                 optargs = [x for x in file_args['cpp'] if x.startswith('/std:c++')]
                 if optargs:
                     ET.SubElement(clconf, 'LanguageStandard').text = optargs[0].replace("/std:c++","stdcpp")
+            if 'c' in file_args:
+                opts = self.get_base_options_for_target(target)
+                if OptionKey('std', lang='c') in opts.options:
+                    optcstd = opts.options[OptionKey('std', lang='c')].value
+                    if optcstd in ('c11', 'c17'):
+                        ET.SubElement(clconf, 'LanguageStandard_C').text = 'std' + optcstd
         pch_sources = {}
         if self.environment.coredata.options.get(OptionKey('b_pch')):
             for lang in ['c', 'cpp']:
