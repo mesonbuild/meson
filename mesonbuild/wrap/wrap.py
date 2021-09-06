@@ -14,6 +14,7 @@
 
 from .. import mlog
 import contextlib
+import glob
 import urllib.request
 import urllib.error
 import urllib.parse
@@ -87,6 +88,12 @@ class WrapException(MesonException):
     pass
 
 class WrapNotFoundException(WrapException):
+    pass
+
+class WrapPatchFormatException(WrapException):
+    pass
+
+class PatchUnpackException(WrapException):
     pass
 
 class PackageDefinition:
@@ -566,6 +573,14 @@ class Resolver:
 
             return path.as_posix()
 
+    def unpack_archive(self, path):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            shutil.unpack_archive(path, tmpdir)
+            src = glob.glob(f'{tmpdir}{os.path.sep}*{os.path.sep}')
+            if len(src) != 1:
+                raise WrapPatchFormatException("Error patch archive format.")
+            self.copy_tree(src[0], os.path.join(self.subdir_root, self.wrap.name))
+
     def apply_patch(self) -> None:
         if 'patch_filename' in self.wrap.values and 'patch_directory' in self.wrap.values:
             m = 'Wrap file {!r} must not have both "patch_filename" and "patch_directory"'
@@ -573,11 +588,9 @@ class Resolver:
         if 'patch_filename' in self.wrap.values:
             path = self.get_file_internal('patch')
             try:
-                shutil.unpack_archive(path, self.subdir_root)
+                self.unpack_archive(path)
             except Exception:
-                with tempfile.TemporaryDirectory() as workdir:
-                    shutil.unpack_archive(path, workdir)
-                    self.copy_tree(workdir, self.subdir_root)
+                raise PatchUnpackException(f"Can't unpack patch {self.wrap.name}")
         elif 'patch_directory' in self.wrap.values:
             from ..interpreterbase import FeatureNew
             FeatureNew('patch_directory', '0.55.0').use(self.current_subproject)
