@@ -103,7 +103,7 @@ class Dependency(HoldableObject):
             return mlog.red('NO')
         if not self.version:
             return mlog.green('YES')
-        return mlog.AnsiText([mlog.green('YES'), ' ', mlog.cyan(self.version)])
+        return mlog.AnsiText(mlog.green('YES'), ' ', mlog.cyan(self.version))
 
     def get_compile_args(self) -> T.List[str]:
         if self.include_type == 'system':

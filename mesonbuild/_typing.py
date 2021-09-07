@@ -36,6 +36,9 @@ T = typing.TypeVar('T')
 class StringProtocol(Protocol):
     def __str__(self) -> str: ...
 
+class SizedStringProtocol(Protocol, StringProtocol, typing.Sized):
+    pass
+
 class ImmutableListProtocol(Protocol[T]):
 
     """A protocol used in cases where a list is returned, but should not be
