@@ -13,6 +13,7 @@ summary({'Some boolean': false,
 summary({'missing prog': find_program('xyzzy', required: false),
          'existing prog': import('python').find_installation(),
          'missing dep': dependency('', required: false),
+         'external dep': dependency('zlib', required: false),
          'internal dep': declare_dependency(),
         }, section: 'Stuff')
 summary('A number', 1, section: 'Configuration')
