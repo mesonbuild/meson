@@ -22,7 +22,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 if T.TYPE_CHECKING:
-    from ._typing import StringProtocol
+    from ._typing import StringProtocol, SizedStringProtocol
 
 """This is (mostly) a standalone module used to write logging
 information about Meson runs. Some output goes to screen,
@@ -143,7 +143,7 @@ TV_Loggable = T.Union[str, AnsiDecorator, 'StringProtocol']
 TV_LoggableList = T.List[TV_Loggable]
 
 class AnsiText:
-    def __init__(self, *args: TV_LoggableList):
+    def __init__(self, *args: 'SizedStringProtocol'):
         self.args = args
 
     def __len__(self) -> int:
