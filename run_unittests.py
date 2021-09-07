@@ -5428,6 +5428,7 @@ class AllPlatformTests(BasePlatformTests):
                 missing prog   : NO
                 existing prog  : ''' + sys.executable + '''
                 missing dep    : NO
+                external dep   : YES 1.2.3
                 internal dep   : YES
 
               Plugins
@@ -5445,9 +5446,13 @@ class AllPlatformTests(BasePlatformTests):
         if sys.version_info < (3, 7, 0):
             # Dictionary order is not stable in Python <3.7, so sort the lines
             # while comparing
-            self.assertEqual(sorted(expected_lines), sorted(out_lines))
-        else:
-            self.assertEqual(expected_lines, out_lines)
+            expected_lines = sorted(expected_lines)
+            out_lines = sorted(out_lines)
+        for e, o in zip(expected_lines, out_lines):
+            if e.startswith('    external dep'):
+                self.assertRegex(o, r'^    external dep   : (YES [0-9.]*|NO)$')
+            else:
+                self.assertEqual(o, e)
 
     def test_meson_compile(self):
         """Test the meson compile command."""
