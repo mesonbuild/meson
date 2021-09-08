@@ -4579,7 +4579,7 @@ class AllPlatformTests(BasePlatformTests):
 
             config = mesonbuild.coredata.parse_machine_files(crossfile)
             bt = mesonbuild.envconfig.BinaryTable(config.get('binaries', {}))
-            self.assertEqual(bt.binaries['c'], [os.path.abspath('toolchain/gcc')])
+            self.assertEqual(bt.binaries['c'], [os.path.normpath(os.path.join(self.src_root, 'toolchain/gcc'))])
 
         # A binary entry without a path shouldn't be altered.
         with temp_filename() as crossfile:
@@ -4597,12 +4597,23 @@ class AllPlatformTests(BasePlatformTests):
         # A binary entry with an absolute path shouldn't be altered.
         with temp_filename() as crossfile:
             with open(crossfile, 'w', encoding='utf-8') as f:
-                f.write(textwrap.dedent(
-                    '''
-                    [binaries]
-                    c = '/opt/toolchain/bin/gcc'
-                    '''))
+                if is_windows():
+                    f.write(textwrap.dedent(
+                        '''
+                        [binaries]
+                        c = 'X:\\opt\\toolchain\\bin\\gcc'
+                        '''))
+                else:
+                    f.write(textwrap.dedent(
+                        '''
+                        [binaries]
+                        c = '/opt/toolchain/bin/gcc'
+                        '''))
 
             config = mesonbuild.coredata.parse_machine_files(crossfile)
             bt = mesonbuild.envconfig.BinaryTable(config.get('binaries', {}))
-            self.assertEqual(bt.binaries['c'], ['/opt/toolchain/bin/gcc'])
+            if is_windows():
+                self.assertEqual(bt.binaries['c'], ['X:\\opt\\toolchain\\bin\\gcc'])
+            else:
+                self.assertEqual(bt.binaries['c'], ['/opt/toolchain/bin/gcc'])
+
