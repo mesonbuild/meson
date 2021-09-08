@@ -386,23 +386,13 @@ class BinaryTable:
                 if not isinstance(command, (list, str)):
                     raise mesonlib.MesonException(
                         f'Invalid type {command!r} for entry {name!r} in cross file')
-                command = self._rel2abs_path(command)
-                self.binaries[name] = mesonlib.listify(command)
+                self.binaries[name] = self._rel2abs_path(mesonlib.listify(command))
 
-    def _rel2abs_path(self, command: T.Union[str, T.List[str]]) -> T.Union[str, T.List[str]]:
+    def _rel2abs_path(self, command: T.List[str]) -> T.List[str]:
         if command:
-            if isinstance(command, list):
-                binary = command[0]
-            else:
-                binary = command
-
+            binary = command[0]
             if os.path.dirname(binary):
-                binary = os.path.abspath(binary)
-                if isinstance(command, list):
-                    command[0] = binary
-                else:
-                    command = binary
-
+                command[0] = os.path.abspath(binary)        
         return command
 
     @staticmethod
