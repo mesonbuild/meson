@@ -4565,3 +4565,46 @@ class AllPlatformTests(BasePlatformTests):
             'mesonbuild.scripts.test_loaded_modules'
         ]
         self.assertEqual(sorted(expected_meson_modules), sorted(meson_modules))
+    
+    def test_relative_to_absolute_path_conversion(self):
+        from mesonbuild.envconfig import BinaryTable
+
+        # A binary entry with a relative path should be converted to
+        # an entry with absolute path.
+        with temp_filename() as crossfile:
+            with open(crossfile, 'w', encoding='utf-8') as f:
+                f.write(textwrap.dedent(
+                    '''
+                    [binaries]
+                    c = 'toolchain/gcc'
+                    '''))
+
+            config = mesonbuild.coredata.parse_machine_files(crossfile)
+            bt = BinaryTable(config.get('binaries', {}))
+            self.assertEqual(bt.binaries['c'], [os.path.abspath('toolchain/gcc')])
+
+        # A binary entry without a path shouldn't be altered.
+        with temp_filename() as crossfile:
+            with open(crossfile, 'w', encoding='utf-8') as f:
+                f.write(textwrap.dedent(
+                    '''
+                    [binaries]
+                    c = 'gcc'
+                    '''))
+
+            config = mesonbuild.coredata.parse_machine_files(crossfile)
+            bt = BinaryTable(config.get('binaries', {}))
+            self.assertEqual(bt.binaries['c'], ['gcc'])
+
+        # A binary entry with an absolute path shouldn't be altered.
+        with temp_filename() as crossfile:
+            with open(crossfile, 'w', encoding='utf-8') as f:
+                f.write(textwrap.dedent(
+                    '''
+                    [binaries]
+                    c = '/opt/toolchain/bin/gcc'
+                    '''))
+
+            config = mesonbuild.coredata.parse_machine_files(crossfile)
+            bt = BinaryTable(config.get('binaries', {}))
+            self.assertEqual(bt.binaries['c'], ['/opt/toolchain/bin/gcc'])
