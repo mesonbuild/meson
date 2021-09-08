@@ -89,9 +89,6 @@ class WrapException(MesonException):
 class WrapNotFoundException(WrapException):
     pass
 
-class WrapPatchFormatException(WrapException):
-    pass
-
 class PackageDefinition:
     def __init__(self, fname: str):
         self.filename = fname
@@ -574,7 +571,7 @@ class Resolver:
             shutil.unpack_archive(path, tmpdir)
             src = os.listdir(tmpdir)
             if len(src) != 1:
-                raise WrapPatchFormatException("Error patch archive format.")
+                raise WrapException("Error patch archive format.")
             self.copy_tree(src[0], os.path.join(self.subdir_root, self.wrap.name))
 
     def apply_patch(self) -> None:
@@ -583,10 +580,7 @@ class Resolver:
             raise WrapException(m.format(self.wrap.basename))
         if 'patch_filename' in self.wrap.values:
             path = self.get_file_internal('patch')
-            try:
-                self.unpack_archive(path)
-            except Exception:
-                raise WrapException(f"Can't unpack patch {self.wrap.name}")
+            self.unpack_archive(path)
         elif 'patch_directory' in self.wrap.values:
             from ..interpreterbase import FeatureNew
             FeatureNew('patch_directory', '0.55.0').use(self.current_subproject)
