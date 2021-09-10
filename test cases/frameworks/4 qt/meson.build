@@ -81,10 +81,16 @@ foreach qt : ['qt4', 'qt5', 'qt6']
     # qt4-rcc and qt5-rcc take different arguments, for example qt4: ['-compress', '3']; qt5: '--compress=3'
     qtmodule.preprocess(qt + 'testrccarg', qresources : files(['stuff.qrc', 'stuff2.qrc']), rcc_extra_arguments : '--compress=3', method : get_option('method'))
 
+    translations_cpp = qtmodule.compile_translations(qresource: qt+'_lang.qrc')
+    # unity builds suck and definitely cannot handle two qrc embeds in one compilation unit
+    unityproof_translations = static_library('unityproof_translations', translations_cpp)
+
+    extra_cpp_args += '-DQT="@0@"'.format(qt)
     qexe = executable(qt + 'app',
       sources : ['main.cpp', 'mainWindow.cpp', # Sources that don't need preprocessing.
       prep, prep_rcc],
       dependencies : qtdep,
+      link_with: unityproof_translations,
       cpp_args: extra_cpp_args,
       gui_app : true)
 
