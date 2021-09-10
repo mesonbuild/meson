@@ -121,8 +121,6 @@ class QtBaseModule(ExtensionModule):
         # It is important that this list does not change order as the order of
         # the returned ExternalPrograms will change as well
         bins = ['moc', 'uic', 'rcc', 'lrelease']
-        found = {b: NonExistingExternalProgram(name=f'{b}-qt{qt_dep.qtver}')
-                 for b in bins}
         wanted = f'== {qt_dep.version}'
 
         def gen_bins() -> T.Generator[T.Tuple[str, str], None, None]:
@@ -135,7 +133,7 @@ class QtBaseModule(ExtensionModule):
                 yield b, b
 
         for b, name in gen_bins():
-            if found[name].found():
+            if getattr(self, name).found():
                 continue
 
             if name == 'lrelease':
