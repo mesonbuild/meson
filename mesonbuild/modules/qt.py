@@ -96,7 +96,6 @@ if T.TYPE_CHECKING:
         rcc_extra_arguments: T.List[str]
         ts_files: T.List[T.Union[str, File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
 
-
 class QtBaseModule(ExtensionModule):
     _tools_detected = False
     _rcc_supports_depfiles = False
@@ -104,10 +103,12 @@ class QtBaseModule(ExtensionModule):
     def __init__(self, interpreter: 'Interpreter', qt_version: int = 5):
         ExtensionModule.__init__(self, interpreter)
         self.qt_version = qt_version
-        self.moc: ExternalProgram = NonExistingExternalProgram('moc')
-        self.uic: ExternalProgram = NonExistingExternalProgram('uic')
-        self.rcc: ExternalProgram = NonExistingExternalProgram('rcc')
-        self.lrelease: ExternalProgram = NonExistingExternalProgram('lrelease')
+        self.tools: T.Dict[str, ExternalProgram] = {
+            'moc': NonExistingExternalProgram('moc'),
+            'uic': NonExistingExternalProgram('uic'),
+            'rcc': NonExistingExternalProgram('rcc'),
+            'lrelease': NonExistingExternalProgram('lrelease'),
+        }
         self.methods.update({
             'has_tools': self.has_tools,
             'preprocess': self.preprocess,
@@ -121,11 +122,10 @@ class QtBaseModule(ExtensionModule):
         """Detect Qt (4 or 5) moc, uic, rcc in the specified bindir or in PATH"""
         # It is important that this list does not change order as the order of
         # the returned ExternalPrograms will change as well
-        bins = ['moc', 'uic', 'rcc', 'lrelease']
         wanted = f'== {qt_dep.version}'
 
         def gen_bins() -> T.Generator[T.Tuple[str, str], None, None]:
-            for b in bins:
+            for b in self.tools:
                 if qt_dep.bindir:
                     yield os.path.join(qt_dep.bindir, b), b
                 # prefer the <tool>-qt<version> of the tool to the plain one, as we
@@ -134,7 +134,7 @@ class QtBaseModule(ExtensionModule):
                 yield b, b
 
         for b, name in gen_bins():
-            if getattr(self, name).found():
+            if self.tools[name].found():
                 continue
 
             if name == 'lrelease':
@@ -157,7 +157,7 @@ class QtBaseModule(ExtensionModule):
                                    version_func=get_version,
                                    wanted=wanted)
             if p.found():
-                setattr(self, name, p)
+                self.tools[name] = p
 
     def _detect_tools(self, state: 'ModuleState', method: str, required: bool = True) -> None:
         if self._tools_detected:
@@ -177,10 +177,10 @@ class QtBaseModule(ExtensionModule):
                     mlog.bold('https://bugreports.qt.io/browse/QTBUG-45460'), fatal=False)
         else:
             suffix = f'-qt{self.qt_version}'
-            self.moc = NonExistingExternalProgram(name='moc' + suffix)
-            self.uic = NonExistingExternalProgram(name='uic' + suffix)
-            self.rcc = NonExistingExternalProgram(name='rcc' + suffix)
-            self.lrelease = NonExistingExternalProgram(name='lrelease' + suffix)
+            self.tools['moc'] = NonExistingExternalProgram(name='moc' + suffix)
+            self.tools['uic'] = NonExistingExternalProgram(name='uic' + suffix)
+            self.tools['rcc'] = NonExistingExternalProgram(name='rcc' + suffix)
+            self.tools['lrelease'] = NonExistingExternalProgram(name='lrelease' + suffix)
 
     @staticmethod
     def _qrc_nodes(state: 'ModuleState', rcc_file: 'FileOrString') -> T.Tuple[str, T.List[str]]:
@@ -262,7 +262,7 @@ class QtBaseModule(ExtensionModule):
             mlog.log('qt.has_tools skipped: feature', mlog.bold(feature), 'disabled')
             return False
         self._detect_tools(state, method, required=False)
-        for tool in (self.moc, self.uic, self.rcc, self.lrelease):
+        for tool in self.tools.values():
             if not tool.found():
                 if required:
                     raise MesonException('Qt tools not found')
@@ -296,7 +296,7 @@ class QtBaseModule(ExtensionModule):
     def _compile_resources_impl(self, state: 'ModuleState', kwargs: 'ResourceCompilerKwArgs') -> T.List[build.CustomTarget]:
         # Avoid the FeatureNew when dispatching from preprocess
         self._detect_tools(state, kwargs['method'])
-        if not self.rcc.found():
+        if not self.tools['rcc'].found():
             err_msg = ("{0} sources specified and couldn't find {1}, "
                        "please check your qt{2} installation")
             raise MesonException(err_msg.format('RCC', f'rcc-qt{self.qt_version}', self.qt_version))
@@ -326,7 +326,7 @@ class QtBaseModule(ExtensionModule):
             rcc_kwargs: T.Dict[str, T.Any] = {  # TODO: if CustomTarget had typing information we could use that here...
                 'input': sources,
                 'output': name + '.cpp',
-                'command': self.rcc.get_command() + ['-name', name, '-o', '@OUTPUT@'] + extra_args + ['@INPUT@'] + DEPFILE_ARGS,
+                'command': self.tools['rcc'].get_command() + ['-name', name, '-o', '@OUTPUT@'] + extra_args + ['@INPUT@'] + DEPFILE_ARGS,
                 'depend_files': qrc_deps,
                 'depfile': f'{name}.d',
             }
@@ -343,7 +343,7 @@ class QtBaseModule(ExtensionModule):
                 rcc_kwargs = {
                     'input': rcc_file,
                     'output': f'{name}.cpp',
-                    'command': self.rcc.get_command() + ['-name', '@BASENAME@', '-o', '@OUTPUT@'] + extra_args + ['@INPUT@'] + DEPFILE_ARGS,
+                    'command': self.tools['rcc'].get_command() + ['-name', '@BASENAME@', '-o', '@OUTPUT@'] + extra_args + ['@INPUT@'] + DEPFILE_ARGS,
                     'depend_files': qrc_deps,
                     'depfile': f'{name}.d',
                 }
@@ -375,14 +375,14 @@ class QtBaseModule(ExtensionModule):
     def _compile_ui_impl(self, state: 'ModuleState', kwargs: 'UICompilerKwArgs') -> build.GeneratedList:
         # Avoid the FeatureNew when dispatching from preprocess
         self._detect_tools(state, kwargs['method'])
-        if not self.uic.found():
+        if not self.tools['uic'].found():
             err_msg = ("{0} sources specified and couldn't find {1}, "
                        "please check your qt{2} installation")
             raise MesonException(err_msg.format('UIC', f'uic-qt{self.qt_version}', self.qt_version))
 
         # TODO: This generator isn't added to the generator list in the Interpreter
         gen = build.Generator(
-            self.uic,
+            self.tools['uic'],
             kwargs['extra_args'] + ['-o', '@OUTPUT@', '@INPUT@'],
             ['ui_@BASENAME@.h'],
             name=f'Qt{self.qt_version} ui')
@@ -420,7 +420,7 @@ class QtBaseModule(ExtensionModule):
     def _compile_moc_impl(self, state: 'ModuleState', kwargs: 'MocCompilerKwArgs') -> T.List[build.GeneratedList]:
         # Avoid the FeatureNew when dispatching from preprocess
         self._detect_tools(state, kwargs['method'])
-        if not self.moc.found():
+        if not self.tools['moc'].found():
             err_msg = ("{0} sources specified and couldn't find {1}, "
                        "please check your qt{2} installation")
             raise MesonException(err_msg.format('MOC', f'uic-qt{self.qt_version}', self.qt_version))
@@ -438,12 +438,12 @@ class QtBaseModule(ExtensionModule):
         arguments = kwargs['extra_args'] + inc + compile_args + ['@INPUT@', '-o', '@OUTPUT@']
         if kwargs['headers']:
             moc_gen = build.Generator(
-                self.moc, arguments, ['moc_@BASENAME@.cpp'],
+                self.tools['moc'], arguments, ['moc_@BASENAME@.cpp'],
                 name=f'Qt{self.qt_version} moc header')
             output.append(moc_gen.process_files(kwargs['headers'], state))
         if kwargs['sources']:
             moc_gen = build.Generator(
-                self.moc, arguments, ['@BASENAME@.moc'],
+                self.tools['moc'], arguments, ['@BASENAME@.moc'],
                 name=f'Qt{self.qt_version} moc source')
             output.append(moc_gen.process_files(kwargs['sources'], state))
 
@@ -543,9 +543,9 @@ class QtBaseModule(ExtensionModule):
         self._detect_tools(state, kwargs['method'])
         translations: T.List[build.CustomTarget] = []
         for ts in ts_files:
-            if not self.lrelease.found():
+            if not self.tools['lrelease'].found():
                 raise MesonException('qt.compile_translations: ' +
-                                     self.lrelease.name + ' not found')
+                                     self.tools['lrelease'].name + ' not found')
             if qresource:
                 # In this case we know that ts_files is always a List[str], as
                 # it's generated above and no ts_files are passed in. However,
@@ -556,7 +556,7 @@ class QtBaseModule(ExtensionModule):
                 ts = os.path.basename(ts)
             else:
                 outdir = state.subdir
-            cmd = [self.lrelease, '@INPUT@', '-qm', '@OUTPUT@']
+            cmd = [self.tools['lrelease'], '@INPUT@', '-qm', '@OUTPUT@']
             lrelease_kwargs = {'output': '@BASENAME@.qm',
                                'input': ts,
                                'install': kwargs['install'],
