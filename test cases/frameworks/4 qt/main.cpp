@@ -1,4 +1,6 @@
 #include <QApplication>
+#include <QTranslator>
+#include <QDebug>
 #include "mainWindow.h"
 
 #if QT_VERSION > 0x050000
@@ -16,6 +18,13 @@ int main(int argc, char **argv) {
   Q_INIT_RESOURCE(stuff2);
   #endif
   QApplication app(argc, argv);
+
+  auto *translator = new QTranslator;
+  if (translator->load(QLocale(), QT "embedded", "_", ":/lang"))
+      qApp->installTranslator(translator);
+
+  qDebug() << QObject::tr("Translate me!");
+
   MainWindow *win = new MainWindow();
   QImage qi(":/thing.png");
   if(qi.width() != 640) {
