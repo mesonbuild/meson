@@ -297,6 +297,8 @@ build-tests = false
 
 ### Meson built-in options
 
+*Before 0.56.0, `<lang>_args` and `<lang>_link_args` must be put in the `properties` section instead, else they will be ignored.*
+
 Meson built-in options can be set the same way:
 
 ```ini
