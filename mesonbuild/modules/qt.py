@@ -539,7 +539,7 @@ class QtBaseModule(ExtensionModule):
                     ts_files.append(c.rstrip('.qm') + '.ts')
                 else:
                     raise MesonException(f'qt.compile_translations: qresource can only contain qm files, found {c}')
-            results = self.preprocess(state, [], {'qresources': qresource, 'rcc_extra_arguments': kwargs['rcc_extra_arguments']})
+            results = self.preprocess(state, [], {'qresources': qresource_file, 'rcc_extra_arguments': kwargs['rcc_extra_arguments']})
         self._detect_tools(state, kwargs['method'])
         translations: T.List[build.CustomTarget] = []
         for ts in ts_files:
