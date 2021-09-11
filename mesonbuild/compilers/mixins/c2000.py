@@ -124,3 +124,6 @@ class C2000Compiler(Compiler):
                 parameter_list[idx] = i[:9] + os.path.normpath(os.path.join(build_dir, i[9:]))
 
         return parameter_list
+    
+    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
+        return ['--preproc_with_compile', f'--preproc_dependency={outfile}']
