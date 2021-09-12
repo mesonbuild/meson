@@ -59,7 +59,7 @@ class MesonMain(MesonInterpreterObject):
                              'has_external_property': self.has_external_property_method,
                              'backend': self.backend_method,
                              'add_devenv': self.add_devenv_method,
-                             'get_command': self.get_command_method,
+                             'meson_cmd_array': self.meson_cmd_array_method,
                              })
 
     def _find_source_script(self, prog: T.Union[str, mesonlib.File, build.Executable, ExternalProgram], args):
@@ -424,8 +424,8 @@ class MesonMain(MesonInterpreterObject):
             raise build.InvalidArguments(f'"add_devenv": {msg}')
         self.build.devenv.append(ENV_KW.convertor(env))
 
-    @FeatureNew('meson.get_command', '0.60.0')
+    @FeatureNew('meson.meson_cmd_array', '0.60.0')
     @noPosargs
     @noKwargs
-    def get_command_method(self, args, kwargs):
+    def meson_cmd_array_method(self, args, kwargs):
         return self.interpreter.environment.get_build_command()

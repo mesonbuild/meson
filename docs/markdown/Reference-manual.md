@@ -2094,7 +2094,7 @@ the following methods.
   returns the "cross" compiler if we're currently cross-compiling and
   the "native" compiler if we're not.
 
-- `get_command()`:
+- `meson_cmd_array()`:
   *(since 0.60.0)*: returns an array which allows to run meson using run_command.
   The first element is an executable. The following elements are possible
   arguments to the executable. The result is platform specific.
