@@ -1119,6 +1119,15 @@ class Vs2010Backend(backends.Backend):
         else:
             ET.SubElement(clconf, 'FavorSizeOrSpeed').text = 'Speed'
         # Note: SuppressStartupBanner is /NOLOGO and is 'true' by default
+        if self.name in ('vs2017', 'vs2019'):
+            if 'cpp' in file_args:
+                optargs = [x for x in file_args['cpp'] if x.startswith('/std:c++')]
+                if optargs:
+                    ET.SubElement(clconf, 'LanguageStandard').text = optargs[0].replace("/std:c++","stdcpp")
+            if 'c' in file_args:
+                optargs = [x for x in file_args['c'] if x.startswith('/std:c')]
+                if optargs:
+                    ET.SubElement(clconf, 'LanguageStandard_C').text = optargs[0].replace("/std:c","stdc")
         pch_sources = {}
         if self.environment.coredata.options.get(OptionKey('b_pch')):
             for lang in ['c', 'cpp']:
