@@ -1,3 +1,4 @@
+program main
 use dynamic, only: hello
 implicit none
 

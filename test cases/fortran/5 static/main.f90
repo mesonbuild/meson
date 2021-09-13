@@ -1,4 +1,4 @@
-
+program main
 use static_hello
 implicit none
 
