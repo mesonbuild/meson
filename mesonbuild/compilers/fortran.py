@@ -71,7 +71,7 @@ class FortranCompiler(CLikeCompiler, Compiler):
         if binary_name.is_file():
             binary_name.unlink()
 
-        source_name.write_text('print *, "Fortran compilation is working."; end', encoding='utf-8')
+        source_name.write_text('program main; print *, "Fortran compilation is working."; end program', encoding='utf-8')
 
         extra_flags: T.List[str] = []
         extra_flags += environment.coredata.get_external_args(self.for_machine, self.language)
