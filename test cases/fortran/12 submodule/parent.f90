@@ -13,6 +13,7 @@ end interface
 
 end module parent
 
+program main
 
 use parent
 

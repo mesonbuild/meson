@@ -1,3 +1,4 @@
+      program main
     ! non-integer loop indices are deleted in Fortran 95 standard
       real a
 

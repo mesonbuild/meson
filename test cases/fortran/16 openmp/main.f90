@@ -1,3 +1,4 @@
+program main
 use, intrinsic :: iso_fortran_env, only: stderr=>error_unit
 use omp_lib, only: omp_get_max_threads
 implicit none

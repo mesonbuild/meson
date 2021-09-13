@@ -1,3 +1,4 @@
+program main
 use circle, only: pi
 use line, only: length
 implicit none

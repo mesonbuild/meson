@@ -1,3 +1,4 @@
+program main
 implicit none
 
 interface

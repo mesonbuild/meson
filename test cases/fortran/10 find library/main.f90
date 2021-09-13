@@ -1,4 +1,4 @@
-
+program main
 use iso_fortran_env, only: stderr=>error_unit
 use iso_c_binding, only: c_int, c_char, c_null_char, c_ptr
 use gzip, only: gzopen, gzwrite, gzclose
