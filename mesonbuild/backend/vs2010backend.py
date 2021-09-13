@@ -27,7 +27,7 @@ from .. import mlog
 from .. import compilers
 from ..interpreter import Interpreter
 from ..mesonlib import (
-    File, MesonException, python_command, replace_if_different, OptionKey, version_compare, MachineChoice
+    File, MesonException, replace_if_different, OptionKey, version_compare, MachineChoice
 )
 from ..environment import Environment, build_filename
 
@@ -550,19 +550,27 @@ class Vs2010Backend(backends.Backend):
 
     def gen_run_target_vcxproj(self, target, ofname, guid):
         root = self.create_basic_crap(target, guid)
-        if not target.command:
-            # FIXME: This is an alias target that doesn't run any command, there
-            # is probably a better way than running a this dummy command.
-            cmd_raw = python_command + ['-c', 'exit']
-        else:
-            _, _, cmd_raw = self.eval_custom_target_command(target)
         depend_files = self.get_custom_target_depend_files(target)
-        target_env = self.get_run_target_env(target)
-        wrapper_cmd, _ = self.as_meson_exe_cmdline(target.command[0], cmd_raw[1:],
-                                                   force_serialize=True, env=target_env,
-                                                   verbose=True)
-        self.add_custom_build(root, 'run_target', ' '.join(self.quote_arguments(wrapper_cmd)),
-                              deps=depend_files)
+
+        if not target.command:
+            # This is an alias target and thus doesn't run any command. It's
+            # enough to emit the references to the other projects for them to
+            # be built/run/..., if necessary.
+            assert isinstance(target, build.AliasTarget)
+            assert len(depend_files) == 0
+        else:
+            assert not isinstance(target, build.AliasTarget)
+
+            target_env = self.get_run_target_env(target)
+            _, _, cmd_raw = self.eval_custom_target_command(target)
+            wrapper_cmd, _ = self.as_meson_exe_cmdline(target.command[0], cmd_raw[1:],
+                                                       force_serialize=True, env=target_env,
+                                                       verbose=True)
+            self.add_custom_build(root, 'run_target', ' '.join(self.quote_arguments(wrapper_cmd)),
+                                  deps=depend_files)
+
+        # The import is needed even for alias targets, otherwise the build
+        # target isn't defined
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
         self.add_regen_dependency(root)
         self.add_target_deps(root, target)
