@@ -168,6 +168,28 @@ strip = '/usr/i586-mingw32msvc/bin/strip'
 pkgconfig = '/usr/bin/i586-mingw32msvc-pkg-config'
 ```
 
+The binaries defined in the machine file must either be accessible 
+through the PATH variable.
+
+```ini
+c = 'gcc'
+```
+
+Or must be defined with their absolute path.
+
+```ini
+c = '/opt/toolchain/bin/gcc'
+```
+
+*New in 0.60.0* A further option is to define the binaries relative
+to the machine file. If the following machine file is located 
+under `/my_project/toolchain` the entry for `c` will be extended 
+to `/my_project/toolchain/bin/gcc`.
+
+```ini
+c = 'bin/gcc'
+```
+
 An incomplete list of internally used programs that can be overridden
 here is:
 

@@ -24,10 +24,11 @@ from .mesonlib import (
     HoldableObject,
     MesonException, EnvironmentException, MachineChoice, PerMachine,
     PerMachineDefaultable, default_libdir, default_libexecdir,
+
     default_prefix, default_datadir, default_includedir, default_infodir,
     default_localedir, default_mandir, default_sbindir, default_sysconfdir,
     split_args, OptionKey, OptionType, stringlistify,
-    pickle_load, replace_if_different
+    pickle_load, replace_if_different, listify
 )
 from .wrap import WrapMode
 import ast
@@ -932,18 +933,20 @@ class MachineFileParser():
         self.constants = {'True': True, 'False': False}
         self.sections = {}
 
-        self.parser.read(filenames)
+        for fname in filenames:
+            self.parser.read(fname)
 
-        # Parse [constants] first so they can be used in other sections
-        if self.parser.has_section('constants'):
-            self.constants.update(self._parse_section('constants'))
+            # Parse [constants] first so they can be used in other sections
+            if self.parser.has_section('constants'):
+                self.constants.update(self._parse_section('constants', fname))
 
-        for s in self.parser.sections():
-            if s == 'constants':
-                continue
-            self.sections[s] = self._parse_section(s)
+            for s in self.parser.sections():
+                if s == 'constants':
+                    continue
+                self.sections[s] = self._parse_section(s, fname)
+            
 
-    def _parse_section(self, s):
+    def _parse_section(self, s, fname):
         self.scope = self.constants.copy()
         section = {}
         for entry, value in self.parser.items(s):
@@ -958,6 +961,15 @@ class MachineFileParser():
                 raise EnvironmentException(f'Malformed value in machine file variable {entry!r}.')
             except KeyError as e:
                 raise EnvironmentException(f'Undefined constant {e.args[0]!r} in machine file variable {entry!r}.')
+                        
+            if s == 'binaries':
+                if not isinstance(res, (list, str)):
+                    raise MesonException(
+                        f'Invalid type {res!r} for entry {entry!r} in machine file')
+                res = listify(res)
+                if self._is_binary_with_relative_path(res):
+                    res[0] = os.path.join(os.path.dirname(fname), res[0])            
+            
             section[entry] = res
             self.scope[entry] = res
         return section
@@ -984,6 +996,14 @@ class MachineFileParser():
                 if isinstance(l, str) and isinstance(r, str):
                     return os.path.join(l, r)
         raise EnvironmentException('Unsupported node type')
+
+    def _is_binary_with_relative_path(self, command:list) -> bool:
+        if len(command) > 0 and command[0]:
+            if os.path.dirname(command[0]) != '' and os.path.isabs(command[0]) is False:
+                return True
+        
+        return False
+        
 
 def parse_machine_files(filenames):
     parser = MachineFileParser(filenames)

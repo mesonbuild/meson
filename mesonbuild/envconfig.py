@@ -378,22 +378,12 @@ class BinaryTable:
 
     def __init__(
             self,
-            binaries: T.Optional[T.Dict[str, T.Union[str, T.List[str]]]] = None,
+            binaries: T.Optional[T.Dict[str, T.List[str]]] = None,
     ):
         self.binaries: T.Dict[str, T.List[str]] = {}
         if binaries:
             for name, command in binaries.items():
-                if not isinstance(command, (list, str)):
-                    raise mesonlib.MesonException(
-                        f'Invalid type {command!r} for entry {name!r} in cross file')
-                self.binaries[name] = self._rel2abs_path(mesonlib.listify(command))
-
-    def _rel2abs_path(self, command: T.List[str]) -> T.List[str]:
-        if command:
-            binary = command[0]
-            if os.path.dirname(binary):
-                command[0] = os.path.abspath(binary)        
-        return command
+                self.binaries[name] = command
 
     @staticmethod
     def detect_ccache() -> T.List[str]:

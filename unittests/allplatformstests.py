@@ -3796,7 +3796,7 @@ class AllPlatformTests(BasePlatformTests):
                     '''))
 
             values = mesonbuild.coredata.parse_machine_files([crossfile1, crossfile2])
-            self.assertEqual(values['binaries']['c'], '/toolchain/gcc')
+            self.assertEqual(values['binaries']['c'], ['/toolchain/gcc'])
             self.assertEqual(values['properties']['c_args'],
                              ['--sysroot=/toolchain/sysroot', '-DSOMETHING'])
             self.assertEqual(values['properties']['cpp_args'],
@@ -4577,9 +4577,9 @@ class AllPlatformTests(BasePlatformTests):
                     c = 'toolchain/gcc'
                     '''))
 
-            config = mesonbuild.coredata.parse_machine_files(crossfile)
+            config = mesonbuild.coredata.parse_machine_files([crossfile])
             bt = mesonbuild.envconfig.BinaryTable(config.get('binaries', {}))
-            self.assertEqual(bt.binaries['c'], [os.path.normpath(os.path.join(self.src_root, 'toolchain/gcc'))])
+            self.assertEqual(bt.binaries['c'], [os.path.normpath(os.path.join(os.path.dirname(crossfile), 'toolchain/gcc'))])
 
         # A binary entry without a path shouldn't be altered.
         with temp_filename() as crossfile:
@@ -4590,7 +4590,7 @@ class AllPlatformTests(BasePlatformTests):
                     c = 'gcc'
                     '''))
 
-            config = mesonbuild.coredata.parse_machine_files(crossfile)
+            config = mesonbuild.coredata.parse_machine_files([crossfile])
             bt = mesonbuild.envconfig.BinaryTable(config.get('binaries', {}))
             self.assertEqual(bt.binaries['c'], ['gcc'])
 
@@ -4610,10 +4610,9 @@ class AllPlatformTests(BasePlatformTests):
                         c = '/opt/toolchain/bin/gcc'
                         '''))
 
-            config = mesonbuild.coredata.parse_machine_files(crossfile)
+            config = mesonbuild.coredata.parse_machine_files([crossfile])
             bt = mesonbuild.envconfig.BinaryTable(config.get('binaries', {}))
             if is_windows():
                 self.assertEqual(bt.binaries['c'], ['X:\\opt\\toolchain\\bin\\gcc'])
             else:
                 self.assertEqual(bt.binaries['c'], ['/opt/toolchain/bin/gcc'])
-
