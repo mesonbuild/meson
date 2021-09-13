@@ -1,3 +1,4 @@
+program main
 use, intrinsic :: iso_fortran_env, only : error_unit, sp=>real32, dp=>real64
 implicit none
 

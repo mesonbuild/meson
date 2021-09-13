@@ -1,3 +1,4 @@
+program main
 use mymod1
 use MyMod2  ! test inline comment
 
