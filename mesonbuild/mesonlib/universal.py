@@ -29,6 +29,7 @@ import typing as T
 import uuid
 import textwrap
 import copy
+import pickle
 
 from mesonbuild import mlog
 
@@ -117,6 +118,7 @@ __all__ = [
     'listify',
     'partition',
     'path_is_in_root',
+    'pickle_save',
     'Popen_safe',
     'quiet_git',
     'quote_arg',
@@ -242,6 +244,12 @@ def is_ascii_string(astring: T.Union[str, bytes]) -> bool:
     except UnicodeDecodeError:
         return False
     return True
+
+
+def pickle_save(obj: T.Any, path: str) -> None:
+    """Just pickles obj to a file pointed to by path."""
+    with open(path, 'wb') as f:
+        pickle.dump(obj, f)
 
 
 def check_direntry_issues(direntry_array: T.Union[T.List[T.Union[str, bytes]], str, bytes]) -> None:
