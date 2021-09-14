@@ -53,7 +53,7 @@ from ..mesonmain import need_setup_vsenv
 
 if T.TYPE_CHECKING:
     from .._typing import ImmutableListProtocol
-    from ..linkers import StaticLinker
+    from ..linkers import DynamicLinker, StaticLinker
     from ..compilers.cs import CsCompiler
 
 

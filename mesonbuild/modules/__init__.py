@@ -22,7 +22,7 @@ from ..mesonlib import relpath, HoldableObject
 from ..interpreterbase.decorators import noKwargs, noPosargs
 
 if T.TYPE_CHECKING:
-    from ..interpreter import Interpreter, MachineHolder
+    from ..interpreter import Interpreter
     from ..interpreterbase import TYPE_var, TYPE_kwargs
     from ..programs import ExternalProgram
 

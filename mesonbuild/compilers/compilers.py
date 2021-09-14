@@ -32,13 +32,13 @@ from ..arglist import CompilerArgs
 
 if T.TYPE_CHECKING:
     from ..build import BuildTarget
-    from ..coredata import OptionDictType, KeyedOptionDictType
+    from ..coredata import KeyedOptionDictType
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..linkers import DynamicLinker, RSPFileSyntax
     from ..dependencies import Dependency
 
-    CompilerType = T.TypeVar('CompilerType', bound=Compiler)
+    CompilerType = T.TypeVar('CompilerType', bound='Compiler')
     _T = T.TypeVar('_T')
 
 """This file contains the data files of all compilers Meson knows

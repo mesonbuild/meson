@@ -28,11 +28,6 @@ from ..compilers import CompileCheckMode
 from .gnu import GnuLikeCompiler
 from .visualstudio import VisualStudioLikeCompiler
 
-if T.TYPE_CHECKING:
-    from ...arglist import CompilerArgs
-    from ...dependencies import Dependency
-    from ...environment import Environment
-
 # XXX: avoid circular dependencies
 # TODO: this belongs in a posix compiler class
 # NOTE: the default Intel optimization is -O2, unlike GNU which defaults to -O0.

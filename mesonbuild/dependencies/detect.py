@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .base import Dependency, ExternalDependency, DependencyException, DependencyMethods, NotFoundDependency
+from .base import ExternalDependency, DependencyException, DependencyMethods, NotFoundDependency
 from .cmake import CMakeDependency
 from .dub import DubDependency
 from .framework import ExtraFrameworkDependency

@@ -29,7 +29,6 @@ from .factory import factory_methods
 import typing as T
 
 if T.TYPE_CHECKING:
-    from .base import Dependency
     from .factory import DependencyGenerator
     from ..environment import Environment
     from ..mesonlib import MachineChoice

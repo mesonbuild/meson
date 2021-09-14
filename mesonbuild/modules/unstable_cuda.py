@@ -25,6 +25,9 @@ from ..interpreterbase import (
     InvalidArguments, FeatureNew
 )
 
+if T.TYPE_CHECKING:
+    from . import ModuleState
+
 class CudaModule(NewExtensionModule):
 
     @FeatureNew('CUDA module', '0.50.0')

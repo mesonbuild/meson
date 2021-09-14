@@ -142,7 +142,6 @@ import typing as T
 if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..programs import ExternalProgram
-    from .compilers import CompilerType
 
 
 
