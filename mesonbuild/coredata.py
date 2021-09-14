@@ -968,7 +968,7 @@ class MachineFileParser():
                         f'Invalid type {res!r} for entry {entry!r} in machine file')
                 res = listify(res)
                 if self._is_binary_with_relative_path(res):
-                    res[0] = os.path.join(os.path.dirname(fname), res[0])            
+                    res[0] = os.path.normpath(os.path.join(os.path.dirname(fname), res[0]))
             
             section[entry] = res
             self.scope[entry] = res
