@@ -430,7 +430,7 @@ class TAPParser:
             if not line:
                 return
 
-            yield self.Error('unexpected input at line {}'.format((self.lineno,)))
+            yield self.Error(f'unexpected input at line {self.lineno}')
         else:
             # end of file
             if self.state == self._YAML:
