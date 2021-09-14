@@ -33,6 +33,7 @@ from .ast import IntrospectionInterpreter, BUILD_TARGET_FUNCTIONS, AstConditionL
 from .backend import backends
 from .mesonlib import OptionKey
 from .mparser import FunctionNode, ArrayNode, ArgumentNode, StringNode
+from .environment import validate_single_dir
 
 if T.TYPE_CHECKING:
     import argparse
@@ -60,8 +61,7 @@ class IntroCommand:
 
 def get_meson_introspection_types(coredata: T.Optional[cdata.CoreData] = None,
                                   builddata: T.Optional[build.Build] = None,
-                                  backend: T.Optional[backends.Backend] = None,
-                                  sourcedir: T.Optional[str] = None) -> 'T.Mapping[str, IntroCommand]':
+                                  backend: T.Optional[backends.Backend] = None) -> 'T.Mapping[str, IntroCommand]':
     if backend and builddata:
         benchmarkdata = backend.create_test_serialisation(builddata.get_benchmarks())
         testdata = backend.create_test_serialisation(builddata.get_tests())
@@ -99,7 +99,10 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
                         help='Enable pretty printed JSON.')
     parser.add_argument('-f', '--force-object-output', action='store_true', dest='force_dict', default=False,
                         help='Always use the new JSON format for multiple entries (even for 0 and 1 introspection commands)')
-    parser.add_argument('builddir', nargs='?', default='.', help='The build directory')
+    parser.add_argument('-B', dest='builddir', default=None,
+                        help='The directory containing build files (optional).')
+    parser.add_argument('dir1', nargs='?', default=None, metavar='build or source dir',
+                        help='Directory containing build or source files (default to current directory).')
 
 def dump_ast(intr: IntrospectionInterpreter) -> T.Dict[str, T.Any]:
     printer = AstJSONPrinter()
@@ -452,16 +455,12 @@ def load_info_file(infodir: str, kind: T.Optional[str] = None) -> T.Any:
         return json.load(fp)
 
 def run(options: argparse.Namespace) -> int:
-    datadir = 'meson-private'
-    infodir = get_infodir(options.builddir)
-    if options.builddir is not None:
-        datadir = os.path.join(options.builddir, datadir)
+    sourcedir, builddir = validate_single_dir(options.builddir, options.dir1)
     indent = 4 if options.indent else None
     results = []  # type: T.List[T.Tuple[str, T.Union[dict, T.List[T.Any]]]]
-    sourcedir = '.' if options.builddir == 'meson.build' else options.builddir[:-11]
-    intro_types = get_meson_introspection_types(sourcedir=sourcedir)
+    intro_types = get_meson_introspection_types()
 
-    if 'meson.build' in [os.path.basename(options.builddir), options.builddir]:
+    if sourcedir:
         # Make sure that log entries in other parts of meson don't interfere with the JSON output
         with redirect_stdout(sys.stderr):
             backend = backends.get_backend_from_name(options.backend)
@@ -475,17 +474,15 @@ def run(options: argparse.Namespace) -> int:
             results += [(key, val.no_bd(intr))]
         return print_results(options, results, indent)
 
+
+    infodir = os.path.join(builddir, 'meson-info')
     try:
         raw = load_info_file(infodir)
         intro_vers = raw.get('introspection', {}).get('version', {}).get('full', '0.0.0')
     except FileNotFoundError:
-        if not os.path.isdir(datadir) or not os.path.isdir(infodir):
-            print('Current directory is not a meson build directory.\n'
-                  'Please specify a valid build dir or change the working directory to it.')
-        else:
-            print('Introspection file {} does not exist.\n'
-                  'It is also possible that the build directory was generated with an old\n'
-                  'meson version. Please regenerate it in this case.'.format(get_info_file(infodir)))
+        print('Introspection file {} does not exist.\n'
+              'It is also possible that the build directory was generated with an old\n'
+              'meson version. Please regenerate it in this case.'.format(get_info_file(infodir)))
         return 1
 
     vers_to_check = get_meson_introspection_required_version()

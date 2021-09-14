@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import itertools
 import shutil
-import os
 import textwrap
 import typing as T
 import collections
@@ -34,7 +33,10 @@ if T.TYPE_CHECKING:
 
 def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     coredata.register_builtin_arguments(parser)
-    parser.add_argument('builddir', nargs='?', default='.')
+    parser.add_argument('-B', dest='builddir', default=None,
+                        help='The directory containing build files (optional).')
+    parser.add_argument('dir1', nargs='?', default=None, metavar='build or source dir',
+                        help='Directory containing build or source files (default to current directory).')
     parser.add_argument('--clearcache', action='store_true', default=False,
                         help='Clear cached state (e.g. found dependencies)')
     parser.add_argument('--no-pager', action='store_false', dest='pager',
@@ -57,10 +59,7 @@ class ConfException(mesonlib.MesonException):
 
 
 class Conf:
-    def __init__(self, build_dir):
-        self.build_dir = os.path.abspath(os.path.realpath(build_dir))
-        if 'meson.build' in [os.path.basename(self.build_dir), self.build_dir]:
-            self.build_dir = os.path.dirname(self.build_dir)
+    def __init__(self, builddir, sourcedir):
         self.build = None
         self.max_choices_line_length = 60
         self.name_col = []
@@ -69,23 +68,22 @@ class Conf:
         self.descr_col = []
         self.all_subprojects: T.Set[str] = set()
 
-        if os.path.isdir(os.path.join(self.build_dir, 'meson-private')):
+        if builddir:
+            self.build_dir = builddir
             self.build = build.load(self.build_dir)
             self.source_dir = self.build.environment.get_source_dir()
             self.coredata = coredata.load(self.build_dir)
             self.default_values_only = False
-        elif os.path.isfile(os.path.join(self.build_dir, environment.build_filename)):
+        else:
             # Make sure that log entries in other parts of meson don't interfere with the JSON output
             mlog.disable()
-            self.source_dir = os.path.abspath(os.path.realpath(self.build_dir))
+            self.source_dir = sourcedir
             intr = mintro.IntrospectionInterpreter(self.source_dir, '', 'ninja', visitors = [AstIDGenerator()])
             intr.analyze()
             # Re-enable logging just in case
             mlog.enable()
             self.coredata = intr.coredata
             self.default_values_only = True
-        else:
-            raise ConfException(f'Directory {build_dir} is neither a Meson build directory nor a project source directory.')
 
     def clear_cache(self):
         self.coredata.clear_deps_cache()
@@ -298,10 +296,10 @@ class Conf:
 
 def run(options):
     coredata.parse_cmd_line_options(options)
-    builddir = os.path.abspath(os.path.realpath(options.builddir))
+    sourcedir, builddir = environment.validate_single_dir(options.builddir, options.dir1)
     c = None
     try:
-        c = Conf(builddir)
+        c = Conf(builddir, sourcedir)
         if c.default_values_only:
             c.print_conf(options.pager)
             return 0
