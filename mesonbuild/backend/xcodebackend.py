@@ -602,7 +602,7 @@ class XCodeBackend(backends.Backend):
                 if isinstance(dep, dependencies.AppleFrameworks):
                     for f in dep.frameworks:
                         fw_dict = PbxDict()
-                        objects_dict.add:item(self.native_frameworks[f], fw_dict, f'{f}.framework in Frameworks')
+                        objects_dict.add_item(self.native_frameworks[f], fw_dict, f'{f}.framework in Frameworks')
                         fw_dict.add_item('isa', 'PBXBuildFile')
                         fw_dict.add_item('fileRef', self.native_frameworks_fileref[f], f)
 
