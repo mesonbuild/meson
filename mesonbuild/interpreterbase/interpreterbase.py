@@ -54,7 +54,9 @@ import textwrap
 from functools import wraps
 
 if T.TYPE_CHECKING:
-    from ..interpreter import Interpreter
+    # T.cast is not handled by flake8 to detect quoted annotation use
+    # see https://github.com/PyCQA/pyflakes/pull/632
+    from ..interpreter import Interpreter # noqa
 
 HolderMapType = T.Dict[
     T.Union[
