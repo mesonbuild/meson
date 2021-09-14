@@ -17,7 +17,6 @@ from dataclasses import dataclass
 import subprocess
 import typing as T
 from enum import Enum
-import os
 
 from . import mesonlib
 from .mesonlib import EnvironmentException, HoldableObject
