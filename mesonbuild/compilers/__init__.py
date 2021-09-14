@@ -33,6 +33,7 @@ __all__ = [
     'is_source',
     'is_known_suffix',
     'lang_suffixes',
+    'LANGUAGES_USING_LDFLAGS',
     'sort_clink',
 
     'compiler_from_language',
