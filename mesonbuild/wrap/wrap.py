@@ -572,7 +572,7 @@ class Resolver:
             src = os.listdir(tmpdir)
             if len(src) != 1:
                 raise WrapException("Error patch archive format.")
-            self.copy_tree(src[0], os.path.join(self.subdir_root, self.wrap.name))
+            self.copy_tree(os.path.join(tmpdir, src[0]), self.dirname)
 
     def apply_patch(self) -> None:
         if 'patch_filename' in self.wrap.values and 'patch_directory' in self.wrap.values:
