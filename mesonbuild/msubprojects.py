@@ -155,7 +155,7 @@ class Runner:
             self.git_stash()
             self.git_output(['reset', '--hard', 'FETCH_HEAD'])
         except GitException as e:
-            self.log('  -> Could not reset', mlog.bold(repo_dir), 'to', mlog.bold(revision))
+            self.log('  -> Could not reset', mlog.bold(self.repo_dir), 'to', mlog.bold(revision))
             self.log(mlog.red(e.output))
             self.log(mlog.red(str(e)))
             return False
