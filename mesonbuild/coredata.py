@@ -43,6 +43,7 @@ if T.TYPE_CHECKING:
     KeyedOptionDictType = T.Union[T.Dict['OptionKey', 'UserOption[T.Any]'], OptionOverrideProxy]
     CompilerCheckCacheKey = T.Tuple[T.Tuple[str, ...], str, FileOrString, T.Tuple[str, ...], str]
 
+# Check major_versions_differ() if changing versioning scheme.
 version = '0.59.99'
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2012', 'vs2013', 'vs2015', 'vs2017', 'vs2019', 'xcode']
 
@@ -990,7 +991,10 @@ def format_cmd_line_options(options: argparse.Namespace) -> str:
     return ' '.join([shlex.quote(x) for x in cmdline])
 
 def major_versions_differ(v1: str, v2: str) -> bool:
-    return v1.split('.')[0:2] != v2.split('.')[0:2]
+    v1_major, v1_minor = v1.rsplit('.', 1)
+    v2_major, v2_minor = v2.rsplit('.', 1)
+    # Major version differ, or one is development version but not the other.
+    return v1_major != v2_major or ('99' in {v1_minor, v2_minor} and v1_minor != v2_minor)
 
 def load(build_dir: str) -> CoreData:
     filename = os.path.join(build_dir, 'meson-private', 'coredata.dat')
