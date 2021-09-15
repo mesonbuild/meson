@@ -259,9 +259,9 @@ class CudaDependency(SystemDependency):
     def _report_dependency_error(self, msg: str) -> None: ...
 
     @T.overload
-    def _report_dependency_error(self, msg: str, ret_val: TV_ResultTuple) -> TV_ResultTuple: ...
+    def _report_dependency_error(self, msg: str, ret_val: TV_ResultTuple) -> TV_ResultTuple: ... # noqa: F811
 
-    def _report_dependency_error(self, msg: str, ret_val: T.Optional[TV_ResultTuple] = None) -> T.Optional[TV_ResultTuple]:
+    def _report_dependency_error(self, msg: str, ret_val: T.Optional[TV_ResultTuple] = None) -> T.Optional[TV_ResultTuple]: # noqa: F811
         if self.required:
             raise DependencyException(msg)
 
