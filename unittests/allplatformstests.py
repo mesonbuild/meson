@@ -4616,3 +4616,28 @@ class AllPlatformTests(BasePlatformTests):
                 self.assertEqual(bt.binaries['c'], ['X:\\opt\\toolchain\\bin\\gcc'])
             else:
                 self.assertEqual(bt.binaries['c'], ['/opt/toolchain/bin/gcc'])
+
+    def test_invalid_types_for_machinefile_binary(self):
+        # direct assignment of a boolean to binary entry should raise an exception
+        with self.assertRaises(EnvironmentException) as cm:
+            with temp_filename() as crossfile:
+                with open(crossfile, 'w', encoding='utf-8') as f:
+                    f.write(textwrap.dedent(
+                        '''
+                        [binaries]
+                        c = false
+                        '''))
+                _ = mesonbuild.coredata.parse_machine_files([crossfile])
+        self.assertEqual(str(cm.exception), 'Invalid type False for entry \'c\' in machine file')
+        
+        # boolean within a list assigned to a binary entry should raise an exception
+        with self.assertRaises(EnvironmentException) as cm:
+            with temp_filename() as crossfile:
+                with open(crossfile, 'w', encoding='utf-8') as f:
+                    f.write(textwrap.dedent(
+                        '''
+                        [binaries]
+                        c = [false]
+                        '''))
+                _ = mesonbuild.coredata.parse_machine_files([crossfile])
+        self.assertEqual(str(cm.exception), 'Invalid type [False] for entry \'c\' in machine file')

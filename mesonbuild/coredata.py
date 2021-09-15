@@ -961,11 +961,15 @@ class MachineFileParser():
                 raise EnvironmentException(f'Malformed value in machine file variable {entry!r}.')
             except KeyError as e:
                 raise EnvironmentException(f'Undefined constant {e.args[0]!r} in machine file variable {entry!r}.')
-                        
+
             if s == 'binaries':
-                if not isinstance(res, (list, str)):
-                    raise MesonException(
-                        f'Invalid type {res!r} for entry {entry!r} in machine file')
+                if isinstance(res, list):
+                    for element in res:
+                        if not isinstance(element, str):
+                            raise EnvironmentException(f'Invalid type {res!r} for entry {entry!r} in machine file')        
+                elif not isinstance(res, str):
+                    raise EnvironmentException(f'Invalid type {res!r} for entry {entry!r} in machine file')
+                
                 res = listify(res)
                 if self._is_binary_with_relative_path(res):
                     res[0] = os.path.normpath(os.path.join(os.path.dirname(fname), res[0]))
