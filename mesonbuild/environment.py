@@ -545,7 +545,6 @@ class Environment:
                     self.options[key.as_build()] = value
             self._load_machine_file_options(config, properties.host, MachineChoice.HOST)
 
-
         ## "freeze" now initialized configuration, and "save" to the class.
 
         self.machines = machines.default_missing()

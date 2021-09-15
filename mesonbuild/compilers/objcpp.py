@@ -85,7 +85,6 @@ class ClangObjCPPCompiler(ClangCompiler, ObjCPPCompiler):
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
 
-
     def get_options(self) -> 'coredata.KeyedOptionDictType':
         opts = super().get_options()
         opts.update({

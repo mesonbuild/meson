@@ -100,7 +100,6 @@ class InterpreterObject:
             return self.operators[operator](other)
         raise InvalidCode(f'Object {self} of type {self.display_name()} does not support the `{operator.value}` operator.')
 
-
     # Default comparison operator support
     def _throw_comp_exception(self, other: TYPE_var, opt_type: str) -> T.NoReturn:
         raise InvalidArguments(textwrap.dedent(

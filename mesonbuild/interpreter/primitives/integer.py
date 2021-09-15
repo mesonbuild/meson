@@ -29,7 +29,6 @@ class IntegerHolder(ObjectHolder[int]):
             'to_string': self.to_string_method,
         })
 
-
         self.trivial_operators.update({
             # Arithmetic
             MesonOperator.UMINUS: (None, lambda x: -self.held_object),

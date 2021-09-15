@@ -356,7 +356,6 @@ class CudaCompiler(Compiler):
                 xflags.append(flag)
                 continue
 
-
             # Handle breakup of flag-values into a flag-part and value-part.
             if   flag[:1] not in '-/':
                 # This is not a flag. It's probably a file input. Pass it through.
@@ -425,9 +424,7 @@ class CudaCompiler(Compiler):
                     # The above should securely handle GCC's -Wl, -Wa, -Wp, arguments.
                 continue
 
-
             assert val is not None  # Should only trip if there is a missing argument.
-
 
             # Take care of the various NVCC-supported flags that need special handling.
             flag = self._FLAG_LONG2SHORT_WITHARGS.get(flag,flag)

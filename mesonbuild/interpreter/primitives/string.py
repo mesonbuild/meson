@@ -52,7 +52,6 @@ class StringHolder(ObjectHolder[str]):
             'version_compare': self.version_compare_method,
         })
 
-
         self.trivial_operators.update({
             # Arithmetic
             MesonOperator.PLUS: (str, lambda x: self.held_object + x),
@@ -168,7 +167,6 @@ class StringHolder(ObjectHolder[str]):
     @typed_pos_args('str.version_compare', str)
     def version_compare_method(self, args: T.Tuple[str], kwargs: TYPE_kwargs) -> bool:
         return version_compare(self.held_object, args[0])
-
 
     @FeatureNew('/ with string arguments', '0.49.0')
     @typed_operator(MesonOperator.DIV, str)

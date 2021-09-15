@@ -2149,7 +2149,6 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.add_rule(NinjaRule(rule, command, [], description, deps=deps,
                                 depfile=depfile))
 
-
     def generate_scanner_rules(self):
         rulename = 'depscan'
         if rulename in self.ruledict:
@@ -2161,7 +2160,6 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         description = 'Module scanner.'
         rule = NinjaRule(rulename, command, args, description)
         self.add_rule(rule)
-
 
     def generate_compile_rules(self):
         for for_machine in MachineChoice:

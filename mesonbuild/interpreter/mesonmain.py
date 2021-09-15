@@ -435,7 +435,6 @@ class MesonMain(MesonInterpreterObject):
         propname, fallback = args
         return self.__get_external_property_impl(propname, fallback, kwargs['native'])
 
-
     @FeatureNew('meson.has_external_property', '0.58.0')
     @typed_pos_args('meson.has_external_property', str)
     @typed_kwargs('meson.has_external_property', NATIVE_KW)

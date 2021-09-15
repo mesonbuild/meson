@@ -52,7 +52,6 @@ else:
     CompilerMixinBase = object
 
 
-
 class CCompiler(CLikeCompiler, Compiler):
 
     @staticmethod

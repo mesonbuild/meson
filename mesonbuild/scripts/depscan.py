@@ -106,7 +106,6 @@ class DependencyScanner:
                 else:
                     self.needs[fname] = [parent_module_name_full]
 
-
     def scan_cpp_file(self, fname: str) -> None:
         fpath = pathlib.Path(fname)
         for line in fpath.read_text(encoding='utf-8').split('\n'):

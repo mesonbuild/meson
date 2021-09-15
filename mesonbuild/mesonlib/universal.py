@@ -586,7 +586,6 @@ class PerMachineDefaultable(PerMachine[T.Optional[_T]]):
         return m.default_missing()
 
 
-
 class PerThreeMachineDefaultable(PerMachineDefaultable, PerThreeMachine[T.Optional[_T]]):
     """Extends `PerThreeMachine` with the ability to default from `None`s.
     """
@@ -1297,7 +1296,6 @@ def replace_if_different(dst: str, dst_tmp: str) -> None:
         os.replace(dst_tmp, dst)
     else:
         os.unlink(dst_tmp)
-
 
 
 def listify(item: T.Any, flatten: bool = True) -> T.List[T.Any]:

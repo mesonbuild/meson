@@ -144,7 +144,6 @@ if T.TYPE_CHECKING:
     from ..programs import ExternalProgram
 
 
-
 # Default compilers and linkers
 # =============================
 
@@ -338,7 +337,6 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
         if p.returncode == 1 and err.startswith('ar: bad option: --'): # Solaris
             return ArLinker(linker)
     _handle_exceptions(popen_exceptions, linkers, 'linker')
-
 
 
 # Compilers
@@ -617,7 +615,6 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             return cls(
                 ccache + compiler, version, for_machine, is_cross, info,
                 exe_wrap, full_version=full_version, linker=linker)
-
 
     _handle_exceptions(popen_exceptions, compilers)
     raise EnvironmentException(f'Unknown compiler {compilers}')

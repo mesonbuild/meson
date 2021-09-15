@@ -554,7 +554,6 @@ class IntelCPPCompiler(IntelGnuLikeCompiler, CPPCompiler):
             c_stds += ['c++2a']
             g_stds += ['gnu++2a']
 
-
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         opts.update({
             key.evolve('eh'): coredata.UserComboOption(

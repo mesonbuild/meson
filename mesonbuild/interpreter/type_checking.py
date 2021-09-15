@@ -157,7 +157,6 @@ def _env_validator(value: T.Union[EnvironmentVariables, T.List['TYPE_var'], T.Di
     return None
 
 
-
 def split_equal_string(input: str) -> T.Tuple[str, str]:
     """Split a string in the form `x=y`
 

@@ -1347,7 +1347,6 @@ class Backend:
             incs += compiler.get_include_args(i, False)
         return incs
 
-
     def eval_custom_target_command(
             self, target: build.CustomTarget, absolute_outputs: bool = False) -> \
                 T.Tuple[T.List[str], T.List[str], T.List[str]]:

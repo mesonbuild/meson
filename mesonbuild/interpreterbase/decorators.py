@@ -426,7 +426,6 @@ class KwargInfo(T.Generic[_T]):
         )
 
 
-
 def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
     """Decorator for type checking keyword arguments.
 
