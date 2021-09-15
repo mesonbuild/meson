@@ -456,7 +456,7 @@ class CLikeCompiler(Compiler):
 
         # on MSVC compiler and linker flags must be separated by the "/link" argument
         # at this point, the '/link' argument may already be part of extra_args, otherwise, it is added here
-        if self.linker_to_compiler_args([]) == ['/link'] and largs != [] and not '/link' in extra_args:
+        if self.linker_to_compiler_args([]) == ['/link'] and largs != [] and '/link' not in extra_args:
             extra_args += ['/link']
 
         args = cargs + extra_args + largs
