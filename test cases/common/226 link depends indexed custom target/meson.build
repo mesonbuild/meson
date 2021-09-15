@@ -1,10 +1,5 @@
 project('link_depends_indexed_custom_target', 'c')
 
-if meson.backend().startswith('vs')
-  # FIXME: Broken on the VS backends
-  error('MESON_SKIP_TEST see https://github.com/mesonbuild/meson/issues/1799')
-endif
-
 cmd = find_program('make_file.py')
 
 dep_files = custom_target('gen_dep',

@@ -280,6 +280,16 @@ class Vs2010Backend(backends.Backend):
                         all_deps[ldep.get_id()] = ldep.target
                     else:
                         all_deps[ldep.get_id()] = ldep
+
+                for ldep in target.link_depends:
+                    if isinstance(ldep, build.CustomTargetIndex):
+                        all_deps[ldep.get_id()] = ldep.target
+                    elif isinstance(ldep, File):
+                        # Already built, no target references needed
+                        pass
+                    else:
+                        all_deps[ldep.get_id()] = ldep
+
                 for obj_id, objdep in self.get_obj_target_deps(target.objects):
                     all_deps[obj_id] = objdep
             else:
