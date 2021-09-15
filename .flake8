@@ -1,5 +1,5 @@
 [flake8]
-ignore =
+extend-ignore =
     # E241: multiple spaces after ':'
     E241,
     # E251: unexpected spaces around keyword / parameter equals
