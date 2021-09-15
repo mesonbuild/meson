@@ -3857,6 +3857,8 @@ class AllPlatformTests(BasePlatformTests):
             Path(installpath, 'usr/share/out1-custom.txt'),
             Path(installpath, 'usr/share/out2-custom.txt'),
             Path(installpath, 'usr/share/out3-custom.txt'),
+            Path(installpath, 'usr/share/custom_files'),
+            Path(installpath, 'usr/share/custom_files/data.txt'),
             Path(installpath, 'usr/lib'),
             Path(installpath, 'usr/lib/libbothcustom.a'),
             Path(installpath, 'usr/' + shared_lib_name('bothcustom')),

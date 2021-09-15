@@ -64,6 +64,10 @@ custom_target('ct2',
   install_tag: 'custom',
   install: true,
 )
+install_subdir('custom_files',
+  install_dir: get_option('datadir'),
+  install_tag: 'custom',
+)
 
 # First is custom, 2nd is devel, 3rd has no tag
 custom_target('ct3',
