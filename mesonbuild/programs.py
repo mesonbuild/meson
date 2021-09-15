@@ -295,6 +295,9 @@ class ExternalProgram(mesonlib.HoldableObject):
         commands = self._search_dir(name, search_dir)
         if commands:
             return commands
+        # If there is a directory component, do not look in PATH
+        if os.path.dirname(name) and not os.path.isabs(name):
+            return [None]
         # Do a standard search in PATH
         path = os.environ.get('PATH', None)
         if mesonlib.is_windows() and path:
