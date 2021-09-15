@@ -623,7 +623,6 @@ class XCodeBackend(backends.Backend):
                     fullpath = os.path.join(self.environment.get_build_dir(), s)
                 else:
                     fullpath = os.path.join(self.environment.get_source_dir(), s)
-                compiler_args = ''
                 sdict.add_item('isa', 'PBXBuildFile')
                 sdict.add_item('fileRef', fileref, fullpath)
                 objects_dict.add_item(idval, sdict)

@@ -737,7 +737,7 @@ class CoreData:
                 self.options[key] = value
                 try:
                     value.set_value(oldval.value)
-                except MesonException as e:
+                except MesonException:
                     mlog.warning(f'Old value(s) of {key} are no longer valid, resetting to default ({value.value}).')
 
     def is_cross_build(self, when_building_for: MachineChoice = MachineChoice.HOST) -> bool:

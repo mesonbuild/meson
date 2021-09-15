@@ -1194,7 +1194,6 @@ class Vs2010Backend(backends.Backend):
                     l = t.extract_all_objects(False)
 
                     # Unforunately, we can't use self.object_filename_from_source()
-                    gensrclist: T.List[File] = []
                     for gen in l.genlist:
                         for src in gen.get_outputs():
                             if self.environment.is_source(src) and not self.environment.is_header(src):
