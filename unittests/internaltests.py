@@ -34,8 +34,8 @@ import mesonbuild.dependencies.factory
 import mesonbuild.compilers
 import mesonbuild.envconfig
 import mesonbuild.environment
-import mesonbuild.coredata
 import mesonbuild.modules.gnome
+from mesonbuild import coredata
 from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, ObjectHolder
 from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, typed_kwargs, ContainerTypeInfo, KwargInfo
 from mesonbuild.mesonlib import (
@@ -1527,3 +1527,17 @@ class InternalTests(unittest.TestCase):
                 self.assertRaises(mesonbuild.mesonlib.MesonBugException):
             i = mesonbuild.interpreter.Interpreter(build, mock=True)
             pickle.dumps(i)
+
+    def test_major_versions_differ(self) -> None:
+        # Return True when going to next major release, when going to dev cycle,
+        # when going to rc cycle or when going out of rc cycle.
+        self.assertTrue(coredata.major_versions_differ('0.59.0', '0.60.0'))
+        self.assertTrue(coredata.major_versions_differ('0.59.0', '0.59.99'))
+        self.assertTrue(coredata.major_versions_differ('0.59.0', '0.60.0.rc1'))
+        self.assertTrue(coredata.major_versions_differ('0.59.99', '0.60.0.rc1'))
+        self.assertTrue(coredata.major_versions_differ('0.60.0.rc1', '0.60.0'))
+        # Return False when going to next point release or when staying in dev/rc cycle.
+        self.assertFalse(coredata.major_versions_differ('0.60.0', '0.60.0'))
+        self.assertFalse(coredata.major_versions_differ('0.60.0', '0.60.1'))
+        self.assertFalse(coredata.major_versions_differ('0.59.99', '0.59.99'))
+        self.assertFalse(coredata.major_versions_differ('0.60.0.rc1', '0.60.0.rc2'))

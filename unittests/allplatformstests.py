@@ -2356,16 +2356,12 @@ class AllPlatformTests(BasePlatformTests):
         self.wipe()
         self.init(testdir, extra_args=['-Dstart_native=true'], override_envvars=env)
 
-    def __reconfigure(self, change_minor=False):
+    def __reconfigure(self):
         # Set an older version to force a reconfigure from scratch
         filename = os.path.join(self.privatedir, 'coredata.dat')
         with open(filename, 'rb') as f:
             obj = pickle.load(f)
-        if change_minor:
-            v = mesonbuild.coredata.version.split('.')
-            obj.version = '.'.join(v[0:2] + [str(int(v[2]) + 1)])
-        else:
-            obj.version = '0.47.0'
+        obj.version = '0.47.0'
         with open(filename, 'wb') as f:
             pickle.dump(obj, f)
 
@@ -2405,25 +2401,7 @@ class AllPlatformTests(BasePlatformTests):
         testdir = os.path.join(self.common_test_dir, '157 custom target subdir depend files')
         self.init(testdir)
         self.__reconfigure()
-
-        with Path(self.builddir):
-            self.init(testdir, extra_args=['--wipe'])
-
-    def test_minor_version_does_not_reconfigure_wipe(self):
-        testdir = os.path.join(self.unit_test_dir, '48 reconfigure')
-        self.init(testdir, extra_args=['-Dopt1=val1'])
-        self.setconf('-Dopt2=val2')
-
-        self.__reconfigure(change_minor=True)
-
-        out = self.init(testdir, extra_args=['--reconfigure', '-Dopt3=val3'])
-        self.assertNotRegex(out, 'Regenerating configuration from scratch')
-        self.assertRegex(out, 'opt1 val1')
-        self.assertRegex(out, 'opt2 val2')
-        self.assertRegex(out, 'opt3 val3')
-        self.assertRegex(out, 'opt4 default4')
-        self.build()
-        self.run_tests()
+        self.init(testdir, extra_args=['--wipe'], workdir=self.builddir)
 
     def test_target_construct_id_from_path(self):
         # This id is stable but not guessable.
