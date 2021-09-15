@@ -298,7 +298,7 @@ class Conf:
         if not mismatching:
             return
         print("\nThe following option(s) have a different value than the build type default\n")
-        print(f'               current   default')
+        print('               current   default')
         for m in mismatching:
             print(f'{m[0]:21}{m[1]:10}{m[2]:10}')
 

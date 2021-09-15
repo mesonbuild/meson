@@ -496,7 +496,7 @@ def process_method_kw(possible: T.Iterable[DependencyMethods], kwargs: T.Dict[st
         FeatureDeprecated.single_use(f'Configuration method {method.value}', '0.44', 'Use "config-tool" instead.')
         method = DependencyMethods.CONFIG_TOOL
     if method is DependencyMethods.QMAKE:
-        FeatureDeprecated.single_use(f'Configuration method "qmake"', '0.58', 'Use "config-tool" instead.')
+        FeatureDeprecated.single_use('Configuration method "qmake"', '0.58', 'Use "config-tool" instead.')
         method = DependencyMethods.CONFIG_TOOL
 
     # Set the detection method. If the method is set to auto, use any available method.
