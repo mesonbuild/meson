@@ -1700,7 +1700,7 @@ class Backend:
             if not sd.strip_directory:
                 dst_dir = os.path.join(dst_dir, os.path.basename(src_dir))
                 dst_name = os.path.join(dst_dir, os.path.basename(src_dir))
-            i = SubdirInstallData(src_dir, dst_dir, dst_name, sd.install_mode, sd.exclude, sd.subproject)
+            i = SubdirInstallData(src_dir, dst_dir, dst_name, sd.install_mode, sd.exclude, sd.subproject, sd.install_tag)
             d.install_subdirs.append(i)
 
     def get_introspection_data(self, target_id: str, target: build.Target) -> T.List['TargetIntrospectionData']:
