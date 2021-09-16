@@ -21,6 +21,7 @@
 # http://cgit.freedesktop.org/libreoffice/core/commit/?id=3213cd54b76bc80a6f0516aac75a48ff3b2ad67c
 
 import pickle
+import shlex
 import typing as T
 import os, sys
 from .. import mesonlib
@@ -75,6 +76,9 @@ def get_tool(name: str, for_machine: MachineChoice = MachineChoice.BUILD) -> T.L
     binaries = BINARIES[for_machine].lookup_entry(name)
     if binaries:
         return binaries
+    evar = name.upper()
+    if evar in os.environ:
+        return shlex.split(os.environ[evar])
     return [name]
 
 def call_tool(name: str, args: T.List[str], **kwargs: T.Any) -> str:
