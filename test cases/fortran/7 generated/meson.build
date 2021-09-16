@@ -9,10 +9,8 @@ conf_data.set('ONE', 1)
 conf_data.set('TWO', 2)
 conf_data.set('THREE', 3)
 
-configure_file(input : 'mod3.fpp', output : 'mod3.f90', configuration : conf_data)
-# Manually build absolute path to source file to test
-# https://github.com/mesonbuild/meson/issues/7265
-three = library('mod3', meson.current_build_dir() / 'mod3.f90')
+mod3_f = configure_file(input : 'mod3.fpp', output : 'mod3.f90', configuration : conf_data)
+three = library('mod3', mod3_f)
 
 templates_basenames = ['mod2', 'mod1']
 generated_sources = []
