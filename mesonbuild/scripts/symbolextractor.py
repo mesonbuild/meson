@@ -20,11 +20,13 @@
 # This file is basically a reimplementation of
 # http://cgit.freedesktop.org/libreoffice/core/commit/?id=3213cd54b76bc80a6f0516aac75a48ff3b2ad67c
 
+import pickle
 import typing as T
 import os, sys
 from .. import mesonlib
 from .. import mlog
-from ..mesonlib import Popen_safe
+from ..envconfig import BinaryTable
+from ..mesonlib import MachineChoice, PerMachineDefaultable, Popen_safe
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -33,6 +35,7 @@ parser.add_argument('--cross-host', default=None, dest='cross_host',
                     help='cross compilation host platform')
 parser.add_argument('args', nargs='+')
 
+BINARIES: PerMachineDefaultable[BinaryTable]
 TOOL_WARNING_FILE = None
 RELINKING_WARNING = 'Relinking will always happen on source changes.'
 
@@ -64,11 +67,14 @@ def print_tool_warning(tools: T.List[str], msg: str, stderr: T.Optional[str] = N
     with open(TOOL_WARNING_FILE, 'w', encoding='utf-8'):
         pass
 
-def get_tool(name: str) -> T.List[str]:
-    evar = name.upper()
-    if evar in os.environ:
-        import shlex
-        return shlex.split(os.environ[evar])
+def load_binaries(privdir: str) -> PerMachineDefaultable[BinaryTable]:
+    with open(os.path.join(privdir, 'binaries.dat'), 'rb') as f:
+        return T.cast(PerMachineDefaultable[BinaryTable], pickle.load(f))
+
+def get_tool(name: str, for_machine: MachineChoice = MachineChoice.BUILD) -> T.List[str]:
+    binaries = BINARIES[for_machine].lookup_entry(name)
+    if binaries:
+        return binaries
     return [name]
 
 def call_tool(name: str, args: T.List[str], **kwargs: T.Any) -> str:
@@ -314,12 +320,13 @@ def gen_symbols(libfilename: str, impfilename: str, outfilename: str, cross_host
         dummy_syms(outfilename)
 
 def run(args: T.List[str]) -> int:
-    global TOOL_WARNING_FILE
+    global BINARIES, TOOL_WARNING_FILE
     options = parser.parse_args(args)
     if len(options.args) != 4:
         print('symbolextractor.py <shared library file> <import library> <output file>')
         sys.exit(1)
     privdir = os.path.join(options.args[0], 'meson-private')
+    BINARIES = load_binaries(privdir)
     TOOL_WARNING_FILE = os.path.join(privdir, 'symbolextractor_tool_warning_printed')
     libfile = options.args[1]
     impfile = options.args[2] # Only used on Windows
