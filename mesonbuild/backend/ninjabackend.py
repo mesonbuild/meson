@@ -887,7 +887,7 @@ class NinjaBackend(backends.Backend):
         else:
             final_obj_list = obj_list
         elem = self.generate_link(target, outname, final_obj_list, linker, pch_objects, stdlib_args=stdlib_args)
-        self.generate_dependency_scan_target(target, compiled_sources, source2object)
+        self.generate_dependency_scan_target(target, compiled_sources, source2object, generated_source_files)
         self.generate_shlib_aliases(target, self.get_target_dir(target))
         self.add_build(elem)
 
@@ -911,7 +911,7 @@ class NinjaBackend(backends.Backend):
             return False
         return True
 
-    def generate_dependency_scan_target(self, target, compiled_sources, source2object):
+    def generate_dependency_scan_target(self, target, compiled_sources, source2object, generated_source_files: T.List[mesonlib.File]):
         if not self.should_use_dyndeps_for_target(target):
             return
         depscan_file = self.get_dep_scan_file_for(target)
@@ -929,6 +929,10 @@ class NinjaBackend(backends.Backend):
             json.dump(scan_sources, f)
         elem = NinjaBuildElement(self.all_outputs, depscan_file, rule_name, json_abs)
         elem.add_item('picklefile', pickle_file)
+        # Add any generated outputs to the order deps of the scan target, so
+        # that those sources are present
+        for g in generated_source_files:
+            elem.orderdeps.add(g.relative_name())
         scaninfo = TargetDependencyScannerInfo(self.get_target_private_dir(target), source2object)
         with open(pickle_abs, 'wb') as p:
             pickle.dump(scaninfo, p)
