@@ -515,7 +515,13 @@ class NinjaBackend(backends.Backend):
         ninja = environment.detect_ninja_command_and_version(log=True)
         if need_setup_vsenv:
             builddir = Path(self.environment.get_build_dir())
-            builddir = builddir.relative_to(Path.cwd())
+            try:
+                # For prettier printing, reduce to a relative path. If
+                # impossible (e.g., because builddir and cwd are on
+                # different Windows drives), skip and use the full path.
+                builddir = builddir.relative_to(Path.cwd())
+            except ValueError:
+                pass
             meson_command = mesonlib.join_args(mesonlib.get_meson_command())
             mlog.log()
             mlog.log('Visual Studio environment is needed to run Ninja. It is recommended to use Meson wrapper:')
