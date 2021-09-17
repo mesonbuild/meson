@@ -1342,6 +1342,8 @@ class Vs2010Backend(backends.Backend):
                     self.add_additional_options(lang, inc_cl, file_args)
                     self.add_preprocessor_defines(lang, inc_cl, file_defines)
                     self.add_include_dirs(lang, inc_cl, file_inc_dirs)
+                    s = File.from_built_file(target.get_subdir(), s)
+                    ET.SubElement(inc_cl, 'ObjectFileName').text = "$(IntDir)" + self.object_filename_from_source(target, s)
             for lang in pch_sources:
                 impl = pch_sources[lang][1]
                 if impl and path_normalize_add(impl, previous_sources):
@@ -1356,6 +1358,7 @@ class Vs2010Backend(backends.Backend):
                     else:
                         inc_dirs = file_inc_dirs
                     self.add_include_dirs(lang, inc_cl, inc_dirs)
+                    #XXX: Do we need to set the object file name name here too?
 
         previous_objects = []
         if self.has_objects(objects, additional_objects, gen_objs):
