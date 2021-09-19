@@ -140,6 +140,10 @@ All positional and keyword arguments are the same as for
 - `install_tag` *(since 0.60.0)*: A string used by `meson install --tags` command
   to install only a subset of the files. By default it has the tag `python-runtime`.
 
+If one uses `mesonpep517` to build packages with C extensions
+(`extension_module(..., install:true)`) `pure:false` must be specified for
+wheels to contain both binaries and sources.
+
 #### `get_install_dir()`
 
 ``` meson
