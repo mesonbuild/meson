@@ -248,7 +248,13 @@ class Runner:
             self.log(mlog.red(e.output))
             self.log(mlog.red(str(e)))
             return False
-        if True:
+        if self.wrap_resolver.is_git_full_commit_id(revision) and \
+                quiet_git(['rev-parse', '--verify', revision + '^{commit}'], self.repo_dir)[0]:
+            # The revision we need is both a commit and available. So we do not
+            # need to fetch it because it cannot be updated.  Instead, trick
+            # git into setting FETCH_HEAD just in case, from the local commit.
+            self.git_output(['fetch', '.', revision])
+        else:
             try:
                 # Fetch only the revision we need, this avoids fetching useless branches.
                 # revision can be either a branch, tag or commit id. In all cases we want
