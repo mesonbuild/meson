@@ -40,8 +40,7 @@ class ExternalProgram(mesonlib.HoldableObject):
     for_machine = MachineChoice.BUILD
 
     def __init__(self, name: str, command: T.Optional[T.List[str]] = None,
-                 silent: bool = False, search_dir: T.Optional[str] = None,
-                 extra_search_dirs: T.Optional[T.List[str]] = None):
+                 silent: bool = False, search_dirs: T.List[str] = []):
         self.name = name
         self.path: T.Optional[str] = None
         self.cached_version: T.Optional[str] = None
@@ -59,13 +58,7 @@ class ExternalProgram(mesonlib.HoldableObject):
                 else:
                     self.command = [cmd] + args
         else:
-            all_search_dirs = [search_dir]
-            if extra_search_dirs:
-                all_search_dirs += extra_search_dirs
-            for d in all_search_dirs:
-                self.command = self._search(name, d)
-                if self.found():
-                    break
+            self.command = self._search(name, search_dirs)
 
         if self.found():
             # Set path to be the last item that is actually a file (in order to
@@ -287,14 +280,15 @@ class ExternalProgram(mesonlib.HoldableObject):
                 return commands
         return [None]
 
-    def _search(self, name: str, search_dir: T.Optional[str]) -> T.List[T.Optional[str]]:
+    def _search(self, name: str, search_dirs: T.List[str]) -> T.List[T.Optional[str]]:
         '''
         Search in the specified dir for the specified executable by name
         and if not found search in PATH
         '''
-        commands = self._search_dir(name, search_dir)
-        if commands:
-            return commands
+        for search_dir in search_dirs:
+            commands = self._search_dir(name, search_dir)
+            if commands:
+                return commands
         # Do a standard search in PATH
         path = os.environ.get('PATH', None)
         if mesonlib.is_windows() and path:

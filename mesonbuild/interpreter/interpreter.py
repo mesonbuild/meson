@@ -699,8 +699,8 @@ external dependencies (including libraries) must go to "dependencies".''')
             elif not isinstance(cmd, str):
                 raise InterpreterException('First argument ' + m.format(cmd))
             # Prefer scripts in the current source directory
-            search_dir = os.path.join(srcdir, self.subdir)
-            prog = ExternalProgram(cmd, silent=True, search_dir=search_dir)
+            search_dirs = [os.path.join(srcdir, self.subdir)]
+            prog = ExternalProgram(cmd, silent=True, search_dirs=search_dirs)
             if not prog.found():
                 raise InterpreterException(f'Program or command {cmd!r} not found or not executable')
             cmd = prog
@@ -1303,20 +1303,17 @@ external dependencies (including libraries) must go to "dependencies".''')
         for exename in args:
             if isinstance(exename, mesonlib.File):
                 if exename.is_built:
-                    search_dir = os.path.join(self.environment.get_build_dir(),
-                                              exename.subdir)
+                    search_dirs.insert(0, os.path.join(self.environment.get_build_dir(),
+                                              exename.subdir))
                 else:
-                    search_dir = os.path.join(self.environment.get_source_dir(),
-                                              exename.subdir)
+                    search_dirs.insert(0, os.path.join(self.environment.get_source_dir(),
+                                              exename.subdir))
                 exename = exename.fname
-                extra_search_dirs = []
             elif isinstance(exename, str):
-                search_dir = source_dir
-                extra_search_dirs = search_dirs
+                search_dirs.insert(0, source_dir)
             else:
                 raise InvalidArguments(f'find_program only accepts strings and files, not {exename!r}')
-            extprog = ExternalProgram(exename, search_dir=search_dir,
-                                      extra_search_dirs=extra_search_dirs,
+            extprog = ExternalProgram(exename, search_dirs=search_dirs,
                                       silent=True)
             if extprog.found():
                 extra_info.append(f"({' '.join(extprog.get_command())})")
@@ -1350,7 +1347,7 @@ external dependencies (including libraries) must go to "dependencies".''')
     # TODO update modules to always pass `for_machine`. It is bad-form to assume
     # the host machine.
     def find_program_impl(self, args, for_machine: MachineChoice = MachineChoice.HOST,
-                          required=True, silent=True, wanted='', search_dirs=None,
+                          required=True, silent=True, wanted='', search_dirs=[],
                           version_func=None):
         args = mesonlib.listify(args)
 
@@ -1440,6 +1437,8 @@ external dependencies (including libraries) must go to "dependencies".''')
             return self.notfound_program(args)
 
         search_dirs = extract_search_dirs(kwargs)
+        if isinstance(search_dirs, str):
+            search_dirs = [search_dirs]
         wanted = mesonlib.stringlistify(kwargs.get('version', []))
         for_machine = self.machine_from_native_kwarg(kwargs)
         return self.find_program_impl(args, for_machine, required=required,
