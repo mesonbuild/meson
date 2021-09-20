@@ -77,7 +77,7 @@ python --version
 
 # Needed for running unit tests in parallel.
 echo ""
-python -m pip --disable-pip-version-check install --upgrade pefile pytest-xdist jsonschema coverage
+python -m pip --disable-pip-version-check install --upgrade pefile pytest-xdist jsonschema coverage gcovr 
 
 echo ""
 echo "=== Start running tests ==="

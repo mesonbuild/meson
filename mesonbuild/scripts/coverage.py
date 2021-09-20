@@ -34,6 +34,9 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
     else:
         gcov_exe_args = []
 
+    if gcovr_exe:
+        subproject_root = pathlib.PurePath(subproject_root).as_posix()
+
     if not outputs or 'xml' in outputs:
         if gcovr_exe:
             subprocess.check_call(gcovr_base_cmd +
