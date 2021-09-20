@@ -219,6 +219,10 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         if cached_dep:
             found_vers = cached_dep.get_version()
             if not self._check_version(wanted_vers, found_vers):
+                if not override:
+                    # We cached this dependency on disk from a previous run,
+                    # but it could got updated on the system in the meantime.
+                    return None
                 mlog.log('Dependency', mlog.bold(name),
                          'found:', mlog.red('NO'),
                          'found', mlog.normal_cyan(found_vers), 'but need:',
