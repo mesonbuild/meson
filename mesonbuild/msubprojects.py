@@ -248,21 +248,22 @@ class Runner:
             self.log(mlog.red(e.output))
             self.log(mlog.red(str(e)))
             return False
-        try:
-            # Fetch only the revision we need, this avoids fetching useless branches.
-            # revision can be either a branch, tag or commit id. In all cases we want
-            # FETCH_HEAD to be set to the desired commit and "git checkout <revision>"
-            # to to either switch to existing/new branch, or detach to tag/commit.
-            # It is more complicated than it first appear, see discussion there:
-            # https://github.com/mesonbuild/meson/pull/7723#discussion_r488816189.
-            heads_refmap = '+refs/heads/*:refs/remotes/origin/*'
-            tags_refmap = '+refs/tags/*:refs/tags/*'
-            self.git_output(['fetch', '--refmap', heads_refmap, '--refmap', tags_refmap, 'origin', revision])
-        except GitException as e:
-            self.log('  -> Could not fetch revision', mlog.bold(revision), 'in', mlog.bold(self.repo_dir))
-            self.log(mlog.red(e.output))
-            self.log(mlog.red(str(e)))
-            return False
+        if True:
+            try:
+                # Fetch only the revision we need, this avoids fetching useless branches.
+                # revision can be either a branch, tag or commit id. In all cases we want
+                # FETCH_HEAD to be set to the desired commit and "git checkout <revision>"
+                # to to either switch to existing/new branch, or detach to tag/commit.
+                # It is more complicated than it first appear, see discussion there:
+                # https://github.com/mesonbuild/meson/pull/7723#discussion_r488816189.
+                heads_refmap = '+refs/heads/*:refs/remotes/origin/*'
+                tags_refmap = '+refs/tags/*:refs/tags/*'
+                self.git_output(['fetch', '--refmap', heads_refmap, '--refmap', tags_refmap, 'origin', revision])
+            except GitException as e:
+                self.log('  -> Could not fetch revision', mlog.bold(revision), 'in', mlog.bold(self.repo_dir))
+                self.log(mlog.red(e.output))
+                self.log(mlog.red(str(e)))
+                return False
 
         if branch == '':
             # We are currently in detached mode
