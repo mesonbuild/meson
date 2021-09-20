@@ -54,6 +54,7 @@ from unittests.linuxliketests import LinuxlikeTests
 from unittests.pythontests import PythonTests
 from unittests.subprojectscommandtests import SubprojectsCommandTests
 from unittests.windowstests import WindowsTests
+from unittests.platformagnostictests import PlatformAgnosticTests
 
 def unset_envs():
     # For unit tests we must fully control all command lines
@@ -120,7 +121,7 @@ def main():
     setup_backend()
     cases = ['InternalTests', 'DataTests', 'AllPlatformTests', 'FailureTests',
              'PythonTests', 'NativeFileTests', 'RewriterTests', 'CrossFileTests',
-             'TAPParserTests', 'SubprojectsCommandTests',
+             'TAPParserTests', 'SubprojectsCommandTests', 'PlatformAgnosticTests',
 
              'LinuxlikeTests', 'LinuxCrossArmTests', 'LinuxCrossMingwTests',
              'WindowsTests', 'DarwinTests']
