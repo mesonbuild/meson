@@ -933,8 +933,7 @@ class BuildTarget(Target):
                 self.link_depends.append(
                     File.from_source_file(environment.source_dir, self.subdir, s))
             elif hasattr(s, 'get_outputs'):
-                self.link_depends.extend(
-                    [File.from_built_file(s.get_subdir(), p) for p in s.get_outputs()])
+                self.link_depends.append(s)
             else:
                 raise InvalidArguments(
                     'Link_depends arguments must be strings, Files, '
@@ -2129,20 +2128,18 @@ class SharedLibrary(BuildTarget):
                     self.vs_module_defs = File.from_absolute_file(path)
                 else:
                     self.vs_module_defs = File.from_source_file(environment.source_dir, self.subdir, path)
-                self.link_depends.append(self.vs_module_defs)
             elif isinstance(path, File):
                 # When passing a generated file.
                 self.vs_module_defs = path
-                self.link_depends.append(path)
             elif hasattr(path, 'get_filename'):
                 # When passing output of a Custom Target
-                path = File.from_built_file(path.subdir, path.get_filename())
-                self.vs_module_defs = path
-                self.link_depends.append(path)
+                self.vs_module_defs = File.from_built_file(path.subdir, path.get_filename())
             else:
                 raise InvalidArguments(
                     'Shared library vs_module_defs must be either a string, '
                     'a file object or a Custom Target')
+            self.process_link_depends(path, environment)
+
         if 'rust_crate_type' in kwargs:
             rust_crate_type = kwargs['rust_crate_type']
             if isinstance(rust_crate_type, str):
