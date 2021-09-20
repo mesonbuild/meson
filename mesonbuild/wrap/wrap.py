@@ -571,7 +571,7 @@ class Resolver:
             shutil.unpack_archive(path, tmpdir)
             src = os.listdir(tmpdir)
             if len(src) != 1:
-                raise WrapException("Error patch archive format.")
+                raise WrapException("Error patch archive format. Archive must contain only one top directory.")
             self.copy_tree(os.path.join(tmpdir, src[0]), self.dirname)
 
     def apply_patch(self) -> None:
