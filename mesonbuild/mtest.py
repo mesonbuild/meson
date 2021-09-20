@@ -990,7 +990,14 @@ class TestRunGTest(TestRunExitCode):
         if self.test.workdir:
             filename = os.path.join(self.test.workdir, filename)
 
-        self.junit = et.parse(filename)
+        try:
+            self.junit = et.parse(filename)
+        except FileNotFoundError:
+            # This can happen if the test fails to run or complete for some
+            # reason, like the rpath for libgtest isn't properly set. ExitCode
+            # will handle the failure, don't generate a stacktrace.
+            pass
+
         super().complete(returncode, res, stdo, stde)
 
 TestRun.PROTOCOL_TO_CLASS[TestProtocol.GTEST] = TestRunGTest
