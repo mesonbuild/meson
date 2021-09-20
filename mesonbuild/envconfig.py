@@ -377,6 +377,9 @@ class BinaryTable:
                         f'Invalid type {command!r} for entry {name!r} in cross file')
                 self.binaries[name] = mesonlib.listify(command)
 
+    def as_plain_dict(self) -> T.Dict[str, T.List[str]]:
+        return self.binaries
+
     @staticmethod
     def detect_ccache() -> T.List[str]:
         try:

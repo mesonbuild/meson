@@ -26,8 +26,7 @@ import typing as T
 import os, sys
 from .. import mesonlib
 from .. import mlog
-from ..envconfig import BinaryTable
-from ..mesonlib import MachineChoice, PerMachineDefaultable, Popen_safe
+from ..mesonlib import Popen_safe
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -36,7 +35,7 @@ parser.add_argument('--cross-host', default=None, dest='cross_host',
                     help='cross compilation host platform')
 parser.add_argument('args', nargs='+')
 
-BINARIES: PerMachineDefaultable[BinaryTable]
+BINARIES: T.Dict[str, T.Dict[str, T.List[str]]]
 TOOL_WARNING_FILE = None
 RELINKING_WARNING = 'Relinking will always happen on source changes.'
 
@@ -68,12 +67,13 @@ def print_tool_warning(tools: T.List[str], msg: str, stderr: T.Optional[str] = N
     with open(TOOL_WARNING_FILE, 'w', encoding='utf-8'):
         pass
 
-def load_binaries(privdir: str) -> PerMachineDefaultable[BinaryTable]:
+def load_binaries(privdir: str) -> T.Dict[str, T.Dict[str, T.List[str]]]:
+    """Loads pickled binaries of build and host machines (saved from PerMachine.as_plain_dict)."""
     with open(os.path.join(privdir, 'binaries.dat'), 'rb') as f:
-        return T.cast(PerMachineDefaultable[BinaryTable], pickle.load(f))
+        return T.cast(T.Dict[str, T.Dict[str, T.List[str]]], pickle.load(f))
 
-def get_tool(name: str, for_machine: MachineChoice = MachineChoice.BUILD) -> T.List[str]:
-    binaries = BINARIES[for_machine].lookup_entry(name)
+def get_tool(name: str, for_machine: T.Literal["build", "host"] = "build") -> T.List[str]:
+    binaries = BINARIES[for_machine].get(name)
     if binaries:
         return binaries
     evar = name.upper()

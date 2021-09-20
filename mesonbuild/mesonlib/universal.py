@@ -505,6 +505,12 @@ class PerMachine(T.Generic[_T]):
     def __setitem__(self, machine: MachineChoice, val: _T) -> None:
         setattr(self, machine.get_lower_case_name(), val)
 
+    def as_plain_dict(self) -> T.Dict[str, _T]:
+        return {
+            "build": self.build.as_plain_dict(),
+            "host": self.host.as_plain_dict(),
+        }
+
     def miss_defaulting(self) -> "PerMachineDefaultable[T.Optional[_T]]":
         """Unset definition duplicated from their previous to None
 

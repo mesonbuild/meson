@@ -247,7 +247,9 @@ class MesonApp:
                 intr.backend.generate()
             b.devenv.append(intr.backend.get_devenv())
             build.save(b, dumpfile)
-            universal.pickle_save(b.environment.binaries, os.path.join(env.get_scratch_dir(), 'binaries.dat'))
+            universal.pickle_save(
+                b.environment.binaries.as_plain_dict(), os.path.join(env.get_scratch_dir(), 'binaries.dat')
+            )
             if env.first_invocation:
                 # Use path resolved by coredata because they could have been
                 # read from a pipe and wrote into a private file.
