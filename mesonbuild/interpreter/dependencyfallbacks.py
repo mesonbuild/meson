@@ -16,7 +16,8 @@ if T.TYPE_CHECKING:
 
 
 class DependencyFallbacksHolder(MesonInterpreterObject):
-    def __init__(self, interpreter: 'Interpreter', names: T.List[str], allow_fallback: T.Optional[bool] = None) -> None:
+    def __init__(self, interpreter: 'Interpreter', names: T.List[str], allow_fallback: T.Optional[bool] = None,
+                 default_options: T.Optional[T.List[str]] = None) -> None:
         super().__init__(subproject=interpreter.subproject)
         self.interpreter = interpreter
         self.subproject = interpreter.subproject
@@ -27,7 +28,7 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         self.allow_fallback = allow_fallback
         self.subproject_name = None
         self.subproject_varname = None
-        self.subproject_kwargs = None
+        self.subproject_kwargs = {'default_options': default_options or []}
         self.names: T.List[str] = []
         for name in names:
             if not name:
@@ -39,12 +40,9 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
                 raise InterpreterException('dependency_fallbacks name {name!r} is duplicated')
             self.names.append(name)
 
-    def set_fallback(self, fbinfo: T.Optional[T.Union[T.List[str], str]], default_options: T.Optional[T.List[str]] = None) -> None:
-        # Legacy: This converts dependency()'s fallback and default_options kwargs.
+    def set_fallback(self, fbinfo: T.Optional[T.Union[T.List[str], str]]) -> None:
+        # Legacy: This converts dependency()'s fallback kwargs.
         if fbinfo is None:
-            if default_options is not None:
-                mlog.warning('The "default_options" keyword argument does nothing without a fallback subproject.',
-                             location=self.interpreter.current_node)
             return
         if self.allow_fallback is not None:
             raise InvalidArguments('"fallback" and "allow_fallback" arguments are mutually exclusive')
@@ -60,10 +58,9 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
             subp_name, varname = fbinfo
         else:
             raise InterpreterException('Fallback info must have one or two items.')
-        kwargs = {'default_options': default_options or []}
-        self._subproject_impl(subp_name, varname, kwargs)
+        self._subproject_impl(subp_name, varname)
 
-    def _subproject_impl(self, subp_name: str, varname: str, kwargs: TYPE_nkwargs) -> None:
+    def _subproject_impl(self, subp_name: str, varname: str) -> None:
         if not varname:
             # If no variable name is specified, check if the wrap file has one.
             # If the wrap file has a variable name, better use it because the
@@ -75,7 +72,6 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         assert self.subproject_name is None
         self.subproject_name = subp_name
         self.subproject_varname = varname
-        self.subproject_kwargs = kwargs
 
     def _do_dependency_cache(self, kwargs: TYPE_nkwargs, func_args: TYPE_nvar, func_kwargs: TYPE_nkwargs) -> T.Optional[Dependency]:
         name = func_args[0]
@@ -318,7 +314,7 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
                 if subp_name:
                     self.forcefallback |= subp_name in force_fallback_for
                     if self.forcefallback or self.allow_fallback is True or required or self._get_subproject(subp_name):
-                        self._subproject_impl(subp_name, varname, {})
+                        self._subproject_impl(subp_name, varname)
                     break
 
         candidates = self._get_candidates()
