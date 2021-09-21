@@ -2322,7 +2322,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         # https://github.com/mesonbuild/meson/issues/3275#issuecomment-641354956
         # https://github.com/mesonbuild/meson/issues/3742
         warnargs = ('/W1', '/W2', '/W3', '/W4', '/Wall', '-Wall', '-Wextra')
-        optargs = ('-O0', '-O2', '-O3', '-Os', '/O1', '/O2', '/Os')
+        optargs = ('-O0', '-O2', '-O3', '-Os', '-Oz', '/O1', '/O2', '/Os')
         for arg in args:
             if arg in warnargs:
                 mlog.warning(f'Consider using the built-in warning_level option instead of using "{arg}".',

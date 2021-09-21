@@ -40,7 +40,7 @@ clang_optimization_args = {
     '1': ['-O1'],
     '2': ['-O2'],
     '3': ['-O3'],
-    's': ['-Os'],
+    's': ['-Oz'],
 }  # type: T.Dict[str, T.List[str]]
 
 class ClangCompiler(GnuLikeCompiler):
