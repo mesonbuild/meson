@@ -276,11 +276,43 @@ def python_factory(env: 'Environment', for_machine: 'MachineChoice',
 
 
 INTROSPECT_COMMAND = '''\
+import os.path
 import sysconfig
 import json
 import sys
+import distutils.command.install
 
-install_paths = sysconfig.get_paths(vars={'base': '', 'platbase': '', 'installed_base': ''})
+def get_distutils_paths(scheme=None, prefix=None):
+    import distutils.dist
+    distribution = distutils.dist.Distribution()
+    install_cmd = distribution.get_command_obj('install')
+    if prefix is not None:
+        install_cmd.prefix = prefix
+    if scheme:
+        install_cmd.select_scheme(scheme)
+    install_cmd.finalize_options()
+    return {
+        'data': install_cmd.install_data,
+        'include': os.path.dirname(install_cmd.install_headers),
+        'platlib': install_cmd.install_platlib,
+        'purelib': install_cmd.install_purelib,
+        'scripts': install_cmd.install_scripts,
+    }
+
+# On Debian derivatives, the Python interpreter shipped by the distribution uses
+# a custom install scheme, deb_system, for the system install, and changes the
+# default scheme to a custom one pointing to /usr/local and replacing
+# site-packages with dist-packages.
+# See https://github.com/mesonbuild/meson/issues/8739.
+# XXX: We should be using sysconfig, but Debian only patches distutils.
+
+if 'deb_system' in distutils.command.install.INSTALL_SCHEMES:
+    paths = get_distutils_paths(scheme='deb_system')
+    install_paths = get_distutils_paths(scheme='deb_system', prefix='')
+else:
+    paths = sysconfig.get_paths()
+    empty_vars = {'base': '', 'platbase': '', 'installed_base': ''}
+    install_paths = sysconfig.get_paths(vars=empty_vars)
 
 def links_against_libpython():
     from distutils.core import Distribution, Extension
@@ -290,7 +322,7 @@ def links_against_libpython():
 
 print(json.dumps({
   'variables': sysconfig.get_config_vars(),
-  'paths': sysconfig.get_paths(),
+  'paths': paths,
   'install_paths': install_paths,
   'sys_paths': sys.path,
   'version': sysconfig.get_python_version(),
@@ -373,14 +405,9 @@ class PythonExternalProgram(ExternalProgram):
         sys_paths = self.info['sys_paths']
         rel_path = self.info['install_paths'][key][1:]
         if not any(p.endswith(rel_path) for p in sys_paths if not p.startswith(user_dir)):
-            # On Debian derivatives sysconfig install path is broken and is not
-            # included in the locations python actually lookup.
-            # See https://github.com/mesonbuild/meson/issues/8739.
             mlog.warning('Broken python installation detected. Python files',
                          'installed by Meson might not be found by python interpreter.',
                          once=True)
-            if mesonlib.is_debianlike():
-                rel_path = 'lib/python3/dist-packages'
         return rel_path
 
 
