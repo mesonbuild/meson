@@ -1,0 +1,8 @@
+[wrap-file]
+directory = fuse-3.10.4
+source_url = https://github.com/libfuse/libfuse/releases/download/fuse-3.10.4/fuse-3.10.4.tar.xz
+source_filename = fuse-3.10.4.tar.xz
+source_hash = 9365b74fd8471caecdb3cc5adf25a821f70a931317ee9103d15bd39089e3590d
+
+[provide]
+fuse3 = libfuse_dep

@@ -7,3 +7,4 @@
 /mesonbuild/cmake/ @mensinda
 /mesonbuild/compilers/ @dcbaker
 /mesonbuild/linkers.py @dcbaker
+/packaging/appimage @mensinda

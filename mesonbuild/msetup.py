@@ -17,12 +17,16 @@ import time
 import sys, stat
 import datetime
 import os.path
+import os
 import platform
 import cProfile as profile
 import argparse
 import tempfile
 import shutil
 import glob
+import subprocess
+
+from pathlib import Path
 
 from . import environment, interpreter, mesonlib
 from . import build
@@ -73,6 +77,20 @@ class MesonApp:
                                                                options.sourcedir,
                                                                options.reconfigure,
                                                                options.wipe)
+        # Detect if we are running from the AppImage runtime. Then self-extract
+        # and relaunch with the extracted binaries
+        if 'APPIMAGE' in os.environ:
+            rc = subprocess.run([os.environ['APPIMAGE'], '--runtime-setup', self.build_dir]).returncode
+            if rc == 0:
+                del os.environ['APPIMAGE']  # avoid infinite loops
+                del os.environ['APPDIR']
+                meson_exe = Path(self.build_dir) / 'meson-runtime' / 'fakebin' / 'meson'
+                meson_exe = meson_exe.resolve()
+                os.execve(meson_exe.as_posix(), [meson_exe.as_posix(), *sys.argv[1:]], os.environ)
+                # execve never returns. See `man 3 exec`.
+
+            mlog.warning('Failed to self extract', mlog.bold(os.environ['APPIMAGE']), 'to', mlog.bold(options.builddir), f'(rc = {rc})')
+
         if options.wipe:
             # Make a copy of the cmd line file to make sure we can always
             # restore that file if anything bad happens. For example if

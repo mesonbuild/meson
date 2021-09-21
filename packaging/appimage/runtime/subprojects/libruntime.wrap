@@ -1,0 +1,6 @@
+[wrap-file]
+
+directory = libRuntime-0.0.3
+source_url = https://github.com/mensinda/libRuntime/archive/refs/tags/v0.0.3.tar.gz
+source_filename = libRuntime-v0.0.3.tar.gz
+source_hash = 9f52ebf9e6b4059cdf65d34caa1a755edf0856ae010d97cb8a17a099d9f3782f

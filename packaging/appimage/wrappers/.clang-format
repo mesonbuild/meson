@@ -1,0 +1,9 @@
+---
+AlignConsecutiveAssignments: 'true'
+AlignConsecutiveDeclarations: 'true'
+AlignOperands: 'true'
+AlignTrailingComments: 'true'
+PointerAlignment: Left
+UseTab: Never
+
+...

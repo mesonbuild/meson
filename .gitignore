@@ -21,9 +21,11 @@ __pycache__
 .DS_Store
 *~
 *.swp
+meson*.runtime
 packagecache
 /MANIFEST
 /build
+/appimage
 /dist
 /meson.egg-info
 

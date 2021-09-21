@@ -1,0 +1,11 @@
+[wrap-file]
+directory = xz-5.2.1
+source_url = http://tukaani.org/xz/xz-5.2.1.tar.xz
+source_filename = xz-5.2.1.tar.xz
+source_hash = 6ecdd4d80b12001497df0741d6037f918d270fa0f9a1ab4e2664bf4157ae323c
+patch_url = https://wrapdb.mesonbuild.com/v2/liblzma_5.2.1-5/get_patch
+patch_filename = liblzma-5.2.1-5-wrap.zip
+patch_hash = cde35a0feaf438e3dc0b8d227910fc26051801e7b68bbac24ef6546d94be6049
+
+[provide]
+liblzma = lzma_dep

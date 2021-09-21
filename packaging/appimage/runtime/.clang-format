@@ -1,0 +1,33 @@
+﻿---
+AccessModifierOffset: '0'
+AlignAfterOpenBracket: Align
+AlignConsecutiveMacros: 'true'
+AlignConsecutiveAssignments: 'true'
+AlignConsecutiveDeclarations: 'true'
+AlignEscapedNewlines: Right
+AlignOperands: 'true'
+AlignTrailingComments: 'true'
+AllowAllArgumentsOnNextLine: 'true'
+AllowAllConstructorInitializersOnNextLine: 'true'
+AllowShortCaseLabelsOnASingleLine: 'true'
+AllowShortFunctionsOnASingleLine: InlineOnly
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLambdasOnASingleLine: All
+AllowShortLoopsOnASingleLine: 'true'
+AlwaysBreakTemplateDeclarations: 'Yes'
+BinPackArguments: 'false'
+BinPackParameters: 'false'
+BreakBeforeBraces: Attach
+ColumnLimit: '120'
+ConstructorInitializerAllOnOneLineOrOnePerLine: 'true'
+DerivePointerAlignment: 'false'
+ExperimentalAutoDetectBinPacking: 'false'
+IndentCaseLabels: 'true'
+IndentWidth: '4'
+Language: Cpp
+PointerAlignment: Right
+SortIncludes: 'false'
+TabWidth: '4'
+UseTab: Never
+
+...

@@ -1,0 +1,12 @@
+[wrap-file]
+directory = lz4-1.9.3
+source_url = https://github.com/lz4/lz4/archive/v1.9.3.tar.gz
+source_filename = lz4-1.9.3.tgz
+source_hash = 030644df4611007ff7dc962d981f390361e6c97a34e5cbc393ddfbe019ffe2c1
+patch_url = https://wrapdb.mesonbuild.com/v2/lz4_1.9.3-1/get_patch
+patch_filename = lz4-1.9.3-1-wrap.zip
+patch_hash = 5a0e6e5797a51d23d5dad0009d36dfebe354b5e5eef2a1302d29788b1ee067c1
+
+[provide]
+liblz4 = liblz4_dep
+
