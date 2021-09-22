@@ -2334,6 +2334,8 @@ class CustomTarget(Target, CommandBase):
         for c in self.sources:
             if isinstance(c, (BuildTarget, CustomTarget)):
                 deps.append(c)
+            if isinstance(c, CustomTargetIndex):
+                deps.append(c.target)
         return deps
 
     def get_transitive_build_target_deps(self) -> T.Set[T.Union[BuildTarget, 'CustomTarget']]:
