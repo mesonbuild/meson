@@ -1447,7 +1447,7 @@ class AllPlatformTests(BasePlatformTests):
             link_cmd = ['ar', 'csr', outfile, objectfile]
         link_cmd = linker.get_exelist()
         link_cmd += linker.get_always_args()
-        link_cmd += linker.get_std_link_args()
+        link_cmd += linker.get_std_link_args(False)
         link_cmd += linker.get_output_args(outfile)
         link_cmd += [objectfile]
         self.pbcompile(compiler, source, objectfile, extra_args=extra_args)
