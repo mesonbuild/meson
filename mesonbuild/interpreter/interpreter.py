@@ -73,7 +73,9 @@ import importlib
 
 if T.TYPE_CHECKING:
     import argparse
+
     from . import kwargs
+    from ..programs import OverrideProgram
 
     # Input source types passed to Targets
     SourceInputs = T.Union[mesonlib.File, build.GeneratedList, build.BuildTarget, build.BothLibraries,
@@ -233,6 +235,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 user_defined_options: T.Optional['argparse.Namespace'] = None,
             ) -> None:
         super().__init__(_build.environment.get_source_dir(), subdir, subproject)
+        self.active_projectname = ''
         self.build = _build
         self.environment = self.build.environment
         self.coredata = self.environment.get_coredata()
@@ -1057,8 +1060,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         if self.build.project_version is None:
             self.build.project_version = self.project_version
         proj_license = mesonlib.stringlistify(kwargs.get('license', 'unknown'))
-        self.build.dep_manifest[proj_name] = {'version': self.project_version,
-                                              'license': proj_license}
+        self.build.dep_manifest[proj_name] = build.DepManifest(self.project_version, proj_license)
         if self.subproject in self.build.projects:
             raise InvalidCode('Second call to project().')
 
@@ -1342,7 +1344,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             if isinstance(name, str):
                 self.build.searched_programs.add(name)
 
-    def add_find_program_override(self, name, exe):
+    def add_find_program_override(self, name: str, exe: T.Union[build.Executable, ExternalProgram, 'OverrideProgram']) -> None:
         if name in self.build.searched_programs:
             raise InterpreterException(f'Tried to override finding of executable "{name}" which has already been found.')
         if name in self.build.find_overrides:
@@ -1435,7 +1437,7 @@ external dependencies (including libraries) must go to "dependencies".''')
     @FeatureNewKwargs('find_program', '0.49.0', ['disabler'])
     @disablerIfNotFound
     @permittedKwargs({'required', 'native', 'version', 'dirs'})
-    def func_find_program(self, node, args, kwargs):
+    def func_find_program(self, node, args, kwargs) -> T.Union['build.Executable', ExternalProgram, 'OverrideProgram']:
         if not args:
             raise InterpreterException('No program name specified.')
 
@@ -2648,7 +2650,7 @@ This will become a hard error in the future.''', location=self.current_node)
         if self.subproject != buildtarget.subproject:
             raise InterpreterException('Tried to extract objects from a different subproject.')
 
-    def is_subproject(self):
+    def is_subproject(self) -> bool:
         return self.subproject != ''
 
     @typed_pos_args('set_variable', str, object)

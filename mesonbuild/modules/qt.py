@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from mesonbuild import coredata
 import os
 import shutil
 import typing as T
@@ -21,10 +20,10 @@ import xml.etree.ElementTree as ET
 
 from . import ModuleReturnValue, ExtensionModule
 from .. import build
+from .. import coredata
 from .. import mlog
 from ..dependencies import find_external_dependency, Dependency, ExternalLibrary
 from ..mesonlib import MesonException, File, FileOrString, version_compare, Popen_safe
-from . import ModuleReturnValue, ExtensionModule
 from ..interpreter import extract_required_kwarg
 from ..interpreter.type_checking import NoneType
 from ..interpreterbase import ContainerTypeInfo, FeatureDeprecated, KwargInfo, noPosargs, FeatureNew, typed_kwargs

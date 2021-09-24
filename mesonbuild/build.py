@@ -33,7 +33,7 @@ from .mesonlib import (
     extract_as_list, typeslistify, stringlistify, classify_unity_sources,
     get_filenames_templates_dict, substitute_values, has_path_sep,
     OptionKey, PerMachineDefaultable,
-    MesonBugException, FileOrString,
+    MesonBugException,
 )
 from .compilers import (
     Compiler, is_object, clink_langs, sort_clink, lang_suffixes,
@@ -206,6 +206,19 @@ class InstallDir(HoldableObject):
         self.install_tag = install_tag
 
 
+class DepManifest:
+
+    def __init__(self, version: str, license: T.List[str]):
+        self.version = version
+        self.license = license
+
+    def to_json(self) -> T.Dict[str, T.Union[str, T.List[str]]]:
+        return {
+            'version': self.version,
+            'license': self.license,
+        }
+
+
 class Build:
     """A class that holds the status of one build including
     all dependencies and so on.
@@ -230,16 +243,16 @@ class Build:
         self.static_linker: PerMachine[StaticLinker] = PerMachine(None, None)
         self.subprojects = {}
         self.subproject_dir = ''
-        self.install_scripts = []
+        self.install_scripts: T.List['ExecutableSerialisation'] = []
         self.postconf_scripts: T.List['ExecutableSerialisation'] = []
-        self.dist_scripts = []
+        self.dist_scripts: T.List['ExecutableSerialisation'] = []
         self.install_dirs: T.List[InstallDir] = []
-        self.dep_manifest_name = None
-        self.dep_manifest = {}
+        self.dep_manifest_name: T.Optional[str] = None
+        self.dep_manifest: T.Dict[str, DepManifest] = {}
         self.stdlibs = PerMachine({}, {})
         self.test_setups: T.Dict[str, TestSetup] = {}
         self.test_setup_default_name = None
-        self.find_overrides = {}
+        self.find_overrides: T.Dict[str, T.Union['Executable', programs.ExternalProgram, programs.OverrideProgram]] = {}
         self.searched_programs = set() # The list of all programs that have been searched for.
 
         # If we are doing a cross build we need two caches, if we're doing a
@@ -921,7 +934,7 @@ class BuildTarget(Target):
             if t in self.kwargs:
                 self.kwargs[t] = listify(self.kwargs[t], flatten=True)
 
-    def extract_objects(self, srclist: T.List[FileOrString]) -> ExtractedObjects:
+    def extract_objects(self, srclist: T.List['FileOrString']) -> ExtractedObjects:
         obj_src: T.List['File'] = []
         sources_set = set(self.sources)
         for src in srclist:

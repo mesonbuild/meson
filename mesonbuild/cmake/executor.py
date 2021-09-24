@@ -28,7 +28,6 @@ from ..mesonlib import PerMachine, Popen_safe, version_compare, MachineChoice, i
 from ..programs import find_external_program, NonExistingExternalProgram
 
 if T.TYPE_CHECKING:
-    from ..environment import Environment
     from ..programs import ExternalProgram
 
 TYPE_result    = T.Tuple[int, T.Optional[str], T.Optional[str]]

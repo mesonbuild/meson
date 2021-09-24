@@ -32,7 +32,7 @@ def buildparser() -> argparse.ArgumentParser:
     parser.add_argument('--feed')
     return parser
 
-def run_exe(exe: ExecutableSerialisation, extra_env: T.Optional[dict] = None) -> int:
+def run_exe(exe: ExecutableSerialisation, extra_env: T.Optional[T.Dict[str, str]] = None) -> int:
     if exe.exe_runner:
         if not exe.exe_runner.found():
             raise AssertionError('BUG: Can\'t run cross-compiled exe {!r} with not-found '
@@ -66,6 +66,9 @@ def run_exe(exe: ExecutableSerialisation, extra_env: T.Optional[dict] = None) ->
     p = subprocess.Popen(cmd_args, env=child_env, cwd=exe.workdir,
                          close_fds=False, stdin=stdin, stdout=pipe, stderr=pipe)
     stdout, stderr = p.communicate()
+
+    if stdin is not None:
+        stdin.close()
 
     if p.returncode == 0xc0000135:
         # STATUS_DLL_NOT_FOUND on Windows indicating a common problem that is otherwise hard to diagnose
