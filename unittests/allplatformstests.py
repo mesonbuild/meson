@@ -4628,7 +4628,7 @@ class AllPlatformTests(BasePlatformTests):
                         c = false
                         '''))
                 _ = mesonbuild.coredata.parse_machine_files([crossfile])
-        self.assertEqual(str(cm.exception), 'Invalid type False for entry \'c\' in machine file')
+            self.assertEqual(str(cm.exception), 'Invalid type False for entry \'c\' in machine file')
         
         # boolean within a list assigned to a binary entry should raise an exception
         with self.assertRaises(EnvironmentException) as cm:
@@ -4640,4 +4640,16 @@ class AllPlatformTests(BasePlatformTests):
                         c = [false]
                         '''))
                 _ = mesonbuild.coredata.parse_machine_files([crossfile])
-        self.assertEqual(str(cm.exception), 'Invalid type [False] for entry \'c\' in machine file')
+            self.assertEqual(str(cm.exception), 'Invalid type [False] for entry \'c\' in machine file')
+
+    def test_relative_to_absolute_path_conversion_at_different_directories(self):
+        with tempfile.TemporaryDirectory() as tmpdir1, tempfile.TemporaryDirectory() as tmpdir2:
+            with tempfile.NamedTemporaryFile('w+t', encoding='utf-8', dir=tmpdir1) as crossfile1, tempfile.NamedTemporaryFile('w+t', encoding='utf-8', dir=tmpdir2) as crossfile2:
+                crossfile1.writelines("[binaries]\nfoo = 'bin/foo'\n")
+                crossfile1.flush()
+                crossfile2.writelines("[binaries]\nbar = 'bin/bar'\n")
+                crossfile2.flush()
+                config = mesonbuild.coredata.parse_machine_files([crossfile1.name, crossfile2.name])
+                bt = mesonbuild.envconfig.BinaryTable(config.get('binaries', {}))
+                self.assertEqual(bt.binaries['foo'], [os.path.normpath(os.path.join(os.path.dirname(crossfile1.name), 'bin/foo'))])
+                self.assertEqual(bt.binaries['bar'], [os.path.normpath(os.path.join(os.path.dirname(crossfile2.name), 'bin/bar'))])

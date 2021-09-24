@@ -929,27 +929,32 @@ class CmdLineFileParser(configparser.ConfigParser):
 
 class MachineFileParser():
     def __init__(self, filenames: T.List[str]) -> None:
-        self.parser = CmdLineFileParser()
         self.constants = {'True': True, 'False': False}
         self.sections = {}
 
+        # First parse [constants] first so they can be used in other sections
+        p = CmdLineFileParser()
+        p.read(filenames)
+        if p.has_section('constants'):
+            self.constants.update(self._parse_section(p, 'constants'))
+
+        # Then each machine file is read individually to expand
+        # binaries with a relative path according to the location
+        # of the source machine file.
         for fname in filenames:
-            self.parser.read(fname)
+            p = CmdLineFileParser()
+            p.read(fname)
+            for s in p.sections():
+                if s != 'constants':
+                    if s in self.sections:
+                        self.sections[s].update(self._parse_section(p, s, fname))
+                    else:
+                        self.sections[s] = self._parse_section(p, s, fname)
 
-            # Parse [constants] first so they can be used in other sections
-            if self.parser.has_section('constants'):
-                self.constants.update(self._parse_section('constants', fname))
-
-            for s in self.parser.sections():
-                if s == 'constants':
-                    continue
-                self.sections[s] = self._parse_section(s, fname)
-            
-
-    def _parse_section(self, s, fname):
+    def _parse_section(self, parser:CmdLineFileParser, s:str, fname:str=None) -> dict:
         self.scope = self.constants.copy()
         section = {}
-        for entry, value in self.parser.items(s):
+        for entry, value in parser.items(s):
             if ' ' in entry or '\t' in entry or "'" in entry or '"' in entry:
                 raise EnvironmentException(f'Malformed variable name {entry!r} in machine file.')
             # Windows paths...
