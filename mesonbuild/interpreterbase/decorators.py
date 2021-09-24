@@ -373,7 +373,7 @@ class KwargInfo(T.Generic[_T]):
                  since_values: T.Optional[T.Dict[str, str]] = None,
                  deprecated: T.Optional[str] = None,
                  deprecated_values: T.Optional[T.Dict[str, str]] = None,
-                 validator: T.Optional[T.Callable[[_T], T.Optional[str]]] = None,
+                 validator: T.Optional[T.Callable[[T.Any], T.Optional[str]]] = None,
                  convertor: T.Optional[T.Callable[[_T], object]] = None,
                  not_set_warning: T.Optional[str] = None):
         self.name = name
