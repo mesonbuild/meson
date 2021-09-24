@@ -16,6 +16,7 @@ enable=
     consider-using-enumerate,
     dangerous-default-value,
     deprecated-lambda,
+    function-redefined,
     len-as-condition,
     literal-comparison,
     missing-kwoa,
