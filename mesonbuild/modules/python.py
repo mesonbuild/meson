@@ -279,6 +279,18 @@ print (json.dumps ({
 }))
 '''
 
+if T.TYPE_CHECKING:
+    class PythonIntrospectionDict(TypedDict):
+
+        install_paths: T.Dict[str, str]
+        is_pypy: bool
+        link_libpython: bool
+        paths: T.Dict[str, str]
+        platform: str
+        suffix : str
+        variables: T.Dict[str, str]
+        version: str
+
 class PythonExternalProgram(ExternalProgram):
     def __init__(self, name: str, command: T.Optional[T.List[str]] = None, ext_prog: T.Optional[ExternalProgram] = None):
         if ext_prog is None:
@@ -287,7 +299,15 @@ class PythonExternalProgram(ExternalProgram):
             self.name = name
             self.command = ext_prog.command
             self.path = ext_prog.path
-        self.info: T.Dict[str, str] = {}
+        self.info: 'PythonIntrospectionDict' = {
+            'install_paths': {},
+            'is_pypy': False,
+            'link_libpython': False,
+            'paths': {},
+            'platform': 'sentinal',
+            'variables': {},
+            'version': '0.0',
+        }
 
 class PythonInstallation(ExternalProgramHolder):
     def __init__(self, python, interpreter):
