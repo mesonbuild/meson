@@ -545,6 +545,8 @@ class JDKSystemDependency(SystemDependency):
             return 'win32'
         elif m.is_darwin():
             return 'darwin'
+        elif m.is_sunos():
+            return 'solaris'
 
         return None
 
