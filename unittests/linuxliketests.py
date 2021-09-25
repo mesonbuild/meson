@@ -1676,10 +1676,13 @@ class LinuxlikeTests(BasePlatformTests):
             raise SkipTest('Prelinking not supported on Darwin.')
         if 'clang' in os.environ.get('CC', 'dummy'):
             raise SkipTest('Prelinking not supported with Clang.')
-        gccver = subprocess.check_output(['cc', '--version'])
-        if b'7.5.0' in gccver:
-            raise SkipTest('GCC on Bionic is too old to be supported.')
         testdir = os.path.join(self.unit_test_dir, '87 prelinking')
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+        cc = detect_c_compiler(env, MachineChoice.HOST)
+        if cc.id == "gcc":
+            gccver = subprocess.check_output(['gcc', '--version'])
+            if b'7.5.0' in gccver:
+                raise SkipTest('GCC on Bionic is too old to be supported.')
         self.init(testdir)
         self.build()
         outlib = os.path.join(self.builddir, 'libprelinked.a')
