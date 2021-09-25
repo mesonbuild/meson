@@ -1,3 +1,4 @@
 fn main() {
-    println!("rust compiler is working");
+    let foo = "rust compiler is working";
+    println!("{}", foo);
 }

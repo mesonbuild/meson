@@ -1691,20 +1691,12 @@ class NinjaBackend(backends.Backend):
         if cratetype in {'bin', 'dylib'}:
             args.extend(rustc.get_linker_always_args())
 
-        opt_proxy = self.get_compiler_options_for_target(target)
-
+        args += self.generate_basic_compiler_args(target, rustc, False)
         args += ['--crate-name', target.name]
-        args += rustc.get_buildtype_args(self.get_option_for_target(OptionKey('buildtype'), target))
-        args += rustc.get_debug_args(self.get_option_for_target(OptionKey('debug'), target))
-        args += rustc.get_optimization_args(self.get_option_for_target(OptionKey('optimization'), target))
-        args += rustc.get_option_compile_args(opt_proxy)
-        args += self.build.get_global_args(rustc, target.for_machine)
-        args += self.build.get_project_args(rustc, target.subproject, target.for_machine)
         depfile = os.path.join(target.subdir, target.name + '.d')
         args += ['--emit', f'dep-info={depfile}', '--emit', 'link']
         args += target.get_extra_args('rust')
         args += rustc.get_output_args(os.path.join(target.subdir, target.get_filename()))
-        args += self.environment.coredata.get_external_args(target.for_machine, rustc.language)
         linkdirs = mesonlib.OrderedSet()
         external_deps = target.external_deps.copy()
         for d in target.link_targets:

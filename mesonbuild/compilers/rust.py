@@ -45,6 +45,13 @@ class RustCompiler(Compiler):
     # rustc doesn't invoke the compiler itself, it doesn't need a LINKER_PREFIX
     language = 'rust'
 
+    _WARNING_LEVELS: T.Dict[str, T.List[str]] = {
+        '0': ['-A', 'warnings'],
+        '1': [],
+        '2': [],
+        '3': ['-W', 'warnings'],
+    }
+
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo',
                  exe_wrapper: T.Optional['ExternalProgram'] = None,
@@ -168,3 +175,41 @@ class RustCompiler(Compiler):
         for a in super().get_linker_always_args():
             args.extend(['-C', f'link-arg={a}'])
         return args
+
+    def get_werror_args(self) -> T.List[str]:
+        # Use -D warnings, which makes every warning not explicitly allowed an
+        # error
+        return ['-D', 'warnings']
+
+    def get_warn_args(self, level: str) -> T.List[str]:
+        # TODO: I'm not really sure what to put here, Rustc doesn't have warning
+        return self._WARNING_LEVELS[level]
+
+    def get_no_warn_args(self) -> T.List[str]:
+        return self._WARNING_LEVELS["0"]
+
+    def get_pic_args(self) -> T.List[str]:
+        # This defaults to
+        return ['-C', 'relocation-model=pic']
+
+    def get_pie_args(self) -> T.List[str]:
+        # Rustc currently has no way to toggle this, it's controlled by whether
+        # pic is on by rustc
+        return []
+
+
+class ClippyRustCompiler(RustCompiler):
+
+    """Clippy is a linter that wraps Rustc.
+
+    This just provides us a different id
+    """
+
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
+                 is_cross: bool, info: 'MachineInfo',
+                 exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 full_version: T.Optional[str] = None,
+                 linker: T.Optional['DynamicLinker'] = None):
+        super().__init__(exelist, version, for_machine, is_cross, info,
+                         exe_wrapper, full_version, linker)
+        self.id = 'clippy-driver rustc'

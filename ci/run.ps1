@@ -13,6 +13,10 @@ if ($env:arch -eq 'x64') {
 } elseif ($env:arch -eq 'x86') {
     # Switch to the x86 Rust toolchain
     rustup default stable-i686-pc-windows-msvc
+
+    # Also install clippy
+    rustup component add clippy
+
     # Rust puts its shared stdlib in a secret place, but it is needed to run tests.
     $env:Path += ";$HOME/.rustup/toolchains/stable-i686-pc-windows-msvc/bin"
     # Need 32-bit Python for tests that need the Python dependency

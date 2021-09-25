@@ -124,7 +124,7 @@ from .objcpp import (
     GnuObjCPPCompiler,
 )
 from .cython import CythonCompiler
-from .rust import RustCompiler
+from .rust import RustCompiler, ClippyRustCompiler
 from .swift import SwiftCompiler
 from .vala import ValaCompiler
 from .mixins.visualstudio import VisualStudioLikeCompiler
@@ -952,6 +952,13 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
             continue
 
         version = search_version(out)
+        cls: T.Type[RustCompiler] = RustCompiler
+
+        # Clippy is a wrapper around rustc, but it doesn't have rustc in it's
+        # output. We can otherwise treat it as rustc.
+        if 'clippy' in out:
+            out = 'rustc'
+            cls = ClippyRustCompiler
 
         if 'rustc' in out:
             # On Linux and mac rustc will invoke gcc (clang for mac
@@ -970,19 +977,21 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
                     'or use the RUST_LD environment variable, otherwise meson '
                     'will override your selection.')
 
+            compiler = compiler.copy()  # avoid mutating the original list
+
             if override is None:
                 extra_args: T.Dict[str, T.Union[str, bool]] = {}
                 always_args: T.List[str] = []
                 if is_link_exe:
-                    compiler.extend(RustCompiler.use_linker_args(cc.linker.exelist[0]))
+                    compiler.extend(cls.use_linker_args(cc.linker.exelist[0]))
                     extra_args['direct'] = True
                     extra_args['machine'] = cc.linker.machine
                 else:
-                    exelist = cc.linker.exelist.copy()
+                    exelist = cc.linker.exelist + cc.linker.get_always_args()
                     if 'ccache' in exelist[0]:
                         del exelist[0]
                     c = exelist.pop(0)
-                    compiler.extend(RustCompiler.use_linker_args(c))
+                    compiler.extend(cls.use_linker_args(c))
 
                     # Also ensure that we pass any extra arguments to the linker
                     for l in exelist:
@@ -1000,12 +1009,12 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
                                                 **extra_args) # type: ignore
             elif 'link' in override[0]:
                 linker = guess_win_linker(env,
-                    override, RustCompiler, for_machine, use_linker_prefix=False)
+                    override, cls, for_machine, use_linker_prefix=False)
                 # rustc takes linker arguments without a prefix, and
                 # inserts the correct prefix itself.
                 assert isinstance(linker, VisualStudioLikeLinkerMixin)
                 linker.direct = True
-                compiler.extend(RustCompiler.use_linker_args(linker.exelist[0]))
+                compiler.extend(cls.use_linker_args(linker.exelist[0]))
             else:
                 # On linux and macos rust will invoke the c compiler for
                 # linking, on windows it will use lld-link or link.exe.
@@ -1017,10 +1026,10 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
                 # Of course, we're not going to use any of that, we just
                 # need it to get the proper arguments to pass to rustc
                 c = linker.exelist[1] if linker.exelist[0].endswith('ccache') else linker.exelist[0]
-                compiler.extend(RustCompiler.use_linker_args(c))
+                compiler.extend(cls.use_linker_args(c))
 
-            env.coredata.add_lang_args(RustCompiler.language, RustCompiler, for_machine, env)
-            return RustCompiler(
+            env.coredata.add_lang_args(cls.language, cls, for_machine, env)
+            return cls(
                 compiler, version, for_machine, is_cross, info, exe_wrap,
                 linker=linker)
 
