@@ -30,7 +30,7 @@ from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, noArgsFlatte
 from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
 from ..interpreterbase import Disabler, disablerIfNotFound
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs, FeatureDeprecatedKwargs
-from ..interpreterbase import ObjectHolder, RangeHolder
+from ..interpreterbase import ObjectHolder
 from ..interpreterbase.baseobjects import TYPE_nkwargs, TYPE_nvar, TYPE_var, TYPE_kwargs
 from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule
 from ..cmake import CMakeInterpreter
@@ -2761,7 +2761,7 @@ This will become a hard error in the future.''', location=self.current_node)
     @noKwargs
     @FeatureNew('range', '0.58.0')
     @typed_pos_args('range', int, optargs=[int, int])
-    def func_range(self, node, args: T.Tuple[int, T.Optional[int], T.Optional[int]], kwargs: T.Dict[str, T.Any]) -> RangeHolder:
+    def func_range(self, node, args: T.Tuple[int, T.Optional[int], T.Optional[int]], kwargs: T.Dict[str, T.Any]) -> P_OBJ.RangeHolder:
         start, stop, step = args
         # Just like Python's range, we allow range(stop), range(start, stop), or
         # range(start, stop, step)
@@ -2777,4 +2777,4 @@ This will become a hard error in the future.''', location=self.current_node)
             raise InterpreterException('stop cannot be less than start')
         if step < 1:
             raise InterpreterException('step must be >=1')
-        return RangeHolder(start, stop, step, subproject=self.subproject)
+        return P_OBJ.RangeHolder(start, stop, step, subproject=self.subproject)
