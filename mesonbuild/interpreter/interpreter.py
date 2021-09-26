@@ -386,6 +386,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         '''
         self.holder_map.update({
             # Primitives
+            list: P_OBJ.ArrayHolder,
+            dict: P_OBJ.DictHolder,
             int: P_OBJ.IntegerHolder,
             bool: P_OBJ.BooleanHolder,
             str: P_OBJ.StringHolder,
