@@ -20,6 +20,7 @@ from ..mesonlib import HoldableObject, MesonBugException
 import textwrap
 
 import typing as T
+from abc import ABCMeta
 
 if T.TYPE_CHECKING:
     # Object holders need the actual interpreter
@@ -54,7 +55,7 @@ class InterpreterObject:
         self.trivial_operators: T.Dict[
             MesonOperator,
             T.Tuple[
-                T.Type[T.Union[TYPE_var, T.Tuple[TYPE_var, ...]]],
+                T.Union[T.Type, T.Tuple[T.Type, ...]],
                 'OperatorCall'
             ]
         ] = {}
@@ -94,7 +95,7 @@ class InterpreterObject:
             if op[0] is None and other is not None:
                 raise MesonBugException(f'The unary operator `{operator.value}` of {self.display_name()} was passed the object {other} of type {type(other).__name__}')
             if op[0] is not None and not isinstance(other, op[0]):
-                raise InvalidArguments(f'The `{operator.value}` of {self.display_name()} does not accept objects of type {type(other).__name__} ({other})')
+                raise InvalidArguments(f'The `{operator.value}` operator of {self.display_name()} does not accept objects of type {type(other).__name__} ({other})')
             return op[1](other)
         if operator in self.operators:
             return self.operators[operator](other)
@@ -128,8 +129,8 @@ class MesonInterpreterObject(InterpreterObject):
 class MutableInterpreterObject:
     ''' Dummy class to mark the object type as mutable '''
 
-HoldableTypes = (HoldableObject, int, bool, str)
-TYPE_HoldableTypes = T.Union[HoldableObject, int, bool, str]
+HoldableTypes = (HoldableObject, int, bool, str, list, dict)
+TYPE_HoldableTypes = T.Union[TYPE_elementary, HoldableObject]
 InterpreterObjectTypeVar = T.TypeVar('InterpreterObjectTypeVar', bound=TYPE_HoldableTypes)
 
 class ObjectHolder(InterpreterObject, T.Generic[InterpreterObjectTypeVar]):
@@ -163,7 +164,20 @@ class ObjectHolder(InterpreterObject, T.Generic[InterpreterObjectTypeVar]):
     def __repr__(self) -> str:
         return f'<[{type(self).__name__}] holds [{type(self.held_object).__name__}]: {self.held_object!r}>'
 
-class RangeHolder(MesonInterpreterObject):
+class IterableObject(metaclass=ABCMeta):
+    '''Base class for all objects that can be iterated over in a foreach loop'''
+
+    def iter_tuple_size(self) -> T.Optional[int]:
+        '''Return the size of the tuple for each iteration. Returns None if only a single value is returned.'''
+        raise MesonBugException(f'iter_tuple_size not implemented for {self.__class__.__name__}')
+
+    def iter_self(self) -> T.Iterator[T.Union[TYPE_var, T.Tuple[TYPE_var, ...]]]:
+        raise MesonBugException(f'iter not implemented for {self.__class__.__name__}')
+
+    def size(self) -> int:
+        raise MesonBugException(f'size not implemented for {self.__class__.__name__}')
+
+class RangeHolder(MesonInterpreterObject, IterableObject):
     def __init__(self, start: int, stop: int, step: int, *, subproject: str) -> None:
         super().__init__(subproject=subproject)
         self.range = range(start, stop, step)
@@ -177,8 +191,11 @@ class RangeHolder(MesonInterpreterObject):
         except:
             raise InvalidArguments(f'Index {other} out of bounds of range.')
 
-    def __iter__(self) -> T.Iterator[int]:
+    def iter_tuple_size(self) -> None:
+        return None
+
+    def iter_self(self) -> T.Iterator[int]:
         return iter(self.range)
 
-    def __len__(self) -> int:
+    def size(self) -> int:
         return len(self.range)

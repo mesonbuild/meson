@@ -2,13 +2,17 @@
 # SPDX-license-identifier: Apache-2.0
 
 __all__ = [
+    'ArrayHolder',
     'BooleanHolder',
+    'DictHolder',
     'IntegerHolder',
     'StringHolder',
     'MesonVersionString',
     'MesonVersionStringHolder',
 ]
 
+from .array import ArrayHolder
 from .boolean import BooleanHolder
+from .dict import DictHolder
 from .integer import IntegerHolder
 from .string import StringHolder, MesonVersionString, MesonVersionStringHolder

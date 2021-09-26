@@ -16,14 +16,8 @@ from .baseobjects import InterpreterObject, MesonInterpreterObject, ObjectHolder
 from .exceptions import InvalidArguments
 from ..mesonlib import HoldableObject, MesonBugException
 
-import typing as T
-
-def _unholder(obj: T.Union[TYPE_var, InterpreterObject]) -> TYPE_var:
-    if isinstance(obj, list):
-        return [_unholder(x) for x in obj]
-    elif isinstance(obj, dict):
-        return {k: _unholder(v) for k, v in obj.items()}
-    elif isinstance(obj, ObjectHolder):
+def _unholder(obj: InterpreterObject) -> TYPE_var:
+    if isinstance(obj, ObjectHolder):
         assert isinstance(obj.held_object, HoldableTypes)
         return obj.held_object
     elif isinstance(obj, MesonInterpreterObject):
