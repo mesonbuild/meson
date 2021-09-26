@@ -318,9 +318,11 @@ class PkgConfigModule(ExtensionModule):
         prefix = PurePath(prefix)
         subdir = PurePath(subdir)
         try:
-            return subdir.relative_to(prefix).as_posix()
+            libdir = subdir.relative_to(prefix)
         except ValueError:
-            return subdir.as_posix()
+            libdir = subdir
+        # pathlib joining makes sure absolute libdir is not appended to '${prefix}'
+        return ('${prefix}' / libdir).as_posix()
 
     def _generate_pkgconfig_file(self, state, deps, subdirs, name, description,
                                  url, version, pcfile, conflicts, variables,
@@ -387,12 +389,12 @@ class PkgConfigModule(ExtensionModule):
                         is_custom_target = isinstance(l, (build.CustomTarget, build.CustomTargetIndex))
                         if not is_custom_target and 'cs' in l.compilers:
                             if isinstance(install_dir, str):
-                                Lflag = '-r${{prefix}}/{}/{}'.format(self._escape(self._make_relative(prefix, install_dir)), l.filename)
+                                Lflag = '-r{}/{}'.format(self._escape(self._make_relative(prefix, install_dir)), l.filename)
                             else:  # install_dir is True
                                 Lflag = '-r${libdir}/%s' % l.filename
                         else:
                             if isinstance(install_dir, str):
-                                Lflag = '-L${prefix}/%s' % self._escape(self._make_relative(prefix, install_dir))
+                                Lflag = '-L{}'.format(self._escape(self._make_relative(prefix, install_dir)))
                             else:  # install_dir is True
                                 Lflag = '-L${libdir}'
                         if Lflag not in Lflags:
