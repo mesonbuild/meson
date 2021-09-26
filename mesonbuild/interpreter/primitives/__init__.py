@@ -6,6 +6,7 @@ __all__ = [
     'BooleanHolder',
     'DictHolder',
     'IntegerHolder',
+    'RangeHolder',
     'StringHolder',
     'MesonVersionString',
     'MesonVersionStringHolder',
@@ -15,4 +16,5 @@ from .array import ArrayHolder
 from .boolean import BooleanHolder
 from .dict import DictHolder
 from .integer import IntegerHolder
+from .range import RangeHolder
 from .string import StringHolder, MesonVersionString, MesonVersionStringHolder
