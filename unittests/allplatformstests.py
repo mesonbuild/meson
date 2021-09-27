@@ -2378,7 +2378,7 @@ class AllPlatformTests(BasePlatformTests):
         self.assertRegex(out, 'opt2 val2')
         self.assertRegex(out, 'opt3 val3')
         self.assertRegex(out, 'opt4 default4')
-        self.assertRegex(out, 'sub1:werror True')
+        self.assertRegex(out, 'sub1:werror true')
         self.build()
         self.run_tests()
 
@@ -2392,7 +2392,7 @@ class AllPlatformTests(BasePlatformTests):
         self.assertRegex(out, 'opt2 val2')
         self.assertRegex(out, 'opt3 val3')
         self.assertRegex(out, 'opt4 val4')
-        self.assertRegex(out, 'sub1:werror True')
+        self.assertRegex(out, 'sub1:werror true')
         self.assertTrue(Path(self.builddir, '.gitignore').exists())
         self.build()
         self.run_tests()

@@ -1,3 +1,3 @@
 project('sub1')
 
-message('sub1:werror', get_option('werror'))
+message('sub1:werror @0@'.format(get_option('werror')))
