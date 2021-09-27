@@ -70,19 +70,26 @@ from .baseplatformtests import BasePlatformTests
 from .helpers import *
 
 @contextmanager
-def temp_filename():
-    '''A context manager which provides a filename to an empty temporary file.
-
-    On exit the file will be deleted.
+def temp_filename(create_within_tempdir:bool=False):
     '''
+    A context manager which provides a filename to an empty temporary file.
+    If the parameter create_within_tempdir is set to True, the file will
+    be created within a temporary directory. On exit the file/directory
+    will be deleted.
+    '''
+    tempdir = None
+    if create_within_tempdir:
+        tempdir = tempfile.mkdtemp()
 
-    fd, filename = tempfile.mkstemp()
+    fd, filename = tempfile.mkstemp(dir=tempdir)
     os.close(fd)
     try:
         yield filename
     finally:
         try:
             os.remove(filename)
+            if tempdir:
+                os.rmdir(tempdir)
         except OSError:
             pass
 
@@ -4643,13 +4650,20 @@ class AllPlatformTests(BasePlatformTests):
             self.assertEqual(str(cm.exception), 'Invalid type [False] for entry \'c\' in machine file')
 
     def test_relative_to_absolute_path_conversion_at_different_directories(self):
-        with tempfile.TemporaryDirectory() as tmpdir1, tempfile.TemporaryDirectory() as tmpdir2:
-            with tempfile.NamedTemporaryFile('w+t', encoding='utf-8', dir=tmpdir1) as crossfile1, tempfile.NamedTemporaryFile('w+t', encoding='utf-8', dir=tmpdir2) as crossfile2:
-                crossfile1.writelines("[binaries]\nfoo = 'bin/foo'\n")
-                crossfile1.flush()
-                crossfile2.writelines("[binaries]\nbar = 'bin/bar'\n")
-                crossfile2.flush()
-                config = mesonbuild.coredata.parse_machine_files([crossfile1.name, crossfile2.name])
-                bt = mesonbuild.envconfig.BinaryTable(config.get('binaries', {}))
-                self.assertEqual(bt.binaries['foo'], [os.path.normpath(os.path.join(os.path.dirname(crossfile1.name), 'bin/foo'))])
-                self.assertEqual(bt.binaries['bar'], [os.path.normpath(os.path.join(os.path.dirname(crossfile2.name), 'bin/bar'))])
+        with temp_filename(create_within_tempdir=True) as crossfile1, temp_filename(create_within_tempdir=True) as crossfile2:
+            with open(crossfile1, 'w', encoding='utf-8') as f:
+                f.write(textwrap.dedent(
+                    '''
+                    [binaries]
+                    foo = 'bin/foo'
+                    '''))
+            with open(crossfile2, 'w', encoding='utf-8') as f:
+                f.write(textwrap.dedent(
+                    '''
+                    [binaries]
+                    bar = 'bin/bar'
+                    '''))
+            config = mesonbuild.coredata.parse_machine_files([crossfile1, crossfile2])
+            bt = mesonbuild.envconfig.BinaryTable(config.get('binaries', {}))
+            self.assertEqual(bt.binaries['foo'], [os.path.normpath(os.path.join(os.path.dirname(crossfile1), 'bin/foo'))])
+            self.assertEqual(bt.binaries['bar'], [os.path.normpath(os.path.join(os.path.dirname(crossfile2), 'bin/bar'))])
