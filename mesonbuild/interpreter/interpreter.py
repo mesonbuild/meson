@@ -91,6 +91,8 @@ def stringifyUserArguments(args, quote=False):
         return '[%s]' % ', '.join([stringifyUserArguments(x, True) for x in args])
     elif isinstance(args, dict):
         return '{%s}' % ', '.join(['{} : {}'.format(stringifyUserArguments(k, True), stringifyUserArguments(v, True)) for k, v in args.items()])
+    elif isinstance(args, bool):
+        pass # bools are a type of int, make this fallthrough to the error case
     elif isinstance(args, int):
         return str(args)
     elif isinstance(args, str):
