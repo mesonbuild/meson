@@ -84,6 +84,8 @@ for _l in clink_langs + ('vala',):
     clink_suffixes += lang_suffixes[_l]
 clink_suffixes += ('h', 'll', 's')
 all_suffixes = set(itertools.chain(*lang_suffixes.values(), clink_suffixes))  # type: T.Set[str]
+SUFFIX_TO_LANG = dict(itertools.chain(*(
+    [(suffix, lang) for suffix in v] for lang, v in lang_suffixes.items()))) # type: T.Dict[str, str]
 
 # Languages that should use LDFLAGS arguments when linking.
 LANGUAGES_USING_LDFLAGS = {'objcpp', 'cpp', 'objc', 'c', 'fortran', 'd', 'cuda'}  # type: T.Set[str]
@@ -276,7 +278,7 @@ base_options: 'KeyedOptionDictType' = {
     OptionKey('b_pch'): coredata.UserBooleanOption('Use precompiled headers', True),
     OptionKey('b_lto'): coredata.UserBooleanOption('Use link time optimization', False),
     OptionKey('b_lto'): coredata.UserBooleanOption('Use link time optimization', False),
-    OptionKey('b_lto_threads'): coredata.UserIntegerOption('Use multiple threads for Link Time Optimization', (None, None,0)),
+    OptionKey('b_lto_threads'): coredata.UserIntegerOption('Use multiple threads for Link Time Optimization', (None, None, 0)),
     OptionKey('b_lto_mode'): coredata.UserComboOption('Select between different LTO modes.',
                                                       ['default', 'thin'],
                                                       'default'),
@@ -680,8 +682,8 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         raise EnvironmentException('Language %s does not support sizeof checks.' % self.get_display_language())
 
     def alignment(self, typename: str, prefix: str, env: 'Environment', *,
-                 extra_args: T.Optional[T.List[str]] = None,
-                 dependencies: T.Optional[T.List['Dependency']] = None) -> int:
+                  extra_args: T.Optional[T.List[str]] = None,
+                  dependencies: T.Optional[T.List['Dependency']] = None) -> int:
         raise EnvironmentException('Language %s does not support alignment checks.' % self.get_display_language())
 
     def has_function(self, funcname: str, prefix: str, env: 'Environment', *,
@@ -767,7 +769,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             no_ccache = False
             if isinstance(code, str):
                 srcname = os.path.join(tmpdirname,
-                                    'testfile.' + self.default_suffix)
+                                       'testfile.' + self.default_suffix)
                 with open(srcname, 'w', encoding='utf-8') as ofile:
                     ofile.write(code)
                 # ccache would result in a cache miss
@@ -775,8 +777,11 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                 contents = code
             else:
                 srcname = code.fname
-                with open(code.fname, encoding='utf-8') as f:
-                    contents = f.read()
+                if not is_object(code.fname):
+                    with open(code.fname, encoding='utf-8') as f:
+                        contents = f.read()
+                else:
+                    contents = '<binary>'
 
             # Construct the compiler command-line
             commands = self.compiler_args()
@@ -791,7 +796,8 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             # extra_args must be last because it could contain '/link' to
             # pass args to VisualStudio's linker. In that case everything
             # in the command line after '/link' is given to the linker.
-            commands += extra_args
+            if extra_args:
+                commands += extra_args
             # Generate full command-line with the exelist
             command_list = self.get_exelist() + commands.to_native()
             mlog.debug('Running compile:')
@@ -1232,12 +1238,18 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         with self._build_wrapper(code, env, extra_args, dependencies, mode, disable_cache=disable_cache) as p:
             return p.returncode == 0, p.cached
 
-
     def links(self, code: 'mesonlib.FileOrString', env: 'Environment', *,
+              compiler: T.Optional['Compiler'] = None,
               extra_args: T.Union[None, T.List[str], CompilerArgs, T.Callable[[CompileCheckMode], T.List[str]]] = None,
               dependencies: T.Optional[T.List['Dependency']] = None,
               mode: str = 'compile',
               disable_cache: bool = False) -> T.Tuple[bool, bool]:
+        if compiler:
+            with compiler._build_wrapper(code, env, dependencies=dependencies, want_output=True) as r:
+                objfile = mesonlib.File.from_absolute_file(r.output_name)
+                return self.compiles(objfile, env, extra_args=extra_args,
+                                     dependencies=dependencies, mode='link', disable_cache=True)
+
         return self.compiles(code, env, extra_args=extra_args,
                              dependencies=dependencies, mode='link', disable_cache=disable_cache)
 

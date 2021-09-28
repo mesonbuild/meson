@@ -11,6 +11,7 @@ from .. import coredata
 from .. import dependencies
 from .. import mesonlib
 from .. import mlog
+from ..compilers import SUFFIX_TO_LANG
 from ..compilers.compilers import CompileCheckMode
 from ..interpreterbase import (ObjectHolder, noPosargs, noKwargs,
                                FeatureNew, disablerIfNotFound,
@@ -454,13 +455,27 @@ class CompilerHolder(ObjectHolder['Compiler']):
     @typed_kwargs('compiler.links', *_COMPILES_KWS)
     def links_method(self, args: T.Tuple['mesonlib.FileOrString'], kwargs: 'CompileKW') -> bool:
         code = args[0]
+        compiler = None
         if isinstance(code, mesonlib.File):
             code = mesonlib.File.from_absolute_file(
                 code.rel_to_builddir(self.environment.source_dir))
+            suffix = code.suffix
+            if suffix not in self.compiler.file_suffixes:
+                for_machine = self.compiler.for_machine
+                clist = self.interpreter.coredata.compilers[for_machine]
+                if suffix not in SUFFIX_TO_LANG:
+                    # just pass it to the compiler driver
+                    mlog.warning(f'Unknown suffix for test file {code}')
+                elif SUFFIX_TO_LANG[suffix] not in clist:
+                    mlog.warning(f'Passed {SUFFIX_TO_LANG[suffix]} source to links method, not specified for {for_machine.get_lower_case_name()} machine.')
+                else:
+                    compiler = clist[SUFFIX_TO_LANG[suffix]]
+
         testname = kwargs['name']
         extra_args = functools.partial(self._determine_args, kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
         result, cached = self.compiler.links(code, self.environment,
+                                             compiler=compiler,
                                              extra_args=extra_args,
                                              dependencies=deps)
         cached_msg = mlog.blue('(cached)') if cached else ''
