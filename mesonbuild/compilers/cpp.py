@@ -449,15 +449,14 @@ class NvidiaHPC_CPPCompiler(PGICompiler, CPPCompiler):
         self.id = 'nvidia_hpc'
 
 
-class ElbrusCPPCompiler(GnuCPPCompiler, ElbrusCompiler):
+class ElbrusCPPCompiler(ElbrusCompiler, CPPCompiler):
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
                  info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
                  linker: T.Optional['DynamicLinker'] = None,
                  defines: T.Optional[T.Dict[str, str]] = None,
                  full_version: T.Optional[str] = None):
-        GnuCPPCompiler.__init__(self, exelist, version, for_machine, is_cross,
-                                info, exe_wrapper, linker=linker,
-                                full_version=full_version, defines=defines)
+        CPPCompiler.__init__(self, exelist, version, for_machine, is_cross,
+                             info, exe_wrapper, linker=linker, full_version=full_version)
         ElbrusCompiler.__init__(self)
 
     def get_options(self) -> 'KeyedOptionDictType':

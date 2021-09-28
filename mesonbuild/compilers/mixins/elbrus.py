@@ -35,6 +35,11 @@ class ElbrusCompiler(GnuLikeCompiler):
         super().__init__()
         self.id = 'lcc'
         self.base_options = {OptionKey(o) for o in ['b_pgo', 'b_coverage', 'b_ndebug', 'b_staticpic', 'b_lundef', 'b_asneeded']}
+        default_warn_args = ['-Wall']
+        self.warn_args = {'0': [],
+                          '1': default_warn_args,
+                          '2': default_warn_args + ['-Wextra'],
+                          '3': default_warn_args + ['-Wextra', '-Wpedantic']}
 
     # FIXME: use _build_wrapper to call this so that linker flags from the env
     # get applied
