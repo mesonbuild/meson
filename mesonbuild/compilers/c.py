@@ -323,15 +323,14 @@ class NvidiaHPC_CCompiler(PGICompiler, CCompiler):
         self.id = 'nvidia_hpc'
 
 
-class ElbrusCCompiler(GnuCCompiler, ElbrusCompiler):
+class ElbrusCCompiler(ElbrusCompiler, CCompiler):
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
                  info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
                  linker: T.Optional['DynamicLinker'] = None,
                  defines: T.Optional[T.Dict[str, str]] = None,
                  full_version: T.Optional[str] = None):
-        GnuCCompiler.__init__(self, exelist, version, for_machine, is_cross,
-                              info, exe_wrapper, defines=defines,
-                              linker=linker, full_version=full_version)
+        CCompiler.__init__(self, exelist, version, for_machine, is_cross,
+                           info, exe_wrapper, linker=linker, full_version=full_version)
         ElbrusCompiler.__init__(self)
 
     # It does support some various ISO standards and c/gnu 90, 9x, 1x in addition to those which GNU CC supports.
@@ -355,7 +354,6 @@ class ElbrusCCompiler(GnuCCompiler, ElbrusCompiler):
             return super().has_function(funcname, prefix, env,
                                         extra_args=extra_args,
                                         dependencies=dependencies)
-
 
 class IntelCCompiler(IntelGnuLikeCompiler, CCompiler):
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,

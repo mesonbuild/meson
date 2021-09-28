@@ -237,15 +237,14 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
                              dependencies=dependencies, mode='preprocess', disable_cache=disable_cache)
 
 
-class ElbrusFortranCompiler(GnuFortranCompiler, ElbrusCompiler):
+class ElbrusFortranCompiler(ElbrusCompiler, FortranCompiler):
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
                  info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
                  defines: T.Optional[T.Dict[str, str]] = None,
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
-        GnuFortranCompiler.__init__(self, exelist, version, for_machine, is_cross,
-                                    info, exe_wrapper, defines=defines,
-                                    linker=linker, full_version=full_version)
+        FortranCompiler.__init__(self, exelist, version, for_machine, is_cross,
+                                 info, exe_wrapper, linker=linker, full_version=full_version)
         ElbrusCompiler.__init__(self)
 
 class G95FortranCompiler(FortranCompiler):
