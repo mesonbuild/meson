@@ -333,14 +333,19 @@ class ElbrusCCompiler(ElbrusCompiler, CCompiler):
                            info, exe_wrapper, linker=linker, full_version=full_version)
         ElbrusCompiler.__init__(self)
 
-    # It does support some various ISO standards and c/gnu 90, 9x, 1x in addition to those which GNU CC supports.
     def get_options(self) -> 'KeyedOptionDictType':
         opts = CCompiler.get_options(self)
-        opts[OptionKey('std', machine=self.for_machine, lang=self.language)].choices = [
-            'none', 'c89', 'c90', 'c9x', 'c99', 'c1x', 'c11',
-            'gnu89', 'gnu90', 'gnu9x', 'gnu99', 'gnu1x', 'gnu11',
-            'iso9899:2011', 'iso9899:1990', 'iso9899:199409', 'iso9899:1999',
-        ]
+        stds = ['c89', 'c9x', 'c99', 'gnu89', 'gnu9x', 'gnu99']
+        stds += ['iso9899:1990', 'iso9899:199409', 'iso9899:1999']
+        if version_compare(self.version, '>=1.20.00'):
+            stds += ['c11', 'gnu11']
+        if version_compare(self.version, '>=1.21.00') and version_compare(self.version, '<1.22.00'):
+            stds += ['c90', 'c1x', 'gnu90', 'gnu1x', 'iso9899:2011']
+        if version_compare(self.version, '>=1.23.00'):
+            stds += ['c90', 'c1x', 'gnu90', 'gnu1x', 'iso9899:2011']
+        if version_compare(self.version, '>=1.26.00'):
+            stds += ['c17', 'c18', 'iso9899:2017', 'iso9899:2018', 'gnu17', 'gnu18']
+        opts[OptionKey('std', machine=self.for_machine, lang=self.language)].choices = ['none'] + stds
         return opts
 
     # Elbrus C compiler does not have lchmod, but there is only linker warning, not compiler error.
@@ -354,6 +359,7 @@ class ElbrusCCompiler(ElbrusCompiler, CCompiler):
             return super().has_function(funcname, prefix, env,
                                         extra_args=extra_args,
                                         dependencies=dependencies)
+
 
 class IntelCCompiler(IntelGnuLikeCompiler, CCompiler):
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,

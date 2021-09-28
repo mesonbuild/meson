@@ -86,5 +86,12 @@ class ElbrusCompiler(GnuLikeCompiler):
         # Actually it's not supported for now, but probably will be supported in future
         return 'pch'
 
+    def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
+        args = []
+        std = options[OptionKey('std', lang=self.language, machine=self.for_machine)]
+        if std.value != 'none':
+            args.append('-std=' + std.value)
+        return args
+
     def openmp_flags(self) -> T.List[str]:
         return ['-fopenmp']
