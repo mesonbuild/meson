@@ -167,12 +167,10 @@ if is_windows():
     defaults['cs'] = ['csc', 'mcs']
 else:
     if platform.machine().lower() == 'e2k':
-        # There are no objc or objc++ compilers for Elbrus,
-        # and there's no clang which can build binaries for host.
-        defaults['c'] = ['cc', 'gcc', 'lcc']
-        defaults['cpp'] = ['c++', 'g++', 'l++']
-        defaults['objc'] = []
-        defaults['objcpp'] = []
+        defaults['c'] = ['cc', 'gcc', 'lcc', 'clang']
+        defaults['cpp'] = ['c++', 'g++', 'l++', 'clang']
+        defaults['objc'] = ['clang']
+        defaults['objcpp'] = ['clang']
     else:
         defaults['c'] = ['cc', 'gcc', 'clang', 'nvc', 'pgcc', 'icc']
         defaults['cpp'] = ['c++', 'g++', 'clang++', 'nvc++', 'pgc++', 'icpc']
