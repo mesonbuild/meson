@@ -168,9 +168,9 @@ if is_windows():
 else:
     if platform.machine().lower() == 'e2k':
         defaults['c'] = ['cc', 'gcc', 'lcc', 'clang']
-        defaults['cpp'] = ['c++', 'g++', 'l++', 'clang']
+        defaults['cpp'] = ['c++', 'g++', 'l++', 'clang++']
         defaults['objc'] = ['clang']
-        defaults['objcpp'] = ['clang']
+        defaults['objcpp'] = ['clang++']
     else:
         defaults['c'] = ['cc', 'gcc', 'clang', 'nvc', 'pgcc', 'icc']
         defaults['cpp'] = ['c++', 'g++', 'clang++', 'nvc++', 'pgc++', 'icpc']
