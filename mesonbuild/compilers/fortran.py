@@ -247,6 +247,17 @@ class ElbrusFortranCompiler(ElbrusCompiler, FortranCompiler):
                                  info, exe_wrapper, linker=linker, full_version=full_version)
         ElbrusCompiler.__init__(self)
 
+    def get_options(self) -> 'KeyedOptionDictType':
+        opts = FortranCompiler.get_options(self)
+        fortran_stds = ['f95', 'f2003', 'f2008', 'gnu', 'legacy', 'f2008ts']
+        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        opts[key].choices = ['none'] + fortran_stds
+        return opts
+
+    def get_module_outdir_args(self, path: str) -> T.List[str]:
+        return ['-J' + path]
+
+
 class G95FortranCompiler(FortranCompiler):
 
     LINKER_PREFIX = '-Wl,'
