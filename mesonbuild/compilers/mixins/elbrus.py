@@ -25,6 +25,7 @@ from ...mesonlib import Popen_safe, OptionKey
 
 if T.TYPE_CHECKING:
     from ...environment import Environment
+    from ...coredata import KeyedOptionDictType
 
 
 class ElbrusCompiler(GnuLikeCompiler):
