@@ -1,8 +1,14 @@
 #include <QApplication>
+#include <QTranslator>
+#include <QDebug>
 #include "mainWindow.h"
 
 #if QT_VERSION > 0x050000
 // include some random private headers
+// As you're not supposed to use it, your system may miss
+// qobject_p.h. To locate it try one of these commands:
+//  - dnf provides */private/qobject_p.h
+//  - apt-file search qobject_p.h
     #include <private/qobject_p.h>
 #endif
 
@@ -12,6 +18,13 @@ int main(int argc, char **argv) {
   Q_INIT_RESOURCE(stuff2);
   #endif
   QApplication app(argc, argv);
+
+  auto *translator = new QTranslator;
+  if (translator->load(QLocale(), QT "embedded", "_", ":/lang"))
+      qApp->installTranslator(translator);
+
+  qDebug() << QObject::tr("Translate me!");
+
   MainWindow *win = new MainWindow();
   QImage qi(":/thing.png");
   if(qi.width() != 640) {

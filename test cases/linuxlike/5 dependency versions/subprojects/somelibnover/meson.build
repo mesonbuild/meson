@@ -1,6 +1,6 @@
 project('some', 'c')
 
-somelib = shared_library('some', 'lib.c')
+somelib = library('some', 'lib.c')
 someinc = include_directories('.')
 
 # Define version only in declare_dependency

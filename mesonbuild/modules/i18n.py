@@ -15,8 +15,9 @@
 import shutil
 
 from os import path
-from .. import coredata, mesonlib, build
+from .. import coredata, mesonlib, build, mlog
 from ..mesonlib import MesonException
+from ..scripts.gettext import read_linguas
 from . import ModuleReturnValue
 from . import ExtensionModule
 from ..interpreterbase import permittedKwargs, FeatureNew, FeatureNewKwargs
@@ -44,10 +45,29 @@ PRESET_ARGS = {
         '--flag=g_string_append_printf:2:c-format',
         '--flag=g_error_new:3:c-format',
         '--flag=g_set_error:4:c-format',
+        '--flag=g_markup_printf_escaped:1:c-format',
+        '--flag=g_log:3:c-format',
+        '--flag=g_print:1:c-format',
+        '--flag=g_printerr:1:c-format',
+        '--flag=g_printf:1:c-format',
+        '--flag=g_fprintf:2:c-format',
+        '--flag=g_sprintf:2:c-format',
+        '--flag=g_snprintf:3:c-format',
     ]
 }
 
+
 class I18nModule(ExtensionModule):
+    def __init__(self, interpreter):
+        super().__init__(interpreter)
+        self.methods.update({
+            'merge_file': self.merge_file,
+            'gettext': self.gettext,
+        })
+
+    @staticmethod
+    def nogettext_warning():
+        mlog.warning('Gettext not found, all translation targets will be ignored.', once=True)
 
     @staticmethod
     def _get_data_dirs(state, dirs):
@@ -56,9 +76,12 @@ class I18nModule(ExtensionModule):
         return [path.join(src_dir, d) for d in dirs]
 
     @FeatureNew('i18n.merge_file', '0.37.0')
-    @permittedKwargs({'languages', 'data_dirs', 'preset', 'args', 'po_dir', 'type',
-                      'input', 'output', 'install', 'install_dir'})
+    @FeatureNewKwargs('i18n.merge_file', '0.51.0', ['args'])
+    @permittedKwargs(build.CustomTarget.known_kwargs | {'data_dirs', 'po_dir', 'type', 'args'})
     def merge_file(self, state, args, kwargs):
+        if not shutil.which('xgettext'):
+            self.nogettext_warning()
+            return
         podir = kwargs.pop('po_dir', None)
         if not podir:
             raise MesonException('i18n: po_dir is a required kwarg')
@@ -67,7 +90,7 @@ class I18nModule(ExtensionModule):
         file_type = kwargs.pop('type', 'xml')
         VALID_TYPES = ('xml', 'desktop')
         if file_type not in VALID_TYPES:
-            raise MesonException('i18n: "{}" is not a valid type {}'.format(file_type, VALID_TYPES))
+            raise MesonException(f'i18n: "{file_type}" is not a valid type {VALID_TYPES}')
 
         datadirs = self._get_data_dirs(state, mesonlib.stringlistify(kwargs.pop('data_dirs', [])))
         datadirs = '--datadirs=' + ':'.join(datadirs) if datadirs else None
@@ -79,19 +102,21 @@ class I18nModule(ExtensionModule):
         if datadirs:
             command.append(datadirs)
 
+        if 'args' in kwargs:
+            command.append('--')
+            command.append(mesonlib.stringlistify(kwargs.pop('args', [])))
+
         kwargs['command'] = command
 
-        inputfile = kwargs['input']
-        if hasattr(inputfile, 'held_object'):
-            ct = build.CustomTarget(kwargs['output'] + '_merge', state.subdir, state.subproject, kwargs)
-        else:
-            if isinstance(inputfile, list):
-                # We only use this input file to create a name of the custom target.
-                # Thus we can ignore the other entries.
-                inputfile = inputfile[0]
-            if isinstance(inputfile, str):
-                inputfile = mesonlib.File.from_source_file(state.environment.source_dir,
-                                                           state.subdir, inputfile)
+        # We only use this input file to create a name of the custom target.
+        # Thus we can ignore the other entries.
+        inputfile = mesonlib.extract_as_list(kwargs, 'input')[0]
+        if isinstance(inputfile, str):
+            inputfile = mesonlib.File.from_source_file(state.environment.source_dir,
+                                                       state.subdir, inputfile)
+        if isinstance(inputfile, mesonlib.File):
+            # output could be '@BASENAME@' in which case we need to do substitutions
+            # to get a unique target name.
             output = kwargs['output']
             ifile_abs = inputfile.absolute_path(state.environment.source_dir,
                                                 state.environment.build_dir)
@@ -99,19 +124,26 @@ class I18nModule(ExtensionModule):
             outputs = mesonlib.substitute_values([output], values)
             output = outputs[0]
             ct = build.CustomTarget(output + '_' + state.subdir.replace('/', '@').replace('\\', '@') + '_merge', state.subdir, state.subproject, kwargs)
+        else:
+            ct = build.CustomTarget(kwargs['output'] + '_merge', state.subdir, state.subproject, kwargs)
+
         return ModuleReturnValue(ct, [ct])
 
     @FeatureNewKwargs('i18n.gettext', '0.37.0', ['preset'])
-    @permittedKwargs({'po_dir', 'data_dirs', 'type', 'languages', 'args', 'preset', 'install'})
+    @FeatureNewKwargs('i18n.gettext', '0.50.0', ['install_dir'])
+    @permittedKwargs({'po_dir', 'data_dirs', 'type', 'languages', 'args', 'preset', 'install', 'install_dir'})
     def gettext(self, state, args, kwargs):
         if len(args) != 1:
             raise coredata.MesonException('Gettext requires one positional argument (package name).')
         if not shutil.which('xgettext'):
-            raise coredata.MesonException('Can not do gettext because xgettext is not installed.')
+            self.nogettext_warning()
+            return
         packagename = args[0]
         languages = mesonlib.stringlistify(kwargs.get('languages', []))
         datadirs = self._get_data_dirs(state, mesonlib.stringlistify(kwargs.get('data_dirs', [])))
         extra_args = mesonlib.stringlistify(kwargs.get('args', []))
+        targets = []
+        gmotargets = []
 
         preset = kwargs.pop('preset', None)
         if preset:
@@ -131,12 +163,33 @@ class I18nModule(ExtensionModule):
             potargs.append(datadirs)
         if extra_args:
             potargs.append(extra_args)
-        pottarget = build.RunTarget(packagename + '-pot', potargs[0], potargs[1:], [], state.subdir, state.subproject)
+        pottarget = build.RunTarget(packagename + '-pot', potargs, [], state.subdir, state.subproject)
+        targets.append(pottarget)
 
-        gmoargs = state.environment.get_build_command() + ['--internal', 'gettext', 'gen_gmo']
-        if lang_arg:
-            gmoargs.append(lang_arg)
-        gmotarget = build.RunTarget(packagename + '-gmo', gmoargs[0], gmoargs[1:], [], state.subdir, state.subproject)
+        install = kwargs.get('install', True)
+        install_dir = kwargs.get('install_dir', state.environment.coredata.get_option(mesonlib.OptionKey('localedir')))
+        if not languages:
+            languages = read_linguas(path.join(state.environment.source_dir, state.subdir))
+        for l in languages:
+            po_file = mesonlib.File.from_source_file(state.environment.source_dir,
+                                                     state.subdir, l+'.po')
+            gmo_kwargs = {'command': ['msgfmt', '@INPUT@', '-o', '@OUTPUT@'],
+                          'input': po_file,
+                          'output': packagename+'.mo',
+                          'install': install,
+                          # We have multiple files all installed as packagename+'.mo' in different install subdirs.
+                          # What we really wanted to do, probably, is have a rename: kwarg, but that's not available
+                          # to custom_targets. Crude hack: set the build target's subdir manually.
+                          # Bonus: the build tree has something usable as an uninstalled bindtextdomain() target dir.
+                          'install_dir': path.join(install_dir, l, 'LC_MESSAGES'),
+                          'install_tag': 'i18n',
+                          }
+            gmotarget = build.CustomTarget(f'{packagename}-{l}.mo', path.join(state.subdir, l, 'LC_MESSAGES'), state.subproject, gmo_kwargs)
+            targets.append(gmotarget)
+            gmotargets.append(gmotarget)
+
+        allgmotarget = build.AliasTarget(packagename + '-gmo', gmotargets, state.subdir, state.subproject)
+        targets.append(allgmotarget)
 
         updatepoargs = state.environment.get_build_command() + ['--internal', 'gettext', 'update_po', pkg_arg]
         if lang_arg:
@@ -145,23 +198,10 @@ class I18nModule(ExtensionModule):
             updatepoargs.append(datadirs)
         if extra_args:
             updatepoargs.append(extra_args)
-        updatepotarget = build.RunTarget(packagename + '-update-po', updatepoargs[0], updatepoargs[1:], [], state.subdir, state.subproject)
+        updatepotarget = build.RunTarget(packagename + '-update-po', updatepoargs, [], state.subdir, state.subproject)
+        targets.append(updatepotarget)
 
-        targets = [pottarget, gmotarget, updatepotarget]
-
-        install = kwargs.get('install', True)
-        if install:
-            script = state.environment.get_build_command()
-            args = ['--internal', 'gettext', 'install',
-                    '--subdir=' + state.subdir,
-                    '--localedir=' + state.environment.coredata.get_builtin_option('localedir'),
-                    pkg_arg]
-            if lang_arg:
-                args.append(lang_arg)
-            iscript = build.RunScript(script, args)
-            targets.append(iscript)
-
-        return ModuleReturnValue(None, targets)
+        return ModuleReturnValue([gmotargets, pottarget, updatepotarget], targets)
 
 def initialize(*args, **kwargs):
     return I18nModule(*args, **kwargs)

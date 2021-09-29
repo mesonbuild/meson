@@ -32,33 +32,36 @@ to this:
 This directory must be run from source root as it touches run_unittests.py.
 '''
 
-import os, sys, subprocess
+import typing as T
+import os
+import sys
+import subprocess
 
 from glob import glob
 
-def get_entries():
+def get_entries() -> T.List[T.Tuple[int, str]]:
     entries = []
     for e in glob('*'):
         if not os.path.isdir(e):
-            sys.exit('Current directory must not contain any files.')
+            raise SystemExit('Current directory must not contain any files.')
         (number, rest) = e.split(' ', 1)
         try:
-            number = int(number)
+            numstr = int(number)
         except ValueError:
-            sys.exit('Dir name %d does not start with a number.' % e)
-        entries.append((number, rest))
+            raise SystemExit(f'Dir name {e} does not start with a number.')
+        entries.append((numstr, rest))
     entries.sort()
     return entries
 
-def replace_source(sourcefile, replacements):
-    with open(sourcefile, 'r') as f:
+def replace_source(sourcefile: str, replacements: T.List[T.Tuple[str, str]]) -> None:
+    with open(sourcefile, encoding='utf-8') as f:
         contents = f.read()
     for old_name, new_name in replacements:
         contents = contents.replace(old_name, new_name)
-    with open(sourcefile, 'w') as f:
+    with open(sourcefile, 'w', encoding='utf-8') as f:
         f.write(contents)
 
-def condense(dirname):
+def condense(dirname: str) -> None:
     curdir = os.getcwd()
     os.chdir(dirname)
     entries = get_entries()
@@ -71,12 +74,16 @@ def condense(dirname):
             #print('git mv "%s" "%s"' % (old_name, new_name))
             subprocess.check_call(['git', 'mv', old_name, new_name])
             replacements.append((old_name, new_name))
+            # update any appearances of old_name in expected stdout in test.json
+            json = os.path.join(new_name, 'test.json')
+            if os.path.isfile(json):
+                replace_source(json, [(old_name, new_name)])
     os.chdir(curdir)
     replace_source('run_unittests.py', replacements)
     replace_source('run_project_tests.py', replacements)
 
 if __name__ == '__main__':
     if len(sys.argv) != 1:
-        sys.exit('This script takes no arguments.')
+        raise SystemExit('This script takes no arguments.')
     for d in glob('test cases/*'):
         condense(d)

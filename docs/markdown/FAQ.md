@@ -51,7 +51,7 @@ $ /path/to/meson.py <options>
 After this you don't have to care about invoking Meson any more. It
 remembers where it was originally invoked from and calls itself
 appropriately. As a user the only thing you need to do is to `cd` into
-your build directory and invoke `ninja`.
+your build directory and invoke `meson compile`.
 
 ## Why can't I specify target files with a wildcard?
 
@@ -61,10 +61,10 @@ Instead of specifying files explicitly, people seem to want to do this:
 executable('myprog', sources : '*.cpp') # This does NOT work!
 ```
 
-Meson does not support this syntax and the reason for this is
-simple. This can not be made both reliable and fast. By reliable we
-mean that if the user adds a new source file to the subdirectory,
-Meson should detect that and make it part of the build automatically.
+Meson does not support this syntax and the reason for this is simple.
+This can not be made both reliable and fast. By reliable we mean that
+if the user adds a new source file to the subdirectory, Meson should
+detect that and make it part of the build automatically.
 
 One of the main requirements of Meson is that it must be fast. This
 means that a no-op build in a tree of 10 000 source files must take no
@@ -99,7 +99,8 @@ for i in *.c; do
 done
 ```
 
-Then you need to run this script in your Meson file, convert the output into a string array and use the result in a target.
+Then you need to run this script in your Meson file, convert the
+output into a string array and use the result in a target.
 
 ```meson
 c = run_command('grabber.sh')
@@ -180,13 +181,13 @@ problem that has caused complications for GNU Autotools and SCons.
 Either by using [GCC symbol
 visibility](https://gcc.gnu.org/wiki/Visibility) or by writing a
 [linker
-script](https://ftp.gnu.org/old-gnu/Manuals/ld-2.9.1/html_mono/ld.html). This
+script](https://sourceware.org/binutils/docs/ld.html). This
 has the added benefit that your symbol definitions are in a standalone
 file instead of being buried inside your build definitions. An example
 can be found
 [here](https://github.com/jpakkane/meson/tree/master/test%20cases/linuxlike/3%20linker%20script).
 
-## My project works fine on Linux and MinGW but fails with MSVC due to a missing .lib file
+## My project works fine on Linux and MinGW but fails to link with MSVC due to a missing .lib file (fatal error LNK1181). Why?
 
 With GCC, all symbols on shared libraries are exported automatically
 unless you specify otherwise. With MSVC no symbols are exported by
@@ -289,7 +290,7 @@ downloads altogether with `--wrap-mode=nodownload`. You can also
 disable dependency fallbacks altogether with `--wrap-mode=nofallback`,
 which also implies the `nodownload` option.
 
-If on the other hand, you want meson to always use the fallback
+If on the other hand, you want Meson to always use the fallback
 for dependencies, even when an external dependency exists and could
 satisfy the version requirements, for example in order to make
 sure your project builds when fallbacks are used, you can use
@@ -323,7 +324,7 @@ that Windows developers should be able to contribute using nothing but
 Visual Studio.
 
 At the time of writing (April 2018) there are only three languages
-that could fullfill these requirements:
+that could fulfill these requirements:
 
  - C
  - C++
@@ -331,3 +332,310 @@ that could fullfill these requirements:
 
 Out of these we have chosen Python because it is the best fit for our
 needs.
+
+## But I really want a version of Meson that doesn't use python!
+
+Ecosystem diversity is good. We encourage interested users to write this
+competing implementation of Meson themselves. As of September 2021, there are 3
+projects attempting to do just this:
+
+ - [muon](https://git.sr.ht/~lattis/muon)
+ - [Meson++](https://github.com/dcbaker/meson-plus-plus)
+ - [boson](https://git.sr.ht/~bl4ckb0ne/boson)
+
+## I have proprietary compiler toolchain X that does not work with Meson, how can I make it work?
+
+Meson needs to know several details about each compiler in order to
+compile code with it. These include things such as which compiler
+flags to use for each option and how to detect the compiler from its
+output. This information can not be input via a configuration file,
+instead it requires changes to Meson's source code that need to be
+submitted to Meson master repository. In theory you can run your own
+forked version with custom patches, but that's not good use of your
+time. Please submit the code upstream so everyone can use the
+toolchain.
+
+The steps for adding a new compiler for an existing language are
+roughly the following. For simplicity we're going to assume a C
+compiler.
+
+- Create a new class with a proper name in
+  `mesonbuild/compilers/c.py`. Look at the methods that other
+  compilers for the same language have and duplicate what they do.
+
+- If the compiler can only be used for cross compilation, make sure to
+  flag it as such (see existing compiler classes for examples).
+
+- Add detection logic to `mesonbuild/environment.py`, look for a
+  method called `detect_c_compiler`.
+
+- Run the test suite and fix issues until the tests pass.
+
+- Submit a pull request, add the result of the test suite to your MR
+  (linking an existing page is fine).
+
+- If the compiler is freely available, consider adding it to the CI
+  system.
+
+## Why does building my project with MSVC output static libraries called `libfoo.a`?
+
+The naming convention for static libraries on Windows is usually
+`foo.lib`.  Unfortunately, import libraries are also called `foo.lib`.
+
+This causes filename collisions with the default library type where we
+build both shared and static libraries, and also causes collisions
+during installation since all libraries are installed to the same
+directory by default.
+
+To resolve this, we decided to default to creating static libraries of
+the form `libfoo.a` when building with MSVC. This has the following
+advantages:
+
+1. Filename collisions are completely avoided.
+1. The format for MSVC static libraries is `ar`, which is the same as the GNU
+   static library format, so using this extension is semantically correct.
+1. The static library filename format is now the same on all platforms and with
+   all toolchains.
+1. Both Clang and GNU compilers can search for `libfoo.a` when specifying
+   a library as `-lfoo`. This does not work for alternative naming schemes for
+   static libraries such as `libfoo.lib`.
+1. Since `-lfoo` works out of the box, pkgconfig files will work correctly for
+   projects built with both MSVC, GCC, and Clang on Windows.
+1. MSVC does not have arguments to search for library filenames, and [it does
+   not care what the extension is](https://docs.microsoft.com/en-us/cpp/build/reference/link-input-files?view=vs-2019),
+   so specifying `libfoo.a` instead of `foo.lib` does not change the workflow,
+   and is an improvement since it's less ambiguous.
+
+If, for some reason, you really need your project to output static
+libraries of the form `foo.lib` when building with MSVC, you can set
+the
+[`name_prefix:`](https://mesonbuild.com/Reference-manual.html#library)
+kwarg to `''` and the
+[`name_suffix:`](https://mesonbuild.com/Reference-manual.html#library)
+kwarg to `'lib'`. To get the default behaviour for each, you can
+either not specify the kwarg, or pass `[]` (an empty array) to it.
+
+## Do I need to add my headers to the sources list like in Autotools?
+
+Autotools requires you to add private and public headers to the sources list so
+that it knows what files to include in the tarball generated by `make dist`.
+Meson's `dist` command simply gathers everything committed to your git/hg
+repository and adds it to the tarball, so adding headers to the sources list is
+pointless.
+
+Meson uses Ninja which uses compiler dependency information to automatically
+figure out dependencies between C sources and headers, so it will rebuild
+things correctly when a header changes.
+
+The only exception to this are generated headers, for which you must [declare
+dependencies correctly](#how-do-i-tell-meson-that-my-sources-use-generated-headers).
+
+If, for whatever reason, you do add non-generated headers to the sources list
+of a target, Meson will simply ignore them.
+
+## How do I tell Meson that my sources use generated headers?
+
+Let's say you use a [`custom_target()`](https://mesonbuild.com/Reference-manual.html#custom_target)
+to generate the headers, and then `#include` them in your C code. Here's how
+you ensure that Meson generates the headers before trying to compile any
+sources in the build target:
+
+```meson
+libfoo_gen_headers = custom_target('gen-headers', ..., output: 'foo-gen.h')
+libfoo_sources = files('foo-utils.c', 'foo-lib.c')
+# Add generated headers to the list of sources for the build target
+libfoo = library('foo', sources: [libfoo_sources + libfoo_gen_headers])
+```
+
+Now let's say you have a new target that links to `libfoo`:
+
+```meson
+libbar_sources = files('bar-lib.c')
+libbar = library('bar', sources: libbar_sources, link_with: libfoo)
+```
+
+This adds a **link-time** dependency between the two targets, but note that the
+sources of the targets have **no compile-time** dependencies and can be built
+in any order; which improves parallelism and speeds up builds.
+
+If the sources in `libbar` *also* use `foo-gen.h`, that's a *compile-time*
+dependency, and you'll have to add `libfoo_gen_headers` to `sources:` for
+`libbar` too:
+
+```meson
+libbar_sources = files('bar-lib.c')
+libbar = library('bar', sources: libbar_sources + libfoo_gen_headers, link_with: libfoo)
+```
+
+Alternatively, if you have multiple libraries with sources that link to
+a library and also use its generated headers, this code is equivalent to above:
+
+```meson
+# Add generated headers to the list of sources for the build target
+libfoo = library('foo', sources: libfoo_sources + libfoo_gen_headers)
+
+# Declare a dependency that will add the generated headers to sources
+libfoo_dep = declare_dependency(link_with: libfoo, sources: libfoo_gen_headers)
+
+...
+
+libbar = library('bar', sources: libbar_sources, dependencies: libfoo_dep)
+```
+
+**Note:** You should only add *headers* to `sources:` while declaring
+a dependency. If your custom target outputs both sources and headers, you can
+use the subscript notation to get only the header(s):
+
+```meson
+libfoo_gen_sources = custom_target('gen-headers', ..., output: ['foo-gen.h', 'foo-gen.c'])
+libfoo_gen_headers = libfoo_gen_sources[0]
+
+# Add static and generated sources to the target
+libfoo = library('foo', sources: libfoo_sources + libfoo_gen_sources)
+
+# Declare a dependency that will add the generated *headers* to sources
+libfoo_dep = declare_dependency(link_with: libfoo, sources: libfoo_gen_headers)
+...
+libbar = library('bar', sources: libbar_sources, dependencies: libfoo_dep)
+```
+
+A good example of a generator that outputs both sources and headers is
+[`gnome.mkenums()`](https://mesonbuild.com/Gnome-module.html#gnomemkenums).
+
+## How do I disable exceptions and RTTI in my C++ project?
+
+With the `cpp_eh` and `cpp_rtti` options. A typical invocation would
+look like this:
+
+```
+meson -Dcpp_eh=none -Dcpp_rtti=false <other options>
+```
+
+The RTTI option is only available since Meson version 0.53.0.
+
+## Should I check for `buildtype` or individual options like `debug` in my build files?
+
+This depends highly on what you actually need to happen. The
+´buildtype` option is meant do describe the current build's
+_intent_. That is, what it will be used for. Individual options are
+for determining what the exact state is. This becomes clearer with a
+few examples.
+
+Suppose you have a source file that is known to miscompile when using
+`-O3` and requires a workaround. Then you'd write something like this:
+
+```meson
+if get_option('optimization') == '3'
+    add_project_arguments('-DOPTIMIZATION_WORKAROUND', ...)
+endif
+```
+
+On the other hand if your project has extra logging and sanity checks
+that you would like to be enabled during the day to day development
+work (which uses the `debug` buildtype), you'd do this instead:
+
+```meson
+if get_option('buildtype') == 'debug'
+    add_project_arguments('-DENABLE_EXTRA_CHECKS', ...)
+endif
+```
+
+In this way the extra options are automatically used during
+development but are not compiled in release builds. Note that (since
+Meson 0.57.0) you can set optimization to, say, 2 in your debug builds
+if you want to. If you tried to set this flag based on optimization
+level, it would fail in this case.
+
+## How do I use a library before declaring it?
+
+This is valid (and good) code:
+```
+libA = library('libA', 'fileA.cpp', link_with : [])
+libB = library('libB', 'fileB.cpp', link_with : [libA])
+```
+But there is currently no way to get something like this to work:
+```
+libB = library('libB', 'fileB.cpp', link_with : [libA])
+libA = library('libA', 'fileA.cpp', link_with : [])
+```
+This means that you HAVE to write your `library(...)` calls in the order that the
+dependencies flow. While ideas to make arbitrary orders possible exist, they were
+rejected because reordering the `library(...)` calls was considered the "proper"
+way. See [here](https://github.com/mesonbuild/meson/issues/8178) for the discussion.
+
+## Why doesn't meson have user defined functions/macros?
+
+The tl;dr answer to this is that meson's design is focused on solving specific
+problems rather than providing a general purpose language to write complex
+code solutions in build files. Build systems should be quick to write and
+quick to understand, functions muddle this simplicity.
+
+The long answer is twofold:
+
+First, Meson aims to provide a rich set of tools that solve specific problems
+simply out of the box. This is similar to the "batteries included" mentality of
+Python. By providing tools that solve common problems in the simplest way
+possible *in* Meson we are solving that problem for everyone instead of forcing
+everyone to solve that problem for themselves over and over again, often
+badly. One example of this are Meson's dependency wrappers around various
+config-tool executables (sdl-config, llvm-config, etc). In other build
+systems each user of that dependency writes a wrapper and deals with the
+corner cases (or doesn't, as is often the case), in Meson we handle them
+internally, everyone gets fixes and the corner cases are ironed out for
+*everyone*. Providing user defined functions or macros goes directly against
+this design goal.
+
+Second, functions and macros makes the build system more difficult to reason
+about. When you encounter some function call, you can refer to the reference
+manual to see that function and its signature. Instead of spending
+frustrating hours trying to interpret some bit of m4 or follow long include
+paths to figure out what `function1` (which calls `function2`, which calls
+`function3`, ad infinitum), you know what the build system is doing. Unless
+you're actively developing Meson itself, it's just a tool to orchestrate
+building the thing you actually care about. We want you to spend as little
+time worrying about build systems as possible so you can spend more time on
+*your code*.
+
+Many times user defined functions are used due to a lack of loops or
+because loops are tedious to use in the language. Meson has both arrays/lists
+and hashes/dicts natively. Compare the following pseudo code:
+
+```meson
+func(name, sources, extra_args)
+  executable(
+    name,
+    sources,
+    c_args : extra_args
+  )
+endfunc
+
+func(exe1, ['1.c', 'common.c'], [])
+func(exe2, ['2.c', 'common.c'], [])
+func(exe2_a, ['2.c', 'common.c'], ['-arg'])
+```
+
+```meson
+foreach e : [['1', '1.c', []],
+             ['2', '2.c', []],
+             ['2', '2.c', ['-arg']]]
+  executable(
+    'exe' + e[0],
+    e[1],
+    c_args : e[2],
+  )
+endforeach
+```
+
+The loop is both less code and is much easier to reason about than the function
+version is, especially if the function were to live in a separate file, as is
+common in other popular build systems.
+
+Build system DSLs also tend to be badly thought out as generic programming
+languages, Meson tries to make it easy to use external scripts or programs
+for handling complex problems. While one can't always convert build logic
+into a scripting language (or compiled language), when it can be done this is
+often a better solution. External languages tend to be well-thought-out and
+tested, generally don't regress, and users are more likely to have domain
+knowledge about them. They also tend to have better tooling (such as
+autocompletion, linting, testing solutions), which make them a lower
+maintenance burden over time.

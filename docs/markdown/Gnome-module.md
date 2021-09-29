@@ -3,7 +3,7 @@
 This module provides helper tools for build operations needed when
 building Gnome/GLib programs.
 
-**Note**: the compilation commands here might not work properly when
+**Note**: the compilation commands here might not work properly when
   you change the source files. This is a bug in the respective
   compilers which do not expose the required dependency
   information. This has been reported upstream in [this bug]. Until
@@ -88,7 +88,6 @@ There are several keyword arguments. Many of these map directly to the
   e.g. `Gtk`
 * `includes`: list of gir names to be included, can also be a GirTarget
 * `header`: *(Added 0.43.0)* name of main c header to include for the library, e.g. `glib.h`
-* `dependencies`: deps to use during introspection scanning
 * `include_directories`: extra include paths to look for gir files
 * `install`: if true, install the generated files
 * `install_dir_gir`: (*Added 0.35.0*) which directory to install the
@@ -98,6 +97,7 @@ There are several keyword arguments. Many of these map directly to the
 * `link_with`: list of libraries to link with
 * `symbol_prefix`: the symbol prefix for the gir object, e.g. `gtk`,
   (*Since 0.43.0*) an ordered list of multiple prefixes is allowed
+* `fatal_warnings`: *Since 0.55.0* turn scanner warnings into fatal errors.
 
 Returns an array of two elements which are: `[gir_target,
 typelib_target]`
@@ -128,9 +128,9 @@ Returns an array of two elements which are: `[c_source, header_file]`
 ### gnome.mkenums()
 
 Generates enum files for GObject using the `glib-mkenums` tool. The
-first argument is the base name of the output files, unless `c_template`
-and `h_template` are specified. In this case, the output files will be
-the base name of the values passed as templates.
+first argument is the base name of the output files, unless
+`c_template` and `h_template` are specified. In this case, the output
+files will be the base name of the values passed as templates.
 
 This method is essentially a wrapper around the `glib-mkenums` tool's
 command line API. It is the most featureful method for enum creation.
@@ -223,10 +223,11 @@ directory. Note that this is not for installing schemas and is only
 useful when running the application locally for example during tests.
 
 * `build_by_default`: causes, when set to true, to have this target be
-  built by default, that is, when invoking plain `ninja`, the default
+  built by default, that is, when invoking plain `meson compile`, the default
   value is true for all built target types
-* `depend_files`: files ([`string`](#string-object),
-  [`files()`](#files), or [`configure_file()`](#configure_file)) of
+* `depend_files`: files ([`string`](Reference-manual.md#string-object),
+  [`files()`](Reference-manual.md#files), or
+  [`configure_file()`](Reference-manual.md#configure_file)) of
   schema source XML files that should trigger a re-compile if changed.
 
 ### gnome.gdbus_codegen()
@@ -245,20 +246,20 @@ one XML file.
 * `annotations`: *(Added 0.43.0)* list of lists of 3 strings for the annotation for `'ELEMENT', 'KEY', 'VALUE'`
 * `docbook`: *(Added 0.43.0)* prefix to generate `'PREFIX'-NAME.xml` docbooks
 * `build_by_default`: causes, when set to true, to have this target be
-  built by default, that is, when invoking plain `ninja`, the default
+  built by default, that is, when invoking plain `meson compile`, the default
   value is true for all built target types
 * `install_dir`: (*Added 0.46.0*) location to install the header or
   bundle depending on previous options
 * `install_header`: (*Added 0.46.0*) if true, install the header file
 
-Starting *0.46.0*, this function returns a list of at least two custom targets
-(in order): one for the source code and one for the header. The list will
-contain a third custom target for the generated docbook files if that keyword
-argument is passed.
+Starting *0.46.0*, this function returns a list of at least two custom
+targets (in order): one for the source code and one for the header.
+The list will contain a third custom target for the generated docbook
+files if that keyword argument is passed.
 
-Earlier versions return a single custom target representing all the outputs.
-Generally, you should just add this list of targets to a top level target's
-source list.
+Earlier versions return a single custom target representing all the
+outputs. Generally, you should just add this list of targets to a top
+level target's source list.
 
 Example:
 
@@ -339,9 +340,16 @@ of the module.
 * `scanobjs_args`: a list of arguments to pass to `gtkdoc-scangobj`
 * `c_args`: (*Added 0.48.0*) additional compile arguments to pass
 * `src_dir`: include_directories to include
+* `check`: (*Since 0.52.0*) if `true` runs `gtkdoc-check` when running unit tests.
+  Note that this has the downside of rebuilding the doc for each build, which is
+  often very slow. It usually should be enabled only in CI.
 
-This creates a `$module-doc` target that can be ran to build docs and
-normally these are only built on install.
+This also creates a `$module-doc` target that can be run to build
+documentation. Normally the documentation is only built on install.
+
+*Since 0.52.0* Returns a target object that can be passed as
+dependency to other targets using generated doc files (e.g. in
+`content_files` of another doc).
 
 ### gnome.gtkdoc_html_dir()
 
@@ -349,3 +357,22 @@ Takes as argument a module name and returns the path where that
 module's HTML files will be installed. Usually used with
 `install_data` to install extra files, such as images, to the output
 directory.
+
+### gnome.post_install()
+
+*Since 0.57.0*
+
+Post-install update of various system wide caches. Each script will be executed
+only once even if `gnome.post_install()` is called multiple times from multiple
+subprojects. If `DESTDIR` is specified during installation all scripts will be
+skipped.
+
+It takes the following keyword arguments:
+- `glib_compile_schemas`: If set to `true`, update `gschemas.compiled` file in
+  `<prefix>/<datadir>/glib-2.0/schemas`.
+- `gio_querymodules`: List of directories relative to `prefix` where
+  `giomodule.cache` file will be updated.
+- `gtk_update_icon_cache`: If set to `true`, update `icon-theme.cache` file in
+  `<prefix>/<datadir>/icons/hicolor`.
+- `update_desktop_database`: *Since 0.59.0* If set to `true`, update cache of
+  MIME types handled by desktop files in `<prefix>/<datadir>/applications`.

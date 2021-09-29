@@ -1,7 +1,9 @@
-program test
-  use mymod1
-  use MyMod2
+program main
+use mymod1
+use MyMod2  ! test inline comment
 
-  integer, parameter :: testVar = myModVal1 + myModVal2
+implicit none
 
-end program test
+integer, parameter :: testVar = myModVal1 + myModVal2
+
+end program

@@ -6,8 +6,17 @@ project('Python extension module', 'c',
 py3_mod = import('python3')
 py3 = py3_mod.find_python()
 py3_dep = dependency('python3', required : false)
+cc = meson.get_compiler('c')
 
 if py3_dep.found()
+  message('Detected Python version: ' + py3_dep.version())
+  # Building extensions for Python 3 using Visual Studio 2015
+  # no longer works (or, rather, they build but don't run).
+  # Disable the tests in this case.
+  if py3_dep.version().version_compare('>=3.8') and cc.get_id() == 'msvc' and cc.version().version_compare('<=19.00.24215.1')
+    error('MESON_SKIP_TEST: Python modules do not work with Python 3.8 and VS2015 or earlier.')
+  endif
+
   subdir('ext')
 
   test('extmod',

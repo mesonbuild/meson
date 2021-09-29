@@ -12,61 +12,54 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import shlex
 import subprocess
 import shutil
 import tempfile
-from ..environment import detect_ninja
-from ..mesonlib import Popen_safe
+from ..environment import detect_ninja, detect_scanbuild
+from ..coredata import get_cmd_line_file, CmdLineFileParser
+from ..mesonlib import windows_proof_rmtree
+from pathlib import Path
+import typing as T
+from ast import literal_eval
+import os
 
-def scanbuild(exelist, srcdir, blddir, privdir, logdir, args):
-    with tempfile.TemporaryDirectory(dir=privdir) as scandir:
-        meson_cmd = exelist + args
-        build_cmd = exelist + ['-o', logdir, detect_ninja(), '-C', scandir]
-        rc = subprocess.call(meson_cmd + [srcdir, scandir])
-        if rc != 0:
-            return rc
-        return subprocess.call(build_cmd)
+def scanbuild(exelist: T.List[str], srcdir: Path, blddir: Path, privdir: Path, logdir: Path, args: T.List[str]) -> int:
+    # In case of problems leave the temp directory around
+    # so it can be debugged.
+    scandir = tempfile.mkdtemp(dir=str(privdir))
+    meson_cmd = exelist + args
+    build_cmd = exelist + ['-o', str(logdir)] + detect_ninja() + ['-C', scandir]
+    rc = subprocess.call(meson_cmd + [str(srcdir), scandir])
+    if rc != 0:
+        return rc
+    rc = subprocess.call(build_cmd)
+    if rc == 0:
+        windows_proof_rmtree(scandir)
+    return rc
 
-def run(args):
-    srcdir = args[0]
+def run(args: T.List[str]) -> int:
+    srcdir = Path(args[0])
+    bldpath = Path(args[1])
     blddir = args[1]
     meson_cmd = args[2:]
-    privdir = os.path.join(blddir, 'meson-private')
-    logdir = os.path.join(blddir, 'meson-logs/scanbuild')
-    shutil.rmtree(logdir, ignore_errors=True)
-    tools = [
-        'scan-build',  # base
-        'scan-build-5.0', 'scan-build50',  # latest stable release
-        'scan-build-4.0', 'scan-build40',  # old stable releases
-        'scan-build-3.9', 'scan-build39',
-        'scan-build-3.8', 'scan-build38',
-        'scan-build-3.7', 'scan-build37',
-        'scan-build-3.6', 'scan-build36',
-        'scan-build-3.5', 'scan-build35',
-        'scan-build-6.0', 'scan-build-devel',  # development snapshot
-    ]
-    toolname = 'scan-build'
-    for tool in tools:
-        try:
-            p, out = Popen_safe([tool, '--help'])[:2]
-        except (FileNotFoundError, PermissionError):
-            continue
-        if p.returncode != 0:
-            continue
-        else:
-            toolname = tool
-            break
+    privdir = bldpath / 'meson-private'
+    logdir = bldpath / 'meson-logs' / 'scanbuild'
+    shutil.rmtree(str(logdir), ignore_errors=True)
 
-    if 'SCANBUILD' in os.environ:
-        exelist = shlex.split(os.environ['SCANBUILD'])
-    else:
-        exelist = [toolname]
+    # if any cross or native files are specified we should use them
+    cmd = get_cmd_line_file(blddir)
+    data = CmdLineFileParser()
+    data.read(cmd)
 
-    try:
-        Popen_safe(exelist + ['--help'])
-    except OSError:
+    if 'cross_file' in data['properties']:
+        meson_cmd.extend([f'--cross-file={os.path.abspath(f)}' for f in literal_eval(data['properties']['cross_file'])])
+
+    if 'native_file' in data['properties']:
+        meson_cmd.extend([f'--native-file={os.path.abspath(f)}' for f in literal_eval(data['properties']['native_file'])])
+
+    exelist = detect_scanbuild()
+    if not exelist:
         print('Could not execute scan-build "%s"' % ' '.join(exelist))
         return 1
-    return scanbuild(exelist, srcdir, blddir, privdir, logdir, meson_cmd)
+
+    return scanbuild(exelist, srcdir, bldpath, privdir, logdir, meson_cmd)

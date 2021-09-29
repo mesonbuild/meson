@@ -1,5 +1,5 @@
 #include <foo.h>
 
-int main(int ac, char **av) {
+int main(void) {
   return foo_process();
 }

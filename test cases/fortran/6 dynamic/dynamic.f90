@@ -1,17 +1,17 @@
 module dynamic
-  implicit none
+implicit none
 
-  private
-  public :: hello
+private
+public :: hello
 
-  interface hello
-     module procedure say
-  end interface hello
+interface hello
+  module procedure say
+end interface hello
 
 contains
 
-  subroutine say
-    print *, "Hello, hello..."
-  end subroutine say
+subroutine say
+  print *, "Hello from shared library."
+end subroutine say
 
 end module dynamic

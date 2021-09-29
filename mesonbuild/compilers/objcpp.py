@@ -12,61 +12,99 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os.path, subprocess
+import typing as T
 
-from ..mesonlib import EnvironmentException
+from .. import coredata
+from ..mesonlib import MachineChoice, OptionKey
 
-from .cpp import CPPCompiler
-from .compilers import ClangCompiler, GnuCompiler
+from .mixins.clike import CLikeCompiler
+from .compilers import Compiler
+from .mixins.gnu import GnuCompiler
+from .mixins.clang import ClangCompiler
 
-class ObjCPPCompiler(CPPCompiler):
-    def __init__(self, exelist, version, is_cross, exe_wrap):
-        self.language = 'objcpp'
-        CPPCompiler.__init__(self, exelist, version, is_cross, exe_wrap)
+if T.TYPE_CHECKING:
+    from ..programs import ExternalProgram
+    from ..envconfig import MachineInfo
+    from ..environment import Environment
+    from ..linkers import DynamicLinker
 
-    def get_display_language(self):
+class ObjCPPCompiler(CLikeCompiler, Compiler):
+
+    language = 'objcpp'
+
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
+                 is_cross: bool, info: 'MachineInfo',
+                 exe_wrap: T.Optional['ExternalProgram'],
+                 linker: T.Optional['DynamicLinker'] = None,
+                 full_version: T.Optional[str] = None):
+        Compiler.__init__(self, exelist, version, for_machine, info,
+                          is_cross=is_cross, full_version=full_version,
+                          linker=linker)
+        CLikeCompiler.__init__(self, exe_wrap)
+
+    @staticmethod
+    def get_display_language() -> str:
         return 'Objective-C++'
 
-    def sanity_check(self, work_dir, environment):
-        # TODO try to use sanity_check_impl instead of duplicated code
-        source_name = os.path.join(work_dir, 'sanitycheckobjcpp.mm')
-        binary_name = os.path.join(work_dir, 'sanitycheckobjcpp')
-        extra_flags = self.get_cross_extra_flags(environment, link=False)
-        if self.is_cross:
-            extra_flags += self.get_compile_only_args()
-        with open(source_name, 'w') as ofile:
-            ofile.write('#import<stdio.h>\n'
-                        'class MyClass;'
-                        'int main(int argc, char **argv) { return 0; }\n')
-        pc = subprocess.Popen(self.exelist + extra_flags + [source_name, '-o', binary_name])
-        pc.wait()
-        if pc.returncode != 0:
-            raise EnvironmentException('ObjC++ compiler %s can not compile programs.' % self.name_string())
-        if self.is_cross:
-            # Can't check if the binaries run so we have to assume they do
-            return
-        pe = subprocess.Popen(binary_name)
-        pe.wait()
-        if pe.returncode != 0:
-            raise EnvironmentException('Executables created by ObjC++ compiler %s are not runnable.' % self.name_string())
+    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
+        code = '#import<stdio.h>\nclass MyClass;int main(void) { return 0; }\n'
+        return self._sanity_check_impl(work_dir, environment, 'sanitycheckobjcpp.mm', code)
 
 
 class GnuObjCPPCompiler(GnuCompiler, ObjCPPCompiler):
-    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None, defines=None):
-        ObjCPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
-        GnuCompiler.__init__(self, compiler_type, defines)
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
+                 is_cross: bool, info: 'MachineInfo',
+                 exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 defines: T.Optional[T.Dict[str, str]] = None,
+                 linker: T.Optional['DynamicLinker'] = None,
+                 full_version: T.Optional[str] = None):
+        ObjCPPCompiler.__init__(self, exelist, version, for_machine, is_cross,
+                              info, exe_wrapper, linker=linker, full_version=full_version)
+        GnuCompiler.__init__(self, defines)
         default_warn_args = ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor']
-        self.warn_args = {'1': default_warn_args,
+        self.warn_args = {'0': [],
+                          '1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
 
 
 class ClangObjCPPCompiler(ClangCompiler, ObjCPPCompiler):
-    def __init__(self, exelist, version, compiler_type, is_cross, exe_wrapper=None):
-        ObjCPPCompiler.__init__(self, exelist, version, is_cross, exe_wrapper)
-        ClangCompiler.__init__(self, compiler_type)
+
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
+                 is_cross: bool, info: 'MachineInfo',
+                 exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 defines: T.Optional[T.Dict[str, str]] = None,
+                 linker: T.Optional['DynamicLinker'] = None,
+                 full_version: T.Optional[str] = None):
+        ObjCPPCompiler.__init__(self, exelist, version, for_machine, is_cross,
+                              info, exe_wrapper, linker=linker, full_version=full_version)
+        ClangCompiler.__init__(self, defines)
         default_warn_args = ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor']
-        self.warn_args = {'1': default_warn_args,
+        self.warn_args = {'0': [],
+                          '1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
-        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage']
+
+
+    def get_options(self) -> 'coredata.KeyedOptionDictType':
+        opts = super().get_options()
+        opts.update({
+            OptionKey('std', machine=self.for_machine, lang='cpp'): coredata.UserComboOption(
+                'C++ language standard to use',
+                ['none', 'c++98', 'c++11', 'c++14', 'c++17', 'gnu++98', 'gnu++11', 'gnu++14', 'gnu++17'],
+                'none',
+            )
+        })
+        return opts
+
+    def get_option_compile_args(self, options: 'coredata.KeyedOptionDictType') -> T.List[str]:
+        args = []
+        std = options[OptionKey('std', machine=self.for_machine, lang='cpp')]
+        if std.value != 'none':
+            args.append('-std=' + std.value)
+        return args
+
+
+class AppleClangObjCPPCompiler(ClangObjCPPCompiler):
+
+    """Handle the differences between Apple's clang and vanilla clang."""

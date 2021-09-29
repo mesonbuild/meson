@@ -1,1 +1,1 @@
-exe = executable('prog', 'prog.cc', cpp_pch : ['pch/prog.hh', 'pch/prog_pch.cc'])
+exe = executable('prog', 'prog.cc', cpp_pch : 'pch/prog.hh')

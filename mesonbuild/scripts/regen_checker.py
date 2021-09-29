@@ -14,10 +14,14 @@
 
 import sys, os
 import pickle, subprocess
+import typing as T
+from ..coredata import CoreData
+from ..backend.backends import RegenInfo
+from ..mesonlib import OptionKey
 
 # This could also be used for XCode.
 
-def need_regen(regeninfo, regen_timestamp):
+def need_regen(regeninfo: RegenInfo, regen_timestamp: float) -> bool:
     for i in regeninfo.depfiles:
         curfile = os.path.join(regeninfo.build_dir, i)
         curtime = os.stat(curfile).st_mtime
@@ -31,7 +35,7 @@ def need_regen(regeninfo, regen_timestamp):
     Vs2010Backend.touch_regen_timestamp(regeninfo.build_dir)
     return False
 
-def regen(regeninfo, meson_command, backend):
+def regen(regeninfo: RegenInfo, meson_command: T.List[str], backend: str) -> None:
     cmd = meson_command + ['--internal',
                            'regenerate',
                            regeninfo.build_dir,
@@ -39,19 +43,22 @@ def regen(regeninfo, meson_command, backend):
                            '--backend=' + backend]
     subprocess.check_call(cmd)
 
-def run(args):
+def run(args: T.List[str]) -> int:
     private_dir = args[0]
     dumpfile = os.path.join(private_dir, 'regeninfo.dump')
-    coredata = os.path.join(private_dir, 'coredata.dat')
+    coredata_file = os.path.join(private_dir, 'coredata.dat')
     with open(dumpfile, 'rb') as f:
         regeninfo = pickle.load(f)
-    with open(coredata, 'rb') as f:
+        assert isinstance(regeninfo, RegenInfo)
+    with open(coredata_file, 'rb') as f:
         coredata = pickle.load(f)
-    backend = coredata.get_builtin_option('backend')
+        assert isinstance(coredata, CoreData)
+    backend = coredata.get_option(OptionKey('backend'))
+    assert isinstance(backend, str)
     regen_timestamp = os.stat(dumpfile).st_mtime
     if need_regen(regeninfo, regen_timestamp):
         regen(regeninfo, coredata.meson_command, backend)
-    sys.exit(0)
+    return 0
 
 if __name__ == '__main__':
-    run(sys.argv[1:])
+    sys.exit(run(sys.argv[1:]))

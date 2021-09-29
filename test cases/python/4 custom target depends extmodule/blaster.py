@@ -24,9 +24,7 @@ if options.output:
         f.write('success')
 
 if not isinstance(result, int):
-    print('Returned result not an integer.')
-    sys.exit(1)
+    raise SystemExit('Returned result not an integer.')
 
 if result != 1:
-    print('Returned result {} is not 1.'.format(result))
-    sys.exit(1)
+    raise SystemExit(f'Returned result {result} is not 1.')

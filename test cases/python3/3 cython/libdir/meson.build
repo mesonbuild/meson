@@ -1,6 +1,7 @@
 pyx_c = custom_target('storer_pyx',
   output : 'storer_pyx.c',
   input : 'storer.pyx',
+  depend_files : 'cstorer.pxd',
   command : [cython, '@INPUT@', '-o', '@OUTPUT@'],
 )
 

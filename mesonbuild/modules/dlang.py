@@ -19,18 +19,10 @@ import json
 import os
 
 from . import ExtensionModule
-
+from .. import dependencies
 from .. import mlog
-
-from ..mesonlib import (
-    Popen_safe, MesonException
-)
-
-from ..dependencies.base import (
-    ExternalProgram, DubDependency
-)
-
-from ..interpreter import DependencyHolder
+from ..mesonlib import Popen_safe, MesonException
+from ..programs import ExternalProgram
 
 class DlangModule(ExtensionModule):
     class_dubbin = None
@@ -38,11 +30,13 @@ class DlangModule(ExtensionModule):
 
     def __init__(self, interpreter):
         super().__init__(interpreter)
-        self.snippets.add('generate_dub_file')
+        self.methods.update({
+            'generate_dub_file': self.generate_dub_file,
+        })
 
     def _init_dub(self):
         if DlangModule.class_dubbin is None:
-            self.dubbin = DubDependency.class_dubbin
+            self.dubbin = dependencies.DubDependency.class_dubbin
             DlangModule.class_dubbin = self.dubbin
         else:
             self.dubbin = DlangModule.class_dubbin
@@ -57,7 +51,7 @@ class DlangModule(ExtensionModule):
             if not self.dubbin:
                 raise MesonException('DUB not found.')
 
-    def generate_dub_file(self, interpreter, state, args, kwargs):
+    def generate_dub_file(self, state, args, kwargs):
         if not DlangModule.init_dub:
             self._init_dub()
 
@@ -70,7 +64,7 @@ class DlangModule(ExtensionModule):
 
         config_path = os.path.join(args[1], 'dub.json')
         if os.path.exists(config_path):
-            with open(config_path, 'r', encoding='utf8') as ofile:
+            with open(config_path, encoding='utf-8') as ofile:
                 try:
                     config = json.load(ofile)
                 except ValueError:
@@ -87,20 +81,20 @@ class DlangModule(ExtensionModule):
                 config[key] = {}
                 if isinstance(value, list):
                     for dep in value:
-                        if isinstance(dep, DependencyHolder):
-                            name = dep.method_call('name', [], [])
+                        if isinstance(dep, dependencies.Dependency):
+                            name = dep.get_name()
                             ret, res = self._call_dubbin(['describe', name])
                             if ret == 0:
-                                version = dep.method_call('version', [], [])
+                                version = dep.get_version()
                                 if version is None:
                                     config[key][name] = ''
                                 else:
                                     config[key][name] = version
-                elif isinstance(value, DependencyHolder):
-                    name = value.method_call('name', [], [])
+                elif isinstance(value, dependencies.Dependency):
+                    name = value.get_name()
                     ret, res = self._call_dubbin(['describe', name])
                     if ret == 0:
-                        version = value.method_call('version', [], [])
+                        version = value.get_version()
                         if version is None:
                             config[key][name] = ''
                         else:
@@ -108,7 +102,7 @@ class DlangModule(ExtensionModule):
             else:
                 config[key] = value
 
-        with open(config_path, 'w', encoding='utf8') as ofile:
+        with open(config_path, 'w', encoding='utf-8') as ofile:
             ofile.write(json.dumps(config, indent=4, ensure_ascii=False))
 
     def _call_dubbin(self, args, env=None):

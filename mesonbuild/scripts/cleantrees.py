@@ -16,19 +16,20 @@ import os
 import sys
 import shutil
 import pickle
+import typing as T
 
-def rmtrees(build_dir, trees):
+def rmtrees(build_dir: str, trees: T.List[str]) -> None:
     for t in trees:
         # Never delete trees outside of the builddir
         if os.path.isabs(t):
-            print('Cannot delete dir with absolute path {!r}'.format(t))
+            print(f'Cannot delete dir with absolute path {t!r}')
             continue
         bt = os.path.join(build_dir, t)
         # Skip if it doesn't exist, or if it is not a directory
         if os.path.isdir(bt):
             shutil.rmtree(bt, ignore_errors=True)
 
-def run(args):
+def run(args: T.List[str]) -> int:
     if len(args) != 1:
         print('Cleaner script for Meson. Do not run on your own please.')
         print('cleantrees.py <data-file>')

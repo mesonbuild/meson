@@ -1,14 +1,19 @@
 index.md
+	SimpleStart.md
 	Getting-meson.md
+		Getting-meson_zh.md
+		Getting-meson_ptbr.md
 	Quick-guide.md
 	Tutorial.md
 	Manual.md
 		Overview.md
 		Running-Meson.md
+		Commands.md
 		Builtin-options.md
 		Using-with-Visual-Studio.md
 		Meson-sample.md
 		Syntax.md
+		Machine-files.md
 		Native-environments.md
 		Build-targets.md
 		Include-directories.md
@@ -29,23 +34,34 @@ index.md
 		Build-options.md
 		Subprojects.md
 		Disabler.md
+		Code-formatting.md
 		Modules.md
+			CMake-module.md
+			Cuda-module.md
 			Dlang-module.md
+			External-Project-module.md
+			Fs-module.md
 			Gnome-module.md
 			Hotdoc-module.md
-			i18n-module.md
 			Icestorm-module.md
+			Java-module.md
+			Keyval-module.md
 			Pkgconfig-module.md
-			Python-module.md
 			Python-3-module.md
+			Python-module.md
 			Qt4-module.md
 			Qt5-module.md
+			Qt6-module.md
 			RPM-module.md
+			Rust-module.md
 			Simd-module.md
+			SourceSet-module.md
 			Windows-module.md
+			i18n-module.md
 		Java.md
 		Vala.md
 		D.md
+		Cython.md
 		IDE-integration.md
 		Custom-build-targets.md
 		Build-system-converters.md
@@ -58,18 +74,28 @@ index.md
 	Reference-manual.md
 	Reference-tables.md
 	Style-guide.md
+	Rewriter.md
 	FAQ.md
 	Reproducible-builds.md
 	howtox.md
+	Wrapdb-projects.md
 	Wrap-dependency-system-manual.md
 		Adding-new-projects-to-wrapdb.md
 		Using-the-WrapDB.md
 		Using-wraptool.md
 		Wrap-best-practices-and-tips.md
-		Wrap-review-guidelines.md
 		Shipping-prebuilt-binaries-as-wraps.md
 		fallback-wraptool.md
 	Release-notes.md
+		Release-notes-for-0.59.0.md
+		Release-notes-for-0.58.0.md
+		Release-notes-for-0.57.0.md
+		Release-notes-for-0.56.0.md
+		Release-notes-for-0.55.0.md
+		Release-notes-for-0.54.0.md
+		Release-notes-for-0.53.0.md
+		Release-notes-for-0.52.0.md
+		Release-notes-for-0.51.0.md
 		Release-notes-for-0.50.0.md
 		Release-notes-for-0.49.0.md
 		Release-notes-for-0.48.0.md
@@ -96,13 +122,15 @@ index.md
 		Design-rationale.md
 		IndepthTutorial.md
 		In-the-press.md
+		Mixing-build-systems.md
 		Pkg-config-files.md
 		Playground.md
 		Porting-from-autotools.md
-		Trial-conversions.md
 		Use-of-Python.md
 		Users.md
 		Using-multiple-build-directories.md
+		Vs-External.md
 	Contributing.md
+		MesonCI.md
 	legal.md
 	Videos.md

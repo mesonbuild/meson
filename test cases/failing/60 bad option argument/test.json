@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/failing/60 bad option argument/meson_options.txt:1:0: ERROR: Invalid kwargs for option \"name\": \"vaule\""
+    }
+  ]
+}

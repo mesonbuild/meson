@@ -1,0 +1,14 @@
+{
+  "matrix": {
+    "options": {
+      "method": [
+        { "val": "auto" },
+        { "val": "pkg-config" },
+        { "val": "config-tool" },
+        { "val": "sdlconfig" },
+        { "val": "extraframework", "skip_on_os": ["!darwin"], "skip_on_jobname": ["macos"] }
+      ]
+    }
+  },
+  "skip_on_jobname": ["azure", "cygwin", "msys2"]
+}

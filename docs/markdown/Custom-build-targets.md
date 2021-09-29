@@ -16,8 +16,8 @@ infile = 'source_code.txt'
 outfile = 'output.bin'
 
 mytarget = custom_target('targetname',
-  output : 'output.bin',
-  input : 'source_code.txt',
+  output : outfile,
+  input : infile,
   command : [comp, '@INPUT@', '@OUTPUT@'],
   install : true,
   install_dir : 'subdir')
@@ -29,14 +29,15 @@ it does for source generation.
 
 See [Generating Sources](Generating-sources.md) for more information on this topic.
 
-## Details on compiler invocations
+## Details on command invocation
 
 Meson only permits you to specify one command to run. This is by
 design as writing shell pipelines into build definition files leads to
-code that is very hard to maintain. If your compilation requires
-multiple steps you need to write a wrapper script that does all the
-necessary work. When doing this you need to be mindful of the
-following issues:
+code that is very hard to maintain. If your command requires multiple
+steps you need to write a wrapper script that does all the necessary
+work.
+
+When doing this you need to be mindful of the following issues:
 
 * do not assume that the command is invoked in any specific directory
 * a target called `target` file `outfile` defined in subdir `subdir`

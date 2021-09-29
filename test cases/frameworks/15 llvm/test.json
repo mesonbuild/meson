@@ -1,0 +1,18 @@
+{
+  "matrix": {
+    "options": {
+      "method": [
+        { "val": "config-tool", "skip_on_jobname": ["msys2-gcc"]},
+        { "val": "cmake", "skip_on_jobname": ["msys2"] }
+      ],
+      "link-static": [
+        { "val": true, "skip_on_jobname": ["opensuse"] },
+        { "val": false }
+      ]
+    },
+    "exclude": [
+      { "method": "cmake", "link-static": false }
+    ]
+  },
+  "skip_on_jobname": ["azure", "cygwin"]
+}

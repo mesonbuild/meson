@@ -11,4 +11,3 @@ d = declare_dependency(dependencies : shlib)
 exe2 = executable('another_visitor', 'another_visitor.c',
   dependencies : d)
 test('another', exe2)
-

@@ -1,3 +1,3 @@
-int libfunc2() {
+int libfunc2(void) {
     return 4;
 }

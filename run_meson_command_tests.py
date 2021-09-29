@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
 import os
 import tempfile
 import unittest
@@ -23,6 +22,8 @@ import zipapp
 from pathlib import Path
 
 from mesonbuild.mesonlib import windows_proof_rmtree, python_command, is_windows
+from mesonbuild.coredata import version as meson_version
+
 
 def get_pypath():
     import sysconfig
@@ -78,7 +79,7 @@ class CommandTests(unittest.TestCase):
 
     def assertMesonCommandIs(self, line, cmd):
         self.assertTrue(line.startswith('meson_command '), msg=line)
-        self.assertEqual(line, 'meson_command is {!r}'.format(cmd))
+        self.assertEqual(line, f'meson_command is {cmd!r}')
 
     def test_meson_uninstalled(self):
         # This is what the meson command must be for all these cases
@@ -128,22 +129,13 @@ class CommandTests(unittest.TestCase):
         os.environ['PYTHONPATH'] = os.path.join(str(pylibdir), '')
         os.environ['PATH'] = str(bindir) + os.pathsep + os.environ['PATH']
         self._run(python_command + ['setup.py', 'install', '--prefix', str(prefix)])
+        # Fix importlib-metadata by appending all dirs in pylibdir
+        PYTHONPATHS = [pylibdir] + [x for x in pylibdir.iterdir()]
+        PYTHONPATHS = [os.path.join(str(x), '') for x in PYTHONPATHS]
+        os.environ['PYTHONPATH'] = os.pathsep.join(PYTHONPATHS)
         # Check that all the files were installed correctly
         self.assertTrue(bindir.is_dir())
         self.assertTrue(pylibdir.is_dir())
-        from setup import packages
-        # Extract list of expected python module files
-        expect = set()
-        for pkg in packages:
-            expect.update([p.as_posix() for p in Path(pkg.replace('.', '/')).glob('*.py')])
-        # Check what was installed, only count files that are inside 'mesonbuild'
-        have = set()
-        for p in Path(pylibdir).glob('**/*.py'):
-            s = p.as_posix()
-            if 'mesonbuild' not in s:
-                continue
-            have.add(s[s.rfind('mesonbuild'):])
-        self.assertEqual(have, expect)
         # Run `meson`
         os.chdir('/')
         resolved_meson_command = [str(bindir / 'meson')]
@@ -173,7 +165,7 @@ class CommandTests(unittest.TestCase):
         builddir = str(self.tmpdir / 'build4')
         (bindir / 'meson').rename(bindir / 'meson.real')
         wrapper = (bindir / 'meson')
-        wrapper.open('w').write('#!/bin/sh\n\nmeson.real "$@"')
+        wrapper.write_text('#!/bin/sh\n\nmeson.real "$@"', encoding='utf-8')
         wrapper.chmod(0o755)
         meson_setup = [str(wrapper), 'setup']
         meson_command = meson_setup + self.meson_args
@@ -186,11 +178,13 @@ class CommandTests(unittest.TestCase):
     def test_meson_zipapp(self):
         if is_windows():
             raise unittest.SkipTest('NOT IMPLEMENTED')
-        source = Path(__file__).resolve().parent.as_posix()
+        source = Path(__file__).resolve().parent
         target = self.tmpdir / 'meson.pyz'
-        zipapp.create_archive(source=source, target=target, interpreter=python_command[0], main=None)
+        script = source / 'packaging' / 'create_zipapp.py'
+        self._run([script.as_posix(), source, '--outfile', target, '--interpreter', python_command[0]])
         self._run([target.as_posix(), '--help'])
 
 
 if __name__ == '__main__':
-    sys.exit(unittest.main(buffer=True))
+    print('Meson build system', meson_version, 'Command Tests')
+    raise SystemExit(unittest.main(buffer=True))

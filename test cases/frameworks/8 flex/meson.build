@@ -28,6 +28,9 @@ arguments : ['@INPUT@', '--defines=@OUTPUT1@', '--output=@OUTPUT0@'])
 pfiles = pgen.process('parser.y')
 
 e = executable('pgen', 'prog.c',
-lfiles, pfiles)
+    lfiles,
+    pfiles,
+    override_options: 'unity=off')
 
-test('parsertest', e)
+test('parsertest', e,
+    args: [meson.current_source_dir() / 'testfile'])

@@ -1,0 +1,17 @@
+name: File format check
+
+on: [push, pull_request]
+
+concurrency:
+  group: file_fmt-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+    - run: python3 ./run_format_tests.py

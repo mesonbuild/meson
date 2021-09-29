@@ -1,4 +1,4 @@
-project('protocol buffer test', 'cpp')
+project('protocol buffer test', 'cpp', default_options: ['cpp_std=c++11'])
 
 protoc = find_program('protoc', required : false)
 dep = dependency('protobuf', required : false)

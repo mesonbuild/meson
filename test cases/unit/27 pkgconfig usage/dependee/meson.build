@@ -4,4 +4,3 @@ pkgdep = dependency('libpkgdep')
 
 executable('pkguser', 'pkguser.c',
   dependencies : pkgdep)
-  

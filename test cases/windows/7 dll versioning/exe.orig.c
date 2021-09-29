@@ -1,7 +1,6 @@
 int myFunc (void);
 
-int
-main (int argc, char *argv[])
+int main(void)
 {
   if (myFunc() == 55)
     return 0;

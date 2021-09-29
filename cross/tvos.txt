@@ -1,0 +1,27 @@
+# This is a cross compilation file from OSX Yosemite to Apple tvOS
+# Apple keeps changing the location and names of files so
+# these might not work for you. Use the googels and xcrun.
+
+[binaries]
+c = 'clang'
+cpp = 'clang++'
+ar = 'ar'
+strip = 'strip'
+
+[built-in options]
+c_args = ['-arch', 'arm64', '-mtvos-version-min=12.0', '-isysroot', '/Applications/Xcode.app/Contents/Developer/Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS.sdk']
+cpp_args = ['-arch', 'arm64', '-mtvos-version-min=12.0', '-isysroot', '/Applications/Xcode.app/Contents/Developer/Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS.sdk']
+c_link_args = ['-arch', 'arm64', '-mtvos-version-min=12.0', '-isysroot', '/Applications/Xcode.app/Contents/Developer/Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS.sdk']
+cpp_link_args = ['-arch', 'arm64', '-mtvos-version-min=12.0', '-isysroot', '/Applications/Xcode.app/Contents/Developer/Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS.sdk']
+
+[properties]
+root = '/Applications/Xcode.app/Contents/Developer/Platforms/AppleTVOS.platform/Developer'
+
+has_function_printf = true
+has_function_hfkerhisadf = false
+
+[host_machine]
+system = 'darwin'
+cpu_family = 'arm'
+cpu = 'arm64'
+endian = 'little'

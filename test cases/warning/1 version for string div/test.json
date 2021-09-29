@@ -1,0 +1,8 @@
+{
+  "stdout": [
+    {
+      "comment": "literal '/' appears in output, irrespective of os.path.sep, as that's the operator",
+      "line": "WARNING: Project targeting '>=0.48.0' but tried to use feature introduced in '0.49.0': / with string arguments."
+    }
+  ]
+}

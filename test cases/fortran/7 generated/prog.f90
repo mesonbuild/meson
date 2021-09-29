@@ -1,9 +1,8 @@
-program prog
-  use mod2
-  implicit none
+program generated
+use mod2, only : modval1, modval2
+use mod3, only : modval3
+implicit none
 
-  if (modval1 + modval2 /= 3) then
-    stop 1
-  end if
+if (modval1 + modval2 + modval3 /= 6) error stop
 
-end program prog
+end program generated

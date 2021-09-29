@@ -12,17 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import ModuleReturnValue
 from . import ExtensionModule
 from ..interpreterbase import noKwargs
 
 class TestModule(ExtensionModule):
+    def __init__(self, interpreter):
+        super().__init__(interpreter)
+        self.methods.update({
+            'print_hello': self.print_hello,
+        })
 
     @noKwargs
     def print_hello(self, state, args, kwargs):
         print('Hello from a Meson module')
-        rv = ModuleReturnValue(None, [])
-        return rv
 
 def initialize(*args, **kwargs):
     return TestModule(*args, **kwargs)

@@ -1,1 +1,1 @@
-int func() { return 933; }
+int func(void) { return 933; }

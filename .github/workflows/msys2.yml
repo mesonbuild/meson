@@ -1,0 +1,108 @@
+name: msys2
+
+concurrency:
+  group: msys2-${{ github.head_ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    paths:
+      - "mesonbuild/**"
+      - "test cases/**"
+      - "unittests/**"
+      - ".github/workflows/msys2.yml"
+      - "run_unittests.py"
+  pull_request:
+    paths:
+      - "mesonbuild/**"
+      - "test cases/**"
+      - "unittests/**"
+      - ".github/workflows/msys2.yml"
+      - "run_unittests.py"
+
+jobs:
+  test:
+    runs-on: windows-2019
+    name: ${{ matrix.NAME }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - NAME: gccx86ninja
+            MSYSTEM: MINGW32
+            MSYS2_ARCH: i686
+            MSYS2_CURSES: ncurses
+            COMPILER: gcc
+            TOOLCHAIN: toolchain
+          - NAME: gccx64ninja
+            MSYSTEM: MINGW64
+            MSYS2_ARCH: x86_64
+            MSYS2_CURSES: pdcurses
+            COMPILER: gcc
+            TOOLCHAIN: toolchain
+          - NAME: clangx64ninja
+            MSYSTEM: MINGW64
+            MSYS2_ARCH: x86_64
+            MSYS2_CURSES:
+            COMPILER: clang
+            TOOLCHAIN: clang
+    env:
+      MESON_CI_JOBNAME: msys2-${{ matrix.NAME }}
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{ matrix.MSYSTEM }}
+          update: true
+          install: >-
+            base-devel
+            git
+            mercurial
+            lcov
+            mingw-w64-${{ matrix.MSYS2_ARCH }}-cmake
+            mingw-w64-${{ matrix.MSYS2_ARCH }}-glib2
+            mingw-w64-${{ matrix.MSYS2_ARCH }}-libxml2
+            mingw-w64-${{ matrix.MSYS2_ARCH }}-ninja
+            mingw-w64-${{ matrix.MSYS2_ARCH }}-pkg-config
+            mingw-w64-${{ matrix.MSYS2_ARCH }}-python2
+            mingw-w64-${{ matrix.MSYS2_ARCH }}-python
+            mingw-w64-${{ matrix.MSYS2_ARCH }}-python-lxml
+            mingw-w64-${{ matrix.MSYS2_ARCH }}-python-setuptools
+            mingw-w64-${{ matrix.MSYS2_ARCH }}-python-pip
+            mingw-w64-${{ matrix.MSYS2_ARCH }}-${{ matrix.TOOLCHAIN }}
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip --disable-pip-version-check install gcovr jsonschema pefile pytest pytest-xdist coverage codecov
+
+      - name: Run Tests
+        run: |
+          export BOOST_ROOT=
+          export PATHEXT="$PATHEXT;.py"
+
+          if [[ '${{ matrix.COMPILER }}' == 'clang' ]]; then
+            export CC=clang
+            export CXX=clang++
+            export OBJC=clang
+            export OBJCXX=clang++
+          fi
+
+          if [[ "${{ matrix.MSYS2_CURSES }}" != "" ]]; then
+            pacman --noconfirm --needed -S mingw-w64-${{ matrix.MSYS2_ARCH }}-${{ matrix.MSYS2_CURSES }}
+          fi
+
+          MSYSTEM= python3 ./tools/run_with_cov.py run_tests.py --backend=ninja
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.NAME }}
+          path: meson-test-run.*
+
+      - name: Upload coverage report
+        run: ./ci/upload_cov.sh "${{ matrix.NAME }}"

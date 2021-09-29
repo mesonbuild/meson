@@ -3,7 +3,7 @@
 #include<iostream>
 #include<string>
 
-int main(int argc, char *argv[]) {
+int main(void) {
   SDL_Surface *screenSurface;
   SDL_Event e;
   int keepGoing = 1;

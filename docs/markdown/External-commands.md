@@ -16,13 +16,31 @@ output = r.stdout().strip()
 errortxt = r.stderr().strip()
 ```
 
+Since 0.52.0, you can pass the command environment as a dictionary:
+
+```meson
+run_command('command', 'arg1', 'arg2', env: {'FOO': 'bar'})
+```
+
+Since 0.50.0, you can also pass the command
+[`environment`](Reference-manual.md#environment-object) object:
+
+```meson
+env = environment()
+env.set('FOO', 'bar')
+run_command('command', 'arg1', 'arg2', env: env)
+```
+
 The `run_command` function returns an object that can be queried for
 return value and text written to stdout and stderr. The `strip` method
-call is used to strip trailing and leading whitespace from
-strings. Usually output from command line programs ends in a newline,
-which is unwanted in string variables. The first argument can be
-either a string or an executable you have detected earlier with
-`find_program`.
+call is used to strip trailing and leading whitespace from strings.
+Usually output from command line programs ends in a newline, which is
+unwanted in string variables. The first argument can be either a
+string or an executable you have detected earlier with `find_program`.
+
+Meson will autodetect scripts with a shebang line and run them with
+the executable/interpreter specified in it both on Windows and on
+Unixes.
 
 Note that you can not pass your command line as a single string. That
 is, calling `run_command('do_something foo bar')` will not work. You

@@ -1,4 +1,4 @@
-# Copyright 2012-2016 The Meson development team
+# Copyright 2012-2021 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,74 +12,188 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Work around some pathlib bugs...
+from . import _pathlib
 import sys
+sys.modules['pathlib'] = _pathlib
+
 import os.path
 import importlib
 import traceback
 import argparse
+import codecs
+import shutil
 
 from . import mesonlib
 from . import mlog
-from . import mconf, minit, minstall, mintro, msetup, mtest, rewriter, msubprojects, munstable_coredata
+from . import mconf, mdist, minit, minstall, mintro, msetup, mtest, rewriter, msubprojects, munstable_coredata, mcompile, mdevenv
 from .mesonlib import MesonException
 from .environment import detect_msys2_arch
 from .wrap import wraptool
 
+need_setup_vsenv = False
 
+bat_template = '''@ECHO OFF
+
+call "{}"
+
+ECHO {}
+SET
+'''
+
+# If on Windows and VS is installed but not set up in the environment,
+# set it to be runnable. In this way Meson can be directly invoked
+# from any shell, VS Code etc.
+def setup_vsenv() -> None:
+    import subprocess, json, pathlib
+    if not mesonlib.is_windows():
+        return
+    bat_placeholder = 'nananananananananananananananana'
+    # If an existing build tool chain exists in PATH -> do nothing.
+    if shutil.which('cc'):
+        return
+    if shutil.which('gcc'):
+        return
+    if shutil.which('clang'):
+        return
+    if shutil.which('clang-cl'):
+        return
+    if os.environ.get('OSTYPE', bat_placeholder) == 'cygwin':
+        return
+    if 'Visual Studio' in os.environ['PATH']:
+        return
+    # VSINSTALL is set when running setvars from a Visual Studio installation
+    # Tested with Visual Studio 2012 and 2017
+    if 'VSINSTALLDIR' in os.environ:
+        return
+    # Check explicitly for cl when on Windows
+    if shutil.which('cl.exe'):
+        return
+
+    root = os.environ.get("ProgramFiles(x86)") or os.environ.get("ProgramFiles")
+    bat_locator_bin = pathlib.Path(root, 'Microsoft Visual Studio/Installer/vswhere.exe')
+    if not bat_locator_bin.exists():
+        return
+    bat_json = subprocess.check_output(
+        [
+            str(bat_locator_bin),
+            '-latest',
+            '-prerelease',
+            '-requiresAny',
+            '-requires', 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64',
+            '-products', '*',
+            '-utf8',
+            '-format',
+            'json'
+        ]
+    )
+    bat_info = json.loads(bat_json)
+    if not bat_info:
+        # VS installer instelled but not VS itself maybe?
+        return
+    print('Activating VS', bat_info[0]['catalog']['productDisplayVersion'])
+    bat_root = pathlib.Path(bat_info[0]['installationPath'])
+    bat_path = bat_root / 'VC/Auxiliary/Build/vcvars64.bat'
+    if not bat_path.exists():
+        return
+
+    bat_file = pathlib.Path.home() / 'vsdetect.bat'
+
+    bat_separator = '---SPLIT---'
+    bat_contents = bat_template.format(bat_path, bat_separator)
+    bat_file.write_text(bat_contents, encoding='utf-8')
+    try:
+        bat_output = subprocess.check_output(str(bat_file), universal_newlines=True)
+    finally:
+        bat_file.unlink()
+    bat_lines = bat_output.split('\n')
+    bat_separator_seen = False
+    for bat_line in bat_lines:
+        if bat_line == bat_separator:
+            bat_separator_seen = True
+            continue
+        if not bat_separator_seen:
+            continue
+        if not bat_line:
+            continue
+        k, v = bat_line.split('=', 1)
+        os.environ[k] = v
+    global need_setup_vsenv
+    need_setup_vsenv = True
+
+
+# Note: when adding arguments, please also add them to the completion
+# scripts in $MESONSRC/data/shell-completions/
 class CommandLineParser:
     def __init__(self):
+        self.term_width = shutil.get_terminal_size().columns
+        self.formatter = lambda prog: argparse.HelpFormatter(prog, max_help_position=int(self.term_width / 2), width=self.term_width)
+
         self.commands = {}
         self.hidden_commands = []
-        self.parser = argparse.ArgumentParser(prog='meson')
-        self.subparsers = self.parser.add_subparsers(title='Commands',
+        self.parser = argparse.ArgumentParser(prog='meson', formatter_class=self.formatter)
+        self.subparsers = self.parser.add_subparsers(title='Commands', dest='command',
                                                      description='If no command is specified it defaults to setup command.')
         self.add_command('setup', msetup.add_arguments, msetup.run,
-                         help='Configure the project')
+                         help_msg='Configure the project')
         self.add_command('configure', mconf.add_arguments, mconf.run,
-                         help='Change project options',)
+                         help_msg='Change project options',)
+        self.add_command('dist', mdist.add_arguments, mdist.run,
+                         help_msg='Generate release archive',)
         self.add_command('install', minstall.add_arguments, minstall.run,
-                         help='Install the project')
+                         help_msg='Install the project')
         self.add_command('introspect', mintro.add_arguments, mintro.run,
-                         help='Introspect project')
+                         help_msg='Introspect project')
         self.add_command('init', minit.add_arguments, minit.run,
-                         help='Create a new project')
+                         help_msg='Create a new project')
         self.add_command('test', mtest.add_arguments, mtest.run,
-                         help='Run tests')
+                         help_msg='Run tests')
         self.add_command('wrap', wraptool.add_arguments, wraptool.run,
-                         help='Wrap tools')
+                         help_msg='Wrap tools')
         self.add_command('subprojects', msubprojects.add_arguments, msubprojects.run,
-                         help='Manage subprojects')
+                         help_msg='Manage subprojects')
         self.add_command('help', self.add_help_arguments, self.run_help_command,
-                         help='Print help of a subcommand')
+                         help_msg='Print help of a subcommand')
+        self.add_command('rewrite', lambda parser: rewriter.add_arguments(parser, self.formatter), rewriter.run,
+                         help_msg='Modify the project definition')
+        self.add_command('compile', mcompile.add_arguments, mcompile.run,
+                         help_msg='Build the project')
+        self.add_command('devenv', mdevenv.add_arguments, mdevenv.run,
+                         help_msg='Run commands in developer environment')
 
         # Hidden commands
-        self.add_command('rewrite', rewriter.add_arguments, rewriter.run,
-                         help=argparse.SUPPRESS)
         self.add_command('runpython', self.add_runpython_arguments, self.run_runpython_command,
-                         help=argparse.SUPPRESS)
+                         help_msg=argparse.SUPPRESS)
         self.add_command('unstable-coredata', munstable_coredata.add_arguments, munstable_coredata.run,
-                         help=argparse.SUPPRESS)
+                         help_msg=argparse.SUPPRESS)
 
-    def add_command(self, name, add_arguments_func, run_func, help):
+    def add_command(self, name, add_arguments_func, run_func, help_msg, aliases=None):
+        aliases = aliases or []
         # FIXME: Cannot have hidden subparser:
         # https://bugs.python.org/issue22848
-        if help == argparse.SUPPRESS:
-            p = argparse.ArgumentParser(prog='meson ' + name)
+        if help_msg == argparse.SUPPRESS:
+            p = argparse.ArgumentParser(prog='meson ' + name, formatter_class=self.formatter)
             self.hidden_commands.append(name)
         else:
-            p = self.subparsers.add_parser(name, help=help)
+            p = self.subparsers.add_parser(name, help=help_msg, aliases=aliases, formatter_class=self.formatter)
         add_arguments_func(p)
         p.set_defaults(run_func=run_func)
-        self.commands[name] = p
+        for i in [name] + aliases:
+            self.commands[i] = p
 
     def add_runpython_arguments(self, parser):
+        parser.add_argument('-c', action='store_true', dest='eval_arg', default=False)
         parser.add_argument('script_file')
         parser.add_argument('script_args', nargs=argparse.REMAINDER)
 
     def run_runpython_command(self, options):
         import runpy
-        sys.argv[1:] = options.script_args
-        runpy.run_path(options.script_file, run_name='__main__')
+        if options.eval_arg:
+            exec(options.script_file)
+        else:
+            sys.argv[1:] = options.script_args
+            sys.path.insert(0, os.path.dirname(options.script_file))
+            runpy.run_path(options.script_file, run_name='__main__')
         return 0
 
     def add_help_arguments(self, parser):
@@ -96,12 +210,13 @@ class CommandLineParser:
         # If first arg is not a known command, assume user wants to run the setup
         # command.
         known_commands = list(self.commands.keys()) + ['-h', '--help']
-        if len(args) == 0 or args[0] not in known_commands:
+        if not args or args[0] not in known_commands:
             args = ['setup'] + args
 
         # Hidden commands have their own parser instead of using the global one
         if args[0] in self.hidden_commands:
-            parser = self.commands[args[0]]
+            command = args[0]
+            parser = self.commands[command]
             args = args[1:]
         else:
             parser = self.parser
@@ -119,7 +234,7 @@ class CommandLineParser:
             if os.environ.get('MESON_FORCE_BACKTRACE'):
                 raise
             return 1
-        except Exception as e:
+        except Exception:
             if os.environ.get('MESON_FORCE_BACKTRACE'):
                 raise
             traceback.print_exc()
@@ -146,16 +261,32 @@ def run_script_command(script_name, script_args):
     try:
         return module.run(script_args)
     except MesonException as e:
-        mlog.error('Error in {} helper script:'.format(script_name))
+        mlog.error(f'Error in {script_name} helper script:')
         mlog.exception(e)
         return 1
 
+def ensure_stdout_accepts_unicode():
+    if sys.stdout.encoding and not sys.stdout.encoding.upper().startswith('UTF-'):
+        if sys.version_info >= (3, 7):
+            sys.stdout.reconfigure(errors='surrogateescape')
+        else:
+            sys.stdout = codecs.getwriter('utf-8')(sys.stdout.detach(),
+                                                   errors='surrogateescape')
+            sys.stdout.encoding = 'UTF-8'
+            if not hasattr(sys.stdout, 'buffer'):
+                sys.stdout.buffer = sys.stdout.raw if hasattr(sys.stdout, 'raw') else sys.stdout
+
 def run(original_args, mainfile):
-    if sys.version_info < (3, 5):
-        print('Meson works correctly only with python 3.5+.')
-        print('You have python %s.' % sys.version)
+    if sys.version_info < (3, 6):
+        print('Meson works correctly only with python 3.6+.')
+        print(f'You have python {sys.version}.')
         print('Please update your environment')
         return 1
+
+    # Meson gets confused if stdout can't output Unicode, if the
+    # locale isn't Unicode, just force stdout to accept it. This tries
+    # to emulate enough of PEP 540 to work elsewhere.
+    ensure_stdout_accepts_unicode()
 
     # https://github.com/mesonbuild/meson/issues/3653
     if sys.platform.lower() == 'msys':
@@ -185,9 +316,10 @@ def run(original_args, mainfile):
     return CommandLineParser().run(args)
 
 def main():
+    setup_vsenv()
     # Always resolve the command path so Ninja can find it for regen, tests, etc.
     if 'meson.exe' in sys.executable:
-        assert(os.path.isabs(sys.executable))
+        assert os.path.isabs(sys.executable)
         launcher = sys.executable
     else:
         launcher = os.path.realpath(sys.argv[0])

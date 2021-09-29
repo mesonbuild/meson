@@ -3,10 +3,13 @@ project('qt4 and 5 build test', 'cpp',
   default_options : ['cpp_std=c++11'])
 
 qt5_modules = ['Widgets']
-foreach qt : ['qt4', 'qt5']
+qt6_modules = ['Widgets']
+foreach qt : ['qt4', 'qt5', 'qt6']
   qt_modules = ['Core', 'Gui']
   if qt == 'qt5'
     qt_modules += qt5_modules
+  elif qt == 'qt6'
+    qt_modules += qt6_modules
   endif
 
   # Test that invalid modules are indeed not found
@@ -21,30 +24,42 @@ foreach qt : ['qt4', 'qt5']
     error('Invalid qt dep incorrectly found!')
   endif
 
-  # This test should be skipped if qt5 isn't found
-  if qt == 'qt5'
+  # This test should be skipped if the required version of Qt isn't found
+  #
+  # (In the CI environment, the specified version of Qt is definitely present.
+  # An unexpected skip here is treated as a failure, so we are testing that the
+  # detection mechanism is able to find Qt.)
+  needed_qt = get_option('required').to_lower()
+  required = (qt == needed_qt)
+  if required
     dep = dependency(qt, modules : ['Core'], required : false, method : get_option('method'))
     if not dep.found()
-      error('MESON_SKIP_TEST qt5 not found.')
+      error('MESON_SKIP_TEST @0@ not found.'.format(needed_qt))
     endif
   endif
 
   # Ensure that the "no-Core-module-specified" code branch is hit
-  nocoredep = dependency(qt, modules : ['Gui'], required : qt == 'qt5', method : get_option('method'))
+  nocoredep = dependency(qt, modules : ['Gui'], required : required, method : get_option('method'))
 
-  # If qt4 modules are found, test that. qt5 is required.
-  qtdep = dependency(qt, modules : qt_modules, main : true, private_headers: true, required : qt == 'qt5', method : get_option('method'))
+  # If 'qt' modules are found, test that.
+  qtdep = dependency(qt, modules : qt_modules, main : true, private_headers: true, required : required, method : get_option('method'))
   if qtdep.found()
     qtmodule = import(qt)
+    assert(qtmodule.has_tools())
 
     # The following has two resource files because having two in one target
     # requires you to do it properly or you get linker symbol clashes.
 
     prep = qtmodule.preprocess(
-      moc_headers : ['mainWindow.h'],           # These need to be fed through the moc tool before use. 
-      ui_files : 'mainWindow.ui',               # XML files that need to be compiled with the uic tol.
+      moc_headers : ['mainWindow.h'],           # These need to be fed through the moc tool before use.
       method : get_option('method')
     )
+    # XML files that need to be compiled with the uic tol.
+    prep += qtmodule.compile_ui(sources : 'mainWindow.ui', method: get_option('method'))
+
+    qtmodule.preprocess(
+      ui_files : 'mainWindow.ui',
+      method: get_option('method'))
 
     # Resource file(s) for rcc compiler
     extra_cpp_args = []
@@ -56,16 +71,26 @@ foreach qt : ['qt4', 'qt5']
     endif
 
     # Test that setting a unique name with a positional argument works
-    qtmodule.preprocess(qt + 'teststuff', qresources : files(['stuff.qrc', 'stuff2.qrc']), method : get_option('method'))
+    qtmodule.compile_resources(
+      name : qt + 'teststuff',
+      sources : files(['stuff.qrc', 'stuff2.qrc']),
+      method : get_option('method')
+    )
 
     # Test that passing extra arguments to rcc works
     # qt4-rcc and qt5-rcc take different arguments, for example qt4: ['-compress', '3']; qt5: '--compress=3'
     qtmodule.preprocess(qt + 'testrccarg', qresources : files(['stuff.qrc', 'stuff2.qrc']), rcc_extra_arguments : '--compress=3', method : get_option('method'))
 
+    translations_cpp = qtmodule.compile_translations(qresource: qt+'_lang.qrc')
+    # unity builds suck and definitely cannot handle two qrc embeds in one compilation unit
+    unityproof_translations = static_library('unityproof_translations', translations_cpp)
+
+    extra_cpp_args += '-DQT="@0@"'.format(qt)
     qexe = executable(qt + 'app',
       sources : ['main.cpp', 'mainWindow.cpp', # Sources that don't need preprocessing.
       prep, prep_rcc],
       dependencies : qtdep,
+      link_with: unityproof_translations,
       cpp_args: extra_cpp_args,
       gui_app : true)
 
@@ -77,6 +102,7 @@ foreach qt : ['qt4', 'qt5']
     qtcore = dependency(qt, modules : 'Core', method : get_option('method'))
 
     qtcoreapp = executable(qt + 'core', 'q5core.cpp',
+      cpp_args: '-DQT="@0@"'.format(qt),
       dependencies : qtcore)
 
     test(qt + 'test', qtcoreapp)
@@ -84,10 +110,16 @@ foreach qt : ['qt4', 'qt5']
     # The build system needs to include the cpp files from
     # headers but the user must manually include moc
     # files from sources.
-    manpreprocessed = qtmodule.preprocess(
-      moc_extra_arguments : ['-DMOC_EXTRA_FLAG'], # This is just a random macro to test `moc_extra_arguments`
+    qtmodule.preprocess(
+      moc_extra_arguments : ['-DMOC_EXTRA_FLAG'], # This is just a random macro to test `extra_arguments`
       moc_sources : 'manualinclude.cpp',
       moc_headers : 'manualinclude.h',
+      method : get_option('method'))
+
+    manpreprocessed = qtmodule.compile_moc(
+      extra_args : ['-DMOC_EXTRA_FLAG'], # This is just a random macro to test `extra_arguments`
+      sources : 'manualinclude.cpp',
+      headers : 'manualinclude.h',
       method : get_option('method'))
 
     qtmaninclude = executable(qt + 'maninclude',

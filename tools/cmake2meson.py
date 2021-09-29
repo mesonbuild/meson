@@ -14,23 +14,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, os
+import typing as T
+from pathlib import Path
+import sys
 import re
+import argparse
+
 
 class Token:
-    def __init__(self, tid, value):
+    def __init__(self, tid: str, value: str):
         self.tid = tid
         self.value = value
         self.lineno = 0
         self.colno = 0
 
 class Statement:
-    def __init__(self, name, args):
+    def __init__(self, name: str, args: list):
         self.name = name.lower()
         self.args = args
 
 class Lexer:
-    def __init__(self):
+    def __init__(self) -> None:
         self.token_specification = [
             # Need to be sorted longest to shortest.
             ('ignore', re.compile(r'[ \t]')),
@@ -43,7 +47,7 @@ class Lexer:
             ('rparen', re.compile(r'\)')),
         ]
 
-    def lex(self, code):
+    def lex(self, code: str) -> T.Iterator[Token]:
         lineno = 1
         line_start = 0
         loc = 0
@@ -77,34 +81,34 @@ class Lexer:
                     elif tid == 'varexp':
                         yield(Token('varexp', match_text[2:-1]))
                     else:
-                        raise RuntimeError('Wharrgarbl')
+                        raise ValueError(f'lex: unknown element {tid}')
                     break
             if not matched:
-                raise RuntimeError('Lexer got confused line %d column %d' % (lineno, col))
+                raise ValueError('Lexer got confused line %d column %d' % (lineno, col))
 
 class Parser:
-    def __init__(self, code):
+    def __init__(self, code: str) -> None:
         self.stream = Lexer().lex(code)
         self.getsym()
 
-    def getsym(self):
+    def getsym(self) -> None:
         try:
             self.current = next(self.stream)
         except StopIteration:
             self.current = Token('eof', '')
 
-    def accept(self, s):
+    def accept(self, s: str) -> bool:
         if self.current.tid == s:
             self.getsym()
             return True
         return False
 
-    def expect(self, s):
+    def expect(self, s: str) -> bool:
         if self.accept(s):
             return True
-        raise RuntimeError('Expecting %s got %s.' % (s, self.current.tid), self.current.lineno, self.current.colno)
+        raise ValueError(f'Expecting {s} got {self.current.tid}.', self.current.lineno, self.current.colno)
 
-    def statement(self):
+    def statement(self) -> Statement:
         cur = self.current
         if self.accept('comment'):
             return Statement('_', [cur.value])
@@ -114,8 +118,8 @@ class Parser:
         self.expect('rparen')
         return Statement(cur.value, args)
 
-    def arguments(self):
-        args = []
+    def arguments(self) -> T.List[T.Union[Token, T.Any]]:
+        args = []  # type: T.List[T.Union[Token, T.Any]]
         if self.accept('lparen'):
             args.append(self.arguments())
             self.expect('rparen')
@@ -131,22 +135,33 @@ class Parser:
             args += rest
         return args
 
-    def parse(self):
+    def parse(self) -> T.Iterator[Statement]:
         while not self.accept('eof'):
             yield(self.statement())
+
+def token_or_group(arg: T.Union[Token, T.List[Token]]) -> str:
+    if isinstance(arg, Token):
+        return ' ' + arg.value
+    elif isinstance(arg, list):
+        line = ' ('
+        for a in arg:
+            line += ' ' + token_or_group(a)
+        line += ' )'
+        return line
+    raise RuntimeError('Conversion error in token_or_group')
 
 class Converter:
     ignored_funcs = {'cmake_minimum_required': True,
                      'enable_testing': True,
                      'include': True}
 
-    def __init__(self, cmake_root):
-        self.cmake_root = cmake_root
+    def __init__(self, cmake_root: str):
+        self.cmake_root = Path(cmake_root).expanduser()
         self.indent_unit = '  '
         self.indent_level = 0
-        self.options = []
+        self.options = []  # type: T.List[tuple]
 
-    def convert_args(self, args, as_array=True):
+    def convert_args(self, args: T.List[Token], as_array: bool = True) -> str:
         res = []
         if as_array:
             start = '['
@@ -162,15 +177,14 @@ class Converter:
             elif i.tid == 'string':
                 res.append("'%s'" % i.value)
             else:
-                print(i)
-                raise RuntimeError('Unknown arg type.')
+                raise ValueError(f'Unknown arg type {i.tid}')
         if len(res) > 1:
             return start + ', '.join(res) + end
         if len(res) == 1:
             return res[0]
         return ''
 
-    def write_entry(self, outfile, t):
+    def write_entry(self, outfile: T.TextIO, t: Statement) -> None:
         if t.name in Converter.ignored_funcs:
             return
         preincrement = 0
@@ -183,15 +197,15 @@ class Converter:
             varname = t.args[0].value.lower()
             mods = ["dependency('%s')" % i.value for i in t.args[1:]]
             if len(mods) == 1:
-                line = '%s = %s' % (varname, mods[0])
+                line = '{} = {}'.format(varname, mods[0])
             else:
-                line = '%s = [%s]' % (varname, ', '.join(["'%s'" % i for i in mods]))
+                line = '{} = [{}]'.format(varname, ', '.join(["'%s'" % i for i in mods]))
         elif t.name == 'find_package':
-            line = "%s_dep = dependency('%s')" % (t.args[0].value, t.args[0].value)
+            line = "{}_dep = dependency('{}')".format(t.args[0].value, t.args[0].value)
         elif t.name == 'find_library':
-            line = "%s = find_library('%s')" % (t.args[0].value.lower(), t.args[0].value)
+            line = "{} = find_library('{}')".format(t.args[0].value.lower(), t.args[0].value)
         elif t.name == 'add_executable':
-            line = '%s_exe = executable(%s)' % (t.args[0].value, self.convert_args(t.args, False))
+            line = '{}_exe = executable({})'.format(t.args[0].value, self.convert_args(t.args, False))
         elif t.name == 'add_library':
             if t.args[1].value == 'SHARED':
                 libcmd = 'shared_library'
@@ -202,7 +216,7 @@ class Converter:
             else:
                 libcmd = 'library'
                 args = t.args
-            line = '%s_lib = %s(%s)' % (t.args[0].value, libcmd, self.convert_args(args, False))
+            line = '{}_lib = {}({})'.format(t.args[0].value, libcmd, self.convert_args(args, False))
         elif t.name == 'add_test':
             line = 'test(%s)' % self.convert_args(t.args, False)
         elif t.name == 'option':
@@ -226,14 +240,24 @@ class Converter:
             line = 'project(' + ', '.join(args) + ", default_options : ['default_library=static'])"
         elif t.name == 'set':
             varname = t.args[0].value.lower()
-            line = '%s = %s\n' % (varname, self.convert_args(t.args[1:]))
+            line = '{} = {}\n'.format(varname, self.convert_args(t.args[1:]))
         elif t.name == 'if':
             postincrement = 1
-            line = 'if %s' % self.convert_args(t.args, False)
+            try:
+                line = 'if %s' % self.convert_args(t.args, False)
+            except AttributeError:  # complex if statements
+                line = t.name
+                for arg in t.args:
+                    line += token_or_group(arg)
         elif t.name == 'elseif':
             preincrement = -1
             postincrement = 1
-            line = 'elif %s' % self.convert_args(t.args, False)
+            try:
+                line = 'elif %s' % self.convert_args(t.args, False)
+            except AttributeError:  # complex if statements
+                line = t.name
+                for arg in t.args:
+                    line += token_or_group(arg)
         elif t.name == 'else':
             preincrement = -1
             postincrement = 1
@@ -242,7 +266,7 @@ class Converter:
             preincrement = -1
             line = 'endif'
         else:
-            line = '''# %s(%s)''' % (t.name, self.convert_args(t.args))
+            line = '''# {}({})'''.format(t.name, self.convert_args(t.args))
         self.indent_level += preincrement
         indent = self.indent_level * self.indent_unit
         outfile.write(indent)
@@ -251,32 +275,32 @@ class Converter:
             outfile.write('\n')
         self.indent_level += postincrement
 
-    def convert(self, subdir=''):
-        if subdir == '':
+    def convert(self, subdir: Path = None) -> None:
+        if not subdir:
             subdir = self.cmake_root
-        cfile = os.path.join(subdir, 'CMakeLists.txt')
+        cfile = Path(subdir).expanduser() / 'CMakeLists.txt'
         try:
-            with open(cfile) as f:
+            with cfile.open(encoding='utf-8') as f:
                 cmakecode = f.read()
         except FileNotFoundError:
-            print('\nWarning: No CMakeLists.txt in', subdir, '\n')
+            print('\nWarning: No CMakeLists.txt in', subdir, '\n', file=sys.stderr)
             return
         p = Parser(cmakecode)
-        with open(os.path.join(subdir, 'meson.build'), 'w') as outfile:
+        with (subdir / 'meson.build').open('w', encoding='utf-8') as outfile:
             for t in p.parse():
                 if t.name == 'add_subdirectory':
                     # print('\nRecursing to subdir',
-                    #       os.path.join(self.cmake_root, t.args[0].value),
+                    #       self.cmake_root / t.args[0].value,
                     #       '\n')
-                    self.convert(os.path.join(subdir, t.args[0].value))
+                    self.convert(subdir / t.args[0].value)
                     # print('\nReturning to', self.cmake_root, '\n')
                 self.write_entry(outfile, t)
         if subdir == self.cmake_root and len(self.options) > 0:
             self.write_options()
 
-    def write_options(self):
-        filename = os.path.join(self.cmake_root, 'meson_options.txt')
-        with open(filename, 'w') as optfile:
+    def write_options(self) -> None:
+        filename = self.cmake_root / 'meson_options.txt'
+        with filename.open('w', encoding='utf-8') as optfile:
             for o in self.options:
                 (optname, description, default) = o
                 if default is None:
@@ -292,15 +316,15 @@ class Converter:
                     else:
                         typestr = ' type : \'string\','
                     defaultstr = ' value : %s,' % default
-                line = "option(%r,%s%s description : '%s')\n" % (optname,
+                line = "option({!r},{}{} description : '{}')\n".format(optname,
                                                                  typestr,
                                                                  defaultstr,
                                                                  description)
                 optfile.write(line)
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print(sys.argv[0], '<CMake project root>')
-        sys.exit(1)
-    c = Converter(sys.argv[1])
-    c.convert()
+    p = argparse.ArgumentParser(description='Convert CMakeLists.txt to meson.build and meson_options.txt')
+    p.add_argument('cmake_root', help='CMake project root (where top-level CMakeLists.txt is)')
+    P = p.parse_args()
+
+    Converter(P.cmake_root).convert()

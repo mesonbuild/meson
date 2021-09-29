@@ -7,7 +7,7 @@ if dc.get_id() == 'gcc'
   endif
 endif
 
-ldyn = shared_library('stuff', 'libstuff.d', install : true)
+subdir('sub')
 ed = executable('app_d', 'app.d', link_with : ldyn, install : true)
 test('linktest_dyn', ed)
 
@@ -19,3 +19,8 @@ pkgc.generate(name: 'test',
           description: 'A test of D attributes to pkgconfig.generate.',
           d_module_versions: ['Use_Static']
 )
+
+ldd = find_program('ldd', required : false)
+if ldd.found()
+  test('ldd-test.py', ed)
+endif

@@ -4,4 +4,3 @@
 foolib = shared_library('foo', 'foo.c',
   install_dir : 'foo',
   install : true)
-

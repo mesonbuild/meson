@@ -17,14 +17,22 @@ import io
 import sys
 import time
 import platform
+import typing as T
 from contextlib import contextmanager
+from pathlib import Path
+
+if T.TYPE_CHECKING:
+    # T.Union is not handled by flake8 to detect quoted annotation use (StringProtocol)
+    # see https://github.com/PyCQA/pyflakes/pull/632
+    from ._typing import StringProtocol, SizedStringProtocol # noqa: F401
 
 """This is (mostly) a standalone module used to write logging
 information about Meson runs. Some output goes to screen,
 some to logging dir and some goes to both."""
 
-def _windows_ansi():
-    from ctypes import windll, byref
+def _windows_ansi() -> bool:
+    # windll only exists on windows, so mypy will get mad
+    from ctypes import windll, byref  # type: ignore
     from ctypes.wintypes import DWORD
 
     kernel = windll.kernel32
@@ -35,39 +43,73 @@ def _windows_ansi():
     # ENABLE_VIRTUAL_TERMINAL_PROCESSING == 0x4
     # If the call to enable VT processing fails (returns 0), we fallback to
     # original behavior
-    return kernel.SetConsoleMode(stdout, mode.value | 0x4) or os.environ.get('ANSICON')
+    return bool(kernel.SetConsoleMode(stdout, mode.value | 0x4) or os.environ.get('ANSICON'))
 
-if platform.system().lower() == 'windows':
-    colorize_console = os.isatty(sys.stdout.fileno()) and _windows_ansi()
-else:
-    colorize_console = os.isatty(sys.stdout.fileno()) and os.environ.get('TERM') != 'dumb'
-log_dir = None
-log_file = None
-log_fname = 'meson-log.txt'
-log_depth = 0
-log_timestamp_start = None
-log_fatal_warnings = False
-log_disable_stdout = False
+def colorize_console() -> bool:
+    _colorize_console = getattr(sys.stdout, 'colorize_console', None)  # type: bool
+    if _colorize_console is not None:
+        return _colorize_console
 
-def disable():
+    try:
+        if platform.system().lower() == 'windows':
+            _colorize_console = os.isatty(sys.stdout.fileno()) and _windows_ansi()
+        else:
+            _colorize_console = os.isatty(sys.stdout.fileno()) and os.environ.get('TERM', 'dumb') != 'dumb'
+    except Exception:
+        _colorize_console = False
+
+    sys.stdout.colorize_console = _colorize_console  # type: ignore[attr-defined]
+    return _colorize_console
+
+def setup_console() -> None:
+    # on Windows, a subprocess might call SetConsoleMode() on the console
+    # connected to stdout and turn off ANSI escape processing. Call this after
+    # running a subprocess to ensure we turn it on again.
+    if platform.system().lower() == 'windows':
+        try:
+            delattr(sys.stdout, 'colorize_console')
+        except AttributeError:
+            pass
+
+log_dir = None               # type: T.Optional[str]
+log_file = None              # type: T.Optional[T.TextIO]
+log_fname = 'meson-log.txt'  # type: str
+log_depth = []               # type: T.List[str]
+log_timestamp_start = None   # type: T.Optional[float]
+log_fatal_warnings = False   # type: bool
+log_disable_stdout = False   # type: bool
+log_errors_only = False      # type: bool
+_in_ci = 'CI' in os.environ  # type: bool
+_logged_once = set()         # type: T.Set[T.Tuple[str, ...]]
+log_warnings_counter = 0     # type: int
+
+def disable() -> None:
     global log_disable_stdout
     log_disable_stdout = True
 
-def enable():
+def enable() -> None:
     global log_disable_stdout
     log_disable_stdout = False
 
-def initialize(logdir, fatal_warnings=False):
+def set_quiet() -> None:
+    global log_errors_only
+    log_errors_only = True
+
+def set_verbose() -> None:
+    global log_errors_only
+    log_errors_only = False
+
+def initialize(logdir: str, fatal_warnings: bool = False) -> None:
     global log_dir, log_file, log_fatal_warnings
     log_dir = logdir
-    log_file = open(os.path.join(logdir, log_fname), 'w', encoding='utf8')
+    log_file = open(os.path.join(logdir, log_fname), 'w', encoding='utf-8')
     log_fatal_warnings = fatal_warnings
 
-def set_timestamp_start(start):
+def set_timestamp_start(start: float) -> None:
     global log_timestamp_start
     log_timestamp_start = start
 
-def shutdown():
+def shutdown() -> T.Optional[str]:
     global log_file
     if log_file is not None:
         path = log_file.name
@@ -80,39 +122,82 @@ def shutdown():
 class AnsiDecorator:
     plain_code = "\033[0m"
 
-    def __init__(self, text, code, quoted=False):
+    def __init__(self, text: str, code: str, quoted: bool = False):
         self.text = text
         self.code = code
         self.quoted = quoted
 
-    def get_text(self, with_codes):
+    def get_text(self, with_codes: bool) -> str:
         text = self.text
-        if with_codes:
+        if with_codes and self.code:
             text = self.code + self.text + AnsiDecorator.plain_code
         if self.quoted:
-            text = '"{}"'.format(text)
+            text = f'"{text}"'
         return text
 
-def bold(text, quoted=False):
+    def __len__(self) -> int:
+        return len(self.text)
+
+    def __str__(self) -> str:
+        return self.get_text(colorize_console())
+
+TV_Loggable = T.Union[str, AnsiDecorator, 'StringProtocol']
+TV_LoggableList = T.List[TV_Loggable]
+
+class AnsiText:
+    def __init__(self, *args: 'SizedStringProtocol'):
+        self.args = args
+
+    def __len__(self) -> int:
+        return sum(len(x) for x in self.args)
+
+    def __str__(self) -> str:
+        return ''.join(str(x) for x in self.args)
+
+
+def bold(text: str, quoted: bool = False) -> AnsiDecorator:
     return AnsiDecorator(text, "\033[1m", quoted=quoted)
 
-def red(text):
+def italic(text: str, quoted: bool = False) -> AnsiDecorator:
+    return AnsiDecorator(text, "\033[3m", quoted=quoted)
+
+def plain(text: str) -> AnsiDecorator:
+    return AnsiDecorator(text, "")
+
+def red(text: str) -> AnsiDecorator:
     return AnsiDecorator(text, "\033[1;31m")
 
-def green(text):
+def green(text: str) -> AnsiDecorator:
     return AnsiDecorator(text, "\033[1;32m")
 
-def yellow(text):
+def yellow(text: str) -> AnsiDecorator:
     return AnsiDecorator(text, "\033[1;33m")
 
-def blue(text):
+def blue(text: str) -> AnsiDecorator:
     return AnsiDecorator(text, "\033[1;34m")
 
-def cyan(text):
+def cyan(text: str) -> AnsiDecorator:
     return AnsiDecorator(text, "\033[1;36m")
 
-def process_markup(args, keep):
-    arr = []
+def normal_red(text: str) -> AnsiDecorator:
+    return AnsiDecorator(text, "\033[31m")
+
+def normal_green(text: str) -> AnsiDecorator:
+    return AnsiDecorator(text, "\033[32m")
+
+def normal_yellow(text: str) -> AnsiDecorator:
+    return AnsiDecorator(text, "\033[33m")
+
+def normal_blue(text: str) -> AnsiDecorator:
+    return AnsiDecorator(text, "\033[34m")
+
+def normal_cyan(text: str) -> AnsiDecorator:
+    return AnsiDecorator(text, "\033[36m")
+
+# This really should be AnsiDecorator or anything that implements
+# __str__(), but that requires protocols from typing_extensions
+def process_markup(args: T.Sequence[TV_Loggable], keep: bool) -> T.List[str]:
+    arr = []  # type: T.List[str]
     if log_timestamp_start is not None:
         arr = ['[{:.3f}]'.format(time.monotonic() - log_timestamp_start)]
     for arg in args:
@@ -126,8 +211,7 @@ def process_markup(args, keep):
             arr.append(str(arg))
     return arr
 
-def force_print(*args, **kwargs):
-    global log_disable_stdout
+def force_print(*args: str, nested: str, **kwargs: T.Any) -> None:
     if log_disable_stdout:
         return
     iostr = io.StringIO()
@@ -135,9 +219,13 @@ def force_print(*args, **kwargs):
     print(*args, **kwargs)
 
     raw = iostr.getvalue()
-    if log_depth > 0:
-        prepend = '|' * log_depth
-        raw = prepend + raw.replace('\n', '\n' + prepend, raw.count('\n') - 1)
+    if log_depth:
+        prepend = log_depth[-1] + '| ' if nested else ''
+        lines = []
+        for l in raw.split('\n'):
+            l = l.strip()
+            lines.append(prepend + l if l else '')
+        raw = '\n'.join(lines)
 
     # _Something_ is going to get printed.
     try:
@@ -146,80 +234,167 @@ def force_print(*args, **kwargs):
         cleaned = raw.encode('ascii', 'replace').decode('ascii')
         print(cleaned, end='')
 
-def debug(*args, **kwargs):
+# We really want a heterogeneous dict for this, but that's in typing_extensions
+def debug(*args: TV_Loggable, **kwargs: T.Any) -> None:
     arr = process_markup(args, False)
     if log_file is not None:
-        print(*arr, file=log_file, **kwargs) # Log file never gets ANSI codes.
+        print(*arr, file=log_file, **kwargs)
         log_file.flush()
 
-def log(*args, **kwargs):
+def _debug_log_cmd(cmd: str, args: T.List[str]) -> None:
+    if not _in_ci:
+        return
+    args = [f'"{x}"' for x in args]  # Quote all args, just in case
+    debug('!meson_ci!/{} {}'.format(cmd, ' '.join(args)))
+
+def cmd_ci_include(file: str) -> None:
+    _debug_log_cmd('ci_include', [file])
+
+
+def log(*args: TV_Loggable, is_error: bool = False,
+        once: bool = False, **kwargs: T.Any) -> None:
+    if once:
+        return log_once(*args, is_error=is_error, **kwargs)
+    return _log(*args, is_error=is_error, **kwargs)
+
+
+def _log(*args: TV_Loggable, is_error: bool = False,
+        **kwargs: T.Any) -> None:
+    nested = kwargs.pop('nested', True)
     arr = process_markup(args, False)
     if log_file is not None:
-        print(*arr, file=log_file, **kwargs) # Log file never gets ANSI codes.
+        print(*arr, file=log_file, **kwargs)
         log_file.flush()
-    if colorize_console:
+    if colorize_console():
         arr = process_markup(args, True)
-    force_print(*arr, **kwargs)
+    if not log_errors_only or is_error:
+        force_print(*arr, nested=nested, **kwargs)
 
-def _log_error(severity, *args, **kwargs):
-    from .mesonlib import get_error_location_string
-    from .environment import build_filename
-    from .mesonlib import MesonException
-    if severity == 'warning':
-        args = (yellow('WARNING:'),) + args
+def log_once(*args: TV_Loggable, is_error: bool = False,
+             **kwargs: T.Any) -> None:
+    """Log variant that only prints a given message one time per meson invocation.
+
+    This considers ansi decorated values by the values they wrap without
+    regard for the AnsiDecorator itself.
+    """
+    def to_str(x: TV_Loggable) -> str:
+        if isinstance(x, str):
+            return x
+        if isinstance(x, AnsiDecorator):
+            return x.text
+        return str(x)
+    t = tuple(to_str(a) for a in args)
+    if t in _logged_once:
+        return
+    _logged_once.add(t)
+    _log(*args, is_error=is_error, **kwargs)
+
+# This isn't strictly correct. What we really want here is something like:
+# class StringProtocol(typing_extensions.Protocol):
+#
+#      def __str__(self) -> str: ...
+#
+# This would more accurately embody what this function can handle, but we
+# don't have that yet, so instead we'll do some casting to work around it
+def get_error_location_string(fname: str, lineno: int) -> str:
+    return f'{fname}:{lineno}:'
+
+def _log_error(severity: str, *rargs: TV_Loggable,
+               once: bool = False, fatal: bool = True, **kwargs: T.Any) -> None:
+    from .mesonlib import MesonException, relpath
+
+    # The typing requirements here are non-obvious. Lists are invariant,
+    # therefore T.List[A] and T.List[T.Union[A, B]] are not able to be joined
+    if severity == 'notice':
+        label = [bold('NOTICE:')]  # type: TV_LoggableList
+    elif severity == 'warning':
+        label = [yellow('WARNING:')]
     elif severity == 'error':
-        args = (red('ERROR:'),) + args
+        label = [red('ERROR:')]
     elif severity == 'deprecation':
-        args = (red('DEPRECATION:'),) + args
+        label = [red('DEPRECATION:')]
     else:
-        assert False, 'Invalid severity ' + severity
+        raise MesonException('Invalid severity ' + severity)
+    # rargs is a tuple, not a list
+    args = label + list(rargs)
 
     location = kwargs.pop('location', None)
     if location is not None:
-        location_file = os.path.join(location.subdir, build_filename)
+        location_file = relpath(location.filename, os.getcwd())
         location_str = get_error_location_string(location_file, location.lineno)
-        args = (location_str,) + args
+        # Unions are frankly awful, and we have to T.cast here to get mypy
+        # to understand that the list concatenation is safe
+        location_list = T.cast(TV_LoggableList, [location_str])
+        args = location_list + args
 
-    log(*args, **kwargs)
+    log(*args, once=once, **kwargs)
 
-    global log_fatal_warnings
-    if log_fatal_warnings:
+    global log_warnings_counter
+    log_warnings_counter += 1
+
+    if log_fatal_warnings and fatal:
         raise MesonException("Fatal warnings enabled, aborting")
 
-def error(*args, **kwargs):
-    return _log_error('error', *args, **kwargs)
+def error(*args: TV_Loggable, **kwargs: T.Any) -> None:
+    return _log_error('error', *args, **kwargs, is_error=True)
 
-def warning(*args, **kwargs):
-    return _log_error('warning', *args, **kwargs)
+def warning(*args: TV_Loggable, **kwargs: T.Any) -> None:
+    return _log_error('warning', *args, **kwargs, is_error=True)
 
-def deprecation(*args, **kwargs):
-    return _log_error('deprecation', *args, **kwargs)
+def deprecation(*args: TV_Loggable, **kwargs: T.Any) -> None:
+    return _log_error('deprecation', *args, **kwargs, is_error=True)
 
-def exception(e):
+def notice(*args: TV_Loggable, **kwargs: T.Any) -> None:
+    return _log_error('notice', *args, **kwargs, is_error=False)
+
+def get_relative_path(target: Path, current: Path) -> Path:
+    """Get the path to target from current"""
+    # Go up "current" until we find a common ancestor to target
+    acc = ['.']
+    for part in [current, *current.parents]:
+        try:
+            path = target.relative_to(part)
+            return Path(*acc, path)
+        except ValueError:
+            pass
+        acc += ['..']
+
+    # we failed, should not get here
+    return target
+
+def exception(e: Exception, prefix: T.Optional[AnsiDecorator] = None) -> None:
+    if prefix is None:
+        prefix = red('ERROR:')
     log()
-    if hasattr(e, 'file') and hasattr(e, 'lineno') and hasattr(e, 'colno'):
-        log('%s:%d:%d:' % (e.file, e.lineno, e.colno), red('ERROR: '), e)
-    else:
-        log(red('ERROR:'), e)
+    args = []  # type: T.List[T.Union[AnsiDecorator, str]]
+    if all(getattr(e, a, None) is not None for a in ['file', 'lineno', 'colno']):
+        # Mypy doesn't follow hasattr, and it's pretty easy to visually inspect
+        # that this is correct, so we'll just ignore it.
+        path = get_relative_path(Path(e.file), Path(os.getcwd()))  # type: ignore
+        args.append(f'{path}:{e.lineno}:{e.colno}:')  # type: ignore
+    if prefix:
+        args.append(prefix)
+    args.append(str(e))
+    log(*args)
 
 # Format a list for logging purposes as a string. It separates
 # all but the last item with commas, and the last with 'and'.
-def format_list(list):
-    l = len(list)
+def format_list(input_list: T.List[str]) -> str:
+    l = len(input_list)
     if l > 2:
-        return ' and '.join([', '.join(list[:-1]), list[-1]])
+        return ' and '.join([', '.join(input_list[:-1]), input_list[-1]])
     elif l == 2:
-        return ' and '.join(list)
+        return ' and '.join(input_list)
     elif l == 1:
-        return list[0]
+        return input_list[0]
     else:
         return ''
 
 @contextmanager
-def nested():
+def nested(name: str = '') -> T.Generator[None, None, None]:
     global log_depth
-    log_depth += 1
+    log_depth.append(name)
     try:
         yield
     finally:
-        log_depth -= 1
+        log_depth.pop()

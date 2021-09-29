@@ -10,7 +10,7 @@ if glib.found()
   assert (cc.has_member('GError', 'message', prefix : '#include <glib.h>', dependencies : glib), 'GError::message not found')
   assert (cc.has_header_symbol('glib.h', 'gint32', dependencies : glib), 'gint32 symbol not found')
   linkcode = '''#include <glib.h>
-int main (int argc, char *argv[]) {
+int main (void) {
   GError *error = g_error_new_literal (0, 0, NULL);
   return error == NULL;
 }
@@ -21,7 +21,7 @@ endif
 zlib = cc.find_library ('z')
 if zlib.found()
   linkcode = '''#include<zlib.h>
-int main(int argc, char *argv[]) {
+int main(void) {
   void *ptr = (void*)(deflate);
   return ptr == 0;
 }
@@ -34,5 +34,3 @@ assert(cc.has_function('pthread_create',
     dependencies : dependency('threads'),
     prefix : '#include <pthread.h>'),
   'Could not detect pthread_create with a thread dependency.')
-
-

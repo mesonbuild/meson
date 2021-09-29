@@ -89,9 +89,9 @@ enums_c3 = gnome.mkenums('enums3.c',
   vhead : '''
 GType
 @enum_name@_get_type(void) {
-    static volatile gsize g_define_type_id__volatile = 0;
+    static gsize static_g_define_type_id = 0;
 
-    if(g_once_init_enter(&g_define_type_id__volatile)) {
+    if(g_once_init_enter(&static_g_define_type_id)) {
         static const G@Type@Value values [] = {
 ''',
   vprod : '''            { @VALUENAME@, "@VALUENAME@", "@valuenick@" },''',
@@ -100,10 +100,10 @@ GType
 
         GType g_define_type_id =
             g_@type@_register_static(g_intern_static_string("@EnumName@"), values);
-        g_once_init_leave(&g_define_type_id__volatile, g_define_type_id);
+        g_once_init_leave(&static_g_define_type_id, g_define_type_id);
     }
 
-    return g_define_type_id__volatile;
+    return static_g_define_type_id;
 }
 ''')
 
@@ -126,6 +126,14 @@ enums5 = gnome.mkenums_simple('enums5', sources : 'meson-sample.h',
                               install_header : true,
                               decorator : 'MESON_EXPORT',
                               header_prefix : '#include "meson-decls.h"')
+
+conf = configuration_data()
+conf.set('ENUM_FILE', 'enums5.h')
+main = configure_file(
+  input : 'main.c',
+  output : 'main5.c',
+  configuration : conf)
+
 enumexe5 = executable('enumprog5', main, enums5, dependencies : gobj)
 
 # Generate template then use as input to mkenums

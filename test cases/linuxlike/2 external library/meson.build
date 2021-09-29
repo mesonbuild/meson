@@ -5,19 +5,25 @@ zlib = cc.find_library('z')
 
 # Verify that link testing works.
 linkcode = '''#include<zlib.h>
-int main(int argc, char **argv) {
+int main(void) {
   void *ptr = (void*)(deflate);
   return ptr == 0;
 }
 '''
 
 nolinkcode='''int nonexisting();
-int main(int argc, char **argv) {
+int main(void) {
   return nonexisting();
 }
 '''
 
 assert(cc.links(linkcode, args : '-lz', name : 'Test link against zlib'), 'Linking test failed.')
+d1 = declare_dependency(compile_args: '-DSOMETHING', link_args: '-lz')
+assert(cc.links(linkcode, dependencies : d1,
+                name : 'Test link against zlib via declare_dependency'), 'Linking test failed.')
+d2 = declare_dependency(dependencies: d1)
+assert(cc.links(linkcode, dependencies : d2,
+                name : 'Test link against zlib via indirect declare_dependency'), 'Linking test failed.')
 assert(not cc.links(nolinkcode, name : 'Failing link'), 'Linking succeeded when it should have failed.')
 
 e = executable('zprog', 'prog.c', dependencies : zlib)

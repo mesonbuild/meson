@@ -14,6 +14,7 @@
 
 
 from . import coredata as cdata
+from .mesonlib import MachineChoice, OptionKey
 
 import os.path
 import pprint
@@ -31,10 +32,10 @@ def dump_compilers(compilers):
         print('  ' + lang + ':')
         print('      Id: ' + compiler.id)
         print('      Command: ' + ' '.join(compiler.exelist))
-        print('      Full version: ' + compiler.full_version)
-        print('      Detected version: ' + compiler.version)
-        print('      Detected type: ' + repr(compiler.compiler_type))
-        #pprint.pprint(compiler.__dict__)
+        if compiler.full_version:
+            print('      Full version: ' + compiler.full_version)
+        if compiler.version:
+            print('      Detected version: ' + compiler.version)
 
 
 def dump_guids(d):
@@ -51,76 +52,63 @@ def run(options):
               'change the working directory to it.')
         return 1
 
-    all = options.all
+    all_backends = options.all
 
     print('This is a dump of the internal unstable cache of meson. This is for debugging only.')
     print('Do NOT parse, this will change from version to version in incompatible ways')
     print('')
 
     coredata = cdata.load(options.builddir)
-    backend = coredata.get_builtin_option('backend')
+    backend = coredata.get_option(OptionKey('backend'))
     for k, v in sorted(coredata.__dict__.items()):
         if k in ('backend_options', 'base_options', 'builtins', 'compiler_options', 'user_options'):
             # use `meson configure` to view these
             pass
         elif k in ['install_guid', 'test_guid', 'regen_guid']:
-            if all or backend.startswith('vs'):
+            if all_backends or backend.startswith('vs'):
                 print(k + ': ' + v)
         elif k == 'target_guids':
-            if all or backend.startswith('vs'):
+            if all_backends or backend.startswith('vs'):
                 print(k + ':')
                 dump_guids(v)
         elif k in ['lang_guids']:
-            if all or backend.startswith('vs') or backend == 'xcode':
+            if all_backends or backend.startswith('vs') or backend == 'xcode':
                 print(k + ':')
                 dump_guids(v)
         elif k == 'meson_command':
-            if all or backend.startswith('vs'):
+            if all_backends or backend.startswith('vs'):
                 print('Meson command used in build file regeneration: ' + ' '.join(v))
         elif k == 'pkgconf_envvar':
-            print('Last seen PKGCONFIG enviroment variable value: ' + v)
+            print('Last seen PKGCONFIG environment variable value: ' + v)
         elif k == 'version':
             print('Meson version: ' + v)
-        elif k == 'cross_file':
-            print('Cross File: ' + (v or 'None'))
+        elif k == 'cross_files':
+            if v:
+                print('Cross File: ' + ' '.join(v))
         elif k == 'config_files':
             if v:
                 print('Native File: ' + ' '.join(v))
         elif k == 'compilers':
-            print('Cached native compilers:')
-            dump_compilers(v)
-        elif k == 'cross_compilers':
-            print('Cached cross compilers:')
-            dump_compilers(v)
+            for for_machine in MachineChoice:
+                print('Cached {} machine compilers:'.format(
+                    for_machine.get_lower_case_name()))
+                dump_compilers(v[for_machine])
         elif k == 'deps':
-            native = []
-            cross = []
-            for dep_key, dep in sorted(v.items()):
-                if dep_key[2]:
-                    cross.append((dep_key, dep))
-                else:
-                    native.append((dep_key, dep))
-
             def print_dep(dep_key, dep):
-                print('  ' + dep_key[0] + ": ")
+                print('  ' + dep_key[0][1] + ": ")
                 print('      compile args: ' + repr(dep.get_compile_args()))
                 print('      link args: ' + repr(dep.get_link_args()))
                 if dep.get_sources():
                     print('      sources: ' + repr(dep.get_sources()))
                 print('      version: ' + repr(dep.get_version()))
 
-            if native:
-                print('Cached native dependencies:')
-                for dep_key, dep in native:
-                    print_dep(dep_key, dep)
-            if cross:
-                print('Cached dependencies:')
-                for dep_key, dep in cross:
-                    print_dep(dep_key, dep)
-        elif k == 'external_preprocess_args':
-            for lang, opts in v.items():
-                if opts:
-                    print('Preprocessor args for ' + lang + ': ' + ' '.join(opts))
+            for for_machine in iter(MachineChoice):
+                items_list = list(sorted(v[for_machine].items()))
+                if items_list:
+                    print(f'Cached dependencies for {for_machine.get_lower_case_name()} machine')
+                    for dep_key, deps in items_list:
+                        for dep in deps:
+                            print_dep(dep_key, dep)
         else:
             print(k + ':')
             print(textwrap.indent(pprint.pformat(v), '  '))

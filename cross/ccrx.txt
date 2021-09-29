@@ -7,14 +7,16 @@ cpp = 'ccrx'
 ar = 'rlink'
 strip = 'rlink'
 
-[properties]
+[built-in options]
 # The '--cpu' option with the appropriate target type should be mentioned
 # to cross compile c/c++ code with ccrx,.
-c_args      = ['--cpu=rx600']
-cpp_args    = ['--cpu=rx600']
+c_args      = ['-cpu=rx600']
+cpp_args    = ['-cpu=rx600']
+c_link_args = []
+cpp_link_args = []
 
 [host_machine]
-system = 'bare metal'      # Update with your system name - bare metal/OS.
+system = 'bare metal'
 cpu_family = 'rx'
 cpu = 'rx600'
 endian = 'little'

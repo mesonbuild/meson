@@ -1,23 +1,28 @@
-cmake_minimum_required(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION} )
+# fail noisily if attempt to use this file without setting:
+# cmake_minimum_required(VERSION ${CMAKE_VERSION})
+# project(... LANGUAGES ...)
 
-# Inspired by CMakeDetermineCompilerABI.cmake to set CMAKE_LIBRARY_ARCHITECTURE
-if(CMAKE_LIBRARY_ARCHITECTURE_REGEX)
-  if(NOT DEFINED CMAKE_LIBRARY_ARCHITECTURE)
-    file(GLOB implicit_dirs RELATIVE /lib /lib/*-linux-gnu* )
-    foreach(dir ${implicit_dirs})
-      if("${dir}" MATCHES "${CMAKE_LIBRARY_ARCHITECTURE_REGEX}")
-        set(CMAKE_LIBRARY_ARCHITECTURE "${dir}")
-        break()
-      endif()
-    endforeach()
-  endif()
-endif()
-
-find_package("${NAME}" QUIET)
+cmake_policy(SET CMP0000 NEW)
 
 set(PACKAGE_FOUND FALSE)
 set(_packageName "${NAME}")
 string(TOUPPER "${_packageName}" PACKAGE_NAME)
+
+while(TRUE)
+  if ("${VERSION}" STREQUAL "")
+    find_package("${NAME}" QUIET COMPONENTS ${COMPS})
+  else()
+    find_package("${NAME}" "${VERSION}" QUIET COMPONENTS ${COMPS})
+  endif()
+
+  # ARCHS has to be set via the CMD interface
+  if(${_packageName}_FOUND OR ${PACKAGE_NAME}_FOUND OR "${ARCHS}" STREQUAL "")
+    break()
+  endif()
+
+  list(GET       ARCHS 0 CMAKE_LIBRARY_ARCHITECTURE)
+  list(REMOVE_AT ARCHS 0)
+endwhile()
 
 if(${_packageName}_FOUND  OR  ${PACKAGE_NAME}_FOUND)
   set(PACKAGE_FOUND TRUE)

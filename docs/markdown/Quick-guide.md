@@ -1,43 +1,98 @@
 ---
-title: Quick guide
-short-description: Guide to get started using meson
+title: Quickstart Guide
+short-description: Getting Started using Mesonbuild
 ...
 
 # Using Meson
 
-Meson has been designed to be as easy to use as possible. This page
-outlines the basic use cases. For more advanced cases refer to Meson's
-command line help which is accessible with the command `meson --help`.
+Meson has been designed to be as simple to use as possible. This page
+outlines the initial steps needed for installation, troubleshooting,
+and standard use.
+
+For more advanced configuration please refer to the command line help
+`meson --help` or the Meson documentation located at the
+[Mesonbuild](https://mesonbuild.com) website.
+
+Table of Contents:
+* [Requirements](#requirements)
+* [Installation using package manager](#installation-using-package-manager)
+* [Installation using Python](#installation-using-python)
+* [Installation from source](#installation-from-source)
+* [Troubleshooting](#troubleshooting)
+* [Compiling a Meson project](#compiling-a-meson-project)
+* [Using Meson as a distro packager](#using-meson-as-a-distro-packager)
 
 Requirements
 --
 
-Meson has two main dependencies.
-
 * [Python 3](https://python.org)
 * [Ninja](https://github.com/ninja-build/ninja/)
 
-Ninja is only needed if you use the Ninja backend. Meson can also
-generate native VS and XCode project files.
+*Ninja is only needed if you use the Ninja backend. Meson can also
+generate native VS and Xcode project files.*
 
-On Ubuntu these can be easily installed with the following command:
+
+Installation using package manager
+--
+
+Ubuntu:
 
 ```console
-$ sudo apt-get install python3 python3-pip ninja-build
+$ sudo apt-get install python3 python3-pip python3-setuptools \
+                       python3-wheel ninja-build
 ```
+*Due to our frequent release cycle and development speed, distro packaged software may quickly become outdated.*
 
-The best way to get Meson is to `pip install` it for your user
+Installation using Python
+--
+Requirements: **pip3**
 
+The best way to receive the most up-to-date version of Mesonbuild.
+
+Install as a local user (recommended):
 ```console
 $ pip3 install --user meson
 ```
+Install as root:
+```console
+$ pip3 install meson
+```
 
-You can also use Meson as packaged by your distro, but beware that due
-to our frequent release cycle and development speed this version might
-be out of date.
+*If you are unsure whether to install as root or a local user, install
+ as a local user.*
 
-Another option is to clone the git repository and run it directly from
-there.
+
+Installation from source
+--
+Requirements: **git**
+
+Meson can be run directly from the cloned git repository.
+
+```console
+$ git clone https://github.com/mesonbuild/meson.git /path/to/sourcedir
+```
+Troubleshooting:
+--
+Common Issues:
+```console
+$ meson builddir
+$ bash: /usr/bin/meson: No such file or directory
+```
+
+Description: The default installation prefix for the python pip module
+installation is not included in your shell environment PATH. The
+default prefix for python pip installation modules is located under
+``/usr/local``.
+
+**Resolution:
+This issue can be resolved by altering the default shell environment
+PATH to include ``/usr/local/bin``. **
+
+*Note: There are other ways of fixing this issue such as using
+ symlinks or copying the binaries to a default path and these methods
+ are not recommended or supported as they may break package management
+ interoperability.*
+
 
 Compiling a Meson project
 --
@@ -48,25 +103,25 @@ are working on. The steps to take are very simple.
 ```console
 $ cd /path/to/source/root
 $ meson builddir && cd builddir
-$ ninja
-$ ninja test
+$ meson compile
+$ meson test
 ```
 
 The only thing to note is that you need to create a separate build
 directory. Meson will not allow you to build source code inside your
-source tree. All build artifacts are stored in the build
-directory. This allows you to have multiple build trees with different
+source tree. All build artifacts are stored in the build directory.
+This allows you to have multiple build trees with different
 configurations at the same time. This way generated files are not
 added into revision control by accident.
 
-To recompile after code changes, just type `ninja`. The build command
-is always the same. You can do arbitrary changes to source code and
-build system files and Meson will detect those and will do the right
-thing. If you want to build optimized binaries, just use the argument
-`--buildtype=debugoptimized` when running Meson. It is recommended
-that you keep one build directory for unoptimized builds and one for
-optimized ones. To compile any given configuration, just go into the
-corresponding build directory and run `ninja`.
+To recompile after code changes, just type `meson compile`. The build
+command is always the same. You can do arbitrary changes to source
+code and build system files and Meson will detect those and will do
+the right thing. If you want to build optimized binaries, just use the
+argument `--buildtype=debugoptimized` when running Meson. It is
+recommended that you keep one build directory for unoptimized builds
+and one for optimized ones. To compile any given configuration, just
+go into the corresponding build directory and run `meson compile`.
 
 Meson will automatically add compiler flags to enable debug
 information and compiler warnings (i.e. `-g` and `-Wall`). This means
@@ -83,9 +138,9 @@ build and install Meson projects are the following.
 ```console
 $ cd /path/to/source/root
 $ meson --prefix /usr --buildtype=plain builddir -Dc_args=... -Dcpp_args=... -Dc_link_args=... -Dcpp_link_args=...
-$ ninja -v -C builddir
-$ ninja -C builddir test
-$ DESTDIR=/path/to/staging/root ninja -C builddir install
+$ meson compile -C builddir
+$ meson test -C builddir
+$ DESTDIR=/path/to/staging/root meson install -C builddir
 ```
 
 The command line switch `--buildtype=plain` tells Meson not to add its
@@ -94,7 +149,7 @@ on used flags.
 
 This is very similar to other build systems. The only difference is
 that the `DESTDIR` variable is passed as an environment variable
-rather than as an argument to `ninja install`.
+rather than as an argument to `meson install`.
 
 As distro builds happen always from scratch, you might consider
 enabling [unity builds](Unity-builds.md) on your packages because they

@@ -2,7 +2,7 @@
 
 int some_symbol (void);
 
-int main (int argc, char *argv[]) {
+int main () {
   int ret = some_symbol ();
   if (ret == 1)
     return 0;

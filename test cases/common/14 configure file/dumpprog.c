@@ -15,7 +15,7 @@
 #define stringify(s) str(s)
 #define str(s) #s
 
-int main(int argc, char **argv) {
+int main(void) {
 #if !(SHOULD_BE_UNQUOTED_STRING == string)
         printf("String token (unquoted) defined wrong.\n");
         return 1;

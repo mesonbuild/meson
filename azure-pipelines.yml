@@ -6,40 +6,50 @@ trigger:
     - 'master'
     # Release branches
     - '0.*'
+  paths:
+    include:
+      - 'mesonbuild'
+      - 'test cases'
+      - 'unittests'
+      - 'azure-pipelines.yml'
+      - 'ci/azure-steps.yml'
+      - 'run_project_tests.py'
+      - 'run_tests.py'
+      - 'run_unittests.py'
+pr:
+  autoCancel: true
+  branches:
+    include:
+    - '*'
+  paths:
+    include:
+      - 'mesonbuild'
+      - 'test cases'
+      - 'unittests'
+      - 'azure-pipelines.yml'
+      - 'ci/azure-steps.yml'
+      - 'run_project_tests.py'
+      - 'run_tests.py'
+      - 'run_unittests.py'
 
 variables:
-  MESON_FIXED_NINJA: 1
   CI: 1
+  SOURCE_VERSION: $(Build.SourceVersion)
 
 jobs:
-- job: vs2015
-  pool:
-    vmImage: vs2015-win2012r2
-
-  strategy:
-    matrix:
-        vc2015x86ninja:
-          arch: x86
-          compiler: msvc2015
-          backend: ninja
-        vc2015x86vs:
-          arch: x86
-          compiler: msvc2015
-          backend: vs2015
-
-  steps:
-  - template: ci/azure-steps.yml
 
 - job: vs2017
+  timeoutInMinutes: 120
   pool:
     vmImage: VS2017-Win2016
 
   strategy:
     matrix:
-        vc2017x64ninja:
-          arch: x64
+        vc2017x86ninja:
+          arch: x86
           compiler: msvc2017
           backend: ninja
+          MESON_RSP_THRESHOLD: 0
         vc2017x64vs:
           arch: x64
           compiler: msvc2017
@@ -50,119 +60,48 @@ jobs:
           backend: ninja
 
   steps:
-  - template: ci/azure-steps.yml
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.6'
+      addToPath: true
+      architecture: 'x64'
+  - task: PowerShell@2
+    inputs:
+      targetType: 'filePath'
+      filePath: .\ci\run.ps1
+    env:
+      MESON_CI_JOBNAME: azure-$(System.JobName)
 
-- job: cygwin
+- job: vs2019
+  timeoutInMinutes: 120
   pool:
-    vmImage: VS2017-Win2016
+    vmImage: windows-2019
+
   strategy:
     matrix:
-        gccx64ninja: {}
-  variables:
-    CYGWIN_ROOT: $(System.Workfolder)\cygwin
-    CYGWIN_MIRROR: http://cygwin.mirror.constant.com
-  steps:
-    - script: |
-        choco install cygwin --params="/InstallDir:%CYGWIN_ROOT%"
-      displayName: Install Cygwin
-    - script: |
-        %CYGWIN_ROOT%\cygwinsetup.exe -qnNdO -R "%CYGWIN_ROOT%" -s "%CYGWIN_MIRROR%" -g -P ^
-        cmake,^
-        gcc-objc++,^
-        gcc-objc,^
-        git,^
-        gobject-introspection,^
-        libboost-devel,^
-        libglib2.0-devel,^
-        libgtk3-devel,^
-        ninja,^
-        python3-pip,^
-        vala,^
-        zlib-devel
-      displayName: Install Dependencies
-    - script: |
-        set PATH=%CYGWIN_ROOT%\bin;%SYSTEMROOT%\system32
-        env.exe -- python3 run_tests.py --backend=ninja
-      displayName: Run Tests
-    - task: CopyFiles@2
-      condition: not(canceled())
-      inputs:
-        contents: 'meson-test-run.*'
-        targetFolder: $(Build.ArtifactStagingDirectory)
-    - task: PublishBuildArtifacts@1
-      inputs:
-        artifactName: $(System.JobName)
-      # publishing artifacts from PRs from a fork is currently blocked
-      condition: and(eq(variables['system.pullrequest.isfork'], false), not(canceled()))
-    - task: PublishTestResults@2
-      condition: not(canceled())
-      inputs:
-        testResultsFiles: meson-test-run.xml
-        testRunTitle: $(System.JobName)
+        vc2019x64ninja:
+          arch: x64
+          compiler: msvc2019
+          backend: ninja
+        vc2019x64vs:
+          arch: x64
+          compiler: msvc2019
+          backend: vs2019
+        vc2019arm64ninjacross:
+          arch: arm64
+          compiler: msvc2019
+          backend: ninja
+          extraargs: --cross arm64cl.txt --cross-only
 
-- job: msys2
-  pool:
-    vmImage: VS2017-Win2016
-  strategy:
-    matrix:
-      gccx86ninja:
-        MSYSTEM: MINGW32
-        MSYS2_ARCH: i686
-        compiler: gcc
-      gccx64ninja:
-        MSYSTEM: MINGW64
-        MSYS2_ARCH: x86_64
-        compiler: gcc
-      clangx64ninja:
-        MSYSTEM: MINGW64
-        MSYS2_ARCH: x86_64
-        compiler: clang
-  variables:
-    MSYS2_ROOT: $(System.Workfolder)\msys64
   steps:
-    - script: |
-        choco install msys2 --params="/InstallDir:%MSYS2_ROOT% /NoUpdate /NoPath"
-      displayName: Install MSYS2
-    - script: |
-        set PATH=%MSYS2_ROOT%\usr\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem
-        %MSYS2_ROOT%\usr\bin\pacman --noconfirm -Syyuu
-        %MSYS2_ROOT%\usr\bin\pacman --noconfirm -Syuu
-      displayName: Update MSYS2
-    - script: |
-        set PATH=%MSYS2_ROOT%\usr\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem
-        if %compiler%==gcc ( set "TOOLCHAIN=mingw-w64-$(MSYS2_ARCH)-toolchain" ) else ( set "TOOLCHAIN=mingw-w64-$(MSYS2_ARCH)-clang" )
-        %MSYS2_ROOT%\usr\bin\pacman --noconfirm --needed -S ^
-        base-devel ^
-        git ^
-        mercurial ^
-        mingw-w64-$(MSYS2_ARCH)-cmake ^
-        mingw-w64-$(MSYS2_ARCH)-pkg-config ^
-        mingw-w64-$(MSYS2_ARCH)-python2 ^
-        mingw-w64-$(MSYS2_ARCH)-python3 ^
-        mingw-w64-$(MSYS2_ARCH)-python3-setuptools ^
-        %TOOLCHAIN%
-      displayName: Install Dependencies
-    - script: |
-        set PATH=%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem
-        %MSYS2_ROOT%\usr\bin\bash -lc "wget https://github.com/mesonbuild/cidata/raw/master/ninja.exe; mv ninja.exe /$MSYSTEM/bin"
-        set PATHEXT=%PATHEXT%;.py
-        if %compiler%==clang ( set CC=clang && set CXX=clang++ )
-        %MSYS2_ROOT%\usr\bin\bash -lc "MSYSTEM= python3 run_tests.py --backend=ninja"
-      env:
-        CHERE_INVOKING: yes
-      displayName: Run Tests
-    - task: CopyFiles@2
-      condition: not(canceled())
-      inputs:
-        contents: 'meson-test-run.*'
-        targetFolder: $(Build.ArtifactStagingDirectory)
-    - task: PublishBuildArtifacts@1
-      inputs:
-        artifactName: $(System.JobName)
-      # publishing artifacts from PRs from a fork is currently blocked
-      condition: and(eq(variables['system.pullrequest.isfork'], false), not(canceled()))
-    - task: PublishTestResults@2
-      condition: not(canceled())
-      inputs:
-        testResultsFiles: meson-test-run.xml
-        testRunTitle: $(System.JobName)
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.7'
+      addToPath: true
+      architecture: 'x64'
+  - task: PowerShell@2
+    inputs:
+      targetType: 'filePath'
+      filePath: .\ci\run.ps1
+    env:
+      MESON_CI_JOBNAME: azure-$(System.JobName)

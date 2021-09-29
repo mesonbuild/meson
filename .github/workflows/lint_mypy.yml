@@ -1,0 +1,47 @@
+name: LintMypy
+
+concurrency:
+  group: mypy-${{ github.head_ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    paths:
+    - "**.py"
+    - ".github/workflows/lint_mypy.yml"
+  pull_request:
+    paths:
+    - "**.py"
+    - ".github/workflows/lint_mypy.yml"
+
+jobs:
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+    # pylint version constraint can be removed when https://github.com/PyCQA/pylint/issues/3524 is resolved
+    - run: python -m pip install pylint==2.4.4
+    - run: pylint mesonbuild
+
+  custom_lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+    - run: python ./run_custom_lint.py
+
+  mypy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+    - run: python -m pip install mypy
+    - run: python run_mypy.py

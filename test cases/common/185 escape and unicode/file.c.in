@@ -1,5 +1,0 @@
-#include<stdio.h>
-const char* does_it_work() {
-    printf("{NAME}\n");
-    return "yes it does";
-}

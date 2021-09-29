@@ -1,10 +1,10 @@
 extern "C" int cfunc();
 
-void func() {
+void func(void) {
     std::cout << "This is a function that fails to compile if iostream is not included."
               << std::endl;
 }
 
-int main(int argc, char **argv) {
+int main(void) {
     return cfunc();
 }

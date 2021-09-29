@@ -25,19 +25,19 @@ pymod.find_installation(name_or_path, ...)
 Find a python installation matching `name_or_path`.
 
 That argument is optional, if not provided then the returned python
-installation will be the one used to run meson.
+installation will be the one used to run Meson.
 
 If provided, it can be:
 
-- A simple name, eg `python-2.7`, meson will look for an external program
+- A simple name, eg `python-2.7`, Meson will look for an external program
   named that way, using [find_program]
 
 - A path, eg `/usr/local/bin/python3.4m`
 
-- One of `python2` or `python3`: in either case, the module will try some
-  alternative names: `py -2` or `py -3` on Windows, and `python` everywhere.
-  In the latter case, it will check whether the version provided by the
-  sysconfig module matches the required major version
+- One of `python2` or `python3`: in either case, the module will try
+  some alternative names: `py -2` or `py -3` on Windows, and `python`
+  everywhere. In the latter case, it will check whether the version
+  provided by the sysconfig module matches the required major version
 
 Keyword arguments are the following:
 
@@ -51,6 +51,8 @@ Keyword arguments are the following:
 - `disabler`: if `true` and no python installation can be found, return a
   [disabler object](Reference-manual.md#disabler-object) instead of a not-found object.
   *Since 0.49.0*
+- `modules`: a list of module names that this python installation must have.
+  *Since 0.51.0*
 
 **Returns**: a [python installation][`python_installation` object]
 
@@ -61,6 +63,17 @@ added methods.
 
 ### Methods
 
+#### `path()`
+
+```meson
+str py_installation.path()
+```
+
+*Added 0.50.0*
+
+Works like the path method of other `ExternalProgram` objects. Was not
+provided prior to 0.50.0 due to a bug.
+
 #### `extension_module()`
 
 ``` meson
@@ -70,17 +83,19 @@ shared_module py_installation.extension_module(module_name, list_of_sources, ...
 Create a `shared_module` target that is named according to the naming
 conventions of the target platform.
 
-All positional and keyword arguments are the same as for [shared_module],
-excluding `name_suffix` and `name_prefix`, and with the addition of the following:
+All positional and keyword arguments are the same as for
+[shared_module], excluding `name_suffix` and `name_prefix`, and with
+the addition of the following:
 
-- `subdir`: By default, meson will install the extension module in
+- `subdir`: By default, Meson will install the extension module in
   the relevant top-level location for the python installation, eg
   `/usr/lib/site-packages`. When subdir is passed to this method,
   it will be appended to that location. This keyword argument is
   mutually exclusive with `install_dir`
 
-`extension_module` does not add any dependencies to the library so user may
-need to add `dependencies : py_installation.dependency()`, see [][`dependency()`].
+`extension_module` does not add any dependencies to the library so
+user may need to add `dependencies : py_installation.dependency()`,
+see [][`dependency()`].
 
 **Returns**: a [buildtarget object]
 
@@ -90,7 +105,15 @@ need to add `dependencies : py_installation.dependency()`, see [][`dependency()`
 python_dependency py_installation.dependency(...)
 ```
 
-This method accepts the same arguments as the standard [dependency] function.
+This method accepts no positional arguments, and the same keyword
+arguments as the standard [dependency] function. It also supports the
+following keyword argument:
+
+- `embed`: *(since 0.53.0)* If true, Meson will try to find a python
+  dependency that can be used for embedding python into an
+  application.
+- `disabler` *(since 0.60.0)*: if `true` and the dependency couldn't be found,
+  returns a [disabler object](#disabler-object) instead of a not-found dependency.
 
 **Returns**: a [python dependency][`python_dependency` object]
 
@@ -102,17 +125,20 @@ void py_installation.install_sources(list_of_files, ...)
 
 Install actual python sources (`.py`).
 
-All positional and keyword arguments are the same as for [install_data],
-with the addition of the following:
+All positional and keyword arguments are the same as for
+[install_data], with the addition of the following:
 
-- `pure`: On some platforms, architecture independent files are expected
-  to be placed in a separate directory. However, if the python sources
-  should be installed alongside an extension module built with this
-  module, this keyword argument can be used to override that behaviour.
-  Defaults to `true`
+- `pure`: On some platforms, architecture independent files are
+  expected to be placed in a separate directory. However, if the
+  python sources should be installed alongside an extension module
+  built with this module, this keyword argument can be used to
+  override that behaviour. Defaults to `true`
 
 - `subdir`: See documentation for the argument of the same name to
   [][`extension_module()`]
+
+- `install_tag` *(since 0.60.0)*: A string used by `meson install --tags` command
+  to install only a subset of the files. By default it has the tag `python-runtime`.
 
 #### `get_install_dir()`
 
@@ -122,8 +148,8 @@ string py_installation.get_install_dir(...)
 
 Retrieve the directory [][`install_sources()`] will install to.
 
-It can be useful in cases where `install_sources` cannot be used directly,
-for example when using [configure_file].
+It can be useful in cases where `install_sources` cannot be used
+directly, for example when using [configure_file].
 
 This function accepts no arguments, its keyword arguments are the same
 as [][`install_sources()`].
@@ -205,14 +231,15 @@ a non-existing variable will cause a fatal error.
     bool py_installation.has_variable(variable_name)
 ```
 
-**Returns**: true if a variable named `variable_name` can be retrieved with
-[][`get_variable()`], false otherwise.
+**Returns**: true if a variable named `variable_name` can be retrieved
+with [][`get_variable()`], false otherwise.
 
 ## `python_dependency` object
 
-This [dependency object] subclass will try various methods to obtain the
-compiler and linker arguments, starting with pkg-config then potentially
-using information obtained from python's `sysconfig` module.
+This [dependency object] subclass will try various methods to obtain
+the compiler and linker arguments, starting with pkg-config then
+potentially using information obtained from python's `sysconfig`
+module.
 
 It exposes the same methods as its parent class.
 

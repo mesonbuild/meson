@@ -4,9 +4,8 @@
 # point to source root.
 
 from gluon import gluonator
-import sys
 
 print('Running mainprog from subdir.')
 
 if gluonator.gluoninate() != 42:
-    sys.exit(1)
+    raise ValueError("!= 42")

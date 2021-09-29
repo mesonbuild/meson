@@ -1,0 +1,17 @@
+[binaries]
+c = '/home/jpakkane/src/emsdk/upstream/emscripten/emcc'
+cpp = '/home/jpakkane/src/emsdk/upstream/emscripten/em++'
+ar = '/home/jpakkane/src/emsdk/upstream/emscripten/emar'
+
+[built-in options]
+c_args = []
+c_link_args = ['-s','EXPORT_ALL=1']
+cpp_args = []
+cpp_link_args = ['-s', 'EXPORT_ALL=1']
+
+[host_machine]
+
+system = 'emscripten'
+cpu_family = 'wasm32'
+cpu = 'wasm32'
+endian = 'little'

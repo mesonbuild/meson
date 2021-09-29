@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import print_function
 
 import argparse
 import os
@@ -24,16 +23,16 @@ import traceback
 
 def check_pr(is_pr_env):
     if is_pr_env not in os.environ:
-        print('This is not pull request: {} is not set'.format(is_pr_env))
+        print(f'This is not pull request: {is_pr_env} is not set')
         sys.exit()
     elif os.environ[is_pr_env] == 'false':
-        print('This is not pull request: {} is false'.format(is_pr_env))
+        print(f'This is not pull request: {is_pr_env} is false')
         sys.exit()
 
 
 def get_base_branch(base_env):
     if base_env not in os.environ:
-        print('Unable to determine base branch: {} is not set'.format(base_env))
+        print(f'Unable to determine base branch: {base_env} is not set')
         sys.exit()
     return os.environ[base_env]
 

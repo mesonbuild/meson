@@ -1,7 +1,7 @@
 #include<sqlite3.h>
 #include<stdio.h>
 
-int main(int argc, char **argv) {
+int main(void) {
     sqlite3 *db;
     if(sqlite3_open(":memory:", &db) != SQLITE_OK) {
         printf("Sqlite failed.\n");

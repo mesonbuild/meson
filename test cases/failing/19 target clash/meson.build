@@ -8,8 +8,8 @@ project('clash', 'c')
 # output location is redirected.
 
 if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
-  error('This is expected.')
+  error('MESON_SKIP_TEST test only works on platforms where executables have no suffix.')
 endif
 
 executable('clash', 'clash.c')
-run_target('clash', 'echo', 'clash 1')
+run_target('clash', command: ['echo', 'clash 1'])

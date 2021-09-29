@@ -1,8 +1,0 @@
-usr/lib/libsome.dylib
-usr/lib/libsome.7.dylib
-usr/lib/libnoversion.dylib
-usr/lib/libonlyversion.dylib
-usr/lib/libonlyversion.1.dylib
-usr/lib/libonlysoversion.dylib
-usr/lib/libonlysoversion.5.dylib
-usr/lib/libmodule.dylib

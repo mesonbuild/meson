@@ -1,13 +1,15 @@
 #include <assert.h>
 #include <windows.h>
 
-int main(int arc, char *argv[])
+int main(int argc, char *argv[])
 {
   // verify that the expected resource exists and has the expected contents
   HRSRC hRsrc;
   unsigned int size;
   HGLOBAL hGlobal;
   void* data;
+
+  ((void)argc);
 
   hRsrc = FindResource(NULL, argv[1], RT_RCDATA);
   assert(hRsrc);

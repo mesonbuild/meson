@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "WARNING: Inconsistency: Subproject has overridden the dependency with another variable than 'dep2'"
+    }
+  ]
+}

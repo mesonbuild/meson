@@ -12,19 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, types
 from pathlib import PurePath
+import os
+import typing as T
 
+from . import ExtensionModule
+from . import ModuleReturnValue
 from .. import build
 from .. import dependencies
 from .. import mesonlib
 from .. import mlog
-from . import ModuleReturnValue
-from . import ExtensionModule
+from ..dependencies import ThreadDependency
 from ..interpreterbase import permittedKwargs, FeatureNew, FeatureNewKwargs
 
+if T.TYPE_CHECKING:
+    from . import ModuleState
+
+already_warned_objs = set()
+
 class DependenciesHelper:
-    def __init__(self, name):
+    def __init__(self, state, name):
+        self.state = state
         self.name = name
         self.pub_libs = []
         self.pub_reqs = []
@@ -32,6 +40,7 @@ class DependenciesHelper:
         self.priv_reqs = []
         self.cflags = []
         self.version_reqs = {}
+        self.link_whole_targets = []
 
     def add_pub_libs(self, libs):
         libs, reqs, cflags = self._process_libs(libs, True)
@@ -51,29 +60,31 @@ class DependenciesHelper:
         self.priv_reqs += self._process_reqs(reqs)
 
     def _check_generated_pc_deprecation(self, obj):
-        if hasattr(obj, 'generated_pc_warn'):
-            mlog.deprecation('Library', mlog.bold(obj.name), 'was passed to the '
-                             '"libraries" keyword argument of a previous call '
-                             'to generate() method instead of first positional '
-                             'argument.', 'Adding', mlog.bold(obj.generated_pc),
-                             'to "Requires" field, but this is a deprecated '
-                             'behaviour that will change in a future version '
-                             'of Meson. Please report the issue if this '
-                             'warning cannot be avoided in your case.',
-                             location=obj.generated_pc_warn)
+        if not hasattr(obj, 'generated_pc_warn'):
+            return
+        name = obj.generated_pc_warn[0]
+        if (name, obj.name) in already_warned_objs:
+            return
+        mlog.deprecation('Library', mlog.bold(obj.name), 'was passed to the '
+                         '"libraries" keyword argument of a previous call '
+                         'to generate() method instead of first positional '
+                         'argument.', 'Adding', mlog.bold(obj.generated_pc),
+                         'to "Requires" field, but this is a deprecated '
+                         'behaviour that will change in a future version '
+                         'of Meson. Please report the issue if this '
+                         'warning cannot be avoided in your case.',
+                         location=obj.generated_pc_warn[1])
+        already_warned_objs.add((name, obj.name))
 
     def _process_reqs(self, reqs):
         '''Returns string names of requirements'''
         processed_reqs = []
-        for obj in mesonlib.listify(reqs, unholder=True):
+        for obj in mesonlib.listify(reqs):
+            if not isinstance(obj, str):
+                FeatureNew.single_use('pkgconfig.generate requirement from non-string object', '0.46.0', self.state.subproject)
             if hasattr(obj, 'generated_pc'):
                 self._check_generated_pc_deprecation(obj)
                 processed_reqs.append(obj.generated_pc)
-            elif hasattr(obj, 'pcdep'):
-                pcdeps = mesonlib.listify(obj.pcdep)
-                for d in pcdeps:
-                    processed_reqs.append(d.name)
-                    self.add_version_reqs(d.name, obj.version_reqs)
             elif isinstance(obj, dependencies.PkgConfigDependency):
                 if obj.found():
                     processed_reqs.append(obj.name)
@@ -83,6 +94,8 @@ class DependenciesHelper:
                 processed_reqs.append(name)
                 self.add_version_reqs(name, version_req)
             elif isinstance(obj, dependencies.Dependency) and not obj.found():
+                pass
+            elif isinstance(obj, ThreadDependency):
                 pass
             else:
                 raise mesonlib.MesonException('requires argument not a string, '
@@ -94,41 +107,29 @@ class DependenciesHelper:
     def add_cflags(self, cflags):
         self.cflags += mesonlib.stringlistify(cflags)
 
-    def _process_libs(self, libs, public):
-        libs = mesonlib.listify(libs, unholder=True)
+    def _process_libs(self, libs, public: bool):
+        libs = mesonlib.listify(libs)
         processed_libs = []
         processed_reqs = []
         processed_cflags = []
         for obj in libs:
-            shared_library_only = getattr(obj, 'shared_library_only', False)
-            if hasattr(obj, 'pcdep'):
-                pcdeps = mesonlib.listify(obj.pcdep)
-                for d in pcdeps:
-                    processed_reqs.append(d.name)
-                    self.add_version_reqs(d.name, obj.version_reqs)
-            elif hasattr(obj, 'generated_pc'):
+            if hasattr(obj, 'generated_pc'):
                 self._check_generated_pc_deprecation(obj)
                 processed_reqs.append(obj.generated_pc)
             elif isinstance(obj, dependencies.PkgConfigDependency):
                 if obj.found():
                     processed_reqs.append(obj.name)
                     self.add_version_reqs(obj.name, obj.version_reqs)
-            elif isinstance(obj, dependencies.ThreadDependency):
-                processed_libs += obj.get_compiler().thread_link_flags(obj.env)
-                processed_cflags += obj.get_compiler().thread_flags(obj.env)
             elif isinstance(obj, dependencies.InternalDependency):
                 if obj.found():
                     processed_libs += obj.get_link_args()
                     processed_cflags += obj.get_compile_args()
-                    if public:
-                        self.add_pub_libs(obj.libraries)
-                    else:
-                        self.add_priv_libs(obj.libraries)
+                    self._add_lib_dependencies(obj.libraries, obj.whole_libraries, obj.ext_deps, public, private_external_deps=True)
             elif isinstance(obj, dependencies.Dependency):
                 if obj.found():
                     processed_libs += obj.get_link_args()
                     processed_cflags += obj.get_compile_args()
-            elif isinstance(obj, build.SharedLibrary) and shared_library_only:
+            elif isinstance(obj, build.SharedLibrary) and obj.shared_library_only:
                 # Do not pull dependencies for shared libraries because they are
                 # only required for static linking. Adding private requires has
                 # the side effect of exposing their cflags, which is the
@@ -138,18 +139,52 @@ class DependenciesHelper:
                 processed_libs.append(obj)
             elif isinstance(obj, (build.SharedLibrary, build.StaticLibrary)):
                 processed_libs.append(obj)
-                if isinstance(obj, build.StaticLibrary) and public:
-                    self.add_pub_libs(obj.get_dependencies(internal=False))
-                    self.add_pub_libs(obj.get_external_deps())
-                else:
-                    self.add_priv_libs(obj.get_dependencies(internal=False))
-                    self.add_priv_libs(obj.get_external_deps())
+                # If there is a static library in `Libs:` all its deps must be
+                # public too, otherwise the generated pc file will never be
+                # usable without --static.
+                self._add_lib_dependencies(obj.link_targets,
+                                           obj.link_whole_targets,
+                                           obj.external_deps,
+                                           isinstance(obj, build.StaticLibrary) and public)
+            elif isinstance(obj, (build.CustomTarget, build.CustomTargetIndex)):
+                if not obj.is_linkable_target():
+                    raise mesonlib.MesonException('library argument contains a not linkable custom_target.')
+                FeatureNew.single_use('custom_target in pkgconfig.generate libraries', '0.58.0', self.state.subproject)
+                processed_libs.append(obj)
             elif isinstance(obj, str):
                 processed_libs.append(obj)
             else:
-                raise mesonlib.MesonException('library argument not a string, library or dependency object.')
+                raise mesonlib.MesonException(f'library argument of type {type(obj).__name__} not a string, library or dependency object.')
 
         return processed_libs, processed_reqs, processed_cflags
+
+    def _add_lib_dependencies(self, link_targets, link_whole_targets, external_deps, public, private_external_deps=False):
+        add_libs = self.add_pub_libs if public else self.add_priv_libs
+        # Recursively add all linked libraries
+        for t in link_targets:
+            # Internal libraries (uninstalled static library) will be promoted
+            # to link_whole, treat them as such here.
+            if t.is_internal():
+                self._add_link_whole(t, public)
+            else:
+                add_libs([t])
+        for t in link_whole_targets:
+            self._add_link_whole(t, public)
+        # And finally its external dependencies
+        if private_external_deps:
+            self.add_priv_libs(external_deps)
+        else:
+            add_libs(external_deps)
+
+    def _add_link_whole(self, t, public):
+        # Don't include static libraries that we link_whole. But we still need to
+        # include their dependencies: a static library we link_whole
+        # could itself link to a shared library or an installed static library.
+        # Keep track of link_whole_targets so we can remove them from our
+        # lists in case a library is link_with and link_whole at the same time.
+        # See remove_dups() below.
+        self.link_whole_targets.append(t)
+        self._add_lib_dependencies(t.link_targets, t.link_whole_targets, t.external_deps, public)
 
     def add_version_reqs(self, name, version_reqs):
         if version_reqs:
@@ -186,6 +221,32 @@ class DependenciesHelper:
         return ', '.join(result)
 
     def remove_dups(self):
+        # Set of ids that have already been handled and should not be added any more
+        exclude = set()
+
+        # We can't just check if 'x' is excluded because we could have copies of
+        # the same SharedLibrary object for example.
+        def _ids(x):
+            if hasattr(x, 'generated_pc'):
+                yield x.generated_pc
+            if isinstance(x, build.Target):
+                yield x.get_id()
+            yield x
+
+        # Exclude 'x' in all its forms and return if it was already excluded
+        def _add_exclude(x):
+            was_excluded = False
+            for i in _ids(x):
+                if i in exclude:
+                    was_excluded = True
+                else:
+                    exclude.add(i)
+            return was_excluded
+
+        # link_whole targets are already part of other targets, exclude them all.
+        for t in self.link_whole_targets:
+            _add_exclude(t)
+
         def _fn(xs, libs=False):
             # Remove duplicates whilst preserving original order
             result = []
@@ -196,22 +257,35 @@ class DependenciesHelper:
                 cannot_dedup = libs and isinstance(x, str) and \
                     not x.startswith(('-l', '-L')) and \
                     x not in known_flags
-                if x not in result or cannot_dedup:
-                    result.append(x)
+                if not cannot_dedup and _add_exclude(x):
+                    continue
+                result.append(x)
             return result
-        self.pub_libs = _fn(self.pub_libs, True)
+
+        # Handle lists in priority order: public items can be excluded from
+        # private and Requires can excluded from Libs.
         self.pub_reqs = _fn(self.pub_reqs)
-        self.priv_libs = _fn(self.priv_libs, True)
+        self.pub_libs = _fn(self.pub_libs, True)
         self.priv_reqs = _fn(self.priv_reqs)
+        self.priv_libs = _fn(self.priv_libs, True)
+        # Reset exclude list just in case some values can be both cflags and libs.
+        exclude = set()
         self.cflags = _fn(self.cflags)
 
-        # Remove from private libs/reqs if they are in public already
-        self.priv_libs = [i for i in self.priv_libs if i not in self.pub_libs]
-        self.priv_reqs = [i for i in self.priv_reqs if i not in self.pub_reqs]
-
 class PkgConfigModule(ExtensionModule):
+    def __init__(self, interpreter):
+        super().__init__(interpreter)
+        self.methods.update({
+            'generate': self.generate,
+        })
 
-    def _get_lname(self, l, msg, pcfile):
+    def _get_lname(self, l, msg, pcfile, is_custom_target):
+        if is_custom_target:
+            basename = os.path.basename(l.get_filename())
+            name = os.path.splitext(basename)[0]
+            if name.startswith('lib'):
+                name = name[3:]
+            return name
         # Nothing special
         if not l.name_prefix_set:
             return l.name
@@ -222,7 +296,7 @@ class PkgConfigModule(ExtensionModule):
             return l.name[3:]
         # If the library is imported via an import library which is always
         # named after the target name, '-lfoo' is correct.
-        if l.import_filename:
+        if isinstance(l, build.SharedLibrary) and l.import_filename:
             return l.name
         # In other cases, we can't guarantee that the compiler will be able to
         # find the library via '-lfoo', so tell the user that.
@@ -231,7 +305,7 @@ class PkgConfigModule(ExtensionModule):
 
     def _escape(self, value):
         '''
-        We cannot use shlex.quote because it quotes with ' and " which does not
+        We cannot use quote_arg because it quotes with ' and " which does not
         work with pkg-config and pkgconf at all.
         '''
         # We should always write out paths with / because pkg-config requires
@@ -239,35 +313,46 @@ class PkgConfigModule(ExtensionModule):
         # https://bugs.freedesktop.org/show_bug.cgi?id=103203
         if isinstance(value, PurePath):
             value = value.as_posix()
-        return value.replace(' ', '\ ')
+        return value.replace(' ', r'\ ')
 
     def _make_relative(self, prefix, subdir):
-        if isinstance(prefix, PurePath):
-            prefix = prefix.as_posix()
-        if isinstance(subdir, PurePath):
-            subdir = subdir.as_posix()
-        if subdir.startswith(prefix):
-            subdir = subdir.replace(prefix, '')
-        return subdir
+        prefix = PurePath(prefix)
+        subdir = PurePath(subdir)
+        try:
+            return subdir.relative_to(prefix).as_posix()
+        except ValueError:
+            return subdir.as_posix()
 
-    def generate_pkgconfig_file(self, state, deps, subdirs, name, description,
-                                url, version, pcfile, conflicts, variables):
-        deps.remove_dups()
+    def _generate_pkgconfig_file(self, state, deps, subdirs, name, description,
+                                 url, version, pcfile, conflicts, variables,
+                                 unescaped_variables, uninstalled=False, dataonly=False):
         coredata = state.environment.get_coredata()
-        outdir = state.environment.scratch_dir
-        fname = os.path.join(outdir, pcfile)
-        prefix = PurePath(coredata.get_builtin_option('prefix'))
+        if uninstalled:
+            outdir = os.path.join(state.environment.build_dir, 'meson-uninstalled')
+            if not os.path.exists(outdir):
+                os.mkdir(outdir)
+            prefix = PurePath(state.environment.get_build_dir())
+            srcdir = PurePath(state.environment.get_source_dir())
+        else:
+            outdir = state.environment.scratch_dir
+            prefix = PurePath(coredata.get_option(mesonlib.OptionKey('prefix')))
         # These always return paths relative to prefix
-        libdir = PurePath(coredata.get_builtin_option('libdir'))
-        incdir = PurePath(coredata.get_builtin_option('includedir'))
-        with open(fname, 'w') as ofile:
-            ofile.write('prefix={}\n'.format(self._escape(prefix)))
-            ofile.write('libdir={}\n'.format(self._escape('${prefix}' / libdir)))
-            ofile.write('includedir={}\n'.format(self._escape('${prefix}' / incdir)))
-            if variables:
+        libdir = PurePath(coredata.get_option(mesonlib.OptionKey('libdir')))
+        incdir = PurePath(coredata.get_option(mesonlib.OptionKey('includedir')))
+        fname = os.path.join(outdir, pcfile)
+        with open(fname, 'w', encoding='utf-8') as ofile:
+            if not dataonly:
+                ofile.write('prefix={}\n'.format(self._escape(prefix)))
+                if uninstalled:
+                    ofile.write('srcdir={}\n'.format(self._escape(srcdir)))
+                ofile.write('libdir={}\n'.format(self._escape('${prefix}' / libdir)))
+                ofile.write('includedir={}\n'.format(self._escape('${prefix}' / incdir)))
+            if variables or unescaped_variables:
                 ofile.write('\n')
             for k, v in variables:
                 ofile.write('{}={}\n'.format(k, self._escape(v)))
+            for k, v in unescaped_variables:
+                ofile.write(f'{k}={v}\n')
             ofile.write('\n')
             ofile.write('Name: %s\n' % name)
             if len(description) > 0:
@@ -277,10 +362,10 @@ class PkgConfigModule(ExtensionModule):
             ofile.write('Version: %s\n' % version)
             reqs_str = deps.format_reqs(deps.pub_reqs)
             if len(reqs_str) > 0:
-                ofile.write('Requires: {}\n'.format(reqs_str))
+                ofile.write(f'Requires: {reqs_str}\n')
             reqs_str = deps.format_reqs(deps.priv_reqs)
             if len(reqs_str) > 0:
-                ofile.write('Requires.private: {}\n'.format(reqs_str))
+                ofile.write(f'Requires.private: {reqs_str}\n')
             if len(conflicts) > 0:
                 ofile.write('Conflicts: {}\n'.format(' '.join(conflicts)))
 
@@ -293,62 +378,95 @@ class PkgConfigModule(ExtensionModule):
                     if isinstance(l, str):
                         yield l
                     else:
-                        install_dir = l.get_custom_install_dir()[0]
+                        if uninstalled:
+                            install_dir = os.path.dirname(state.backend.get_target_filename_abs(l))
+                        else:
+                            install_dir = l.get_custom_install_dir()[0]
                         if install_dir is False:
                             continue
-                        if 'cs' in l.compilers:
+                        is_custom_target = isinstance(l, (build.CustomTarget, build.CustomTargetIndex))
+                        if not is_custom_target and 'cs' in l.compilers:
                             if isinstance(install_dir, str):
-                                Lflag = '-r${prefix}/%s/%s ' % (self._escape(self._make_relative(prefix, install_dir)), l.filename)
+                                Lflag = '-r${{prefix}}/{}/{}'.format(self._escape(self._make_relative(prefix, install_dir)), l.filename)
                             else:  # install_dir is True
                                 Lflag = '-r${libdir}/%s' % l.filename
                         else:
                             if isinstance(install_dir, str):
-                                Lflag = '-L${prefix}/%s ' % self._escape(self._make_relative(prefix, install_dir))
+                                Lflag = '-L${prefix}/%s' % self._escape(self._make_relative(prefix, install_dir))
                             else:  # install_dir is True
                                 Lflag = '-L${libdir}'
                         if Lflag not in Lflags:
                             Lflags.append(Lflag)
                             yield Lflag
-                        lname = self._get_lname(l, msg, pcfile)
+                        lname = self._get_lname(l, msg, pcfile, is_custom_target)
                         # If using a custom suffix, the compiler may not be able to
                         # find the library
-                        if l.name_suffix_set:
+                        if not is_custom_target and l.name_suffix_set:
                             mlog.warning(msg.format(l.name, 'name_suffix', lname, pcfile))
-                        if 'cs' not in l.compilers:
+                        if is_custom_target or 'cs' not in l.compilers:
                             yield '-l%s' % lname
+
+            def get_uninstalled_include_dirs(libs):
+                result = []
+                for l in libs:
+                    if isinstance(l, (str, build.CustomTarget, build.CustomTargetIndex)):
+                        continue
+                    if l.get_subdir() not in result:
+                        result.append(l.get_subdir())
+                    for i in l.get_include_dirs():
+                        curdir = i.get_curdir()
+                        for d in i.get_incdirs():
+                            path = os.path.join(curdir, d)
+                            if path not in result:
+                                result.append(path)
+                return result
+
+            def generate_uninstalled_cflags(libs):
+                for d in get_uninstalled_include_dirs(libs):
+                    for basedir in ['${prefix}', '${srcdir}']:
+                        path = PurePath(basedir, d)
+                        yield '-I%s' % self._escape(path.as_posix())
 
             if len(deps.pub_libs) > 0:
                 ofile.write('Libs: {}\n'.format(' '.join(generate_libs_flags(deps.pub_libs))))
             if len(deps.priv_libs) > 0:
                 ofile.write('Libs.private: {}\n'.format(' '.join(generate_libs_flags(deps.priv_libs))))
-            ofile.write('Cflags:')
-            for h in subdirs:
-                ofile.write(' ')
-                if h == '.':
-                    ofile.write('-I${includedir}')
-                else:
-                    ofile.write(self._escape(PurePath('-I${includedir}') / h))
-            for f in deps.cflags:
-                ofile.write(' ')
-                ofile.write(self._escape(f))
-            ofile.write('\n')
 
+            cflags = []
+            if uninstalled:
+                cflags += generate_uninstalled_cflags(deps.pub_libs + deps.priv_libs)
+            else:
+                for d in subdirs:
+                    if d == '.':
+                        cflags.append('-I${includedir}')
+                    else:
+                        cflags.append(self._escape(PurePath('-I${includedir}') / d))
+            cflags += [self._escape(f) for f in deps.cflags]
+            if cflags and not dataonly:
+                ofile.write('Cflags: {}\n'.format(' '.join(cflags)))
+
+    @FeatureNewKwargs('pkgconfig.generate', '0.59.0', ['unescaped_variables', 'unescaped_uninstalled_variables'])
+    @FeatureNewKwargs('pkgconfig.generate', '0.54.0', ['uninstalled_variables'])
     @FeatureNewKwargs('pkgconfig.generate', '0.42.0', ['extra_cflags'])
     @FeatureNewKwargs('pkgconfig.generate', '0.41.0', ['variables'])
+    @FeatureNewKwargs('pkgconfig.generate', '0.54.0', ['dataonly'])
     @permittedKwargs({'libraries', 'version', 'name', 'description', 'filebase',
                       'subdirs', 'requires', 'requires_private', 'libraries_private',
-                      'install_dir', 'extra_cflags', 'variables', 'url', 'd_module_versions'})
-    def generate(self, state, args, kwargs):
-        if 'variables' in kwargs:
-            FeatureNew('custom pkgconfig variables', '0.41.0').use(state.subproject)
-        default_version = state.project_version['version']
+                      'install_dir', 'extra_cflags', 'variables', 'url', 'd_module_versions',
+                      'dataonly', 'conflicts', 'uninstalled_variables',
+                      'unescaped_variables', 'unescaped_uninstalled_variables'})
+    def generate(self, state: 'ModuleState', args, kwargs):
+        default_version = state.project_version
         default_install_dir = None
         default_description = None
         default_name = None
         mainlib = None
-        if len(args) == 1:
-            FeatureNew('pkgconfig.generate optional positional argument', '0.46.0').use(state.subproject)
-            mainlib = getattr(args[0], 'held_object', args[0])
+        default_subdirs = ['.']
+        if not args and 'version' not in kwargs:
+            FeatureNew.single_use('pkgconfig.generate implicit version keyword', '0.46.0', state.subproject)
+        elif len(args) == 1:
+            FeatureNew.single_use('pkgconfig.generate optional positional argument', '0.46.0', state.subproject)
+            mainlib = args[0]
             if not isinstance(mainlib, (build.StaticLibrary, build.SharedLibrary)):
                 raise mesonlib.MesonException('Pkgconfig_gen first positional argument must be a library object')
             default_name = mainlib.name
@@ -359,7 +477,16 @@ class PkgConfigModule(ExtensionModule):
         elif len(args) > 1:
             raise mesonlib.MesonException('Too many positional arguments passed to Pkgconfig_gen.')
 
-        subdirs = mesonlib.stringlistify(kwargs.get('subdirs', ['.']))
+        dataonly = kwargs.get('dataonly', False)
+        if not isinstance(dataonly, bool):
+            raise mesonlib.MesonException('dataonly must be boolean.')
+        if dataonly:
+            default_subdirs = []
+            blocked_vars = ['libraries', 'libraries_private', 'require_private', 'extra_cflags', 'subdirs']
+            if any(k in kwargs for k in blocked_vars):
+                raise mesonlib.MesonException(f'Cannot combine dataonly with any of {blocked_vars}')
+
+        subdirs = mesonlib.stringlistify(kwargs.get('subdirs', default_subdirs))
         version = kwargs.get('version', default_version)
         if not isinstance(version, str):
             raise mesonlib.MesonException('Version must be specified.')
@@ -377,10 +504,15 @@ class PkgConfigModule(ExtensionModule):
             raise mesonlib.MesonException('URL is not a string.')
         conflicts = mesonlib.stringlistify(kwargs.get('conflicts', []))
 
-        deps = DependenciesHelper(filebase)
+        # Prepend the main library to public libraries list. This is required
+        # so dep.add_pub_libs() can handle dependency ordering correctly and put
+        # extra libraries after the main library.
+        libraries = mesonlib.extract_as_list(kwargs, 'libraries')
         if mainlib:
-            deps.add_pub_libs(mainlib)
-        deps.add_pub_libs(kwargs.get('libraries', []))
+            libraries = [mainlib] + libraries
+
+        deps = DependenciesHelper(state, filebase)
+        deps.add_pub_libs(libraries)
         deps.add_priv_libs(kwargs.get('libraries_private', []))
         deps.add_pub_reqs(kwargs.get('requires', []))
         deps.add_priv_reqs(kwargs.get('requires_private', []))
@@ -388,45 +520,50 @@ class PkgConfigModule(ExtensionModule):
 
         dversions = kwargs.get('d_module_versions', None)
         if dversions:
-            compiler = state.environment.coredata.compilers.get('d')
+            compiler = state.environment.coredata.compilers.host.get('d')
             if compiler:
                 deps.add_cflags(compiler.get_feature_args({'versions': dversions}, None))
 
-        def parse_variable_list(stringlist):
+        deps.remove_dups()
+
+        def parse_variable_list(vardict):
             reserved = ['prefix', 'libdir', 'includedir']
             variables = []
-            for var in stringlist:
-                # foo=bar=baz is ('foo', 'bar=baz')
-                l = var.split('=', 1)
-                if len(l) < 2:
-                    raise mesonlib.MesonException('Invalid variable "{}". Variables must be in \'name=value\' format'.format(var))
-
-                name, value = l[0].strip(), l[1].strip()
-                if not name or not value:
-                    raise mesonlib.MesonException('Invalid variable "{}". Variables must be in \'name=value\' format'.format(var))
-
-                # Variable names must not contain whitespaces
-                if any(c.isspace() for c in name):
-                    raise mesonlib.MesonException('Invalid whitespace in assignment "{}"'.format(var))
-
-                if name in reserved:
-                    raise mesonlib.MesonException('Variable "{}" is reserved'.format(name))
-
+            for name, value in vardict.items():
+                if not dataonly and name in reserved:
+                    raise mesonlib.MesonException(f'Variable "{name}" is reserved')
                 variables.append((name, value))
-
             return variables
 
-        variables = parse_variable_list(mesonlib.stringlistify(kwargs.get('variables', [])))
+        variables = self.interpreter.extract_variables(kwargs, dict_new=True)
+        variables = parse_variable_list(variables)
+        unescaped_variables = self.interpreter.extract_variables(kwargs, argname='unescaped_variables')
+        unescaped_variables = parse_variable_list(unescaped_variables)
 
         pcfile = filebase + '.pc'
-        pkgroot = kwargs.get('install_dir', default_install_dir)
+        pkgroot = pkgroot_name = kwargs.get('install_dir', default_install_dir)
         if pkgroot is None:
-            pkgroot = os.path.join(state.environment.coredata.get_builtin_option('libdir'), 'pkgconfig')
+            if mesonlib.is_freebsd():
+                pkgroot = os.path.join(state.environment.coredata.get_option(mesonlib.OptionKey('prefix')), 'libdata', 'pkgconfig')
+                pkgroot_name = os.path.join('{prefix}', 'libdata', 'pkgconfig')
+            else:
+                pkgroot = os.path.join(state.environment.coredata.get_option(mesonlib.OptionKey('libdir')), 'pkgconfig')
+                pkgroot_name = os.path.join('{libdir}', 'pkgconfig')
         if not isinstance(pkgroot, str):
             raise mesonlib.MesonException('Install_dir must be a string.')
-        self.generate_pkgconfig_file(state, deps, subdirs, name, description, url,
-                                     version, pcfile, conflicts, variables)
-        res = build.Data(mesonlib.File(True, state.environment.get_scratch_dir(), pcfile), pkgroot)
+        self._generate_pkgconfig_file(state, deps, subdirs, name, description, url,
+                                     version, pcfile, conflicts, variables,
+                                     unescaped_variables, False, dataonly)
+        res = build.Data([mesonlib.File(True, state.environment.get_scratch_dir(), pcfile)], pkgroot, pkgroot_name, None, state.subproject, install_tag='devel')
+        variables = self.interpreter.extract_variables(kwargs, argname='uninstalled_variables', dict_new=True)
+        variables = parse_variable_list(variables)
+        unescaped_variables = self.interpreter.extract_variables(kwargs, argname='unescaped_uninstalled_variables')
+        unescaped_variables = parse_variable_list(unescaped_variables)
+
+        pcfile = filebase + '-uninstalled.pc'
+        self._generate_pkgconfig_file(state, deps, subdirs, name, description, url,
+                                     version, pcfile, conflicts, variables,
+                                     unescaped_variables, uninstalled=True, dataonly=dataonly)
         # Associate the main library with this generated pc file. If the library
         # is used in any subsequent call to the generated, it will generate a
         # 'Requires:' or 'Requires.private:'.
@@ -438,11 +575,12 @@ class PkgConfigModule(ExtensionModule):
                 mainlib.generated_pc = filebase
             else:
                 mlog.warning('Already generated a pkg-config file for', mlog.bold(mainlib.name))
-        for lib in deps.pub_libs:
-            if not isinstance(lib, str) and not hasattr(lib, 'generated_pc'):
-                lib.generated_pc = filebase
-                lib.generated_pc_warn = types.SimpleNamespace(subdir=state.subdir,
-                                                              lineno=state.current_lineno)
+        else:
+            for lib in deps.pub_libs:
+                if not isinstance(lib, str) and not hasattr(lib, 'generated_pc'):
+                    lib.generated_pc = filebase
+                    location = state.current_node
+                    lib.generated_pc_warn = [name, location]
         return ModuleReturnValue(res, [res])
 
 def initialize(*args, **kwargs):

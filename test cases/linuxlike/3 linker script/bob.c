@@ -1,9 +1,9 @@
 #include"bob.h"
 
-int hiddenFunction() {
+int hiddenFunction(void) {
     return 42;
 }
 
-int bobMcBob() {
+int bobMcBob(void) {
     return hiddenFunction();
 }

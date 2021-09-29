@@ -56,6 +56,8 @@ C_FUNC_ATTRIBUTES = {
         'int foo(const char * p, ...) __attribute__((format(printf, 1, 2)));',
     'format_arg':
         'char * foo(const char * p) __attribute__((format_arg(1)));',
+    'force_align_arg_pointer':
+        '__attribute__((force_align_arg_pointer)) int foo(void) { return 0; }',
     'gnu_inline':
         'inline __attribute__((gnu_inline)) int foo(void) { return 0; }',
     'hot':
@@ -93,8 +95,15 @@ C_FUNC_ATTRIBUTES = {
     'visibility': '''
         int foo_def(void) __attribute__((visibility("default")));
         int foo_hid(void) __attribute__((visibility("hidden")));
-        int foo_int(void) __attribute__((visibility("internal")));
-        int foo_pro(void) __attribute__((visibility("protected")));''',
+        int foo_int(void) __attribute__((visibility("internal")));''',
+    'visibility:default':
+        'int foo(void) __attribute__((visibility("default")));',
+    'visibility:hidden':
+        'int foo(void) __attribute__((visibility("hidden")));',
+    'visibility:internal':
+        'int foo(void) __attribute__((visibility("internal")));',
+    'visibility:protected':
+        'int foo(void) __attribute__((visibility("protected")));',
     'warning':
         'int foo(void) __attribute__((warning("")));',
     'warn_unused_result':

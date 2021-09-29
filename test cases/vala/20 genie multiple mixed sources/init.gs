@@ -8,4 +8,3 @@ init
 	assert( new Vala.TestTwo().is_true() )
 	assert( c_test_one_is_true() )
 	assert( c_test_two_is_true() )
-

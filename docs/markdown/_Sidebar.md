@@ -12,3 +12,4 @@
 * [gnome](Gnome-module.md)
 * [i18n](i18n-module.md)
 * [pkgconfig](Pkgconfig-module.md)
+* [rust](Rust-module.md)

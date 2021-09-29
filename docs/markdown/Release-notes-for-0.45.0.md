@@ -96,9 +96,9 @@ int_255 = 0xFF
 
 The value `if-release` can be given for the `b_ndebug` project option.
 
-This will make the `NDEBUG` pre-compiler macro to be defined for release
-type builds as if the `b_ndebug` project option had had the value `true`
-defined for it.
+This will make the `NDEBUG` pre-compiler macro to be defined for
+release type builds as if the `b_ndebug` project option had had the
+value `true` defined for it.
 
 ## `install_data()` defaults to `{datadir}/{projectname}`
 
@@ -128,9 +128,9 @@ returns a list of all licenses for the project.
 ## Rust cross-compilation
 
 Cross-compilation is now supported for Rust targets. Like other
-cross-compilers, the Rust binary must be specified in your cross
-file. It should specify a `--target` (as installed by `rustup target`)
-and a custom linker pointing to your C cross-compiler. For example:
+cross-compilers, the Rust binary must be specified in your cross file.
+It should specify a `--target` (as installed by `rustup target`) and a
+custom linker pointing to your C cross-compiler. For example:
 
 ```ini
 [binaries]
@@ -151,8 +151,8 @@ private sysroot.
 
 ## Project templates
 
-Meson ships with predefined project templates. To start a new project from
-scratch, simply go to an empty directory and type:
+Meson ships with predefined project templates. To start a new project
+from scratch, simply go to an empty directory and type:
 
     meson init --name=myproject --type=executable --language=c
 
@@ -175,11 +175,13 @@ defined in it.
 
 ## Can use custom targets as Windows resource files
 
-The `compile_resources()` function of the `windows` module can now be used on custom targets as well as regular files.
+The `compile_resources()` function of the `windows` module can now be
+used on custom targets as well as regular files.
 
 ## Can promote dependencies with wrap command
 
-The `promote` command makes it easy to copy nested dependencies to the top level.
+The `promote` command makes it easy to copy nested dependencies to the
+top level.
 
     meson wrap promote scommon
 

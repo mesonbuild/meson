@@ -1,0 +1,32 @@
+[MASTER]
+jobs=0
+
+[REPORTS]
+score=no
+
+[MESSAGES CONTROL]
+disable=all
+enable=
+    abstract-class-instantiated,
+    assert-on-tuple,
+    bad-indentation,
+    bare-except,
+    compare-to-zero,
+    consider-iterating-dictionary,
+    consider-using-enumerate,
+    dangerous-default-value,
+    deprecated-lambda,
+    function-redefined,
+    len-as-condition,
+    literal-comparison,
+    missing-kwoa,
+    mixed-indentation,
+    no-value-for-parameter,
+    redundant-keyword-arg,
+    reimported,
+    singleton-comparison,
+    superfluous-parens,
+    too-many-function-args,
+    unexpected-keyword-arg,
+    unneeded-not,
+    unreachable

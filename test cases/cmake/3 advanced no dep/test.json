@@ -1,0 +1,11 @@
+{
+  "installed": [
+    {"type": "pdb", "file": "usr/bin/cm_meson_testEXE"},
+    {"type": "exe", "file": "usr/bin/cm_meson_testEXE"},
+    {"type": "pdb", "file": "usr/bin/cm_benchmark"},
+    {"type": "exe", "file": "usr/bin/cm_benchmark"}
+  ],
+  "tools": {
+    "cmake": ">=3.11"
+  }
+}

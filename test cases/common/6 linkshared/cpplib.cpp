@@ -1,9 +1,6 @@
-#if defined _WIN32
-    #define DLL_PUBLIC __declspec(dllexport)
-#else
-    #define DLL_PUBLIC __attribute__ ((visibility ("default")))
-#endif
+#define BUILDING_DLL
+#include "cpplib.h"
 
-int DLL_PUBLIC cppfunc() {
+int DLL_PUBLIC cppfunc(void) {
     return 42;
 }

@@ -12,9 +12,10 @@ test('cupstest', e)
 
 # ensure we can find the cups dependency via the legacy and modern config-tool
 # options
-dep = dependency('cups', version : '>=1.4', method : 'cups-config')
-dep = dependency('cups', version : '>=1.4', method : 'config-tool')
+depCC = dependency('cups', version : '>=1.4', method : 'cups-config')
+depCT = dependency('cups', version : '>=1.4', method : 'config-tool')
+depCM = dependency('cups', version : '>=1.4', method : 'cmake')
 
 # check we can apply a version constraint
-dependency('cups', version: '>=@0@'.format(dep.version()), method: 'pkg-config', required: false)
-dependency('cups', version: '>=@0@'.format(dep.version()), method: 'config-tool')
+dependency('cups', version: '>=@0@'.format(depCT.version()), method: 'pkg-config', required: false)
+dependency('cups', version: '>=@0@'.format(depCT.version()), method: 'config-tool')

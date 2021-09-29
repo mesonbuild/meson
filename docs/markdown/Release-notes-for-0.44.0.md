@@ -7,8 +7,8 @@ short-description: Release notes for 0.44
 
 ## Added warning function
 
-This function prints its argument to the console prefixed by "WARNING:" in
-yellow color. A simple example:
+This function prints its argument to the console prefixed by
+"WARNING:" in yellow color. A simple example:
 
 warning('foo is deprecated, please use bar instead')
 
@@ -31,15 +31,15 @@ These options now default in a way consistent with
 If prefix is `/usr`, default sysconfdir to `/etc`, localstatedir to `/var` and
 sharedstatedir to `/var/lib`.
 
-If prefix is `/usr/local` (the default), default localstatedir to `/var/local`
-and sharedstatedir to `/var/local/lib`.
+If prefix is `/usr/local` (the default), default localstatedir to
+`/var/local` and sharedstatedir to `/var/local/lib`.
 
 
 ## An array type for user options
 
 Previously to have an option that took more than one value a string
 value would have to be created and split, but validating this was
-difficult. A new array type has been added to the meson_options.txt
+difficult. A new array type has been added to the `meson_options.txt`
 for this case. It works like a 'combo', but allows more than one
 option to be passed. The values can optionally be validated against a
 list of valid values. When used on the command line (with -D), values
@@ -57,12 +57,12 @@ meson _build -Darray_opt=two,three
 
 ## LLVM dependency supports both dynamic and static linking
 
-The LLVM dependency has been improved to consistently use dynamic linking.
-Previously recent version (>= 3.9) would link dynamically while older versions
-would link statically.
+The LLVM dependency has been improved to consistently use dynamic
+linking. Previously recent version (>= 3.9) would link dynamically
+while older versions would link statically.
 
-Now LLVM also accepts the `static` keyword to enable statically linking to LLVM
-modules instead of dynamically linking.
+Now LLVM also accepts the `static` keyword to enable statically
+linking to LLVM modules instead of dynamically linking.
 
 
 ## Added `if_found` to subdir
@@ -124,8 +124,8 @@ statements.
 
 ## Config-Tool based dependencies gained a method to get arbitrary options
 
-A number of dependencies (CUPS, LLVM, pcap, WxWidgets, GnuStep) use a config
-tool instead of pkg-config. As of this version they now have a
+A number of dependencies (CUPS, LLVM, pcap, WxWidgets, GnuStep) use a
+config tool instead of pkg-config. As of this version they now have a
 `get_configtool_variable` method, which is analogous to the
 `get_pkgconfig_variable` for pkg config.
 
@@ -136,9 +136,9 @@ llvm_inc_dir = dep_llvm.get_configtool_variable('includedir')
 
 ## Embedded Python in Windows MSI packages
 
-Meson now ships an internal version of Python in the MSI installer packages.
-This means that it can run Python scripts that are part of your build
-transparently. That is, if you do the following:
+Meson now ships an internal version of Python in the MSI installer
+packages. This means that it can run Python scripts that are part of
+your build transparently. That is, if you do the following:
 
 ```meson
 myprog = find_program('myscript.py')
@@ -148,6 +148,7 @@ Then Meson will run the script with its internal Python version if necessary.
 
 ## Libwmf dependency now supports libwmf-config
 
-Earlier, `dependency('libwmf')` could only detect the library with pkg-config
-files. Now, if pkg-config files are not found, Meson will look for
-`libwmf-config` and if it's found, will use that to find the library.
+Earlier, `dependency('libwmf')` could only detect the library with
+pkg-config files. Now, if pkg-config files are not found, Meson will
+look for `libwmf-config` and if it's found, will use that to find the
+library.

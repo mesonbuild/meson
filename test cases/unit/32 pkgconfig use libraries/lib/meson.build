@@ -12,5 +12,3 @@ import('pkgconfig').generate(
     libraries: [b],
     subdirs: ['.']
 )
-
-

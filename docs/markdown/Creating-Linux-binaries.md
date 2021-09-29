@@ -70,13 +70,12 @@ way.
 You want to embed and statically link every dependency you can
 (especially C++ dependencies). Meson's [Wrap package
 manager](Wrap-dependency-system-manual.md) might be of use here. This
-is equivalent to what you would do on Windows, OSX, Android
-etc. Sometimes static linking is not possible. In these cases you need
-to copy the .so files inside your package. Let's use SDL2 as an
-example. First we download and install it as usual giving it our
-custom install prefix (that is, `./configure
---prefix=${HOME}/devroot`). This makes Meson's dependency detector
-pick it up automatically.
+is equivalent to what you would do on Windows, OSX, Android etc.
+Sometimes static linking is not possible. In these cases you need to
+copy the .so files inside your package. Let's use SDL2 as an example.
+First we download and install it as usual giving it our custom install
+prefix (that is, `./configure --prefix=${HOME}/devroot`). This makes
+Meson's dependency detector pick it up automatically.
 
 ## Building and installing
 
@@ -85,7 +84,7 @@ things to note. First, you must tell GCC to link the C++ standard
 library statically. If you don't then your app is guaranteed to break
 as different distros have binary-incompatible C++ libraries. The
 second thing is that you need to point your install prefix to some
-empty staging area. Here's the meson command to do that:
+empty staging area. Here's the Meson command to do that:
 
 ```console
 $ LDFLAGS=-static-libstdc++ meson --prefix=/tmp/myapp <other args>
@@ -119,7 +118,7 @@ with the following content:
 #!/bin/bash
 
 cd "${0%/*}"
-export LD_LIBRARY_PATH="`pwd`/lib"
+export LD_LIBRARY_PATH="$(pwd)/lib"
 bin/myapp
 ```
 

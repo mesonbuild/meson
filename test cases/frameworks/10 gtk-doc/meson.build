@@ -24,4 +24,16 @@ if gtkdoc_ver.version_compare('<1.26')
   error('MESON_SKIP_TEST gtk-doc test requires gtkdoc >= 1.26.')
 endif
 
+gobject = dependency('gobject-2.0')
+
+libfoo = shared_library('foo', 'foo.c',
+  include_directories: inc,
+  dependencies: gobject,
+)
+
+foo_dep = declare_dependency(
+  link_with: libfoo,
+  include_directories: inc,
+)
+
 subdir('doc')

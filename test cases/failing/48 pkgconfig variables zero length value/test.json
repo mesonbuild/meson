@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/failing/48 pkgconfig variables zero length value/meson.build:8:5: ERROR: Empty variable name or value"
+    }
+  ]
+}

@@ -6,7 +6,6 @@ The following functions are available in build files. Click on each to
 see the description and usage. The objects returned by them are [list
 afterwards](#returned-objects).
 
-
 ### add_global_arguments()
 
 ``` meson
@@ -16,19 +15,19 @@ afterwards](#returned-objects).
 Adds the positional arguments to the compiler command line. This
 function has two keyword arguments:
 
-- `language` specifies the language(s) that the arguments should be
+- `language`: specifies the language(s) that the arguments should be
 applied to. If a list of languages is given, the arguments are added
 to each of the corresponding compiler command lines. Note that there
 is no way to remove an argument set in this way. If you have an
 argument that is only used in a subset of targets, you have to specify
 it in per-target flags.
 
-- `native` is a boolean specifying whether the arguments should be
+- `native` *(since 0.48.0)*: a boolean specifying whether the arguments should be
   applied to the native or cross compilation. If `true` the arguments
   will only be used for native compilations. If `false` the arguments
   will only be used in cross compilations. If omitted, the flags are
   added to native compilations if compiling natively and cross
-  compilations (only) when cross compiling. Available since 0.48.0
+  compilations (only) when cross compiling.
 
 The arguments are used in all compiler invocations with the exception
 of compile tests, because you might need to run a compile test with
@@ -52,26 +51,39 @@ Like `add_global_arguments` but the arguments are passed to the linker.
 ### add_languages()
 
 ``` meson
-  add_languages(*langs*)
+  bool add_languages(*langs*)
 ```
 
-Add support for new programming languages. Equivalent to having them
-in the `project` declaration. This function is usually used to add
-languages that are only used on some platforms like this:
+Add programming languages used by the project. Equivalent to having
+them in the `project` declaration. This function is usually used to
+add languages that are only used under some conditions, like this:
 
 ```meson
 project('foobar', 'c')
 if compiling_for_osx
   add_languages('objc')
 endif
+if add_languages('cpp', required : false)
+  executable('cpp-app', 'main.cpp')
+endif
 ```
 
-Takes one keyword argument, `required`. It defaults to `true`, which
-means that if any of the languages specified is not found, Meson will
-halt. Returns true if all languages specified were found and false
-otherwise. Since *0.47.0* the value of a
-[`feature`](Build-options.md#features) option can also be passed to
-the `required` keyword argument.
+Takes the following keyword arguments:
+
+- `required`: defaults to `true`, which means that if any of the languages
+specified is not found, Meson will halt. *(since 0.47.0)* The value of a
+[`feature`](Build-options.md#features) option can also be passed.
+
+- `native` *(since 0.54.0)*: if set to `true`, the language will be used to compile for the build
+  machine, if `false`, for the host machine.
+
+Returns `true` if all languages specified were found and `false` otherwise.
+
+If `native` is omitted, the languages may be used for either build or host
+machine, but are never required for the build machine.  (i.e. it is equivalent
+to `add_languages(*langs*, native: false, required: *required*) and
+add_languages(*langs*, native: true, required: false)`. This default behaviour
+may change to `native: false` in a future Meson version.
 
 ### add_project_arguments()
 
@@ -101,19 +113,43 @@ Add a custom test setup that can be used to run the tests with a
 custom setup, for example under Valgrind. The keyword arguments are
 the following:
 
-- `env` an [environment object](#environment-object) to use a custom environment
-- `exe_wrapper` a list containing the wrapper command or script followed by the arguments to it
-- `gdb` if `true`, the tests are also run under `gdb`
-- `timeout_multiplier` a number to multiply the test timeout with
-- `is_default` a bool to set whether this is the default test setup.
+- `env`: environment variables to set, such as `['NAME1=value1',
+  'NAME2=value2']`, or an [`environment()`
+  object](#environment-object) which allows more sophisticated
+  environment juggling. *(since 0.52.0)* A dictionary is also accepted.
+- `exe_wrapper`: a list containing the wrapper command or script followed by the arguments to it
+- `gdb`: if `true`, the tests are also run under `gdb`
+- `timeout_multiplier`: a number to multiply the test timeout with.
+  *Since 0.57* if timeout_multiplier is `<= 0` the test has infinite duration,
+  in previous versions of Meson the test would fail with a timeout immediately.
+- `is_default` *(since 0.49.0)*: a bool to set whether this is the default test setup.
   If `true`, the setup will be used whenever `meson test` is run
-  without the `--setup` option. Since 0.49.0
+  without the `--setup` option.
+- `exclude_suites` *(since 0.57.0)*: a list of test suites that should be
+  excluded when using this setup.  Suites specified in the `--suite` option
+  to `meson test` will always run, overriding `add_test_setup` if necessary.
 
-To use the test setup, run `meson test --setup=*name*` inside the build dir.
+To use the test setup, run `meson test --setup=*name*` inside the
+build dir.
 
 Note that all these options are also available while running the
 `meson test` script for running tests instead of `ninja test` or
 `msbuild RUN_TESTS.vcxproj`, etc depending on the backend.
+
+### alias_target
+
+``` meson
+runtarget alias_target(target_name, dep1, ...)
+```
+
+*(since 0.52.0)*
+
+This function creates a new top-level target. Like all top-level
+targets, this integrates with the selected backend. For instance, with
+you can run it as `meson compile target_name`. This is a dummy target
+that does not execute any command, but ensures that all dependencies
+are built. Dependencies can be any build target (e.g. return value of
+[executable()](#executable), custom_target(), etc)
 
 ### assert()
 
@@ -123,6 +159,9 @@ Note that all these options are also available while running the
 
 Abort with an error message if `condition` evaluates to `false`.
 
+*(since 0.53.0)* `message` argument is optional and defaults to print the condition
+statement instead.
+
 ### benchmark()
 
 ``` meson
@@ -130,35 +169,52 @@ Abort with an error message if `condition` evaluates to `false`.
 ```
 
 Creates a benchmark item that will be run when the benchmark target is
-run. The behavior of this function is identical to `test` with the
-exception that there is no `is_parallel` keyword, because benchmarks
-are never run in parallel.
+run. The behavior of this function is identical to [`test()`](#test)
+except for:
+
+* benchmark() has no `is_parallel` keyword because benchmarks are not run in parallel
+* benchmark() does not automatically add the `MALLOC_PERTURB_` environment variable
+
+*Note:* Prior to 0.52.0 benchmark would warn that `depends` and
+`priority` were unsupported, this is incorrect.
 
 ### both_libraries()
 
 ``` meson
-    buildtarget both_libraries(library_name, list_of_sources, ...)
+    buildtarget = both_libraries(library_name, list_of_sources, ...)
 ```
 
-Builds both a static and shared library with the given
-sources. Positional and keyword arguments are otherwise the same as
-for [`library`](#library). Source files will be compiled only once and
+*(since 0.46.0)*
+
+Builds both a static and shared library with the given sources.
+Positional and keyword arguments are otherwise the same as for
+[`library`](#library). Source files will be compiled only once and
 object files will be reused to build both shared and static libraries,
 unless `b_staticpic` user option or `pic` argument are set to false in
 which case sources will be compiled twice.
 
-The returned [buildtarget](#build-target-object) always represents the shared
-library. In addition it supports the following extra methods:
+The returned [buildtarget](#build-target-object) always represents the
+shared library. In addition it supports the following extra methods:
 
 - `get_shared_lib()` returns the shared library build target
 - `get_static_lib()` returns the static library build target
 
-*Added 0.46.0*
-
 ### build_target()
 
 Creates a build target whose type can be set dynamically with the
-`target_type` keyword argument. This declaration:
+`target_type` keyword argument.
+
+`target_type` may be set to one of:
+
+- `executable`
+- `shared_library`
+- `shared_module`
+- `static_library`
+- `both_libraries`
+- `library`
+- `jar`
+
+This declaration:
 
 ```meson
 executable(<arguments and keyword arguments>)
@@ -185,9 +241,9 @@ Creates an empty configuration object. You should add your
 configuration with [its method calls](#configuration-data-object) and
 finally use it in a call to `configure_file`.
 
-Since *0.49.0* takes an optional dictionary as first argument. If provided, each
-key/value pair is added into the `configuration_data` as if `set()` method was
-called for each of them.
+*(since 0.49.0)* Takes an optional dictionary as first argument. If
+provided, each key/value pair is added into the `configuration_data`
+as if `set()` method was called for each of them.
 
 ### configure_file()
 
@@ -202,54 +258,64 @@ When a [`configuration_data()`](#configuration_data) object is passed
 to the `configuration:` keyword argument, it takes a template file as
 the `input:` (optional) and produces the `output:` (required) by
 substituting values from the configuration data as detailed in [the
-configuration file documentation](Configuration.md). Since *0.49.0* a dictionary
-can be passed instead of a [`configuration_data()`](#configuration_data) object.
+configuration file documentation](Configuration.md). *(since 0.49.0)*
+A dictionary can be passed instead of a
+[`configuration_data()`](#configuration_data) object.
 
 When a list of strings is passed to the `command:` keyword argument,
 it takes any source or configured file as the `input:` and assumes
 that the `output:` is produced when the specified command is run.
 
-Since *0.47.0*, when the `copy:` keyword argument is set to `true`,
+*(since 0.47.0)* When the `copy:` keyword argument is set to `true`,
 this function will copy the file provided in `input:` to a file in the
 build directory with the name `output:` in the current directory.
 
 These are all the supported keyword arguments:
 
-- `capture` when this argument is set to true, Meson captures `stdout`
-  of the `command` and writes it to the target file specified as
-  `output`. Available since v0.41.0.
-- `command` as explained above, if specified, Meson does not create
+- `capture` *(since 0.41.0)*: when this argument is set to true,
+  Meson captures `stdout` of the `command` and writes it to the target
+  file specified as `output`.
+- `command`: as explained above, if specified, Meson does not create
   the file itself but rather runs the specified command, which allows
-  you to do fully custom file generation.
-- `copy` *(added 0.47.0)* as explained above, if specified Meson only
+  you to do fully custom file generation. *(since 0.52.0)* The command can contain
+  file objects and more than one file can be passed to the `input` keyword
+  argument, see [`custom_target()`](#custom_target) for details about string
+  substitutions.
+- `copy` *(since 0.47.0)*: as explained above, if specified Meson only
   copies the file from input to output.
-- `format` *(added 0.46.0)* the format of defines. It defaults to `meson`, and so substitutes
+- `depfile` *(since 0.52.0)*: a dependency file that the command can write listing
+  all the additional files this target depends on. A change
+  in any one of these files triggers a reconfiguration.
+- `format` *(since 0.46.0)*: the format of defines. It defaults to `meson`, and so substitutes
 `#mesondefine` statements and variables surrounded by `@` characters, you can also use `cmake`
 to replace `#cmakedefine` statements and variables with the `${variable}` syntax. Finally you can use
 `cmake@` in which case substitutions will apply on `#cmakedefine` statements and variables with
 the `@variable@` syntax.
-- `input` the input file name. If it's not specified in configuration
+- `input`: the input file name. If it's not specified in configuration
   mode, all the variables in the `configuration:` object (see above)
   are written to the `output:` file.
-- `install` *(added 0.50.0)* When true, this generated file is installed during
+- `install` *(since 0.50.0)*: when true, this generated file is installed during
 the install step, and `install_dir` must be set and not empty. When false, this
 generated file is not installed regardless of the value of `install_dir`.
 When omitted it defaults to true when `install_dir` is set and not empty,
 false otherwise.
-- `install_dir` the subdirectory to install the generated file to
+- `install_dir`: the subdirectory to install the generated file to
   (e.g. `share/myproject`), if omitted or given the value of empty
   string, the file is not installed.
-- `install_mode` *(added 0.47.0)* specify the file mode in symbolic format
+- `install_mode` *(since 0.47.0)*: specify the file mode in symbolic format
   and optionally the owner/uid and group/gid for the installed files.
-- `output` the output file name (since v0.41.0, may contain
-  `@PLAINNAME@` or `@BASENAME@` substitutions). In configuration mode,
+- `install_tag` *(since 0.60.0)*: A string used by `meson install --tags` command
+  to install only a subset of the files. By default the file has no install
+  tag which means it is not being installed when `--tags` argument is specified.
+- `output`: the output file name. *(since 0.41.0)* may contain
+  `@PLAINNAME@` or `@BASENAME@` substitutions. In configuration mode,
   the permissions of the input file (if it is specified) are copied to
   the output file.
-- `output_format` *(added 0.47.0)* the format of the output to generate when no input
+- `output_format` *(since 0.47.0)*: the format of the output to generate when no input
   was specified. It defaults to `c`, in which case preprocessor directives
   will be prefixed with `#`, you can also use `nasm`, in which case the
   prefix will be `%`.
-- `encoding` *(added v0.47.0)* set the file encoding for the input and output file,
+- `encoding` *(since 0.47.0)*: set the file encoding for the input and output file,
   defaults to utf-8. The supported encodings are those of python3, see
   [standard-encodings](https://docs.python.org/3/library/codecs.html#standard-encodings).
 
@@ -263,27 +329,30 @@ Create a custom top level build target. The only positional argument
 is the name of this target and the keyword arguments are the
 following.
 
-- `build_by_default` *(added 0.38)* causes, when set to true, to
-  have this target be built by default, that is, when invoking plain
-  `ninja`; the default value is false
-- `build_always` (deprecated) if `true` this target is always considered out of
+- `build_by_default` *(since 0.38.0)*: causes, when set to true, to
+  have this target be built by default. This means it will be built when
+  `meson compile` is called without any arguments. The default value is `false`.
+  *(since 0.50.0)* If `build_by_default` is explicitly set to false, `install`
+  will no longer override it. If `build_by_default` is not set, `install` will
+  still determine its default.
+- `build_always` **(deprecated)**: if `true` this target is always considered out of
   date and is rebuilt every time.  Equivalent to setting both
   `build_always_stale` and `build_by_default` to true.
-- `build_always_stale` *(added 0.47)* if `true` the target is always considered out of date.
+- `build_always_stale` *(since 0.47.0)*: if `true` the target is always considered out of date.
   Useful for things such as build timestamps or revision control tags.
   The associated command is run even if the outputs are up to date.
-- `capture`, there are some compilers that can't be told to write
+- `capture`: there are some compilers that can't be told to write
   their output to a file but instead write it to standard output. When
   this argument is set to true, Meson captures `stdout` and writes it
   to the target file. Note that your command argument list may not
   contain `@OUTPUT@` when capture mode is active.
-- `console` *(added 0.48)* keyword argument conflicts with `capture`, and is meant
+- `console` *(since 0.48.0)*: keyword argument conflicts with `capture`, and is meant
   for commands that are resource-intensive and take a long time to
   finish. With the Ninja backend, setting this will add this target
   to [Ninja's `console` pool](https://ninja-build.org/manual.html#_the_literal_console_literal_pool),
   which has special properties such as not buffering stdout and
   serializing all targets in this pool.
-- `command` command to run to create outputs from inputs. The command
+- `command`: command to run to create outputs from inputs. The command
   may be strings or the return value of functions that return file-like
   objects such as [`find_program()`](#find_program),
   [`executable()`](#executable), [`configure_file()`](#configure_file),
@@ -293,50 +362,95 @@ following.
   Note: always specify commands in array form `['commandname',
   '-arg1', '-arg2']` rather than as a string `'commandname -arg1
   -arg2'` as the latter will *not* work.
-- `depend_files` files ([`string`](#string-object),
+- `depend_files`: files ([`string`](#string-object),
   [`files()`](#files), or [`configure_file()`](#configure_file)) that
   this target depends on but are not listed in the `command` keyword
   argument. Useful for adding regen dependencies.
-- `depends` specifies that this target depends on the specified
+- `depends`: specifies that this target depends on the specified
   target(s), even though it does not take any of them as a command
   line argument. This is meant for cases where you have a tool that
   e.g. does globbing internally. Usually you should just put the
   generated sources as inputs and Meson will set up all dependencies
   automatically.
-- `depfile` is a dependency file that the command can write listing
+- `depfile`: a dependency file that the command can write listing
   all the additional files this target depends on, for example a C
   compiler would list all the header files it included, and a change
   in any one of these files triggers a recompilation
-- `input` list of source files. As of 0.41.0 the list will be flattened.
-- `install` when true, this target is installed during the install step
-- `install_dir` directory to install to
-- `install_mode` *(added 0.47.0)* the file mode and optionally the
+- `input`: list of source files. *(since 0.41.0)* the list is flattened.
+- `install`: when true, this target is installed during the install step
+- `install_dir`: If only one install_dir is provided, all outputs are installed there.
+   *Since 0.40.0* Allows you to specify the installation directory for each
+    corresponding output. For example:
+    ```meson
+    custom_target('different-install-dirs',
+      output : ['first.file', 'second.file'],
+      install : true,
+      install_dir : ['somedir', 'otherdir])
+    ```
+    This would install `first.file` to `somedir` and `second.file` to `otherdir`.
+
+    To only install some outputs, pass `false` for the outputs that you
+    don't want installed. For example:
+    ```meson
+    custom_target('only-install-second',
+      output : ['first.file', 'second.file'],
+      install : true,
+      install_dir : [false, 'otherdir])
+    ```
+    This would install `second.file` to `otherdir` and not install `first.file`.
+- `install_mode` *(since 0.47.0)*: the file mode and optionally the
   owner/uid and group/gid
-- `output` list of output files
+- `install_tag` *(since 0.60.0)*: A list of strings, one per output, used by
+  `meson install --tags` command to install only a subset of the files.
+  By default all outputs have no install tag which means they are not being
+  installed when `--tags` argument is specified. If only one tag is specified,
+  it is assumed that all outputs have the same tag. `false` can be used for
+  outputs that have no tag or are not installed.
+- `output`: list of output files
+- `env` *(since 0.57.0)*: environment variables to set, such as
+  `{'NAME1': 'value1', 'NAME2': 'value2'}` or `['NAME1=value1', 'NAME2=value2']`,
+  or an [`environment()` object](#environment-object) which allows more
+  sophisticated environment juggling.
+- `feed` *(since 0.59.0)*: there are some compilers that can't be told to read
+  their input from a file and instead read it from standard input. When this
+  argument is set to true, Meson feeds the input file to `stdin`. Note that
+  your argument list may not contain `@INPUT@` when feed mode is active.
 
 The list of strings passed to the `command` keyword argument accept
 the following special string substitutions:
 
-- `@INPUT@` the full path to the input passed to `input`. If more than
+- `@INPUT@`: the full path to the input passed to `input`. If more than
   one input is specified, all of them will be substituted as separate
   arguments only if the command uses `'@INPUT@'` as a
   standalone-argument. For instance, this would not work: `command :
   ['cp', './@INPUT@']`, but this would: `command : ['cp', '@INPUT@']`.
-- `@OUTPUT@` the full path to the output passed to `output`. If more
+- `@OUTPUT@`: the full path to the output passed to `output`. If more
   than one outputs are specified, the behavior is the same as
   `@INPUT@`.
-- `@INPUT0@` `@INPUT1@` `...` the full path to the input with the specified array index in `input`
-- `@OUTPUT0@` `@OUTPUT1@` `...` the full path to the output with the specified array index in `output`
-- `@OUTDIR@` the full path to the directory where the output(s) must be written
-- `@DEPFILE@` the full path to the dependency file passed to `depfile`
+- `@INPUT0@` `@INPUT1@` `...`: the full path to the input with the specified array index in `input`
+- `@OUTPUT0@` `@OUTPUT1@` `...`: the full path to the output with the specified array index in `output`
+- `@OUTDIR@`: the full path to the directory where the output(s) must be written
+- `@DEPFILE@`: the full path to the dependency file passed to `depfile`
 - `@PLAINNAME@`: the input filename, without a path
 - `@BASENAME@`: the input filename, with extension removed
+- `@PRIVATE_DIR@` *(since 0.50.1)*: path to a directory where the custom target must store all its intermediate files.
+- `@SOURCE_ROOT@`: the path to the root of the source tree. Depending on the backend,
+  this may be an absolute or a relative to current workdir path.
+- `@BUILD_ROOT@`: the path to the root of the build tree. Depending on the backend,
+  this may be an absolute or a relative to current workdir path.
+- `@CURRENT_SOURCE_DIR@`: this is the directory where the currently
+  processed meson.build is located in.  Depending on the backend,
+  this may be an absolute or a relative to current workdir path.
 
-The `depfile` keyword argument also accepts the `@BASENAME@` and `@PLAINNAME@`
-substitutions. *(since 0.47)*
+*(since 0.47.0)* The `depfile` keyword argument also accepts the
+ `@BASENAME@` and `@PLAINNAME@` substitutions.
 
 The returned object also has methods that are documented in the
 [object methods section](#custom-target-object) below.
+
+**Note:** Assuming that `command:` is executed by a POSIX `sh` shell
+is not portable, notably to Windows. Instead, consider using a
+`native: true` [executable()](#executable), or a python script.
 
 ### declare_dependency()
 
@@ -350,19 +464,22 @@ internal to the current build. The main use case for this is in
 subprojects. This allows a subproject to easily specify how it should
 be used. This makes it interchangeable with the same dependency that
 is provided externally by the system. This function has the following
-keyword arguments.
+keyword arguments:
 
-  - `compile_args`, compile arguments to use
-  - `dependencies`, other dependencies needed to use this dependency
-  - `include_directories`, the directories to add to header search path,
-    must be include_directories objects or, since 0.50.0, plain strings
-  - `link_args`, link arguments to use
-  - `link_with`, libraries to link against
-  - `link_whole`, libraries to link fully, same as [`executable`](#executable)
-    Since 0.46.0
-  - `sources`, sources to add to targets (or generated header files
-    that should be built before sources including them are built)
-  - `version`, the version of this dependency, such as `1.2.3`
+- `compile_args`: compile arguments to use.
+- `dependencies`: other dependencies needed to use this dependency.
+- `include_directories`: the directories to add to header search path,
+  must be include_directories objects or *(since 0.50.0)* plain strings
+- `link_args`: link arguments to use.
+- `link_with`: libraries to link against.
+- `link_whole` *(since 0.46.0)*: libraries to link fully, same as [`executable`](#executable).
+- `sources`: sources to add to targets (or generated header files
+  that should be built before sources including them are built)
+- `version`: the version of this dependency, such as `1.2.3`. Defaults to the
+  project version.
+- `variables` *(since 0.54.0)*: a dictionary of arbitrary strings, this is meant to be used
+  in subprojects where special variables would be provided via cmake or
+  pkg-config. *since 0.56.0* it can also be a list of `'key=value'` strings.
 
 ### dependency()
 
@@ -371,73 +488,126 @@ keyword arguments.
 ```
 
 Finds an external dependency (usually a library installed on your
-system) with the given name with `pkg-config` and [with CMake](Dependencies.md#CMake)
-if `pkg-config` fails. Additionally, frameworks (OSX only) and
-[library-specific fallback detection logic](Dependencies.md#dependencies-with-custom-lookup-functionality)
-are also supported. This function supports the following keyword arguments:
+system) with the given name with `pkg-config` and [with
+CMake](Dependencies.md#cmake) if `pkg-config` fails. Additionally,
+frameworks (OSX only) and [library-specific fallback detection
+logic](Dependencies.md#dependencies-with-custom-lookup-functionality)
+are also supported.
 
-- `default_options` *(added 0.37.0)* an array of default option values
+Dependencies can also be resolved in two other ways:
+
+* if the same name was used in a `meson.override_dependency` prior to
+  the call to `dependency`, the overriding dependency will be returned
+  unconditionally; that is, the overriding dependency will be used
+  independent of whether an external dependency is installed in the system.
+  Typically, `meson.override_dependency` will have been used by a
+  subproject.
+
+* by a fallback subproject which, if needed, will be brought into the current
+  build specification as if [`subproject()`](#subproject) had been called.
+  The subproject can be specified with the `fallback` argument.  Alternatively,
+  if the `fallback` argument is absent, *since 0.55.0* Meson can
+  automatically identify a subproject as a fallback if a wrap file
+  [provides](Wrap-dependency-system-manual.md#provide-section) the
+  dependency, or if a subproject has the same name as the dependency.
+  In the latter case, the subproject must use `meson.override_dependency` to
+  specify the replacement, or Meson will report a hard error.  See the
+  [Wrap documentation](Wrap-dependency-system-manual.md#provide-section)
+  for more details.  This automatic search can be controlled using the
+  `allow_fallback` keyword argument.
+
+This function supports the following keyword arguments:
+
+- `default_options` *(since 0.37.0)*: an array of default option values
   that override those set in the subproject's `meson_options.txt`
   (like `default_options` in [`project()`](#project), they only have
   effect when Meson is run for the first time, and command line
   arguments override any default options in build files)
-- `fallback` specifies a subproject fallback to use in case the
-  dependency is not found in the system. The value is an array
-  `['subproj_name', 'subproj_dep']` where the first value is the name
+- `allow_fallback` (boolean argument, *since 0.56.0*): specifies whether Meson
+  should automatically pick a fallback subproject in case the dependency
+  is not found in the system.  If `true` and the dependency is not found
+  on the system, Meson will fallback to a subproject that provides this
+  dependency. If `false`, Meson will not fallback even if a subproject
+  provides this dependency.  By default, Meson will do so if `required`
+  is `true` or  [`enabled`](Build-options.md#features); see the [Wrap
+  documentation](Wrap-dependency-system-manual.md#provide-section)
+  for more details.
+- `fallback` (string or array argument): manually specifies a subproject
+  fallback to use in case the dependency is not found in the system.
+  This is useful if the automatic search is not applicable or if you
+  want to support versions of Meson older than 0.55.0.  If the value is an
+  array `['subproj_name', 'subproj_dep']`, the first value is the name
   of the subproject and the second is the variable name in that
   subproject that contains a dependency object such as the return
   value of [`declare_dependency`](#declare_dependency) or
   [`dependency()`](#dependency), etc. Note that this means the
   fallback dependency may be a not-found dependency, in which
   case the value of the `required:` kwarg will be obeyed.
-- `language` *(added 0.42.0)* defines what language-specific
+  *Since 0.54.0* the value can be a single string, the subproject name;
+  in this case the subproject must use
+  `meson.override_dependency('dependency_name', subproj_dep)`
+  to specify the dependency object used in the superproject.
+  If the value is an empty list, it has the same effect as
+  `allow_fallback: false`.
+- `language` *(since 0.42.0)*: defines what language-specific
   dependency to find if it's available for multiple languages.
-- `method` defines the way the dependency is detected, the default is
+- `method`: defines the way the dependency is detected, the default is
   `auto` but can be overridden to be e.g. `qmake` for Qt development,
   and [different dependencies support different values](
   Dependencies.md#dependencies-with-custom-lookup-functionality)
   for this (though `auto` will work on all of them)
-- `native` if set to `true`, causes Meson to find the dependency on
+- `native`: if set to `true`, causes Meson to find the dependency on
   the build machine system rather than the host system (i.e. where the
   cross compiled binary will run on), usually only needed if you build
   a tool to be used during compilation.
-- `not_found_message` *(added 0.50.0)* is an optional string that will
+- `not_found_message` *(since 0.50.0)*: an optional string that will
   be printed as a `message()` if the dependency was not found.
-- `required`, when set to false, Meson will proceed with the build
-  even if the dependency is not found. Since *0.47.0* the value of a
+- `required`: when set to false, Meson will proceed with the build
+  even if the dependency is not found. *(since 0.47.0)* The value of a
   [`feature`](Build-options.md#features) option can also be passed.
-- `static` tells the dependency provider to try to get static
+- `static`: tells the dependency provider to try to get static
   libraries instead of dynamic ones (note that this is not supported
   by all dependency backends)
-- `version` specifies the required version, a string containing a
+  *Since 0.60.0* it also sets `default_library` option accordingly on the fallback
+  subproject if it was not set explicitly in `default_options` keyword argument.
+- `version` *(since 0.37.0)*: specifies the required version, a string containing a
   comparison operator followed by the version string, examples include
-  `>1.0.0`, `<=2.3.5` or `3.1.4` for exact matching. *(Added 0.37.0)*
+  `>1.0.0`, `<=2.3.5` or `3.1.4` for exact matching.
   You can also specify multiple restrictions by passing a list to this
   keyword argument, such as: `['>=3.14.0', '<=4.1.0']`.
   These requirements are never met if the version is unknown.
+- `include_type` *(since 0.52.0)*: an enum flag, marking how the dependency
+  flags should be converted. Supported values are `'preserve'`, `'system'` and
+  `'non-system'`. System dependencies may be handled differently on some
+   platforms, for instance, using `-isystem` instead of `-I`, where possible.
+   If `include_type` is set to `'preserve'`, no additional conversion will be
+   performed. The default value is `'preserve'`.
 - other
 [library-specific](Dependencies.md#dependencies-with-custom-lookup-functionality)
 keywords may also be accepted (e.g. `modules` specifies submodules to use for
-dependencies such as Qt5 or Boost. )
-- `disabler` if `true` and the dependency couldn't be found, return a
-  [disabler object](#disabler-object) instead of a not-found dependency.
-  *Since 0.49.0*
+dependencies such as Qt5 or Boost. `components` allows the user to manually
+add CMake `COMPONENTS` for the `find_package` lookup)
+- `disabler` *(since 0.49.0)*: if `true` and the dependency couldn't be found,
+  returns a [disabler object](#disabler-object) instead of a not-found dependency.
 
-If dependency_name is `''`, the dependency is always not found.  So with
-`required: false`, this always returns a dependency object for which the
-`found()` method returns `false`, and which can be passed like any other
-dependency to the `dependencies:` keyword argument of a `build_target`.  This
-can be used to implement a dependency which is sometimes not required e.g. in
-some branches of a conditional, or with a `fallback:` kwarg, can be used to
-declare an optional dependency that only looks in the specified subproject,
-and only if that's allowed by `--wrap-mode`.
+If dependency_name is `''`, the dependency is always not found. So
+with `required: false`, this always returns a dependency object for
+which the `found()` method returns `false`, and which can be passed
+like any other dependency to the `dependencies:` keyword argument of a
+`build_target`. This can be used to implement a dependency which is
+sometimes not required e.g. in some branches of a conditional, or with
+a `fallback:` kwarg, can be used to declare an optional dependency
+that only looks in the specified subproject, and only if that's
+allowed by `--wrap-mode`.
 
 The returned object also has methods that are documented in the
 [object methods section](#dependency-object) below.
 
 ### disabler()
 
-Returns a [disabler object](#disabler-object). Added in 0.44.0.
+*(since 0.44.0)*
+
+Returns a [disabler object](#disabler-object).
 
 ### error()
 
@@ -447,13 +617,22 @@ Returns a [disabler object](#disabler-object). Added in 0.44.0.
 
 Print the argument string and halts the build process.
 
+*(since 0.58.0)* Can take more than one argument that will be separated by
+space.
+
 ### environment()
 
 ``` meson
-    environment_object environment()
+    environment_object environment(...)
 ```
 
+*(since 0.35.0)*
+
 Returns an empty [environment variable object](#environment-object).
+
+*(since 0.52.0)* Takes an optional dictionary as first argument. If
+provided, each key/value pair is added into the `environment_object`
+as if `set()` method was called for each of them.
 
 ### executable()
 
@@ -480,98 +659,121 @@ libraries (`.so`, `.dll`, etc) will be linked.
 
 With the Ninja backend, Meson will create a build-time [order-only
 dependency](https://ninja-build.org/manual.html#ref_dependencies) on
-all generated input files, including unknown files. For all input
-files (generated and non-generated), Meson uses the [dependency
-file](https://ninja-build.org/manual.html#ref_headers) generated by
-your compiler to determine when to rebuild sources. The behavior is
-similar for other backends.
+all generated input files, including unknown files. This is needed to
+bootstrap the generation of the real dependencies in the
+[depfile](https://ninja-build.org/manual.html#ref_headers) generated
+by your compiler to determine when to rebuild sources. Ninja relies on
+this dependency file for all input files, generated and non-generated.
+The behavior is similar for other backends.
 
 Executable supports the following keyword arguments. Note that just
 like the positional arguments above, these keyword arguments can also
 be passed to [shared and static libraries](#library).
 
-- `<languagename>_pch` precompiled header file to use for the given language
-- `<languagename>_args` compiler flags to use for the given language;
+- `<languagename>_pch`: precompiled header file to use for the given language
+- `<languagename>_args`: compiler flags to use for the given language;
   eg: `cpp_args` for C++
-- `build_by_default` causes, when set to true, to have this target be
-  built by default, that is, when invoking plain `ninja`, the default
-  value is true for all built target types, since 0.38.0
-- `build_rpath` a string to add to target's rpath definition in the
+- `build_by_default` *(since 0.38.0)*: causes, when set to true, to
+   have this target be built by default. This means it will be built when
+  `meson compile` is called without any arguments. The default value is
+  `true` for all built target types.
+- `build_rpath`: a string to add to target's rpath definition in the
   build dir, but which will be removed on install
-- `dependencies` one or more objects created with
+- `dependencies`: one or more objects created with
   [`dependency`](#dependency) or [`find_library`](#compiler-object)
   (for external deps) or [`declare_dependency`](#declare_dependency)
   (for deps built by the project)
-- `extra_files` are not used for the build itself but are shown as
+- `extra_files`: not used for the build itself but are shown as
   source files in IDEs that group files by targets (such as Visual
   Studio)
-- `gui_app` when set to true flags this target as a GUI application on
-  platforms where this makes a difference (e.g. Windows)
-- `link_args` flags to use during linking. You can use UNIX-style
+- `gui_app`: when set to true flags this target as a GUI application
+  on platforms where this makes a differerence, **deprecated** since
+  0.56.0, use `win_subsystem` instead.
+- `link_args`: flags to use during linking. You can use UNIX-style
   flags here for all platforms.
-- `link_depends` strings, files, or custom targets the link step
+- `link_depends`: strings, files, or custom targets the link step
   depends on such as a symbol visibility map. The purpose is to
   automatically trigger a re-link (but not a re-compile) of the target
   when this file changes.
-- `link_whole` links all contents of the given static libraries
-  whether they are used by not, equivalent to the
-  `-Wl,--whole-archive` argument flag of GCC, available since
-  0.40.0. As of 0.41.0 if passed a list that list will be flattened.
-- `link_with`, one or more shared or static libraries (built by this
-  project) that this target should be linked with, If passed a list
-  this list will be flattened as of 0.41.0.
-- `export_dynamic` when set to true causes the target's symbols to be
+- `link_language` *(since 0.51.0)* *(broken until 0.55.0)*: makes the linker for this
+  target be for the specified language. It is generally unnecessary to set
+  this, as Meson will detect the right linker to use in most cases. There are
+  only two cases where this is needed. One, your main function in an
+  executable is not in the language Meson picked, or second you want to force
+  a library to use only one ABI.
+- `link_whole` *(since 0.40.0)*: links all contents of the given static libraries
+  whether they are used by not, equivalent to the `-Wl,--whole-archive` argument flag of GCC.
+  *(since 0.41.0)* If passed a list that list will be flattened.
+  *(since 0.51.0)* This argument also accepts outputs produced by
+  custom targets. The user must ensure that the output is a library in
+  the correct format.
+- `link_with`: one or more shared or static libraries (built by this
+  project) that this target should be linked with. *(since 0.41.0)* If passed a
+  list this list will be flattened. *(since 0.51.0)* The arguments can also be custom targets.
+  In this case Meson will assume that merely adding the output file in the linker command
+  line is sufficient to make linking work. If this is not sufficient,
+  then the build system writer must write all other steps manually.
+- `export_dynamic` *(since 0.45.0)*: when set to true causes the target's symbols to be
   dynamically exported, allowing modules built using the
   [`shared_module`](#shared_module) function to refer to functions,
   variables and other symbols defined in the executable itself. Implies
-  the `implib` argument.  Since 0.45.0
-- `implib` when set to true, an import library is generated for the
+  the `implib` argument.
+- `implib` *(since 0.42.0)*: when set to true, an import library is generated for the
   executable (the name of the import library is based on *exe_name*).
   Alternatively, when set to a string, that gives the base name for
   the import library.  The import library is used when the returned
   build target object appears in `link_with:` elsewhere.  Only has any
   effect on platforms where that is meaningful (e.g. Windows). Implies
-  the `export_dynamic` argument.  Since 0.42.0
-- `implicit_include_directories` is a boolean telling whether Meson
+  the `export_dynamic` argument.
+- `implicit_include_directories` *(since 0.42.0)*: a boolean telling whether Meson
   adds the current source and build directories to the include path,
-  defaults to `true`, since 0.42.0
-- `include_directories` one or more objects created with the
-  `include_directories` function, or, since 0.50.0, strings, which
+  defaults to `true`.
+- `include_directories`: one or more objects created with the
+  `include_directories` function, or *(since 0.50.0)* strings, which
   will be transparently expanded to include directory objects
-- `install`, when set to true, this executable should be installed
-- `install_dir` override install directory for this file. The value is
+- `install`: when set to true, this executable should be installed, defaults to `false`
+- `install_dir`: override install directory for this file. The value is
   relative to the `prefix` specified. F.ex, if you want to install
   plugins into a subdir, you'd use something like this: `install_dir :
-  join_paths(get_option('libdir'), 'projectname-1.0'`).
-- `install_mode` *(added 0.47.0)* specify the file mode in symbolic format
+  get_option('libdir') / 'projectname-1.0'`.
+- `install_mode` *(since 0.47.0)*: specify the file mode in symbolic format
   and optionally the owner/uid and group/gid for the installed files.
-- `install_rpath` a string to set the target's rpath to after install
-  (but *not* before that)
-- `objects` list of prebuilt object files (usually for third party
+- `install_rpath`: a string to set the target's rpath to after install
+  (but *not* before that). On Windows, this argument has no effect.
+- `install_tag` *(since 0.60.0)*: A string used by `meson install --tags` command
+  to install only a subset of the files. By default all build targets have the
+  tag `runtime` except for static libraries that have the `devel` tag.
+- `objects`: list of prebuilt object files (usually for third party
   products you don't have source to) that should be linked in this
   target, **never** use this for object files that you build yourself.
-- `name_suffix` the string that will be used as the extension for the
+- `name_suffix`: the string that will be used as the extension for the
   target by overriding the default. By default on Windows this is
   `exe` and on other platforms it is omitted. Set this to `[]`, or omit
   the keyword argument for the default behaviour.
-- `override_options` takes an array of strings in the same format as
+- `override_options` *(since 0.40.0)*: takes an array of strings in the same format as
   `project`'s `default_options` overriding the values of these options
-  for this target only, since 0.40.0
-- `gnu_symbol_visibility` specifies how symbols should be exported, see
+  for this target only.
+- `gnu_symbol_visibility` *(since 0.48.0)*: specifies how symbols should be exported, see
   e.g [the GCC Wiki](https://gcc.gnu.org/wiki/Visibility) for more
   information. This value can either be an empty string or one of
   `default`, `internal`, `hidden`, `protected` or `inlineshidden`, which
   is the same as `hidden` but also includes things like C++ implicit
   constructors as specified in the GCC manual. Ignored on compilers that
-  do not support GNU visibility arguments. Available since 0.48.0.
-- `d_import_dirs` list of directories to look in for string imports used
+  do not support GNU visibility arguments.
+- `d_import_dirs`: list of directories to look in for string imports used
   in the D programming language
-- `d_unittest`, when set to true, the D modules are compiled in debug mode
-- `d_module_versions` list of module version identifiers set when compiling D sources
-- `d_debug` list of module debug identifiers set when compiling D sources
-- `pie` *(added 0.49.0)* build a position-independent executable
-- `native`, is a boolean controlling whether the target is compiled for the
+- `d_unittest`: when set to true, the D modules are compiled in debug mode
+- `d_module_versions`: list of module version identifiers set when compiling D sources
+- `d_debug`: list of module debug identifiers set when compiling D sources
+- `pie` *(since 0.49.0)*: build a position-independent executable
+- `native`: is a boolean controlling whether the target is compiled for the
   build or host machines. Defaults to false, building for the host machine.
+- `win_subsystem` *(since 0.56.0)* specifies the subsystem type to use
+  on the Windows platform. Typical values include `console` for text
+  mode programs and `windows` for gui apps. The value can also contain
+  version specification such as `windows,6.0`. See [MSDN
+  documentation](https://docs.microsoft.com/en-us/cpp/build/reference/subsystem-specify-subsystem)
+  for the full list. The default value is `console`.
 
 The list of `sources`, `objects`, and `dependencies` is always
 flattened, which means you can freely nest and add lists while
@@ -580,12 +782,6 @@ creating the final list.
 The returned object also has methods that are documented in the
 [object methods section](#build-target-object) below.
 
-### find_library()
-
-This function is deprecated and in the 0.31.0 release it was moved to
-[the compiler object](#compiler-object) as obtained from
-`meson.get_compiler(lang)`.
-
 ### find_program()
 
 ``` meson
@@ -593,15 +789,28 @@ This function is deprecated and in the 0.31.0 release it was moved to
 ```
 
 `program_name1` here is a string that can be an executable or script
-to be searched for in `PATH`, or a script in the current source
-directory.
+to be searched for in `PATH` or other places inside the project.
+The search order is:
 
-`program_name2` and later positional arguments are used as fallback
+1. Program overrides set via [`meson.override_find_program()`](Reference-manual.md#meson-object)
+1. [`[provide]` sections](Wrap-dependency-system-manual.md#provide-section)
+   in subproject wrap files, if [`wrap_mode`](Builtin-options.md#core-options) is
+   set to `forcefallback`
+1. [`[binaries]` section](Machine-files.md#binaries) in your machine files
+1. Directories provided using the `dirs:` kwarg (see below)
+1. Project's source tree relative to the current subdir
+   - If you use the return value of [`configure_file()`](#configure_file), the
+     current subdir inside the build tree is used instead
+1. `PATH` environment variable
+1. [`[provide]` sections](Wrap-dependency-system-manual.md#provide-section) in
+   subproject wrap files, if [`wrap_mode`](Builtin-options.md#core-options) is
+   set to anything other than `nofallback`
+
+*(since 0.37.0)* `program_name2` and later positional arguments are used as fallback
 strings to search for. This is meant to be used for cases where the
 program may have many alternative names, such as `foo` and
 `foo.py`. The function will check for the arguments one by one and the
-first one that is found is returned. Meson versions earlier than
-0.37.0 only accept one argument.
+first one that is found is returned.
 
 Keyword arguments are the following:
 
@@ -609,36 +818,49 @@ Keyword arguments are the following:
   abort if no program can be found. If `required` is set to `false`,
   Meson continue even if none of the programs can be found. You can
   then use the `.found()` method on the [returned object](#external-program-object) to check
-  whether it was found or not. Since *0.47.0*  the value of a
+  whether it was found or not. *(since 0.47.0)* The value of a
   [`feature`](Build-options.md#features) option can also be passed to the
   `required` keyword argument.
 
-- `native` *(since 0.43)* defines how this executable should be searched. By default
+- `native` *(since 0.43.0)*: defines how this executable should be searched. By default
   it is set to `false`, which causes Meson to first look for the
   executable in the cross file (when cross building) and if it is not
   defined there, then from the system. If set to `true`, the cross
   file is ignored and the program is only searched from the system.
 
-- `disabler` if `true` and the program couldn't be found, return a
+- `disabler` *(since 0.49.0)*: if `true` and the program couldn't be found, return a
   [disabler object](#disabler-object) instead of a not-found object.
-  *Since 0.49.0*
+
+
+- `version` *(since 0.52.0)*: specifies the required version, see
+  [`dependency()`](#dependency) for argument format. The version of the program
+  is determined by running `program_name --version` command. If stdout is empty
+  it fallbacks to stderr. If the output contains more text than simply a version
+  number, only the first occurrence of numbers separated by dots is kept.
+  If the output is more complicated than that, the version checking will have to
+  be done manually using [`run_command()`](#run_command).
+
+- `dirs` *(since 0.53.0)*: extra list of absolute paths where to look for program
+  names.
 
 Meson will also autodetect scripts with a shebang line and run them
 with the executable/interpreter specified in it both on Windows
 (because the command invocator will reject the command otherwise) and
-Unixes (if the script file does not have the executable bit
-set). Hence, you *must not* manually add the interpreter while using
-this script as part of a list of commands.
+Unixes (if the script file does not have the executable bit set).
+Hence, you *must not* manually add the interpreter while using this
+script as part of a list of commands.
 
 If you need to check for a program in a non-standard location, you can
-just pass an absolute path to `find_program`, e.g.  ``` setcap =
-find_program('setcap', '/usr/sbin/setcap', '/sbin/setcap', required :
-false) ```
+just pass an absolute path to `find_program`, e.g.
+
+```meson
+setcap = find_program('setcap', '/usr/sbin/setcap', '/sbin/setcap', required : false)
+```
 
 It is also possible to pass an array to `find_program` in case you
 need to construct the set of paths to search on the fly:
 
-```
+```meson
 setcap = find_program(['setcap', '/usr/sbin/setcap', '/sbin/setcap'], required : false)
 ```
 
@@ -686,19 +908,22 @@ argument is the executable to use. It can either be a self-built
 executable or one returned by find_program. Keyword arguments are the
 following:
 
-- `arguments` a list of template strings that will be the command line
+- `arguments`: a list of template strings that will be the command line
   arguments passed to the executable
-- `depfile` is a template string pointing to a dependency file that a
+- `depends` *(since 0.51.0)*: is an array of build targets that must be built before this
+  generator can be run. This is used if you have a generator that calls
+  a second executable that is built in this project.
+- `depfile`: is a template string pointing to a dependency file that a
   generator can write listing all the additional files this target
   depends on, for example a C compiler would list all the header files
   it included, and a change in any one of these files triggers a
   recompilation
-- `output` a template string (or list of template strings) defining
+- `output`: a template string (or list of template strings) defining
   how an output file name is (or multiple output names are) generated
   from a single source file name
-- `capture` when this argument is set to true, Meson captures `stdout`
-  of the `executable` and writes it to the target file specified as
-  `output`. Available since v0.43.0.
+- `capture` *(since 0.43.0)*: when this argument is set to true, Meson
+  captures `stdout` of the `executable` and writes it to the target file
+  specified as `output`.
 
 The returned object also has methods that are documented in the
 [object methods section](#generator-object) below.
@@ -751,11 +976,13 @@ The only exceptions are: `sysconfdir`, `localstatedir`, and
 configuration as-is, which may be absolute, or relative to `prefix`.
 [`install_dir` arguments](Installing.md) handles that as expected, but
 if you need the absolute path to one of these e.g. to use in a define
-etc., you should use `join_paths(get_option('prefix'),
-get_option('localstatedir'))`
+etc., you should use `get_option('prefix') /
+get_option('localstatedir')`
 
-For options of type `feature` a special object is returned instead of
-a string.  See [`feature` options](Build-options.md#features)
+For options of type `feature` a
+[feature option object](#feature-option-object)
+is returned instead of a string.
+See [`feature` options](Build-options.md#features)
 documentation for more details.
 
 ### get_variable()
@@ -773,18 +1000,20 @@ a non-existing variable will cause a fatal error.
 
 ### import()
 
-``` meson
-    module_object import(module_name)
+```
+  module_object import(string, required : bool | feature, disabler : bool)
 ```
 
-Imports the given extension module. Returns an opaque object that can
-be used to call the methods of the module. Here's an example for a
-hypothetical `testmod` module.
+Imports the given extension module. Returns an object that can be used to call
+the methods of the module. Here's an example for a hypothetical `testmod`
+module.
 
 ```meson
     tmod = import('testmod')
     tmod.do_something()
 ```
+
+*Since 0.59.0* the required and disabler keyword arguments
 
 ### include_directories()
 
@@ -860,28 +1089,31 @@ except Visual Studio).
 Installs files from the source tree that are listed as positional
 arguments. The following keyword arguments are supported:
 
-- `install_dir` the absolute or relative path to the installation
+- `install_dir`: the absolute or relative path to the installation
   directory. If this is a relative path, it is assumed to be relative
   to the prefix.
 
-  If omitted, the directory defaults to `{datadir}/{projectname}` *(added 0.45.0)*.
+  If omitted, the directory defaults to `{datadir}/{projectname}` *(since 0.45.0)*.
 
-- `install_mode` specify the file mode in symbolic format and
+- `install_mode`: specify the file mode in symbolic format and
   optionally the owner/uid and group/gid for the installed files. For
   example:
 
   `install_mode: 'rw-r--r--'` for just the file mode
 
-  `install_mode: ['rw-r--r--', 'nobody', 'nobody']` for the file mode and the user/group
+  `install_mode: ['rw-r--r--', 'nobody', 'nogroup']` for the file mode and the user/group
 
   `install_mode: ['rw-r-----', 0, 0]` for the file mode and uid/gid
 
  To leave any of these three as the default, specify `false`.
 
-- `rename` if specified renames each source file into corresponding
+- `rename` *(since 0.46.0)*: if specified renames each source file into corresponding
   file from `rename` list. Nested paths are allowed and they are
   joined with `install_dir`. Length of `rename` list must be equal to
-  the number of sources.  *(added 0.46.0)*
+  the number of sources.
+- `install_tag` *(since 0.60.0)*: A string used by `meson install --tags` command
+  to install only a subset of the files. By default these files have no install
+  tag which means they are not being installed when `--tags` argument is specified.
 
 See [Installing](Installing.md) for more examples.
 
@@ -918,10 +1150,11 @@ This will install `common.h` and `kola.h` into `/{prefix}/cust/myproj`:
 install_headers('common.h', 'proj/kola.h', install_dir : 'cust', subdir : 'myproj')
 ```
 
-The `install_mode` argument can be used to specify the file mode in symbolic
-format and optionally the owner/uid and group/gid for the installed files.
-An example value could be `['rwxr-sr-x', 'root', 'root']`.
-*(Added 0.47.0)*.
+Accepts the following keywords:
+
+- `install_mode` *(since 0.47.0)*: can be used to specify the file mode in symbolic
+  format and optionally the owner/uid and group/gid for the installed files.
+  An example value could be `['rwxr-sr-x', 'root', 'root']`.
 
 ### install_man()
 
@@ -931,27 +1164,42 @@ An example value could be `['rwxr-sr-x', 'root', 'root']`.
 
 Installs the specified man files from the source tree into system's
 man directory during the install step. This directory can be
-overridden by specifying it with the `install_dir` keyword
-argument.
+overridden by specifying it with the `install_dir` keyword argument.
 
-The `install_mode` argument can be used to specify the file mode in symbolic
-format and optionally the owner/uid and group/gid for the installed files.
-An example value could be `['rwxr-sr-x', 'root', 'root']`.
-*(Added 0.47.0)*.
+Accepts the following keywords:
 
-Since 0.49.0, [manpages are no longer compressed implicitly][install_man_49].
+- `install_mode` *(since 0.47.0)*: can be used to specify the file mode in symbolic
+  format and optionally the owner/uid and group/gid for the installed files.
+  An example value could be `['rwxr-sr-x', 'root', 'root']`.
 
-[install_man_49]: https://mesonbuild.com/Release-notes-for-0-49-0.html#manpages-are-no-longer-compressed-implicitly
+- `locale` *(since 0.58.0)*: can be used to specify the locale into which the
+  man page will be installed within the manual page directory tree.
+  An example manual might be `foo.fr.1` with a locale of `fr`, such
+  that `{mandir}/{locale}/man{num}/foo.1` becomes the installed file.
+
+*(since 0.49.0)* [manpages are no longer compressed
+ implicitly][install_man_49].
+
+[install_man_49]:
+https://mesonbuild.com/Release-notes-for-0-49-0.html#manpages-are-no-longer-compressed-implicitly
 
 ### install_subdir()
 
 ``` meson
-    void install_subdir(subdir_name, install_dir : ..., exclude_files : ..., exclude_directories : ..., strip_directory : ...)
+    void install_subdir(subdir_name,
+                        install_dir : ...,
+                        exclude_files : ...,
+                        exclude_directories : ...,
+                        strip_directory : ...)
 ```
 
 Installs the entire given subdirectory and its contents from the
 source tree to the location specified by the keyword argument
 `install_dir`.
+
+If the subdirectory does not exist in the source tree, an empty directory is
+created in the specified location. *(since 0.45.0)* A newly created
+subdirectory may only be created in the keyword argument `install_dir`.
 
 The following keyword arguments are supported:
 
@@ -960,11 +1208,13 @@ The following keyword arguments are supported:
 - `exclude_directories`: a list of directory names that should not be installed.
   Names are interpreted as paths relative to the `subdir_name` location.
 - `install_dir`: the location to place the installed subdirectory.
-- `install_mode`: the file mode in symbolic format and optionally
-  the owner/uid and group/gid for the installed files. *(Added 0.47.0)*
-- `strip_directory`: install directory contents. `strip_directory=false` by default.
-  If `strip_directory=false` only last component of source path is used.
-  Since 0.45.0
+- `install_mode` *(since 0.47.0)*: the file mode in symbolic format and optionally
+  the owner/uid and group/gid for the installed files.
+- `strip_directory` *(since 0.45.0)*: install directory contents. `strip_directory=false` by default.
+  If `strip_directory=true` only the last component of the source path is used.
+- `install_tag` *(since 0.60.0)*: A string used by `meson install --tags` command
+  to install only a subset of the files. By default these files have no install
+  tag which means they are not being installed when `--tags` argument is specified.
 
 For a given directory `foo`:
 ```text
@@ -1003,6 +1253,22 @@ share/
   file1
 ```
 
+`install_subdir('new_directory', install_dir : 'share')` creates
+```text
+share/
+  new_directory/
+```
+
+### is_disabler()
+
+``` meson
+    bool is_disabler(var)
+```
+
+*(since 0.52.0)*
+
+Returns true if a variable is a disabler and false otherwise.
+
 ### is_variable()
 
 ``` meson
@@ -1028,6 +1294,8 @@ the jar with `java -jar file.jar`.
 string join_paths(string1, string2, ...)
 ```
 
+*(since 0.36.0)*
+
 Joins the given strings into a file system path segment. For example
 `join_paths('foo', 'bar')` results in `foo/bar`. If any one of the
 individual segments is an absolute path, all segments before it are
@@ -1036,9 +1304,7 @@ dropped. That means that `join_paths('foo', '/bar')` returns `/bar`.
 **Warning** Don't use `join_paths()` for sources in [`library`](#library) and
 [`executable`](#executable), you should use [`files`](#files) instead.
 
-*Added 0.36.0*
-
-Since 0.49.0 using the`/` operator on strings is equivalent to calling
+*(since 0.49.0)* Using the`/` operator on strings is equivalent to calling
 `join_paths`.
 
 ```meson
@@ -1054,30 +1320,34 @@ res2 = foo / bar
 ```
 
 Builds a library that is either static, shared or both depending on
-the value of `default_library` user option. You should use this
-instead of [`shared_library`](#shared_library),
+the value of `default_library`
+user [option](https://mesonbuild.com/Builtin-options.html).
+You should use this instead of [`shared_library`](#shared_library),
 [`static_library`](#static_library) or
 [`both_libraries`](#both_libraries) most of the time. This allows you
 to toggle your entire project (including subprojects) from shared to
-static with only one option.
+static with only one option. This option applies to libraries being
+built internal to the entire project. For external dependencies, the
+default library type preferred is shared. This can be adapted on a per
+library basis using the [dependency()](#dependency)) `static` keyword.
 
 The keyword arguments for this are the same as for
 [`executable`](#executable) with the following additions:
 
-- `name_prefix` the string that will be used as the prefix for the
+- `name_prefix`: the string that will be used as the prefix for the
   target output filename by overriding the default (only used for
-  libraries). By default this is `lib` on all platforms and compilers
-  except with MSVC shared libraries where it is omitted to follow
-  convention.
-- `name_suffix` the string that will be used as the suffix for the
+  libraries). By default this is `lib` on all platforms and compilers,
+  except for MSVC shared libraries where it is omitted to follow
+  convention, and Cygwin shared libraries where it is `cyg`.
+- `name_suffix`: the string that will be used as the suffix for the
   target output filename by overriding the default (see also:
   [executable()](#executable)). By default, for shared libraries this
   is `dylib` on macOS, `dll` on Windows, and `so` everywhere else.
   For static libraries, it is `a` everywhere. By convention MSVC
   static libraries use the `lib` suffix, but we use `a` to avoid a
   potential name clash with shared libraries which also generate
-  `xxx.lib` import files.
-- `rust_crate_type` specifies the crate type for Rust
+  import libraries with a `lib` suffix.
+- `rust_crate_type`: specifies the crate type for Rust
   libraries. Defaults to `dylib` for shared libraries and `rlib` for
   static libraries.
 
@@ -1095,15 +1365,90 @@ them for the default behaviour for each platform.
 
 This function prints its argument to stdout.
 
+*(since 0.54.0)* Can take more than one argument that will be
+separated by space.
+
 ### warning()
 
 ``` meson
     void warning(text)
 ```
 
+*(since 0.44.0)*
+
 This function prints its argument to stdout prefixed with WARNING:.
 
-*Added 0.44.0*
+*(since 0.54.0)* Can take more than one argument that will be separated by
+space.
+
+### summary()
+
+``` meson
+    void summary(key, value)
+    void summary(dictionary)
+```
+
+*(since 0.53.0)*
+
+This function is used to summarize build configuration at the end of the build
+process. This function provides a way for projects (and subprojects) to report
+this information in a clear way.
+
+The content is a series of key/value pairs grouped into sections. If
+the section keyword argument is omitted, those key/value pairs are
+implicitly grouped into a section with no title. key/value pairs can
+optionally be grouped into a dictionary, but keep in mind that
+dictionaries does not guarantee ordering. `key` must be string,
+`value` can be:
+
+- an integer, boolean or string
+- *since 0.57.0* an external program or a dependency
+- *since 0.58.0* a feature option
+- a list of those.
+
+`summary()` can be called multiple times as long as the same
+section/key pair doesn't appear twice. All sections will be collected
+and printed at the end of the configuration in the same order as they
+have been called.
+
+Keyword arguments:
+- `section`: title to group a set of key/value pairs.
+- `bool_yn`: if set to true, all boolean values will be replaced by green YES
+  or red NO.
+- `list_sep` *(since 0.54.0)*: string used to separate list values (e.g. `', '`).
+
+Example:
+```meson
+project('My Project', version : '1.0')
+summary({'bindir': get_option('bindir'),
+         'libdir': get_option('libdir'),
+         'datadir': get_option('datadir'),
+        }, section: 'Directories')
+summary({'Some boolean': false,
+         'Another boolean': true,
+         'Some string': 'Hello World',
+         'A list': ['string', 1, true],
+        }, section: 'Configuration')
+```
+
+Output:
+```
+My Project 1.0
+
+  Directories
+    prefix         : /opt/gnome
+    bindir         : bin
+    libdir         : lib/x86_64-linux-gnu
+    datadir        : share
+
+  Configuration
+    Some boolean   : False
+    Another boolean: True
+    Some string    : Hello World
+    A list         : string
+                     1
+                     True
+```
 
 ### project()
 
@@ -1112,11 +1457,7 @@ This function prints its argument to stdout prefixed with WARNING:.
 ```
 
 The first argument to this function must be a string defining the name
-of this project. It is followed by programming languages that the
-project uses. Supported values for languages are `c`, `cpp` (for
-`C++`), `d`, `objc`, `objcpp`, `fortran`, `java`, `cs` (for `C#`),
-`vala` and `rust`. In versions before `0.40.0` you must have at least one
-language listed.
+of this project.
 
 The project name can be any string you want, it's not used for
 anything except descriptive purposes. However since it is written to
@@ -1125,42 +1466,57 @@ same as the project tarball or pkg-config name. So for example you
 would probably want to use the name _libfoobar_ instead of _The Foobar
 Library_.
 
+It may be followed by the list of programming languages that the project uses.
+
+*(since 0.40.0)* The list of languages is optional.
+
+These languages may be used both for `native: false` (the default)
+(host machine) targets and for `native: true` (build machine) targets.
+*(since 0.56.0)* The build machine compilers for the specified
+languages are not required.
+
+Supported values for languages are `c`, `cpp` (for `C++`), `cuda`, `d`,
+`objc`, `objcpp`, `fortran`, `java`, `cs` (for `C#`), `vala` and `rust`.
+
 Project supports the following keyword arguments.
 
- - `default_options` takes an array of strings. The strings are in the
-   form `key=value` and have the same format as options to
-   `meson configure`. For example to set the default project type you would
-   set this: `default_options : ['buildtype=debugoptimized']`. Note
-   that these settings are only used when running Meson for the first
-   time. Global options such as `buildtype` can only be specified in
-   the master project, settings in subprojects are ignored. Project
-   specific options are used normally even in subprojects.
+- `default_options`: takes an array of strings. The strings are in the
+  form `key=value` and have the same format as options to
+  `meson configure`. For example to set the default project type you would
+  set this: `default_options : ['buildtype=debugoptimized']`. Note
+  that these settings are only used when running Meson for the first
+  time. Global options such as `buildtype` can only be specified in
+  the master project, settings in subprojects are ignored. Project
+  specific options are used normally even in subprojects.
 
 
-  - `license` takes a string or array of strings describing the
-    license(s) the code is under. Usually this would be something like
-    `license : 'GPL2+'`, but if the code has multiple licenses you can
-    specify them as an array like this: `license : ['proprietary',
-    'GPL3']`. Note that the text is informal and is only written to
-    the dependency manifest. Meson does not do any license validation,
-    you are responsible for verifying that you abide by all licensing
-    terms. You can access the value in your Meson build files with
-    `meson.project_license()`.
+- `license`: takes a string or array of strings describing the license(s) the
+  code is under. To avoid ambiguity it is recommended to use a standardized
+  license identifier from the [SPDX license list](https://spdx.org/licenses/).
+  Usually this would be something like `license : 'GPL-2.0-or-later'`, but if
+  the code has multiple licenses you can specify them as an array like this:
+  `license : ['proprietary', 'GPL-3.0-only']`. Note that the text is informal
+  and is only written to the dependency manifest. Meson does not do any license
+  validation, you are responsible for verifying that you abide by all licensing
+  terms. You can access the value in your Meson build files with
+  `meson.project_license()`.
 
-  - `meson_version` takes a string describing which Meson version the
-    project requires. Usually something like `>=0.28.0`.
+- `meson_version`: takes a string describing which Meson version the
+  project requires. Usually something like `>=0.28.0`.
 
-  - `subproject_dir` specifies the top level directory name that holds
-    Meson subprojects. This is only meant as a compatibility option
-    for existing code bases that house their embedded source code in a
-    custom directory. All new projects should not set this but instead
-    use the default value. It should be noted that this keyword
-    argument is ignored inside subprojects. There can be only one
-    subproject dir and it is set in the top level Meson file.
+- `subproject_dir`: specifies the top level directory name that holds
+  Meson subprojects. This is only meant as a compatibility option
+  for existing code bases that house their embedded source code in a
+  custom directory. All new projects should not set this but instead
+  use the default value. It should be noted that this keyword
+  argument is ignored inside subprojects. There can be only one
+  subproject dir and it is set in the top level Meson file.
 
- - `version`, which is a free form string describing the version of
-   this project. You can access the value in your Meson build files
-   with `meson.project_version()`.
+- `version`: which is a free form string describing the version of
+  this project. You can access the value in your Meson build files
+  with `meson.project_version()`. Since 0.57.0 this can also be a
+  `File` object pointing to a file that contains exactly one line of
+  text.
 
 ### run_command()
 
@@ -1168,8 +1524,8 @@ Project supports the following keyword arguments.
     runresult run_command(command, list_of_args, ...)
 ```
 
-Runs the command specified in positional arguments.  `command` can be
-a string, or the output of [`find_program()`](#find_program),
+Runs the command specified in positional arguments. `command` can be a
+string, or the output of [`find_program()`](#find_program),
 [`files()`](#files) or [`configure_file()`](#configure_file), or [a
 compiler object](#compiler-object).
 
@@ -1180,12 +1536,15 @@ and Meson will set three environment variables `MESON_SOURCE_ROOT`,
 directory, build directory and subdirectory the target was defined in,
 respectively.
 
-This function has one keyword argument.
+This function supports the following keyword arguments:
 
- - `check` takes a boolean. If `true`, the exit status code of the command will
+ - `check` *(since 0.47.0)*: takes a boolean. If `true`, the exit status code of the command will
    be checked, and the configuration will fail if it is non-zero. The default is
    `false`.
-   Since 0.47.0
+ - `env` *(since 0.50.0)*: environment variables to set, such as `['NAME1=value1',
+   'NAME2=value2']`, or an [`environment()`
+   object](#environment-object) which allows more sophisticated
+   environment juggling. *(since 0.52.0)* A dictionary is also accepted.
 
 See also [External commands](External-commands.md).
 
@@ -1197,10 +1556,10 @@ runtarget run_target(target_name, ...)
 
 This function creates a new top-level target that runs a specified
 command with the specified arguments. Like all top-level targets, this
-integrates with the selected backend. For instance, with Ninja you can
-run it as `ninja target_name`. Note that a run target produces no
-output as far as Meson is concerned. It is only meant for tasks such
-as running a code formatter or flashing an external device's firmware
+integrates with the selected backend. For instance, you can run it as
+`meson compile target_name`. Note that a run target produces no output
+as far as Meson is concerned. It is only meant for tasks such as
+running a code formatter or flashing an external device's firmware
 with a built file.
 
 The command is run from an *unspecified* directory, and Meson will set
@@ -1216,6 +1575,20 @@ and subdirectory the target was defined in, respectively.
 - `depends` is a list of targets that this target depends on but which
   are not listed in the command array (because, for example, the
   script does file globbing internally)
+- `env` *(since 0.57.0)*: environment variables to set, such as
+  `{'NAME1': 'value1', 'NAME2': 'value2'}` or `['NAME1=value1', 'NAME2=value2']`,
+  or an [`environment()` object](#environment-object) which allows more
+  sophisticated environment juggling.
+
+*Since 0.57.0* The template strings passed to `command` keyword arguments accept
+the following special substitutions:
+- `@SOURCE_ROOT@`: the path to the root of the source tree. Depending on the backend,
+  this may be an absolute or a relative to current workdir path.
+- `@BUILD_ROOT@`: the path to the root of the build tree. Depending on the backend,
+  this may be an absolute or a relative to current workdir path.
+- `@CURRENT_SOURCE_DIR@` *Since 0.57.1*: this is the directory where the currently
+  processed meson.build is located in. Depending on the backend,
+  this may be an absolute or a relative to current workdir path.
 
 ### set_variable()
 
@@ -1226,8 +1599,7 @@ and subdirectory the target was defined in, respectively.
 Assigns a value to the given variable name. Calling
 `set_variable('foo', bar)` is equivalent to `foo = bar`.
 
-**Note:** Prior to v0.46.1, the `value` parameter could not be an
-array type, due to flattening of the function parameters.
+*(since 0.46.1)* The `value` parameter can be an array type.
 
 ### shared_library()
 
@@ -1239,7 +1611,7 @@ Builds a shared library with the given sources. Positional and keyword
 arguments are the same as for [`library`](#library) with the following
 extra keyword arguments.
 
-- `soversion` a string specifying the soversion of this shared
+- `soversion`: a string specifying the soversion of this shared
   library, such as `0`. On Linux and Windows this is used to set the
   soversion (or equivalent) in the filename. For example, if
   `soversion` is `4`, a Windows DLL will be called `foo-4.dll` and one
@@ -1247,19 +1619,19 @@ extra keyword arguments.
   `libfoo.so.4`. If this is not specified, the first part of `version`
   is used instead (see below). For example, if `version` is `3.6.0` and
   `soversion` is not defined, it is set to `3`.
-- `version` a string specifying the version of this shared library,
+- `version`: a string specifying the version of this shared library,
   such as `1.1.0`. On Linux and OS X, this is used to set the shared
   library version in the filename, such as `libfoo.so.1.1.0` and
   `libfoo.1.1.0.dylib`. If this is not specified, `soversion` is used
   instead (see above).
-- `darwin_versions` *(added 0.48)* an integer, string, or a list of
+- `darwin_versions` *(since 0.48.0)*: an integer, string, or a list of
   versions to use for setting dylib `compatibility version` and
   `current version` on macOS. If a list is specified, it must be
   either zero, one, or two elements. If only one element is specified
   or if it's not a list, the specified value will be used for setting
   both compatibility version and current version. If unspecified, the
   `soversion` will be used as per the aforementioned rules.
-- `vs_module_defs` a string, a File object, or Custom Target for a
+- `vs_module_defs`: a string, a File object, or Custom Target for a
   Microsoft module definition file for controlling symbol exports,
   etc., on platforms where that is possible (e.g. Windows).
 
@@ -1268,6 +1640,8 @@ extra keyword arguments.
 ``` meson
     buildtarget shared_module(module_name, list_of_sources, ...)
 ```
+
+*(since 0.37.0)*
 
 Builds a shared module with the given sources. Positional and keyword
 arguments are the same as for [`library`](#library).
@@ -1281,12 +1655,17 @@ variables defined in the [`executable`](#executable) it is loaded by,
 you will need to set the `export_dynamic` argument of the executable to
 `true`.
 
+Supports the following extra keyword arguments:
+
+- `vs_module_defs` *(since 0.52.0)*: a string, a File object, or
+  Custom Target for a Microsoft module definition file for controlling
+  symbol exports, etc., on platforms where that is possible
+  (e.g. Windows).
+
 **Note:** Linking to a shared module is not supported on some
 platforms, notably OSX.  Consider using a
 [`shared_library`](#shared_library) instead, if you need to both
 `dlopen()` and link with a library.
-
-*Added 0.37.0*
 
 ### static_library()
 
@@ -1295,13 +1674,16 @@ platforms, notably OSX.  Consider using a
 ```
 
 Builds a static library with the given sources. Positional and keyword
-arguments are otherwise the same as for [`library`](#library), but it
-has one argument the others don't have:
+arguments are as for [`library`](#library), as well as:
 
- - `pic`, *(Added 0.36.0)* builds the library as positional
+ - `pic` *(since 0.36.0)*: builds the library as positional
    independent code (so it can be linked into a shared library). This
    option has no effect on Windows and OS X since it doesn't make
    sense on Windows and PIC cannot be disabled on OS X.
+
+- `prelink` *since0.57.0*: if `true` the object files in the target
+  will be prelinked, meaning that it will contain only one prelinked
+  object file rather than the individual object files.
 
 ### subdir()
 
@@ -1321,7 +1703,7 @@ and must only be executed once.
 
 This function has one keyword argument.
 
- - `if_found` takes one or several dependency objects and will only
+ - `if_found`: takes one or several dependency objects and will only
    recurse in the subdir if they all return `true` when queried with
    `.found()`
 
@@ -1331,15 +1713,15 @@ This function has one keyword argument.
     subdir_done()
 ```
 
-Stops further interpretation of the meson script file from the point of
-the invocation. All steps executed up to this point are valid and will
-be executed by meson. This means that all targets defined before the call
-of `subdir_done` will be build.
+Stops further interpretation of the Meson script file from the point
+of the invocation. All steps executed up to this point are valid and
+will be executed by Meson. This means that all targets defined before
+the call of `subdir_done` will be build.
 
-If the current script was called by `subdir` the execution returns to the
-calling directory and continues as if the script had reached the end.
-If the current script is the top level script meson configures the project
-as defined up to this point.
+If the current script was called by `subdir` the execution returns to
+the calling directory and continues as if the script had reached the
+end. If the current script is the top level script Meson configures
+the project as defined up to this point.
 
 Example:
 ```meson
@@ -1366,15 +1748,15 @@ example a subproject called `foo` must be located in
 `${MESON_SOURCE_ROOT}/subprojects/foo`. Supports the following keyword
 arguments:
 
- - `default_options` *(added 0.37.0)* an array of default option values
+ - `default_options` *(since 0.37.0)*: an array of default option values
    that override those set in the subproject's `meson_options.txt`
    (like `default_options` in `project`, they only have effect when
    Meson is run for the first time, and command line arguments override
-   any default options in build files)
- - `version` keyword argument that works just like the one in
-   `dependency`. It specifies what version the subproject should be,
-   as an example `>=1.0.1`
- - `required` *(added 0.48.0)* By default, `required` is `true` and
+   any default options in build files). *(since 0.54.0)*: `default_library`
+   built-in option can also be overridden.
+ - `version`: works just like the same as in `dependency`.
+   It specifies what version the subproject should be, as an example `>=1.0.1`
+ - `required` *(since 0.48.0)*: By default, `required` is `true` and
    Meson will abort if the subproject could not be setup. You can set
    this to `false` and then use the `.found()` method on the [returned
    object](#subproject-object). You may also pass the value of a
@@ -1397,53 +1779,103 @@ argument to [`dependency()`](#dependency).
 
 Defines a test to run with the test harness. Takes two positional
 arguments, the first is the name of the test and the second is the
-executable to run.  The executable can be an [executable build target
+executable to run. The executable can be an [executable build target
 object](#build-target-object) returned by
 [`executable()`](#executable) or an [external program
 object](#external-program-object) returned by
-[`find_program()`](#find_program). The executable's exit code is used
-by the test harness to record the outcome of the test, for example
-exit code zero indicates success. For more on the Meson test harness
-protocol read [Unit Tests](Unit-tests.md).
+[`find_program()`](#find_program).
 
-Keyword arguments are the following:
+*(since 0.55.0)* When cross compiling, if an exe_wrapper is needed and
+defined the environment variable `MESON_EXE_WRAPPER` will be set to
+the string value of that wrapper (implementation detail: using
+`mesonlib.join_args`). Test scripts may use this to run cross built
+binaries. If your test needs `MESON_EXE_WRAPPER` in cross build
+situations it is your responsibility to return code 77 to tell the
+harness to report "skip".
 
-- `args` arguments to pass to the executable
+By default, environment variable
+[`MALLOC_PERTURB_`](http://man7.org/linux/man-pages/man3/mallopt.3.html)
+is automatically set by `meson test` to a random value between 1..255.
+This can help find memory leaks on configurations using glibc,
+including with non-GCC compilers. However, this can have a performance
+impact, and may fail a test due to external libraries whose internals
+are out of the user's control. To check if this feature is causing an
+expected runtime crash, disable the feature by temporarily setting
+environment variable `MALLOC_PERTURB_=0`. While it's preferable to
+only temporarily disable this check, if a project requires permanent
+disabling of this check in meson.build do like:
 
-- `env` environment variables to set, such as `['NAME1=value1',
+```meson
+nomalloc = environment({'MALLOC_PERTURB_': '0'})
+
+test(..., env: nomalloc, ...)
+```
+
+#### test() Keyword arguments
+
+- `args`: arguments to pass to the executable
+
+- `env`: environment variables to set, such as `['NAME1=value1',
   'NAME2=value2']`, or an [`environment()`
   object](#environment-object) which allows more sophisticated
-  environment juggling
+  environment juggling. *(since 0.52.0)* A dictionary is also accepted.
 
-- `is_parallel` when false, specifies that no other test must be
+- `is_parallel`: when false, specifies that no other test must be
   running at the same time as this test
 
-- `should_fail` when true the test is considered passed if the
+- `should_fail`: when true the test is considered passed if the
   executable returns a non-zero return value (i.e. reports an error)
 
-- `suite` `'label'` (or list of labels `['label1', 'label2']`)
+- `suite`: `'label'` (or list of labels `['label1', 'label2']`)
   attached to this test. The suite name is qualified by a (sub)project
   name resulting in `(sub)project_name:label`. In the case of a list
   of strings, the suite names will be `(sub)project_name:label1`,
   `(sub)project_name:label2`, etc.
 
-- `timeout` the amount of seconds the test is allowed to run, a test
+- `timeout`: the amount of seconds the test is allowed to run, a test
   that exceeds its time limit is always considered failed, defaults to
-  30 seconds
+  30 seconds. *Since 0.57* if timeout is `<= 0` the test has infinite duration,
+  in previous versions of Meson the test would fail with a timeout immediately.
 
-- `workdir` absolute path that will be used as the working directory
+- `workdir`: absolute path that will be used as the working directory
   for the test
 
-- `depends` specifies that this test depends on the specified
+- `depends` *(since 0.46.0)*: specifies that this test depends on the specified
   target(s), even though it does not take any of them as a command
   line argument. This is meant for cases where test finds those
   targets internally, e.g. plugins or globbing. Those targets are built
   before test is executed even if they have `build_by_default : false`.
-  Since 0.46.0
+
+- `protocol` *(since 0.50.0)*: specifies how the test results are parsed and can
+  be one of `exitcode`, `tap`, or `gtest`. For more information about test
+  harness protocol read [Unit Tests](Unit-tests.md). The following values are
+  accepted:
+  - `exitcode`: the executable's exit code is used by the test harness
+    to record the outcome of the test).
+  - `tap`: [Test Anything Protocol](https://www.testanything.org/).
+  - `gtest` *(since 0.55.0)*: for Google Tests.
+  - `rust` *(since 0.56.0)*: for native rust tests
+
+- `priority` *(since 0.52.0)*:specifies the priority of a test. Tests with a
+  higher priority are *started* before tests with a lower priority.
+  The starting order of tests with identical priorities is
+  implementation-defined. The default priority is 0, negative numbers are
+  permitted.
 
 Defined tests can be run in a backend-agnostic way by calling
 `meson test` inside the build dir, or by using backend-specific
 commands, such as `ninja test` or `msbuild RUN_TESTS.vcxproj`.
+
+### unset_variable()
+
+*(since 0.60.0)*
+
+```meson
+    void unset_variable(varname)
+```
+
+Unsets a variable. Referencing a variable which has been unset is an error until
+it has been set again.
 
 ### vcs_tag()
 
@@ -1455,15 +1887,15 @@ This command detects revision control commit information at build time
 and places it in the specified output file. This file is guaranteed to
 be up to date on every build. Keywords are similar to `custom_target`.
 
-- `command` string list with the command to execute, see
+- `command`: string list with the command to execute, see
   [`custom_target`](#custom_target) for details on how this command
   must be specified
-- `fallback` version number to use when no revision control
+- `fallback`: version number to use when no revision control
   information is present, such as when building from a release tarball
   (defaults to `meson.project_version()`)
-- `input` file to modify (e.g. `version.c.in`) (required)
-- `output` file to write the results to (e.g. `version.c`) (required)
-- `replace_string` string in the input file to substitute with the
+- `input`: file to modify (e.g. `version.c.in`) (required)
+- `output`: file to write the results to (e.g. `version.c`) (required)
+- `replace_string`: string in the input file to substitute with the
   commit information (defaults to `@VCS_TAG@`)
 
 Meson will read the contents of `input`, substitute the
@@ -1473,13 +1905,43 @@ result to `output`. This method returns a
 used to signal dependencies if other targets use the file outputted
 by this.
 
-For example, if you generate a header with this and want to use that in
-a build target, you must add the return value to the sources of that
-build target. Without that, Meson will not know the order in which to
-build the targets.
+For example, if you generate a header with this and want to use that
+in a build target, you must add the return value to the sources of
+that build target. Without that, Meson will not know the order in
+which to build the targets.
 
 If you desire more specific behavior than what this command provides,
 you should use `custom_target`.
+
+### range()
+
+``` meson
+    rangeobject range(stop)
+    rangeobject range(start, stop[, step])
+```
+
+*Since 0.58.0*
+
+Return an opaque object that can be only be used in `foreach` statements.
+- `start` must be integer greater or equal to 0. Defaults to 0.
+- `stop` must be integer greater or equal to `start`.
+- `step` must be integer greater or equal to 1. Defaults to 1.
+
+It cause the `foreach` loop to be called with the value from `start` included
+to `stop` excluded with an increment of `step` after each loop.
+
+```meson
+# Loop 15 times with i from 0 to 14 included.
+foreach i : range(15)
+   ...
+endforeach
+```
+
+The range object can also be assigned to a variable and indexed.
+```meson
+r = range(5, 10, 2)
+assert(r[2] == 9)
+```
 
 ## Built-in objects
 
@@ -1491,21 +1953,55 @@ The `meson` object allows you to introspect various properties of the
 system. This object is always mapped in the `meson` variable. It has
 the following methods.
 
-- `add_dist_script(script_name, arg1, arg, ...)` causes the script given as argument to run during
-  `dist` operation after the distribution source has been generated
-  but before it is archived. Note that this runs the script file that
-  is in the _staging_ directory, not the one in the source
-  directory. If the script file can not be found in the staging
-  directory, it is a hard error. This command can only invoked from
-  the main project, calling it from a subproject is a hard
-  error. Available since 0.48.0. Before 0.49.0, the function only accepted a single argument.
+- `add_dist_script(script_name, arg1, arg2, ...)` *(since 0.48.0)*: causes the script
+  given as argument to run during `dist` operation after the
+  distribution source has been generated but before it is
+  archived. Note that this runs the script file that is in the
+  _staging_ directory, not the one in the source directory. If the
+  script file can not be found in the staging directory, it is a hard
+  error. The `MESON_DIST_ROOT` environment variables is set when dist scripts is
+  run.
+  *(since 0.49.0)* Accepts multiple arguments for the script.
+  *(since 0.54.0)* The `MESON_SOURCE_ROOT` and `MESON_BUILD_ROOT`
+  environment variables are set when dist scripts are run. They are path to the
+  root source and build directory of the main project, even when the script
+  comes from a subproject.
+  *(since 0.55.0)* The output of `configure_file`, `files`, and `find_program`
+  as well as strings.
+  *(since 0.57.0)* `file` objects and the output of `configure_file` may be
+  used as the `script_name` parameter.
+  *(since 0.58.0)* This command can be invoked from a subproject, it was a hard
+  error in earlier versions. Subproject dist scripts will only be executed
+  when running `meson dist --include-subprojects`. `MESON_PROJECT_SOURCE_ROOT`,
+  `MESON_PROJECT_BUILD_ROOT` and `MESON_PROJECT_DIST_ROOT` environment
+  variables are set when dist scripts are run. They are identical to
+  `MESON_SOURCE_ROOT`, `MESON_BUILD_ROOT` and `MESON_DIST_ROOT` for main project
+  scripts, but for subproject scripts they have the path to the root of the
+  subproject appended, usually `subprojects/<subproject-name>`.
 
-- `add_install_script(script_name, arg1, arg2, ...)` causes the script
+- `add_install_script(script_name, arg1, arg2, ...)`: causes the script
   given as an argument to be run during the install step, this script
   will have the environment variables `MESON_SOURCE_ROOT`,
   `MESON_BUILD_ROOT`, `MESON_INSTALL_PREFIX`,
-  `MESON_INSTALL_DESTDIR_PREFIX`, and `MESONINTROSPECT` set. All
-  additional arguments are passed as parameters.
+  `MESON_INSTALL_DESTDIR_PREFIX`, and `MESONINTROSPECT` set.
+  All positional arguments are passed as parameters.
+  *since 0.57.0* `skip_if_destdir` boolean keyword argument (defaults to `false`)
+  can be specified. If `true` the script will not be run if DESTDIR is set during
+  installation. This is useful in the case the script updates system wide
+  cache that is only needed when copying files into final destination.
+  *(since 0.60.0)* `install_tag` string keyword argument can be specified.
+  By default the script has no install tag which means it is not being run when
+  `meson install --tags` argument is specified.
+
+  *(since 0.54.0)* If `meson install` is called with the `--quiet` option, the
+  environment variable `MESON_INSTALL_QUIET` will be set.
+
+  *(since 0.55.0)* The output of `configure_file`, `files`, `find_program`,
+  `custom_target`, indexes of `custom_target`, `executable`, `library`, and
+  other built targets as well as strings.
+
+  *(since 0.57.0)* `file` objects and the output of `configure_file` may be
+  *used as the `script_name` parameter.
 
   Meson uses the `DESTDIR` environment variable as set by the
   inherited environment to determine the (temporary) installation
@@ -1521,7 +2017,7 @@ the following methods.
 
   `MESONINTROSPECT` contains the path to the introspect command that
   corresponds to the `meson` executable that was used to configure the
-  build. (This might be a different path then the first executable
+  build. (This might be a different path than the first executable
   found in `PATH`.) It can be used to query build configuration. Note
   that the value will contain many parts, f.ex., it may be `python3
   /path/to/meson.py introspect`. The user is responsible for splitting
@@ -1529,42 +2025,67 @@ the following methods.
   shell would. If your script uses Python, `shlex.split()` is the
   easiest correct way to do this.
 
-- `add_postconf_script(script_name, arg1, arg2, ...)` will run the
+- `add_postconf_script(script_name, arg1, arg2, ...)`: runs the
   executable given as an argument after all project files have been
   generated. This script will have the environment variables
   `MESON_SOURCE_ROOT` and `MESON_BUILD_ROOT` set.
 
-- `backend()` *(added 0.37.0)* returns a string representing the
-  current backend: `ninja`, `vs2010`, `vs2015`, `vs2017`, or `xcode`.
+  *(since 0.55.0)* The output of `configure_file`, `files`, and `find_program`
+  as well as strings.
 
-- `build_root()` returns a string with the absolute path to the build
-  root directory. Note: this function will return the build root of
-  the parent project if called from a subproject, which is usually
-  not what you want. Try using `current_build_dir()`.
+  *(since 0.57.0)* `file` objects and the output of `configure_file` may be
+  *used as the `script_name` parameter.
 
-- `source_root()` returns a string with the absolute path to the
+- `backend()` *(since 0.37.0)*: returns a string representing the
+  current backend: `ninja`, `vs2010`, `vs2012`, `vs2013`, `vs2015`,
+  `vs2017`, `vs2019`, or `xcode`.
+
+- `build_root()`: returns a string with the absolute path to the build
+  root directory. *(deprecated since 0.56.0)*: this function will return the
+  build root of the parent project if called from a subproject, which is usually
+  not what you want. Try using `current_build_dir()` or `project_build_root()`.
+  In the rare cases where the root of the main project is needed,
+  use `global_build_root()` that has the same behaviour but with a more explicit
+  name.
+
+- `source_root()`: returns a string with the absolute path to the
   source root directory. Note: you should use the `files()` function
   to refer to files in the root source directory instead of
-  constructing paths manually with `meson.source_root()`. This
-  function will return the source root of the parent project if called
-  from a subproject, which is usually not what you want. Try using
-  `current_source_dir()`.
+  constructing paths manually with `meson.source_root()`.
+  *(deprecated since 0.56.0)*: This function will return the source root of the
+  parent project if called from a subproject, which is usually not what you want.
+  Try using `current_source_dir()` or `project_source_root()`.
+  In the rare cases where the root of the main project is needed,
+  use `global_source_root()` that has the same behaviour but with a more explicit
+  name.
 
-- `current_build_dir()` returns a string with the absolute path to the
+- `project_build_root()` *(since 0.56.0)*: returns a string with the absolute path
+  to the build root directory of the current (sub)project.
+
+- `project_source_root()` *(since 0.56.0)*: returns a string with the absolute path
+  to the source root directory of the current (sub)project.
+
+- `global_build_root()` *(since 0.58.0)*: returns a string with the absolute path
+  to the build root directory. This function will return the build root of the
+  main project if called from a subproject, which is usually not what you want.
+  It is usually preferable to use `current_build_dir()` or `project_build_root()`.
+
+- `global_source_root()` *(since 0.58.0)*: returns a string with the absolute path
+  to the source root directory. This function will return the source root of the
+  main project if called from a subproject, which is usually not what you want.
+  It is usually preferable to use `current_source_dir()` or `project_source_root()`.
+
+- `current_build_dir()`: returns a string with the absolute path to the
   current build directory.
 
-- `current_source_dir()` returns a string to the current source
+- `current_source_dir()`: returns a string to the current source
   directory. Note: **you do not need to use this function** when
   passing files from the current source directory to a function since
   that is the default. Also, you can use the `files()` function to
   refer to files in the current or any other source directory instead
   of constructing paths manually with `meson.current_source_dir()`.
 
-- `get_cross_property(propname, fallback_value)` returns the given
-  property from a cross file, the optional second argument is returned
-  if not cross compiling or the given property is not found.
-
-- `get_compiler(language)` returns [an object describing a
+- `get_compiler(language)`: returns [an object describing a
   compiler](#compiler-object), takes one positional argument which is
   the language to use. It also accepts one keyword argument, `native`
   which when set to true makes Meson return the compiler for the build
@@ -1573,44 +2094,101 @@ the following methods.
   returns the "cross" compiler if we're currently cross-compiling and
   the "native" compiler if we're not.
 
-- `has_exe_wrapper()` returns true when doing a cross build if there
-  is a wrapper command that can be used to execute cross built
-  binaries (for example when cross compiling from Linux to Windows,
-  one can use `wine` as the wrapper).
+- `get_cross_property(propname, fallback_value)`:
+  *Deprecated since 0.58.0, use `get_external_property()` instead*.
+  Returns the given property from a cross file, the optional fallback_value
+  is returned if not cross compiling or the given property is not found.
 
-- `install_dependency_manifest(output_name)` installs a manifest file
+- `get_external_property(propname, fallback_value, native: true/false)`
+  *(since 0.54.0)*: returns the given property from a native or cross file.
+  The optional fallback_value is returned if the given property is not found.
+  The optional `native: true` forces retrieving a variable from the
+  native file, even when cross-compiling.
+  If `native: false` or not specified, variable is retrieved from the
+  cross-file if cross-compiling, and from the native-file when not cross-compiling.
+
+- `has_external_property(propname, native: true/false)`
+  *(since 0.58.0)*: checks whether the given property exist in a native or
+  cross file. The optional `native: true` forces checking for the variable
+  in the native file, even when cross-compiling.
+  If `native: false` or not specified, the variable is checked for in the
+  cross-file if cross-compiling, and in the native-file when not cross-compiling.
+
+- `can_run_host_binaries()` *(since 0.55.0)*: returns true if the build machine can run
+  binaries compiled for the host. This returns true unless you are
+  cross compiling, need a helper to run host binaries, and don't have one.
+  For example when cross compiling from Linux to Windows, one can use `wine`
+  as the helper.
+
+- `has_exe_wrapper()`: *(since 0.55.0)* **(deprecated)**. Use `can_run_host_binaries` instead.
+
+- `install_dependency_manifest(output_name)`: installs a manifest file
   containing a list of all subprojects, their versions and license
   files to the file name given as the argument.
 
-- `is_cross_build()` returns `true` if the current build is a [cross
+- `is_cross_build()`: returns `true` if the current build is a [cross
   build](Cross-compilation.md) and `false` otherwise.
 
-- `is_subproject()` returns `true` if the current project is being
+- `is_subproject()`: returns `true` if the current project is being
   built as a subproject of some other project and `false` otherwise.
 
-- `is_unity()` returns `true` when doing a [unity
+- `is_unity()`: returns `true` when doing a [unity
   build](Unity-builds.md) (multiple sources are combined before
   compilation to reduce build time) and `false` otherwise.
 
-- `override_find_program(progname, program)` [*(Added
-  0.46.0)*](Release-notes-for-0.46.0.md#can-override-find_program)
+- `override_find_program(progname, program)` *(since 0.46.0)*:
   specifies that whenever `find_program` is used to find a program
-  named `progname`, Meson should not not look it up on the system but
+  named `progname`, Meson should not look it up on the system but
   instead return `program`, which may either be the result of
-  `find_program`, `configure_file` or `executable`.
+  `find_program`, `configure_file` or `executable`. *(since 0.55.0)* If a version
+  check is passed to `find_program` for a program that has been overridden with
+  an executable, the current project version is used.
 
   If `program` is an `executable`, it cannot be used during configure.
 
-- `project_version()` returns the version string specified in
+- `override_dependency(name, dep_object)` *(since 0.54.0)*:
+  specifies that whenever `dependency(name, ...)` is used, Meson should not
+  look it up on the system but instead return `dep_object`, which may either be
+  the result of `dependency()` or `declare_dependency()`. It takes optional
+  `native` keyword arguments. Doing this in a subproject allows the parent
+  project to retrieve the dependency without having to know the dependency
+  variable name: `dependency(name, fallback : subproject_name)`.
+  *Since 0.60.0* `static` boolean keyword argument can be specified to override
+  static and/or shared dependencies separately. If not specified it is assumed
+  `dep_object` follows `default_library` option value.
+
+- `project_version()`: returns the version string specified in
   `project` function call.
 
-- `project_license()` returns the array of licenses specified in
+- `project_license()`: returns the array of licenses specified in
   `project` function call.
 
-- `project_name()` returns the project name specified in the `project`
+- `project_name()`: returns the project name specified in the `project`
   function call.
 
-- `version()` return a string with the version of Meson.
+- `version()`: return a string with the version of Meson.
+
+- `add_devenv()`: *(Since 0.58.0)* add an [`environment()`](#environment) object
+  to the list of environments that will be applied when using [`meson devenv`](Commands.md#devenv)
+  command line. This is useful for developpers who wish to use the project without
+  installing it, it is often needed to set for example the path to plugins
+  directory, etc. Alternatively, a list or dictionary can be passed as first
+  argument.
+  ``` meson
+  devenv = environment()
+  devenv.set('PLUGINS_PATH', meson.current_build_dir())
+  ...
+  meson.add_devenv(devenv)
+  ```
+  After configuring and compiling that project, a terminal can be opened with
+  the environment set:
+  ```sh
+  $ meson devenv -C <builddir>
+  $ echo $PLUGINS_PATH
+  /path/to/source/subdir
+  ```
+  See [`meson devenv`](Commands.md#devenv) command documentation for a list of
+  environment variables that are set by default by Meson.
 
 ### `build_machine` object
 
@@ -1619,19 +2197,19 @@ doing the actual compilation. See
 [Cross-compilation](Cross-compilation.md). It has the following
 methods:
 
-- `cpu_family()` returns the CPU family name. [This
+- `cpu_family()`: returns the CPU family name. [This
   table](Reference-tables.md#cpu-families) contains all known CPU
   families. These are guaranteed to continue working.
 
-- `cpu()` returns a more specific CPU name, such as `i686`, `amd64`,
+- `cpu()`: returns a more specific CPU name, such as `i686`, `amd64`,
   etc.
 
-- `system()` returns the operating system name.  [This
+- `system()`: returns the operating system name.  [This
   table](Reference-tables.md#operating-system-names) Lists all of
   the currently known Operating System names, these are guaranteed to
   continue working.
 
-- `endian()` returns `big` on big-endian systems and `little` on
+- `endian()`: returns `big` on big-endian systems and `little` on
   little-endian systems.
 
 Currently, these values are populated using
@@ -1674,6 +2252,118 @@ Note that while cross-compiling, it simply returns the values defined
 in the cross-info file. If `target_machine` values are not defined in
 the cross-info file, `host_machine` values are returned instead.
 
+### `string` object
+
+All [strings](Syntax.md#strings) have the following methods. Strings
+are immutable, all operations return their results as a new string.
+
+- `contains(string)`: returns true if string contains the string
+  specified as the argument.
+
+- `endswith(string)`: returns true if string ends with the string
+  specified as the argument.
+
+- `format()`: formats text, see the [Syntax
+  manual](Syntax.md#string-formatting) for usage info.
+
+- `join(list_of_strings)`: the opposite of split, for example
+  `'.'.join(['a', 'b', 'c']` yields `'a.b.c'`.
+  *(Since 0.60.0)* more than one argument is supported and lists will be flattened.
+
+- `replace('old_substr', 'new_str')` *(since 0.58.0)*: replaces instances of
+  `old_substr` in the string with `new_str` and returns a new string
+
+- `split(split_character)`: splits the string at the specified
+  character (or whitespace if not set) and returns the parts in an
+  array.
+
+- `startswith(string)`: returns true if string starts with the string
+  specified as the argument
+
+- `substring(start,end)` *(since 0.56.0)*: returns a substring specified from start to end.
+  Both `start` and `end` arguments are optional, so, for example, `'foobar'.substring()` will return `'foobar'`.
+
+- `strip()`: removes whitespace at the beginning and end of the string.
+  *(since 0.43.0)* Optionally can take one positional string argument,
+  and all characters in that string will be stripped.
+
+- `to_int()`: returns the string converted to an integer (error if string
+  is not a number).
+
+- `to_lower()`: creates a lower case version of the string.
+
+- `to_upper()`: creates an upper case version of the string.
+
+- `underscorify()`: creates a string where every non-alphabetical
+  non-number character is replaced with `_`.
+
+- `version_compare(comparison_string)`: does semantic version
+  comparison, if `x = '1.2.3'` then `x.version_compare('>1.0.0')`
+  returns `true`.
+
+### `Number` object
+
+[Numbers](Syntax.md#numbers) support these methods:
+
+- `is_even()`: returns true if the number is even
+- `is_odd()`: returns true if the number is odd
+- `to_string()`: returns the value of the number as a string.
+
+### `boolean` object
+
+A [boolean](Syntax.md#booleans) object has two simple methods:
+
+- `to_int()`: returns either `1` or `0`.
+
+- `to_string()`: returns the string `'true'` if the boolean is true or
+  `'false'` otherwise. You can also pass it two strings as positional
+  arguments to specify what to return for true/false. For instance,
+  `bool.to_string('yes', 'no')` will return `yes` if the boolean is
+  true and `no` if it is false.
+
+### `array` object
+
+The following methods are defined for all [arrays](Syntax.md#arrays):
+
+- `contains(item)`: returns `true` if the array contains the object
+  given as argument, `false` otherwise
+
+- `get(index, fallback)`: returns the object at the given index,
+  negative indices count from the back of the array, indexing out of
+  bounds returns the `fallback` value *(since 0.38.0)* or, if it is
+  not specified, causes a fatal error
+
+- `length()`: the size of the array
+
+You can also iterate over arrays with the [`foreach`
+statement](Syntax.md#foreach-statements).
+
+### `dictionary` object
+
+*(since 0.47.0)*
+
+The following methods are defined for all [dictionaries](Syntax.md#dictionaries):
+
+- `has_key(key)`: returns `true` if the dictionary contains the key
+  given as argument, `false` otherwise
+
+- `get(key, fallback)`: returns the value for the key given as first
+  argument if it is present in the dictionary, or the optional
+  fallback value given as the second argument. If a single argument
+  was given and the key was not found, causes a fatal error
+
+- `keys()`: returns an array of keys in the dictionary
+
+You can also iterate over dictionaries with the [`foreach`
+statement](Syntax.md#foreach-statements).
+
+*(since 0.48.0)* Dictionaries can be added (e.g. `d1 = d2 + d3` and `d1 += d2`).
+Values from the second dictionary overrides values from the first.
+
+## Returned objects
+
+These are objects returned by the [functions listed above](#functions).
+
 ### `compiler` object
 
 This object is returned by
@@ -1681,211 +2371,217 @@ This object is returned by
 for a given language and allows you to query its properties. It has
 the following methods:
 
-- `alignment(typename)` returns the alignment of the type specified in
+- `alignment(typename)`: returns the alignment of the type specified in
   the positional argument, you can specify external dependencies to
   use with `dependencies` keyword argument.
 
-- `cmd_array()` returns an array containing the command arguments for
-  the current compiler.
+- `cmd_array()`: returns an array containing the command(s) for the compiler.
 
-- `compiles(code)` returns true if the code fragment given in the
+- `compiles(code)`: returns true if the code fragment given in the
   positional argument compiles, you can specify external dependencies
   to use with `dependencies` keyword argument, `code` can be either a
   string containing source code or a `file` object pointing to the
   source code.
 
-- `compute_int(expr, ...')` computes the value of the given expression
+- `compute_int(expr, ...')`: computes the value of the given expression
   (as an example `1 + 2`). When cross compiling this is evaluated with
   an iterative algorithm, you can specify keyword arguments `low`
   (defaults to -1024), `high` (defaults to 1024) and `guess` to
   specify max and min values for the search and the value to try
   first.
 
-- `find_library(lib_name, ...)` tries to find the library specified in
+- `find_library(lib_name, ...)`: tries to find the library specified in
   the positional argument. The [result
   object](#external-library-object) can be used just like the return
   value of `dependency`. If the keyword argument `required` is false,
   Meson will proceed even if the library is not found. By default the
   library is searched for in the system library directory
   (e.g. /usr/lib). This can be overridden with the `dirs` keyword
-  argument, which can be either a string or a list of strings.  Since
-  *0.47.0* the value of a [`feature`](Build-options.md#features)
+  argument, which can be either a string or a list of strings.
+  *(since 0.47.0)* The value of a [`feature`](Build-options.md#features)
   option can also be passed to the `required` keyword argument.
-  *Since 0.49.0* if the keyword argument `disabler` is `true` and the
+  *(since 0.49.0)* If the keyword argument `disabler` is `true` and the
   dependency couldn't be found, return a [disabler object](#disabler-object)
-  instead of a not-found dependency. *Since 0.50.0* the `has_headers` keyword
+  instead of a not-found dependency. *(since 0.50.0)* The `has_headers` keyword
   argument can be a list of header files that must be found as well, using
   `has_header()` method. All keyword arguments prefixed with `header_` will be
-  passed down to `has_header()` method with the prefix removed.
+  passed down to `has_header()` method with the prefix removed. *(since 0.51.0)*
+  The `static` keyword (boolean) can be set to `true` to limit the search to
+  static libraries and `false` for dynamic/shared.
 
-- `first_supported_argument(list_of_strings)`, given a list of
+- `first_supported_argument(list_of_strings)`: given a list of
   strings, returns the first argument that passes the `has_argument`
   test or an empty array if none pass.
 
-- `first_supported_link_argument(list_of_strings)` *(added 0.46.0)*,
+- `first_supported_link_argument(list_of_strings)` *(since 0.46.0)*:
   given a list of strings, returns the first argument that passes the
   `has_link_argument` test or an empty array if none pass.
 
-- `get_define(definename)` returns the given preprocessor symbol's
+- `get_define(definename)`: returns the given preprocessor symbol's
   value as a string or empty string if it is not defined.
-  Starting with 0.47.0, this method will concatenate string literals as
+  *(since 0.47.0)* This method will concatenate string literals as
   the compiler would. E.g. `"a" "b"` will become `"ab"`.
 
-- `get_id()` returns a string identifying the compiler. For example,
+- `get_id()`: returns a string identifying the compiler. For example,
   `gcc`, `msvc`, [and more](Reference-tables.md#compiler-ids).
 
-- `get_argument_syntax()` *(new in 0.49.0)* returns a string identifying the type
+- `get_argument_syntax()` *(since 0.49.0)*: returns a string identifying the type
   of arguments the compiler takes. Can be one of `gcc`, `msvc`, or an undefined
   string value. This method is useful for identifying compilers that are not
   gcc or msvc, but use the same argument syntax as one of those two compilers
   such as clang or icc, especially when they use different syntax on different
   operating systems.
 
-- `get_supported_arguments(list_of_string)` *(added 0.43.0)* returns
+- `get_linker_id()` *(since 0.53.0)*: returns a string identifying the linker.
+   For example, `ld.bfd`, `link`, [and more](Reference-tables.md#linker-ids).
+
+- `get_supported_arguments(list_of_string)` *(since 0.43.0)*: returns
   an array containing only the arguments supported by the compiler,
   as if `has_argument` were called on them individually.
 
-- `get_supported_link_arguments(list_of_string)` *(added 0.46.0)* returns
+- `get_supported_link_arguments(list_of_string)` *(since 0.46.0)*: returns
   an array containing only the arguments supported by the linker,
   as if `has_link_argument` were called on them individually.
 
-- `has_argument(argument_name)` returns true if the compiler accepts
+- `has_argument(argument_name)`: returns true if the compiler accepts
   the specified command line argument, that is, can compile code
   without erroring out or printing a warning about an unknown flag.
 
-- `has_link_argument(argument_name)` *(added 0.46.0)* returns true if
+- `has_link_argument(argument_name)` *(since 0.46.0)*: returns true if
   the linker accepts the specified command line argument, that is, can
   compile and link code without erroring out or printing a warning
   about an unknown flag. Link arguments will be passed to the
   compiler, so should usually have the `-Wl,` prefix. On VisualStudio
   a `/link` argument will be prepended.
 
-- `has_function(funcname)` returns true if the given function is
+- `has_function(funcname)`: returns true if the given function is
   provided by the standard library or a library passed in with the
   `args` keyword, you can specify external dependencies to use with
   `dependencies` keyword argument.
 
-- `check_header` *(added 0.47.0)* returns true if the specified header is *usable* with
-  the specified prefix, dependencies, and arguments.
-  You can specify external dependencies to use with `dependencies`
-  keyword argument and extra code to put above the header test with
-  the `prefix` keyword. In order to look for headers in a specific
-  directory you can use `args : '-I/extra/include/dir`, but this
-  should only be used in exceptional cases for includes that can't be
-  detected via pkg-config and passed via `dependencies`. Since *0.50.0* the
-  `required` keyword argument can be used to abort if the header cannot be
-  found.
+- `check_header(header_name)` *(since 0.47.0)*: returns true if the
+  specified header is *usable* with the specified prefix,
+  dependencies, and arguments. You can specify external dependencies
+  to use with `dependencies` keyword argument and extra code to put
+  above the header test with the `prefix` keyword. In order to look
+  for headers in a specific directory you can use `args :
+  '-I/extra/include/dir`, but this should only be used in exceptional
+  cases for includes that can't be detected via pkg-config and passed
+  via `dependencies`. *(since 0.50.0)* The `required` keyword argument
+  can be used to abort if the header cannot be found.
 
-- `has_header` returns true if the specified header *exists*, and is
-  faster than `check_header()` since it only does a pre-processor check.
-  You can specify external dependencies to use with `dependencies`
-  keyword argument and extra code to put above the header test with
-  the `prefix` keyword. In order to look for headers in a specific
-  directory you can use `args : '-I/extra/include/dir`, but this
-  should only be used in exceptional cases for includes that can't be
-  detected via pkg-config and passed via `dependencies`. Since *0.50.0* the
-  `required` keyword argument can be used to abort if the header cannot be
-  found.
+- `has_header(header_name)`: returns true if the specified header
+  *exists*, and is faster than `check_header()` since it only does a
+  pre-processor check. You can specify external dependencies to use
+  with `dependencies` keyword argument and extra code to put above the
+  header test with the `prefix` keyword. In order to look for headers
+  in a specific directory you can use `args : '-I/extra/include/dir`,
+  but this should only be used in exceptional cases for includes that
+  can't be detected via pkg-config and passed via `dependencies`.
+  *(since 0.50.0)* The `required` keyword argument can be used to
+  abort if the header cannot be found.
 
-- `has_header_symbol(headername, symbolname)` allows one to detect
+- `has_header_symbol(headername, symbolname)`: detects
   whether a particular symbol (function, variable, #define, type
   definition, etc) is declared in the specified header, you can
   specify external dependencies to use with `dependencies` keyword
-  argument. Since *0.50.0* the `required` keyword argument can be used to abort
-  if the symbol cannot be found.
+  argument. *(since 0.50.0)* The `required` keyword argument can be
+  used to abort if the symbol cannot be found.
 
-- `has_member(typename, membername)` takes two arguments, type name
+- `has_member(typename, membername)`: takes two arguments, type name
   and member name and returns true if the type has the specified
   member, you can specify external dependencies to use with
   `dependencies` keyword argument.
 
-- `has_members(typename, membername1, membername2, ...)` takes at
+- `has_members(typename, membername1, membername2, ...)`: takes at
   least two arguments, type name and one or more member names, returns
   true if the type has all the specified members, you can specify
   external dependencies to use with `dependencies` keyword argument.
 
-- `has_multi_arguments(arg1, arg2, arg3, ...)` is the same as
+- `has_multi_arguments(arg1, arg2, arg3, ...)` *(since 0.37.0)*: the same as
   `has_argument` but takes multiple arguments and uses them all in a
-  single compiler invocation, available since 0.37.0.
+  single compiler invocation.
 
-- `has_multi_link_arguments(arg1, arg2, arg3, ...)` *(added 0.46.0)*
-  is the same as `has_link_argument` but takes multiple arguments and
+- `has_multi_link_arguments(arg1, arg2, arg3, ...)` *(since 0.46.0)*:
+  the same as `has_link_argument` but takes multiple arguments and
   uses them all in a single compiler invocation.
 
-- `has_type(typename)` returns true if the specified token is a type,
+- `has_type(typename)`: returns true if the specified token is a type,
   you can specify external dependencies to use with `dependencies`
   keyword argument.
 
-- `links(code)` returns true if the code fragment given in the
+- `links(code)`: returns true if the code fragment given in the
   positional argument compiles and links, you can specify external
   dependencies to use with `dependencies` keyword argument, `code` can
   be either a string containing source code or a `file` object
-  pointing to the source code.
+  pointing to the source code.  *Since 0.60.0*, if the `file` object's
+  suffix does not match the compiler object's language, the compiler
+  corresponding to the suffix is used to compile the source, while the
+  target of the `links` method is used to link the resulting object file.
 
-- `run(code)` attempts to compile and execute the given code fragment,
+- `run(code)`: attempts to compile and execute the given code fragment,
   returns a run result object, you can specify external dependencies
   to use with `dependencies` keyword argument, `code` can be either a
   string containing source code or a `file` object pointing to the
   source code.
 
-- `symbols_have_underscore_prefix()` returns `true` if the C symbol
-  mangling is one underscore (`_`) prefixed to the symbol, available
-  since 0.37.0.
+- `symbols_have_underscore_prefix()` *(since 0.37.0)*: returns `true`
+  if the C symbol mangling is one underscore (`_`) prefixed to the symbol.
 
-- `sizeof(typename, ...)` returns the size of the given type
+- `sizeof(typename, ...)`: returns the size of the given type
   (e.g. `'int'`) or -1 if the type is unknown, to add includes set
   them in the `prefix` keyword argument, you can specify external
   dependencies to use with `dependencies` keyword argument.
 
-- `version()` returns the compiler's version number as a string.
+- `version()`: returns the compiler's version number as a string.
 
-- `has_function_attribute(name)` *(added in 0.48.0)* returns `true` if the
+- `has_function_attribute(name)` *(since 0.48.0)*: returns `true` if the
   compiler supports the GNU style (`__attribute__(...)`) `name`. This is
   preferable to manual compile checks as it may be optimized for compilers that
   do not support such attributes.
   [This table](Reference-tables.md#gcc-__attribute__) lists all of the
   supported attributes.
 
-- `get_supported_function_attributes(list_of_names)` *(added in 0.48.0)*
+- `get_supported_function_attributes(list_of_names)` *(since 0.48.0)*:
   returns an array containing any names that are supported GCC style
   attributes. Equivalent to `has_function_attribute` was called on each of them
   individually.
 
 The following keyword arguments can be used:
 
-- `args` can be used to pass a list of compiler arguments that are
+- `args`: used to pass a list of compiler arguments that are
   required to find the header or symbol. For example, you might need
   to pass the include path `-Isome/path/to/header` if a header is not
-  in the default include path. In versions newer than 0.38.0 you
-  should use the `include_directories` keyword described below. You
-  may also want to pass a library name `-lfoo` for `has_function` to
-  check for a function. Supported by all methods except `get_id`,
-  `version`, and `find_library`.
+  in the default include path. *(since 0.38.0)* you should use the
+  `include_directories` keyword described below. You may also want to
+  pass a library name `-lfoo` for `has_function` to check for a function.
+  Supported by all methods except `get_id`, `version`, and `find_library`.
 
-- `include_directories` specifies extra directories for header
-  searches. *(added 0.38.0)*
+- `include_directories` *(since 0.38.0)*: specifies extra directories for
+  header searches.
 
-- `name` the name to use for printing a message about the compiler
+- `name`: the name to use for printing a message about the compiler
   check. Supported by the methods `compiles()`, `links()`, and
   `run()`. If this keyword argument is not passed to those methods, no
   message will be printed about the check.
 
-- `no_builtin_args` when set to true, the compiler arguments controlled
+- `no_builtin_args`: when set to true, the compiler arguments controlled
   by built-in configuration options are not added.
 
-- `prefix` can be used to add #includes and other things that are
+- `prefix`: adds #includes and other things that are
   required for the symbol to be declared. System definitions should be
   passed via compiler args (eg: `_GNU_SOURCE` is often required for
   some symbols to be exposed on Linux, and it should be passed via
   `args` keyword argument, see below). Supported by the methods
   `sizeof`, `has_type`, `has_function`, `has_member`, `has_members`,
-  `check_header`, `has_header`, `has_header_symbol`.
+  `check_header`, `has_header`, `has_header_symbol`, `get_define`
 
-**Note:** These compiler checks do not use compiler arguments added with
-`add_*_arguments()`, via `-Dlang_args` on the command-line, or through
-`CFLAGS`/`LDFLAGS`, etc in the environment. Hence, you can trust that
-the tests will be fully self-contained, and won't fail because of custom
-flags added by other parts of the build file or by users.
+**Note:** These compiler checks do not use compiler arguments added
+with `add_*_arguments()`, via `-Dlang_args` on the command-line, or
+through `CFLAGS`/`LDFLAGS`, etc in the environment. Hence, you can
+trust that the tests will be fully self-contained, and won't fail
+because of custom flags added by other parts of the build file or by
+users.
 
 Note that if you have a single prefix with all your dependencies, you
 might find it easier to append to the environment variables
@@ -1897,138 +2593,53 @@ However, with GCC, these variables will be ignored when
 cross-compiling. In that case you need to use a specs file. See:
 <http://www.mingw.org/wiki/SpecsFileHOWTO>
 
-### `string` object
-
-All [strings](Syntax.md#strings) have the following methods. Strings
-are immutable, all operations return their results as a new string.
-
-- `contains(string)` returns true if string contains the string
-  specified as the argument
-
-- `endswith(string)` returns true if string ends with the string
-  specified as the argument
-
-- `format()` formats text, see the [Syntax
-  manual](Syntax.md#string-formatting) for usage info
-
-- `join(list_of_strings)` is the opposite of split, for example
-  `'.'.join(['a', 'b', 'c']` yields `'a.b.c'`
-
-- `split(split_character)` splits the string at the specified
-  character (or whitespace if not set) and returns the parts in an
-  array
-
-- `startswith(string)` returns true if string starts with the string
-  specified as the argument
-
-- `strip()` removes whitespace at the beginning and end of the string
-  *(added 0.43.0)* optionally can take one positional string argument,
-  and all characters in that string will be stripped
-
-- `to_int` returns the string converted to an integer (error if string
-  is not a number)
-
-- `to_lower()` creates a lower case version of the string
-
-- `to_upper()` creates an upper case version of the string
-
-- `underscorify()` creates a string where every non-alphabetical
-  non-number character is replaced with `_`
-
-- `version_compare(comparison_string)` does semantic version
-  comparison, if `x = '1.2.3'` then `x.version_compare('>1.0.0')`
-  returns `true`
-
-### `Number` object
-
-[Numbers](Syntax.md#numbers) support these methods:
-
- - `is_even()` returns true if the number is even
- - `is_odd()` returns true if the number is odd
-
-### `boolean` object
-
-A [boolean](Syntax.md#booleans) object has two simple methods:
-
-- `to_int()` as above, but returns either `1` or `0`
-
-- `to_string()` returns the string `'true'` if the boolean is true or
-  `'false'` otherwise. You can also pass it two strings as positional
-  arguments to specify what to return for true/false. For instance,
-  `bool.to_string('yes', 'no')` will return `yes` if the boolean is
-  true and `no` if it is false.
-
-### `array` object
-
-The following methods are defined for all [arrays](Syntax.md#arrays):
-
-- `contains(item)`, returns `true` if the array contains the object
-  given as argument, `false` otherwise
-
-- `get(index, fallback)`, returns the object at the given index,
-  negative indices count from the back of the array, indexing out of
-  bounds returns the `fallback` value *(added 0.38.0)* or, if it is
-  not specified, causes a fatal error
-
-- `length()`, the size of the array
-
-You can also iterate over arrays with the [`foreach`
-statement](Syntax.md#foreach-statements).
-
-### `dictionary` object
-
-The following methods are defined for all [dictionaries](Syntax.md#dictionaries):
-
-- `has_key(key)` returns `true` if the dictionary contains the key
-  given as argument, `false` otherwise
-
-- `get(key, fallback)`, returns the value for the key given as first
-  argument if it is present in the dictionary, or the optional
-  fallback value given as the second argument. If a single argument
-  was given and the key was not found, causes a fatal error
-
-You can also iterate over dictionaries with the [`foreach`
-statement](Syntax.md#foreach-statements).
-
-Dictionaries are available since 0.47.0.
-
-Since 0.48.0 dictionaries can be added (e.g. `d1 = d2 + d3` and `d1 += d2`).
-Values from the second dictionary overrides values from the first.
-
-## Returned objects
-
-These are objects returned by the [functions listed above](#functions).
-
 ### `build target` object
 
-A build target is either an [executable](#executable),
-[shared library](#shared_library), [static library](#static_library),
-[both shared and static library](#both_libraries) or
-[shared module](#shared_module).
+A build target is either an [executable](#executable), [shared
+library](#shared_library), [static library](#static_library), [both
+shared and static library](#both_libraries) or [shared
+module](#shared_module).
 
-- `extract_all_objects()` is same as `extract_objects` but returns all
-  object files generated by this target. Since 0.46.0 keyword argument
+- `extract_all_objects()`: is same as `extract_objects` but returns all
+  object files generated by this target. *(since 0.46.0)* keyword argument
   `recursive` must be set to `true` to also return objects passed to
   the `object` argument of this target. By default only objects built
   for this target are returned to maintain backward compatibility with
   previous versions.  The default will eventually be changed to `true`
   in a future version.
 
-- `extract_objects()` returns an opaque value representing the
-  generated object files of arguments, usually used to take single
-  object files and link them to unit tests or to compile some source
-  files with custom flags. To use the object file(s) in another build
-  target, use the `objects:` keyword argument.
+- `extract_objects(source1, source2, ...)`: takes as its arguments
+  a number of source files as [`string`](#string-object) or
+  [`files()`](#files) and returns an opaque value representing the
+  object files generated for those source files. This is typically used
+  to take single object files and link them to unit tests or to compile
+  some source files with custom flags. To use the object file(s)
+  in another build target, use the [`objects:`](#executable) keyword
+  argument or include them in the command line of a
+  [`custom_target`](#custom_target)`.
 
-- `full_path()` returns a full path pointing to the result target file.
+- `full_path()`: returns a full path pointing to the result target file.
   NOTE: In most cases using the object itself will do the same job as
   this and will also allow Meson to setup inter-target dependencies
   correctly. Please file a bug if that doesn't work for you.
 
-- `private_dir_include()` returns a opaque value that works like
+- `path()` *(since 0.59.0)* **(deprecated)**: does the exact same
+  as `full_path()`. **NOTE:** This function is solely kept for compatebility
+  with [`external program`](#external-program-object) objects. It will be
+  removed once the, also deprecated, corresponding `path()` function in the
+  `external program` object is removed.
+
+- `private_dir_include()`: returns a opaque value that works like
   `include_directories` but points to the private directory of this
   target, usually only needed if an another target needs to access
   some generated internal headers of this target
+
+- `name()` *(since 0.54.0)*: returns the target name.
+
+- `found()` *(since 0.59.0)*: Always returns `true`. This function is meant
+  to make executables objects feature compatible with
+  [`external program`](#external-program-object) objects. This simplifies
+  use-cases where an executable is used instead of an external program.
 
 
 ### `configuration` data object
@@ -2039,20 +2650,25 @@ configuration values to be used for generating configuration files. A
 more in-depth description can be found in the [the configuration wiki
 page](Configuration.md) It has three methods:
 
-- `get(varname, default_value)` returns the value of `varname`, if the
+- `get(varname, default_value)`: returns the value of `varname`, if the
   value has not been set returns `default_value` if it is defined
-  *(added 0.38.0)* and errors out if not
+  *(since 0.38.0)* and errors out if not
 
-- `get_unquoted(varname, default_value)` returns the value of `varname`
-  but without surrounding double quotes (`"`). If the value has not been
-  set returns `default_value` if it is defined and errors out if not.
-  Available since 0.44.0
+- `get_unquoted(varname, default_value)` *(since 0.44.0)*: returns the value
+  of `varname` but without surrounding double quotes (`"`). If the value has
+  not been set returns `default_value` if it is defined and errors out if not.
 
-- `has(varname)`, returns `true` if the specified variable is set
+- `has(varname)`: returns `true` if the specified variable is set
 
-- `merge_from(other)` takes as argument a different configuration data
-  object and copies all entries from that object to the current
-  object, available since 0.42.0
+- `keys()`*(since 0.57.0)*: returns an array of keys of
+  the configuration data object.
+
+  You can iterate over this array with the [`foreach`
+  statement](Syntax.md#foreach-statements).
+
+- `merge_from(other)` *(since 0.42.0)*: takes as argument a different
+  configuration data object and copies all entries from that object to
+  the current.
 
 - `set(varname, value)`, sets a variable to a given value
 
@@ -2074,68 +2690,94 @@ cause a syntax error.
 This object is returned by [`custom_target`](#custom_target) and
 contains a target with the following methods:
 
-- `full_path()` returns a full path pointing to the result target file
+- `full_path()`: returns a full path pointing to the result target file
   NOTE: In most cases using the object itself will do the same job as
   this and will also allow Meson to setup inter-target dependencies
   correctly. Please file a bug if that doesn't work for you.
+  *(since 0.54.0)* It can be also called on indexes objects:
+  `custom_targets[i].full_path()`.
 
-- `[index]` returns an opaque object that references this target, and
+- `[index]`: returns an opaque object that references this target, and
   can be used as a source in other targets. When it is used as such it
   will make that target depend on this custom target, but the only
   source added will be the one that corresponds to the index of the
   custom target's output argument.
+
+- `to_list()` *(since 0.54.0)*: returns a list of opaque objects that references
+  this target, and can be used as a source in other targets. This can be used to
+  iterate outputs with `foreach` loop.
 
 ### `dependency` object
 
 This object is returned by [`dependency()`](#dependency) and contains
 an external dependency with the following methods:
 
- - `found()` which returns whether the dependency was found
+ - `found()`: returns whether the dependency was found.
 
- - `name()` *(Added 0.48.0)* returns the name of the dependency that was
+ - `name()` *(since 0.48.0)*: returns the name of the dependency that was
    searched. Returns `internal` for dependencies created with
    `declare_dependency()`.
 
- - `get_pkgconfig_variable(varname)` *(Added 0.36.0)* will get the
+ - `get_pkgconfig_variable(varname)` *(since 0.36.0)*: gets the
    pkg-config variable specified, or, if invoked on a non pkg-config
-   dependency, error out. *(Added 0.44.0)* You can also redefine a
+   dependency, error out. *(since 0.44.0)* You can also redefine a
    variable by passing a list to the `define_variable` parameter
    that can affect the retrieved variable: `['prefix', '/'])`.
-   *(Added 0.45.0)* A warning is issued if the variable is not defined,
+   *(since 0.45.0)* A warning is issued if the variable is not defined,
    unless a `default` parameter is specified.
 
- - `get_configtool_variable(varname)` *(Added 0.44.0)* will get the
+   *(Deprecated since 0.56.0*) use `get_variable(pkgconfig : ...)` instead
+
+ - `get_configtool_variable(varname)` *(since 0.44.0)*: gets the
    command line argument from the config tool (with `--` prepended), or,
    if invoked on a non config-tool dependency, error out.
 
- - `type_name()` which returns a string describing the type of the
+   *(Deprecated since 0.56.0*) use `get_variable(configtool : ...)` instead
+
+ - `type_name()`: returns a string describing the type of the
    dependency, the most common values are `internal` for deps created
    with `declare_dependency()` and `pkgconfig` for system dependencies
    obtained with Pkg-config.
 
- - `version()` is the version number as a string, for example `1.2.8`.
+ - `version()`: the version number as a string, for example `1.2.8`.
    `unknown` if the dependency provider doesn't support determining the
    version.
 
+ - `include_type()`: returns whether the value set by the `include_type` kwarg
+
+ - `as_system(value)`: returns a copy of the dependency object, which has changed
+   the value of `include_type` to `value`. The `value` argument is optional and
+   defaults to `'preserve'`.
+
+ - `as_link_whole()` *Since 0.56.0* Only dependencies created with
+   `declare_dependency()`, returns a copy of the dependency object with all
+   link_with arguments changed to link_whole. This is useful for example for
+   fallback dependency from a subproject built with `default_library=static`.
+   Note that all `link_with` objects must be static libraries otherwise an error
+   will be raised when trying to `link_whole` a shared library.
+
  - `partial_dependency(compile_args : false, link_args : false, links
-   : false, includes : false, source : false)` *(Added 0.46.0)* returns
+   : false, includes : false, sources : false)` *(since 0.46.0)*: returns
    a new dependency object with the same name, version, found status,
    type name, and methods as the object that called it. This new
    object will only inherit other attributes from its parent as
    controlled by keyword arguments.
 
    If the parent has any dependencies, those will be applied to the new
-   partial dependency with the same rules. So , given:
+   partial dependency with the same rules. So, given:
 
    ```meson
-   dep1 = declare_dependency(compiler_args : '-Werror=foo', link_with : 'libfoo')
-   dep2 = declare_dependency(compiler_args : '-Werror=bar', dependencies : dep1)
+   dep1 = declare_dependency(compile_args : '-Werror=foo', link_with : 'libfoo')
+   dep2 = declare_dependency(compile_args : '-Werror=bar', dependencies : dep1)
    dep3 = dep2.partial_dependency(compile_args : true)
    ```
 
    dep3 will add `['-Werror=foo', '-Werror=bar']` to the compiler args
    of any target it is added to, but libfoo will not be added to the
    link_args.
+
+   *Note*: A bug present until 0.50.1 results in the above behavior
+   not working correctly.
 
    The following arguments will add the following attributes:
 
@@ -2145,6 +2787,21 @@ an external dependency with the following methods:
    - includes: any include_directories
    - sources: any compiled or static sources the dependency has
 
+ - `get_variable(varname, cmake : str, pkgconfig : str, configtool : str,
+   internal: str, default_value : str, pkgconfig_define : [str, str])`
+   *(since 0.51.0)*: a generic variable getter method, which replaces the
+   get_*type*_variable methods. This allows one to get the variable
+   from a dependency without knowing specifically how that dependency
+   was found. If default_value is set and the value cannot be gotten
+   from the object then default_value is returned, if it is not set
+   then an error is raised.
+   *(since 0.54.0)* added `internal` keyword.
+   *(since 0.58.0)* added `varname` as first positional argument. It is used as
+   default value for `cmake`, `pkgconfig`, `configtool` and `internal` keyword
+   arguments. It is useful in the common case where `pkgconfig` and `internal`
+   use the same variable name, in which case it's easier to write `dep.get_variable('foo')`
+   instead of `dep.get_variable(pkgconfig: 'foo', internal: 'foo')`.
+
 ### `disabler` object
 
 A disabler object is an object that behaves in much the same way as
@@ -2153,7 +2810,7 @@ statement (function call, logical op, etc) they will cause the
 statement evaluation to immediately short circuit to return a disabler
 object. A disabler object has one method:
 
-  - `found()`, always returns `false`
+- `found()`: always returns `false`.
 
 ### `external program` object
 
@@ -2161,20 +2818,25 @@ This object is returned by [`find_program()`](#find_program) and
 contains an external (i.e. not built as part of this project) program
 and has the following methods:
 
-- `found()` which returns whether the executable was found
+- `found()`: returns whether the executable was found.
 
-- `path()` which returns a string pointing to the script or executable
+- `path()`: *(since 0.55.0)* **(deprecated)** use `full_path()` instead.
+  Returns a string pointing to the script or executable
   **NOTE:** You should not need to use this method. Passing the object
-  itself should work in all cases. F.ex.: `run_command(obj, arg1, arg2)`
+  itself should work in all cases. For example: `run_command(obj, arg1, arg2)`.
+
+- `full_path()` (*since 0.55.0*): which returns a string pointing to the script or
+  executable **NOTE:** You should not need to use this method. Passing the object
+  itself should work in all cases. For example: `run_command(obj, arg1, arg2)`.
 
 ### `environment` object
 
 This object is returned by [`environment()`](#environment) and stores
 detailed information about how environment variables should be set
 during tests. It should be passed as the `env` keyword argument to
-tests. It has the following methods.
+tests and other functions. It has the following methods.
 
-- `append(varname, value1, value2, ...)` appends the given values to
+- `append(varname, value1, value2, ...)`: appends the given values to
   the old value of the environment variable, e.g.  `env.append('FOO',
   'BAR', 'BAZ', separator : ';')` produces `BOB;BAR;BAZ` if `FOO` had
   the value `BOB` and plain `BAR;BAZ` if the value was not defined. If
@@ -2182,34 +2844,80 @@ tests. It has the following methods.
   separator for the host operating system will be used, i.e. ';' for
   Windows and ':' for UNIX/POSIX systems.
 
-- `prepend(varname, value1, value2, ...)` is the same as `append` except that it
-  writes to the beginning of the variable
+- `prepend(varname, value1, value2, ...)`: same as `append`
+  except that it writes to the beginning of the variable.
 
-- `set(varname, value1, value2)` sets the environment variable
+- `set(varname, value1, value2)`: sets the environment variable
   specified in the first argument to the values in the second argument
   joined by the separator, e.g.  `env.set('FOO', 'BAR'),` sets envvar
   `FOO` to value `BAR`. See `append()` above for how separators work.
 
-**Note:** All these methods overwrite the previously-defined value(s)
-if called twice with the same `varname`.
+*Since 0.58.0* `append()` and `prepend()` methods can be called multiple times
+on the same `varname`. Earlier Meson versions would warn and only the last
+operation took effect.
+
+```meson
+env = environment()
+
+# MY_PATH will be '0:1:2:3'
+env.set('MY_PATH', '1')
+env.append('MY_PATH', '2')
+env.append('MY_PATH', '3')
+env.prepend('MY_PATH', '0')
+```
 
 ### `external library` object
 
-This object is returned by [`find_library()`](#find_library) and
+This object is returned by [`find_library()`](#compiler-object) and
 contains an external (i.e. not built as part of this project)
 library. This object has the following methods:
 
- - `found()` which returns whether the library was found.
+- `found()`: returns whether the library was found.
 
- - `type_name()` *(added 0.48.0)* which returns a string describing
-   the type of the dependency, which will be `library` in this case.
+- `type_name()` *(since 0.48.0)*: returns a string describing
+  the type of the dependency, which will be `library` in this case.
 
- - `partial_dependency(compile_args : false, link_args : false, links
-   : false, includes : false, source : false)` *(Added 0.46.0)* returns
-   a new dependency object with the same name, version, found status,
-   type name, and methods as the object that called it. This new
-   object will only inherit other attributes from its parent as
-   controlled by keyword arguments.
+- `partial_dependency(compile_args : false, link_args : false, links
+  : false, includes : false, source : false)` *(since 0.46.0)*: returns
+  a new dependency object with the same name, version, found status,
+  type name, and methods as the object that called it. This new
+  object will only inherit other attributes from its parent as
+  controlled by keyword arguments.
+
+### Feature option object
+
+*(since 0.47.0)*
+
+The following methods are defined for all [`feature` options](Build-options.md#features):
+
+- `enabled()`: returns whether the feature was set to `'enabled'`
+- `disabled()`: returns whether the feature was set to `'disabled'`
+- `auto()`: returns whether the feature was set to `'auto'`
+- `allowed()` *(since 0.59.0)*: returns whether the feature was set to `'enabled'` or `'auto'`
+- `disable_auto_if(value)` *(since 0.59.0)*: returns the feature, with
+  `'auto'` converted to `'disabled'` if value is true.
+
+  | Feature / Condition | True      | False |
+  | ------------------- | ----      | ----- |
+  | Enabled             | Enabled   | Enabled |
+  | Disabled            | Disabled  | Disabled |
+  | Auto                | Disabled  | Auto |
+
+- `require(value, error_message: '')` *(since 0.59.0)*: returns
+  the object itself if the value is true; an error if the object is
+  `'enabled'` and the value is false; a disabled feature if the object
+  is `'auto'` or `'disabled'` and the value is false.
+
+`require` is useful to restrict the applicability of `'auto'` features,
+for example based on other features or on properties of the host machine:
+
+```
+if get_option('directx').require(host_machine.system() == 'windows',
+       error_message: 'DirectX only available on Windows').allowed() then
+  src += ['directx.c']
+  config.set10('HAVE_DIRECTX', 1)
+endif
+```
 
 ### `generator` object
 
@@ -2217,7 +2925,7 @@ This object is returned by [`generator()`](#generator) and contains a
 generator that is used to transform files from one type to another by
 an executable (e.g. `idl` files into source code and headers).
 
-* `process(list_of_files, ...)` takes a list of files, causes them to
+- `process(list_of_files, ...)`: takes a list of files, causes them to
   be processed and returns an object containing the result which can
   then, for example, be passed into a build target definition. The
   keyword argument `extra_args`, if specified, will be used to replace
@@ -2235,12 +2943,17 @@ an executable (e.g. `idl` files into source code and headers).
 This object is returned by [`subproject()`](#subproject) and is an
 opaque object representing it.
 
-- `found()` *(added 0.48.0)* which returns whether the subproject was
+- `found()` *(since 0.48.0)*: returns whether the subproject was
   successfully setup
 
-- `get_variable(name)` fetches the specified variable from inside the
-  subproject. This is useful to, for instance, get a [declared
-  dependency](#declare_dependency) from the [subproject](Subprojects.md).
+- `get_variable(name, fallback)`: fetches the specified variable from
+  inside the subproject. This is useful to, for instance, get a
+  [declared dependency](#declare_dependency) from the
+  [subproject](Subprojects.md).
+
+  If the variable does not exist, the variable `fallback` is returned.
+  If a fallback is not specified, then attempting to read a non-existing
+  variable will cause a fatal error.
 
 ### `run result` object
 
@@ -2248,8 +2961,17 @@ This object encapsulates the result of trying to compile and run a
 sample piece of code with [`compiler.run()`](#compiler-object) or
 [`run_command()`](#run_command). It has the following methods:
 
-- `compiled()` if true, the compilation succeeded, if false it did not
-  and the other methods return unspecified data
-- `returncode()` the return code of executing the compiled binary
-- `stderr()` the standard error produced when the command was run
-- `stdout()` the standard out produced when the command was run
+- `compiled()`: if true, the compilation succeeded, if false it did not
+  and the other methods return unspecified data. This is only available
+  for `compiler.run()` results.
+- `returncode()`: the return code of executing the compiled binary
+- `stderr()`: the standard error produced when the command was run
+- `stdout()`: the standard out produced when the command was run
+
+### `module` object
+
+Modules provide their own specific implementation methods, but all modules
+proivide the following methods:
+
+- `bool found()`: returns True if the module was successfully imported,
+  otherwise false. *Since 0.59.0*

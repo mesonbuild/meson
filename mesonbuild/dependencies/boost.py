@@ -1,4 +1,4 @@
-# Copyright 2013-2017 The Meson development team
+# Copyright 2013-2020 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,16 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This file contains the detection logic for miscellaneous external dependencies.
-
-import glob
-import os
+import re
+import functools
+import typing as T
+from pathlib import Path
 
 from .. import mlog
 from .. import mesonlib
-from ..environment import detect_cpu_family
+from ..environment import Environment
 
-from .base import (DependencyException, ExternalDependency)
+from .base import DependencyException, SystemDependency
+from .pkgconfig import PkgConfigDependency
+from .misc import threads_factory
+
+if T.TYPE_CHECKING:
+    from ..environment import Properties
 
 # On windows 3 directory layouts are supported:
 # * The default layout (versioned) installed:
@@ -37,16 +42,6 @@ from .base import (DependencyException, ExternalDependency)
 # Note that we should also try to support:
 # mingw-w64 / Windows : libboost_<module>-mt.a            (location = <prefix>/mingw64/lib/)
 #                       libboost_<module>-mt.dll.a
-#
-# Library names supported:
-#   - libboost_<module>-<compiler>-mt-gd-x_x.lib (static)
-#   - boost_<module>-<compiler>-mt-gd-x_x.lib|.dll (shared)
-#   - libboost_<module>.lib (static)
-#   - boost_<module>.lib|.dll (shared)
-#   where compiler is vc141 for example.
-#
-# NOTE: -gd means runtime and build time debugging is on
-#       -mt means threading=multi
 #
 # The `modules` argument accept library names. This is because every module that
 # has libraries to link against also has multiple options regarding how to
@@ -77,610 +72,1007 @@ from .base import (DependencyException, ExternalDependency)
 # Furthermore, the boost documentation for unix above uses examples from windows like
 #   "libboost_regex-vc71-mt-d-x86-1_34.lib", so apparently the abi tags may be more aimed at windows.
 #
-# Probably we should use the linker search path to decide which libraries to use.  This will
-# make it possible to find the macports boost libraries without setting BOOST_ROOT, and will
-# also mean that it would be possible to use user-installed boost libraries when official
-# packages are installed.
-#
-# We thus follow the following strategy:
-# 1. Look for libraries using compiler.find_library( )
-#   1.1 On Linux, just look for boost_<module>
-#   1.2 On other systems (e.g. Mac) look for boost_<module>-mt if multithreading.
-#   1.3 Otherwise look for boost_<module>
-# 2. Fall back to previous approach
-#   2.1. Search particular directories.
-#   2.2. Find boost libraries with unknown suffixes using file-name globbing.
+# We follow the following strategy for finding modules:
+# A) Detect potential boost root directories (uses also BOOST_ROOT env var)
+# B) Foreach candidate
+#   1. Look for the boost headers (boost/version.pp)
+#   2. Find all boost libraries
+#     2.1 Add all libraries in lib*
+#     2.2 Filter out non boost libraries
+#     2.3 Filter the renaining libraries based on the meson requirements (static/shared, etc.)
+#     2.4 Ensure that all libraries have the same boost tag (and are thus compatible)
+#   3. Select the libraries matching the requested modules
 
-# TODO: Unix: Don't assume we know where the boost dir is, rely on -Idir and -Ldir being set.
-# TODO: Allow user to specify suffix in BOOST_SUFFIX, or add specific options like BOOST_DEBUG for 'd' for debug.
+@functools.total_ordering
+class BoostIncludeDir():
+    def __init__(self, path: Path, version_int: int):
+        self.path = path
+        self.version_int = version_int
+        major = int(self.version_int / 100000)
+        minor = int((self.version_int / 100) % 1000)
+        patch = int(self.version_int % 100)
+        self.version = f'{major}.{minor}.{patch}'
+        self.version_lib = f'{major}_{minor}'
 
-class BoostDependency(ExternalDependency):
-    def __init__(self, environment, kwargs):
-        super().__init__('boost', environment, 'cpp', kwargs)
-        self.need_static_link = ['boost_exception', 'boost_test_exec_monitor']
-        self.is_debug = environment.coredata.get_builtin_option('buildtype').startswith('debug')
-        threading = kwargs.get("threading", "multi")
-        self.is_multithreading = threading == "multi"
+    def __repr__(self) -> str:
+        return f'<BoostIncludeDir: {self.version} -- {self.path}>'
 
-        self.requested_modules = self.get_requested(kwargs)
+    def __lt__(self, other: object) -> bool:
+        if isinstance(other, BoostIncludeDir):
+            return (self.version_int, self.path) < (other.version_int, other.path)
+        return NotImplemented
 
-        self.boost_root = None
-        self.boost_roots = []
-        self.incdir = None
-        self.libdir = None
+@functools.total_ordering
+class BoostLibraryFile():
+    # Python libraries are special because of the included
+    # minor version in the module name.
+    boost_python_libs = ['boost_python', 'boost_numpy']
+    reg_python_mod_split = re.compile(r'(boost_[a-zA-Z]+)([0-9]*)')
 
-        if 'BOOST_ROOT' in os.environ:
-            self.boost_root = os.environ['BOOST_ROOT']
-            self.boost_roots = [self.boost_root]
-            if not os.path.isabs(self.boost_root):
-                raise DependencyException('BOOST_ROOT must be an absolute path.')
-        if 'BOOST_INCLUDEDIR' in os.environ:
-            self.incdir = os.environ['BOOST_INCLUDEDIR']
-        if 'BOOST_LIBRARYDIR' in os.environ:
-            self.libdir = os.environ['BOOST_LIBRARYDIR']
+    reg_abi_tag = re.compile(r'^s?g?y?d?p?n?$')
+    reg_ver_tag = re.compile(r'^[0-9_]+$')
 
-        if self.boost_root is None:
-            if mesonlib.for_windows(self.want_cross, self.env):
-                self.boost_roots = self.detect_win_roots()
-            else:
-                self.boost_roots = self.detect_nix_roots()
+    def __init__(self, path: Path):
+        self.path = path
+        self.name = self.path.name
 
-        if self.incdir is None:
-            if mesonlib.for_windows(self.want_cross, self.env):
-                self.incdir = self.detect_win_incdir()
-            else:
-                self.incdir = self.detect_nix_incdir()
+        # Initialize default properties
+        self.static = False
+        self.toolset = ''
+        self.arch = ''
+        self.version_lib = ''
+        self.mt = True
 
-        if self.check_invalid_modules():
+        self.runtime_static = False
+        self.runtime_debug = False
+        self.python_debug = False
+        self.debug = False
+        self.stlport = False
+        self.deprecated_iostreams = False
+
+        # Post process the library name
+        name_parts = self.name.split('.')
+        self.basename = name_parts[0]
+        self.suffixes = name_parts[1:]
+        self.vers_raw = [x for x in self.suffixes if x.isdigit()]
+        self.suffixes = [x for x in self.suffixes if not x.isdigit()]
+        self.nvsuffix = '.'.join(self.suffixes)  # Used for detecting the library type
+        self.nametags = self.basename.split('-')
+        self.mod_name = self.nametags[0]
+        if self.mod_name.startswith('lib'):
+            self.mod_name = self.mod_name[3:]
+
+        # Set library version if possible
+        if len(self.vers_raw) >= 2:
+            self.version_lib = '{}_{}'.format(self.vers_raw[0], self.vers_raw[1])
+
+        # Detecting library type
+        if self.nvsuffix in ['so', 'dll', 'dll.a', 'dll.lib', 'dylib']:
+            self.static = False
+        elif self.nvsuffix in ['a', 'lib']:
+            self.static = True
+        else:
+            raise DependencyException(f'Unable to process library extension "{self.nvsuffix}" ({self.path})')
+
+        # boost_.lib is the dll import library
+        if self.basename.startswith('boost_') and self.nvsuffix == 'lib':
+            self.static = False
+
+        # Process tags
+        tags = self.nametags[1:]
+        # Filter out the python version tag and fix modname
+        if self.is_python_lib():
+            tags = self.fix_python_name(tags)
+        if not tags:
             return
 
-        mlog.debug('Boost library root dir is', mlog.bold(self.boost_root))
-        mlog.debug('Boost include directory is', mlog.bold(self.incdir))
+        # Without any tags mt is assumed, however, an absence of mt in the name
+        # with tags present indicates that the lib was built without mt support
+        self.mt = False
+        for i in tags:
+            if i == 'mt':
+                self.mt = True
+            elif len(i) == 3 and i[1:] in ['32', '64']:
+                self.arch = i
+            elif BoostLibraryFile.reg_abi_tag.match(i):
+                self.runtime_static = 's' in i
+                self.runtime_debug = 'g' in i
+                self.python_debug = 'y' in i
+                self.debug = 'd' in i
+                self.stlport = 'p' in i
+                self.deprecated_iostreams = 'n' in i
+            elif BoostLibraryFile.reg_ver_tag.match(i):
+                self.version_lib = i
+            else:
+                self.toolset = i
 
-        # 1. check if we can find BOOST headers.
-        self.detect_headers_and_version()
+    def __repr__(self) -> str:
+        return f'<LIB: {self.abitag} {self.mod_name:<32} {self.path}>'
 
-        # 2. check if we can find BOOST libraries.
-        if self.is_found:
-            self.detect_lib_modules()
-            mlog.debug('Boost library directory is', mlog.bold(self.libdir))
+    def __lt__(self, other: object) -> bool:
+        if isinstance(other, BoostLibraryFile):
+            return (
+                self.mod_name, self.static, self.version_lib, self.arch,
+                not self.mt, not self.runtime_static,
+                not self.debug, self.runtime_debug, self.python_debug,
+                self.stlport, self.deprecated_iostreams,
+                self.name,
+            ) < (
+                other.mod_name, other.static, other.version_lib, other.arch,
+                not other.mt, not other.runtime_static,
+                not other.debug, other.runtime_debug, other.python_debug,
+                other.stlport, other.deprecated_iostreams,
+                other.name,
+            )
+        return NotImplemented
 
-    def check_invalid_modules(self):
-        invalid_modules = [c for c in self.requested_modules if 'boost_' + c not in BOOST_LIBS]
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, BoostLibraryFile):
+            return self.name == other.name
+        return NotImplemented
 
-        # previous versions of meson allowed include dirs as modules
-        remove = []
-        for m in invalid_modules:
-            if m in BOOST_DIRS:
-                mlog.warning('Requested boost library', mlog.bold(m), 'that doesn\'t exist. '
-                             'This will be an error in the future')
-                remove.append(m)
+    def __hash__(self) -> int:
+        return hash(self.name)
 
-        self.requested_modules = [x for x in self.requested_modules if x not in remove]
-        invalid_modules = [x for x in invalid_modules if x not in remove]
+    @property
+    def abitag(self) -> str:
+        abitag = ''
+        abitag += 'S' if self.static else '-'
+        abitag += 'M' if self.mt else '-'
+        abitag += ' '
+        abitag += 's' if self.runtime_static else '-'
+        abitag += 'g' if self.runtime_debug else '-'
+        abitag += 'y' if self.python_debug else '-'
+        abitag += 'd' if self.debug else '-'
+        abitag += 'p' if self.stlport else '-'
+        abitag += 'n' if self.deprecated_iostreams else '-'
+        abitag += ' ' + (self.arch or '???')
+        abitag += ' ' + (self.toolset or '?')
+        abitag += ' ' + (self.version_lib or 'x_xx')
+        return abitag
 
-        if invalid_modules:
-            mlog.error('Invalid Boost modules: ' + ', '.join(invalid_modules))
+    def is_boost(self) -> bool:
+        return any([self.name.startswith(x) for x in ['libboost_', 'boost_']])
+
+    def is_python_lib(self) -> bool:
+        return any([self.mod_name.startswith(x) for x in BoostLibraryFile.boost_python_libs])
+
+    def fix_python_name(self, tags: T.List[str]) -> T.List[str]:
+        # Handle the boost_python naming madeness.
+        # See https://github.com/mesonbuild/meson/issues/4788 for some distro
+        # specific naming variantions.
+        other_tags = []  # type: T.List[str]
+
+        # Split the current modname into the base name and the version
+        m_cur = BoostLibraryFile.reg_python_mod_split.match(self.mod_name)
+        cur_name = m_cur.group(1)
+        cur_vers = m_cur.group(2)
+
+        # Update the current version string if the new version string is longer
+        def update_vers(new_vers: str) -> None:
+            nonlocal cur_vers
+            new_vers = new_vers.replace('_', '')
+            new_vers = new_vers.replace('.', '')
+            if not new_vers.isdigit():
+                return
+            if len(new_vers) > len(cur_vers):
+                cur_vers = new_vers
+
+        for i in tags:
+            if i.startswith('py'):
+                update_vers(i[2:])
+            elif i.isdigit():
+                update_vers(i)
+            elif len(i) >= 3 and i[0].isdigit and i[2].isdigit() and i[1] == '.':
+                update_vers(i)
+            else:
+                other_tags += [i]
+
+        self.mod_name = cur_name + cur_vers
+        return other_tags
+
+    def mod_name_matches(self, mod_name: str) -> bool:
+        if self.mod_name == mod_name:
             return True
-        else:
+        if not self.is_python_lib():
             return False
 
-    def log_details(self):
-        module_str = ', '.join(self.requested_modules)
-        return module_str
+        m_cur = BoostLibraryFile.reg_python_mod_split.match(self.mod_name)
+        m_arg = BoostLibraryFile.reg_python_mod_split.match(mod_name)
 
-    def log_info(self):
-        if self.boost_root:
-            return self.boost_root
-        return ''
+        if not m_cur or not m_arg:
+            return False
 
-    def detect_nix_roots(self):
-        return [os.path.abspath(os.path.join(x, '..'))
-                for x in self.clib_compiler.get_default_include_dirs()]
+        if m_cur.group(1) != m_arg.group(1):
+            return False
 
-    def detect_win_roots(self):
-        res = []
-        # Where boost documentation says it should be
-        globtext = 'C:\\Program Files\\boost\\boost_*'
-        files = glob.glob(globtext)
-        res.extend(files)
+        cur_vers = m_cur.group(2)
+        arg_vers = m_arg.group(2)
 
-        # Where boost built from source actually installs it
-        if os.path.isdir('C:\\Boost'):
-            res.append('C:\\Boost')
+        # Always assume python 2 if nothing is specified
+        if not arg_vers:
+            arg_vers = '2'
 
-        # Where boost prebuilt binaries are
-        globtext = 'C:\\local\\boost_*'
-        files = glob.glob(globtext)
-        res.extend(files)
-        return res
+        return cur_vers.startswith(arg_vers)
 
-    def detect_nix_incdir(self):
-        if self.boost_root:
-            return os.path.join(self.boost_root, 'include')
-        return None
+    def version_matches(self, version_lib: str) -> bool:
+        # If no version tag is present, assume that it fits
+        if not self.version_lib or not version_lib:
+            return True
+        return self.version_lib == version_lib
 
-    # FIXME: Should pick a version that matches the requested version
-    # Returns the folder that contains the boost folder.
-    def detect_win_incdir(self):
-        for root in self.boost_roots:
-            globtext = os.path.join(root, 'include', 'boost-*')
-            incdirs = glob.glob(globtext)
-            if len(incdirs) > 0:
-                return incdirs[0]
-            incboostdir = os.path.join(root, 'include', 'boost')
-            if os.path.isdir(incboostdir):
-                return os.path.join(root, 'include')
-            incboostdir = os.path.join(root, 'boost')
-            if os.path.isdir(incboostdir):
-                return root
-        return None
+    def arch_matches(self, arch: str) -> bool:
+        # If no version tag is present, assume that it fits
+        if not self.arch or not arch:
+            return True
+        return self.arch == arch
 
-    def get_compile_args(self):
-        args = []
-        include_dir = self.incdir
+    def vscrt_matches(self, vscrt: str) -> bool:
+        # If no vscrt tag present, assume that it fits  ['/MD', '/MDd', '/MT', '/MTd']
+        if not vscrt:
+            return True
+        if vscrt in ['/MD', '-MD']:
+            return not self.runtime_static and not self.runtime_debug
+        elif vscrt in ['/MDd', '-MDd']:
+            return not self.runtime_static and self.runtime_debug
+        elif vscrt in ['/MT', '-MT']:
+            return (self.runtime_static or not self.static) and not self.runtime_debug
+        elif vscrt in ['/MTd', '-MTd']:
+            return (self.runtime_static or not self.static) and self.runtime_debug
 
-        # Use "-isystem" when including boost headers instead of "-I"
-        # to avoid compiler warnings/failures when "-Werror" is used
+        mlog.warning(f'Boost: unknow vscrt tag {vscrt}. This may cause the compilation to fail. Please consider reporting this as a bug.', once=True)
+        return True
 
-        # Careful not to use "-isystem" on default include dirs as it
-        # breaks some of the headers for certain gcc versions
-
-        # For example, doing g++ -isystem /usr/include on a simple
-        # "int main()" source results in the error:
-        # "/usr/include/c++/6.3.1/cstdlib:75:25: fatal error: stdlib.h: No such file or directory"
-
-        # See https://gcc.gnu.org/bugzilla/show_bug.cgi?id=70129
-        # and http://stackoverflow.com/questions/37218953/isystem-on-a-system-include-directory-causes-errors
-        # for more details
-
-        if include_dir and include_dir not in self.clib_compiler.get_default_include_dirs():
-            args.append("".join(self.clib_compiler.get_include_args(include_dir, True)))
+    def get_compiler_args(self) -> T.List[str]:
+        args = []  # type: T.List[str]
+        if self.mod_name in boost_libraries:
+            libdef = boost_libraries[self.mod_name]  # type: BoostLibrary
+            if self.static:
+                args += libdef.static
+            else:
+                args += libdef.shared
+            if self.mt:
+                args += libdef.multi
+            else:
+                args += libdef.single
         return args
 
-    def get_requested(self, kwargs):
-        candidates = mesonlib.extract_as_list(kwargs, 'modules')
-        for c in candidates:
-            if not isinstance(c, str):
+    def get_link_args(self) -> T.List[str]:
+        return [self.path.as_posix()]
+
+class BoostDependency(SystemDependency):
+    def __init__(self, environment: Environment, kwargs: T.Dict[str, T.Any]) -> None:
+        super().__init__('boost', environment, kwargs, language='cpp')
+        buildtype = environment.coredata.get_option(mesonlib.OptionKey('buildtype'))
+        assert isinstance(buildtype, str)
+        self.debug = buildtype.startswith('debug')
+        self.multithreading = kwargs.get('threading', 'multi') == 'multi'
+
+        self.boost_root = None  # type: T.Optional[Path]
+        self.explicit_static = 'static' in kwargs
+
+        # Extract and validate modules
+        self.modules = mesonlib.extract_as_list(kwargs, 'modules')  # type: T.List[str]
+        for i in self.modules:
+            if not isinstance(i, str):
                 raise DependencyException('Boost module argument is not a string.')
-        return candidates
+            if i.startswith('boost_'):
+                raise DependencyException('Boost modules must be passed without the boost_ prefix')
 
-    def detect_headers_and_version(self):
-        try:
-            version = self.clib_compiler.get_define('BOOST_LIB_VERSION', '#include <boost/version.hpp>', self.env, self.get_compile_args(), [])
-        except mesonlib.EnvironmentException:
-            return
-        except TypeError:
-            return
-        # Remove quotes
-        version = version[1:-1]
-        # Fix version string
-        self.version = version.replace('_', '.')
-        self.is_found = True
+        self.modules_found = []    # type: T.List[str]
+        self.modules_missing = []  # type: T.List[str]
 
-    def detect_lib_modules(self):
-        self.lib_modules = {}
-        # 1. Try to find modules using compiler.find_library( )
-        if self.find_libraries_with_abi_tags(self.abi_tags()):
-            pass
-        # 2. Fall back to the old method
-        else:
-            if mesonlib.for_windows(self.want_cross, self.env):
-                self.detect_lib_modules_win()
-            else:
-                self.detect_lib_modules_nix()
-
-        # 3. Check if we can find the modules
-        for m in self.requested_modules:
-            if 'boost_' + m not in self.lib_modules:
-                mlog.debug('Requested Boost library {!r} not found'.format(m))
+        # Do we need threads?
+        if 'thread' in self.modules:
+            if not self._add_sub_dependency(threads_factory(environment, self.for_machine, {})):
                 self.is_found = False
+                return
 
-    def modname_from_filename(self, filename):
-        modname = os.path.basename(filename)
-        modname = modname.split('.', 1)[0]
-        modname = modname.split('-', 1)[0]
-        if modname.startswith('libboost'):
-            modname = modname[3:]
-        return modname
+        # Try figuring out the architecture tag
+        self.arch = environment.machines[self.for_machine].cpu_family
+        self.arch = boost_arch_map.get(self.arch, None)
 
-    def compiler_tag(self):
-        tag = None
-        compiler = self.env.detect_cpp_compiler(self.want_cross)
-        if mesonlib.for_windows(self.want_cross, self.env):
-            if compiler.get_id() in ['msvc', 'clang-cl']:
-                comp_ts_version = compiler.get_toolset_version()
-                compiler_ts = comp_ts_version.split('.')
-                # FIXME - what about other compilers?
-                tag = '-vc{}{}'.format(compiler_ts[0], compiler_ts[1])
-            else:
-                tag = ''
-        return tag
+        # First, look for paths specified in a machine file
+        props = self.env.properties[self.for_machine]
+        if any(x in self.env.properties[self.for_machine] for x in
+               ['boost_includedir', 'boost_librarydir', 'boost_root']):
+            self.detect_boost_machine_file(props)
+            return
 
-    def threading_tag(self):
-        if not self.is_multithreading:
-            return ''
+        # Finally, look for paths from .pc files and from searching the filesystem
+        self.detect_roots()
 
-        if mesonlib.for_darwin(self.want_cross, self.env):
-            # - Mac:      requires -mt for multithreading, so should not fall back to non-mt libraries.
-            return '-mt'
-        elif mesonlib.for_windows(self.want_cross, self.env):
-            # - Windows:  requires -mt for multithreading, so should not fall back to non-mt libraries.
-            return '-mt'
-        else:
-            # - Linux:    leaves off -mt but libraries are multithreading-aware.
-            # - Cygwin:   leaves off -mt but libraries are multithreading-aware.
-            return ''
+    def check_and_set_roots(self, roots: T.List[Path], use_system: bool) -> None:
+        roots = list(mesonlib.OrderedSet(roots))
+        for j in roots:
+            #   1. Look for the boost headers (boost/version.hpp)
+            mlog.debug(f'Checking potential boost root {j.as_posix()}')
+            inc_dirs = self.detect_inc_dirs(j)
+            inc_dirs = sorted(inc_dirs, reverse=True)  # Prefer the newer versions
 
-    def version_tag(self):
-        return '-' + self.version.replace('.', '_')
+            # Early abort when boost is not found
+            if not inc_dirs:
+                continue
 
-    def debug_tag(self):
-        return '-gd' if self.is_debug else ''
+            lib_dirs = self.detect_lib_dirs(j, use_system)
+            self.is_found = self.run_check(inc_dirs, lib_dirs)
+            if self.is_found:
+                self.boost_root = j
+                break
 
-    def arch_tag(self):
-        # currently only applies to windows msvc installed binaries
-        if self.env.detect_cpp_compiler(self.want_cross).get_id() not in ['msvc', 'clang-cl']:
-            return ''
-        # pre-compiled binaries only added arch tag for versions > 1.64
-        if float(self.version) < 1.65:
-            return ''
-        arch = detect_cpu_family(self.env.coredata.compilers)
-        if arch == 'x86':
-            return '-x32'
-        elif arch == 'x86_64':
-            return '-x64'
-        return ''
+    def detect_boost_machine_file(self, props: 'Properties') -> None:
+        """Detect boost with values in the machine file or environment.
 
-    def versioned_abi_tag(self):
-        return self.compiler_tag() + self.threading_tag() + self.debug_tag() + self.arch_tag() + self.version_tag()
+        The machine file values are defaulted to the environment values.
+        """
+        # XXX: if we had a TypedDict we woudn't need this
+        incdir = props.get('boost_includedir')
+        assert incdir is None or isinstance(incdir, str)
+        libdir = props.get('boost_librarydir')
+        assert libdir is None or isinstance(libdir, str)
 
-    # FIXME - how to handle different distributions, e.g. for Mac? Currently we handle homebrew and macports, but not fink.
-    def abi_tags(self):
-        if mesonlib.for_windows(self.want_cross, self.env):
-            return [self.versioned_abi_tag(), self.threading_tag()]
-        else:
-            return [self.threading_tag()]
+        if incdir and libdir:
+            inc_dir = Path(incdir)
+            lib_dir = Path(libdir)
 
-    def sourceforge_dir(self):
-        if self.env.detect_cpp_compiler(self.want_cross).get_id() != 'msvc':
-            return None
-        comp_ts_version = self.env.detect_cpp_compiler(self.want_cross).get_toolset_version()
-        arch = detect_cpu_family(self.env.coredata.compilers)
-        if arch == 'x86':
-            return 'lib32-msvc-{}'.format(comp_ts_version)
-        elif arch == 'x86_64':
-            return 'lib64-msvc-{}'.format(comp_ts_version)
-        else:
-            # Does anyone do Boost cross-compiling to other archs on Windows?
-            return None
+            if not inc_dir.is_absolute() or not lib_dir.is_absolute():
+                raise DependencyException('Paths given for boost_includedir and boost_librarydir in machine file must be absolute')
 
-    def find_libraries_with_abi_tag(self, tag):
+            mlog.debug('Trying to find boost with:')
+            mlog.debug(f'  - boost_includedir = {inc_dir}')
+            mlog.debug(f'  - boost_librarydir = {lib_dir}')
 
-        # All modules should have the same tag
-        self.lib_modules = {}
+            return self.detect_split_root(inc_dir, lib_dir)
 
-        all_found = True
+        elif incdir or libdir:
+            raise DependencyException('Both boost_includedir *and* boost_librarydir have to be set in your machine file (one is not enough)')
 
-        for module in self.requested_modules:
-            libname = 'boost_' + module + tag
+        rootdir = props.get('boost_root')
+        # It shouldn't be possible to get here without something in boost_root
+        assert rootdir
 
-            args = self.clib_compiler.find_library(libname, self.env, self.extra_lib_dirs())
-            if args is None:
-                mlog.debug("Couldn\'t find library '{}' for boost module '{}'  (ABI tag = '{}')".format(libname, module, tag))
-                all_found = False
-            else:
-                mlog.debug('Link args for boost module "{}" are {}'.format(module, args))
-                self.lib_modules['boost_' + module] = args
+        raw_paths = mesonlib.stringlistify(rootdir)
+        paths = [Path(x) for x in raw_paths]
+        if paths and any([not x.is_absolute() for x in paths]):
+            raise DependencyException('boost_root path given in machine file must be absolute')
 
-        return all_found
+        self.check_and_set_roots(paths, use_system=False)
 
-    def find_libraries_with_abi_tags(self, tags):
-        for tag in tags:
-            if self.find_libraries_with_abi_tag(tag):
+    def run_check(self, inc_dirs: T.List[BoostIncludeDir], lib_dirs: T.List[Path]) -> bool:
+        mlog.debug('  - potential library dirs: {}'.format([x.as_posix() for x in lib_dirs]))
+        mlog.debug('  - potential include dirs: {}'.format([x.path.as_posix() for x in inc_dirs]))
+
+        #   2. Find all boost libraries
+        libs = []  # type: T.List[BoostLibraryFile]
+        for i in lib_dirs:
+            libs = self.detect_libraries(i)
+            if libs:
+                mlog.debug(f'  - found boost library dir: {i}')
+                # mlog.debug('  - raw library list:')
+                # for j in libs:
+                #     mlog.debug('    - {}'.format(j))
+                break
+        libs = sorted(set(libs))
+
+        modules = ['boost_' + x for x in self.modules]
+        for inc in inc_dirs:
+            mlog.debug(f'  - found boost {inc.version} include dir: {inc.path}')
+            f_libs = self.filter_libraries(libs, inc.version_lib)
+
+            mlog.debug('  - filtered library list:')
+            for j in f_libs:
+                mlog.debug(f'    - {j}')
+
+            #   3. Select the libraries matching the requested modules
+            not_found = []  # type: T.List[str]
+            selected_modules = []  # type: T.List[BoostLibraryFile]
+            for mod in modules:
+                found = False
+                for l in f_libs:
+                    if l.mod_name_matches(mod):
+                        selected_modules += [l]
+                        found = True
+                        break
+                if not found:
+                    not_found += [mod]
+
+            # log the result
+            mlog.debug('  - found:')
+            comp_args = []  # type: T.List[str]
+            link_args = []  # type: T.List[str]
+            for j in selected_modules:
+                c_args = j.get_compiler_args()
+                l_args = j.get_link_args()
+                mlog.debug('    - {:<24} link={} comp={}'.format(j.mod_name, str(l_args), str(c_args)))
+                comp_args += c_args
+                link_args += l_args
+
+            comp_args = list(set(comp_args))
+            link_args = list(set(link_args))
+
+            self.modules_found = [x.mod_name for x in selected_modules]
+            self.modules_found = [x[6:] for x in self.modules_found]
+            self.modules_found = sorted(set(self.modules_found))
+            self.modules_missing = not_found
+            self.modules_missing = [x[6:] for x in self.modules_missing]
+            self.modules_missing = sorted(set(self.modules_missing))
+
+            # if we found all modules we are done
+            if not not_found:
+                self.version = inc.version
+                self.compile_args = ['-I' + inc.path.as_posix()]
+                self.compile_args += comp_args
+                self.compile_args += self._extra_compile_args()
+                self.compile_args = list(mesonlib.OrderedSet(self.compile_args))
+                self.link_args = link_args
+                mlog.debug(f'  - final compile args: {self.compile_args}')
+                mlog.debug(f'  - final link args:    {self.link_args}')
                 return True
+
+            # in case we missed something log it and try again
+            mlog.debug('  - NOT found:')
+            for mod in not_found:
+                mlog.debug(f'    - {mod}')
+
         return False
 
-    def detect_lib_modules_win(self):
-        if not self.libdir:
-            # The libdirs in the distributed binaries (from sf)
-            lib_sf = self.sourceforge_dir()
+    def detect_inc_dirs(self, root: Path) -> T.List[BoostIncludeDir]:
+        candidates = []  # type: T.List[Path]
+        inc_root = root / 'include'
 
-            if self.boost_root:
-                roots = [self.boost_root]
-            else:
-                roots = self.boost_roots
-            for root in roots:
-                # The default libdir when building
-                libdir = os.path.join(root, 'lib')
-                if os.path.isdir(libdir):
-                    self.libdir = libdir
-                    break
-                if lib_sf:
-                    full_path = os.path.join(root, lib_sf)
-                    if os.path.isdir(full_path):
-                        self.libdir = full_path
-                        break
+        candidates += [root / 'boost']
+        candidates += [inc_root / 'boost']
+        if inc_root.is_dir():
+            for i in inc_root.iterdir():
+                if not i.is_dir() or not i.name.startswith('boost-'):
+                    continue
+                candidates += [i / 'boost']
+        candidates = [x for x in candidates if x.is_dir()]
+        candidates = [x / 'version.hpp' for x in candidates]
+        candidates = [x for x in candidates if x.exists()]
+        return [self._include_dir_from_version_header(x) for x in candidates]
 
-        if not self.libdir:
+    def detect_lib_dirs(self, root: Path, use_system: bool) -> T.List[Path]:
+        # First check the system include paths. Only consider those within the
+        # given root path
+
+        if use_system:
+            system_dirs_t = self.clib_compiler.get_library_dirs(self.env)
+            system_dirs = [Path(x) for x in system_dirs_t]
+            system_dirs = [x.resolve() for x in system_dirs if x.exists()]
+            system_dirs = [x for x in system_dirs if mesonlib.path_is_in_root(x, root)]
+            system_dirs = list(mesonlib.OrderedSet(system_dirs))
+
+            if system_dirs:
+                return system_dirs
+
+        # No system include paths were found --> fall back to manually looking
+        # for library dirs in root
+        dirs = []     # type: T.List[Path]
+        subdirs = []  # type: T.List[Path]
+        for i in root.iterdir():
+            if i.is_dir() and i.name.startswith('lib'):
+                dirs += [i]
+
+        # Some distros put libraries not directly inside /usr/lib but in /usr/lib/x86_64-linux-gnu
+        for i in dirs:
+            for j in i.iterdir():
+                if j.is_dir() and j.name.endswith('-linux-gnu'):
+                    subdirs += [j]
+
+        # Filter out paths that don't match the target arch to avoid finding
+        # the wrong libraries. See https://github.com/mesonbuild/meson/issues/7110
+        if not self.arch:
+            return dirs + subdirs
+
+        arch_list_32 = ['32', 'i386']
+        arch_list_64 = ['64']
+
+        raw_list = dirs + subdirs
+        no_arch = [x for x in raw_list if not any([y in x.name for y in arch_list_32 + arch_list_64])]
+
+        matching_arch = []  # type: T.List[Path]
+        if '32' in self.arch:
+            matching_arch = [x for x in raw_list if any([y in x.name for y in arch_list_32])]
+        elif '64' in self.arch:
+            matching_arch = [x for x in raw_list if any([y in x.name for y in arch_list_64])]
+
+        return sorted(matching_arch) + sorted(no_arch)
+
+    def filter_libraries(self, libs: T.List[BoostLibraryFile], lib_vers: str) -> T.List[BoostLibraryFile]:
+        # MSVC is very picky with the library tags
+        vscrt = ''
+        try:
+            crt_val = self.env.coredata.options[mesonlib.OptionKey('b_vscrt')].value
+            buildtype = self.env.coredata.options[mesonlib.OptionKey('buildtype')].value
+            vscrt = self.clib_compiler.get_crt_compile_args(crt_val, buildtype)[0]
+        except (KeyError, IndexError, AttributeError):
+            pass
+
+        # mlog.debug('    - static: {}'.format(self.static))
+        # mlog.debug('    - not explicit static: {}'.format(not self.explicit_static))
+        # mlog.debug('    - mt: {}'.format(self.multithreading))
+        # mlog.debug('    - version: {}'.format(lib_vers))
+        # mlog.debug('    - arch: {}'.format(self.arch))
+        # mlog.debug('    - vscrt: {}'.format(vscrt))
+        libs = [x for x in libs if x.static == self.static or not self.explicit_static]
+        libs = [x for x in libs if x.mt == self.multithreading]
+        libs = [x for x in libs if x.version_matches(lib_vers)]
+        libs = [x for x in libs if x.arch_matches(self.arch)]
+        libs = [x for x in libs if x.vscrt_matches(vscrt)]
+        libs = [x for x in libs if x.nvsuffix != 'dll']  # Only link to import libraries
+
+        # Only filter by debug when we are building in release mode. Debug
+        # libraries are automatically preferred through sorting otherwise.
+        if not self.debug:
+            libs = [x for x in libs if not x.debug]
+
+        # Take the abitag from the first library and filter by it. This
+        # ensures that we have a set of libraries that are always compatible.
+        if not libs:
+            return []
+        abitag = libs[0].abitag
+        libs = [x for x in libs if x.abitag == abitag]
+
+        return libs
+
+    def detect_libraries(self, libdir: Path) -> T.List[BoostLibraryFile]:
+        libs = set()  # type: T.Set[BoostLibraryFile]
+        for i in libdir.iterdir():
+            if not i.is_file():
+                continue
+            if not any([i.name.startswith(x) for x in ['libboost_', 'boost_']]):
+                continue
+
+            libs.add(BoostLibraryFile(i.resolve()))
+
+        return [x for x in libs if x.is_boost()]  # Filter out no boost libraries
+
+    def detect_split_root(self, inc_dir: Path, lib_dir: Path) -> None:
+        boost_inc_dir = None
+        for j in [inc_dir / 'version.hpp', inc_dir / 'boost' / 'version.hpp']:
+            if j.is_file():
+                boost_inc_dir = self._include_dir_from_version_header(j)
+                break
+        if not boost_inc_dir:
+            self.is_found = False
             return
 
-        for name in self.need_static_link:
-            # FIXME - why are we only looking for *.lib? Mingw provides *.dll.a and *.a
-            libname = 'lib' + name + self.versioned_abi_tag() + '.lib'
-            if os.path.isfile(os.path.join(self.libdir, libname)):
-                self.lib_modules[self.modname_from_filename(libname)] = [libname]
-            else:
-                libname = "lib{}.lib".format(name)
-                if os.path.isfile(os.path.join(self.libdir, libname)):
-                    self.lib_modules[name[3:]] = [libname]
+        self.is_found = self.run_check([boost_inc_dir], [lib_dir])
 
-        # globber1 applies to a layout=system installation
-        # globber2 applies to a layout=versioned installation
-        globber1 = 'libboost_*' if self.static else 'boost_*'
-        globber2 = globber1 + self.versioned_abi_tag()
-        # FIXME - why are we only looking for *.lib? Mingw provides *.dll.a and *.a
-        globber2_matches = glob.glob(os.path.join(self.libdir, globber2 + '.lib'))
-        for entry in globber2_matches:
-            fname = os.path.basename(entry)
-            self.lib_modules[self.modname_from_filename(fname)] = [fname]
-        if len(globber2_matches) == 0:
-            # FIXME - why are we only looking for *.lib? Mingw provides *.dll.a and *.a
-            for entry in glob.glob(os.path.join(self.libdir, globber1 + '.lib')):
-                if self.static:
-                    fname = os.path.basename(entry)
-                    self.lib_modules[self.modname_from_filename(fname)] = [fname]
+    def detect_roots(self) -> None:
+        roots = []  # type: T.List[Path]
 
-    def detect_lib_modules_nix(self):
-        if self.static:
-            libsuffix = 'a'
-        elif mesonlib.for_darwin(self.want_cross, self.env):
-            libsuffix = 'dylib'
+        # Try getting the BOOST_ROOT from a boost.pc if it exists. This primarily
+        # allows BoostDependency to find boost from Conan. See #5438
+        try:
+            boost_pc = PkgConfigDependency('boost', self.env, {'required': False})
+            if boost_pc.found():
+                boost_root = boost_pc.get_pkgconfig_variable('prefix', {'default': None})
+                if boost_root:
+                    roots += [Path(boost_root)]
+        except DependencyException:
+            pass
+
+        # Add roots from system paths
+        inc_paths = [Path(x) for x in self.clib_compiler.get_default_include_dirs()]
+        inc_paths = [x.parent for x in inc_paths if x.exists()]
+        inc_paths = [x.resolve() for x in inc_paths]
+        roots += inc_paths
+
+        # Add system paths
+        if self.env.machines[self.for_machine].is_windows():
+            # Where boost built from source actually installs it
+            c_root = Path('C:/Boost')
+            if c_root.is_dir():
+                roots += [c_root]
+
+            # Where boost documentation says it should be
+            prog_files = Path('C:/Program Files/boost')
+            # Where boost prebuilt binaries are
+            local_boost = Path('C:/local')
+
+            candidates = []  # type: T.List[Path]
+            if prog_files.is_dir():
+                candidates += [*prog_files.iterdir()]
+            if local_boost.is_dir():
+                candidates += [*local_boost.iterdir()]
+
+            roots += [x for x in candidates if x.name.lower().startswith('boost') and x.is_dir()]
         else:
-            libsuffix = 'so'
+            tmp = []  # type: T.List[Path]
 
-        globber = 'libboost_*.{}'.format(libsuffix)
-        if self.libdir:
-            libdirs = [self.libdir]
-        elif self.boost_root is None:
-            libdirs = mesonlib.get_library_dirs()
-        else:
-            libdirs = [os.path.join(self.boost_root, 'lib')]
-        for libdir in libdirs:
-            for name in self.need_static_link:
-                libname = 'lib{}.a'.format(name)
-                if os.path.isfile(os.path.join(libdir, libname)):
-                    self.lib_modules[name] = [libname]
-            for entry in glob.glob(os.path.join(libdir, globber)):
-                # I'm not 100% sure what to do here. Some distros
-                # have modules such as thread only as -mt versions.
-                # On debian all packages are built threading=multi
-                # but not suffixed with -mt.
-                # FIXME: implement detect_lib_modules_{debian, redhat, ...}
-                # FIXME: this wouldn't work with -mt-gd either. -BDR
-                if self.is_multithreading and mesonlib.is_debianlike():
-                    pass
-                elif self.is_multithreading and entry.endswith('-mt.{}'.format(libsuffix)):
-                    pass
-                elif not entry.endswith('-mt.{}'.format(libsuffix)):
-                    pass
-                else:
-                    continue
-                modname = self.modname_from_filename(entry)
-                if modname not in self.lib_modules:
-                    self.lib_modules[modname] = [entry]
+            # Add some default system paths
+            tmp += [Path('/opt/local')]
+            tmp += [Path('/usr/local/opt/boost')]
+            tmp += [Path('/usr/local')]
+            tmp += [Path('/usr')]
 
-    def extra_lib_dirs(self):
-        if self.libdir:
-            return [self.libdir]
-        elif self.boost_root:
-            return [os.path.join(self.boost_root, 'lib')]
-        return []
+            # Cleanup paths
+            tmp = [x for x in tmp if x.is_dir()]
+            tmp = [x.resolve() for x in tmp]
+            roots += tmp
 
-    def get_link_args(self, **kwargs):
-        args = []
-        for d in self.extra_lib_dirs():
-            args += self.clib_compiler.get_linker_search_args(d)
-        for lib in self.requested_modules:
-            args += self.lib_modules['boost_' + lib]
-        return args
+        self.check_and_set_roots(roots, use_system=True)
 
-    def get_sources(self):
-        return []
+    def log_details(self) -> str:
+        res = ''
+        if self.modules_found:
+            res += 'found: ' + ', '.join(self.modules_found)
+        if self.modules_missing:
+            if res:
+                res += ' | '
+            res += 'missing: ' + ', '.join(self.modules_missing)
+        return res
 
-    def need_threads(self):
-        return 'thread' in self.requested_modules
+    def log_info(self) -> str:
+        if self.boost_root:
+            return self.boost_root.as_posix()
+        return ''
+
+    def _include_dir_from_version_header(self, hfile: Path) -> BoostIncludeDir:
+        # Extract the version with a regex. Using clib_compiler.get_define would
+        # also work, however, this is slower (since it the compiler has to be
+        # invoked) and overkill since the layout of the header is always the same.
+        assert hfile.exists()
+        raw = hfile.read_text(encoding='utf-8')
+        m = re.search(r'#define\s+BOOST_VERSION\s+([0-9]+)', raw)
+        if not m:
+            mlog.debug(f'Failed to extract version information from {hfile}')
+            return BoostIncludeDir(hfile.parents[1], 0)
+        return BoostIncludeDir(hfile.parents[1], int(m.group(1)))
+
+    def _extra_compile_args(self) -> T.List[str]:
+        # BOOST_ALL_DYN_LINK should not be required with the known defines below
+        return ['-DBOOST_ALL_NO_LIB']  # Disable automatic linking
 
 
-# Generated with boost_names.py
-BOOST_LIBS = [
-    'boost_atomic',
-    'boost_chrono',
-    'boost_chrono',
-    'boost_container',
-    'boost_context',
-    'boost_coroutine',
-    'boost_date_time',
-    'boost_exception',
-    'boost_fiber',
-    'boost_filesystem',
-    'boost_graph',
-    'boost_iostreams',
-    'boost_locale',
-    'boost_log',
-    'boost_log_setup',
-    'boost_math_tr1',
-    'boost_math_tr1f',
-    'boost_math_tr1l',
-    'boost_math_c99',
-    'boost_math_c99f',
-    'boost_math_c99l',
-    'boost_math_tr1',
-    'boost_math_tr1f',
-    'boost_math_tr1l',
-    'boost_math_c99',
-    'boost_math_c99f',
-    'boost_math_c99l',
-    'boost_math_tr1',
-    'boost_math_tr1f',
-    'boost_math_tr1l',
-    'boost_math_c99',
-    'boost_math_c99f',
-    'boost_math_c99l',
-    'boost_math_tr1',
-    'boost_math_tr1f',
-    'boost_math_tr1l',
-    'boost_math_c99',
-    'boost_math_c99f',
-    'boost_math_c99l',
-    'boost_math_tr1',
-    'boost_math_tr1f',
-    'boost_math_tr1l',
-    'boost_math_c99',
-    'boost_math_c99f',
-    'boost_math_c99l',
-    'boost_math_tr1',
-    'boost_math_tr1f',
-    'boost_math_tr1l',
-    'boost_math_c99',
-    'boost_math_c99f',
-    'boost_math_c99l',
-    'boost_mpi',
-    'boost_program_options',
-    'boost_python',
-    'boost_python3',
-    'boost_numpy',
-    'boost_numpy3',
-    'boost_random',
-    'boost_regex',
-    'boost_serialization',
-    'boost_wserialization',
-    'boost_signals',
-    'boost_stacktrace_noop',
-    'boost_stacktrace_backtrace',
-    'boost_stacktrace_addr2line',
-    'boost_stacktrace_basic',
-    'boost_stacktrace_windbg',
-    'boost_stacktrace_windbg_cached',
-    'boost_system',
-    'boost_prg_exec_monitor',
-    'boost_test_exec_monitor',
-    'boost_unit_test_framework',
-    'boost_thread',
-    'boost_timer',
-    'boost_type_erasure',
-    'boost_wave'
-]
+# See https://www.boost.org/doc/libs/1_72_0/more/getting_started/unix-variants.html#library-naming
+# See https://mesonbuild.com/Reference-tables.html#cpu-families
+boost_arch_map = {
+    'aarch64': 'a64',
+    'arc': 'a32',
+    'arm': 'a32',
+    'ia64': 'i64',
+    'mips': 'm32',
+    'mips64': 'm64',
+    'ppc': 'p32',
+    'ppc64': 'p64',
+    'sparc': 's32',
+    'sparc64': 's64',
+    'x86': 'x32',
+    'x86_64': 'x64',
+}
 
-BOOST_DIRS = [
-    'lambda',
-    'optional',
-    'convert',
-    'system',
-    'uuid',
-    'archive',
-    'align',
-    'timer',
-    'chrono',
-    'gil',
-    'logic',
-    'signals',
-    'predef',
-    'tr1',
-    'multi_index',
-    'property_map',
-    'multi_array',
-    'context',
-    'random',
-    'endian',
-    'circular_buffer',
-    'proto',
-    'assign',
-    'format',
-    'math',
-    'phoenix',
-    'graph',
-    'locale',
-    'mpl',
-    'pool',
-    'unordered',
-    'core',
-    'exception',
-    'ptr_container',
-    'flyweight',
-    'range',
-    'typeof',
-    'thread',
-    'move',
-    'spirit',
-    'dll',
-    'compute',
-    'serialization',
-    'ratio',
-    'msm',
-    'config',
-    'metaparse',
-    'coroutine2',
-    'qvm',
-    'program_options',
-    'concept',
-    'detail',
-    'hana',
-    'concept_check',
-    'compatibility',
-    'variant',
-    'type_erasure',
-    'mpi',
-    'test',
-    'fusion',
-    'log',
-    'sort',
-    'local_function',
-    'units',
-    'functional',
-    'preprocessor',
-    'integer',
-    'container',
-    'polygon',
-    'interprocess',
-    'numeric',
-    'iterator',
-    'wave',
-    'lexical_cast',
-    'multiprecision',
-    'utility',
-    'tti',
-    'asio',
-    'dynamic_bitset',
-    'algorithm',
-    'xpressive',
-    'bimap',
-    'signals2',
-    'type_traits',
-    'regex',
-    'statechart',
-    'parameter',
-    'icl',
-    'python',
-    'lockfree',
-    'intrusive',
-    'io',
-    'pending',
-    'geometry',
-    'tuple',
-    'iostreams',
-    'heap',
-    'atomic',
-    'filesystem',
-    'smart_ptr',
-    'function',
-    'fiber',
-    'type_index',
-    'accumulators',
-    'function_types',
-    'coroutine',
-    'vmd',
-    'date_time',
-    'property_tree',
-    'bind'
-]
+
+####      ---- BEGIN GENERATED ----      ####
+#                                           #
+# Generated with tools/boost_names.py:
+#  - boost version:   1.73.0
+#  - modules found:   159
+#  - libraries found: 43
+#
+
+class BoostLibrary():
+    def __init__(self, name: str, shared: T.List[str], static: T.List[str], single: T.List[str], multi: T.List[str]):
+        self.name = name
+        self.shared = shared
+        self.static = static
+        self.single = single
+        self.multi = multi
+
+class BoostModule():
+    def __init__(self, name: str, key: str, desc: str, libs: T.List[str]):
+        self.name = name
+        self.key = key
+        self.desc = desc
+        self.libs = libs
+
+
+# dict of all know libraries with additional compile options
+boost_libraries = {
+    'boost_atomic': BoostLibrary(
+        name='boost_atomic',
+        shared=['-DBOOST_ATOMIC_DYN_LINK=1'],
+        static=['-DBOOST_ATOMIC_STATIC_LINK=1'],
+        single=[],
+        multi=[],
+    ),
+    'boost_chrono': BoostLibrary(
+        name='boost_chrono',
+        shared=['-DBOOST_CHRONO_DYN_LINK=1'],
+        static=['-DBOOST_CHRONO_STATIC_LINK=1'],
+        single=['-DBOOST_CHRONO_THREAD_DISABLED'],
+        multi=[],
+    ),
+    'boost_container': BoostLibrary(
+        name='boost_container',
+        shared=['-DBOOST_CONTAINER_DYN_LINK=1'],
+        static=['-DBOOST_CONTAINER_STATIC_LINK=1'],
+        single=[],
+        multi=[],
+    ),
+    'boost_context': BoostLibrary(
+        name='boost_context',
+        shared=['-DBOOST_CONTEXT_DYN_LINK=1'],
+        static=[],
+        single=[],
+        multi=[],
+    ),
+    'boost_contract': BoostLibrary(
+        name='boost_contract',
+        shared=['-DBOOST_CONTRACT_DYN_LINK'],
+        static=['-DBOOST_CONTRACT_STATIC_LINK'],
+        single=['-DBOOST_CONTRACT_DISABLE_THREADS'],
+        multi=[],
+    ),
+    'boost_coroutine': BoostLibrary(
+        name='boost_coroutine',
+        shared=['-DBOOST_COROUTINES_DYN_LINK=1'],
+        static=[],
+        single=[],
+        multi=[],
+    ),
+    'boost_date_time': BoostLibrary(
+        name='boost_date_time',
+        shared=['-DBOOST_DATE_TIME_DYN_LINK=1'],
+        static=[],
+        single=[],
+        multi=[],
+    ),
+    'boost_exception': BoostLibrary(
+        name='boost_exception',
+        shared=[],
+        static=[],
+        single=[],
+        multi=[],
+    ),
+    'boost_fiber': BoostLibrary(
+        name='boost_fiber',
+        shared=['-DBOOST_FIBERS_DYN_LINK=1'],
+        static=[],
+        single=[],
+        multi=[],
+    ),
+    'boost_fiber_numa': BoostLibrary(
+        name='boost_fiber_numa',
+        shared=['-DBOOST_FIBERS_DYN_LINK=1'],
+        static=[],
+        single=[],
+        multi=[],
+    ),
+    'boost_filesystem': BoostLibrary(
+        name='boost_filesystem',
+        shared=['-DBOOST_FILESYSTEM_DYN_LINK=1'],
+        static=['-DBOOST_FILESYSTEM_STATIC_LINK=1'],
+        single=[],
+        multi=[],
+    ),
+    'boost_graph': BoostLibrary(
+        name='boost_graph',
+        shared=[],
+        static=[],
+        single=[],
+        multi=[],
+    ),
+    'boost_iostreams': BoostLibrary(
+        name='boost_iostreams',
+        shared=['-DBOOST_IOSTREAMS_DYN_LINK=1'],
+        static=[],
+        single=[],
+        multi=[],
+    ),
+    'boost_locale': BoostLibrary(
+        name='boost_locale',
+        shared=[],
+        static=[],
+        single=[],
+        multi=[],
+    ),
+    'boost_log': BoostLibrary(
+        name='boost_log',
+        shared=['-DBOOST_LOG_DYN_LINK=1'],
+        static=[],
+        single=['-DBOOST_LOG_NO_THREADS'],
+        multi=[],
+    ),
+    'boost_log_setup': BoostLibrary(
+        name='boost_log_setup',
+        shared=['-DBOOST_LOG_SETUP_DYN_LINK=1'],
+        static=[],
+        single=['-DBOOST_LOG_NO_THREADS'],
+        multi=[],
+    ),
+    'boost_math_c99': BoostLibrary(
+        name='boost_math_c99',
+        shared=[],
+        static=[],
+        single=[],
+        multi=[],
+    ),
+    'boost_math_c99f': BoostLibrary(
+        name='boost_math_c99f',
+        shared=[],
+        static=[],
+        single=[],
+        multi=[],
+    ),
+    'boost_math_c99l': BoostLibrary(
+        name='boost_math_c99l',
+        shared=[],
+        static=[],
+        single=[],
+        multi=[],
+    ),
+    'boost_math_tr1': BoostLibrary(
+        name='boost_math_tr1',
+        shared=[],
+        static=[],
+        single=[],
+        multi=[],
+    ),
+    'boost_math_tr1f': BoostLibrary(
+        name='boost_math_tr1f',
+        shared=[],
+        static=[],
+        single=[],
+        multi=[],
+    ),
+    'boost_math_tr1l': BoostLibrary(
+        name='boost_math_tr1l',
+        shared=[],
+        static=[],
+        single=[],
+        multi=[],
+    ),
+    'boost_mpi': BoostLibrary(
+        name='boost_mpi',
+        shared=[],
+        static=[],
+        single=[],
+        multi=[],
+    ),
+    'boost_nowide': BoostLibrary(
+        name='boost_nowide',
+        shared=['-DBOOST_NOWIDE_DYN_LINK=1'],
+        static=[],
+        single=[],
+        multi=[],
+    ),
+    'boost_prg_exec_monitor': BoostLibrary(
+        name='boost_prg_exec_monitor',
+        shared=['-DBOOST_TEST_DYN_LINK=1'],
+        static=[],
+        single=[],
+        multi=[],
+    ),
+    'boost_program_options': BoostLibrary(
+        name='boost_program_options',
+        shared=[],
+        static=[],
+        single=[],
+        multi=[],
+    ),
+    'boost_random': BoostLibrary(
+        name='boost_random',
+        shared=['-DBOOST_RANDOM_DYN_LINK'],
+        static=[],
+        single=[],
+        multi=[],
+    ),
+    'boost_regex': BoostLibrary(
+        name='boost_regex',
+        shared=[],
+        static=[],
+        single=[],
+        multi=[],
+    ),
+    'boost_serialization': BoostLibrary(
+        name='boost_serialization',
+        shared=[],
+        static=[],
+        single=[],
+        multi=[],
+    ),
+    'boost_stacktrace_addr2line': BoostLibrary(
+        name='boost_stacktrace_addr2line',
+        shared=[],
+        static=[],
+        single=[],
+        multi=[],
+    ),
+    'boost_stacktrace_backtrace': BoostLibrary(
+        name='boost_stacktrace_backtrace',
+        shared=[],
+        static=[],
+        single=[],
+        multi=[],
+    ),
+    'boost_stacktrace_basic': BoostLibrary(
+        name='boost_stacktrace_basic',
+        shared=[],
+        static=[],
+        single=[],
+        multi=[],
+    ),
+    'boost_stacktrace_noop': BoostLibrary(
+        name='boost_stacktrace_noop',
+        shared=[],
+        static=[],
+        single=[],
+        multi=[],
+    ),
+    'boost_stacktrace_windbg': BoostLibrary(
+        name='boost_stacktrace_windbg',
+        shared=[],
+        static=[],
+        single=[],
+        multi=[],
+    ),
+    'boost_stacktrace_windbg_cached': BoostLibrary(
+        name='boost_stacktrace_windbg_cached',
+        shared=[],
+        static=[],
+        single=[],
+        multi=[],
+    ),
+    'boost_system': BoostLibrary(
+        name='boost_system',
+        shared=['-DBOOST_SYSTEM_DYN_LINK=1'],
+        static=['-DBOOST_SYSTEM_STATIC_LINK=1'],
+        single=[],
+        multi=[],
+    ),
+    'boost_test_exec_monitor': BoostLibrary(
+        name='boost_test_exec_monitor',
+        shared=['-DBOOST_TEST_DYN_LINK=1'],
+        static=[],
+        single=[],
+        multi=[],
+    ),
+    'boost_thread': BoostLibrary(
+        name='boost_thread',
+        shared=['-DBOOST_THREAD_BUILD_DLL=1', '-DBOOST_THREAD_USE_DLL=1'],
+        static=['-DBOOST_THREAD_BUILD_LIB=1', '-DBOOST_THREAD_USE_LIB=1'],
+        single=[],
+        multi=[],
+    ),
+    'boost_timer': BoostLibrary(
+        name='boost_timer',
+        shared=['-DBOOST_TIMER_DYN_LINK=1'],
+        static=['-DBOOST_TIMER_STATIC_LINK=1'],
+        single=[],
+        multi=[],
+    ),
+    'boost_type_erasure': BoostLibrary(
+        name='boost_type_erasure',
+        shared=['-DBOOST_TYPE_ERASURE_DYN_LINK'],
+        static=[],
+        single=[],
+        multi=[],
+    ),
+    'boost_unit_test_framework': BoostLibrary(
+        name='boost_unit_test_framework',
+        shared=['-DBOOST_TEST_DYN_LINK=1'],
+        static=[],
+        single=[],
+        multi=[],
+    ),
+    'boost_wave': BoostLibrary(
+        name='boost_wave',
+        shared=[],
+        static=[],
+        single=[],
+        multi=[],
+    ),
+    'boost_wserialization': BoostLibrary(
+        name='boost_wserialization',
+        shared=[],
+        static=[],
+        single=[],
+        multi=[],
+    ),
+}
+
+#                                           #
+####       ---- END GENERATED ----       ####

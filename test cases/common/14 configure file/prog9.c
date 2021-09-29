@@ -10,7 +10,7 @@
 #error "Should be defined"
 #endif
 
-int main(int argc, char **argv) {
+int main(void) {
     return strcmp(A_STRING, "foo")
         || strcmp(B_STRING, "foo")
         || A_INT != 42

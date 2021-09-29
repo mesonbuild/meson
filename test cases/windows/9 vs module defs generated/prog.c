@@ -1,5 +1,5 @@
-int somedllfunc();
+int somedllfunc(void);
 
-int main(int argc, char **argv) {
+int main(void) {
     return somedllfunc() == 42 ? 0 : 1;
 }

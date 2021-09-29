@@ -15,7 +15,7 @@ int main(int argc, char **argv) {
   app.installTranslator(&qtTranslator);
 
   QTranslator myappTranslator;
-  if(!myappTranslator.load("qt5core_fr") )
+  if(!myappTranslator.load(QT "core_fr") )
     return 1;
 
   app.installTranslator(&myappTranslator);

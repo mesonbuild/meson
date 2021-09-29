@@ -23,7 +23,6 @@ class SimdModule(ExtensionModule):
     @FeatureNew('SIMD module', '0.42.0')
     def __init__(self, interpreter):
         super().__init__(interpreter)
-        self.snippets.add('check')
         # FIXME add Altivec and AVX512.
         self.isets = ('mmx',
                       'sse',
@@ -36,8 +35,11 @@ class SimdModule(ExtensionModule):
                       'avx2',
                       'neon',
                       )
+        self.methods.update({
+            'check': self.check,
+        })
 
-    def check(self, interpreter, state, args, kwargs):
+    def check(self, state, args, kwargs):
         result = []
         if len(args) != 1:
             raise mesonlib.MesonException('Check requires one argument, a name prefix for checks.')
@@ -52,21 +54,21 @@ class SimdModule(ExtensionModule):
         for key, value in kwargs.items():
             if key not in self.isets and key != 'compiler':
                 basic_kwargs[key] = value
-        compiler = kwargs['compiler'].compiler
+        compiler = kwargs['compiler']
         if not isinstance(compiler, compilers.compilers.Compiler):
             raise mesonlib.MesonException('Compiler argument must be a compiler object.')
-        cdata = interpreter.func_configuration_data(None, [], {})
-        conf = cdata.held_object
+        cdata = self.interpreter.func_configuration_data(None, [], {})
+        conf = cdata.conf_data
         for iset in self.isets:
             if iset not in kwargs:
                 continue
-            iset_fname = kwargs[iset] # Migth also be an array or Files. static_library will validate.
+            iset_fname = kwargs[iset] # Might also be an array or Files. static_library will validate.
             args = compiler.get_instruction_set_args(iset)
             if args is None:
                 mlog.log('Compiler supports %s:' % iset, mlog.red('NO'))
                 continue
-            if len(args) > 0:
-                if not compiler.has_multi_arguments(args, state.environment):
+            if args:
+                if not compiler.has_multi_arguments(args, state.environment)[0]:
                     mlog.log('Compiler supports %s:' % iset, mlog.red('NO'))
                     continue
             mlog.log('Compiler supports %s:' % iset, mlog.green('YES'))
@@ -79,7 +81,7 @@ class SimdModule(ExtensionModule):
             old_lang_args = mesonlib.extract_as_list(lib_kwargs, langarg_key)
             all_lang_args = old_lang_args + args
             lib_kwargs[langarg_key] = all_lang_args
-            result.append(interpreter.func_static_lib(None, [libname], lib_kwargs))
+            result.append(self.interpreter.func_static_lib(None, [libname], lib_kwargs))
         return [result, cdata]
 
 def initialize(*args, **kwargs):

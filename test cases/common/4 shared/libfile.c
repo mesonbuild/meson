@@ -9,6 +9,6 @@
   #endif
 #endif
 
-int DLL_PUBLIC libfunc() {
+int DLL_PUBLIC libfunc(void) {
     return 3;
 }
