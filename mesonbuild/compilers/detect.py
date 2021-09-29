@@ -694,14 +694,17 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
                 if guess_gcc_or_lcc == 'lcc':
                     version = _get_lcc_version_from_defines(defines)
                     cls = ElbrusFortranCompiler
+                    linker = guess_nix_linker(env, compiler, cls, for_machine)
+                    return cls(
+                        compiler, version, for_machine, is_cross, info,
+                        exe_wrap, defines, full_version=full_version, linker=linker)
                 else:
                     version = _get_gnu_version_from_defines(defines)
                     cls = GnuFortranCompiler
-                linker = guess_nix_linker(env, compiler, cls, for_machine)
-                return cls(
-                    compiler, version, for_machine, is_cross, info,
-                    exe_wrap, defines, full_version=full_version,
-                    linker=linker)
+                    linker = guess_nix_linker(env, compiler, cls, for_machine)
+                    return cls(
+                        compiler, version, for_machine, is_cross, info,
+                        exe_wrap, defines, full_version=full_version, linker=linker)
 
             if 'G95' in out:
                 cls = G95FortranCompiler
