@@ -356,7 +356,7 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
 class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
 
     file_suffixes = ('f90', 'f', 'for', 'ftn', 'fpp', )
-    always_args = ['/nologo']
+    always_args = ['/nologo', '/fpp']
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo', target: str,
