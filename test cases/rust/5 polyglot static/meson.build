@@ -2,6 +2,7 @@ project('static rust and c polyglot executable', 'c', 'rust')
 
 deps = [
   meson.get_compiler('c').find_library('dl', required: false),
+  meson.get_compiler('c').find_library('m', required: false),
   dependency('threads'),
 ]
 
