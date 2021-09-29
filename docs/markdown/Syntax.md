@@ -253,6 +253,11 @@ s = s.replace('as', 'are')
 define = ' -Dsomedefine '
 stripped_define = define.strip()
 # 'stripped_define' now has the value '-Dsomedefine'
+
+# You may also pass a string to strip, which specifies the set of characters to
+# be removed.
+string = 'xyxHelloxyx'.strip('xy')
+# 'string' now has the value 'Hello'
 ```
 
 #### .to_upper(), .to_lower()
