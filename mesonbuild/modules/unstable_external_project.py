@@ -233,7 +233,7 @@ class ExternalProject(NewExtensionModule):
         libs_whole = []
         sources = self.target
         final_deps = []
-        variables = []
+        variables = {}
         dep = InternalDependency(version, incdir, compile_args, link_args, libs,
                                  libs_whole, sources, final_deps, variables)
         return dep
