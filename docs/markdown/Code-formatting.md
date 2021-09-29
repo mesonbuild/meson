@@ -56,3 +56,8 @@ Note that `.clang-format-ignore` has the same format as used by
 
 A new target `clang-format-check` has been added. It returns an error code if
 any file needs to be reformatted. This is intended to be used by CI.
+
+*Since 0.60.0*
+
+If `.clang-format-include` file is missing and source files are in a git
+repository, only files tracked by git will be included.
