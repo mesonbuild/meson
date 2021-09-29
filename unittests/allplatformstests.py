@@ -2539,6 +2539,7 @@ class AllPlatformTests(BasePlatformTests):
         testheader = os.path.join(testdir, 'header.h')
         badheader = os.path.join(testdir, 'header_orig_h')
         goodheader = os.path.join(testdir, 'header_expected_h')
+        includefile = os.path.join(testdir, '.clang-format-include')
         try:
             shutil.copyfile(badfile, testfile)
             shutil.copyfile(badheader, testheader)
@@ -2547,6 +2548,17 @@ class AllPlatformTests(BasePlatformTests):
                                 Path(goodfile).read_text(encoding='utf-8'))
             self.assertNotEqual(Path(testheader).read_text(encoding='utf-8'),
                                 Path(goodheader).read_text(encoding='utf-8'))
+
+            # test files are not in git so this should do nothing
+            self.run_target('clang-format')
+            self.assertNotEqual(Path(testfile).read_text(encoding='utf-8'),
+                                Path(goodfile).read_text(encoding='utf-8'))
+            self.assertNotEqual(Path(testheader).read_text(encoding='utf-8'),
+                                Path(goodheader).read_text(encoding='utf-8'))
+
+            # Add an include file to reformat everything
+            with open(includefile, 'w', encoding='utf-8') as f:
+                f.write('*')
             self.run_target('clang-format')
             self.assertEqual(Path(testheader).read_text(encoding='utf-8'),
                              Path(goodheader).read_text(encoding='utf-8'))
@@ -2555,6 +2567,8 @@ class AllPlatformTests(BasePlatformTests):
                 os.unlink(testfile)
             if os.path.exists(testheader):
                 os.unlink(testheader)
+            if os.path.exists(includefile):
+                os.unlink(includefile)
 
     @skipIfNoExecutable('clang-tidy')
     def test_clang_tidy(self):

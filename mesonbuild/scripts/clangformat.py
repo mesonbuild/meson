@@ -21,6 +21,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from ..environment import detect_clangformat
 from ..compilers import lang_suffixes
+from ..mesonlib import Popen_safe
 import typing as T
 
 def parse_pattern_file(fname: Path) -> T.List[str]:
@@ -52,9 +53,15 @@ def run_clang_format(exelist: T.List[str], fname: Path, check: bool) -> subproce
 
 def clangformat(exelist: T.List[str], srcdir: Path, builddir: Path, check: bool) -> int:
     patterns = parse_pattern_file(srcdir / '.clang-format-include')
-    if not patterns:
-        patterns = ['**/*']
-    globs = [srcdir.glob(p) for p in patterns]
+    globs: T.Union[T.List[T.List[Path]], T.List[T.Generator[Path, None, None]]]
+    if patterns:
+        globs = [srcdir.glob(p) for p in patterns]
+    else:
+        p, o, _ = Popen_safe(['git', 'ls-files'], cwd=srcdir)
+        if p.returncode == 0:
+            globs = [[Path(srcdir, f) for f in o.splitlines()]]
+        else:
+            globs = [srcdir.glob('**/*')]
     patterns = parse_pattern_file(srcdir / '.clang-format-ignore')
     ignore = [str(builddir / '*')]
     ignore.extend([str(srcdir / p) for p in patterns])
@@ -70,7 +77,8 @@ def clangformat(exelist: T.List[str], srcdir: Path, builddir: Path, check: bool)
                 any(fnmatch.fnmatch(strf, i) for i in ignore):
                 continue
             futures.append(e.submit(run_clang_format, exelist, f, check))
-        returncode = max(x.result().returncode for x in futures)
+        if futures:
+            returncode = max(x.result().returncode for x in futures)
     return returncode
 
 def run(args: T.List[str]) -> int:
