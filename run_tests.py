@@ -42,7 +42,7 @@ from mesonbuild import mtest
 from mesonbuild import mlog
 from mesonbuild.environment import Environment, detect_ninja
 from mesonbuild.coredata import backendlist, version as meson_version
-from mesonbuild.mesonlib import OptionKey
+from mesonbuild.mesonlib import OptionKey, setup_vsenv
 
 NINJA_1_9_OR_NEWER = False
 NINJA_CMD = None
@@ -382,6 +382,6 @@ def main():
     return returncode
 
 if __name__ == '__main__':
-    mesonmain.setup_vsenv()
+    setup_vsenv()
     print('Meson build system', meson_version, 'Project and Unit Tests')
     raise SystemExit(main())

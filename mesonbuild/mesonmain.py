@@ -31,96 +31,6 @@ from .mesonlib import MesonException
 from .environment import detect_msys2_arch
 from .wrap import wraptool
 
-need_setup_vsenv = False
-
-bat_template = '''@ECHO OFF
-
-call "{}"
-
-ECHO {}
-SET
-'''
-
-# If on Windows and VS is installed but not set up in the environment,
-# set it to be runnable. In this way Meson can be directly invoked
-# from any shell, VS Code etc.
-def setup_vsenv() -> None:
-    import subprocess, json, pathlib
-    if not mesonlib.is_windows():
-        return
-    bat_placeholder = 'nananananananananananananananana'
-    # If an existing build tool chain exists in PATH -> do nothing.
-    if shutil.which('cc'):
-        return
-    if shutil.which('gcc'):
-        return
-    if shutil.which('clang'):
-        return
-    if shutil.which('clang-cl'):
-        return
-    if os.environ.get('OSTYPE', bat_placeholder) == 'cygwin':
-        return
-    if 'Visual Studio' in os.environ['PATH']:
-        return
-    # VSINSTALL is set when running setvars from a Visual Studio installation
-    # Tested with Visual Studio 2012 and 2017
-    if 'VSINSTALLDIR' in os.environ:
-        return
-    # Check explicitly for cl when on Windows
-    if shutil.which('cl.exe'):
-        return
-
-    root = os.environ.get("ProgramFiles(x86)") or os.environ.get("ProgramFiles")
-    bat_locator_bin = pathlib.Path(root, 'Microsoft Visual Studio/Installer/vswhere.exe')
-    if not bat_locator_bin.exists():
-        return
-    bat_json = subprocess.check_output(
-        [
-            str(bat_locator_bin),
-            '-latest',
-            '-prerelease',
-            '-requiresAny',
-            '-requires', 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64',
-            '-products', '*',
-            '-utf8',
-            '-format',
-            'json'
-        ]
-    )
-    bat_info = json.loads(bat_json)
-    if not bat_info:
-        # VS installer instelled but not VS itself maybe?
-        return
-    print('Activating VS', bat_info[0]['catalog']['productDisplayVersion'])
-    bat_root = pathlib.Path(bat_info[0]['installationPath'])
-    bat_path = bat_root / 'VC/Auxiliary/Build/vcvars64.bat'
-    if not bat_path.exists():
-        return
-
-    bat_file = pathlib.Path.home() / 'vsdetect.bat'
-
-    bat_separator = '---SPLIT---'
-    bat_contents = bat_template.format(bat_path, bat_separator)
-    bat_file.write_text(bat_contents, encoding='utf-8')
-    try:
-        bat_output = subprocess.check_output(str(bat_file), universal_newlines=True)
-    finally:
-        bat_file.unlink()
-    bat_lines = bat_output.split('\n')
-    bat_separator_seen = False
-    for bat_line in bat_lines:
-        if bat_line == bat_separator:
-            bat_separator_seen = True
-            continue
-        if not bat_separator_seen:
-            continue
-        if not bat_line:
-            continue
-        k, v = bat_line.split('=', 1)
-        os.environ[k] = v
-    global need_setup_vsenv
-    need_setup_vsenv = True
-
 
 # Note: when adding arguments, please also add them to the completion
 # scripts in $MESONSRC/data/shell-completions/
@@ -316,7 +226,6 @@ def run(original_args, mainfile):
     return CommandLineParser().run(args)
 
 def main():
-    setup_vsenv()
     # Always resolve the command path so Ninja can find it for regen, tests, etc.
     if 'meson.exe' in sys.executable:
         assert os.path.isabs(sys.executable)

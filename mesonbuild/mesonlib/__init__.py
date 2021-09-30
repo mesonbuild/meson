@@ -19,6 +19,7 @@
 import os
 
 from .universal import *
+from .vsenv import setup_vsenv
 
 # Here we import either the posix implementations, the windows implementations,
 # or a generic no-op implementation

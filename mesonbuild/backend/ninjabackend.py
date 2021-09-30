@@ -49,7 +49,6 @@ from ..mesonlib import get_compiler_for_source, has_path_sep, OptionKey
 from .backends import CleanTrees
 from ..build import GeneratedList, InvalidArguments, ExtractedObjects
 from ..interpreter import Interpreter
-from ..mesonmain import need_setup_vsenv
 
 if T.TYPE_CHECKING:
     from .._typing import ImmutableListProtocol
@@ -513,7 +512,7 @@ class NinjaBackend(backends.Backend):
 
     def generate(self):
         ninja = environment.detect_ninja_command_and_version(log=True)
-        if need_setup_vsenv:
+        if self.build.need_vsenv:
             builddir = Path(self.environment.get_build_dir())
             try:
                 # For prettier printing, reduce to a relative path. If
