@@ -6,7 +6,7 @@
 import typing as T
 
 from .. import compilers
-from ..build import EnvironmentVariables, CustomTarget, BuildTarget, CustomTargetIndex
+from ..build import EnvironmentVariables, CustomTarget, BuildTarget, CustomTargetIndex, ExtractedObjects, GeneratedList
 from ..coredata import UserFeatureOption
 from ..interpreterbase import TYPE_var
 from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo
@@ -233,3 +233,50 @@ OVERRIDE_OPTIONS_KW: KwargInfo[T.List[str]] = KwargInfo(
     validator=_env_validator,
     convertor=_override_options_convertor,
 )
+
+
+def _output_validator(outputs: T.List[str]) -> T.Optional[str]:
+    for i in outputs:
+        if i == '':
+            return 'Output must not be empty.'
+        elif i.strip() == '':
+            return 'Output must not consist only of whitespace.'
+        elif has_path_sep(i):
+            return f'Output {i!r} must not contain a path segment.'
+
+    return None
+
+CT_OUTPUT_KW: KwargInfo[T.List[str]] = KwargInfo(
+    'output',
+    ContainerTypeInfo(list, str, allow_empty=False),
+    listify=True,
+    required=True,
+    default=[],
+    validator=_output_validator,
+)
+
+CT_INPUT_KW: KwargInfo[T.List[T.Union[str, File, ExternalProgram, BuildTarget, CustomTarget, CustomTargetIndex, ExtractedObjects, GeneratedList]]] = KwargInfo(
+    'input',
+    ContainerTypeInfo(list, (str, File, ExternalProgram, BuildTarget, CustomTarget, CustomTargetIndex, ExtractedObjects, GeneratedList)),
+    listify=True,
+    default=[],
+)
+
+CT_INSTALL_TAG_KW: KwargInfo[T.List[T.Union[str, bool]]] = KwargInfo(
+    'install_tag',
+    ContainerTypeInfo(list, (str, bool)),
+    listify=True,
+    default=[],
+    since='0.60.0',
+)
+
+INSTALL_KW = KwargInfo('install', bool, default=False)
+
+CT_INSTALL_DIR_KW: KwargInfo[T.List[T.Union[str, bool]]] = KwargInfo(
+    'install_dir',
+    ContainerTypeInfo(list, (str, bool)),
+    listify=True,
+    default=[],
+)
+
+CT_BUILD_BY_DEFAULT: KwargInfo[T.Optional[bool]] = KwargInfo('build_by_default', (bool, type(None)), since='0.40.0')
