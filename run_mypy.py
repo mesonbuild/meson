@@ -42,6 +42,7 @@ modules = [
     'mesonbuild/modules/i18n.py',
     'mesonbuild/modules/java.py',
     'mesonbuild/modules/qt.py',
+    'mesonbuild/modules/unstable_external_project.py',
     'mesonbuild/modules/unstable_rust.py',
     'mesonbuild/mparser.py',
     'mesonbuild/msetup.py',
