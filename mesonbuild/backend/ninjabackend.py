@@ -1651,7 +1651,10 @@ class NinjaBackend(backends.Backend):
         args += compilers.get_base_compile_args(base_proxy, rustc)
         self.generate_generator_list_rules(target)
 
-        orderdeps = [os.path.join(t.subdir, t.get_filename()) for t in target.link_targets]
+        # dependencies need to cause a relink, they're not just for odering
+        deps = [os.path.join(t.subdir, t.get_filename()) for t in target.link_targets]
+
+        orderdeps: T.List[str] = []
 
         main_rust_file = None
         for i in target.get_sources():
@@ -1772,6 +1775,8 @@ class NinjaBackend(backends.Backend):
         element = NinjaBuildElement(self.all_outputs, target_name, compiler_name, main_rust_file)
         if orderdeps:
             element.add_orderdep(orderdeps)
+        if deps:
+            element.add_dep(deps)
         element.add_item('ARGS', args)
         element.add_item('targetdep', depfile)
         element.add_item('cratetype', cratetype)
