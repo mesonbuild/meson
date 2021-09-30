@@ -1368,7 +1368,8 @@ external dependencies (including libraries) must go to "dependencies".''')
                 extra_info.append(f"({' '.join(extprog.get_command())})")
                 return extprog
 
-    def program_from_overrides(self, command_names, extra_info):
+    def program_from_overrides(self, command_names: T.List[str], extra_info: T.List['mlog.TV_Loggable']) -> \
+            T.Optional[T.Union[ExternalProgram, 'OverrideProgram', 'build.Executable']]:
         for name in command_names:
             if not isinstance(name, str):
                 continue
