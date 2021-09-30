@@ -1459,7 +1459,7 @@ class InternalTests(unittest.TestCase):
         self.assertRaises(InvalidArguments, _, None, mock.Mock(), [], {'input': 42})
 
     def test_detect_cpu_family(self) -> None:
-        """Test the various cpu familes that we detect and normalize.
+        """Test the various cpu families that we detect and normalize.
 
         This is particularly useful as both documentation, and to keep testing
         platforms that are less common.

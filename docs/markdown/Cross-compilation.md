@@ -203,7 +203,7 @@ There are two different values for the CPU. The first one is
 value from [the CPU Family table](Reference-tables.md#cpu-families).
 *Note* that Meson does not add `el` to end cpu_family value for little
 endian systems. Big endian and little endian mips are both just
-`mips`, with the `endian` field set approriately.
+`mips`, with the `endian` field set appropriately.
 
 The second value is `cpu` which is a more specific subtype for the
 CPU. Typical values for a `x86` CPU family might include `i386` or

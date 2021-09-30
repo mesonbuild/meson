@@ -69,7 +69,7 @@ def _get_env_var(for_machine: MachineChoice, is_cross: bool, var_name: str) -> T
         # allows native builds to never need to worry about the 'BUILD_*'
         # ones.
         ([var_name + '_FOR_BUILD'] if is_cross else [var_name]),
-        # Always just the unprefixed host verions
+        # Always just the unprefixed host versions
         [var_name]
     )[for_machine]
     for var in candidates:
@@ -687,11 +687,11 @@ class Environment:
                             # time) until we're instantiating that `Compiler`
                             # object. This is required so that passing
                             # `-Dc_args=` on the command line and `$CFLAGS`
-                            # have subtely differen behavior. `$CFLAGS` will be
+                            # have subtely different behavior. `$CFLAGS` will be
                             # added to the linker command line if the compiler
                             # acts as a linker driver, `-Dc_args` will not.
                             #
-                            # We stil use the original key as the base here, as
+                            # We still use the original key as the base here, as
                             # we want to inhert the machine and the compiler
                             # language
                             key = key.evolve('env_args')

@@ -1205,7 +1205,7 @@ class Vs2010Backend(backends.Backend):
                     # Expand our object lists manually if we are on pre-Visual Studio 2015 Update 2
                     l = t.extract_all_objects(False)
 
-                    # Unforunately, we can't use self.object_filename_from_source()
+                    # Unfortunately, we can't use self.object_filename_from_source()
                     for gen in l.genlist:
                         for src in gen.get_outputs():
                             if self.environment.is_source(src) and not self.environment.is_header(src):

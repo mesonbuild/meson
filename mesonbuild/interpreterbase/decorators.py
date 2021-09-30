@@ -165,7 +165,7 @@ def typed_pos_args(name: str, *types: T.Union[T.Type, T.Tuple[T.Type, ...]],
                    min_varargs: int = 0, max_varargs: int = 0) -> T.Callable[..., T.Any]:
     """Decorator that types type checking of positional arguments.
 
-    This supports two different models of optional aguments, the first is the
+    This supports two different models of optional arguments, the first is the
     variadic argument model. Variadic arguments are a possibly bounded,
     possibly unbounded number of arguments of the same type (unions are
     supported). The second is the standard default value model, in this case
@@ -180,7 +180,7 @@ def typed_pos_args(name: str, *types: T.Union[T.Type, T.Tuple[T.Type, ...]],
     :min_varargs: the minimum number of variadic arguments taken
     :max_varargs: the maximum number of variadic arguments taken. 0 means unlimited
     :optargs: The types of any optional arguments parameters taken. If None
-        then no optional paramters are taken.
+        then no optional parameters are taken.
 
     Some examples of usage blow:
     >>> @typed_pos_args('mod.func', str, (str, int))
@@ -370,12 +370,12 @@ class KwargInfo(T.Generic[_T]):
     :param convertor: A callable that converts the raw input value into a
         different type. This is intended for cases such as the meson DSL using a
         string, but the implementation using an Enum. This should not do
-        validation, just converstion.
+        validation, just conversion.
     :param deprecated_values: a dictionary mapping a value to the version of
         meson it was deprecated in.
     :param since_values: a dictionary mapping a value to the version of meson it was
         added in.
-    :param not_set_warning: A warning messsage that is logged if the kwarg is not
+    :param not_set_warning: A warning message that is logged if the kwarg is not
         set by the user.
     """
     def __init__(self, name: str,
@@ -450,7 +450,7 @@ def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
     If type tyhpe is a :class:ContainerTypeInfo, then the default value will be
     passed as an argument to the container initializer, making a shallow copy
 
-    :param name: the name of the function, including the object it's attached ot
+    :param name: the name of the function, including the object it's attached to
         (if applicable)
     :param *types: KwargInfo entries for each keyword argument.
     """

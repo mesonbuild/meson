@@ -4055,7 +4055,7 @@ class AllPlatformTests(BasePlatformTests):
     def test_rust_clippy(self) -> None:
         if self.backend is not Backend.ninja:
             raise unittest.SkipTest('Rust is only supported with ninja currently')
-        # Wehn clippy is used, we should get an exception since a variable named
+        # When clippy is used, we should get an exception since a variable named
         # "foo" is used, but is on our denylist
         testdir = os.path.join(self.rust_test_dir, '1 basic')
         self.init(testdir, extra_args=['--werror'], override_envvars={'RUSTC': 'clippy-driver'})

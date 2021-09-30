@@ -109,7 +109,7 @@ class Node:
 
 class PackageGenerator:
     '''
-       Package generator for MSI pacakges
+       Package generator for MSI packages
     '''
 
     def __init__(self):

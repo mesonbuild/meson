@@ -195,7 +195,7 @@ class CudaCompiler(Compiler):
         a double-quoted string a split-point. Single-quotes do not provide protection
         against splitting; In fact, after splitting they are \-escaped. Unfortunately,
         double-quotes don't protect against shell expansion. What follows is a
-        complex dance to accomodate everybody.
+        complex dance to accommodate everybody.
         """
 
         SQ = "'"
@@ -319,7 +319,7 @@ class CudaCompiler(Compiler):
             #     follow the name of the option itself by either one of more spaces or an
             #     equals character. When a one-character short name such as -I, -l, and -L
             #     is used, the value of the option may also immediately follow the option
-            #     itself without being seperated by spaces or an equal character. The
+            #     itself without being separated by spaces or an equal character. The
             #     individual values of list options may be separated by commas in a single
             #     instance of the option, or the option may be repeated, or any
             #     combination of these two cases.

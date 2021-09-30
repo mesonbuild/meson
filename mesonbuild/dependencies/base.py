@@ -187,7 +187,7 @@ class Dependency(HoldableObject):
         raise RuntimeError('Unreachable code in partial_dependency called')
 
     def _add_sub_dependency(self, deplist: T.Iterable[T.Callable[[], 'Dependency']]) -> bool:
-        """Add an internal depdency from a list of possible dependencies.
+        """Add an internal dependency from a list of possible dependencies.
 
         This method is intended to make it easier to add additional
         dependencies to another dependency internally.

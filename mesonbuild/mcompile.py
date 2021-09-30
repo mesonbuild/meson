@@ -125,7 +125,7 @@ def get_target_from_intro_data(target: ParsedTargetName, builddir: Path, introsp
     if not found_targets:
         raise MesonException(f'Can\'t invoke target `{target.full_name}`: target not found')
     elif len(found_targets) > 1:
-        raise MesonException(f'Can\'t invoke target `{target.full_name}`: ambigious name. Add target type and/or path: `PATH/NAME:TYPE`')
+        raise MesonException(f'Can\'t invoke target `{target.full_name}`: ambiguous name. Add target type and/or path: `PATH/NAME:TYPE`')
 
     return found_targets[0]
 

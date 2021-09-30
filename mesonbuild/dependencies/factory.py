@@ -63,7 +63,7 @@ class DependencyFactory:
     :methods: An ordered list of DependencyMethods. This is the order
         dependencies will be returned in unless they are removed by the
         _process_method function
-    :*_name: This will overwrite the name passed to the coresponding class.
+    :*_name: This will overwrite the name passed to the corresponding class.
         For example, if the name is 'zlib', but cmake calls the dependency
         'Z', then using `cmake_name='Z'` will pass the name as 'Z' to cmake.
     :*_class: A *type* or callable that creates a class, and has the

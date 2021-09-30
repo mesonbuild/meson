@@ -15,7 +15,7 @@ to add everything by hand. This works but is a bit tedious.
 In this release we have added new new options to manually toggle e.g.
 optimization levels and debug info so those can be changed
 independently of other options. For example by default the debug
-buildtype has no optmization enabled at all. If you wish to use GCC's
+buildtype has no optimization enabled at all. If you wish to use GCC's
 `-Og` instead, you could set it with the following command:
 
 ```

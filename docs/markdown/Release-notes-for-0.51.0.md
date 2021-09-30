@@ -294,7 +294,7 @@ their syntax is not correct as a standalone target. In general
 `include` files are meant to be injected inline as if they were copy
 and pasted into the source file.
 
-`include` was never standard and was superceded by Fortran 90 `module`.
+`include` was never standard and was superseded by Fortran 90 `module`.
 
 The `include` file is only recognized by Meson if it has a Fortran
 file suffix, such as `.f` `.F` `.f90` `.F90` or similar. This is to

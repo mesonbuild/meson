@@ -360,7 +360,7 @@ class MesonMain(MesonInterpreterObject):
         else:
             # dependency('foo') without specifying static kwarg should find this
             # override regardless of the static value here. But do not raise error
-            # if it has already been overridden, which would happend when overriding
+            # if it has already been overridden, which would happen when overriding
             # static and shared separately:
             # meson.override_dependency('foo', shared_dep, static: false)
             # meson.override_dependency('foo', static_dep, static: true)

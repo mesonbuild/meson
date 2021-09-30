@@ -1,6 +1,6 @@
 ## The qt modules now accept generated outputs as inputs for qt.compile_*
 
-This means you can uset `custom_target`, custom_target indecies
+This means you can uset `custom_target`, custom_target indices
 (`custom_target[0]`, for example), or the output of `generator.process` as
 inputs to the various `qt.compile_*` methods.
 

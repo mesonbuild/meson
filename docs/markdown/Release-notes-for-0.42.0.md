@@ -119,10 +119,10 @@ accepts the new `exclude_files` and `exclude_directories` keyword
 arguments that allow specified files or directories to be excluded
 from the installed subdirectory.
 
-## Make all Meson functionality invokable via the main executable
+## Make all Meson functionality invocable via the main executable
 
 Previously Meson had multiple executables such as `mesonintrospect`
-and `mesontest`. They are now invokable via the main Meson executable
+and `mesontest`. They are now invocable via the main Meson executable
 like this:
 
     meson configure <arguments> # equivalent to mesonconf <options>

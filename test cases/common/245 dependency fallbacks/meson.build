@@ -5,6 +5,6 @@ project('dependency fallbacks', 'c')
 d = dependency('libpng', 'png', 'foo')
 assert(d.found())
 
-# Check that dependency 'foo' has been implicitly overriden.
+# Check that dependency 'foo' has been implicitly overridden.
 d = dependency('foo')
 assert(d.found())

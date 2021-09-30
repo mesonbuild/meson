@@ -637,7 +637,7 @@ class Target(HoldableObject):
     def parse_overrides(kwargs: T.Dict[str, T.Any]) -> T.Dict[OptionKey, str]:
         opts =  kwargs.get('override_options', [])
 
-        # In this case we hav ean already parsed and ready to go dictionary
+        # In this case we have an already parsed and ready to go dictionary
         # provided by typed_kwargs
         if isinstance(opts, dict):
             return T.cast(T.Dict[OptionKey, str], opts)

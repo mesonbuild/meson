@@ -14,11 +14,11 @@ tests are run.
 ## Docker images
 
 The Linux docker images are automatically built and uploaded by GitHub
-actions. An image rebuild is triggerd when any of the image definition
+actions. An image rebuild is triggered when any of the image definition
 files are changed (in `ci/ciimage`) in the master branch.
 Additionally, the images are also updated weekly.
 
-Each docker image has one corresponding dirctory in `ci/ciimage` with
+Each docker image has one corresponding directory in `ci/ciimage` with
 an `image.json` and an `install.sh`.
 
 ### Image generation

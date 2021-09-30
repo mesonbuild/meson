@@ -180,8 +180,8 @@ functionality described below.
 
 ### String index
 
-Stings support the indexing (`[<num>]`) operator. This operator allows (read
-only) acessing a specific character. The returned value is guaranteed to be
+Strings support the indexing (`[<num>]`) operator. This operator allows (read
+only) accessing a specific character. The returned value is guaranteed to be
 a string of length 1.
 
 ```meson
@@ -513,7 +513,7 @@ executable('progname',
   kwargs: d)
 ```
 
-A single function can take keyword argumets both directly in the
+A single function can take keyword arguments both directly in the
 function call and indirectly via the `kwargs` keyword argument. The
 only limitation is that it is a hard error to pass any particular key
 both as a direct and indirect argument.

@@ -73,7 +73,7 @@ endif
 # test.json sets CMAKE_PREFIX_PATH to include ./cmake_pref_env/
 verdep1 = dependency('cmMesonVersionedTestDep', required : true, method : 'cmake', cmake_package_version : '3.0')
 verdep2 = dependency('cmMesonVersionedTestDep', required : false, method : 'cmake', cmake_package_version : '200.0')
-assert(not verdep2.found(), 'found a version dep we shouldnt have')
+assert(not verdep2.found(), 'found a version dep we shouldn\'t have')
 
 # Try to compile a test that takes a dep and an include_directories
 

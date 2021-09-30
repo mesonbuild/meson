@@ -1,6 +1,6 @@
 # SPDX-Licnese-Identifier: Apache-2.0
 # Copyright 2012-2021 The Meson development team
-# Copyright © 2021 Intel Corpration
+# Copyright © 2021 Intel Corporation
 
 import enum
 import functools
@@ -250,7 +250,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
                 deps = next_deps
             deps = final_deps
         else:
-            # Ensure that we alway return a new instance
+            # Ensure that we always return a new instance
             deps = deps.copy()
         return deps, self._dep_msg(deps, endl)
 
@@ -622,7 +622,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
 
     def _has_argument_impl(self, arguments: T.Union[str, T.List[str]],
                            mode: _TestMode = _TestMode.COMPILER) -> bool:
-        """Shared implementaiton for methods checking compiler and linker arguments."""
+        """Shared implementation for methods checking compiler and linker arguments."""
         # This simplifies the callers
         if isinstance(arguments, str):
             arguments = [arguments]

@@ -160,7 +160,7 @@ following methods are supported:
  - `set_override_option(opt, val)` set specific [build options](Build-options.md)
    for targets. This will effectively add `opt=val` to the `override_options`
    array of the [[build_target]]
- - `set_install(bool)` override wether targets should be installed or not
+ - `set_install(bool)` override whether targets should be installed or not
  - `append_compile_args(lang, arg1, ...)` append compile flags for a specific
    language to the targets
  - `append_link_args(arg1, ...)` append linger args to the targets

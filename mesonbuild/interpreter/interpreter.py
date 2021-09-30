@@ -424,7 +424,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         '''
             Build a mapping of `HoldableObject` base classes to their
             corresponding `ObjectHolder`s. The difference to `self.holder_map`
-            is that the keys here define an upper bound instead of requireing an
+            is that the keys here define an upper bound instead of requiring an
             exact match.
 
             The mappings defined here are only used when there was no direct hit
@@ -574,7 +574,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             try:
                 # check if stable module exists
                 mod = self._import_module(plainname, required)
-                # XXX: this is acutally not helpful, since it doesn't do a version check
+                # XXX: this is actually not helpful, since it doesn't do a version check
                 mlog.warning(f'Module {modname} is now stable, please use the {plainname} module instead.')
                 return mod
             except InvalidArguments:
@@ -1039,7 +1039,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.project_default_options = mesonlib.stringlistify(kwargs.get('default_options', []))
         self.project_default_options = coredata.create_options_dict(self.project_default_options, self.subproject)
 
-        # If this is the first invocation we alway sneed to initialize
+        # If this is the first invocation we always need to initialize
         # builtins, if this is a subproject that is new in a re-invocation we
         # need to initialize builtins for that
         if self.environment.first_invocation or (self.subproject != '' and self.subproject not in self.coredata.initialized_subprojects):
@@ -1685,7 +1685,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             # Set this to None to satisfy process_kwargs
             kwargs['build_always'] = None
 
-        # These are are nullaable so that we can konw whether they're explicitly
+        # These are are nullaable so that we can know whether they're explicitly
         # set or not. If they haven't been overwritten, set them to their true
         # default
         if kwargs['build_by_default'] is None:

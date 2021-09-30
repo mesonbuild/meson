@@ -199,7 +199,7 @@ class CudaDependency(SystemDependency):
         return None
 
     def _read_toolkit_version_txt(self, path: str) -> T.Optional[str]:
-        # Read 'version.txt' at the root of the CUDA Toolkit directory to determine the tookit version
+        # Read 'version.txt' at the root of the CUDA Toolkit directory to determine the toolkit version
         version_file_path = os.path.join(path, 'version.txt')
         try:
             with open(version_file_path, encoding='utf-8') as version_file:

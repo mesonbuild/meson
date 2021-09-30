@@ -174,7 +174,7 @@ def set_chmod(path: str, mode: int, dir_fd: T.Optional[int] = None,
 
 def sanitize_permissions(path: str, umask: T.Union[str, int]) -> None:
     # TODO: with python 3.8 or typing_extensions we could replace this with
-    # `umask: T.Union[T.Literal['preserve'], int]`, which would be mroe correct
+    # `umask: T.Union[T.Literal['preserve'], int]`, which would be more correct
     if umask == 'preserve':
         return
     assert isinstance(umask, int), 'umask should only be "preserver" or an integer'

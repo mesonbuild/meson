@@ -265,7 +265,7 @@ def python_factory(env: 'Environment', for_machine: 'MachineChoice',
     if DependencyMethods.EXTRAFRAMEWORK in methods:
         nkwargs = kwargs.copy()
         if mesonlib.version_compare(pkg_version, '>= 3'):
-            # There is a python in /System/Library/Frameworks, but thats python 2.x,
+            # There is a python in /System/Library/Frameworks, but that's python 2.x,
             # Python 3 will always be in /Library
             nkwargs['paths'] = ['/Library/Frameworks']
         candidates.append(functools.partial(PythonFrameworkDependency, 'Python', env, nkwargs, installation))
@@ -355,7 +355,7 @@ class PythonExternalProgram(ExternalProgram):
 
         # We want strong key values, so we always populate this with bogus data.
         # Otherwise to make the type checkers happy we'd have to do .get() for
-        # everycall, even though we konw that the introspection data will be
+        # everycall, even though we know that the introspection data will be
         # complete
         self.info: 'PythonIntrospectionDict' = {
             'install_paths': {},
@@ -634,7 +634,7 @@ class PythonModule(ExtensionModule):
         missing_modules: T.List[str] = []
 
         # FIXME: this code is *full* of sharp corners. It assumes that it's
-        # going to get a string value (or now a list of lenght 1), of `python2`
+        # going to get a string value (or now a list of length 1), of `python2`
         # or `python3` which is completely nonsense.  On windows the value could
         # easily be `['py', '-3']`, or `['py', '-3.7']` to get a very specific
         # version of python. On Linux we might want a python that's not in

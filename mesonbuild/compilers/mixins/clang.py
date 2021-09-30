@@ -82,7 +82,7 @@ class ClangCompiler(GnuLikeCompiler):
 
     def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
         # Clang is different than GCC, it will return True when a symbol isn't
-        # defined in a header. Specifically this seems ot have something to do
+        # defined in a header. Specifically this seems to have something to do
         # with functions that may be in a header on some systems, but not all of
         # them. `strlcat` specifically with can trigger this.
         myargs: T.List[str] = ['-Werror=implicit-function-declaration']
@@ -119,7 +119,7 @@ class ClangCompiler(GnuLikeCompiler):
     @classmethod
     def use_linker_args(cls, linker: str) -> T.List[str]:
         # Clang additionally can use a linker specified as a path, which GCC
-        # (and other gcc-like compilers) cannot. This is becuse clang (being
+        # (and other gcc-like compilers) cannot. This is because clang (being
         # llvm based) is retargetable, while GCC is not.
         #
 

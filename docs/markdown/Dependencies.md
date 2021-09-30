@@ -203,7 +203,7 @@ it automatically.
 
 Support for adding additional `COMPONENTS` for the CMake
 `find_package` lookup is provided with the `components` kwarg
-(*introduced in 0.54.0*). All specified componets will be passed
+(*introduced in 0.54.0*). All specified components will be passed
 directly to `find_package(COMPONENTS)`.
 
 Support for packages which require a specified version for CMake
