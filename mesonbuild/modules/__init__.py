@@ -198,21 +198,16 @@ class ModuleReturnValue:
         self.new_objects = new_objects
 
 class GResourceTarget(build.CustomTarget):
-    def __init__(self, name, subdir, subproject, kwargs):
-        super().__init__(name, subdir, subproject, kwargs)
+    pass
 
 class GResourceHeaderTarget(build.CustomTarget):
-    def __init__(self, name, subdir, subproject, kwargs):
-        super().__init__(name, subdir, subproject, kwargs)
+    pass
 
 class GirTarget(build.CustomTarget):
-    def __init__(self, name, subdir, subproject, kwargs):
-        super().__init__(name, subdir, subproject, kwargs)
+    pass
 
 class TypelibTarget(build.CustomTarget):
-    def __init__(self, name, subdir, subproject, kwargs):
-        super().__init__(name, subdir, subproject, kwargs)
+    pass
 
 class VapiTarget(build.CustomTarget):
-    def __init__(self, name, subdir, subproject, kwargs):
-        super().__init__(name, subdir, subproject, kwargs)
+    pass
