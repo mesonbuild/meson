@@ -484,7 +484,7 @@ keyword arguments:
 ### dependency()
 
 ``` meson
-    dependency_object dependency(*dependency_name*, ...)
+    dependency_object dependency(*name1*, *name2*, ...)
 ```
 
 Finds an external dependency (usually a library installed on your
@@ -493,6 +493,13 @@ CMake](Dependencies.md#cmake) if `pkg-config` fails. Additionally,
 frameworks (OSX only) and [library-specific fallback detection
 logic](Dependencies.md#dependencies-with-custom-lookup-functionality)
 are also supported.
+
+*Since 0.60.0* more than one name can be provided, they will be tried in order
+and the first name to be found will be used. The fallback subproject will be
+used only if none of the names are found on the system. Once one of the name has
+been found, all other names are added into the cache so subsequent calls for any
+of those name will return the same value. This is useful in case a dependency
+could have different names, such as `png` and `libpng`.
 
 Dependencies can also be resolved in two other ways:
 

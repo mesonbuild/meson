@@ -1474,10 +1474,12 @@ external dependencies (including libraries) must go to "dependencies".''')
     @FeatureNewKwargs('dependency', '0.38.0', ['default_options'])
     @disablerIfNotFound
     @permittedKwargs(permitted_dependency_kwargs)
-    @typed_pos_args('dependency', str)
+    @typed_pos_args('dependency', varargs=str, min_varargs=1)
     def func_dependency(self, node, args, kwargs):
         # Replace '' by empty list of names
-        names = [args[0]] if args[0] else []
+        names = [n for n in args[0] if n]
+        if len(names) > 1:
+            FeatureNew('dependency with more than one name', '0.60.0').use(self.subproject)
         allow_fallback = kwargs.get('allow_fallback')
         if allow_fallback is not None and not isinstance(allow_fallback, bool):
             raise InvalidArguments('"allow_fallback" argument must be boolean')
