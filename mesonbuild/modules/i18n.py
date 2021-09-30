@@ -12,15 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from os import path
 import shutil
 
-from os import path
-from .. import coredata, mesonlib, build, mlog
+from . import ExtensionModule, ModuleReturnValue
+from .. import build
+from .. import coredata
+from .. import mesonlib
+from .. import mlog
+from ..interpreterbase import permittedKwargs, FeatureNew, FeatureNewKwargs
 from ..mesonlib import MesonException
 from ..scripts.gettext import read_linguas
-from . import ModuleReturnValue
-from . import ExtensionModule
-from ..interpreterbase import permittedKwargs, FeatureNew, FeatureNewKwargs
 
 PRESET_ARGS = {
     'glib': [
