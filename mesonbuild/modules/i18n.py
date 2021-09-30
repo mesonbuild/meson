@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from mesonbuild.interpreterbase.decorators import noPosargs, typed_pos_args
 from os import path
 import shutil
 import typing as T
@@ -22,14 +21,35 @@ from .. import build
 from .. import coredata
 from .. import mesonlib
 from .. import mlog
+from ..interpreter.type_checking import CT_BUILD_BY_DEFAULT, CT_INPUT_KW, CT_INSTALL_DIR_KW, CT_INSTALL_TAG_KW, CT_OUTPUT_KW, INSTALL_KW, in_set_validator
 from ..interpreterbase import permittedKwargs, FeatureNew, FeatureNewKwargs
-from ..mesonlib import MesonException
+from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, noPosargs, typed_kwargs, typed_pos_args
 from ..scripts.gettext import read_linguas
 
 if T.TYPE_CHECKING:
+    from typing_extensions import Literal, TypedDict
+
     from . import ModuleState
     from ..interpreter import Interpreter
     from ..interpreterbase import TYPE_var
+    from ..programs import ExternalProgram
+
+    class MergeFile(TypedDict):
+
+        input: T.List[T.Union[
+            str, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex,
+            build.ExtractedObjects, build.GeneratedList, ExternalProgram,
+            mesonlib.File]]
+        output: T.List[str]
+        build_by_default: bool
+        install: bool
+        install_dir: T.List[T.Union[str, bool]]
+        install_tag: T.List[str]
+        args: T.List[str]
+        data_dirs: T.List[str]
+        po_dir: str
+        type: Literal['xml', 'desktop']
+
 
 PRESET_ARGS = {
     'glib': [
@@ -85,57 +105,72 @@ class I18nModule(ExtensionModule):
         return [path.join(src_dir, d) for d in dirs]
 
     @FeatureNew('i18n.merge_file', '0.37.0')
-    @FeatureNewKwargs('i18n.merge_file', '0.51.0', ['args'])
-    @permittedKwargs(build.CustomTarget.known_kwargs | {'data_dirs', 'po_dir', 'type', 'args'})
     @noPosargs
-    def merge_file(self, state: 'ModuleState', args: T.List['TYPE_var'], kwargs) -> ModuleReturnValue:
+    @typed_kwargs(
+        'i18n.merge_file',
+        CT_BUILD_BY_DEFAULT,
+        CT_INPUT_KW,
+        CT_INSTALL_DIR_KW,
+        CT_INSTALL_TAG_KW,
+        CT_OUTPUT_KW,
+        INSTALL_KW,
+        KwargInfo('args', ContainerTypeInfo(list, str), default=[], listify=True, since='0.51.0'),
+        KwargInfo('data_dirs', ContainerTypeInfo(list, str), default=[], listify=True),
+        KwargInfo('po_dir', str, required=True),
+        KwargInfo('type', str, default='xml', validator=in_set_validator({'xml', 'desktop'})),
+    )
+    def merge_file(self, state: 'ModuleState', args: T.List['TYPE_var'], kwargs: 'MergeFile') -> ModuleReturnValue:
         if not shutil.which('xgettext'):
             self.nogettext_warning()
             return
-        podir = kwargs.pop('po_dir', None)
-        if not podir:
-            raise MesonException('i18n: po_dir is a required kwarg')
-        podir = path.join(state.build_to_src, state.subdir, podir)
+        podir = path.join(state.build_to_src, state.subdir, kwargs['po_dir'])
 
-        file_type = kwargs.pop('type', 'xml')
-        VALID_TYPES = ('xml', 'desktop')
-        if file_type not in VALID_TYPES:
-            raise MesonException(f'i18n: "{file_type}" is not a valid type {VALID_TYPES}')
-
-        datadirs = self._get_data_dirs(state, mesonlib.stringlistify(kwargs.pop('data_dirs', [])))
-        datadirs = '--datadirs=' + ':'.join(datadirs) if datadirs else None
+        ddirs = self._get_data_dirs(state, kwargs['data_dirs'])
+        datadirs = '--datadirs=' + ':'.join(ddirs) if ddirs else None
 
         command = state.environment.get_build_command() + [
             '--internal', 'msgfmthelper',
-            '@INPUT@', '@OUTPUT@', file_type, podir
+            '@INPUT@', '@OUTPUT@', kwargs['type'], podir
         ]
         if datadirs:
             command.append(datadirs)
 
-        if 'args' in kwargs:
+        if kwargs['args']:
             command.append('--')
-            command.append(mesonlib.stringlistify(kwargs.pop('args', [])))
+            command.append(kwargs['args'])
 
-        kwargs['command'] = command
+        build_by_default = kwargs['build_by_default']
+        if build_by_default is None:
+            build_by_default = kwargs['install']
+
+        real_kwargs = {
+            'build_by_default': build_by_default,
+            'command': command,
+            'install': kwargs['install'],
+            'install_dir': kwargs['install_dir'],
+            'output': kwargs['output'],
+            'input': kwargs['input'],
+            'install_tag': kwargs['install_tag'],
+        }
 
         # We only use this input file to create a name of the custom target.
         # Thus we can ignore the other entries.
-        inputfile = mesonlib.extract_as_list(kwargs, 'input')[0]
+        inputfile = kwargs['input'][0]
         if isinstance(inputfile, str):
             inputfile = mesonlib.File.from_source_file(state.environment.source_dir,
                                                        state.subdir, inputfile)
         if isinstance(inputfile, mesonlib.File):
             # output could be '@BASENAME@' in which case we need to do substitutions
             # to get a unique target name.
-            output = kwargs['output']
+            outputs = kwargs['output']
             ifile_abs = inputfile.absolute_path(state.environment.source_dir,
                                                 state.environment.build_dir)
             values = mesonlib.get_filenames_templates_dict([ifile_abs], None)
-            outputs = mesonlib.substitute_values([output], values)
+            outputs = mesonlib.substitute_values(outputs, values)
             output = outputs[0]
-            ct = build.CustomTarget(output + '_' + state.subdir.replace('/', '@').replace('\\', '@') + '_merge', state.subdir, state.subproject, kwargs)
+            ct = build.CustomTarget(output + '_' + state.subdir.replace('/', '@').replace('\\', '@') + '_merge', state.subdir, state.subproject, real_kwargs)
         else:
-            ct = build.CustomTarget(kwargs['output'] + '_merge', state.subdir, state.subproject, kwargs)
+            ct = build.CustomTarget(kwargs['output'][0] + '_merge', state.subdir, state.subproject, real_kwargs)
 
         return ModuleReturnValue(ct, [ct])
 
