@@ -518,7 +518,7 @@ def _compare_output(expected: T.List[T.Dict[str, str]], output: str, desc: str) 
 def validate_output(test: TestDef, stdo: str, stde: str) -> str:
     return _compare_output(test.stdout, stdo, 'stdout')
 
-# There are some class variables and such that cahce
+# There are some class variables and such that cache
 # information. Clear all of these. The better solution
 # would be to change the code so that no state is persisted
 # but that would be a lot of work given that Meson was originally
@@ -614,7 +614,7 @@ def run_test(test: TestDef,
     global is_worker_process
     is_worker_process = True
     # Setup the test environment
-    assert not test.skip, 'Skipped thest should not be run'
+    assert not test.skip, 'Skipped test should not be run'
     build_dir = create_deterministic_builddir(test, use_tmp)
     try:
         with TemporaryDirectoryWinProof(prefix='i ', dir=None if use_tmp else os.getcwd()) as install_dir:
@@ -1244,7 +1244,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
             f.log()
             continue
 
-        # Acutal Test run
+        # Actual Test run
         testname = f.name
         t        = f.testdef
         try:
@@ -1310,7 +1310,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
             safe_print(bold('During:'), result.step.name)
             safe_print(bold('Reason:'), result.msg)
             failing_tests += 1
-            # Append a visual seperator for the different test cases
+            # Append a visual separator for the different test cases
             cols = shutil.get_terminal_size((100, 20)).columns
             name_str = ' '.join([str(x) for x in f.testdef.display_name()])
             name_len = len(re.sub(r'\x1B[^m]+m', '', name_str))  # Do not count escape sequences
