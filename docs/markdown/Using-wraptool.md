@@ -36,6 +36,12 @@ with the `search` command:
     $ meson wrap search jpeg
     libjpeg
 
+If a package is not found in the list of wraps, the `search` command
+will look in all the wrap dependencies:
+
+    $ meson wrap search glib-2.0
+    Dependency glib-2.0 found in wrap glib
+
 To determine which versions of libjpeg are available to install, issue
 the `info` command:
 

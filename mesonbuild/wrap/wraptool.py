@@ -70,9 +70,13 @@ def list_projects(options: 'argparse.Namespace') -> None:
 def search(options: 'argparse.Namespace') -> None:
     name = options.name
     releases = get_releases()
-    for p in releases.keys():
-        if p.startswith(name):
+    for p, info in releases.items():
+        if p.find(name) != -1:
             print(p)
+        else:
+            for dep in info.get('dependency_names', []):
+                if dep.find(name) != -1:
+                    print(f'Dependency {dep} found in wrap {p}')
 
 def get_latest_version(name: str) -> tuple:
     releases = get_releases()
