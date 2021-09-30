@@ -15,28 +15,28 @@
 '''This module provides helper functions for Gnome/GLib related
 functionality such as gobject-introspection, gresources and gtk-doc'''
 
-import os
 import copy
-import subprocess
 import functools
+import os
+import subprocess
 import typing as T
 
-from .. import build
-from .. import mlog
-from .. import mesonlib
-from .. import interpreter
-from . import GResourceTarget, GResourceHeaderTarget, GirTarget, TypelibTarget, VapiTarget
 from . import ExtensionModule
+from . import GResourceTarget, GResourceHeaderTarget, GirTarget, TypelibTarget, VapiTarget
 from . import ModuleReturnValue
+from .. import build
+from .. import interpreter
+from .. import mesonlib
+from .. import mlog
+from ..build import CustomTarget, CustomTargetIndex, GeneratedList
+from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
+from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, FeatureNew, FeatureNewKwargs, FeatureDeprecatedKwargs, FeatureDeprecated
+from ..interpreterbase import typed_kwargs, KwargInfo, ContainerTypeInfo
 from ..mesonlib import (
     MachineChoice, MesonException, OrderedSet, Popen_safe, extract_as_list,
     join_args, HoldableObject
 )
-from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
-from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, FeatureNew, FeatureNewKwargs, FeatureDeprecatedKwargs, FeatureDeprecated
-from ..interpreterbase import typed_kwargs, KwargInfo, ContainerTypeInfo
 from ..programs import ExternalProgram, OverrideProgram
-from ..build import CustomTarget, CustomTargetIndex, GeneratedList
 
 if T.TYPE_CHECKING:
     from ..compilers import Compiler
