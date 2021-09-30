@@ -60,7 +60,7 @@ syn match   mesonNumber	"\<0x\x\+\>"
 syn match   mesonNumber	"\<0o\o\+\>"
 
 " booleans
-syn keyword mesonConstant	false true
+syn keyword mesonBoolean	false true
 
 " Built-in functions
 syn keyword mesonBuiltin
@@ -145,7 +145,7 @@ hi def link mesonString	String
 hi def link mesonEscape	Special
 hi def link mesonNumber	Number
 hi def link mesonBuiltin	Function
-hi def link mesonConstant	Number
+hi def link mesonBoolean	Boolean
 if exists("meson_space_error_higlight")
   hi def link mesonSpaceError	Error
 endif
