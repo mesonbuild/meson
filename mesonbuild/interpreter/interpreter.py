@@ -51,11 +51,17 @@ from .interpreterobjects import (
 )
 from .type_checking import (
     COMMAND_KW,
+    CT_BUILD_BY_DEFAULT,
+    CT_INPUT_KW,
+    CT_INSTALL_DIR_KW,
+    CT_OUTPUT_KW,
     DEPENDS_KW,
     DEPEND_FILES_KW,
     DEPFILE_KW,
     ENV_KW,
+    INSTALL_KW,
     INSTALL_MODE_KW,
+    CT_INSTALL_TAG_KW,
     LANGUAGE_KW,
     NATIVE_KW, OVERRIDE_OPTIONS_KW,
     REQUIRED_KW,
@@ -88,18 +94,6 @@ if T.TYPE_CHECKING:
     SourceOutputs = T.Union[mesonlib.File, build.GeneratedList,
                             build.BuildTarget, build.CustomTargetIndex, build.CustomTarget,
                             build.GeneratedList]
-
-
-def _output_validator(outputs: T.List[str]) -> T.Optional[str]:
-    for i in outputs:
-        if i == '':
-            return 'Output must not be empty.'
-        elif i.strip() == '':
-            return 'Output must not consist only of whitespace.'
-        elif has_path_sep(i):
-            return f'Output {i!r} must not contain a path segment.'
-
-    return None
 
 
 def stringifyUserArguments(args, quote=False):
@@ -1643,35 +1637,23 @@ external dependencies (including libraries) must go to "dependencies".''')
     @typed_kwargs(
         'custom_target',
         COMMAND_KW,
-        DEPEND_FILES_KW,
+        CT_BUILD_BY_DEFAULT,
+        CT_INPUT_KW,
+        CT_INSTALL_DIR_KW,
+        CT_INSTALL_TAG_KW,
+        CT_OUTPUT_KW,
         DEPENDS_KW,
+        DEPEND_FILES_KW,
         DEPFILE_KW,
         ENV_KW.evolve(since='0.57.0'),
+        INSTALL_KW,
         INSTALL_MODE_KW.evolve(since='0.47.0'),
         OVERRIDE_OPTIONS_KW,
-        KwargInfo('build_by_default', (bool, type(None)), since='0.40.0'),
         KwargInfo('build_always', (bool, type(None)), deprecated='0.47.0'),
         KwargInfo('build_always_stale', (bool, type(None)), since='0.47.0'),
         KwargInfo('feed', bool, default=False, since='0.59.0'),
         KwargInfo('capture', bool, default=False),
         KwargInfo('console', bool, default=False, since='0.48.0'),
-        KwargInfo('install', bool, default=False),
-        KwargInfo('install_dir', ContainerTypeInfo(list, (str, bool)), listify=True, default=[]),
-        KwargInfo(
-            'output',
-            ContainerTypeInfo(list, str, allow_empty=False),
-            listify=True,
-            required=True,
-            default=[],
-            validator=_output_validator,
-        ),
-        KwargInfo(
-            'input',
-            ContainerTypeInfo(list, (str, mesonlib.File, ExternalProgram, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, build.ExtractedObjects, build.GeneratedList)),
-            listify=True,
-            default=[],
-        ),
-        KwargInfo('install_tag', ContainerTypeInfo(list, (str, bool)), listify=True, default=[], since='0.60.0'),
     )
     def func_custom_target(self, node: mparser.FunctionNode, args: T.Tuple[str],
                            kwargs: 'kwargs.CustomTarget') -> build.CustomTarget:
