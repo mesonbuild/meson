@@ -1115,6 +1115,16 @@ external dependencies (including libraries) must go to "dependencies".''')
         mlog.log('Project name:', mlog.bold(proj_name))
         mlog.log('Project version:', mlog.bold(self.project_version))
 
+        if not self.is_subproject():
+            # We have to activate VS before adding languages and before calling
+            # self.set_backend() otherwise it wouldn't be able to detect which
+            # vs backend version we need. But after setting default_options in case
+            # the project sets vs backend by default.
+            backend = self.coredata.get_option(OptionKey('backend'))
+            force_vsenv = self.user_defined_options.vsenv or backend.startswith('vs')
+            if mesonlib.setup_vsenv(force_vsenv):
+                self.build.need_vsenv = True
+
         self.add_languages(proj_langs, True, MachineChoice.HOST)
         self.add_languages(proj_langs, False, MachineChoice.BUILD)
 

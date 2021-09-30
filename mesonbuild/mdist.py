@@ -26,7 +26,7 @@ from glob import glob
 from pathlib import Path
 from mesonbuild.environment import detect_ninja
 from mesonbuild.mesonlib import (MesonException, RealPathAction, quiet_git,
-                                 windows_proof_rmtree)
+                                 windows_proof_rmtree, setup_vsenv)
 from mesonbuild.wrap import wrap
 from mesonbuild import mlog, build
 from .scripts.meson_exe import run_exe
@@ -281,6 +281,7 @@ def run(options):
     if not buildfile.is_file():
         raise MesonException(f'Directory {options.wd!r} does not seem to be a Meson build directory.')
     b = build.load(options.wd)
+    setup_vsenv(b.need_vsenv)
     # This import must be load delayed, otherwise it will get the default
     # value of None.
     from mesonbuild.mesonlib import get_meson_command

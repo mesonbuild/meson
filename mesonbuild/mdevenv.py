@@ -4,7 +4,7 @@ import tempfile
 
 from pathlib import Path
 from . import build
-from .mesonlib import MesonException, RealPathAction, is_windows
+from .mesonlib import MesonException, RealPathAction, is_windows, setup_vsenv
 
 import typing as T
 
@@ -41,6 +41,7 @@ def run(options: argparse.Namespace) -> int:
     if not buildfile.is_file():
         raise MesonException(f'Directory {options.wd!r} does not seem to be a Meson build directory.')
     b = build.load(options.wd)
+    setup_vsenv(b.need_vsenv)
 
     devenv = get_env(b, options.wd)
 

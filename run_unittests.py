@@ -33,13 +33,9 @@ import mesonbuild.environment
 import mesonbuild.mesonlib
 import mesonbuild.coredata
 import mesonbuild.modules.gnome
-from mesonbuild.mesonlib import (
-    python_command
-)
+from mesonbuild.mesonlib import python_command, setup_vsenv
 import mesonbuild.dependencies.base
 import mesonbuild.modules.pkgconfig
-
-from mesonbuild.mesonmain import setup_vsenv
 
 from unittests.allplatformstests import AllPlatformTests
 from unittests.darwintests import DarwinTests
