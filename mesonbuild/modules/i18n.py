@@ -29,6 +29,7 @@ if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypedDict
 
     from . import ModuleState
+    from ..build import Target
     from ..interpreter import Interpreter
     from ..interpreterbase import TYPE_var
     from ..programs import ExternalProgram
@@ -144,22 +145,25 @@ class I18nModule(ExtensionModule):
     def merge_file(self, state: 'ModuleState', args: T.List['TYPE_var'], kwargs: 'MergeFile') -> ModuleReturnValue:
         if not shutil.which('xgettext'):
             self.nogettext_warning()
-            return
+            return ModuleReturnValue(None, [])
         podir = path.join(state.build_to_src, state.subdir, kwargs['po_dir'])
 
         ddirs = self._get_data_dirs(state, kwargs['data_dirs'])
         datadirs = '--datadirs=' + ':'.join(ddirs) if ddirs else None
 
-        command = state.environment.get_build_command() + [
+        command: T.List[T.Union[str, build.BuildTarget, build.CustomTarget,
+                                build.CustomTargetIndex, 'ExternalProgram', mesonlib.File]] = []
+        command.extend(state.environment.get_build_command())
+        command.extend([
             '--internal', 'msgfmthelper',
             '@INPUT@', '@OUTPUT@', kwargs['type'], podir
-        ]
+        ])
         if datadirs:
             command.append(datadirs)
 
         if kwargs['args']:
             command.append('--')
-            command.append(kwargs['args'])
+            command.extend(kwargs['args'])
 
         build_by_default = kwargs['build_by_default']
         if build_by_default is None:
@@ -190,9 +194,13 @@ class I18nModule(ExtensionModule):
             values = mesonlib.get_filenames_templates_dict([ifile_abs], None)
             outputs = mesonlib.substitute_values(outputs, values)
             output = outputs[0]
-            ct = build.CustomTarget(output + '_' + state.subdir.replace('/', '@').replace('\\', '@') + '_merge', state.subdir, state.subproject, real_kwargs)
+            ct = build.CustomTarget(
+                output + '_' + state.subdir.replace('/', '@').replace('\\', '@') + '_merge',
+                state.subdir, state.subproject, T.cast(T.Dict[str, T.Any], real_kwargs))
         else:
-            ct = build.CustomTarget(kwargs['output'][0] + '_merge', state.subdir, state.subproject, real_kwargs)
+            ct = build.CustomTarget(
+                kwargs['output'][0] + '_merge', state.subdir, state.subproject,
+                T.cast(T.Dict[str, T.Any], real_kwargs))
 
         return ModuleReturnValue(ct, [ct])
 
@@ -214,29 +222,32 @@ class I18nModule(ExtensionModule):
     def gettext(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'Gettext') -> ModuleReturnValue:
         if not shutil.which('xgettext'):
             self.nogettext_warning()
-            return
+            return ModuleReturnValue(None, [])
         packagename = args[0]
+        pkg_arg = f'--pkgname={packagename}'
+
         languages = kwargs['languages']
-        datadirs = self._get_data_dirs(state, kwargs['data_dirs'])
+        lang_arg = '--langs=' + '@@'.join(languages) if languages else None
+
+        _datadirs = ':'.join(self._get_data_dirs(state, kwargs['data_dirs']))
+        datadirs = '--datadirs={}'.format(_datadirs) if _datadirs else None
+
         extra_args = kwargs['args']
-        targets = []
-        gmotargets = []
+        targets: T.List['Target'] = []
+        gmotargets: T.List['build.CustomTarget'] = []
 
         preset = kwargs['preset']
         if preset:
             preset_args = PRESET_ARGS[preset]
-            extra_args = set(preset_args + extra_args)
+            extra_args = list(mesonlib.OrderedSet(preset_args + extra_args))
 
-        pkg_arg = '--pkgname=' + packagename
-        lang_arg = '--langs=' + '@@'.join(languages) if languages else None
-        datadirs = '--datadirs=' + ':'.join(datadirs) if datadirs else None
-        extra_args = '--extra-args=' + '@@'.join(extra_args) if extra_args else None
+        extra_arg = '--extra-args=' + '@@'.join(extra_args) if extra_args else None
 
         potargs = state.environment.get_build_command() + ['--internal', 'gettext', 'pot', pkg_arg]
         if datadirs:
-            potargs.append(datadirs)
-        if extra_args:
-            potargs.append(extra_args)
+            potargs.append(_datadirs)
+        if extra_arg:
+            potargs.append(extra_arg)
         pottarget = build.RunTarget(packagename + '-pot', potargs, [], state.subdir, state.subproject)
         targets.append(pottarget)
 
@@ -271,8 +282,8 @@ class I18nModule(ExtensionModule):
             updatepoargs.append(lang_arg)
         if datadirs:
             updatepoargs.append(datadirs)
-        if extra_args:
-            updatepoargs.append(extra_args)
+        if extra_arg:
+            updatepoargs.append(extra_arg)
         updatepotarget = build.RunTarget(packagename + '-update-po', updatepoargs, [], state.subdir, state.subproject)
         targets.append(updatepotarget)
 
