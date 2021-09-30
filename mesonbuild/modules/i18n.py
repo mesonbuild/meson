@@ -18,11 +18,10 @@ import typing as T
 
 from . import ExtensionModule, ModuleReturnValue
 from .. import build
-from .. import coredata
 from .. import mesonlib
 from .. import mlog
-from ..interpreter.type_checking import CT_BUILD_BY_DEFAULT, CT_INPUT_KW, CT_INSTALL_DIR_KW, CT_INSTALL_TAG_KW, CT_OUTPUT_KW, INSTALL_KW, in_set_validator
-from ..interpreterbase import permittedKwargs, FeatureNew, FeatureNewKwargs
+from ..interpreter.type_checking import CT_BUILD_BY_DEFAULT, CT_INPUT_KW, CT_INSTALL_DIR_KW, CT_INSTALL_TAG_KW, CT_OUTPUT_KW, INSTALL_KW, NoneType, in_set_validator
+from ..interpreterbase import FeatureNew
 from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, noPosargs, typed_kwargs, typed_pos_args
 from ..scripts.gettext import read_linguas
 
@@ -50,6 +49,29 @@ if T.TYPE_CHECKING:
         po_dir: str
         type: Literal['xml', 'desktop']
 
+    class Gettext(TypedDict):
+
+        args: T.List[str]
+        data_dirs: T.List[str]
+        install: bool
+        install_dir: T.Optional[str]
+        languages: T.List[str]
+        preset: T.Optional[str]
+
+
+_ARGS: KwargInfo[T.List[str]] = KwargInfo(
+    'args',
+    ContainerTypeInfo(list, str),
+    default=[],
+    listify=True,
+)
+
+_DATA_DIRS: KwargInfo[T.List[str]] = KwargInfo(
+    'data_dirs',
+    ContainerTypeInfo(list, str),
+    default=[],
+    listify=True
+)
 
 PRESET_ARGS = {
     'glib': [
@@ -114,8 +136,8 @@ class I18nModule(ExtensionModule):
         CT_INSTALL_TAG_KW,
         CT_OUTPUT_KW,
         INSTALL_KW,
-        KwargInfo('args', ContainerTypeInfo(list, str), default=[], listify=True, since='0.51.0'),
-        KwargInfo('data_dirs', ContainerTypeInfo(list, str), default=[], listify=True),
+        _ARGS.evolve(since='0.51.0'),
+        _DATA_DIRS,
         KwargInfo('po_dir', str, required=True),
         KwargInfo('type', str, default='xml', validator=in_set_validator({'xml', 'desktop'})),
     )
@@ -174,27 +196,35 @@ class I18nModule(ExtensionModule):
 
         return ModuleReturnValue(ct, [ct])
 
-    @FeatureNewKwargs('i18n.gettext', '0.37.0', ['preset'])
-    @FeatureNewKwargs('i18n.gettext', '0.50.0', ['install_dir'])
-    @permittedKwargs({'po_dir', 'data_dirs', 'type', 'languages', 'args', 'preset', 'install', 'install_dir'})
     @typed_pos_args('i81n.gettex', str)
-    def gettext(self, state: 'ModuleState', args: T.Tuple[str], kwargs) -> ModuleReturnValue:
+    @typed_kwargs(
+        'i18n.gettext',
+        _ARGS,
+        _DATA_DIRS,
+        INSTALL_KW.evolve(default=True),
+        KwargInfo('install_dir', (str, NoneType), since='0.50.0'),
+        KwargInfo('languages', ContainerTypeInfo(list, str), default=[], listify=True),
+        KwargInfo(
+            'preset',
+            (str, NoneType),
+            validator=in_set_validator(set(PRESET_ARGS)),
+            since='0.37.0',
+        ),
+    )
+    def gettext(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'Gettext') -> ModuleReturnValue:
         if not shutil.which('xgettext'):
             self.nogettext_warning()
             return
         packagename = args[0]
-        languages = mesonlib.stringlistify(kwargs.get('languages', []))
-        datadirs = self._get_data_dirs(state, mesonlib.stringlistify(kwargs.get('data_dirs', [])))
-        extra_args = mesonlib.stringlistify(kwargs.get('args', []))
+        languages = kwargs['languages']
+        datadirs = self._get_data_dirs(state, kwargs['data_dirs'])
+        extra_args = kwargs['args']
         targets = []
         gmotargets = []
 
-        preset = kwargs.pop('preset', None)
+        preset = kwargs['preset']
         if preset:
-            preset_args = PRESET_ARGS.get(preset)
-            if not preset_args:
-                raise coredata.MesonException('i18n: Preset "{}" is not one of the valid options: {}'.format(
-                                              preset, list(PRESET_ARGS.keys())))
+            preset_args = PRESET_ARGS[preset]
             extra_args = set(preset_args + extra_args)
 
         pkg_arg = '--pkgname=' + packagename
@@ -210,8 +240,9 @@ class I18nModule(ExtensionModule):
         pottarget = build.RunTarget(packagename + '-pot', potargs, [], state.subdir, state.subproject)
         targets.append(pottarget)
 
-        install = kwargs.get('install', True)
-        install_dir = kwargs.get('install_dir', state.environment.coredata.get_option(mesonlib.OptionKey('localedir')))
+        install = kwargs['install']
+        install_dir = kwargs['install_dir'] or state.environment.coredata.get_option(mesonlib.OptionKey('localedir'))
+        assert isinstance(install_dir, str), 'for mypy'
         if not languages:
             languages = read_linguas(path.join(state.environment.source_dir, state.subdir))
         for l in languages:
