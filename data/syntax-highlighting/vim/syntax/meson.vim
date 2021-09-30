@@ -56,6 +56,8 @@ syn match   mesonEscape	"\\$"
 " Meson only supports integer numbers
 " http://mesonbuild.com/Syntax.html#numbers
 syn match   mesonNumber	"\<\d\+\>"
+syn match   mesonNumber	"\<0x\x\+\>"
+syn match   mesonNumber	"\<0o\o\+\>"
 
 " booleans
 syn keyword mesonConstant	false true
