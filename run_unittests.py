@@ -6080,6 +6080,37 @@ class AllPlatformTests(BasePlatformTests):
                 link_args = env.coredata.get_external_link_args(cc.for_machine, cc.language)
                 self.assertEqual(sorted(link_args), sorted(['-flto']))
 
+    @skip_if_not_language('rust')
+    def test_rust_rlib_linkage(self) -> None:
+        if self.backend is not Backend.ninja:
+            raise unittest.SkipTest('Rust is only supported with ninja currently')
+        template = textwrap.dedent('''\
+                use std::process::exit;
+
+                pub fn fun() {{
+                    exit({});
+                }}
+            ''')
+
+        testdir = os.path.join(self.unit_test_dir, '100 rlib linkage')
+        gen_file = os.path.join(testdir, 'lib.rs')
+        with open(gen_file, 'w', encoding='utf-8') as f:
+            f.write(template.format(0))
+        self.addCleanup(windows_proof_rm, gen_file)
+
+        self.init(testdir)
+        self.build()
+        self.run_tests()
+
+        with open(gen_file, 'w', encoding='utf-8') as f:
+            f.write(template.format(39))
+
+        self.build()
+        with self.assertRaises(subprocess.CalledProcessError) as cm:
+            self.run_tests()
+        self.assertEqual(cm.exception.returncode, 1)
+        self.assertIn('exit status 39', cm.exception.stdout)
+
 class FailureTests(BasePlatformTests):
     '''
     Tests that test failure conditions. Build files here should be dynamically
