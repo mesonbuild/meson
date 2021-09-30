@@ -29,7 +29,7 @@ from ..interpreterbase import FeatureDeprecated
 if T.TYPE_CHECKING:
     from ..compilers.compilers import Compiler
     from ..environment import Environment
-    from ..build import BuildTarget
+    from ..build import BuildTarget, CustomTarget
     from ..mesonlib import FileOrString
 
 
@@ -88,7 +88,7 @@ class Dependency(HoldableObject):
         # Raw -L and -l arguments without manual library searching
         # If None, self.link_args will be used
         self.raw_link_args: T.Optional[T.List[str]] = None
-        self.sources: T.List['FileOrString'] = []
+        self.sources: T.List[T.Union['FileOrString', 'CustomTarget']] = []
         self.include_type = self._process_include_type_kw(kwargs)
         self.ext_deps: T.List[Dependency] = []
 
@@ -142,7 +142,7 @@ class Dependency(HoldableObject):
     def found(self) -> bool:
         return self.is_found
 
-    def get_sources(self) -> T.List['FileOrString']:
+    def get_sources(self) -> T.List[T.Union['FileOrString', 'CustomTarget']]:
         """Source files that need to be added to the target.
         As an example, gtest-all.cc when using GTest."""
         return self.sources
@@ -218,7 +218,8 @@ class Dependency(HoldableObject):
 class InternalDependency(Dependency):
     def __init__(self, version: str, incdirs: T.List[str], compile_args: T.List[str],
                  link_args: T.List[str], libraries: T.List['BuildTarget'],
-                 whole_libraries: T.List['BuildTarget'], sources: T.List['FileOrString'],
+                 whole_libraries: T.List['BuildTarget'],
+                 sources: T.Sequence[T.Union['FileOrString', 'CustomTarget']],
                  ext_deps: T.List[Dependency], variables: T.Dict[str, T.Any]):
         super().__init__(DependencyTypeName('internal'), {})
         self.version = version
@@ -228,7 +229,7 @@ class InternalDependency(Dependency):
         self.link_args = link_args
         self.libraries = libraries
         self.whole_libraries = whole_libraries
-        self.sources = sources
+        self.sources = list(sources)
         self.ext_deps = ext_deps
         self.variables = variables
 
