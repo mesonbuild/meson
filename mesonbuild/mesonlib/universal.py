@@ -1092,7 +1092,7 @@ def join_args(args: T.Iterable[str]) -> str:
 
 
 def do_replacement(regex: T.Pattern[str], line: str, variable_format: str,
-                   confdata: 'ConfigurationData') -> T.Tuple[str, T.Set[str]]:
+                   confdata: T.Union[T.Dict[str, T.Tuple[str, T.Optional[str]]], 'ConfigurationData']) -> T.Tuple[str, T.Set[str]]:
     missing_variables = set()  # type: T.Set[str]
     if variable_format == 'cmake':
         start_tag = '${'
@@ -1115,7 +1115,7 @@ def do_replacement(regex: T.Pattern[str], line: str, variable_format: str,
             varname = match.group(1)
             var_str = ''
             if varname in confdata:
-                (var, desc) = confdata.get(varname)
+                var, _ = confdata.get(varname)
                 if isinstance(var, str):
                     var_str = var
                 elif isinstance(var, int):
