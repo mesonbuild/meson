@@ -22,15 +22,29 @@ from . import ExtensionModule, ModuleReturnValue, NewExtensionModule
 from .. import mlog, build
 from ..compilers.compilers import CFLAGS_MAPPING, CEXE_MAPPING
 from ..dependencies import InternalDependency, PkgConfigDependency
-from ..interpreterbase import InterpreterException, FeatureNew
-from ..interpreterbase import permittedKwargs, typed_pos_args
+from ..interpreterbase import FeatureNew
+from ..interpreter.type_checking import ENV_KW
+from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, typed_kwargs, typed_pos_args
 from ..mesonlib import (EnvironmentException, MesonException, Popen_safe, MachineChoice,
-                       get_variable_regex, do_replacement, extract_as_list, join_args, OptionKey)
+                       get_variable_regex, do_replacement, join_args, OptionKey)
 
 if T.TYPE_CHECKING:
+    from typing_extensions import TypedDict
+
     from . import ModuleState
     from ..interpreter import Interpreter
     from ..interpreterbase import TYPE_var
+
+    class Dependency(TypedDict):
+
+        subdir: str
+
+    class AddProject(TypedDict):
+
+        configure_options: T.List[str]
+        cross_configure_options: T.List[str]
+        verbose: bool
+        env: build.EnvironmentVariables
 
 
 class ExternalProject(NewExtensionModule):
@@ -233,19 +247,14 @@ class ExternalProject(NewExtensionModule):
 
         return [self.target, idir]
 
-    @permittedKwargs({'subdir'})
     @typed_pos_args('external_project.dependency', str)
-    def dependency_method(self, state: 'ModuleState', args: T.Tuple[str], kwargs) -> InternalDependency:
+    @typed_kwargs('external_project.dependency', KwargInfo('subdir', str, default=''))
+    def dependency_method(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'Dependency') -> InternalDependency:
         libname = args[0]
 
-        subdir = kwargs.get('subdir', '')
-        if not isinstance(subdir, str):
-            m = 'ExternalProject.dependency subdir keyword argument must be string.'
-            raise InterpreterException(m)
-
         abs_includedir = Path(self.install_dir, self.rel_prefix, self.includedir)
-        if subdir:
-            abs_includedir = Path(abs_includedir, subdir)
+        if kwargs['subdir']:
+            abs_includedir = Path(abs_includedir, kwargs['subdir'])
         abs_libdir = Path(self.install_dir, self.rel_prefix, self.libdir)
 
         version = self.project_version
@@ -264,21 +273,22 @@ class ExternalProjectModule(ExtensionModule):
         self.methods.update({'add_project': self.add_project,
                              })
 
-    @permittedKwargs({'configure_options', 'cross_configure_options', 'verbose', 'env'})
     @typed_pos_args('external_project_mod.add_project', str)
-    def add_project(self, state: 'ModuleState', args: T.Tuple[str], kwargs: T.Dict[str, T.Any]) -> ModuleReturnValue:
+    @typed_kwargs(
+        'external_project.add_project',
+        KwargInfo('configure_options', ContainerTypeInfo(list, str), default=[], listify=True),
+        KwargInfo('cross_configure_options', ContainerTypeInfo(list, str), default=['--host=@HOST@'], listify=True),
+        KwargInfo('verbose', bool, default=False),
+        ENV_KW,
+    )
+    def add_project(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'AddProject') -> ModuleReturnValue:
         configure_command = args[0]
-        configure_options = extract_as_list(kwargs, 'configure_options')
-        cross_configure_options = extract_as_list(kwargs, 'cross_configure_options')
-        if not cross_configure_options:
-            cross_configure_options = ['--host=@HOST@']
-        verbose = kwargs.get('verbose', False)
-        env = self.interpreter.unpack_env_kwarg(kwargs)
         project = ExternalProject(state,
                                   configure_command,
-                                  configure_options,
-                                  cross_configure_options,
-                                  env, verbose)
+                                  kwargs['configure_options'],
+                                  kwargs['cross_configure_options'],
+                                  kwargs['env'],
+                                  kwargs['verbose'])
         return ModuleReturnValue(project, project.targets)
 
 
