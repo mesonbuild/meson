@@ -89,10 +89,12 @@ class DirMaker:
     def __init__(self, lf: T.TextIO, makedirs: T.Callable[..., None]):
         self.lf = lf
         self.dirs: T.List[str] = []
+        self.all_dirs: T.Set[str] = set()
         self.makedirs_impl = makedirs
 
     def makedirs(self, path: str, exist_ok: bool = False) -> None:
         dirname = os.path.normpath(path)
+        self.all_dirs.add(dirname)
         dirs = []
         while dirname != os.path.dirname(dirname):
             if dirname in self.dirs:
@@ -241,7 +243,7 @@ def restore_selinux_contexts() -> None:
               'Standard output:', out,
               'Standard error:', err, sep='\n')
 
-def apply_ldconfig() -> None:
+def apply_ldconfig(dm: DirMaker) -> None:
     '''
     Apply ldconfig to update the ld.so.cache.
     '''
@@ -249,11 +251,22 @@ def apply_ldconfig() -> None:
         # If we don't have ldconfig, failure is ignored quietly.
         return
 
-    proc, out, err = Popen_safe(['ldconfig'])
-    if proc.returncode != 0:
-        print('Failed to apply ldconfig ...',
-              'Standard output:', out,
-              'Standard error:', err, sep='\n')
+    # Try to update ld cache, it could fail if we don't have permission.
+    proc, out, err = Popen_safe(['ldconfig', '-v'])
+    if proc.returncode == 0:
+        return
+
+    # ldconfig failed, print the error only if we actually installed files in
+    # any of the directories it lookup for libraries. Otherwise quietly ignore
+    # the error.
+    for l in out.splitlines():
+        # Lines that start with a \t are libraries, not directories.
+        if not l or l[0].isspace():
+            continue
+        # Example: `/usr/lib/i386-linux-gnu/i686: (hwcap: 0x0002000000000000)`
+        if l[:l.find(':')] in dm.all_dirs:
+            print(f'Failed to apply ldconfig:\n{err}')
+            break
 
 def get_destdir_path(destdir: str, fullprefix: str, path: str) -> str:
     if os.path.isabs(path):
@@ -355,9 +368,9 @@ class Installer:
         if not self.dry_run and not destdir:
             restore_selinux_contexts()
 
-    def apply_ldconfig(self, destdir: str) -> None:
+    def apply_ldconfig(self, dm: DirMaker, destdir: str) -> None:
         if not self.dry_run and not destdir:
-            apply_ldconfig()
+            apply_ldconfig(dm)
 
     def Popen_safe(self, *args: T.Any, **kwargs: T.Any) -> T.Tuple[int, str, str]:
         if not self.dry_run:
@@ -534,7 +547,7 @@ class Installer:
                 self.install_emptydir(d, dm, destdir, fullprefix)
                 self.install_data(d, dm, destdir, fullprefix)
                 self.restore_selinux_contexts(destdir)
-                self.apply_ldconfig(destdir)
+                self.apply_ldconfig(dm, destdir)
                 self.run_install_script(d, destdir, fullprefix)
                 if not self.did_install_something:
                     self.log('Nothing to install.')
