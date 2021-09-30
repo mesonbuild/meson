@@ -14,6 +14,7 @@
 
 from os import path
 import shutil
+import typing as T
 
 from . import ExtensionModule, ModuleReturnValue
 from .. import build
@@ -23,6 +24,10 @@ from .. import mlog
 from ..interpreterbase import permittedKwargs, FeatureNew, FeatureNewKwargs
 from ..mesonlib import MesonException
 from ..scripts.gettext import read_linguas
+
+if T.TYPE_CHECKING:
+    from . import ModuleState
+    from ..interpreter import Interpreter
 
 PRESET_ARGS = {
     'glib': [
@@ -60,7 +65,7 @@ PRESET_ARGS = {
 
 
 class I18nModule(ExtensionModule):
-    def __init__(self, interpreter):
+    def __init__(self, interpreter: 'Interpreter'):
         super().__init__(interpreter)
         self.methods.update({
             'merge_file': self.merge_file,
@@ -68,11 +73,11 @@ class I18nModule(ExtensionModule):
         })
 
     @staticmethod
-    def nogettext_warning():
+    def nogettext_warning() -> None:
         mlog.warning('Gettext not found, all translation targets will be ignored.', once=True)
 
     @staticmethod
-    def _get_data_dirs(state, dirs):
+    def _get_data_dirs(state: 'ModuleState', dirs: T.Iterable[str]) -> T.List[str]:
         """Returns source directories of relative paths"""
         src_dir = path.join(state.environment.get_source_dir(), state.subdir)
         return [path.join(src_dir, d) for d in dirs]
@@ -80,7 +85,7 @@ class I18nModule(ExtensionModule):
     @FeatureNew('i18n.merge_file', '0.37.0')
     @FeatureNewKwargs('i18n.merge_file', '0.51.0', ['args'])
     @permittedKwargs(build.CustomTarget.known_kwargs | {'data_dirs', 'po_dir', 'type', 'args'})
-    def merge_file(self, state, args, kwargs):
+    def merge_file(self, state: 'ModuleState', args, kwargs) -> ModuleReturnValue:
         if not shutil.which('xgettext'):
             self.nogettext_warning()
             return
@@ -134,7 +139,7 @@ class I18nModule(ExtensionModule):
     @FeatureNewKwargs('i18n.gettext', '0.37.0', ['preset'])
     @FeatureNewKwargs('i18n.gettext', '0.50.0', ['install_dir'])
     @permittedKwargs({'po_dir', 'data_dirs', 'type', 'languages', 'args', 'preset', 'install', 'install_dir'})
-    def gettext(self, state, args, kwargs):
+    def gettext(self, state: 'ModuleState', args, kwargs) -> ModuleReturnValue:
         if len(args) != 1:
             raise coredata.MesonException('Gettext requires one positional argument (package name).')
         if not shutil.which('xgettext'):
@@ -205,5 +210,5 @@ class I18nModule(ExtensionModule):
 
         return ModuleReturnValue([gmotargets, pottarget, updatepotarget], targets)
 
-def initialize(*args, **kwargs):
-    return I18nModule(*args, **kwargs)
+def initialize(interp: 'Interpreter') -> I18nModule:
+    return I18nModule(interp)
