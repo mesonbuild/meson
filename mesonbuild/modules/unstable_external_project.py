@@ -12,19 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, subprocess, shlex
 from pathlib import Path
+import os
+import shlex
+import subprocess
 import typing as T
 
 from . import ExtensionModule, ModuleReturnValue, ModuleState, NewExtensionModule
 from .. import mlog, build
-from ..mesonlib import (EnvironmentException, MesonException, Popen_safe, MachineChoice,
-                       get_variable_regex, do_replacement, extract_as_list, join_args)
-from ..interpreterbase import InterpreterException, FeatureNew
-from ..interpreterbase import permittedKwargs, typed_pos_args
 from ..compilers.compilers import CFLAGS_MAPPING, CEXE_MAPPING
 from ..dependencies import InternalDependency, PkgConfigDependency
-from ..mesonlib import OptionKey
+from ..interpreterbase import InterpreterException, FeatureNew
+from ..interpreterbase import permittedKwargs, typed_pos_args
+from ..mesonlib import (EnvironmentException, MesonException, Popen_safe, MachineChoice,
+                       get_variable_regex, do_replacement, extract_as_list, join_args, OptionKey)
 
 class ExternalProject(NewExtensionModule):
     def __init__(self,
