@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from mesonbuild.interpreterbase.decorators import noPosargs, typed_pos_args
 from os import path
 import shutil
 import typing as T
@@ -28,6 +29,7 @@ from ..scripts.gettext import read_linguas
 if T.TYPE_CHECKING:
     from . import ModuleState
     from ..interpreter import Interpreter
+    from ..interpreterbase import TYPE_var
 
 PRESET_ARGS = {
     'glib': [
@@ -85,7 +87,8 @@ class I18nModule(ExtensionModule):
     @FeatureNew('i18n.merge_file', '0.37.0')
     @FeatureNewKwargs('i18n.merge_file', '0.51.0', ['args'])
     @permittedKwargs(build.CustomTarget.known_kwargs | {'data_dirs', 'po_dir', 'type', 'args'})
-    def merge_file(self, state: 'ModuleState', args, kwargs) -> ModuleReturnValue:
+    @noPosargs
+    def merge_file(self, state: 'ModuleState', args: T.List['TYPE_var'], kwargs) -> ModuleReturnValue:
         if not shutil.which('xgettext'):
             self.nogettext_warning()
             return
@@ -139,9 +142,8 @@ class I18nModule(ExtensionModule):
     @FeatureNewKwargs('i18n.gettext', '0.37.0', ['preset'])
     @FeatureNewKwargs('i18n.gettext', '0.50.0', ['install_dir'])
     @permittedKwargs({'po_dir', 'data_dirs', 'type', 'languages', 'args', 'preset', 'install', 'install_dir'})
-    def gettext(self, state: 'ModuleState', args, kwargs) -> ModuleReturnValue:
-        if len(args) != 1:
-            raise coredata.MesonException('Gettext requires one positional argument (package name).')
+    @typed_pos_args('i81n.gettex', str)
+    def gettext(self, state: 'ModuleState', args: T.Tuple[str], kwargs) -> ModuleReturnValue:
         if not shutil.which('xgettext'):
             self.nogettext_warning()
             return
