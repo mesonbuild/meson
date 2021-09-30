@@ -210,7 +210,7 @@ local -a meson_commands=(
     "$__meson_cd"
     '--no-rebuild[Do not rebuild before installing]'
     '--only-changed[Do not overwrite files that are older than the copied file]'
-    '--quiet[Do not print every fiel that was installed]'
+    '--quiet[Do not print every file that was installed]'
   )
 _arguments \
   '(: -)'{'--help','-h'}'[show a help message and quit]' \

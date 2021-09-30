@@ -210,7 +210,7 @@ the following entry to your cross file's `properties` section:
 skip_sanity_check = true
 ```
 
-## Support for overiding the linker with ldc and gdc
+## Support for overriding the linker with ldc and gdc
 
 LDC (the llvm D compiler) and GDC (The Gnu D Compiler) now honor D_LD
 linker variable (or d_ld in the cross file) and is able to pick

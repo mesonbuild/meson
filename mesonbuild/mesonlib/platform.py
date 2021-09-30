@@ -23,7 +23,7 @@ from .. import mlog
 
 __all__ = ['BuildDirLock']
 
-# This needs to be inheritted by the specific implementations to make type
+# This needs to be inherited by the specific implementations to make type
 # checking happy
 class BuildDirLock:
 
@@ -31,7 +31,7 @@ class BuildDirLock:
         self.lockfilename = os.path.join(builddir, 'meson-private/meson.lock')
 
     def __enter__(self) -> None:
-        mlog.debug('Calling ther no-op version of BuildDirLock')
+        mlog.debug('Calling the no-op version of BuildDirLock')
 
     def __exit__(self, *args: T.Any) -> None:
         pass

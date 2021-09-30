@@ -252,7 +252,7 @@ class EnvironmentVariablesHolder(ObjectHolder[build.EnvironmentVariables], Mutab
         return repr_str.format(self.__class__.__name__, self.held_object.envvars)
 
     def __deepcopy__(self, memo: T.Dict[str, object]) -> 'EnvironmentVariablesHolder':
-        # Avoid trying to copy the intepreter
+        # Avoid trying to copy the interpreter
         return EnvironmentVariablesHolder(copy.deepcopy(self.held_object), self.interpreter)
 
     def warn_if_has_name(self, name: str) -> None:
@@ -687,7 +687,7 @@ class NullSubprojectInterpreter(HoldableObject):
 
 # TODO: This should really be an `ObjectHolder`, but the additional stuff in this
 #       class prevents this. Thus, this class should be split into a pure
-#       `ObjectHolder` and a class specifically for stroing in `Interpreter`.
+#       `ObjectHolder` and a class specifically for storing in `Interpreter`.
 class SubprojectHolder(MesonInterpreterObject):
 
     def __init__(self, subinterpreter: T.Union['Interpreter', NullSubprojectInterpreter],

@@ -178,7 +178,7 @@ class CompilerArgs(collections.abc.MutableSequence):
 
     def __setitem__(self, index: T.Union[int, slice], value: T.Union[str, T.Iterable[str]]) -> None:  # noqa: F811
         self.flush_pre_post()
-        self._container[index] = value  # type: ignore  # TODO: fix 'Invalid index type' and 'Incompatible types in assignment' erros
+        self._container[index] = value  # type: ignore  # TODO: fix 'Invalid index type' and 'Incompatible types in assignment' errors
 
     def __delitem__(self, index: T.Union[int, slice]) -> None:
         self.flush_pre_post()

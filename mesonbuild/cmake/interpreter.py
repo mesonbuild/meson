@@ -61,7 +61,7 @@ TYPE_mixed        = T.Union[str, int, bool, Path, BaseNode]
 TYPE_mixed_list   = T.Union[TYPE_mixed, T.Sequence[TYPE_mixed]]
 TYPE_mixed_kwargs = T.Dict[str, TYPE_mixed_list]
 
-# Disable all warnings automaticall enabled with --trace and friends
+# Disable all warnings automatically enabled with --trace and friends
 # See https://cmake.org/cmake/help/latest/variable/CMAKE_POLICY_WARNING_CMPNNNN.html
 disable_policy_warnings = [
     'CMP0025',

@@ -7,7 +7,7 @@ project(
 )
 
 if meson.get_compiler('cpp').get_argument_syntax() == 'msvc'
-  error('MESON_SKIP_TEST: Skipp with msvc due to missing -system support')
+  error('MESON_SKIP_TEST: Skip with msvc due to missing -system support')
 endif
 
 cm = import('cmake')

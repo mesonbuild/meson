@@ -20,5 +20,5 @@ string cmModClass::getStr() const {
 }
 
 string cmModClass::getOther() const {
-  return "Srings:\n - " + getStrCpy() + "\n - " + getStrNext() + "\n - " + getStrCpyTest();
+  return "Strings:\n - " + getStrCpy() + "\n - " + getStrNext() + "\n - " + getStrCpyTest();
 }

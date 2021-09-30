@@ -1,7 +1,7 @@
 project('rust linking to libm', 'c', 'rust')
 
 if host_machine.system() == 'darwin'
-  error('MESON_SKIP_TEST: doesnt work right on macos, please fix!')
+  error('MESON_SKIP_TEST: does not work right on macos, please fix!')
 endif
 
 cc = meson.get_compiler('c')

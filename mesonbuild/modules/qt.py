@@ -191,7 +191,7 @@ class QtBaseModule(ExtensionModule):
             abspath = rcc_file.absolute_path(state.environment.source_dir, state.environment.build_dir)
             rcc_dirname = os.path.dirname(abspath)
 
-        # FIXME: what error are we actually tring to check here?
+        # FIXME: what error are we actually trying to check here?
         try:
             tree = ET.parse(abspath)
             root = tree.getroot()
@@ -425,7 +425,7 @@ class QtBaseModule(ExtensionModule):
             raise MesonException(err_msg.format('MOC', f'uic-qt{self.qt_version}', self.qt_version))
 
         if not (kwargs['headers'] or kwargs['sources']):
-            raise build.InvalidArguments('At least one of the "headers" or "sources" keyword arguments must be provied and not empty')
+            raise build.InvalidArguments('At least one of the "headers" or "sources" keyword arguments must be provided and not empty')
 
         inc = state.get_include_args(include_dirs=kwargs['include_directories'])
         compile_args: T.List[str] = []
@@ -448,7 +448,7 @@ class QtBaseModule(ExtensionModule):
 
         return output
 
-    # We can't use typed_pos_args here, the signature is ambiguious
+    # We can't use typed_pos_args here, the signature is ambiguous
     @typed_kwargs(
         'qt.preprocess',
         KwargInfo('sources', ContainerTypeInfo(list, (File, str)), listify=True, default=[], deprecated='0.59.0'),

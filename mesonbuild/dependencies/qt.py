@@ -113,7 +113,7 @@ class QtExtraFrameworkDependency(ExtraFrameworkDependency):
 
 class _QtBase:
 
-    """Mixin class for shared componenets between PkgConfig and Qmake."""
+    """Mixin class for shared components between PkgConfig and Qmake."""
 
     link_args: T.List[str]
     clib_compiler: 'Compiler'
@@ -239,8 +239,8 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=abc.ABCMeta):
         _QtBase.__init__(self, name, kwargs)
         self.tools = [f'qmake-{self.qtname}', 'qmake']
 
-        # Add additional constraits that the Qt version is met, but preserve
-        # any version requrements the user has set as well. For exmaple, if Qt5
+        # Add additional constraints that the Qt version is met, but preserve
+        # any version requrements the user has set as well. For example, if Qt5
         # is requested, add "">= 5, < 6", but if the user has ">= 5.6", don't
         # lose that.
         kwargs = kwargs.copy()

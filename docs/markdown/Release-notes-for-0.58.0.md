@@ -20,7 +20,7 @@ when a project is being used as a subproject.
 
 New method `meson.add_devenv()` adds an [`environment()`](#environment) object
 to the list of environments that will be applied when using `meson devenv`
-command line. This is useful for developpers who wish to use the project without
+command line. This is useful for developers who wish to use the project without
 installing it, it is often needed to set for example the path to plugins
 directory, etc. Alternatively, a list or dictionary can be passed as first
 argument.
@@ -63,7 +63,7 @@ compilation faster and using `-pipe` [can cause sporadic build
 failures in certain
 cases](https://github.com/mesonbuild/meson/issues/8508).
 
-## `meson.add_dist_script()` allowd in subprojects
+## `meson.add_dist_script()` allowed in subprojects
 
 `meson.add_dist_script()` can now be invoked from a subproject, it was a hard
 error in earlier versions. Subproject dist scripts will only be executed
@@ -100,7 +100,7 @@ up the path manually with `include_directories`.
 
 `append()` and `prepend()` methods can now be called multiple times
 on the same `varname`. Earlier Meson versions would warn and only the last
-opperation was taking effect.
+operation was taking effect.
 
 ```meson
 env = environment()

@@ -552,7 +552,7 @@ class CoreData:
         This way everyone can do f.ex, get_option('libdir') and be sure to get
         the library directory relative to prefix.
 
-        .as_posix() keeps the posix-like file seperators Meson uses.
+        .as_posix() keeps the posix-like file separators Meson uses.
         '''
         try:
             value = PurePath(value)

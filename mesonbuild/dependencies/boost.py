@@ -240,7 +240,7 @@ class BoostLibraryFile():
     def fix_python_name(self, tags: T.List[str]) -> T.List[str]:
         # Handle the boost_python naming madeness.
         # See https://github.com/mesonbuild/meson/issues/4788 for some distro
-        # specific naming variantions.
+        # specific naming variations.
         other_tags = []  # type: T.List[str]
 
         # Split the current modname into the base name and the version
@@ -320,7 +320,7 @@ class BoostLibraryFile():
         elif vscrt in ['/MTd', '-MTd']:
             return (self.runtime_static or not self.static) and self.runtime_debug
 
-        mlog.warning(f'Boost: unknow vscrt tag {vscrt}. This may cause the compilation to fail. Please consider reporting this as a bug.', once=True)
+        mlog.warning(f'Boost: unknown vscrt tag {vscrt}. This may cause the compilation to fail. Please consider reporting this as a bug.', once=True)
         return True
 
     def get_compiler_args(self) -> T.List[str]:
@@ -405,7 +405,7 @@ class BoostDependency(SystemDependency):
 
         The machine file values are defaulted to the environment values.
         """
-        # XXX: if we had a TypedDict we woudn't need this
+        # XXX: if we had a TypedDict we wouldn't need this
         incdir = props.get('boost_includedir')
         assert incdir is None or isinstance(incdir, str)
         libdir = props.get('boost_librarydir')

@@ -213,7 +213,7 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
 
     def language_stdlib_only_link_flags(self, env: 'Environment') -> T.List[str]:
         # We need to apply the search prefix here, as these link arguments may
-        # be passed to a differen compiler with a different set of default
+        # be passed to a different compiler with a different set of default
         # search paths, such as when using Clang for C/C++ and gfortran for
         # fortran,
         search_dir = self._get_search_dirs(env)
@@ -484,7 +484,7 @@ class FlangFortranCompiler(ClangCompiler, FortranCompiler):
 
     def language_stdlib_only_link_flags(self, env: 'Environment') -> T.List[str]:
         # We need to apply the search prefix here, as these link arguments may
-        # be passed to a differen compiler with a different set of default
+        # be passed to a different compiler with a different set of default
         # search paths, such as when using Clang for C/C++ and gfortran for
         # fortran,
         # XXX: Untested....

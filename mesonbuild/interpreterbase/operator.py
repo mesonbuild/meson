@@ -18,7 +18,7 @@ class MesonOperator(Enum):
     # Should return the boolsche interpretation of the value (`'' == false` for instance)
     BOOL = 'bool()'
 
-    # Comparision
+    # Comparison
     EQUALS = '=='
     NOT_EQUALS = '!='
     GREATER = '>'

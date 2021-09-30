@@ -50,7 +50,7 @@ foreach lang : ['c', 'cpp']
       error('MESON_SKIP_TEST: Microsoft assembler (ml/armasm) not found')
     endif
     # Preprocess file (ml doesn't support pre-processing)
-    # Force the intput to be C (/Tc) because ICL otherwise assumes it's an object (.obj) file
+    # Force the input to be C (/Tc) because ICL otherwise assumes it's an object (.obj) file
     preproc_name = lang + square_base + '.i'
     square_preproc = custom_target(lang + square_impl + 'preproc',
         input : square_impl,

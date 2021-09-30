@@ -353,7 +353,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
                 #  - arguments like "-L=@rpath/xxx" without a second argument (on Apple platform)
                 #  - arguments like "-L=/SUBSYSTEM:CONSOLE (for Windows linker)
                 #
-                # The logic that follows trys to detect all these cases (some may be missing)
+                # The logic that follows tries to detect all these cases (some may be missing)
                 # in order to prepend a -L only for the library search paths with a single -L
 
                 if arg.startswith('-L='):
@@ -816,8 +816,8 @@ class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
         return ['--release']
 
     def rsp_file_syntax(self) -> RSPFileSyntax:
-        # We use `mesonlib.is_windows` here because we want to konw what the
-        # build machine is, not the host machine. This really means whe whould
+        # We use `mesonlib.is_windows` here because we want to know what the
+        # build machine is, not the host machine. This really means we would
         # have the Environment not the MachineInfo in the compiler.
         return RSPFileSyntax.MSVC if is_windows() else RSPFileSyntax.GCC
 

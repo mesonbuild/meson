@@ -34,7 +34,7 @@ that automatically.
 Additional, test only dependencies may be passed via the dependencies
 argument.
 
-### bindgen(*, input: string | BuildTarget | []string | []BuildTarget, output: strng, include_directories: []include_directories, c_args: []string, args: []string)
+### bindgen(*, input: string | BuildTarget | []string | []BuildTarget, output: string, include_directories: []include_directories, c_args: []string, args: []string)
 
 This function wraps bindgen to simplify creating rust bindings around C
 libraries. This has two advantages over hand-rolling ones own with a

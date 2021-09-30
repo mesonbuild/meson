@@ -114,7 +114,7 @@ $ DESTDIR=/path/to/staging/area meson install
 ```
 
 Since *0.57.0* `--destdir` argument can be used instead of environment. In that
-case Meson will set `DESTDIR` into environment when runing install scripts.
+case Meson will set `DESTDIR` into environment when running install scripts.
 
 Since *0.60.0* `DESTDIR` and `--destdir` can be a path relative to build
 directory. An absolute path will be set into environment when executing scripts.

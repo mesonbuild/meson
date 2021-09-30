@@ -146,7 +146,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         return pchname
 
     def get_pch_base_name(self, header: str) -> str:
-        # This needs to be implemented by inherting classes
+        # This needs to be implemented by inheriting classes
         raise NotImplementedError
 
     def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
@@ -383,7 +383,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
 
 class MSVCCompiler(VisualStudioLikeCompiler):
 
-    """Spcific to the Microsoft Compilers."""
+    """Specific to the Microsoft Compilers."""
 
     def __init__(self, target: str):
         super().__init__(target)
@@ -415,7 +415,7 @@ class MSVCCompiler(VisualStudioLikeCompiler):
 
 class ClangClCompiler(VisualStudioLikeCompiler):
 
-    """Spcific to Clang-CL."""
+    """Specific to Clang-CL."""
 
     def __init__(self, target: str):
         super().__init__(target)

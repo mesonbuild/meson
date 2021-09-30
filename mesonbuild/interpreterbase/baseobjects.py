@@ -145,7 +145,7 @@ class ObjectHolder(InterpreterObject, T.Generic[InterpreterObjectTypeVar]):
         self.interpreter = interpreter
         self.env = self.interpreter.environment
 
-    # Hide the object holder abstrction from the user
+    # Hide the object holder abstraction from the user
     def display_name(self) -> str:
         return type(self.held_object).__name__
 

@@ -192,7 +192,7 @@ arguments](#language-arguments-parameter-names) instead.
 | LDFLAGS     | The linker flags, used for all languages |
 
 N.B. these settings are specified per machine, and so the environment
-varibles actually come in pairs. See the [environment variables per
+variables actually come in pairs. See the [environment variables per
 machine](#Environment-variables-per-machine) section for details.
 
 ## Function Attributes
@@ -289,7 +289,7 @@ These are the values that can be passed to `dependency` function's
 ## Compiler and Linker selection variables
 
 N.B. these settings are specified per machine, and so the environment
-varibles actually come in pairs. See the [environment variables per
+variables actually come in pairs. See the [environment variables per
 machine](#Environment-variables-per-machine) section for details.
 
 | Language      | Compiler | Linker    | Note                                        |

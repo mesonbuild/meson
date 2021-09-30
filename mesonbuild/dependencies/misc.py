@@ -432,7 +432,7 @@ class CursesSystemDependency(SystemDependency):
                             v_minor, _ = self.clib_compiler.get_define('PDC_VER_MINOR', f'#include <{header}>', env, [], [self])
                             self.version = f'{v_major}.{v_minor}'
 
-                        # Check the version if possible, emit a wraning if we can't
+                        # Check the version if possible, emit a warning if we can't
                         req = kwargs.get('version')
                         if req:
                             if self.version:
@@ -589,7 +589,7 @@ python3_factory = DependencyFactory(
     system_class=Python3DependencySystem,
     # There is no version number in the macOS version number
     framework_name='Python',
-    # There is a python in /System/Library/Frameworks, but thats python 2.x,
+    # There is a python in /System/Library/Frameworks, but that's python 2.x,
     # Python 3 will always be in /Library
     extra_kwargs={'paths': ['/Library/Frameworks']},
 )

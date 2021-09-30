@@ -1108,7 +1108,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
         """Check that this compiler actually works.
 
-        This should provide a simple compile/link test. Somthing as simple as:
+        This should provide a simple compile/link test. Something as simple as:
         ```python
         main(): return 0
         ```
