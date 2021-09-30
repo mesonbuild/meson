@@ -136,13 +136,13 @@ endif
 " The default highlight links.  Can be overridden later.
 hi def link mesonStatement	Statement
 hi def link mesonConditional	Conditional
-hi def link mesonRepeat	Repeat
+hi def link mesonRepeat		Repeat
 hi def link mesonOperator	Operator
 hi def link mesonComment	Comment
 hi def link mesonTodo		Todo
-hi def link mesonString	String
-hi def link mesonEscape	Special
-hi def link mesonNumber	Number
+hi def link mesonString		String
+hi def link mesonEscape		Special
+hi def link mesonNumber		Number
 hi def link mesonBuiltin	Function
 hi def link mesonBoolean	Boolean
 if exists("meson_space_error_higlight")
