@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from mesonbuild.mesonlib.universal import windows_proof_rm
 import subprocess
 import re
 import json
@@ -4061,6 +4062,37 @@ class AllPlatformTests(BasePlatformTests):
         with self.assertRaises(subprocess.CalledProcessError) as cm:
             self.build()
         self.assertIn('error: use of a blacklisted/placeholder name `foo`', cm.exception.stdout)
+
+    @skip_if_not_language('rust')
+    def test_rust_rlib_linkage(self) -> None:
+        if self.backend is not Backend.ninja:
+            raise unittest.SkipTest('Rust is only supported with ninja currently')
+        template = textwrap.dedent('''\
+                use std::process::exit;
+
+                pub fn fun() {{
+                    exit({});
+                }}
+            ''')
+
+        testdir = os.path.join(self.unit_test_dir, '100 rlib linkage')
+        gen_file = os.path.join(testdir, 'lib.rs')
+        with open(gen_file, 'w') as f:
+            f.write(template.format(0))
+        self.addCleanup(windows_proof_rm, gen_file)
+
+        self.init(testdir)
+        self.build()
+        self.run_tests()
+
+        with open(gen_file, 'w') as f:
+            f.write(template.format(39))
+
+        self.build()
+        with self.assertRaises(subprocess.CalledProcessError) as cm:
+            self.run_tests()
+        self.assertEqual(cm.exception.returncode, 1)
+        self.assertIn('exit status 39', cm.exception.stdout)
 
     def test_custom_target_name(self):
         testdir = os.path.join(self.unit_test_dir, '99 custom target name')
