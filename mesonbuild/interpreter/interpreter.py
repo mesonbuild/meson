@@ -2753,7 +2753,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
                 results.append(s)
             elif isinstance(s, (build.GeneratedList, build.BuildTarget,
                                 build.CustomTargetIndex, build.CustomTarget,
-                                build.ExtractedObjects)):
+                                build.ExtractedObjects, build.StructuredSources)):
                 results.append(s)
             else:
                 raise InterpreterException(f'Source item is {s!r} instead of '
