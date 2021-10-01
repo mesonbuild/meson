@@ -238,6 +238,9 @@ class CmakeModule(ExtensionModule):
             return True
 
         cmakebin = ExternalProgram('cmake', silent=False)
+        if not cmakebin.found():
+            return False
+
         p, stdout, stderr = mesonlib.Popen_safe(cmakebin.get_command() + ['--system-information', '-G', 'Ninja'])[0:3]
         if p.returncode != 0:
             mlog.log(f'error retrieving cmake information: returnCode={p.returncode} stdout={stdout} stderr={stderr}')
