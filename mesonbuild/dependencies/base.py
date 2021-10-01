@@ -14,6 +14,8 @@
 
 # This file contains the detection logic for external dependencies.
 # Custom logic for several other packages are in separate files.
+
+from __future__ import annotations
 import copy
 import os
 import collections
@@ -29,6 +31,7 @@ from ..mesonlib import version_compare_many
 
 if T.TYPE_CHECKING:
     from .._typing import ImmutableListProtocol
+    from ..build import StructuredSources
     from ..compilers.compilers import Compiler
     from ..environment import Environment
     from ..interpreterbase import FeatureCheckBase
@@ -91,7 +94,7 @@ class Dependency(HoldableObject):
         # Raw -L and -l arguments without manual library searching
         # If None, self.link_args will be used
         self.raw_link_args: T.Optional[T.List[str]] = None
-        self.sources: T.List[T.Union['FileOrString', 'CustomTarget']] = []
+        self.sources: T.List[T.Union['FileOrString', 'CustomTarget', 'StructuredSources']] = []
         self.include_type = self._process_include_type_kw(kwargs)
         self.ext_deps: T.List[Dependency] = []
         self.d_features: T.DefaultDict[str, T.List[T.Any]] = collections.defaultdict(list)
@@ -148,7 +151,7 @@ class Dependency(HoldableObject):
     def found(self) -> bool:
         return self.is_found
 
-    def get_sources(self) -> T.List[T.Union['FileOrString', 'CustomTarget']]:
+    def get_sources(self) -> T.List[T.Union['FileOrString', 'CustomTarget', 'StructuredSources']]:
         """Source files that need to be added to the target.
         As an example, gtest-all.cc when using GTest."""
         return self.sources
@@ -228,7 +231,7 @@ class InternalDependency(Dependency):
                  link_args: T.List[str],
                  libraries: T.List[T.Union['BuildTarget', 'CustomTarget']],
                  whole_libraries: T.List[T.Union['BuildTarget', 'CustomTarget']],
-                 sources: T.Sequence[T.Union['FileOrString', 'CustomTarget']],
+                 sources: T.Sequence[T.Union['FileOrString', 'CustomTarget', StructuredSources]],
                  ext_deps: T.List[Dependency], variables: T.Dict[str, T.Any],
                  d_module_versions: T.List[str], d_import_dirs: T.List['IncludeDirs']):
         super().__init__(DependencyTypeName('internal'), {})
