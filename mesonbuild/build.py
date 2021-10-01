@@ -739,14 +739,16 @@ class BuildTarget(Target):
 
     install_dir: T.List[T.Union[str, bool]]
 
-    def __init__(self, name: str, subdir: str, subproject: 'SubProject', for_machine: MachineChoice,
-                 sources: T.List['SourceOutputs'], objects, environment: environment.Environment, kwargs):
+    def __init__(self, name: str, subdir: str, subproject: SubProject, for_machine: MachineChoice,
+                 sources: T.List['SourceOutputs'], structured_sources: T.Optional[StructuredSources],
+                 objects, environment: environment.Environment, kwargs):
         super().__init__(name, subdir, subproject, True, for_machine)
         unity_opt = environment.coredata.get_option(OptionKey('unity'))
         self.is_unity = unity_opt == 'on' or (unity_opt == 'subprojects' and subproject != '')
         self.environment = environment
         self.compilers = OrderedDict() # type: OrderedDict[str, Compiler]
         self.objects: T.List[T.Union[str, 'File', 'ExtractedObjects']] = []
+        self.structured_sources = structured_sources
         self.external_deps: T.List[dependencies.Dependency] = []
         self.include_dirs: T.List['IncludeDirs'] = []
         self.link_language = kwargs.get('link_language')
@@ -778,12 +780,17 @@ class BuildTarget(Target):
         self.process_kwargs(kwargs, environment)
         self.check_unknown_kwargs(kwargs)
         self.process_compilers()
-        if not any([self.sources, self.generated, self.objects, self.link_whole]):
+        if not any([self.sources, self.generated, self.objects, self.link_whole, self.structured_sources]):
             raise InvalidArguments(f'Build target {name} has no sources.')
         self.process_compilers_late()
         self.validate_sources()
         self.validate_install(environment)
         self.check_module_linking()
+
+        if self.structured_sources and any([self.sources, self.generated]):
+            raise MesonException('cannot mix structured sources and unstructured sources')
+        if self.structured_sources and 'rust' not in self.compilers:
+            raise MesonException('structured sources are only supported in Rust targets')
 
     def __repr__(self):
         repr_str = "<{0} {1}: {2}>"
@@ -888,21 +895,31 @@ class BuildTarget(Target):
                     self.compilers[lang] = compilers[lang]
                     break
 
-    def process_compilers(self):
+    def process_compilers(self) -> None:
         '''
         Populate self.compilers, which is the list of compilers that this
         target will use for compiling all its sources.
         We also add compilers that were used by extracted objects to simplify
         dynamic linker determination.
         '''
-        if not self.sources and not self.generated and not self.objects:
+        if not any([self.sources, self.generated, self.objects, self.structured_sources]):
             return
         # Populate list of compilers
         compilers = self.environment.coredata.compilers[self.for_machine]
         # Pre-existing sources
-        sources = list(self.sources)
+        sources: T.List['FileOrString'] = list(self.sources)
+        generated = self.generated.copy()
+
+        if self.structured_sources:
+            for v in self.structured_sources.sources.values():
+                for src in v:
+                    if isinstance(src, (str, File)):
+                        sources.append(src)
+                    else:
+                        generated.append(src)
+
         # All generated sources
-        for gensrc in self.generated:
+        for gensrc in generated:
             for s in gensrc.get_outputs():
                 # Generated objects can't be compiled, so don't use them for
                 # compiler detection. If our target only has generated objects,
@@ -1626,6 +1643,16 @@ You probably should put it in link_with instead.''')
         elif self.generated:
             if self.generated[0].get_outputs()[0].endswith('.rs'):
                 return True
+        elif self.structured_sources:
+            for v in self.structured_sources.sources.values():
+                for s in v:
+                    if isinstance(s, (str, File)):
+                        if s.endswith('.rs'):
+                            return True
+                    else:
+                        for ss in s.get_outputs():
+                            if ss.endswith('.rs'):
+                                return True
         return False
 
     def get_using_msvc(self) -> bool:
@@ -1827,12 +1854,13 @@ class Executable(BuildTarget):
     known_kwargs = known_exe_kwargs
 
     def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
-                 sources: T.List[File], objects, environment: environment.Environment, kwargs):
+                 sources: T.List[File], structured_sources: T.Optional['StructuredSources'],
+                 objects, environment: environment.Environment, kwargs):
         self.typename = 'executable'
         key = OptionKey('b_pie')
         if 'pie' not in kwargs and key in environment.coredata.options:
             kwargs['pie'] = environment.coredata.options[key].value
-        super().__init__(name, subdir, subproject, for_machine, sources, objects, environment, kwargs)
+        super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects, environment, kwargs)
         # Unless overridden, executables have no suffix or prefix. Except on
         # Windows and with C#/Mono executables where the suffix is 'exe'
         if not hasattr(self, 'prefix'):
@@ -1952,9 +1980,11 @@ class Executable(BuildTarget):
 class StaticLibrary(BuildTarget):
     known_kwargs = known_stlib_kwargs
 
-    def __init__(self, name, subdir, subproject, for_machine: MachineChoice, sources, objects, environment, kwargs):
+    def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
+                 sources: T.List[File], structured_sources: T.Optional['StructuredSources'],
+                 objects, environment: environment.Environment, kwargs):
         self.typename = 'static library'
-        super().__init__(name, subdir, subproject, for_machine, sources, objects, environment, kwargs)
+        super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects, environment, kwargs)
         if 'cs' in self.compilers:
             raise InvalidArguments('Static libraries not supported for C#.')
         if 'rust' in self.compilers:
@@ -2013,7 +2043,9 @@ class StaticLibrary(BuildTarget):
 class SharedLibrary(BuildTarget):
     known_kwargs = known_shlib_kwargs
 
-    def __init__(self, name, subdir, subproject, for_machine: MachineChoice, sources, objects, environment, kwargs):
+    def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
+                 sources: T.List[File], structured_sources: T.Optional['StructuredSources'],
+                 objects, environment: environment.Environment, kwargs):
         self.typename = 'shared library'
         self.soversion = None
         self.ltversion = None
@@ -2030,7 +2062,7 @@ class SharedLibrary(BuildTarget):
         self.debug_filename = None
         # Use by the pkgconfig module
         self.shared_library_only = False
-        super().__init__(name, subdir, subproject, for_machine, sources, objects, environment, kwargs)
+        super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects, environment, kwargs)
         if 'rust' in self.compilers:
             # If no crate type is specified, or it's the generic lib type, use dylib
             if not hasattr(self, 'rust_crate_type') or self.rust_crate_type == 'lib':
@@ -2338,12 +2370,15 @@ class SharedLibrary(BuildTarget):
 class SharedModule(SharedLibrary):
     known_kwargs = known_shmod_kwargs
 
-    def __init__(self, name, subdir, subproject, for_machine: MachineChoice, sources, objects, environment, kwargs):
+    def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
+                 sources: T.List[File], structured_sources: T.Optional['StructuredSources'],
+                 objects, environment: environment.Environment, kwargs):
         if 'version' in kwargs:
             raise MesonException('Shared modules must not specify the version kwarg.')
         if 'soversion' in kwargs:
             raise MesonException('Shared modules must not specify the soversion kwarg.')
-        super().__init__(name, subdir, subproject, for_machine, sources, objects, environment, kwargs)
+        super().__init__(name, subdir, subproject, for_machine, sources,
+                         structured_sources, objects, environment, kwargs)
         self.typename = 'shared module'
         # We need to set the soname in cases where build files link the module
         # to build targets, see: https://github.com/mesonbuild/meson/issues/9492
@@ -2663,15 +2698,19 @@ class AliasTarget(RunTarget):
 class Jar(BuildTarget):
     known_kwargs = known_jar_kwargs
 
-    def __init__(self, name, subdir, subproject, for_machine: MachineChoice, sources, objects, environment, kwargs):
+    def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
+                 sources: T.List[File], structured_sources: T.Optional['StructuredSources'],
+                 objects, environment: environment.Environment, kwargs):
         self.typename = 'jar'
-        super().__init__(name, subdir, subproject, for_machine, sources, objects, environment, kwargs)
+        super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects, environment, kwargs)
         for s in self.sources:
             if not s.endswith('.java'):
                 raise InvalidArguments(f'Jar source {s} is not a java file.')
         for t in self.link_targets:
             if not isinstance(t, Jar):
                 raise InvalidArguments(f'Link target {t} is not a jar target.')
+        if self.structured_sources:
+            raise InvalidArguments(f'structured sources are not supported in Java targets.')
         self.filename = self.name + '.jar'
         self.outputs = [self.filename]
         self.java_args = kwargs.get('java_args', [])

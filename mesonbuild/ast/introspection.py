@@ -249,7 +249,7 @@ class IntrospectionInterpreter(AstInterpreter):
         objects = []        # type: T.List[T.Any]
         empty_sources = []  # type: T.List[T.Any]
         # Passing the unresolved sources list causes errors
-        target = targetclass(name, self.subdir, self.subproject, for_machine, empty_sources, objects, self.environment, kwargs_reduced)
+        target = targetclass(name, self.subdir, self.subproject, for_machine, empty_sources, [], objects, self.environment, kwargs_reduced)
 
         new_target = {
             'name': target.get_basename(),
