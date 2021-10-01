@@ -278,7 +278,19 @@ import os.path
 import sysconfig
 import json
 import sys
-import distutils.command.install
+
+def debian_distutils_missing():
+    # Debian partially splits the distutils module from the python3, they
+    # keep distutils and distutils.version in python3 and put the rest of
+    # the submodules in python3-distutils
+    try:
+        import distutils.version
+        import distutils.core
+    except ModuleNotFoundError as e:
+        if e.name == 'distutils.core':
+            # distutils.version was successfully imported, but distutils.core was not
+            return True
+    return False
 
 def get_distutils_paths(scheme=None, prefix=None):
     import distutils.dist
@@ -297,20 +309,22 @@ def get_distutils_paths(scheme=None, prefix=None):
         'scripts': install_cmd.install_scripts,
     }
 
-# On Debian derivatives, the Python interpreter shipped by the distribution uses
-# a custom install scheme, deb_system, for the system install, and changes the
-# default scheme to a custom one pointing to /usr/local and replacing
-# site-packages with dist-packages.
-# See https://github.com/mesonbuild/meson/issues/8739.
-# XXX: We should be using sysconfig, but Debian only patches distutils.
-
-if 'deb_system' in distutils.command.install.INSTALL_SCHEMES:
-    paths = get_distutils_paths(scheme='deb_system')
-    install_paths = get_distutils_paths(scheme='deb_system', prefix='')
-else:
-    paths = sysconfig.get_paths()
-    empty_vars = {'base': '', 'platbase': '', 'installed_base': ''}
-    install_paths = sysconfig.get_paths(vars=empty_vars)
+def get_paths():
+    # On Debian derivatives, the Python interpreter shipped by the distribution uses
+    # a custom install scheme, deb_system, for the system install, and changes the
+    # default scheme to a custom one pointing to /usr/local and replacing
+    # site-packages with dist-packages.
+    # See https://github.com/mesonbuild/meson/issues/8739.
+    # XXX: We should be using sysconfig, but Debian only patches distutils.
+    import distutils.command.install
+    if 'deb_system' in distutils.command.install.INSTALL_SCHEMES:
+        paths = get_distutils_paths(scheme='deb_system')
+        install_paths = get_distutils_paths(scheme='deb_system', prefix='')
+    else:
+        paths = sysconfig.get_paths()
+        empty_vars = {'base': '', 'platbase': '', 'installed_base': ''}
+        install_paths = sysconfig.get_paths(vars=empty_vars)
+    return paths, install_paths
 
 def links_against_libpython():
     from distutils.core import Distribution, Extension
@@ -318,16 +332,24 @@ def links_against_libpython():
     cmd.ensure_finalized()
     return bool(cmd.get_libraries(Extension('dummy', [])))
 
-print(json.dumps({
-  'variables': sysconfig.get_config_vars(),
-  'paths': paths,
-  'install_paths': install_paths,
-  'sys_paths': sys.path,
-  'version': sysconfig.get_python_version(),
-  'platform': sysconfig.get_platform(),
-  'is_pypy': '__pypy__' in sys.builtin_module_names,
-  'link_libpython': links_against_libpython(),
-}))
+if debian_distutils_missing():
+    data = {
+        'error': 'Debian distutils is missing, please install python3-distutils',
+    }
+else:
+    paths, install_paths = get_paths()
+    data = {
+        'variables': sysconfig.get_config_vars(),
+        'paths': paths,
+        'install_paths': install_paths,
+        'sys_paths': sys.path,
+        'version': sysconfig.get_python_version(),
+        'platform': sysconfig.get_platform(),
+        'is_pypy': '__pypy__' in sys.builtin_module_names,
+        'link_libpython': links_against_libpython(),
+    }
+
+print(json.dumps(data))
 '''
 
 if T.TYPE_CHECKING:
@@ -388,15 +410,19 @@ class PythonExternalProgram(ExternalProgram):
             mlog.debug('Program stderr:\n')
             mlog.debug(stderr)
 
-        if info is not None and self._check_version(info['version']):
-            variables = info['variables']
-            info['suffix'] = variables.get('EXT_SUFFIX') or variables.get('SO') or variables.get('.so')
-            self.info = T.cast('PythonIntrospectionDict', info)
-            self.platlib = self._get_path(state, 'platlib')
-            self.purelib = self._get_path(state, 'purelib')
-            return True
-        else:
-            return False
+        if info is not None:
+            if 'error' in info:
+                assert isinstance(info['error'], str)
+                mlog.log('Python interpreter introspection failed: {}'.format(info['error']))
+                return False
+            elif self._check_version(info['version']):
+                variables = info['variables']
+                info['suffix'] = variables.get('EXT_SUFFIX') or variables.get('SO') or variables.get('.so')
+                self.info = T.cast('PythonIntrospectionDict', info)
+                self.platlib = self._get_path(state, 'platlib')
+                self.purelib = self._get_path(state, 'purelib')
+                return True
+        return False
 
     def _get_path(self, state: T.Optional['ModuleState'], key: str) -> None:
         if state:

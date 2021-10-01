@@ -14,11 +14,13 @@
 
 import os
 import unittest
+import unittest.mock
 
 from run_tests import (
     Backend
 )
 
+from mesonbuild.modules.python import PythonExternalProgram
 from .baseplatformtests import BasePlatformTests
 
 class PythonTests(BasePlatformTests):
@@ -80,3 +82,11 @@ class PythonTests(BasePlatformTests):
         with self.assertRaises(unittest.SkipTest):
             self.init(testdir, extra_args=['-Dpython=dir'])
         self.wipe()
+
+    @unittest.mock.patch('mesonbuild.mesonlib.Popen_safe', return_value=(None, '{"error": "hello!"}', None))
+    @unittest.mock.patch('mesonbuild.mlog.log')
+    def test_introspection_error(self, mlog_log, Popen_safe):
+        python = PythonExternalProgram('some-python', ['some-python'])
+
+        assert not python.sanity()
+        mlog_log.assert_called_with('Python interpreter introspection failed: hello!')
