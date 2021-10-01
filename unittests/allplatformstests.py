@@ -52,14 +52,14 @@ from mesonbuild.compilers import (
 )
 
 from mesonbuild.dependencies import PkgConfigDependency
-from mesonbuild.build import Target, ConfigurationData, Executable, SharedLibrary, StaticLibrary
+from mesonbuild.build import Target, ConfigurationData
 import mesonbuild.modules.pkgconfig
 from mesonbuild.scripts import destdir_join
 
 from mesonbuild.wrap.wrap import PackageDefinition, WrapException
 
 from run_tests import (
-    Backend, exe_suffix, get_fake_env
+    Backend, exe_suffix, get_fake_env, exe_name, shared_lib_name, static_lib_name
 )
 
 from .baseplatformtests import BasePlatformTests
@@ -3143,39 +3143,18 @@ class AllPlatformTests(BasePlatformTests):
     def test_meson_compile(self):
         """Test the meson compile command."""
 
-        def get_exe_name(basename: str) -> str:
-            if is_windows():
-                return f'{basename}.exe'
-            else:
-                return basename
-
-        def get_shared_lib_name(basename: str) -> str:
-            if mesonbuild.environment.detect_msys2_arch():
-                return f'lib{basename}.dll'
-            elif is_windows():
-                return f'{basename}.dll'
-            elif is_cygwin():
-                return f'cyg{basename}.dll'
-            elif is_osx():
-                return f'lib{basename}.dylib'
-            else:
-                return f'lib{basename}.so'
-
-        def get_static_lib_name(basename: str) -> str:
-            return f'lib{basename}.a'
-
         # Base case (no targets or additional arguments)
 
         testdir = os.path.join(self.common_test_dir, '1 trivial')
         self.init(testdir)
 
         self._run([*self.meson_command, 'compile', '-C', self.builddir])
-        self.assertPathExists(os.path.join(self.builddir, get_exe_name('trivialprog')))
+        self.assertPathExists(os.path.join(self.builddir, exe_name('trivialprog')))
 
         # `--clean`
 
         self._run([*self.meson_command, 'compile', '-C', self.builddir, '--clean'])
-        self.assertPathDoesNotExist(os.path.join(self.builddir, get_exe_name('trivialprog')))
+        self.assertPathDoesNotExist(os.path.join(self.builddir, exe_name('trivialprog')))
 
         # Target specified in a project with unique names
 
@@ -3184,19 +3163,19 @@ class AllPlatformTests(BasePlatformTests):
         # Multiple targets and target type specified
         self._run([*self.meson_command, 'compile', '-C', self.builddir, 'mylib', 'mycpplib:shared_library'])
         # Check that we have a shared lib, but not an executable, i.e. check that target actually worked
-        self.assertPathExists(os.path.join(self.builddir, get_shared_lib_name('mylib')))
-        self.assertPathDoesNotExist(os.path.join(self.builddir, get_exe_name('prog')))
-        self.assertPathExists(os.path.join(self.builddir, get_shared_lib_name('mycpplib')))
-        self.assertPathDoesNotExist(os.path.join(self.builddir, get_exe_name('cppprog')))
+        self.assertPathExists(os.path.join(self.builddir, shared_lib_name('mylib')))
+        self.assertPathDoesNotExist(os.path.join(self.builddir, exe_name('prog')))
+        self.assertPathExists(os.path.join(self.builddir, shared_lib_name('mycpplib')))
+        self.assertPathDoesNotExist(os.path.join(self.builddir, exe_name('cppprog')))
 
         # Target specified in a project with non unique names
 
         testdir = os.path.join(self.common_test_dir, '185 same target name')
         self.init(testdir, extra_args=['--wipe'])
         self._run([*self.meson_command, 'compile', '-C', self.builddir, './foo'])
-        self.assertPathExists(os.path.join(self.builddir, get_static_lib_name('foo')))
+        self.assertPathExists(os.path.join(self.builddir, static_lib_name('foo')))
         self._run([*self.meson_command, 'compile', '-C', self.builddir, 'sub/foo'])
-        self.assertPathExists(os.path.join(self.builddir, 'sub', get_static_lib_name('foo')))
+        self.assertPathExists(os.path.join(self.builddir, 'sub', static_lib_name('foo')))
 
         # run_target
 
@@ -3212,13 +3191,13 @@ class AllPlatformTests(BasePlatformTests):
             self.init(testdir, extra_args=['--wipe'])
             # Dry run - should not create a program
             self._run([*self.meson_command, 'compile', '-C', self.builddir, '--ninja-args=-n'])
-            self.assertPathDoesNotExist(os.path.join(self.builddir, get_exe_name('trivialprog')))
+            self.assertPathDoesNotExist(os.path.join(self.builddir, exe_name('trivialprog')))
         elif self.backend is Backend.vs:
             self.init(testdir, extra_args=['--wipe'])
             self._run([*self.meson_command, 'compile', '-C', self.builddir])
             # Explicitly clean the target through msbuild interface
-            self._run([*self.meson_command, 'compile', '-C', self.builddir, '--vs-args=-t:{}:Clean'.format(re.sub(r'[\%\$\@\;\.\(\)\']', '_', get_exe_name('trivialprog')))])
-            self.assertPathDoesNotExist(os.path.join(self.builddir, get_exe_name('trivialprog')))
+            self._run([*self.meson_command, 'compile', '-C', self.builddir, '--vs-args=-t:{}:Clean'.format(re.sub(r'[\%\$\@\;\.\(\)\']', '_', exe_name('trivialprog')))])
+            self.assertPathDoesNotExist(os.path.join(self.builddir, exe_name('trivialprog')))
 
     def test_spurious_reconfigure_built_dep_file(self):
         testdir = os.path.join(self.unit_test_dir, '74 dep files')
@@ -3774,21 +3753,10 @@ class AllPlatformTests(BasePlatformTests):
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = detect_c_compiler(env, MachineChoice.HOST)
 
-        def shared_lib_name(name):
-            if cc.get_id() in {'msvc', 'clang-cl'}:
-                return f'bin/{name}.dll'
-            elif is_windows():
-                return f'bin/lib{name}.dll'
-            elif is_cygwin():
-                return f'bin/cyg{name}.dll'
-            elif is_osx():
-                return f'lib/lib{name}.dylib'
-            return f'lib/lib{name}.so'
-
-        def exe_name(name):
-            if is_windows() or is_cygwin():
-                return f'{name}.exe'
-            return name
+        if cc.get_id() in {'msvc', 'clang-cl'} or is_windows() or is_cygwin():
+            shared_lib_dir = 'bin'
+        else:
+            shared_lib_dir = 'lib'
 
         installpath = Path(self.installdir)
 
@@ -3837,9 +3805,9 @@ class AllPlatformTests(BasePlatformTests):
             Path(installpath, 'usr/bin'),
             Path(installpath, 'usr/bin/' + exe_name('app')),
             Path(installpath, 'usr/bin/' + exe_name('app2')),
-            Path(installpath, 'usr/' + shared_lib_name('shared')),
-            Path(installpath, 'usr/' + shared_lib_name('both')),
-            Path(installpath, 'usr/' + shared_lib_name('both2')),
+            Path(installpath, f'usr/{shared_lib_dir}/' + shared_lib_name('shared')),
+            Path(installpath, f'usr/{shared_lib_dir}/' + shared_lib_name('both')),
+            Path(installpath, f'usr/{shared_lib_dir}/' + shared_lib_name('both2')),
         }
 
         expected_custom = expected_common | {
@@ -3853,7 +3821,7 @@ class AllPlatformTests(BasePlatformTests):
             Path(installpath, 'usr/share/custom_files/data.txt'),
             Path(installpath, 'usr/lib'),
             Path(installpath, 'usr/lib/libbothcustom.a'),
-            Path(installpath, 'usr/' + shared_lib_name('bothcustom')),
+            Path(installpath, f'usr/{shared_lib_dir}/' + shared_lib_name('bothcustom')),
         }
 
         if is_windows() or is_cygwin():
@@ -3893,17 +3861,6 @@ class AllPlatformTests(BasePlatformTests):
         self.assertPathExists(introfile)
         with open(introfile, encoding='utf-8') as fp:
             res = json.load(fp)
-
-        env = get_fake_env(testdir, self.builddir, self.prefix)
-
-        def output_name(name, type_):
-            return type_(name=name, subdir=None, subproject=None,
-                         for_machine=MachineChoice.HOST, sources=[],
-                         objects=[], environment=env, kwargs={}).filename
-
-        shared_lib_name = lambda name: output_name(name, SharedLibrary)
-        static_lib_name = lambda name: output_name(name, StaticLibrary)
-        exe_name = lambda name: output_name(name, Executable)
 
         expected = {
             'targets': {

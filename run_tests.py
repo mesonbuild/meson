@@ -40,9 +40,10 @@ from mesonbuild import mesonlib
 from mesonbuild import mesonmain
 from mesonbuild import mtest
 from mesonbuild import mlog
+from mesonbuild.build import Executable, SharedLibrary, StaticLibrary
 from mesonbuild.environment import Environment, detect_ninja
 from mesonbuild.coredata import backendlist, version as meson_version
-from mesonbuild.mesonlib import OptionKey
+from mesonbuild.mesonlib import MachineChoice, OptionKey
 
 NINJA_1_9_OR_NEWER = False
 NINJA_CMD = None
@@ -380,6 +381,18 @@ def main():
             if options.failfast and returncode != 0:
                 return returncode
     return returncode
+
+def output_name(name, type_):
+    # note: this will work most of the time, but may not in some edge cases
+    env = get_fake_env('dummy', 'dummy', '/usr')
+    return type_(name=name, subdir=None, subproject=None,
+                 for_machine=MachineChoice.HOST, sources=[],
+                 objects=[], environment=env, kwargs={}).filename
+
+shared_lib_name = lambda name: output_name(name, SharedLibrary)
+static_lib_name = lambda name: output_name(name, StaticLibrary)
+exe_name = lambda name: output_name(name, Executable)
+
 
 if __name__ == '__main__':
     mesonmain.setup_vsenv()
