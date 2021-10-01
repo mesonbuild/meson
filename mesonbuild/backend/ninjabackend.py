@@ -1176,6 +1176,8 @@ class NinjaBackend(backends.Backend):
         self.add_rule(NinjaRule('CUSTOM_COMMAND_DEP', ['$COMMAND'], [], '$DESC',
                                 deps='gcc', depfile='$DEPFILE',
                                 extra='restat = 1'))
+        self.add_rule(NinjaRule('COPY_FILE', self.environment.get_build_command() + ['--internal', 'copy'],
+                                ['$in', '$out'], 'Copying $in to $out'))
 
         c = self.environment.get_build_command() + \
             ['--internal',
@@ -1649,6 +1651,16 @@ class NinjaBackend(backends.Backend):
                     generated_sources[ssrc] = mesonlib.File.from_built_file(gen.get_subdir(), ssrc)
 
         return static_sources, generated_sources, cython_sources
+
+    def _generate_copy_target(self, src: 'mesonlib.FileOrString', output: Path) -> None:
+        """Create a target to copy a source file from one location to another."""
+        if isinstance(src, File):
+            instr = src.absolute_path(self.environment.source_dir, self.environment.build_dir)
+        else:
+            instr = src
+        elem = NinjaBuildElement(self.all_outputs, [str(output)], 'COPY_FILE', [instr])
+        elem.add_orderdep(instr)
+        self.add_build(elem)
 
     def generate_rust_target(self, target: build.BuildTarget) -> None:
         rustc = target.compilers['rust']
