@@ -385,6 +385,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                            'run_command': self.func_run_command,
                            'run_target': self.func_run_target,
                            'set_variable': self.func_set_variable,
+                           'structured_sources': self.func_structured_sources,
                            'subdir': self.func_subdir,
                            'shared_library': self.func_shared_lib,
                            'shared_module': self.func_shared_module,
@@ -2106,6 +2107,31 @@ external dependencies (including libraries) must go to "dependencies".''')
                               self.subproject, kwargs['install_tag'])
         self.build.symlinks.append(l)
         return l
+
+    @FeatureNew('structured_sources', '0.62.0')
+    @typed_pos_args('structured_sources', object, optargs=[dict])
+    @noKwargs
+    @noArgsFlattening
+    def func_structured_sources(
+            self, node: mparser.BaseNode,
+            args: T.Tuple[object, T.Optional[T.Dict[str, object]]],
+            kwargs: 'TYPE_kwargs') -> build.StructuredSources:
+        valid_types = (str, mesonlib.File, build.GeneratedList, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)
+        sources: T.Dict[str, T.List[T.Union['mesonlib.FileOrString', 'build.GeneratedTypes']]] = collections.defaultdict(list)
+
+        for arg in mesonlib.listify(args[0]):
+            if not isinstance(arg, valid_types):
+                raise InvalidArguments(f'structured_sources: type "{type(arg)}" is not valid')
+            sources[''].append(arg)
+        if args[1]:
+            if '' in args[1]:
+                raise InvalidArguments('structured_sources: keys to dictionary argument may not be an empty string.')
+            for k, v in args[1].items():
+                for arg in mesonlib.listify(v):
+                    if not isinstance(arg, valid_types):
+                        raise InvalidArguments(f'structured_sources: type "{type(arg)}" is not valid')
+                    sources[k].append(arg)
+        return build.StructuredSources(sources)
 
     @typed_pos_args('subdir', str)
     @typed_kwargs(
