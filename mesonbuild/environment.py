@@ -358,7 +358,7 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
     # 'iPhone13,1' but not 'arm64' on iPhone 12 mini. Same thing happens on other
     # Apple mobile devices, but `uname -p` is having correct values, so use
     # platform.processor instead of the default platform.machine
-    elif any(appleDevices in trial for appleDevice in ['iphone', 'ipad', 'ipod', 'watch', 'appletv', 'audioaccessory']):
+    elif any(appleDevices in trial for appleDevices in ['iphone', 'ipad', 'ipod', 'watch', 'appletv', 'audioaccessory']):
         if 'arm64' in platform.processor().lower():
             trial = 'aarch64'
         elif 'armv7' in platform.processor().lower():
@@ -407,7 +407,7 @@ def detect_cpu(compilers: CompilersDict) -> str:
         if any_compiler_has_define(compilers, '__64BIT__'):
             trial = 'ppc64'
     # Same iOS detection as above, but use processor type directly
-    elif any(appleDevices in trial for appleDevice in ['iphone', 'ipad', 'ipod', 'watch', 'appletv', 'audioaccessory']):
+    elif any(appleDevices in trial for appleDevices in ['iphone', 'ipad', 'ipod', 'watch', 'appletv', 'audioaccessory']):
         trial = platform.processor().lower()
 
     # Add more quirks here as bugs are reported. Keep in sync with
