@@ -12,3 +12,7 @@ b1 = configure_file(input : 'baz.1.in',
   configuration : cdata)
 
 install_man(b1)
+
+install_man('bar.3',
+  input: 'bar.2',
+  command: ['copyfile.py', '@INPUT@', '@OUTPUT@'])
