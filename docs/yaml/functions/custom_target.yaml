@@ -2,8 +2,18 @@ name: custom_target
 returns: custom_tgt
 description: |
   Create a custom top level build target. The only positional argument
-  is the name of this target and the keyword arguments are the
-  following.
+  is the name of this target and cannot contain path separators (`/` or `\`).
+  The name of custom target might not be used by every backends, for instance with
+  the Ninja backend, `subdir/meson.build` containing the example below,
+  `ninja -C builddir foo` or `ninja -C builddir subdir/foo` won't work,
+  it is instead `ninja -C builddir subdir/file.txt`. Howerver, `meson compile subdir/foo`
+  is accepted.
+  ```meson
+  custom_target('foo', output: 'file.txt', ...)
+  ```
+
+  *Since 0.60.0* the name argument is optional and defaults to the basename of the first
+  output (`file.txt` in the example above).
 
   The list of strings passed to the `command` keyword argument accept
   the following special string substitutions:
@@ -42,10 +52,14 @@ notes:
     is not portable, notably to Windows. Instead, consider using a
     `native: true` [[executable]], or a python script.
 
-posargs:
+optargs:
   name:
     type: str
-    description: The *unique* id of the custom target
+    description: |
+      The *unique* id of the custom target
+
+      This posarg is optional *since 0.60.0*. It defaults to the basename
+      of the first output.
 
 kwargs:
   build_by_default:
@@ -137,6 +151,9 @@ kwargs:
       all the additional files this target depends on, for example a C
       compiler would list all the header files it included, and a change
       in any one of these files triggers a recompilation.
+
+      *(since 0.47.0)* the `@BASENAME@` and `@PLAINNAME@` substitutions
+      are also accepted.
 
   input:
     type: list[str | file]

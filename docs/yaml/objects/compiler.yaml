@@ -297,7 +297,13 @@ methods:
 
 - name: links
   returns: bool
-  description: Returns true if the code compiles and links.
+  description: |
+    Returns true if the code compiles and links.
+
+    *Since 0.60.0*, if the `file` object's
+    suffix does not match the compiler object's language, the compiler
+    corresponding to the suffix is used to compile the source, while the
+    target of the `links` method is used to link the resulting object file.
   posargs_inherit: compiler._code
   kwargs_inherit: compiler._compiles
 

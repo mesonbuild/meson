@@ -219,10 +219,15 @@ methods:
     # path now has the value '/usr/bin:/bin:/usr/local/bin'
     ```
 
-  posargs:
-    string_list:
-      type: list[str]
-      description: The list to join with the current string
+  varargs:
+      name: strings
+      type: str
+      since: 0.60.0
+      description: |
+        The strings to join with the current string.
+
+        Before Meson *0.60.0* this function only accepts a single positional
+        argument of the type [[list[str]]].
 
 # str.underscorify
 - name: underscorify

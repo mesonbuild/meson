@@ -8,6 +8,13 @@ description: |
   logic](Dependencies.md#dependencies-with-custom-lookup-functionality)
   are also supported.
 
+  *Since 0.60.0* more than one name can be provided, they will be tried in order
+  and the first name to be found will be used. The fallback subproject will be
+  used only if none of the names are found on the system. Once one of the name has
+  been found, all other names are added into the cache so subsequent calls for any
+  of those name will return the same value. This is useful in case a dependency
+  could have different names, such as `png` and `libpng`.
+
   Dependencies can also be resolved in two other ways:
 
   * if the same name was used in a `meson.override_dependency` prior to
@@ -48,10 +55,21 @@ notes:
     dependencies such as Qt5 or Boost. `components` allows the user to manually
     add CMake `COMPONENTS` for the `find_package` lookup)
 
-posargs:
-  dependency_name:
-    type: str
-    description: Name of the dependency too look up
+varargs:
+  name: names
+  type: str
+  since: 0.60.0
+  min_varargs: 1
+  description: |
+    The names of the dependency too look up. The dependencies are looked up in
+    the order they are provided here. The first found dependency will then be
+    used. The fallback subproject will be used only if none of the names are
+    found on the system. Once one of the name has been found, all other names
+    are added into the cache so subsequent calls for any of those name will
+    return the same value. This is useful in case a dependency could have
+    different names, such as `png` and `libpng`.
+
+    **NOTE:** Before *0.60.0* only a single dependency name was allowed.
 
 kwargs:
   default_options:
