@@ -349,6 +349,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                            'install_data': self.func_install_data,
                            'install_headers': self.func_install_headers,
                            'install_man': self.func_install_man,
+                           'install_emptydir': self.func_install_emptydir,
                            'install_subdir': self.func_install_subdir,
                            'is_disabler': self.func_is_disabler,
                            'is_variable': self.func_is_variable,
@@ -410,6 +411,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             build.AliasTarget: OBJ.AliasTargetHolder,
             build.Headers: OBJ.HeadersHolder,
             build.Man: OBJ.ManHolder,
+            build.EmptyDir: OBJ.EmptyDirHolder,
             build.Data: OBJ.DataHolder,
             build.InstallDir: OBJ.InstallDirHolder,
             build.IncludeDirs: OBJ.IncludeDirsHolder,
@@ -1895,6 +1897,17 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         self.build.man.append(m)
 
         return m
+
+    @FeatureNew('install_emptydir', '0.60.0')
+    @typed_kwargs(
+        'install_emptydir',
+        INSTALL_MODE_KW
+    )
+    def func_install_emptydir(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs) -> None:
+        d = build.EmptyDir(args[0], kwargs['install_mode'], self.subproject)
+        self.build.emptydir.append(d)
+
+        return d
 
     @FeatureNewKwargs('subdir', '0.44.0', ['if_found'])
     @permittedKwargs({'if_found'})

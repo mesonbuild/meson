@@ -97,6 +97,7 @@ syn keyword mesonBuiltin
   \ install_headers
   \ install_man
   \ install_subdir
+  \ install_emptydir
   \ is_disabler
   \ is_variable
   \ jar

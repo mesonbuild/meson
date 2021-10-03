@@ -5,9 +5,12 @@ description: |
   source tree to the location specified by the keyword argument
   `install_dir`.
 
-  If the subdirectory does not exist in the source tree, an empty directory is
-  created in the specified location. *(since 0.45.0)* A newly created
-  subdirectory may only be created in the keyword argument `install_dir`.
+  *(since 0.45.0, deprecated since 0.60.0)* If the subdirectory does not exist
+  in the source tree, an empty directory is created in the specified location.
+  A newly created subdirectory may only be created in the keyword argument
+  `install_dir`. There are a number of flaws with this method, and it was never
+  intentionally designed to work this way, please use [[install_emptydir]]
+  instead.
 
 example: |
   For a given directory `foo`:

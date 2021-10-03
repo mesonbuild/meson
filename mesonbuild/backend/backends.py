@@ -120,6 +120,7 @@ class InstallData:
         self.targets: T.List[TargetInstallData] = []
         self.headers: T.List[InstallDataBase] = []
         self.man: T.List[InstallDataBase] = []
+        self.emptydir: T.List[InstallEmptyDir] = []
         self.data: T.List[InstallDataBase] = []
         self.install_scripts: T.List[ExecutableSerialisation] = []
         self.install_subdirs: T.List[SubdirInstallData] = []
@@ -145,6 +146,13 @@ class TargetInstallData:
         self.install_mode = install_mode
         self.subproject = subproject
         self.optional = optional
+        self.tag = tag
+
+class InstallEmptyDir:
+    def __init__(self, path: str, install_mode: 'FileMode', subproject: str, tag: T.Optional[str] = None):
+        self.path = path
+        self.install_mode = install_mode
+        self.subproject = subproject
         self.tag = tag
 
 class InstallDataBase:
@@ -1470,6 +1478,7 @@ class Backend:
         self.generate_target_install(d)
         self.generate_header_install(d)
         self.generate_man_install(d)
+        self.generate_emptydir_install(d)
         self.generate_data_install(d)
         self.generate_custom_install_script(d)
         self.generate_subdir_install(d)
@@ -1664,6 +1673,12 @@ class Backend:
                 dstabs = dstname.replace('{mandir}', manroot)
                 i = InstallDataBase(srcabs, dstabs, dstname, m.get_custom_install_mode(), m.subproject, tag='man')
                 d.man.append(i)
+
+    def generate_emptydir_install(self, d: InstallData) -> None:
+        emptydir: T.List[build.EmptyDir] = self.build.get_emptydir()
+        for e in emptydir:
+            i = InstallEmptyDir(e.path, e.install_mode, e.subproject, e.install_tag)
+            d.emptydir.append(i)
 
     def generate_data_install(self, d: InstallData) -> None:
         data = self.build.get_data()

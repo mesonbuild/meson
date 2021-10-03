@@ -187,6 +187,16 @@ class Man(HoldableObject):
         return self.sources
 
 
+class EmptyDir(HoldableObject):
+
+    def __init__(self, path: str, install_mode: 'FileMode', subproject: str,
+                 install_tag: T.Optional[str] = None):
+        self.path = path
+        self.install_mode = install_mode
+        self.subproject = subproject
+        self.install_tag = install_tag
+
+
 class InstallDir(HoldableObject):
 
     def __init__(self, src_subdir: str, inst_subdir: str, install_dir: str,
@@ -239,6 +249,7 @@ class Build:
         self.benchmarks: T.List['Test'] = []
         self.headers: T.List[Headers] = []
         self.man: T.List[Man] = []
+        self.emptydir: T.List[EmptyDir] = []
         self.data: T.List[Data] = []
         self.static_linker: PerMachine[StaticLinker] = PerMachine(None, None)
         self.subprojects = {}
@@ -315,6 +326,9 @@ class Build:
 
     def get_data(self) -> T.List['Data']:
         return self.data
+
+    def get_emptydir(self) -> T.List['EmptyDir']:
+        return self.emptydir
 
     def get_install_subdirs(self) -> T.List['InstallDir']:
         return self.install_dirs

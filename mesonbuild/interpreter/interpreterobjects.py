@@ -646,6 +646,9 @@ class InstallDirHolder(ObjectHolder[build.InstallDir]):
 class ManHolder(ObjectHolder[build.Man]):
     pass
 
+class EmptyDirHolder(ObjectHolder[build.EmptyDir]):
+    pass
+
 class GeneratedObjectsHolder(ObjectHolder[build.ExtractedObjects]):
     pass
 

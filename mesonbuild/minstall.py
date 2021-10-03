@@ -25,7 +25,7 @@ import sys
 import typing as T
 
 from . import environment
-from .backend.backends import InstallData, InstallDataBase, TargetInstallData, ExecutableSerialisation
+from .backend.backends import InstallData, InstallDataBase, InstallEmptyDir, TargetInstallData, ExecutableSerialisation
 from .coredata import major_versions_differ, MesonVersionMismatchException
 from .coredata import version as coredata_version
 from .mesonlib import Popen_safe, RealPathAction, is_windows
@@ -370,7 +370,7 @@ class Installer:
             return run_exe(*args, **kwargs)
         return 0
 
-    def should_install(self, d: T.Union[TargetInstallData, InstallDataBase, ExecutableSerialisation]) -> bool:
+    def should_install(self, d: T.Union[TargetInstallData, InstallEmptyDir,  InstallDataBase, ExecutableSerialisation]) -> bool:
         if d.subproject and (d.subproject in self.skip_subprojects or '*' in self.skip_subprojects):
             return False
         if self.tags and d.tag not in self.tags:
@@ -531,6 +531,7 @@ class Installer:
                 self.install_targets(d, dm, destdir, fullprefix)
                 self.install_headers(d, dm, destdir, fullprefix)
                 self.install_man(d, dm, destdir, fullprefix)
+                self.install_emptydir(d, dm, destdir, fullprefix)
                 self.install_data(d, dm, destdir, fullprefix)
                 self.restore_selinux_contexts(destdir)
                 self.apply_ldconfig(destdir)
@@ -580,6 +581,19 @@ class Installer:
             if self.do_copyfile(full_source_filename, outfilename, makedirs=(dm, outdir)):
                 self.did_install_something = True
             self.set_mode(outfilename, m.install_mode, d.install_umask)
+
+    def install_emptydir(self, d: InstallData, dm: DirMaker, destdir: str, fullprefix: str) -> None:
+        for e in d.emptydir:
+            if not self.should_install(e):
+                continue
+            self.did_install_something = True
+            full_dst_dir = get_destdir_path(destdir, fullprefix, e.path)
+            self.log(f'Installing new directory {full_dst_dir}')
+            if os.path.isfile(full_dst_dir):
+                print(f'Tried to create directory {full_dst_dir} but a file of that name already exists.')
+                sys.exit(1)
+            dm.makedirs(full_dst_dir, exist_ok=True)
+            self.set_mode(full_dst_dir, e.install_mode, d.install_umask)
 
     def install_headers(self, d: InstallData, dm: DirMaker, destdir: str, fullprefix: str) -> None:
         for t in d.headers:
