@@ -245,7 +245,7 @@ class I18nModule(ExtensionModule):
 
         potargs = state.environment.get_build_command() + ['--internal', 'gettext', 'pot', pkg_arg]
         if datadirs:
-            potargs.append(_datadirs)
+            potargs.append(datadirs)
         if extra_arg:
             potargs.append(extra_arg)
         pottarget = build.RunTarget(packagename + '-pot', potargs, [], state.subdir, state.subproject)
