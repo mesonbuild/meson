@@ -401,6 +401,7 @@ class Resolver:
         if not GIT:
             raise WrapException(f'Git program not found, cannot download {self.packagename}.wrap via git.')
         revno = self.wrap.get('revision')
+        checkout_cmd = ['-c', 'advice.detachedHead=false', 'checkout', revno, '--']
         is_shallow = False
         depth_option = []    # type: T.List[str]
         if self.wrap.values.get('depth', '') != '':
@@ -410,11 +411,11 @@ class Resolver:
         if is_shallow and self.is_git_full_commit_id(revno):
             # git doesn't support directly cloning shallowly for commits,
             # so we follow https://stackoverflow.com/a/43136160
-            verbose_git(['init', self.directory], self.subdir_root, check=True)
+            verbose_git(['init', '-b', 'meson-dummy-branch', self.directory], self.subdir_root, check=True)
             verbose_git(['remote', 'add', 'origin', self.wrap.get('url')], self.dirname, check=True)
             revno = self.wrap.get('revision')
             verbose_git(['fetch', *depth_option, 'origin', revno], self.dirname, check=True)
-            verbose_git(['checkout', revno, '--'], self.dirname, check=True)
+            verbose_git(checkout_cmd, self.dirname, check=True)
             if self.wrap.values.get('clone-recursive', '').lower() == 'true':
                 verbose_git(['submodule', 'update', '--init', '--checkout',
                              '--recursive', *depth_option], self.dirname, check=True)
@@ -425,9 +426,9 @@ class Resolver:
             if not is_shallow:
                 verbose_git(['clone', self.wrap.get('url'), self.directory], self.subdir_root, check=True)
                 if revno.lower() != 'head':
-                    if not verbose_git(['checkout', revno, '--'], self.dirname):
+                    if not verbose_git(checkout_cmd, self.dirname):
                         verbose_git(['fetch', self.wrap.get('url'), revno], self.dirname, check=True)
-                        verbose_git(['checkout', revno, '--'], self.dirname, check=True)
+                        verbose_git(checkout_cmd, self.dirname, check=True)
             else:
                 verbose_git(['clone', *depth_option, '--branch', revno, self.wrap.get('url'),
                              self.directory], self.subdir_root, check=True)
