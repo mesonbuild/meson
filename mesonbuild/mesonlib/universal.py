@@ -2024,7 +2024,7 @@ def _classify_argument(key: 'OptionKey') -> OptionType:
         return OptionType.BASE
     elif key.lang is not None:
         return OptionType.COMPILER
-    elif key.name in _BUILTIN_NAMES:
+    elif key.name in _BUILTIN_NAMES or key.module:
         return OptionType.BUILTIN
     elif key.name.startswith('backend_'):
         assert key.machine is MachineChoice.HOST, str(key)
@@ -2044,7 +2044,7 @@ class OptionKey:
     internally easier to reason about and produce.
     """
 
-    __slots__ = ['name', 'subproject', 'machine', 'lang', '_hash', 'type']
+    __slots__ = ['name', 'subproject', 'machine', 'lang', '_hash', 'type', 'module']
 
     name: str
     subproject: str
@@ -2052,10 +2052,13 @@ class OptionKey:
     lang: T.Optional[str]
     _hash: int
     type: OptionType
+    module: T.Optional[str]
 
     def __init__(self, name: str, subproject: str = '',
                  machine: MachineChoice = MachineChoice.HOST,
-                 lang: T.Optional[str] = None, _type: T.Optional[OptionType] = None):
+                 lang: T.Optional[str] = None,
+                 module: T.Optional[str] = None,
+                 _type: T.Optional[OptionType] = None):
         # the _type option to the constructor is kinda private. We want to be
         # able tos ave the state and avoid the lookup function when
         # pickling/unpickling, but we need to be able to calculate it when
@@ -2064,7 +2067,8 @@ class OptionKey:
         object.__setattr__(self, 'subproject', subproject)
         object.__setattr__(self, 'machine', machine)
         object.__setattr__(self, 'lang', lang)
-        object.__setattr__(self, '_hash', hash((name, subproject, machine, lang)))
+        object.__setattr__(self, 'module', module)
+        object.__setattr__(self, '_hash', hash((name, subproject, machine, lang, module)))
         if _type is None:
             _type = _classify_argument(self)
         object.__setattr__(self, 'type', _type)
@@ -2079,6 +2083,7 @@ class OptionKey:
             'machine': self.machine,
             'lang': self.lang,
             '_type': self.type,
+            'module': self.module,
         }
 
     def __setstate__(self, state: T.Dict[str, T.Any]) -> None:
@@ -2095,20 +2100,17 @@ class OptionKey:
     def __hash__(self) -> int:
         return self._hash
 
+    def _to_tuple(self):
+        return (self.subproject, self.type, self.lang or '', self.module or '', self.machine, self.name)
+
     def __eq__(self, other: object) -> bool:
         if isinstance(other, OptionKey):
-            return (
-                self.name == other.name and
-                self.subproject == other.subproject and
-                self.machine is other.machine and
-                self.lang == other.lang)
+            return self._to_tuple() == other._to_tuple()
         return NotImplemented
 
     def __lt__(self, other: object) -> bool:
         if isinstance(other, OptionKey):
-            self_tuple = (self.subproject, self.type, self.lang, self.machine, self.name)
-            other_tuple = (other.subproject, other.type, other.lang, other.machine, other.name)
-            return self_tuple < other_tuple
+            return self._to_tuple() < other._to_tuple()
         return NotImplemented
 
     def __str__(self) -> str:
@@ -2117,6 +2119,8 @@ class OptionKey:
             out = f'{self.lang}_{out}'
         if self.machine is MachineChoice.BUILD:
             out = f'build.{out}'
+        if self.module:
+            out = f'{self.module}.{out}'
         if self.subproject:
             out = f'{self.subproject}:{out}'
         return out
@@ -2136,12 +2140,16 @@ class OptionKey:
         except ValueError:
             subproject, raw2 = '', raw
 
-        if raw2.startswith('build.'):
-            raw3 = raw2.split('.', 1)[1]
-            for_machine = MachineChoice.BUILD
-        else:
+        module = None
+        for_machine = MachineChoice.HOST
+        try:
+            prefix, raw3 = raw2.split('.')
+            if prefix == 'build':
+                for_machine = MachineChoice.BUILD
+            else:
+                module = prefix
+        except ValueError:
             raw3 = raw2
-            for_machine = MachineChoice.HOST
 
         from ..compilers import all_languages
         if any(raw3.startswith(f'{l}_') for l in all_languages):
@@ -2149,12 +2157,13 @@ class OptionKey:
         else:
             lang, opt = None, raw3
         assert ':' not in opt
-        assert 'build.' not in opt
+        assert '.' not in opt
 
-        return cls(opt, subproject, for_machine, lang)
+        return cls(opt, subproject, for_machine, lang, module)
 
     def evolve(self, name: T.Optional[str] = None, subproject: T.Optional[str] = None,
-               machine: T.Optional[MachineChoice] = None, lang: T.Optional[str] = '') -> 'OptionKey':
+               machine: T.Optional[MachineChoice] = None, lang: T.Optional[str] = '',
+               module: T.Optional[str] = '') -> 'OptionKey':
         """Create a new copy of this key, but with alterted members.
 
         For example:
@@ -2170,6 +2179,7 @@ class OptionKey:
             subproject if subproject is not None else self.subproject,
             machine if machine is not None else self.machine,
             lang if lang != '' else self.lang,
+            module if module != '' else self.module
         )
 
     def as_root(self) -> 'OptionKey':

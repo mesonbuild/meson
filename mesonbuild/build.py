@@ -260,6 +260,7 @@ class Build:
         self.dependency_overrides: PerMachine[T.Dict[T.Tuple, DependencyOverride]] = PerMachineDefaultable.default(
             environment.is_cross_build(), {}, {})
         self.devenv: T.List[EnvironmentVariables] = []
+        self.modules: T.List[str] = []
 
     def get_build_targets(self):
         build_targets = OrderedDict()

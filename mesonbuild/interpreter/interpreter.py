@@ -547,6 +547,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         else:
             ext_module = module.initialize(self)
             assert isinstance(ext_module, (ExtensionModule, NewExtensionModule))
+            self.build.modules.append(modname)
         self.modules[modname] = ext_module
         return ext_module
 

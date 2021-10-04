@@ -17,6 +17,7 @@ import shutil
 import os
 import textwrap
 import typing as T
+import collections
 
 from . import build
 from . import coredata
@@ -243,11 +244,18 @@ class Conf:
         dir_options: 'coredata.KeyedOptionDictType' = {}
         test_options: 'coredata.KeyedOptionDictType' = {}
         core_options: 'coredata.KeyedOptionDictType' = {}
+        module_options: T.Dict[str, 'coredata.KeyedOptionDictType'] = collections.defaultdict(dict)
         for k, v in self.coredata.options.items():
             if k in dir_option_names:
                 dir_options[k] = v
             elif k in test_option_names:
                 test_options[k] = v
+            elif k.module:
+                # Ignore module options if we did not use that module during
+                # configuration.
+                if self.build and k.module not in self.build.modules:
+                    continue
+                module_options[k.module][k] = v
             elif k.is_builtin():
                 core_options[k] = v
 
@@ -267,6 +275,8 @@ class Conf:
         self.print_options('Compiler options', host_compiler_options.get('', {}))
         if show_build_options:
             self.print_options('', build_compiler_options.get('', {}))
+        for mod, mod_options in module_options.items():
+            self.print_options(f'{mod} module options', mod_options)
         self.print_options('Directories', dir_options)
         self.print_options('Testing options', test_options)
         self.print_options('Project options', project_options.get('', {}))
