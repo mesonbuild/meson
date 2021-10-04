@@ -5,7 +5,7 @@ short-description: Editing and maintaining the Reference manual
 
 # Reference Manual
 
-The [Reference Manual](RefMan.md) is automatically generated out of YAML
+The [Reference Manual](Reference-manual.md) is automatically generated out of YAML
 files in `docs/yaml`. This allows the Meson project to enforce a consistent
 style of the Reference Manual and enables easier style changes to the generated
 Markdown files without touching the actual documentation.

@@ -28,6 +28,7 @@ refman_gen = custom_target(
         '--link-defs', '@OUTPUT1@',
         '--depfile', '@DEPFILE@',
         '--force-color',
+        '--no-modules',
     ],
 )
 
