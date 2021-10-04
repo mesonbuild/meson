@@ -5,8 +5,6 @@ description: |
   A build target is either an executable, shared library, static library,
   both shared and static library or shared module.
 
-  TODO: Missing methods, links
-
 methods:
 - name: full_path
   returns: str

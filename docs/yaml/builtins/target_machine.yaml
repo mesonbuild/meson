@@ -1,5 +1,6 @@
 name: target_machine
 long_name: Target machine information
+extends: build_machine
 description: |
   Provides information about the target machine -- the machine on which
   the compiled binary's output will run. Hence, this object should only

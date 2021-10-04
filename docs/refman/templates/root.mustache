@@ -11,7 +11,7 @@ and methods are documented in detail in the following subpages:
 ## Elementary types
 
 {{#elementary}}
-{{>root_link}}
+{{indent}}- {{&link}}
 {{/elementary}}
 
 ## Functions
@@ -21,7 +21,7 @@ to see the description and usage. The objects returned by them are
 [listed here](#returned-objects).
 
 {{#functions}}
-{{>root_link}}
+{{indent}}- {{&link}}
 {{/functions}}
 
 ## Builtin objects
@@ -29,7 +29,7 @@ to see the description and usage. The objects returned by them are
 These are built-in objects that are always available.
 
 {{#builtins}}
-{{>root_link}}
+{{indent}}- {{&link}}
 {{/builtins}}
 
 ## Returned objects
@@ -38,11 +38,14 @@ These are objects that can be returned by [functions](#functions)
 or other methods.
 
 {{#returned}}
-{{>root_link}}
+{{indent}}- {{&link}}
 {{/returned}}
 
 ## Modules
 
 {{#modules}}
-{{>root_link}}
+{{indent}}- {{&link}}
 {{/modules}}
+
+
+<!-- The links used to be generated wit {>root_link}, but this is a bit hard to read  -->

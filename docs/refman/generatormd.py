@@ -156,7 +156,9 @@ class GeneratorMD(GeneratorBase):
             return ' | '.join([data_type_to_str(x) for x in typ.resolved])
 
         def len_stripped(s: str) -> int:
-            return len(re.sub(r'<[^>]+>', '', s))
+            s = s.replace(']]', '')
+            # I know, this regex is ugly but it works.
+            return len(re.sub(r'\[\[(#|@)*([^\[])', r'\2', s))
 
         def render_signature() -> str:
             # Skip a lot of computations if the function does not take any arguments

@@ -1,5 +1,6 @@
 name: host_machine
 long_name: Host machine information
+extends: build_machine
 description: |
   Provides information about the host machine -- the machine on which the
   compiled binary will run. See
