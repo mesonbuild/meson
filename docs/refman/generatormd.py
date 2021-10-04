@@ -49,7 +49,7 @@ FunctionDictType = T.Dict[
     ]
 ]
 
-_ROOT_BASENAME = 'RefMan'
+_ROOT_BASENAME = 'Reference-manual'
 
 _OBJ_ID_MAP = {
     ObjectType.ELEMENTARY: 'elementary',
@@ -74,12 +74,13 @@ def code_block(code: str) -> str:
     return f'<pre><code class="language-meson">{code}</code></pre>'
 
 class GeneratorMD(GeneratorBase):
-    def __init__(self, manual: ReferenceManual, sitemap_out: Path, sitemap_in: Path, link_def_out: Path) -> None:
+    def __init__(self, manual: ReferenceManual, sitemap_out: Path, sitemap_in: Path, link_def_out: Path, enable_modules: bool) -> None:
         super().__init__(manual)
         self.sitemap_out = sitemap_out.resolve()
         self.sitemap_in = sitemap_in.resolve()
         self.link_def_out = link_def_out.resolve()
         self.out_dir = self.sitemap_out.parent
+        self.enable_modules = enable_modules
         self.generated_files: T.Dict[str, str] = {}
 
     # Utility functions
@@ -323,6 +324,7 @@ class GeneratorMD(GeneratorBase):
             'builtins': gen_obj_links(self.builtins),
             'modules': gen_obj_links(self.modules),
             'functions': [{'indent': '', 'link': self._link_to_object(x), 'brief': self.brief(x)} for x in self.functions],
+            'enable_modules': self.enable_modules,
         }
 
         dummy = {'root': self._gen_filename('root')}
@@ -331,7 +333,9 @@ class GeneratorMD(GeneratorBase):
         self._write_template({**dummy, 'name': 'Elementary types'}, f'root.{_OBJ_ID_MAP[ObjectType.ELEMENTARY]}', 'dummy')
         self._write_template({**dummy, 'name': 'Builtin objects'},  f'root.{_OBJ_ID_MAP[ObjectType.BUILTIN]}',    'dummy')
         self._write_template({**dummy, 'name': 'Returned objects'}, f'root.{_OBJ_ID_MAP[ObjectType.RETURNED]}',   'dummy')
-        self._write_template({**dummy, 'name': 'Modules'},          f'root.{_OBJ_ID_MAP[ObjectType.MODULE]}',     'dummy')
+
+        if self.enable_modules:
+            self._write_template({**dummy, 'name': 'Modules'},          f'root.{_OBJ_ID_MAP[ObjectType.MODULE]}',     'dummy')
 
 
     def generate(self) -> None:
@@ -339,6 +343,8 @@ class GeneratorMD(GeneratorBase):
         with mlog.nested():
             self._write_functions()
             for obj in self.objects:
+                if not self.enable_modules and (obj.obj_type == ObjectType.MODULE or obj.defined_by_module is not None):
+                    continue
                 self._write_object(obj)
             self._root_refman_docs()
             self._configure_sitemap()
