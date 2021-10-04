@@ -181,8 +181,7 @@ def sanitize_permissions(path: str, umask: T.Union[str, int]) -> None:
     try:
         set_chmod(path, new_perms, follow_symlinks=False)
     except PermissionError as e:
-        msg = f'{path!r}: Unable to set permissions {new_perms!r}: {e.strerror}, ignoring...'
-        print(msg)
+        print(f'{path!r}: Unable to set permissions {new_perms!r}: {e.strerror}, ignoring...')
 
 
 def set_mode(path: str, mode: T.Optional['FileMode'], default_umask: T.Union[str, int]) -> None:
@@ -195,15 +194,12 @@ def set_mode(path: str, mode: T.Optional['FileMode'], default_umask: T.Union[str
         try:
             set_chown(path, mode.owner, mode.group, follow_symlinks=False)
         except PermissionError as e:
-            msg = f'{path!r}: Unable to set owner {mode.owner!r} and group {mode.group!r}: {e.strerror}, ignoring...'
-            print(msg)
+            print(f'{path!r}: Unable to set owner {mode.owner!r} and group {mode.group!r}: {e.strerror}, ignoring...')
         except LookupError:
-            msg = f'{path!r}: Non-existent owner {mode.owner!r} or group {mode.group!r}: ignoring...'
-            print(msg)
+            print(f'{path!r}: Non-existent owner {mode.owner!r} or group {mode.group!r}: ignoring...')
         except OSError as e:
             if e.errno == errno.EINVAL:
-                msg = f'{path!r}: Non-existent numeric owner {mode.owner!r} or group {mode.group!r}: ignoring...'
-                print(msg)
+                print(f'{path!r}: Non-existent numeric owner {mode.owner!r} or group {mode.group!r}: ignoring...')
             else:
                 raise
     # Must set permissions *after* setting owner/group otherwise the
@@ -213,8 +209,7 @@ def set_mode(path: str, mode: T.Optional['FileMode'], default_umask: T.Union[str
         try:
             set_chmod(path, mode.perms, follow_symlinks=False)
         except PermissionError as e:
-            msg = '{path!r}: Unable to set permissions {mode.perms_s!r}: {e.strerror}, ignoring...'
-            print(msg)
+            print('{path!r}: Unable to set permissions {mode.perms_s!r}: {e.strerror}, ignoring...')
     else:
         sanitize_permissions(path, default_umask)
 

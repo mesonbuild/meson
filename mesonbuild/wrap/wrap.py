@@ -149,8 +149,7 @@ class PackageDefinition:
             raise WrapException(f'Missing sections in {self.basename}')
         self.wrap_section = config.sections()[0]
         if not self.wrap_section.startswith('wrap-'):
-            m = f'{self.wrap_section!r} is not a valid first section in {self.basename}'
-            raise WrapException(m)
+            raise WrapException(f'{self.wrap_section!r} is not a valid first section in {self.basename}')
         self.type = self.wrap_section[5:]
         self.values = dict(config[self.wrap_section])
 
@@ -179,8 +178,7 @@ class PackageDefinition:
         try:
             return self.values[key]
         except KeyError:
-            m = f'Missing key {key!r} in {self.basename}'
-            raise WrapException(m)
+            raise WrapException(f'Missing key {key!r} in {self.basename}')
 
 def get_directory(subdir_root: str, packagename: str) -> str:
     fname = os.path.join(subdir_root, packagename + '.wrap')
@@ -387,8 +385,7 @@ class Resolver:
         elif out == '':
             # It is not a submodule, just a folder that exists in the main repository.
             return False
-        m = f'Unknown git submodule output: {out!r}'
-        raise WrapException(m)
+        raise WrapException(f'Unknown git submodule output: {out!r}')
 
     def get_file(self) -> None:
         path = self.get_file_internal('source')

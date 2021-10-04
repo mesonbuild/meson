@@ -106,15 +106,13 @@ class ExternalProgram(mesonlib.HoldableObject):
             cmd: T.List[T.Union[str, ExternalProgram]] = [self, '--version']
             res = interpreter.run_command_impl(interpreter.current_node, cmd, {}, True)
             if res.returncode != 0:
-                m = f'Running {raw_cmd!r} failed'
-                raise mesonlib.MesonException(m)
+                raise mesonlib.MesonException(f'Running {raw_cmd!r} failed')
             output = res.stdout.strip()
             if not output:
                 output = res.stderr.strip()
             match = re.search(r'([0-9][0-9\.]+)', output)
             if not match:
-                m = f'Could not find a version number in output of {raw_cmd!r}'
-                raise mesonlib.MesonException(m)
+                raise mesonlib.MesonException(f'Could not find a version number in output of {raw_cmd!r}')
             self.cached_version = match.group(1)
         return self.cached_version
 
