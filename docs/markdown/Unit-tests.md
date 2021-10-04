@@ -36,7 +36,7 @@ By default, environment variable
 [`MALLOC_PERTURB_`](http://man7.org/linux/man-pages/man3/mallopt.3.html) is
 set to a random value between 1..255. This can help find memory leaks on
 configurations using glibc, including with non-GCC compilers. This feature
-can be disabled as discussed in [test()](Reference-manual.md#test).
+can be disabled as discussed in [[test]].
 
 ## Coverage
 

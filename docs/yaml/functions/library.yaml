@@ -1,0 +1,23 @@
+name: library
+returns: lib
+description: |
+  Builds a library that is either static, shared or both depending on
+  the value of `default_library`
+  user [option](https://mesonbuild.com/Builtin-options.html).
+  You should use this instead of [[shared_library]],
+  [[static_library]] or
+  [[both_libraries]] most of the time. This allows you
+  to toggle your entire project (including subprojects) from shared to
+  static with only one option. This option applies to libraries being
+  built internal to the entire project. For external dependencies, the
+  default library type preferred is shared. This can be adapted on a per
+  library basis using the [[dependency]] `static` keyword.
+
+  The keyword arguments for this are the same as for
+  [[build_target]]
+
+posargs_inherit: _build_target_base
+varargs_inherit: _build_target_base
+kwargs_inherit:
+  - shared_library
+  - static_library

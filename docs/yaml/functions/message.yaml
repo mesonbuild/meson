@@ -1,0 +1,14 @@
+name: message
+returns: void
+description: This function prints its argument to stdout.
+
+posargs:
+  text:
+    type: str
+    description: The message to print
+
+varargs:
+  name: more_text
+  since: 0.54.0
+  type: str
+  description: Additional text that will be printed seperated by spaces.

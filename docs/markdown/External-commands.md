@@ -22,8 +22,7 @@ Since 0.52.0, you can pass the command environment as a dictionary:
 run_command('command', 'arg1', 'arg2', env: {'FOO': 'bar'})
 ```
 
-Since 0.50.0, you can also pass the command
-[`environment`](Reference-manual.md#environment-object) object:
+Since 0.50.0, you can also pass the command [[@env]] object:
 
 ```meson
 env = environment()

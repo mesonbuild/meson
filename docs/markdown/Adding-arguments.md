@@ -22,7 +22,7 @@ This makes Meson add the define to all C compilations. Usually you
 would use this setting for flags for global settings. Note that for
 setting the C/C++ language standard (the `-std=c99` argument in GCC),
 you would probably want to use a default option of the `project()`
-function. For details see the [reference manual](Reference-manual.md).
+function. For details see the [reference manual](RefMan.md).
 
 Global arguments have certain limitations. They all have to be defined
 before any build targets are specified. This ensures that the global

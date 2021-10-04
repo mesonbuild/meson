@@ -15,10 +15,26 @@ docs_gen = custom_target(
     build_by_default: true,
     install: false)
 
+refman_gen = custom_target(
+    'gen_refman',
+    input: files('sitemap.txt'),
+    output: ['configured_sitemap.txt', 'refman_links.json'],
+    depfile: 'reman_dep.d',
+    command: [
+        find_program('./genrefman.py'),
+        '-g', 'md',
+        '-s', '@INPUT@',
+        '-o', '@OUTPUT0@',
+        '--link-defs', '@OUTPUT1@',
+        '--depfile', '@DEPFILE@',
+        '--force-color',
+    ],
+)
+
 hotdoc = import('hotdoc')
 documentation = hotdoc.generate_doc(meson.project_name(),
     project_version: meson.project_version(),
-    sitemap: 'sitemap.txt',
+    sitemap: refman_gen[0],
     build_by_default: true,
     depends: docs_gen,
     index: 'markdown/index.md',
@@ -30,6 +46,9 @@ documentation = hotdoc.generate_doc(meson.project_name(),
     git_upload_repository: 'git@github.com:mesonbuild/mesonbuild.github.io.git',
     edit_on_github_repository: 'https://github.com/mesonbuild/meson',
     syntax_highlighting_activate: true,
+    keep_markup_in_code_blocks: true,
+    extra_extension: meson.current_source_dir() / 'extensions' / 'refman_links.py',
+    refman_data_file: refman_gen[1],
 )
 
 run_target('upload',

@@ -160,7 +160,7 @@ executable('demo', 'main.c', dependencies : gtkdep)
 ```
 
 If your app needs to use multiple libraries, you need to use separate
-[`dependency()`](Reference-manual.md#dependency) calls for each, like so:
+[[dependency]] calls for each, like so:
 
 ```meson
 gtkdeps = [dependency('gtk+-3.0'), dependency('gtksourceview-3.0')]

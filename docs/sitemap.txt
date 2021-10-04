@@ -71,7 +71,7 @@ index.md
 		Creating-OSX-packages.md
 		Creating-Linux-binaries.md
 		Project-templates.md
-	Reference-manual.md
+	@REFMAN_PLACEHOLDER@
 	Reference-tables.md
 	Style-guide.md
 	Rewriter.md
@@ -131,6 +131,7 @@ index.md
 		Using-multiple-build-directories.md
 		Vs-External.md
 	Contributing.md
+		Yaml-RefMan.md
 		MesonCI.md
 	legal.md
 	Videos.md

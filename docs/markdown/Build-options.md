@@ -76,18 +76,17 @@ This type is available since version 0.44.0
 A `feature` option has three states: `enabled`, `disabled` or `auto`.
 It is intended to be passed as value for the `required` keyword
 argument of most functions. Currently supported in
-[`dependency()`](Reference-manual.md#dependency),
-[`find_library()`](Reference-manual.md#compiler-object),
-[`find_program()`](Reference-manual.md#find_program) and
-[`add_languages()`](Reference-manual.md#add_languages) functions.
+[[dependency]],
+[[compiler.find_library]],
+[[find_program]] and
+[[add_languages]] functions.
 
 - `enabled` is the same as passing `required : true`.
 - `auto` is the same as passing `required : false`.
 - `disabled` do not look for the dependency and always return 'not-found'.
 
 When getting the value of this type of option using `get_option()`, a
-special [feature option
-object](Reference-manual.md#feature-option-object) is returned instead
+special [[@feature]] object is returned instead
 of the string representation of the option's value. This object can be
 passed to `required`:
 

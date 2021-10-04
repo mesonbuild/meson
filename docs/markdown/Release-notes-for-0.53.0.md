@@ -32,7 +32,7 @@ Meson now ships with predefined project templates for `Dlang`,
 
 ## Add a new summary() function
 
-A new function [`summary()`](Reference-manual.md#summary) has been
+A new function [[summary]] has been
 added to summarize build configuration at the end of the build
 process.
 

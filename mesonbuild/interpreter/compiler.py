@@ -352,7 +352,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return had
 
     @typed_pos_args('compiler.has_function', str)
-    @typed_kwargs('compiler.has_type', *_COMMON_KWS)
+    @typed_kwargs('compiler.has_function', *_COMMON_KWS)
     def has_function_method(self, args: T.Tuple[str], kwargs: 'CommonKW') -> bool:
         funcname = args[0]
         extra_args = self._determine_args(kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
@@ -645,6 +645,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
 
     @noKwargs
     @typed_pos_args('compiler.has_multi_arguments', varargs=str)
+    @FeatureNew('compiler.has_multi_arguments', '0.37.0')
     def has_multi_arguments_method(self, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> bool:
         return self._has_argument_impl(args[0])
 

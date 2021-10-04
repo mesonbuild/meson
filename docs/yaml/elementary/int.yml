@@ -1,0 +1,16 @@
+name: int
+long_name: Integer
+description: All integer numbers. See [Numbers](Syntax.md#numbers) for more information.
+
+methods:
+- name: is_even
+  returns: bool
+  description: Returns true if the number is even.
+
+- name: is_odd
+  returns: bool
+  description: Returns true if the number is odd
+
+- name: to_string
+  returns: str
+  description: Returns the value of the number as a string.

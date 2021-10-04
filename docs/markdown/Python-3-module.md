@@ -10,7 +10,7 @@ This module is deprecated and replaced by the
 
 This is a cross platform way of finding the Python 3 executable, which
 may have a different name on different operating systems. Returns an
-[external program](Reference-manual.md#external-program-object)
+[[@external_program]]
 object.
 
 *Added 0.38.0*
@@ -24,7 +24,7 @@ from `python` module.
 Creates a `shared_module` target that is named according to the naming
 conventions of the target platform. All positional and keyword
 arguments are the same as for
-[shared_module](Reference-manual.md#shared_module).
+[[shared_module]].
 
 `extension_module` does not add any dependencies to the library so user may
 need to add `dependencies : dependency('python3')`, see

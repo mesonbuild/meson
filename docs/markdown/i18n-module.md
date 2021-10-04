@@ -46,7 +46,7 @@ This function also defines targets for maintainers to use:
 ### i18n.merge_file()
 
 This merges translations into a text file using `msgfmt`. See
-[custom_target](Reference-manual.md#custom_target)
+[[@custom_tgt]]
 for normal keywords. In addition it accepts these keywords:
 
 * `data_dirs`: (*Added 0.41.0*) list of directories for its files (See

@@ -30,7 +30,7 @@ manually changed with the new base option `b_vscrt`.
 ## Meson warns if two calls to `configure_file()` write to the same file
 
 If two calls to
-[`configure_file()`](Reference-manual.md#configure_file) write to the
+[[configure_file]] write to the
 same file Meson will print a `WARNING:` message during configuration.
 For example:
 
@@ -268,7 +268,7 @@ Now, by default `shared_library()` sets `-compatibility_version` and
 `-current_version` of a macOS dylib using the `soversion`.
 
 This can be overridden by using the `darwin_versions:` kwarg to
-[`shared_library()`](Reference-manual.md#shared_library). As usual,
+[[shared_library]]. As usual,
 you can also pass this kwarg to `library()` or `build_target()` and it
 will be used in the appropriate circumstances.
 

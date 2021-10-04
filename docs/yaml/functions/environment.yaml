@@ -1,0 +1,12 @@
+name: environment
+returns: env
+since: 0.35.0
+description: Returns an empty [[@env]] object.
+
+optargs:
+  env:
+    type: dict[str]
+    since: 0.52.0
+    description: |
+      If provided, each key/value pair is added into the [[@env]] object
+      as if [[env.set]] method was called for each of them.

@@ -79,7 +79,7 @@ project.
 
 *(New in 0.56.0)* The `extra_files` key lists all files specified via
 the `extra_files` kwarg of a build target. See
-[`executable()`](Reference-manual.md#executable).
+[[executable]].
 
 A target usually generates only one file. However, it is possible for
 custom targets to have multiple outputs.

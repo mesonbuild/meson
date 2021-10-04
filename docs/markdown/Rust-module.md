@@ -28,7 +28,7 @@ adding the `--test` argument to the compilation, then creates a new
 test target which calls that executable, using the rust test protocol.
 
 This accepts all of the keyword arguments as the
-[`test`](Reference-manual.md#test) function except `protocol`, it will set
+[[test]] function except `protocol`, it will set
 that automatically.
 
 Additional, test only dependencies may be passed via the dependencies

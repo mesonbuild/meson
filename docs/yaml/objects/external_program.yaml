@@ -1,0 +1,40 @@
+name: external_program
+long_name: External program
+description: Opaque object representing an external program
+
+methods:
+- name: found
+  returns: bool
+  description: Returns whether the executable was found.
+
+- name: path
+  returns: str
+  deprecated: 0.55.0
+  description: |
+    *Deprecated:* Use [[external_program.full_path]] instead.
+
+    Returns a string pointing to the script or executable.
+
+    **NOTE:** You should not need to use this method. Passing the object itself
+    should work in all cases.
+
+    For example:
+
+    ```meson
+    run_command(find_program('foo'), 'arg1', 'arg2')
+    ```
+
+- name: full_path
+  returns: str
+  since: 0.55.0
+  description: |
+    Returns a string pointing to the script or executable.
+
+    **NOTE:** You should not need to use this method. Passing the object itself
+    should work in all cases.
+
+    For example:
+
+    ```meson
+    run_command(find_program('foo'), 'arg1', 'arg2')
+    ```

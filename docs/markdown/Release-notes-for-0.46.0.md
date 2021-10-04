@@ -132,14 +132,14 @@ meson.override_find_program('mycodegen', prog_script)
 
 ## New functions: has_link_argument() and friends
 
-A new set of methods has been added to [compiler
-objects](Reference-manual.md#compiler-object) to test if the linker
+A new set of methods has been added to [[@compiler]]
+objects to test if the linker
 supports given arguments.
 
-- `has_link_argument()`
-- `has_multi_link_arguments()`
-- `get_supported_link_arguments()`
-- `first_supported_link_argument()`
+- [[compiler.has_link_argument]]
+- [[compiler.has_multi_link_arguments]]
+- [[compiler.get_supported_link_arguments]]
+- [[compiler.first_supported_link_argument]]
 
 ## "meson help" now shows command line help
 
@@ -288,9 +288,9 @@ passed via the `libraries` keyword argument.
 
 Projects that install both a static and a shared version of a library
 should use the result of
-[`both_libraries()`](Reference-manual.md#both_libraries) to the
+[[both_libraries]] to the
 pkg-config file generator or use
-[`configure_file()`](Reference-manual.md#configure_file) for more
+[[configure_file]] for more
 complicated setups.
 
 ## Improvements to pkgconfig module

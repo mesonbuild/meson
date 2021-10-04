@@ -23,7 +23,7 @@ jobs:
       - name: Install package
         run: |
           sudo apt-get -y install python3-pip ninja-build libjson-glib-dev
-          pip install meson hotdoc
+          pip install hotdoc chevron strictyaml
       - name: Setup SSH Keys and known_hosts
         env:
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock
@@ -36,7 +36,7 @@ jobs:
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
           cd docs
-          meson setup _build
+          ../meson.py setup _build
           ninja -C _build
       - name: Update website
         env:

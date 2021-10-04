@@ -159,7 +159,7 @@ joined = 'C:\\foo\\bar' / 'builddir'     # => C:/foo/bar/builddir
 joined = 'C:\\foo\\bar' / 'D:\\builddir' # => D:/builddir
 ```
 
-Note that this is equivalent to using [`join_paths()`](Reference-manual.md#join_paths),
+Note that this is equivalent to using [[join_paths]],
 which was obsoleted by this operator.
 
 ### Strings running over multiple lines
@@ -259,6 +259,9 @@ stripped_define = define.strip()
 string = 'xyxHelloxyx'.strip('xy')
 # 'string' now has the value 'Hello'
 ```
+
+Since 0.43.0, you can specify one positional string argument,
+and all characters in that string will be stripped.
 
 #### .to_upper(), .to_lower()
 
@@ -452,7 +455,7 @@ Dictionaries are immutable and do not have a guaranteed order.
 
 Dictionaries are available since 0.47.0.
 
-Visit the [Reference Manual](Reference-manual.md#dictionary-object) to read
+Visit the [[@dict]] objects page in the Reference Manual to read
 about the methods exposed by dictionaries.
 
 Since 0.49.0, you can check if a dictionary contains a key like this:

@@ -153,7 +153,7 @@ you don't need to add that yourself to `vala_args:`.
 ## Improvements to install scripts
 
 You can now pass arguments to install scripts added with
-[`meson.add_install_script()`](Reference-manual.md#meson-object). All
+[[meson.add_install_script]]. All
 arguments after the script name will be passed to the script.
 
 The `MESON_INSTALL_DESTDIR_PREFIX` environment variable is now set

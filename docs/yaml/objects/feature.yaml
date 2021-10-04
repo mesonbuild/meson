@@ -1,0 +1,70 @@
+name: feature
+long_name: Feature option object
+since: 0.47.0
+description: Meson object representing a [`feature` options](Build-options.md#features)
+
+methods:
+- name: enabled
+  returns: bool
+  description: Returns whether the feature was set to `'enabled'`
+
+- name: disabled
+  returns: bool
+  description: Returns whether the feature was set to `'disabled'`
+
+- name: auto
+  returns: bool
+  description: Returns whether the feature was set to `'auto'`
+
+- name: allowed
+  since: 0.59.0
+  returns: bool
+  description: Returns whether the feature was set to `'enabled'` or `'auto'`
+
+- name: disable_auto_if
+  since: 0.59.0
+  returns: feature
+  description: |
+    Returns the feature, with `'auto'` converted to `'disabled'` if value is true.
+
+    | Feature / Condition | `value = true` | `value = false` |
+    | ------------------- | -------------- | --------------- |
+    | Enabled             | Enabled        | Enabled         |
+    | Disabled            | Disabled       | Disabled        |
+    | Auto                | Disabled       | Auto            |
+
+  posargs:
+    value:
+      type: bool
+      description: See the table above
+
+- name: require
+  returns: feature
+  since: 0.59.0
+  description: |
+    Returns the object itself if the value is true; an error if the object is
+    `'enabled'` and the value is false; a disabled feature if the object
+    is `'auto'` or `'disabled'` and the value is false.
+
+  example: |
+    `require` is useful to restrict the applicability of `'auto'` features,
+    for example based on other features or on properties of the host machine:
+
+    ```
+    if get_option('directx').require(host_machine.system() == 'windows',
+          error_message: 'DirectX only available on Windows').allowed() then
+      src += ['directx.c']
+      config.set10('HAVE_DIRECTX', 1)
+    endif
+    ```
+
+  posargs:
+    value:
+      type: bool
+      description: The value to check
+
+  kwargs:
+    error_message:
+      type: str
+      default: "''"
+      description: The error Message to print if the check fails

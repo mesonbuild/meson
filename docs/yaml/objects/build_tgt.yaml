@@ -1,0 +1,39 @@
+name: build_tgt
+long_name: Build target
+extends: tgt
+description: |
+  A build target is either an executable, shared library, static library,
+  both shared and static library or shared module.
+
+methods:
+- name: full_path
+  returns: str
+  description: |
+    Returns a full path pointing to the result target file.
+    **NOTE:** In most cases using the object itself will do the same job
+    as this and will also allow Meson to setup inter-target dependencies
+    correctly. Please file a bug if that doesn't work for you.
+
+- name: path
+  returns: str
+  since: 0.59.0
+  deprecated: 0.59.0
+  description: |
+    Does the exact same as [[build_tgt.full_path]]. **NOTE**: This
+    function is solely kept for compatebility with [[@external_program]] objects.
+    It will be removed once the, also deprecated, corresponding `path()`
+    function in the [[@external_program]] object is removed.
+
+- name: name
+  returns: str
+  since: 0.54.0
+  description: Returns the name of the target.
+
+- name: found
+  returns: bool
+  since: 0.59.0
+  description: |
+    Always returns `true`. This function is meant to make executables
+    objects feature compatible with [[@external_program]] objects. This
+    simplifies use-cases where an executable is used instead of
+    an [[@external_program]].
