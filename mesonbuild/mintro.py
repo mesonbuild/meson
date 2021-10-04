@@ -493,7 +493,6 @@ updated_introspection_files = []  # type: T.List[str]
 def write_intro_info(intro_info: T.Sequence[T.Tuple[str, T.Union[dict, T.List[T.Any]]]], info_dir: str) -> None:
     global updated_introspection_files
     for kind, data in intro_info:
-        print(f'processing {kind}, {data}')
         out_file = os.path.join(info_dir, f'intro-{kind}.json')
         tmp_file = os.path.join(info_dir, 'tmp_dump.json')
         with open(tmp_file, 'w', encoding='utf-8') as fp:
