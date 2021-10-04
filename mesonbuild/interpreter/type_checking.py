@@ -44,40 +44,39 @@ def _install_mode_validator(mode: T.List[T.Union[str, bool, int]]) -> T.Optional
 
     This is a rather odd thing, it's a scalar, or an array of 3 values in the form:
     [(str | False), (str | int | False) = False, (str | int | False) = False]
-    Where the second and third arguments are not required, and are considered to
-    default to False.
+    where the second and third components are not required and default to False.
     """
     if not mode:
         return None
     if True in mode:
-        return 'can only be a string or false, not true'
+        return 'components can only be permission strings, numbers, or False'
     if len(mode) > 3:
         return 'may have at most 3 elements'
 
     perms = mode[0]
     if not isinstance(perms, (str, bool)):
-        return 'permissions part must be a string or false'
+        return 'first component must be a permissions string or False'
 
     if isinstance(perms, str):
         if not len(perms) == 9:
-            return (f'permissions string must be exactly 9 characters, got "{len(perms)}" '
-                   'in the form rwxr-xr-x')
+            return ('permissions string must be exactly 9 characters in the form rwxr-xr-x,'
+                    f' got {len(perms)}')
         for i in [0, 3, 6]:
             if perms[i] not in {'-', 'r'}:
-                return f'bit {i} must be "-" or "r", not {perms[i]}'
+                return f'permissions character {i+1} must be "-" or "r", not {perms[i]}'
         for i in [1, 4, 7]:
             if perms[i] not in {'-', 'w'}:
-                return f'bit {i} must be "-" or "w", not {perms[i]}'
+                return f'permissions character {i+1} must be "-" or "w", not {perms[i]}'
         for i in [2, 5]:
             if perms[i] not in {'-', 'x', 's', 'S'}:
-                return f'bit {i} must be "-", "s", "S", or "x", not {perms[i]}'
+                return f'permissions character {i+1} must be "-", "s", "S", or "x", not {perms[i]}'
         if perms[8] not in {'-', 'x', 't', 'T'}:
-            return f'bit 8 must be "-", "t", "T", or "x", not {perms[8]}'
+            return f'permission character 9 must be "-", "t", "T", or "x", not {perms[8]}'
 
         if len(mode) >= 2 and not isinstance(mode[1], (int, str, bool)):
-            return 'second componenent must be a string, number, or False if provided'
+            return 'second componenent can only be a string, number, or False'
         if len(mode) >= 3 and not isinstance(mode[2], (int, str, bool)):
-            return 'third componenent must be a string, number, or False if provided'
+            return 'third componenent can only be a string, number, or False'
 
     return None
 
