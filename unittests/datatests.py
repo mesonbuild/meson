@@ -126,7 +126,8 @@ class DataTests(unittest.TestCase):
         subsections = tee(re.finditer(r"^### (.+)$", content, re.MULTILINE))
         subcontent1 = self._get_section_content("Directories", subsections[0], content)
         subcontent2 = self._get_section_content("Core options", subsections[1], content)
-        for subcontent in (subcontent1, subcontent2):
+        subcontent3 = self._get_section_content("Module options", sections, md)
+        for subcontent in (subcontent1, subcontent2, subcontent3):
             # Find the option names
             options = set()
             # Match either a table row or a table heading separator: | ------ |
@@ -145,8 +146,8 @@ class DataTests(unittest.TestCase):
             found_entries |= options
 
         self.assertEqual(found_entries, {
-            *(str(k) for k in mesonbuild.coredata.BUILTIN_OPTIONS),
-            *(str(k) for k in mesonbuild.coredata.BUILTIN_OPTIONS_PER_MACHINE),
+            *(str(k.evolve(module=None)) for k in mesonbuild.coredata.BUILTIN_OPTIONS),
+            *(str(k.evolve(module=None)) for k in mesonbuild.coredata.BUILTIN_OPTIONS_PER_MACHINE),
         })
 
         # Check that `buildtype` table inside `Core options` matches how

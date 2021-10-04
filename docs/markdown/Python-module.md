@@ -128,6 +128,9 @@ Install actual python sources (`.py`).
 All positional and keyword arguments are the same as for
 [[install_data]], with the addition of the following:
 
+*Since 0.60.0* `python.platlibdir` and `python.purelibdir` options can be used
+to control the default installation path. See [Python module options](Builtin-options.md#python-module).
+
 - `pure`: On some platforms, architecture independent files are
   expected to be placed in a separate directory. However, if the
   python sources should be installed alongside an extension module
@@ -153,6 +156,9 @@ directly, for example when using [[configure_file]].
 
 This function accepts no arguments, its keyword arguments are the same
 as [][`install_sources()`].
+
+*Since 0.60.0* `python.platlibdir` and `python.purelibdir` options can be used
+to control the default installation path. See [Python module options](Builtin-options.md#python-module).
 
 **Returns**: A string
 

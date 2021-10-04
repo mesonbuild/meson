@@ -1,0 +1,6 @@
+{
+  "installed": [
+    {"type": "file", "file": "plat/test.py"},
+    {"type": "file", "file": "pure/test.py"}
+  ]
+}

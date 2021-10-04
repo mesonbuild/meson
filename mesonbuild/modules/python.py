@@ -374,7 +374,7 @@ class PythonExternalProgram(ExternalProgram):
             return mesonlib.version_compare(version, '>= 3.0')
         return True
 
-    def sanity(self) -> bool:
+    def sanity(self, state: T.Optional['ModuleState'] = None) -> bool:
         # Sanity check, we expect to have something that at least quacks in tune
         cmd = self.get_command() + ['-c', INTROSPECT_COMMAND]
         p, stdout, stderr = mesonlib.Popen_safe(cmd)
@@ -392,19 +392,24 @@ class PythonExternalProgram(ExternalProgram):
             variables = info['variables']
             info['suffix'] = variables.get('EXT_SUFFIX') or variables.get('SO') or variables.get('.so')
             self.info = T.cast('PythonIntrospectionDict', info)
-            self.platlib = self._get_path('platlib')
-            self.purelib = self._get_path('purelib')
+            self.platlib = self._get_path(state, 'platlib')
+            self.purelib = self._get_path(state, 'purelib')
             return True
         else:
             return False
 
-    def _get_path(self, key: str) -> None:
+    def _get_path(self, state: T.Optional['ModuleState'], key: str) -> None:
+        if state:
+            value = state.get_option(f'{key}dir', module='python')
+            if value:
+                return value
         user_dir = str(Path.home())
         sys_paths = self.info['sys_paths']
         rel_path = self.info['install_paths'][key][1:]
         if not any(p.endswith(rel_path) for p in sys_paths if not p.startswith(user_dir)):
             mlog.warning('Broken python installation detected. Python files',
-                         'installed by Meson might not be found by python interpreter.',
+                         'installed by Meson might not be found by python interpreter.\n',
+                         f'This warning can be avoided by setting "python.{key}dir" option.',
                          once=True)
         return rel_path
 
@@ -697,7 +702,7 @@ class PythonModule(ExtensionModule):
                 raise mesonlib.MesonException('{} is missing modules: {}'.format(name_or_path or 'python', ', '.join(missing_modules)))
             return NonExistingExternalProgram()
         else:
-            sane = python.sanity()
+            sane = python.sanity(state)
 
             if sane:
                 return python
