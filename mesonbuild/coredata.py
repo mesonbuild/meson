@@ -1188,6 +1188,12 @@ BUILTIN_CORE_OPTIONS: 'KeyedOptionDictType' = OrderedDict([
     (OptionKey('werror'),          BuiltinOption(UserBooleanOption, 'Treat warnings as errors', False, yielding=False)),
     (OptionKey('wrap_mode'),       BuiltinOption(UserComboOption, 'Wrap mode', 'default', choices=['default', 'nofallback', 'nodownload', 'forcefallback', 'nopromote'])),
     (OptionKey('force_fallback_for'), BuiltinOption(UserArrayOption, 'Force fallback for those subprojects', [])),
+
+    # Python module
+    (OptionKey('platlibdir', module='python'),
+     BuiltinOption(UserStringOption, 'Directory for site-specific, platform-specific files.', '')),
+    (OptionKey('purelibdir', module='python'),
+     BuiltinOption(UserStringOption, 'Directory for site-specific, non-platform-specific files.', '')),
 ])
 
 BUILTIN_OPTIONS = OrderedDict(chain(BUILTIN_DIR_OPTIONS.items(), BUILTIN_CORE_OPTIONS.items()))
@@ -1203,6 +1209,8 @@ BULITIN_DIR_NOPREFIX_OPTIONS: T.Dict[OptionKey, T.Dict[str, str]] = {
     OptionKey('sysconfdir'):     {'/usr': '/etc'},
     OptionKey('localstatedir'):  {'/usr': '/var',     '/usr/local': '/var/local'},
     OptionKey('sharedstatedir'): {'/usr': '/var/lib', '/usr/local': '/var/local/lib'},
+    OptionKey('platlibdir', module='python'): {},
+    OptionKey('purelibdir', module='python'): {},
 }
 
 FORBIDDEN_TARGET_NAMES = {'clean': None,

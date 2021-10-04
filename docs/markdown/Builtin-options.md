@@ -260,3 +260,23 @@ The value is overridden in this order:
 - Value from command line if set
 
 Since 0.56.0 `warning_level` can also be defined per subproject.
+
+## Module options
+
+Some Meson modules have built-in options. They can be set by prefixing the option
+name with the module name: `-D<module>.<option>=<value>` (e.g. `-Dpython.platlibdir=/foo`).
+
+### Python module
+
+| Option           | Default value | Possible values | Description |
+| ------           | ------------- | --------------- | ----------- |
+| platlibdir       |               | Directory path  | Directory for site-specific, platform-specific files (Since 0.60.0) |
+| purelibdir       |               | Directory path  | Directory for site-specific, non-platform-specific files  (Since 0.60.0) |
+
+*Since 0.60.0* `python.platlibdir` and `python.purelibdir` options are used by
+python module methods `python.install_sources()` and `python.get_install_dir()`.
+By default Meson tries to detect the correct installation path, but make them
+relative to the installation `prefix`, which will often result in installed python
+modules to not be found by the interpreter unless `prefix` is `/usr` on Linux,
+or for example `C:\Python39` on Windows. These options can be absolute paths
+outside of `prefix`.
