@@ -267,14 +267,9 @@ class Runner:
                 self.git_output(['fetch', '--refmap', heads_refmap, '--refmap', tags_refmap, 'origin', revision])
             except GitException as e:
                 self.log('  -> Could not fetch revision', mlog.bold(revision), 'in', mlog.bold(self.repo_dir))
-                if quiet_git(['rev-parse', revision + '^{commit}'], self.repo_dir)[0]:
-                    self.log(mlog.yellow('WARNING:'), 'Proceeding with locally available copy')
-                    # Trick git into setting FETCH_HEAD from the local revision.
-                    quiet_git(['fetch', '.', revision], self.repo_dir)
-                else:
-                    self.log(mlog.red(e.output))
-                    self.log(mlog.red(str(e)))
-                    return False
+                self.log(mlog.red(e.output))
+                self.log(mlog.red(str(e)))
+                return False
 
         if branch == '':
             # We are currently in detached mode
