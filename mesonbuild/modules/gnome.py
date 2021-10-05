@@ -33,7 +33,7 @@ from ..mesonlib import (
     join_args, HoldableObject
 )
 from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
-from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, FeatureNew, FeatureNewKwargs, FeatureDeprecatedKwargs
+from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, FeatureNew, FeatureNewKwargs, FeatureDeprecatedKwargs, FeatureDeprecated
 from ..interpreterbase import typed_kwargs, KwargInfo, ContainerTypeInfo
 from ..programs import ExternalProgram, OverrideProgram
 from ..build import CustomTarget, CustomTargetIndex, GeneratedList
@@ -969,12 +969,18 @@ class GnomeModule(ExtensionModule):
             raise MesonException('Yelp requires a project id')
 
         project_id = args[0]
+        if len(args) > 1:
+            FeatureDeprecated.single_use('gnome.yelp more than one positional argument', '0.60.0', 'use the "sources" keyword argument instead.')
+
         sources = mesonlib.stringlistify(kwargs.pop('sources', []))
         if not sources:
             if len(args) > 1:
                 sources = mesonlib.stringlistify(args[1:])
             if not sources:
                 raise MesonException('Yelp requires a list of sources')
+        else:
+            if len(args) > 1:
+                mlog.warning('"gnome.yelp" ignores positional sources arguments when the "sources" keyword argument is set')
         source_str = '@@'.join(sources)
 
         langs = mesonlib.stringlistify(kwargs.pop('languages', []))
