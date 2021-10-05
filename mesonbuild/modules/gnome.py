@@ -32,7 +32,7 @@ from .. import mlog
 from ..build import CustomTarget, CustomTargetIndex, GeneratedList
 from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
 from ..interpreter.type_checking import DEPEND_FILES_KW
-from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, FeatureNew, FeatureNewKwargs, FeatureDeprecatedKwargs, FeatureDeprecated
+from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, FeatureNew, FeatureNewKwargs, FeatureDeprecatedKwargs
 from ..interpreterbase import typed_kwargs, KwargInfo, ContainerTypeInfo
 from ..interpreterbase.decorators import typed_pos_args
 from ..mesonlib import (
@@ -61,11 +61,17 @@ if T.TYPE_CHECKING:
         build_by_default: bool
         depend_files: T.List[FileOrString]
 
+    class Yelp(TypedDict):
+
+        languages: T.List[str]
+        media: T.List[str]
+        sources: T.List[str]
+        symlink_media: bool
+
 # Differs from the CustomTarget version in that it straight defaults to True
 _BUILD_BY_DEFAULT: KwargInfo[bool] = KwargInfo(
     'build_by_default', bool, default=True,
 )
-
 
 # gresource compilation is broken due to the way
 # the resource compiler and Ninja clash about it
@@ -1009,16 +1015,19 @@ class GnomeModule(ExtensionModule):
         self._devenv_prepend('GSETTINGS_SCHEMA_DIR', os.path.join(state.environment.get_build_dir(), state.subdir))
         return ModuleReturnValue(target_g, [target_g])
 
-    @permittedKwargs({'sources', 'media', 'symlink_media', 'languages'})
     @FeatureDeprecatedKwargs('gnome.yelp', '0.43.0', ['languages'],
                              'Use a LINGUAS file in the source directory instead')
     @typed_pos_args('gnome.yelp', str, varargs=str)
-    def yelp(self, state: 'ModuleState', args: T.Tuple[str, T.List[str]], kwargs) -> ModuleReturnValue:
+    @typed_kwargs(
+        'gnome.yelp',
+        KwargInfo('languages', ContainerTypeInfo(list, str), listify=True, default=[]),
+        KwargInfo('media', ContainerTypeInfo(list, str), listify=True, default=[]),
+        KwargInfo('sources', ContainerTypeInfo(list, str), listify=True, default=[]),
+        KwargInfo('symlink_media', bool, default=True),
+    )
+    def yelp(self, state: 'ModuleState', args: T.Tuple[str, T.List[str]], kwargs: 'Yelp') -> ModuleReturnValue:
         project_id = args[0]
-        if len(args) > 1:
-            FeatureDeprecated.single_use('gnome.yelp more than one positional argument', '0.60.0', 'use the "sources" keyword argument instead.')
-
-        sources = mesonlib.stringlistify(kwargs.pop('sources', []))
+        sources = kwargs['sources']
         if not sources:
             sources = args[1]
             if not sources:
@@ -1028,31 +1037,23 @@ class GnomeModule(ExtensionModule):
                 mlog.warning('"gnome.yelp" ignores positional sources arguments when the "sources" keyword argument is set')
         source_str = '@@'.join(sources)
 
-        langs = mesonlib.stringlistify(kwargs.pop('languages', []))
-        media = mesonlib.stringlistify(kwargs.pop('media', []))
-        symlinks = kwargs.pop('symlink_media', True)
-
-        if not isinstance(symlinks, bool):
-            raise MesonException('symlink_media must be a boolean')
-
-        if kwargs:
-            raise MesonException('Unknown arguments passed: {}'.format(', '.join(kwargs.keys())))
+        langs = kwargs['languages']
 
         script = state.environment.get_build_command()
-        args = ['--internal',
+        inscript_args = ['--internal',
                 'yelphelper',
                 'install',
                 '--subdir=' + state.subdir,
                 '--id=' + project_id,
                 '--installdir=' + os.path.join(state.environment.get_datadir(), 'help'),
                 '--sources=' + source_str]
-        if symlinks:
-            args.append('--symlinks=true')
-        if media:
-            args.append('--media=' + '@@'.join(media))
+        if kwargs['symlink_media']:
+            inscript_args.append('--symlinks=true')
+        if kwargs['media']:
+            inscript_args.append('--media=' + '@@'.join(kwargs['media']))
         if langs:
-            args.append('--langs=' + '@@'.join(langs))
-        inscript = state.backend.get_executable_serialisation(script + args)
+            inscript_args.append('--langs=' + '@@'.join(langs))
+        inscript = state.backend.get_executable_serialisation(script + inscript_args)
 
         potargs = state.environment.get_build_command() + [
             '--internal', 'yelphelper', 'pot',
@@ -1073,7 +1074,7 @@ class GnomeModule(ExtensionModule):
         potarget = build.RunTarget('help-' + project_id + '-update-po', poargs,
                                    [], state.subdir, state.subproject)
 
-        rv = [inscript, pottarget, potarget]
+        rv: T.List[T.Union[build.ExecutableSerialisation, build.RunTarget]] = [inscript, pottarget, potarget]
         return ModuleReturnValue(None, rv)
 
     @FeatureNewKwargs('gnome.gtkdoc', '0.52.0', ['check'])
