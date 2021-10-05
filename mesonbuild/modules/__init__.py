@@ -192,10 +192,11 @@ def is_module_library(fname):
 
 
 class ModuleReturnValue:
-    def __init__(self, return_value: T.Optional['TYPE_var'], new_objects: T.Sequence['TYPE_var']) -> None:
+    def __init__(self, return_value: T.Optional['TYPE_var'],
+                 new_objects: T.Sequence[T.Union['TYPE_var', 'build.ExecutableSerialisation']]) -> None:
         self.return_value = return_value
         assert isinstance(new_objects, list)
-        self.new_objects = new_objects
+        self.new_objects: T.List[T.Union['TYPE_var', 'build.ExecutableSerialisation']] = new_objects
 
 class GResourceTarget(build.CustomTarget):
     pass
