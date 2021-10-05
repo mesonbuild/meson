@@ -685,7 +685,7 @@ class BuildTarget(Target):
         self.compilers = OrderedDict() # type: OrderedDict[str, Compiler]
         self.objects: T.List[T.Union[str, 'File', 'ExtractedObjects']] = []
         self.external_deps: T.List[dependencies.Dependency] = []
-        self.include_dirs = []
+        self.include_dirs: T.List['IncludeDirs'] = []
         self.link_language = kwargs.get('link_language')
         self.link_targets: T.List[BuildTarget] = []
         self.link_whole_targets = []
@@ -1276,7 +1276,7 @@ class BuildTarget(Target):
     def get_pch(self, language: str) -> T.List[str]:
         return self.pch.get(language, [])
 
-    def get_include_dirs(self):
+    def get_include_dirs(self) -> T.List['IncludeDirs']:
         return self.include_dirs
 
     def add_deps(self, deps):
@@ -1423,8 +1423,8 @@ You probably should put it in link_with instead.''')
                 raise MesonException(f'File {f} does not exist.')
         self.pch[language] = pchlist
 
-    def add_include_dirs(self, args, set_is_system: T.Optional[str] = None):
-        ids = []
+    def add_include_dirs(self, args: T.Sequence['IncludeDirs'], set_is_system: T.Optional[str] = None) -> None:
+        ids: T.List['IncludeDirs'] = []
         for a in args:
             if not isinstance(a, IncludeDirs):
                 raise InvalidArguments('Include directory to be added is not an include directory object.')
