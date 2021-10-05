@@ -1857,6 +1857,13 @@ class Executable(BuildTarget):
     def is_linkable_target(self):
         return self.is_linkwithable
 
+    def get_command(self) -> 'ImmutableListProtocol[str]':
+        """Provides compatibility with ExternalProgram.
+
+        Since you can override ExternalProgram instances with Executables.
+        """
+        return self.outputs
+
 class StaticLibrary(BuildTarget):
     known_kwargs = known_stlib_kwargs
 
