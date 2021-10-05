@@ -32,6 +32,7 @@ from ..build import CustomTarget, CustomTargetIndex, GeneratedList
 from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
 from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, FeatureNew, FeatureNewKwargs, FeatureDeprecatedKwargs, FeatureDeprecated
 from ..interpreterbase import typed_kwargs, KwargInfo, ContainerTypeInfo
+from ..interpreterbase.decorators import typed_pos_args
 from ..mesonlib import (
     MachineChoice, MesonException, OrderedSet, Popen_safe, extract_as_list,
     join_args, HoldableObject
@@ -45,6 +46,7 @@ if T.TYPE_CHECKING:
     from ..compilers import Compiler
     from ..interpreter import Interpreter
     from ..interpreterbase import TYPE_var
+    from ..mesonlib import FileOrString
 
     class PostInstall(TypedDict):
         glib_compile_schemas: bool
@@ -190,7 +192,8 @@ class GnomeModule(ExtensionModule):
     @FeatureNewKwargs('gnome.compile_resources', '0.37.0', ['gresource_bundle', 'export', 'install_header'])
     @permittedKwargs({'source_dir', 'c_name', 'dependencies', 'export', 'gresource_bundle', 'install_header',
                       'install', 'install_dir', 'extra_args', 'build_by_default'})
-    def compile_resources(self, state: 'ModuleState', args, kwargs) -> 'ModuleReturnValue':
+    @typed_pos_args('gnome.compile_resources', str, (str, mesonlib.File))
+    def compile_resources(self, state: 'ModuleState', args: T.Tuple[str, 'FileOrString'], kwargs) -> 'ModuleReturnValue':
         self.__print_gresources_warning(state)
         glib_version = self._get_native_glib_version(state)
 
@@ -199,9 +202,7 @@ class GnomeModule(ExtensionModule):
 
         source_dirs, dependencies = (mesonlib.extract_as_list(kwargs, c, pop=True) for c in ['source_dir', 'dependencies'])
 
-        if len(args) < 2:
-            raise MesonException('Not enough arguments; the name of the resource '
-                                 'and the path to the XML file are required')
+        target_name, input_file = args
 
         # Validate dependencies
         subdirs = []
@@ -224,27 +225,21 @@ class GnomeModule(ExtensionModule):
                 raise MesonException(m)
 
         if not mesonlib.version_compare(glib_version, gresource_dep_needed_version):
-            ifile = args[1]
-            if isinstance(ifile, mesonlib.File):
+            # Resource xml files generated at build-time cannot be used with
+            # gnome.compile_resources() because we need to scan the xml for
+            # dependencies. Use configure_file() instead to generate it at
+            # configure-time
+            if isinstance(input_file, mesonlib.File):
                 # glib-compile-resources will be run inside the source dir,
                 # so we need either 'src_to_build' or the absolute path.
                 # Absolute path is the easiest choice.
-                if ifile.is_built:
-                    ifile = os.path.join(state.environment.get_build_dir(), ifile.subdir, ifile.fname)
+                if input_file.is_built:
+                    ifile = os.path.join(state.environment.get_build_dir(), input_file.subdir, input_file.fname)
                 else:
-                    ifile = os.path.join(ifile.subdir, ifile.fname)
-            elif isinstance(ifile, str):
-                ifile = os.path.join(state.subdir, ifile)
-            elif isinstance(ifile, (build.CustomTarget,
-                                    build.CustomTargetIndex,
-                                    build.GeneratedList)):
-                m = 'Resource xml files generated at build-time cannot be used ' \
-                    'with gnome.compile_resources() because we need to scan ' \
-                    'the xml for dependencies. Use configure_file() instead ' \
-                    'to generate it at configure-time.'
-                raise MesonException(m)
+                    ifile = os.path.join(input_file.subdir, input_file.fname)
             else:
-                raise MesonException(f'Invalid file argument: {ifile!r}')
+                ifile = os.path.join(state.subdir, input_file)
+
             depend_files, depends, subdirs = self._get_gresource_dependencies(
                 state, ifile, source_dirs, dependencies)
 
@@ -270,15 +265,15 @@ class GnomeModule(ExtensionModule):
 
         gresource = kwargs.pop('gresource_bundle', False)
         if gresource:
-            output = args[0] + '.gresource'
-            name = args[0] + '_gresource'
+            output = f'{target_name}.gresource'
+            name = f'{target_name}_gresource'
         else:
             if 'c' in state.environment.coredata.compilers.host.keys():
-                output = args[0] + '.c'
-                name = args[0] + '_c'
+                output = f'{target_name}.c'
+                name = f'{target_name}_c'
             elif 'cpp' in state.environment.coredata.compilers.host.keys():
-                output = args[0] + '.cpp'
-                name = args[0] + '_cpp'
+                output = f'{target_name}.cpp'
+                name = f'{target_name}_cpp'
             else:
                 raise MesonException('Compiling GResources into code is only supported in C and C++ projects')
 
@@ -311,8 +306,8 @@ class GnomeModule(ExtensionModule):
 
         h_kwargs = {
             'command': cmd,
-            'input': args[1],
-            'output': args[0] + '.h',
+            'input': input_file,
+            'output': f'{target_name}.h',
             # The header doesn't actually care about the files yet it errors if missing
             'depends': depends
         }
@@ -322,7 +317,7 @@ class GnomeModule(ExtensionModule):
             h_kwargs['install'] = install_header
             h_kwargs['install_dir'] = kwargs.get('install_dir',
                                                  state.environment.coredata.get_option(mesonlib.OptionKey('includedir')))
-        target_h = GResourceHeaderTarget(args[0] + '_h', state.subdir, state.subproject, h_kwargs)
+        target_h = GResourceHeaderTarget(f'{target_name}_h', state.subdir, state.subproject, h_kwargs)
         rv = [target_c, target_h]
         return ModuleReturnValue(rv, rv)
 
