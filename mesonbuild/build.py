@@ -2347,7 +2347,7 @@ class CustomTarget(Target, CommandBase):
         # TODO expose keyword arg to make MachineChoice.HOST configurable
         super().__init__(name, subdir, subproject, False, MachineChoice.HOST)
         self.dependencies: T.List[T.Union[CustomTarget, BuildTarget]] = []
-        self.extra_depends = []
+        self.extra_depends: T.List[T.Union[CustomTarget, BuildTarget]] = []
         self.depend_files = [] # Files that this target depends on but are not on the command line.
         self.depfile = None
         self.process_kwargs(kwargs, backend)
@@ -2367,7 +2367,7 @@ class CustomTarget(Target, CommandBase):
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.command)
 
-    def get_target_dependencies(self):
+    def get_target_dependencies(self) -> T.List[T.Union['BuildTarget', 'CustomTarget']]:
         deps = self.dependencies[:]
         deps += self.extra_depends
         for c in self.sources:
