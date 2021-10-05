@@ -980,9 +980,8 @@ class GnomeModule(ExtensionModule):
 
     @FeatureNewKwargs('build target', '0.40.0', ['build_by_default'])
     @permittedKwargs({'build_by_default', 'depend_files'})
-    def compile_schemas(self, state, args, kwargs):
-        if args:
-            raise MesonException('Compile_schemas does not take positional arguments.')
+    @noPosargs
+    def compile_schemas(self, state: 'ModuleState', args: T.List['TYPE_var'], kwargs) -> ModuleReturnValue:
         srcdir = os.path.join(state.build_to_src, state.subdir)
         outdir = state.subdir
 
