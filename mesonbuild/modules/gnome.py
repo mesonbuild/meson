@@ -1001,18 +1001,15 @@ class GnomeModule(ExtensionModule):
     @permittedKwargs({'sources', 'media', 'symlink_media', 'languages'})
     @FeatureDeprecatedKwargs('gnome.yelp', '0.43.0', ['languages'],
                              'Use a LINGUAS file in the source directory instead')
-    def yelp(self, state, args, kwargs):
-        if len(args) < 1:
-            raise MesonException('Yelp requires a project id')
-
+    @typed_pos_args('gnome.yelp', str, varargs=str)
+    def yelp(self, state: 'ModuleState', args: T.Tuple[str, T.List[str]], kwargs) -> ModuleReturnValue:
         project_id = args[0]
         if len(args) > 1:
             FeatureDeprecated.single_use('gnome.yelp more than one positional argument', '0.60.0', 'use the "sources" keyword argument instead.')
 
         sources = mesonlib.stringlistify(kwargs.pop('sources', []))
         if not sources:
-            if len(args) > 1:
-                sources = mesonlib.stringlistify(args[1:])
+            sources = args[1]
             if not sources:
                 raise MesonException('Yelp requires a list of sources')
         else:
