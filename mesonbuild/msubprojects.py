@@ -58,7 +58,9 @@ class Runner:
         # FIXME: Do a copy because Resolver.resolve() is stateful method that
         # cannot be called from multiple threads.
         self.wrap_resolver = copy.copy(r)
-        self.wrap = wrap
+        self.wrap_resolver.current_subproject = 'meson'
+        self.wrap_resolver.dirname = os.path.join(r.subdir_root, wrap.directory)
+        self.wrap = self.wrap_resolver.wrap = wrap
         self.repo_dir = repo_dir
         self.options = options
         self.run_method = options.subprojects_func.__get__(self)
@@ -154,6 +156,7 @@ class Runner:
             # avoid any data lost by mistake.
             self.git_stash()
             self.git_output(['reset', '--hard', 'FETCH_HEAD'])
+            self.wrap_resolver.apply_patch()
         except GitException as e:
             self.log('  -> Could not reset', mlog.bold(self.repo_dir), 'to', mlog.bold(revision))
             self.log(mlog.red(e.output))
@@ -468,6 +471,23 @@ class Runner:
             mlog.log('')
             mlog.log('Nothing has been deleted, run again with --confirm to apply.')
 
+    def packagefiles(self) -> bool:
+        if self.options.apply and self.options.save:
+            # not quite so nice as argparse failure
+            print('error: --apply and --save are mutually exclusive')
+            return False
+        if self.options.apply:
+            self.log(f'Re-applying patchfiles overlay for {self.wrap.name}...')
+            if not os.path.isdir(self.repo_dir):
+                self.log('  -> Not downloaded yet')
+                return True
+            self.wrap_resolver.apply_patch()
+            return True
+        if self.options.save:
+            mlog.error('not implemented yet')
+            return False
+
+
 def add_common_arguments(p):
     p.add_argument('--sourcedir', default='.',
                    help='Path to source directory')
@@ -526,6 +546,13 @@ def add_arguments(parser):
     p.add_argument('--confirm', action='store_true', default=False, help='Confirm the removal of subproject artifacts')
     p.set_defaults(subprojects_func=Runner.purge)
     p.set_defaults(post_func=Runner.post_purge)
+
+    p = subparsers.add_parser('packagefiles', help='Manage the packagefiles overlay')
+    add_common_arguments(p)
+    add_subprojects_argument(p)
+    p.add_argument('--apply', action='store_true', default=False, help='Apply packagefiles to the subproject')
+    p.add_argument('--save', action='store_true', default=False, help='Save packagefiles from the subproject')
+    p.set_defaults(subprojects_func=Runner.packagefiles)
 
 def run(options):
     src_dir = os.path.relpath(os.path.realpath(options.sourcedir))
