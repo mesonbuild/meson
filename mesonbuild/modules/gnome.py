@@ -45,7 +45,7 @@ if T.TYPE_CHECKING:
     from . import ModuleState
     from ..compilers import Compiler
     from ..interpreter import Interpreter
-    from ..interpreterbase import TYPE_var
+    from ..interpreterbase import TYPE_var, TYPE_kwargs
     from ..mesonlib import FileOrString
 
     class PostInstall(TypedDict):
@@ -1075,7 +1075,7 @@ class GnomeModule(ExtensionModule):
                       'mkdb_args', 'ignore_headers', 'include_directories',
                       'namespace', 'mode', 'expand_content_files', 'module_version',
                       'c_args', 'check'})
-    @typed_pos_args('gnome.gtkdok', str)
+    @typed_pos_args('gnome.gtkdoc', str)
     def gtkdoc(self, state: 'ModuleState', args: T.Tuple[str], kwargs):
         modulename = args[0]
         if 'src_dir' not in kwargs:
@@ -1228,13 +1228,9 @@ class GnomeModule(ExtensionModule):
         return args
 
     @noKwargs
-    def gtkdoc_html_dir(self, state, args, kwargs):
-        if len(args) != 1:
-            raise MesonException('Must have exactly one argument.')
-        modulename = args[0]
-        if not isinstance(modulename, str):
-            raise MesonException('Argument must be a string')
-        return os.path.join('share/gtk-doc/html', modulename)
+    @typed_pos_args('gnome.gtkdoc_html_dir', str)
+    def gtkdoc_html_dir(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> str:
+        return os.path.join('share/gtk-doc/html', args[0])
 
     @staticmethod
     def _unpack_args(arg, kwarg_name: str, kwargs: T.Dict[str, T.Any], expend_file_state: T.Optional['ModuleState'] = None) -> T.List[str]:
