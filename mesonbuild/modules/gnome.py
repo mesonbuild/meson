@@ -1273,11 +1273,10 @@ class GnomeModule(ExtensionModule):
     @FeatureNewKwargs('build target', '0.47.0', ['extra_args', 'autocleanup'])
     @permittedKwargs({'interface_prefix', 'namespace', 'extra_args', 'autocleanup', 'object_manager', 'build_by_default',
                       'annotations', 'docbook', 'install_header', 'install_dir', 'sources'})
-    def gdbus_codegen(self, state, args, kwargs):
-        if len(args) not in (1, 2):
-            raise MesonException('gdbus_codegen takes at most two arguments, name and xml file.')
+    @typed_pos_args('gnome.gdbus_codegen', str, optargs=[str])
+    def gdbus_codegen(self, state: 'ModuleState', args: T.Tuple[str, T.Optional[str]], kwargs) -> ModuleReturnValue:
         namebase = args[0]
-        xml_files = args[1:]
+        xml_files: T.List[str] = [args[1]] if args[1] else []
         cmd = [state.find_program('gdbus-codegen')]
         extra_args = mesonlib.stringlistify(kwargs.pop('extra_args', []))
         cmd += extra_args
