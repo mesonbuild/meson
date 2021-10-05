@@ -47,14 +47,7 @@ Meson can be run as a [Python zip
 app](https://docs.python.org/3/library/zipapp.html). To generate the
 executable run the following command:
 
-    python3 -m zipapp -p '/usr/bin/env python3' -m meson:main -o meson <source checkout>
-
-Note that the source checkout may not be `meson` because it would
-clash with the generated binary name.
-
-This will zip all files inside the source checkout into the script
-which includes hundreds of tests, so you might want to temporarily
-remove those before running it.
+    ./packaging/create_zipapp.py --outfile meson.pyz --interpreter '/usr/bin/env python3' <source checkout>
 
 #### Running
 
