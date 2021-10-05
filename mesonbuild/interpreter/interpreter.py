@@ -455,7 +455,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             held_type: holder_type
         })
 
-    def process_new_values(self, invalues: T.List[TYPE_var]) -> None:
+    def process_new_values(self, invalues: T.List[T.Union[TYPE_var, ExecutableSerialisation]]) -> None:
         invalues = listify(invalues)
         for v in invalues:
             if isinstance(v, ObjectHolder):
