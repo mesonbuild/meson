@@ -207,7 +207,7 @@ class GnomeModule(ExtensionModule):
         # Validate dependencies
         subdirs = []
         depends = []
-        for (ii, dep) in enumerate(dependencies):
+        for dep in dependencies:
             if isinstance(dep, mesonlib.File):
                 subdirs.append(dep.subdir)
             elif isinstance(dep, (build.CustomTarget, build.CustomTargetIndex)):
