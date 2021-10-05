@@ -1399,9 +1399,8 @@ class GnomeModule(ExtensionModule):
     @permittedKwargs({'sources', 'c_template', 'h_template', 'install_header', 'install_dir',
                       'comments', 'identifier_prefix', 'symbol_prefix', 'eprod', 'vprod',
                       'fhead', 'fprod', 'ftail', 'vhead', 'vtail', 'depends'})
-    def mkenums(self, state, args, kwargs):
-        if len(args) != 1:
-            raise MesonException('Mkenums requires one positional argument.')
+    @typed_pos_args('gnome.mkenums', str)
+    def mkenums(self, state: 'ModuleState', args: T.Tuple[str], kwargs) -> ModuleReturnValue:
         basename = args[0]
 
         if 'sources' not in kwargs:
