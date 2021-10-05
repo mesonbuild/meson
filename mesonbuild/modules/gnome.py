@@ -31,7 +31,7 @@ from .. import mesonlib
 from .. import mlog
 from ..build import CustomTarget, CustomTargetIndex, GeneratedList
 from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
-from ..interpreter.type_checking import DEPEND_FILES_KW
+from ..interpreter.type_checking import DEPEND_FILES_KW, INSTALL_KW, NoneType
 from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, FeatureNew, FeatureNewKwargs, FeatureDeprecatedKwargs
 from ..interpreterbase import typed_kwargs, KwargInfo, ContainerTypeInfo
 from ..interpreterbase.decorators import typed_pos_args
@@ -68,9 +68,29 @@ if T.TYPE_CHECKING:
         sources: T.List[str]
         symlink_media: bool
 
+    class CompileResources(TypedDict):
+
+        build_by_default: bool
+        c_name: T.Optional[str]
+        dependencies: T.List[T.Union[mesonlib.File, build.CustomTarget, build.CustomTargetIndex]]
+        export: bool
+        extra_args: T.List[str]
+        gresource_bundle: bool
+        install: bool
+        install_dir: T.Optional[str]
+        install_header: bool
+        source_dir: T.List[str]
+
 # Differs from the CustomTarget version in that it straight defaults to True
 _BUILD_BY_DEFAULT: KwargInfo[bool] = KwargInfo(
     'build_by_default', bool, default=True,
+)
+
+_EXTRA_ARGS_KW: KwargInfo[T.List[str]] = KwargInfo(
+    'extra_args',
+    ContainerTypeInfo(list, str),
+    default=[],
+    listify=True,
 )
 
 # gresource compilation is broken due to the way
@@ -207,28 +227,40 @@ class GnomeModule(ExtensionModule):
             rv.append(script)
         return ModuleReturnValue(None, rv)
 
-    @FeatureNewKwargs('gnome.compile_resources', '0.37.0', ['gresource_bundle', 'export', 'install_header'])
-    @permittedKwargs({'source_dir', 'c_name', 'dependencies', 'export', 'gresource_bundle', 'install_header',
-                      'install', 'install_dir', 'extra_args', 'build_by_default'})
     @typed_pos_args('gnome.compile_resources', str, (str, mesonlib.File))
-    def compile_resources(self, state: 'ModuleState', args: T.Tuple[str, 'FileOrString'], kwargs) -> 'ModuleReturnValue':
+    @typed_kwargs(
+        'gnome.compile_resources',
+        _BUILD_BY_DEFAULT,
+        _EXTRA_ARGS_KW,
+        INSTALL_KW,
+        INSTALL_KW.evolve(name='install_header', since='0.37.0'),
+        KwargInfo('c_name', (str, NoneType)),
+        KwargInfo('dependencies', ContainerTypeInfo(list, (mesonlib.File, build.CustomTarget, build.CustomTargetIndex)), default=[], listify=True),
+        KwargInfo('export', bool, default=False, since='0.37.0'),
+        KwargInfo('gresource_bundle', bool, default=False, since='0.37.0'),
+        KwargInfo('install_dir', (str, NoneType)),
+        KwargInfo('source_dir', ContainerTypeInfo(list, str), default=[], listify=True),
+    )
+    def compile_resources(self, state: 'ModuleState', args: T.Tuple[str, 'FileOrString'],
+                          kwargs: 'CompileResources') -> 'ModuleReturnValue':
         self.__print_gresources_warning(state)
         glib_version = self._get_native_glib_version(state)
 
         glib_compile_resources = state.find_program('glib-compile-resources')
         cmd = [glib_compile_resources, '@INPUT@']
 
-        source_dirs, dependencies = (mesonlib.extract_as_list(kwargs, c, pop=True) for c in ['source_dir', 'dependencies'])
+        source_dirs = kwargs['source_dir']
+        dependencies = kwargs['dependencies']
 
         target_name, input_file = args
 
         # Validate dependencies
-        subdirs = []
-        depends = []
+        subdirs: T.List[str] = []
+        depends: T.List[T.Union[build.CustomTarget, build.CustomTargetIndex]] = []
         for dep in dependencies:
             if isinstance(dep, mesonlib.File):
                 subdirs.append(dep.subdir)
-            elif isinstance(dep, (build.CustomTarget, build.CustomTargetIndex)):
+            else:
                 depends.append(dep)
                 subdirs.append(dep.get_subdir())
                 if not mesonlib.version_compare(glib_version, gresource_dep_needed_version):
@@ -236,11 +268,6 @@ class GnomeModule(ExtensionModule):
                         'be used with the current version of glib-compile-resources due to\n' \
                         '<https://bugzilla.gnome.org/show_bug.cgi?id=774368>'
                     raise MesonException(m)
-            else:
-                m = f'Unexpected dependency type {dep!r} for gnome.compile_resources() ' \
-                    '"dependencies" argument.\nPlease pass the return value of ' \
-                    'custom_target() or configure_file()'
-                raise MesonException(m)
 
         if not mesonlib.version_compare(glib_version, gresource_dep_needed_version):
             # Resource xml files generated at build-time cannot be used with
@@ -271,17 +298,15 @@ class GnomeModule(ExtensionModule):
         for source_dir in OrderedSet(source_dirs):
             cmd += ['--sourcedir', source_dir]
 
-        if 'c_name' in kwargs:
-            cmd += ['--c-name', kwargs.pop('c_name')]
-        export = kwargs.pop('export', False)
-        if not export:
+        if kwargs['c_name']:
+            cmd += ['--c-name', kwargs['c_name']]
+        if not kwargs['export']:
             cmd += ['--internal']
 
         cmd += ['--generate', '--target', '@OUTPUT@']
+        cmd += kwargs['extra_args']
 
-        cmd += mesonlib.stringlistify(kwargs.pop('extra_args', []))
-
-        gresource = kwargs.pop('gresource_bundle', False)
+        gresource = kwargs['gresource_bundle']
         if gresource:
             output = f'{target_name}.gresource'
             name = f'{target_name}_gresource'
@@ -295,20 +320,23 @@ class GnomeModule(ExtensionModule):
             else:
                 raise MesonException('Compiling GResources into code is only supported in C and C++ projects')
 
-        if kwargs.get('install', False) and not gresource:
+        if kwargs['install'] and not gresource:
             raise MesonException('The install kwarg only applies to gresource bundles, see install_header')
 
-        install_header = kwargs.pop('install_header', False)
+        install_header = kwargs['install_header']
         if install_header and gresource:
             raise MesonException('The install_header kwarg does not apply to gresource bundles')
-        if install_header and not export:
+        if install_header and not kwargs['export']:
             raise MesonException('GResource header is installed yet export is not enabled')
 
-        c_kwargs = kwargs.copy()
-        c_kwargs['input'] = args[1]
-        c_kwargs['output'] = output
-        c_kwargs['depends'] = depends
-        c_kwargs.setdefault('install_dir', [])
+        c_kwargs: T.Dict[str, T.Any] = {
+            'build_by_default': kwargs['build_by_default'],
+            'depends': depends,
+            'input': input_file,
+            'install': kwargs['install'],
+            'install_dir': kwargs['install_dir'] or [],
+            'output': output,
+        }
         if not mesonlib.version_compare(glib_version, gresource_dep_needed_version):
             # This will eventually go out of sync if dependencies are added
             c_kwargs['depend_files'] = depend_files
@@ -322,19 +350,17 @@ class GnomeModule(ExtensionModule):
         if gresource: # Only one target for .gresource files
             return ModuleReturnValue(target_c, [target_c])
 
-        h_kwargs = {
+        h_kwargs: T.Dict[str, T.Any] = {
             'command': cmd,
             'input': input_file,
             'output': f'{target_name}.h',
             # The header doesn't actually care about the files yet it errors if missing
-            'depends': depends
+            'depends': depends,
+            'build_by_default': kwargs['build_by_default'],
+            'install_dir': kwargs['install_dir'] or [state.environment.coredata.get_option(mesonlib.OptionKey('includedir'))],
         }
-        if 'build_by_default' in kwargs:
-            h_kwargs['build_by_default'] = kwargs['build_by_default']
         if install_header:
             h_kwargs['install'] = install_header
-            h_kwargs['install_dir'] = kwargs.get('install_dir',
-                                                 state.environment.coredata.get_option(mesonlib.OptionKey('includedir')))
         target_h = GResourceHeaderTarget(f'{target_name}_h', state.subdir, state.subproject, h_kwargs)
         rv = [target_c, target_h]
         return ModuleReturnValue(rv, rv)
