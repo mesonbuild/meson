@@ -1636,10 +1636,8 @@ G_END_DECLS'''
     @permittedKwargs({'sources', 'prefix', 'install_header', 'install_dir', 'stdinc',
                       'nostdinc', 'internal', 'skip_source', 'valist_marshallers',
                       'extra_args'})
-    def genmarshal(self, state, args, kwargs):
-        if len(args) != 1:
-            raise MesonException(
-                'Genmarshal requires one positional argument.')
+    @typed_pos_args('gnome.genmarshal', str)
+    def genmarshal(self, state: 'ModuleState', args: T.Tuple[str], kwargs) -> ModuleReturnValue:
         output = args[0]
 
         if 'sources' not in kwargs:
