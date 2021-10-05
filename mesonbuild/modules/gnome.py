@@ -31,6 +31,7 @@ from .. import mesonlib
 from .. import mlog
 from ..build import CustomTarget, CustomTargetIndex, GeneratedList
 from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
+from ..interpreter.type_checking import DEPEND_FILES_KW
 from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, FeatureNew, FeatureNewKwargs, FeatureDeprecatedKwargs, FeatureDeprecated
 from ..interpreterbase import typed_kwargs, KwargInfo, ContainerTypeInfo
 from ..interpreterbase.decorators import typed_pos_args
@@ -54,6 +55,16 @@ if T.TYPE_CHECKING:
         gio_querymodules: T.List[str]
         gtk_update_icon_cache: bool
         update_desktop_database: bool
+
+    class CompileSchemas(TypedDict):
+
+        build_by_default: bool
+        depend_files: T.List[FileOrString]
+
+# Differs from the CustomTarget version in that it straight defaults to True
+_BUILD_BY_DEFAULT: KwargInfo[bool] = KwargInfo(
+    'build_by_default', bool, default=True,
+)
 
 
 # gresource compilation is broken due to the way
@@ -979,23 +990,22 @@ class GnomeModule(ExtensionModule):
 
         return ModuleReturnValue(rv, rv)
 
-    @FeatureNewKwargs('build target', '0.40.0', ['build_by_default'])
-    @permittedKwargs({'build_by_default', 'depend_files'})
     @noPosargs
-    def compile_schemas(self, state: 'ModuleState', args: T.List['TYPE_var'], kwargs) -> ModuleReturnValue:
+    @typed_kwargs('gnome.compile_schemas', _BUILD_BY_DEFAULT.evolve(since='0.40.0'), DEPEND_FILES_KW)
+    def compile_schemas(self, state: 'ModuleState', args: T.List['TYPE_var'], kwargs: 'CompileSchemas') -> ModuleReturnValue:
         srcdir = os.path.join(state.build_to_src, state.subdir)
         outdir = state.subdir
 
-        cmd = [state.find_program('glib-compile-schemas')]
-        cmd += ['--targetdir', outdir, srcdir]
-        kwargs['command'] = cmd
-        kwargs['input'] = []
-        kwargs['output'] = 'gschemas.compiled'
+        cmd = [state.find_program('glib-compile-schemas'), '--targetdir', outdir, srcdir]
+        ct_kwargs = T.cast(T.Dict[str, T.Any], kwargs.copy())
+        ct_kwargs['command'] = cmd
+        ct_kwargs['input'] = []
+        ct_kwargs['output'] = 'gschemas.compiled'
         if state.subdir == '':
             targetname = 'gsettings-compile'
         else:
             targetname = 'gsettings-compile-' + state.subdir.replace('/', '_')
-        target_g = build.CustomTarget(targetname, state.subdir, state.subproject, kwargs)
+        target_g = build.CustomTarget(targetname, state.subdir, state.subproject, ct_kwargs)
         self._devenv_prepend('GSETTINGS_SCHEMA_DIR', os.path.join(state.environment.get_build_dir(), state.subdir))
         return ModuleReturnValue(target_g, [target_g])
 
