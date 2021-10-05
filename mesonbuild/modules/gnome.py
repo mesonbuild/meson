@@ -1075,12 +1075,9 @@ class GnomeModule(ExtensionModule):
                       'mkdb_args', 'ignore_headers', 'include_directories',
                       'namespace', 'mode', 'expand_content_files', 'module_version',
                       'c_args', 'check'})
-    def gtkdoc(self, state, args, kwargs):
-        if len(args) != 1:
-            raise MesonException('Gtkdoc must have one positional argument.')
+    @typed_pos_args('gnome.gtkdok', str)
+    def gtkdoc(self, state: 'ModuleState', args: T.Tuple[str], kwargs):
         modulename = args[0]
-        if not isinstance(modulename, str):
-            raise MesonException('Gtkdoc arg must be string.')
         if 'src_dir' not in kwargs:
             raise MesonException('Keyword argument src_dir missing.')
         main_file = kwargs.get('main_sgml', '')
