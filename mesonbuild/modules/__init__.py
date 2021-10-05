@@ -72,18 +72,9 @@ class ModuleState:
         for dirs in include_dirs:
             if isinstance(dirs, str):
                 dirs_str += [f'{prefix}{dirs}']
-                continue
-
-            # Should be build.IncludeDirs object.
-            basedir = dirs.get_curdir()
-            for d in dirs.get_incdirs():
-                expdir = os.path.join(basedir, d)
-                srctreedir = os.path.join(srcdir, expdir)
-                buildtreedir = os.path.join(builddir, expdir)
-                dirs_str += [f'{prefix}{buildtreedir}',
-                             f'{prefix}{srctreedir}']
-            for d in dirs.get_extra_build_dirs():
-                dirs_str += [f'{prefix}{d}']
+            else:
+                dirs_str.extend([f'{prefix}{i}' for i in dirs.to_string_list(srcdir, builddir)])
+                dirs_str.extend([f'{prefix}{i}' for i in dirs.get_extra_build_dirs()])
 
         return dirs_str
 
