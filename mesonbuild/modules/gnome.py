@@ -1508,9 +1508,10 @@ class GnomeModule(ExtensionModule):
             return ModuleReturnValue(targets, targets)
 
     @FeatureNew('gnome.mkenums_simple', '0.42.0')
-    def mkenums_simple(self, state, args, kwargs):
-        hdr_filename = args[0] + '.h'
-        body_filename = args[0] + '.c'
+    @typed_pos_args('gnome.mkenums_simple', str)
+    def mkenums_simple(self, state: 'ModuleState', args: T.Tuple[str], kwargs) -> ModuleReturnValue:
+        hdr_filename = f'{args[0]}.h'
+        body_filename = f'{args[0]}.c'
 
         # not really needed, just for sanity checking
         forbidden_kwargs = ['c_template', 'h_template', 'eprod', 'fhead',
