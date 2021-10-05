@@ -873,13 +873,13 @@ class GnomeModule(ExtensionModule):
                       'export_packages', 'includes', 'dependencies', 'link_with', 'include_directories',
                       'install', 'install_dir_gir', 'install_dir_typelib', 'extra_args',
                       'packages', 'header', 'build_by_default', 'fatal_warnings'})
-    def generate_gir(self, state, args, kwargs: T.Dict[str, T.Any]):
-        if not args:
-            raise MesonException('generate_gir takes at least one argument')
+    @typed_pos_args('gnome.generate_gir', varargs=(build.Executable, build.SharedLibrary, build.StaticLibrary), min_varargs=1)
+    def generate_gir(self, state: 'ModuleState', args: T.Tuple[T.List[T.Union[build.Executable, build.SharedLibrary, build.StaticLibrary]]],
+                     kwargs: T.Dict[str, T.Any]) -> ModuleReturnValue:
         if kwargs.get('install_dir'):
             raise MesonException('install_dir is not supported with generate_gir(), see "install_dir_gir" and "install_dir_typelib"')
 
-        girtargets = [self._unwrap_gir_target(arg, state) for arg in args]
+        girtargets = [self._unwrap_gir_target(arg, state) for arg in args[0]]
 
         if len(girtargets) > 1 and any([isinstance(el, build.Executable) for el in girtargets]):
             raise MesonException('generate_gir only accepts a single argument when one of the arguments is an executable')
