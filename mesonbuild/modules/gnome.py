@@ -1780,14 +1780,9 @@ G_END_DECLS'''
 
     @permittedKwargs({'sources', 'packages', 'metadata_dirs', 'gir_dirs',
                       'vapi_dirs', 'install', 'install_dir'})
-    def generate_vapi(self, state: 'ModuleState', args, kwargs) -> ModuleReturnValue:
-        if len(args) != 1:
-            raise MesonException('The library name is required')
-
-        if not isinstance(args[0], str):
-            raise MesonException('The first argument must be the name of the library')
+    @typed_pos_args('gnome.generate_vapi', str)
+    def generate_vapi(self, state: 'ModuleState', args: T.Tuple[str], kwargs) -> ModuleReturnValue:
         created_values = []
-
         library = args[0]
         build_dir = os.path.join(state.environment.get_build_dir(), state.subdir)
         source_dir = os.path.join(state.environment.get_source_dir(), state.subdir)
