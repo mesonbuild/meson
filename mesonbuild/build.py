@@ -385,11 +385,19 @@ class IncludeDirs(HoldableObject):
     def get_extra_build_dirs(self) -> T.List[str]:
         return self.extra_build_dirs
 
-    def to_string_list(self, sourcedir: str) -> T.List[str]:
-        """Convert IncludeDirs object to a list of strings."""
+    def to_string_list(self, sourcedir: str, builddir: T.Optional[str] = None) -> T.List[str]:
+        """Convert IncludeDirs object to a list of strings.
+
+        :param sourcedir: The absolute source directory
+        :param builddir: The absolute build directory, option, buid dir will not
+            be added if this is unset
+        :returns: A list of strings (without compiler argument)
+        """
         strlist: T.List[str] = []
         for idir in self.incdirs:
             strlist.append(os.path.join(sourcedir, self.curdir, idir))
+            if builddir:
+                strlist.append(os.path.join(builddir, self.curdir, idir))
         return strlist
 
 class ExtractedObjects(HoldableObject):
