@@ -222,9 +222,9 @@ class GnomeModule(ExtensionModule):
                     ifile = os.path.join(ifile.subdir, ifile.fname)
             elif isinstance(ifile, str):
                 ifile = os.path.join(state.subdir, ifile)
-            elif isinstance(ifile, (interpreter.CustomTargetHolder,
-                                    interpreter.CustomTargetIndexHolder,
-                                    interpreter.GeneratedObjectsHolder)):
+            elif isinstance(ifile, (build.CustomTarget,
+                                    build.CustomTargetIndex,
+                                    build.GeneratedList)):
                 m = 'Resource xml files generated at build-time cannot be used ' \
                     'with gnome.compile_resources() because we need to scan ' \
                     'the xml for dependencies. Use configure_file() instead ' \
