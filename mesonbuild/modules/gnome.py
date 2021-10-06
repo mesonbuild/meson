@@ -81,6 +81,26 @@ if T.TYPE_CHECKING:
         install_header: bool
         source_dir: T.List[str]
 
+    class GenerateGir(TypedDict):
+
+        build_by_default: bool
+        dependencies: T.List[Dependency]
+        export_packages: T.List[str]
+        extra_args: T.List[str]
+        fatal_warnings: bool
+        header: T.List[str]
+        identifier_prefix: T.List[str]
+        include_directories: T.List[T.Union[build.IncludeDirs, str]]
+        includes: T.List[T.Union[str, GirTarget]]
+        install: bool
+        install_dir_gir: T.Optional[str]
+        install_dir_typelib: T.Optional[str]
+        link_with: T.List[T.Union[build.SharedLibrary, build.StaticLibrary]]
+        namespace: str
+        nsversion: str
+        sources: T.List[T.Union[FileOrString, build.GeneratedTypes]]
+        symbol_prefix: T.List[str]
+
 # Differs from the CustomTarget version in that it straight defaults to True
 _BUILD_BY_DEFAULT: KwargInfo[bool] = KwargInfo(
     'build_by_default', bool, default=True,
@@ -598,96 +618,22 @@ class GnomeModule(ExtensionModule):
         p, o, _ = Popen_safe(exe.get_command() + ['--help'], stderr=subprocess.STDOUT)
         return p.returncode == 0 and option in o
 
-    def _scan_header(self, kwargs: T.Dict[str, T.Any]) -> T.List[str]:
-        ret = []
-        header = kwargs.pop('header', None)
-        if header:
-            if not isinstance(header, str):
-                raise MesonException('header must be a string')
-            ret = ['--c-include=' + header]
-        return ret
-
-    def _scan_extra_args(self, kwargs: T.Dict[str, T.Any]) -> T.List[str]:
-        return mesonlib.stringlistify(kwargs.pop('extra_args', []))
-
-    def _scan_link_withs(self, state: 'ModuleState', depends: T.List[build.BuildTarget], kwargs: T.Dict[str, T.Any]) -> T.List[str]:
-        ret: T.List[str] = []
-        if 'link_with' in kwargs:
-            link_with = mesonlib.extract_as_list(kwargs, 'link_with', pop = True)
-
-            for link in link_with:
-                ret += self._get_link_args(state, link, depends,
-                                           use_gir_args=True)
-        return ret
-
     # May mutate depends and gir_inc_dirs
-    def _scan_include(self, state: 'ModuleState', depends: T.List[T.Union[build.BuildTarget, build.CustomTarget]],
-                      gir_inc_dirs: T.List[str], kwargs: T.Dict[str, T.Any]) -> T.List[str]:
+    def _scan_include(self, state: 'ModuleState', includes: T.List[T.Union[str, GirTarget]]
+                      ) -> T.Tuple[T.List[str], T.List[str], T.List[GirTarget]]:
         ret: T.List[str] = []
+        gir_inc_dirs: T.List[str] = []
+        depends: T.List[GirTarget] = []
 
-        if 'includes' in kwargs:
-            includes = mesonlib.extract_as_list(kwargs, 'includes', pop = True)
-            for inc in includes:
-                if isinstance(inc, str):
-                    ret += [f'--include={inc}']
-                elif isinstance(inc, GirTarget):
-                    gir_inc_dirs += [
-                        os.path.join(state.environment.get_build_dir(),
-                                     inc.get_subdir()),
-                    ]
-                    ret += [
-                        "--include-uninstalled={}".format(os.path.join(inc.get_subdir(), inc.get_basename()))
-                    ]
-                    depends += [inc]
-                else:
-                    raise MesonException(
-                        'Gir includes must be str, GirTarget, or list of them. '
-                        'Got %s.' % type(inc).__name__)
+        for inc in includes:
+            if isinstance(inc, str):
+                ret += [f'--include={inc}']
+            elif isinstance(inc, GirTarget):
+                gir_inc_dirs .append(os.path.join(state.environment.get_build_dir(), inc.get_subdir()))
+                ret.append(f"--include-uninstalled={os.path.join(inc.get_subdir(), inc.get_basename())}")
+                depends.append(inc)
 
-        return ret
-
-    def _scan_symbol_prefix(self, kwargs: T.Dict[str, T.Any]) -> T.List[str]:
-        ret: T.List[str] = []
-
-        if 'symbol_prefix' in kwargs:
-            sym_prefixes = mesonlib.stringlistify(kwargs.pop('symbol_prefix', []))
-            ret += [f'--symbol-prefix={sym_prefix}' for sym_prefix in sym_prefixes]
-
-        return ret
-
-    def _scan_identifier_prefix(self, kwargs: T.Dict[str, T.Any]) -> T.List[str]:
-        ret: T.List[str] = []
-
-        if 'identifier_prefix' in kwargs:
-            identifier_prefix = kwargs.pop('identifier_prefix')
-            if not isinstance(identifier_prefix, str):
-                raise MesonException('Gir identifier prefix must be str')
-            ret += [f'--identifier-prefix={identifier_prefix}']
-
-        return ret
-
-    def _scan_export_packages(self, kwargs: T.Dict[str, T.Any]) -> T.List[str]:
-        ret: T.List[str] = []
-
-        if 'export_packages' in kwargs:
-            pkgs = kwargs.pop('export_packages')
-            if isinstance(pkgs, str):
-                ret += [f'--pkg-export={pkgs}']
-            elif isinstance(pkgs, list):
-                ret += [f'--pkg-export={pkg}' for pkg in pkgs]
-            else:
-                raise MesonException('Gir export packages must be str or list')
-
-        return ret
-
-    def _scan_inc_dirs(self, kwargs: T.Dict[str, T.Any]) -> T.List[T.Union[str, build.IncludeDirs]]:
-        ret = mesonlib.extract_as_list(kwargs, 'include_directories', pop = True)
-        for incd in ret:
-            if not isinstance(incd, (str, build.IncludeDirs)):
-                raise MesonException(
-                    'Gir include dirs should be include_directories().')
-        # Mypy can't figure this out
-        return T.cast(T.List[T.Union[str, build.IncludeDirs]], ret)
+        return ret, gir_inc_dirs, depends
 
     def _scan_langs(self, state: 'ModuleState', langs: T.Iterable[str]) -> T.List[str]:
         ret: T.List[str] = []
@@ -817,19 +763,16 @@ class GnomeModule(ExtensionModule):
     def _make_gir_target(self, state: 'ModuleState', girfile: str, scan_command: T.List[str],
                          generated_files: T.Sequence[T.Union[str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]],
                          depends: T.List[build.Target], kwargs: T.Dict[str, T.Any]) -> GirTarget:
-        scankwargs = {'input': generated_files,
-                      'output': girfile,
-                      'command': scan_command,
-                      'depends': depends}
-
-        if 'install' in kwargs:
-            scankwargs['install'] = kwargs['install']
-            scankwargs['install_dir'] = kwargs.get('install_dir_gir',
-                                                   os.path.join(state.environment.get_datadir(), 'gir-1.0'))
-            scankwargs['install_tag'] = 'devel'
-
-        if 'build_by_default' in kwargs:
-            scankwargs['build_by_default'] = kwargs['build_by_default']
+        scankwargs = {
+            'input': generated_files,
+            'output': girfile,
+            'command': scan_command,
+            'depends': depends,
+            'install': kwargs['install'],
+            'install_dir': kwargs['install_dir_gir'] or os.path.join(state.environment.get_datadir(), 'gir-1.0'),
+            'install_tag': 'devel',
+            'build_by_default': kwargs['build_by_default'],
+        }
 
         return GirTarget(girfile, state.subdir, state.subproject, scankwargs)
 
@@ -840,16 +783,11 @@ class GnomeModule(ExtensionModule):
             'input': generated_files,
             'output': [typelib_output],
             'command': typelib_cmd,
+            'install': kwargs['install'],
+            'install_dir': kwargs['install_dir_typelib'] or os.path.join(state.environment.get_libdir(), 'girepository-1.0'),
+            'install_tag': 'typelib',
+            'build_by_default': kwargs['build_by_default'],
         }
-
-        if 'install' in kwargs:
-            typelib_kwargs['install'] = kwargs['install']
-            typelib_kwargs['install_dir'] = kwargs.get('install_dir_typelib',
-                                                       os.path.join(state.environment.get_libdir(), 'girepository-1.0'))
-            typelib_kwargs['install_tag'] = 'typelib'
-
-        if 'build_by_default' in kwargs:
-            typelib_kwargs['build_by_default'] = kwargs['build_by_default']
 
         return TypelibTarget(typelib_output, state.subdir, state.subproject, typelib_kwargs)
 
@@ -911,41 +849,51 @@ class GnomeModule(ExtensionModule):
             if f.startswith(('-L', '-l', '--extra-library')):
                 yield f
 
-    @FeatureNewKwargs('generate_gir', '0.55.0', ['fatal_warnings'])
-    @FeatureNewKwargs('generate_gir', '0.40.0', ['build_by_default'])
-    @permittedKwargs({'sources', 'nsversion', 'namespace', 'symbol_prefix', 'identifier_prefix',
-                      'export_packages', 'includes', 'dependencies', 'link_with', 'include_directories',
-                      'install', 'install_dir_gir', 'install_dir_typelib', 'extra_args',
-                      'packages', 'header', 'build_by_default', 'fatal_warnings'})
     @typed_pos_args('gnome.generate_gir', varargs=(build.Executable, build.SharedLibrary, build.StaticLibrary), min_varargs=1)
+    @typed_kwargs(
+        'gnome.generate_gir',
+        INSTALL_KW,
+        _BUILD_BY_DEFAULT.evolve(since='0.40.0'),
+        _EXTRA_ARGS_KW,
+        KwargInfo('dependencies', ContainerTypeInfo(list, Dependency), default=[], listify=True),
+        KwargInfo('export_packages', ContainerTypeInfo(list, str), default=[], listify=True),
+        KwargInfo('fatal_warnings', bool, default=False, since='0.55.0'),
+        KwargInfo('header', ContainerTypeInfo(list, str), default=[], listify=True),
+        KwargInfo('identifier_prefix', ContainerTypeInfo(list, str), default=[], listify=True),
+        KwargInfo('include_directories', ContainerTypeInfo(list, (str, build.IncludeDirs)), default=[], listify=True),
+        KwargInfo('includes', ContainerTypeInfo(list, (str, GirTarget)), default=[], listify=True),
+        KwargInfo('install_dir_gir', (str, NoneType)),
+        KwargInfo('install_dir_typelib', (str, NoneType)),
+        KwargInfo('link_with', ContainerTypeInfo(list, (build.SharedLibrary, build.StaticLibrary)), default=[], listify=True),
+        KwargInfo('namespace', str, required=True),
+        KwargInfo('nsversion', str, required=True),
+        KwargInfo('sources', ContainerTypeInfo(list, (str, mesonlib.File, build.GeneratedList, build.CustomTarget, build.CustomTargetIndex)), default=[], listify=True),
+        KwargInfo('symbol_prefix', ContainerTypeInfo(list, str), default=[], listify=True),
+    )
     def generate_gir(self, state: 'ModuleState', args: T.Tuple[T.List[T.Union[build.Executable, build.SharedLibrary, build.StaticLibrary]]],
-                     kwargs: T.Dict[str, T.Any]) -> ModuleReturnValue:
-        if kwargs.get('install_dir'):
-            raise MesonException('install_dir is not supported with generate_gir(), see "install_dir_gir" and "install_dir_typelib"')
-
+                     kwargs: 'GenerateGir') -> ModuleReturnValue:
         girtargets = [self._unwrap_gir_target(arg, state) for arg in args[0]]
-
         if len(girtargets) > 1 and any([isinstance(el, build.Executable) for el in girtargets]):
             raise MesonException('generate_gir only accepts a single argument when one of the arguments is an executable')
 
         gir_dep, giscanner, gicompiler = self._get_gir_dep(state)
 
-        ns = kwargs.get('namespace')
-        if not ns:
-            raise MesonException('Missing "namespace" keyword argument')
-        nsversion = kwargs.get('nsversion')
-        if not nsversion:
-            raise MesonException('Missing "nsversion" keyword argument')
-        libsources = mesonlib.extract_as_list(kwargs, 'sources', pop=True)
+        ns = kwargs['namespace']
+        nsversion = kwargs['nsversion']
+        libsources = kwargs['sources']
+
         girfile = f'{ns}-{nsversion}.gir'
         srcdir = os.path.join(state.environment.get_source_dir(), state.subdir)
         builddir = os.path.join(state.environment.get_build_dir(), state.subdir)
-        depends = gir_dep.sources + girtargets
-        gir_inc_dirs = []
+
+        depends: T.List[T.Union['FileOrString', build.GeneratedTypes, build.Executable, build.SharedLibrary, build.StaticLibrary]] = []
+        depends.extend(gir_dep.sources)
+        depends.extend(girtargets)
+
         langs_compilers = self._get_girtargets_langs_compilers(girtargets)
         cflags, internal_ldflags, external_ldflags = self._get_langs_compilers_flags(state, langs_compilers)
         deps = self._get_gir_targets_deps(girtargets)
-        deps += extract_as_list(kwargs, 'dependencies', pop=True)
+        deps += kwargs['dependencies']
         deps += [gir_dep]
         typelib_includes = self._gather_typelib_includes_and_update_depends(state, deps, depends)
         # ldflags will be misinterpreted by gir scanner (showing
@@ -964,23 +912,31 @@ class GnomeModule(ExtensionModule):
         scan_external_ldflags += list(self._get_scanner_ldflags(external_ldflags))
         scan_external_ldflags += list(self._get_scanner_ldflags(dep_external_ldflags))
         girtargets_inc_dirs = self._get_gir_targets_inc_dirs(girtargets)
-        inc_dirs = self._scan_inc_dirs(kwargs)
+        inc_dirs = kwargs['include_directories']
 
-        scan_command = [giscanner]
+        gir_inc_dirs: T.List[str] = []
+
+        scan_command: T.List[T.Union[str, build.Executable, 'ExternalProgram', 'OverrideProgram']] = [giscanner]
         scan_command += ['--no-libtool']
         scan_command += ['--namespace=' + ns, '--nsversion=' + nsversion]
         scan_command += ['--warn-all']
         scan_command += ['--output', '@OUTPUT@']
-        scan_command += self._scan_header(kwargs)
-        scan_command += self._scan_extra_args(kwargs)
+        scan_command += [f'--c-include={h}' for h in kwargs['header']]
+        scan_command += kwargs['extra_args']
         scan_command += ['-I' + srcdir, '-I' + builddir]
         scan_command += state.get_include_args(girtargets_inc_dirs)
         scan_command += ['--filelist=' + self._make_gir_filelist(state, srcdir, ns, nsversion, girtargets, libsources)]
-        scan_command += self._scan_link_withs(state, depends, kwargs)
-        scan_command += self._scan_include(state, depends, gir_inc_dirs, kwargs)
-        scan_command += self._scan_symbol_prefix(kwargs)
-        scan_command += self._scan_identifier_prefix(kwargs)
-        scan_command += self._scan_export_packages(kwargs)
+        scan_command += mesonlib.listify([self._get_link_args(state, l, depends, use_gir_args=True)
+                                          for l in kwargs['link_with']])
+
+        _cmd, _ginc, _deps = self._scan_include(state, kwargs['includes'])
+        scan_command.extend(_cmd)
+        gir_inc_dirs.extend(_ginc)
+        depends.extend(_deps)
+
+        scan_command += [f'--symbol-prefix={p}' for p in kwargs['symbol_prefix']]
+        scan_command += [f'--identifier-prefix={p}' for p in kwargs['identifier_prefix']]
+        scan_command += [f'--pkg-export={p}' for p in kwargs['export_packages']]
         scan_command += ['--cflags-begin']
         scan_command += scan_cflags
         scan_command += ['--cflags-end']
@@ -997,10 +953,7 @@ class GnomeModule(ExtensionModule):
 
         if '--warn-error' in scan_command:
             mlog.deprecation('Passing --warn-error is deprecated in favor of "fatal_warnings" keyword argument since v0.55')
-        fatal_warnings = kwargs.get('fatal_warnings', False)
-        if not isinstance(fatal_warnings, bool):
-            raise MesonException('fatal_warnings keyword argument must be a boolean')
-        if fatal_warnings:
+        if kwargs['fatal_warnings']:
             scan_command.append('--warn-error')
 
         generated_files = [f for f in libsources if isinstance(f, (GeneratedList, CustomTarget, CustomTargetIndex))]
