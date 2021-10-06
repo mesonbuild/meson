@@ -367,7 +367,7 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             compiler = [compiler]
         compiler_name = os.path.basename(compiler[0])
 
-        if not {'cl', 'cl.exe', 'clang-cl', 'clang-cl.exe'}.isdisjoint(compiler):
+        if any(os.path.basename(x) in {'cl', 'cl.exe', 'clang-cl', 'clang-cl.exe'} for x in compiler):
             # Watcom C provides it's own cl.exe clone that mimics an older
             # version of Microsoft's compiler. Since Watcom's cl.exe is
             # just a wrapper, we skip using it if we detect its presence
