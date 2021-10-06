@@ -83,7 +83,7 @@ def extract_search_dirs(kwargs: 'kwargs.ExtractSearchDirs') -> T.List[str]:
 class FeatureOptionHolder(ObjectHolder[coredata.UserFeatureOption]):
     def __init__(self, option: coredata.UserFeatureOption, interpreter: 'Interpreter'):
         super().__init__(option, interpreter)
-        if option and option.is_auto():
+        if option and option.is_auto() and not option.is_user_input():
             # TODO: we need to case here because options is not a TypedDict
             self.held_object = T.cast(coredata.UserFeatureOption, self.env.coredata.options[OptionKey('auto_features')])
             self.held_object.name = option.name
