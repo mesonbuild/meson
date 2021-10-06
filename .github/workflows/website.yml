@@ -13,6 +13,8 @@ on:
       - docs/**
   workflow_dispatch:
 
+# This job is copy/paster into wrapdb CI, please update it there when doing any
+# change here.
 jobs:
   update_website:
     env:
