@@ -323,6 +323,7 @@ class UserOption(T.Generic[_T], HoldableObject):
     deprecated: DeprecatedType = False
     readonly: bool = dataclasses.field(default=False)
     parent: T.Optional[UserOption] = None
+    user_input: bool = False
 
     def __post_init__(self, value_: _T) -> None:
         self.value = self.validate_value(value_)
@@ -351,10 +352,14 @@ class UserOption(T.Generic[_T], HoldableObject):
     def validate_value(self, value: object) -> _T:
         raise RuntimeError('Derived option class did not override validate_value.')
 
-    def set_value(self, newvalue: object) -> bool:
+    def set_value(self, newvalue: object, user_input: bool = False) -> bool:
         oldvalue = self.value
         self.value = self.validate_value(newvalue)
+        self.user_input = user_input
         return self.value != oldvalue
+
+    def is_user_input(self) -> bool:
+        return self.user_input
 
 @dataclasses.dataclass
 class EnumeratedUserOption(UserOption[_T]):
@@ -1063,7 +1068,7 @@ class OptionStore:
         new_value = opt.validate_value(new_value)
         if key in self.options:
             old_value = opt.value
-            opt.set_value(new_value)
+            opt.set_value(new_value, True)
             opt.yielding = False
         else:
             assert key.subproject is not None
