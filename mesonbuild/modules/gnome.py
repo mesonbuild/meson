@@ -31,9 +31,9 @@ from .. import mesonlib
 from .. import mlog
 from ..build import CustomTarget, CustomTargetIndex, GeneratedList, InvalidArguments
 from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
-from ..interpreter.type_checking import DEPEND_FILES_KW, INSTALL_KW, NoneType, in_set_validator
-from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, FeatureNew, FeatureDeprecatedKwargs
-from ..interpreterbase import typed_kwargs, KwargInfo, ContainerTypeInfo, FeatureDeprecated
+from ..interpreter.type_checking import DEPENDS_KW, DEPEND_FILES_KW, INSTALL_KW, NoneType, in_set_validator
+from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, FeatureNew, FeatureDeprecated
+from ..interpreterbase import typed_kwargs, KwargInfo, ContainerTypeInfo
 from ..interpreterbase.decorators import typed_pos_args
 from ..mesonlib import (
     MachineChoice, MesonException, OrderedSet, Popen_safe, join_args,
@@ -138,6 +138,23 @@ if T.TYPE_CHECKING:
         install_dir: T.Optional[str]
         docbook: T.Optional[str]
         autocleanup: Literal['all', 'none', 'objects', 'default']
+
+    class GenMarshal(TypedDict):
+
+        build_always: T.Optional[str]
+        build_always_stale: T.Optional[bool]
+        build_by_default: T.Optional[bool]
+        depend_files: T.List[mesonlib.File]
+        extra_args: T.List[str]
+        install_dir: T.List[T.Union[str, bool]]
+        install_header: bool
+        internal: T.Optional[str]
+        nostdinc: T.Optional[str]
+        prefix: T.Optional[str]
+        skip_source: T.Optional[str]
+        sources: T.List[str]
+        stdinc: T.Optional[str]
+        valist_marshallers: T.Optional[str]
 
 # Differs from the CustomTarget version in that it straight defaults to True
 _BUILD_BY_DEFAULT: KwargInfo[bool] = KwargInfo(
@@ -1690,50 +1707,51 @@ class GnomeModule(ExtensionModule):
                                   # https://github.com/mesonbuild/meson/issues/973
                                   absolute_paths=True)
 
-    @permittedKwargs({'sources', 'prefix', 'install_header', 'install_dir', 'stdinc',
-                      'nostdinc', 'internal', 'skip_source', 'valist_marshallers',
-                      'extra_args', 'depends', 'depend_files'})
     @typed_pos_args('gnome.genmarshal', str)
-    def genmarshal(self, state: 'ModuleState', args: T.Tuple[str], kwargs) -> ModuleReturnValue:
+    @typed_kwargs(
+        'gnome.genmarshal',
+        DEPEND_FILES_KW.evolve(since='0.61.0'),
+        DEPENDS_KW.evolve(since='0.61.0'),
+        INSTALL_KW.evolve(name='install_header'),
+        KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True),
+        KwargInfo('install_dir', (str, NoneType)),
+        KwargInfo('internal', (str, NoneType)),
+        KwargInfo('nostdinc', (str, NoneType)),
+        KwargInfo('prefix', (str, NoneType)),
+        KwargInfo('skip_source', (str, NoneType)),
+        KwargInfo('sources', ContainerTypeInfo(list, str, allow_empty=False), listify=True, required=True),
+        KwargInfo('stdinc', (str, NoneType)),
+        KwargInfo('valist_marshallers', (str, NoneType)),
+    )
+    def genmarshal(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'GenMarshal') -> ModuleReturnValue:
         output = args[0]
-
-        if 'sources' not in kwargs:
-            raise MesonException('Missing keyword argument "sources".')
-        sources = kwargs.pop('sources')
-        if isinstance(sources, str):
-            sources = [sources]
-        elif not isinstance(sources, list):
-            raise MesonException(
-                'Sources keyword argument must be a string or array.')
+        sources = kwargs['sources']
 
         new_genmarshal = mesonlib.version_compare(self._get_native_glib_version(state), '>= 2.53.3')
 
-        cmd = [state.find_program('glib-genmarshal')]
-        known_kwargs = ['internal', 'nostdinc', 'skip_source', 'stdinc',
-                        'valist_marshallers', 'extra_args']
-        known_custom_target_kwargs = ['build_always', 'depends',
-                                      'depend_files', 'install_dir',
-                                      'install_header']
-        for arg, value in kwargs.items():
-            if arg == 'prefix':
-                cmd += ['--prefix', value]
-            elif arg == 'extra_args':
-                if new_genmarshal:
-                    cmd += mesonlib.stringlistify(value)
-                else:
-                    mlog.warning('The current version of GLib does not support extra arguments \n'
-                                 'for glib-genmarshal. You need at least GLib 2.53.3. See ',
-                                 mlog.bold('https://github.com/mesonbuild/meson/pull/2049'))
-            elif arg in known_kwargs and value:
-                cmd += ['--' + arg.replace('_', '-')]
-            elif arg not in known_custom_target_kwargs:
-                raise MesonException(f'Genmarshal does not take a {arg} keyword argument.')
+        cmd: T.List[T.Union['ExternalProgram', str]] = [state.find_program('glib-genmarshal')]
+        if kwargs['prefix']:
+            cmd.extend(['--prefix', kwargs['prefix']])
+        if kwargs['extra_args']:
+            if new_genmarshal:
+                cmd.extend(kwargs['extra_args'])
+            else:
+                mlog.warning('The current version of GLib does not support extra arguments \n'
+                             'for glib-genmarshal. You need at least GLib 2.53.3. See ',
+                             mlog.bold('https://github.com/mesonbuild/meson/pull/2049'))
+        for k in ['internal', 'nostdinc', 'skip_source', 'stdinc', 'valist_marshallers']:
+            # Mypy can't figure out that this is correct
+            if kwargs[k]:                                            # type: ignore
+                cmd.extend([f'--{k.replace("_", "-")}', kwargs[k]])  # type: ignore
 
-        install_header = kwargs.pop('install_header', False)
-        install_dir = kwargs.pop('install_dir', [])
+        install_header = kwargs['install_header']
+        install_dir = kwargs['install_dir']
 
-        custom_kwargs = {
+
+        custom_kwargs: T.Dict[str, T.Any] = {
             'input': sources,
+            'depend_files': kwargs['depend_files'],
+            'install_dir': kwargs['install_dir'],
         }
 
         # https://github.com/GNOME/glib/commit/0fbc98097fac4d3e647684f344e508abae109fdf
@@ -1741,10 +1759,6 @@ class GnomeModule(ExtensionModule):
             cmd += ['--output', '@OUTPUT@']
         else:
             custom_kwargs['capture'] = True
-
-        for arg in known_custom_target_kwargs:
-            if arg in kwargs:
-                custom_kwargs[arg] = kwargs[arg]
 
         header_file = output + '.h'
         custom_kwargs['command'] = cmd + ['--body', '@INPUT@']
