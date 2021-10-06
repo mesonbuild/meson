@@ -32,7 +32,7 @@ from .. import mlog
 from ..build import CustomTarget, CustomTargetIndex, GeneratedList, InvalidArguments
 from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
 from ..interpreter.type_checking import DEPEND_FILES_KW, INSTALL_KW, NoneType, in_set_validator
-from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, FeatureNew, FeatureNewKwargs, FeatureDeprecatedKwargs
+from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, FeatureNew, FeatureDeprecatedKwargs
 from ..interpreterbase import typed_kwargs, KwargInfo, ContainerTypeInfo
 from ..interpreterbase.decorators import typed_pos_args
 from ..mesonlib import (
@@ -124,6 +124,20 @@ if T.TYPE_CHECKING:
         c_args: T.List[str]
         include_directories: T.List[T.Union[str, build.IncludeDirs]]
         dependencies: T.List[T.Union[Dependency, build.SharedLibrary, build.StaticLibrary]]
+
+    class GdbusCodegen(TypedDict):
+
+        sources: T.List[FileOrString]
+        extra_args: T.List[str]
+        interface_prefix: T.Optional[str]
+        namespace: T.Optional[str]
+        object_manager: bool
+        build_by_default: bool
+        annotations: T.List[str]
+        install_header: bool
+        install_dir: T.Optional[str]
+        docbook: T.Optional[str]
+        autocleanup: Literal['all', 'none', 'objects', 'default']
 
 # Differs from the CustomTarget version in that it straight defaults to True
 _BUILD_BY_DEFAULT: KwargInfo[bool] = KwargInfo(
@@ -1253,60 +1267,67 @@ class GnomeModule(ExtensionModule):
     def gtkdoc_html_dir(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> str:
         return os.path.join('share/gtk-doc/html', args[0])
 
-    def _get_autocleanup_args(self, kwargs: T.Dict[str, T.Any], glib_version: str) -> T.List[str]:
-        if not mesonlib.version_compare(glib_version, '>= 2.49.1'):
-            # Warn if requested, silently disable if not
-            if 'autocleanup' in kwargs:
-                mlog.warning(f'Glib version ({glib_version}) is too old to support the \'autocleanup\' '
-                             'kwarg, need 2.49.1 or newer')
-            return []
-        autocleanup = kwargs.pop('autocleanup', 'all')
-        values = ('none', 'objects', 'all')
-        if autocleanup not in values:
-            raise MesonException('gdbus_codegen does not support {!r} as an autocleanup value, '
-                                 'must be one of: {!r}'.format(autocleanup, ', '.join(values)))
-        return ['--c-generate-autocleanup', autocleanup]
-
-    @FeatureNewKwargs('build target', '0.46.0', ['install_header', 'install_dir', 'sources'])
-    @FeatureNewKwargs('build target', '0.40.0', ['build_by_default'])
-    @FeatureNewKwargs('build target', '0.47.0', ['extra_args', 'autocleanup'])
-    @permittedKwargs({'interface_prefix', 'namespace', 'extra_args', 'autocleanup', 'object_manager', 'build_by_default',
-                      'annotations', 'docbook', 'install_header', 'install_dir', 'sources'})
     @typed_pos_args('gnome.gdbus_codegen', str, optargs=[str])
-    def gdbus_codegen(self, state: 'ModuleState', args: T.Tuple[str, T.Optional[str]], kwargs) -> ModuleReturnValue:
+    @typed_kwargs(
+        'gnome.gdbus_codegen',
+        _BUILD_BY_DEFAULT.evolve(since='0.40.0'),
+        KwargInfo('sources', ContainerTypeInfo(list, (str, mesonlib.File)), since='0.46.0', default=[], listify=True),
+        KwargInfo('extra_args', ContainerTypeInfo(list, str), since='0.47.0', default=[], listify=True),
+        KwargInfo('interface_prefix', (str, NoneType)),
+        KwargInfo('namespace', (str, NoneType)),
+        KwargInfo('object_manager', bool, default=False),
+        KwargInfo(
+            'annotations', ContainerTypeInfo(list, str),
+            listify=True,
+            default=[],
+            validator=lambda x: 'must be made up of 3 strings for ELEMENT, KEY, and VALUE' if len(x) != 3 else None
+        ),
+        KwargInfo('install_header', bool, default=False, since='0.46.0'),
+        KwargInfo('install_dir', (str, NoneType), since='0.46.0'),
+        KwargInfo('docbook', (str, NoneType)),
+        KwargInfo(
+            'autocleanup', str, default='default', since='0.47.0',
+            validator=in_set_validator({'all', 'none', 'objects'})),
+    )
+    def gdbus_codegen(self, state: 'ModuleState', args: T.Tuple[str, T.Optional[str]],
+                      kwargs: 'GdbusCodegen') -> ModuleReturnValue:
         namebase = args[0]
-        xml_files: T.List[str] = [args[1]] if args[1] else []
-        cmd = [state.find_program('gdbus-codegen')]
-        extra_args = mesonlib.stringlistify(kwargs.pop('extra_args', []))
-        cmd += extra_args
+        xml_files: T.List['FileOrString'] = [args[1]] if args[1] else []
+        cmd: T.List[T.Union['ExternalProgram', str]] = [state.find_program('gdbus-codegen')]
+        cmd.extend(kwargs['extra_args'])
+
         # Autocleanup supported?
         glib_version = self._get_native_glib_version(state)
-        cmd += self._get_autocleanup_args(kwargs, glib_version)
-        if 'interface_prefix' in kwargs:
-            cmd += ['--interface-prefix', kwargs.pop('interface_prefix')]
-        if 'namespace' in kwargs:
-            cmd += ['--c-namespace', kwargs.pop('namespace')]
-        if kwargs.get('object_manager', False):
-            cmd += ['--c-generate-object-manager']
-        if 'sources' in kwargs:
-            xml_files += mesonlib.listify(kwargs.pop('sources'))
-        build_by_default = kwargs.get('build_by_default', False)
+        if not mesonlib.version_compare(glib_version, '>= 2.49.1'):
+            # Warn if requested, silently disable if not
+            if kwargs['autocleanup'] != 'default':
+                mlog.warning(f'Glib version ({glib_version}) is too old to support the \'autocleanup\' '
+                             'kwarg, need 2.49.1 or newer')
+        else:
+            # Handle legacy glib versions that don't have autocleanup
+            ac = kwargs['autocleanup']
+            if ac == 'default':
+                ac = 'all'
+            cmd.extend(['--c-generate-autocleanup', ac])
+
+        if kwargs['interface_prefix'] is not None:
+            cmd.extend(['--interface-prefix', kwargs['interface_prefix']])
+        if kwargs['namespace'] is not None:
+            cmd.extend(['--c-namespace', kwargs['namespace']])
+        if kwargs['object_manager']:
+            cmd.extend(['--c-generate-object-manager'])
+        xml_files.extend(kwargs['sources'])
+        build_by_default = kwargs['build_by_default']
 
         # Annotations are a bit ugly in that they are a list of lists of strings...
-        annotations = kwargs.pop('annotations', [])
-        if not isinstance(annotations, list):
-            raise MesonException('annotations takes a list')
-        if annotations and isinstance(annotations, list) and not isinstance(annotations[0], list):
-            annotations = [annotations]
-
-        for annotation in annotations:
-            if len(annotation) != 3 or not all(isinstance(i, str) for i in annotation):
-                raise MesonException('Annotations must be made up of 3 strings for ELEMENT, KEY, and VALUE')
-            cmd += ['--annotate'] + annotation
+        if kwargs['annotations']:
+            cmd.append('--annotate')
+            cmd.extend(kwargs['annotations'])
 
         targets = []
-        install_header = kwargs.get('install_header', False)
-        install_dir = kwargs.get('install_dir', state.environment.coredata.get_option(mesonlib.OptionKey('includedir')))
+        install_header = kwargs['install_header']
+        install_dir = kwargs['install_dir'] or state.environment.coredata.get_option(mesonlib.OptionKey('includedir'))
+        assert isinstance(install_dir, str), 'for mypy'
 
         output = namebase + '.c'
         # Added in https://gitlab.gnome.org/GNOME/glib/commit/e4d68c7b3e8b01ab1a4231bf6da21d045cb5a816 (2.55.2)
@@ -1318,10 +1339,8 @@ class GnomeModule(ExtensionModule):
                              'build_by_default': build_by_default
                              }
         else:
-            if 'docbook' in kwargs:
+            if kwargs['docbook'] is not None:
                 docbook = kwargs['docbook']
-                if not isinstance(docbook, str):
-                    raise MesonException('docbook value must be a string.')
 
                 cmd += ['--generate-docbook', docbook]
 
@@ -1363,7 +1382,7 @@ class GnomeModule(ExtensionModule):
         hfile_custom_target = build.CustomTarget(output, state.subdir, state.subproject, custom_kwargs)
         targets.append(hfile_custom_target)
 
-        if 'docbook' in kwargs:
+        if kwargs['docbook'] is not None:
             docbook = kwargs['docbook']
             if not isinstance(docbook, str):
                 raise MesonException('docbook value must be a string.')
