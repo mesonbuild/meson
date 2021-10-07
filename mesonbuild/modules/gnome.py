@@ -286,7 +286,7 @@ class GnomeModule(ExtensionModule):
             kwargs['depend_files'] = depend_files
             kwargs['command'] = cmd
         else:
-            depfile = kwargs['output'] + '.d'
+            depfile = f'{output}.d'
             kwargs['depfile'] = depfile
             kwargs['command'] = copy.copy(cmd) + ['--dependency-file', '@DEPFILE@']
         target_c = GResourceTarget(name, state.subdir, state.subproject, kwargs)
