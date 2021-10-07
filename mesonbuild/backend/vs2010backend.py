@@ -867,6 +867,9 @@ class Vs2010Backend(backends.Backend):
         if '/INCREMENTAL:NO' in buildtype_link_args:
             ET.SubElement(type_config, 'LinkIncremental').text = 'false'
 
+        # End configuration (but note we add further to type_config, below)
+        ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.props')
+
         # Build information
         compiles = ET.SubElement(root, 'ItemDefinitionGroup')
         clconf = ET.SubElement(compiles, 'ClCompile')
@@ -930,8 +933,6 @@ class Vs2010Backend(backends.Backend):
                 ET.SubElement(clconf, 'ExceptionHandling').text = 'false'
             else: # 'sc' or 'default'
                 ET.SubElement(clconf, 'ExceptionHandling').text = 'Sync'
-        # End configuration
-        ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.props')
         generated_files, custom_target_output_files, generated_files_include_dirs = self.generate_custom_generator_commands(target, root)
         (gen_src, gen_hdrs, gen_objs, gen_langs) = self.split_sources(generated_files)
         (custom_src, custom_hdrs, custom_objs, custom_langs) = self.split_sources(custom_target_output_files)
