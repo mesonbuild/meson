@@ -17,7 +17,7 @@ import typing as T
 
 from . import ExtensionModule, ModuleReturnValue
 from .. import mlog
-from ..build import BothLibraries, BuildTarget, CustomTargetIndex, Executable, GeneratedList, IncludeDirs, CustomTarget
+from ..build import BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList, IncludeDirs, CustomTarget
 from ..dependencies import Dependency, ExternalLibrary
 from ..interpreter.interpreter import TEST_KWARGS
 from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, FeatureNew, typed_kwargs, typed_pos_args, noPosargs
@@ -27,7 +27,7 @@ if T.TYPE_CHECKING:
     from . import ModuleState
     from ..interpreter import Interpreter
     from ..interpreter import kwargs as _kwargs
-    from ..interpreter.interpreter import SourceInputs
+    from ..interpreter.interpreter import SourceInputs, SourceOutputs
     from ..programs import ExternalProgram
 
     from typing_extensions import TypedDict
@@ -168,7 +168,7 @@ class RustModule(ExtensionModule):
         KwargInfo('include_directories', ContainerTypeInfo(list, IncludeDirs), default=[], listify=True),
         KwargInfo(
             'input',
-            ContainerTypeInfo(list, (File, GeneratedList, BuildTarget, BothLibraries, CustomTargetIndex, CustomTarget, str), allow_empty=False),
+            ContainerTypeInfo(list, (File, GeneratedList, BuildTarget, BothLibraries, ExtractedObjects, CustomTargetIndex, CustomTarget, str), allow_empty=False),
             default=[],
             listify=True,
             required=True,
@@ -184,7 +184,7 @@ class RustModule(ExtensionModule):
         header, *_deps = self.interpreter.source_strings_to_files(kwargs['input'])
 
         # Split File and Target dependencies to add pass to CustomTarget
-        depends: T.List[T.Union[GeneratedList, BuildTarget, CustomTargetIndex, CustomTarget]] = []
+        depends: T.List['SourceOutputs'] = []
         depend_files: T.List[File] = []
         for d in _deps:
             if isinstance(d, File):
@@ -203,6 +203,8 @@ class RustModule(ExtensionModule):
         name: str
         if isinstance(header, File):
             name = header.fname
+        elif isinstance(header, (BuildTarget, BothLibraries, ExtractedObjects)):
+            raise InterpreterException('bindgen source file must be a C header, not an object or build target')
         else:
             name = header.get_outputs()[0]
 
