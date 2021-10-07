@@ -90,11 +90,12 @@ if T.TYPE_CHECKING:
 
     # Input source types passed to Targets
     SourceInputs = T.Union[mesonlib.File, build.GeneratedList, build.BuildTarget, build.BothLibraries,
-                           build.CustomTargetIndex, build.CustomTarget, build.GeneratedList, str]
-    # Input source types passed to the build.Target5 classes
+                           build.CustomTargetIndex, build.CustomTarget, build.GeneratedList,
+                           build.ExtractedObjects, str]
+    # Input source types passed to the build.Target classes
     SourceOutputs = T.Union[mesonlib.File, build.GeneratedList,
                             build.BuildTarget, build.CustomTargetIndex, build.CustomTarget,
-                            build.GeneratedList]
+                            build.ExtractedObjects, build.GeneratedList]
 
 
 def stringifyUserArguments(args, quote=False):
@@ -2573,7 +2574,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
                 results.append(s)
             elif isinstance(s, (build.GeneratedList, build.BuildTarget,
                                 build.CustomTargetIndex, build.CustomTarget,
-                                build.GeneratedList)):
+                                build.ExtractedObjects)):
                 results.append(s)
             else:
                 raise InterpreterException(f'Source item is {s!r} instead of '
