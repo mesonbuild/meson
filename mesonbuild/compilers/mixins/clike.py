@@ -561,7 +561,7 @@ class CLikeCompiler(Compiler):
         int main(void) {{
             printf("%ld\\n", (long)({expression}));
             return 0;
-        }};'''
+        }}'''
         res = self.run(t, env, extra_args=extra_args,
                        dependencies=dependencies)
         if not res.compiled:
@@ -599,7 +599,7 @@ class CLikeCompiler(Compiler):
         int main(void) {{
             printf("%ld\\n", (long)(sizeof({typename})));
             return 0;
-        }};'''
+        }}'''
         res = self.run(t, env, extra_args=extra_args,
                        dependencies=dependencies)
         if not res.compiled:
@@ -886,7 +886,7 @@ class CLikeCompiler(Compiler):
         void bar(void) {{
             {typename} foo;
             {members}
-        }};'''
+        }}'''
         return self.compiles(t, env, extra_args=extra_args,
                              dependencies=dependencies)
 
@@ -896,7 +896,7 @@ class CLikeCompiler(Compiler):
         t = f'''{prefix}
         void bar(void) {{
             sizeof({typename});
-        }};'''
+        }}'''
         return self.compiles(t, env, extra_args=extra_args,
                              dependencies=dependencies)
 
