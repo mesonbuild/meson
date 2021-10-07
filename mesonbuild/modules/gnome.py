@@ -156,6 +156,16 @@ if T.TYPE_CHECKING:
         stdinc: T.Optional[str]
         valist_marshallers: T.Optional[str]
 
+    class GenerateVapi(TypedDict):
+
+        sources: T.List[T.Union[str, GirTarget]]
+        install_dir: T.Optional[str]
+        install: bool
+        vapi_dirs: T.List[str]
+        metadata_dirs: T.List[str]
+        gir_dirs: T.List[str]
+        packages: T.List[T.Union[str, InternalDependency]]
+
 # Differs from the CustomTarget version in that it straight defaults to True
 _BUILD_BY_DEFAULT: KwargInfo[bool] = KwargInfo(
     'build_by_default', bool, default=True,
@@ -1779,19 +1789,8 @@ class GnomeModule(ExtensionModule):
         rv = [body, header]
         return ModuleReturnValue(rv, rv)
 
-    @staticmethod
-    def _vapi_args_to_command(prefix: str, variable: str, kwargs: T.Dict[str, T.Any], accept_vapi: bool = False) -> T.List[str]:
-        arg_list = mesonlib.extract_as_list(kwargs, variable)
-        ret: T.List[str] = []
-        for arg in arg_list:
-            if not isinstance(arg, str):
-                types = 'strings' + ' or InternalDependencys' if accept_vapi else ''
-                raise MesonException(f'All {variable} must be {types}')
-            ret.append(prefix + arg)
-        return ret
-
-    def _extract_vapi_packages(self, state: 'ModuleState', kwargs: T.Dict[str, T.Any]
-                               ) -> T.Tuple[T.List[str], T.List[build.Target], T.List[str], T.List[str]]:
+    def _extract_vapi_packages(self, state: 'ModuleState', packages: T.List[T.Union[InternalDependency, str]],
+                               ) -> T.Tuple[T.List[str], T.List[build.Target], T.List[str], T.List[str], T.List[str]]:
         '''
         Packages are special because we need to:
         - Get a list of packages for the .deps file
@@ -1799,16 +1798,14 @@ class GnomeModule(ExtensionModule):
         - Get package name from VapiTargets
         - Add include dirs for any VapiTargets
         '''
-        arg_list = kwargs.get('packages')
-        if not arg_list:
-            return [], [], [], []
-        arg_list = mesonlib.listify(arg_list)
+        if not packages:
+            return [], [], [], [], []
         vapi_depends: T.List[build.Target] = []
         vapi_packages: T.List[str] = []
         vapi_includes: T.List[str] = []
-        ret: T.List[str] = []
+        vapi_args: T.List[str] = []
         remaining_args = []
-        for arg in arg_list:
+        for arg in packages:
             if isinstance(arg, InternalDependency):
                 targets = [t for t in arg.sources if isinstance(t, VapiTarget)]
                 for target in targets:
@@ -1817,20 +1814,20 @@ class GnomeModule(ExtensionModule):
                     outdir = os.path.join(state.environment.get_build_dir(),
                                           target.get_subdir())
                     outfile = target.get_outputs()[0][:-5] # Strip .vapi
-                    ret.append('--vapidir=' + outdir)
-                    ret.append('--girdir=' + outdir)
-                    ret.append('--pkg=' + outfile)
+                    vapi_args.append('--vapidir=' + outdir)
+                    vapi_args.append('--girdir=' + outdir)
+                    vapi_args.append('--pkg=' + outfile)
                     vapi_depends.append(target)
                     vapi_packages.append(outfile)
                     vapi_includes.append(srcdir)
             else:
                 assert isinstance(arg, str), 'for mypy'
+                vapi_args.append(f'--pkg={arg}')
                 vapi_packages.append(arg)
                 remaining_args.append(arg)
 
-        kwargs['packages'] = remaining_args
-        vapi_args = ret + self._vapi_args_to_command('--pkg=', 'packages', kwargs, accept_vapi=True)
-        return vapi_args, vapi_depends, vapi_packages, vapi_includes
+        # TODO: this is supposed to take IncludeDirs, but it never worked
+        return vapi_args, vapi_depends, vapi_packages, vapi_includes, remaining_args
 
     def _generate_deps(self, state: 'ModuleState', library: str, packages: T.List[str], install_dir: str) -> build.Data:
         outdir = state.environment.scratch_dir
@@ -1849,28 +1846,37 @@ class GnomeModule(ExtensionModule):
                 link_with += self._get_vapi_link_with(dep)
         return link_with
 
-    @permittedKwargs({'sources', 'packages', 'metadata_dirs', 'gir_dirs',
-                      'vapi_dirs', 'install', 'install_dir'})
     @typed_pos_args('gnome.generate_vapi', str)
-    def generate_vapi(self, state: 'ModuleState', args: T.Tuple[str], kwargs) -> ModuleReturnValue:
-        created_values = []
+    @typed_kwargs(
+        'gnome.generate_vapi',
+        INSTALL_KW,
+        KwargInfo(
+            'sources',
+            ContainerTypeInfo(list, (str, GirTarget), allow_empty=False),
+            listify=True,
+            required=True,
+        ),
+        KwargInfo('install_dir', (str, NoneType)),
+        KwargInfo('vapi_dirs', ContainerTypeInfo(list, str), listify=True, default=[]),
+        KwargInfo('metadata_dirs', ContainerTypeInfo(list, str), listify=True, default=[]),
+        KwargInfo('gir_dirs', ContainerTypeInfo(list, str), listify=True, default=[]),
+        KwargInfo('packages', ContainerTypeInfo(list, (str, InternalDependency)), listify=True, default=[]),
+    )
+    def generate_vapi(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'GenerateVapi') -> ModuleReturnValue:
+        created_values: T.List[Dependency] = []
         library = args[0]
         build_dir = os.path.join(state.environment.get_build_dir(), state.subdir)
         source_dir = os.path.join(state.environment.get_source_dir(), state.subdir)
-        pkg_cmd, vapi_depends, vapi_packages, vapi_includes = self._extract_vapi_packages(state, kwargs)
+        pkg_cmd, vapi_depends, vapi_packages, vapi_includes, packages = self._extract_vapi_packages(state, kwargs['packages'])
         cmd: T.List[T.Union[str, 'ExternalProgram']]
-        cmd = [state.find_program('vapigen')]
-        cmd += ['--quiet', '--library=' + library, '--directory=' + build_dir]
-        cmd += self._vapi_args_to_command('--vapidir=', 'vapi_dirs', kwargs)
-        cmd += self._vapi_args_to_command('--metadatadir=', 'metadata_dirs', kwargs)
-        cmd += self._vapi_args_to_command('--girdir=', 'gir_dirs', kwargs)
+        cmd = [state.find_program('vapigen'), '--quiet', f'--library={library}', f'--directory={build_dir}']
+        cmd.extend([f'--vapidir={d}' for d in kwargs['vapi_dirs']])
+        cmd.extend([f'--metadatdir={d}' for d in kwargs['metadata_dirs']])
+        cmd.extend([f'--girdir={d}' for d in kwargs['gir_dirs']])
         cmd += pkg_cmd
         cmd += ['--metadatadir=' + source_dir]
 
-        if 'sources' not in kwargs:
-            raise MesonException('sources are required to generate the vapi file')
-
-        inputs = mesonlib.extract_as_list(kwargs, 'sources')
+        inputs = kwargs['sources']
 
         link_with = []
         for i in inputs:
@@ -1882,8 +1888,6 @@ class GnomeModule(ExtensionModule):
                                       i.get_subdir())
                 gir_file = os.path.join(subdir, i.get_outputs()[0])
                 cmd.append(gir_file)
-            else:
-                raise MesonException('Input must be a str or GirTarget')
 
         vapi_output = library + '.vapi'
         custom_kwargs = {
@@ -1892,13 +1896,14 @@ class GnomeModule(ExtensionModule):
             'output': vapi_output,
             'depends': vapi_depends,
         }
-        install_dir = kwargs.get('install_dir',
-                                 os.path.join(state.environment.coredata.get_option(mesonlib.OptionKey('datadir')),
-                                              'vala', 'vapi'))
-        if kwargs.get('install'):
-            custom_kwargs['install'] = kwargs['install']
-            custom_kwargs['install_dir'] = install_dir
+        datadir = state.environment.coredata.get_option(mesonlib.OptionKey('datadir'))
+        assert isinstance(datadir, str), 'for mypy'
+        install_dir = kwargs['install_dir'] or os.path.join(datadir, 'vala', 'vapi')
+        custom_kwargs['install'] = kwargs['install']
+        custom_kwargs['install_dir'] = install_dir
+        custom_kwargs['packages'] = packages
 
+        if kwargs['install']:
             # We shouldn't need this locally but we install it
             deps_target = self._generate_deps(state, library, vapi_packages, install_dir)
             created_values.append(deps_target)
