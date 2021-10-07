@@ -19,6 +19,7 @@ import copy
 import functools
 import os
 import subprocess
+import textwrap
 import typing as T
 
 from . import ExtensionModule
@@ -1558,33 +1559,37 @@ class GnomeModule(ExtensionModule):
         fhead += '#include "%s"\n' % hdr_filename
         for hdr in sources:
             fhead += '#include "{}"\n'.format(os.path.basename(str(hdr)))
-        fhead += '''
-#define C_ENUM(v) ((gint) v)
-#define C_FLAGS(v) ((guint) v)
-'''
+        fhead += textwrap.dedent(
+            '''
+            #define C_ENUM(v) ((gint) v)
+            #define C_FLAGS(v) ((guint) v)
+            ''')
         c_file_kwargs['fhead'] = fhead
 
-        c_file_kwargs['fprod'] = '''
-/* enumerations from "@basename@" */
-'''
+        c_file_kwargs['fprod'] = textwrap.dedent(
+            '''
+            /* enumerations from "@basename@" */
+            ''')
 
-        c_file_kwargs['vhead'] = f'''
-GType
-{func_prefix}@enum_name@_get_type (void)
-{{
-  static gsize gtype_id = 0;
-  static const G@Type@Value values[] = {{'''
+        c_file_kwargs['vhead'] = textwrap.dedent(
+            f'''
+            GType
+            {func_prefix}@enum_name@_get_type (void)
+            {{
+            static gsize gtype_id = 0;
+            static const G@Type@Value values[] = {{''')
 
         c_file_kwargs['vprod'] = '    { C_@TYPE@(@VALUENAME@), "@VALUENAME@", "@valuenick@" },'
 
-        c_file_kwargs['vtail'] = '''    { 0, NULL, NULL }
-  };
-  if (g_once_init_enter (&gtype_id)) {
-    GType new_type = g_@type@_register_static (g_intern_static_string ("@EnumName@"), values);
-    g_once_init_leave (&gtype_id, new_type);
-  }
-  return (GType) gtype_id;
-}'''
+        c_file_kwargs['vtail'] = textwrap.dedent(
+            '''    { 0, NULL, NULL }
+            };
+            if (g_once_init_enter (&gtype_id)) {
+                GType new_type = g_@type@_register_static (g_intern_static_string ("@EnumName@"), values);
+                g_once_init_leave (&gtype_id, new_type);
+            }
+            return (GType) gtype_id;
+            }''')
 
         rv = self.mkenums(state, [body_filename], c_file_kwargs)
         c_file = rv.return_value
@@ -1592,25 +1597,29 @@ GType
         # .h file generation
         h_file_kwargs = copy.deepcopy(mkenums_kwargs)
 
-        h_file_kwargs['fhead'] = f'''#pragma once
+        h_file_kwargs['fhead'] = textwrap.dedent(
+            f'''#pragma once
 
-#include <glib-object.h>
-{header_prefix}
+            #include <glib-object.h>
+            {header_prefix}
 
-G_BEGIN_DECLS
-'''
+            G_BEGIN_DECLS
+            ''')
 
-        h_file_kwargs['fprod'] = '''
-/* enumerations from "@basename@" */
-'''
+        h_file_kwargs['fprod'] = textwrap.dedent(
+            '''
+            /* enumerations from "@basename@" */
+            ''')
 
-        h_file_kwargs['vhead'] = f'''
-{decl_decorator}
-GType {func_prefix}@enum_name@_get_type (void);
-#define @ENUMPREFIX@_TYPE_@ENUMSHORT@ ({func_prefix}@enum_name@_get_type())'''
+        h_file_kwargs['vhead'] = textwrap.dedent(
+            f'''
+            {decl_decorator}
+            GType {func_prefix}@enum_name@_get_type (void);
+            #define @ENUMPREFIX@_TYPE_@ENUMSHORT@ ({func_prefix}@enum_name@_get_type())''')
 
-        h_file_kwargs['ftail'] = '''
-G_END_DECLS'''
+        h_file_kwargs['ftail'] = textwrap.dedent(
+            '''
+            G_END_DECLS''')
 
         rv = self.mkenums(state, [hdr_filename], h_file_kwargs)
         h_file = rv.return_value
