@@ -118,6 +118,7 @@ ENV_VAR_PROG_MAP: T.Mapping[str, str] = {
     'qmake': 'QMAKE',
     'pkgconfig': 'PKG_CONFIG',
     'make': 'MAKE',
+    'vapigen': 'VAPIGEN',
 }
 
 # Deprecated environment variables mapped from the new variable to the old one
