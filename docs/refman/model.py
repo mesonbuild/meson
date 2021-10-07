@@ -44,20 +44,20 @@ class Type:
 
 # Arguments
 @dataclass
-class ArgBase(NamedObject):
+class ArgBase(NamedObject, FetureCheck):
     type: Type
 
 @dataclass
-class PosArg(ArgBase, FetureCheck):
+class PosArg(ArgBase):
     default: str
 
 @dataclass
-class VarArgs(ArgBase, FetureCheck):
+class VarArgs(ArgBase):
     min_varargs: int
     max_varargs: int
 
 @dataclass
-class Kwarg(ArgBase, FetureCheck):
+class Kwarg(ArgBase):
     required: bool
     default: str
 
