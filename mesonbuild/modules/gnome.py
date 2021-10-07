@@ -1627,7 +1627,7 @@ G_END_DECLS'''
                         arg))
 
         install_header = kwargs.pop('install_header', False)
-        install_dir = kwargs.pop('install_dir', None)
+        install_dir = kwargs.pop('install_dir', [])
 
         custom_kwargs = {
             'input': sources,
@@ -1652,8 +1652,7 @@ G_END_DECLS'''
         body = build.CustomTarget(output + '_c', state.subdir, state.subproject, custom_kwargs)
 
         custom_kwargs['install'] = install_header
-        if install_dir is not None:
-            custom_kwargs['install_dir'] = install_dir
+        custom_kwargs['install_dir'] = install_dir
         if new_genmarshal:
             cmd += ['--pragma-once']
         custom_kwargs['command'] = cmd + ['--header', '@INPUT@']
