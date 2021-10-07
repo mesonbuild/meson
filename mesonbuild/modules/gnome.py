@@ -1788,10 +1788,7 @@ G_END_DECLS'''
         source_dir = os.path.join(state.environment.get_source_dir(), state.subdir)
         pkg_cmd, vapi_depends, vapi_packages, vapi_includes = self._extract_vapi_packages(state, kwargs)
         cmd: T.List[T.Union[str, 'ExternalProgram']]
-        if 'VAPIGEN' in os.environ:
-            cmd = [state.find_program(os.environ['VAPIGEN'])]
-        else:
-            cmd = [state.find_program('vapigen')]
+        cmd = [state.find_program('vapigen')]
         cmd += ['--quiet', '--library=' + library, '--directory=' + build_dir]
         cmd += self._vapi_args_to_command('--vapidir=', 'vapi_dirs', kwargs)
         cmd += self._vapi_args_to_command('--metadatadir=', 'metadata_dirs', kwargs)
