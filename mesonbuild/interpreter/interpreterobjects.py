@@ -828,8 +828,8 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
         return self.interpreter.backend.get_target_dir(self._target_object)
 
     @noKwargs
-    @typed_pos_args('extract_objects', varargs=(mesonlib.File, str))
-    def extract_objects_method(self, args: T.Tuple[T.List[mesonlib.FileOrString]], kwargs: TYPE_nkwargs) -> build.ExtractedObjects:
+    @typed_pos_args('extract_objects', varargs=(mesonlib.File, str, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList))
+    def extract_objects_method(self, args: T.Tuple[T.List[T.Union[mesonlib.FileOrString, 'build.GeneratedTypes']]], kwargs: TYPE_nkwargs) -> build.ExtractedObjects:
         return self._target_object.extract_objects(args[0])
 
     @noPosargs
