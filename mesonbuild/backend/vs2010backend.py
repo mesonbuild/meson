@@ -657,6 +657,13 @@ class Vs2010Backend(backends.Backend):
         pch_file.text = header
         pch_out = ET.SubElement(inc_cl, 'PrecompiledHeaderOutputFile')
         pch_out.text = '$(IntDir)$(TargetName)-%s.pch' % lang
+
+        # Need to set the name for the pdb, as cl otherwise gives it a static
+        # name. Which leads to problems when there is more than one pch
+        # (e.g. for different languages).
+        pch_pdb = ET.SubElement(inc_cl, 'ProgramDataBaseFileName')
+        pch_pdb.text = '$(IntDir)$(TargetName)-%s.pdb' % lang
+
         return header
 
     def is_argument_with_msbuild_xml_entry(self, entry):
