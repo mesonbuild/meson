@@ -145,8 +145,8 @@ class WindowsModule(ExtensionModule):
                 raise MesonException(f'Unexpected source type {src!r}. windows.compile_resources accepts only strings, files, custom targets, and lists thereof.')
 
             # Path separators are not allowed in target names
-            name = name.replace('/', '_').replace('\\', '_')
-            name_formatted = name_formatted.replace('/', '_').replace('\\', '_')
+            name = name.replace('/', '_').replace('\\', '_').replace(':', '_')
+            name_formatted = name_formatted.replace('/', '_').replace('\\', '_').replace(':', '_')
 
             res_kwargs = {
                 'output': name + '_@BASENAME@.' + suffix,
