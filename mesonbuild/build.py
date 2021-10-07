@@ -983,21 +983,30 @@ class BuildTarget(Target):
             if t in self.kwargs:
                 self.kwargs[t] = listify(self.kwargs[t], flatten=True)
 
-    def extract_objects(self, srclist: T.List['FileOrString']) -> ExtractedObjects:
-        obj_src: T.List['File'] = []
+    def extract_objects(self, srclist: T.List[T.Union['FileOrString', 'GeneratedTypes']]) -> ExtractedObjects:
         sources_set = set(self.sources)
+        generated_set = set(self.generated)
+
+        obj_src: T.List['File'] = []
+        obj_gen: T.List['GeneratedTypes'] = []
         for src in srclist:
-            if isinstance(src, str):
-                src = File(False, self.subdir, src)
-            elif isinstance(src, File):
-                FeatureNew.single_use('File argument for extract_objects', '0.50.0', self.subproject)
+            if isinstance(src, (str, File)):
+                if isinstance(src, str):
+                    src = File(False, self.subdir, src)
+                else:
+                    FeatureNew.single_use('File argument for extract_objects', '0.50.0', self.subproject)
+                if src not in sources_set:
+                    raise MesonException(f'Tried to extract unknown source {src}.')
+                obj_src.append(src)
+            elif isinstance(src, (CustomTarget, CustomTargetIndex, GeneratedList)):
+                FeatureNew.single_use('Generated sources for extract_objects', '0.61.0', self.subproject)
+                target = src.target if isinstance(src, CustomTargetIndex) else src
+                if src not in generated_set and target not in generated_set:
+                    raise MesonException(f'Tried to extract unknown source {target.get_basename()}.')
+                obj_gen.append(src)
             else:
-                raise MesonException(f'Object extraction arguments must be strings or Files (got {type(src).__name__}).')
-            # FIXME: It could be a generated source
-            if src not in sources_set:
-                raise MesonException(f'Tried to extract unknown source {src}.')
-            obj_src.append(src)
-        return ExtractedObjects(self, obj_src)
+                raise MesonException(f'Object extraction arguments must be strings, Files or targets (got {type(src).__name__}).')
+        return ExtractedObjects(self, obj_src, obj_gen)
 
     def extract_all_objects(self, recursive: bool = True) -> ExtractedObjects:
         return ExtractedObjects(self, self.sources, self.generated, self.objects,
