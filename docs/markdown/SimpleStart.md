@@ -91,6 +91,10 @@ versions.
 
 ### macOS
 
+#### With Homebrew
+`brew install meson ninja`
+
+#### Without Homebrew
 Start by downloading the installation package from [the Releases
 page](https://github.com/mesonbuild/meson/releases).
 
