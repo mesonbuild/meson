@@ -22,15 +22,24 @@ from . import ExtensionModule
 from . import ModuleReturnValue
 from .. import mesonlib, build
 from .. import mlog
-from ..interpreterbase import permittedKwargs, FeatureNewKwargs, flatten
-from ..interpreterbase.decorators import typed_pos_args
-from ..mesonlib import MachineChoice, MesonException, extract_as_list
+from ..interpreter.type_checking import DEPEND_FILES_KW, DEPENDS_KW, INCLUDE_DIRECTORIES
+from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, typed_kwargs, typed_pos_args
+from ..mesonlib import MachineChoice, MesonException
 from ..programs import ExternalProgram
 
 if T.TYPE_CHECKING:
     from . import ModuleState
     from ..compilers import Compiler
     from ..interpreter import Interpreter
+
+    from typing_extensions import TypedDict
+
+    class CompileResources(TypedDict):
+
+        depend_files: T.List[mesonlib.FileOrString]
+        depends: T.List[T.Union[build.BuildTarget, build.CustomTarget]]
+        include_directories: T.List[T.Union[str, build.IncludeDirs]]
+        args: T.List[str]
 
 class ResourceCompilerType(enum.Enum):
     windres = 1
@@ -89,25 +98,26 @@ class WindowsModule(ExtensionModule):
 
         return self._rescomp
 
-    @FeatureNewKwargs('windows.compile_resources', '0.47.0', ['depend_files', 'depends'])
-    @permittedKwargs({'args', 'include_directories', 'depend_files', 'depends'})
     @typed_pos_args('windows.compile_resources', varargs=(str, mesonlib.File, build.CustomTarget), min_varargs=1)
+    @typed_kwargs(
+        'winddows.compile_resoures',
+        DEPEND_FILES_KW.evolve(since='0.47.0'),
+        DEPENDS_KW.evolve(since='0.47.0'),
+        INCLUDE_DIRECTORIES.evolve(name='include_directories'),
+        KwargInfo('args', ContainerTypeInfo(list, str), default=[], listify=True),
+    )
     def compile_resources(self, state: 'ModuleState',
                           args: T.Tuple[T.List[T.Union[str, mesonlib.File, build.CustomTarget]]],
-                          kwargs) -> ModuleReturnValue:
-        extra_args = mesonlib.stringlistify(flatten(kwargs.get('args', [])))
-        wrc_depend_files = extract_as_list(kwargs, 'depend_files', pop = True)
-        wrc_depends = extract_as_list(kwargs, 'depends', pop = True)
+                          kwargs: 'CompileResources') -> ModuleReturnValue:
+        extra_args = kwargs['args'].copy()
+        wrc_depend_files = kwargs['depend_files']
+        wrc_depends = kwargs['depends']
         for d in wrc_depends:
             if isinstance(d, build.CustomTarget):
                 extra_args += state.get_include_args([
                     build.IncludeDirs('', [], False, [os.path.join('@BUILD_ROOT@', self.interpreter.backend.get_target_dir(d))])
                 ])
-        inc_dirs = extract_as_list(kwargs, 'include_directories', pop = True)
-        for incd in inc_dirs:
-            if not isinstance(incd, (str, build.IncludeDirs)):
-                raise MesonException('Resource include dirs should be include_directories().')
-        extra_args += state.get_include_args(inc_dirs)
+        extra_args += state.get_include_args(kwargs['include_directories'])
 
         rescomp, rescomp_type = self._find_resource_compiler(state)
         if rescomp_type == ResourceCompilerType.rc:
@@ -131,16 +141,16 @@ class WindowsModule(ExtensionModule):
             suffix = 'o'
             res_args = extra_args + ['@INPUT@', '-o', '@OUTPUT@']
 
-        res_targets = []
+        res_targets: T.List[build.CustomTarget] = []
 
-        for src in args:
+        for src in args[0]:
             if isinstance(src, str):
                 name_formatted = src
                 name = os.path.join(state.subdir, src)
             elif isinstance(src, mesonlib.File):
                 name_formatted = src.fname
                 name = src.relative_name()
-            elif isinstance(src, build.CustomTarget):
+            else:
                 if len(src.get_outputs()) > 1:
                     raise MesonException('windows.compile_resources does not accept custom targets with more than 1 output.')
 
@@ -152,19 +162,26 @@ class WindowsModule(ExtensionModule):
             # Path separators are not allowed in target names
             name = name.replace('/', '_').replace('\\', '_').replace(':', '_')
             name_formatted = name_formatted.replace('/', '_').replace('\\', '_').replace(':', '_')
+            output = f'{name}_@BASENAME@.{suffix}'
+            command: T.List[T.Union[str, ExternalProgram]] = []
+            command.append(rescomp)
+            command.extend(res_args)
 
             res_kwargs = {
-                'output': name + '_@BASENAME@.' + suffix,
+                'output': output,
                 'input': [src],
-                'command': [rescomp] + res_args,
                 'depend_files': wrc_depend_files,
                 'depends': wrc_depends,
             }
 
             # instruct binutils windres to generate a preprocessor depfile
             if rescomp_type == ResourceCompilerType.windres:
-                res_kwargs['depfile'] = res_kwargs['output'] + '.d'
-                res_kwargs['command'] += ['--preprocessor-arg=-MD', '--preprocessor-arg=-MQ@OUTPUT@', '--preprocessor-arg=-MF@DEPFILE@']
+                res_kwargs['depfile'] = f'{output}.d'
+                command.extend(['--preprocessor-arg=-MD',
+                                '--preprocessor-arg=-MQ@OUTPUT@',
+                                '--preprocessor-arg=-MF@DEPFILE@'])
+
+            res_kwargs['command'] = command
 
             res_targets.append(build.CustomTarget(name_formatted, state.subdir, state.subproject, res_kwargs))
 

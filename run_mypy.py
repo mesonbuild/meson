@@ -44,6 +44,7 @@ modules = [
     'mesonbuild/modules/qt.py',
     'mesonbuild/modules/unstable_external_project.py',
     'mesonbuild/modules/unstable_rust.py',
+    'mesonbuild/modules/windows.py',
     'mesonbuild/mparser.py',
     'mesonbuild/msetup.py',
     'mesonbuild/mtest.py',

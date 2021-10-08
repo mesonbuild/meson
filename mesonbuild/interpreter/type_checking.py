@@ -6,7 +6,7 @@
 import typing as T
 
 from .. import compilers
-from ..build import EnvironmentVariables, CustomTarget, BuildTarget, CustomTargetIndex, ExtractedObjects, GeneratedList
+from ..build import EnvironmentVariables, CustomTarget, BuildTarget, CustomTargetIndex, ExtractedObjects, GeneratedList, IncludeDirs
 from ..coredata import UserFeatureOption
 from ..interpreterbase import TYPE_var
 from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo
@@ -278,3 +278,10 @@ CT_INSTALL_DIR_KW: KwargInfo[T.List[T.Union[str, bool]]] = KwargInfo(
 )
 
 CT_BUILD_BY_DEFAULT: KwargInfo[T.Optional[bool]] = KwargInfo('build_by_default', (bool, type(None)), since='0.40.0')
+
+INCLUDE_DIRECTORIES: KwargInfo[T.List[T.Union[str, IncludeDirs]]] = KwargInfo(
+    'include_dirs',
+    ContainerTypeInfo(list, (str, IncludeDirs)),
+    listify=True,
+    default=[],
+)
