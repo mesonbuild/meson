@@ -16,6 +16,7 @@ from pathlib import Path
 from .traceparser import CMakeTraceParser
 from ..envconfig import CMakeSkipCompilerTest
 from ..mesonlib import MachineChoice
+from ..compilers import VisualStudioLikeCompiler
 from .common import language_map, cmake_get_generator_args
 from .. import mlog
 
@@ -27,6 +28,7 @@ from textwrap import dedent
 if T.TYPE_CHECKING:
     from .executor import CMakeExecutor
     from ..environment import Environment
+    from ..compilers import Compiler
 
 class CMakeExecScope(Enum):
     SUBPROJECT = 'subproject'
@@ -182,20 +184,29 @@ class CMakeToolchain:
 
         # Set the compiler variables
         for lang, comp_obj in self.compilers.items():
-            exe_list = [make_abs(x) for x in comp_obj.get_exelist()]
             prefix = 'CMAKE_{}_'.format(language_map.get(lang, lang.upper()))
 
+            exe_list = comp_obj.get_exelist()
             if not exe_list:
                 continue
-            elif len(exe_list) == 2:
-                defaults[prefix + 'COMPILER']          = [exe_list[1]]
-                defaults[prefix + 'COMPILER_LAUNCHER'] = [exe_list[0]]
-            else:
-                defaults[prefix + 'COMPILER'] = exe_list
+
+            if len(exe_list) >= 2 and not self.is_cmdline_option(comp_obj, exe_list[1]):
+                defaults[prefix + 'COMPILER_LAUNCHER'] = [make_abs(exe_list[0])]
+                exe_list = exe_list[1:]
+
+            exe_list[0] = make_abs(exe_list[0])
+            defaults[prefix + 'COMPILER'] = exe_list
             if comp_obj.get_id() == 'clang-cl':
                 defaults['CMAKE_LINKER'] = comp_obj.get_linker_exelist()
 
         return defaults
+
+    @staticmethod
+    def is_cmdline_option(compiler: 'Compiler', arg: str) -> bool:
+        if isinstance(compiler, VisualStudioLikeCompiler):
+            return arg.startswith('/')
+        else:
+            return arg.startswith('-')
 
     def update_cmake_compiler_state(self) -> None:
         # Check if all variables are already cached
