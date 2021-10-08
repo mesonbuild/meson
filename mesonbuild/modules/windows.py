@@ -143,24 +143,27 @@ class WindowsModule(ExtensionModule):
 
         res_targets: T.List[build.CustomTarget] = []
 
-        for src in args[0]:
-            if isinstance(src, str):
-                name_formatted = src
-                name = os.path.join(state.subdir, src)
-            elif isinstance(src, mesonlib.File):
-                name_formatted = src.fname
-                name = src.relative_name()
-            else:
-                if isinstance(src, build.CustomTargetIndex):
+        def get_names() -> T.Iterable[T.Tuple[str, str, T.Union[str, mesonlib.File, build.CustomTargetIndex]]]:
+            for src in args[0]:
+                if isinstance(src, str):
+                    yield os.path.join(state.subdir, src), src, src
+                elif isinstance(src, mesonlib.File):
+                    yield src.relative_name(), src.fname, src
+                elif isinstance(src, build.CustomTargetIndex):
                     FeatureNew.single_use('windows.compile_resource CustomTargetIndex in positional arguments', '0.61.0', state.subproject)
-                if len(src.get_outputs()) > 1:
-                    raise MesonException('windows.compile_resources does not accept custom targets with more than 1 output.')
+                    # This dance avoids a case where two indexs of the same
+                    # target are given as separate arguments.
+                    yield (f'{src.get_id()}_{src.target.get_outputs().index(src.output)}',
+                           f'windows_compile_resources_{src.get_filename()}', src)
+                else:
+                    if len(src.get_outputs()) > 1:
+                        FeatureNew.single_use('windows.compile_resource CustomTarget with multiple outputs in positional arguments', '0.61.0', state.subproject)
+                    for i, out in enumerate(src.get_outputs()):
+                        # Chances are that src.get_filename() is already the name of that
+                        # target, add a prefix to avoid name clash.
+                        yield f'{src.get_id()}_{i}', f'windows_compile_resources_{i}_{out}', src[i]
 
-                # Chances are that src.get_filename() is already the name of that
-                # target, add a prefix to avoid name clash.
-                name_formatted = 'windows_compile_resources_' + src.get_filename()
-                name = src.get_id()
-
+        for name, name_formatted, src in get_names():
             # Path separators are not allowed in target names
             name = name.replace('/', '_').replace('\\', '_').replace(':', '_')
             name_formatted = name_formatted.replace('/', '_').replace('\\', '_').replace(':', '_')
