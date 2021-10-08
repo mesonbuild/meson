@@ -23,7 +23,7 @@ from . import ModuleReturnValue
 from .. import mesonlib, build
 from .. import mlog
 from ..interpreter.type_checking import DEPEND_FILES_KW, DEPENDS_KW, INCLUDE_DIRECTORIES
-from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, typed_kwargs, typed_pos_args
+from ..interpreterbase.decorators import ContainerTypeInfo, FeatureNew, KwargInfo, typed_kwargs, typed_pos_args
 from ..mesonlib import MachineChoice, MesonException
 from ..programs import ExternalProgram
 
@@ -98,7 +98,7 @@ class WindowsModule(ExtensionModule):
 
         return self._rescomp
 
-    @typed_pos_args('windows.compile_resources', varargs=(str, mesonlib.File, build.CustomTarget), min_varargs=1)
+    @typed_pos_args('windows.compile_resources', varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex), min_varargs=1)
     @typed_kwargs(
         'winddows.compile_resoures',
         DEPEND_FILES_KW.evolve(since='0.47.0'),
@@ -107,7 +107,7 @@ class WindowsModule(ExtensionModule):
         KwargInfo('args', ContainerTypeInfo(list, str), default=[], listify=True),
     )
     def compile_resources(self, state: 'ModuleState',
-                          args: T.Tuple[T.List[T.Union[str, mesonlib.File, build.CustomTarget]]],
+                          args: T.Tuple[T.List[T.Union[str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex]]],
                           kwargs: 'CompileResources') -> ModuleReturnValue:
         extra_args = kwargs['args'].copy()
         wrc_depend_files = kwargs['depend_files']
@@ -151,6 +151,8 @@ class WindowsModule(ExtensionModule):
                 name_formatted = src.fname
                 name = src.relative_name()
             else:
+                if isinstance(src, build.CustomTargetIndex):
+                    FeatureNew.single_use('windows.compile_resource CustomTargetIndex in positional arguments', '0.61.0', state.subproject)
                 if len(src.get_outputs()) > 1:
                     raise MesonException('windows.compile_resources does not accept custom targets with more than 1 output.')
 
