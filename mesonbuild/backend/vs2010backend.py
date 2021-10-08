@@ -549,6 +549,7 @@ class Vs2010Backend(backends.Backend):
         pname.text = target_name
         if self.windows_target_platform_version:
             ET.SubElement(globalgroup, 'WindowsTargetPlatformVersion').text = self.windows_target_platform_version
+        ET.SubElement(globalgroup, 'UseMultiToolTask').text = 'true'
 
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.Default.props')
 
