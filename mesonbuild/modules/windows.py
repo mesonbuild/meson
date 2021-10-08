@@ -15,14 +15,20 @@
 import enum
 import os
 import re
+import typing as T
 
-from .. import mlog
-from .. import mesonlib, build
-from ..mesonlib import MachineChoice, MesonException, extract_as_list
-from . import ModuleReturnValue
 from . import ExtensionModule
+from . import ModuleReturnValue
+from .. import mesonlib, build
+from .. import mlog
 from ..interpreterbase import permittedKwargs, FeatureNewKwargs, flatten
+from ..mesonlib import MachineChoice, MesonException, extract_as_list
 from ..programs import ExternalProgram
+
+if T.TYPE_CHECKING:
+    from . import ModuleState
+    from ..compilers import Compiler
+    from ..interpreter import Interpreter
 
 class ResourceCompilerType(enum.Enum):
     windres = 1
@@ -30,25 +36,26 @@ class ResourceCompilerType(enum.Enum):
     wrc = 3
 
 class WindowsModule(ExtensionModule):
-    def __init__(self, interpreter):
+    def __init__(self, interpreter: 'Interpreter'):
         super().__init__(interpreter)
+        self._rescomp: T.Optional[T.Tuple[ExternalProgram, ResourceCompilerType]] = None
         self.methods.update({
             'compile_resources': self.compile_resources,
         })
 
-    def detect_compiler(self, compilers):
+    def detect_compiler(self, compilers: T.Dict[str, 'Compiler']) -> 'Compiler':
         for l in ('c', 'cpp'):
             if l in compilers:
                 return compilers[l]
         raise MesonException('Resource compilation requires a C or C++ compiler.')
 
-    def _find_resource_compiler(self, state):
+    def _find_resource_compiler(self, state: 'ModuleState') -> T.Tuple[ExternalProgram, ResourceCompilerType]:
         # FIXME: Does not handle `native: true` executables, see
         # See https://github.com/mesonbuild/meson/issues/1531
         # Take a parameter instead of the hardcoded definition below
         for_machine = MachineChoice.HOST
 
-        if hasattr(self, '_rescomp'):
+        if self._rescomp:
             return self._rescomp
 
         # Will try cross / native file and then env var
@@ -82,7 +89,7 @@ class WindowsModule(ExtensionModule):
 
     @FeatureNewKwargs('windows.compile_resources', '0.47.0', ['depend_files', 'depends'])
     @permittedKwargs({'args', 'include_directories', 'depend_files', 'depends'})
-    def compile_resources(self, state, args, kwargs):
+    def compile_resources(self, state: 'ModuleState', args, kwargs):
         extra_args = mesonlib.stringlistify(flatten(kwargs.get('args', [])))
         wrc_depend_files = extract_as_list(kwargs, 'depend_files', pop = True)
         wrc_depends = extract_as_list(kwargs, 'depends', pop = True)
@@ -167,5 +174,5 @@ class WindowsModule(ExtensionModule):
 
         return ModuleReturnValue(res_targets, [res_targets])
 
-def initialize(*args, **kwargs):
-    return WindowsModule(*args, **kwargs)
+def initialize(interp: 'Interpreter') -> WindowsModule:
+    return WindowsModule(interp)
