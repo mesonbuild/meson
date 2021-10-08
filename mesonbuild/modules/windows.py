@@ -17,11 +17,13 @@ import os
 import re
 import typing as T
 
+
 from . import ExtensionModule
 from . import ModuleReturnValue
 from .. import mesonlib, build
 from .. import mlog
 from ..interpreterbase import permittedKwargs, FeatureNewKwargs, flatten
+from ..interpreterbase.decorators import typed_pos_args
 from ..mesonlib import MachineChoice, MesonException, extract_as_list
 from ..programs import ExternalProgram
 
@@ -89,7 +91,10 @@ class WindowsModule(ExtensionModule):
 
     @FeatureNewKwargs('windows.compile_resources', '0.47.0', ['depend_files', 'depends'])
     @permittedKwargs({'args', 'include_directories', 'depend_files', 'depends'})
-    def compile_resources(self, state: 'ModuleState', args, kwargs):
+    @typed_pos_args('windows.compile_resources', varargs=(str, mesonlib.File, build.CustomTarget), min_varargs=1)
+    def compile_resources(self, state: 'ModuleState',
+                          args: T.Tuple[T.List[T.Union[str, mesonlib.File, build.CustomTarget]]],
+                          kwargs) -> ModuleReturnValue:
         extra_args = mesonlib.stringlistify(flatten(kwargs.get('args', [])))
         wrc_depend_files = extract_as_list(kwargs, 'depend_files', pop = True)
         wrc_depends = extract_as_list(kwargs, 'depends', pop = True)
@@ -128,12 +133,7 @@ class WindowsModule(ExtensionModule):
 
         res_targets = []
 
-        def add_target(src):
-            if isinstance(src, list):
-                for subsrc in src:
-                    add_target(subsrc)
-                return
-
+        for src in args:
             if isinstance(src, str):
                 name_formatted = src
                 name = os.path.join(state.subdir, src)
@@ -148,8 +148,6 @@ class WindowsModule(ExtensionModule):
                 # target, add a prefix to avoid name clash.
                 name_formatted = 'windows_compile_resources_' + src.get_filename()
                 name = src.get_id()
-            else:
-                raise MesonException(f'Unexpected source type {src!r}. windows.compile_resources accepts only strings, files, custom targets, and lists thereof.')
 
             # Path separators are not allowed in target names
             name = name.replace('/', '_').replace('\\', '_').replace(':', '_')
@@ -169,8 +167,6 @@ class WindowsModule(ExtensionModule):
                 res_kwargs['command'] += ['--preprocessor-arg=-MD', '--preprocessor-arg=-MQ@OUTPUT@', '--preprocessor-arg=-MF@DEPFILE@']
 
             res_targets.append(build.CustomTarget(name_formatted, state.subdir, state.subproject, res_kwargs))
-
-        add_target(args)
 
         return ModuleReturnValue(res_targets, [res_targets])
 
