@@ -704,6 +704,8 @@ class GnomeModule(ExtensionModule):
                 # These must be first in ldflags
                 if 'address' in sanitize:
                     internal_ldflags += ['-lasan']
+                elif 'leak' in sanitize:
+                    internal_ldflags += ['-llsan']
                 if 'thread' in sanitize:
                     internal_ldflags += ['-ltsan']
                 if 'undefined' in sanitize:

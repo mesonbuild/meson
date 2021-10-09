@@ -281,6 +281,8 @@ class SanitizeOption(coredata.UserArrayOption):
             raise MesonException('b_sanitize=none cannot be combined with other values')
         if len({'thread', 'memory', 'address'}.intersection(value)) > 1:
             raise MesonException('only one can be specified of b_sanitize={address,memory,thread}')
+        if len({'thread', 'leak', 'address'}.intersection(value)) > 1:
+            raise MesonException('only one can be specified of b_sanitize={address,leak,thread}')
 
 base_options: 'KeyedOptionDictType' = {
     OptionKey('b_pch'): coredata.UserBooleanOption('Use precompiled headers', True),
@@ -292,7 +294,7 @@ base_options: 'KeyedOptionDictType' = {
                                                       'default'),
     OptionKey('b_sanitize'): SanitizeOption('Code sanitizer to use',
                                             [],
-                                            choices=['none', 'address', 'thread', 'undefined', 'memory']),
+                                            choices=['none', 'address', 'leak', 'thread', 'undefined', 'memory']),
     OptionKey('b_lundef'): coredata.UserBooleanOption('Use -Wl,--no-undefined when linking', True),
     OptionKey('b_asneeded'): coredata.UserBooleanOption('Use -Wl,--as-needed when linking', True),
     OptionKey('b_pgo'): coredata.UserComboOption('Use profile guided optimization',
