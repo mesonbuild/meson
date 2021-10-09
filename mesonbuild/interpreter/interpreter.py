@@ -2410,7 +2410,8 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             elif arg == '-g':
                 mlog.warning(f'Consider using the built-in debug option instead of using "{arg}".',
                              location=self.current_node)
-            elif arg.startswith('-fsanitize'):
+            elif arg.startswith(('-fsanitize=', '/fsanitize=')) and \
+                     set(arg[11:].split(',')) <= {'none', 'address', 'thread', 'memory', 'undefined'}:
                 mlog.warning(f'Consider using the built-in option for sanitizers instead of using "{arg}".',
                              location=self.current_node)
             elif arg.startswith('-std=') or arg.startswith('/std:'):
