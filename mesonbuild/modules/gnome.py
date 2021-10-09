@@ -701,7 +701,6 @@ class GnomeModule(ExtensionModule):
             if mesonlib.OptionKey('b_sanitize') in compiler.base_options:
                 sanitize = state.environment.coredata.options[mesonlib.OptionKey('b_sanitize')].value
                 cflags += get_sanitizer_compile_args(sanitize, compiler)
-                sanitize = sanitize.split(',')
                 # These must be first in ldflags
                 if 'address' in sanitize:
                     internal_ldflags += ['-lasan']

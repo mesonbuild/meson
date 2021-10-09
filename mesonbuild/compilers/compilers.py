@@ -274,6 +274,14 @@ cuda_debug_args = {False: [],
 clike_debug_args = {False: [],
                     True: ['-g']}  # type: T.Dict[bool, T.List[str]]
 
+class SanitizeOption(coredata.UserArrayOption):
+    def verify_value(self, value: T.List[str]) -> None:
+        super().verify_value(value)
+        if 'none' in value and len(value) > 1:
+            raise MesonException('b_sanitize=none cannot be combined with other values')
+        if len({'thread', 'memory', 'address'}.intersection(value)) > 1:
+            raise MesonException('only one can be specified of b_sanitize={address,memory,thread}')
+
 base_options: 'KeyedOptionDictType' = {
     OptionKey('b_pch'): coredata.UserBooleanOption('Use precompiled headers', True),
     OptionKey('b_lto'): coredata.UserBooleanOption('Use link time optimization', False),
@@ -282,9 +290,9 @@ base_options: 'KeyedOptionDictType' = {
     OptionKey('b_lto_mode'): coredata.UserComboOption('Select between different LTO modes.',
                                                       ['default', 'thin'],
                                                       'default'),
-    OptionKey('b_sanitize'): coredata.UserComboOption('Code sanitizer to use',
-                                                      ['none', 'address', 'thread', 'undefined', 'memory', 'address,undefined'],
-                                                      'none'),
+    OptionKey('b_sanitize'): SanitizeOption('Code sanitizer to use',
+                                            [],
+                                            choices=['none', 'address', 'thread', 'undefined', 'memory']),
     OptionKey('b_lundef'): coredata.UserBooleanOption('Use -Wl,--no-undefined when linking', True),
     OptionKey('b_asneeded'): coredata.UserBooleanOption('Use -Wl,--as-needed when linking', True),
     OptionKey('b_pgo'): coredata.UserComboOption('Use profile guided optimization',
@@ -327,8 +335,8 @@ def get_option_value(options: 'KeyedOptionDictType', opt: OptionKey, fallback: '
     return v
 
 
-def get_sanitizer_compile_args(value: str, compiler: 'Compiler') -> T.List[str]:
-    if value != 'none':
+def get_sanitizer_compile_args(value: T.List[str], compiler: 'Compiler') -> T.List[str]:
+    if value and value != ['none']:
         return compiler.sanitizer_compile_args(value)
     else:
         return []
@@ -396,7 +404,7 @@ def get_base_link_args(options: 'KeyedOptionDictType', linker: 'Compiler',
         pass
     try:
         value = options[OptionKey('b_sanitize')].value
-        if value != 'none':
+        if value and value != ['none']:
             args += linker.sanitizer_link_args(value)
     except KeyError:
         pass
@@ -984,10 +992,10 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def get_lto_link_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
         return self.linker.get_lto_args()
 
-    def sanitizer_compile_args(self, value: str) -> T.List[str]:
+    def sanitizer_compile_args(self, value: T.List[str]) -> T.List[str]:
         return []
 
-    def sanitizer_link_args(self, value: str) -> T.List[str]:
+    def sanitizer_link_args(self, value: T.List[str]) -> T.List[str]:
         return self.linker.sanitizer_args(value)
 
     def get_asneeded_args(self) -> T.List[str]:

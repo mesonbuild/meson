@@ -2491,11 +2491,12 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             return
         if OptionKey('b_sanitize') not in self.coredata.options:
             return
+        sanitizers = self.coredata.options[OptionKey('b_sanitize')].value
         if (self.coredata.options[OptionKey('b_lundef')].value and
-                self.coredata.options[OptionKey('b_sanitize')].value != 'none'):
+                sanitizers and sanitizers != ['none']):
             mlog.warning('''Trying to use {} sanitizer on Clang with b_lundef.
 This will probably not work.
-Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey('b_sanitize')].value),
+Try setting b_lundef to false instead.'''.format(','.join(sanitizers)),
                          location=self.current_node)
 
     # Check that the indicated file is within the same subproject

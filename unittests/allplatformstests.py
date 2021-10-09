@@ -2191,7 +2191,7 @@ class AllPlatformTests(BasePlatformTests):
             obj = mesonbuild.coredata.load(self.builddir)
             self.assertEqual(obj.options[OptionKey('bindir')].value, 'bar')
             self.assertEqual(obj.options[OptionKey('buildtype')].value, 'release')
-            self.assertEqual(obj.options[OptionKey('b_sanitize')].value, 'thread')
+            self.assertEqual(obj.options[OptionKey('b_sanitize')].value, ['thread'])
             self.assertEqual(obj.options[OptionKey('args', lang='c')].value, ['-Dbar'])
             self.setconf(['--bindir=bar', '--bindir=foo',
                           '-Dbuildtype=release', '-Dbuildtype=plain',
@@ -2200,7 +2200,7 @@ class AllPlatformTests(BasePlatformTests):
             obj = mesonbuild.coredata.load(self.builddir)
             self.assertEqual(obj.options[OptionKey('bindir')].value, 'foo')
             self.assertEqual(obj.options[OptionKey('buildtype')].value, 'plain')
-            self.assertEqual(obj.options[OptionKey('b_sanitize')].value, 'address')
+            self.assertEqual(obj.options[OptionKey('b_sanitize')].value, ['address'])
             self.assertEqual(obj.options[OptionKey('args', lang='c')].value, ['-Dfoo'])
             self.wipe()
         except KeyError:

@@ -137,10 +137,9 @@ available on all platforms or with all compilers:
 | b_pie         | false          | true, false                                                      | Build position-independent executables (since 0.49.0)                         |
 | b_vscrt       | from_buildtype | none, md, mdd, mt, mtd, from_buildtype, static_from_buildtype    | VS runtime library to use (since 0.48.0) (static_from_buildtype since 0.56.0) |
 
-The value of `b_sanitize` can be one of: `none`, `address`, `thread`,
-`undefined`, `memory`, `address,undefined`, but note that some
-compilers might not support all of them. For example Visual Studio
-only supports the address sanitizer.
+The value of `b_sanitize` can be `none` or one or more of: `address`,
+`thread`, `undefined`.  Note that some compilers might not support
+all of them. For example Visual Studio only supports the address sanitizer.
 
 * < 0 means disable, == 0 means automatic selection, > 0 sets a specific number to use
 

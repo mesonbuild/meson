@@ -42,18 +42,18 @@ a sample output for a simple project.
       backend_max_links 0             >=0             Maximum number of linker processes to run or 0 for no limit
 
     Base options:
-      Option      Current Value Possible Values                                               Description
-      ------      ------------- ---------------                                               -----------
-      b_asneeded  true          [true, false]                                                 Use -Wl,--as-needed when linking
-      b_colorout  always        [auto, always, never]                                         Use colored output
-      b_coverage  false         [true, false]                                                 Enable coverage tracking.
-      b_lto       false         [true, false]                                                 Use link time optimization
-      b_lundef    true          [true, false]                                                 Use -Wl,--no-undefined when linking
-      b_ndebug    false         [true, false, if-release]                                     Disable asserts
-      b_pch       true          [true, false]                                                 Use precompiled headers
-      b_pgo       off           [off, generate, use]                                          Use profile guided optimization
-      b_sanitize  none          [none, address, thread, undefined, memory, address,undefined] Code sanitizer to use
-      b_staticpic true          [true, false]                                                 Build static libraries as position independent
+      Option      Current Value Possible Values                            Description
+      ------      ------------- ---------------                            -----------
+      b_asneeded  true          [true, false]                              Use -Wl,--as-needed when linking
+      b_colorout  always        [auto, always, never]                      Use colored output
+      b_coverage  false         [true, false]                              Enable coverage tracking.
+      b_lto       false         [true, false]                              Use link time optimization
+      b_lundef    true          [true, false]                              Use -Wl,--no-undefined when linking
+      b_ndebug    false         [true, false, if-release]                  Disable asserts
+      b_pch       true          [true, false]                              Use precompiled headers
+      b_pgo       off           [off, generate, use]                       Use profile guided optimization
+      b_sanitize  none          [none, address, thread, undefined, memory] Code sanitizers to use
+      b_staticpic true          [true, false]                              Build static libraries as position independent
 
     Compiler options:
       Option        Current Value Possible Values                                                                                               Description
