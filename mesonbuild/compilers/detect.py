@@ -88,6 +88,7 @@ defaults['clang_cl_static_linker'] = ['llvm-lib']
 defaults['cuda_static_linker'] = ['nvlink']
 defaults['gcc_static_linker'] = ['gcc-ar']
 defaults['clang_static_linker'] = ['llvm-ar']
+defaults['nasm'] = ['nasm']
 
 
 def compiler_from_language(env: 'Environment', lang: str, for_machine: MachineChoice) -> T.Optional[Compiler]:
@@ -105,6 +106,7 @@ def compiler_from_language(env: 'Environment', lang: str, for_machine: MachineCh
         'fortran': detect_fortran_compiler,
         'swift': detect_swift_compiler,
         'cython': detect_cython_compiler,
+        'nasm': detect_nasm_compiler,
     }
     return lang_map[lang](env, for_machine) if lang in lang_map else None
 
@@ -1133,6 +1135,35 @@ def detect_swift_compiler(env: 'Environment', for_machine: MachineChoice) -> Com
             exelist, version, for_machine, is_cross, info, linker=linker)
 
     raise EnvironmentException('Unknown compiler: ' + join_args(exelist))
+
+def detect_nasm_compiler(env: 'Environment', for_machine: MachineChoice) -> Compiler:
+    from .asm import NasmCompiler
+    compilers, _, _ = _get_compilers(env, 'nasm', for_machine)
+    is_cross = env.is_cross_build(for_machine)
+
+    # We need a C compiler to properly detect the machine info and linker
+    cc = detect_c_compiler(env, for_machine)
+    if not is_cross:
+        from ..environment import detect_machine_info
+        info = detect_machine_info({'c': cc})
+    else:
+        info = env.machines[for_machine]
+
+    popen_exceptions: T.Dict[str, Exception] = {}
+    for comp in compilers:
+        try:
+            output = Popen_safe(comp + ['--version'])[1]
+        except OSError as e:
+            popen_exceptions[' '.join(comp + ['--version'])] = e
+            continue
+
+        version = search_version(output)
+        if 'NASM' in output:
+            comp_class = NasmCompiler
+            env.coredata.add_lang_args(comp_class.language, comp_class, for_machine, env)
+            return comp_class(comp, version, for_machine, info, cc.linker, is_cross=is_cross)
+    _handle_exceptions(popen_exceptions, compilers)
+    raise EnvironmentException('Unreachable code (exception to make mypy happy)')
 
 
 # GNU/Clang defines and version

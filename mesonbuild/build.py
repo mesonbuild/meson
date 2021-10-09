@@ -1568,6 +1568,15 @@ You probably should put it in link_with instead.''')
                 # Pretty hard to fix because the return value is passed everywhere
                 return linker, stdlib_args
 
+        # None of our compilers can do clink, this happens for example if the
+        # target only has ASM sources. Pick the first capable compiler.
+        for l in clink_langs:
+            try:
+                comp = self.all_compilers[l]
+                return comp, comp.language_stdlib_only_link_flags(self.environment)
+            except KeyError:
+                pass
+
         raise AssertionError(f'Could not get a dynamic linker for build target {self.name!r}')
 
     def uses_rust(self) -> bool:
