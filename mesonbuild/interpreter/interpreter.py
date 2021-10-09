@@ -2566,6 +2566,14 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
             raise InterpreterException('Target name must not be empty.')
         if name.strip() == '':
             raise InterpreterException('Target name must not consist only of whitespace.')
+        if has_path_sep(name):
+            pathseg = os.path.join(self.subdir, os.path.split(name)[0])
+            if os.path.exists(os.path.join(self.source_root, pathseg)):
+                raise InvalidArguments(textwrap.dedent(f'''\
+                    Target "{name}" has a path segment pointing to directory "{pathseg}". This is an error.
+                    To define a target that builds in that directory you must define it
+                    in the meson.build file in that directory.
+            '''))
         if name.startswith('meson-'):
             raise InvalidArguments("Target names starting with 'meson-' are reserved "
                                    "for Meson's internal use. Please rename.")
