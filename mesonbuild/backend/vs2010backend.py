@@ -819,7 +819,7 @@ class Vs2010Backend(backends.Backend):
         build_args = compiler.get_buildtype_args(self.buildtype)
         build_args += compiler.get_optimization_args(self.optimization)
         build_args += compiler.get_debug_args(self.debug)
-        build_args += compiler.sanitizer_compile_args(self.sanitize)
+        build_args += compilers.get_sanitizer_compile_args(self.sanitize, compiler)
         buildtype_link_args = compiler.get_buildtype_linker_args(self.buildtype)
         vscrt_type = self.environment.coredata.options[OptionKey('b_vscrt')]
         project_name = target.name

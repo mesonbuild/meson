@@ -289,8 +289,6 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         return ['-flto']
 
     def sanitizer_compile_args(self, value: str) -> T.List[str]:
-        if value == 'none':
-            return []
         args = ['-fsanitize=' + value]
         if 'address' in value:  # for -fsanitize=address,undefined
             args.append('-fno-omit-frame-pointer')

@@ -37,6 +37,7 @@ from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, FeatureNew, 
 from ..interpreterbase import typed_kwargs, KwargInfo, ContainerTypeInfo
 from ..programs import ExternalProgram, OverrideProgram
 from ..build import CustomTarget, CustomTargetIndex, GeneratedList
+from ..compilers import get_sanitizer_compile_args
 
 if T.TYPE_CHECKING:
     from ..compilers import Compiler
@@ -699,7 +700,7 @@ class GnomeModule(ExtensionModule):
                 cflags += state.project_args[lang]
             if mesonlib.OptionKey('b_sanitize') in compiler.base_options:
                 sanitize = state.environment.coredata.options[mesonlib.OptionKey('b_sanitize')].value
-                cflags += compiler.sanitizer_compile_args(sanitize)
+                cflags += get_sanitizer_compile_args(sanitize, compiler)
                 sanitize = sanitize.split(',')
                 # These must be first in ldflags
                 if 'address' in sanitize:

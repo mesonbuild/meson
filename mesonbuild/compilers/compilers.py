@@ -327,6 +327,12 @@ def get_option_value(options: 'KeyedOptionDictType', opt: OptionKey, fallback: '
     return v
 
 
+def get_sanitizer_compile_args(value: str, compiler: 'Compiler') -> T.List[str]:
+    if value != 'none':
+        return compiler.sanitizer_compile_args(value)
+    else:
+        return []
+
 def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler') -> T.List[str]:
     args = []  # type T.List[str]
     try:
@@ -341,7 +347,7 @@ def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler') 
     except KeyError:
         pass
     try:
-        args += compiler.sanitizer_compile_args(options[OptionKey('b_sanitize')].value)
+        args += get_sanitizer_compile_args(options[OptionKey('b_sanitize')].value, compiler)
     except KeyError:
         pass
     try:
@@ -389,7 +395,9 @@ def get_base_link_args(options: 'KeyedOptionDictType', linker: 'Compiler',
     except KeyError:
         pass
     try:
-        args += linker.sanitizer_link_args(options[OptionKey('b_sanitize')].value)
+        value = options[OptionKey('b_sanitize')].value
+        if value != 'none':
+            args += linker.sanitizer_link_args(value)
     except KeyError:
         pass
     try:

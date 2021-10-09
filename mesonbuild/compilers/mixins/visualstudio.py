@@ -164,8 +164,6 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         return ['/Od','/Oi-']
 
     def sanitizer_compile_args(self, value: str) -> T.List[str]:
-        if value == 'none':
-            return []
         if value != 'address':
             raise mesonlib.MesonException('VS only supports address sanitizer at the moment.')
         return ['/fsanitize=address']

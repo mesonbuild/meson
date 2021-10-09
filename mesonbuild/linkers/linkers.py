@@ -584,8 +584,6 @@ class GnuLikeDynamicLinkerMixin:
         return ['-flto']
 
     def sanitizer_args(self, value: str) -> T.List[str]:
-        if value == 'none':
-            return []
         return ['-fsanitize=' + value]
 
     def get_coverage_args(self) -> T.List[str]:
@@ -730,8 +728,6 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         return ['--coverage']
 
     def sanitizer_args(self, value: str) -> T.List[str]:
-        if value == 'none':
-            return []
         return ['-fsanitize=' + value]
 
     def no_undefined_args(self) -> T.List[str]:
