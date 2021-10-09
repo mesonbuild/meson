@@ -209,6 +209,21 @@ class UserArrayOption(UserOption[T.List[str]]):
         self.allow_dups = allow_dups
         self.value = self.validate_value(value, user_input=user_input)
 
+    def verify_value(self, value: T.List[str]) -> None:
+        if not self.allow_dups and len(set(value)) != len(value):
+            msg = 'Duplicated values in array option is deprecated. ' \
+                  'This will become a hard error in the future.'
+            mlog.deprecation(msg)
+        for i in value:
+            if not isinstance(i, str):
+                raise MesonException(f'String array element "{value!s}" is not a string.')
+
+        if self.choices:
+            bad = [x for x in value if x not in self.choices]
+            if bad:
+                raise MesonException('Options "{}" are not in allowed choices: "{}"'.format(
+                    ', '.join(bad), ', '.join(self.choices)))
+
     def listify(self, value: T.Union[str, T.List[str]], user_input: bool = True) -> T.List[str]:
         # User input is for options defined on the command line (via -D
         # options). Users can put their input in as a comma separated
@@ -238,19 +253,7 @@ class UserArrayOption(UserOption[T.List[str]]):
 
     def validate_value(self, value: T.Union[str, T.List[str]], user_input: bool = True) -> T.List[str]:
         newvalue = self.listify(value, user_input)
-
-        if not self.allow_dups and len(set(newvalue)) != len(newvalue):
-            msg = 'Duplicated values in array option is deprecated. ' \
-                  'This will become a hard error in the future.'
-            mlog.deprecation(msg)
-        for i in newvalue:
-            if not isinstance(i, str):
-                raise MesonException(f'String array element "{newvalue!s}" is not a string.')
-        if self.choices:
-            bad = [x for x in newvalue if x not in self.choices]
-            if bad:
-                raise MesonException('Options "{}" are not in allowed choices: "{}"'.format(
-                    ', '.join(bad), ', '.join(self.choices)))
+        self.verify_value(newvalue)
         return newvalue
 
     def extend_value(self, value: T.Union[str, T.List[str]]) -> None:
