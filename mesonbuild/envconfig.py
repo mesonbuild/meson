@@ -101,6 +101,7 @@ ENV_VAR_COMPILER_MAP: T.Mapping[str, str] = {
     'objcpp': 'OBJCXX',
     'rust': 'RUSTC',
     'vala': 'VALAC',
+    'nasm': 'NASM',
 
     # Linkers
     'c_ld': 'CC_LD',
