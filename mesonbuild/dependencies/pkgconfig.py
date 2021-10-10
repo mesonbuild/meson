@@ -425,6 +425,10 @@ class PkgConfigDependency(ExternalDependency):
             return None
         command_as_string = ' '.join(pkgbin.get_command())
         try:
+            helptext = Popen_safe(pkgbin.get_command() + ['--help'])[1]
+            if 'Pure-Perl' in helptext:
+                mlog.log(f'found pkg-config {command_as_string!r} but it is Strawberry Perl and thus broken. Ignoring...')
+                return None
             p, out = Popen_safe(pkgbin.get_command() + ['--version'])[0:2]
             if p.returncode != 0:
                 mlog.warning(f'Found pkg-config {command_as_string!r} but it failed when run')
