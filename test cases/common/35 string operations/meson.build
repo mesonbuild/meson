@@ -1,4 +1,4 @@
-project('string formatting', 'c', meson_version: '>=0.59.0')
+project('string formatting', 'c')
 
 templ = '@0@bar@1@'
 
