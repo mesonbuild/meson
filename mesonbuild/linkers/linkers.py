@@ -167,21 +167,14 @@ class IntelVisualStudioLinker(VisualStudioLikeLinker, StaticLinker):
         VisualStudioLikeLinker.__init__(self, machine)
 
 
-class ArLinker(StaticLinker):
-
-    def __init__(self, exelist: T.List[str]):
-        super().__init__(exelist)
-        self.id = 'ar'
-        pc, stdo = mesonlib.Popen_safe(self.exelist + ['-h'])[0:2]
-        # Enable deterministic builds if they are available.
-        if '[D]' in stdo:
-            self.std_args = ['csrD']
-        else:
-            self.std_args = ['csr']
-        self.can_rsp = '@<' in stdo
+class ArLikeLinker(StaticLinker):
+    # POSIX requires supporting the dash, GNU permits omitting it
+    std_args = ['-csr']
 
     def can_linker_accept_rsp(self) -> bool:
-        return self.can_rsp
+        # armar / AIX can't accept arguments using the @rsp syntax
+        # in fact, only the 'ar' id can
+        return False
 
     def get_std_link_args(self) -> T.List[str]:
         return self.std_args
@@ -193,16 +186,25 @@ class ArLinker(StaticLinker):
         return RSPFileSyntax.GCC
 
 
-class ArmarLinker(ArLinker):  # lgtm [py/missing-call-to-init]
+class ArLinker(ArLikeLinker):
+    id = 'ar'
 
     def __init__(self, exelist: T.List[str]):
-        StaticLinker.__init__(self, exelist)
-        self.id = 'armar'
-        self.std_args = ['-csr']
+        super().__init__(exelist)
+        stdo = mesonlib.Popen_safe(self.exelist + ['-h'])[1]
+        # Enable deterministic builds if they are available.
+        if '[D]' in stdo:
+            self.std_args = ['csrD']
+        else:
+            self.std_args = ['csrD']
+        self.can_rsp = '@<' in stdo
 
     def can_linker_accept_rsp(self) -> bool:
-        # armar can't accept arguments using the @rsp syntax
-        return False
+        return self.can_rsp
+
+
+class ArmarLinker(ArLikeLinker):  # lgtm [py/missing-call-to-init]
+    id = 'armar'
 
 
 class DLinker(StaticLinker):
@@ -291,16 +293,9 @@ class C2000Linker(StaticLinker):
         return ['-r']
 
 
-class AIXArLinker(ArLinker):
-
-    def __init__(self, exelist: T.List[str]):
-        StaticLinker.__init__(self, exelist)
-        self.id = 'aixar'
-        self.std_args = ['-csr', '-Xany']
-
-    def can_linker_accept_rsp(self) -> bool:
-        # AIXAr can't accept arguments using the @rsp syntax
-        return False
+class AIXArLinker(ArLikeLinker):
+    id = 'aixar'
+    std_args = ['-csr', '-Xany']
 
 
 def prepare_rpaths(raw_rpaths: str, build_dir: str, from_dir: str) -> T.List[str]:
