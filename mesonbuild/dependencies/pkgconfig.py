@@ -423,18 +423,17 @@ class PkgConfigDependency(ExternalDependency):
         if not pkgbin.found():
             mlog.log(f'Did not find pkg-config by name {pkgbin.name!r}')
             return None
+        command_as_string = ' '.join(pkgbin.get_command())
         try:
             p, out = Popen_safe(pkgbin.get_command() + ['--version'])[0:2]
             if p.returncode != 0:
-                mlog.warning('Found pkg-config {!r} but it failed when run'
-                             ''.format(' '.join(pkgbin.get_command())))
+                mlog.warning(f'Found pkg-config {command_as_string!r} but it failed when run')
                 return None
         except FileNotFoundError:
-            mlog.warning('We thought we found pkg-config {!r} but now it\'s not there. How odd!'
-                         ''.format(' '.join(pkgbin.get_command())))
+            mlog.warning(f'We thought we found pkg-config {command_as_string!r} but now it\'s not there. How odd!')
             return None
         except PermissionError:
-            msg = 'Found pkg-config {!r} but didn\'t have permissions to run it.'.format(' '.join(pkgbin.get_command()))
+            msg = f'Found pkg-config {command_as_string!r} but didn\'t have permissions to run it.'
             if not self.env.machines.build.is_windows():
                 msg += '\n\nOn Unix-like systems this is often caused by scripts that are not executable.'
             mlog.warning(msg)
