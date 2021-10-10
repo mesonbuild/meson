@@ -1,7 +1,0 @@
-{
-  "stdout": [
-    {
-      "line": "WARNING: Project targeting '>=0.59.0' but tried to use feature introduced in '0.60.0': str.join (varargs). List-flattening and variadic arguments"
-    }
-  ]
-}
