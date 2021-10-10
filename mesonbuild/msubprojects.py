@@ -7,6 +7,8 @@ import shutil
 from concurrent.futures.thread import ThreadPoolExecutor
 from pathlib import Path
 import typing as T
+import tarfile
+import zipfile
 
 from . import mlog
 from .mesonlib import quiet_git, GitException, Popen_safe, MesonException, windows_proof_rmtree
@@ -14,6 +16,15 @@ from .wrap.wrap import PackageDefinition, Resolver, WrapException, ALL_TYPES
 from .wrap import wraptool
 
 ALL_TYPES_STRING = ', '.join(ALL_TYPES)
+
+def read_archive_files(path: Path, base_path: Path):
+    if path.suffix == '.zip':
+        with zipfile.ZipFile(path, 'r') as archive:
+            archive_files = set(base_path / i for i in archive.namelist())
+    else:
+        with tarfile.open(path) as archive: # [ignore encoding]
+            archive_files = set(base_path / i.name for i in archive)
+    return archive_files
 
 class Logger:
     def __init__(self, total_tasks: int) -> None:
@@ -484,8 +495,31 @@ class Runner:
             self.wrap_resolver.apply_patch()
             return True
         if self.options.save:
-            mlog.error('not implemented yet')
-            return False
+            if 'patch_directory' not in self.wrap.values:
+                mlog.error('can only save packagefiles to patch_directory')
+                return False
+            if 'source_filename' not in self.wrap.values:
+                mlog.error('can only save packagefiles from a [wrap-file]')
+                return False
+            archive_path = Path(self.wrap_resolver.cachedir, self.wrap.values['source_filename'])
+            lead_directory_missing = bool(self.wrap.values.get('lead_directory_missing', False))
+            directory = Path(self.repo_dir)
+            packagefiles = Path(self.wrap.filesdir, self.wrap.values['patch_directory'])
+
+            base_path = directory if lead_directory_missing else directory.parent
+            archive_files = read_archive_files(archive_path, base_path)
+            directory_files = set(directory.glob('**/*'))
+
+            self.log(f'Saving {self.wrap.name} to {packagefiles}...')
+            shutil.rmtree(packagefiles)
+            for src_path in directory_files - archive_files:
+                if not src_path.is_file():
+                    continue
+                rel_path = src_path.relative_to(directory)
+                dst_path = packagefiles / rel_path
+                dst_path.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(src_path, dst_path)
+            return True
 
 
 def add_common_arguments(p):
