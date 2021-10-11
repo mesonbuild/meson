@@ -1031,6 +1031,37 @@ class GnomeModule(ExtensionModule):
         rv = [inscript, pottarget, potarget]
         return ModuleReturnValue(None, rv)
 
+    def _get_content_files_args(self, kwargs, state, expand_content_files):
+        arg = ('expand_' if expand_content_files else '') + 'content_files'
+
+        content_files = []
+        depends = []
+        for s in mesonlib.extract_as_list(kwargs, arg):
+            if isinstance(s, (build.CustomTarget, build.CustomTargetIndex)):
+                depends.append(s)
+                for o in s.get_outputs():
+                    content_files.append(os.path.join(state.environment.get_build_dir(),
+                                                      state.backend.get_target_dir(s),
+                                                      o))
+            elif isinstance(s, mesonlib.File):
+                content_files.append(s.absolute_path(state.environment.get_source_dir(),
+                                                     state.environment.get_build_dir()))
+            elif isinstance(s, build.GeneratedList):
+                depends.append(s)
+                for gen_src in s.get_outputs():
+                    content_files.append(os.path.join(state.environment.get_source_dir(),
+                                                      state.subdir,
+                                                      gen_src))
+            elif isinstance(s, str):
+                content_files.append(os.path.join(state.environment.get_source_dir(),
+                                                  state.subdir,
+                                                  s))
+            else:
+                raise MesonException(
+                    f'Invalid object type: {s.__class__.__name__!r}')
+
+        return content_files, depends
+
     @FeatureNewKwargs('gnome.gtkdoc', '0.52.0', ['check'])
     @FeatureNewKwargs('gnome.gtkdoc', '0.48.0', ['c_args'])
     @FeatureNewKwargs('gnome.gtkdoc', '0.48.0', ['module_version'])
@@ -1110,33 +1141,15 @@ class GnomeModule(ExtensionModule):
         args += self._unpack_args('--html-assets=', 'html_assets', kwargs, state)
 
         depends = []
-        content_files = []
-        for s in mesonlib.extract_as_list(kwargs, 'content_files'):
-            if isinstance(s, (build.CustomTarget, build.CustomTargetIndex)):
-                depends.append(s)
-                for o in s.get_outputs():
-                    content_files.append(os.path.join(state.environment.get_build_dir(),
-                                                      state.backend.get_target_dir(s),
-                                                      o))
-            elif isinstance(s, mesonlib.File):
-                content_files.append(s.absolute_path(state.environment.get_source_dir(),
-                                                     state.environment.get_build_dir()))
-            elif isinstance(s, build.GeneratedList):
-                depends.append(s)
-                for gen_src in s.get_outputs():
-                    content_files.append(os.path.join(state.environment.get_source_dir(),
-                                                      state.subdir,
-                                                      gen_src))
-            elif isinstance(s, str):
-                content_files.append(os.path.join(state.environment.get_source_dir(),
-                                                  state.subdir,
-                                                  s))
-            else:
-                raise MesonException(
-                    f'Invalid object type: {s.__class__.__name__!r}')
-        args += ['--content-files=' + '@@'.join(content_files)]
 
-        args += self._unpack_args('--expand-content-files=', 'expand_content_files', kwargs, state)
+        content_files, content_depends = self._get_content_files_args(kwargs, state, False)
+        args += ['--content-files=' + '@@'.join(content_files)]
+        depends += content_depends
+
+        expand_content_files, expand_content_depends = self._get_content_files_args(kwargs, state, True)
+        args += ['--expand-content-files=' + '@@'.join(expand_content_files)]
+        depends += expand_content_depends
+
         args += self._unpack_args('--ignore-headers=', 'ignore_headers', kwargs)
         args += self._unpack_args('--installdir=', 'install_dir', kwargs)
         args += self._get_build_args(kwargs, state, depends)

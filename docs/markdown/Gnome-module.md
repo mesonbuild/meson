@@ -335,6 +335,7 @@ Compiles and installs gtkdoc documentation into
 of the module.
 
 * `content_files`: a list of content files
+* `expand_content_files`: a list of expand content files
 * `dependencies`: a list of dependencies
 * `fixxref_args`: a list of arguments to pass to `gtkdoc-fixxref`
 * `gobject_typesfile`: a list of type files
