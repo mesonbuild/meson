@@ -231,6 +231,21 @@ permitted_dependency_kwargs = {
     'version',
 }
 
+CT_MAN_COMMON_KWARGS = [
+    CT_INPUT_KW,
+    DEPENDS_KW,
+    DEPEND_FILES_KW,
+    DEPFILE_KW,
+    ENV_KW.evolve(since='0.57.0'),
+    INSTALL_MODE_KW.evolve(since='0.47.0'),
+    OVERRIDE_OPTIONS_KW,
+    KwargInfo('build_always', (bool, type(None)), deprecated='0.47.0'),
+    KwargInfo('build_always_stale', (bool, type(None)), since='0.47.0'),
+    KwargInfo('feed', bool, default=False, since='0.59.0'),
+    KwargInfo('capture', bool, default=False),
+    KwargInfo('console', bool, default=False, since='0.48.0'),
+]
+
 class Interpreter(InterpreterBase, HoldableObject):
 
     def __init__(
@@ -1655,22 +1670,11 @@ external dependencies (including libraries) must go to "dependencies".''')
         'custom_target',
         COMMAND_KW,
         CT_BUILD_BY_DEFAULT,
-        CT_INPUT_KW,
         CT_INSTALL_DIR_KW,
         CT_INSTALL_TAG_KW,
         CT_OUTPUT_KW,
-        DEPENDS_KW,
-        DEPEND_FILES_KW,
-        DEPFILE_KW,
-        ENV_KW.evolve(since='0.57.0'),
         INSTALL_KW,
-        INSTALL_MODE_KW.evolve(since='0.47.0'),
-        OVERRIDE_OPTIONS_KW,
-        KwargInfo('build_always', (bool, type(None)), deprecated='0.47.0'),
-        KwargInfo('build_always_stale', (bool, type(None)), since='0.47.0'),
-        KwargInfo('feed', bool, default=False, since='0.59.0'),
-        KwargInfo('capture', bool, default=False),
-        KwargInfo('console', bool, default=False, since='0.48.0'),
+        *CT_MAN_COMMON_KWARGS
     )
     def func_custom_target(self, node: mparser.FunctionNode, args: T.Tuple[str],
                            kwargs: 'kwargs.CustomTarget') -> build.CustomTarget:
@@ -1887,14 +1891,38 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         'install_man',
         KwargInfo('install_dir', (str, NoneType)),
         KwargInfo('locale', (str, NoneType), since='0.58.0'),
-        INSTALL_MODE_KW.evolve(since='0.47.0')
+        COMMAND_KW.evolve(required=False, since='0.60.0'),
+        *CT_MAN_COMMON_KWARGS
     )
     def func_install_man(self, node: mparser.BaseNode,
                          args: T.Tuple[T.List['mesonlib.FileOrString']],
                          kwargs: 'kwargs.FuncInstallMan') -> build.Man:
-        # We just need to narrow this, because the input is limited to files and
-        # Strings as inputs, so only Files will be returned
-        sources = self.source_strings_to_files(args[0])
+        sources = args[0]
+        ct_man_common_kwarg_names = {i.name for i in CT_MAN_COMMON_KWARGS}
+
+        if kwargs['command']:
+            if len(sources) > 1:
+                raise InvalidArguments('Man files generated via a command cannot have multiple outputs')
+            output = sources[0]
+            self.environment
+            sources = [mesonlib.File.from_built_file(self.subdir, output)]
+
+            build_kwargs = {k: v for k, v in kwargs.items() if k in ct_man_common_kwarg_names and v is not None}
+            build_kwargs['command'] = kwargs['command']
+            build_kwargs['output'] = output
+            build_kwargs['build_by_default'] = True
+            self._func_custom_target_impl(node, [output], build_kwargs)
+        else:
+            # since typed kwargs always exist, and sometimes come with prefilled defaults,
+            # this cannot actually be validated. Apparently this is a good thing.
+            #used_ct_args = ct_man_common_kwarg_names.intersection(kwargs.keys())
+            #if used_ct_args:
+            #    raise InvalidArguments(f'cannot use kwargs {used_ct_args!r} without command')
+
+            # We just need to narrow this, because the input is limited to files and
+            # Strings as inputs, so only Files will be returned
+            sources = self.source_strings_to_files(args[0])
+
         for s in sources:
             try:
                 num = int(s.rsplit('.', 1)[-1])
