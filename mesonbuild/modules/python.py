@@ -292,6 +292,17 @@ def debian_distutils_missing():
             return True
     return False
 
+def debian_distutils_deb_system():
+    # The easiest way to see if the deb_system scheme is in use is by checking
+    # the value of get_python_lib.
+    # https://salsa.debian.org/cpython-team/python3/-/blob/python3.6/debian/patches/distutils-install-layout.diff#L140
+    import distutils.command.install
+    import distutils.sysconfig
+    return (
+        'deb_system' in distutils.command.install.INSTALL_SCHEMES
+        and distutils.sysconfig.get_python_lib().endswith('dist-packages')
+    )
+
 def get_distutils_paths(scheme=None, prefix=None):
     import distutils.dist
     distribution = distutils.dist.Distribution()
@@ -316,8 +327,7 @@ def get_paths():
     # site-packages with dist-packages.
     # See https://github.com/mesonbuild/meson/issues/8739.
     # XXX: We should be using sysconfig, but Debian only patches distutils.
-    import distutils.command.install
-    if 'deb_system' in distutils.command.install.INSTALL_SCHEMES:
+    if debian_distutils_deb_system():
         paths = get_distutils_paths(scheme='deb_system')
         install_paths = get_distutils_paths(scheme='deb_system', prefix='')
     else:
