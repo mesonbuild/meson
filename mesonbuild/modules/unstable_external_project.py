@@ -20,7 +20,8 @@ import typing as T
 
 from . import ExtensionModule, ModuleReturnValue, NewExtensionModule
 from .. import mlog, build
-from ..compilers.compilers import CFLAGS_MAPPING, CEXE_MAPPING
+from ..compilers.compilers import CFLAGS_MAPPING
+from ..envconfig import ENV_VAR_PROG_MAP
 from ..dependencies import InternalDependency, PkgConfigDependency
 from ..interpreterbase import FeatureNew
 from ..interpreter.type_checking import ENV_KW
@@ -135,11 +136,11 @@ class ExternalProject(NewExtensionModule):
         link_args: T.List[str] = []
         self.run_env = os.environ.copy()
         for lang, compiler in self.env.coredata.compilers[MachineChoice.HOST].items():
-            if any(lang not in i for i in (CEXE_MAPPING, CFLAGS_MAPPING)):
+            if any(lang not in i for i in (ENV_VAR_PROG_MAP, CFLAGS_MAPPING)):
                 continue
             cargs = self.env.coredata.get_external_args(MachineChoice.HOST, lang)
             assert isinstance(cargs, list), 'for mypy'
-            self.run_env[CEXE_MAPPING[lang]] = self._quote_and_join(compiler.get_exelist())
+            self.run_env[ENV_VAR_PROG_MAP[lang]] = self._quote_and_join(compiler.get_exelist())
             self.run_env[CFLAGS_MAPPING[lang]] = self._quote_and_join(cargs)
             if not link_exelist:
                 link_exelist = compiler.get_linker_exelist()
