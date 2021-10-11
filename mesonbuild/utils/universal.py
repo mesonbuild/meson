@@ -134,6 +134,7 @@ __all__ = [
     'is_osx',
     'is_qnx',
     'is_sunos',
+    'is_teeos',
     'is_windows',
     'is_wsl',
     'iter_regexin_iter',
@@ -648,6 +649,10 @@ def is_haiku() -> bool:
 
 def is_openbsd() -> bool:
     return platform.system().lower() == 'openbsd'
+
+
+def is_teeos() -> bool:
+    return platform.system().lower() == 'teeos'
 
 
 def is_windows() -> bool:

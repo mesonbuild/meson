@@ -651,7 +651,8 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
         return self._apply_prefix('--out-implib=' + implibname)
 
     def thread_flags(self, env: 'Environment') -> T.List[str]:
-        if env.machines[self.for_machine].is_haiku():
+        m = env.machines[self.for_machine]
+        if m.is_haiku() or m.is_teeos():
             return []
         return ['-pthread']
 

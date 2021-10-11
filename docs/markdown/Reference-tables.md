@@ -160,6 +160,7 @@ These are provided by the `.system()` method call.
 | linux               | |
 | netbsd              | |
 | openbsd             | |
+| teeos               | Any secure Operating System, likes optee, trusty |
 | windows             | Any version of Windows |
 | sunos               | illumos and Solaris |
 

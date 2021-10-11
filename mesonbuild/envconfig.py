@@ -346,6 +346,12 @@ class MachineInfo(HoldableObject):
         """
         return self.system == 'openbsd'
 
+    def is_teeos(self) -> bool:
+        """
+        Machine is a secure Operating System (optee/trusty)
+        """
+        return self.system == 'teeos'
+
     def is_dragonflybsd(self) -> bool:
         """Machine is DragonflyBSD?"""
         return self.system == 'dragonfly'
