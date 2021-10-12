@@ -341,7 +341,7 @@ methods:
 
   kwargs_inherit: compiler._header
   posargs:
-    heade:
+    header:
       type: str
       description: The header to check.
     symbol:
@@ -353,6 +353,10 @@ methods:
   description: Tries to find the library specified in the positional argument.
 
   kwargs_inherit: compiler._common
+  posargs:
+    libname:
+      type: str
+      description: The library to find.
   kwargs:
     required:
       type: bool | feature
