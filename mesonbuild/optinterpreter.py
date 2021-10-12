@@ -194,7 +194,7 @@ class OptionInterpreter:
 
         key = mesonlib.OptionKey(opt_name, self.subproject)
         if key in self.options:
-            raise OptionException(f'Option {opt_name} already exists')
+            mlog.deprecation(f'Option {opt_name} already exists.')
         self.options[key] = opt
 
     @permittedKwargs({'value', 'yield'})
