@@ -598,10 +598,12 @@ class VisualStudioLikeCPPCompilerMixin(CompilerMixinBase):
         'vc++11': (True, 11),
         'vc++14': (True, 14),
         'vc++17': (True, 17),
+        'vc++20': (True, 20),
         'vc++latest': (True, "latest"),
         'c++11': (False, 11),
         'c++14': (False, 14),
         'c++17': (False, 17),
+        'c++20': (False, 20),
         'c++latest': (False, "latest"),
     }
 
@@ -703,6 +705,8 @@ class VisualStudioCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixi
         # Visual Studio 2017 and later
         if version_compare(self.version, '>=19.11'):
             cpp_stds.extend(['vc++14', 'c++17', 'vc++17'])
+        if version_compare(self.version, '>=19.29'):
+            cpp_stds.extend(['c++20', 'vc++20'])
         return self._get_options_impl(super().get_options(), cpp_stds)
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
