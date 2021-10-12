@@ -69,3 +69,14 @@ assert(d[k2] == 2, 'Incorrect expression evaluation in dictionary key')
 d = {'a' + 'b' : 1}
 assert(d['a' + 'b'] == 1, 'Incorrect expression evaluation in dictionary key')
 assert(d['ab'] == 1, 'Incorrect expression evaluation in dictionary key')
+
+# Complex types
+d = {
+  'sanity': 1,
+  'host': host_machine,
+  'meson': meson,
+}
+
+assert(d['sanity'] == 1)
+assert(not is_disabler(d['meson']))
+assert(not is_disabler(d['host']))
