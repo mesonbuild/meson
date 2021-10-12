@@ -19,6 +19,7 @@ from .. import mlog
 from .. import build
 from .. import optinterpreter
 from .. import compilers
+from .. import envconfig
 from ..wrap import wrap, WrapMode
 from .. import mesonlib
 from ..mesonlib import MesonBugException, HoldableObject, FileMode, MachineChoice, OptionKey, listify, extract_as_list, has_path_sep
@@ -419,6 +420,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             compilers.RunResult: compilerOBJ.TryRunResultHolder,
             dependencies.ExternalLibrary: OBJ.ExternalLibraryHolder,
             coredata.UserFeatureOption: OBJ.FeatureOptionHolder,
+            envconfig.MachineInfo: OBJ.MachineHolder,
         })
 
         '''
