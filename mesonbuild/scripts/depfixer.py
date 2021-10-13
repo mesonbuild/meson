@@ -313,17 +313,17 @@ class Elf(DataSizes):
                 self.bf.seek(offset)
                 self.bf.write(newname)
 
-    def fix_rpath(self, rpath_dirs_to_remove: T.Set[bytes], new_rpath: bytes) -> None:
+    def fix_rpath(self, fname: str, rpath_dirs_to_remove: T.Set[bytes], new_rpath: bytes) -> None:
         # The path to search for can be either rpath or runpath.
         # Fix both of them to be sure.
-        self.fix_rpathtype_entry(rpath_dirs_to_remove, new_rpath, DT_RPATH)
-        self.fix_rpathtype_entry(rpath_dirs_to_remove, new_rpath, DT_RUNPATH)
+        self.fix_rpathtype_entry(fname, rpath_dirs_to_remove, new_rpath, DT_RPATH)
+        self.fix_rpathtype_entry(fname, rpath_dirs_to_remove, new_rpath, DT_RUNPATH)
 
-    def fix_rpathtype_entry(self, rpath_dirs_to_remove: T.Set[bytes], new_rpath: bytes, entrynum: int) -> None:
+    def fix_rpathtype_entry(self, fname: str, rpath_dirs_to_remove: T.Set[bytes], new_rpath: bytes, entrynum: int) -> None:
         rp_off = self.get_entry_offset(entrynum)
         if rp_off is None:
             if self.verbose:
-                print('File does not have rpath. It should be a fully static executable.')
+                print(f'File {fname!r} does not have an rpath. It should be a fully static executable.')
             return
         self.bf.seek(rp_off)
 
@@ -388,7 +388,7 @@ def fix_elf(fname: str, rpath_dirs_to_remove: T.Set[bytes], new_rpath: T.Optiona
     if new_rpath is not None:
         with Elf(fname, verbose) as e:
             # note: e.get_rpath() and e.get_runpath() may be useful
-            e.fix_rpath(rpath_dirs_to_remove, new_rpath)
+            e.fix_rpath(fname, rpath_dirs_to_remove, new_rpath)
 
 def get_darwin_rpaths_to_remove(fname: str) -> T.List[str]:
     out = subprocess.check_output(['otool', '-l', fname],
