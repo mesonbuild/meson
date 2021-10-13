@@ -4,7 +4,7 @@ gen = generator(find_program('file.py'), arguments:['@INPUT@', 'erd\u0151', '@OU
 
 gen_file = gen.process('file.c.in')
 
-find_file_list = run_command(find_program('find.py'))
+find_file_list = run_command(find_program('find.py'), check: true)
 assert(find_file_list.returncode() == 0, 'Didn\'t find any files.')
 
 # Strings should support both octal \ooo and hex \xhh encodings

@@ -9,7 +9,7 @@ foo = false
 
 executable(target_name, target_src, build_by_default : foo)
 
-r = run_command(find_program('c_compiler.py'))
+r = run_command(find_program('c_compiler.py'), check: false)
 if r.returncode() != 0
   error('FAILED')
 endif

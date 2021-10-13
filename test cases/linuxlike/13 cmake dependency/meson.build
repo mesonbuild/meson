@@ -7,7 +7,7 @@ if not find_program('cmake', required: false).found()
 endif
 
 # CMake version
-cm_vers = run_command(find_program('./cmVers.sh')).stdout().strip()
+cm_vers = run_command(find_program('./cmVers.sh'), check: true).stdout().strip()
 
 # Zlib is probably on all dev machines.
 

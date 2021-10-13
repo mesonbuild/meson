@@ -1,9 +1,9 @@
 project('run command', version : run_command('get-version.py', check : true).stdout().strip())
 
 if build_machine.system() == 'windows'
-  c = run_command('cmd', '/c', 'echo', 'hello')
+  c = run_command('cmd', '/c', 'echo', 'hello', check: false)
 else
-  c = run_command('echo', 'hello')
+  c = run_command('echo', 'hello', check: false)
 endif
 
 correct = 'hello'
@@ -25,9 +25,9 @@ endif
 # Now the same with a script.
 
 if build_machine.system() == 'windows'
-  cs = run_command('scripts/hello.bat')
+  cs = run_command('scripts/hello.bat', check: false)
 else
-  cs = run_command('scripts/hello.sh')
+  cs = run_command('scripts/hello.sh', check: false)
 endif
 
 if cs.returncode() != 0
@@ -46,9 +46,9 @@ endif
 f = files('meson.build')
 
 if build_machine.system() == 'windows'
-  c = run_command('cmd', '/c', 'echo', f)
+  c = run_command('cmd', '/c', 'echo', f, check: false)
 else
-  c = run_command('echo', f)
+  c = run_command('echo', f, check: false)
 endif
 
 if c.returncode() != 0
@@ -57,23 +57,23 @@ endif
 
 py3 = import('python3').find_python()
 
-ret = run_command(py3, '-c', 'print("some output")')
+ret = run_command(py3, '-c', 'print("some output")', check: false)
 assert(ret.returncode() == 0, 'failed to run python3: ' + ret.stderr())
 assert(ret.stdout() == 'some output\n', 'failed to run python3')
 
-ret = run_command(py3, '-c', 'print("some output")', capture : false)
+ret = run_command(py3, '-c', 'print("some output")', check: false, capture: false)
 assert(ret.returncode() == 0, 'failed to run python3: ' + ret.stderr())
 assert(ret.stdout() == '', 'stdout is "@0@" instead of empty'.format(ret.stdout()))
 
 c_env = environment()
 c_env.append('CUSTOM_ENV_VAR', 'FOOBAR')
-ret = run_command(py3, '-c', 'import os; print(os.environ.get("CUSTOM_ENV_VAR"))', env : c_env)
+ret = run_command(py3, '-c', 'import os; print(os.environ.get("CUSTOM_ENV_VAR"))', env: c_env, check: false)
 assert(ret.returncode() == 0, 'failed to run python3: ' + ret.stderr())
 assert(ret.stdout() == 'FOOBAR\n', 'stdout is "@0@" instead of FOOBAR'.format(ret.stdout()))
 
 dd = find_program('dd', required : false)
 if dd.found()
-  ret = run_command(dd, 'if=/dev/urandom', 'bs=10', 'count=1', capture: false)
+  ret = run_command(dd, 'if=/dev/urandom', 'bs=10', 'count=1', check: false, capture: false)
   assert(ret.returncode() == 0, 'failed to run dd: ' + ret.stderr())
   assert(ret.stdout() == '', 'stdout is "@0@" instead of empty'.format(ret.stdout()))
 endif

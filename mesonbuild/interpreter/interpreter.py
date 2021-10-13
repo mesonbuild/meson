@@ -231,6 +231,10 @@ permitted_dependency_kwargs = {
     'version',
 }
 
+implicit_check_false_warning = """You should add the boolean check kwarg to the run_command call.
+         It currently defaults to false,
+         but it will default to true in future releases of meson.
+         See also: https://github.com/mesonbuild/meson/issues/9300"""
 class Interpreter(InterpreterBase, HoldableObject):
 
     def __init__(
@@ -690,7 +694,11 @@ external dependencies (including libraries) must go to "dependencies".''')
         srcdir = self.environment.get_source_dir()
         builddir = self.environment.get_build_dir()
 
-        check = kwargs.get('check', False)
+        check = kwargs.get('check')
+        if check is None:
+            mlog.warning(implicit_check_false_warning, once=True)
+            check = False
+
         if not isinstance(check, bool):
             raise InterpreterException('Check must be boolean.')
 
