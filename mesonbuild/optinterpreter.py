@@ -15,7 +15,6 @@
 import re
 import typing as T
 
-from . import compilers
 from . import coredata
 from . import mesonlib
 from . import mparser
@@ -42,21 +41,6 @@ if T.TYPE_CHECKING:
         'max': T.Optional[int],
         })
 
-
-forbidden_option_names = set(coredata.BUILTIN_OPTIONS.keys())
-forbidden_prefixes = [lang + '_' for lang in compilers.all_languages] + ['b_', 'backend_']
-reserved_prefixes = ['cross_']
-
-def is_invalid_name(name: str, *, log: bool = True) -> bool:
-    if name in forbidden_option_names:
-        return True
-    pref = name.split('_')[0] + '_'
-    if pref in forbidden_prefixes:
-        return True
-    if pref in reserved_prefixes:
-        if log:
-            mlog.deprecation('Option uses prefix "%s", which is reserved for Meson. This will become an error in the future.' % pref)
-    return False
 
 class OptionException(mesonlib.MesonException):
     pass
@@ -176,7 +160,8 @@ class OptionInterpreter:
         opt_name = args[0]
         if optname_regex.search(opt_name) is not None:
             raise OptionException('Option names can only contain letters, numbers or dashes.')
-        if is_invalid_name(opt_name):
+        key = mesonlib.OptionKey.from_string(opt_name).evolve(subproject=self.subproject)
+        if not key.is_project():
             raise OptionException('Option name %s is reserved.' % opt_name)
 
         opt_type = kwargs['type']
@@ -192,7 +177,6 @@ class OptionInterpreter:
         opt = parser(description, T.cast('ParserArgs', parser_kwargs))
         opt.deprecated = kwargs['deprecated']
 
-        key = mesonlib.OptionKey(opt_name, self.subproject)
         if key in self.options:
             mlog.deprecation(f'Option {opt_name} already exists.')
         self.options[key] = opt
