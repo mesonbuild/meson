@@ -627,12 +627,9 @@ class CudaCompiler(Compiler):
 
         # We must strip the -std option from the host compiler option set, as NVCC has
         # its own -std flag that may not agree with the host compiler's.
-        overrides = {name: opt.value for name, opt in options.items()}
-        overrides.pop(OptionKey('std', machine=self.for_machine,
-                                       lang=self.host_compiler.language), None)
-        host_options = self.host_compiler.get_options().copy()
-        if 'std' in host_options:
-            del host_options['std'] # type: ignore
+        host_options = {key: options.get(key, opt) for key, opt in self.host_compiler.get_options().items()}
+        std_key = OptionKey('std', machine=self.for_machine, lang=self.host_compiler.language)
+        overrides = {std_key: 'none'}
         return OptionOverrideProxy(overrides, host_options)
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
