@@ -818,13 +818,16 @@ class CoreData:
             self.copy_build_options_from_regular_ones()
 
     def set_default_options(self, default_options: T.MutableMapping[OptionKey, str], subproject: str, env: 'Environment') -> None:
+        # Main project can set default options on subprojects, but subprojects
+        # can only set default options on themself.
         # Preserve order: if env.options has 'buildtype' it must come after
         # 'optimization' if it is in default_options.
-        options: T.MutableMapping[OptionKey, T.Any]
-        if not subproject:
-            options = OrderedDict(default_options)
-            options.update(env.options)
-            env.options = options
+        options: T.MutableMapping[OptionKey, T.Any] = OrderedDict()
+        for k, v in default_options.items():
+            if not subproject or k.subproject == subproject:
+                options[k] = v
+        options.update(env.options)
+        env.options = options
 
         # Create a subset of options, keeping only project and builtin
         # options for this subproject.
@@ -833,7 +836,7 @@ class CoreData:
         # to know which backend we'll use).
         options = OrderedDict()
 
-        for k, v in chain(default_options.items(), env.options.items()):
+        for k, v in env.options.items():
             # If this is a subproject, don't use other subproject options
             if k.subproject and k.subproject != subproject:
                 continue
