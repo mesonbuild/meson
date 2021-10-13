@@ -3908,6 +3908,7 @@ class AllPlatformTests(BasePlatformTests):
             'section': 'user',
             'type': 'array',
             'value': ['foo', 'bar'],
+            'choices': ['foo', 'bar', 'oink', 'boink'],
             'machine': 'any',
         }
         tdir = os.path.join(self.unit_test_dir, '19 array option')
@@ -3934,6 +3935,7 @@ class AllPlatformTests(BasePlatformTests):
             'section': 'user',
             'type': 'array',
             'value': ['foo', 'bar'],
+            'choices': ['foo', 'bar', 'oink', 'boink'],
             'machine': 'any',
         }
         tdir = os.path.join(self.unit_test_dir, '19 array option')
@@ -3960,6 +3962,7 @@ class AllPlatformTests(BasePlatformTests):
             'section': 'user',
             'type': 'array',
             'value': [],
+            'choices': ['foo', 'bar', 'oink', 'boink'],
             'machine': 'any',
         }
         tdir = os.path.join(self.unit_test_dir, '19 array option')
@@ -4016,7 +4019,7 @@ class AllPlatformTests(BasePlatformTests):
             if item['name'] == 'combo':
                 self.assertEqual(item['value'], 'b')
                 self.assertEqual(item['choices'], ['b', 'c', 'd'])
-            elif item['name'] == 'arr':
+            elif item['name'] == 'array':
                 self.assertEqual(item['value'], ['b'])
                 self.assertEqual(item['choices'], ['b', 'c', 'd'])
 
@@ -4034,7 +4037,7 @@ class AllPlatformTests(BasePlatformTests):
             if item['name'] == 'combo':
                 self.assertEqual(item['value'], 'c')
                 self.assertEqual(item['choices'], ['b', 'c', 'd'])
-            elif item['name'] == 'arr':
+            elif item['name'] == 'array':
                 self.assertEqual(item['value'], ['b', 'c'])
                 self.assertEqual(item['choices'], ['b', 'c', 'd'])
 
