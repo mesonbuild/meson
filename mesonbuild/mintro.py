@@ -266,9 +266,9 @@ def list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[s
     test_option_names = {OptionKey('errorlogs'),
                          OptionKey('stdsplit')}
 
-    dir_options: 'cdata.KeyedOptionDictType' = {}
-    test_options: 'cdata.KeyedOptionDictType' = {}
-    core_options: 'cdata.KeyedOptionDictType' = {}
+    dir_options: 'cdata.MutableKeyedOptionDictType' = {}
+    test_options: 'cdata.MutableKeyedOptionDictType' = {}
+    core_options: 'cdata.MutableKeyedOptionDictType' = {}
     for k, v in coredata.options.items():
         if k in dir_option_names:
             dir_options[k] = v

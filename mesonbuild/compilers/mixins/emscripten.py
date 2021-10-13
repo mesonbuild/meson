@@ -68,7 +68,7 @@ class EmscriptenMixin(Compiler):
             args.extend(['-s', f'PTHREAD_POOL_SIZE={count}'])
         return args
 
-    def get_options(self) -> 'coredata.KeyedOptionDictType':
+    def get_options(self) -> 'coredata.MutableKeyedOptionDictType':
         opts = super().get_options()
         key = OptionKey('thread_count', machine=self.for_machine, lang=self.language)
         opts.update({

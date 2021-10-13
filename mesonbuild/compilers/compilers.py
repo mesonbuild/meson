@@ -32,7 +32,7 @@ from ..arglist import CompilerArgs
 
 if T.TYPE_CHECKING:
     from ..build import BuildTarget
-    from ..coredata import KeyedOptionDictType
+    from ..coredata import MutableKeyedOptionDictType, KeyedOptionDictType
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..linkers import DynamicLinker, RSPFileSyntax
@@ -618,7 +618,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         """
         return []
 
-    def get_options(self) -> 'KeyedOptionDictType':
+    def get_options(self) -> 'MutableKeyedOptionDictType':
         return {}
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:

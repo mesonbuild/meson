@@ -1938,8 +1938,7 @@ def generate_list(func: T.Callable[..., T.Generator[_T, None, None]]) -> T.Calla
     return wrapper
 
 
-class OptionOverrideProxy(collections.abc.MutableMapping):
-
+class OptionOverrideProxy(collections.abc.Mapping):
     '''Mimic an option list but transparently override selected option
     values.
     '''
@@ -1947,13 +1946,11 @@ class OptionOverrideProxy(collections.abc.MutableMapping):
     # TODO: the typing here could be made more explicit using a TypeDict from
     # python 3.8 or typing_extensions
 
-    def __init__(self, overrides: T.Dict['OptionKey', T.Any], *options: 'KeyedOptionDictType'):
-        self.overrides = overrides.copy()
-        self.options: T.Dict['OptionKey', UserOption] = {}
-        for o in options:
-            self.options.update(o)
+    def __init__(self, overrides: T.Dict['OptionKey', T.Any], options: 'KeyedOptionDictType'):
+        self.overrides = overrides
+        self.options = options
 
-    def __getitem__(self, key: 'OptionKey') -> T.Union['UserOption']:
+    def __getitem__(self, key: 'OptionKey') -> 'UserOption':
         if key in self.options:
             opt = self.options[key]
             if key in self.overrides:
@@ -1962,20 +1959,18 @@ class OptionOverrideProxy(collections.abc.MutableMapping):
             return opt
         raise KeyError('Option not found', key)
 
-    def __setitem__(self, key: 'OptionKey', value: T.Union['UserOption']) -> None:
-        self.overrides[key] = value.value
-
-    def __delitem__(self, key: 'OptionKey') -> None:
-        del self.overrides[key]
-
     def __iter__(self) -> T.Iterator['OptionKey']:
         return iter(self.options)
 
     def __len__(self) -> int:
         return len(self.options)
 
-    def copy(self) -> 'OptionOverrideProxy':
-        return OptionOverrideProxy(self.overrides.copy(), self.options.copy())
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, OptionOverrideProxy):
+            return NotImplemented
+        t1 = (self.overrides, self.options)
+        t2 = (other.overrides, other.options)
+        return t1 == t2
 
 
 class OptionType(enum.IntEnum):

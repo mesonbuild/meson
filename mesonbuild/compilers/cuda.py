@@ -28,7 +28,7 @@ from .compilers import (Compiler, cuda_buildtype_args, cuda_optimization_args,
 
 if T.TYPE_CHECKING:
     from ..build import BuildTarget
-    from ..coredata import KeyedOptionDictType
+    from ..coredata import MutableKeyedOptionDictType, KeyedOptionDictType
     from ..dependencies import Dependency
     from ..environment import Environment  # noqa: F401
     from ..envconfig import MachineInfo
@@ -612,7 +612,7 @@ class CudaCompiler(Compiler):
         }}'''
         return self.compiles(t.format_map(fargs), env, extra_args=extra_args, dependencies=dependencies)
 
-    def get_options(self) -> 'KeyedOptionDictType':
+    def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = super().get_options()
         std_key      = OptionKey('std',      machine=self.for_machine, lang=self.language)
         ccbindir_key = OptionKey('ccbindir', machine=self.for_machine, lang=self.language)

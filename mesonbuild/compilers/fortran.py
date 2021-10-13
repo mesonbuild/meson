@@ -36,7 +36,7 @@ from mesonbuild.mesonlib import (
 )
 
 if T.TYPE_CHECKING:
-    from ..coredata import KeyedOptionDictType
+    from ..coredata import MutableKeyedOptionDictType, KeyedOptionDictType
     from ..dependencies import Dependency
     from ..envconfig import MachineInfo
     from ..environment import Environment
@@ -152,7 +152,7 @@ class FortranCompiler(CLikeCompiler, Compiler):
     def has_multi_link_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
         return self._has_multi_link_arguments(args, env, 'stop; end program')
 
-    def get_options(self) -> 'KeyedOptionDictType':
+    def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = super().get_options()
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         opts.update({
@@ -182,7 +182,7 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic', '-fimplicit-none']}
 
-    def get_options(self) -> 'KeyedOptionDictType':
+    def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = FortranCompiler.get_options(self)
         fortran_stds = ['legacy', 'f95', 'f2003']
         if version_compare(self.version, '>=4.4.0'):
@@ -244,7 +244,7 @@ class ElbrusFortranCompiler(ElbrusCompiler, FortranCompiler):
                                  info, exe_wrapper, linker=linker, full_version=full_version)
         ElbrusCompiler.__init__(self)
 
-    def get_options(self) -> 'KeyedOptionDictType':
+    def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = FortranCompiler.get_options(self)
         fortran_stds = ['f95', 'f2003', 'f2008', 'gnu', 'legacy', 'f2008ts']
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
@@ -326,7 +326,7 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
                           '2': default_warn_args + ['-warn', 'unused'],
                           '3': ['-warn', 'all']}
 
-    def get_options(self) -> 'KeyedOptionDictType':
+    def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = FortranCompiler.get_options(self)
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         opts[key].choices = ['none', 'legacy', 'f95', 'f2003', 'f2008', 'f2018']
@@ -373,7 +373,7 @@ class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
                           '2': default_warn_args + ['/warn:unused'],
                           '3': ['/warn:all']}
 
-    def get_options(self) -> 'KeyedOptionDictType':
+    def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = FortranCompiler.get_options(self)
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         opts[key].choices = ['none', 'legacy', 'f95', 'f2003', 'f2008', 'f2018']
