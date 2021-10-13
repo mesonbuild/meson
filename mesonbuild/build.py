@@ -1628,19 +1628,19 @@ class Generator(HoldableObject):
         relpath = pathlib.PurePath(trial).relative_to(parent)
         return relpath.parts[0] != '..' # For subdirs we can only go "down".
 
-    def process_files(self, files: T.Iterable[T.Union[str, File, 'CustomTarget', 'CustomTargetIndex', 'GeneratedList']],
+    def process_files(self, files: T.Iterable[T.Union[str, File, 'BuildTarget', 'CustomTarget', 'CustomTargetIndex', 'GeneratedList']],
                       state: T.Union['Interpreter', 'ModuleState'],
                       preserve_path_from: T.Optional[str] = None,
                       extra_args: T.Optional[T.List[str]] = None) -> 'GeneratedList':
         output = GeneratedList(self, state.subdir, preserve_path_from, extra_args=extra_args if extra_args is not None else [])
 
         for e in files:
-            if isinstance(e, CustomTarget):
+            if isinstance(e, (BuildTarget, CustomTarget)):
                 output.depends.add(e)
             if isinstance(e, CustomTargetIndex):
                 output.depends.add(e.target)
 
-            if isinstance(e, (CustomTarget, CustomTargetIndex, GeneratedList)):
+            if isinstance(e, (BuildTarget, CustomTarget, CustomTargetIndex, GeneratedList)):
                 self.depends.append(e) # BUG: this should go in the GeneratedList object, not this object.
                 fs = [File.from_built_file(state.subdir, f) for f in e.get_outputs()]
             elif isinstance(e, str):

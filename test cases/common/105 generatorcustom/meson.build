@@ -16,7 +16,9 @@ res4 = custom_target('gen-res4',
     output : 'res4.txt',
     command : [gen_resx, '@OUTPUT@', '4'])
 
-hs = gen.process('res1.txt', 'res2.txt', res3, res4[0])
+embedded = executable('embedded', 'embedded.c')
+
+hs = gen.process('res1.txt', 'res2.txt', res3, res4[0], embedded)
 
 allinone = custom_target('alltogether',
     input : hs,
