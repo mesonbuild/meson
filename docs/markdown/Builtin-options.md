@@ -220,6 +220,12 @@ Since *0.54.0* The `<lang>_thread_count` option can be used to control
 the value passed to `-s PTHREAD_POOL_SIZE` when using emcc. No other
 c/c++ compiler supports this option.
 
+Since *0.63.0* all compiler options can be set per subproject, see
+[here](#specifying-options-per-subproject) for details on how the default value
+is inherited from main project. This is useful for example when the main project
+requires C++11 but a subproject requires C++14. The `cpp_std` value from
+subproject's `default_options` is now respected.
+
 ## Specifying options per machine
 
 Since *0.51.0*, some options are specified per machine rather than

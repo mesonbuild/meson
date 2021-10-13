@@ -27,6 +27,7 @@ from ..compilers import detect_compiler_for
 import typing as T
 import os
 import argparse
+import copy
 
 build_target_functions = ['executable', 'jar', 'library', 'shared_library', 'shared_module', 'static_library', 'both_libraries']
 
@@ -163,7 +164,15 @@ class IntrospectionInterpreter(AstInterpreter):
         for lang in sorted(langs, key=compilers.sort_clink):
             lang = lang.lower()
             if lang not in self.coredata.compilers[for_machine]:
-                detect_compiler_for(self.environment, lang, for_machine)
+                comp = detect_compiler_for(self.environment, lang, for_machine)
+                if self.subproject:
+                    options = {}
+                    for k in comp.get_options():
+                        v = copy.copy(self.coredata.options[k])
+                        k = k.evolve(subproject=self.subproject)
+                        options[k] = v
+                    self.coredata.add_compiler_options(options, lang, for_machine, self.environment)
+
 
     def func_dependency(self, node: BaseNode, args: T.List[TYPE_nvar], kwargs: T.Dict[str, TYPE_nvar]) -> None:
         args = self.flatten_args(args)
