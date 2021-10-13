@@ -312,19 +312,16 @@ class Backend:
 
     def get_options_for_target(self, target: build.BuildTarget) -> OptionOverrideProxy:
         return OptionOverrideProxy(target.option_overrides,
-                                   self.environment.coredata.options)
+                                   self.environment.coredata.options,
+                                   target.subproject)
 
-    def get_option_for_target(self, option_name: 'OptionKey', target: build.BuildTarget) -> T.Union[str, int, bool, 'WrapMode']:
-        if option_name in target.option_overrides_base:
-            override = target.option_overrides_base[option_name]
-            v = self.environment.coredata.validate_option_value(option_name, override)
-        else:
-            v = self.environment.coredata.get_option(option_name.evolve(subproject=target.subproject))
+    def get_option_for_target(self, key: 'OptionKey', target: build.BuildTarget) -> T.Union[str, int, bool, 'WrapMode']:
+        options = self.get_options_for_target(target)
         # We don't actually have wrapmode here to do an assert, so just do a
         # cast, we know what's in coredata anyway.
         # TODO: if it's possible to annotate get_option or validate_option_value
         # in the future we might be able to remove the cast here
-        return T.cast('T.Union[str, int, bool, WrapMode]', v)
+        return T.cast('T.Union[str, int, bool, WrapMode]', options[key].value)
 
     def get_source_dir_include_args(self, target: build.BuildTarget, compiler: 'Compiler', *, absolute_path: bool = False) -> T.List[str]:
         curdir = target.get_subdir()
