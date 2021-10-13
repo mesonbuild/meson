@@ -79,6 +79,7 @@ import mesonbuild.dependencies.base
 from mesonbuild.build import Target, ConfigurationData
 import mesonbuild.modules.pkgconfig
 from mesonbuild.scripts import destdir_join
+from mesonbuild.optinterpreter import OptionInterpreter, OptionException
 
 from mesonbuild.mtest import TAPParser, TestResult
 from mesonbuild.mesonmain import setup_vsenv
@@ -2444,6 +2445,38 @@ class AllPlatformTests(BasePlatformTests):
         else:
             raise self.fail('Did not find option "prefix"')
         self.assertEqual(prefix, '/absoluteprefix')
+
+    def test_invalid_option_names(self):
+        interp = OptionInterpreter('')
+
+        def write_file(code: str):
+            with tempfile.NamedTemporaryFile('w', dir=self.builddir, encoding='utf-8', delete=False) as f:
+                f.write(code)
+                return f.name
+
+        fname = write_file("option('default_library', type: 'string')")
+        self.assertRaisesRegex(OptionException, 'Option name default_library is reserved.',
+                               interp.process, fname)
+
+        fname = write_file("option('c_anything', type: 'string')")
+        self.assertRaisesRegex(OptionException, 'Option name c_anything is reserved.',
+                               interp.process, fname)
+
+        fname = write_file("option('b_anything', type: 'string')")
+        self.assertRaisesRegex(OptionException, 'Option name b_anything is reserved.',
+                               interp.process, fname)
+
+        fname = write_file("option('backend_anything', type: 'string')")
+        self.assertRaisesRegex(OptionException, 'Option name backend_anything is reserved.',
+                               interp.process, fname)
+
+        fname = write_file("option('foo.bar', type: 'string')")
+        self.assertRaisesRegex(OptionException, 'Option names can only contain letters, numbers or dashes.',
+                               interp.process, fname)
+
+        # platlib is allowed, only python.platlib is reserved.
+        fname = write_file("option('platlib', type: 'string')")
+        interp.process(fname)
 
     def test_do_conf_file_preserve_newlines(self):
 

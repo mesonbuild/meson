@@ -16,7 +16,6 @@ import re
 import functools
 import typing as T
 
-from . import compilers
 from . import coredata
 from . import mesonlib
 from . import mparser
@@ -25,21 +24,6 @@ from .interpreterbase import FeatureNew
 
 if T.TYPE_CHECKING:
     from .interpreterbase import TV_func
-
-forbidden_option_names = set(coredata.BUILTIN_OPTIONS.keys())
-forbidden_prefixes = [lang + '_' for lang in compilers.all_languages] + ['b_', 'backend_']
-reserved_prefixes = ['cross_']
-
-def is_invalid_name(name: str, *, log: bool = True) -> bool:
-    if name in forbidden_option_names:
-        return True
-    pref = name.split('_')[0] + '_'
-    if pref in forbidden_prefixes:
-        return True
-    if pref in reserved_prefixes:
-        if log:
-            mlog.deprecation('Option uses prefix "%s", which is reserved for Meson. This will become an error in the future.' % pref)
-    return False
 
 class OptionException(mesonlib.MesonException):
     pass
@@ -225,9 +209,9 @@ class OptionInterpreter:
             raise OptionException('Positional argument must be a string.')
         if optname_regex.search(opt_name) is not None:
             raise OptionException('Option names can only contain letters, numbers or dashes.')
-        if is_invalid_name(opt_name):
+        key = mesonlib.OptionKey.from_string(opt_name).evolve(subproject=self.subproject)
+        if not key.is_project():
             raise OptionException('Option name %s is reserved.' % opt_name)
-        key = mesonlib.OptionKey(opt_name, self.subproject)
 
         if 'yield' in kwargs:
             FeatureNew.single_use('option yield', '0.45.0', self.subproject)
