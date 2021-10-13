@@ -12,7 +12,7 @@ endif
 # valid. We must try to process a header file for this to work.
 #
 # See https://github.com/rust-lang/rust-bindgen/issues/1797
-result = run_command(prog_bindgen, 'include/other.h')
+result = run_command(prog_bindgen, 'include/other.h', check: false)
 if result.returncode() != 0
   error('MESON_SKIP_TEST bindgen does not seem to work')
 endif

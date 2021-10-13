@@ -133,7 +133,7 @@ endif
 ## Set a command's output to configuration
 
 ```meson
-txt = run_command('script', 'argument').stdout().strip()
+txt = run_command('script', 'argument', check: true).stdout().strip()
 cdata = configuration_data()
 cdata.set('SOMETHING', txt)
 configure_file(...)

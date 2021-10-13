@@ -12,11 +12,11 @@ py = configure_file(input : 'program.py',
                     configuration : configuration_data())
 
 foreach f : [prog, progf, py, find_program(py), find_program(progf)]
-  ret = run_command(python, f)
+  ret = run_command(python, f, check: false)
   assert(ret.returncode() == 0, 'can\'t manually run @0@'.format(prog.path()))
   assert(ret.stdout().strip() == 'Found', 'wrong output from manually-run @0@'.format(prog.path()))
 
-  ret = run_command(f)
+  ret = run_command(f, check: false)
   assert(ret.returncode() == 0, 'can\'t run @0@'.format(prog.path()))
   assert(ret.stdout().strip() == 'Found', 'wrong output from @0@'.format(prog.path()))
 endforeach

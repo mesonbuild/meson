@@ -10,10 +10,10 @@ project('grabber', 'c')
 # file bugs when it fails. :)
 
 if build_machine.system() == 'windows'
-  c = run_command('grabber.bat')
+  c = run_command('grabber.bat', check: false)
   grabber = find_program('grabber2.bat')
 else
-  c = run_command('grabber.sh')
+  c = run_command('grabber.sh', check: false)
   grabber = find_program('grabber.sh')
 endif
 

@@ -2,7 +2,7 @@ project('mesonintrospect from scripts', 'c')
 
 python = import('python3').find_python()
 
-ret = run_command(python, ['check_env.py', '1'])
+ret = run_command(python, ['check_env.py', '1'], check: false)
 if ret.returncode() == 0
   find_program(ret.stdout())
 else

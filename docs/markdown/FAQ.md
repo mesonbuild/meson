@@ -103,7 +103,7 @@ Then you need to run this script in your Meson file, convert the
 output into a string array and use the result in a target.
 
 ```meson
-c = run_command('grabber.sh')
+c = run_command('grabber.sh', check: true)
 sources = c.stdout().strip().split('\n')
 e = executable('prog', sources)
 ```

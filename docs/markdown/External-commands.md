@@ -8,18 +8,19 @@ As a part of the software configuration, you may want to get extra
 data by running external commands. The basic syntax is the following.
 
 ```meson
-r = run_command('command', 'arg1', 'arg2', 'arg3')
-if r.returncode() != 0
-  # it failed
-endif
+r = run_command('command', 'arg1', 'arg2', 'arg3', check: true)
 output = r.stdout().strip()
 errortxt = r.stderr().strip()
 ```
 
+If `check: true` is given, meson will error out if `command` returns with a
+non-zero exit code. Alternatively, you can set `check: false` and get the exit
+code with `r.returncode()`.
+
 Since 0.52.0, you can pass the command environment as a dictionary:
 
 ```meson
-run_command('command', 'arg1', 'arg2', env: {'FOO': 'bar'})
+run_command('command', 'arg1', 'arg2', env: {'FOO': 'bar'}, check: true)
 ```
 
 Since 0.50.0, you can also pass the command [[@env]] object:

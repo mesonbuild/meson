@@ -7,7 +7,7 @@ endif
 
 python3 = import('python3')
 py3 = python3.find_python()
-if run_command(py3, '-c', 'import gi;').returncode() != 0
+if run_command(py3, '-c', 'import gi;', check: false).returncode() != 0
     error('MESON_SKIP_TEST python3-gi not found')
 endif
 

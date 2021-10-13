@@ -26,7 +26,7 @@ namelen = 260
 nfiles = 50 + limit / namelen
 message('Expected link commandline length is approximately ' + '@0@'.format((nfiles * (namelen+28))))
 
-seq = run_command('name_gen.py', nfiles.to_string(), meson.build_root()).stdout().strip().split('\n')
+seq = run_command('name_gen.py', nfiles.to_string(), meson.build_root(), check: true).stdout().strip().split('\n')
 
 sources = []
 codegen = find_program('codegen.py')

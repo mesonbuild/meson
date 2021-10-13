@@ -13,7 +13,7 @@ if not pkgconfig.found()
   error('MESON_SKIP_TEST: pkg-config not found')
 endif
 
-v = run_command(pkgconfig, '--version').stdout().strip()
+v = run_command(pkgconfig, '--version', check: true).stdout().strip()
 if v.version_compare('<0.29')
   error('MESON_SKIP_TEST: pkg-config version \'' + v + '\' too old')
 endif

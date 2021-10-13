@@ -15,7 +15,7 @@ if not is_windows and build_machine.system() != 'cygwin'
   # * Windows user permissions to create symlinks, and/or Windows in Developer mode
   # so at this time the symlink test is skipped for Windows.
   symlink = meson.current_build_dir() / 'a_symlink'
-  run_command('ln', '-s', meson.current_source_dir() / 'meson.build', symlink)
+  run_command('ln', '-s', '-f', meson.current_source_dir() / 'meson.build', symlink, check: true)
   assert(fs.is_symlink(symlink), 'Symlink not detected.')
   assert(not fs.is_symlink('meson.build'), 'Regular file detected as symlink.')
   assert(not fs.is_symlink(f[0]), 'Regular file detected as symlink.')

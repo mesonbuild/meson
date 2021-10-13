@@ -40,7 +40,7 @@ outf = configure_file(input : 'dummy.dat',
   output : 'config2.h',
   command : [genprog, scriptfile,  ifile, ofile],
   install_dir : 'share/appdir')
-ret = run_command(check_file, outf)
+ret = run_command(check_file, outf, check: false)
 if ret.returncode() != 0
   error('Error running command: @0@\n@1@'.format(ret.stdout(), ret.stderr()))
 endif
@@ -53,7 +53,7 @@ outf = configure_file(
   output : 'config2b.h',
   command : [genprog, genscript2b, ofile2b],
   install_dir : 'share/appdir')
-ret = run_command(check_file, outf)
+ret = run_command(check_file, outf, check: false)
 if ret.returncode() != 0
   error('Error running command: @0@\n@1@'.format(ret.stdout(), ret.stderr()))
 endif
@@ -64,7 +64,7 @@ outf = configure_file(
   output : 'config2deps.h',
   depfile : 'depfile.d',
   command : [genprog, genscript2deps, ofile2deps, '@DEPFILE@'])
-ret = run_command(check_file, outf)
+ret = run_command(check_file, outf, check: false)
 if ret.returncode() != 0
   error('Error running command: @0@\n@1@'.format(ret.stdout(), ret.stderr()))
 endif
@@ -116,7 +116,7 @@ basename_py = find_program('basename.py')
 file_contains_py = find_program('file_contains.py')
 test_string = 'hello world'
 test_input_file = join_paths(meson.current_build_dir(), test_string)
-run_command(find_program('touch.py'), test_input_file)
+run_command(find_program('touch.py'), test_input_file, check: true)
 configs = [
     # no input
     configure_file(command: [ basename_py, test_string ], capture: true, output: 'capture test 1'),
@@ -182,13 +182,13 @@ inf = 'invalid-utf8.bin.in'
 outf = configure_file(input : inf,
   output : 'invalid-utf8.bin',
   copy: true)
-ret = run_command(check_file, inf, outf)
+ret = run_command(check_file, inf, outf, check: false)
 if ret.returncode() != 0
   error('Error running command: @0@\n@1@'.format(ret.stdout(), ret.stderr()))
 endif
 # Now the same, but using a File object as an argument.
 inf2 = files('invalid-utf8.bin.in')[0]
-ret = run_command(check_file, inf2, outf)
+ret = run_command(check_file, inf2, outf, check: false)
 if ret.returncode() != 0
   error('Error running command: @0@\n@1@'.format(ret.stdout(), ret.stderr()))
 endif
@@ -197,7 +197,7 @@ endif
 outf = configure_file(input : inf,
   output : 'somebinary.bin',
   copy : true)
-ret = run_command(check_file, inf, outf)
+ret = run_command(check_file, inf, outf, check: false)
 if ret.returncode() != 0
   error('Error running command: @0@\n@1@'.format(ret.stdout(), ret.stderr()))
 endif
