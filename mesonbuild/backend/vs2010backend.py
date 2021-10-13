@@ -990,7 +990,7 @@ class Vs2010Backend(backends.Backend):
         for l, comp in target.compilers.items():
             if l in file_args:
                 file_args[l] += compilers.get_base_compile_args(
-                    self.get_base_options_for_target(target), comp)
+                    self.get_options_for_target(target), comp)
                 file_args[l] += comp.get_option_compile_args(
                     self.environment.coredata.options)
 

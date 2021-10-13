@@ -1605,7 +1605,7 @@ class NinjaBackend(backends.Backend):
 
         cython = target.compilers['cython']
 
-        opt_proxy = self.get_compiler_options_for_target(target)
+        opt_proxy = self.get_options_for_target(target)
 
         args: T.List[str] = []
         args += cython.get_always_args()
@@ -1692,7 +1692,7 @@ class NinjaBackend(backends.Backend):
         # Rust compiler takes only the main file as input and
         # figures out what other files are needed via import
         # statements and magic.
-        base_proxy = self.get_base_options_for_target(target)
+        base_proxy = self.get_options_for_target(target)
         args = rustc.compiler_args()
         # Compiler args for compiling this target
         args += compilers.get_base_compile_args(base_proxy, rustc)
@@ -2463,7 +2463,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         return linker.get_link_debugfile_args(outname)
 
     def generate_llvm_ir_compile(self, target, src):
-        base_proxy = self.get_base_options_for_target(target)
+        base_proxy = self.get_options_for_target(target)
         compiler = get_compiler_for_source(target.compilers.values(), src)
         commands = compiler.compiler_args()
         # Compiler args for compiling this target
@@ -2523,7 +2523,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         return commands
 
     def _generate_single_compile_base_args(self, target: build.BuildTarget, compiler: 'Compiler') -> 'CompilerArgs':
-        base_proxy = self.get_base_options_for_target(target)
+        base_proxy = self.get_options_for_target(target)
         # Create an empty commands list, and start adding arguments from
         # various sources in the order in which they must override each other
         commands = compiler.compiler_args()
@@ -3025,9 +3025,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # options passed on the command-line, in default_options, etc.
         # These have the lowest priority.
         if isinstance(target, build.StaticLibrary):
-            commands += linker.get_base_link_args(self.get_base_options_for_target(target))
+            commands += linker.get_base_link_args(self.get_options_for_target(target))
         else:
-            commands += compilers.get_base_link_args(self.get_base_options_for_target(target),
+            commands += compilers.get_base_link_args(self.get_options_for_target(target),
                                                      linker,
                                                      isinstance(target, build.SharedModule))
         # Add -nostdlib if needed; can't be overridden

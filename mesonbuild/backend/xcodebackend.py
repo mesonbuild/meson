@@ -1504,7 +1504,7 @@ class XCodeBackend(backends.Backend):
                     continue
                 # Start with warning args
                 warn_args = compiler.get_warn_args(self.get_option_for_target(OptionKey('warning_level'), target))
-                copt_proxy = self.get_compiler_options_for_target(target)
+                copt_proxy = self.get_options_for_target(target)
                 std_args = compiler.get_option_compile_args(copt_proxy)
                 # Add compile args added using add_project_arguments()
                 pargs = self.build.projects_args[target.for_machine].get(target.subproject, {}).get(lang, [])
