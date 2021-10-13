@@ -88,6 +88,7 @@ import collections
 import typing as T
 import textwrap
 import importlib
+import copy
 
 if T.TYPE_CHECKING:
     import argparse
@@ -1381,6 +1382,15 @@ external dependencies (including libraries) must go to "dependencies".''')
                         continue
                     else:
                         raise
+
+            # Add per-subproject compiler options. They inherit value from main project.
+            if self.subproject:
+                options = {}
+                for k in comp.get_options():
+                    v = copy.copy(self.coredata.options[k])
+                    k = k.evolve(subproject=self.subproject)
+                    options[k] = v
+                self.coredata.add_compiler_options(options, lang, for_machine, self.environment)
 
             if for_machine == MachineChoice.HOST or self.environment.is_cross_build():
                 logger_fun = mlog.log
