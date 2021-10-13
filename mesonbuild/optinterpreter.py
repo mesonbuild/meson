@@ -52,7 +52,7 @@ optname_regex = re.compile('[^a-zA-Z0-9_-]')
 
 class OptionInterpreter:
     def __init__(self, subproject: 'SubProject') -> None:
-        self.options: 'coredata.KeyedOptionDictType' = {}
+        self.options: 'coredata.MutableKeyedOptionDictType' = {}
         self.subproject = subproject
         self.option_types = {'string': self.string_parser,
                              'boolean': self.boolean_parser,

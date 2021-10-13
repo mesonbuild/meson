@@ -10,7 +10,7 @@ from ..mesonlib import EnvironmentException, OptionKey
 from .compilers import Compiler
 
 if T.TYPE_CHECKING:
-    from ..coredata import KeyedOptionDictType
+    from ..coredata import MutableKeyedOptionDictType, KeyedOptionDictType
     from ..environment import Environment
 
 
@@ -61,7 +61,7 @@ class CythonCompiler(Compiler):
 
         return new
 
-    def get_options(self) -> 'KeyedOptionDictType':
+    def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = super().get_options()
         opts.update({
             OptionKey('version', machine=self.for_machine, lang=self.language): coredata.UserComboOption(

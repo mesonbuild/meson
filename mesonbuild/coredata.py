@@ -41,7 +41,8 @@ if T.TYPE_CHECKING:
     from .cmake.traceparser import CMakeCacheEntry
 
     OptionDictType = T.Union[T.Dict[str, 'UserOption[T.Any]'], OptionOverrideProxy]
-    KeyedOptionDictType = T.Union[T.Dict['OptionKey', 'UserOption[T.Any]'], OptionOverrideProxy]
+    MutableKeyedOptionDictType = T.Dict['OptionKey', 'UserOption[T.Any]']
+    KeyedOptionDictType = T.Union[MutableKeyedOptionDictType, OptionOverrideProxy]
     CompilerCheckCacheKey = T.Tuple[T.Tuple[str, ...], str, FileOrString, T.Tuple[str, ...], str]
 
     # typeshed
@@ -441,7 +442,7 @@ class CoreData:
         self.meson_command = meson_command
         self.target_guids = {}
         self.version = version
-        self.options: 'KeyedOptionDictType' = {}
+        self.options: 'MutableKeyedOptionDictType' = {}
         self.cross_files = self.__load_config_files(options, scratch_dir, 'cross')
         self.compilers = PerMachine(OrderedDict(), OrderedDict())  # type: PerMachine[T.Dict[str, Compiler]]
 
@@ -589,7 +590,7 @@ class CoreData:
                 self.add_builtin_option(self.options, key.evolve(subproject=subproject, machine=for_machine), opt)
 
     @staticmethod
-    def add_builtin_option(opts_map: 'KeyedOptionDictType', key: OptionKey,
+    def add_builtin_option(opts_map: 'MutableKeyedOptionDictType', key: OptionKey,
                            opt: 'BuiltinOption') -> None:
         if key.subproject:
             if opt.yielding:
@@ -748,7 +749,7 @@ class CoreData:
     def get_external_link_args(self, for_machine: MachineChoice, lang: str) -> T.Union[str, T.List[str]]:
         return self.options[OptionKey('link_args', machine=for_machine, lang=lang)].value
 
-    def update_project_options(self, options: 'KeyedOptionDictType') -> None:
+    def update_project_options(self, options: 'MutableKeyedOptionDictType') -> None:
         for key, value in options.items():
             if not key.is_project():
                 continue
@@ -851,7 +852,7 @@ class CoreData:
 
         self.set_options(options, subproject=subproject)
 
-    def add_compiler_options(self, options: 'KeyedOptionDictType', lang: str, for_machine: MachineChoice,
+    def add_compiler_options(self, options: 'MutableKeyedOptionDictType', lang: str, for_machine: MachineChoice,
                              env: 'Environment') -> None:
         for k, o in options.items():
             value = env.options.get(k)
@@ -1184,7 +1185,7 @@ class BuiltinOption(T.Generic[_T, _U]):
 
 # Update `docs/markdown/Builtin-options.md` after changing the options below
 # Also update mesonlib._BUILTIN_NAMES. See the comment there for why this is required.
-BUILTIN_DIR_OPTIONS: 'KeyedOptionDictType' = OrderedDict([
+BUILTIN_DIR_OPTIONS: 'MutableKeyedOptionDictType' = OrderedDict([
     (OptionKey('prefix'),          BuiltinOption(UserStringOption, 'Installation prefix', default_prefix())),
     (OptionKey('bindir'),          BuiltinOption(UserStringOption, 'Executable directory', 'bin')),
     (OptionKey('datadir'),         BuiltinOption(UserStringOption, 'Data file directory', 'share')),
@@ -1200,7 +1201,7 @@ BUILTIN_DIR_OPTIONS: 'KeyedOptionDictType' = OrderedDict([
     (OptionKey('sysconfdir'),      BuiltinOption(UserStringOption, 'Sysconf data directory', 'etc')),
 ])
 
-BUILTIN_CORE_OPTIONS: 'KeyedOptionDictType' = OrderedDict([
+BUILTIN_CORE_OPTIONS: 'MutableKeyedOptionDictType' = OrderedDict([
     (OptionKey('auto_features'),   BuiltinOption(UserFeatureOption, "Override value of all 'auto' features", 'auto')),
     (OptionKey('backend'),         BuiltinOption(UserComboOption, 'Backend to use', 'ninja', choices=backendlist)),
     (OptionKey('buildtype'),       BuiltinOption(UserComboOption, 'Build type to use', 'debug',
@@ -1232,7 +1233,7 @@ BUILTIN_CORE_OPTIONS: 'KeyedOptionDictType' = OrderedDict([
 
 BUILTIN_OPTIONS = OrderedDict(chain(BUILTIN_DIR_OPTIONS.items(), BUILTIN_CORE_OPTIONS.items()))
 
-BUILTIN_OPTIONS_PER_MACHINE: 'KeyedOptionDictType' = OrderedDict([
+BUILTIN_OPTIONS_PER_MACHINE: 'MutableKeyedOptionDictType' = OrderedDict([
     (OptionKey('pkg_config_path'), BuiltinOption(UserArrayOption, 'List of additional paths for pkg-config to search', [])),
     (OptionKey('cmake_prefix_path'), BuiltinOption(UserArrayOption, 'List of additional prefixes for cmake to search', [])),
 ])
