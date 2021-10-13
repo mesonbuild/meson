@@ -32,7 +32,7 @@ from .. import mesonlib
 from .. import mlog
 from ..compilers import LANGUAGES_USING_LDFLAGS, detect
 from ..mesonlib import (
-    File, MachineChoice, MesonException, OptionType, OrderedSet, OptionOverrideProxy,
+    File, MachineChoice, MesonException, OrderedSet, OptionOverrideProxy,
     classify_unity_sources, OptionKey, join_args
 )
 
@@ -310,15 +310,9 @@ class Backend:
     def get_target_filename_abs(self, target: T.Union[build.Target, build.CustomTargetIndex]) -> str:
         return os.path.join(self.environment.get_build_dir(), self.get_target_filename(target))
 
-    def get_base_options_for_target(self, target: build.BuildTarget) -> OptionOverrideProxy:
-        return OptionOverrideProxy(target.option_overrides_base,
-                                   {k: v for k, v in self.environment.coredata.options.items()
-                                    if k.type in {OptionType.BASE, OptionType.BUILTIN}})
-
-    def get_compiler_options_for_target(self, target: build.BuildTarget) -> OptionOverrideProxy:
-        comp_reg = {k: v for k, v in self.environment.coredata.options.items() if k.is_compiler()}
-        comp_override = target.option_overrides_compiler
-        return OptionOverrideProxy(comp_override, comp_reg)
+    def get_options_for_target(self, target: build.BuildTarget) -> OptionOverrideProxy:
+        return OptionOverrideProxy(target.option_overrides,
+                                   self.environment.coredata.options)
 
     def get_option_for_target(self, option_name: 'OptionKey', target: build.BuildTarget) -> T.Union[str, int, bool, 'WrapMode']:
         if option_name in target.option_overrides_base:
@@ -926,7 +920,7 @@ class Backend:
         # starting from hard-coded defaults followed by build options and so on.
         commands = compiler.compiler_args()
 
-        copt_proxy = self.get_compiler_options_for_target(target)
+        copt_proxy = self.get_options_for_target(target)
         # First, the trivial ones that are impossible to override.
         #
         # Add -nostdinc/-nostdinc++ if needed; can't be overridden

@@ -588,8 +588,7 @@ class Target(HoldableObject):
             '''))
         self.install = False
         self.build_always_stale = False
-        self.option_overrides_base: T.Dict[OptionKey, str] = {}
-        self.option_overrides_compiler: T.Dict[OptionKey, str] = {}
+        self.option_overrides: T.Dict[OptionKey, str] = {}
         self.extra_files = []  # type: T.List[File]
         if not hasattr(self, 'typename'):
             raise RuntimeError(f'Target type is not set for target class "{type(self).__name__}". This is a bug')
@@ -697,9 +696,9 @@ class Target(HoldableObject):
 
         for k, v in option_overrides.items():
             if k.lang:
-                self.option_overrides_compiler[k.evolve(machine=self.for_machine)] = v
+                self.option_overrides[k.evolve(machine=self.for_machine)] = v
                 continue
-            self.option_overrides_base[k] = v
+            self.option_overrides[k] = v
 
     @staticmethod
     def parse_overrides(kwargs: T.Dict[str, T.Any]) -> T.Dict[OptionKey, str]:
@@ -968,8 +967,8 @@ class BuildTarget(Target):
             self.compilers['c'] = compilers['c']
         if 'cython' in self.compilers:
             key = OptionKey('language', machine=self.for_machine, lang='cython')
-            if key in self.option_overrides_compiler:
-                value = self.option_overrides_compiler[key]
+            if key in self.option_overrides:
+                value = self.option_overrides[key]
             else:
                 value = self.environment.coredata.options[key].value
 
