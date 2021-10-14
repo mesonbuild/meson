@@ -1135,6 +1135,8 @@ class Backend:
             for a in t.cmd_args:
                 if isinstance(a, build.Target):
                     depends.add(a)
+                elif isinstance(a, build.CustomTargetIndex):
+                    depends.add(a.target)
                 if isinstance(a, build.BuildTarget):
                     extra_paths += self.determine_windows_extra_paths(a, [])
 
@@ -1143,7 +1145,7 @@ class Backend:
                     cmd_args.append(a)
                 elif isinstance(a, str):
                     cmd_args.append(a)
-                elif isinstance(a, build.Target):
+                elif isinstance(a, (build.Target, build.CustomTargetIndex)):
                     cmd_args.extend(self.construct_target_rel_paths(a, t.workdir))
                 else:
                     raise MesonException('Bad object in test command.')
@@ -1161,7 +1163,7 @@ class Backend:
     def write_test_serialisation(self, tests: T.List['Test'], datafile: T.BinaryIO) -> None:
         pickle.dump(self.create_test_serialisation(tests), datafile)
 
-    def construct_target_rel_paths(self, t: build.Target, workdir: T.Optional[str]) -> T.List[str]:
+    def construct_target_rel_paths(self, t: T.Union[build.Target, build.CustomTargetIndex], workdir: T.Optional[str]) -> T.List[str]:
         target_dir = self.get_target_dir(t)
         # ensure that test executables can be run when passed as arguments
         if isinstance(t, build.Executable) and workdir is None:
@@ -1170,7 +1172,7 @@ class Backend:
         if isinstance(t, build.BuildTarget):
             outputs = [t.get_filename()]
         else:
-            assert isinstance(t, build.CustomTarget)
+            assert isinstance(t, (build.CustomTarget, build.CustomTargetIndex))
             outputs = t.get_outputs()
 
         outputs = [os.path.join(target_dir, x) for x in outputs]

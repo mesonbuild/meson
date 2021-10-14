@@ -47,5 +47,5 @@ exe_together = executable('exe_together',
 )
 
 # also cover passing custom target to tests as arguments
-test('exe_separate', exe_separate, args: ['unused1', 'unused2'])
+test('exe_separate', exe_separate, args: [gen_c, gen_h])
 test('exe_together', exe_together, args: gen)
