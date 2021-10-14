@@ -1143,13 +1143,8 @@ class Backend:
                     cmd_args.append(a)
                 elif isinstance(a, str):
                     cmd_args.append(a)
-                elif isinstance(a, build.Executable):
-                    p = self.construct_target_rel_path(a, t.workdir)
-                    if p == a.get_filename():
-                        p = './' + p
-                    cmd_args.append(p)
                 elif isinstance(a, build.Target):
-                    cmd_args.append(self.construct_target_rel_path(a, t.workdir))
+                    cmd_args.extend(self.construct_target_rel_paths(a, t.workdir))
                 else:
                     raise MesonException('Bad object in test command.')
             ts = TestSerialisation(t.get_name(), t.project_name, t.suite, cmd, is_cross,
@@ -1166,12 +1161,24 @@ class Backend:
     def write_test_serialisation(self, tests: T.List['Test'], datafile: T.BinaryIO) -> None:
         pickle.dump(self.create_test_serialisation(tests), datafile)
 
-    def construct_target_rel_path(self, a: build.Target, workdir: T.Optional[str]) -> str:
-        if workdir is None:
-            return self.get_target_filename(a)
-        assert os.path.isabs(workdir)
-        abs_path = self.get_target_filename_abs(a)
-        return os.path.relpath(abs_path, workdir)
+    def construct_target_rel_paths(self, t: build.Target, workdir: T.Optional[str]) -> T.List[str]:
+        target_dir = self.get_target_dir(t)
+        # ensure that test executables can be run when passed as arguments
+        if isinstance(t, build.Executable) and workdir is None:
+            target_dir = target_dir or '.'
+
+        if isinstance(t, build.BuildTarget):
+            outputs = [t.get_filename()]
+        else:
+            assert isinstance(t, build.CustomTarget)
+            outputs = t.get_outputs()
+
+        outputs = [os.path.join(target_dir, x) for x in outputs]
+        if workdir is not None:
+            assert os.path.isabs(workdir)
+            outputs = [os.path.join(self.environment.get_build_dir(), x) for x in outputs]
+            outputs = [os.path.relpath(x, workdir) for x in outputs]
+        return outputs
 
     def generate_depmf_install(self, d: InstallData) -> None:
         if self.build.dep_manifest_name is None:
