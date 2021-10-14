@@ -971,7 +971,7 @@ class GeneratorHolder(ObjectHolder[build.Generator]):
         KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
     )
     def process_method(self,
-                       args: T.Tuple[T.List[T.Union[str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]],
+                       args: T.Tuple[T.List[T.Union[str, mesonlib.File, 'build.GeneratedTypes']]],
                        kwargs: 'kwargs.GeneratorProcess') -> build.GeneratedList:
         preserve_path_from = kwargs['preserve_path_from']
         if preserve_path_from is not None:
