@@ -199,7 +199,7 @@ known_build_target_kwargs = (
 )
 
 TEST_KWARGS: T.List[KwargInfo] = [
-    KwargInfo('args', ContainerTypeInfo(list, (str, mesonlib.File, build.BuildTarget, build.CustomTarget)),
+    KwargInfo('args', ContainerTypeInfo(list, (str, mesonlib.File, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)),
               listify=True, default=[]),
     KwargInfo('should_fail', bool, default=False),
     KwargInfo('timeout', int, default=30),
