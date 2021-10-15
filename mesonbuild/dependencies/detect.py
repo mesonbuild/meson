@@ -162,7 +162,7 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: T.Dict[str, 
         raise DependencyException('Dependency "%s" not found' % (name) +
                                   (', tried %s' % (tried) if tried else ''))
 
-    return NotFoundDependency(env)
+    return NotFoundDependency(name, env)
 
 
 def _build_external_dependency_list(name: str, env: 'Environment', for_machine: MachineChoice,

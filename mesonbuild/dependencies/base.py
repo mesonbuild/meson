@@ -394,10 +394,10 @@ class ExternalDependency(Dependency, HasNativeKwarg):
 
 
 class NotFoundDependency(Dependency):
-    def __init__(self, environment: 'Environment') -> None:
+    def __init__(self, name: str, environment: 'Environment') -> None:
         super().__init__(DependencyTypeName('not-found'), {})
         self.env = environment
-        self.name = 'not-found'
+        self.name = name
         self.is_found = False
 
     def get_partial_dependency(self, *, compile_args: bool = False,
