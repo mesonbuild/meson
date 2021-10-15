@@ -32,6 +32,7 @@ from pathlib import Path
 from . import WrapMode
 from .. import coredata
 from ..mesonlib import quiet_git, GIT, ProgressBar, MesonException
+from ..interpreterbase import FeatureNew
 from  .. import mesonlib
 
 if T.TYPE_CHECKING:
@@ -90,8 +91,9 @@ class WrapNotFoundException(WrapException):
     pass
 
 class PackageDefinition:
-    def __init__(self, fname: str):
+    def __init__(self, fname: str, subproject: str = ''):
         self.filename = fname
+        self.subproject = subproject
         self.type = None  # type: T.Optional[str]
         self.values = {} # type: T.Dict[str, str]
         self.provided_deps = {} # type: T.Dict[str, T.Optional[str]]
@@ -141,8 +143,14 @@ class PackageDefinition:
             self.filename = str(fname)
             self.parse_wrap()
             self.redirected = True
-            return
-        self.parse_provide_section(config)
+        else:
+            self.parse_provide_section(config)
+        if 'patch_directory' in self.values:
+            FeatureNew('Wrap files with patch_directory', '0.55.0').use(self.subproject)
+        for what in ['patch', 'source']:
+            if f'{what}_filename' in self.values and f'{what}_url' not in self.values:
+                FeatureNew(f'Local wrap patch files without {what}_url', '0.55.0').use(self.subproject)
+
 
     def parse_wrap_section(self, config: configparser.ConfigParser) -> None:
         if len(config.sections()) < 1:
@@ -197,9 +205,10 @@ def verbose_git(cmd: T.List[str], workingdir: str, check: bool = False) -> bool:
         raise WrapException(str(e))
 
 class Resolver:
-    def __init__(self, source_dir: str, subdir: str, wrap_mode: WrapMode = WrapMode.default) -> None:
+    def __init__(self, source_dir: str, subdir: str, subproject: str = '', wrap_mode: WrapMode = WrapMode.default) -> None:
         self.source_dir = source_dir
         self.subdir = subdir
+        self.subproject = subproject
         self.wrap_mode = wrap_mode
         self.subdir_root = os.path.join(source_dir, subdir)
         self.cachedir = os.path.join(self.subdir_root, 'packagecache')
@@ -216,7 +225,7 @@ class Resolver:
             if not i.endswith('.wrap'):
                 continue
             fname = os.path.join(self.subdir_root, i)
-            wrap = PackageDefinition(fname)
+            wrap = PackageDefinition(fname, self.subproject)
             self.wraps[wrap.name] = wrap
             if wrap.directory in dirs:
                 dirs.remove(wrap.directory)
@@ -225,7 +234,7 @@ class Resolver:
             if i in ['packagecache', 'packagefiles']:
                 continue
             fname = os.path.join(self.subdir_root, i)
-            wrap = PackageDefinition(fname)
+            wrap = PackageDefinition(fname, self.subproject)
             self.wraps[wrap.name] = wrap
 
         for wrap in self.wraps.values():
@@ -271,8 +280,7 @@ class Resolver:
                 return wrap.name
         return None
 
-    def resolve(self, packagename: str, method: str, current_subproject: str = '') -> str:
-        self.current_subproject = current_subproject
+    def resolve(self, packagename: str, method: str) -> str:
         self.packagename = packagename
         self.directory = packagename
         self.wrap = self.wraps.get(packagename)
@@ -554,8 +562,6 @@ class Resolver:
             self.download(what, cache_path)
             return cache_path
         else:
-            from ..interpreterbase import FeatureNew
-            FeatureNew(f'Local wrap patch files without {what}_url', '0.55.0').use(self.current_subproject)
             path = Path(self.wrap.filesdir) / filename
 
             if not path.exists():
@@ -577,8 +583,6 @@ class Resolver:
                     shutil.unpack_archive(path, workdir)
                     self.copy_tree(workdir, self.subdir_root)
         elif 'patch_directory' in self.wrap.values:
-            from ..interpreterbase import FeatureNew
-            FeatureNew('patch_directory', '0.55.0').use(self.current_subproject)
             patch_dir = self.wrap.values['patch_directory']
             src_dir = os.path.join(self.wrap.filesdir, patch_dir)
             if not os.path.isdir(src_dir):

@@ -799,7 +799,7 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         r = self.environment.wrap_resolver
         try:
-            subdir = r.resolve(subp_name, method, self.subproject)
+            subdir = r.resolve(subp_name, method)
         except wrap.WrapException as e:
             if not required:
                 mlog.log(e)
@@ -1107,7 +1107,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         wrap_mode = self.coredata.get_option(OptionKey('wrap_mode'))
         if not self.is_subproject() or wrap_mode != WrapMode.nopromote:
             subdir = os.path.join(self.subdir, spdirname)
-            r = wrap.Resolver(self.environment.get_source_dir(), subdir, wrap_mode)
+            r = wrap.Resolver(self.environment.get_source_dir(), subdir, self.subproject, wrap_mode)
             if self.is_subproject():
                 self.environment.wrap_resolver.merge_wraps(r)
             else:
