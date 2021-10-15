@@ -270,7 +270,7 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
             FeatureNew.single_use('OpenMP Dependency', '0.46.0', self.subproject)
 
     def _notfound_dependency(self) -> NotFoundDependency:
-        return NotFoundDependency(self.environment)
+        return NotFoundDependency(self.names[0] if self.names else '', self.environment)
 
     @staticmethod
     def _check_version(wanted: T.Optional[str], found: str) -> bool:

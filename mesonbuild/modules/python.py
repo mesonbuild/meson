@@ -494,10 +494,9 @@ class PythonInstallation(ExternalProgramHolder):
     @noPosargs
     def dependency_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> 'Dependency':
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
-
         # it's theoretically (though not practically) possible for the else clse
         # to not bind dep, let's ensure it is.
-        dep: 'Dependency' = NotFoundDependency(self.interpreter.environment)
+        dep: 'Dependency' = NotFoundDependency('python', self.interpreter.environment)
         if disabled:
             mlog.log('Dependency', mlog.bold('python'), 'skipped: feature', mlog.bold(feature), 'disabled')
         else:
