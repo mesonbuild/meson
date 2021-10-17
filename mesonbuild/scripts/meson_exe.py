@@ -20,7 +20,6 @@ import subprocess
 import typing as T
 import locale
 
-from .. import mesonlib
 from ..serialisation import ExecutableSerialisation
 
 options = None
@@ -46,6 +45,8 @@ def run_exe(exe: ExecutableSerialisation, extra_env: T.Optional[T.Dict[str, str]
     if exe.env:
         child_env = exe.env.get_env(child_env)
     if exe.extra_paths:
+        from .. import mesonlib
+
         child_env['PATH'] = (os.pathsep.join(exe.extra_paths + ['']) +
                              child_env['PATH'])
         if exe.exe_runner and mesonlib.substring_is_in_list('wine', exe.exe_runner.get_command()):
