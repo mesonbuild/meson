@@ -13,10 +13,10 @@
 # limitations under the License.
 
 import typing as T
-from . import programs
 
 if T.TYPE_CHECKING:
     from . import build
+    from . import programs
     from .backend.backends import TestProtocol
 
 class ExecutableSerialisation:
@@ -25,7 +25,7 @@ class ExecutableSerialisation:
 
     def __init__(self, cmd_args: T.List[str],
                  env: T.Optional['build.EnvironmentVariables'] = None,
-                 exe_wrapper: T.Optional[programs.ExternalProgram] = None,
+                 exe_wrapper: T.Optional['programs.ExternalProgram'] = None,
                  workdir: T.Optional[str] = None,
                  extra_paths: T.Optional[T.List] = None,
                  capture: T.Optional[bool] = None,
@@ -36,6 +36,9 @@ class ExecutableSerialisation:
         self.cmd_args = cmd_args
         self.env = env
         if exe_wrapper is not None:
+            # XXX: import is a bit slow - but perhaps mypy type checking obsoleted this
+            # anyway?
+            from . import programs
             assert isinstance(exe_wrapper, programs.ExternalProgram)
         self.exe_runner = exe_wrapper
         self.workdir = workdir
@@ -50,7 +53,7 @@ class ExecutableSerialisation:
 
 class TestSerialisation:
     def __init__(self, name: str, project: str, suite: T.List[str], fname: T.List[str],
-                 is_cross_built: bool, exe_wrapper: T.Optional[programs.ExternalProgram],
+                 is_cross_built: bool, exe_wrapper: T.Optional['programs.ExternalProgram'],
                  needs_exe_wrapper: bool, is_parallel: bool, cmd_args: T.List[str],
                  env: 'build.EnvironmentVariables', should_fail: bool,
                  timeout: T.Optional[int], workdir: T.Optional[str],
@@ -62,6 +65,8 @@ class TestSerialisation:
         self.fname = fname
         self.is_cross_built = is_cross_built
         if exe_wrapper is not None:
+            # See ExecutableSerialisation case above
+            from . import programs
             assert isinstance(exe_wrapper, programs.ExternalProgram)
         self.exe_runner = exe_wrapper
         self.is_parallel = is_parallel
