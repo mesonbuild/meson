@@ -20,7 +20,7 @@ from .primitives import MesonVersionString
 from .type_checking import NATIVE_KW, NoneType
 
 if T.TYPE_CHECKING:
-    from ..backend.backends import ExecutableSerialisation
+    from ..serialisation import ExecutableSerialisation
     from ..compilers import Compiler
     from ..interpreterbase import TYPE_kwargs, TYPE_var
     from .interpreter import Interpreter

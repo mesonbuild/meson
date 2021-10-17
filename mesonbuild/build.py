@@ -44,11 +44,12 @@ from .interpreterbase import FeatureNew
 
 if T.TYPE_CHECKING:
     from ._typing import ImmutableListProtocol, ImmutableSetProtocol
-    from .backend.backends import Backend, ExecutableSerialisation
+    from .backend.backends import Backend
     from .interpreter.interpreter import Test, SourceOutputs, Interpreter
     from .mesonlib import FileMode, FileOrString
     from .modules import ModuleState
     from .mparser import BaseNode
+    from .serialisation import ExecutableSerialisation
 
     GeneratedTypes = T.Union['CustomTarget', 'CustomTargetIndex', 'GeneratedList']
 

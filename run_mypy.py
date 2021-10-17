@@ -49,6 +49,7 @@ modules = [
     'mesonbuild/mtest.py',
     'mesonbuild/optinterpreter.py',
     'mesonbuild/programs.py',
+    'mesonbuild/serialisation.py',
 
     'run_custom_lint.py',
     'run_mypy.py',

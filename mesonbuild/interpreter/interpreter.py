@@ -35,7 +35,8 @@ from ..interpreterbase import ObjectHolder
 from ..interpreterbase.baseobjects import TYPE_nkwargs, TYPE_nvar, TYPE_var, TYPE_kwargs
 from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule
 from ..cmake import CMakeInterpreter
-from ..backend.backends import Backend, ExecutableSerialisation
+from ..backend.backends import Backend
+from ..serialisation import ExecutableSerialisation
 
 from . import interpreterobjects as OBJ
 from . import compiler as compilerOBJ

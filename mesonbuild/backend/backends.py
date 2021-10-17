@@ -34,6 +34,7 @@ from ..mesonlib import (
     File, MachineChoice, MesonException, OptionType, OrderedSet, OptionOverrideProxy,
     classify_unity_sources, OptionKey, join_args
 )
+from ..serialisation import (ExecutableSerialisation, TestSerialisation)
 
 if T.TYPE_CHECKING:
     from .._typing import ImmutableListProtocol
@@ -173,65 +174,6 @@ class SubdirInstallData(InstallDataBase):
                  subproject: str, tag: T.Optional[str] = None, data_type: T.Optional[str] = None):
         super().__init__(path, install_path, install_path_name, install_mode, subproject, tag, data_type)
         self.exclude = exclude
-
-class ExecutableSerialisation:
-
-    # XXX: should capture and feed default to False, instead of None?
-
-    def __init__(self, cmd_args: T.List[str],
-                 env: T.Optional[build.EnvironmentVariables] = None,
-                 exe_wrapper: T.Optional['programs.ExternalProgram'] = None,
-                 workdir: T.Optional[str] = None,
-                 extra_paths: T.Optional[T.List] = None,
-                 capture: T.Optional[bool] = None,
-                 feed: T.Optional[bool] = None,
-                 tag: T.Optional[str] = None,
-                 verbose: bool = False,
-                 ) -> None:
-        self.cmd_args = cmd_args
-        self.env = env
-        if exe_wrapper is not None:
-            assert isinstance(exe_wrapper, programs.ExternalProgram)
-        self.exe_runner = exe_wrapper
-        self.workdir = workdir
-        self.extra_paths = extra_paths
-        self.capture = capture
-        self.feed = feed
-        self.pickled = False
-        self.skip_if_destdir = False
-        self.verbose = verbose
-        self.subproject = ''
-        self.tag = tag
-
-class TestSerialisation:
-    def __init__(self, name: str, project: str, suite: T.List[str], fname: T.List[str],
-                 is_cross_built: bool, exe_wrapper: T.Optional[programs.ExternalProgram],
-                 needs_exe_wrapper: bool, is_parallel: bool, cmd_args: T.List[str],
-                 env: build.EnvironmentVariables, should_fail: bool,
-                 timeout: T.Optional[int], workdir: T.Optional[str],
-                 extra_paths: T.List[str], protocol: TestProtocol, priority: int,
-                 cmd_is_built: bool, depends: T.List[str], version: str):
-        self.name = name
-        self.project_name = project
-        self.suite = suite
-        self.fname = fname
-        self.is_cross_built = is_cross_built
-        if exe_wrapper is not None:
-            assert isinstance(exe_wrapper, programs.ExternalProgram)
-        self.exe_runner = exe_wrapper
-        self.is_parallel = is_parallel
-        self.cmd_args = cmd_args
-        self.env = env
-        self.should_fail = should_fail
-        self.timeout = timeout
-        self.workdir = workdir
-        self.extra_paths = extra_paths
-        self.protocol = protocol
-        self.priority = priority
-        self.needs_exe_wrapper = needs_exe_wrapper
-        self.cmd_is_built = cmd_is_built
-        self.depends = depends
-        self.version = version
 
 
 def get_backend_from_name(backend: str, build: T.Optional[build.Build] = None, interpreter: T.Optional['Interpreter'] = None) -> T.Optional['Backend']:

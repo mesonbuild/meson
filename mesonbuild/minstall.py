@@ -25,12 +25,14 @@ import sys
 import typing as T
 
 from . import environment
-from .backend.backends import InstallData, InstallDataBase, InstallEmptyDir, TargetInstallData, ExecutableSerialisation
+from .backend.backends import InstallData, InstallDataBase, InstallEmptyDir, TargetInstallData
 from .coredata import major_versions_differ, MesonVersionMismatchException
 from .coredata import version as coredata_version
 from .mesonlib import Popen_safe, RealPathAction, is_windows
 from .scripts import depfixer, destdir_join
 from .scripts.meson_exe import run_exe
+from .serialisation import ExecutableSerialisation
+
 try:
     from __main__ import __file__ as main_file
 except ImportError:

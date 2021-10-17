@@ -21,7 +21,7 @@ import typing as T
 import locale
 
 from .. import mesonlib
-from ..backend.backends import ExecutableSerialisation
+from ..serialisation import ExecutableSerialisation
 
 options = None
 

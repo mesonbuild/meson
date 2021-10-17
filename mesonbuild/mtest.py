@@ -47,7 +47,8 @@ from .mesonlib import (MesonException, OrderedSet, RealPathAction,
                        get_wine_shortpath, join_args, split_args)
 from .mintro import get_infodir, load_info_file
 from .programs import ExternalProgram
-from .backend.backends import TestProtocol, TestSerialisation
+from .backend.backends import TestProtocol
+from .serialisation import TestSerialisation
 
 # GNU autotools interprets a return code of 77 from tests it executes to
 # mean that the test should be skipped.
