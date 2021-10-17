@@ -26,16 +26,18 @@ import shutil
 
 from . import mesonlib
 from . import mlog
-from . import mconf, mdist, minit, minstall, mintro, msetup, mtest, rewriter, msubprojects, munstable_coredata, mcompile, mdevenv
 from .mesonlib import MesonException
-from .environment import detect_msys2_arch
-from .wrap import wraptool
 
 
 # Note: when adding arguments, please also add them to the completion
 # scripts in $MESONSRC/data/shell-completions/
 class CommandLineParser:
     def __init__(self):
+        # Delay imports so that internal commands do not have to import all of these
+        from . import (mconf, mdist, minit, minstall, mintro, msetup, mtest,
+                       rewriter, msubprojects, munstable_coredata, mcompile, mdevenv)
+        from .wrap import wraptool
+
         self.term_width = shutil.get_terminal_size().columns
         self.formatter = lambda prog: argparse.HelpFormatter(prog, max_help_position=int(self.term_width / 2), width=self.term_width)
 
@@ -200,6 +202,7 @@ def run(original_args, mainfile):
 
     # https://github.com/mesonbuild/meson/issues/3653
     if sys.platform.lower() == 'msys':
+        from .environment import detect_msys2_arch
         mlog.error('This python3 seems to be msys/python on MSYS2 Windows, which is known to have path semantics incompatible with Meson')
         msys2_arch = detect_msys2_arch()
         if msys2_arch:
