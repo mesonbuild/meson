@@ -292,9 +292,11 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
             linkers = default_linkers
     popen_exceptions = {}
     for linker in linkers:
-        if not {'lib', 'lib.exe', 'llvm-lib', 'llvm-lib.exe', 'xilib', 'xilib.exe'}.isdisjoint(linker):
+        linker_name = os.path.basename(linker[0])
+
+        if linker_name in {'lib', 'lib.exe', 'llvm-lib', 'llvm-lib.exe', 'xilib', 'xilib.exe'}:
             arg = '/?'
-        elif not {'ar2000', 'ar2000.exe'}.isdisjoint(linker):
+        elif 'ar2000' in linker_name:
             arg = '?'
         else:
             arg = '--version'
@@ -309,7 +311,7 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
             return VisualStudioLinker(linker, getattr(compiler, 'machine', None))
         if 'ar-Error-Unknown switch: --version' in err:
             return PGIStaticLinker(linker)
-        if p.returncode == 0 and ('armar' in linker or 'armar.exe' in linker):
+        if p.returncode == 0 and 'armar' in linker_name:
             return ArmarLinker(linker)
         if 'DMD32 D Compiler' in out or 'DMD64 D Compiler' in out:
             assert isinstance(compiler, DCompiler)
@@ -320,11 +322,11 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
         if 'GDC' in out and ' based on D ' in out:
             assert isinstance(compiler, DCompiler)
             return DLinker(linker, compiler.arch)
-        if err.startswith('Renesas') and ('rlink' in linker or 'rlink.exe' in linker):
+        if err.startswith('Renesas') and 'rlink' in linker_name:
             return CcrxLinker(linker)
-        if out.startswith('GNU ar') and ('xc16-ar' in linker or 'xc16-ar.exe' in linker):
+        if out.startswith('GNU ar') and 'xc16-ar' in linker_name:
             return Xc16Linker(linker)
-        if out.startswith('TMS320C2000') and ('ar2000' in linker or 'ar2000.exe' in linker):
+        if out.startswith('TMS320C2000') and 'ar2000' in linker_name:
             return C2000Linker(linker)
         if out.startswith('The CompCert'):
             return CompCertLinker(linker)
