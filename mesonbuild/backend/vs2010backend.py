@@ -1119,15 +1119,7 @@ class Vs2010Backend(backends.Backend):
         else:
             ET.SubElement(clconf, 'FavorSizeOrSpeed').text = 'Speed'
         # Note: SuppressStartupBanner is /NOLOGO and is 'true' by default
-        if self.name in ('vs2017', 'vs2019'):
-            if 'cpp' in file_args:
-                optargs = [x for x in file_args['cpp'] if x.startswith('/std:c++')]
-                if optargs:
-                    ET.SubElement(clconf, 'LanguageStandard').text = optargs[0].replace("/std:c++","stdcpp")
-            if 'c' in file_args:
-                optargs = [x for x in file_args['c'] if x.startswith('/std:c')]
-                if optargs:
-                    ET.SubElement(clconf, 'LanguageStandard_C').text = optargs[0].replace("/std:c","stdc")
+        self.generate_lang_standard_info(file_args, clconf)
         pch_sources = {}
         if self.environment.coredata.options.get(OptionKey('b_pch')):
             for lang in ['c', 'cpp']:
@@ -1516,3 +1508,6 @@ if %%errorlevel%% neq 0 goto :VCEnd'''
     def add_regen_dependency(self, root):
         regen_vcxproj = os.path.join(self.environment.get_build_dir(), 'REGEN.vcxproj')
         self.add_project_reference(root, regen_vcxproj, self.environment.coredata.regen_guid)
+
+    def generate_lang_standard_info(self, file_args, clconf):
+        pass
