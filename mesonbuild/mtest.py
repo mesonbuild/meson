@@ -1893,7 +1893,10 @@ class TestHarness:
             l.start(self)
 
         if sys.platform != 'win32':
-            asyncio.get_event_loop().add_signal_handler(signal.SIGINT, sigint_handler)
+            if os.getpgid(0) == os.getpid():
+                asyncio.get_event_loop().add_signal_handler(signal.SIGINT, sigint_handler)
+            else:
+                asyncio.get_event_loop().add_signal_handler(signal.SIGINT, sigterm_handler)
             asyncio.get_event_loop().add_signal_handler(signal.SIGTERM, sigterm_handler)
         try:
             for runner in runners:
