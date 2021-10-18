@@ -294,7 +294,7 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
     for linker in linkers:
         linker_name = os.path.basename(linker[0])
 
-        if linker_name in {'lib', 'lib.exe', 'llvm-lib', 'llvm-lib.exe', 'xilib', 'xilib.exe'}:
+        if any(os.path.basename(x) in {'lib', 'lib.exe', 'llvm-lib', 'llvm-lib.exe', 'xilib', 'xilib.exe'} for x in linker):
             arg = '/?'
         elif 'ar2000' in linker_name:
             arg = '?'
