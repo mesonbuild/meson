@@ -45,3 +45,13 @@ class Vs2019Backend(Vs2010Backend):
     def generate_debug_information(self, link):
         # valid values for vs2019 is 'false', 'true', 'DebugFastLink', 'DebugFull'
         ET.SubElement(link, 'GenerateDebugInformation').text = 'DebugFull'
+
+    def generate_lang_standard_info(self, file_args, clconf):
+        if 'cpp' in file_args:
+            optargs = [x for x in file_args['cpp'] if x.startswith('/std:c++')]
+            if optargs:
+                ET.SubElement(clconf, 'LanguageStandard').text = optargs[0].replace("/std:c++", "stdcpp")
+        if 'c' in file_args:
+            optargs = [x for x in file_args['c'] if x.startswith('/std:c')]
+            if optargs:
+                ET.SubElement(clconf, 'LanguageStandard_C').text = optargs[0].replace("/std:c", "stdc")
