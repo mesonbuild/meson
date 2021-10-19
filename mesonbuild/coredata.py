@@ -44,7 +44,7 @@ if T.TYPE_CHECKING:
     CompilerCheckCacheKey = T.Tuple[T.Tuple[str, ...], str, FileOrString, T.Tuple[str, ...], str]
 
 # Check major_versions_differ() if changing versioning scheme.
-version = '0.60.0.rc1'
+version = '0.60.0.rc2'
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2012', 'vs2013', 'vs2015', 'vs2017', 'vs2019', 'xcode']
 
 default_yielding = False
