@@ -251,8 +251,9 @@ def cmd_ci_include(file: str) -> None:
 def log(*args: TV_Loggable, is_error: bool = False,
         once: bool = False, **kwargs: T.Any) -> None:
     if once:
-        return log_once(*args, is_error=is_error, **kwargs)
-    return _log(*args, is_error=is_error, **kwargs)
+        log_once(*args, is_error=is_error, **kwargs)
+    else:
+        _log(*args, is_error=is_error, **kwargs)
 
 
 def _log(*args: TV_Loggable, is_error: bool = False,
