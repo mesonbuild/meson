@@ -2618,7 +2618,7 @@ class AllPlatformTests(BasePlatformTests):
 
     def test_introspect_json_flat(self):
         testdir = os.path.join(self.unit_test_dir, '57 introspection')
-        out = self.init(testdir, extra_args=['-Dlayout=flat'])
+        self.init(testdir, extra_args=['-Dlayout=flat'])
         infodir = os.path.join(self.builddir, 'meson-info')
         self.assertPathExists(infodir)
 
