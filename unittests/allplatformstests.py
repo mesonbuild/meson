@@ -1441,10 +1441,6 @@ class AllPlatformTests(BasePlatformTests):
     def build_static_lib(self, compiler, linker, source, objectfile, outfile, extra_args=None):
         if extra_args is None:
             extra_args = []
-        if compiler.get_argument_syntax() == 'msvc':
-            link_cmd = ['lib', '/NOLOGO', '/OUT:' + outfile, objectfile]
-        else:
-            link_cmd = ['ar', 'csr', outfile, objectfile]
         link_cmd = linker.get_exelist()
         link_cmd += linker.get_always_args()
         link_cmd += linker.get_std_link_args(False)
