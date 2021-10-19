@@ -73,10 +73,12 @@ def _setup_vsenv(force: bool) -> bool:
     mlog.log('Activating VS', bat_info[0]['catalog']['productDisplayVersion'])
     bat_separator = '---SPLIT---'
     bat_contents = bat_template.format(bat_path, bat_separator)
-    bat_file = tempfile.NamedTemporaryFile('w', suffix='.bat', encoding='utf-8')
+    bat_file = tempfile.NamedTemporaryFile('w', suffix='.bat', encoding='utf-8', delete=False)
     bat_file.write(bat_contents)
     bat_file.flush()
-    bat_output = subprocess.check_output(str(bat_file), universal_newlines=True)
+    bat_file.close()
+    bat_output = subprocess.check_output(bat_file.name, universal_newlines=True)
+    os.unlink(bat_file.name)
     bat_lines = bat_output.split('\n')
     bat_separator_seen = False
     for bat_line in bat_lines:
