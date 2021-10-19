@@ -318,7 +318,7 @@ class WindowsTests(BasePlatformTests):
 
         def sanitycheck_vscrt(vscrt):
             checks = self.get_meson_log_sanitychecks()
-            self.assertTrue(len(checks) > 0)
+            self.assertGreater(len(checks), 0)
             for check in checks:
                 self.assertIn(vscrt, check)
 

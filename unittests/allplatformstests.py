@@ -585,10 +585,10 @@ class AllPlatformTests(BasePlatformTests):
                           self._run, self.mtest_command + ['--setup=valgrind'])
         with open(os.path.join(self.logdir, 'testlog-valgrind.txt'), encoding='utf-8') as f:
             vg_log = f.read()
-        self.assertFalse('TEST_ENV is set' in basic_log)
-        self.assertFalse('Memcheck' in basic_log)
-        self.assertTrue('TEST_ENV is set' in vg_log)
-        self.assertTrue('Memcheck' in vg_log)
+        self.assertNotIn('TEST_ENV is set', basic_log)
+        self.assertNotIn('Memcheck', basic_log)
+        self.assertIn('TEST_ENV is set', vg_log)
+        self.assertIn('Memcheck', vg_log)
         # Run buggy test with setup without env that will pass
         self._run(self.mtest_command + ['--setup=wrapper'])
         # Setup with no properties works
@@ -605,12 +605,12 @@ class AllPlatformTests(BasePlatformTests):
         self._run(self.mtest_command + ['--setup=good'])
         with open(os.path.join(self.logdir, 'testlog-good.txt'), encoding='utf-8') as f:
             exclude_suites_log = f.read()
-        self.assertFalse('buggy' in exclude_suites_log)
+        self.assertNotIn('buggy', exclude_suites_log)
         # --suite overrides add_test_setup(xclude_suites)
         self._run(self.mtest_command + ['--setup=good', '--suite', 'buggy'])
         with open(os.path.join(self.logdir, 'testlog-good.txt'), encoding='utf-8') as f:
             include_suites_log = f.read()
-        self.assertTrue('buggy' in include_suites_log)
+        self.assertIn('buggy', include_suites_log)
 
     def test_testsetup_selection(self):
         testdir = os.path.join(self.unit_test_dir, '14 testsetup selection')
@@ -657,17 +657,17 @@ class AllPlatformTests(BasePlatformTests):
         with open(os.path.join(self.logdir, 'testlog-other.txt'), encoding='utf-8') as f:
             other_log = f.read()
 
-        self.assertTrue('ENV_A is 1' in default_log)
-        self.assertTrue('ENV_B is 2' in default_log)
-        self.assertTrue('ENV_C is 2' in default_log)
+        self.assertIn('ENV_A is 1', default_log)
+        self.assertIn('ENV_B is 2', default_log)
+        self.assertIn('ENV_C is 2', default_log)
 
-        self.assertTrue('ENV_A is 1' in mydefault_log)
-        self.assertTrue('ENV_B is 2' in mydefault_log)
-        self.assertTrue('ENV_C is 2' in mydefault_log)
+        self.assertIn('ENV_A is 1', mydefault_log)
+        self.assertIn('ENV_B is 2', mydefault_log)
+        self.assertIn('ENV_C is 2', mydefault_log)
 
-        self.assertTrue('ENV_A is 1' in other_log)
-        self.assertTrue('ENV_B is 3' in other_log)
-        self.assertTrue('ENV_C is 2' in other_log)
+        self.assertIn('ENV_A is 1', other_log)
+        self.assertIn('ENV_B is 3', other_log)
+        self.assertIn('ENV_C is 2', other_log)
 
     def assertFailedTestCount(self, failure_count, command):
         try:
@@ -1372,7 +1372,7 @@ class AllPlatformTests(BasePlatformTests):
                 self.assertTrue(rpath.startswith('/usr/lib/gcc'))
                 self.assertEqual(len(rpath.split(':')), 1)
             else:
-                self.assertTrue(rpath is None)
+                self.assertIsNone(rpath)
 
     def test_dash_d_dedup(self):
         testdir = os.path.join(self.unit_test_dir, '9 d dedup')

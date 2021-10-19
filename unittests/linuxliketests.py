@@ -263,7 +263,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.init(testdir)
         with open(os.path.join(self.privatedir, 'somename.pc'), encoding='utf-8') as f:
             pcfile = f.read()
-        self.assertFalse('blub_blob_blib' in pcfile)
+        self.assertNotIn('blub_blob_blib', pcfile)
 
     def test_symlink_builddir(self) -> None:
         '''
@@ -1072,10 +1072,10 @@ class LinuxlikeTests(BasePlatformTests):
             myenv['PKG_CONFIG_PATH'] = pkg_dir
             # Private internal libraries must not leak out.
             pkg_out = subprocess.check_output(['pkg-config', '--static', '--libs', 'libpkgdep'], env=myenv)
-            self.assertFalse(b'libpkgdep-int' in pkg_out, 'Internal library leaked out.')
+            self.assertNotIn(b'libpkgdep-int', pkg_out, 'Internal library leaked out.')
             # Dependencies must not leak to cflags when building only a shared library.
             pkg_out = subprocess.check_output(['pkg-config', '--cflags', 'libpkgdep'], env=myenv)
-            self.assertFalse(b'glib' in pkg_out, 'Internal dependency leaked to headers.')
+            self.assertNotIn(b'glib', pkg_out, 'Internal dependency leaked to headers.')
             # Test that the result is usable.
             self.init(testdir2, override_envvars=myenv)
             self.build(override_envvars=myenv)
@@ -1093,7 +1093,7 @@ class LinuxlikeTests(BasePlatformTests):
     def test_pkgconfig_relative_paths(self):
         testdir = os.path.join(self.unit_test_dir, '62 pkgconfig relative paths')
         pkg_dir = os.path.join(testdir, 'pkgconfig')
-        self.assertTrue(os.path.exists(os.path.join(pkg_dir, 'librelativepath.pc')))
+        self.assertPathExists(os.path.join(pkg_dir, 'librelativepath.pc'))
 
         env = get_fake_env(testdir, self.builddir, self.prefix)
         env.coredata.set_options({OptionKey('pkg_config_path'): pkg_dir}, subproject='')
@@ -1116,7 +1116,7 @@ class LinuxlikeTests(BasePlatformTests):
 
         PkgConfigDependency.setup_env({}, env, MachineChoice.HOST, pkg_dir)
         pkg_config_path = env.coredata.options[OptionKey('pkg_config_path')].value
-        self.assertTrue(len(pkg_config_path) == 1)
+        self.assertEqual(len(pkg_config_path), 1)
 
     @skipIfNoPkgconfig
     def test_pkgconfig_internal_libraries(self):
@@ -1201,7 +1201,7 @@ class LinuxlikeTests(BasePlatformTests):
         myenv['PKG_CONFIG_PATH'] = self.privatedir
         stdo = subprocess.check_output(['pkg-config', '--libs', 'libsomething'], env=myenv)
         deps = stdo.split()
-        self.assertTrue(deps.index(b'-lsomething') < deps.index(b'-ldependency'))
+        self.assertLess(deps.index(b'-lsomething'), deps.index(b'-ldependency'))
 
     def test_deterministic_dep_order(self):
         '''
@@ -1688,8 +1688,8 @@ class LinuxlikeTests(BasePlatformTests):
         self.build()
         outlib = os.path.join(self.builddir, 'libprelinked.a')
         ar = shutil.which('ar')
-        self.assertTrue(os.path.exists(outlib))
-        self.assertTrue(ar is not None)
+        self.assertPathExists(outlib)
+        self.assertIsNotNone(ar)
         p = subprocess.run([ar, 't', outlib],
                            stdout=subprocess.PIPE,
                            stderr=subprocess.DEVNULL,
