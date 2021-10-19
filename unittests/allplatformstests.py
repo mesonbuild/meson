@@ -919,7 +919,7 @@ class AllPlatformTests(BasePlatformTests):
             wcc = compiler_from_language(env, lang, MachineChoice.HOST)
             wlinker = detect_static_linker(env, wcc)
             # Pop it so we don't use it for the next detection
-            evalue = os.environ.pop('AR')
+            os.environ.pop('AR')
             # Must be the same type since it's a wrapper around the same exelist
             self.assertIs(type(cc), type(wcc))
             self.assertIs(type(linker), type(wlinker))
