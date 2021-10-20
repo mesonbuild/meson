@@ -53,6 +53,8 @@ class CudaModule(NewExtensionModule):
 
         cuda_version = args[0]
         driver_version_table = [
+            {'cuda_version': '>=11.5.0',   'windows': '496.04', 'linux': '495.29.05'},
+            {'cuda_version': '>=11.4.1',   'windows': '471.41', 'linux': '470.57.02'},
             {'cuda_version': '>=11.4.0',   'windows': '471.11', 'linux': '470.42.01'},
             {'cuda_version': '>=11.3.0',   'windows': '465.89', 'linux': '465.19.01'},
             {'cuda_version': '>=11.2.2',   'windows': '461.33', 'linux': '460.32.03'},
