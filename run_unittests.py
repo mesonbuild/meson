@@ -30,11 +30,9 @@ import mesonbuild.dependencies.factory
 import mesonbuild.compilers
 import mesonbuild.envconfig
 import mesonbuild.environment
-import mesonbuild.mesonlib
 import mesonbuild.coredata
 import mesonbuild.modules.gnome
 from mesonbuild.mesonlib import python_command, setup_vsenv
-import mesonbuild.dependencies.base
 import mesonbuild.modules.pkgconfig
 
 from unittests.allplatformstests import AllPlatformTests

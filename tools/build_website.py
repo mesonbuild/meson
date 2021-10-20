@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import os, sys, subprocess, shutil
+import os, subprocess, shutil
 
 assert os.getcwd() == '/home/jpakkane'
 
