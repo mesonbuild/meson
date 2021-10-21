@@ -1669,10 +1669,10 @@ class TestHarness:
                 runners.extend(self.get_test_runner(test) for test in tests)
                 if i == 0:
                     self.duration_max_len = max(len(str(int(runner.timeout or 99)))
-                                                 for runner in runners)
+                                                for runner in runners)
                     # Disable the progress report if it gets in the way
                     self.need_console = any(runner.console_mode is not ConsoleUser.LOGGER
-                                             for runner in runners)
+                                            for runner in runners)
 
             self.test_count = len(runners)
             self.run_tests(runners)

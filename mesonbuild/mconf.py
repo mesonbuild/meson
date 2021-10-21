@@ -239,7 +239,7 @@ class Conf:
 
         dir_option_names = set(coredata.BUILTIN_DIR_OPTIONS)
         test_option_names = {OptionKey('errorlogs'),
-                            OptionKey('stdsplit')}
+                             OptionKey('stdsplit')}
 
         dir_options: 'coredata.KeyedOptionDictType' = {}
         test_options: 'coredata.KeyedOptionDictType' = {}

@@ -125,7 +125,7 @@ class ClangCompiler(GnuLikeCompiler):
 
         # qcld: Qualcomm Snapdragon linker, based on LLVM
         if linker == 'qcld':
-            return  ['-fuse-ld=qcld']
+            return ['-fuse-ld=qcld']
 
         if shutil.which(linker):
             if not shutil.which(linker):

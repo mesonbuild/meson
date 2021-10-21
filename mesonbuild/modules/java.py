@@ -38,7 +38,7 @@ class JavaModule(ExtensionModule):
     @typed_pos_args('generate_native_header', (str, FileHolder))
     @typed_kwargs('java.generate_native_header', KwargInfo('package', str, default=None))
     def generate_native_header(self, state: ModuleState, args: T.Tuple[T.Union[str, FileHolder]],
-            kwargs: T.Dict[str, T.Optional[str]]) -> ModuleReturnValue:
+                               kwargs: T.Dict[str, T.Optional[str]]) -> ModuleReturnValue:
         assert state.backend
 
         package = kwargs.get('package')

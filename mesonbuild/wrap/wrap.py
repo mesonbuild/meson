@@ -33,7 +33,7 @@ from . import WrapMode
 from .. import coredata
 from ..mesonlib import quiet_git, GIT, ProgressBar, MesonException
 from ..interpreterbase import FeatureNew
-from  .. import mesonlib
+from .. import mesonlib
 
 if T.TYPE_CHECKING:
     import http.client
@@ -150,7 +150,6 @@ class PackageDefinition:
         for what in ['patch', 'source']:
             if f'{what}_filename' in self.values and f'{what}_url' not in self.values:
                 FeatureNew(f'Local wrap patch files without {what}_url', '0.55.0').use(self.subproject)
-
 
     def parse_wrap_section(self, config: configparser.ConfigParser) -> None:
         if len(config.sections()) < 1:

@@ -46,7 +46,7 @@ def clangtidy(srcdir_name: str, builddir_name: str) -> int:
             run_clang_tidy = rct
             break
     if run_clang_tidy:
-        return subprocess.run([run_clang_tidy, '-p', builddir_name, '^(?!' + re.escape(builddir_name + os.path.sep) +').*$']).returncode
+        return subprocess.run([run_clang_tidy, '-p', builddir_name, '^(?!' + re.escape(builddir_name + os.path.sep) + ').*$']).returncode
     else:
         print('Could not find run-clang-tidy, running checks manually.')
         return manual_clangtidy(srcdir_name, builddir_name)

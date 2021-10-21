@@ -267,7 +267,7 @@ def typed_pos_args(name: str, *types: T.Union[T.Type, T.Tuple[T.Type, ...]],
                 nargs[i] = tuple(pos)
             elif optargs:
                 if num_args < num_types + len(optargs):
-                    diff =  num_types + len(optargs) - num_args
+                    diff = num_types + len(optargs) - num_args
                     nargs[i] = tuple(list(args) + [None] * diff)
                 else:
                     nargs[i] = args
@@ -297,7 +297,7 @@ class ContainerTypeInfo:
     """
 
     def __init__(self, container: T.Type, contains: T.Union[T.Type, T.Tuple[T.Type, ...]], *,
-                 pairs: bool = False, allow_empty: bool = True) :
+                 pairs: bool = False, allow_empty: bool = True):
         self.container = container
         self.contains = contains
         self.pairs = pairs

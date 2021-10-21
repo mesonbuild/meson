@@ -54,9 +54,9 @@ def __failed_to_detect_linker(compiler: T.List[str], args: T.List[str], stdout: 
 
 
 def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Type['Compiler'],
-                        for_machine: MachineChoice, *,
-                        use_linker_prefix: bool = True, invoked_directly: bool = True,
-                        extra_args: T.Optional[T.List[str]] = None) -> 'DynamicLinker':
+                     for_machine: MachineChoice, *,
+                     use_linker_prefix: bool = True, invoked_directly: bool = True,
+                     extra_args: T.Optional[T.List[str]] = None) -> 'DynamicLinker':
     env.coredata.add_lang_args(comp_class.language, comp_class, for_machine, env)
 
     # Explicitly pass logo here so that we can get the version of link.exe
@@ -124,8 +124,8 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     __failed_to_detect_linker(compiler, check_args, o, e)
 
 def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Type['Compiler'],
-                        for_machine: MachineChoice, *,
-                        extra_args: T.Optional[T.List[str]] = None) -> 'DynamicLinker':
+                     for_machine: MachineChoice, *,
+                     extra_args: T.Optional[T.List[str]] = None) -> 'DynamicLinker':
     """Helper for guessing what linker to use on Unix-Like OSes.
 
     :compiler: Invocation to use to get linker

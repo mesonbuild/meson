@@ -256,7 +256,7 @@ class XCodeBackend(backends.Backend):
         obj_path = f'{project}.build/{buildtype}/{tname}.build/Objects-normal/{arch}/{stem}.o'
         return obj_path
 
-    def get_extracted_obj_paths(self, target: build.BuildTarget, outputs: T.List[str])-> T.List[str]:
+    def get_extracted_obj_paths(self, target: build.BuildTarget, outputs: T.List[str]) -> T.List[str]:
         return outputs
 
     def generate(self):
@@ -1269,7 +1269,7 @@ class XCodeBackend(backends.Backend):
                 else:
                     q.append(c)
             quoted_cmds.append(' '.join(q))
-        cmdstr = '"'  + ' && '.join(quoted_cmds) + '"'
+        cmdstr = '"' + ' && '.join(quoted_cmds) + '"'
         gen_dict.add_item('shellScript', cmdstr)
         gen_dict.add_item('showEnvVarsInLog', 0)
 

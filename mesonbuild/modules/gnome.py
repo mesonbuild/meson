@@ -162,7 +162,7 @@ class GnomeModule(ExtensionModule):
             if not found:
                 prog = self._get_native_binary(state, 'gtk-update-icon-cache', 'gtk+-3.0', 'gtk_update_icon_cache')
             icondir = os.path.join(datadir_abs, 'icons', 'hicolor')
-            script = state.backend.get_executable_serialisation([prog, '-q', '-t' ,'-f', icondir])
+            script = state.backend.get_executable_serialisation([prog, '-q', '-t', '-f', icondir])
             script.skip_if_destdir = True
             rv.append(script)
         if kwargs['update_desktop_database'] and not self.install_update_desktop_database:
@@ -184,7 +184,7 @@ class GnomeModule(ExtensionModule):
         glib_compile_resources = state.find_program('glib-compile-resources')
         cmd = [glib_compile_resources, '@INPUT@']
 
-        source_dirs, dependencies = (mesonlib.extract_as_list(kwargs, c, pop=True) for c in  ['source_dir', 'dependencies'])
+        source_dirs, dependencies = (mesonlib.extract_as_list(kwargs, c, pop=True) for c in ['source_dir', 'dependencies'])
 
         if len(args) < 2:
             raise MesonException('Not enough arguments; the name of the resource '

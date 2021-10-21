@@ -34,7 +34,6 @@ class ArrayHolder(ObjectHolder[T.List[TYPE_var]], IterableObject):
             'get': self.get_method,
         })
 
-
         self.trivial_operators.update({
             MesonOperator.EQUALS: (list, lambda x: self.held_object == x),
             MesonOperator.NOT_EQUALS: (list, lambda x: self.held_object != x),

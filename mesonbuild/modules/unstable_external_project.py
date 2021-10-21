@@ -26,7 +26,7 @@ from ..interpreterbase import FeatureNew
 from ..interpreter.type_checking import ENV_KW
 from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, typed_kwargs, typed_pos_args
 from ..mesonlib import (EnvironmentException, MesonException, Popen_safe, MachineChoice,
-                       get_variable_regex, do_replacement, join_args, OptionKey)
+                        get_variable_regex, do_replacement, join_args, OptionKey)
 
 if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
