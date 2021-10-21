@@ -76,8 +76,8 @@ class CPPCompiler(CLikeCompiler, Compiler):
                  full_version: T.Optional[str] = None):
         # If a child ObjCPP class has already set it, don't set it ourselves
         Compiler.__init__(self, exelist, version, for_machine, info,
-                         is_cross=is_cross, linker=linker,
-                         full_version=full_version)
+                          is_cross=is_cross, linker=linker,
+                          full_version=full_version)
         CLikeCompiler.__init__(self, exe_wrapper)
 
     @staticmethod

@@ -554,8 +554,8 @@ class PkgConfigModule(ExtensionModule):
         if not isinstance(pkgroot, str):
             raise mesonlib.MesonException('Install_dir must be a string.')
         self._generate_pkgconfig_file(state, deps, subdirs, name, description, url,
-                                     version, pcfile, conflicts, variables,
-                                     unescaped_variables, False, dataonly)
+                                      version, pcfile, conflicts, variables,
+                                      unescaped_variables, False, dataonly)
         res = build.Data([mesonlib.File(True, state.environment.get_scratch_dir(), pcfile)], pkgroot, pkgroot_name, None, state.subproject, install_tag='devel')
         variables = self.interpreter.extract_variables(kwargs, argname='uninstalled_variables', dict_new=True)
         variables = parse_variable_list(variables)
@@ -564,8 +564,8 @@ class PkgConfigModule(ExtensionModule):
 
         pcfile = filebase + '-uninstalled.pc'
         self._generate_pkgconfig_file(state, deps, subdirs, name, description, url,
-                                     version, pcfile, conflicts, variables,
-                                     unescaped_variables, uninstalled=True, dataonly=dataonly)
+                                      version, pcfile, conflicts, variables,
+                                      unescaped_variables, uninstalled=True, dataonly=dataonly)
         # Associate the main library with this generated pc file. If the library
         # is used in any subsequent call to the generated, it will generate a
         # 'Requires:' or 'Requires.private:'.

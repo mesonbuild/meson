@@ -1132,7 +1132,7 @@ def do_replacement(regex: T.Pattern[str], line: str, variable_format: str,
 def do_define(regex: T.Pattern[str], line: str, confdata: 'ConfigurationData', variable_format: str) -> str:
     def get_cmake_define(line: str, confdata: 'ConfigurationData') -> str:
         arr = line.split()
-        define_value=[]
+        define_value = []
         for token in arr[2:]:
             try:
                 (v, desc) = confdata.get(token)
@@ -1179,13 +1179,13 @@ def get_variable_regex(variable_format: str = 'meson') -> T.Pattern[str]:
         raise MesonException(f'Format "{variable_format}" not handled')
     return regex
 
-def do_conf_str (src: str, data: list, confdata: 'ConfigurationData', variable_format: str,
-                 encoding: str = 'utf-8') -> T.Tuple[T.List[str],T.Set[str], bool]:
-    def line_is_valid(line : str, variable_format: str) -> bool:
+def do_conf_str(src: str, data: list, confdata: 'ConfigurationData', variable_format: str,
+                encoding: str = 'utf-8') -> T.Tuple[T.List[str], T.Set[str], bool]:
+    def line_is_valid(line: str, variable_format: str) -> bool:
         if variable_format == 'meson':
             if '#cmakedefine' in line:
                 return False
-        else: #cmake format
+        else: # cmake format
             if '#mesondefine' in line:
                 return False
         return True
@@ -1206,7 +1206,7 @@ def do_conf_str (src: str, data: list, confdata: 'ConfigurationData', variable_f
             confdata_useless = False
             line = do_define(regex, line, confdata, variable_format)
         else:
-            if not line_is_valid(line,variable_format):
+            if not line_is_valid(line, variable_format):
                 raise MesonException(f'Format error in {src}: saw "{line.strip()}" when format set to "{variable_format}"')
             line, missing = do_replacement(regex, line, variable_format, confdata)
             missing_variables.update(missing)

@@ -338,7 +338,7 @@ if T.TYPE_CHECKING:
         link_libpython: bool
         paths: T.Dict[str, str]
         platform: str
-        suffix : str
+        suffix: str
         variables: T.Dict[str, str]
         version: str
 
@@ -502,10 +502,10 @@ class PythonInstallation(ExternalProgramHolder):
             mlog.log('Dependency', mlog.bold('python'), 'skipped: feature', mlog.bold(feature), 'disabled')
         else:
             for d in python_factory(self.interpreter.environment,
-                                      MachineChoice.BUILD if kwargs.get('native', False) else MachineChoice.HOST,
-                                      kwargs,
-                                      process_method_kw({DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM}, kwargs),
-                                      self):
+                                    MachineChoice.BUILD if kwargs.get('native', False) else MachineChoice.HOST,
+                                    kwargs,
+                                    process_method_kw({DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM}, kwargs),
+                                    self):
                 dep = d()
                 if dep.found():
                     break

@@ -673,7 +673,7 @@ class CoreData:
         self.deps.build.clear()
 
     def get_nondefault_buildtype_args(self):
-        result= []
+        result = []
         value = self.options[OptionKey('buildtype')].value
         if value == 'plain':
             opt = '0'

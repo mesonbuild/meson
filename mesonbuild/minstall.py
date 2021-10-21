@@ -238,7 +238,7 @@ def restore_selinux_contexts() -> None:
         return
 
     proc, out, err = Popen_safe(['restorecon', '-F', '-f-', '-0'], ('\0'.join(f for f in selinux_updates) + '\0'))
-    if proc.returncode != 0 :
+    if proc.returncode != 0:
         print('Failed to restore SELinux context of installed files...',
               'Standard output:', out,
               'Standard error:', err, sep='\n')
@@ -719,7 +719,7 @@ class Installer:
                 self.did_install_something = True
                 try:
                     self.fix_rpath(outname, t.rpath_dirs_to_remove, install_rpath, final_path,
-                                         install_name_mappings, verbose=False)
+                                   install_name_mappings, verbose=False)
                 except SystemExit as e:
                     if isinstance(e.code, int) and e.code == 0:
                         pass
