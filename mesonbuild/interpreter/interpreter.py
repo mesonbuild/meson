@@ -619,7 +619,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @FeatureNewKwargs('declare_dependency', '0.54.0', ['variables'])
     @permittedKwargs({'include_directories', 'link_with', 'sources', 'dependencies',
                       'compile_args', 'link_args', 'link_whole', 'version',
-                      'variables' })
+                      'variables'})
     @noPosargs
     def func_declare_dependency(self, node, args, kwargs):
         version = kwargs.get('version', self.project_version)
@@ -815,7 +815,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         m = ['\nExecuting subproject', mlog.bold(stack)]
         if method != 'meson':
             m += ['method', mlog.bold(method)]
-        mlog.log(*m,'\n', nested=False)
+        mlog.log(*m, '\n', nested=False)
 
         try:
             if method == 'meson':
@@ -1459,7 +1459,7 @@ external dependencies (including libraries) must go to "dependencies".''')
     def find_program_fallback(self, fallback, args, required, extra_info):
         mlog.log('Fallback to subproject', mlog.bold(fallback), 'which provides program',
                  mlog.bold(' '.join(args)))
-        sp_kwargs = { 'required': required }
+        sp_kwargs = {'required': required}
         self.do_subproject(fallback, 'meson', sp_kwargs)
         return self.program_from_overrides(args, extra_info)
 

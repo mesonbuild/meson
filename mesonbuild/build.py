@@ -636,7 +636,7 @@ class Target(HoldableObject):
 
     @staticmethod
     def parse_overrides(kwargs: T.Dict[str, T.Any]) -> T.Dict[OptionKey, str]:
-        opts =  kwargs.get('override_options', [])
+        opts = kwargs.get('override_options', [])
 
         # In this case we have an already parsed and ready to go dictionary
         # provided by typed_kwargs
@@ -907,10 +907,10 @@ class BuildTarget(Target):
                 else:
                     logger_fun = mlog.debug
                 logger_fun(comp.get_display_language(), 'compiler for the', self.for_machine.get_lower_case_name(), 'machine:',
-                        mlog.bold(' '.join(comp.get_exelist())), comp.get_version_string())
+                           mlog.bold(' '.join(comp.get_exelist())), comp.get_version_string())
                 if comp.linker is not None:
                     logger_fun(comp.get_display_language(), 'linker for the', self.for_machine.get_lower_case_name(), 'machine:',
-                            mlog.bold(' '.join(comp.linker.get_exelist())), comp.linker.id, comp.linker.version)
+                               mlog.bold(' '.join(comp.linker.get_exelist())), comp.linker.id, comp.linker.version)
                 if comp is None:
                     raise MesonException(f'Cannot find required compiler {value}')
                 self.compilers[value] = comp

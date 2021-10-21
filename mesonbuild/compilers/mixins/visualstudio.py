@@ -161,7 +161,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         return ['/c']
 
     def get_no_optimization_args(self) -> T.List[str]:
-        return ['/Od','/Oi-']
+        return ['/Od', '/Oi-']
 
     def sanitizer_compile_args(self, value: str) -> T.List[str]:
         if value == 'none':

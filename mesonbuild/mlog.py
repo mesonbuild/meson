@@ -257,7 +257,7 @@ def log(*args: TV_Loggable, is_error: bool = False,
 
 
 def _log(*args: TV_Loggable, is_error: bool = False,
-        **kwargs: T.Any) -> None:
+         **kwargs: T.Any) -> None:
     nested = kwargs.pop('nested', True)
     arr = process_markup(args, False)
     if log_file is not None:

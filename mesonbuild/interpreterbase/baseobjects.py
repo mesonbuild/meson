@@ -42,6 +42,7 @@ TYPE_key_resolver = T.Callable[[mparser.BaseNode], str]
 if T.TYPE_CHECKING:
     from typing_extensions import Protocol
     __T = T.TypeVar('__T', bound=TYPE_var, contravariant=True)
+
     class OperatorCall(Protocol[__T]):
         def __call__(self, other: __T) -> TYPE_var: ...
 

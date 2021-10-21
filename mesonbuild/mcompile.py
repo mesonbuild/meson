@@ -38,7 +38,7 @@ def array_arg(value: str) -> T.List[str]:
     return UserArrayOption(None, value, allow_dups=True, user_input=True).value
 
 def validate_builddir(builddir: Path) -> None:
-    if not (builddir / 'meson-private' / 'coredata.dat' ).is_file():
+    if not (builddir / 'meson-private' / 'coredata.dat').is_file():
         raise MesonException(f'Current directory is not a meson build directory: `{builddir}`.\n'
                              'Please specify a valid build dir or change the working directory to it.\n'
                              'It is also possible that the build directory was generated with an old\n'
@@ -110,8 +110,8 @@ def get_target_from_intro_data(target: ParsedTargetName, builddir: Path, introsp
             if (intro_target['subproject'] or
                     (target.type and target.type != intro_target['type'].replace(' ', '_')) or
                     (target.path
-                         and intro_target['filename'] != 'no_name'
-                         and Path(target.path) != Path(intro_target['filename'][0]).relative_to(resolved_bdir).parent)):
+                        and intro_target['filename'] != 'no_name'
+                        and Path(target.path) != Path(intro_target['filename'][0]).relative_to(resolved_bdir).parent)):
                 continue
             found_targets += [intro_target]
 

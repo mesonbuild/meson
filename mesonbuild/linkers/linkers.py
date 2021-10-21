@@ -1380,7 +1380,7 @@ class AIXDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         if len(sys_path) == 0:
             # get_compiler_system_dirs doesn't support our compiler.
             # Use the default system library path
-            all_paths.update(['/usr/lib','/lib'])
+            all_paths.update(['/usr/lib', '/lib'])
         else:
             # Include the compiler's default library paths, but filter out paths that don't exist
             for p in sys_path:

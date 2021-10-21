@@ -171,7 +171,7 @@ class CudaCompiler(Compiler):
         '--qpp-config':                         '-qpp-config',                  # 4.2.8.19
     }
     # Reverse map -short to --long options.
-    _FLAG_SHORT2LONG_WITHARGS = {v:k for k,v in _FLAG_LONG2SHORT_WITHARGS.items()}
+    _FLAG_SHORT2LONG_WITHARGS = {v: k for k, v in _FLAG_LONG2SHORT_WITHARGS.items()}
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  is_cross: bool, exe_wrapper: T.Optional['ExternalProgram'],
@@ -186,7 +186,7 @@ class CudaCompiler(Compiler):
         self.warn_args = {level: self._to_host_flags(flags) for level, flags in host_compiler.warn_args.items()}
 
     @classmethod
-    def _shield_nvcc_list_arg(cls, arg: str, listmode: bool=True) -> str:
+    def _shield_nvcc_list_arg(cls, arg: str, listmode: bool = True) -> str:
         r"""
         Shield an argument against both splitting by NVCC's list-argument
         parse logic, and interpretation by any shell.
@@ -390,11 +390,11 @@ class CudaCompiler(Compiler):
                     val = next(flagit)           # -o something
                 except StopIteration:
                     pass
-            elif flag.split('=',1)[0] in self._FLAG_LONG2SHORT_WITHARGS or \
-                 flag.split('=',1)[0] in self._FLAG_SHORT2LONG_WITHARGS:
+            elif flag.split('=', 1)[0] in self._FLAG_LONG2SHORT_WITHARGS or \
+                 flag.split('=', 1)[0] in self._FLAG_SHORT2LONG_WITHARGS:
                 # This is either -o or a multi-letter flag, and it is receiving its
                 # value after an = sign.
-                flag, val = flag.split('=',1)    # -o=something
+                flag, val = flag.split('=', 1)    # -o=something
             # Some dependencies (e.g., BoostDependency) add unspaced "-isystem/usr/include" arguments
             elif flag.startswith('-isystem'):
                 val = flag[8:].strip()
@@ -427,9 +427,9 @@ class CudaCompiler(Compiler):
             assert val is not None  # Should only trip if there is a missing argument.
 
             # Take care of the various NVCC-supported flags that need special handling.
-            flag = self._FLAG_LONG2SHORT_WITHARGS.get(flag,flag)
+            flag = self._FLAG_LONG2SHORT_WITHARGS.get(flag, flag)
 
-            if   flag in {'-include','-isystem','-I','-L','-l'}:
+            if   flag in {'-include', '-isystem', '-I', '-L', '-l'}:
                 # These flags are known to GCC, but list-valued in NVCC. They potentially
                 # require double-quoting to prevent NVCC interpreting the flags as lists
                 # when GCC would not have done so.

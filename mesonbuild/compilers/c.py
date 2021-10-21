@@ -434,9 +434,9 @@ class VisualStudioCCompiler(MSVCCompiler, VisualStudioLikeCCompilerMixin, CCompi
     def get_options(self) -> 'KeyedOptionDictType':
         opts = super().get_options()
         c_stds = ['c89', 'c99']
-                  # Need to have these to be compatible with projects
-                  # that set c_std to e.g. gnu99.
-                  # https://github.com/mesonbuild/meson/issues/7611
+        # Need to have these to be compatible with projects
+        # that set c_std to e.g. gnu99.
+        # https://github.com/mesonbuild/meson/issues/7611
         g_stds = ['gnu89', 'gnu90', 'gnu9x', 'gnu99']
         if version_compare(self.version, self._C11_VERSION):
             c_stds += ['c11']

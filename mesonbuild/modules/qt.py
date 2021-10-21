@@ -173,7 +173,7 @@ class QtBaseModule(ExtensionModule):
                 self._rcc_supports_depfiles = True
             else:
                 mlog.warning('rcc dependencies will not work properly until you move to Qt >= 5.14:',
-                    mlog.bold('https://bugreports.qt.io/browse/QTBUG-45460'), fatal=False)
+                             mlog.bold('https://bugreports.qt.io/browse/QTBUG-45460'), fatal=False)
         else:
             suffix = f'-qt{self.qt_version}'
             self.tools['moc'] = NonExistingExternalProgram(name='moc' + suffix)

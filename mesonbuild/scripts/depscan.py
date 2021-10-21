@@ -184,7 +184,7 @@ class DependencyScanner:
                 else:
                     mod_gen = ''
                 if quoted_module_files_needed:
-                    mod_dep = '| '  + ' '.join(quoted_module_files_needed)
+                    mod_dep = '| ' + ' '.join(quoted_module_files_needed)
                 else:
                     mod_dep = ''
                 build_line = 'build {} {}: dyndep {}'.format(quoted_objfilename,
