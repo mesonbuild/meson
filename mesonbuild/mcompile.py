@@ -224,9 +224,10 @@ def get_parsed_args_vs(options: 'argparse.Namespace', builddir: Path) -> T.Tuple
 
     cmd += options.vs_args
 
-    # Remove platform from env so that msbuild does not pick x86 platform when solution platform is Win32
+    # Remove platform from env if set so that msbuild does not
+    # pick x86 platform when solution platform is Win32
     env = os.environ.copy()
-    del env['PLATFORM']
+    env.pop('PLATFORM', None)
 
     return cmd, env
 
