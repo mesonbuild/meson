@@ -11,4 +11,4 @@ varargs:
   name: more_text
   since: 0.54.0
   type: str
-  description: Additional text that will be printed seperated by spaces.
+  description: Additional text that will be printed separated by spaces.
