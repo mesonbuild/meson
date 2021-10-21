@@ -346,6 +346,12 @@ class CMakeDependency(ExternalDependency):
         if env_path and find_module(env_path):
             return True
 
+        # Check the Linux CMake registry
+        linux_reg = Path.home() / '.cmake' / 'packages'
+        for p in [linux_reg / name, linux_reg / lname]:
+            if p.exists():
+                return True
+
         return False
 
     def _detect_dep(self, name: str, package_version: str, modules: T.List[T.Tuple[str, bool]], components: T.List[T.Tuple[str, bool]], args: T.List[str]) -> None:
