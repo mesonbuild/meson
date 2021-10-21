@@ -208,7 +208,7 @@ class GeneratorMD(GeneratorBase):
             if not func.kwargs:
                 return signature + ')'
 
-            # Only add this seperator if there are any posargs
+            # Only add this separator if there are any posargs
             if all_args:
                 signature += '\n  # Keyword arguments:\n'
 

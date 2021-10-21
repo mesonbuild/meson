@@ -11,4 +11,4 @@ varargs:
   name: msg
   since: 0.58.0
   type: str
-  description: Additional parameters will be seperated by spaces
+  description: Additional parameters will be separated by spaces
