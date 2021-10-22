@@ -406,6 +406,13 @@ class PythonExternalProgram(ExternalProgram):
         user_dir = str(Path.home())
         sys_paths = self.info['sys_paths']
         rel_path = self.info['install_paths'][key][1:]
+        # The paths may not be sensitive to case (e.g. Windows NTFS).
+        # Realpath appears to canonicalize.
+        abs_path = self.info['install_paths'][key][1:]
+        if os.path.realpath(abs_path) == os.path.realpath(abs_path.swapcase()):
+            rel_path = rel_path.lower()
+            sys_paths = [p.lower() for p in sys_paths]
+            user_dir = user_dir.lower()
         if not any(p.endswith(rel_path) for p in sys_paths if not p.startswith(user_dir)):
             mlog.warning('Broken python installation detected. Python files',
                          'installed by Meson might not be found by python interpreter.\n',
