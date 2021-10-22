@@ -236,7 +236,7 @@ def _get_compilers(env: 'Environment', lang: str, for_machine: MachineChoice) ->
         if not env.machines.matches_build_machine(for_machine):
             raise EnvironmentException(f'{lang!r} compiler binary not defined in cross or native file')
         compilers = [[x] for x in defaults[lang]]
-        ccache = BinaryTable.detect_ccache()
+        ccache = BinaryTable.detect_compiler_cache()
 
     if env.machines.matches_build_machine(for_machine):
         exe_wrap: T.Optional[ExternalProgram] = None
@@ -554,8 +554,13 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
                 raise EnvironmentException(m)
             cls = VisualStudioCCompiler if lang == 'c' else VisualStudioCPPCompiler
             linker = guess_win_linker(env, ['link'], cls, for_machine)
+            # As of this writing, CCache does not support MSVC but sccache does.
+            if 'sccache' in ccache:
+                final_compiler = ccache + compiler
+            else:
+                final_compiler = compiler
             return cls(
-                compiler, version, for_machine, is_cross, info, target,
+                final_compiler, version, for_machine, is_cross, info, target,
                 exe_wrap, full_version=cl_signature, linker=linker)
         if 'PGI Compilers' in out:
             cls = PGICCompiler if lang == 'c' else PGICPPCompiler
