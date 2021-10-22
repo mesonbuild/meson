@@ -161,7 +161,8 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
                     libpath = Path(f'python{vernum}.dll')
                 else:
                     libpath = Path('libs') / f'python{vernum}.lib'
-            lib = Path(self.variables.get('base')) / libpath
+            # base_prefix to allow for virtualenvs.
+            lib = Path(self.variables.get('base_prefix')) / libpath
         elif self.platform == 'mingw':
             if self.static:
                 libname = self.variables.get('LIBRARY')
@@ -318,8 +319,11 @@ def links_against_libpython():
     cmd.ensure_finalized()
     return bool(cmd.get_libraries(Extension('dummy', [])))
 
+variables = sysconfig.get_config_vars()
+variables.update({'base_prefix': getattr(sys, 'base_prefix', sys.prefix)})
+
 print(json.dumps({
-  'variables': sysconfig.get_config_vars(),
+  'variables': variables,
   'paths': paths,
   'install_paths': install_paths,
   'sys_paths': sys.path,
