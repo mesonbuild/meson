@@ -303,6 +303,7 @@ class InterpreterBase:
         if operator in (MesonOperator.IN, MesonOperator.NOT_IN):
             val1, val2 = val2, val1
 
+        val1.current_node = node
         return self._holderify(val1.operator_call(operator, _unholder(val2)))
 
     def evaluate_andstatement(self, cur: mparser.AndNode) -> InterpreterObject:
@@ -333,6 +334,7 @@ class InterpreterBase:
         v = self.evaluate_statement(cur.value)
         if isinstance(v, Disabler):
             return v
+        v.current_node = cur
         return self._holderify(v.operator_call(MesonOperator.UMINUS, None))
 
     def evaluate_arithmeticstatement(self, cur: mparser.ArithmeticNode) -> InterpreterObject:
@@ -350,6 +352,7 @@ class InterpreterBase:
             'div': MesonOperator.DIV,
             'mod': MesonOperator.MOD,
         }
+        l.current_node = cur
         res = l.operator_call(mapping[cur.operation], _unholder(r))
         return self._holderify(res)
 
@@ -358,6 +361,7 @@ class InterpreterBase:
         result = self.evaluate_statement(node.condition)
         if isinstance(result, Disabler):
             return result
+        result.current_node = node
         result_bool = result.operator_call(MesonOperator.BOOL, None)
         if result_bool:
             return self.evaluate_statement(node.trueblock)
@@ -420,6 +424,7 @@ class InterpreterBase:
         # Remember that all variables are immutable. We must always create a
         # full new variable and then assign it.
         old_variable = self.get_variable(varname)
+        old_variable.current_node = node
         new_value = self._holderify(old_variable.operator_call(MesonOperator.PLUS, _unholder(addition)))
         self.set_variable(varname, new_value)
 
@@ -432,6 +437,7 @@ class InterpreterBase:
 
         if iobject is None:
             raise InterpreterException('Tried to evaluate indexing on None')
+        iobject.current_node = node
         return self._holderify(iobject.operator_call(MesonOperator.INDEX, index))
 
     def function_call(self, node: mparser.FunctionNode) -> T.Optional[InterpreterObject]:
