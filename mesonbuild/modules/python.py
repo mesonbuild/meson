@@ -399,16 +399,19 @@ class PythonExternalProgram(ExternalProgram):
             return False
 
     def _get_path(self, state: T.Optional['ModuleState'], key: str) -> None:
-        if state:
-            value = state.get_option(f'{key}dir', module='python')
-            if value:
-                return value
-        user_dir = str(Path.home())
-        sys_paths = self.info['sys_paths']
         rel_path = self.info['install_paths'][key][1:]
-        if not any(p.endswith(rel_path) for p in sys_paths if not p.startswith(user_dir)):
-            mlog.warning('Broken python installation detected. Python files',
-                         'installed by Meson might not be found by python interpreter.\n',
+        if not state:
+            # This happens only from run_project_tests.py
+            return rel_path
+        value = state.get_option(f'{key}dir', module='python')
+        if value:
+            return value
+        # Use python's path relative to prefix, and warn if that's not a location
+        # python will lookup for modules.
+        abs_path = Path(state.get_option('prefix'), rel_path)
+        sys_paths = [Path(i) for i in self.info['sys_paths']]
+        if abs_path not in sys_paths:
+            mlog.warning('Python files installed by Meson might not be found by python interpreter.\n',
                          f'This warning can be avoided by setting "python.{key}dir" option.',
                          once=True)
         return rel_path
