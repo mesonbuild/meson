@@ -105,6 +105,11 @@ class PkgGenerator:
         with open(self.distribution_file, 'w') as open_file:
             open_file.write(doc.toprettyxml())
 
+    def remove_tempfiles(self):
+        shutil.rmtree('macpkg')
+        os.unlink('meson-distribution.xml')
+        os.unlink('meson.pkg')
+        os.unlink('meson.spec')
 
 if __name__ == '__main__':
     if not os.path.exists('meson.py'):
@@ -114,3 +119,4 @@ if __name__ == '__main__':
     pg = PkgGenerator()
     pg.build_dist()
     pg.build_package()
+    pg.remove_tempfiles()
