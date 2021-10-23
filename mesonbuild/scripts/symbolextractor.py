@@ -72,7 +72,13 @@ def load_binaries(privdir: str) -> T.Dict[str, T.Dict[str, T.List[str]]]:
     with open(os.path.join(privdir, 'binaries.dat'), 'rb') as f:
         return T.cast(T.Dict[str, T.Dict[str, T.List[str]]], pickle.load(f))
 
-def get_tool(name: str, for_machine: T.Literal["build", "host"] = "build") -> T.List[str]:
+def get_tool(name: str, for_machine: str = "build") -> T.List[str]:
+    """Lookup binary in pickled binaries file and fallback to environment.
+
+    :param name: the name of the desired tool
+    :param for_machine: the target abstract machine, either "build" or "host"
+    :return: command with args as list if the tool was found, `None` otherwise
+    """
     binaries = BINARIES[for_machine].get(name)
     if binaries:
         return binaries
