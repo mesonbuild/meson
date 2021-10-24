@@ -19,9 +19,11 @@ import typing as T
 from mesonbuild import mlog
 
 from .loaderbase import LoaderBase
+from .loaderpickle import LoaderPickle
 from .loaderyaml import LoaderYAML
 
 from .generatorbase import GeneratorBase
+from .generatorjson import GeneratorJSON
 from .generatorprint import GeneratorPrint
 from .generatorpickle import GeneratorPickle
 from .generatormd import GeneratorMD
@@ -30,10 +32,11 @@ meson_root = Path(__file__).absolute().parents[2]
 
 def main() -> int:
     parser = argparse.ArgumentParser(description='Meson reference manual generator')
-    parser.add_argument('-l', '--loader', type=str, default='yaml', choices=['yaml'], help='Information loader backend')
-    parser.add_argument('-g', '--generator', type=str, choices=['print', 'pickle', 'md'], required=True, help='Generator backend')
+    parser.add_argument('-l', '--loader', type=str, default='yaml', choices=['yaml', 'pickle'], help='Information loader backend')
+    parser.add_argument('-g', '--generator', type=str, choices=['print', 'pickle', 'md', 'json'], required=True, help='Generator backend')
     parser.add_argument('-s', '--sitemap', type=Path, default=meson_root / 'docs' / 'sitemap.txt', help='Path to the input sitemap.txt')
     parser.add_argument('-o', '--out', type=Path, required=True, help='Output directory for generated files')
+    parser.add_argument('-i', '--input', type=Path, default=meson_root / 'docs' / 'yaml', help='Input path for the selected loader')
     parser.add_argument('--link-defs', type=Path, help='Output file for the MD generator link definition file')
     parser.add_argument('--depfile', type=Path, default=None, help='Set to generate a depfile')
     parser.add_argument('--force-color', action='store_true', help='Force enable colors')
@@ -44,7 +47,8 @@ def main() -> int:
         mlog.colorize_console = lambda: True
 
     loaders: T.Dict[str, T.Callable[[], LoaderBase]] = {
-        'yaml': lambda: LoaderYAML(meson_root / 'docs' / 'yaml'),
+        'yaml': lambda: LoaderYAML(args.input),
+        'pickle': lambda: LoaderPickle(args.input),
     }
 
     loader = loaders[args.loader]()
@@ -54,6 +58,7 @@ def main() -> int:
         'print': lambda: GeneratorPrint(refMan),
         'pickle': lambda: GeneratorPickle(refMan, args.out),
         'md': lambda: GeneratorMD(refMan, args.out, args.sitemap, args.link_defs, not args.no_modules),
+        'json': lambda: GeneratorJSON(refMan, args.out, not args.no_modules),
     }
     generator = generators[args.generator]()
 

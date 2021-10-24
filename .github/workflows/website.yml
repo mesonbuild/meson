@@ -11,7 +11,13 @@ on:
       - master
     paths:
       - docs/**
+  pull_request:
+    paths:
+      - docs/**
   workflow_dispatch:
+  release:
+    types:
+      - published
 
 # This job is copy/paster into wrapdb CI, please update it there when doing any
 # change here.
@@ -40,6 +46,7 @@ jobs:
           cd docs
           ../meson.py setup _build
           ninja -C _build
+          ninja -C _build test
       - name: Update website
         env:
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock
@@ -47,3 +54,11 @@ jobs:
           cd docs
           ninja -C _build upload
         if: env.HAS_SSH_KEY == 'true'
+      - name: Release the current JSON docs
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: docs/_build/reference_manual.json
+          tag: ${{ github.ref }}
+        if: ${{ github.event_name == 'release' }}
+
