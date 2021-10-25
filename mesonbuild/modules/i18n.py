@@ -22,7 +22,7 @@ from .. import mesonlib
 from .. import mlog
 from ..interpreter.type_checking import CT_BUILD_BY_DEFAULT, CT_INPUT_KW, CT_INSTALL_DIR_KW, CT_INSTALL_TAG_KW, CT_OUTPUT_KW, INSTALL_KW, NoneType, in_set_validator
 from ..interpreterbase import FeatureNew
-from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, noPosargs, typed_kwargs, typed_pos_args
+from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, typed_kwargs, typed_pos_args
 from ..scripts.gettext import read_linguas
 
 if T.TYPE_CHECKING:
@@ -128,7 +128,6 @@ class I18nModule(ExtensionModule):
         return [path.join(src_dir, d) for d in dirs]
 
     @FeatureNew('i18n.merge_file', '0.37.0')
-    @noPosargs
     @typed_kwargs(
         'i18n.merge_file',
         CT_BUILD_BY_DEFAULT,
@@ -143,6 +142,9 @@ class I18nModule(ExtensionModule):
         KwargInfo('type', str, default='xml', validator=in_set_validator({'xml', 'desktop'})),
     )
     def merge_file(self, state: 'ModuleState', args: T.List['TYPE_var'], kwargs: 'MergeFile') -> ModuleReturnValue:
+        if args:
+            mlog.deprecation('i18n.merge_file does not take any positional arguments. '
+                             'This will become a hard error in the next Meson release.')
         if not shutil.which('xgettext'):
             self.nogettext_warning()
             return ModuleReturnValue(None, [])
