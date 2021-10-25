@@ -103,12 +103,12 @@ def stringifyUserArguments(args, quote=False):
     elif isinstance(args, dict):
         return '{%s}' % ', '.join(['{} : {}'.format(stringifyUserArguments(k, True), stringifyUserArguments(v, True)) for k, v in args.items()])
     elif isinstance(args, bool):
-        pass # bools are a type of int, make this fallthrough to the error case
+        return 'true' if args else 'false'
     elif isinstance(args, int):
         return str(args)
     elif isinstance(args, str):
         return f"'{args}'" if quote else args
-    raise InvalidArguments('Function accepts only strings, integers, lists, dictionaries and lists thereof.')
+    raise InvalidArguments('Function accepts only strings, integers, bools, lists, dictionaries and lists thereof.')
 
 class Summary:
     def __init__(self, project_name, project_version):
