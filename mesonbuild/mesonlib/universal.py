@@ -83,7 +83,6 @@ __all__ = [
     'detect_vcs',
     'do_conf_file',
     'do_conf_str',
-    'do_define',
     'do_replacement',
     'exe_exists',
     'expand_arguments',
