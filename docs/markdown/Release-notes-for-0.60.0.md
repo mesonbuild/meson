@@ -28,7 +28,7 @@ alias_target('all-pot', all_pot_targets)
 
 ## The Python Modules dependency method no longer accepts positional arguments
 
-Previously these were igrnoed with a warning, now they're a hard error.
+Previously these were ignored with a warning, now they're a hard error.
 
 ## `unset_variable()`
 
@@ -245,7 +245,7 @@ jdkjava = shared_module(
 )
 ```
 
-== Link tests can use sources for a different compiler ==
+## Link tests can use sources for a different compiler
 
 Usually, the `links` method of the compiler object uses a single program
 invocation to do both compilation and linking.  Starting with this version,
