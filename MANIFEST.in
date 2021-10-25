@@ -19,3 +19,4 @@ include run_project_tests.py
 include ghwt.py
 include __main__.py
 include meson.py
+include mesonbuild/scripts/cmd_or_ps.ps1
