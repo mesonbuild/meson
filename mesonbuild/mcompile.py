@@ -44,14 +44,6 @@ def validate_builddir(builddir: Path) -> None:
                              'It is also possible that the build directory was generated with an old\n'
                              'meson version. Please regenerate it in this case.')
 
-def get_backend_from_coredata(builddir: Path) -> str:
-    """
-    Gets `backend` option value from coredata
-    """
-    backend = coredata.load(str(builddir)).get_option(mesonlib.OptionKey('backend'))
-    assert isinstance(backend, str)
-    return backend
-
 def parse_introspect_data(builddir: Path) -> T.Dict[str, T.List[dict]]:
     """
     Converts a List of name-to-dict to a dict of name-to-dicts (since names are not unique)
@@ -329,6 +321,7 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     )
 
 def run(options: 'argparse.Namespace') -> int:
+    cdata = coredata.load(options.wd)
     bdir = Path(options.wd)
     buildfile = bdir / 'meson-private' / 'build.dat'
     if not buildfile.is_file():
@@ -342,7 +335,8 @@ def run(options: 'argparse.Namespace') -> int:
     if options.targets and options.clean:
         raise MesonException('`TARGET` and `--clean` can\'t be used simultaneously')
 
-    backend = get_backend_from_coredata(bdir)
+    backend = cdata.get_option(mesonlib.OptionKey('backend'))
+    assert isinstance(backend, str)
     if backend == 'ninja':
         cmd, env = get_parsed_args_ninja(options, bdir)
     elif backend.startswith('vs'):
