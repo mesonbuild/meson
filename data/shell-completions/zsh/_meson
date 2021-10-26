@@ -124,10 +124,6 @@ local -a meson_commands=(
   fi
 }
 
-(( $+functions[_meson_commands] )) || _meson_commands() {
-    _describe -t commands "Meson subcommands" meson_commands
-}
-
 (( $+functions[_meson-setup] )) || _meson-setup() {
   local firstd secondd
   if [[ -f "meson.build" ]]; then
@@ -411,16 +407,18 @@ fi
 _arguments -C \
   '(: -)'{'--help','-h'}'[show a help message and quit]' \
   '(: -)'{'--version','-v'}'[show version information and quit]' \
-  '(-): :_meson_commands' \
+  '(-):Meson subcommands:(( "${(@)meson_commands}" ))' \
   '*:: :->post-command' \
 #
 ret=$?
 
 case "$state" in
   post-command)
-    service="meson-$words[1]"
+    service="meson-$line[1]"
     curcontext=${curcontext%:*:*}:$service:
-    _call_function ret _$service
+    if ! _call_function ret _$service; then
+      _message "unknown subcommand: $line[1]"
+    fi
     ;;
 esac
 
