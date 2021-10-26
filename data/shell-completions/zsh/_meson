@@ -104,8 +104,8 @@ local -a meson_commands=(
     local -a tests=(${(@f)rtests})
     _describe -t "tests" "Meson tests" tests
   else
-    _message -r "current working directory is not a build directory"
-    _message -r 'use -C $build_dir or cd $build_dir'
+    _message "current working directory is not a build directory"
+    _message 'use -C $build_dir or cd $build_dir'
   fi
 }
 
