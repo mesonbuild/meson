@@ -419,7 +419,7 @@ class Resolver:
         if is_shallow and self.is_git_full_commit_id(revno):
             # git doesn't support directly cloning shallowly for commits,
             # so we follow https://stackoverflow.com/a/43136160
-            verbose_git(['init', '-b', 'meson-dummy-branch', self.directory], self.subdir_root, check=True)
+            verbose_git(['-c', 'init.defaultBranch=meson-dummy-branch', 'init', self.directory], self.subdir_root, check=True)
             verbose_git(['remote', 'add', 'origin', self.wrap.get('url')], self.dirname, check=True)
             revno = self.wrap.get('revision')
             verbose_git(['fetch', *depth_option, 'origin', revno], self.dirname, check=True)
