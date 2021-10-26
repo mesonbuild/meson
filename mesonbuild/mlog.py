@@ -22,9 +22,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 if T.TYPE_CHECKING:
-    # T.Union is not handled by flake8 to detect quoted annotation use (StringProtocol)
-    # see https://github.com/PyCQA/pyflakes/pull/632
-    from ._typing import StringProtocol, SizedStringProtocol # noqa: F401
+    from ._typing import StringProtocol, SizedStringProtocol
 
 """This is (mostly) a standalone module used to write logging
 information about Meson runs. Some output goes to screen,
