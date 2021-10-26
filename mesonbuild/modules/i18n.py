@@ -179,27 +179,7 @@ class I18nModule(ExtensionModule):
             'install_tag': kwargs['install_tag'],
         }
 
-        # We only use this input file to create a name of the custom target.
-        # Thus we can ignore the other entries.
-        inputfile = kwargs['input'][0]
-        if isinstance(inputfile, str):
-            inputfile = mesonlib.File.from_source_file(state.environment.source_dir,
-                                                       state.subdir, inputfile)
-        if isinstance(inputfile, mesonlib.File):
-            # output could be '@BASENAME@' in which case we need to do substitutions
-            # to get a unique target name.
-            outputs = kwargs['output']
-            ifile_abs = inputfile.absolute_path(state.environment.source_dir,
-                                                state.environment.build_dir)
-            values = mesonlib.get_filenames_templates_dict([ifile_abs], None)
-            outputs = mesonlib.substitute_values(outputs, values)
-            output = outputs[0]
-            ct = build.CustomTarget(
-                output + '_' + state.subdir.replace('/', '@').replace('\\', '@') + '_merge',
-                state.subdir, state.subproject, T.cast(T.Dict[str, T.Any], real_kwargs))
-        else:
-            ct = build.CustomTarget(
-                kwargs['output'][0] + '_merge', state.subdir, state.subproject,
+        ct = build.CustomTarget('', state.subdir, state.subproject,
                 T.cast(T.Dict[str, T.Any], real_kwargs))
 
         return ModuleReturnValue(ct, [ct])
