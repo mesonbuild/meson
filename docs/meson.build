@@ -65,6 +65,8 @@ refman_json = custom_target(
 
 test('validate_docs', find_program('./jsonvalidator.py'), args: [refman_json])
 
+hotdoc_prog = find_program('hotdoc', version: '>=0.13.7')
+
 hotdoc = import('hotdoc')
 documentation = hotdoc.generate_doc(meson.project_name(),
     project_version: meson.project_version(),
@@ -86,7 +88,7 @@ documentation = hotdoc.generate_doc(meson.project_name(),
 )
 
 run_target('upload',
-    command: [find_program('hotdoc'), 'run',
+    command: [hotdoc_prog, 'run',
       '--conf-file', documentation.config_path(),
       '--git-upload',
       '-vv',
