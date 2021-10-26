@@ -29,11 +29,12 @@
 local curcontext="$curcontext" state line
 local -i ret
 
-local __meson_backends="(ninja xcode ${(j. .)${:-vs{,2010,2015,2017}}})"
-local __meson_build_types="(plain debug debugoptimized minsize release)"
-local __meson_wrap_modes="(WrapMode.{default,nofallback,nodownload,forcefallback})"
+local __meson_backends="(ninja xcode ${(j. .)${:-vs{,2010,2012,2013,2015,2017,2019,2022}}})"
+local __meson_build_types="(plain debug debugoptimized minsize release custom)"
+local __meson_wrap_modes="(default nofallback nodownload forcefallback nopromote)"
 local __meson_dist_formats=("xztar" "gztar" "zip")
 local __meson_cd='-C[change into this directory before running]:target dir:_directories'
+# This goes in sync with coredata.BUILTIN_*.
 local -a __meson_common=(
   '--prefix=[installation prefix]: :_directories'
   '--bindir=[executable directory]: :_directories'
@@ -41,6 +42,7 @@ local -a __meson_common=(
   '--includedir=[header file directory]: :_directories'
   '--infodir=[info page directory]: :_directories'
   '--libdir=[library directory]: :_directories'
+  '--licensedir=[licenses directory]: :_directories'
   '--libexecdir=[library executable directory]: :_directories'
   '--localedir=[locale data directory]: :_directories'
   '--localstatedir=[local state data directory]: :_directories'
@@ -56,11 +58,11 @@ local -a __meson_common=(
   '--errorlogs[prints the logs from failing tests]'
   '--install-umask=[default umask for permissions of all installed files]'
   '--layout=[build directory layout]:build directory layout:(flat mirror)'
-  '--optimization=[optimization level for compiled targets]:optimization:(0 g 1 2 3 s)'
+  '--optimization=[optimization level for compiled targets]:optimization:(plain 0 g 1 2 3 s)'
   '--stdsplit=[split stdout and stderr in test logs]'
   '--strip[strip targets on install]'
   '--unity=[unity builds on/off]:whether to do unity builds:(on off subprojects)'
-  '--warnlevel=[compiler warning level]:compiler warning level:warning level:(1 2 3)'
+  '--warnlevel=[compiler warning level]:compiler warning level:warning level:(0 1 2 3 everything)'
   '--werror[treat warnings as errors]'
   '--wrap-mode=[special wrap mode]:wrap mode:'"$__meson_wrap_modes"
   '--force-fallback-for=[force fallback for listed subprojects]'
