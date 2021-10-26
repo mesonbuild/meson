@@ -390,7 +390,7 @@ _arguments \
   local -a specs=(
     "$__meson_cd"
     '--clean[Clean the build directory]'
-    '(-j --jobs)'{'-j','--jobs'}'=[the number fo work jobs to run (if supported)]:_guard "[0-9]#" "number of jobs"'
+    '(-j --jobs)'{'-j','--jobs'}'=[the number of work jobs to run (if supported)]:_guard "[0-9]#" "number of jobs"'
     '(-l --load-average)'{'-l','--load-average'}'=[the system load average to try to maintain (if supported)]:_guard "[0-9]#" "load average"'
     '(-v --verbose)'{'-v','--verbose'}'[Show more output]'
     '--ninja-args=[Arguments to pass to ninja (only when using ninja)]'
