@@ -2,6 +2,7 @@
 # SPDX-license-identifier: Apache-2.0
 
 import re
+import os
 from pathlib import PurePath
 
 import typing as T
@@ -159,7 +160,7 @@ class StringHolder(ObjectHolder[str]):
     @FeatureNew('/ with string arguments', '0.49.0')
     @typed_operator(MesonOperator.DIV, str)
     def op_div(self, other: str) -> str:
-        return (PurePath(self.held_object) / other).as_posix()
+        return os.path.join(self.held_object, other).replace('\\', '/')
 
     @typed_operator(MesonOperator.INDEX, int)
     def op_index(self, other: int) -> str:
