@@ -116,7 +116,7 @@ known_build_target_kwargs = (
 known_exe_kwargs = known_build_target_kwargs | {'implib', 'export_dynamic', 'pie'}
 known_shlib_kwargs = known_build_target_kwargs | {'version', 'soversion', 'vs_module_defs', 'darwin_versions'}
 known_shmod_kwargs = known_build_target_kwargs | {'vs_module_defs'}
-known_stlib_kwargs = known_build_target_kwargs | {'pic', 'prelink'}
+known_stlib_kwargs = known_build_target_kwargs | {'pic', 'prelink', 'thin'}
 known_jar_kwargs = known_exe_kwargs | {'main_class'}
 
 @lru_cache(maxsize=None)
@@ -1880,6 +1880,9 @@ class StaticLibrary(BuildTarget):
         self.prelink = kwargs.get('prelink', False)
         if not isinstance(self.prelink, bool):
             raise InvalidArguments('Prelink keyword argument must be a boolean.')
+        self.thin = kwargs.get('thin', True)
+        if not isinstance(self.thin, bool):
+            raise InvalidArguments('Thin keyword argument must be a boolean.')
 
     def get_link_deps_mapping(self, prefix: str, environment: environment.Environment) -> T.Mapping[str, str]:
         return {}
