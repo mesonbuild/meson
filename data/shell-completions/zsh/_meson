@@ -26,9 +26,6 @@
 # basis, and the Meson development team have no obligation to provide
 # maintenance, support, updates, enhancements, or modifications.
 
-local curcontext="$curcontext" state line
-local -i ret
-
 local __meson_backends="(ninja xcode ${(j. .)${:-vs{,2010,2012,2013,2015,2017,2019,2022}}})"
 local __meson_build_types="(plain debug debugoptimized minsize release custom)"
 local __meson_wrap_modes="(default nofallback nodownload forcefallback nopromote)"
@@ -403,12 +400,15 @@ _arguments \
   "${(@)specs}"
 }
 
+local curcontext="$curcontext" state line
+local -i ret
+
 if [[ $service != meson ]]; then
   _call_function ret _$service
   return ret
 fi
 
-_arguments -C -R \
+_arguments -C \
   '(: -)'{'--help','-h'}'[show a help message and quit]' \
   '(: -)'{'--version','-v'}'[show version information and quit]' \
   '(-): :_meson_commands' \
@@ -416,7 +416,7 @@ _arguments -C -R \
 #
 ret=$?
 
-[[ $ret = 300 ]] && case "$state" in
+case "$state" in
   post-command)
     service="meson-$words[1]"
     curcontext=${curcontext%:*:*}:$service:
