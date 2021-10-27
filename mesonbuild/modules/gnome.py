@@ -269,10 +269,10 @@ class GnomeModule(ExtensionModule):
             output = f'{target_name}.gresource'
             name = f'{target_name}_gresource'
         else:
-            if 'c' in state.environment.coredata.compilers.host.keys():
+            if 'c' in state.environment.coredata.compilers.host:
                 output = f'{target_name}.c'
                 name = f'{target_name}_c'
-            elif 'cpp' in state.environment.coredata.compilers.host.keys():
+            elif 'cpp' in state.environment.coredata.compilers.host:
                 output = f'{target_name}.cpp'
                 name = f'{target_name}_cpp'
             else:
