@@ -36,6 +36,10 @@ static_library('static', 'lib.c',
 executable('app', 'main.c',
   install: true,
 )
+executable('app-otherdir', 'main.c',
+  install: true,
+  install_dir: 'otherbin',
+)
 shared_library('shared', 'lib.c',
   install: true,
 )

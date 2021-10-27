@@ -134,7 +134,7 @@ class InstallData:
 class TargetInstallData:
     fname: str
     outdir: str
-    outdir_name: InitVar[str]
+    outdir_name: InitVar[T.Optional[str]]
     strip: bool
     install_name_mappings: T.Mapping[str, str]
     rpath_dirs_to_remove: T.Set[bytes]
@@ -146,7 +146,9 @@ class TargetInstallData:
     tag: T.Optional[str] = None
     can_strip: bool = False
 
-    def __post_init__(self, outdir_name: str) -> None:
+    def __post_init__(self, outdir_name: T.Optional[str]) -> None:
+        if outdir_name is None:
+            outdir_name = os.path.join('{prefix}', self.outdir)
         self.out_name = os.path.join(outdir_name, os.path.basename(self.fname))
 
 @dataclass(eq=False)
@@ -1534,7 +1536,7 @@ class Backend:
         for t in self.build.get_targets().values():
             if not t.should_install():
                 continue
-            outdirs, install_dir_name, custom_install_dir = t.get_install_dir()
+            outdirs, default_install_dir_name, custom_install_dir = t.get_install_dir()
             # Sanity-check the outputs and install_dirs
             num_outdirs, num_out = len(outdirs), len(t.get_outputs())
             if num_outdirs != 1 and num_outdirs != num_out:
@@ -1570,7 +1572,7 @@ class Backend:
                     tag = t.install_tag[0] or ('devel' if isinstance(t, build.StaticLibrary) else 'runtime')
                     mappings = t.get_link_deps_mapping(d.prefix)
                     i = TargetInstallData(self.get_target_filename(t), first_outdir,
-                                          install_dir_name,
+                                          default_install_dir_name,
                                           should_strip, mappings, t.rpath_dirs_to_remove,
                                           t.install_rpath, install_mode, t.subproject,
                                           tag=tag, can_strip=can_strip)
@@ -1595,7 +1597,7 @@ class Backend:
                                 implib_install_dir = self.environment.get_import_lib_dir()
                             # Install the import library; may not exist for shared modules
                             i = TargetInstallData(self.get_target_filename_for_linking(t),
-                                                  implib_install_dir, install_dir_name,
+                                                  implib_install_dir, default_install_dir_name,
                                                   False, {}, set(), '', install_mode,
                                                   t.subproject, optional=isinstance(t, build.SharedModule),
                                                   tag='devel')
@@ -1604,7 +1606,7 @@ class Backend:
                         if not should_strip and t.get_debug_filename():
                             debug_file = os.path.join(self.get_target_dir(t), t.get_debug_filename())
                             i = TargetInstallData(debug_file, first_outdir,
-                                                  install_dir_name,
+                                                  default_install_dir_name,
                                                   False, {}, set(), '',
                                                   install_mode, t.subproject,
                                                   optional=True, tag='devel')
@@ -1616,7 +1618,7 @@ class Backend:
                         if outdir is False:
                             continue
                         f = os.path.join(self.get_target_dir(t), output)
-                        i = TargetInstallData(f, outdir, install_dir_name, False, {}, set(), None,
+                        i = TargetInstallData(f, outdir, default_install_dir_name, False, {}, set(), None,
                                               install_mode, t.subproject,
                                               tag=tag)
                         d.targets.append(i)
@@ -1635,9 +1637,7 @@ class Backend:
                     if first_outdir is not False:
                         for output, tag in zip(t.get_outputs(), t.install_tag):
                             f = os.path.join(self.get_target_dir(t), output)
-                            if not install_dir_name:
-                                dir_name = os.path.join('{prefix}', first_outdir)
-                            i = TargetInstallData(f, first_outdir, dir_name,
+                            i = TargetInstallData(f, first_outdir, default_install_dir_name,
                                                 False, {}, set(), None, install_mode,
                                                 t.subproject, optional=not t.build_by_default,
                                                 tag=tag)
@@ -1648,9 +1648,7 @@ class Backend:
                         if outdir is False:
                             continue
                         f = os.path.join(self.get_target_dir(t), output)
-                        if not install_dir_name:
-                            dir_name = os.path.join('{prefix}', outdir)
-                        i = TargetInstallData(f, outdir, dir_name,
+                        i = TargetInstallData(f, outdir, default_install_dir_name,
                                               False, {}, set(), None, install_mode,
                                               t.subproject, optional=not t.build_by_default,
                                               tag=tag)

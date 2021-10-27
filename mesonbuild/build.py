@@ -624,13 +624,14 @@ class Target(HoldableObject):
 
     def get_install_dir(self) -> T.Tuple[T.List[T.Union[str, Literal[False]]], str, Literal[False]]:
         # Find the installation directory.
-        default_install_dir, install_dir_name = self.get_default_install_dir()
+        default_install_dir, default_install_dir_name = self.get_default_install_dir()
         outdirs = self.get_custom_install_dir()
         if outdirs and outdirs[0] != default_install_dir and outdirs[0] is not True:
             # Either the value is set to a non-default value, or is set to
             # False (which means we want this specific output out of many
             # outputs to not be installed).
             custom_install_dir = True
+            default_install_dir_name = None
         else:
             custom_install_dir = False
             # if outdirs is empty we need to set to something, otherwise we set
@@ -640,7 +641,7 @@ class Target(HoldableObject):
             else:
                 outdirs = [default_install_dir]
 
-        return outdirs, install_dir_name, custom_install_dir
+        return outdirs, default_install_dir_name, custom_install_dir
 
     def get_basename(self) -> str:
         return self.name

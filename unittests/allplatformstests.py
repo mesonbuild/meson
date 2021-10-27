@@ -3961,6 +3961,8 @@ class AllPlatformTests(BasePlatformTests):
                 Path(installpath, 'usr/lib/bothcustom.lib'),
                 Path(installpath, 'usr/lib/shared.lib'),
                 Path(installpath, 'usr/lib/versioned_shared.lib'),
+                Path(installpath, 'usr/otherbin'),
+                Path(installpath, 'usr/otherbin/app-otherdir.pdb'),
             }
         elif is_windows() or is_cygwin():
             expected_devel |= {
@@ -3978,6 +3980,8 @@ class AllPlatformTests(BasePlatformTests):
         expected_runtime = expected_common | {
             Path(installpath, 'usr/bin'),
             Path(installpath, 'usr/bin/' + exe_name('app')),
+            Path(installpath, 'usr/otherbin'),
+            Path(installpath, 'usr/otherbin/' + exe_name('app-otherdir')),
             Path(installpath, 'usr/bin/' + exe_name('app2')),
             Path(installpath, 'usr/' + shared_lib_name('shared')),
             Path(installpath, 'usr/' + shared_lib_name('both')),
@@ -4084,6 +4088,10 @@ class AllPlatformTests(BasePlatformTests):
                 },
                 f'{self.builddir}/' + exe_name('app'): {
                     'destination': '{bindir}/' + exe_name('app'),
+                    'tag': 'runtime',
+                },
+                f'{self.builddir}/' + exe_name('app-otherdir'): {
+                    'destination': '{prefix}/otherbin/' + exe_name('app-otherdir'),
                     'tag': 'runtime',
                 },
                 f'{self.builddir}/subdir/' + exe_name('app2'): {
