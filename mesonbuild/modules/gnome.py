@@ -1434,13 +1434,16 @@ class GnomeModule(ExtensionModule):
             # so --template consumes it.
             h_cmd = cmd + ['--template', '@INPUT@']
             h_sources = [h_template] + sources
-            custom_kwargs['install'] = install_header
-            if 'install_dir' not in custom_kwargs:
-                custom_kwargs['install_dir'] = \
+
+            # Copy so we don't mutate the arguments for the c_template
+            h_kwargs = custom_kwargs.copy()
+            h_kwargs['install'] = install_header
+            if 'install_dir' not in h_kwargs:
+                h_kwargs['install_dir'] = \
                     state.environment.coredata.get_option(mesonlib.OptionKey('includedir'))
             h_target = self._make_mkenum_custom_target(state, h_sources,
                                                        h_output, h_cmd,
-                                                       custom_kwargs)
+                                                       h_kwargs)
             targets.append(h_target)
 
         if c_template is not None:
@@ -1449,16 +1452,19 @@ class GnomeModule(ExtensionModule):
             # so --template consumes it.
             c_cmd = cmd + ['--template', '@INPUT@']
             c_sources = [c_template] + sources
+
+            c_kwargs = custom_kwargs.copy()
             # Never install the C file. Complain on bug tracker if you need it.
-            custom_kwargs['install'] = False
+            c_kwargs['install'] = False
+            c_kwargs['install_dir'] = False
             if h_template is not None:
                 if 'depends' in custom_kwargs:
-                    custom_kwargs['depends'] += [h_target]
+                    c_kwargs['depends'] += [h_target]
                 else:
-                    custom_kwargs['depends'] = h_target
+                    c_kwargs['depends'] = h_target
             c_target = self._make_mkenum_custom_target(state, c_sources,
                                                        c_output, c_cmd,
-                                                       custom_kwargs)
+                                                       c_kwargs)
             targets.insert(0, c_target)
 
         if c_template is None and h_template is None:

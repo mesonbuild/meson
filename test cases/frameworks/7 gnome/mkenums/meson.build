@@ -34,9 +34,9 @@ enums_c2 = gnome.mkenums('abc2',
   sources : 'meson-sample.h',
   depends : [enums_h1, enums_h2],
   c_template : 'enums2.c.in',
-  ftail : '/* trailing source file info */',
-  install_header : true,
-  install_dir : get_option('includedir'))
+  ftail : '/* trailing source file info */')
+# explicitly don't set install_dir here, for bug testing
+# See https://github.com/mesonbuild/meson/issues/9472
 
 conf = configuration_data()
 conf.set('ENUM_FILE', 'enums2.h')
