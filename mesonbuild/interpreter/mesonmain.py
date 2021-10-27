@@ -154,6 +154,7 @@ class MesonMain(MesonInterpreterObject):
         script_args = self._process_script_args('add_install_script', args[1], allow_built=True)
         script = self._find_source_script(args[0], script_args)
         script.skip_if_destdir = kwargs['skip_if_destdir']
+        script.tag = kwargs['install_tag']
         self.build.install_scripts.append(script)
 
     @typed_pos_args(

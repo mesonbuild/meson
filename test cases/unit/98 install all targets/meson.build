@@ -77,3 +77,6 @@ custom_target('ct3',
   install_tag: ['custom', 'devel', false],
   install: true,
 )
+
+meson.add_install_script('script.py', install_tag: 'custom')
+meson.add_install_script('script.py')

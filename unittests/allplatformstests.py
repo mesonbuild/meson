@@ -3896,17 +3896,19 @@ class AllPlatformTests(BasePlatformTests):
             Path(installpath, 'usr/share/out2.txt'),
         }
 
-        def do_install(tags=None):
-            extra_args = ['--tags', tags] if tags else []
-            self._run(self.meson_command + ['install', '--dry-run', '--destdir', self.installdir] + extra_args, workdir=self.builddir)
+        def do_install(tags, expected_files, expected_scripts):
+            cmd = self.meson_command + ['install', '--dry-run', '--destdir', self.installdir]
+            cmd += ['--tags', tags] if tags else []
+            stdout = self._run(cmd, workdir=self.builddir)
             installed = self.read_install_logs()
-            return sorted(installed)
+            self.assertEqual(sorted(expected_files), sorted(installed))
+            self.assertEqual(expected_scripts, stdout.count('Running custom install script'))
 
-        self.assertEqual(sorted(expected_devel), do_install('devel'))
-        self.assertEqual(sorted(expected_runtime), do_install('runtime'))
-        self.assertEqual(sorted(expected_custom), do_install('custom'))
-        self.assertEqual(sorted(expected_runtime_custom), do_install('runtime,custom'))
-        self.assertEqual(sorted(expected_all), do_install())
+        do_install('devel', expected_devel, 0)
+        do_install('runtime', expected_runtime, 0)
+        do_install('custom', expected_custom, 1)
+        do_install('runtime,custom', expected_runtime_custom, 1)
+        do_install(None, expected_all, 2)
 
     def test_introspect_install_plan(self):
         testdir = os.path.join(self.unit_test_dir, '98 install all targets')
