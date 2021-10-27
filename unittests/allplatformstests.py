@@ -3938,7 +3938,7 @@ class AllPlatformTests(BasePlatformTests):
                     'tag': 'runtime',
                 },
                 f'{self.builddir}/subdir/' + exe_name('app2'): {
-                    'destination': '{bindir}/' + exe_name('app2'),
+                    'destination': '{bindir}/subdir/' + exe_name('app2'),
                     'tag': 'runtime',
                 },
                 f'{self.builddir}/' + shared_lib_name('shared'): {
@@ -3962,11 +3962,11 @@ class AllPlatformTests(BasePlatformTests):
                     'tag': 'custom',
                 },
                 f'{self.builddir}/subdir/' + shared_lib_name('both2'): {
-                    'destination': '{libdir_shared}/' + shared_lib_name('both2'),
+                    'destination': '{libdir_shared}/subdir/' + shared_lib_name('both2'),
                     'tag': 'runtime',
                 },
                 f'{self.builddir}/subdir/' + static_lib_name('both2'): {
-                    'destination': '{libdir_static}/' + static_lib_name('both2'),
+                    'destination': '{libdir_static}/subdir/' + static_lib_name('both2'),
                     'tag': 'devel',
                 },
                 f'{self.builddir}/out1-custom.txt': {
@@ -3982,11 +3982,11 @@ class AllPlatformTests(BasePlatformTests):
                     'tag': 'custom',
                 },
                 f'{self.builddir}/subdir/out1.txt': {
-                    'destination': '{prefix}/share/out1.txt',
+                    'destination': '{prefix}/share/subdir/out1.txt',
                     'tag': None,
                 },
                 f'{self.builddir}/subdir/out2.txt': {
-                    'destination': '{prefix}/share/out2.txt',
+                    'destination': '{prefix}/share/subdir/out2.txt',
                     'tag': None,
                 },
                 f'{self.builddir}/out-devel.h': {
