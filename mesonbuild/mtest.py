@@ -1092,7 +1092,14 @@ async def read_decode(reader: asyncio.StreamReader, console_mode: ConsoleUser) -
     stdo_lines = []
     try:
         while not reader.at_eof():
-            line = decode(await reader.readline())
+            # Prefer splitting by line, as that produces nicer output
+            try:
+                line_bytes = await reader.readuntil(b'\n')
+            except asyncio.IncompleteReadError as e:
+                line_bytes = e.partial
+            except asyncio.LimitOverrunError as e:
+                line_bytes = await reader.readexactly(e.consumed)
+            line = decode(line_bytes)
             stdo_lines.append(line)
             if console_mode is ConsoleUser.STDOUT:
                 print(line, end='', flush=True)
