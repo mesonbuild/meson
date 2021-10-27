@@ -26,9 +26,10 @@ They can also be edited after setup using `meson configure
 Installation options are all relative to the prefix, except:
 
 * When the prefix is `/usr`: `sysconfdir` defaults to `/etc`,
-* `localstatedir` defaults to `/var`, and `sharedstatedir` defaults to
-* `/var/lib` When the prefix is `/usr/local`: `localstatedir` defaults
-* to `/var/local`, and `sharedstatedir` defaults to `/var/local/lib`
+ `localstatedir` defaults to `/var`, and `sharedstatedir` defaults to
+ `/var/lib`
+* When the prefix is `/usr/local`: `localstatedir` defaults
+ to `/var/local`, and `sharedstatedir` defaults to `/var/local/lib`
 
 ### Directories
 
