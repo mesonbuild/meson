@@ -2532,6 +2532,14 @@ class AllPlatformTests(BasePlatformTests):
         if self.backend is not Backend.ninja:
             raise SkipTest(f'Clang-format is for now only supported on Ninja, not {self.backend.name}')
         testdir = os.path.join(self.unit_test_dir, '54 clang-format')
+
+        # Ensure that test project is in git even when running meson from tarball.
+        srcdir = os.path.join(self.builddir, 'src')
+        shutil.copytree(testdir, srcdir)
+        _git_init(srcdir)
+        testdir = srcdir
+        self.new_builddir()
+
         testfile = os.path.join(testdir, 'prog.c')
         badfile = os.path.join(testdir, 'prog_orig_c')
         goodfile = os.path.join(testdir, 'prog_expected_c')
