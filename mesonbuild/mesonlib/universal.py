@@ -28,6 +28,7 @@ from tempfile import TemporaryDirectory
 import typing as T
 import uuid
 import textwrap
+import copy
 
 from mesonbuild import mlog
 
@@ -61,7 +62,6 @@ __all__ = [
     'OptionKey',
     'dump_conf_header',
     'OptionOverrideProxy',
-    'OptionProxy',
     'OptionType',
     'OrderedSet',
     'PerMachine',
@@ -1918,16 +1918,6 @@ def run_once(func: T.Callable[..., _T]) -> T.Callable[..., _T]:
     return wrapper
 
 
-class OptionProxy(T.Generic[_T]):
-    def __init__(self, value: _T, choices: T.Optional[T.List[str]] = None):
-        self.value = value
-        self.choices = choices
-
-    def set_value(self, v: _T) -> None:
-        # XXX: should this be an error
-        self.value = v
-
-
 class OptionOverrideProxy(collections.abc.MutableMapping):
 
     '''Mimic an option list but transparently override selected option
@@ -1943,15 +1933,16 @@ class OptionOverrideProxy(collections.abc.MutableMapping):
         for o in options:
             self.options.update(o)
 
-    def __getitem__(self, key: 'OptionKey') -> T.Union['UserOption', OptionProxy]:
+    def __getitem__(self, key: 'OptionKey') -> T.Union['UserOption']:
         if key in self.options:
             opt = self.options[key]
             if key in self.overrides:
-                return OptionProxy(opt.validate_value(self.overrides[key]), getattr(opt, 'choices', None))
+                opt = copy.copy(opt)
+                opt.set_value(self.overrides[key])
             return opt
         raise KeyError('Option not found', key)
 
-    def __setitem__(self, key: 'OptionKey', value: T.Union['UserOption', OptionProxy]) -> None:
+    def __setitem__(self, key: 'OptionKey', value: T.Union['UserOption']) -> None:
         self.overrides[key] = value.value
 
     def __delitem__(self, key: 'OptionKey') -> None:
