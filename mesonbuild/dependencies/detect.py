@@ -80,7 +80,7 @@ display_name_map = {
     'wxwidgets': 'WxWidgets',
 }
 
-def find_external_dependency(name: str, env: 'Environment', kwargs: T.Dict[str, object]) -> T.Union['ExternalDependency', NotFoundDependency]:
+def find_external_dependency(name: str, env: 'Environment', kwargs: T.Dict[str, object], candidates: T.Optional[T.List['DependencyGenerator']] = None) -> T.Union['ExternalDependency', NotFoundDependency]:
     assert name
     required = kwargs.get('required', True)
     if not isinstance(required, bool):
@@ -101,7 +101,8 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: T.Dict[str, 
     type_text = PerMachine('Build-time', 'Run-time')[for_machine] + ' dependency'
 
     # build a list of dependency methods to try
-    candidates = _build_external_dependency_list(name, env, for_machine, kwargs)
+    if candidates is None:
+        candidates = _build_external_dependency_list(name, env, for_machine, kwargs)
 
     pkg_exc: T.List[DependencyException] = []
     pkgdep:  T.List[ExternalDependency] = []
