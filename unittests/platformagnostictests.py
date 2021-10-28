@@ -66,3 +66,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         # platlib is allowed, only python.platlib is reserved.
         fname = write_file("option('platlib', type: 'string')")
         interp.process(fname)
+
+    def test_python_dependency_without_pkgconfig(self):
+        testdir = os.path.join(self.unit_test_dir, '101 python without pkgconfig')
+        self.init(testdir, override_envvars={'PKG_CONFIG': 'notfound'})

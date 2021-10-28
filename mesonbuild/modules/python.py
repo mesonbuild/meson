@@ -500,11 +500,12 @@ class PythonInstallation(ExternalProgramHolder):
         if disabled:
             mlog.log('Dependency', mlog.bold('python'), 'skipped: feature', mlog.bold(feature), 'disabled')
         else:
+            new_kwargs = kwargs.copy()
+            new_kwargs['required'] = False
+            methods = process_method_kw({DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM}, kwargs)
             for d in python_factory(self.interpreter.environment,
                                     MachineChoice.BUILD if kwargs.get('native', False) else MachineChoice.HOST,
-                                    kwargs,
-                                    process_method_kw({DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM}, kwargs),
-                                    self):
+                                    new_kwargs, methods, self):
                 dep = d()
                 if dep.found():
                     break
