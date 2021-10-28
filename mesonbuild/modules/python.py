@@ -22,7 +22,7 @@ from .. import mlog
 from ..coredata import UserFeatureOption
 from ..build import known_shmod_kwargs
 from ..dependencies import NotFoundDependency
-from ..dependencies.detect import get_dep_identifier
+from ..dependencies.detect import get_dep_identifier, find_external_dependency
 from ..dependencies.python import BasicPythonExternalProgram, python_factory, _PythonDependencyBase
 from ..interpreter import ExternalProgramHolder, extract_required_kwarg, permitted_dependency_kwargs
 from ..interpreter import primitives as P_OBJ
@@ -185,12 +185,8 @@ class PythonInstallation(ExternalProgramHolder):
 
         new_kwargs = kwargs.copy()
         new_kwargs['required'] = False
-        # it's theoretically (though not practically) possible to not bind dep, let's ensure it is.
-        dep: Dependency = NotFoundDependency('python', self.interpreter.environment)
-        for d in python_factory(self.interpreter.environment, for_machine, new_kwargs, self.held_object):
-            dep = d()
-            if dep.found():
-                break
+        candidates = python_factory(self.interpreter.environment, for_machine, new_kwargs, self.held_object)
+        dep = find_external_dependency('python', self.interpreter.environment, new_kwargs, candidates)
 
         self.interpreter.coredata.deps[for_machine].put(identifier, dep)
         return dep
