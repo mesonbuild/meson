@@ -1046,7 +1046,8 @@ class GnomeModule(ExtensionModule):
         project_id = args[0]
         sources = kwargs['sources']
         if args[1]:
-            FeatureDeprecated.single_use('gnome.yelp more than one positional argument', '0.60.0', 'use the "sources" keyword argument instead.')
+            FeatureDeprecated.single_use('gnome.yelp more than one positional argument', '0.60.0',
+                                         state.subproject, 'use the "sources" keyword argument instead.')
         if not sources:
             sources = args[1]
             if not sources:
