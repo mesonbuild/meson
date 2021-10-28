@@ -278,18 +278,20 @@ class GnomeModule(ExtensionModule):
         if install_header and not export:
             raise MesonException('GResource header is installed yet export is not enabled')
 
-        kwargs['input'] = args[1]
-        kwargs['output'] = output
-        kwargs['depends'] = depends
+        c_kwargs = kwargs.copy()
+        c_kwargs['input'] = args[1]
+        c_kwargs['output'] = output
+        c_kwargs['depends'] = depends
+        c_kwargs.setdefault('install_dir', [])
         if not mesonlib.version_compare(glib_version, gresource_dep_needed_version):
             # This will eventually go out of sync if dependencies are added
-            kwargs['depend_files'] = depend_files
-            kwargs['command'] = cmd
+            c_kwargs['depend_files'] = depend_files
+            c_kwargs['command'] = cmd
         else:
             depfile = f'{output}.d'
-            kwargs['depfile'] = depfile
-            kwargs['command'] = copy.copy(cmd) + ['--dependency-file', '@DEPFILE@']
-        target_c = GResourceTarget(name, state.subdir, state.subproject, kwargs)
+            c_kwargs['depfile'] = depfile
+            c_kwargs['command'] = copy.copy(cmd) + ['--dependency-file', '@DEPFILE@']
+        target_c = GResourceTarget(name, state.subdir, state.subproject, c_kwargs)
 
         if gresource: # Only one target for .gresource files
             return ModuleReturnValue(target_c, [target_c])
