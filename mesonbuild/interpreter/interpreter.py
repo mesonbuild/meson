@@ -2232,8 +2232,8 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         idir = kwargs.get('install_dir', '')
         if idir is False:
             idir = ''
-            mlog.deprecation('Please use the new `install:` kwarg instead of passing '
-                             '`false` to `install_dir:`', location=node)
+            FeatureDeprecated.single_use('configure_file install_dir: false', '0.50.0',
+                                         self.subproject, 'Use the `install:` kwarg instead')
         if not isinstance(idir, str):
             if isinstance(idir, list) and len(idir) == 0:
                 mlog.deprecation('install_dir: kwarg must be a string and not an empty array. '
