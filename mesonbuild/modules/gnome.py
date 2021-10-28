@@ -990,7 +990,8 @@ class GnomeModule(ExtensionModule):
             scan_command += ['--sources-top-dirs', os.path.join(state.environment.get_build_dir(), self.interpreter.subproject_dir, state.subproject)]
 
         if '--warn-error' in scan_command:
-            mlog.deprecation('Passing --warn-error is deprecated in favor of "fatal_warnings" keyword argument since v0.55')
+            FeatureDeprecated.single_use('gnome.generate_gir argument --warn-error', '0.55.0',
+                                         state.subproject, 'Use "fatal_warnings" keyword argument')
         if kwargs['fatal_warnings']:
             scan_command.append('--warn-error')
 
