@@ -1458,7 +1458,7 @@ class GnomeModule(ExtensionModule):
             c_kwargs = custom_kwargs.copy()
             # Never install the C file. Complain on bug tracker if you need it.
             c_kwargs['install'] = False
-            c_kwargs['install_dir'] = False
+            c_kwargs['install_dir'] = []
             if h_template is not None:
                 if 'depends' in custom_kwargs:
                     c_kwargs['depends'] += [h_target]
