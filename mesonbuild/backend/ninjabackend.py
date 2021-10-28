@@ -2789,7 +2789,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             if target.import_filename:
                 commands += linker.gen_import_library_args(self.get_import_filename(target))
         elif isinstance(target, build.StaticLibrary):
-            commands += linker.get_std_link_args(not target.should_install())
+            commands += linker.get_std_link_args(False)
         else:
             raise RuntimeError('Unknown build target type.')
         return commands
