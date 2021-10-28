@@ -97,10 +97,11 @@ def _setup_vsenv(force: bool) -> bool:
         os.environ[k] = v
     return True
 
-def setup_vsenv(force: bool = False):
+def setup_vsenv(force: bool = False) -> bool:
     try:
-        _setup_vsenv(force)
+        return _setup_vsenv(force)
     except MesonException as e:
         if force:
             raise
         mlog.warning('Failed to activate VS environment:', str(e))
+        return False
