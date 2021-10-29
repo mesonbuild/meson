@@ -98,6 +98,10 @@ option('o5', type: 'boolean', deprecated: {'enabled': 'true', 'disabled': 'false
 
 ## More efficient static linking of uninstalled libraries
 
+**Note**: This change had to be reverted in 0.60.1 because it caused regressions.
+  New API will likely be introduced in 0.61.0 to have better control whether or
+  not to create thin archive.
+
 A somewhat common use case of [[static_library]] is to create uninstalled
 internal convenience libraries which are solely meant to be linked to other
 targets. Some build systems call these "object libraries". Meson's
