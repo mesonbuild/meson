@@ -2656,7 +2656,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
         elif default_library == 'both':
             return self.build_both_libraries(node, args, kwargs)
         else:
-            raise InterpreterException('Unknown default_library value: %s.', default_library)
+            raise InterpreterException(f'Unknown default_library value: {default_library}.')
 
     def build_target(self, node, args, kwargs, targetclass):
         @FeatureNewKwargs('build target', '0.42.0', ['rust_crate_type', 'build_rpath', 'implicit_include_directories'])
