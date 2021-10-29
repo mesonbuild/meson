@@ -1,4 +1,4 @@
-project('configure file test', 'c')
+project('configure file test', 'c', meson_version: '>=0.47.0')
 
 conf = configuration_data()
 

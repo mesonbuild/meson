@@ -2184,10 +2184,12 @@ This will become a hard error in the future.''', location=self.current_node)
                         "present in the given configuration data.", location=node)
                 if confdata_useless:
                     ifbase = os.path.basename(inputs_abs[0])
-                    mlog.warning('Got an empty configuration_data() object and found no '
-                                 f'substitutions in the input file {ifbase!r}. If you want to '
-                                 'copy a file to the build dir, use the \'copy:\' keyword '
-                                 'argument added in 0.47.0', location=node)
+                    tv = FeatureNew.get_target_version(self.subproject)
+                    if FeatureNew.check_version(tv, '0.47.0'):
+                        mlog.warning('Got an empty configuration_data() object and found no '
+                                     f'substitutions in the input file {ifbase!r}. If you want to '
+                                     'copy a file to the build dir, use the \'copy:\' keyword '
+                                     'argument added in 0.47.0', location=node)
             else:
                 mesonlib.dump_conf_header(ofile_abs, conf.conf_data, output_format)
             conf.mark_used()
