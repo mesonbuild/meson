@@ -584,7 +584,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 mlog.warning(f'Module {modname} is now stable, please use the {plainname} module instead.')
                 return mod
             except InvalidArguments:
-                mlog.warning('Module %s has no backwards or forwards compatibility and might not exist in future releases.' % modname, location=node)
+                mlog.warning(f'Module {modname} has no backwards or forwards compatibility and might not exist in future releases.', location=node)
                 modname = 'unstable_' + plainname
         return self._import_module(modname, required)
 
@@ -671,8 +671,7 @@ external dependencies (including libraries) must go to "dependencies".''')
     def validate_arguments(self, args, argcount, arg_types):
         if argcount is not None:
             if argcount != len(args):
-                raise InvalidArguments('Expected %d arguments, got %d.' %
-                                       (argcount, len(args)))
+                raise InvalidArguments(f'Expected {argcount} arguments, got {len(args)}.')
         for actual, wanted in zip(args, arg_types):
             if wanted is not None:
                 if not isinstance(actual, wanted):
@@ -798,11 +797,11 @@ external dependencies (including libraries) must go to "dependencies".''')
         if subp_name in self.subproject_stack:
             fullstack = self.subproject_stack + [subp_name]
             incpath = ' => '.join(fullstack)
-            raise InvalidCode('Recursive include of subprojects: %s.' % incpath)
+            raise InvalidCode(f'Recursive include of subprojects: {incpath}.')
         if subp_name in self.subprojects:
             subproject = self.subprojects[subp_name]
             if required and not subproject.found():
-                raise InterpreterException('Subproject "%s" required but not found.' % (subproject.subdir))
+                raise InterpreterException(f'Subproject "{subproject.subdir}" required but not found.')
             return subproject
 
         r = self.environment.wrap_resolver
@@ -968,7 +967,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         except KeyError:
             pass
 
-        raise InterpreterException('Tried to access unknown option "%s".' % optname)
+        raise InterpreterException(f'Tried to access unknown option {optname!r}.')
 
     @typed_pos_args('get_option', str)
     @noKwargs
@@ -1006,7 +1005,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.backend = backends.get_backend_from_name(backend, self.build, self)
 
         if self.backend is None:
-            raise InterpreterException('Unknown backend "%s".' % backend)
+            raise InterpreterException(f'Unknown backend "{backend}".')
         if backend != self.backend.name:
             if self.backend.name.startswith('vs'):
                 mlog.log('Auto detected Visual Studio backend:', mlog.bold(self.backend.name))
@@ -1302,7 +1301,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 try:
                     comp = compilers.detect_compiler_for(self.environment, lang, for_machine)
                     if comp is None:
-                        raise InvalidArguments('Tried to use unknown language "%s".' % lang)
+                        raise InvalidArguments(f'Tried to use unknown language "{lang}".')
                     if self.should_skip_sanity_check(for_machine):
                         mlog.log_once('Cross compiler sanity tests disabled via the cross file.')
                     else:
@@ -1731,8 +1730,8 @@ external dependencies (including libraries) must go to "dependencies".''')
             try:
                 kwargs['input'] = self.source_strings_to_files(extract_as_list(kwargs, 'input'))
             except mesonlib.MesonException:
-                mlog.warning('''Custom target input \'%s\' can\'t be converted to File object(s).
-This will become a hard error in the future.''' % kwargs['input'], location=self.current_node)
+                mlog.warning(f'''Custom target input '{kwargs['input']}' can't be converted to File object(s).
+This will become a hard error in the future.''', location=self.current_node)
         kwargs['env'] = self.unpack_env_kwarg(kwargs)
         if 'command' in kwargs and isinstance(kwargs['command'], list) and kwargs['command']:
             if isinstance(kwargs['command'][0], str):
@@ -1955,8 +1954,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         symlinkless_dir = os.path.realpath(absdir)
         build_file = os.path.join(symlinkless_dir, 'meson.build')
         if build_file in self.processed_buildfiles:
-            raise InvalidArguments('Tried to enter directory "%s", which has already been visited.'
-                                   % subdir)
+            raise InvalidArguments(f'Tried to enter directory "{subdir}", which has already been visited.')
         self.processed_buildfiles.add(build_file)
         self.subdir = subdir
         os.makedirs(os.path.join(self.environment.build_dir, subdir), exist_ok=True)
@@ -2182,9 +2180,8 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
                 if missing_variables:
                     var_list = ", ".join(map(repr, sorted(missing_variables)))
                     mlog.warning(
-                        "The variable(s) %s in the input file '%s' are not "
-                        "present in the given configuration data." % (
-                            var_list, inputs[0]), location=node)
+                        f"The variable(s) {var_list} in the input file '{inputs[0]}' are not "
+                        "present in the given configuration data.", location=node)
                 if confdata_useless:
                     ifbase = os.path.basename(inputs_abs[0])
                     mlog.warning('Got an empty configuration_data() object and found no '
@@ -2209,8 +2206,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             mlog.log('Configuring', mlog.bold(output), 'with command')
             res = self.run_command_impl(node, cmd,  {}, True)
             if res.returncode != 0:
-                raise InterpreterException('Running configure command failed.\n%s\n%s' %
-                                           (res.stdout, res.stderr))
+                raise InterpreterException(f'Running configure command failed.\n{res.stdout}\n{res.stderr}')
             if 'capture' in kwargs and kwargs['capture']:
                 dst_tmp = ofile_abs + '~'
                 file_encoding = kwargs.setdefault('encoding', 'utf-8')
@@ -2343,7 +2339,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             absdir_src = os.path.join(absbase_src, a)
             absdir_build = os.path.join(absbase_build, a)
             if not os.path.isdir(absdir_src) and not os.path.isdir(absdir_build):
-                raise InvalidArguments('Include dir %s does not exist.' % a)
+                raise InvalidArguments(f'Include dir {a} does not exist.')
         i = build.IncludeDirs(self.subdir, incdir_strings, is_system)
         return i
 
@@ -2383,8 +2379,8 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             raise InterpreterException('is_default option must be a boolean')
         if is_default:
             if self.build.test_setup_default_name is not None:
-                raise InterpreterException('\'%s\' is already set as default. '
-                                           'is_default can be set to true only once' % self.build.test_setup_default_name)
+                raise InterpreterException(f'{self.build.test_setup_default_name!r} is already set as default. '
+                                           'is_default can be set to true only once')
             self.build.test_setup_default_name = setup_name
         exclude_suites = mesonlib.stringlistify(kwargs.get('exclude_suites', []))
         env = self.unpack_env_kwarg(kwargs)
@@ -2599,13 +2595,13 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
             raise InvalidArguments("Target names starting with 'meson-' are reserved "
                                    "for Meson's internal use. Please rename.")
         if name in coredata.FORBIDDEN_TARGET_NAMES:
-            raise InvalidArguments("Target name '%s' is reserved for Meson's "
-                                   "internal use. Please rename." % name)
+            raise InvalidArguments(f"Target name '{name}' is reserved for Meson's "
+                                   "internal use. Please rename.")
         # To permit an executable and a shared library to have the
         # same name, such as "foo.exe" and "libfoo.a".
         idname = tobj.get_id()
         if idname in self.build.targets:
-            raise InvalidCode('Tried to create target "%s", but a target of that name already exists.' % name)
+            raise InvalidCode(f'Tried to create target "{name}", but a target of that name already exists.')
         self.build.targets[idname] = tobj
         if idname not in self.coredata.target_guids:
             self.coredata.target_guids[idname] = str(uuid.uuid4()).upper()
@@ -2738,7 +2734,7 @@ This will become a hard error in the future.''', location=self.current_node)
                 continue # This means a generated source and they always exist.
             fname = os.path.join(subdir, s)
             if not os.path.isfile(fname):
-                raise InterpreterException('Tried to add non-existing source file %s.' % s)
+                raise InterpreterException(f'Tried to add non-existing source file {s}.')
 
     # Only permit object extraction from the same subproject
     def validate_extraction(self, buildtarget: mesonlib.HoldableObject) -> None:

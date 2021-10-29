@@ -288,7 +288,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             elif result.returncode == 0:
                 h = mlog.green('YES')
             else:
-                h = mlog.red('NO (%d)' % result.returncode)
+                h = mlog.red(f'NO ({result.returncode})')
             mlog.log('Checking if', mlog.bold(testname, True), msg, 'runs:', h)
         return result
 

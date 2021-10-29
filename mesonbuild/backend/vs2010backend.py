@@ -293,7 +293,7 @@ class Vs2010Backend(backends.Backend):
                 for obj_id, objdep in self.get_obj_target_deps(target.objects):
                     all_deps[obj_id] = objdep
             else:
-                raise MesonException('Unknown target type for target %s' % target)
+                raise MesonException(f'Unknown target type for target {target}')
 
             for gendep in target.get_generated_sources():
                 if isinstance(gendep, build.CustomTarget):
@@ -653,7 +653,7 @@ class Vs2010Backend(backends.Backend):
             return 'c'
         if ext in compilers.cpp_suffixes:
             return 'cpp'
-        raise MesonException('Could not guess language from source file %s.' % src)
+        raise MesonException(f'Could not guess language from source file {src}.')
 
     def add_pch(self, pch_sources, lang, inc_cl):
         if lang in pch_sources:
@@ -684,13 +684,13 @@ class Vs2010Backend(backends.Backend):
         # or be in the same directory as the PCH implementation.
         pch_file.text = header
         pch_out = ET.SubElement(inc_cl, 'PrecompiledHeaderOutputFile')
-        pch_out.text = '$(IntDir)$(TargetName)-%s.pch' % lang
+        pch_out.text = f'$(IntDir)$(TargetName)-{lang}.pch'
 
         # Need to set the name for the pdb, as cl otherwise gives it a static
         # name. Which leads to problems when there is more than one pch
         # (e.g. for different languages).
         pch_pdb = ET.SubElement(inc_cl, 'ProgramDataBaseFileName')
-        pch_pdb.text = '$(IntDir)$(TargetName)-%s.pdb' % lang
+        pch_pdb.text = f'$(IntDir)$(TargetName)-{lang}.pdb'
 
         return header
 
@@ -819,7 +819,7 @@ class Vs2010Backend(backends.Backend):
         replace_if_different(ofname, ofname_tmp)
 
     def gen_vcxproj(self, target, ofname, guid):
-        mlog.debug('Generating vcxproj %s.' % target.name)
+        mlog.debug(f'Generating vcxproj {target.name}.')
         subsystem = 'Windows'
         self.handled_target_deps[target.get_id()] = []
         if isinstance(target, build.Executable):
@@ -840,7 +840,7 @@ class Vs2010Backend(backends.Backend):
         elif isinstance(target, build.RunTarget):
             return self.gen_run_target_vcxproj(target, ofname, guid)
         else:
-            raise MesonException('Unknown target type for %s' % target.get_basename())
+            raise MesonException(f'Unknown target type for {target.get_basename()}')
         # Prefix to use to access the build root from the vcxproj dir
         down = self.target_to_build_root(target)
         # Prefix to use to access the source tree's root from the vcxproj dir
@@ -1261,7 +1261,7 @@ class Vs2010Backend(backends.Backend):
             additional_links.append('%(AdditionalDependencies)')
             ET.SubElement(link, 'AdditionalDependencies').text = ';'.join(additional_links)
         ofile = ET.SubElement(link, 'OutputFile')
-        ofile.text = '$(OutDir)%s' % target.get_filename()
+        ofile.text = f'$(OutDir){target.get_filename()}'
         subsys = ET.SubElement(link, 'SubSystem')
         subsys.text = subsystem
         if (isinstance(target, build.SharedLibrary) or isinstance(target, build.Executable)) and target.get_import_filename():
@@ -1275,7 +1275,7 @@ class Vs2010Backend(backends.Backend):
                 ET.SubElement(link, 'ModuleDefinitionFile').text = relpath
         if self.debug:
             pdb = ET.SubElement(link, 'ProgramDataBaseFileName')
-            pdb.text = '$(OutDir)%s.pdb' % target_name
+            pdb.text = f'$(OutDir){target_name}.pdb'
         targetmachine = ET.SubElement(link, 'TargetMachine')
         if target.for_machine is MachineChoice.BUILD:
             targetplatform = platform
@@ -1474,8 +1474,8 @@ class Vs2010Backend(backends.Backend):
             message.text = msg
         if not verify_files:
             ET.SubElement(custombuild, 'VerifyInputsAndOutputsExist').text = 'false'
-        cmd_templ = '''setlocal
-%s
+        ET.SubElement(custombuild, 'Command').text = f'''setlocal
+{command}
 if %%errorlevel%% neq 0 goto :cmEnd
 :cmEnd
 endlocal & call :cmErrorLevel %%errorlevel%% & goto :cmDone
@@ -1483,7 +1483,6 @@ endlocal & call :cmErrorLevel %%errorlevel%% & goto :cmDone
 exit /b %%1
 :cmDone
 if %%errorlevel%% neq 0 goto :VCEnd'''
-        ET.SubElement(custombuild, 'Command').text = cmd_templ % command
         if not outputs:
             # Use a nonexistent file to always consider the target out-of-date.
             outputs = [self.nonexistent_file(os.path.join(self.environment.get_scratch_dir(),

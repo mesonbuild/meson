@@ -98,7 +98,7 @@ class InterpreterBase:
     def load_root_meson_file(self) -> None:
         mesonfile = os.path.join(self.source_root, self.subdir, environment.build_filename)
         if not os.path.isfile(mesonfile):
-            raise InvalidArguments('Missing Meson file in %s' % mesonfile)
+            raise InvalidArguments(f'Missing Meson file in {mesonfile}')
         with open(mesonfile, encoding='utf-8') as mf:
             code = mf.read()
         if code.isspace():
@@ -471,7 +471,7 @@ class InterpreterBase:
         if is_disabled(args, kwargs):
             return Disabler()
         if not isinstance(obj, InterpreterObject):
-            raise InvalidArguments('Variable "%s" is not callable.' % object_name)
+            raise InvalidArguments(f'Variable "{object_name}" is not callable.')
         # TODO: InterpreterBase **really** shouldn't be in charge of checking this
         if method_name == 'extract_objects':
             if isinstance(obj, ObjectHolder):
@@ -507,7 +507,7 @@ class InterpreterBase:
         return [_unholder(x) for x in args], {k: _unholder(v) for k, v in kwargs.items()}
 
     def unknown_function_called(self, func_name: str) -> None:
-        raise InvalidCode('Unknown function "%s".' % func_name)
+        raise InvalidCode(f'Unknown function "{func_name}".')
 
     def reduce_arguments(
                 self,
@@ -584,7 +584,7 @@ class InterpreterBase:
         if re.match('[_a-zA-Z][_0-9a-zA-Z]*$', varname) is None:
             raise InvalidCode('Invalid variable name: ' + varname)
         if varname in self.builtin:
-            raise InvalidCode('Tried to overwrite internal variable "%s"' % varname)
+            raise InvalidCode(f'Tried to overwrite internal variable "{varname}"')
         self.variables[varname] = variable
 
     def get_variable(self, varname: str) -> InterpreterObject:
@@ -592,7 +592,7 @@ class InterpreterBase:
             return self.builtin[varname]
         if varname in self.variables:
             return self.variables[varname]
-        raise InvalidCode('Unknown variable "%s".' % varname)
+        raise InvalidCode(f'Unknown variable "{varname}".')
 
     def validate_extraction(self, buildtarget: mesonlib.HoldableObject) -> None:
         raise InterpreterException('validate_extraction is not implemented in this context (please file a bug)')

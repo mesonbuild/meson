@@ -127,7 +127,7 @@ class FeatureOptionHolder(ObjectHolder[coredata.UserFeatureOption]):
     @permittedKwargs({'error_message'})
     def require_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> coredata.UserFeatureOption:
         if len(args) != 1:
-            raise InvalidArguments('Expected 1 argument, got %d.' % (len(args), ))
+            raise InvalidArguments(f'Expected 1 argument, got {len(args)}.')
         if not isinstance(args[0], bool):
             raise InvalidArguments('boolean argument expected.')
         error_message = kwargs.pop('error_message', '')
@@ -146,7 +146,7 @@ class FeatureOptionHolder(ObjectHolder[coredata.UserFeatureOption]):
     @noKwargs
     def disable_auto_if_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> coredata.UserFeatureOption:
         if len(args) != 1:
-            raise InvalidArguments('Expected 1 argument, got %d.' % (len(args), ))
+            raise InvalidArguments(f'Expected 1 argument, got {len(args)}.')
         if not isinstance(args[0], bool):
             raise InvalidArguments('boolean argument expected.')
         return copy.deepcopy(self.held_object) if self.value != 'auto' or not args[0] else self.as_disabled()
@@ -374,7 +374,7 @@ class ConfigurationDataObject(MutableInterpreterObject, MesonInterpreterObject):
             # TODO: Fix this once the deprecation is removed
             # assert isinstance(args[1], (int, str, bool))
             return T.cast(T.Union[str, int, bool], args[1])
-        raise InterpreterException('Entry %s not in configuration data.' % name)
+        raise InterpreterException(f'Entry {name} not in configuration data.')
 
     @FeatureNew('configuration_data.get_unquoted()', '0.44.0')
     def get_unquoted_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.Union[str, int, bool]:
@@ -389,7 +389,7 @@ class ConfigurationDataObject(MutableInterpreterObject, MesonInterpreterObject):
             assert isinstance(args[1], (str, int, bool))
             val = args[1]
         else:
-            raise InterpreterException('Entry %s not in configuration data.' % name)
+            raise InterpreterException(f'Entry {name} not in configuration data.')
         if isinstance(val, str) and val[0] == '"' and val[-1] == '"':
             return val[1:-1]
         return val
@@ -720,7 +720,7 @@ class SubprojectHolder(MesonInterpreterObject):
         if len(args) < 1 or len(args) > 2:
             raise InterpreterException('Get_variable takes one or two arguments.')
         if isinstance(self.held_object, NullSubprojectInterpreter):  # == not self.found()
-            raise InterpreterException('Subproject "%s" disabled can\'t get_variable on it.' % (self.subdir))
+            raise InterpreterException(f'Subproject "{self.subdir}" disabled can\'t get_variable on it.')
         varname = args[0]
         if not isinstance(varname, str):
             raise InterpreterException('Get_variable first argument must be a string.')

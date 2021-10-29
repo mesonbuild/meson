@@ -159,8 +159,8 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: T.Dict[str, 
 
         # we have a list of failed ExternalDependency objects, so we can report
         # the methods we tried to find the dependency
-        raise DependencyException('Dependency "%s" not found' % (name) +
-                                  (', tried %s' % (tried) if tried else ''))
+        raise DependencyException(f'Dependency "{name}" not found' +
+                                  (f', tried {tried}' if tried else ''))
 
     return NotFoundDependency(name, env)
 

@@ -135,12 +135,11 @@ class HotdocTargetBuilder:
                     if force_list and not isinstance(value, list):
                         return [value], uvalue
                     return value, uvalue
-            raise MesonException("%s field value %s is not valid,"
-                                 " valid types are %s" % (argname, value,
-                                                          types))
+            raise MesonException(f"{argname} field value {value} is not valid,"
+                                 f" valid types are {types}")
         except KeyError:
             if mandatory:
-                raise MesonException("%s mandatory field not found" % argname)
+                raise MesonException(f"{argname} mandatory field not found")
 
             if default is not None:
                 return default, default
@@ -279,14 +278,14 @@ class HotdocTargetBuilder:
             _dir = os.path.join(self.sourcedir, self.subdir, value)
 
         if not os.path.isdir(_dir):
-            raise InvalidArguments('"%s" is not a directory.' % _dir)
+            raise InvalidArguments(f'"{_dir}" is not a directory.')
 
         return os.path.relpath(_dir, os.path.join(self.builddir, self.subdir))
 
     def check_forbidden_args(self):
         for arg in ['conf_file']:
             if arg in self.kwargs:
-                raise InvalidArguments('Argument "%s" is forbidden.' % arg)
+                raise InvalidArguments(f'Argument "{arg}" is forbidden.')
 
     def add_include_path(self, path):
         self.include_paths[path] = path
@@ -414,7 +413,7 @@ class HotDocModule(ExtensionModule):
 
     @noKwargs
     def has_extensions(self, state, args, kwargs):
-        return self.hotdoc.run_hotdoc(['--has-extension=%s' % extension for extension in args]) == 0
+        return self.hotdoc.run_hotdoc([f'--has-extension={extension}' for extension in args]) == 0
 
     def generate_doc(self, state, args, kwargs):
         if len(args) != 1:

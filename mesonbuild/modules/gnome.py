@@ -386,10 +386,10 @@ class GnomeModule(ExtensionModule):
                                                        ".", resfile)
                 except MesonException:
                     raise MesonException(
-                        'Resource "%s" listed in "%s" was not found. If this is a '
-                        'generated file, pass the target that generates it to '
-                        'gnome.compile_resources() using the "dependencies" '
-                        'keyword argument.' % (resfile, input_file))
+                        f'Resource "{resfile}" listed in "{input_file}" was not found. '
+                        'If this is a generated file, pass the target that generates '
+                        'it to gnome.compile_resources() using the "dependencies" '
+                        'keyword argument.')
                 raw_dep_files.remove(resfile)
                 dep_files.append(f)
         dep_files.extend(raw_dep_files)
@@ -476,14 +476,14 @@ class GnomeModule(ExtensionModule):
                             # For PkgConfigDependency only:
                             getattr(dep, 'is_libtool', False)):
                         lib_dir = os.path.dirname(flag)
-                        external_ldflags.update(["-L%s" % lib_dir])
+                        external_ldflags.update([f'-L{lib_dir}'])
                         if include_rpath:
                             external_ldflags.update([f'-Wl,-rpath {lib_dir}'])
                         libname = os.path.basename(flag)
                         if libname.startswith("lib"):
                             libname = libname[3:]
                         libname = libname.split(".so")[0]
-                        flag = "-l%s" % libname
+                        flag = f"-l{libname}"
                     # FIXME: Hack to avoid passing some compiler options in
                     if flag.startswith("-W"):
                         continue
@@ -608,7 +608,7 @@ class GnomeModule(ExtensionModule):
 
         if 'symbol_prefix' in kwargs:
             sym_prefixes = mesonlib.stringlistify(kwargs.pop('symbol_prefix', []))
-            ret += ['--symbol-prefix=%s' % sym_prefix for sym_prefix in sym_prefixes]
+            ret += [f'--symbol-prefix={sym_prefix}' for sym_prefix in sym_prefixes]
 
         return ret
 
@@ -619,7 +619,7 @@ class GnomeModule(ExtensionModule):
             identifier_prefix = kwargs.pop('identifier_prefix')
             if not isinstance(identifier_prefix, str):
                 raise MesonException('Gir identifier prefix must be str')
-            ret += ['--identifier-prefix=%s' % identifier_prefix]
+            ret += [f'--identifier-prefix={identifier_prefix}']
 
         return ret
 
@@ -629,9 +629,9 @@ class GnomeModule(ExtensionModule):
         if 'export_packages' in kwargs:
             pkgs = kwargs.pop('export_packages')
             if isinstance(pkgs, str):
-                ret += ['--pkg-export=%s' % pkgs]
+                ret += [f'--pkg-export={pkgs}']
             elif isinstance(pkgs, list):
-                ret += ['--pkg-export=%s' % pkg for pkg in pkgs]
+                ret += [f'--pkg-export={pkg}' for pkg in pkgs]
             else:
                 raise MesonException('Gir export packages must be str or list')
 

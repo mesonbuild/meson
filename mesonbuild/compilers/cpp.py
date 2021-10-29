@@ -815,7 +815,7 @@ class CcrxCPPCompiler(CcrxCompiler, CPPCompiler):
         return []
 
     def get_output_args(self, target: str) -> T.List[str]:
-        return ['-output=obj=%s' % target]
+        return [f'-output=obj={target}']
 
     def get_option_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         return []
@@ -848,7 +848,7 @@ class C2000CPPCompiler(C2000Compiler, CPPCompiler):
         return []
 
     def get_output_args(self, target: str) -> T.List[str]:
-        return ['-output=obj=%s' % target]
+        return [f'-output=obj={target}']
 
     def get_option_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         return []

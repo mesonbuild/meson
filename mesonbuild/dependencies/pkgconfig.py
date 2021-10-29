@@ -46,12 +46,12 @@ class PkgConfigDependency(ExternalDependency):
         # Only search for pkg-config for each machine the first time and store
         # the result in the class definition
         if PkgConfigDependency.class_pkgbin[self.for_machine] is False:
-            mlog.debug('Pkg-config binary for %s is cached as not found.' % self.for_machine)
+            mlog.debug(f'Pkg-config binary for {self.for_machine} is cached as not found.')
         elif PkgConfigDependency.class_pkgbin[self.for_machine] is not None:
-            mlog.debug('Pkg-config binary for %s is cached.' % self.for_machine)
+            mlog.debug(f'Pkg-config binary for {self.for_machine} is cached.')
         else:
             assert PkgConfigDependency.class_pkgbin[self.for_machine] is None
-            mlog.debug('Pkg-config binary for %s is not cached.' % self.for_machine)
+            mlog.debug(f'Pkg-config binary for {self.for_machine} is not cached.')
             for potential_pkgbin in find_external_program(
                     self.env, self.for_machine, 'pkgconfig', 'Pkg-config',
                     environment.default_pkgconfig, allow_default_for_cross=False):
@@ -60,7 +60,7 @@ class PkgConfigDependency(ExternalDependency):
                     continue
                 if not self.silent:
                     mlog.log('Found pkg-config:', mlog.bold(potential_pkgbin.get_path()),
-                             '(%s)' % version_if_ok)
+                             f'({version_if_ok})')
                 PkgConfigDependency.class_pkgbin[self.for_machine] = potential_pkgbin
                 break
             else:
@@ -73,7 +73,7 @@ class PkgConfigDependency(ExternalDependency):
         self.pkgbin = PkgConfigDependency.class_pkgbin[self.for_machine]
         if self.pkgbin is False:
             self.pkgbin = None
-            msg = 'Pkg-config binary for machine %s not found. Giving up.' % self.for_machine
+            msg = f'Pkg-config binary for machine {self.for_machine} not found. Giving up.'
             if self.required:
                 raise DependencyException(msg)
             else:
@@ -202,8 +202,7 @@ class PkgConfigDependency(ExternalDependency):
             env['PKG_CONFIG_ALLOW_SYSTEM_CFLAGS'] = '1'
         ret, out, err = self._call_pkgbin(['--cflags', self.name], env=env)
         if ret != 0:
-            raise DependencyException('Could not generate cargs for %s:\n%s\n' %
-                                      (self.name, err))
+            raise DependencyException(f'Could not generate cargs for {self.name}:\n{err}\n')
         self.compile_args = self._convert_mingw_paths(self._split_args(out))
 
     def _search_libs(self, out: str, out_raw: str) -> T.Tuple[T.List[str], T.List[str]]:
@@ -342,9 +341,9 @@ class PkgConfigDependency(ExternalDependency):
                     shared_lib = os.path.join(os.path.dirname(lib), ".libs", shared_libname)
 
                 if not os.path.exists(shared_lib):
-                    raise DependencyException('Got a libtools specific "%s" dependencies'
+                    raise DependencyException(f'Got a libtools specific "{lib}" dependencies'
                                               'but we could not compute the actual shared'
-                                              'library path' % lib)
+                                              'library path')
                 self.is_libtool = True
                 lib = shared_lib
                 if lib in link_args:
@@ -372,15 +371,13 @@ class PkgConfigDependency(ExternalDependency):
         env['PKG_CONFIG_ALLOW_SYSTEM_LIBS'] = '1'
         ret, out, err = self._call_pkgbin(libcmd, env=env)
         if ret != 0:
-            raise DependencyException('Could not generate libs for %s:\n%s\n' %
-                                      (self.name, err))
+            raise DependencyException(f'Could not generate libs for {self.name}:\n{err}\n')
         # Also get the 'raw' output without -Lfoo system paths for adding -L
         # args with -lfoo when a library can't be found, and also in
         # gnome.generate_gir + gnome.gtkdoc which need -L -l arguments.
         ret, out_raw, err_raw = self._call_pkgbin(libcmd)
         if ret != 0:
-            raise DependencyException('Could not generate libs for %s:\n\n%s' %
-                                      (self.name, out_raw))
+            raise DependencyException(f'Could not generate libs for {self.name}:\n\n{out_raw}')
         self.link_args, self.raw_link_args = self._search_libs(out, out_raw)
 
     def get_pkgconfig_variable(self, variable_name: str, kwargs: T.Dict[str, T.Union[str, T.List[str]]]) -> str:
@@ -400,8 +397,7 @@ class PkgConfigDependency(ExternalDependency):
         variable = ''
         if ret != 0:
             if self.required:
-                raise DependencyException('dependency %s not found:\n%s\n' %
-                                          (self.name, err))
+                raise DependencyException(f'dependency {self.name} not found:\n{err}\n')
         else:
             variable = out.strip()
 

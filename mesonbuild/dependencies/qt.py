@@ -387,7 +387,7 @@ class Qt4PkgConfigDependency(QtPkgConfigDependency):
         applications = ['moc', 'uic', 'rcc', 'lupdate', 'lrelease']
         for application in applications:
             try:
-                return os.path.dirname(core.get_pkgconfig_variable('%s_location' % application, {}))
+                return os.path.dirname(core.get_pkgconfig_variable(f'{application}_location', {}))
             except mesonlib.MesonException:
                 pass
         return None

@@ -355,12 +355,12 @@ class PkgConfigModule(ExtensionModule):
             for k, v in unescaped_variables:
                 ofile.write(f'{k}={v}\n')
             ofile.write('\n')
-            ofile.write('Name: %s\n' % name)
+            ofile.write(f'Name: {name}\n')
             if len(description) > 0:
-                ofile.write('Description: %s\n' % description)
+                ofile.write(f'Description: {description}\n')
             if len(url) > 0:
-                ofile.write('URL: %s\n' % url)
-            ofile.write('Version: %s\n' % version)
+                ofile.write(f'URL: {url}\n')
+            ofile.write(f'Version: {version}\n')
             reqs_str = deps.format_reqs(deps.pub_reqs)
             if len(reqs_str) > 0:
                 ofile.write(f'Requires: {reqs_str}\n')
@@ -406,7 +406,7 @@ class PkgConfigModule(ExtensionModule):
                         if not is_custom_target and l.name_suffix_set:
                             mlog.warning(msg.format(l.name, 'name_suffix', lname, pcfile))
                         if is_custom_target or 'cs' not in l.compilers:
-                            yield '-l%s' % lname
+                            yield f'-l{lname}'
 
             def get_uninstalled_include_dirs(libs):
                 result = []

@@ -395,7 +395,7 @@ class File(HoldableObject):
     @lru_cache(maxsize=None)
     def from_source_file(source_root: str, subdir: str, fname: str) -> 'File':
         if not os.path.isfile(os.path.join(source_root, subdir, fname)):
-            raise MesonException('File %s does not exist.' % fname)
+            raise MesonException(f'File {fname} does not exist.')
         return File(False, subdir, fname)
 
     @staticmethod
