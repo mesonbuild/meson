@@ -648,9 +648,14 @@ class Backend:
         # avoids collisions and also makes the name deterministic over
         # regenerations which avoids a rebuild by Ninja because the cmdline
         # stays the same.
-        data = bytes(str(es.env) + str(es.cmd_args) + str(es.workdir) + str(capture) + str(feed),
-                     encoding='utf-8')
-        digest = hashlib.sha1(data).hexdigest()
+        hasher = hashlib.sha1()
+        if es.env:
+            es.env.hash(hasher)
+        hasher.update(bytes(str(es.cmd_args), encoding='utf-8'))
+        hasher.update(bytes(str(es.workdir), encoding='utf-8'))
+        hasher.update(bytes(str(capture), encoding='utf-8'))
+        hasher.update(bytes(str(feed), encoding='utf-8'))
+        digest = hasher.hexdigest()
         scratch_file = f'meson_exe_{basename}_{digest}.dat'
         exe_data = os.path.join(self.environment.get_scratch_dir(), scratch_file)
         with open(exe_data, 'wb') as f:

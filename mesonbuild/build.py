@@ -468,6 +468,14 @@ class EnvironmentVariables(HoldableObject):
         repr_str = "<{0}: {1}>"
         return repr_str.format(self.__class__.__name__, self.envvars)
 
+    def hash(self, hasher: T.Any):
+        myenv = self.get_env({})
+        for key in sorted(myenv.keys()):
+            hasher.update(bytes(key, encoding='utf-8'))
+            hasher.update(b',')
+            hasher.update(bytes(myenv[key], encoding='utf-8'))
+            hasher.update(b';')
+
     def has_name(self, name: str) -> bool:
         return name in self.varnames
 
