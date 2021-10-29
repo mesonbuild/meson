@@ -2700,7 +2700,7 @@ class CustomTargetIndex(HoldableObject):
     def get_filename(self) -> str:
         return self.output
 
-    def get_id(self):
+    def get_id(self) -> str:
         return self.target.get_id()
 
     def get_all_link_deps(self):

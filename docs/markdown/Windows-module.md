@@ -7,10 +7,22 @@ Windows.
 
 ### compile_resources
 
+```
+  windows.compile_resources(...(string | File | CustomTarget | CustomTargetIndex),
+                            args: []string,
+                            depend_files: [](string | File),
+                            depends: [](BuildTarget | CustomTarget)
+                            include_directories: [](IncludeDirectories | string)): []CustomTarget
+```
+
 Compiles Windows `rc` files specified in the positional arguments.
-Returns an opaque object that you put in the list of sources for the
-target you want to have the resources in. This method has the
-following keyword argument.
+Returns a list of `CustomTarget` objects that you put in the list of sources for
+the target you want to have the resources in.
+
+*Since 0.61.0* CustomTargetIndexs and CustomTargets with more than out output
+*may be used as positional arguments.
+
+This method has the following keyword arguments:
 
 - `args` lists extra arguments to pass to the resource compiler
 - `depend_files` lists resource files that the resource script depends on
