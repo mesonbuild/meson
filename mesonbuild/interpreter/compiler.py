@@ -5,6 +5,7 @@
 import enum
 import functools
 import typing as T
+from concurrent.futures import ThreadPoolExecutor
 
 from .. import build
 from .. import coredata
@@ -148,6 +149,7 @@ _COMPILES_KWS: T.List[KwargInfo] = [_NAME_KW, _ARGS_KW, _DEPENDENCIES_KW, _INCLU
 
 _HEADER_KWS: T.List[KwargInfo] = [REQUIRED_KW.evolve(since='0.50.0', default=False), *_COMMON_KWS]
 
+
 class CompilerHolder(ObjectHolder['Compiler']):
     def __init__(self, compiler: 'Compiler', interpreter: 'Interpreter'):
         super().__init__(compiler, interpreter)
@@ -161,9 +163,11 @@ class CompilerHolder(ObjectHolder['Compiler']):
                              'get_define': self.get_define_method,
                              'check_header': self.check_header_method,
                              'has_header': self.has_header_method,
+                             'has_headers': self.has_headers_method,
                              'has_header_symbol': self.has_header_symbol_method,
                              'run': self.run_method,
                              'has_function': self.has_function_method,
+                             'has_functions': self.has_functions_method,
                              'has_member': self.has_member_method,
                              'has_members': self.has_members_method,
                              'has_type': self.has_type_method,
@@ -351,10 +355,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
                  'has members', members, msg, hadtxt, cached_msg)
         return had
 
-    @typed_pos_args('compiler.has_function', str)
-    @typed_kwargs('compiler.has_function', *_COMMON_KWS)
-    def has_function_method(self, args: T.Tuple[str], kwargs: 'CommonKW') -> bool:
-        funcname = args[0]
+    def _has_function_impl(self, funcname: str, kwargs: 'CommonKW') -> bool:
         extra_args = self._determine_args(kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
         had, cached = self.compiler.has_function(funcname, kwargs['prefix'], self.environment,
@@ -367,6 +368,18 @@ class CompilerHolder(ObjectHolder['Compiler']):
             hadtxt = mlog.red('NO')
         mlog.log('Checking for function', mlog.bold(funcname, True), msg, hadtxt, cached_msg)
         return had
+
+    @typed_pos_args('compiler.has_function', str)
+    @typed_kwargs('compiler.has_function', *_COMMON_KWS)
+    def has_function_method(self, args: T.Tuple[str], kwargs: 'CommonKW') -> bool:
+        return self._has_function_impl(args[0], kwargs)
+
+    @typed_pos_args('compiler.has_function', varargs=str)
+    @typed_kwargs('compiler.has_function', *_COMMON_KWS)
+    def has_functions_method(self, args: T.Tuple[T.List[str]], kwargs: 'CommonKW') -> bool:
+        with ThreadPoolExecutor() as e:
+            futures = {arg: e.submit(self._has_function_impl, arg, kwargs) for arg in args[0]}
+            return {arg: f.result() for arg, f in futures.items()}
 
     @typed_pos_args('compiler.has_type', str)
     @typed_kwargs('compiler.has_type', *_COMMON_KWS)
@@ -535,6 +548,13 @@ class CompilerHolder(ObjectHolder['Compiler']):
     def has_header_method(self, args: T.Tuple[str], kwargs: 'HeaderKW') -> bool:
         return self._has_header_impl(args[0], kwargs)
 
+    @typed_pos_args('compiler.has_header', varargs=str)
+    @typed_kwargs('compiler.has_header', *_HEADER_KWS)
+    def has_headers_method(self, args: T.Tuple[T.List[str]], kwargs: 'HeaderKW') -> bool:
+        with ThreadPoolExecutor() as e:
+            futures = {arg: e.submit(self._has_header_impl, arg, kwargs) for arg in args[0]}
+            return {arg: f.result() for arg, f in futures.items()}
+
     @typed_pos_args('compiler.has_header_symbol', str, str)
     @typed_kwargs('compiler.has_header_symbol', *_HEADER_KWS)
     def has_header_symbol_method(self, args: T.Tuple[str, str], kwargs: 'HeaderKW') -> bool:
@@ -638,6 +658,12 @@ class CompilerHolder(ObjectHolder['Compiler']):
             cached_msg)
         return result
 
+    def _has_argument_map(self, args: T.List[str], mode: _TestMode = _TestMode.COMPILER):
+        with ThreadPoolExecutor() as e:
+            futures = {arg: e.submit(self._has_argument_impl, [arg], mode) for arg in args}
+            for arg, f in futures.items():
+                yield arg, f.result()
+
     @noKwargs
     @typed_pos_args('compiler.has_argument', str)
     def has_argument_method(self, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> bool:
@@ -660,8 +686,8 @@ class CompilerHolder(ObjectHolder['Compiler']):
         supported_args: T.List[str] = []
         checked = kwargs['checked']
 
-        for arg in args[0]:
-            if not self._has_argument_impl([arg]):
+        for arg, result in self._has_argument_map(args[0]):
+            if not result:
                 msg = f'Compiler for {self.compiler.get_display_language()} does not support "{arg}"'
                 if checked == 'warn':
                     mlog.warning(msg)
@@ -674,8 +700,8 @@ class CompilerHolder(ObjectHolder['Compiler']):
     @noKwargs
     @typed_pos_args('compiler.first_supported_argument', varargs=str)
     def first_supported_argument_method(self, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> T.List[str]:
-        for arg in args[0]:
-            if self._has_argument_impl([arg]):
+        for arg, result in self._has_argument_map(args[0]):
+            if result:
                 mlog.log('First supported argument:', mlog.bold(arg))
                 return [arg]
         mlog.log('First supported argument:', mlog.red('None'))
@@ -698,8 +724,8 @@ class CompilerHolder(ObjectHolder['Compiler']):
     @typed_pos_args('compiler.get_supported_link_arguments', varargs=str)
     def get_supported_link_arguments_method(self, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> T.List[str]:
         supported_args: T.List[str] = []
-        for arg in args[0]:
-            if self._has_argument_impl([arg], mode=_TestMode.LINKER):
+        for arg, result in self._has_argument_map(args[0], mode=_TestMode.LINKER):
+            if result:
                 supported_args.append(arg)
         return supported_args
 
@@ -707,8 +733,8 @@ class CompilerHolder(ObjectHolder['Compiler']):
     @noKwargs
     @typed_pos_args('compiler.first_supported_link_argument', varargs=str)
     def first_supported_link_argument_method(self, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> T.List[str]:
-        for arg in args[0]:
-            if self._has_argument_impl([arg], mode=_TestMode.LINKER):
+        for arg, result in self._has_argument_map(args[0], mode=_TestMode.LINKER):
+            if result:
                 mlog.log('First supported link argument:', mlog.bold(arg))
                 return [arg]
         mlog.log('First supported link argument:', mlog.red('None'))
