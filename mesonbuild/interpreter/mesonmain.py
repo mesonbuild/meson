@@ -127,7 +127,7 @@ class MesonMain(MesonInterpreterObject):
 
         if new:
             FeatureNew.single_use(
-                f'Calling "{name}" with File, CustomTaget, Index of CustomTarget, '
+                f'Calling "{name}" with File, CustomTarget, Index of CustomTarget, '
                 'Executable, or ExternalProgram',
                 '0.55.0', self.interpreter.subproject)
         return script_args
