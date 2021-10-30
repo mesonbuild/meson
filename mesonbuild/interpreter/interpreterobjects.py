@@ -978,7 +978,7 @@ class GeneratorHolder(ObjectHolder[build.Generator]):
 
         if any(isinstance(a, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)) for a in args[0]):
             FeatureNew.single_use(
-                'Calling generator.process with CustomTaget or Index of CustomTarget.',
+                'Calling generator.process with CustomTarget or Index of CustomTarget.',
                 '0.57.0', self.interpreter.subproject)
 
         gl = self.held_object.process_files(args[0], self.interpreter,
