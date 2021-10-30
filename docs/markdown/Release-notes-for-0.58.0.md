@@ -305,9 +305,9 @@ and `--reset` should guarantee that latest code is being used on next reconfigur
 
 Use `--reset` with caution if you do local changes on non-git subprojects.
 
-## Allow using generator with CustomTaget or Index of CustomTarget.
+## Allow using generator with CustomTarget or Index of CustomTarget.
 
-Calling `generator.process()` with either a CustomTaget or Index of CustomTarget
+Calling `generator.process()` with either a CustomTarget or Index of CustomTarget
 as files is now permitted.
 
 ## Qt Dependency uses a Factory
