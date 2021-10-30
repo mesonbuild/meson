@@ -2437,6 +2437,10 @@ class CustomTarget(Target, CommandBase):
                 raise InvalidArguments('@OUTPUT@ is not allowed when capturing output.')
             if self.feed and isinstance(c, str) and '@INPUT@' in c:
                 raise InvalidArguments('@INPUT@ is not allowed when feeding input.')
+        self.install = False
+        self.install_dir = []
+        self.install_mode = None
+        self.install_tag = []
         if 'install' in kwargs:
             self.install = kwargs['install']
             if not isinstance(self.install, bool):
@@ -2446,29 +2450,24 @@ class CustomTarget(Target, CommandBase):
                     raise InvalidArguments('"install_dir" must be specified '
                                            'when installing a target')
 
-            if isinstance(kwargs['install_dir'], list):
-                FeatureNew.single_use('multiple install_dir for custom_target', '0.40.0', self.subproject)
-            # If an item in this list is False, the output corresponding to
-            # the list index of that item will not be installed
-            self.install_dir = typeslistify(kwargs['install_dir'], (str, bool))
-            self.install_mode = kwargs.get('install_mode', None)
-            # If only one tag is provided, assume all outputs have the same tag.
-            # Otherwise, we must have as much tags as outputs.
-            install_tag: T.List[T.Union[str, bool, None]] = typeslistify(kwargs.get('install_tag', []), (str, bool, type(None)))
-            if not install_tag:
-                self.install_tag = [None] * len(self.outputs)
-            elif len(install_tag) == 1:
-                self.install_tag = install_tag * len(self.outputs)
-            elif install_tag and len(install_tag) != len(self.outputs):
-                m = f'Target {self.name!r} has {len(self.outputs)} outputs but {len(install_tag)} "install_tag"s were found.'
-                raise InvalidArguments(m)
-            else:
-                self.install_tag = install_tag
-        else:
-            self.install = False
-            self.install_dir = []
-            self.install_mode = None
-            self.install_tag = []
+                if isinstance(kwargs['install_dir'], list):
+                    FeatureNew.single_use('multiple install_dir for custom_target', '0.40.0', self.subproject)
+                # If an item in this list is False, the output corresponding to
+                # the list index of that item will not be installed
+                self.install_dir = typeslistify(kwargs['install_dir'], (str, bool))
+                self.install_mode = kwargs.get('install_mode', None)
+                # If only one tag is provided, assume all outputs have the same tag.
+                # Otherwise, we must have as much tags as outputs.
+                install_tag: T.List[T.Union[str, bool, None]] = typeslistify(kwargs.get('install_tag', []), (str, bool, type(None)))
+                if not install_tag:
+                    self.install_tag = [None] * len(self.outputs)
+                elif len(install_tag) == 1:
+                    self.install_tag = install_tag * len(self.outputs)
+                elif install_tag and len(install_tag) != len(self.outputs):
+                    m = f'Target {self.name!r} has {len(self.outputs)} outputs but {len(install_tag)} "install_tag"s were found.'
+                    raise InvalidArguments(m)
+                else:
+                    self.install_tag = install_tag
         if kwargs.get('build_always') is not None and kwargs.get('build_always_stale') is not None:
             raise InvalidArguments('build_always and build_always_stale are mutually exclusive. Combine build_by_default and build_always_stale.')
         elif kwargs.get('build_always') is not None:
