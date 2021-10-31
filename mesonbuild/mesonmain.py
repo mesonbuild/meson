@@ -139,6 +139,9 @@ class CommandLineParser:
         if command is None:
             command = options.command
 
+        # Bump the version here in order to add a pre-exit warning that we are phasing out
+        # support for old python. If this is already the oldest supported version, then
+        # this can never be true and does nothing.
         if command in ('setup', 'compile', 'test', 'install') and sys.version_info < (3, 7):
             pending_python_deprecation_notice = True
 
@@ -204,8 +207,8 @@ def ensure_stdout_accepts_unicode():
                 sys.stdout.buffer = sys.stdout.raw if hasattr(sys.stdout, 'raw') else sys.stdout
 
 def run(original_args, mainfile):
-    if sys.version_info < (3, 6):
-        print('Meson works correctly only with python 3.6+.')
+    if sys.version_info < (3, 7):
+        print('Meson works correctly only with python 3.7+.')
         print(f'You have python {sys.version}.')
         print('Please update your environment')
         return 1

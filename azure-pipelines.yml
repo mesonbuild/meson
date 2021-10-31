@@ -62,7 +62,7 @@ jobs:
   steps:
   - task: UsePythonVersion@0
     inputs:
-      versionSpec: '3.6'
+      versionSpec: '3.7'
       addToPath: true
       architecture: 'x64'
   - task: PowerShell@2
