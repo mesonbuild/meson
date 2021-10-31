@@ -559,8 +559,14 @@ class NinjaBackend(backends.Backend):
             key = OptionKey('b_coverage')
             if (key in self.environment.coredata.options and
                     self.environment.coredata.options[key].value):
-                self.add_build_comment(NinjaComment('Coverage rules'))
-                self.generate_coverage_rules()
+                gcovr_exe, gcovr_version, lcov_exe, genhtml_exe, _ = environment.find_coverage_tools()
+                if gcovr_exe or (lcov_exe and genhtml_exe):
+                    self.add_build_comment(NinjaComment('Coverage rules'))
+                    self.generate_coverage_rules(gcovr_exe, gcovr_version)
+                else:
+                    # FIXME: since we explicitly opted in, should this be an error?
+                    # The docs just say these targets will be created "if possible".
+                    mlog.warning('Need gcovr or lcov/genhtml to generate any coverage reports')
             self.add_build_comment(NinjaComment('Suffix'))
             self.generate_utils()
             self.generate_ending()
@@ -1070,43 +1076,45 @@ class NinjaBackend(backends.Backend):
                        self.environment.get_log_dir()] +
                       (['--use_llvm_cov'] if use_llvm_cov else []))
 
-    def generate_coverage_rules(self):
+    def generate_coverage_rules(self, gcovr_exe: T.Optional[str], gcovr_version: T.Optional[str]):
         e = NinjaBuildElement(self.all_outputs, 'meson-coverage', 'CUSTOM_COMMAND', 'PHONY')
         self.generate_coverage_command(e, [])
         e.add_item('description', 'Generates coverage reports')
         self.add_build(e)
         # Alias that runs the target defined above
         self.create_target_alias('meson-coverage')
-        self.generate_coverage_legacy_rules()
+        self.generate_coverage_legacy_rules(gcovr_exe, gcovr_version)
 
-    def generate_coverage_legacy_rules(self):
-        e = NinjaBuildElement(self.all_outputs, 'meson-coverage-xml', 'CUSTOM_COMMAND', 'PHONY')
-        self.generate_coverage_command(e, ['--xml'])
-        e.add_item('description', 'Generates XML coverage report')
-        self.add_build(e)
-        # Alias that runs the target defined above
-        self.create_target_alias('meson-coverage-xml')
-
-        e = NinjaBuildElement(self.all_outputs, 'meson-coverage-sonarqube', 'CUSTOM_COMMAND', 'PHONY')
-        self.generate_coverage_command(e, ['--sonarqube'])
-        e.add_item('description', 'Generates Sonarqube XML coverage report')
-        self.add_build(e)
-        # Alias that runs the target defined above
-        self.create_target_alias('meson-coverage-sonarqube')
-
-        e = NinjaBuildElement(self.all_outputs, 'meson-coverage-text', 'CUSTOM_COMMAND', 'PHONY')
-        self.generate_coverage_command(e, ['--text'])
-        e.add_item('description', 'Generates text coverage report')
-        self.add_build(e)
-        # Alias that runs the target defined above
-        self.create_target_alias('meson-coverage-text')
-
+    def generate_coverage_legacy_rules(self, gcovr_exe: T.Optional[str], gcovr_version: T.Optional[str]):
         e = NinjaBuildElement(self.all_outputs, 'meson-coverage-html', 'CUSTOM_COMMAND', 'PHONY')
         self.generate_coverage_command(e, ['--html'])
         e.add_item('description', 'Generates HTML coverage report')
         self.add_build(e)
         # Alias that runs the target defined above
         self.create_target_alias('meson-coverage-html')
+
+        if gcovr_exe:
+            e = NinjaBuildElement(self.all_outputs, 'meson-coverage-xml', 'CUSTOM_COMMAND', 'PHONY')
+            self.generate_coverage_command(e, ['--xml'])
+            e.add_item('description', 'Generates XML coverage report')
+            self.add_build(e)
+            # Alias that runs the target defined above
+            self.create_target_alias('meson-coverage-xml')
+
+            e = NinjaBuildElement(self.all_outputs, 'meson-coverage-text', 'CUSTOM_COMMAND', 'PHONY')
+            self.generate_coverage_command(e, ['--text'])
+            e.add_item('description', 'Generates text coverage report')
+            self.add_build(e)
+            # Alias that runs the target defined above
+            self.create_target_alias('meson-coverage-text')
+
+            if mesonlib.version_compare(gcovr_version, '>=4.2'):
+                e = NinjaBuildElement(self.all_outputs, 'meson-coverage-sonarqube', 'CUSTOM_COMMAND', 'PHONY')
+                self.generate_coverage_command(e, ['--sonarqube'])
+                e.add_item('description', 'Generates Sonarqube XML coverage report')
+                self.add_build(e)
+                # Alias that runs the target defined above
+                self.create_target_alias('meson-coverage-sonarqube')
 
     def generate_install(self):
         self.create_install_data_files()
