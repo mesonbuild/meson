@@ -84,7 +84,7 @@ def _get_env_var(for_machine: MachineChoice, is_cross: bool, var_name: str) -> T
     return value
 
 
-def detect_gcovr(min_version='3.3', new_rootdir_version='4.2', log=False):
+def detect_gcovr(min_version='3.3', log=False):
     gcovr_exe = 'gcovr'
     try:
         p, found = Popen_safe([gcovr_exe, '--version'])[0:2]
@@ -95,7 +95,7 @@ def detect_gcovr(min_version='3.3', new_rootdir_version='4.2', log=False):
     if p.returncode == 0 and mesonlib.version_compare(found, '>=' + min_version):
         if log:
             mlog.log('Found gcovr-{} at {}'.format(found, quote_arg(shutil.which(gcovr_exe))))
-        return gcovr_exe, mesonlib.version_compare(found, '>=' + new_rootdir_version)
+        return gcovr_exe, found
     return None, None
 
 def detect_llvm_cov():
@@ -106,7 +106,7 @@ def detect_llvm_cov():
     return None
 
 def find_coverage_tools() -> T.Tuple[T.Optional[str], T.Optional[str], T.Optional[str], T.Optional[str], T.Optional[str]]:
-    gcovr_exe, gcovr_new_rootdir = detect_gcovr()
+    gcovr_exe, gcovr_version = detect_gcovr()
 
     llvm_cov_exe = detect_llvm_cov()
 
@@ -118,7 +118,7 @@ def find_coverage_tools() -> T.Tuple[T.Optional[str], T.Optional[str], T.Optiona
     if not mesonlib.exe_exists([genhtml_exe, '--version']):
         genhtml_exe = None
 
-    return gcovr_exe, gcovr_new_rootdir, lcov_exe, genhtml_exe, llvm_cov_exe
+    return gcovr_exe, gcovr_version, lcov_exe, genhtml_exe, llvm_cov_exe
 
 def detect_ninja(version: str = '1.8.2', log: bool = False) -> T.List[str]:
     r = detect_ninja_command_and_version(version, log)

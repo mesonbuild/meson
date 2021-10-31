@@ -21,10 +21,10 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
     outfiles = []
     exitcode = 0
 
-    (gcovr_exe, gcovr_new_rootdir, lcov_exe, genhtml_exe, llvm_cov_exe) = environment.find_coverage_tools()
+    (gcovr_exe, gcovr_version, lcov_exe, genhtml_exe, llvm_cov_exe) = environment.find_coverage_tools()
 
     # gcovr >= 4.2 requires a different syntax for out of source builds
-    if gcovr_new_rootdir:
+    if gcovr_exe and mesonlib.version_compare(gcovr_version, '>=4.2'):
         gcovr_base_cmd = [gcovr_exe, '-r', source_root, build_root]
     else:
         gcovr_base_cmd = [gcovr_exe, '-r', build_root]
@@ -35,7 +35,7 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
         gcov_exe_args = []
 
     if not outputs or 'xml' in outputs:
-        if gcovr_exe:
+        if gcovr_exe and mesonlib.version_compare(gcovr_version, '>=3.3'):
             subprocess.check_call(gcovr_base_cmd +
                                   ['-x',
                                    '-e', re.escape(subproject_root),
@@ -47,7 +47,7 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
             exitcode = 1
 
     if not outputs or 'sonarqube' in outputs:
-        if gcovr_exe:
+        if gcovr_exe and mesonlib.version_compare(gcovr_version, '>=4.2'):
             subprocess.check_call(gcovr_base_cmd +
                                   ['--sonarqube',
                                    '-o', os.path.join(log_dir, 'sonarqube.xml'),
@@ -59,7 +59,7 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
             exitcode = 1
 
     if not outputs or 'text' in outputs:
-        if gcovr_exe:
+        if gcovr_exe and mesonlib.version_compare(gcovr_version, '>=3.3'):
             subprocess.check_call(gcovr_base_cmd +
                                   ['-e', re.escape(subproject_root),
                                    '-o', os.path.join(log_dir, 'coverage.txt')
@@ -132,7 +132,7 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
                                    '--branch-coverage',
                                    covinfo])
             outfiles.append(('Html', pathlib.Path(htmloutdir, 'index.html')))
-        elif gcovr_exe:
+        elif gcovr_exe and mesonlib.version_compare(gcovr_version, '>=3.3'):
             htmloutdir = os.path.join(log_dir, 'coveragereport')
             if not os.path.isdir(htmloutdir):
                 os.mkdir(htmloutdir)
