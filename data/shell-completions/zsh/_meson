@@ -139,6 +139,8 @@ local -a meson_commands=(
     secondd="build"
   fi
 
+  local -a line
+  typeset -A opt_args
   _arguments \
   '*-D-[set the value of a build option]:build option:__meson_build_options' \
   '--cross-file=[cross-compilation environment description]:cross file:_files' \
@@ -154,7 +156,8 @@ local -a meson_commands=(
 }
 
 (( $+functions[_meson-configure] )) || _meson-configure() {
-  local curcontext="$curcontext"
+  local curcontext="$curcontext" line
+  typeset -A opt_args
   # TODO: implement 'mesonconf @file'
   local -a specs=(
   '*-D-[set the value of a build option]:build option:__meson_build_options'
@@ -397,6 +400,7 @@ _arguments \
 }
 
 local curcontext="$curcontext" state line
+typeset -A opt_args
 local -i ret
 
 if [[ $service != meson ]]; then
