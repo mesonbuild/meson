@@ -23,6 +23,7 @@ from .mesonlib import (
     MesonException, EnvironmentException, MachineChoice, PerMachine,
     PerMachineDefaultable, default_libdir, default_libexecdir,
     default_prefix, split_args, OptionKey, OptionType, stringlistify,
+    pickle_load
 )
 from .wrap import WrapMode
 import ast
@@ -1047,22 +1048,10 @@ def major_versions_differ(v1: str, v2: str) -> bool:
 
 def load(build_dir: str) -> CoreData:
     filename = os.path.join(build_dir, 'meson-private', 'coredata.dat')
-    load_fail_msg = f'Coredata file {filename!r} is corrupted. Try with a fresh build tree.'
-    try:
-        with open(filename, 'rb') as f:
-            obj = pickle.load(f)
-    except (pickle.UnpicklingError, EOFError):
-        raise MesonException(load_fail_msg)
-    except (TypeError, ModuleNotFoundError, AttributeError):
-        raise MesonException(
-            f"Coredata file {filename!r} references functions or classes that don't "
-            "exist. This probably means that it was generated with an old "
-            "version of meson.")
-    if not isinstance(obj, CoreData):
-        raise MesonException(load_fail_msg)
-    if major_versions_differ(obj.version, version):
-        raise MesonVersionMismatchException(obj.version, version)
+    obj = pickle_load(filename, 'Coredata', CoreData)
+    assert isinstance(obj, CoreData), 'for mypy'
     return obj
+
 
 def save(obj: CoreData, build_dir: str) -> str:
     filename = os.path.join(build_dir, 'meson-private', 'coredata.dat')
