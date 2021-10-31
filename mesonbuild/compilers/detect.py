@@ -378,9 +378,12 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
                     return os.path.normcase(os.path.abspath(p))
 
                 watcom_cls = [sanitize(os.path.join(os.environ['WATCOM'], 'BINNT', 'cl')),
-                                sanitize(os.path.join(os.environ['WATCOM'], 'BINNT', 'cl.exe'))]
+                                sanitize(os.path.join(os.environ['WATCOM'], 'BINNT', 'cl.exe')),
+                                sanitize(os.path.join(os.environ['WATCOM'], 'BINNT64', 'cl')),
+                                sanitize(os.path.join(os.environ['WATCOM'], 'BINNT64', 'cl.exe')),]
                 found_cl = sanitize(shutil.which('cl'))
                 if found_cl in watcom_cls:
+                    mlog.debug('Skipping unsupported cl.exe clone at:', found_cl)
                     continue
             arg = '/?'
         elif 'armcc' in compiler_name:
