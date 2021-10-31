@@ -31,6 +31,7 @@ import typing as T
 import uuid
 import textwrap
 import copy
+import pickle
 
 from mesonbuild import mlog
 
@@ -123,6 +124,7 @@ __all__ = [
     'listify',
     'partition',
     'path_is_in_root',
+    'pickle_load',
     'Popen_safe',
     'quiet_git',
     'quote_arg',
@@ -2232,3 +2234,23 @@ class OptionKey:
     def is_base(self) -> bool:
         """Convenience method to check if this is a base option."""
         return self.type is OptionType.BASE
+
+def pickle_load(filename: str, object_name: str, object_type: T.Type) -> T.Any:
+    load_fail_msg = f'{object_name} file {filename!r} is corrupted. Try with a fresh build tree.'
+    try:
+        with open(filename, 'rb') as f:
+            obj = pickle.load(f)
+    except (pickle.UnpicklingError, EOFError):
+        raise MesonException(load_fail_msg)
+    except (TypeError, ModuleNotFoundError, AttributeError):
+        raise MesonException(
+            f"{object_name} file {filename!r} references functions or classes that don't "
+            "exist. This probably means that it was generated with an old "
+            "version of meson.")
+    if not isinstance(obj, object_type):
+        raise MesonException(load_fail_msg)
+    from ..coredata import version as coredata_version
+    from ..coredata import major_versions_differ, MesonVersionMismatchException
+    if major_versions_differ(obj.version, coredata_version):
+        raise MesonVersionMismatchException(obj.version, coredata_version)
+    return obj

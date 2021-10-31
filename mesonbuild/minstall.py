@@ -18,7 +18,6 @@ from pathlib import Path
 import argparse
 import errno
 import os
-import pickle
 import shlex
 import shutil
 import subprocess
@@ -28,9 +27,7 @@ import typing as T
 from . import build
 from . import environment
 from .backend.backends import InstallData
-from .coredata import major_versions_differ, MesonVersionMismatchException
-from .coredata import version as coredata_version
-from .mesonlib import MesonException, Popen_safe, RealPathAction, is_windows, setup_vsenv
+from .mesonlib import MesonException, Popen_safe, RealPathAction, is_windows, setup_vsenv, pickle_load
 from .scripts import depfixer, destdir_join
 from .scripts.meson_exe import run_exe
 try:
@@ -133,13 +130,9 @@ class DirMaker:
 
 
 def load_install_data(fname: str) -> InstallData:
-    with open(fname, 'rb') as ifile:
-        obj = pickle.load(ifile)
-        if not isinstance(obj, InstallData) or not hasattr(obj, 'version'):
-            raise MesonVersionMismatchException('<unknown>', coredata_version)
-        if major_versions_differ(obj.version, coredata_version):
-            raise MesonVersionMismatchException(obj.version, coredata_version)
-        return obj
+    obj = pickle_load(fname, 'InstallData', InstallData)
+    assert isinstance(obj, InstallData), 'fo mypy'
+    return obj
 
 def is_executable(path: str, follow_symlinks: bool = False) -> bool:
     '''Checks whether any of the "x" bits are set in the source file mode.'''
