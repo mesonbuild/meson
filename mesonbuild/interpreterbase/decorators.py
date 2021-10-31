@@ -551,9 +551,7 @@ def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
 class FeatureCheckBase(metaclass=abc.ABCMeta):
     "Base class for feature version checks"
 
-    # In python 3.6 we can just forward declare this, but in 3.5 we can't
-    # This will be overwritten by the subclasses by necessity
-    feature_registry = {}  # type: T.ClassVar[T.Dict[str, T.Dict[str, T.Set[str]]]]
+    feature_registry: T.ClassVar[T.Dict[str, T.Dict[str, T.Set[str]]]]
 
     def __init__(self, feature_name: str, version: str, extra_message: T.Optional[str] = None):
         self.feature_name = feature_name  # type: str
