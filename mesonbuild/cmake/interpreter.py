@@ -24,7 +24,7 @@ from .traceparser import CMakeTraceParser, CMakeGeneratorTarget
 from .tracetargets import resolve_cmake_trace_targets
 from .. import mlog, mesonlib
 from ..mesonlib import MachineChoice, OrderedSet, version_compare, path_is_in_root, relative_to_if_possible, OptionKey
-from ..mesondata import mesondata
+from ..mesondata import DataFile
 from ..compilers.compilers import assembler_suffixes, lang_suffixes, header_suffixes, obj_suffixes, lib_suffixes, is_header
 from ..programs import ExternalProgram
 from ..coredata import FORBIDDEN_TARGET_NAMES
@@ -816,7 +816,7 @@ class CMakeInterpreter:
             raise CMakeException('Unable to find CMake')
         self.trace = CMakeTraceParser(cmake_exe.version(), self.build_dir, permissive=True)
 
-        preload_file = mesondata['cmake/data/preload.cmake'].write_to_private(self.env)
+        preload_file = DataFile('cmake/data/preload.cmake').write_to_private(self.env)
         toolchain = CMakeToolchain(cmake_exe, self.env, self.for_machine, CMakeExecScope.SUBPROJECT, self.build_dir, preload_file)
         toolchain_file = toolchain.write()
 

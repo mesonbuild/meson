@@ -13,12 +13,9 @@
 # limitations under the License.
 
 import re
-import textwrap
 import unittest
-import hashlib
 from itertools import chain
 from pathlib import Path
-import typing as T
 
 import mesonbuild.mlog
 import mesonbuild.depfile
@@ -237,36 +234,3 @@ class DataTests(unittest.TestCase):
         interp = Interpreter(FakeBuild(env), mock=True)
         astint = AstInterpreter('.', '', '')
         self.assertEqual(set(interp.funcs.keys()), set(astint.funcs.keys()))
-
-    def test_mesondata_is_up_to_date(self):
-        from mesonbuild.mesondata import mesondata
-        err_msg = textwrap.dedent('''
-
-            ###########################################################
-            ###        mesonbuild.mesondata is not up-to-date       ###
-            ###  Please regenerate it by running tools/gen_data.py  ###
-            ###########################################################
-
-        ''')
-
-        root_dir = Path(__file__).parents[1]
-
-        mesonbuild_dir = root_dir / 'mesonbuild'
-
-        data_dirs = mesonbuild_dir.glob('**/data')
-        data_files = []  # type: T.List[T.Tuple(str, str)]
-
-        for i in data_dirs:
-            for p in i.iterdir():
-                data_files += [(p.relative_to(mesonbuild_dir).as_posix(), hashlib.sha256(p.read_bytes()).hexdigest())]
-
-        current_files = set(mesondata.keys())
-        scanned_files = {x[0] for x in data_files}
-
-        self.assertSetEqual(current_files, scanned_files, err_msg + 'Data files were added or removed\n')
-        errors = []
-        for i in data_files:
-            if mesondata[i[0]].sha256sum != i[1]:
-                errors += [i[0]]
-
-        self.assertListEqual(errors, [], err_msg + 'Files were changed')

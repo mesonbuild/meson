@@ -14,9 +14,9 @@
 
 from .base import ExternalDependency, DependencyException, DependencyTypeName
 from ..mesonlib import is_windows, MesonException, OptionKey, PerMachine, stringlistify, extract_as_list
-from ..mesondata import mesondata
 from ..cmake import CMakeExecutor, CMakeTraceParser, CMakeException, CMakeToolchain, CMakeExecScope, check_cmake_args, CMakeTarget, resolve_cmake_trace_targets, cmake_is_debug
 from .. import mlog
+import importlib.resources
 from pathlib import Path
 import functools
 import re
@@ -583,7 +583,7 @@ class CMakeDependency(ExternalDependency):
         shutil.rmtree(cmake_files.as_posix(), ignore_errors=True)
 
         # Insert language parameters into the CMakeLists.txt and write new CMakeLists.txt
-        cmake_txt = mesondata['dependencies/data/' + cmake_file].data
+        cmake_txt = importlib.resources.read_text('mesonbuild.dependencies.data', cmake_file, encoding = 'utf-8')
 
         # In general, some Fortran CMake find_package() also require C language enabled,
         # even if nothing from C is directly used. An easy Fortran example that fails
