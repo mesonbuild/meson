@@ -12,7 +12,7 @@ from .universal import MesonException, is_windows
 
 bat_template = '''@ECHO OFF
 
-call "{}"
+call "{}" {}
 
 ECHO {}
 SET
@@ -70,13 +70,13 @@ def _setup_vsenv(force: bool) -> bool:
     if platform.machine() == 'ARM64':
         bat_path = bat_root / 'VC/Auxiliary/Build/vcvarsx86_arm64.bat'
     else:
-        bat_path = bat_root / 'VC/Auxiliary/Build/vcvars64.bat'
+        bat_path = bat_root / 'VC/Auxiliary/Build/vcvarsall.bat'
     if not bat_path.exists():
         raise MesonException(f'Could not find {bat_path}')
 
     mlog.log('Activating VS', bat_info[0]['catalog']['productDisplayVersion'])
     bat_separator = '---SPLIT---'
-    bat_contents = bat_template.format(bat_path, bat_separator)
+    bat_contents = bat_template.format(bat_path, os.environ['VS_ARCH'] or 'x64', bat_separator)
     bat_file = tempfile.NamedTemporaryFile('w', suffix='.bat', encoding='utf-8', delete=False)
     bat_file.write(bat_contents)
     bat_file.flush()
