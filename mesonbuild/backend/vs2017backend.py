@@ -41,7 +41,7 @@ class Vs2017Backend(Vs2010Backend):
                         # We don't have support for versions older than 2019 right now.
                         raise MesonException('There is currently no support for ICL before 19, patches welcome.')
         if self.platform_toolset is None:
-            self.platform_toolset = 'v141'
+            self.platform_toolset = os.environ['VS_TOOLSET'] or 'v141'
         # WindowsSDKVersion should be set by command prompt.
         sdk_version = os.environ.get('WindowsSDKVersion', None)
         if sdk_version:

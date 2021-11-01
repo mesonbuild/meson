@@ -35,7 +35,7 @@ class Vs2019Backend(Vs2010Backend):
                     self.platform_toolset = 'Intel C++ Compiler 19.0'
                 # We don't have support for versions older than 2019 right now.
             if not self.platform_toolset:
-                self.platform_toolset = 'v142'
+                self.platform_toolset = os.environ['VS_TOOLSET'] or 'v142'
             self.vs_version = '2019'
         # WindowsSDKVersion should be set by command prompt.
         sdk_version = os.environ.get('WindowsSDKVersion', None)

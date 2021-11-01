@@ -35,4 +35,4 @@ class Vs2015Backend(Vs2010Backend):
                     # We don't have support for versions older than 2019 right now.
                     raise MesonException('There is currently no support for ICL before 19, patches welcome.')
             if self.platform_toolset is None:
-                self.platform_toolset = 'v140'
+                self.platform_toolset = os.environ['VS_TOOLSET'] or 'v140'
