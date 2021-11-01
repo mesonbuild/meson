@@ -232,3 +232,10 @@ class FindProgram(ExtractRequired, ExtractSearchDirs):
 
     native: MachineChoice
     version: T.List[str]
+
+
+class RunCommand(TypedDict):
+
+    check: bool
+    capture: T.Optional[bool]
+    env: build.EnvironmentVariables

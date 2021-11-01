@@ -32,7 +32,7 @@ from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCod
 from ..interpreterbase import Disabler, disablerIfNotFound
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs, FeatureDeprecatedKwargs
 from ..interpreterbase import ObjectHolder
-from ..interpreterbase.baseobjects import TYPE_nkwargs, TYPE_nvar, TYPE_var, TYPE_kwargs
+from ..interpreterbase.baseobjects import TYPE_nkwargs, TYPE_var, TYPE_kwargs
 from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule
 from ..cmake import CMakeInterpreter
 from ..backend.backends import Backend, ExecutableSerialisation
@@ -684,41 +684,40 @@ external dependencies (including libraries) must go to "dependencies".''')
                 if not isinstance(actual, wanted):
                     raise InvalidArguments('Incorrect argument type.')
 
-    @FeatureNewKwargs('run_command', '0.50.0', ['env'])
-    @FeatureNewKwargs('run_command', '0.47.0', ['check', 'capture'])
-    @permittedKwargs({'check', 'capture', 'env'})
     # Executables aren't actually accepted, but we allow them here to allow for
     # better error messages when overridden
     @typed_pos_args(
         'run_command',
         (build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str),
         varargs=(build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str))
+    @typed_kwargs(
+        'run_command',
+        KwargInfo('check', (bool, NoneType), since='0.47.0'),
+        KwargInfo('capture', bool, default=True, since='0.47.0'),
+        ENV_KW.evolve(since='0.50.0'),
+    )
     def func_run_command(self, node: mparser.BaseNode,
                          args: T.Tuple[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str],
                                                T.List[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str]]],
-                        kwargs):
+                         kwargs: 'kwargs.RunCommand') -> RunProcess:
         return self.run_command_impl(node, args, kwargs)
 
     def run_command_impl(self,
                          node: mparser.BaseNode,
                          args: T.Tuple[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str],
                                                T.List[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str]]],
-                         kwargs: TYPE_nkwargs,
+                         kwargs: 'kwargs.RunCommand',
                          in_builddir: bool = False) -> RunProcess:
         cmd, cargs = args
-        capture = kwargs.get('capture', True)
+        capture = kwargs['capture']
+        env = kwargs['env']
         srcdir = self.environment.get_source_dir()
         builddir = self.environment.get_build_dir()
 
-        check = kwargs.get('check')
+        check = kwargs['check']
         if check is None:
             mlog.warning(implicit_check_false_warning, once=True)
             check = False
-
-        if not isinstance(check, bool):
-            raise InterpreterException('Check must be boolean.')
-
-        env = self.unpack_env_kwarg(kwargs)
 
         m = 'must be a string, or the output of find_program(), files() '\
             'or configure_file(), or a compiler object; not {!r}'
@@ -2245,9 +2244,9 @@ This will become a hard error in the future.''', location=node)
             _cmd = mesonlib.substitute_values(kwargs['command'], values)
             mlog.log('Configuring', mlog.bold(output), 'with command')
             cmd, *args = mesonlib.listify(_cmd)
-            res = self.run_command_impl(node, (cmd, args), {}, True)
-            if res.returncode != 0:
-                raise InterpreterException(f'Running configure command failed.\n{res.stdout}\n{res.stderr}')
+            res = self.run_command_impl(node, (cmd, args),
+                                        {'capture': True, 'check': True, 'env': build.EnvironmentVariables()},
+                                         True)
             if 'capture' in kwargs and kwargs['capture']:
                 dst_tmp = ofile_abs + '~'
                 file_encoding = kwargs.setdefault('encoding', 'utf-8')
