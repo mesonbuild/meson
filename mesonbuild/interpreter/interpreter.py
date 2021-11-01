@@ -687,17 +687,25 @@ external dependencies (including libraries) must go to "dependencies".''')
     @FeatureNewKwargs('run_command', '0.50.0', ['env'])
     @FeatureNewKwargs('run_command', '0.47.0', ['check', 'capture'])
     @permittedKwargs({'check', 'capture', 'env'})
-    def func_run_command(self, node, args, kwargs):
+    # Executables aren't actually accepted, but we allow them here to allow for
+    # better error messages when overridden
+    @typed_pos_args(
+        'run_command',
+        (build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str),
+        varargs=(build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str))
+    def func_run_command(self, node: mparser.BaseNode,
+                         args: T.Tuple[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str],
+                                               T.List[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str]]],
+                        kwargs):
         return self.run_command_impl(node, args, kwargs)
 
     def run_command_impl(self,
                          node: mparser.BaseNode,
-                         args: T.Sequence[TYPE_nvar],
+                         args: T.Tuple[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str],
+                                               T.List[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str]]],
                          kwargs: TYPE_nkwargs,
                          in_builddir: bool = False) -> RunProcess:
-        if len(args) < 1:
-            raise InterpreterException('Not enough arguments')
-        cmd, *cargs = args
+        cmd, cargs = args
         capture = kwargs.get('capture', True)
         srcdir = self.environment.get_source_dir()
         builddir = self.environment.get_build_dir()
@@ -714,7 +722,7 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         m = 'must be a string, or the output of find_program(), files() '\
             'or configure_file(), or a compiler object; not {!r}'
-        expanded_args = []
+        expanded_args: T.List[str] = []
         if isinstance(cmd, build.Executable):
             progname = node.args.arguments[0].value
             msg = 'Program {!r} was overridden with the compiled executable {!r}'\
@@ -734,6 +742,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         else:
             if isinstance(cmd, mesonlib.File):
                 cmd = cmd.absolute_path(srcdir, builddir)
+            # FIXME: This case can only be reached through configure_file, delete once that is typesafe
             elif not isinstance(cmd, str):
                 raise InterpreterException('First argument ' + m.format(cmd))
             # Prefer scripts in the current source directory
@@ -2233,9 +2242,10 @@ This will become a hard error in the future.''', location=node)
                 depfile = os.path.join(self.environment.get_scratch_dir(), depfile)
                 values['@DEPFILE@'] = depfile
             # Substitute @INPUT@, @OUTPUT@, etc here.
-            cmd = mesonlib.substitute_values(kwargs['command'], values)
+            _cmd = mesonlib.substitute_values(kwargs['command'], values)
             mlog.log('Configuring', mlog.bold(output), 'with command')
-            res = self.run_command_impl(node, cmd,  {}, True)
+            cmd, *args = mesonlib.listify(_cmd)
+            res = self.run_command_impl(node, (cmd, args), {}, True)
             if res.returncode != 0:
                 raise InterpreterException(f'Running configure command failed.\n{res.stdout}\n{res.stderr}')
             if 'capture' in kwargs and kwargs['capture']:

@@ -103,8 +103,7 @@ class ExternalProgram(mesonlib.HoldableObject):
     def get_version(self, interpreter: 'Interpreter') -> str:
         if not self.cached_version:
             raw_cmd = self.get_command() + ['--version']
-            cmd: T.List[T.Union[str, ExternalProgram]] = [self, '--version']
-            res = interpreter.run_command_impl(interpreter.current_node, cmd, {}, True)
+            res = interpreter.run_command_impl(interpreter.current_node, (self, ['--version']), {}, True)
             if res.returncode != 0:
                 raise mesonlib.MesonException(f'Running {raw_cmd!r} failed')
             output = res.stdout.strip()
