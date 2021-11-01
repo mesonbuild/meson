@@ -102,10 +102,11 @@ class ExternalProgram(mesonlib.HoldableObject):
 
     def get_version(self, interpreter: 'Interpreter') -> str:
         if not self.cached_version:
+            from . import build
             raw_cmd = self.get_command() + ['--version']
-            res = interpreter.run_command_impl(interpreter.current_node, (self, ['--version']), {}, True)
-            if res.returncode != 0:
-                raise mesonlib.MesonException(f'Running {raw_cmd!r} failed')
+            res = interpreter.run_command_impl(interpreter.current_node, (self, ['--version']),
+                                               {'capture': True, 'check': True, 'env': build.EnvironmentVariables()},
+                                               True)
             output = res.stdout.strip()
             if not output:
                 output = res.stderr.strip()
