@@ -3186,11 +3186,6 @@ class AllPlatformTests(BasePlatformTests):
         expected_lines = expected.split('\n')[1:]
         out_start = out.find(expected_lines[0])
         out_lines = out[out_start:].split('\n')[:len(expected_lines)]
-        if sys.version_info < (3, 7, 0):
-            # Dictionary order is not stable in Python <3.7, so sort the lines
-            # while comparing
-            expected_lines = sorted(expected_lines)
-            out_lines = sorted(out_lines)
         for e, o in zip(expected_lines, out_lines):
             if e.startswith('    external dep'):
                 self.assertRegex(o, r'^    external dep   : (YES [0-9.]*|NO)$')
