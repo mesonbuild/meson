@@ -186,3 +186,12 @@ class CustomTarget(TypedDict):
     install_tag: T.List[T.Union[str, bool]]
     output: T.List[str]
     override_options: T.Dict[OptionKey, str]
+
+class AddTestSetup(TypedDict):
+
+    exe_wrapper: T.List[T.Union[str, ExternalProgram]]
+    gdb: bool
+    timeout_multiplier: int
+    is_default: bool
+    exclude_suites: T.List[str]
+    env: build.EnvironmentVariables

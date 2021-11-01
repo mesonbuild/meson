@@ -2345,49 +2345,43 @@ This will become a hard error in the future.''', location=self.current_node)
         i = build.IncludeDirs(self.subdir, incdir_strings, is_system)
         return i
 
-    @permittedKwargs({'exe_wrapper', 'gdb', 'timeout_multiplier', 'env', 'is_default',
-                      'exclude_suites'})
     @typed_pos_args('add_test_setup', str)
-    def func_add_test_setup(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> None:
+    @typed_kwargs(
+        'add_test_setup',
+        KwargInfo('exe_wrapper', ContainerTypeInfo(list, (str, ExternalProgram)), listify=True, default=[]),
+        KwargInfo('gdb', bool, default=False),
+        KwargInfo('timeout_multiplier', int, default=1),
+        KwargInfo('exclude_suites', ContainerTypeInfo(list, str), listify=True, default=[], since='0.57.0'),
+        KwargInfo('is_default', bool, default=False, since='0.49.0'),
+        ENV_KW,
+    )
+    def func_add_test_setup(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs: 'kwargs.AddTestSetup') -> None:
         setup_name = args[0]
         if re.fullmatch('([_a-zA-Z][_0-9a-zA-Z]*:)?[_a-zA-Z][_0-9a-zA-Z]*', setup_name) is None:
             raise InterpreterException('Setup name may only contain alphanumeric characters.')
         if ":" not in setup_name:
-            setup_name = (self.subproject if self.subproject else self.build.project_name) + ":" + setup_name
-        try:
-            inp = extract_as_list(kwargs, 'exe_wrapper')
-            exe_wrapper = []
-            for i in inp:
-                if isinstance(i, str):
-                    exe_wrapper.append(i)
-                elif isinstance(i, ExternalProgram):
-                    if not i.found():
-                        raise InterpreterException('Tried to use non-found executable.')
-                    exe_wrapper += i.get_command()
-                else:
-                    raise InterpreterException('Exe wrapper can only contain strings or external binaries.')
-        except KeyError:
-            exe_wrapper = None
-        gdb = kwargs.get('gdb', False)
-        if not isinstance(gdb, bool):
-            raise InterpreterException('Gdb option must be a boolean')
-        timeout_multiplier = kwargs.get('timeout_multiplier', 1)
-        if not isinstance(timeout_multiplier, int):
-            raise InterpreterException('Timeout multiplier must be a number.')
+            setup_name = f'{(self.subproject if self.subproject else self.build.project_name)}: {setup_name}'
+
+        exe_wrapper: T.List[str] = []
+        for i in kwargs['exe_wrapper']:
+            if isinstance(i, str):
+                exe_wrapper.append(i)
+            else:
+                if not i.found():
+                    raise InterpreterException('Tried to use non-found executable.')
+                exe_wrapper += i.get_command()
+
+        timeout_multiplier = kwargs['timeout_multiplier']
         if timeout_multiplier <= 0:
             FeatureNew('add_test_setup() timeout_multiplier <= 0', '0.57.0').use(self.subproject)
-        is_default = kwargs.get('is_default', False)
-        if not isinstance(is_default, bool):
-            raise InterpreterException('is_default option must be a boolean')
-        if is_default:
+
+        if kwargs['is_default']:
             if self.build.test_setup_default_name is not None:
                 raise InterpreterException(f'{self.build.test_setup_default_name!r} is already set as default. '
                                            'is_default can be set to true only once')
             self.build.test_setup_default_name = setup_name
-        exclude_suites = mesonlib.stringlistify(kwargs.get('exclude_suites', []))
-        env = self.unpack_env_kwarg(kwargs)
-        self.build.test_setups[setup_name] = build.TestSetup(exe_wrapper, gdb, timeout_multiplier, env,
-                                                             exclude_suites)
+        self.build.test_setups[setup_name] = build.TestSetup(exe_wrapper, kwargs['gdb'], timeout_multiplier, kwargs['env'],
+                                                             kwargs['exclude_suites'])
 
     @typed_pos_args('add_global_arguments', varargs=str)
     @typed_kwargs('add_global_arguments', NATIVE_KW, LANGUAGE_KW)
