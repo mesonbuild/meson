@@ -179,7 +179,7 @@ class InterpreterBase:
                 raise e
             i += 1 # In THE FUTURE jump over blocks and stuff.
 
-    def evaluate_statement(self, cur: mparser.BaseNode) -> T.Optional[InterpreterObject]:
+    def evaluate_statement(self, cur: mparser.BaseNode) -> InterpreterObject:
         self.current_node = cur
         if isinstance(cur, mparser.FunctionNode):
             return self.function_call(cur)
@@ -192,7 +192,7 @@ class InterpreterBase:
         elif isinstance(cur, mparser.BooleanNode):
             return self._holderify(cur.value)
         elif isinstance(cur, mparser.IfClauseNode):
-            return self.evaluate_if(cur)
+            self.evaluate_if(cur)
         elif isinstance(cur, mparser.IdNode):
             return self.get_variable(cur.value)
         elif isinstance(cur, mparser.ComparisonNode):
@@ -229,7 +229,7 @@ class InterpreterBase:
             raise BreakRequest()
         else:
             raise InvalidCode("Unknown statement.")
-        return None
+        return self._holderify(None)
 
     def evaluate_arraystatement(self, cur: mparser.ArrayNode) -> InterpreterObject:
         (arguments, kwargs) = self.reduce_arguments(cur.args)
@@ -256,7 +256,7 @@ class InterpreterBase:
             return v
         return self._holderify(v.operator_call(MesonOperator.NOT, None))
 
-    def evaluate_if(self, node: mparser.IfClauseNode) -> T.Optional[Disabler]:
+    def evaluate_if(self, node: mparser.IfClauseNode) -> None:
         assert isinstance(node, mparser.IfClauseNode)
         for i in node.ifs:
             # Reset self.tmp_meson_version to know if it gets set during this
@@ -264,7 +264,7 @@ class InterpreterBase:
             self.tmp_meson_version = None
             result = self.evaluate_statement(i.condition)
             if isinstance(result, Disabler):
-                return result
+                return None
             if not isinstance(result, InterpreterObject):
                 raise mesonlib.MesonBugException(f'Argument to not ({result}) is not an InterpreterObject but {type(result).__name__}.')
             res = result.operator_call(MesonOperator.BOOL, None)
@@ -281,7 +281,6 @@ class InterpreterBase:
                 return None
         if not isinstance(node.elseblock, mparser.EmptyNode):
             self.evaluate_codeblock(node.elseblock)
-        return None
 
     def evaluate_comparison(self, node: mparser.ComparisonNode) -> InterpreterObject:
         val1 = self.evaluate_statement(node.left)
@@ -360,7 +359,7 @@ class InterpreterBase:
         res = l.operator_call(mapping[cur.operation], _unholder(r))
         return self._holderify(res)
 
-    def evaluate_ternary(self, node: mparser.TernaryNode) -> T.Optional[InterpreterObject]:
+    def evaluate_ternary(self, node: mparser.TernaryNode) -> InterpreterObject:
         assert isinstance(node, mparser.TernaryNode)
         result = self.evaluate_statement(node.condition)
         if isinstance(result, Disabler):
@@ -444,7 +443,7 @@ class InterpreterBase:
         iobject.current_node = node
         return self._holderify(iobject.operator_call(MesonOperator.INDEX, index))
 
-    def function_call(self, node: mparser.FunctionNode) -> T.Optional[InterpreterObject]:
+    def function_call(self, node: mparser.FunctionNode) -> InterpreterObject:
         func_name = node.func_name
         (h_posargs, h_kwargs) = self.reduce_arguments(node.args)
         (posargs, kwargs) = self._unholder_args(h_posargs, h_kwargs)
@@ -458,12 +457,12 @@ class InterpreterBase:
             if not getattr(func, 'no-second-level-holder-flattening', False):
                 func_args, kwargs = resolve_second_level_holders(func_args, kwargs)
             res = func(node, func_args, kwargs)
-            return self._holderify(res) if res is not None else None
+            return self._holderify(res)
         else:
             self.unknown_function_called(func_name)
-            return None
+            return self._holderify(None)
 
-    def method_call(self, node: mparser.MethodNode) -> T.Optional[InterpreterObject]:
+    def method_call(self, node: mparser.MethodNode) -> InterpreterObject:
         invokable = node.source_object
         obj: T.Optional[InterpreterObject]
         if isinstance(invokable, mparser.IdNode):
@@ -486,7 +485,7 @@ class InterpreterBase:
                 raise InvalidArguments(f'Invalid operation "extract_objects" on variable "{object_name}" of type {type(obj).__name__}')
         obj.current_node = node
         res = obj.method_call(method_name, args, kwargs)
-        return self._holderify(res) if res is not None else None
+        return self._holderify(res)
 
     def _holderify(self, res: T.Union[TYPE_var, InterpreterObject]) -> InterpreterObject:
         if isinstance(res, HoldableTypes):
@@ -529,15 +528,15 @@ class InterpreterBase:
             raise InvalidArguments('All keyword arguments must be after positional arguments.')
         self.argument_depth += 1
         reduced_pos = [self.evaluate_statement(arg) for arg in args.arguments]
-        if any(x is None for x in reduced_pos):
-            raise InvalidArguments(f'At least one value in the arguments is void.')
+        if any(not x.is_assignable for x in reduced_pos):
+            raise InvalidArguments(f'At least one value in the arguments is not assignable.')
         reduced_kw: T.Dict[str, InterpreterObject] = {}
         for key, val in args.kwargs.items():
             reduced_key = key_resolver(key)
             assert isinstance(val, mparser.BaseNode)
             reduced_val = self.evaluate_statement(val)
-            if reduced_val is None:
-                raise InvalidArguments(f'Value of key {reduced_key} is void.')
+            if not reduced_val.is_assignable:
+                raise InvalidArguments(f'Value of key {reduced_key} is not assignable.')
             if duplicate_key_error and reduced_key in reduced_kw:
                 raise InvalidArguments(duplicate_key_error.format(reduced_key))
             reduced_kw[reduced_key] = reduced_val
@@ -545,7 +544,7 @@ class InterpreterBase:
         final_kw = self.expand_default_kwargs(reduced_kw)
         return reduced_pos, final_kw
 
-    def expand_default_kwargs(self, kwargs: T.Dict[str, T.Optional[InterpreterObject]]) -> T.Dict[str, T.Optional[InterpreterObject]]:
+    def expand_default_kwargs(self, kwargs: T.Dict[str, InterpreterObject]) -> T.Dict[str, InterpreterObject]:
         if 'kwargs' not in kwargs:
             return kwargs
         to_expand = _unholder(kwargs.pop('kwargs'))
@@ -574,17 +573,13 @@ class InterpreterBase:
         if isinstance(value, MutableInterpreterObject):
             value = copy.deepcopy(value)
         self.set_variable(var_name, value)
-        return None
 
-    def set_variable(self, varname: str, variable: T.Union[TYPE_var, InterpreterObject], *, holderify: bool = False) -> None:
-        if variable is None:
-            raise InvalidCode('Can not assign None to variable.')
-        if holderify:
-            variable = self._holderify(variable)
-        else:
-            # Ensure that we are always storing ObjectHolders
-            if not isinstance(variable, InterpreterObject):
-                raise mesonlib.MesonBugException(f'set_variable in InterpreterBase called with a non InterpreterObject {variable} of type {type(variable).__name__}')
+    def set_variable(self, varname: str, variable: InterpreterObject) -> None:
+        if not variable.is_assignable:
+            raise InvalidCode(f'Can not assign object of type {variable.display_name()} to variable {varname}.')
+        # Ensure that we are always storing ObjectHolders
+        if not isinstance(variable, InterpreterObject):
+            raise mesonlib.MesonBugException(f'set_variable in InterpreterBase called with a non InterpreterObject {variable} of type {type(variable).__name__}')
         if not isinstance(varname, str):
             raise InvalidCode('First argument to set_variable must be a string.')
         if re.match('[_a-zA-Z][_0-9a-zA-Z]*$', varname) is None:

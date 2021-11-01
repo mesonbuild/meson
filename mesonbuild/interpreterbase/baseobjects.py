@@ -77,6 +77,7 @@ class InterpreterObject:
 
     @property
     def is_assignable(self) -> bool:
+        ''' Property used to indicate whether an object can be used at all '''
         return True
 
     def method_call(
