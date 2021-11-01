@@ -32,7 +32,7 @@ from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCod
 from ..interpreterbase import Disabler, disablerIfNotFound
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs, FeatureDeprecatedKwargs
 from ..interpreterbase import ObjectHolder
-from ..interpreterbase.baseobjects import TYPE_nkwargs, TYPE_var, TYPE_kwargs
+from ..interpreterbase.baseobjects import TYPE_var, TYPE_kwargs
 from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule
 from ..cmake import CMakeInterpreter
 from ..backend.backends import Backend, ExecutableSerialisation
@@ -721,12 +721,13 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         m = 'must be a string, or the output of find_program(), files() '\
             'or configure_file(), or a compiler object; not {!r}'
+        overridden_msg = ('Program {!r} was overridden with the compiled '
+                          'executable {!r} and therefore cannot be used during '
+                          'configuration')
         expanded_args: T.List[str] = []
         if isinstance(cmd, build.Executable):
             progname = node.args.arguments[0].value
-            msg = 'Program {!r} was overridden with the compiled executable {!r}'\
-                    ' and therefore cannot be used during configuration'
-            raise InterpreterException(msg.format(progname, cmd.description()))
+            raise InterpreterException(overridden_msg.format(progname, cmd.description()))
         if isinstance(cmd, ExternalProgram):
             if not cmd.found():
                 raise InterpreterException(f'command {cmd.get_name()!r} not found or not executable')
@@ -750,15 +751,22 @@ external dependencies (including libraries) must go to "dependencies".''')
             if not prog.found():
                 raise InterpreterException(f'Program or command {cmd!r} not found or not executable')
             cmd = prog
-        for a in listify(cargs):
+        for a in cargs:
             if isinstance(a, str):
                 expanded_args.append(a)
             elif isinstance(a, mesonlib.File):
                 expanded_args.append(a.absolute_path(srcdir, builddir))
             elif isinstance(a, ExternalProgram):
                 expanded_args.append(a.get_path())
+            elif isinstance(a, compilers.Compiler):
+                FeatureNew.single_use('Compiler object as a variadic argument to `run_command`', '0.61.0', self.subproject, location=node)
+                prog = ExternalProgram(a.exelist[0], silent=True)
+                if not prog.found():
+                    raise InterpreterException(f'Program {cmd!r} not found or not executable')
+                expanded_args.append(prog.get_path())
             else:
-                raise InterpreterException('Arguments ' + m.format(a))
+                raise InterpreterException(overridden_msg.format(a.name, cmd.description()))
+
         # If any file that was used as an argument to the command
         # changes, we must re-run the configuration step.
         self.add_build_def_file(cmd.get_path())
@@ -766,6 +774,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             if not os.path.isabs(a):
                 a = os.path.join(builddir if in_builddir else srcdir, self.subdir, a)
             self.add_build_def_file(a)
+
         return RunProcess(cmd, expanded_args, env, srcdir, builddir, self.subdir,
                           self.environment.get_build_command() + ['introspect'],
                           in_builddir=in_builddir, check=check, capture=capture)
