@@ -43,6 +43,7 @@ from .exceptions import (
 
 from .decorators import FeatureNew
 from .disabler import Disabler, is_disabled
+from .void import VoidObject
 from .helpers import default_resolve_key, flatten, resolve_second_level_holders
 from .operator import MesonOperator
 from ._unholder import _unholder
@@ -62,6 +63,7 @@ HolderMapType = T.Dict[
         T.Type[str],
         T.Type[list],
         T.Type[dict],
+        T.Type[None],
     ],
     # For some reason, this has to be a callable and can't just be ObjectHolder[InterpreterObjectTypeVar]
     T.Callable[[InterpreterObjectTypeVar, 'Interpreter'], ObjectHolder[InterpreterObjectTypeVar]]
@@ -94,6 +96,10 @@ class InterpreterBase:
         # If it was part of a if-clause, it is used to temporally override the
         # current meson version target within that if-block.
         self.tmp_meson_version = None # type: T.Optional[str]
+
+        self.holder_map.update({
+            type(None): VoidObject,
+        })
 
     def load_root_meson_file(self) -> None:
         mesonfile = os.path.join(self.source_root, self.subdir, environment.build_filename)
