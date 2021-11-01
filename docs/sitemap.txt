@@ -5,6 +5,7 @@ index.md
 		Getting-meson_ptbr.md
 	Quick-guide.md
 	Tutorial.md
+	GuiTutorial.md
 	Manual.md
 		Overview.md
 		Running-Meson.md
