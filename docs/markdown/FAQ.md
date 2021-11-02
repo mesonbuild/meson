@@ -639,3 +639,47 @@ tested, generally don't regress, and users are more likely to have domain
 knowledge about them. They also tend to have better tooling (such as
 autocompletion, linting, testing solutions), which make them a lower
 maintenance burden over time.
+
+## Why don't the arguments passed to `add_project_link_arguments` affect anything?
+
+Given code like this:
+```meson
+add_project_link_arguments(['-Wl,-foo'], language : ['c'])
+executable(
+  'main',
+  'main.c',
+  'helper.cpp',
+)
+```
+
+One might be surprised to find that `-Wl,-foo` is *not* applied to the linkage
+of the `main` executable. In this Meson is working as expected, since meson will
+attempt to determine the correct linker to use automatically. This avoids
+situations like in autotools where dummy C++ sources have to be added to some
+compilation targets to get correct linkage. So in the above case the C++ linker
+is used, instead of the C linker, as `helper.cpp` likely cannot be linked using
+the C linker.
+
+Generally the best way to resolve this is to add the `cpp` language to the
+`add_project_link_arguments` call.
+```meson
+add_project_link_arguments(['-Wl,-foo'], language : ['c', 'cpp'])
+executable(
+  'main',
+  'main.c',
+  'helper.cpp',
+)
+```
+
+To force the use of the C linker anyway the `link_language` keyword argument can
+be used. Note that this can result in a compilation failure if there are symbols
+that the C linker cannot resolve.
+```meson
+add_project_link_arguments(['-Wl,-foo'], language : ['c'])
+executable(
+  'main',
+  'main.c',
+  'helper.cpp',
+  link_language : 'c',
+)
+```
