@@ -29,20 +29,19 @@ from .. import build
 from .. import interpreter
 from .. import mesonlib
 from .. import mlog
-from ..build import CustomTarget, CustomTargetIndex, GeneratedList
+from ..build import CustomTarget, CustomTargetIndex, GeneratedList, InvalidArguments
 from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
-from ..interpreter.type_checking import DEPEND_FILES_KW, INSTALL_KW, NoneType
+from ..interpreter.type_checking import DEPEND_FILES_KW, INSTALL_KW, NoneType, in_set_validator
 from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, FeatureNew, FeatureNewKwargs, FeatureDeprecatedKwargs
 from ..interpreterbase import typed_kwargs, KwargInfo, ContainerTypeInfo
 from ..interpreterbase.decorators import typed_pos_args
 from ..mesonlib import (
-    MachineChoice, MesonException, OrderedSet, Popen_safe, extract_as_list,
-    join_args, HoldableObject
+    MachineChoice, MesonException, OrderedSet, Popen_safe, join_args,
 )
 from ..programs import ExternalProgram, OverrideProgram
 
 if T.TYPE_CHECKING:
-    from typing_extensions import TypedDict
+    from typing_extensions import Literal, TypedDict
 
     from . import ModuleState
     from ..compilers import Compiler
@@ -100,6 +99,31 @@ if T.TYPE_CHECKING:
         nsversion: str
         sources: T.List[T.Union[FileOrString, build.GeneratedTypes]]
         symbol_prefix: T.List[str]
+
+    class GtkDoc(TypedDict):
+
+        src_dir: T.List[T.Union[str, build.IncludeDirs]]
+        main_sgml: str
+        main_xml: str
+        module_version: str
+        namespace: str
+        mode: Literal['xml', 'smgl', 'auto', 'none']
+        html_args: T.List[str]
+        scan_args: T.List[str]
+        scanobjs_args: T.List[str]
+        fixxref_args: T.List[str]
+        mkdb_args: T.List[str]
+        content_files: T.List[T.Union[build.GeneratedTypes, FileOrString]]
+        ignore_headers: T.List[str]
+        install_dir: T.List[str]
+        check: bool
+        install: bool
+        gobject_typesfile: T.List[str]
+        html_assets: T.List[str]
+        expand_content_files: T.List[str]
+        c_args: T.List[str]
+        include_directories: T.List[T.Union[str, build.IncludeDirs]]
+        dependencies: T.List[T.Union[Dependency, build.SharedLibrary, build.StaticLibrary]]
 
 # Differs from the CustomTarget version in that it straight defaults to True
 _BUILD_BY_DEFAULT: KwargInfo[bool] = KwargInfo(
@@ -1056,84 +1080,97 @@ class GnomeModule(ExtensionModule):
         rv: T.List[T.Union[build.ExecutableSerialisation, build.RunTarget]] = [inscript, pottarget, potarget]
         return ModuleReturnValue(None, rv)
 
-    @FeatureNewKwargs('gnome.gtkdoc', '0.52.0', ['check'])
-    @FeatureNewKwargs('gnome.gtkdoc', '0.48.0', ['c_args'])
-    @FeatureNewKwargs('gnome.gtkdoc', '0.48.0', ['module_version'])
-    @FeatureNewKwargs('gnome.gtkdoc', '0.37.0', ['namespace', 'mode'])
-    @permittedKwargs({'main_xml', 'main_sgml', 'src_dir', 'dependencies', 'install',
-                      'install_dir', 'scan_args', 'scanobjs_args', 'gobject_typesfile',
-                      'fixxref_args', 'html_args', 'html_assets', 'content_files',
-                      'mkdb_args', 'ignore_headers', 'include_directories',
-                      'namespace', 'mode', 'expand_content_files', 'module_version',
-                      'c_args', 'check'})
     @typed_pos_args('gnome.gtkdoc', str)
-    def gtkdoc(self, state: 'ModuleState', args: T.Tuple[str], kwargs):
+    @typed_kwargs(
+        'gnome.gtkdoc',
+        KwargInfo('c_args', ContainerTypeInfo(list, str), since='0.48.0', default=[], listify=True),
+        KwargInfo('check', bool, default=False, since='0.52.0'),
+        KwargInfo('content_files', ContainerTypeInfo(list, (str, mesonlib.File, build.GeneratedList, build.CustomTarget, build.CustomTargetIndex)), default=[], listify=True),
+        KwargInfo(
+            'dependencies',
+            ContainerTypeInfo(list, (Dependency, build.SharedLibrary, build.StaticLibrary)),
+            listify=True, default=[]),
+        KwargInfo('expand_content_files', ContainerTypeInfo(list, str), default=[], listify=True),
+        KwargInfo('fixxref_args', ContainerTypeInfo(list, str), default=[], listify=True),
+        KwargInfo('gobject_typesfile', ContainerTypeInfo(list, str), default=[], listify=True),
+        KwargInfo('html_args', ContainerTypeInfo(list, str), default=[], listify=True),
+        KwargInfo('html_assets', ContainerTypeInfo(list, str), default=[], listify=True),
+        KwargInfo('ignore_headers', ContainerTypeInfo(list, str), default=[], listify=True),
+        KwargInfo(
+            'include_directories',
+            ContainerTypeInfo(list, (str, build.IncludeDirs)),
+            listify=True, default=[]),
+        KwargInfo('install', bool, default=True),
+        KwargInfo('install_dir', ContainerTypeInfo(list, str), default=[], listify=True),
+        KwargInfo('main_sgml', (str, NoneType)),
+        KwargInfo('main_xml', (str, NoneType)),
+        KwargInfo('mkdb_args', ContainerTypeInfo(list, str), default=[], listify=True),
+        KwargInfo(
+            'mode', str, default='auto', since='0.37.0',
+             validator=in_set_validator({'xml', 'sgml', 'none', 'auto'})),
+        KwargInfo('module_version', str, default='', since='0.48.0'),
+        KwargInfo('namespace', str, default='', since='0.37.0'),
+        KwargInfo('scan_args', ContainerTypeInfo(list, str), default=[], listify=True),
+        KwargInfo('scanobjs_args', ContainerTypeInfo(list, str), default=[], listify=True),
+        KwargInfo('src_dir', ContainerTypeInfo(list, (str, build.IncludeDirs)), listify=True, required=True),
+    )
+    def gtkdoc(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'GtkDoc') -> ModuleReturnValue:
         modulename = args[0]
-        if 'src_dir' not in kwargs:
-            raise MesonException('Keyword argument src_dir missing.')
-        main_file = kwargs.get('main_sgml', '')
-        if not isinstance(main_file, str):
-            raise MesonException('Main sgml keyword argument must be a string.')
-        main_xml = kwargs.get('main_xml', '')
-        if not isinstance(main_xml, str):
-            raise MesonException('Main xml keyword argument must be a string.')
-        moduleversion = kwargs.get('module_version', '')
-        if not isinstance(moduleversion, str):
-            raise MesonException('Module version keyword argument must be a string.')
-        if main_xml != '':
-            if main_file != '':
-                raise MesonException('You can only specify main_xml or main_sgml, not both.')
+        main_file = kwargs['main_sgml']
+        main_xml = kwargs['main_xml']
+        if main_xml is not None:
+            if main_file is not None:
+                raise InvalidArguments('gnome.gtkdoc: main_xml and main_xgml are exclusive arguments')
             main_file = main_xml
+        moduleversion = kwargs['module_version']
         targetname = modulename + ('-' + moduleversion if moduleversion else '') + '-doc'
         command = state.environment.get_build_command()
 
-        namespace = kwargs.get('namespace', '')
-        mode = kwargs.get('mode', 'auto')
-        VALID_MODES = ('xml', 'sgml', 'none', 'auto')
-        if mode not in VALID_MODES:
-            raise MesonException(f'gtkdoc: Mode {mode} is not a valid mode: {VALID_MODES}')
+        namespace = kwargs['namespace']
 
-        src_dirs = mesonlib.extract_as_list(kwargs, 'src_dir')
-        header_dirs = []
+        def abs_filenames(files: T.Iterable['FileOrString']) -> T.Iterator[str]:
+            for f in files:
+                if isinstance(f, mesonlib.File):
+                    yield f.absolute_path(state.environment.get_source_dir(), state.environment.get_build_dir())
+                else:
+                    yield os.path.join(state.environment.get_source_dir(), state.subdir, f)
+
+        src_dirs = kwargs['src_dir']
+        header_dirs: T.List[str] = []
         for src_dir in src_dirs:
-            if isinstance(src_dir, HoldableObject):
-                if not isinstance(src_dir, build.IncludeDirs):
-                    raise MesonException('Invalid keyword argument for src_dir.')
-                for inc_dir in src_dir.get_incdirs():
-                    header_dirs.append(os.path.join(state.environment.get_source_dir(),
-                                                    src_dir.get_curdir(), inc_dir))
-                    header_dirs.append(os.path.join(state.environment.get_build_dir(),
-                                                    src_dir.get_curdir(), inc_dir))
+            if isinstance(src_dir, build.IncludeDirs):
+                header_dirs.extend(src_dir.to_string_list(state.environment.get_source_dir(),
+                                                          state.environment.get_build_dir()))
             else:
                 header_dirs.append(src_dir)
 
-        args = ['--internal', 'gtkdoc',
-                '--sourcedir=' + state.environment.get_source_dir(),
-                '--builddir=' + state.environment.get_build_dir(),
-                '--subdir=' + state.subdir,
-                '--headerdirs=' + '@@'.join(header_dirs),
-                '--mainfile=' + main_file,
-                '--modulename=' + modulename,
-                '--moduleversion=' + moduleversion,
-                '--mode=' + mode]
+        t_args = ['--internal', 'gtkdoc',
+                  '--sourcedir=' + state.environment.get_source_dir(),
+                  '--builddir=' + state.environment.get_build_dir(),
+                  '--subdir=' + state.subdir,
+                  '--headerdirs=' + '@@'.join(header_dirs),
+                  '--mainfile=' + main_file,
+                  '--modulename=' + modulename,
+                  '--moduleversion=' + moduleversion,
+                  '--mode=' + kwargs['mode']]
         for tool in ['scan', 'scangobj', 'mkdb', 'mkhtml', 'fixxref']:
             program_name = 'gtkdoc-' + tool
             program = state.find_program(program_name)
             path = program.get_path()
-            args.append(f'--{program_name}={path}')
+            t_args.append(f'--{program_name}={path}')
         if namespace:
-            args.append('--namespace=' + namespace)
-        args += self._unpack_args('--htmlargs=', 'html_args', kwargs)
-        args += self._unpack_args('--scanargs=', 'scan_args', kwargs)
-        args += self._unpack_args('--scanobjsargs=', 'scanobjs_args', kwargs)
-        args += self._unpack_args('--gobjects-types-file=', 'gobject_typesfile', kwargs, state)
-        args += self._unpack_args('--fixxrefargs=', 'fixxref_args', kwargs)
-        args += self._unpack_args('--mkdbargs=', 'mkdb_args', kwargs)
-        args += self._unpack_args('--html-assets=', 'html_assets', kwargs, state)
+            t_args.append('--namespace=' + namespace)
+        t_args.append(f'--htmlargs={"@@".join(kwargs["html_args"])}')
+        t_args.append(f'--scanargs={"@@".join(kwargs["scan_args"])}')
+        t_args.append(f'--scanobjsargs={"@@".join(kwargs["scanobjs_args"])}')
+        t_args.append(f'--gobjects-types-file={"@@".join(abs_filenames(kwargs["gobject_typesfile"]))}')
+        t_args.append(f'--fixxrefargs={"@@".join(kwargs["fixxref_args"])}')
+        t_args.append(f'--mkdbargs={"@@".join(kwargs["mkdb_args"])}')
+        t_args.append(f'--html-assets={"@@".join(abs_filenames(kwargs["html_assets"]))}')
 
-        depends = []
+        depends: T.List['build.GeneratedTypes'] = []
         content_files = []
-        for s in mesonlib.extract_as_list(kwargs, 'content_files'):
+        for s in kwargs['content_files']:
             if isinstance(s, (build.CustomTarget, build.CustomTargetIndex)):
                 depends.append(s)
                 for o in s.get_outputs():
@@ -1149,50 +1186,43 @@ class GnomeModule(ExtensionModule):
                     content_files.append(os.path.join(state.environment.get_source_dir(),
                                                       state.subdir,
                                                       gen_src))
-            elif isinstance(s, str):
+            else:
                 content_files.append(os.path.join(state.environment.get_source_dir(),
                                                   state.subdir,
                                                   s))
-            else:
-                raise MesonException(
-                    f'Invalid object type: {s.__class__.__name__!r}')
-        args += ['--content-files=' + '@@'.join(content_files)]
+        t_args += ['--content-files=' + '@@'.join(content_files)]
 
-        args += self._unpack_args('--expand-content-files=', 'expand_content_files', kwargs, state)
-        args += self._unpack_args('--ignore-headers=', 'ignore_headers', kwargs)
-        args += self._unpack_args('--installdir=', 'install_dir', kwargs)
-        args += self._get_build_args(kwargs, state, depends)
+        t_args.append(f'--expand-content-files={"@@".join(abs_filenames(kwargs["expand_content_files"]))}')
+        t_args.append(f'--ignore-headers={"@@".join(kwargs["ignore_headers"])}')
+        t_args.append(f'--installdir={"@@".join(kwargs["install_dir"])}')
+        t_args += self._get_build_args(kwargs['c_args'], kwargs['include_directories'],
+                                       kwargs['dependencies'], state, depends)
         custom_kwargs = {'output': modulename + '-decl.txt',
-                         'command': command + args,
+                         'command': command + t_args,
                          'depends': depends,
                          'build_always_stale': True,
                          }
         custom_target = build.CustomTarget(targetname, state.subdir, state.subproject, custom_kwargs)
         alias_target = build.AliasTarget(targetname, [custom_target], state.subdir, state.subproject)
-        if kwargs.get('check', False):
+        if kwargs['check']:
             check_cmd = state.find_program('gtkdoc-check')
             check_env = ['DOC_MODULE=' + modulename,
                          'DOC_MAIN_SGML_FILE=' + main_file]
-            check_args = [targetname + '-check', check_cmd]
+            check_args = (targetname + '-check', check_cmd)
             check_workdir = os.path.join(state.environment.get_build_dir(), state.subdir)
-            state.test(check_args, env=check_env, workdir=check_workdir, depends=custom_target)
-        res = [custom_target, alias_target]
-        if kwargs.get('install', True):
-            res.append(state.backend.get_executable_serialisation(command + args, tag='doc'))
+            state.test(check_args, env=check_env, workdir=check_workdir, depends=[custom_target])
+        res: T.List[T.Union[build.Target, build.ExecutableSerialisation]] = [custom_target, alias_target]
+        if kwargs['install']:
+            res.append(state.backend.get_executable_serialisation(command + t_args, tag='doc'))
         return ModuleReturnValue(custom_target, res)
 
-    def _get_build_args(self, kwargs: T.Dict[str, T.Any], state: 'ModuleState', depends: T.List[build.BuildTarget]) -> T.List[str]:
+    def _get_build_args(self, c_args: T.List[str], inc_dirs: T.List[T.Union[str, build.IncludeDirs]],
+                        deps: T.List[T.Union[Dependency, build.SharedLibrary, build.StaticLibrary]],
+                        state: 'ModuleState', depends: T.List[build.BuildTarget]) -> T.List[str]:
         args: T.List[str] = []
-        deps = extract_as_list(kwargs, 'dependencies')
-        cflags: T.List[str] = []
-        cflags.extend(mesonlib.stringlistify(kwargs.pop('c_args', [])))
+        cflags = c_args.copy()
         deps_cflags, internal_ldflags, external_ldflags, *_ = \
             self._get_dependencies_flags(deps, state, depends, include_rpath=True)
-        inc_dirs = mesonlib.extract_as_list(kwargs, 'include_directories')
-        for incd in inc_dirs:
-            if not isinstance(incd, (str, build.IncludeDirs)):
-                raise MesonException(
-                    'Gir include dirs should be include_directories().')
 
         cflags.extend(deps_cflags)
         cflags.extend(state.get_include_args(inc_dirs))
@@ -1222,28 +1252,6 @@ class GnomeModule(ExtensionModule):
     @typed_pos_args('gnome.gtkdoc_html_dir', str)
     def gtkdoc_html_dir(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> str:
         return os.path.join('share/gtk-doc/html', args[0])
-
-    @staticmethod
-    def _unpack_args(arg, kwarg_name: str, kwargs: T.Dict[str, T.Any], expend_file_state: T.Optional['ModuleState'] = None) -> T.List[str]:
-        if kwarg_name not in kwargs:
-            return []
-
-        new_args = mesonlib.extract_as_list(kwargs, kwarg_name)
-        args = []
-        for i in new_args:
-            if expend_file_state is not None:
-                if isinstance(i, mesonlib.File):
-                    i = i.absolute_path(expend_file_state.environment.get_source_dir(), expend_file_state.environment.get_build_dir())
-                elif isinstance(i, str):
-                    i = os.path.join(expend_file_state.environment.get_source_dir(), expend_file_state.subdir, i)
-            elif not isinstance(i, str):
-                raise MesonException(kwarg_name + ' values must be strings.')
-            args.append(i)
-
-        if args:
-            return [arg + '@@'.join(args)]
-
-        return []
 
     def _get_autocleanup_args(self, kwargs: T.Dict[str, T.Any], glib_version: str) -> T.List[str]:
         if not mesonlib.version_compare(glib_version, '>= 2.49.1'):
