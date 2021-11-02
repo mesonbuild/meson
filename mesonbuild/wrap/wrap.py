@@ -556,8 +556,7 @@ class Resolver:
                 mlog.log('Using', mlog.bold(self.packagename), what, 'from cache.')
                 return cache_path
 
-            if not os.path.isdir(self.cachedir):
-                os.mkdir(self.cachedir)
+            os.makedirs(self.cachedir, exist_ok=True)
             self.download(what, cache_path)
             return cache_path
         else:
