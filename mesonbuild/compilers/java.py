@@ -40,6 +40,9 @@ class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
     def get_werror_args(self) -> T.List[str]:
         return ['-Werror']
 
+    def get_no_warn_args(self) -> T.List[str]:
+        return ['-nowarn']
+
     def get_output_args(self, outputname: str) -> T.List[str]:
         if outputname == '':
             outputname = './'
@@ -103,3 +106,8 @@ class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return []
+
+    def get_debug_args(self, is_debug: bool) -> T.List[str]:
+        if is_debug:
+            return ['-g']
+        return ['-g:none']
