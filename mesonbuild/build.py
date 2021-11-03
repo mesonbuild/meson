@@ -2434,7 +2434,7 @@ class CustomTarget(Target, CommandBase):
             if not isinstance(self.install, bool):
                 raise InvalidArguments('"install" must be boolean.')
             if self.install:
-                if 'install_dir' not in kwargs:
+                if not kwargs.get('install_dir', False):
                     raise InvalidArguments('"install_dir" must be specified '
                                            'when installing a target')
 
