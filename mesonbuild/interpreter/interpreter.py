@@ -1946,10 +1946,19 @@ This will become a hard error in the future.''', location=self.current_node)
 
         return d
 
-    @FeatureNewKwargs('subdir', '0.44.0', ['if_found'])
-    @permittedKwargs({'if_found'})
     @typed_pos_args('subdir', str)
-    def func_subdir(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> None:
+    @typed_kwargs(
+        'subdir',
+        KwargInfo(
+            'if_found',
+            ContainerTypeInfo(list, object),
+            validator=lambda a: 'Objects must have a found() method' if not all(hasattr(x, 'found') for x in a) else None,
+            since='0.44.0',
+            default=[],
+            listify=True,
+        ),
+    )
+    def func_subdir(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs: 'kwargs.Subdir') -> None:
         mesonlib.check_direntry_issues(args)
         if '..' in args[0]:
             raise InvalidArguments('Subdir contains ..')
@@ -1957,11 +1966,10 @@ This will become a hard error in the future.''', location=self.current_node)
             raise InvalidArguments('Must not go into subprojects dir with subdir(), use subproject() instead.')
         if self.subdir == '' and args[0].startswith('meson-'):
             raise InvalidArguments('The "meson-" prefix is reserved and cannot be used for top-level subdir().')
-        for i in mesonlib.extract_as_list(kwargs, 'if_found'):
-            if not hasattr(i, 'found'):
-                raise InterpreterException('Object used in if_found does not have a found method.')
+        for i in kwargs['if_found']:
             if not i.found():
                 return
+
         prev_subdir = self.subdir
         subdir = os.path.join(prev_subdir, args[0])
         if os.path.isabs(subdir):

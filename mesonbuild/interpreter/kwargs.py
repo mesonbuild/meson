@@ -6,7 +6,7 @@
 
 import typing as T
 
-from typing_extensions import TypedDict, Literal
+from typing_extensions import TypedDict, Literal, Protocol
 
 from .. import build
 from .. import coredata
@@ -204,3 +204,18 @@ class Project(TypedDict):
     default_options: T.List[str]
     license: T.List[str]
     subproject_dir: str
+
+
+class _FoundProto(Protocol):
+
+    """Protocol for subdir arguments.
+
+    This allows us to define any objec that has a found(self) -> bool method
+    """
+
+    def found(self) -> bool: ...
+
+
+class Subdir(TypedDict):
+
+    if_found: T.List[_FoundProto]
