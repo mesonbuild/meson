@@ -56,6 +56,7 @@ from .type_checking import (
     CT_INPUT_KW,
     CT_INSTALL_DIR_KW,
     CT_OUTPUT_KW,
+    DEFAULT_OPTIONS,
     DEPENDS_KW,
     DEPEND_FILES_KW,
     DEPFILE_KW,
@@ -95,6 +96,15 @@ if T.TYPE_CHECKING:
     SourceOutputs = T.Union[mesonlib.File, build.GeneratedList,
                             build.BuildTarget, build.CustomTargetIndex, build.CustomTarget,
                             build.GeneratedList]
+
+
+def _project_version_validator(value: T.Union[T.List, str, mesonlib.File, None]) -> T.Optional[str]:
+    if isinstance(value, list):
+        if len(value) != 1:
+            return 'when passed as array must have a length of 1'
+        elif not isinstance(value[0], (str, mesonlib.File)):
+            return 'when passed as array must contain a string or File'
+    return None
 
 
 def stringifyUserArguments(args, quote=False):
@@ -1019,16 +1029,29 @@ external dependencies (including libraries) must go to "dependencies".''')
         options = {k: v for k, v in self.environment.options.items() if k.is_backend()}
         self.coredata.set_options(options)
 
-    @permittedKwargs({'version', 'meson_version', 'default_options', 'license', 'subproject_dir'})
     @typed_pos_args('project', str, varargs=str)
-    def func_project(self, node: mparser.FunctionNode, args: T.Tuple[str, T.List[str]], kwargs: 'TYPE_kwargs') -> None:
+    @typed_kwargs(
+        'project',
+        DEFAULT_OPTIONS,
+        KwargInfo('meson_version', (str, NoneType)),
+        KwargInfo(
+            'version',
+            (str, mesonlib.File, NoneType, list),
+            default='undefined',
+            validator=_project_version_validator,
+            convertor=lambda x: x[0] if isinstance(x, list) else x,
+        ),
+        KwargInfo('license', ContainerTypeInfo(list, str), default=['unknown'], listify=True),
+        KwargInfo('subproject_dir', str, default='subprojects'),
+    )
+    def func_project(self, node: mparser.FunctionNode, args: T.Tuple[str, T.List[str]], kwargs: 'kwargs.Project') -> None:
         proj_name, proj_langs = args
         if ':' in proj_name:
             raise InvalidArguments(f"Project name {proj_name!r} must not contain ':'")
 
         # This needs to be evaluated as early as possible, as meson uses this
         # for things like deprecation testing.
-        if 'meson_version' in kwargs:
+        if kwargs['meson_version']:
             cv = coredata.version
             pv = kwargs['meson_version']
             if not mesonlib.version_compare(cv, pv):
@@ -1045,8 +1068,8 @@ external dependencies (including libraries) must go to "dependencies".''')
         # values previously set from command line. That means that changing
         # default_options in a project will trigger a reconfigure but won't
         # have any effect.
-        self.project_default_options = mesonlib.stringlistify(kwargs.get('default_options', []))
-        self.project_default_options = coredata.create_options_dict(self.project_default_options, self.subproject)
+        self.project_default_options = coredata.create_options_dict(
+            kwargs['default_options'], self.subproject)
 
         # If this is the first invocation we always need to initialize
         # builtins, if this is a subproject that is new in a re-invocation we
@@ -1062,11 +1085,8 @@ external dependencies (including libraries) must go to "dependencies".''')
         if not self.is_subproject():
             self.build.project_name = proj_name
         self.active_projectname = proj_name
-        version = kwargs.get('version', 'undefined')
-        if isinstance(version, list):
-            if len(version) != 1:
-                raise InvalidCode('Version argument is an array with more than one entry.')
-            version = version[0]
+
+        version = kwargs['version']
         if isinstance(version, mesonlib.File):
             FeatureNew.single_use('version from file', '0.57.0', self.subproject)
             self.add_build_def_file(version)
@@ -1081,33 +1101,29 @@ external dependencies (including libraries) must go to "dependencies".''')
             if len(ver_data) != 1:
                 raise InterpreterException('Version file must contain exactly one line of text.')
             self.project_version = ver_data[0]
-        elif isinstance(version, str):
-            self.project_version = version
         else:
-            raise InvalidCode('The version keyword argument must be a string or a file.')
+            self.project_version = version
+
         if self.build.project_version is None:
             self.build.project_version = self.project_version
-        proj_license = mesonlib.stringlistify(kwargs.get('license', 'unknown'))
+        proj_license = kwargs['license']
         self.build.dep_manifest[proj_name] = build.DepManifest(self.project_version, proj_license)
         if self.subproject in self.build.projects:
             raise InvalidCode('Second call to project().')
 
         # spdirname is the subproject_dir for this project, relative to self.subdir.
         # self.subproject_dir is the subproject_dir for the main project, relative to top source dir.
-        spdirname = kwargs.get('subproject_dir')
-        if spdirname:
-            if not isinstance(spdirname, str):
-                raise InterpreterException('Subproject_dir must be a string')
-            if os.path.isabs(spdirname):
-                raise InterpreterException('Subproject_dir must not be an absolute path.')
-            if spdirname.startswith('.'):
-                raise InterpreterException('Subproject_dir must not begin with a period.')
-            if '..' in spdirname:
-                raise InterpreterException('Subproject_dir must not contain a ".." segment.')
-            if not self.is_subproject():
-                self.subproject_dir = spdirname
-        else:
-            spdirname = 'subprojects'
+        spdirname = kwargs['subproject_dir']
+        if not isinstance(spdirname, str):
+            raise InterpreterException('Subproject_dir must be a string')
+        if os.path.isabs(spdirname):
+            raise InterpreterException('Subproject_dir must not be an absolute path.')
+        if spdirname.startswith('.'):
+            raise InterpreterException('Subproject_dir must not begin with a period.')
+        if '..' in spdirname:
+            raise InterpreterException('Subproject_dir must not contain a ".." segment.')
+        if not self.is_subproject():
+            self.subproject_dir = spdirname
         self.build.subproject_dir = self.subproject_dir
 
         # Load wrap files from this (sub)project.

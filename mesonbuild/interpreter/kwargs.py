@@ -195,3 +195,12 @@ class AddTestSetup(TypedDict):
     is_default: bool
     exclude_suites: T.List[str]
     env: build.EnvironmentVariables
+
+
+class Project(TypedDict):
+
+    version: T.Optional[FileOrString]
+    meson_version: T.Optional[str]
+    default_options: T.List[str]
+    license: T.List[str]
+    subproject_dir: str
