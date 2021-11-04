@@ -60,6 +60,7 @@ from .type_checking import (
     DEPENDS_KW,
     DEPEND_FILES_KW,
     DEPFILE_KW,
+    DISABLER_KW,
     ENV_KW,
     INSTALL_KW,
     INSTALL_MODE_KW,
@@ -570,7 +571,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_kwargs(
         'import',
         REQUIRED_KW.evolve(since='0.59.0'),
-        KwargInfo('disabler', bool, default=False, since='0.59.0'),
+        DISABLER_KW.evolve(since='0.59.0'),
     )
     @disablerIfNotFound
     def func_import(self, node: mparser.BaseNode, args: T.Tuple[str],

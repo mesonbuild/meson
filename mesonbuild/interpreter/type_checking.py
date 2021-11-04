@@ -129,6 +129,8 @@ REQUIRED_KW: KwargInfo[T.Union[bool, UserFeatureOption]] = KwargInfo(
     # TODO: extract_required_kwarg could be converted to a convertor
 )
 
+DISABLER_KW: KwargInfo[bool] = KwargInfo('disabler', bool, default=False)
+
 def _env_validator(value: T.Union[EnvironmentVariables, T.List['TYPE_var'], T.Dict[str, 'TYPE_var'], str, None]) -> T.Optional[str]:
     def _splitter(v: str) -> T.Optional[str]:
         split = v.split('=', 1)
