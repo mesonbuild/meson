@@ -1751,7 +1751,7 @@ This will become a hard error in the future.''', location=self.current_node)
         kwargs['env'] = self.unpack_env_kwarg(kwargs)
         if 'command' in kwargs and isinstance(kwargs['command'], list) and kwargs['command']:
             if isinstance(kwargs['command'][0], str):
-                kwargs['command'][0] = self.func_find_program(node, kwargs['command'][0], {})
+                kwargs['command'][0] = self.find_program_impl([kwargs['command'][0]])
         tg = build.CustomTarget(name, self.subdir, self.subproject, kwargs, backend=self.backend)
         self.add_target(tg.name, tg)
         return tg
@@ -1771,7 +1771,7 @@ This will become a hard error in the future.''', location=self.current_node)
             if isinstance(i, ExternalProgram) and not i.found():
                 raise InterpreterException(f'Tried to use non-existing executable {i.name!r}')
         if isinstance(all_args[0], str):
-            all_args[0] = self.func_find_program(node, all_args[0], {})
+            all_args[0] = self.find_program_impl([all_args[0]])
         name = args[0]
         tg = build.RunTarget(name, all_args, kwargs['depends'], self.subdir, self.subproject, kwargs['env'])
         self.add_target(name, tg)
@@ -1849,7 +1849,7 @@ This will become a hard error in the future.''', location=self.current_node)
             name = name.replace(':', '_')
         exe = args[1]
         if isinstance(exe, mesonlib.File):
-            exe = self.func_find_program(node, args[1], {})
+            exe = self.find_program_impl([exe])
 
         env = self.unpack_env_kwarg(kwargs)
 
