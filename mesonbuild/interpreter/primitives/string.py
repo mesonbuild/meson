@@ -13,6 +13,7 @@ from ...interpreterbase import (
     MesonOperator,
     FeatureNew,
     typed_operator,
+    noArgsFlattening,
     noKwargs,
     noPosargs,
     typed_pos_args,
@@ -85,6 +86,7 @@ class StringHolder(ObjectHolder[str]):
     def endswith_method(self, args: T.Tuple[str], kwargs: TYPE_kwargs) -> bool:
         return self.held_object.endswith(args[0])
 
+    @noArgsFlattening
     @noKwargs
     @typed_pos_args('str.format', varargs=object)
     def format_method(self, args: T.Tuple[T.List[object]], kwargs: TYPE_kwargs) -> str:
