@@ -1493,19 +1493,17 @@ external dependencies (including libraries) must go to "dependencies".''')
     @FeatureNewKwargs('find_program', '0.49.0', ['disabler'])
     @disablerIfNotFound
     @permittedKwargs({'required', 'native', 'version', 'dirs'})
-    def func_find_program(self, node, args, kwargs) -> T.Union['build.Executable', ExternalProgram, 'OverrideProgram']:
-        if not args:
-            raise InterpreterException('No program name specified.')
-
+    @typed_pos_args('find_program', varargs=(str, mesonlib.File), min_varargs=1)
+    def func_find_program(self, node: mparser.BaseNode, args: T.Tuple[T.List[mesonlib.FileOrString]], kwargs) -> T.Union['build.Executable', ExternalProgram, 'OverrideProgram']:
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
-            mlog.log('Program', mlog.bold(' '.join(args)), 'skipped: feature', mlog.bold(feature), 'disabled')
-            return self.notfound_program(args)
+            mlog.log('Program', mlog.bold(' '.join(args[0])), 'skipped: feature', mlog.bold(feature), 'disabled')
+            return self.notfound_program(args[0])
 
         search_dirs = extract_search_dirs(kwargs)
         wanted = mesonlib.stringlistify(kwargs.get('version', []))
         for_machine = self.machine_from_native_kwarg(kwargs)
-        return self.find_program_impl(args, for_machine, required=required,
+        return self.find_program_impl(args[0], for_machine, required=required,
                                       silent=False, wanted=wanted,
                                       search_dirs=search_dirs)
 
@@ -2385,7 +2383,7 @@ This will become a hard error in the future.''', location=self.current_node)
         if re.fullmatch('([_a-zA-Z][_0-9a-zA-Z]*:)?[_a-zA-Z][_0-9a-zA-Z]*', setup_name) is None:
             raise InterpreterException('Setup name may only contain alphanumeric characters.')
         if ":" not in setup_name:
-            setup_name = f'{(self.subproject if self.subproject else self.build.project_name)}: {setup_name}'
+            setup_name = f'{(self.subproject if self.subproject else self.build.project_name)}:{setup_name}'
 
         exe_wrapper: T.List[str] = []
         for i in kwargs['exe_wrapper']:
