@@ -1408,9 +1408,13 @@ external dependencies (including libraries) must go to "dependencies".''')
 
     # TODO update modules to always pass `for_machine`. It is bad-form to assume
     # the host machine.
-    def find_program_impl(self, args, for_machine: MachineChoice = MachineChoice.HOST,
-                          required=True, silent=True, wanted='', search_dirs=None,
-                          version_func=None):
+    def find_program_impl(self, args: T.List[mesonlib.FileOrString],
+                          for_machine: MachineChoice = MachineChoice.HOST,
+                          required: bool = True, silent: bool = True,
+                          wanted: T.Union[str, T.List[str]] = '',
+                          search_dirs: T.Optional[T.List[str]] = None,
+                          version_func: T.Optional[T.Callable[[T.Union['ExternalProgram', 'build.Executable', 'OverrideProgram']], str]] = None
+                          ) -> T.Union['ExternalProgram', 'build.Executable', 'OverrideProgram']:
         args = mesonlib.listify(args)
 
         extra_info = []
@@ -1434,7 +1438,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                     interp = self.subprojects[progobj.subproject].held_object
                     assert isinstance(interp, Interpreter)
                 version = interp.project_version
-            elif isinstance(progobj, ExternalProgram):
+            else:
                 version = progobj.get_version(self)
             is_found, not_found, found = mesonlib.version_compare_many(version, wanted)
             if not is_found:
