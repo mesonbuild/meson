@@ -121,19 +121,14 @@ def stringifyUserArguments(args, quote=False):
     raise InvalidArguments('Function accepts only strings, integers, bools, lists, dictionaries and lists thereof.')
 
 class Summary:
-    def __init__(self, project_name, project_version):
+    def __init__(self, project_name: str, project_version: str):
         self.project_name = project_name
         self.project_version = project_version
         self.sections = collections.defaultdict(dict)
         self.max_key_len = 0
 
-    def add_section(self, section, values, kwargs, subproject):
-        bool_yn = kwargs.get('bool_yn', False)
-        if not isinstance(bool_yn, bool):
-            raise InterpreterException('bool_yn keyword argument must be boolean')
-        list_sep = kwargs.get('list_sep')
-        if list_sep is not None and not isinstance(list_sep, str):
-            raise InterpreterException('list_sep keyword argument must be string')
+    def add_section(self, section: str, values: T.Dict[str, T.Any], bool_yn: bool,
+                    list_sep: T.Optional[str], subproject: str) -> None:
         for k, v in values.items():
             if k in self.sections[section]:
                 raise InterpreterException(f'Summary section {section!r} already have key {k!r}')
@@ -267,7 +262,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.environment = self.build.environment
         self.coredata = self.environment.get_coredata()
         self.backend = backend
-        self.summary = {}
+        self.summary: T.Dict[str, 'Summary'] = {}
         self.modules = {}
         # Subproject directory is usually the name of the subproject, but can
         # be different for dependencies provided by wrap files.
@@ -1193,31 +1188,33 @@ external dependencies (including libraries) must go to "dependencies".''')
         mlog.log(mlog.bold('Message:'), *args)
 
     @noArgsFlattening
-    @FeatureNewKwargs('summary', '0.54.0', ['list_sep'])
-    @permittedKwargs({'section', 'bool_yn', 'list_sep'})
     @FeatureNew('summary', '0.53.0')
-    def func_summary(self, node, args, kwargs):
-        if len(args) == 1:
+    @typed_pos_args('summary', (str, dict), optargs=[object])
+    @typed_kwargs(
+        'summary',
+        KwargInfo('section', str, default=''),
+        KwargInfo('bool_yn', bool, default=False),
+        KwargInfo('list_sep', (str, NoneType), since='0.54.0')
+    )
+    def func_summary(self, node: mparser.BaseNode, args: T.Tuple[T.Union[str, T.Dict[str, T.Any]], T.Optional[T.Any]],
+                     kwargs: 'kwargs.Summary') -> None:
+        if args[1] is None:
             if not isinstance(args[0], dict):
                 raise InterpreterException('Summary first argument must be dictionary.')
             values = args[0]
-        elif len(args) == 2:
+        else:
             if not isinstance(args[0], str):
                 raise InterpreterException('Summary first argument must be string.')
             values = {args[0]: args[1]}
-        else:
-            raise InterpreterException('Summary accepts at most 2 arguments.')
-        section = kwargs.get('section', '')
-        if not isinstance(section, str):
-            raise InterpreterException('Summary\'s section keyword argument must be string.')
-        self.summary_impl(section, values, kwargs)
+        self.summary_impl(kwargs['section'], values, kwargs)
 
-    def summary_impl(self, section, values, kwargs):
+    def summary_impl(self, section: str, values, kwargs: 'kwargs.Summary') -> None:
         if self.subproject not in self.summary:
             self.summary[self.subproject] = Summary(self.active_projectname, self.project_version)
-        self.summary[self.subproject].add_section(section, values, kwargs, self.subproject)
+        self.summary[self.subproject].add_section(
+            section, values, kwargs['bool_yn'], kwargs['list_sep'], self.subproject)
 
-    def _print_summary(self):
+    def _print_summary(self) -> None:
         # Add automatic 'Supbrojects' section in main project.
         all_subprojects = collections.OrderedDict()
         for name, subp in sorted(self.subprojects.items()):
@@ -1244,7 +1241,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             sorted_options = sorted(self.user_defined_options.cmd_line_options.items())
             values.update({str(k): v for k, v in sorted_options})
             if values:
-                self.summary_impl('User defined options', values, {})
+                self.summary_impl('User defined options', values, {'bool_yn': False, 'list_sep': None})
         # Print all summaries, main project last.
         mlog.log('')  # newline
         main_summary = self.summary.pop('', None)

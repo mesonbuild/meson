@@ -219,3 +219,10 @@ class _FoundProto(Protocol):
 class Subdir(TypedDict):
 
     if_found: T.List[_FoundProto]
+
+
+class Summary(TypedDict):
+
+    section: str
+    bool_yn: bool
+    list_sep: T.Optional[str]
