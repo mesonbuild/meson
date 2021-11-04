@@ -226,3 +226,9 @@ class Summary(TypedDict):
     section: str
     bool_yn: bool
     list_sep: T.Optional[str]
+
+
+class FindProgram(ExtractRequired, ExtractSearchDirs):
+
+    native: MachineChoice
+    version: T.List[str]

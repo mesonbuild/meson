@@ -1489,23 +1489,27 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.do_subproject(fallback, 'meson', sp_kwargs)
         return self.program_from_overrides(args, extra_info)
 
-    @FeatureNewKwargs('find_program', '0.53.0', ['dirs'])
-    @FeatureNewKwargs('find_program', '0.52.0', ['version'])
-    @FeatureNewKwargs('find_program', '0.49.0', ['disabler'])
-    @disablerIfNotFound
-    @permittedKwargs({'required', 'native', 'version', 'dirs'})
     @typed_pos_args('find_program', varargs=(str, mesonlib.File), min_varargs=1)
-    def func_find_program(self, node: mparser.BaseNode, args: T.Tuple[T.List[mesonlib.FileOrString]], kwargs) -> T.Union['build.Executable', ExternalProgram, 'OverrideProgram']:
+    @typed_kwargs(
+        'find_program',
+        DISABLER_KW.evolve(since='0.49.0'),
+        NATIVE_KW,
+        REQUIRED_KW,
+        KwargInfo('dirs', ContainerTypeInfo(list, str), default=[], listify=True, since='0.53.0'),
+        KwargInfo('version', ContainerTypeInfo(list, str), default=[], listify=True, since='0.52.0'),
+    )
+    @disablerIfNotFound
+    def func_find_program(self, node: mparser.BaseNode, args: T.Tuple[T.List[mesonlib.FileOrString]],
+                          kwargs: 'kwargs.FindProgram',
+                          ) -> T.Union['build.Executable', ExternalProgram, 'OverrideProgram']:
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
             mlog.log('Program', mlog.bold(' '.join(args[0])), 'skipped: feature', mlog.bold(feature), 'disabled')
             return self.notfound_program(args[0])
 
         search_dirs = extract_search_dirs(kwargs)
-        wanted = mesonlib.stringlistify(kwargs.get('version', []))
-        for_machine = self.machine_from_native_kwarg(kwargs)
-        return self.find_program_impl(args[0], for_machine, required=required,
-                                      silent=False, wanted=wanted,
+        return self.find_program_impl(args[0], kwargs['native'], required=required,
+                                      silent=False, wanted=kwargs['version'],
                                       search_dirs=search_dirs)
 
     def func_find_library(self, node, args, kwargs):
