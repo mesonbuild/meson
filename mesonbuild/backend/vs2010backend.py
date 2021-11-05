@@ -296,7 +296,7 @@ class Vs2010Backend(backends.Backend):
                 raise MesonException(f'Unknown target type for target {target}')
 
             for gendep in target.get_generated_sources():
-                if isinstance(gendep, build.CustomTarget):
+                if isinstance(gendep, (build.BuildTarget, build.CustomTarget)):
                     all_deps[gendep.get_id()] = gendep
                 elif isinstance(gendep, build.CustomTargetIndex):
                     all_deps[gendep.target.get_id()] = gendep.target
