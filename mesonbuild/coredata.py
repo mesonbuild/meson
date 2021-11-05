@@ -1218,6 +1218,8 @@ BUILTIN_CORE_OPTIONS: 'KeyedOptionDictType' = OrderedDict([
     (OptionKey('force_fallback_for'), BuiltinOption(UserArrayOption, 'Force fallback for those subprojects', [])),
 
     # Python module
+    (OptionKey('install_env', module='python'),
+     BuiltinOption(UserComboOption, 'Which python environment to install to', 'prefix', choices=['auto', 'prefix', 'system', 'venv'])),
     (OptionKey('platlibdir', module='python'),
      BuiltinOption(UserStringOption, 'Directory for site-specific, platform-specific files.', '')),
     (OptionKey('purelibdir', module='python'),

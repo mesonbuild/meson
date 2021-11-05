@@ -271,10 +271,11 @@ name with the module name: `-D<module>.<option>=<value>` (e.g. `-Dpython.platlib
 
 ### Python module
 
-| Option           | Default value | Possible values | Description |
-| ------           | ------------- | --------------- | ----------- |
-| platlibdir       |               | Directory path  | Directory for site-specific, platform-specific files (Since 0.60.0) |
-| purelibdir       |               | Directory path  | Directory for site-specific, non-platform-specific files  (Since 0.60.0) |
+| Option           | Default value | Possible values             | Description |
+| ------           | ------------- | -----------------           | ----------- |
+| install_env      | prefix        | {auto,prefix,system,venv}   | Which python environment to install to (Since 0.62.0) |
+| platlibdir       |               | Directory path              | Directory for site-specific, platform-specific files (Since 0.60.0) |
+| purelibdir       |               | Directory path              | Directory for site-specific, non-platform-specific files  (Since 0.60.0) |
 
 *Since 0.60.0* `python.platlibdir` and `python.purelibdir` options are used by
 python module methods `python.install_sources()` and `python.get_install_dir()`.
@@ -283,3 +284,14 @@ relative to the installation `prefix`, which will often result in installed pyth
 modules to not be found by the interpreter unless `prefix` is `/usr` on Linux,
 or for example `C:\Python39` on Windows. These options can be absolute paths
 outside of `prefix`.
+
+*Since 0.62.0* The `python.install_env` option is used to detect the correct
+installation path. Setting to `system` will avoid making the paths relative to
+`prefix` and instead use the global site-packages of the selected python
+interpreter directly, even if it is a venv. Setting to `venv` will instead use
+the paths for the virtualenv the python found installation comes from (or fail
+if it is not a virtualenv).  Setting to `auto` will check if the found
+installation is a virtualenv, and use `venv` or `system` as appropriate (but
+never `prefix`). This option is mutually exclusive with the `platlibdir`/`purelibdir`.
+
+For backwards compatibility purposes, the default `install_env` is `prefix`.
