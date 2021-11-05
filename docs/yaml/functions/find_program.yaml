@@ -12,8 +12,8 @@ description: |
   1. [`[binaries]` section](Machine-files.md#binaries) in your machine files
   1. Directories provided using the `dirs:` kwarg (see below)
   1. Project's source tree relative to the current subdir
-    - If you use the return value of [[configure_file]], the
-      current subdir inside the build tree is used instead
+     - If you use the return value of [[configure_file]], the
+       current subdir inside the build tree is used instead
   1. `PATH` environment variable
   1. [`[provide]` sections](Wrap-dependency-system-manual.md#provide-section) in
     subproject wrap files, if [`wrap_mode`](Builtin-options.md#core-options) is
