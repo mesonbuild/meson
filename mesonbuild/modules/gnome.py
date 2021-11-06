@@ -18,6 +18,7 @@ functionality such as gobject-introspection, gresources and gtk-doc'''
 import copy
 import functools
 import os
+import shutil
 import subprocess
 import textwrap
 import typing as T
@@ -1004,6 +1005,13 @@ class GnomeModule(ExtensionModule):
                              'Use a LINGUAS file in the source directory instead')
     @typed_pos_args('gnome.yelp', str, varargs=str)
     def yelp(self, state: 'ModuleState', args: T.Tuple[str, T.List[str]], kwargs) -> ModuleReturnValue:
+        if not shutil.which('itstool'):
+            raise MesonException('itstool not found, required for gnome.yelp target')
+        if not shutil.which('msgmerge'):
+            raise MesonException('gettext not found, required for gnome.yelp target')
+        if not shutil.which('msgfmt'):
+            raise MesonException('gettext not found, required for gnome.yelp target')
+
         project_id = args[0]
         if len(args) > 1:
             FeatureDeprecated.single_use('gnome.yelp more than one positional argument', '0.60.0', 'use the "sources" keyword argument instead.')
