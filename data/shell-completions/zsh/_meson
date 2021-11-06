@@ -33,8 +33,8 @@ local __meson_backends="(ninja xcode ${(j. .)${:-vs{,2010,2012,2013,2015,2017,20
 local __meson_build_types="(plain debug debugoptimized minsize release custom)"
 local __meson_wrap_modes="(default nofallback nodownload forcefallback nopromote)"
 local __meson_dist_formats=("xztar" "gztar" "zip")
-local __meson_cd='-C[change into this directory before running]:target dir:_directories'
 # This goes in sync with coredata.BUILTIN_*.
+local __meson_cd='-C+[change into this directory before running]:target dir:_directories'
 local -a __meson_common=(
   '--prefix=[installation prefix]: :_directories'
   '--bindir=[executable directory]: :_directories'
