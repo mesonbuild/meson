@@ -54,7 +54,7 @@ local -a __meson_common=(
   '--default-library=[default library type]:default library type:(shared static both)'
   '--errorlogs[prints the logs from failing tests]'
   '--install-umask=[default umask for permissions of all installed files]'
-  '--layout=[build directory layout]:build directory layout:(flat mirror)'
+  '--layout=[build directory layout]:build directory layout:(mirror)'
   '--optimization=[optimization level for compiled targets]:optimization:(plain 0 g 1 2 3 s)'
   '--stdsplit=[split stdout and stderr in test logs]'
   '--strip[strip targets on install]'
