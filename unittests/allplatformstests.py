@@ -1503,19 +1503,22 @@ class AllPlatformTests(BasePlatformTests):
         else:
             shlibfile = os.path.join(tdir, 'libalexandria.' + shared_suffix)
         self.build_shared_lib(cc, source, objectfile, shlibfile, impfile)
-        # Run the test
-        try:
-            self.init(tdir)
-            self.build()
-            self.run_tests()
-        finally:
-            os.unlink(shlibfile)
-            if is_windows():
-                # Clean up all the garbage MSVC writes in the
-                # source tree.
+
+        if is_windows():
+            def cleanup() -> None:
+                """Clean up all the garbage MSVC writes in the source tree."""
+
                 for fname in glob(os.path.join(tdir, 'alexandria.*')):
-                    if os.path.splitext(fname)[1] not in ['.c', '.h']:
+                    if os.path.splitext(fname)[1] not in {'.c', '.h'}:
                         os.unlink(fname)
+            self.addCleanup(cleanup)
+        else:
+            self.addCleanup(os.unlink, shlibfile)
+
+        # Run the test
+        self.init(tdir)
+        self.build()
+        self.run_tests()
 
     @skipIfNoPkgconfig
     def test_pkgconfig_static(self):
