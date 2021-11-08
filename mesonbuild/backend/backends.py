@@ -768,7 +768,7 @@ class Backend:
     def determine_rpath_dirs(self, target: build.BuildTarget) -> T.Tuple[str, ...]:
         result: OrderedSet[str]
         if self.environment.coredata.get_option(OptionKey('layout')) == 'mirror':
-            # NEed a copy here
+            # Need a copy here
             result = OrderedSet(target.get_link_dep_subdirs())
         else:
             result = OrderedSet()
