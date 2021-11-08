@@ -1516,6 +1516,29 @@ class AllPlatformTests(BasePlatformTests):
         self.build()
         self.run_tests()
 
+    def test_prebuilt_shared_lib_rpath(self) -> None:
+        (cc, _, object_suffix, shared_suffix) = self.detect_prebuild_env()
+        tdir = os.path.join(self.unit_test_dir, '17 prebuilt shared')
+        with tempfile.TemporaryDirectory() as d:
+            source = os.path.join(tdir, 'alexandria.c')
+            objectfile = os.path.join(d, 'alexandria.' + object_suffix)
+            impfile = os.path.join(d, 'alexandria.lib')
+            if cc.get_argument_syntax() == 'msvc':
+                shlibfile = os.path.join(d, 'alexandria.' + shared_suffix)
+            elif is_cygwin():
+                shlibfile = os.path.join(d, 'cygalexandria.' + shared_suffix)
+            else:
+                shlibfile = os.path.join(d, 'libalexandria.' + shared_suffix)
+            # Ensure MSVC extra files end up in the directory that gets deleted
+            # at the end
+            with chdir(d):
+                self.build_shared_lib(cc, source, objectfile, shlibfile, impfile)
+
+            # Run the test
+            self.init(tdir, extra_args=[f'-Dsearch_dir={d}'])
+            self.build()
+            self.run_tests()
+
     @skipIfNoPkgconfig
     def test_pkgconfig_static(self):
         '''
