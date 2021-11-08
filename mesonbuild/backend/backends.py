@@ -756,6 +756,9 @@ class Backend:
                 paths.append(os.path.join(self.build_to_src, rel_to_src))
             else:
                 paths.append(libdir)
+        for i in chain(target.link_targets, target.link_whole_targets):
+            if isinstance(i, build.BuildTarget):
+                paths.extend(self.rpaths_for_bundled_shared_libraries(i, exclude_system))
         return paths
 
     # This may take other types
