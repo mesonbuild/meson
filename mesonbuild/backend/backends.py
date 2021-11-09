@@ -392,15 +392,15 @@ class Backend:
             return os.path.join(self.build_to_src, target_dir)
         return self.build_to_src
 
-    def get_target_private_dir(self, target: build.Target) -> str:
+    def get_target_private_dir(self, target: T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]) -> str:
         return os.path.join(self.get_target_filename(target, warn_multi_output=False) + '.p')
 
-    def get_target_private_dir_abs(self, target: build.Target) -> str:
+    def get_target_private_dir_abs(self, target: T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]) -> str:
         return os.path.join(self.environment.get_build_dir(), self.get_target_private_dir(target))
 
     @lru_cache(maxsize=None)
     def get_target_generated_dir(
-            self, target: build.Target,
+            self, target: T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex],
             gensrc: T.Union[build.CustomTarget, build.CustomTargetIndex, build.GeneratedList],
             src: str) -> str:
         """
@@ -415,7 +415,8 @@ class Backend:
         # target that the GeneratedList is used in
         return os.path.join(self.get_target_private_dir(target), src)
 
-    def get_unity_source_file(self, target: build.Target, suffix: str, number: int) -> mesonlib.File:
+    def get_unity_source_file(self, target: T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex],
+                              suffix: str, number: int) -> mesonlib.File:
         # There is a potential conflict here, but it is unlikely that
         # anyone both enables unity builds and has a file called foo-unity.cpp.
         osrc = f'{target.name}-unity{number}.{suffix}'
@@ -757,7 +758,9 @@ class Backend:
                 paths.append(libdir)
         return paths
 
-    def determine_rpath_dirs(self, target: build.BuildTarget) -> T.Tuple[str, ...]:
+    # This may take other types
+    def determine_rpath_dirs(self, target: T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]
+                             ) -> T.Tuple[str, ...]:
         result: OrderedSet[str]
         if self.environment.coredata.get_option(OptionKey('layout')) == 'mirror':
             # Need a copy here
@@ -765,8 +768,9 @@ class Backend:
         else:
             result = OrderedSet()
             result.add('meson-out')
-        result.update(self.rpaths_for_bundled_shared_libraries(target))
-        target.rpath_dirs_to_remove.update([d.encode('utf-8') for d in result])
+        if isinstance(target, build.BuildTarget):
+            result.update(self.rpaths_for_bundled_shared_libraries(target))
+            target.rpath_dirs_to_remove.update([d.encode('utf-8') for d in result])
         return tuple(result)
 
     @staticmethod
