@@ -352,7 +352,6 @@ methods:
   returns: dep
   description: Tries to find the library specified in the positional argument.
 
-  kwargs_inherit: compiler._common
   posargs:
     libname:
       type: str
@@ -377,6 +376,10 @@ methods:
         This check is equivalent to checking each header with a
         [[compiler.has_header]] call.
 
+        When used, kwargs that [[compiler.has_header]] would accept can be
+        passed here prefixed with `header_`, and will have the same effect on
+        the header check.
+
     static:
       type: bool
       default: false
@@ -400,7 +403,39 @@ methods:
         By default the library is searched for in the system library directory
         (e.g. /usr/lib). Specifying more directories here, causes Meson to search
         in those directories as well as the system directories.
-
+# does not work, since all _common kwargs need to be prefixed `header_` here
+# kwargs_inherit: compiler._common
+    header_args:
+      type: list[str]
+      since: 0.51.0
+      description: |
+        When the `has_headers` kwarg is also used, this argument is passed to
+        [[compiler.has_header]] as `args`.
+    header_include_directories:
+      type: inc | list[inc]
+      since: 0.51.0
+      description: |
+        When the `has_headers` kwarg is also used, this argument is passed to
+        [[compiler.has_header]] as `include_directories`.
+    header_dependencies:
+      type: dep | list[dep]
+      since: 0.51.0
+      description: |
+        When the `has_headers` kwarg is also used, this argument is passed to
+        [[compiler.has_header]] as `dependencies`.
+    header_no_builtin_args:
+      type: bool
+      default: false
+      since: 0.51.0
+      description: |
+        When the `has_headers` kwarg is also used, this argument is passed to
+        [[compiler.has_header]] as `no_builtin_args`.
+    header_prefix:
+      type: str
+      since: 0.51.0
+      description: |
+        When the `has_headers` kwarg is also used, this argument is passed to
+        [[compiler.has_header]] as `prefix`.
 
 # Compiler arguments
 - name: has_argument
