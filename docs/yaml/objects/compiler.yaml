@@ -374,7 +374,7 @@ methods:
       since: 0.50.0
       description: |
         List of headers that must be found as well.
-        This is check is equivalent to checking each herader with an
+        This check is equivalent to checking each header with a
         [[compiler.has_header]] call.
 
     static:
