@@ -39,6 +39,7 @@ from ..mesonlib import (
     MachineChoice, MesonException, OrderedSet, Popen_safe, join_args,
 )
 from ..programs import ExternalProgram, OverrideProgram, EmptyExternalProgram
+from ..scripts.gettext import read_linguas
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypedDict
@@ -1154,47 +1155,99 @@ class GnomeModule(ExtensionModule):
                 raise MesonException('Yelp requires a list of sources')
         elif args[1]:
             mlog.warning('"gnome.yelp" ignores positional sources arguments when the "sources" keyword argument is set')
-        source_str = '@@'.join(sources)
+        sources_files = [mesonlib.File.from_source_file(state.environment.source_dir,
+                                                        os.path.join(state.subdir, 'C'),
+                                                        s) for s in sources]
 
         langs = kwargs['languages']
+        if not langs:
+            langs = read_linguas(os.path.join(state.environment.source_dir, state.subdir))
 
-        script = state.environment.get_build_command()
-        inscript_args = ['--internal',
-                'yelphelper',
-                'install',
-                '--subdir=' + state.subdir,
-                '--id=' + project_id,
-                '--installdir=' + os.path.join(state.environment.get_datadir(), 'help'),
-                '--sources=' + source_str]
-        if kwargs['symlink_media']:
-            inscript_args.append('--symlinks=true')
-        if kwargs['media']:
-            inscript_args.append('--media=' + '@@'.join(kwargs['media']))
-        if langs:
-            inscript_args.append('--langs=' + '@@'.join(langs))
-        inscript = state.backend.get_executable_serialisation(script + inscript_args)
+        media = kwargs['media']
+        symlinks = kwargs['symlink_media']
+        targets: T.List[T.Union['Target', build.Data, build.SymlinkData]] = []
+        potargets: T.List[build.RunTarget] = []
 
-        potargs = state.environment.get_build_command() + [
-            '--internal', 'yelphelper', 'pot',
-            '--subdir=' + state.subdir,
-            '--id=' + project_id,
-            '--sources=' + source_str,
-        ]
-        pottarget = build.RunTarget('help-' + project_id + '-pot', potargs,
-                                    [], state.subdir, state.subproject)
+        itstool = state.find_program('itstool')
+        msgmerge = state.find_program('msgmerge')
+        msgfmt = state.find_program('msgfmt')
 
-        poargs = state.environment.get_build_command() + [
-            '--internal', 'yelphelper', 'update-po',
-            '--subdir=' + state.subdir,
-            '--id=' + project_id,
-            '--sources=' + source_str,
-            '--langs=' + '@@'.join(langs),
-        ]
-        potarget = build.RunTarget('help-' + project_id + '-update-po', poargs,
-                                   [], state.subdir, state.subproject)
+        install_dir = os.path.join(state.environment.get_datadir(), 'help')
+        c_install_dir = os.path.join(install_dir, 'C', project_id)
+        c_data = build.Data(sources_files, c_install_dir, c_install_dir,
+                            mesonlib.FileMode(), state.subproject)
+        targets.append(c_data)
 
-        rv: T.List[T.Union[build.ExecutableSerialisation, build.RunTarget]] = [inscript, pottarget, potarget]
-        return ModuleReturnValue(None, rv)
+        media_files: T.List[mesonlib.File] = []
+        for m in media:
+            f = mesonlib.File.from_source_file(state.environment.source_dir,
+                                               os.path.join(state.subdir, 'C'), m)
+            media_files.append(f)
+            m_install_dir = os.path.join(c_install_dir, os.path.dirname(m))
+            m_data = build.Data([f], m_install_dir, m_install_dir,
+                                mesonlib.FileMode(), state.subproject)
+            targets.append(m_data)
+
+        pot_file = os.path.join('@SOURCE_ROOT@', state.subdir, 'C', project_id + '.pot')
+        pot_sources = [os.path.join('@SOURCE_ROOT@', state.subdir, 'C', s) for s in sources]
+        pot_args = [itstool, '-o', pot_file] + pot_sources
+        pottarget = build.RunTarget(f'help-{project_id}-pot', pot_args, [],
+                                    os.path.join(state.subdir, 'C'), state.subproject)
+        targets.append(pottarget)
+
+        for l in langs:
+            l_subdir = os.path.join(state.subdir, l)
+            l_install_dir = os.path.join(install_dir, l, project_id)
+
+            for i, m in enumerate(media):
+                m_dir = os.path.dirname(m)
+                m_install_dir = os.path.join(l_install_dir, m_dir)
+                if symlinks:
+                    link_target = os.path.join(os.path.relpath(c_install_dir, start=m_install_dir), m)
+                    l_data = build.SymlinkData(link_target, os.path.basename(m),
+                                               m_install_dir, state.subproject)
+                else:
+                    try:
+                        m_file = mesonlib.File.from_source_file(state.environment.source_dir, l_subdir, m)
+                    except MesonException:
+                        m_file = media_files[i]
+                    l_data = build.Data([m_file], m_install_dir, m_install_dir,
+                                        mesonlib.FileMode(), state.subproject)
+                targets.append(l_data)
+
+            po_file = l + '.po'
+            po_args = [msgmerge, '-q', '-o',
+                       os.path.join('@SOURCE_ROOT@', l_subdir, po_file),
+                       os.path.join('@SOURCE_ROOT@', l_subdir, po_file), pot_file]
+            potarget = build.RunTarget(f'help-{project_id}-{l}-update-po',
+                                       po_args, [pottarget], l_subdir, state.subproject)
+            targets.append(potarget)
+            potargets.append(potarget)
+
+            gmo_file = project_id + '-' + l + '.gmo'
+            gmo_kwargs = {'command': [msgfmt, '@INPUT@', '-o', '@OUTPUT@'],
+                          'input': po_file,
+                          'output': gmo_file,
+            }
+            gmotarget = build.CustomTarget(f'help-{project_id}-{l}-gmo', l_subdir, state.subproject, gmo_kwargs)
+            targets.append(gmotarget)
+
+            merge_kwargs = {'command': [itstool, '-m', os.path.join(l_subdir, gmo_file),
+                                        '-o', '@OUTDIR@', '@INPUT@'],
+                            'input': sources_files,
+                            'output': sources,
+                            'depends': gmotarget,
+                            'install': True,
+                            'install_dir': l_install_dir,
+            }
+            mergetarget = build.CustomTarget(f'help-{project_id}-{l}', l_subdir, state.subproject, merge_kwargs)
+            targets.append(mergetarget)
+
+        allpotarget = build.AliasTarget(f'help-{project_id}-update-po', potargets,
+                                        state.subdir, state.subproject)
+        targets.append(allpotarget)
+
+        return ModuleReturnValue(None, targets)
 
     @typed_pos_args('gnome.gtkdoc', str)
     @typed_kwargs(
