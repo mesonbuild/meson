@@ -21,7 +21,7 @@ import shutil
 import subprocess
 import typing as T
 
-from ..mesonlib import OrderedSet
+from ..mesonlib import OrderedSet, generate_list
 
 SHT_STRTAB = 3
 DT_NEEDED = 1
@@ -175,20 +175,20 @@ class Elf(DataSizes):
             # This script gets called to non-elf targets too
             # so just ignore them.
             if self.verbose:
-                print('File "%s" is not an ELF file.' % self.bfile)
+                print(f'File {self.bfile!r} is not an ELF file.')
             sys.exit(0)
         if data[4] == 1:
             ptrsize = 32
         elif data[4] == 2:
             ptrsize = 64
         else:
-            sys.exit('File "%s" has unknown ELF class.' % self.bfile)
+            sys.exit(f'File {self.bfile!r} has unknown ELF class.')
         if data[5] == 1:
             is_le = True
         elif data[5] == 2:
             is_le = False
         else:
-            sys.exit('File "%s" has unknown ELF endianness.' % self.bfile)
+            sys.exit(f'File {self.bfile!r} has unknown ELF endianness.')
         return ptrsize, is_le
 
     def parse_header(self) -> None:
@@ -243,14 +243,14 @@ class Elf(DataSizes):
             if e.d_tag == 0:
                 break
 
-    def print_section_names(self) -> None:
+    @generate_list
+    def get_section_names(self) -> T.Generator[str, None, None]:
         section_names = self.sections[self.e_shstrndx]
         for i in self.sections:
             self.bf.seek(section_names.sh_offset + i.sh_name)
-            name = self.read_str()
-            print(name.decode())
+            yield self.read_str().decode()
 
-    def print_soname(self) -> None:
+    def get_soname(self) -> T.Optional[str]:
         soname = None
         strtab = None
         for i in self.dynamic:
@@ -259,10 +259,9 @@ class Elf(DataSizes):
             if i.d_tag == DT_STRTAB:
                 strtab = i
         if soname is None or strtab is None:
-            print("This file does not have a soname")
-            return
+            return None
         self.bf.seek(strtab.val + soname.val)
-        print(self.read_str())
+        return self.read_str().decode()
 
     def get_entry_offset(self, entrynum: int) -> T.Optional[int]:
         sec = self.find_section(b'.dynstr')
@@ -273,33 +272,28 @@ class Elf(DataSizes):
                 return res
         return None
 
-    def print_rpath(self) -> None:
+    def get_rpath(self) -> T.Optional[str]:
         offset = self.get_entry_offset(DT_RPATH)
         if offset is None:
-            print("This file does not have an rpath.")
-        else:
-            self.bf.seek(offset)
-            print(self.read_str())
+            return None
+        self.bf.seek(offset)
+        return self.read_str().decode()
 
-    def print_runpath(self) -> None:
+    def get_runpath(self) -> T.Optional[str]:
         offset = self.get_entry_offset(DT_RUNPATH)
         if offset is None:
-            print("This file does not have a runpath.")
-        else:
-            self.bf.seek(offset)
-            print(self.read_str())
+            return None
+        self.bf.seek(offset)
+        return self.read_str().decode()
 
-    def print_deps(self) -> None:
+    @generate_list
+    def get_deps(self) -> T.Generator[str, None, None]:
         sec = self.find_section(b'.dynstr')
-        deps = []
         for i in self.dynamic:
             if i.d_tag == DT_NEEDED:
-                deps.append(i)
-        for i in deps:
-            offset = sec.sh_offset + i.val
-            self.bf.seek(offset)
-            name = self.read_str()
-            print(name)
+                offset = sec.sh_offset + i.val
+                self.bf.seek(offset)
+                yield self.read_str().decode()
 
     def fix_deps(self, prefix: bytes) -> None:
         sec = self.find_section(b'.dynstr')
@@ -319,17 +313,17 @@ class Elf(DataSizes):
                 self.bf.seek(offset)
                 self.bf.write(newname)
 
-    def fix_rpath(self, rpath_dirs_to_remove: T.Set[bytes], new_rpath: bytes) -> None:
+    def fix_rpath(self, fname: str, rpath_dirs_to_remove: T.Set[bytes], new_rpath: bytes) -> None:
         # The path to search for can be either rpath or runpath.
         # Fix both of them to be sure.
-        self.fix_rpathtype_entry(rpath_dirs_to_remove, new_rpath, DT_RPATH)
-        self.fix_rpathtype_entry(rpath_dirs_to_remove, new_rpath, DT_RUNPATH)
+        self.fix_rpathtype_entry(fname, rpath_dirs_to_remove, new_rpath, DT_RPATH)
+        self.fix_rpathtype_entry(fname, rpath_dirs_to_remove, new_rpath, DT_RUNPATH)
 
-    def fix_rpathtype_entry(self, rpath_dirs_to_remove: T.Set[bytes], new_rpath: bytes, entrynum: int) -> None:
+    def fix_rpathtype_entry(self, fname: str, rpath_dirs_to_remove: T.Set[bytes], new_rpath: bytes, entrynum: int) -> None:
         rp_off = self.get_entry_offset(entrynum)
         if rp_off is None:
             if self.verbose:
-                print('File does not have rpath. It should be a fully static executable.')
+                print(f'File {fname!r} does not have an rpath. It should be a fully static executable.')
             return
         self.bf.seek(rp_off)
 
@@ -391,12 +385,10 @@ class Elf(DataSizes):
         return None
 
 def fix_elf(fname: str, rpath_dirs_to_remove: T.Set[bytes], new_rpath: T.Optional[bytes], verbose: bool = True) -> None:
-    with Elf(fname, verbose) as e:
-        if new_rpath is None:
-            e.print_rpath()
-            e.print_runpath()
-        else:
-            e.fix_rpath(rpath_dirs_to_remove, new_rpath)
+    if new_rpath is not None:
+        with Elf(fname, verbose) as e:
+            # note: e.get_rpath() and e.get_runpath() may be useful
+            e.fix_rpath(fname, rpath_dirs_to_remove, new_rpath)
 
 def get_darwin_rpaths_to_remove(fname: str) -> T.List[str]:
     out = subprocess.check_output(['otool', '-l', fname],

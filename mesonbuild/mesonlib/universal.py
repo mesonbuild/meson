@@ -87,6 +87,7 @@ __all__ = [
     'exe_exists',
     'expand_arguments',
     'extract_as_list',
+    'generate_list',
     'get_compiler_for_source',
     'get_filenames_templates_dict',
     'get_library_dirs',
@@ -1914,6 +1915,14 @@ def run_once(func: T.Callable[..., _T]) -> T.Callable[..., _T]:
         val = func(*args, **kwargs)
         ret.append(val)
         return val
+
+    return wrapper
+
+
+def generate_list(func: T.Callable[..., T.Generator[_T, None, None]]) -> T.Callable[..., T.List[_T]]:
+    @wraps(func)
+    def wrapper(*args: T.Any, **kwargs: T.Any) -> T.List[_T]:
+        return list(func(*args, **kwargs))
 
     return wrapper
 
