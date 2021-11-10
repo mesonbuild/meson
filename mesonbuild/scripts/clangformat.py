@@ -14,34 +14,17 @@
 
 import argparse
 import subprocess
-import itertools
-import fnmatch
 from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor
 
+from .run_tool import run_tool
 from ..environment import detect_clangformat
-from ..compilers import lang_suffixes
-from ..mesonlib import Popen_safe
 import typing as T
 
-def parse_pattern_file(fname: Path) -> T.List[str]:
-    patterns = []
-    try:
-        with fname.open(encoding='utf-8') as f:
-            for line in f:
-                pattern = line.strip()
-                if pattern and not pattern.startswith('#'):
-                    patterns.append(pattern)
-    except FileNotFoundError:
-        pass
-    return patterns
-
-def run_clang_format(exelist: T.List[str], fname: Path, check: bool) -> subprocess.CompletedProcess:
+def run_clang_format(fname: Path, exelist: T.List[str], check: bool) -> subprocess.CompletedProcess:
     if check:
         original = fname.read_bytes()
     before = fname.stat().st_mtime
-    args = ['-style=file', '-i', str(fname)]
-    ret = subprocess.run(exelist + args)
+    ret = subprocess.run(exelist + ['-style=file', '-i', str(fname)])
     after = fname.stat().st_mtime
     if before != after:
         print('File reformatted: ', fname)
@@ -50,36 +33,6 @@ def run_clang_format(exelist: T.List[str], fname: Path, check: bool) -> subproce
             fname.write_bytes(original)
             ret.returncode = 1
     return ret
-
-def clangformat(exelist: T.List[str], srcdir: Path, builddir: Path, check: bool) -> int:
-    patterns = parse_pattern_file(srcdir / '.clang-format-include')
-    globs: T.Union[T.List[T.List[Path]], T.List[T.Generator[Path, None, None]]]
-    if patterns:
-        globs = [srcdir.glob(p) for p in patterns]
-    else:
-        p, o, _ = Popen_safe(['git', 'ls-files'], cwd=srcdir)
-        if p.returncode == 0:
-            globs = [[Path(srcdir, f) for f in o.splitlines()]]
-        else:
-            globs = [srcdir.glob('**/*')]
-    patterns = parse_pattern_file(srcdir / '.clang-format-ignore')
-    ignore = [str(builddir / '*')]
-    ignore.extend([str(srcdir / p) for p in patterns])
-    suffixes = set(lang_suffixes['c']).union(set(lang_suffixes['cpp']))
-    suffixes.add('h')
-    suffixes = {f'.{s}' for s in suffixes}
-    futures = []
-    returncode = 0
-    with ThreadPoolExecutor() as e:
-        for f in itertools.chain(*globs):
-            strf = str(f)
-            if f.is_dir() or f.suffix not in suffixes or \
-                any(fnmatch.fnmatch(strf, i) for i in ignore):
-                continue
-            futures.append(e.submit(run_clang_format, exelist, f, check))
-        if futures:
-            returncode = max(x.result().returncode for x in futures)
-    return returncode
 
 def run(args: T.List[str]) -> int:
     parser = argparse.ArgumentParser()
@@ -96,4 +49,4 @@ def run(args: T.List[str]) -> int:
         print('Could not execute clang-format "%s"' % ' '.join(exelist))
         return 1
 
-    return clangformat(exelist, srcdir, builddir, options.check)
+    return run_tool('clang-format', srcdir, builddir, run_clang_format, exelist, options.check)

@@ -12,46 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pathlib
+import argparse
 import subprocess
-import shutil
-import os
-import re
-from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+
+from .run_tool import run_tool
 import typing as T
 
-from ..compilers import lang_suffixes
-
-def manual_clangtidy(srcdir_name: str, builddir_name: str) -> int:
-    srcdir = pathlib.Path(srcdir_name)
-    suffixes = set(lang_suffixes['c']).union(set(lang_suffixes['cpp']))
-    suffixes.add('h')
-    futures = []
-    returncode = 0
-    with ThreadPoolExecutor() as e:
-        for f in (x for suff in suffixes for x in srcdir.glob('**/*.' + suff)):
-            if f.is_dir():
-                continue
-            strf = str(f)
-            if strf.startswith(builddir_name):
-                continue
-            futures.append(e.submit(subprocess.run, ['clang-tidy', '-p', builddir_name, strf]))
-        returncode = max(x.result().returncode for x in futures)
-    return returncode
-
-def clangtidy(srcdir_name: str, builddir_name: str) -> int:
-    run_clang_tidy = None
-    for rct in ('run-clang-tidy', 'run-clang-tidy.py'):
-        if shutil.which(rct):
-            run_clang_tidy = rct
-            break
-    if run_clang_tidy:
-        return subprocess.run([run_clang_tidy, '-p', builddir_name, '^(?!' + re.escape(builddir_name + os.path.sep) + ').*$']).returncode
-    else:
-        print('Could not find run-clang-tidy, running checks manually.')
-        return manual_clangtidy(srcdir_name, builddir_name)
+def run_clang_tidy(fname: Path, builddir: Path) -> subprocess.CompletedProcess:
+    return subprocess.run(['clang-tidy', '-p', str(builddir), str(fname)])
 
 def run(args: T.List[str]) -> int:
-    srcdir_name = args[0]
-    builddir_name = args[1]
-    return clangtidy(srcdir_name, builddir_name)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('sourcedir')
+    parser.add_argument('builddir')
+    options = parser.parse_args(args)
+
+    srcdir = Path(options.sourcedir)
+    builddir = Path(options.builddir)
+
+    return run_tool('clang-tidy', srcdir, builddir, run_clang_tidy, builddir)
