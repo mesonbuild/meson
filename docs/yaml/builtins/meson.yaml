@@ -134,6 +134,7 @@ methods:
       - `vs2015`
       - `vs2017`
       - `vs2019`
+      - `vs2022`
       - `xcode`
 
   - name: build_root

@@ -56,6 +56,10 @@ def autodetect_vs_version(build: T.Optional[build.Build], interpreter: T.Optiona
        'Visual Studio\\2019' in vs_install_dir:
         from mesonbuild.backend.vs2019backend import Vs2019Backend
         return Vs2019Backend(build, interpreter)
+    if vs_version == '17.0' or 'Visual Studio 22' in vs_install_dir or \
+       'Visual Studio\\2022' in vs_install_dir:
+        from mesonbuild.backend.vs2022backend import Vs2022Backend
+        return Vs2022Backend(build, interpreter)
     if 'Visual Studio 10.0' in vs_install_dir:
         return Vs2010Backend(build, interpreter)
     raise MesonException('Could not detect Visual Studio using VisualStudioVersion: {!r} or VSINSTALLDIR: {!r}!\n'

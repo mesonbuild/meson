@@ -46,7 +46,7 @@ if T.TYPE_CHECKING:
 # Check major_versions_differ() if changing versioning scheme.
 version = '0.60.99'
 
-backendlist = ['ninja', 'vs', 'vs2010', 'vs2012', 'vs2013', 'vs2015', 'vs2017', 'vs2019', 'xcode']
+backendlist = ['ninja', 'vs', 'vs2010', 'vs2012', 'vs2013', 'vs2015', 'vs2017', 'vs2019', 'vs2022', 'xcode']
 
 default_yielding = False
 
