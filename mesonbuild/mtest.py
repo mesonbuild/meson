@@ -477,8 +477,9 @@ class TestFileLogger(TestLogger):
 
 
 class ConsoleLogger(TestLogger):
-    SPINNER = "\U0001f311\U0001f312\U0001f313\U0001f314" + \
-              "\U0001f315\U0001f316\U0001f317\U0001f318"
+    ASCII_SPINNER = ['..', ':.', '.:']
+    SPINNER = ["\U0001f311", "\U0001f312", "\U0001f313", "\U0001f314",
+               "\U0001f315", "\U0001f316", "\U0001f317", "\U0001f318"]
 
     SCISSORS = "\u2700 "
     HLINE = "\u2015"
@@ -506,12 +507,14 @@ class ConsoleLogger(TestLogger):
         self.output_start = dashes(self.SCISSORS, self.HLINE, self.cols - 2)
         self.output_end = dashes('', self.HLINE, self.cols - 2)
         self.sub = self.RTRI
+        self.spinner = self.SPINNER
         try:
             self.output_start.encode(sys.stdout.encoding or 'ascii')
         except UnicodeEncodeError:
             self.output_start = dashes('8<', '-', self.cols - 2)
             self.output_end = dashes('', '-', self.cols - 2)
             self.sub = '| '
+            self.spinner = self.ASCII_SPINNER
 
     def flush(self) -> None:
         if self.should_erase_line:
@@ -536,8 +539,8 @@ class ConsoleLogger(TestLogger):
             count = '{}-{}/{}'.format(self.started_tests - len(self.running_tests) + 1,
                                       self.started_tests, self.test_count)
 
-        left = '[{}] {} '.format(count, self.SPINNER[self.spinner_index])
-        self.spinner_index = (self.spinner_index + 1) % len(self.SPINNER)
+        left = '[{}] {} '.format(count, self.spinner[self.spinner_index])
+        self.spinner_index = (self.spinner_index + 1) % len(self.spinner)
 
         right = '{spaces} {dur:{durlen}}'.format(
             spaces=' ' * TestResult.maxlen(),
