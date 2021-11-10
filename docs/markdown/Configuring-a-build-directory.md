@@ -21,20 +21,20 @@ a sample output for a simple project.
     Build dir  /home/jpakkane/clangdemo/2_address/buildmeson
 
     Core options:
-      Option          Current Value Possible Values                                          Description
-      ------          ------------- ---------------                                          -----------
-      auto_features   auto          [enabled, disabled, auto]                                Override value of all 'auto' features
-      backend         ninja         [ninja, vs, vs2010, vs2015, vs2017, vs2019, xcode]       Backend to use
-      buildtype       release       [plain, debug, debugoptimized, release, minsize, custom] Build type to use
-      debug           false         [true, false]                                            Debug
-      default_library shared        [shared, static, both]                                   Default library type
-      install_umask   0022          [preserve, 0000-0777]                                    Default umask to apply on permissions of installed files
-      layout          mirror        [mirror, flat]                                           Build directory layout
-      optimization    3             [0, g, 1, 2, 3, s]                                       Optimization level
-      strip           false         [true, false]                                            Strip targets on install
-      unity           off           [on, off, subprojects]                                   Unity build
-      warning_level   1             [0, 1, 2, 3]                                             Compiler warning level to use
-      werror          false         [true, false]                                            Treat warnings as errors
+      Option          Current Value Possible Values                                            Description
+      ------          ------------- ---------------                                            -----------
+      auto_features   auto          [enabled, disabled, auto]                                  Override value of all 'auto' features
+      backend         ninja         [ninja, vs, vs2010, vs2015, vs2017, vs2019, vs2022, xcode] Backend to use
+      buildtype       release       [plain, debug, debugoptimized, release, minsize, custom]   Build type to use
+      debug           false         [true, false]                                              Debug
+      default_library shared        [shared, static, both]                                     Default library type
+      install_umask   0022          [preserve, 0000-0777]                                      Default umask to apply on permissions of installed files
+      layout          mirror        [mirror, flat]                                             Build directory layout
+      optimization    3             [0, g, 1, 2, 3, s]                                         Optimization level
+      strip           false         [true, false]                                              Strip targets on install
+      unity           off           [on, off, subprojects]                                     Unity build
+      warning_level   1             [0, 1, 2, 3]                                               Compiler warning level to use
+      werror          false         [true, false]                                              Treat warnings as errors
 
     Backend options:
       Option            Current Value Possible Values Description
