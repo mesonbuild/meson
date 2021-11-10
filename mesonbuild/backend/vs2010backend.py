@@ -559,6 +559,12 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(type_config, 'CharacterSet').text = 'MultiByte'
         # Fixme: wasn't here before for gen_vcxproj()
         ET.SubElement(type_config, 'UseOfMfc').text = 'false'
+        try:
+            vstoolset = self.environment.coredata.get_option(OptionKey('b_vstoolset'))
+            if vstoolset != 'none':
+                self.platform_toolset = vstoolset
+        except MesonException:
+            pass
         if self.platform_toolset:
             ET.SubElement(type_config, 'PlatformToolset').text = self.platform_toolset
 
