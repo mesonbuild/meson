@@ -838,20 +838,21 @@ class C2000CPPCompiler(C2000Compiler, CPPCompiler):
         opts[key].choices = ['none', 'c++03']
         return opts
 
-    def get_always_args(self) -> T.List[str]:
-        return ['-nologo', '-lang=cpp']
-
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        return []
+        args = []
+        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        std = options[key]
+        if std.value != 'none':
+            args.append('--' + std.value)
+        return args
 
-    def get_compile_only_args(self) -> T.List[str]:
-        return []
+    def get_no_optimization_args(self) -> T.List[str]:
+        return ['-Ooff']
 
     def get_output_args(self, target: str) -> T.List[str]:
-        return [f'-output=obj={target}']
+        return [f'--output_file={target}']
 
-    def get_option_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        return []
-
-    def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
-        return []
+    def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
+        if path == '':
+            path = '.'
+        return ['--include_path=' + path]
