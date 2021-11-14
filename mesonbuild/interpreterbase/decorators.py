@@ -458,7 +458,7 @@ def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
 
         @wraps(f)
         def wrapper(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
-            _kwargs, subproject = get_callee_args(wrapped_args)[2:4]
+            node, _, _kwargs, subproject = get_callee_args(wrapped_args)
             # Cast here, as the convertor function may place something other than a TYPE_var in the kwargs
             kwargs = T.cast(T.Dict[str, object], _kwargs)
 
@@ -492,10 +492,10 @@ def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
                 if value is not None:
                     if info.since:
                         feature_name = info.name + ' arg in ' + name
-                        FeatureNew.single_use(feature_name, info.since, subproject)
+                        FeatureNew.single_use(feature_name, info.since, subproject, location=node)
                     if info.deprecated:
                         feature_name = info.name + ' arg in ' + name
-                        FeatureDeprecated.single_use(feature_name, info.deprecated, subproject)
+                        FeatureDeprecated.single_use(feature_name, info.deprecated, subproject, location=node)
                     if info.listify:
                         kwargs[info.name] = value = mesonlib.listify(value)
                     if not check_value_type(value):
@@ -516,7 +516,7 @@ def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
                                 warn = n == value
 
                             if warn:
-                                FeatureDeprecated.single_use(f'"{name}" keyword argument "{info.name}" value "{n}"', version, subproject)
+                                FeatureDeprecated.single_use(f'"{name}" keyword argument "{info.name}" value "{n}"', version, subproject, location=node)
 
                     if info.since_values is not None:
                         for n, version in info.since_values.items():
@@ -526,7 +526,7 @@ def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
                                 warn = n == value
 
                             if warn:
-                                FeatureNew.single_use(f'"{name}" keyword argument "{info.name}" value "{n}"', version, subproject)
+                                FeatureNew.single_use(f'"{name}" keyword argument "{info.name}" value "{n}"', version, subproject, location=node)
 
                 elif info.required:
                     raise InvalidArguments(f'{name} is missing required keyword argument "{info.name}"')
@@ -615,9 +615,10 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
     def __call__(self, f: TV_func) -> TV_func:
         @wraps(f)
         def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
-            subproject = get_callee_args(wrapped_args)[3]
+            node, _, _, subproject = get_callee_args(wrapped_args)
             if subproject is None:
                 raise AssertionError(f'{wrapped_args!r}')
+            self.location = node
             self.use(subproject)
             return f(*wrapped_args, **wrapped_kwargs)
         return T.cast(TV_func, wrapped)
@@ -693,16 +694,17 @@ class FeatureCheckKwargsBase(metaclass=abc.ABCMeta):
         pass
 
     def __init__(self, feature_name: str, feature_version: str,
-                 kwargs: T.List[str], extra_message: T.Optional[str] = None):
+                 kwargs: T.List[str], extra_message: T.Optional[str] = None, location: T.Optional['mparser.BaseNode'] = None):
         self.feature_name = feature_name
         self.feature_version = feature_version
         self.kwargs = kwargs
         self.extra_message = extra_message
+        self.location = location
 
     def __call__(self, f: TV_func) -> TV_func:
         @wraps(f)
         def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
-            kwargs, subproject = get_callee_args(wrapped_args)[2:4]
+            node, _, kwargs, subproject = get_callee_args(wrapped_args)
             if subproject is None:
                 raise AssertionError(f'{wrapped_args!r}')
             for arg in self.kwargs:
@@ -710,7 +712,7 @@ class FeatureCheckKwargsBase(metaclass=abc.ABCMeta):
                     continue
                 name = arg + ' arg in ' + self.feature_name
                 self.feature_check_class.single_use(
-                        name, self.feature_version, subproject, self.extra_message)
+                        name, self.feature_version, subproject, self.extra_message, node)
             return f(*wrapped_args, **wrapped_kwargs)
         return T.cast(TV_func, wrapped)
 
