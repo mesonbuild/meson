@@ -1402,7 +1402,7 @@ class NinjaBackend(backends.Backend):
             for i in dep.sources:
                 if hasattr(i, 'fname'):
                     i = i.fname
-                if i.endswith('vala'):
+                if i.split('.')[-1] in compilers.lang_suffixes['vala']:
                     vapiname = dep.vala_vapi
                     fullname = os.path.join(self.get_target_dir(dep), vapiname)
                     result.add(fullname)
