@@ -551,12 +551,13 @@ def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
 class FeatureCheckBase(metaclass=abc.ABCMeta):
     "Base class for feature version checks"
 
-    feature_registry: T.ClassVar[T.Dict[str, T.Dict[str, T.Set[str]]]]
+    feature_registry: T.ClassVar[T.Dict[str, T.Dict[str, T.Set[T.Tuple[str, T.Optional['mparser.BaseNode']]]]]]
 
-    def __init__(self, feature_name: str, version: str, extra_message: T.Optional[str] = None):
+    def __init__(self, feature_name: str, version: str, extra_message: T.Optional[str] = None, location: T.Optional['mparser.BaseNode'] = None):
         self.feature_name = feature_name  # type: str
         self.feature_version = version    # type: str
         self.extra_message = extra_message or ''  # type: str
+        self.location = location
 
     @staticmethod
     def get_target_version(subproject: str) -> str:
@@ -584,12 +585,14 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
         register = self.feature_registry[subproject]
         if self.feature_version not in register:
             register[self.feature_version] = set()
-        if self.feature_name in register[self.feature_version]:
+
+        feature_key = (self.feature_name, self.location)
+        if feature_key in register[self.feature_version]:
             # Don't warn about the same feature multiple times
             # FIXME: This is needed to prevent duplicate warnings, but also
             # means we won't warn about a feature used in multiple places.
             return
-        register[self.feature_version].add(self.feature_name)
+        register[self.feature_version].add(feature_key)
         self.log_usage_warning(tv)
 
     @classmethod
@@ -599,7 +602,7 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
         warning_str = cls.get_warning_str_prefix(cls.get_target_version(subproject))
         fv = cls.feature_registry[subproject]
         for version in sorted(fv.keys()):
-            warning_str += '\n * {}: {}'.format(version, fv[version])
+            warning_str += '\n * {}: {}'.format(version, {i[0] for i in fv[version]})
         mlog.warning(warning_str)
 
     def log_usage_warning(self, tv: str) -> None:
@@ -621,9 +624,9 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
 
     @classmethod
     def single_use(cls, feature_name: str, version: str, subproject: str,
-                   extra_message: T.Optional[str] = None) -> None:
+                   extra_message: T.Optional[str] = None, location: T.Optional['mparser.BaseNode'] = None) -> None:
         """Oneline version that instantiates and calls use()."""
-        cls(feature_name, version, extra_message).use(subproject)
+        cls(feature_name, version, extra_message, location).use(subproject)
 
 
 class FeatureNew(FeatureCheckBase):
@@ -632,7 +635,7 @@ class FeatureNew(FeatureCheckBase):
     # Class variable, shared across all instances
     #
     # Format: {subproject: {feature_version: set(feature_names)}}
-    feature_registry = {}  # type: T.ClassVar[T.Dict[str, T.Dict[str, T.Set[str]]]]
+    feature_registry = {}  # type: T.ClassVar[T.Dict[str, T.Dict[str, T.Set[T.Tuple[str, T.Optional[mparser.BaseNode]]]]]]
 
     @staticmethod
     def check_version(target_version: str, feature_version: str) -> bool:
@@ -651,7 +654,7 @@ class FeatureNew(FeatureCheckBase):
         ]
         if self.extra_message:
             args.append(self.extra_message)
-        mlog.warning(*args)
+        mlog.warning(*args, location=self.location)
 
 class FeatureDeprecated(FeatureCheckBase):
     """Checks for deprecated features"""
@@ -659,7 +662,7 @@ class FeatureDeprecated(FeatureCheckBase):
     # Class variable, shared across all instances
     #
     # Format: {subproject: {feature_version: set(feature_names)}}
-    feature_registry = {}  # type: T.ClassVar[T.Dict[str, T.Dict[str, T.Set[str]]]]
+    feature_registry = {}  # type: T.ClassVar[T.Dict[str, T.Dict[str, T.Set[T.Tuple[str, T.Optional[mparser.BaseNode]]]]]]
 
     @staticmethod
     def check_version(target_version: str, feature_version: str) -> bool:
@@ -679,7 +682,7 @@ class FeatureDeprecated(FeatureCheckBase):
         ]
         if self.extra_message:
             args.append(self.extra_message)
-        mlog.warning(*args)
+        mlog.warning(*args, location=self.location)
 
 
 class FeatureCheckKwargsBase(metaclass=abc.ABCMeta):
