@@ -98,6 +98,7 @@ if T.TYPE_CHECKING:
 class QtBaseModule(ExtensionModule):
     _tools_detected = False
     _rcc_supports_depfiles = False
+    _moc_supports_depfiles = False
 
     def __init__(self, interpreter: 'Interpreter', qt_version: int = 5):
         ExtensionModule.__init__(self, interpreter)
@@ -169,6 +170,10 @@ class QtBaseModule(ExtensionModule):
         if qt.found():
             # Get all tools and then make sure that they are the right version
             self.compilers_detect(state, qt)
+            if version_compare(qt.version, '>=5.14.0'):
+                self._moc_supports_depfiles = True
+            else:
+                mlog.warning('moc dependencies will not work properly until you move to Qt >= 5.15', fatal=False)
             if version_compare(qt.version, '>=5.14.0'):
                 self._rcc_supports_depfiles = True
             else:
@@ -434,15 +439,20 @@ class QtBaseModule(ExtensionModule):
 
         output: T.List[build.GeneratedList] = []
 
-        arguments = kwargs['extra_args'] + inc + compile_args + ['@INPUT@', '-o', '@OUTPUT@']
+        # depfile arguments (defaults to <output-name>.d)
+        DEPFILE_ARGS: T.List[str] = ['--output-dep-file'] if self._moc_supports_depfiles else []
+
+        arguments = kwargs['extra_args'] + DEPFILE_ARGS + inc + compile_args + ['@INPUT@', '-o', '@OUTPUT@']
         if kwargs['headers']:
             moc_gen = build.Generator(
                 self.tools['moc'], arguments, ['moc_@BASENAME@.cpp'],
+                depfile='moc_@BASENAME@.cpp.d',
                 name=f'Qt{self.qt_version} moc header')
             output.append(moc_gen.process_files(kwargs['headers'], state))
         if kwargs['sources']:
             moc_gen = build.Generator(
                 self.tools['moc'], arguments, ['@BASENAME@.moc'],
+                depfile='@BASENAME.moc.d@',
                 name=f'Qt{self.qt_version} moc source')
             output.append(moc_gen.process_files(kwargs['sources'], state))
 
