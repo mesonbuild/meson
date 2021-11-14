@@ -95,9 +95,9 @@ class MesonMain(MesonInterpreterObject):
 
     def _process_script_args(
             self, name: str, args: T.Sequence[T.Union[
-                str, mesonlib.File, build.Target,
+                str, mesonlib.File, build.BuildTarget, build.CustomTarget,
                 build.CustomTargetIndex,
-                ExternalProgram, build.Executable,
+                ExternalProgram,
             ]], allow_built: bool = False) -> T.List[str]:
         script_args = []  # T.List[str]
         new = False
@@ -107,7 +107,7 @@ class MesonMain(MesonInterpreterObject):
             elif isinstance(a, mesonlib.File):
                 new = True
                 script_args.append(a.rel_to_builddir(self.interpreter.environment.source_dir))
-            elif isinstance(a, (build.Target, build.CustomTargetIndex)):
+            elif isinstance(a, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
                 if not allow_built:
                     raise InterpreterException(f'Arguments to {name} cannot be built')
                 new = True
@@ -135,7 +135,7 @@ class MesonMain(MesonInterpreterObject):
     @typed_pos_args(
         'meson.add_install_script',
         (str, mesonlib.File, build.Executable, ExternalProgram),
-        varargs=(str, mesonlib.File, build.Target, build.CustomTargetIndex, ExternalProgram)
+        varargs=(str, mesonlib.File, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, ExternalProgram)
     )
     @typed_kwargs(
         'meson.add_install_script',
@@ -145,7 +145,7 @@ class MesonMain(MesonInterpreterObject):
     def add_install_script_method(
             self,
             args: T.Tuple[T.Union[str, mesonlib.File, build.Executable, ExternalProgram],
-                          T.List[T.Union[str, mesonlib.File, build.Target, build.CustomTargetIndex, ExternalProgram]]],
+                          T.List[T.Union[str, mesonlib.File, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, ExternalProgram]]],
             kwargs: 'AddInstallScriptKW') -> None:
         if isinstance(args[0], mesonlib.File):
             FeatureNew.single_use('Passing file object to script parameter of add_install_script',
