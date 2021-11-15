@@ -101,7 +101,7 @@ class ExternalProject(NewExtensionModule):
 
     def _configure(self, state: 'ModuleState') -> None:
         if self.configure_command == 'waf':
-            FeatureNew('Waf external project', '0.60.0').use(self.subproject)
+            FeatureNew('Waf external project', '0.60.0', location=state.current_node).use(self.subproject)
             waf = state.find_program('waf')
             configure_cmd = waf.get_command()
             configure_cmd += ['configure', '-o', str(self.build_dir)]
@@ -120,7 +120,7 @@ class ExternalProject(NewExtensionModule):
              ('LIBDIR', '--libdir=@PREFIX@/@LIBDIR@', self.libdir.as_posix()),
              ('INCLUDEDIR', None, self.includedir.as_posix()),
              ]
-        self._validate_configure_options(d)
+        self._validate_configure_options(d, state)
 
         configure_cmd += self._format_options(self.configure_options, d)
 
@@ -165,7 +165,7 @@ class ExternalProject(NewExtensionModule):
     def _quote_and_join(self, array: T.List[str]) -> str:
         return ' '.join([shlex.quote(i) for i in array])
 
-    def _validate_configure_options(self, variables: T.List[T.Tuple[str, str, str]]) -> None:
+    def _validate_configure_options(self, variables: T.List[T.Tuple[str, str, str]], state: 'ModuleState') -> None:
         # Ensure the user at least try to pass basic info to the build system,
         # like the prefix, libdir, etc.
         for key, default, val in variables:
@@ -176,7 +176,7 @@ class ExternalProject(NewExtensionModule):
                 if key_format in option:
                     break
             else:
-                FeatureNew('Default configure_option', '0.57.0').use(self.subproject)
+                FeatureNew('Default configure_option', '0.57.0', location=state.current_node).use(self.subproject)
                 self.configure_options.append(default)
 
     def _format_options(self, options: T.List[str], variables: T.List[T.Tuple[str, str, str]]) -> T.List[str]:

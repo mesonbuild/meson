@@ -1723,7 +1723,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             # they could need substitutions (e.g. @BASENAME@) first. CustomTarget()
             # will take care of setting a proper default but name must be an empty
             # string in the meantime.
-            FeatureNew('custom_target() with no name argument', '0.60.0').use(self.subproject)
+            FeatureNew('custom_target() with no name argument', '0.60.0', location=node).use(self.subproject)
             name = ''
         kwargs['install_mode'] = self._get_kwarg_install_mode(kwargs)
         if 'input' in kwargs:
@@ -2240,7 +2240,7 @@ This will become a hard error in the future.''', location=self.current_node)
         if idir is False:
             idir = ''
             FeatureDeprecated.single_use('configure_file install_dir: false', '0.50.0',
-                                         self.subproject, 'Use the `install:` kwarg instead')
+                                         self.subproject, 'Use the `install:` kwarg instead', location=node)
         if not isinstance(idir, str):
             if isinstance(idir, list) and len(idir) == 0:
                 mlog.deprecation('install_dir: kwarg must be a string and not an empty array. '

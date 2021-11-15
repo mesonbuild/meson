@@ -991,7 +991,7 @@ class GnomeModule(ExtensionModule):
 
         if '--warn-error' in scan_command:
             FeatureDeprecated.single_use('gnome.generate_gir argument --warn-error', '0.55.0',
-                                         state.subproject, 'Use "fatal_warnings" keyword argument')
+                                         state.subproject, 'Use "fatal_warnings" keyword argument', state.current_node)
         if kwargs['fatal_warnings']:
             scan_command.append('--warn-error')
 
@@ -1048,7 +1048,7 @@ class GnomeModule(ExtensionModule):
         sources = kwargs['sources']
         if args[1]:
             FeatureDeprecated.single_use('gnome.yelp more than one positional argument', '0.60.0',
-                                         state.subproject, 'use the "sources" keyword argument instead.')
+                                         state.subproject, 'use the "sources" keyword argument instead.', state.current_node)
         if not sources:
             sources = args[1]
             if not sources:

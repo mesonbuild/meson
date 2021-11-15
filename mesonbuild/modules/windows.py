@@ -150,14 +150,16 @@ class WindowsModule(ExtensionModule):
                 elif isinstance(src, mesonlib.File):
                     yield src.relative_name(), src.fname, src
                 elif isinstance(src, build.CustomTargetIndex):
-                    FeatureNew.single_use('windows.compile_resource CustomTargetIndex in positional arguments', '0.61.0', state.subproject)
+                    FeatureNew.single_use('windows.compile_resource CustomTargetIndex in positional arguments', '0.61.0',
+                                          state.subproject, location=state.current_node)
                     # This dance avoids a case where two indexs of the same
                     # target are given as separate arguments.
                     yield (f'{src.get_id()}_{src.target.get_outputs().index(src.output)}',
                            f'windows_compile_resources_{src.get_filename()}', src)
                 else:
                     if len(src.get_outputs()) > 1:
-                        FeatureNew.single_use('windows.compile_resource CustomTarget with multiple outputs in positional arguments', '0.61.0', state.subproject)
+                        FeatureNew.single_use('windows.compile_resource CustomTarget with multiple outputs in positional arguments',
+                                              '0.61.0', state.subproject, location=state.current_node)
                     for i, out in enumerate(src.get_outputs()):
                         # Chances are that src.get_filename() is already the name of that
                         # target, add a prefix to avoid name clash.
