@@ -1051,9 +1051,8 @@ class GnomeModule(ExtensionModule):
             sources = args[1]
             if not sources:
                 raise MesonException('Yelp requires a list of sources')
-        else:
-            if len(args) > 1:
-                mlog.warning('"gnome.yelp" ignores positional sources arguments when the "sources" keyword argument is set')
+        elif args[1]:
+            mlog.warning('"gnome.yelp" ignores positional sources arguments when the "sources" keyword argument is set')
         source_str = '@@'.join(sources)
 
         langs = kwargs['languages']
