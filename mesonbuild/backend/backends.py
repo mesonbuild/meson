@@ -708,7 +708,6 @@ class Backend:
         return False
 
     def get_external_rpath_dirs(self, target: build.BuildTarget) -> T.Set[str]:
-        dirs: T.Set[str] = set()
         args: T.List[str] = []
         for lang in LANGUAGES_USING_LDFLAGS:
             try:
@@ -719,6 +718,11 @@ class Backend:
                     args.extend(e)
             except Exception:
                 pass
+        return self.get_rpath_dirs_from_link_args(args)
+
+    @staticmethod
+    def get_rpath_dirs_from_link_args(args: T.List[str]) -> T.Set[str]:
+        dirs: T.Set[str] = set()
         # Match rpath formats:
         # -Wl,-rpath=
         # -Wl,-rpath,
@@ -777,6 +781,8 @@ class Backend:
                     paths.add(os.path.join(self.build_to_src, rel_to_src))
                 else:
                     paths.add(libdir)
+            # Don't remove rpaths specified by the dependency
+            paths.difference_update(self.get_rpath_dirs_from_link_args(dep.link_args))
         for i in chain(target.link_targets, target.link_whole_targets):
             if isinstance(i, build.BuildTarget):
                 paths.update(self.rpaths_for_non_system_absolute_shared_libraries(i, exclude_system))
