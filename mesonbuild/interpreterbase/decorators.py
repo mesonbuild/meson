@@ -552,6 +552,7 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
     "Base class for feature version checks"
 
     feature_registry: T.ClassVar[T.Dict[str, T.Dict[str, T.Set[T.Tuple[str, T.Optional['mparser.BaseNode']]]]]]
+    emit_notice = False
 
     def __init__(self, feature_name: str, version: str, extra_message: T.Optional[str] = None, location: T.Optional['mparser.BaseNode'] = None):
         self.feature_name = feature_name  # type: str
@@ -576,10 +577,10 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
         # No target version
         if tv == '':
             return
-        # Target version is new enough
-        if self.check_version(tv, self.feature_version):
+        # Target version is new enough, don't warn
+        if self.check_version(tv, self.feature_version) and not self.emit_notice:
             return
-        # Feature is too new for target version, register it
+        # Feature is too new for target version or we want to emit notices, register it
         if subproject not in self.feature_registry:
             self.feature_registry[subproject] = {self.feature_version: set()}
         register = self.feature_registry[subproject]
@@ -593,6 +594,9 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
             # means we won't warn about a feature used in multiple places.
             return
         register[self.feature_version].add(feature_key)
+        # Target version is new enough, don't warn even if it is registered for notice
+        if self.check_version(tv, self.feature_version):
+            return
         self.log_usage_warning(tv)
 
     @classmethod
@@ -600,10 +604,18 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
         if subproject not in cls.feature_registry:
             return
         warning_str = cls.get_warning_str_prefix(cls.get_target_version(subproject))
+        notice_str = cls.get_notice_str_prefix(cls.get_target_version(subproject))
         fv = cls.feature_registry[subproject]
+        tv = cls.get_target_version(subproject)
         for version in sorted(fv.keys()):
-            warning_str += '\n * {}: {}'.format(version, {i[0] for i in fv[version]})
-        mlog.warning(warning_str)
+            if cls.check_version(tv, version):
+                notice_str += '\n * {}: {}'.format(version, {i[0] for i in fv[version]})
+            else:
+                warning_str += '\n * {}: {}'.format(version, {i[0] for i in fv[version]})
+        if '\n' in notice_str:
+            mlog.notice(notice_str, fatal=False)
+        if '\n' in warning_str:
+            mlog.warning(warning_str)
 
     def log_usage_warning(self, tv: str) -> None:
         raise InterpreterException('log_usage_warning not implemented')
@@ -611,6 +623,10 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
     @staticmethod
     def get_warning_str_prefix(tv: str) -> str:
         raise InterpreterException('get_warning_str_prefix not implemented')
+
+    @staticmethod
+    def get_notice_str_prefix(tv: str) -> str:
+        raise InterpreterException('get_notice_str_prefix not implemented')
 
     def __call__(self, f: TV_func) -> TV_func:
         @wraps(f)
@@ -646,6 +662,10 @@ class FeatureNew(FeatureCheckBase):
     def get_warning_str_prefix(tv: str) -> str:
         return f'Project specifies a minimum meson_version \'{tv}\' but uses features which were added in newer versions:'
 
+    @staticmethod
+    def get_notice_str_prefix(tv: str) -> str:
+        return ''
+
     def log_usage_warning(self, tv: str) -> None:
         args = [
             'Project targeting', f"'{tv}'",
@@ -664,6 +684,7 @@ class FeatureDeprecated(FeatureCheckBase):
     #
     # Format: {subproject: {feature_version: set(feature_names)}}
     feature_registry = {}  # type: T.ClassVar[T.Dict[str, T.Dict[str, T.Set[T.Tuple[str, T.Optional[mparser.BaseNode]]]]]]
+    emit_notice = True
 
     @staticmethod
     def check_version(target_version: str, feature_version: str) -> bool:
@@ -673,6 +694,10 @@ class FeatureDeprecated(FeatureCheckBase):
     @staticmethod
     def get_warning_str_prefix(tv: str) -> str:
         return 'Deprecated features used:'
+
+    @staticmethod
+    def get_notice_str_prefix(tv: str) -> str:
+        return 'Future-deprecated features used:'
 
     def log_usage_warning(self, tv: str) -> None:
         args = [
