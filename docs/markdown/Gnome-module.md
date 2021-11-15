@@ -21,6 +21,19 @@ with anything else.
 
 ### gnome.compile_resources()
 
+```
+    gnome.compile_resources(id: string, input_file: string | File,
+                            build_by_default: bool = false,
+                            c_name: string | None = None,
+                            dependencies: [](File, CustomTarget, CustomTargetIndex) = [],
+                            export: bool = false,
+                            extra_args: []string = [],
+                            gresource_bundle: bool = false,
+                            install_dir: string | None = None,
+                            source_dir: [string] = [],
+                            ): (CustomTarget, CustomTarget) | CustomTarget
+```
+
 This function compiles resources specified in an XML file into code
 that can be embedded inside the main binary. Similar a build target it
 takes two positional arguments. The first one is the name of the

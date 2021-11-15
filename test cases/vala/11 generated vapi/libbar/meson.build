@@ -19,7 +19,6 @@ libbar_gir = gnome.generate_gir(libbar,
   sources: libbar_sources,
   namespace: 'Bar',
   nsversion: libbar_api_ver,
-  packages: 'gobject-2.0',
   symbol_prefix: 'bar',
   extra_args: [
     '--c-include=bar.h',

@@ -18,7 +18,6 @@ libfoo_gir = gnome.generate_gir(libfoo,
   sources: libfoo_sources,
   namespace: 'Foo',
   nsversion: libfoo_api_ver,
-  packages: 'gobject-2.0',
   symbol_prefix: 'foo',
   extra_args: [
     '--c-include=foo.h',
