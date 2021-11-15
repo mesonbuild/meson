@@ -466,7 +466,7 @@ class ZlibSystemDependency(SystemDependency):
         # I'm not sure this is entirely correct. What if we're cross compiling
         # from something to macOS?
         if ((m.is_darwin() and isinstance(self.clib_compiler, (AppleClangCCompiler, AppleClangCPPCompiler))) or
-                m.is_freebsd() or m.is_dragonflybsd()):
+                m.is_freebsd() or m.is_dragonflybsd() or m.is_android()):
             # No need to set includes,
             # on macos xcode/clang will do that for us.
             # on freebsd zlib.h is in /usr/include
@@ -474,7 +474,7 @@ class ZlibSystemDependency(SystemDependency):
             self.is_found = True
             self.link_args = ['-lz']
         elif m.is_windows():
-            # Without a clib_compiler we can't find zlib, s just give up.
+            # Without a clib_compiler we can't find zlib, so just give up.
             if self.clib_compiler is None:
                 self.is_found = False
                 return
