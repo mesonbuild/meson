@@ -1756,6 +1756,10 @@ class OrderedSet(T.MutableSet[_T]):
     def difference(self, set_: T.Union[T.Set[_T], 'OrderedSet[_T]']) -> 'OrderedSet[_T]':
         return type(self)(e for e in self if e not in set_)
 
+    def difference_update(self, iterable: T.Iterable[_T]) -> None:
+        for item in iterable:
+            self.discard(item)
+
 def relpath(path: str, start: str) -> str:
     # On Windows a relative path can't be evaluated for paths on two different
     # drives (i.e. c:\foo and f:\bar).  The only thing left to do is to use the
