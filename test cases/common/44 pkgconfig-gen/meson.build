@@ -42,13 +42,21 @@ test('pkgconfig-validation', pkgconfig,
   args: ['--validate', 'simple'],
   env: [ 'PKG_CONFIG_PATH=' + meson.current_build_dir() + '/meson-private' ])
 
+answerlib = shared_library('answer', 'answer.c')
+
+pkgg.generate(answerlib,
+  name : 'libanswer',
+  description : 'An answer library.',
+)
+
 # Test that name_prefix='' and name='libfoo' results in '-lfoo'
-lib2 = shared_library('libfoo', 'simple.c',
+lib2 = shared_library('libfoo', 'foo.c',
+  link_with: answerlib,
   name_prefix : '',
   version : libver)
 
-pkgg.generate(
-  libraries : lib2,
+pkgg.generate(lib2,
+  libraries : [lib2, answerlib],
   name : 'libfoo',
   version : libver,
   description : 'A foo library.',
