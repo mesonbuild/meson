@@ -1595,7 +1595,7 @@ class AllPlatformTests(BasePlatformTests):
         foo_dep = PkgConfigDependency('libfoo', env, kwargs)
         # Ensure link_args are properly quoted
         libdir = PurePath(prefix) / PurePath(libdir)
-        link_args = ['-L' + libdir.as_posix(), '-lfoo']
+        link_args = ['-L' + libdir.as_posix(), '-lfoo', '-lanswer']
         self.assertEqual(foo_dep.get_link_args(), link_args)
         # Ensure include args are properly quoted
         incdir = PurePath(prefix) / PurePath('include')

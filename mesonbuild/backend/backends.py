@@ -751,37 +751,36 @@ class Backend:
         return dirs
 
     @lru_cache(maxsize=None)
-    def rpaths_for_bundled_shared_libraries(self, target: build.BuildTarget, exclude_system: bool = True) -> 'ImmutableListProtocol[str]':
-        paths: T.List[str] = []
+    def rpaths_for_non_system_absolute_shared_libraries(self, target: build.BuildTarget, exclude_system: bool = True) -> 'ImmutableListProtocol[str]':
+        paths: OrderedSet[str] = OrderedSet()
         for dep in target.external_deps:
             if not isinstance(dep, (dependencies.ExternalLibrary, dependencies.PkgConfigDependency)):
                 continue
-            la = dep.link_args
-            if len(la) != 1 or not os.path.isabs(la[0]):
-                continue
-            # The only link argument is an absolute path to a library file.
-            libpath = la[0]
-            libdir = os.path.dirname(libpath)
-            if exclude_system and self._libdir_is_system(libdir, target.compilers, self.environment):
-                # No point in adding system paths.
-                continue
-            # Don't remove rpaths specified in LDFLAGS.
-            if libdir in self.get_external_rpath_dirs(target):
-                continue
-            # Windows doesn't support rpaths, but we use this function to
-            # emulate rpaths by setting PATH, so also accept DLLs here
-            if os.path.splitext(libpath)[1] not in ['.dll', '.lib', '.so', '.dylib']:
-                continue
-            if libdir.startswith(self.environment.get_source_dir()):
-                rel_to_src = libdir[len(self.environment.get_source_dir()) + 1:]
-                assert not os.path.isabs(rel_to_src), f'rel_to_src: {rel_to_src} is absolute'
-                paths.append(os.path.join(self.build_to_src, rel_to_src))
-            else:
-                paths.append(libdir)
+            for libpath in dep.link_args:
+                # For all link args that are absolute paths to a library file, add RPATH args
+                if not os.path.isabs(libpath):
+                    continue
+                libdir = os.path.dirname(libpath)
+                if exclude_system and self._libdir_is_system(libdir, target.compilers, self.environment):
+                    # No point in adding system paths.
+                    continue
+                # Don't remove rpaths specified in LDFLAGS.
+                if libdir in self.get_external_rpath_dirs(target):
+                    continue
+                # Windows doesn't support rpaths, but we use this function to
+                # emulate rpaths by setting PATH, so also accept DLLs here
+                if os.path.splitext(libpath)[1] not in ['.dll', '.lib', '.so', '.dylib']:
+                    continue
+                if libdir.startswith(self.environment.get_source_dir()):
+                    rel_to_src = libdir[len(self.environment.get_source_dir()) + 1:]
+                    assert not os.path.isabs(rel_to_src), f'rel_to_src: {rel_to_src} is absolute'
+                    paths.add(os.path.join(self.build_to_src, rel_to_src))
+                else:
+                    paths.add(libdir)
         for i in chain(target.link_targets, target.link_whole_targets):
             if isinstance(i, build.BuildTarget):
-                paths.extend(self.rpaths_for_bundled_shared_libraries(i, exclude_system))
-        return paths
+                paths.update(self.rpaths_for_non_system_absolute_shared_libraries(i, exclude_system))
+        return list(paths)
 
     # This may take other types
     def determine_rpath_dirs(self, target: T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]
@@ -794,7 +793,7 @@ class Backend:
             result = OrderedSet()
             result.add('meson-out')
         if isinstance(target, build.BuildTarget):
-            result.update(self.rpaths_for_bundled_shared_libraries(target))
+            result.update(self.rpaths_for_non_system_absolute_shared_libraries(target))
             target.rpath_dirs_to_remove.update([d.encode('utf-8') for d in result])
         return tuple(result)
 
@@ -1072,7 +1071,7 @@ class Backend:
         if isinstance(target, build.BuildTarget):
             prospectives.update(target.get_transitive_link_deps())
             # External deps
-            for deppath in self.rpaths_for_bundled_shared_libraries(target, exclude_system=False):
+            for deppath in self.rpaths_for_non_system_absolute_shared_libraries(target, exclude_system=False):
                 result.add(os.path.normpath(os.path.join(self.environment.get_build_dir(), deppath)))
         for bdep in extra_bdeps:
             prospectives.add(bdep)
