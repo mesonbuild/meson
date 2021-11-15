@@ -1592,10 +1592,10 @@ class AllPlatformTests(BasePlatformTests):
         os.environ['PKG_CONFIG_LIBDIR'] = self.privatedir
         env = get_fake_env(testdir, self.builddir, self.prefix)
         kwargs = {'required': True, 'silent': True}
-        foo_dep = PkgConfigDependency('libfoo', env, kwargs)
+        foo_dep = PkgConfigDependency('libanswer', env, kwargs)
         # Ensure link_args are properly quoted
         libdir = PurePath(prefix) / PurePath(libdir)
-        link_args = ['-L' + libdir.as_posix(), '-lfoo', '-lanswer']
+        link_args = ['-L' + libdir.as_posix(), '-lanswer']
         self.assertEqual(foo_dep.get_link_args(), link_args)
         # Ensure include args are properly quoted
         incdir = PurePath(prefix) / PurePath('include')

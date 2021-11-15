@@ -47,6 +47,7 @@ answerlib = shared_library('answer', 'answer.c')
 pkgg.generate(answerlib,
   name : 'libanswer',
   description : 'An answer library.',
+  extra_cflags : ['-DLIBFOO'],
 )
 
 # Test that name_prefix='' and name='libfoo' results in '-lfoo'
