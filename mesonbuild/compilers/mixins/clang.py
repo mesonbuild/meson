@@ -156,7 +156,9 @@ class ClangCompiler(GnuLikeCompiler):
 
     def get_lto_link_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
         args = self.get_lto_compile_args(threads=threads, mode=mode)
-        # In clang -flto=0 means auto
-        if threads >= 0:
+        # In clang -flto-jobs=0 means auto, and is the default if unspecified, just like in meson
+        if threads > 0:
+            if not mesonlib.version_compare(self.version, '>=4.0.0'):
+                raise mesonlib.MesonException('clang support for LTO threads requires clang >=4.0')
             args.append(f'-flto-jobs={threads}')
         return args
