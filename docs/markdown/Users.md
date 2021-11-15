@@ -96,6 +96,7 @@ format files
  - [Marker](https://github.com/fabiocolacio/Marker), a GTK-3 markdown editor
  - [Mesa](https://gitlab.freedesktop.org/mesa/mesa/), an open source graphics driver project
  - [MiracleCast](https://github.com/albfan/miraclecast), connect external monitors to your system via Wifi-Display specification aka Miracast
+ - [mpv](https://github.com/mpv-player/mpv), a free, open source, and cross-platform media player
  - [mrsh](https://github.com/emersion/mrsh), a minimal POSIX shell
  - [Nautilus](https://gitlab.gnome.org/GNOME/nautilus), the GNOME file manager
  - [Nemo](https://github.com/linuxmint/nemo), the file manager for the Cinnamon desktop environment
