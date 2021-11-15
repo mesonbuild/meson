@@ -124,11 +124,19 @@ class PackageGenerator:
         self.final_output = f'meson-{self.version}-64.msi'
         self.staging_dirs = ['dist', 'dist2']
         self.progfile_dir = 'ProgramFiles64Folder'
-        redist_glob = 'C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Redist\\MSVC\\v*\\MergeModules\\Microsoft_VC142_CRT_x64.msm'
-        trials = glob(redist_glob)
-        if len(trials) != 1:
-            sys.exit('Could not find unique MSM setup:' + '\n'.join(trials))
-        self.redist_path = trials[0]
+        redist_globs = ['C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Redist\\MSVC\\v*\\MergeModules\\Microsoft_VC142_CRT_x64.msm',
+                        'C:\\Program Files\\Microsoft Visual Studio\\2022\\Preview\\VC\\Redist\\MSVC\\v*\\MergeModules\\Microsoft_VC143_CRT_x64.msm']
+        redist_path = None
+        for g in redist_globs:
+            trials = glob(g)
+            if len(trials) > 1:
+                sys.exit('MSM glob matched multiple entries:' + '\n'.join(trials))
+            if len(trials) == 1:
+                redist_path = trials[0]
+                break
+        if redist_path is None:
+            sys.exit('No MSMs found.')
+        self.redist_path = redist_path
         self.component_num = 0
         self.feature_properties = {
             self.staging_dirs[0]: {
@@ -173,8 +181,6 @@ class PackageGenerator:
                       pyinstaller_tmpdir]
         for m in modules:
             pyinst_cmd += ['--hidden-import', m]
-        # https://github.com/pyinstaller/pyinstaller/issues/5693
-        pyinst_cmd += ['--exclude-module', '_bootlocale']
         pyinst_cmd += ['meson.py']
         subprocess.check_call(pyinst_cmd)
         shutil.move(pyinstaller_tmpdir + '/meson', main_stage)
