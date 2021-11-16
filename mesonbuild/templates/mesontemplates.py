@@ -14,7 +14,7 @@
 
 import argparse
 
-meson_executable_template = '''project('{project_name}', '{language}',
+meson_executable_template = '''project('{project_name}', {language},
   version : '{version}',
   default_options : [{default_options}])
 
@@ -55,8 +55,9 @@ def create_meson_build(options: argparse.Namespace) -> None:
                                             for x in options.deps.split(','))
         depspec += '],'
     if options.language != 'java':
+        language = f"'{options.language}'" if options.language != 'vala' else ['c', 'vala']
         content = meson_executable_template.format(project_name=options.name,
-                                                   language=options.language,
+                                                   language=language,
                                                    version=options.version,
                                                    executable=options.executable,
                                                    sourcespec=sourcespec,
