@@ -321,8 +321,8 @@ VAPI or Vala binaries.
              languages: []string, symlink_media: bool = true): void
 ```
 
-Installs help documentation using Yelp. The first argument is the
-project id.
+Installs help documentation for Yelp using itstool and gettext. The first
+argument is the project id.
 
 Additionally, sources can be passed as additional positional arguments. This
 was, however, undocumented and never officially supported. Due to a longstanding
