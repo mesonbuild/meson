@@ -473,7 +473,7 @@ class ZlibSystemDependency(SystemDependency):
 
             self.is_found = True
             self.link_args = ['-lz']
-        elif m.is_windows():
+        else:
             # Without a clib_compiler we can't find zlib, so just give up.
             if self.clib_compiler is None:
                 self.is_found = False
@@ -492,9 +492,6 @@ class ZlibSystemDependency(SystemDependency):
                     break
             else:
                 return
-        else:
-            mlog.debug(f'Unsupported OS {m.system}')
-            return
 
         v, _ = self.clib_compiler.get_define('ZLIB_VERSION', '#include <zlib.h>', self.env, [], [self])
         self.version = v.strip('"')
