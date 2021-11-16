@@ -49,7 +49,7 @@ c2000_optimization_args = {
 
 c2000_debug_args = {
     False: [],
-    True: []
+    True: ['-g']
 }  # type: T.Dict[bool, T.List[str]]
 
 
