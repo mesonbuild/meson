@@ -245,6 +245,7 @@ class GnuCCompiler(GnuCompiler, CCompiler):
 
     _C18_VERSION = '>=8.0.0'
     _C2X_VERSION = '>=9.0.0'
+    _INVALID_PCH_VERSION = ">=3.4.0"
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
                  info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
@@ -253,7 +254,9 @@ class GnuCCompiler(GnuCompiler, CCompiler):
                  full_version: T.Optional[str] = None):
         CCompiler.__init__(self, exelist, version, for_machine, is_cross, info, exe_wrapper, linker=linker, full_version=full_version)
         GnuCompiler.__init__(self, defines)
-        default_warn_args = ['-Wall', '-Winvalid-pch']
+        default_warn_args = ['-Wall']
+        if version_compare(self.version, self._INVALID_PCH_VERSION):
+            default_warn_args += ['-Winvalid-pch']
         self.warn_args = {'0': [],
                           '1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
