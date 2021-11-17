@@ -520,18 +520,21 @@ class Vs2010Backend(backends.Backend):
                              temp_dir,
                              guid,
                              conftype = 'Utility',
-                             target_ext = None):
+                             target_ext = None,
+                             target_platform = None):
         root = ET.Element('Project', {'DefaultTargets': "Build",
                                       'ToolsVersion': '4.0',
                                       'xmlns': 'http://schemas.microsoft.com/developer/msbuild/2003'})
 
         confitems = ET.SubElement(root, 'ItemGroup', {'Label': 'ProjectConfigurations'})
+        if not target_platform:
+            target_platform = self.platform
         prjconf = ET.SubElement(confitems, 'ProjectConfiguration',
-                                {'Include': self.buildtype + '|' + self.platform})
+                                {'Include': self.buildtype + '|' + target_platform})
         p = ET.SubElement(prjconf, 'Configuration')
         p.text = self.buildtype
         pl = ET.SubElement(prjconf, 'Platform')
-        pl.text = self.platform
+        pl.text = target_platform
 
         # Globals
         globalgroup = ET.SubElement(root, 'PropertyGroup', Label='Globals')
@@ -544,7 +547,7 @@ class Vs2010Backend(backends.Backend):
         ns.text = target_name
 
         p = ET.SubElement(globalgroup, 'Platform')
-        p.text = self.platform
+        p.text = target_platform
         pname = ET.SubElement(globalgroup, 'ProjectName')
         pname.text = target_name
         if self.windows_target_platform_version:
@@ -613,9 +616,14 @@ class Vs2010Backend(backends.Backend):
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
     def gen_custom_target_vcxproj(self, target, ofname, guid):
+        if target.for_machine is MachineChoice.BUILD:
+            platform = self.build_platform
+        else:
+            platform = self.platform
         (root, type_config) = self.create_basic_project(target.name,
                                                         temp_dir = target.get_id(),
-                                                        guid = guid)
+                                                        guid = guid,
+                                                        target_platform = platform)
         # We need to always use absolute paths because our invocation is always
         # from the target dir, not the build root.
         target.absolute_paths = True
@@ -869,7 +877,8 @@ class Vs2010Backend(backends.Backend):
                                                         temp_dir = target.get_id(),
                                                         guid = guid,
                                                         conftype = conftype,
-                                                        target_ext = tfilename[1])
+                                                        target_ext = tfilename[1],
+                                                        target_platform = platform)
 
         # FIXME: Should these just be set in create_basic_project(), even if
         # irrelevant for current target?
