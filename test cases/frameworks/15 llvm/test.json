@@ -3,7 +3,7 @@
     "options": {
       "method": [
         { "val": "config-tool", "skip_on_jobname": ["msys2-gcc"]},
-        { "val": "cmake", "skip_on_jobname": ["msys2"] }
+        { "val": "cmake", "skip_on_jobname": ["msys2-gcc"] }
       ],
       "link-static": [
         { "val": true, "skip_on_jobname": ["opensuse"] },
