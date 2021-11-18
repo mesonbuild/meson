@@ -169,12 +169,12 @@ class FailureTests(BasePlatformTests):
                                "requires at least one module")
 
     def test_extraframework_dependency_method(self):
-        code = "dependency('python', method : 'extraframework')"
+        code = "dependency('metal', method : 'extraframework')"
         if not is_osx():
             self.assertMesonRaises(code, self.dnf)
         else:
-            # Python2 framework is always available on macOS
-            self.assertMesonOutputs(code, '[Dd]ependency.*python.*found.*YES')
+            # metal framework is always available on macOS
+            self.assertMesonOutputs(code, '[Dd]ependency.*metal.*found.*YES')
 
     def test_sdl2_notfound_dependency(self):
         # Want to test failure, so skip if available
