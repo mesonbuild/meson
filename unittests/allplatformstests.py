@@ -360,7 +360,7 @@ class AllPlatformTests(BasePlatformTests):
         libname = targets[0]['filename'][0]
         # Build and get contents of static library
         self.build()
-        before = self._run(['ar', 't', os.path.join(self.builddir, libname)]).split()
+        before = self._run(static_linker.get_exelist() + ['t', os.path.join(self.builddir, libname)]).split()
         # Filter out non-object-file contents
         before = [f for f in before if f.endswith(('.o', '.obj'))]
         # Static library should contain only one object
@@ -368,7 +368,7 @@ class AllPlatformTests(BasePlatformTests):
         # Change the source to be built into the static library
         self.setconf('-Dsource=libfile2.c')
         self.build()
-        after = self._run(['ar', 't', os.path.join(self.builddir, libname)]).split()
+        after = self._run(static_linker.get_exelist() + ['t', os.path.join(self.builddir, libname)]).split()
         # Filter out non-object-file contents
         after = [f for f in after if f.endswith(('.o', '.obj'))]
         # Static library should contain only one object
