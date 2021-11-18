@@ -179,6 +179,12 @@ class InstalledFile:
                 return p.with_suffix(python_suffix)
         if self.typ in ['file', 'dir']:
             return p
+        elif self.typ == 'pkgconfig':
+            p = p.with_suffix('.pc')
+            if env.machines.host.is_freebsd():
+                return p.parent / 'libdata/pkgconfig' / p.name
+            else:
+                return p.parent / 'lib/pkgconfig' / p.name
         elif self.typ == 'shared_lib':
             if env.machines.host.is_windows() or env.machines.host.is_cygwin():
                 # Windows only has foo.dll and foo-X.dll
