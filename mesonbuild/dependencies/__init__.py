@@ -36,7 +36,7 @@ from .misc import (
     BlocksDependency, OpenMPDependency, cups_factory, curses_factory, gpgme_factory,
     libgcrypt_factory, libwmf_factory, netcdf_factory, pcap_factory, python3_factory,
     shaderc_factory, threads_factory, ThreadDependency, iconv_factory, intl_factory,
-    dl_factory
+    dl_factory, openssl_factory, libcrypto_factory, libssl_factory,
 )
 from .platform import AppleFrameworks
 from .qt import qt4_factory, qt5_factory, qt6_factory
@@ -256,6 +256,9 @@ packages.update({
     'iconv': iconv_factory,
     'intl': intl_factory,
     'dl': dl_factory,
+    'openssl': openssl_factory,
+    'libcrypto': libcrypto_factory,
+    'libssl': libssl_factory,
 
     # From platform:
     'appleframeworks': AppleFrameworks,

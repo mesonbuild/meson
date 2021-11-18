@@ -511,6 +511,55 @@ class IntlSystemDependency(SystemDependency):
                     return
 
 
+class OpensslSystemDependency(SystemDependency):
+    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]):
+        super().__init__(name, env, kwargs)
+
+        dependency_kwargs = {
+            'method': 'system',
+            'static': self.static,
+        }
+        if not self.clib_compiler.has_header('openssl/ssl.h', '', env)[0]:
+            return
+
+        # openssl >= 3 only
+        self.version = self.clib_compiler.get_define('OPENSSL_VERSION_STR', '#include <openssl/opensslv.h>', env, [], [self])[0]
+        # openssl < 3 only
+        if not self.version:
+            version_hex = self.clib_compiler.get_define('OPENSSL_VERSION_NUMBER', '#include <openssl/opensslv.h>', env, [], [self])[0]
+            if not version_hex:
+                return
+            version_hex = version_hex.rstrip('L')
+            version_ints = [((int(version_hex.rstrip('L'), 16) >> 4 + i) & 0xFF) for i in (24, 16, 8, 0)]
+            # since this is openssl, the format is 1.2.3a in four parts
+            self.version = '.'.join(str(i) for i in version_ints[:3]) + chr(ord('a') + version_ints[3] - 1)
+
+        if name == 'openssl':
+            if self._add_sub_dependency(libssl_factory(env, self.for_machine, dependency_kwargs)) and \
+                    self._add_sub_dependency(libcrypto_factory(env, self.for_machine, dependency_kwargs)):
+                self.is_found = True
+            return
+        else:
+            self.link_args = self.clib_compiler.find_library(name.lstrip('lib'), env, [], self.libtype)
+            if not self.link_args:
+                return
+
+        if not self.static:
+            self.is_found = True
+        else:
+            if name == 'libssl':
+                if self._add_sub_dependency(libcrypto_factory(env, self.for_machine, dependency_kwargs)):
+                    self.is_found = True
+            elif name == 'libcrypto':
+                use_threads = self.clib_compiler.has_header_symbol('openssl/opensslconf.h', 'OPENSSL_THREADS', '', env, dependencies=[self])[0]
+                if not use_threads or self._add_sub_dependency(threads_factory(env, self.for_machine, {})):
+                    self.is_found = True
+                # only relevant on platforms where it is distributed with the libc, in which case it always succeeds
+                sublib = self.clib_compiler.find_library('dl', env, [], self.libtype)
+                if sublib:
+                    self.link_args.extend(sublib)
+
+
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.SYSTEM})
 def curses_factory(env: 'Environment',
                    for_machine: 'MachineChoice',
@@ -640,4 +689,22 @@ intl_factory = DependencyFactory(
     [DependencyMethods.BUILTIN, DependencyMethods.SYSTEM],
     builtin_class=IntlBuiltinDependency,
     system_class=IntlSystemDependency,
+)
+
+openssl_factory = DependencyFactory(
+    'openssl',
+    [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM],
+    system_class=OpensslSystemDependency,
+)
+
+libcrypto_factory = DependencyFactory(
+    'libcrypto',
+    [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM],
+    system_class=OpensslSystemDependency,
+)
+
+libssl_factory = DependencyFactory(
+    'libssl',
+    [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM],
+    system_class=OpensslSystemDependency,
 )
