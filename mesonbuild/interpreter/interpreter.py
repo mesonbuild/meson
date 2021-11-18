@@ -51,7 +51,7 @@ from .interpreterobjects import (
     NullSubprojectInterpreter,
 )
 from .type_checking import (
-    COMMAND_KW,
+    COMMAND_KW, CT_BUILD_ALWAYS, CT_BUILD_ALWAYS_STALE,
     CT_BUILD_BY_DEFAULT,
     CT_INPUT_KW,
     CT_INSTALL_DIR_KW,
@@ -1706,6 +1706,8 @@ external dependencies (including libraries) must go to "dependencies".''')
     @typed_kwargs(
         'custom_target',
         COMMAND_KW,
+        CT_BUILD_ALWAYS.evolve(deprecated='0.47.0'),
+        CT_BUILD_ALWAYS_STALE.evolve(since='0.47.0'),
         CT_BUILD_BY_DEFAULT,
         CT_INPUT_KW,
         CT_INSTALL_DIR_KW,
@@ -1718,8 +1720,6 @@ external dependencies (including libraries) must go to "dependencies".''')
         INSTALL_KW,
         INSTALL_MODE_KW.evolve(since='0.47.0'),
         OVERRIDE_OPTIONS_KW,
-        KwargInfo('build_always', (bool, type(None)), deprecated='0.47.0'),
-        KwargInfo('build_always_stale', (bool, type(None)), since='0.47.0'),
         KwargInfo('feed', bool, default=False, since='0.59.0'),
         KwargInfo('capture', bool, default=False),
         KwargInfo('console', bool, default=False, since='0.48.0'),
