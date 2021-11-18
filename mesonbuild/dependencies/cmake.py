@@ -617,12 +617,10 @@ class CMakeDependency(ExternalDependency):
                         libraries += [j]
                     elif self.env.machines.build.is_windows() and reg_is_maybe_bare_lib.match(j):
                         # On Windows, CMake library dependencies can be passed as bare library names,
-                        # e.g. 'version' should translate into 'version.lib'. CMake brute-forces a
-                        # combination of prefix/suffix combinations to find the right library, however
-                        # as we do not have a compiler environment available to us, we cannot do the
-                        # same, but must assume any bare argument passed which is not also a CMake
-                        # target must be a system library we should try to link against
-                        libraries += [f"{j}.lib"]
+                        # CMake brute-forces a combination of prefix/suffix combinations to find the
+                        # right library. Assume any bare argument passed which is not also a CMake
+                        # target must be a system library we should try to link against.
+                        libraries += self.clib_compiler.find_library(j, self.env, [])
                     else:
                         mlog.warning('CMake: Dependency', mlog.bold(j), 'for', mlog.bold(name), 'target', mlog.bold(self._original_module_name(curr)), 'was not found')
 
