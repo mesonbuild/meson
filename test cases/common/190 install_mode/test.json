@@ -11,5 +11,12 @@
     {"type": "file", "file": "usr/share/sub2/stub"},
     {"type": "file", "file": "usr/subdir/data.dat"}
   ],
-  "do_not_set_opts": ["libdir"]
+  "do_not_set_opts": ["libdir"],
+  "stdout": [
+    {
+      "line": ".* DEPRECATION: install_mode with the sticky bit on a file",
+      "match": "re",
+      "count": 3
+    }
+  ]
 }

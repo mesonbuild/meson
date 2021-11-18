@@ -615,7 +615,7 @@ class LinuxlikeTests(BasePlatformTests):
 
         f = os.path.join(self.installdir, 'etc', 'etcfile.dat')
         found_mode = stat.filemode(os.stat(f).st_mode)
-        want_mode = 'rw------T'
+        want_mode = 'rw-------'
         self.assertEqual(want_mode, found_mode[1:])
 
         f = os.path.join(self.installdir, 'usr', 'bin', 'runscript.sh')
@@ -650,7 +650,7 @@ class LinuxlikeTests(BasePlatformTests):
         f = os.path.join(self.installdir, 'usr', 'share', 'sub1', 'second.dat')
         statf = os.stat(f)
         found_mode = stat.filemode(statf.st_mode)
-        want_mode = 'rwxr-x--t'
+        want_mode = 'rwxr-x--x'
         self.assertEqual(want_mode, found_mode[1:])
         if os.getuid() == 0:
             # The chown failed nonfatally if we're not root
@@ -673,15 +673,15 @@ class LinuxlikeTests(BasePlatformTests):
                 ('bin/trivialprog', '-rwxr-sr-x'),
                 ('include', 'drwxr-x---'),
                 ('include/config.h', '-rw-rwSr--'),
-                ('include/rootdir.h', '-r--r--r-T'),
+                ('include/rootdir.h', '-r--r--r--'),
                 ('lib', 'drwxr-x---'),
                 ('lib/libstat.a', '-rw---Sr--'),
                 ('share', 'drwxr-x---'),
                 ('share/man', 'drwxr-x---'),
                 ('share/man/man1', 'drwxr-x---'),
-                ('share/man/man1/foo.1', '-r--r--r-T'),
+                ('share/man/man1/foo.1', '-r--r--r--'),
                 ('share/sub1', 'drwxr-x---'),
-                ('share/sub1/second.dat', '-rwxr-x--t'),
+                ('share/sub1/second.dat', '-rwxr-x--x'),
                 ('subdir', 'drwxr-x---'),
                 ('subdir/data.dat', '-rw-rwSr--'),
         ]:
