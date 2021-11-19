@@ -56,7 +56,7 @@ def main() -> None:
             return 'meson'
         return ''
 
-    results = [run_test(t, t.args, should_fail(t.path), True) for t in tests]
+    results = [run_test(t, t.args, should_fail(t.path), args.use_tmpdir) for t in tests]
     failed = False
     for test, result in zip(tests, results):
         if (result is None) or ('MESON_SKIP_TEST' in result.stdo):
