@@ -326,9 +326,9 @@ class ContainerTypeInfo:
 
         :return: string to be printed
         """
-        container = 'dict' if self.container is dict else 'list'
+        container = 'dict' if self.container is dict else 'array'
         if isinstance(self.contains, tuple):
-            contains = ','.join([t.__name__ for t in self.contains])
+            contains = ' | '.join([t.__name__ for t in self.contains])
         else:
             contains = self.contains.__name__
         s = f'{container}[{contains}]'
@@ -471,8 +471,8 @@ def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
             """describe a raw type (ie, one that is not a ContainerTypeInfo)."""
             if isinstance(t, list):
                 if t:
-                    return f"list[{' | '.join(sorted(mesonlib.OrderedSet(type(v).__name__ for v in t)))}]"
-                return 'list[]'
+                    return f"array[{' | '.join(sorted(mesonlib.OrderedSet(type(v).__name__ for v in t)))}]"
+                return 'array[]'
             elif isinstance(t, dict):
                 if t:
                     return f"dict[{' | '.join(sorted(mesonlib.OrderedSet(type(v).__name__ for v in t.values())))}]"
