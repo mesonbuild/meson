@@ -39,6 +39,6 @@ install: libfoo.$LIBEXT
 	mkdir -p "\$(DESTDIR)$LIBDIR";
 	mkdir -p "\$(DESTDIR)$LIBDIR/pkgconfig";
 	mkdir -p "\$(DESTDIR)$INCDIR";
-	cp \$< "\$(DESTDIR)$LIBDIR";
+	cp libfoo.$LIBEXT "\$(DESTDIR)$LIBDIR";
 	cp "$srcdir/libfoo.h" "\$(DESTDIR)$INCDIR";
 EOL
