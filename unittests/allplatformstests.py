@@ -39,7 +39,7 @@ import mesonbuild.environment
 import mesonbuild.coredata
 import mesonbuild.modules.gnome
 from mesonbuild.mesonlib import (
-    BuildDirLock, MachineChoice, is_windows, is_osx, is_cygwin, is_dragonflybsd,
+    BuildDirLock, MachineChoice, is_windows, is_osx, is_cygwin, is_dragonflybsd, is_freebsd,
     is_sunos, windows_proof_rmtree, python_command, version_compare, split_args, quote_arg,
     relpath, is_linux, git, search_version, do_conf_file, do_conf_str, default_prefix,
     MesonException, EnvironmentException, OptionKey
@@ -1994,6 +1994,9 @@ class AllPlatformTests(BasePlatformTests):
         langs = ['c']
         env = get_fake_env()
         for l in ['cpp', 'cs', 'd', 'java', 'cuda', 'fortran', 'objc', 'objcpp', 'rust']:
+            if l == 'objcpp' and is_freebsd():
+                # FIXME: known broken
+                continue
             try:
                 comp = detect_compiler_for(env, l, MachineChoice.HOST)
                 with tempfile.TemporaryDirectory() as d:
