@@ -456,6 +456,27 @@ def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
     """
     def inner(f: TV_func) -> TV_func:
 
+        def types_description(types_tuple: T.Tuple[T.Union[T.Type, ContainerTypeInfo], ...]) -> str:
+            candidates = []
+            for t in types_tuple:
+                if isinstance(t, ContainerTypeInfo):
+                    candidates.append(t.description())
+                else:
+                    candidates.append(t.__name__)
+            shouldbe = 'one of: ' if len(candidates) > 1 else ''
+            shouldbe += ', '.join(candidates)
+            return shouldbe
+
+        def check_value_type(types_tuple: T.Tuple[T.Union[T.Type, ContainerTypeInfo], ...],
+                             value: T.Any) -> bool:
+            for t in types_tuple:
+                if isinstance(t, ContainerTypeInfo):
+                    if t.check(value):
+                        return True
+                elif isinstance(value, t):
+                    return True
+            return False
+
         @wraps(f)
         def wrapper(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
             node, _, _kwargs, subproject = get_callee_args(wrapped_args)
@@ -470,24 +491,6 @@ def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
 
             for info in types:
                 types_tuple = info.types if isinstance(info.types, tuple) else (info.types,)
-                def check_value_type(value: T.Any) -> bool:
-                    for t in types_tuple:
-                        if isinstance(t, ContainerTypeInfo):
-                            if t.check(value):
-                                return True
-                        elif isinstance(value, t):
-                            return True
-                    return False
-                def types_description() -> str:
-                    candidates = []
-                    for t in types_tuple:
-                        if isinstance(t, ContainerTypeInfo):
-                            candidates.append(t.description())
-                        else:
-                            candidates.append(t.__name__)
-                    shouldbe = 'one of: ' if len(candidates) > 1 else ''
-                    shouldbe += ', '.join(candidates)
-                    return shouldbe
                 value = kwargs.get(info.name)
                 if value is not None:
                     if info.since:
@@ -498,8 +501,8 @@ def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
                         FeatureDeprecated.single_use(feature_name, info.deprecated, subproject, location=node)
                     if info.listify:
                         kwargs[info.name] = value = mesonlib.listify(value)
-                    if not check_value_type(value):
-                        shouldbe = types_description()
+                    if not check_value_type(types_tuple, value):
+                        shouldbe = types_description(types_tuple)
                         raise InvalidArguments(f'{name} keyword argument {info.name!r} was of type {type(value).__name__!r} but should have been {shouldbe}')
 
                     if info.validator is not None:
@@ -533,7 +536,7 @@ def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
                 else:
                     # set the value to the default, this ensuring all kwargs are present
                     # This both simplifies the typing checking and the usage
-                    assert check_value_type(info.default), f'In funcion {name} default value of {info.name} is not a valid type, got {type(info.default)} expected {types_description()}'
+                    assert check_value_type(types_tuple, info.default), f'In funcion {name} default value of {info.name} is not a valid type, got {type(info.default)} expected {types_description(types_tuple)}'
                     # Create a shallow copy of the container. This allows mutable
                     # types to be used safely as default values
                     kwargs[info.name] = copy.copy(info.default)
