@@ -1725,11 +1725,11 @@ class LinuxlikeTests(BasePlatformTests):
         # remove limitations as necessary.
         if is_osx():
             raise SkipTest('Prelinking not supported on Darwin.')
-        if 'clang' in os.environ.get('CC', 'dummy'):
-            raise SkipTest('Prelinking not supported with Clang.')
         testdir = os.path.join(self.unit_test_dir, '86 prelinking')
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = detect_c_compiler(env, MachineChoice.HOST)
+        if cc.id == 'clang':
+            raise SkipTest('Prelinking not supported with Clang.')
         if cc.id == "gcc" and not version_compare(cc.version, '>=9'):
             raise SkipTest('Prelinking not supported with gcc 8 or older.')
         self.init(testdir)
