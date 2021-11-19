@@ -1266,7 +1266,7 @@ class InternalTests(unittest.TestCase):
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), [], {'input': {}})
-        self.assertEqual(str(cm.exception), "testfunc keyword argument 'input' was of type 'dict' but should have been list[str]")
+        self.assertEqual(str(cm.exception), "testfunc keyword argument 'input' was of type dict[] but should have been list[str]")
 
     def test_typed_kwarg_contained_invalid(self) -> None:
         @typed_kwargs(
@@ -1278,7 +1278,7 @@ class InternalTests(unittest.TestCase):
 
         with self.assertRaises(InvalidArguments) as cm:
             _(None, mock.Mock(), [], {'input': {'key': 1}})
-        self.assertEqual(str(cm.exception), "testfunc keyword argument 'input' was of type 'dict' but should have been dict[str]")
+        self.assertEqual(str(cm.exception), "testfunc keyword argument 'input' was of type dict[int] but should have been dict[str]")
 
     def test_typed_kwarg_container_listify(self) -> None:
         @typed_kwargs(
@@ -1313,7 +1313,7 @@ class InternalTests(unittest.TestCase):
 
         with self.assertRaises(MesonException) as cm:
             _(None, mock.Mock(), [], {'input': ['a']})
-        self.assertEqual(str(cm.exception), "testfunc keyword argument 'input' was of type 'list' but should have been list[str] that has even size")
+        self.assertEqual(str(cm.exception), "testfunc keyword argument 'input' was of type list[str] but should have been list[str] that has even size")
 
     @mock.patch.dict(mesonbuild.mesonlib.project_meson_versions, {})
     def test_typed_kwarg_since(self) -> None:

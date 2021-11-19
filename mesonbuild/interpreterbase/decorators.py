@@ -467,6 +467,18 @@ def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
             shouldbe += ', '.join(candidates)
             return shouldbe
 
+        def raw_description(t: object) -> str:
+            """describe a raw type (ie, one that is not a ContainerTypeInfo)."""
+            if isinstance(t, list):
+                if t:
+                    return f"list[{' | '.join(sorted(mesonlib.OrderedSet(type(v).__name__ for v in t)))}]"
+                return 'list[]'
+            elif isinstance(t, dict):
+                if t:
+                    return f"dict[{' | '.join(sorted(mesonlib.OrderedSet(type(v).__name__ for v in t.values())))}]"
+                return 'dict[]'
+            return type(t).__name__
+
         def check_value_type(types_tuple: T.Tuple[T.Union[T.Type, ContainerTypeInfo], ...],
                              value: T.Any) -> bool:
             for t in types_tuple:
@@ -503,7 +515,7 @@ def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
                         kwargs[info.name] = value = mesonlib.listify(value)
                     if not check_value_type(types_tuple, value):
                         shouldbe = types_description(types_tuple)
-                        raise InvalidArguments(f'{name} keyword argument {info.name!r} was of type {type(value).__name__!r} but should have been {shouldbe}')
+                        raise InvalidArguments(f'{name} keyword argument {info.name!r} was of type {raw_description(value)} but should have been {shouldbe}')
 
                     if info.validator is not None:
                         msg = info.validator(value)
