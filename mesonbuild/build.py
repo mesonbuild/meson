@@ -2253,9 +2253,9 @@ class SharedModule(SharedLibrary):
 
     def __init__(self, name, subdir, subproject, for_machine: MachineChoice, sources, objects, environment, kwargs):
         if 'version' in kwargs:
-            raise MesonException('Shared modules must not specify the version kwarg.')
+            raise InvalidArguments('Shared modules must not specify the version kwarg.')
         if 'soversion' in kwargs:
-            raise MesonException('Shared modules must not specify the soversion kwarg.')
+            raise InvalidArguments('Shared modules must not specify the soversion kwarg.')
         super().__init__(name, subdir, subproject, for_machine, sources, objects, environment, kwargs)
         self.typename = 'shared module'
 
