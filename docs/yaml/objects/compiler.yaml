@@ -486,8 +486,9 @@ methods:
   since: 0.43.0
   varargs_inherit: compiler.has_multi_arguments
   description: |
-    Given a list of strings, returns the first argument that passes the
-    [[compiler.has_argument]] test or an empty array if none pass.
+    Given a list of strings, returns a single-element list containing the first
+    argument that passes the [[compiler.has_argument]] test or an empty array if
+    none pass.
 
 
 # Linker arguments
