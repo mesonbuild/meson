@@ -1159,7 +1159,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             tv = FeatureNew.get_target_version(self.subproject)
             if FeatureNew.check_version(tv, '0.54.0'):
                 mlog.warning('add_languages is missing native:, assuming languages are wanted for both host and build.',
-                             location=self.current_node)
+                             location=node)
 
             success = self.add_languages(langs, False, MachineChoice.BUILD)
             success &= self.add_languages(langs, required, MachineChoice.HOST)
@@ -1731,7 +1731,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 kwargs['input'] = self.source_strings_to_files(extract_as_list(kwargs, 'input'))
             except mesonlib.MesonException:
                 mlog.warning(f'''Custom target input '{kwargs['input']}' can't be converted to File object(s).
-This will become a hard error in the future.''', location=self.current_node)
+This will become a hard error in the future.''', location=node)
         kwargs['env'] = self.unpack_env_kwarg(kwargs)
         if 'command' in kwargs and isinstance(kwargs['command'], list) and kwargs['command']:
             if isinstance(kwargs['command'][0], str):
