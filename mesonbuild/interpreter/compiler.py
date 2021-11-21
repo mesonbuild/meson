@@ -275,6 +275,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
     def run_method(self, args: T.Tuple['mesonlib.FileOrString'], kwargs: 'CompileKW') -> 'RunResult':
         code = args[0]
         if isinstance(code, mesonlib.File):
+            self.interpreter.add_build_def_file(code)
             code = mesonlib.File.from_absolute_file(
                 code.rel_to_builddir(self.environment.source_dir))
         testname = kwargs['name']
@@ -434,6 +435,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
     def compiles_method(self, args: T.Tuple['mesonlib.FileOrString'], kwargs: 'CompileKW') -> bool:
         code = args[0]
         if isinstance(code, mesonlib.File):
+            self.interpreter.add_build_def_file(code)
             code = mesonlib.File.from_absolute_file(
                 code.rel_to_builddir(self.environment.source_dir))
         testname = kwargs['name']
@@ -457,6 +459,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         code = args[0]
         compiler = None
         if isinstance(code, mesonlib.File):
+            self.interpreter.add_build_def_file(code)
             code = mesonlib.File.from_absolute_file(
                 code.rel_to_builddir(self.environment.source_dir))
             suffix = code.suffix

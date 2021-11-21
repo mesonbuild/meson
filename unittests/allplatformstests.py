@@ -1965,6 +1965,13 @@ class AllPlatformTests(BasePlatformTests):
         # cxx.links with C source
         self.assertEqual(cmds[3][0], cc)
         self.assertEqual(cmds[4][0], cxx)
+        if self.backend is Backend.ninja:
+            # updating the file to check causes a reconfigure
+            #
+            # only the ninja backend is competent enough to detect reconfigured
+            # no-op builds without build targets
+            self.utime(os.path.join(testdir, 'test.c'))
+            self.assertReconfiguredBuildIsNoop()
 
     def test_ndebug_if_release_disabled(self):
         testdir = os.path.join(self.unit_test_dir, '28 ndebug if-release')
