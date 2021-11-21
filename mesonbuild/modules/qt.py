@@ -170,7 +170,7 @@ class QtBaseModule(ExtensionModule):
         if qt.found():
             # Get all tools and then make sure that they are the right version
             self.compilers_detect(state, qt)
-            if version_compare(qt.version, '>=5.14.0'):
+            if version_compare(qt.version, '>=5.15.0'):
                 self._moc_supports_depfiles = True
             else:
                 mlog.warning('moc dependencies will not work properly until you move to Qt >= 5.15', fatal=False)
