@@ -299,7 +299,7 @@ class CmakeModule(ExtensionModule):
 
     def create_package_file(self, infile, outfile, PACKAGE_RELATIVE_PATH, extra, confdata):
         package_init = PACKAGE_INIT_BASE.replace('@PACKAGE_RELATIVE_PATH@', PACKAGE_RELATIVE_PATH)
-        package_init = package_init.replace('@inputFileName@', infile)
+        package_init = package_init.replace('@inputFileName@', os.path.basename(infile))
         package_init += extra
         package_init += PACKAGE_INIT_SET_AND_CHECK
 
