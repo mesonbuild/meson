@@ -1277,7 +1277,7 @@ class InternalTests(unittest.TestCase):
             self.assertTrue(False)  # should be unreachable
 
         with self.assertRaises(InvalidArguments) as cm:
-            _(None, mock.Mock(), [], {'input': {'key': 1}})
+            _(None, mock.Mock(), [], {'input': {'key': 1, 'bar': 2}})
         self.assertEqual(str(cm.exception), "testfunc keyword argument 'input' was of type dict[int] but should have been dict[str]")
 
     def test_typed_kwarg_container_listify(self) -> None:
