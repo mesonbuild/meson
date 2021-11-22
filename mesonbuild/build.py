@@ -251,6 +251,7 @@ class Build:
         self.man: T.List[Man] = []
         self.emptydir: T.List[EmptyDir] = []
         self.data: T.List[Data] = []
+        self.symlinks: T.List[SymlinkData] = []
         self.static_linker: PerMachine[StaticLinker] = PerMachine(None, None)
         self.subprojects = {}
         self.subproject_dir = ''
@@ -328,6 +329,9 @@ class Build:
 
     def get_data(self) -> T.List['Data']:
         return self.data
+
+    def get_symlinks(self) -> T.List['SymlinkData']:
+        return self.symlinks
 
     def get_emptydir(self) -> T.List['EmptyDir']:
         return self.emptydir
@@ -2801,6 +2805,18 @@ class Data(HoldableObject):
             self.rename = rename
         self.subproject = subproject
         self.data_type = data_type
+
+class SymlinkData(HoldableObject):
+    def __init__(self, target: str, name: str, install_dir: str,
+                 subproject: str, install_tag: T.Optional[str] = None):
+        self.target = target
+        if name != os.path.basename(name):
+            raise InvalidArguments(f'Link name is "{name}", but link names cannot contain path separators. '
+                                   'The dir part should be in install_dir.')
+        self.name = name
+        self.install_dir = install_dir
+        self.subproject = subproject
+        self.install_tag = install_tag
 
 class TestSetup:
     def __init__(self, exe_wrapper: T.List[str], gdb: bool,

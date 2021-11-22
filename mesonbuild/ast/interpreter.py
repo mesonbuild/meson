@@ -103,6 +103,7 @@ class AstInterpreter(InterpreterBase):
                            'install_man': self.func_do_nothing,
                            'install_data': self.func_do_nothing,
                            'install_subdir': self.func_do_nothing,
+                           'install_symlink': self.func_do_nothing,
                            'install_emptydir': self.func_do_nothing,
                            'configuration_data': self.func_do_nothing,
                            'configure_file': self.func_do_nothing,
