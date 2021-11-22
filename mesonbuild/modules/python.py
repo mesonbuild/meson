@@ -79,9 +79,18 @@ class _PythonDependencyBase(_Base):
 class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
 
     def __init__(self, name: str, environment: 'Environment',
-                 kwargs: T.Dict[str, T.Any], installation: 'PythonInstallation'):
+                 kwargs: T.Dict[str, T.Any], installation: 'PythonInstallation',
+                 libpc: bool = False):
+        if libpc:
+            mlog.debug(f'Searching for {name!r} via pkgconfig lookup in LIBPC')
+        else:
+            mlog.debug(f'Searching for {name!r} via fallback pkgconfig lookup in default paths')
+
         PkgConfigDependency.__init__(self, name, environment, kwargs)
         _PythonDependencyBase.__init__(self, installation, kwargs.get('embed', False))
+
+        if libpc and not self.is_found:
+            mlog.debug(f'"python-{self.version}" could not be found in LIBPC, this is likely due to a relocated python installation')
 
 
 class PythonFrameworkDependency(ExtraFrameworkDependency, _PythonDependencyBase):
@@ -240,12 +249,15 @@ def python_factory(env: 'Environment', for_machine: 'MachineChoice',
         # If python-X.Y.pc exists in LIBPC, we will try to use it
         def wrap_in_pythons_pc_dir(name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
                                    installation: 'PythonInstallation') -> 'ExternalDependency':
+            if not pkg_libdir:
+                # there is no LIBPC, so we can't search in it
+                return NotFoundDependency('python', env)
+
             old_pkg_libdir = os.environ.pop('PKG_CONFIG_LIBDIR', None)
             old_pkg_path = os.environ.pop('PKG_CONFIG_PATH', None)
-            if pkg_libdir:
-                os.environ['PKG_CONFIG_LIBDIR'] = pkg_libdir
+            os.environ['PKG_CONFIG_LIBDIR'] = pkg_libdir
             try:
-                return PythonPkgConfigDependency(name, env, kwargs, installation)
+                return PythonPkgConfigDependency(name, env, kwargs, installation, True)
             finally:
                 def set_env(name, value):
                     if value is not None:
@@ -255,10 +267,11 @@ def python_factory(env: 'Environment', for_machine: 'MachineChoice',
                 set_env('PKG_CONFIG_LIBDIR', old_pkg_libdir)
                 set_env('PKG_CONFIG_PATH', old_pkg_path)
 
-        candidates.extend([
-            functools.partial(wrap_in_pythons_pc_dir, pkg_name, env, kwargs, installation),
-            functools.partial(PythonPkgConfigDependency, pkg_name, env, kwargs, installation)
-        ])
+        candidates.append(functools.partial(wrap_in_pythons_pc_dir, pkg_name, env, kwargs, installation))
+        # We only need to check both, if a python install has a LIBPC. It might point to the wrong location,
+        # e.g. relocated / cross compilation, but the presence of LIBPC indicates we should definitely look for something.
+        if pkg_libdir is not None:
+            candidates.append(functools.partial(PythonPkgConfigDependency, pkg_name, env, kwargs, installation))
 
     if DependencyMethods.SYSTEM in methods:
         candidates.append(functools.partial(PythonSystemDependency, 'python', env, kwargs, installation))
