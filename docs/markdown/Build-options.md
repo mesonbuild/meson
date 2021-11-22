@@ -256,10 +256,9 @@ current list execute `meson configure` in the build directory.
 
 #### Startup project
 
-The `backend_startup_project` option can be set to define the default
-project that will be executed with the "Start debugging F5" action in
-visual studio. It should be the same name as an executable target
-name.
+The `backend_startup_project` option can be set to define the active project
+when a solution is first opened in Visual Studio. It is ignored with other
+backends.
 
 ```meson
 project('my_project', 'c', default_options: ['backend_startup_project=my_exe'])
