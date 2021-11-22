@@ -641,6 +641,9 @@ class HeadersHolder(ObjectHolder[build.Headers]):
 class DataHolder(ObjectHolder[build.Data]):
     pass
 
+class SymlinkDataHolder(ObjectHolder[build.SymlinkData]):
+    pass
+
 class InstallDirHolder(ObjectHolder[build.InstallDir]):
     pass
 

@@ -364,6 +364,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                            'install_headers': self.func_install_headers,
                            'install_man': self.func_install_man,
                            'install_subdir': self.func_install_subdir,
+                           'install_symlink': self.func_install_symlink,
                            'is_disabler': self.func_is_disabler,
                            'is_variable': self.func_is_variable,
                            'jar': self.func_jar,
@@ -425,6 +426,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             build.Man: OBJ.ManHolder,
             build.EmptyDir: OBJ.EmptyDirHolder,
             build.Data: OBJ.DataHolder,
+            build.SymlinkData: OBJ.SymlinkDataHolder,
             build.InstallDir: OBJ.InstallDirHolder,
             build.IncludeDirs: OBJ.IncludeDirsHolder,
             build.EnvironmentVariables: OBJ.EnvironmentVariablesHolder,
@@ -476,6 +478,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                 self.build.install_scripts.append(v)
             elif isinstance(v, build.Data):
                 self.build.data.append(v)
+            elif isinstance(v, build.SymlinkData):
+                self.build.symlinks.append(v)
             elif isinstance(v, dependencies.InternalDependency):
                 # FIXME: This is special cased and not ideal:
                 # The first source is our new VapiTarget, the rest are deps
@@ -1967,6 +1971,24 @@ This will become a hard error in the future.''', location=node)
         self.build.emptydir.append(d)
 
         return d
+
+    @FeatureNew('install_symlink', '0.61.0')
+    @typed_pos_args('symlink_name', str)
+    @typed_kwargs(
+        'install_symlink',
+        KwargInfo('pointing_to', str, required=True),
+        KwargInfo('install_dir', str, required=True),
+        KwargInfo('install_tag', (str, NoneType)),
+    )
+    def func_install_symlink(self, node: mparser.BaseNode,
+                             args: T.Tuple[T.List[str]],
+                             kwargs) -> build.SymlinkData:
+        name = args[0] # Validation while creating the SymlinkData object
+        target = kwargs['pointing_to']
+        l = build.SymlinkData(target, name, kwargs['install_dir'],
+                              self.subproject, kwargs['install_tag'])
+        self.build.symlinks.append(l)
+        return l
 
     @typed_pos_args('subdir', str)
     @typed_kwargs(

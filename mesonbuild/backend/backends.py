@@ -123,6 +123,7 @@ class InstallData:
         self.man: T.List[InstallDataBase] = []
         self.emptydir: T.List[InstallEmptyDir] = []
         self.data: T.List[InstallDataBase] = []
+        self.symlinks: T.List[InstallSymlinkData] = []
         self.install_scripts: T.List[ExecutableSerialisation] = []
         self.install_subdirs: T.List[SubdirInstallData] = []
         self.mesonintrospect = mesonintrospect
@@ -167,6 +168,15 @@ class InstallDataBase:
         self.subproject = subproject
         self.tag = tag
         self.data_type = data_type
+
+class InstallSymlinkData:
+    def __init__(self, target: str, name: str, install_path: str,
+                 subproject: str, tag: T.Optional[str] = None):
+        self.target = target
+        self.name = name
+        self.install_path = install_path
+        self.subproject = subproject
+        self.tag = tag
 
 class SubdirInstallData(InstallDataBase):
     def __init__(self, path: str, install_path: str, install_path_name: str,
@@ -1497,6 +1507,7 @@ class Backend:
         self.generate_man_install(d)
         self.generate_emptydir_install(d)
         self.generate_data_install(d)
+        self.generate_symlink_install(d)
         self.generate_custom_install_script(d)
         self.generate_subdir_install(d)
         return d
@@ -1716,6 +1727,15 @@ class Backend:
                 i = InstallDataBase(src_file.absolute_path(srcdir, builddir), dst_abs, dstdir_name,
                                     de.install_mode, de.subproject, tag=tag, data_type=de.data_type)
                 d.data.append(i)
+
+    def generate_symlink_install(self, d: InstallData) -> None:
+        links: T.List[build.SymlinkData] = self.build.get_symlinks()
+        for l in links:
+            assert isinstance(l, build.SymlinkData)
+            install_dir = l.install_dir
+            name_abs = os.path.join(install_dir, l.name)
+            s = InstallSymlinkData(l.target, name_abs, install_dir, l.subproject, l.install_tag)
+            d.symlinks.append(s)
 
     def generate_subdir_install(self, d: InstallData) -> None:
         for sd in self.build.get_install_subdirs():
