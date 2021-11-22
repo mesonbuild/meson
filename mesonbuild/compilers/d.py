@@ -64,7 +64,7 @@ ldc_optimization_args = {'0': [],
                          '1': ['-O1'],
                          '2': ['-O2'],
                          '3': ['-O3'],
-                         's': ['-Os'],
+                         's': ['-Oz'],
                          }  # type: T.Dict[str, T.List[str]]
 
 dmd_optimization_args = {'0': [],
