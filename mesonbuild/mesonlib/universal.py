@@ -2125,7 +2125,7 @@ class OptionKey:
         return out
 
     def __repr__(self) -> str:
-        return f'OptionKey({repr(self.name)}, {repr(self.subproject)}, {repr(self.machine)}, {repr(self.lang)})'
+        return f'OptionKey({self.name!r}, {self.subproject!r}, {self.machine!r}, {self.lang!r}, {self.module!r}, {self.type!r})'
 
     @classmethod
     def from_string(cls, raw: str) -> 'OptionKey':
