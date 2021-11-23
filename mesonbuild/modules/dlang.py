@@ -16,12 +16,18 @@
 # are UI-related.
 
 import json
+from mesonbuild.interpreterbase.decorators import typed_pos_args
 import os
+import typing as T
 
 from . import ExtensionModule
 from .. import dependencies
 from .. import mlog
 from ..mesonlib import Popen_safe, MesonException
+
+if T.TYPE_CHECKING:
+    from ..interpreter import Interpreter
+    from . import ModuleState
 
 
 class DlangModule(ExtensionModule):
@@ -30,20 +36,18 @@ class DlangModule(ExtensionModule):
     # been called by importing the module
     dubbin = dependencies.DubDependency.dubbin
 
-    def __init__(self, interpreter):
+    def __init__(self, interpreter: 'Interpreter'):
         super().__init__(interpreter)
         self.methods.update({
             'generate_dub_file': self.generate_dub_file,
         })
 
-    def generate_dub_file(self, state, args, kwargs):
+    @typed_pos_args('dlang.generate_dub_file', str, str)
+    def generate_dub_file(self, state: 'ModuleState', args: T.Tuple[str, str], kwargs: T.Dict[str, T.Any]) -> None:
         if not self.dubbin.found():
             raise MesonException('dub.generate_dub_file: cannot generate dub file without dub binary.')
 
-        if len(args) < 2:
-            raise MesonException('Missing arguments')
-
-        config = {
+        config: T.Dict[str, T.Any] = {
             'name': args[0]
         }
 
@@ -57,8 +61,7 @@ class DlangModule(ExtensionModule):
 
         warn_publishing = ['description', 'license']
         for arg in warn_publishing:
-            if arg not in kwargs and \
-               arg not in config:
+            if arg not in kwargs and arg not in config:
                 mlog.warning('Without', mlog.bold(arg), 'the DUB package can\'t be published')
 
         for key, value in kwargs.items():
@@ -77,7 +80,7 @@ class DlangModule(ExtensionModule):
                                     config[key][name] = version
                 elif isinstance(value, dependencies.Dependency):
                     name = value.get_name()
-                    ret, res = self._call_dubbin(['describe', name])
+                    ret, _ = self._call_dubbin(['describe', name])
                     if ret == 0:
                         version = value.get_version()
                         if version is None:
@@ -90,9 +93,9 @@ class DlangModule(ExtensionModule):
         with open(config_path, 'w', encoding='utf-8') as ofile:
             ofile.write(json.dumps(config, indent=4, ensure_ascii=False))
 
-    def _call_dubbin(self, args, env=None):
-        p, out = Popen_safe(self.dubbin.get_command() + args, env=env)[0:2]
+    def _call_dubbin(self, args: T.List[str]) -> T.Tuple[int, str]:
+        p, out = Popen_safe(self.dubbin.get_command() + args, env=None)[0:2]
         return p.returncode, out.strip()
 
-def initialize(*args, **kwargs):
-    return DlangModule(*args, **kwargs)
+def initialize(interp: 'Interpreter') -> DlangModule:
+    return DlangModule(interp)
