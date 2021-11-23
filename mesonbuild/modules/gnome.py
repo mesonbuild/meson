@@ -33,7 +33,7 @@ from ..build import CustomTarget, CustomTargetIndex, GeneratedList, InvalidArgum
 from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
 from ..interpreter.type_checking import DEPEND_FILES_KW, INSTALL_KW, NoneType, in_set_validator
 from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, FeatureNew, FeatureDeprecatedKwargs
-from ..interpreterbase import typed_kwargs, KwargInfo, ContainerTypeInfo
+from ..interpreterbase import typed_kwargs, KwargInfo, ContainerTypeInfo, FeatureDeprecated
 from ..interpreterbase.decorators import typed_pos_args
 from ..mesonlib import (
     MachineChoice, MesonException, OrderedSet, Popen_safe, join_args,
