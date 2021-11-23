@@ -22,11 +22,13 @@ from . import ExtensionModule
 from .. import dependencies
 from .. import mlog
 from ..mesonlib import Popen_safe, MesonException
-from ..programs import ExternalProgram
+
 
 class DlangModule(ExtensionModule):
-    class_dubbin = None
-    init_dub = False
+
+    # This will always be ready since the DubDependency constructor will have
+    # been called by importing the module
+    dubbin = dependencies.DubDependency.dubbin
 
     def __init__(self, interpreter):
         super().__init__(interpreter)
@@ -34,25 +36,9 @@ class DlangModule(ExtensionModule):
             'generate_dub_file': self.generate_dub_file,
         })
 
-    def _init_dub(self):
-        if DlangModule.class_dubbin is None:
-            self.dubbin = dependencies.DubDependency.class_dubbin
-            DlangModule.class_dubbin = self.dubbin
-        else:
-            self.dubbin = DlangModule.class_dubbin
-
-        if DlangModule.class_dubbin is None:
-            self.dubbin = self.check_dub()
-            DlangModule.class_dubbin = self.dubbin
-        else:
-            self.dubbin = DlangModule.class_dubbin
-
-        if not self.dubbin:
-            raise MesonException('DUB not found.')
-
     def generate_dub_file(self, state, args, kwargs):
-        if not DlangModule.init_dub:
-            self._init_dub()
+        if not self.dubbin.found():
+            raise MesonException('dub.generate_dub_file: cannot generate dub file without dub binary.')
 
         if len(args) < 2:
             raise MesonException('Missing arguments')
@@ -107,28 +93,6 @@ class DlangModule(ExtensionModule):
     def _call_dubbin(self, args, env=None):
         p, out = Popen_safe(self.dubbin.get_command() + args, env=env)[0:2]
         return p.returncode, out.strip()
-
-    def check_dub(self):
-        dubbin = ExternalProgram('dub', silent=True)
-        if dubbin.found():
-            try:
-                p, out = Popen_safe(dubbin.get_command() + ['--version'])[0:2]
-                if p.returncode != 0:
-                    mlog.warning('Found dub {!r} but couldn\'t run it'
-                                 ''.format(' '.join(dubbin.get_command())))
-                    # Set to False instead of None to signify that we've already
-                    # searched for it and not found it
-                    dubbin = False
-            except (FileNotFoundError, PermissionError):
-                dubbin = False
-        else:
-            dubbin = False
-        if dubbin:
-            mlog.log('Found DUB:', mlog.bold(dubbin.get_path()),
-                     '(%s)' % out.strip())
-        else:
-            mlog.log('Found DUB:', mlog.red('NO'))
-        return dubbin
 
 def initialize(*args, **kwargs):
     return DlangModule(*args, **kwargs)
