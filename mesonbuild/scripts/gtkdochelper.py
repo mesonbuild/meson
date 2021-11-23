@@ -50,6 +50,7 @@ parser.add_argument('--run', dest='run', default='')
 for tool in ['scan', 'scangobj', 'mkdb', 'mkhtml', 'fixxref']:
     program_name = 'gtkdoc-' + tool
     parser.add_argument('--' + program_name, dest=program_name.replace('-', '_'))
+parser.add_argument('--install-only', dest='install_only', default=False, action='store_true')
 
 def gtkdoc_run_check(cmd: T.List[str], cwd: str, library_paths: T.Optional[T.List[str]] = None) -> None:
     if library_paths is None:
@@ -226,32 +227,33 @@ def install_gtkdoc(build_root: str, doc_subdir: str, install_prefix: str, datadi
 
 def run(args: T.List[str]) -> int:
     options = parser.parse_args(args)
-    build_gtkdoc(
-        options.sourcedir,
-        options.builddir,
-        options.subdir,
-        options.headerdirs.split('@@'),
-        options.mainfile,
-        options.modulename,
-        options.moduleversion,
-        options.htmlargs.split('@@') if options.htmlargs else [],
-        options.scanargs.split('@@') if options.scanargs else [],
-        options.fixxrefargs.split('@@') if options.fixxrefargs else [],
-        options.mkdbargs.split('@@') if options.mkdbargs else [],
-        options.gobject_typesfile,
-        options.scanobjsargs.split('@@') if options.scanobjsargs else [],
-        options.run,
-        options.ld,
-        options.cc,
-        options.ldflags,
-        options.cflags,
-        options.html_assets.split('@@') if options.html_assets else [],
-        options.content_files.split('@@') if options.content_files else [],
-        options.ignore_headers.split('@@') if options.ignore_headers else [],
-        options.namespace,
-        options.expand_content_files.split('@@') if options.expand_content_files else [],
-        options.mode,
-        options)
+    if not options.install_only:
+        build_gtkdoc(
+            options.sourcedir,
+            options.builddir,
+            options.subdir,
+            options.headerdirs.split('@@'),
+            options.mainfile,
+            options.modulename,
+            options.moduleversion,
+            options.htmlargs.split('@@') if options.htmlargs else [],
+            options.scanargs.split('@@') if options.scanargs else [],
+            options.fixxrefargs.split('@@') if options.fixxrefargs else [],
+            options.mkdbargs.split('@@') if options.mkdbargs else [],
+            options.gobject_typesfile,
+            options.scanobjsargs.split('@@') if options.scanobjsargs else [],
+            options.run,
+            options.ld,
+            options.cc,
+            options.ldflags,
+            options.cflags,
+            options.html_assets.split('@@') if options.html_assets else [],
+            options.content_files.split('@@') if options.content_files else [],
+            options.ignore_headers.split('@@') if options.ignore_headers else [],
+            options.namespace,
+            options.expand_content_files.split('@@') if options.expand_content_files else [],
+            options.mode,
+            options)
 
     if 'MESON_INSTALL_PREFIX' in os.environ:
         destdir = os.environ.get('DESTDIR', '')

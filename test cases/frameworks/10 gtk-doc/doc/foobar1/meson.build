@@ -12,4 +12,5 @@ gnome.gtkdoc('foobar',
   # https://github.com/mesonbuild/meson/issues/8744
   gobject_typesfile: 'foobar.types',
   install : true,
-  check: false)
+  check: false,
+  build_during_build : true)
