@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from configparser import ConfigParser
+from mesonbuild.mesonlib.universal import OptionType
 from pathlib import Path
 from unittest import mock
 import contextlib
@@ -1574,3 +1575,21 @@ class InternalTests(unittest.TestCase):
         self.assertFalse(coredata.major_versions_differ('0.60.0', '0.60.1'))
         self.assertFalse(coredata.major_versions_differ('0.59.99', '0.59.99'))
         self.assertFalse(coredata.major_versions_differ('0.60.0.rc1', '0.60.0.rc2'))
+
+    def test_option_key_from_string(self) -> None:
+        cases = [
+            ('c_args', OptionKey('args', lang='c', _type=OptionType.COMPILER)),
+            ('build.cpp_args', OptionKey('args', machine=MachineChoice.BUILD, lang='cpp', _type=OptionType.COMPILER)),
+            ('prefix', OptionKey('prefix', _type=OptionType.BUILTIN)),
+            ('made_up', OptionKey('made_up', _type=OptionType.PROJECT)),
+
+            # TODO: the from_String method should be splitting the prefix off of
+            # these, as we have the type already, but it doesn't. For now have a
+            # test so that we don't change the behavior un-intentionally
+            ('b_lto', OptionKey('b_lto', _type=OptionType.BASE)),
+            ('backend_startup_project', OptionKey('backend_startup_project', _type=OptionType.BACKEND)),
+        ]
+
+        for raw, expected in cases:
+            with self.subTest(raw):
+                self.assertEqual(OptionKey.from_string(raw), expected)
