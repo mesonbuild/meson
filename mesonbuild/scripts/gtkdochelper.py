@@ -226,26 +226,6 @@ def install_gtkdoc(build_root: str, doc_subdir: str, install_prefix: str, datadi
 
 def run(args: T.List[str]) -> int:
     options = parser.parse_args(args)
-    if options.htmlargs:
-        htmlargs = options.htmlargs.split('@@')
-    else:
-        htmlargs = []
-    if options.scanargs:
-        scanargs = options.scanargs.split('@@')
-    else:
-        scanargs = []
-    if options.scanobjsargs:
-        scanobjsargs = options.scanobjsargs.split('@@')
-    else:
-        scanobjsargs = []
-    if options.fixxrefargs:
-        fixxrefargs = options.fixxrefargs.split('@@')
-    else:
-        fixxrefargs = []
-    if options.mkdbargs:
-        mkdbargs = options.mkdbargs.split('@@')
-    else:
-        mkdbargs = []
     build_gtkdoc(
         options.sourcedir,
         options.builddir,
@@ -254,12 +234,12 @@ def run(args: T.List[str]) -> int:
         options.mainfile,
         options.modulename,
         options.moduleversion,
-        htmlargs,
-        scanargs,
-        fixxrefargs,
-        mkdbargs,
+        options.htmlargs.split('@@') if options.htmlargs else [],
+        options.scanargs.split('@@') if options.scanargs else [],
+        options.fixxrefargs.split('@@') if options.fixxrefargs else [],
+        options.mkdbargs.split('@@') if options.mkdbargs else [],
         options.gobject_typesfile,
-        scanobjsargs,
+        options.scanobjsargs.split('@@') if options.scanobjsargs else [],
         options.run,
         options.ld,
         options.cc,
