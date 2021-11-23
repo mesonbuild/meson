@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import ExtensionModule
-
-from .. import mesonlib
-from ..mesonlib import typeslistify
-from ..interpreterbase import FeatureNew, noKwargs, InvalidCode
-
 import os
+
+from . import ExtensionModule
+from .. import mesonlib
+from ..interpreterbase import FeatureNew, noKwargs, InvalidCode
+from ..mesonlib import typeslistify
 
 class KeyvalModule(ExtensionModule):
 
