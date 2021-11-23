@@ -38,6 +38,7 @@ modules = [
     'mesonbuild/minstall.py',
     'mesonbuild/mintro.py',
     'mesonbuild/mlog.py',
+    'mesonbuild/modules/dlang.py',
     'mesonbuild/modules/fs.py',
     'mesonbuild/modules/i18n.py',
     'mesonbuild/modules/java.py',
