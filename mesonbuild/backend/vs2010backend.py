@@ -467,7 +467,7 @@ class Vs2010Backend(backends.Backend):
 
         # Put the startup project first in the project list
         if startup_idx:
-            projlist = [projlist[startup_idx]] + projlist[0:startup_idx] + projlist[startup_idx + 1:-1]
+            projlist.insert(0, projlist.pop(startup_idx))
 
         return projlist
 
