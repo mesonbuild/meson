@@ -27,6 +27,8 @@ class Vs2017Backend(Vs2010Backend):
         super().__init__(build, interpreter)
         self.name = 'vs2017'
         self.vs_version = '2017'
+        self.sln_file_version = '12.00'
+        self.sln_version_comment = '15'
         # We assume that host == build
         if self.environment is not None:
             comps = self.environment.coredata.compilers.host
