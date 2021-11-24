@@ -98,6 +98,8 @@ class Vs2010Backend(backends.Backend):
         super().__init__(build, interpreter)
         self.name = 'vs2010'
         self.project_file_version = '10.0.30319.1'
+        self.sln_file_version = '11.00'
+        self.sln_version_comment = '2010'
         self.platform_toolset = None
         self.vs_version = '2010'
         self.windows_target_platform_version = None
@@ -348,10 +350,11 @@ class Vs2010Backend(backends.Backend):
     def generate_solution(self, sln_filename, projlist):
         default_projlist = self.get_build_by_default_targets()
         sln_filename_tmp = sln_filename + '~'
-        with open(sln_filename_tmp, 'w', encoding='utf-8') as ofile:
-            ofile.write('Microsoft Visual Studio Solution File, Format '
-                        'Version 11.00\n')
-            ofile.write('# Visual Studio ' + self.vs_version + '\n')
+        # Note using the utf-8 BOM requires the blank line, otherwise Visual Studio Version Selector fails.
+        # Without the BOM, VSVS fails if there is a blank line.
+        with open(sln_filename_tmp, 'w', encoding='utf-8-sig') as ofile:
+            ofile.write('\nMicrosoft Visual Studio Solution File, Format Version %s\n' % self.sln_file_version)
+            ofile.write('# Visual Studio %s\n' % self.sln_version_comment)
             prj_templ = 'Project("{%s}") = "%s", "%s", "{%s}"\n'
             for prj in projlist:
                 coredata = self.environment.coredata

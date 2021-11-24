@@ -25,6 +25,8 @@ class Vs2019Backend(Vs2010Backend):
     def __init__(self, build: T.Optional[Build], interpreter: T.Optional[Interpreter]):
         super().__init__(build, interpreter)
         self.name = 'vs2019'
+        self.sln_file_version = '12.00'
+        self.sln_version_comment = 'Version 16'
         if self.environment is not None:
             comps = self.environment.coredata.compilers.host
             if comps and all(c.id == 'clang-cl' for c in comps.values()):
