@@ -1946,8 +1946,10 @@ class AllPlatformTests(BasePlatformTests):
         """
         tdir = os.path.join(self.unit_test_dir, '30 shared_mod linking')
         out = self.init(tdir)
-        msg = ('WARNING: target links against shared modules. This is not '
-               'recommended as it is not supported on some platforms')
+        msg = ('''DEPRECATION: target prog links against shared module mymod, which is incorrect.
+             This will be an error in the future, so please use shared_library() for mymod instead.
+             If shared_module() was used for mymod because it has references to undefined symbols,
+             use shared_libary() with `override_options: ['b_lundef=false']` instead.''')
         self.assertIn(msg, out)
 
     def test_mixed_language_linker_check(self):
