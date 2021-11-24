@@ -13,6 +13,15 @@ description: |
   you will need to set the `export_dynamic` argument of the executable to
   `true`.
 
+notes:
+ - |
+   *Linking to a shared module is deprecated, and will be an error in the future*.
+   It used to be allowed because it was the only way to have a shared-library-like target that
+   contained references to undefined symbols. However, since 0.40.0, the `override_options:`
+   [[build_target]] keyword argument can be used to create such a [[shared_library]], and shared
+   modules have other characteristics that make them incompatible with linking, such as a lack of
+   SONAME. Linking to shared modules also does not work on some platforms, such as on macOS / iOS.
+
 posargs_inherit: _build_target_base
 varargs_inherit: _build_target_base
 kwargs_inherit: _build_target_base
