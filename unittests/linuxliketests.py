@@ -438,6 +438,24 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertEqual(get_soname(bothset), 'libbothset.so.1.2.3')
         self.assertEqual(len(self.glob_sofiles_without_privdir(bothset[:-3] + '*')), 3)
 
+        # A shared_module that is not linked to anything
+        module = os.path.join(libpath, 'libsome_module.so')
+        self.assertPathExists(module)
+        self.assertFalse(os.path.islink(module))
+        self.assertEqual(get_soname(module), None)
+
+        # A shared_module that is not linked to an executable with link_with:
+        module = os.path.join(libpath, 'liblinked_module1.so')
+        self.assertPathExists(module)
+        self.assertFalse(os.path.islink(module))
+        self.assertEqual(get_soname(module), 'liblinked_module1.so')
+
+        # A shared_module that is not linked to an executable with dependencies:
+        module = os.path.join(libpath, 'liblinked_module2.so')
+        self.assertPathExists(module)
+        self.assertFalse(os.path.islink(module))
+        self.assertEqual(get_soname(module), 'liblinked_module2.so')
+
     def test_soname(self):
         self._test_soname_impl(self.builddir, False)
 

@@ -1574,11 +1574,16 @@ You probably should put it in link_with instead.''')
             if isinstance(link_target, SharedModule):
                 if self.environment.machines[self.for_machine].is_darwin():
                     raise MesonException(
-                        'target links against shared modules. This is not permitted on OSX')
+                        f'target {self.name} links against shared module {link_target.name}. This is not permitted on OSX')
                 else:
-                    mlog.warning('target links against shared modules. This '
-                                 'is not recommended as it is not supported on some '
-                                 'platforms')
+                    mlog.deprecation(f'target {self.name} links against shared module {link_target.name}, which is incorrect.'
+                            '\n             '
+                            f'This will be an error in the future, so please use shared_library() for {link_target.name} instead.'
+                            '\n             '
+                            f'If shared_module() was used for {link_target.name} because it has references to undefined symbols,'
+                            '\n             '
+                            'use shared_libary() with `override_options: [\'b_lundef=false\']` instead.')
+                    link_target.backwards_compat_want_soname = True
                 return
 
 class Generator(HoldableObject):
@@ -2235,6 +2240,9 @@ class SharedModule(SharedLibrary):
             raise MesonException('Shared modules must not specify the soversion kwarg.')
         super().__init__(name, subdir, subproject, for_machine, sources, objects, environment, kwargs)
         self.typename = 'shared module'
+        # We need to set the soname in cases where build files link the module
+        # to build targets, see: https://github.com/mesonbuild/meson/issues/9492
+        self.backwards_compat_want_soname = False
 
     def get_default_install_dir(self, environment) -> T.Tuple[str, str]:
         return environment.get_shared_module_dir(), '{moduledir_shared}'
