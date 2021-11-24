@@ -139,7 +139,8 @@ class FeatureOptionHolder(ObjectHolder[coredata.UserFeatureOption]):
         assert isinstance(error_message, str)
         if self.value == 'enabled':
             prefix = f'Feature {self.held_object.name} cannot be enabled'
-            prefix = prefix + ': ' if error_message else ''
+            if error_message:
+                prefix += ': '
             raise InterpreterException(prefix + error_message)
         return self.as_disabled()
 
