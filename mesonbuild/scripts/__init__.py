@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# TODO: consider switching to pathlib for this
 def destdir_join(d1: str, d2: str) -> str:
+    if not d1:
+        return d2
     # c:\destdir + c:\prefix must produce c:\destdir\prefix
-    if len(d1) > 1 and d1[1] == ':' \
-            and len(d2) > 1 and d2[1] == ':':
+    if len(d2) > 1 and d2[1] == ':':
         return d1 + d2[2:]
     return d1 + d2
