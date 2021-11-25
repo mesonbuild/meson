@@ -447,11 +447,22 @@ class Vs2010Backend(backends.Backend):
 
     def generate_projects(self):
         startup_project = self.environment.coredata.options[OptionKey('backend_startup_project')].value
+        startup_target = None
+        try:
+            if startup_project:
+                startup_target = self.interpreter.get_variable(startup_project)
+        except MesonException:
+            pass
+
         projlist = []
         startup_idx = 0
         for (i, (name, target)) in enumerate(self.build.targets.items()):
-            if startup_project and startup_project == target.get_basename():
-                startup_idx = i
+            try:
+                if startup_project and ((startup_project == target.get_basename()) or (startup_target.op_equals(target))):
+                    startup_idx = i
+            except MesonException:
+                pass
+
             outdir = Path(
                 self.environment.get_build_dir(),
                 self.get_target_dir(target)
