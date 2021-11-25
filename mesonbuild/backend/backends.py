@@ -107,7 +107,7 @@ class CleanTrees:
         self.trees = trees
 
 class InstallData:
-    def __init__(self, source_dir: str, build_dir: str, prefix: str,
+    def __init__(self, source_dir: str, build_dir: str, prefix: str, libdir: str,
                  strip_bin: T.List[str], install_umask: T.Union[str, int],
                  mesonintrospect: T.List[str], version: str):
         # TODO: in python 3.8 or with typing_Extensions install_umask could be:
@@ -115,6 +115,7 @@ class InstallData:
         self.source_dir = source_dir
         self.build_dir = build_dir
         self.prefix = prefix
+        self.libdir = libdir
         self.strip_bin = strip_bin
         self.install_umask = install_umask
         self.targets: T.List[TargetInstallData] = []
@@ -1485,6 +1486,7 @@ class Backend:
         d = InstallData(self.environment.get_source_dir(),
                         self.environment.get_build_dir(),
                         self.environment.get_prefix(),
+                        self.environment.get_libdir(),
                         strip_bin,
                         umask,
                         self.environment.get_build_command() + ['introspect'],
