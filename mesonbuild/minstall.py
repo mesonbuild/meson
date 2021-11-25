@@ -18,6 +18,7 @@ import argparse
 import errno
 import os
 import pickle
+import platform
 import shlex
 import shutil
 import subprocess
@@ -249,6 +250,9 @@ def apply_ldconfig(dm: DirMaker) -> None:
     '''
     if not shutil.which('ldconfig'):
         # If we don't have ldconfig, failure is ignored quietly.
+        return
+
+    if 'bsd' in platform.system().lower():
         return
 
     # Try to update ld cache, it could fail if we don't have permission.
