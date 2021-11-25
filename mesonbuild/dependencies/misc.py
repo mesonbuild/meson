@@ -452,7 +452,7 @@ class IconvBuiltinDependency(BuiltinDependency):
     def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]):
         super().__init__(name, env, kwargs)
 
-        if self.clib_compiler.has_function('iconv_open', '', env)[0]:
+        if self.clib_compiler.has_function('iconv_open', '#include <iconv.h>', env)[0]:
             self.is_found = True
 
 
