@@ -27,7 +27,7 @@ import shutil
 from . import mesonlib
 from . import mlog
 from . import mconf, mdist, minit, minstall, mintro, msetup, mtest, rewriter, msubprojects, munstable_coredata, mcompile, mdevenv
-from .mesonlib import MesonException
+from .mesonlib import MesonException, MesonBugException
 from .environment import detect_msys2_arch
 from .wrap import wraptool
 
@@ -144,10 +144,16 @@ class CommandLineParser:
             if os.environ.get('MESON_FORCE_BACKTRACE'):
                 raise
             return 1
-        except Exception:
+        except Exception as e:
             if os.environ.get('MESON_FORCE_BACKTRACE'):
                 raise
             traceback.print_exc()
+            msg = 'Unhandled python exception'
+            if all(getattr(e, a, None) is not None for a in ['file', 'lineno', 'colno']):
+                e = MesonBugException(msg, e.file, e.lineno, e.colno) # type: ignore
+            else:
+                e = MesonBugException(msg)
+            mlog.exception(e)
             return 2
         finally:
             mlog.shutdown()
