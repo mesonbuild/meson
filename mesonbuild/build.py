@@ -1571,7 +1571,7 @@ You probably should put it in link_with instead.''')
         Warn if shared modules are linked with target: (link_with) #2865
         '''
         for link_target in self.link_targets:
-            if isinstance(link_target, SharedModule):
+            if isinstance(link_target, SharedModule) and not link_target.backwards_compat_want_soname:
                 if self.environment.machines[self.for_machine].is_darwin():
                     raise MesonException(
                         f'target {self.name} links against shared module {link_target.name}. This is not permitted on OSX')
@@ -1584,7 +1584,6 @@ You probably should put it in link_with instead.''')
                             '\n             '
                             'use shared_libary() with `override_options: [\'b_lundef=false\']` instead.')
                     link_target.backwards_compat_want_soname = True
-                return
 
 class Generator(HoldableObject):
     def __init__(self, exe: T.Union['Executable', programs.ExternalProgram],
