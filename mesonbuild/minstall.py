@@ -252,7 +252,8 @@ def apply_ldconfig(dm: DirMaker, libdir: str) -> None:
         # If we don't have ldconfig, failure is ignored quietly.
         return
 
-    if 'bsd' in platform.system().lower():
+    platlower = platform.system().lower()
+    if platlower == 'dragonfly' or 'bsd' in platlower:
         if libdir in dm.all_dirs:
             proc, out, err = Popen_safe(['ldconfig', '-m', libdir])
             if proc.returncode != 0:
