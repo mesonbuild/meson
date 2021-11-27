@@ -21,6 +21,7 @@ from .fileapi import CMakeFileAPI
 from .executor import CMakeExecutor
 from .toolchain import CMakeToolchain, CMakeExecScope
 from .traceparser import CMakeTraceParser, CMakeGeneratorTarget
+from .tracetargets import resolve_cmake_trace_targets
 from .. import mlog, mesonlib
 from ..mesonlib import MachineChoice, OrderedSet, version_compare, path_is_in_root, relative_to_if_possible, OptionKey
 from ..mesondata import mesondata
@@ -342,84 +343,12 @@ class ConverterTarget:
         if tgt:
             self.depends_raw = trace.targets[self.cmake_name].depends
 
-            # TODO refactor this copy paste from CMakeDependency for future releases
-            reg_is_lib = re.compile(r'^(-l[a-zA-Z0-9_]+|-l?pthread)$')
-            to_process = [self.cmake_name]
-            processed = []
-            while len(to_process) > 0:
-                curr = to_process.pop(0)
+            rtgt = resolve_cmake_trace_targets(self.cmake_name, trace, self.env)
+            self.includes            += [Path(x) for x in rtgt.include_directories]
+            self.link_flags          += rtgt.link_flags
+            self.public_compile_opts += rtgt.public_compile_opts
+            self.link_libraries      += rtgt.libraries
 
-                if curr in processed or curr not in trace.targets:
-                    continue
-
-                tgt = trace.targets[curr]
-                cfgs = []
-                cfg = ''
-                otherDeps = []
-                libraries = []
-                mlog.debug(str(tgt))
-
-                if 'INTERFACE_INCLUDE_DIRECTORIES' in tgt.properties:
-                    self.includes += [Path(x) for x in tgt.properties['INTERFACE_INCLUDE_DIRECTORIES'] if x]
-
-                if 'INTERFACE_LINK_OPTIONS' in tgt.properties:
-                    self.link_flags += [x for x in tgt.properties['INTERFACE_LINK_OPTIONS'] if x]
-
-                if 'INTERFACE_COMPILE_DEFINITIONS' in tgt.properties:
-                    self.public_compile_opts += ['-D' + re.sub('^-D', '', x) for x in tgt.properties['INTERFACE_COMPILE_DEFINITIONS'] if x]
-
-                if 'INTERFACE_COMPILE_OPTIONS' in tgt.properties:
-                    self.public_compile_opts += [x for x in tgt.properties['INTERFACE_COMPILE_OPTIONS'] if x]
-
-                if 'IMPORTED_CONFIGURATIONS' in tgt.properties:
-                    cfgs += [x for x in tgt.properties['IMPORTED_CONFIGURATIONS'] if x]
-                    cfg = cfgs[0]
-
-                if 'CONFIGURATIONS' in tgt.properties:
-                    cfgs += [x for x in tgt.properties['CONFIGURATIONS'] if x]
-                    cfg = cfgs[0]
-
-                is_debug = self.env.coredata.get_option(OptionKey('debug'))
-                if is_debug:
-                    if 'DEBUG' in cfgs:
-                        cfg = 'DEBUG'
-                    elif 'RELEASE' in cfgs:
-                        cfg = 'RELEASE'
-                else:
-                    if 'RELEASE' in cfgs:
-                        cfg = 'RELEASE'
-
-                if f'IMPORTED_IMPLIB_{cfg}' in tgt.properties:
-                    libraries += [x for x in tgt.properties[f'IMPORTED_IMPLIB_{cfg}'] if x]
-                elif 'IMPORTED_IMPLIB' in tgt.properties:
-                    libraries += [x for x in tgt.properties['IMPORTED_IMPLIB'] if x]
-                elif f'IMPORTED_LOCATION_{cfg}' in tgt.properties:
-                    libraries += [x for x in tgt.properties[f'IMPORTED_LOCATION_{cfg}'] if x]
-                elif 'IMPORTED_LOCATION' in tgt.properties:
-                    libraries += [x for x in tgt.properties['IMPORTED_LOCATION'] if x]
-
-                if 'LINK_LIBRARIES' in tgt.properties:
-                    otherDeps += [x for x in tgt.properties['LINK_LIBRARIES'] if x]
-
-                if 'INTERFACE_LINK_LIBRARIES' in tgt.properties:
-                    otherDeps += [x for x in tgt.properties['INTERFACE_LINK_LIBRARIES'] if x]
-
-                if f'IMPORTED_LINK_DEPENDENT_LIBRARIES_{cfg}' in tgt.properties:
-                    otherDeps += [x for x in tgt.properties[f'IMPORTED_LINK_DEPENDENT_LIBRARIES_{cfg}'] if x]
-                elif 'IMPORTED_LINK_DEPENDENT_LIBRARIES' in tgt.properties:
-                    otherDeps += [x for x in tgt.properties['IMPORTED_LINK_DEPENDENT_LIBRARIES'] if x]
-
-                for j in otherDeps:
-                    if j in trace.targets:
-                        to_process += [j]
-                    elif reg_is_lib.match(j) or Path(j).exists():
-                        libraries += [j]
-
-                for j in libraries:
-                    if j not in self.link_libraries:
-                        self.link_libraries += [j]
-
-                processed += [curr]
         elif self.type.upper() not in ['EXECUTABLE', 'OBJECT_LIBRARY']:
             mlog.warning('CMake: Target', mlog.bold(self.cmake_name), 'not found in CMake trace. This can lead to build errors')
 
