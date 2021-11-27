@@ -15,7 +15,7 @@
 from .base import ExternalDependency, DependencyException, DependencyTypeName
 from .pkgconfig import PkgConfigDependency
 from ..mesonlib import Popen_safe
-from ..programs import ExternalProgram
+from ..programs import ExternalProgram, NonExistingExternalProgram
 from ..compilers import DCompiler
 from .. import mlog
 import re
@@ -29,7 +29,45 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
 
 class DubDependency(ExternalDependency):
-    class_dubbin = None
+    dubbin: ExternalProgram
+
+    def __new__(cls, *_: object, **__: object) -> 'DubDependency':
+        """Find dub when the DubDependency class is constructed.
+
+        This deserves some explanation, because it's doing somthing uncommon in
+        python, it's creating a custom Constructor. Python's `__init__` method
+        isn't actually a constructor, though it's often called that. It's an
+        Initializer. Constructors are called when the _class_ is created, while
+        the Initializer is called when an _instance_ is created.
+
+        In this cas the constructor is being used to find dub once, and only
+        once, at construction time.
+        """
+        cls.dubbin = cls.__find_dub()
+
+        # mypy can't figure this out
+        return T.cast('DubDependency', super().__new__(cls))
+
+    @staticmethod
+    def __find_dub() -> ExternalProgram:
+        dubbin = ExternalProgram('dub', silent=True)
+        if dubbin.found():
+            try:
+                p, out = Popen_safe(dubbin.get_command() + ['--version'])[0:2]
+                if p.returncode != 0:
+                    mlog.warning('Found dub {!r} but couldn\'t run it'
+                                 ''.format(' '.join(dubbin.get_command())))
+                    # Set to False instead of None to signify that we've already
+                    # searched for it and not found it
+                    dubbin = NonExistingExternalProgram('dub')
+                else:
+                    mlog.log('Found DUB:', mlog.bold(dubbin.get_path()),
+                            f'({out.strip()})')
+            except (FileNotFoundError, PermissionError):
+                dubbin = NonExistingExternalProgram('dub')
+        else:
+            mlog.log('Found DUB:', mlog.red('NO'))
+        return dubbin
 
     def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
         super().__init__(DependencyTypeName('dub'), environment, kwargs, language='d')
@@ -43,13 +81,7 @@ class DubDependency(ExternalDependency):
         if 'required' in kwargs:
             self.required = kwargs.get('required')
 
-        if DubDependency.class_dubbin is None:
-            self.dubbin = self._check_dub()
-            DubDependency.class_dubbin = self.dubbin
-        else:
-            self.dubbin = DubDependency.class_dubbin
-
-        if not self.dubbin:
+        if not self.dubbin.found():
             if self.required:
                 raise DependencyException('DUB not found.')
             self.is_found = False
@@ -211,26 +243,3 @@ class DubDependency(ExternalDependency):
     def _call_copmbin(self, args: T.List[str], env: T.Optional[T.Dict[str, str]] = None) -> T.Tuple[int, str]:
         p, out = Popen_safe(self.compiler.get_exelist() + args, env=env)[0:2]
         return p.returncode, out.strip()
-
-    def _check_dub(self) -> T.Union[bool, ExternalProgram]:
-        dubbin: T.Union[bool, ExternalProgram] = ExternalProgram('dub', silent=True)
-        assert isinstance(dubbin, ExternalProgram)
-        if dubbin.found():
-            try:
-                p, out = Popen_safe(dubbin.get_command() + ['--version'])[0:2]
-                if p.returncode != 0:
-                    mlog.warning('Found dub {!r} but couldn\'t run it'
-                                 ''.format(' '.join(dubbin.get_command())))
-                    # Set to False instead of None to signify that we've already
-                    # searched for it and not found it
-                    dubbin = False
-            except (FileNotFoundError, PermissionError):
-                dubbin = False
-        else:
-            dubbin = False
-        if isinstance(dubbin, ExternalProgram):
-            mlog.log('Found DUB:', mlog.bold(dubbin.get_path()),
-                     '(%s)' % out.strip())
-        else:
-            mlog.log('Found DUB:', mlog.red('NO'))
-        return dubbin
