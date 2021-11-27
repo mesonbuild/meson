@@ -47,7 +47,16 @@ def main() -> None:
     if args.subtests:
         tests = [t for i, t in enumerate(tests) if i in args.subtests]
 
-    results = [run_test(t, t.args, '', True) for t in tests]
+    def should_fail(path: pathlib.Path) -> str:
+        dir_ = path.parent.stem
+        # FIXME: warning tets might not be handled correctly still…
+        if dir_.startswith(('failing', 'warning')):
+            if ' ' in dir_:
+                return dir_.split(' ')[1]
+            return 'meson'
+        return ''
+
+    results = [run_test(t, t.args, should_fail(t.path), args.use_tmpdir) for t in tests]
     failed = False
     for test, result in zip(tests, results):
         if (result is None) or ('MESON_SKIP_TEST' in result.stdo):
