@@ -58,6 +58,15 @@ depm1 = dependency('SomethingLikeZLIB', required : true, components : 'required_
 depm2 = dependency('SomethingLikeZLIB', required : true, components : 'required_comp',   method : 'cmake', cmake_module_path : ['cmake'])
 depm3 = dependency('SomethingLikeZLIB', required : true, components : ['required_comp'], cmake_module_path : 'cmake')
 
+
+# Mix of imported targets and old style variables
+
+depio1 = dependency('ImportedOldStyle', required : true, cmake_module_path : 'cmake')
+
+# Try to actually link with depio1, since we are doing even more "fun" stuff there
+exe4 = executable('zlibprog4', 'prog.c', dependencies : depio1)
+test('zlibtest4', exe4)
+
 # Test some edge cases with spaces, etc. (but only for CMake >= 3.15)
 
 if cm_vers.version_compare('>=3.15')

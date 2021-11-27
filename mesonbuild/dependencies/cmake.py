@@ -15,7 +15,7 @@
 from .base import ExternalDependency, DependencyException, DependencyTypeName
 from ..mesonlib import is_windows, MesonException, OptionKey, PerMachine, stringlistify, extract_as_list
 from ..mesondata import mesondata
-from ..cmake import CMakeExecutor, CMakeTraceParser, CMakeException, CMakeToolchain, CMakeExecScope, check_cmake_args, CMakeTarget
+from ..cmake import CMakeExecutor, CMakeTraceParser, CMakeException, CMakeToolchain, CMakeExecScope, check_cmake_args, CMakeTarget, resolve_cmake_trace_targets, cmake_is_debug
 from .. import mlog
 from pathlib import Path
 import functools
@@ -439,18 +439,6 @@ class CMakeDependency(ExternalDependency):
         modules = self._map_module_list(modules, components)
         autodetected_module_list = False
 
-        # Check if we need a DEBUG or RELEASE CMake dependencies
-        is_debug = False
-        if OptionKey('b_vscrt') in self.env.coredata.options:
-            is_debug = self.env.coredata.get_option(OptionKey('buildtype')) == 'debug'
-            if self.env.coredata.options[OptionKey('b_vscrt')].value in {'mdd', 'mtd'}:
-                is_debug = True
-        else:
-            # Don't directly assign to is_debug to make mypy happy
-            debug_opt = self.env.coredata.get_option(OptionKey('debug'))
-            assert isinstance(debug_opt, bool)
-            is_debug = debug_opt
-
         # Try guessing a CMake target if none is provided
         if len(modules) == 0:
             for i in self.traceparser.targets:
@@ -506,6 +494,7 @@ class CMakeDependency(ExternalDependency):
             # - https://cmake.org/cmake/help/latest/command/target_link_libraries.html#overview  (the last point in the section)
             libs: T.List[str] = []
             cfg_matches = True
+            is_debug = cmake_is_debug(self.env)
             cm_tag_map = {'debug': is_debug, 'optimized': not is_debug, 'general': True}
             for i in libs_raw:
                 if i.lower() in cm_tag_map:
@@ -521,7 +510,12 @@ class CMakeDependency(ExternalDependency):
             # Try to use old style variables if no module is specified
             if len(libs) > 0:
                 self.compile_args = list(map(lambda x: f'-I{x}', incDirs)) + defs
-                self.link_args = libs
+                self.link_args = []
+                for j in libs:
+                    rtgt = resolve_cmake_trace_targets(j, self.traceparser, self.env, clib_compiler=self.clib_compiler)
+                    self.link_args += rtgt.libraries
+                    self.compile_args += [f'-I{x}' for x in rtgt.include_directories]
+                    self.compile_args += rtgt.public_compile_opts
                 mlog.debug(f'using old-style CMake variables for dependency {name}')
                 mlog.debug(f'Include Dirs:         {incDirs}')
                 mlog.debug(f'Compiler Definitions: {defs}')
@@ -536,13 +530,10 @@ class CMakeDependency(ExternalDependency):
 
         # Set dependencies with CMake targets
         # recognise arguments we should pass directly to the linker
-        reg_is_lib = re.compile(r'^(-l[a-zA-Z0-9_]+|-pthread|-delayload:[a-zA-Z0-9_\.]+|[a-zA-Z0-9_]+\.lib)$')
-        reg_is_maybe_bare_lib = re.compile(r'^[a-zA-Z0-9_]+$')
-        processed_targets = []
         incDirs = []
-        compileDefinitions = []
         compileOptions = []
         libraries = []
+
         for i, required in modules:
             if i not in self.traceparser.targets:
                 if not required:
@@ -552,92 +543,27 @@ class CMakeDependency(ExternalDependency):
                                           'Try to explicitly specify one or more targets with the "modules" property.\n'
                                           'Valid targets are:\n{}'.format(self._original_module_name(i), name, list(self.traceparser.targets.keys())))
 
-            targets = [i]
             if not autodetected_module_list:
                 self.found_modules += [i]
 
-            while len(targets) > 0:
-                curr = targets.pop(0)
-
-                # Skip already processed targets
-                if curr in processed_targets:
-                    continue
-
-                tgt = self.traceparser.targets[curr]
-                cfgs = []
-                cfg = ''
-                otherDeps = []
-                mlog.debug(tgt)
-
-                if 'INTERFACE_INCLUDE_DIRECTORIES' in tgt.properties:
-                    incDirs += [x for x in tgt.properties['INTERFACE_INCLUDE_DIRECTORIES'] if x]
-
-                if 'INTERFACE_COMPILE_DEFINITIONS' in tgt.properties:
-                    compileDefinitions += ['-D' + re.sub('^-D', '', x) for x in tgt.properties['INTERFACE_COMPILE_DEFINITIONS'] if x]
-
-                if 'INTERFACE_COMPILE_OPTIONS' in tgt.properties:
-                    compileOptions += [x for x in tgt.properties['INTERFACE_COMPILE_OPTIONS'] if x]
-
-                if 'IMPORTED_CONFIGURATIONS' in tgt.properties:
-                    cfgs = [x for x in tgt.properties['IMPORTED_CONFIGURATIONS'] if x]
-                    cfg = cfgs[0]
-
-                if is_debug:
-                    if 'DEBUG' in cfgs:
-                        cfg = 'DEBUG'
-                    elif 'RELEASE' in cfgs:
-                        cfg = 'RELEASE'
-                else:
-                    if 'RELEASE' in cfgs:
-                        cfg = 'RELEASE'
-
-                if f'IMPORTED_IMPLIB_{cfg}' in tgt.properties:
-                    libraries += [x for x in tgt.properties[f'IMPORTED_IMPLIB_{cfg}'] if x]
-                elif 'IMPORTED_IMPLIB' in tgt.properties:
-                    libraries += [x for x in tgt.properties['IMPORTED_IMPLIB'] if x]
-                elif f'IMPORTED_LOCATION_{cfg}' in tgt.properties:
-                    libraries += [x for x in tgt.properties[f'IMPORTED_LOCATION_{cfg}'] if x]
-                elif 'IMPORTED_LOCATION' in tgt.properties:
-                    libraries += [x for x in tgt.properties['IMPORTED_LOCATION'] if x]
-
-                if 'INTERFACE_LINK_LIBRARIES' in tgt.properties:
-                    otherDeps += [x for x in tgt.properties['INTERFACE_LINK_LIBRARIES'] if x]
-
-                if f'IMPORTED_LINK_DEPENDENT_LIBRARIES_{cfg}' in tgt.properties:
-                    otherDeps += [x for x in tgt.properties[f'IMPORTED_LINK_DEPENDENT_LIBRARIES_{cfg}'] if x]
-                elif 'IMPORTED_LINK_DEPENDENT_LIBRARIES' in tgt.properties:
-                    otherDeps += [x for x in tgt.properties['IMPORTED_LINK_DEPENDENT_LIBRARIES'] if x]
-
-                for j in otherDeps:
-                    if j in self.traceparser.targets:
-                        targets += [j]
-                    elif reg_is_lib.match(j):
-                        libraries += [j]
-                    elif os.path.isabs(j) and os.path.exists(j):
-                        libraries += [j]
-                    elif self.env.machines.build.is_windows() and reg_is_maybe_bare_lib.match(j):
-                        # On Windows, CMake library dependencies can be passed as bare library names,
-                        # CMake brute-forces a combination of prefix/suffix combinations to find the
-                        # right library. Assume any bare argument passed which is not also a CMake
-                        # target must be a system library we should try to link against.
-                        libraries += self.clib_compiler.find_library(j, self.env, [])
-                    else:
-                        mlog.warning('CMake: Dependency', mlog.bold(j), 'for', mlog.bold(name), 'target', mlog.bold(self._original_module_name(curr)), 'was not found')
-
-                processed_targets += [curr]
+            rtgt = resolve_cmake_trace_targets(i ,self.traceparser, self.env,
+                clib_compiler=self.clib_compiler,
+                not_found_warning=lambda x: mlog.warning('CMake: Dependency', mlog.bold(x), 'for', mlog.bold(name), 'was not found')
+            )
+            incDirs        += rtgt.include_directories
+            compileOptions += rtgt.public_compile_opts
+            libraries      += rtgt.libraries + rtgt.link_flags
 
         # Make sure all elements in the lists are unique and sorted
         incDirs = sorted(set(incDirs))
-        compileDefinitions = sorted(set(compileDefinitions))
         compileOptions = sorted(set(compileOptions))
         libraries = sorted(set(libraries))
 
         mlog.debug(f'Include Dirs:         {incDirs}')
-        mlog.debug(f'Compiler Definitions: {compileDefinitions}')
         mlog.debug(f'Compiler Options:     {compileOptions}')
         mlog.debug(f'Libraries:            {libraries}')
 
-        self.compile_args = compileOptions + compileDefinitions + [f'-I{x}' for x in incDirs]
+        self.compile_args = compileOptions + [f'-I{x}' for x in incDirs]
         self.link_args = libraries
 
     def _get_build_dir(self) -> Path:
