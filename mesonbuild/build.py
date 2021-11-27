@@ -2803,7 +2803,7 @@ class Data(HoldableObject):
         self.data_type = data_type
 
 class TestSetup:
-    def __init__(self, exe_wrapper: T.Optional[T.List[str]], gdb: bool,
+    def __init__(self, exe_wrapper: T.List[str], gdb: bool,
                  timeout_multiplier: int, env: EnvironmentVariables,
                  exclude_suites: T.List[str]):
         self.exe_wrapper = exe_wrapper

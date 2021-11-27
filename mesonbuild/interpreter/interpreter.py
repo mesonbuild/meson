@@ -56,9 +56,11 @@ from .type_checking import (
     CT_INPUT_KW,
     CT_INSTALL_DIR_KW,
     CT_OUTPUT_KW,
+    DEFAULT_OPTIONS,
     DEPENDS_KW,
     DEPEND_FILES_KW,
     DEPFILE_KW,
+    DISABLER_KW,
     ENV_KW,
     INSTALL_KW,
     INSTALL_MODE_KW,
@@ -98,6 +100,15 @@ if T.TYPE_CHECKING:
                             build.ExtractedObjects, build.GeneratedList]
 
 
+def _project_version_validator(value: T.Union[T.List, str, mesonlib.File, None]) -> T.Optional[str]:
+    if isinstance(value, list):
+        if len(value) != 1:
+            return 'when passed as array must have a length of 1'
+        elif not isinstance(value[0], (str, mesonlib.File)):
+            return 'when passed as array must contain a string or File'
+    return None
+
+
 def stringifyUserArguments(args, quote=False):
     if isinstance(args, list):
         return '[%s]' % ', '.join([stringifyUserArguments(x, True) for x in args])
@@ -112,19 +123,14 @@ def stringifyUserArguments(args, quote=False):
     raise InvalidArguments('Function accepts only strings, integers, bools, lists, dictionaries and lists thereof.')
 
 class Summary:
-    def __init__(self, project_name, project_version):
+    def __init__(self, project_name: str, project_version: str):
         self.project_name = project_name
         self.project_version = project_version
         self.sections = collections.defaultdict(dict)
         self.max_key_len = 0
 
-    def add_section(self, section, values, kwargs, subproject):
-        bool_yn = kwargs.get('bool_yn', False)
-        if not isinstance(bool_yn, bool):
-            raise InterpreterException('bool_yn keyword argument must be boolean')
-        list_sep = kwargs.get('list_sep')
-        if list_sep is not None and not isinstance(list_sep, str):
-            raise InterpreterException('list_sep keyword argument must be string')
+    def add_section(self, section: str, values: T.Dict[str, T.Any], bool_yn: bool,
+                    list_sep: T.Optional[str], subproject: str) -> None:
         for k, v in values.items():
             if k in self.sections[section]:
                 raise InterpreterException(f'Summary section {section!r} already have key {k!r}')
@@ -258,7 +264,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.environment = self.build.environment
         self.coredata = self.environment.get_coredata()
         self.backend = backend
-        self.summary = {}
+        self.summary: T.Dict[str, 'Summary'] = {}
         self.modules = {}
         # Subproject directory is usually the name of the subproject, but can
         # be different for dependencies provided by wrap files.
@@ -566,7 +572,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_kwargs(
         'import',
         REQUIRED_KW.evolve(since='0.59.0'),
-        KwargInfo('disabler', bool, default=False, since='0.59.0'),
+        DISABLER_KW.evolve(since='0.59.0'),
     )
     @disablerIfNotFound
     def func_import(self, node: mparser.BaseNode, args: T.Tuple[str],
@@ -1020,16 +1026,29 @@ external dependencies (including libraries) must go to "dependencies".''')
         options = {k: v for k, v in self.environment.options.items() if k.is_backend()}
         self.coredata.set_options(options)
 
-    @permittedKwargs({'version', 'meson_version', 'default_options', 'license', 'subproject_dir'})
     @typed_pos_args('project', str, varargs=str)
-    def func_project(self, node: mparser.FunctionNode, args: T.Tuple[str, T.List[str]], kwargs: 'TYPE_kwargs') -> None:
+    @typed_kwargs(
+        'project',
+        DEFAULT_OPTIONS,
+        KwargInfo('meson_version', (str, NoneType)),
+        KwargInfo(
+            'version',
+            (str, mesonlib.File, NoneType, list),
+            default='undefined',
+            validator=_project_version_validator,
+            convertor=lambda x: x[0] if isinstance(x, list) else x,
+        ),
+        KwargInfo('license', ContainerTypeInfo(list, str), default=['unknown'], listify=True),
+        KwargInfo('subproject_dir', str, default='subprojects'),
+    )
+    def func_project(self, node: mparser.FunctionNode, args: T.Tuple[str, T.List[str]], kwargs: 'kwargs.Project') -> None:
         proj_name, proj_langs = args
         if ':' in proj_name:
             raise InvalidArguments(f"Project name {proj_name!r} must not contain ':'")
 
         # This needs to be evaluated as early as possible, as meson uses this
         # for things like deprecation testing.
-        if 'meson_version' in kwargs:
+        if kwargs['meson_version']:
             cv = coredata.version
             pv = kwargs['meson_version']
             if not mesonlib.version_compare(cv, pv):
@@ -1046,8 +1065,8 @@ external dependencies (including libraries) must go to "dependencies".''')
         # values previously set from command line. That means that changing
         # default_options in a project will trigger a reconfigure but won't
         # have any effect.
-        self.project_default_options = mesonlib.stringlistify(kwargs.get('default_options', []))
-        self.project_default_options = coredata.create_options_dict(self.project_default_options, self.subproject)
+        self.project_default_options = coredata.create_options_dict(
+            kwargs['default_options'], self.subproject)
 
         # If this is the first invocation we always need to initialize
         # builtins, if this is a subproject that is new in a re-invocation we
@@ -1063,11 +1082,8 @@ external dependencies (including libraries) must go to "dependencies".''')
         if not self.is_subproject():
             self.build.project_name = proj_name
         self.active_projectname = proj_name
-        version = kwargs.get('version', 'undefined')
-        if isinstance(version, list):
-            if len(version) != 1:
-                raise InvalidCode('Version argument is an array with more than one entry.')
-            version = version[0]
+
+        version = kwargs['version']
         if isinstance(version, mesonlib.File):
             FeatureNew.single_use('version from file', '0.57.0', self.subproject)
             self.add_build_def_file(version)
@@ -1082,33 +1098,29 @@ external dependencies (including libraries) must go to "dependencies".''')
             if len(ver_data) != 1:
                 raise InterpreterException('Version file must contain exactly one line of text.')
             self.project_version = ver_data[0]
-        elif isinstance(version, str):
-            self.project_version = version
         else:
-            raise InvalidCode('The version keyword argument must be a string or a file.')
+            self.project_version = version
+
         if self.build.project_version is None:
             self.build.project_version = self.project_version
-        proj_license = mesonlib.stringlistify(kwargs.get('license', 'unknown'))
+        proj_license = kwargs['license']
         self.build.dep_manifest[proj_name] = build.DepManifest(self.project_version, proj_license)
         if self.subproject in self.build.projects:
             raise InvalidCode('Second call to project().')
 
         # spdirname is the subproject_dir for this project, relative to self.subdir.
         # self.subproject_dir is the subproject_dir for the main project, relative to top source dir.
-        spdirname = kwargs.get('subproject_dir')
-        if spdirname:
-            if not isinstance(spdirname, str):
-                raise InterpreterException('Subproject_dir must be a string')
-            if os.path.isabs(spdirname):
-                raise InterpreterException('Subproject_dir must not be an absolute path.')
-            if spdirname.startswith('.'):
-                raise InterpreterException('Subproject_dir must not begin with a period.')
-            if '..' in spdirname:
-                raise InterpreterException('Subproject_dir must not contain a ".." segment.')
-            if not self.is_subproject():
-                self.subproject_dir = spdirname
-        else:
-            spdirname = 'subprojects'
+        spdirname = kwargs['subproject_dir']
+        if not isinstance(spdirname, str):
+            raise InterpreterException('Subproject_dir must be a string')
+        if os.path.isabs(spdirname):
+            raise InterpreterException('Subproject_dir must not be an absolute path.')
+        if spdirname.startswith('.'):
+            raise InterpreterException('Subproject_dir must not begin with a period.')
+        if '..' in spdirname:
+            raise InterpreterException('Subproject_dir must not contain a ".." segment.')
+        if not self.is_subproject():
+            self.subproject_dir = spdirname
         self.build.subproject_dir = self.subproject_dir
 
         # Load wrap files from this (sub)project.
@@ -1178,31 +1190,33 @@ external dependencies (including libraries) must go to "dependencies".''')
         mlog.log(mlog.bold('Message:'), *args)
 
     @noArgsFlattening
-    @FeatureNewKwargs('summary', '0.54.0', ['list_sep'])
-    @permittedKwargs({'section', 'bool_yn', 'list_sep'})
     @FeatureNew('summary', '0.53.0')
-    def func_summary(self, node, args, kwargs):
-        if len(args) == 1:
+    @typed_pos_args('summary', (str, dict), optargs=[object])
+    @typed_kwargs(
+        'summary',
+        KwargInfo('section', str, default=''),
+        KwargInfo('bool_yn', bool, default=False),
+        KwargInfo('list_sep', (str, NoneType), since='0.54.0')
+    )
+    def func_summary(self, node: mparser.BaseNode, args: T.Tuple[T.Union[str, T.Dict[str, T.Any]], T.Optional[T.Any]],
+                     kwargs: 'kwargs.Summary') -> None:
+        if args[1] is None:
             if not isinstance(args[0], dict):
                 raise InterpreterException('Summary first argument must be dictionary.')
             values = args[0]
-        elif len(args) == 2:
+        else:
             if not isinstance(args[0], str):
                 raise InterpreterException('Summary first argument must be string.')
             values = {args[0]: args[1]}
-        else:
-            raise InterpreterException('Summary accepts at most 2 arguments.')
-        section = kwargs.get('section', '')
-        if not isinstance(section, str):
-            raise InterpreterException('Summary\'s section keyword argument must be string.')
-        self.summary_impl(section, values, kwargs)
+        self.summary_impl(kwargs['section'], values, kwargs)
 
-    def summary_impl(self, section, values, kwargs):
+    def summary_impl(self, section: str, values, kwargs: 'kwargs.Summary') -> None:
         if self.subproject not in self.summary:
             self.summary[self.subproject] = Summary(self.active_projectname, self.project_version)
-        self.summary[self.subproject].add_section(section, values, kwargs, self.subproject)
+        self.summary[self.subproject].add_section(
+            section, values, kwargs['bool_yn'], kwargs['list_sep'], self.subproject)
 
-    def _print_summary(self):
+    def _print_summary(self) -> None:
         # Add automatic 'Supbrojects' section in main project.
         all_subprojects = collections.OrderedDict()
         for name, subp in sorted(self.subprojects.items()):
@@ -1229,7 +1243,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             sorted_options = sorted(self.user_defined_options.cmd_line_options.items())
             values.update({str(k): v for k, v in sorted_options})
             if values:
-                self.summary_impl('User defined options', values, {})
+                self.summary_impl('User defined options', values, {'bool_yn': False, 'list_sep': None})
         # Print all summaries, main project last.
         mlog.log('')  # newline
         main_summary = self.summary.pop('', None)
@@ -1396,9 +1410,13 @@ external dependencies (including libraries) must go to "dependencies".''')
 
     # TODO update modules to always pass `for_machine`. It is bad-form to assume
     # the host machine.
-    def find_program_impl(self, args, for_machine: MachineChoice = MachineChoice.HOST,
-                          required=True, silent=True, wanted='', search_dirs=None,
-                          version_func=None):
+    def find_program_impl(self, args: T.List[mesonlib.FileOrString],
+                          for_machine: MachineChoice = MachineChoice.HOST,
+                          required: bool = True, silent: bool = True,
+                          wanted: T.Union[str, T.List[str]] = '',
+                          search_dirs: T.Optional[T.List[str]] = None,
+                          version_func: T.Optional[T.Callable[[T.Union['ExternalProgram', 'build.Executable', 'OverrideProgram']], str]] = None
+                          ) -> T.Union['ExternalProgram', 'build.Executable', 'OverrideProgram']:
         args = mesonlib.listify(args)
 
         extra_info = []
@@ -1422,7 +1440,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                     interp = self.subprojects[progobj.subproject].held_object
                     assert isinstance(interp, Interpreter)
                 version = interp.project_version
-            elif isinstance(progobj, ExternalProgram):
+            else:
                 version = progobj.get_version(self)
             is_found, not_found, found = mesonlib.version_compare_many(version, wanted)
             if not is_found:
@@ -1472,25 +1490,27 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.do_subproject(fallback, 'meson', sp_kwargs)
         return self.program_from_overrides(args, extra_info)
 
-    @FeatureNewKwargs('find_program', '0.53.0', ['dirs'])
-    @FeatureNewKwargs('find_program', '0.52.0', ['version'])
-    @FeatureNewKwargs('find_program', '0.49.0', ['disabler'])
+    @typed_pos_args('find_program', varargs=(str, mesonlib.File), min_varargs=1)
+    @typed_kwargs(
+        'find_program',
+        DISABLER_KW.evolve(since='0.49.0'),
+        NATIVE_KW,
+        REQUIRED_KW,
+        KwargInfo('dirs', ContainerTypeInfo(list, str), default=[], listify=True, since='0.53.0'),
+        KwargInfo('version', ContainerTypeInfo(list, str), default=[], listify=True, since='0.52.0'),
+    )
     @disablerIfNotFound
-    @permittedKwargs({'required', 'native', 'version', 'dirs'})
-    def func_find_program(self, node, args, kwargs) -> T.Union['build.Executable', ExternalProgram, 'OverrideProgram']:
-        if not args:
-            raise InterpreterException('No program name specified.')
-
+    def func_find_program(self, node: mparser.BaseNode, args: T.Tuple[T.List[mesonlib.FileOrString]],
+                          kwargs: 'kwargs.FindProgram',
+                          ) -> T.Union['build.Executable', ExternalProgram, 'OverrideProgram']:
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
-            mlog.log('Program', mlog.bold(' '.join(args)), 'skipped: feature', mlog.bold(feature), 'disabled')
-            return self.notfound_program(args)
+            mlog.log('Program', mlog.bold(' '.join(args[0])), 'skipped: feature', mlog.bold(feature), 'disabled')
+            return self.notfound_program(args[0])
 
         search_dirs = extract_search_dirs(kwargs)
-        wanted = mesonlib.stringlistify(kwargs.get('version', []))
-        for_machine = self.machine_from_native_kwarg(kwargs)
-        return self.find_program_impl(args, for_machine, required=required,
-                                      silent=False, wanted=wanted,
+        return self.find_program_impl(args[0], kwargs['native'], required=required,
+                                      silent=False, wanted=kwargs['version'],
                                       search_dirs=search_dirs)
 
     def func_find_library(self, node, args, kwargs):
@@ -1736,7 +1756,7 @@ This will become a hard error in the future.''', location=node)
         kwargs['env'] = self.unpack_env_kwarg(kwargs)
         if 'command' in kwargs and isinstance(kwargs['command'], list) and kwargs['command']:
             if isinstance(kwargs['command'][0], str):
-                kwargs['command'][0] = self.func_find_program(node, kwargs['command'][0], {})
+                kwargs['command'][0] = self.find_program_impl([kwargs['command'][0]])
         tg = build.CustomTarget(name, self.subdir, self.subproject, kwargs, backend=self.backend)
         self.add_target(tg.name, tg)
         return tg
@@ -1756,7 +1776,7 @@ This will become a hard error in the future.''', location=node)
             if isinstance(i, ExternalProgram) and not i.found():
                 raise InterpreterException(f'Tried to use non-existing executable {i.name!r}')
         if isinstance(all_args[0], str):
-            all_args[0] = self.func_find_program(node, all_args[0], {})
+            all_args[0] = self.find_program_impl([all_args[0]])
         name = args[0]
         tg = build.RunTarget(name, all_args, kwargs['depends'], self.subdir, self.subproject, kwargs['env'])
         self.add_target(name, tg)
@@ -1834,7 +1854,7 @@ This will become a hard error in the future.''', location=node)
             name = name.replace(':', '_')
         exe = args[1]
         if isinstance(exe, mesonlib.File):
-            exe = self.func_find_program(node, args[1], {})
+            exe = self.find_program_impl([exe])
 
         env = self.unpack_env_kwarg(kwargs)
 
@@ -1931,10 +1951,19 @@ This will become a hard error in the future.''', location=node)
 
         return d
 
-    @FeatureNewKwargs('subdir', '0.44.0', ['if_found'])
-    @permittedKwargs({'if_found'})
     @typed_pos_args('subdir', str)
-    def func_subdir(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> None:
+    @typed_kwargs(
+        'subdir',
+        KwargInfo(
+            'if_found',
+            ContainerTypeInfo(list, object),
+            validator=lambda a: 'Objects must have a found() method' if not all(hasattr(x, 'found') for x in a) else None,
+            since='0.44.0',
+            default=[],
+            listify=True,
+        ),
+    )
+    def func_subdir(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs: 'kwargs.Subdir') -> None:
         mesonlib.check_direntry_issues(args)
         if '..' in args[0]:
             raise InvalidArguments('Subdir contains ..')
@@ -1942,11 +1971,10 @@ This will become a hard error in the future.''', location=node)
             raise InvalidArguments('Must not go into subprojects dir with subdir(), use subproject() instead.')
         if self.subdir == '' and args[0].startswith('meson-'):
             raise InvalidArguments('The "meson-" prefix is reserved and cannot be used for top-level subdir().')
-        for i in mesonlib.extract_as_list(kwargs, 'if_found'):
-            if not hasattr(i, 'found'):
-                raise InterpreterException('Object used in if_found does not have a found method.')
+        for i in kwargs['if_found']:
             if not i.found():
                 return
+
         prev_subdir = self.subdir
         subdir = os.path.join(prev_subdir, args[0])
         if os.path.isabs(subdir):
@@ -2346,49 +2374,43 @@ This will become a hard error in the future.''', location=node)
         i = build.IncludeDirs(self.subdir, incdir_strings, is_system)
         return i
 
-    @permittedKwargs({'exe_wrapper', 'gdb', 'timeout_multiplier', 'env', 'is_default',
-                      'exclude_suites'})
     @typed_pos_args('add_test_setup', str)
-    def func_add_test_setup(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> None:
+    @typed_kwargs(
+        'add_test_setup',
+        KwargInfo('exe_wrapper', ContainerTypeInfo(list, (str, ExternalProgram)), listify=True, default=[]),
+        KwargInfo('gdb', bool, default=False),
+        KwargInfo('timeout_multiplier', int, default=1),
+        KwargInfo('exclude_suites', ContainerTypeInfo(list, str), listify=True, default=[], since='0.57.0'),
+        KwargInfo('is_default', bool, default=False, since='0.49.0'),
+        ENV_KW,
+    )
+    def func_add_test_setup(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs: 'kwargs.AddTestSetup') -> None:
         setup_name = args[0]
         if re.fullmatch('([_a-zA-Z][_0-9a-zA-Z]*:)?[_a-zA-Z][_0-9a-zA-Z]*', setup_name) is None:
             raise InterpreterException('Setup name may only contain alphanumeric characters.')
         if ":" not in setup_name:
-            setup_name = (self.subproject if self.subproject else self.build.project_name) + ":" + setup_name
-        try:
-            inp = extract_as_list(kwargs, 'exe_wrapper')
-            exe_wrapper = []
-            for i in inp:
-                if isinstance(i, str):
-                    exe_wrapper.append(i)
-                elif isinstance(i, ExternalProgram):
-                    if not i.found():
-                        raise InterpreterException('Tried to use non-found executable.')
-                    exe_wrapper += i.get_command()
-                else:
-                    raise InterpreterException('Exe wrapper can only contain strings or external binaries.')
-        except KeyError:
-            exe_wrapper = None
-        gdb = kwargs.get('gdb', False)
-        if not isinstance(gdb, bool):
-            raise InterpreterException('Gdb option must be a boolean')
-        timeout_multiplier = kwargs.get('timeout_multiplier', 1)
-        if not isinstance(timeout_multiplier, int):
-            raise InterpreterException('Timeout multiplier must be a number.')
+            setup_name = f'{(self.subproject if self.subproject else self.build.project_name)}:{setup_name}'
+
+        exe_wrapper: T.List[str] = []
+        for i in kwargs['exe_wrapper']:
+            if isinstance(i, str):
+                exe_wrapper.append(i)
+            else:
+                if not i.found():
+                    raise InterpreterException('Tried to use non-found executable.')
+                exe_wrapper += i.get_command()
+
+        timeout_multiplier = kwargs['timeout_multiplier']
         if timeout_multiplier <= 0:
             FeatureNew('add_test_setup() timeout_multiplier <= 0', '0.57.0').use(self.subproject)
-        is_default = kwargs.get('is_default', False)
-        if not isinstance(is_default, bool):
-            raise InterpreterException('is_default option must be a boolean')
-        if is_default:
+
+        if kwargs['is_default']:
             if self.build.test_setup_default_name is not None:
                 raise InterpreterException(f'{self.build.test_setup_default_name!r} is already set as default. '
                                            'is_default can be set to true only once')
             self.build.test_setup_default_name = setup_name
-        exclude_suites = mesonlib.stringlistify(kwargs.get('exclude_suites', []))
-        env = self.unpack_env_kwarg(kwargs)
-        self.build.test_setups[setup_name] = build.TestSetup(exe_wrapper, gdb, timeout_multiplier, env,
-                                                             exclude_suites)
+        self.build.test_setups[setup_name] = build.TestSetup(exe_wrapper, kwargs['gdb'], timeout_multiplier, kwargs['env'],
+                                                             kwargs['exclude_suites'])
 
     @typed_pos_args('add_global_arguments', varargs=str)
     @typed_kwargs('add_global_arguments', NATIVE_KW, LANGUAGE_KW)

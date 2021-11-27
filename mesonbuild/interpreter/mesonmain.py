@@ -86,7 +86,7 @@ class MesonMain(MesonInterpreterObject):
             largs.append(prog)
             largs.extend(args)
             return self.interpreter.backend.get_executable_serialisation(largs)
-        found = self.interpreter.func_find_program({}, prog, {})
+        found = self.interpreter.find_program_impl([prog])
         largs.append(found)
         largs.extend(args)
         es = self.interpreter.backend.get_executable_serialisation(largs)
