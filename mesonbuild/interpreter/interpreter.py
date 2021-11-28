@@ -103,8 +103,8 @@ def _project_version_validator(value: T.Union[T.List, str, mesonlib.File, None])
     if isinstance(value, list):
         if len(value) != 1:
             return 'when passed as array must have a length of 1'
-        elif not isinstance(value[0], (str, mesonlib.File)):
-            return 'when passed as array must contain a string or File'
+        elif not isinstance(value[0], mesonlib.File):
+            return 'when passed as array must contain a File'
     return None
 
 
