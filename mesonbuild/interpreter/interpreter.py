@@ -1448,7 +1448,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             if not silent:
                 mlog.log('Program', mlog.bold(progobj.get_name()), 'found:', mlog.red('NO'))
             if required:
-                m = 'Program {!r} not found'
+                m = 'Program {!r} not found or not executable'
                 raise InterpreterException(m.format(progobj.get_name()))
             return progobj
 
