@@ -104,9 +104,9 @@ There are several keyword arguments. Many of these map directly to the
 * `include_directories`: extra include paths to look for gir files
 * `install`: if true, install the generated files
 * `install_dir_gir`: (*Added 0.35.0*) which directory to install the
-  gir file into
+  gir file into; can be false to disable installation
 * `install_dir_typelib`: (*Added 0.35.0*) which directory to install
-  the typelib file into
+  the typelib file into; can be false to disable installation
 * `link_with`: list of libraries to link with
 * `symbol_prefix`: the symbol prefix for the gir object, e.g. `gtk`,
   (*Since 0.43.0*) an ordered list of multiple prefixes is allowed

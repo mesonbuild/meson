@@ -801,13 +801,21 @@ class GnomeModule(ExtensionModule):
     def _make_gir_target(self, state: 'ModuleState', girfile: str, scan_command: T.List[str],
                          generated_files: T.Sequence[T.Union[str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]],
                          depends: T.List[build.Target], kwargs: T.Dict[str, T.Any]) -> GirTarget:
+        install = kwargs['install']
+
+        install_dir = kwargs['install_dir_gir']
+        if install_dir is None:
+            install_dir = os.path.join(state.environment.get_datadir(), 'gir-1.0')
+        elif install_dir is False:
+            install = False
+
         scankwargs = {
             'input': generated_files,
             'output': girfile,
             'command': scan_command,
             'depends': depends,
-            'install': kwargs['install'],
-            'install_dir': kwargs['install_dir_gir'] or os.path.join(state.environment.get_datadir(), 'gir-1.0'),
+            'install': install,
+            'install_dir': install_dir,
             'install_tag': 'devel',
             'build_by_default': kwargs['build_by_default'],
         }
@@ -817,12 +825,20 @@ class GnomeModule(ExtensionModule):
     def _make_typelib_target(self, state: 'ModuleState', typelib_output: str, typelib_cmd: T.List[str],
                              generated_files: T.Sequence[T.Union[str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]],
                              kwargs: T.Dict[str, T.Any]) -> TypelibTarget:
+        install = kwargs['install']
+
+        install_dir = kwargs['install_dir_typelib']
+        if install_dir is None:
+            install_dir = os.path.join(state.environment.get_libdir(), 'girepository-1.0')
+        elif install_dir is False:
+            install = False
+
         typelib_kwargs = {
             'input': generated_files,
             'output': [typelib_output],
             'command': typelib_cmd,
-            'install': kwargs['install'],
-            'install_dir': kwargs['install_dir_typelib'] or os.path.join(state.environment.get_libdir(), 'girepository-1.0'),
+            'install': install,
+            'install_dir': install_dir,
             'install_tag': 'typelib',
             'build_by_default': kwargs['build_by_default'],
         }
@@ -900,8 +916,10 @@ class GnomeModule(ExtensionModule):
         KwargInfo('identifier_prefix', ContainerTypeInfo(list, str), default=[], listify=True),
         KwargInfo('include_directories', ContainerTypeInfo(list, (str, build.IncludeDirs)), default=[], listify=True),
         KwargInfo('includes', ContainerTypeInfo(list, (str, GirTarget)), default=[], listify=True),
-        KwargInfo('install_dir_gir', (str, NoneType)),
-        KwargInfo('install_dir_typelib', (str, NoneType)),
+        KwargInfo('install_dir_gir', (str, bool, NoneType),
+            validator=lambda x: 'as boolean can only be false' if x is True else None),
+        KwargInfo('install_dir_typelib', (str, bool, NoneType),
+            validator=lambda x: 'as boolean can only be false' if x is True else None),
         KwargInfo('link_with', ContainerTypeInfo(list, (build.SharedLibrary, build.StaticLibrary)), default=[], listify=True),
         KwargInfo('namespace', str, required=True),
         KwargInfo('nsversion', str, required=True),

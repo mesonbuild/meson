@@ -22,7 +22,8 @@ gnome.generate_gir(
   symbol_prefix : 'meson_sub_',
   identifier_prefix : 'MesonSub',
   includes : ['GObject-2.0', meson_gir],
-  install : true
+  install : true,
+  install_dir_gir: false,
 )
 
 message('TEST: ' + girsubproject.outdir())
