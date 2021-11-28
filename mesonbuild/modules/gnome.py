@@ -35,6 +35,7 @@ from ..interpreter.type_checking import DEPENDS_KW, DEPEND_FILES_KW, INSTALL_KW,
 from ..interpreterbase import noPosargs, noKwargs, FeatureNew, FeatureDeprecated
 from ..interpreterbase import typed_kwargs, KwargInfo, ContainerTypeInfo
 from ..interpreterbase.decorators import typed_pos_args
+from ..interpreterbase.disabler import Disabler
 from ..mesonlib import (
     MachineChoice, MesonException, OrderedSet, Popen_safe, join_args,
 )
@@ -1269,11 +1270,26 @@ class GnomeModule(ExtensionModule):
                   '--modulename=' + modulename,
                   '--moduleversion=' + moduleversion,
                   '--mode=' + kwargs['mode']]
+        opt = mesonlib.OptionKey('gtkdoc', module='gnome')
+        feature = state.environment.coredata.options[opt]
+        if feature.is_disabled():
+            mlog.log(mlog.bold('gnome.gtkdoc()'), 'skipped: feature', mlog.bold('gnome.gtkdoc'), 'disabled')
+            return ModuleReturnValue(Disabler(), [])
+        else:
+            required = feature.is_enabled()
+        notfound_tools = []
         for tool in ['scan', 'scangobj', 'mkdb', 'mkhtml', 'fixxref']:
             program_name = 'gtkdoc-' + tool
-            program = state.find_program(program_name)
+            program = state.find_program(program_name, required=required, silent=True)
+            if not program.found():
+                notfound_tools.append(program_name)
+                continue
             path = program.get_path()
             t_args.append(f'--{program_name}={path}')
+        if notfound_tools:
+            mlog.log(mlog.bold('gnome.gtkdoc()'), 'skipped: feature', mlog.bold('gnome.gtkdoc'),
+                     'is auto and missing required program(s)', mlog.bold(', '.join(notfound_tools)))
+            return ModuleReturnValue(Disabler(), [])
         if namespace:
             t_args.append('--namespace=' + namespace)
         if state.environment.need_exe_wrapper() and not isinstance(state.environment.get_exe_wrapper(), EmptyExternalProgram):

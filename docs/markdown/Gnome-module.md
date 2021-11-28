@@ -387,6 +387,9 @@ documentation. Normally the documentation is only built on install.
 dependency to other targets using generated doc files (e.g. in
 `content_files` of another doc).
 
+If the documentation is disabled using the [gtkdoc builtin
+option](Builtin-options.md#gnome-module), returns a [[@disabler]] instead.
+
 ### gnome.gtkdoc_html_dir()
 
 Takes as argument a module name and returns the path where that

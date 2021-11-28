@@ -1216,6 +1216,10 @@ BUILTIN_CORE_OPTIONS: 'KeyedOptionDictType' = OrderedDict([
     (OptionKey('wrap_mode'),       BuiltinOption(UserComboOption, 'Wrap mode', 'default', choices=['default', 'nofallback', 'nodownload', 'forcefallback', 'nopromote'])),
     (OptionKey('force_fallback_for'), BuiltinOption(UserArrayOption, 'Force fallback for those subprojects', [])),
 
+    # Gnome module
+    (OptionKey('gtkdoc', module='gnome'),
+     BuiltinOption(UserFeatureOption, 'Whether to build the Gtk API html docs', 'enabled')),
+
     # Python module
     (OptionKey('platlibdir', module='python'),
      BuiltinOption(UserStringOption, 'Directory for site-specific, platform-specific files.', '')),

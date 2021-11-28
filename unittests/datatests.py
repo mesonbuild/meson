@@ -131,7 +131,8 @@ class DataTests(unittest.TestCase):
         mod_subcontents = []
         content = self._get_section_content("Module options", sections, md)
         subsections = tee(re.finditer(r"^### (.+)$", content, re.MULTILINE))
-        mod_subcontents.append(self._get_section_content('Python module', subsections[0], content))
+        mod_subcontents.append(self._get_section_content('Gnome module', subsections[0], content))
+        mod_subcontents.append(self._get_section_content('Python module', subsections[1], content))
         for subcontent in u_subcontents + mod_subcontents:
             # Find the option names
             options = set()
