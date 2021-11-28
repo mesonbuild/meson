@@ -1445,7 +1445,8 @@ external dependencies (including libraries) must go to "dependencies".''')
             progobj = self.notfound_program(args)
 
         if isinstance(progobj, ExternalProgram) and not progobj.found():
-            mlog.log('Program', mlog.bold(progobj.get_name()), 'found:', mlog.red('NO'))
+            if not silent:
+                mlog.log('Program', mlog.bold(progobj.get_name()), 'found:', mlog.red('NO'))
             if required:
                 m = 'Program {!r} not found'
                 raise InterpreterException(m.format(progobj.get_name()))
@@ -1475,7 +1476,8 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         # Only store successful lookups
         self.store_name_lookups(args)
-        mlog.log('Program', mlog.bold(progobj.name), 'found:', mlog.green('YES'), *extra_info)
+        if not silent:
+            mlog.log('Program', mlog.bold(progobj.name), 'found:', mlog.green('YES'), *extra_info)
         if isinstance(progobj, build.Executable):
             progobj.was_returned_by_find_program = True
         return progobj
