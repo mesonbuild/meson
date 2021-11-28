@@ -244,7 +244,7 @@ def restore_selinux_contexts() -> None:
               'Standard output:', out,
               'Standard error:', err, sep='\n')
 
-def apply_ldconfig(dm: DirMaker) -> None:
+def apply_ldconfig(dm: DirMaker, libdir: str) -> None:
     '''
     Apply ldconfig to update the ld.so.cache.
     '''
@@ -252,7 +252,14 @@ def apply_ldconfig(dm: DirMaker) -> None:
         # If we don't have ldconfig, failure is ignored quietly.
         return
 
-    if 'bsd' in platform.system().lower():
+    platlower = platform.system().lower()
+    if platlower == 'dragonfly' or 'bsd' in platlower:
+        if libdir in dm.all_dirs:
+            proc, out, err = Popen_safe(['ldconfig', '-m', libdir])
+            if proc.returncode != 0:
+                print('Failed to apply ldconfig ...',
+                      'Standard output:', out,
+                      'Standard error:', err, sep='\n')
         return
 
     # Try to update ld cache, it could fail if we don't have permission.
@@ -372,9 +379,9 @@ class Installer:
         if not self.dry_run and not destdir:
             restore_selinux_contexts()
 
-    def apply_ldconfig(self, dm: DirMaker, destdir: str) -> None:
+    def apply_ldconfig(self, dm: DirMaker, destdir: str, libdir: str) -> None:
         if not self.dry_run and not destdir:
-            apply_ldconfig(dm)
+            apply_ldconfig(dm, libdir)
 
     def Popen_safe(self, *args: T.Any, **kwargs: T.Any) -> T.Tuple[int, str, str]:
         if not self.dry_run:
@@ -536,6 +543,7 @@ class Installer:
             os.environ['DESTDIR'] = destdir
         destdir = destdir or ''
         fullprefix = destdir_join(destdir, d.prefix)
+        libdir = os.path.join(d.prefix, d.libdir)
 
         if d.install_umask != 'preserve':
             assert isinstance(d.install_umask, int)
@@ -551,7 +559,7 @@ class Installer:
                 self.install_emptydir(d, dm, destdir, fullprefix)
                 self.install_data(d, dm, destdir, fullprefix)
                 self.restore_selinux_contexts(destdir)
-                self.apply_ldconfig(dm, destdir)
+                self.apply_ldconfig(dm, destdir, libdir)
                 self.run_install_script(d, destdir, fullprefix)
                 if not self.did_install_something:
                     self.log('Nothing to install.')
