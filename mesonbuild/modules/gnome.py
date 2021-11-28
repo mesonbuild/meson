@@ -746,10 +746,12 @@ class GnomeModule(ExtensionModule):
                       'depends': depends}
 
         if 'install' in kwargs:
-            scankwargs['install'] = kwargs['install']
-            scankwargs['install_dir'] = kwargs.get('install_dir_gir',
-                                                   os.path.join(state.environment.get_datadir(), 'gir-1.0'))
-            scankwargs['install_tag'] = 'devel'
+            install_dir = kwargs.get('install_dir_gir',
+                                     os.path.join(state.environment.get_datadir(), 'gir-1.0'))
+            if install_dir is not False:
+                scankwargs['install_dir'] = install_dir
+                scankwargs['install'] = kwargs['install']
+                scankwargs['install_tag'] = 'devel'
 
         if 'build_by_default' in kwargs:
             scankwargs['build_by_default'] = kwargs['build_by_default']
@@ -764,10 +766,12 @@ class GnomeModule(ExtensionModule):
         }
 
         if 'install' in kwargs:
-            typelib_kwargs['install'] = kwargs['install']
-            typelib_kwargs['install_dir'] = kwargs.get('install_dir_typelib',
-                                                       os.path.join(state.environment.get_libdir(), 'girepository-1.0'))
-            typelib_kwargs['install_tag'] = 'typelib'
+            install_dir = kwargs.get('install_dir_typelib',
+                                     os.path.join(state.environment.get_libdir(), 'girepository-1.0'))
+            if install_dir is not False:
+                typelib_kwargs['install'] = kwargs['install']
+                typelib_kwargs['install_dir'] = install_dir
+                typelib_kwargs['install_tag'] = 'typelib'
 
         if 'build_by_default' in kwargs:
             typelib_kwargs['build_by_default'] = kwargs['build_by_default']
