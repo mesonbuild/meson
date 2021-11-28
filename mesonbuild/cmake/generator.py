@@ -15,7 +15,10 @@
 from .. import mesonlib
 import typing as T
 
-def parse_generator_expressions(raw: str) -> str:
+if T.TYPE_CHECKING:
+    from .traceparser import CMakeTraceParser
+
+def parse_generator_expressions(raw: str, trace: 'CMakeTraceParser') -> str:
     '''Parse CMake generator expressions
 
     Most generator expressions are simply ignored for

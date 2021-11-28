@@ -183,6 +183,37 @@ class CMakeTraceParser:
             if fn:
                 fn(l)
 
+        # Evaluate generator expressions
+        strlist_gen:  T.Callable[[T.List[str]],  T.List[str]]  = lambda strlist: [parse_generator_expressions(x, self) for x in strlist]
+        pathlist_gen: T.Callable[[T.List[Path]], T.List[Path]] = lambda plist:   [Path(parse_generator_expressions(str(x), self)) for x in plist]
+
+        self.vars = {k: strlist_gen(v) for k, v in self.vars.items()}
+        self.vars_by_file = {
+            p: {k: strlist_gen(v) for k, v in d.items()}
+            for p, d in self.vars_by_file.items()
+        }
+        self.explicit_headers = set(Path(parse_generator_expressions(str(x), self)) for x in self.explicit_headers)
+        self.cache = {
+            k: CMakeCacheEntry(
+                strlist_gen(v.value),
+                v.type
+            )
+            for k, v in self.cache.items()
+        }
+
+        for tgt in self.targets.values():
+            tgt.name = parse_generator_expressions(tgt.name, self)
+            tgt.type = parse_generator_expressions(tgt.type, self)
+            tgt.properties = {
+                k: strlist_gen(v) for k, v in tgt.properties.items()
+            } if tgt.properties is not None else None
+            tgt.depends = strlist_gen(tgt.depends)
+
+        for ctgt in self.custom_targets:
+            ctgt.outputs = pathlist_gen(ctgt.outputs)
+            ctgt.command = [strlist_gen(x) for x in ctgt.command]
+            ctgt.working_dir = Path(parse_generator_expressions(str(ctgt.working_dir), self)) if ctgt.working_dir is not None else None
+
         # Postprocess
         for tgt in self.targets.values():
             tgt.strip_properties()
@@ -676,7 +707,6 @@ class CMakeTraceParser:
             line = mo_file_line.group(3)
             func = mo_file_line.group(4)
             args = mo_file_line.group(5)
-            args = parse_generator_expressions(args)
             argl = args.split(' ')
             argl = list(map(lambda x: x.strip(), argl))
 
@@ -694,7 +724,6 @@ class CMakeTraceParser:
             args = data['args']
             for j in args:
                 assert isinstance(j, str)
-            args = [parse_generator_expressions(x) for x in args]
             yield CMakeTraceLine(data['file'], data['line'], data['cmd'], args)
 
     def _flatten_args(self, args: T.List[str]) -> T.List[str]:
