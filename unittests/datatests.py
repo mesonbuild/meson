@@ -119,12 +119,18 @@ class DataTests(unittest.TestCase):
         found_entries = set()
         sections = re.finditer(r"^## (.+)$", md, re.MULTILINE)
         # Extract the content for this section
+        u_subcontents = []
         content = self._get_section_content("Universal options", sections, md)
         subsections = tee(re.finditer(r"^### (.+)$", content, re.MULTILINE))
-        subcontent1 = self._get_section_content("Directories", subsections[0], content)
-        subcontent2 = self._get_section_content("Core options", subsections[1], content)
-        subcontent3 = self._get_section_content("Module options", sections, md)
-        for subcontent in (subcontent1, subcontent2, subcontent3):
+        u_subcontents.append(self._get_section_content("Directories", subsections[0], content))
+        u_subcontents.append(self._get_section_content("Core options", subsections[1], content))
+
+        mod_subcontents = []
+        content = self._get_section_content("Module options", sections, md)
+        subsections = tee(re.finditer(r"^### (.+)$", content, re.MULTILINE))
+        for idx, mod in enumerate(['Python']):
+            mod_subcontents.append(self._get_section_content(f'{mod} module', subsections[idx], content))
+        for subcontent in u_subcontents + mod_subcontents:
             # Find the option names
             options = set()
             # Match either a table row or a table heading separator: | ------ |
@@ -151,9 +157,9 @@ class DataTests(unittest.TestCase):
         # setting of builtin options behaves
         #
         # Find all tables inside this subsection
-        tables = re.finditer(r"^\| (\w+) .* \|\n\| *[-|\s]+ *\|$", subcontent2, re.MULTILINE)
+        tables = re.finditer(r"^\| (\w+) .* \|\n\| *[-|\s]+ *\|$", u_subcontents[1], re.MULTILINE)
         # Get the table we want using the header of the first column
-        table = self._get_section_content('buildtype', tables, subcontent2)
+        table = self._get_section_content('buildtype', tables, u_subcontents[1])
         # Get table row data
         rows = re.finditer(r"^\|(?: (\w+)\s+\| (\w+)\s+\| (\w+) .* | *-+ *)\|", table, re.MULTILINE)
         env = get_fake_env()
