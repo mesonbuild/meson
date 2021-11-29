@@ -30,6 +30,15 @@ kwargs:
       and the configuration will fail if it is non-zero. Note that
       the default value will be `true` in future releases.
 
+  capture:
+    type: bool
+    since: 0.47.0
+    default: true
+    description: |
+      If `true`, any output generated on stdout will be captured and returned by
+      the `.stdout()` method. If it is false, then `.stdout()` will return an
+      empty string.
+
   env:
     type: env | list[str] | dict[str]
     since: 0.50.0
