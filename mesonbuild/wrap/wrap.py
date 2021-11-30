@@ -584,7 +584,7 @@ class Resolver:
             patch_dir = self.wrap.values['patch_directory']
             src_dir = os.path.join(self.wrap.filesdir, patch_dir)
             if not os.path.isdir(src_dir):
-                raise WrapException(f'patch directory does not exists: {patch_dir}')
+                raise WrapException(f'patch directory does not exist: {patch_dir}')
             self.copy_tree(src_dir, self.dirname)
 
     def copy_tree(self, root_src_dir: str, root_dst_dir: str) -> None:
