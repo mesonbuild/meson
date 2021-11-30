@@ -5,8 +5,13 @@
     {"type": "expr", "file": "usr/lib/?libgirlib.so"},
     {"type": "file", "platform": "cygwin", "file": "usr/lib/libgirlib.dll.a"},
     {"type": "expr", "file": "usr/lib/?libgirsubproject.so"},
-    {"type": "file", "platform": "cygwin", "file": "usr/lib/libgirsubproject.dll.a"},
-    {"type": "file", "file": "usr/share/gir-1.0/Meson-1.0.gir"}
+    {"type": "file", "platform": "cygwin", "file": "usr/lib/libgirsubproject.dll.a"}
   ],
-  "skip_on_jobname": ["azure", "macos", "msys2"]
+  "skip_on_jobname": ["azure", "macos", "msys2"],
+  "stdout": [
+    {
+      "comment": "This will either match in the future-deprecated notice summary, or match the warning summary",
+      "line": " * 0.61.0: {'\"gnome.generate_gir\" keyword argument \"install_dir_gir\" value \"False\"'}"
+    }
+  ]
 }

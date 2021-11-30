@@ -801,7 +801,9 @@ class GnomeModule(ExtensionModule):
     def _make_gir_target(self, state: 'ModuleState', girfile: str, scan_command: T.List[str],
                          generated_files: T.Sequence[T.Union[str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]],
                          depends: T.List[build.Target], kwargs: T.Dict[str, T.Any]) -> GirTarget:
-        install = kwargs['install']
+        install = kwargs['install_gir']
+        if install is None:
+            install = kwargs['install']
 
         install_dir = kwargs['install_dir_gir']
         if install_dir is None:
@@ -825,7 +827,9 @@ class GnomeModule(ExtensionModule):
     def _make_typelib_target(self, state: 'ModuleState', typelib_output: str, typelib_cmd: T.List[str],
                              generated_files: T.Sequence[T.Union[str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]],
                              kwargs: T.Dict[str, T.Any]) -> TypelibTarget:
-        install = kwargs['install']
+        install = kwargs['install_typelib']
+        if install is None:
+            install = kwargs['install']
 
         install_dir = kwargs['install_dir_typelib']
         if install_dir is None:
@@ -916,9 +920,13 @@ class GnomeModule(ExtensionModule):
         KwargInfo('identifier_prefix', ContainerTypeInfo(list, str), default=[], listify=True),
         KwargInfo('include_directories', ContainerTypeInfo(list, (str, build.IncludeDirs)), default=[], listify=True),
         KwargInfo('includes', ContainerTypeInfo(list, (str, GirTarget)), default=[], listify=True),
+        KwargInfo('install_gir', (bool, NoneType), since='0.61.0'),
         KwargInfo('install_dir_gir', (str, bool, NoneType),
+            deprecated_values={False: ('0.61.0', 'Use install_gir to disable installation')},
             validator=lambda x: 'as boolean can only be false' if x is True else None),
+        KwargInfo('install_typelib', (bool, NoneType), since='0.61.0'),
         KwargInfo('install_dir_typelib', (str, bool, NoneType),
+            deprecated_values={False: ('0.61.0', 'Use install_typelib to disable installation')},
             validator=lambda x: 'as boolean can only be false' if x is True else None),
         KwargInfo('link_with', ContainerTypeInfo(list, (build.SharedLibrary, build.StaticLibrary)), default=[], listify=True),
         KwargInfo('namespace', str, required=True),
