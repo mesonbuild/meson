@@ -1768,11 +1768,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             name = ''
         kwargs['install_mode'] = self._get_kwarg_install_mode(kwargs)
         if 'input' in kwargs:
-            try:
-                kwargs['input'] = self.source_strings_to_files(extract_as_list(kwargs, 'input'))
-            except mesonlib.MesonException:
-                mlog.warning(f'''Custom target input '{kwargs['input']}' can't be converted to File object(s).
-This will become a hard error in the future.''', location=node)
+            kwargs['input'] = self.source_strings_to_files(extract_as_list(kwargs, 'input'), strict=False)
         kwargs['env'] = self.unpack_env_kwarg(kwargs)
         if 'command' in kwargs and isinstance(kwargs['command'], list) and kwargs['command']:
             if isinstance(kwargs['command'][0], str):
@@ -2610,12 +2606,15 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
             raise InterpreterException(f'Sandbox violation: Tried to grab {inputtype} {norm.name} from a nested subproject.')
 
     @T.overload
-    def source_strings_to_files(self, sources: T.List['mesonlib.FileOrString']) -> T.List['mesonlib.File']: ...
+    def source_strings_to_files(self, sources: T.List['mesonlib.FileOrString'], strict: bool = True) -> T.List['mesonlib.File']: ...
 
     @T.overload
-    def source_strings_to_files(self, sources: T.List['SourceInputs']) -> T.List['SourceOutputs']: ... # noqa: F811
+    def source_strings_to_files(self, sources: T.List['mesonlib.FileOrString'], strict: bool = False) -> T.List['mesonlib.FileOrString']: ... # noqa: F811
 
-    def source_strings_to_files(self, sources: T.List['SourceInputs']) -> T.List['SourceOutputs']: # noqa: F811
+    @T.overload
+    def source_strings_to_files(self, sources: T.List['SourceInputs'], strict: bool = True) -> T.List['SourceOutputs']: ... # noqa: F811
+
+    def source_strings_to_files(self, sources: T.List['SourceInputs'], strict: bool = True) -> T.List['SourceOutputs']: # noqa: F811
         """Lower inputs to a list of Targets and Files, replacing any strings.
 
         :param sources: A raw (Meson DSL) list of inputs (targets, files, and
@@ -2629,8 +2628,13 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
         results: T.List['SourceOutputs'] = []
         for s in sources:
             if isinstance(s, str):
-                self.validate_within_subproject(self.subdir, s)
-                results.append(mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, s))
+                if not strict and s.startswith(self.environment.get_build_dir()):
+                    results.append(s)
+                    mlog.warning(f'Source item {s!r} cannot be converted to File object, because it is a generated file. '
+                                 'This will become a hard error in the future.', location=self.current_node)
+                else:
+                    self.validate_within_subproject(self.subdir, s)
+                    results.append(mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, s))
             elif isinstance(s, mesonlib.File):
                 results.append(s)
             elif isinstance(s, (build.GeneratedList, build.BuildTarget,
