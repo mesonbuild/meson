@@ -248,13 +248,15 @@ class LinuxlikeTests(BasePlatformTests):
         self.init(testdir)
         self.build()
 
+        libdir = self.builddir
         os.environ['PKG_CONFIG_LIBDIR'] = os.path.join(self.builddir, 'meson-uninstalled')
         if is_cygwin():
-            os.environ['PATH'] += os.pathsep + self.builddir
+            os.environ['PATH'] += os.pathsep + libdir
 
         self.new_builddir()
+        meson_args = [f'-Dc_link_args=-Wl,-rpath,{libdir}']
         testdir = os.path.join(self.common_test_dir, '44 pkgconfig-gen', 'dependencies')
-        self.init(testdir)
+        self.init(testdir, extra_args=meson_args)
         self.build()
         self.run_tests()
 
@@ -954,9 +956,9 @@ class LinuxlikeTests(BasePlatformTests):
         oldinstalldir = self.installdir
 
         # Build and install an external library without DESTDIR.
-        # The external library generates a .pc file without an rpath.
         yonder_dir = os.path.join(testdir, 'yonder')
         yonder_prefix = os.path.join(oldinstalldir, 'yonder')
+        yonder_includedir = os.path.join(yonder_prefix, 'include')
         yonder_libdir = os.path.join(yonder_prefix, self.libdir)
         self.prefix = yonder_prefix
         self.installdir = yonder_prefix
@@ -980,13 +982,15 @@ class LinuxlikeTests(BasePlatformTests):
             # (as systems like buildroot and guix are wont to do)
             # and verify install preserves that rpath.
             self.new_builddir()
-            env = {'LDFLAGS': rpath_format + yonder_libdir,
+            meson_args = [f'-Dyonder_libdir={yonder_libdir}']
+            env = {'CPPFLAGS': '-I' + yonder_includedir,
+                   'LDFLAGS': rpath_format + yonder_libdir,
                    'PKG_CONFIG_PATH': os.path.join(yonder_libdir, 'pkgconfig')}
             if exception:
                 with self.assertRaises(subprocess.CalledProcessError):
-                    self.init(testdir, override_envvars=env)
+                    self.init(testdir, extra_args=meson_args, override_envvars=env)
                 continue
-            self.init(testdir, override_envvars=env)
+            self.init(testdir, extra_args=meson_args, override_envvars=env)
             self.build()
             self.install(use_destdir=False)
             got_rpath = get_rpath(os.path.join(yonder_prefix, 'bin/rpathified'))
@@ -1551,7 +1555,7 @@ class LinuxlikeTests(BasePlatformTests):
         # Test that installed libraries works
         self.new_builddir()
         self.prefix = oldprefix
-        meson_args = [f'-Dc_link_args=-L{libdir}',
+        meson_args = [f'-Dc_link_args=-L{libdir} -Wl,-rpath,{libdir}',
                       '--fatal-meson-warnings']
         testdir = os.path.join(self.unit_test_dir, '67 static link')
         env = {'PKG_CONFIG_LIBDIR': os.path.join(libdir, 'pkgconfig')}
