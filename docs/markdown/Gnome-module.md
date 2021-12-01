@@ -324,6 +324,10 @@ was, however, undocumented and never officially supported. Due to a longstanding
 bug, passing sources as a keyword argument will result in the positional
 argument sources to be ignored. *since 0.60.0* A warning is raised in this case.
 
+*Since 0.43.0* if "languages" is not specified, a
+[LINGUAS](https://www.gnu.org/software/gettext/manual/html_node/po_002fLINGUAS.html)
+file will be read instead.
+
 *Since 0.60.0* the use of the positional argument sources has been deprecated,
 and the "sources" keyword argument should be used instead. The passing of
 sources as positional arguments will be removed in the future.
@@ -331,7 +335,7 @@ sources as positional arguments will be removed in the future.
 This also creates two targets for translations
 `help-$project-update-po` and `help-$project-pot`.
 
-* `languages`: list of languages for translations
+* `languages`: *(deprecated since 0.43.0)* list of languages for translation, overrides the LINGUAS file
 * `media`: list of media such as images
 * `sources`: list of pages
 * `symlink_media`: if media should be symlinked not copied (defaults to `true` since 0.42.0)
