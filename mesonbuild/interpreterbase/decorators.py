@@ -372,7 +372,8 @@ class KwargInfo(T.Generic[_T]):
         string, but the implementation using an Enum. This should not do
         validation, just conversion.
     :param deprecated_values: a dictionary mapping a value to the version of
-        meson it was deprecated in.
+        meson it was deprecated in. The Value may be any valid value for this
+        argument.
     :param since_values: a dictionary mapping a value to the version of meson it was
         added in.
     :param not_set_warning: A warning message that is logged if the kwarg is not
@@ -385,7 +386,7 @@ class KwargInfo(T.Generic[_T]):
                  since: T.Optional[str] = None,
                  since_values: T.Optional[T.Dict[str, str]] = None,
                  deprecated: T.Optional[str] = None,
-                 deprecated_values: T.Optional[T.Dict[str, str]] = None,
+                 deprecated_values: T.Optional[T.Dict[_T, str]] = None,
                  validator: T.Optional[T.Callable[[T.Any], T.Optional[str]]] = None,
                  convertor: T.Optional[T.Callable[[_T], object]] = None,
                  not_set_warning: T.Optional[str] = None):

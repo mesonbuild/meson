@@ -1378,6 +1378,7 @@ class InternalTests(unittest.TestCase):
             'testfunc',
             KwargInfo('input', ContainerTypeInfo(list, str), listify=True, default=[], deprecated_values={'foo': '0.9'}, since_values={'bar': '1.1'}),
             KwargInfo('output', ContainerTypeInfo(dict, str), default={}, deprecated_values={'foo': '0.9'}, since_values={'bar': '1.1'}),
+            KwargInfo('install_dir', (bool, str, NoneType), deprecated_values={False: '0.9'}),
             KwargInfo(
                 'mode',
                 (str, type(None)),
@@ -1401,6 +1402,10 @@ class InternalTests(unittest.TestCase):
         with mock.patch('sys.stdout', io.StringIO()) as out:
             _(None, mock.Mock(subproject=''), [], {'output': {'foo': 'a'}})
             self.assertRegex(out.getvalue(), r"""WARNING:.Project targeting '1.0'.*deprecated since '0.9': "testfunc" keyword argument "output" value "foo".*""")
+
+        with mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [], {'install_dir': False})
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targeting '1.0'.*deprecated since '0.9': "testfunc" keyword argument "install_dir" value "False".*""")
 
         with mock.patch('sys.stdout', io.StringIO()) as out:
             _(None, mock.Mock(subproject=''), [], {'output': {'bar': 'b'}})
