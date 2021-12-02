@@ -1316,7 +1316,6 @@ class InternalTests(unittest.TestCase):
             _(None, mock.Mock(), [], {'input': ['a']})
         self.assertEqual(str(cm.exception), "testfunc keyword argument 'input' was of type array[str] but should have been array[str] that has even size")
 
-    @mock.patch.dict(mesonbuild.mesonlib.project_meson_versions, {})
     def test_typed_kwarg_since(self) -> None:
         @typed_kwargs(
             'testfunc',
@@ -1326,23 +1325,26 @@ class InternalTests(unittest.TestCase):
             self.assertIsInstance(kwargs['input'], str)
             self.assertEqual(kwargs['input'], 'foo')
 
-        with mock.patch('sys.stdout', io.StringIO()) as out:
+        with self.subTest('use before available'), \
+                mock.patch('sys.stdout', io.StringIO()) as out, \
+                mock.patch('mesonbuild.mesonlib.project_meson_versions', {'': '0.1'}):
             # With Meson 0.1 it should trigger the "introduced" warning but not the "deprecated" warning
-            mesonbuild.mesonlib.project_meson_versions[''] = '0.1'
             _(None, mock.Mock(subproject=''), [], {'input': 'foo'})
             self.assertRegex(out.getvalue(), r'WARNING:.*introduced.*input arg in testfunc')
             self.assertNotRegex(out.getvalue(), r'WARNING:.*deprecated.*input arg in testfunc')
 
-        with mock.patch('sys.stdout', io.StringIO()) as out:
+        with self.subTest('no warnings should be triggered'), \
+                mock.patch('sys.stdout', io.StringIO()) as out, \
+                mock.patch('mesonbuild.mesonlib.project_meson_versions', {'': '1.5'}):
             # With Meson 1.5 it shouldn't trigger any warning
-            mesonbuild.mesonlib.project_meson_versions[''] = '1.5'
             _(None, mock.Mock(subproject=''), [], {'input': 'foo'})
             self.assertNotRegex(out.getvalue(), r'WARNING:.*')
             self.assertNotRegex(out.getvalue(), r'WARNING:.*')
 
-        with mock.patch('sys.stdout', io.StringIO()) as out:
+        with self.subTest('use after deprecated'), \
+                mock.patch('sys.stdout', io.StringIO()) as out, \
+                mock.patch('mesonbuild.mesonlib.project_meson_versions', {'': '2.0'}):
             # With Meson 2.0 it should trigger the "deprecated" warning but not the "introduced" warning
-            mesonbuild.mesonlib.project_meson_versions[''] = '2.0'
             _(None, mock.Mock(subproject=''), [], {'input': 'foo'})
             self.assertRegex(out.getvalue(), r'WARNING:.*deprecated.*input arg in testfunc')
             self.assertNotRegex(out.getvalue(), r'WARNING:.*introduced.*input arg in testfunc')
