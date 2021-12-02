@@ -1319,7 +1319,8 @@ class InternalTests(unittest.TestCase):
     def test_typed_kwarg_since(self) -> None:
         @typed_kwargs(
             'testfunc',
-            KwargInfo('input', str, since='1.0', deprecated='2.0')
+            KwargInfo('input', str, since='1.0', since_message='Its awesome, use it',
+                      deprecated='2.0', deprecated_message='Its terrible, dont use it')
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
             self.assertIsInstance(kwargs['input'], str)
@@ -1330,8 +1331,8 @@ class InternalTests(unittest.TestCase):
                 mock.patch('mesonbuild.mesonlib.project_meson_versions', {'': '0.1'}):
             # With Meson 0.1 it should trigger the "introduced" warning but not the "deprecated" warning
             _(None, mock.Mock(subproject=''), [], {'input': 'foo'})
-            self.assertRegex(out.getvalue(), r'WARNING:.*introduced.*input arg in testfunc')
-            self.assertNotRegex(out.getvalue(), r'WARNING:.*deprecated.*input arg in testfunc')
+            self.assertRegex(out.getvalue(), r'WARNING:.*introduced.*input arg in testfunc. Its awesome, use it')
+            self.assertNotRegex(out.getvalue(), r'WARNING:.*deprecated.*input arg in testfunc. Its terrible, dont use it')
 
         with self.subTest('no warnings should be triggered'), \
                 mock.patch('sys.stdout', io.StringIO()) as out, \
@@ -1339,15 +1340,14 @@ class InternalTests(unittest.TestCase):
             # With Meson 1.5 it shouldn't trigger any warning
             _(None, mock.Mock(subproject=''), [], {'input': 'foo'})
             self.assertNotRegex(out.getvalue(), r'WARNING:.*')
-            self.assertNotRegex(out.getvalue(), r'WARNING:.*')
 
         with self.subTest('use after deprecated'), \
                 mock.patch('sys.stdout', io.StringIO()) as out, \
                 mock.patch('mesonbuild.mesonlib.project_meson_versions', {'': '2.0'}):
             # With Meson 2.0 it should trigger the "deprecated" warning but not the "introduced" warning
             _(None, mock.Mock(subproject=''), [], {'input': 'foo'})
-            self.assertRegex(out.getvalue(), r'WARNING:.*deprecated.*input arg in testfunc')
-            self.assertNotRegex(out.getvalue(), r'WARNING:.*introduced.*input arg in testfunc')
+            self.assertRegex(out.getvalue(), r'WARNING:.*deprecated.*input arg in testfunc. Its terrible, dont use it')
+            self.assertNotRegex(out.getvalue(), r'WARNING:.*introduced.*input arg in testfunc. Its awesome, use it')
 
     def test_typed_kwarg_validator(self) -> None:
         @typed_kwargs(
