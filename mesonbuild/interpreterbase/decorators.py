@@ -503,6 +503,21 @@ def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
 
         @wraps(f)
         def wrapper(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
+
+            def emit_feature_change(values: T.Dict[str, T.Union[str, T.Tuple[str, str]]], feature: T.Union[T.Type['FeatureDeprecated'], T.Type['FeatureNew']]) -> None:
+                for n, version in values.items():
+                    if isinstance(value, (dict, list)):
+                        warn = n in value
+                    else:
+                        warn = n == value
+
+                    if warn:
+                        if isinstance(version, tuple):
+                            version, msg = version
+                        else:
+                            msg = None
+                        feature.single_use(f'"{name}" keyword argument "{info.name}" value "{n}"', version, subproject, msg, location=node)
+
             node, _, _kwargs, subproject = get_callee_args(wrapped_args)
             # Cast here, as the convertor function may place something other than a TYPE_var in the kwargs
             kwargs = T.cast(T.Dict[str, object], _kwargs)
@@ -534,35 +549,11 @@ def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
                         if msg is not None:
                             raise InvalidArguments(f'{name} keyword argument "{info.name}" {msg}')
 
-                    warn: bool
-                    msg: T.Optional[str]
                     if info.deprecated_values is not None:
-                        for n, version in info.deprecated_values.items():
-                            if isinstance(value, (dict, list)):
-                                warn = n in value
-                            else:
-                                warn = n == value
-
-                            if warn:
-                                if isinstance(version, tuple):
-                                    version, msg = version
-                                else:
-                                    msg = None
-                                FeatureDeprecated.single_use(f'"{name}" keyword argument "{info.name}" value "{n}"', version, subproject, msg, location=node)
+                        emit_feature_change(info.deprecated_values, FeatureDeprecated)
 
                     if info.since_values is not None:
-                        for n, version in info.since_values.items():
-                            if isinstance(value, (dict, list)):
-                                warn = n in value
-                            else:
-                                warn = n == value
-
-                            if warn:
-                                if isinstance(version, tuple):
-                                    version, msg = version
-                                else:
-                                    msg = None
-                                FeatureNew.single_use(f'"{name}" keyword argument "{info.name}" value "{n}"', version, subproject, msg, location=node)
+                        emit_feature_change(info.since_values, FeatureNew)
 
                 elif info.required:
                     raise InvalidArguments(f'{name} is missing required keyword argument "{info.name}"')
