@@ -362,7 +362,10 @@ class KwargInfo(T.Generic[_T]):
         this may be safely set to a mutable type, as long as that type does not
         itself contain mutable types, typed_kwargs will copy the default
     :param since: Meson version in which this argument has been added. defaults to None
+    :param since_message: An extra message to pass to FeatureNew when since is triggered
     :param deprecated: Meson version in which this argument has been deprecated. defaults to None
+    :param deprecated_message: An extra message to pass to FeatureDeprecated
+        when since is triggered
     :param validator: A callable that does additional validation. This is mainly
         intended for cases where a string is expected, but only a few specific
         values are accepted. Must return None if the input is valid, or a
@@ -384,8 +387,10 @@ class KwargInfo(T.Generic[_T]):
                  *, required: bool = False, listify: bool = False,
                  default: T.Optional[_T] = None,
                  since: T.Optional[str] = None,
-                 since_values: T.Optional[T.Dict[str, str]] = None,
+                 since_message: T.Optional[str] = None,
+                 since_values: T.Optional[T.Dict[_T, str]] = None,
                  deprecated: T.Optional[str] = None,
+                 deprecated_message: T.Optional[str] = None,
                  deprecated_values: T.Optional[T.Dict[_T, str]] = None,
                  validator: T.Optional[T.Callable[[T.Any], T.Optional[str]]] = None,
                  convertor: T.Optional[T.Callable[[_T], object]] = None,
@@ -395,9 +400,11 @@ class KwargInfo(T.Generic[_T]):
         self.required = required
         self.listify = listify
         self.default = default
-        self.since_values = since_values
         self.since = since
+        self.since_message = since_message
+        self.since_values = since_values
         self.deprecated = deprecated
+        self.deprecated_message = deprecated_message
         self.deprecated_values = deprecated_values
         self.validator = validator
         self.convertor = convertor
@@ -409,9 +416,11 @@ class KwargInfo(T.Generic[_T]):
                listify: T.Union[bool, _NULL_T] = _NULL,
                default: T.Union[_T, None, _NULL_T] = _NULL,
                since: T.Union[str, None, _NULL_T] = _NULL,
-               since_values: T.Union[T.Dict[str, str], None, _NULL_T] = _NULL,
+               since_message: T.Union[str, None, _NULL_T] = _NULL,
+               since_values: T.Union[T.Dict[_T, str], None, _NULL_T] = _NULL,
                deprecated: T.Union[str, None, _NULL_T] = _NULL,
-               deprecated_values: T.Union[T.Dict[str, str], None, _NULL_T] = _NULL,
+               deprecated_message: T.Union[str, None, _NULL_T] = _NULL,
+               deprecated_values: T.Union[T.Dict[_T, str], None, _NULL_T] = _NULL,
                validator: T.Union[T.Callable[[_T], T.Optional[str]], None, _NULL_T] = _NULL,
                convertor: T.Union[T.Callable[[_T], TYPE_var], None, _NULL_T] = _NULL) -> 'KwargInfo':
         """Create a shallow copy of this KwargInfo, with modifications.
@@ -432,8 +441,10 @@ class KwargInfo(T.Generic[_T]):
             required=required if not isinstance(required, _NULL_T) else self.required,
             default=default if not isinstance(default, _NULL_T) else self.default,
             since=since if not isinstance(since, _NULL_T) else self.since,
+            since_message=since_message if not isinstance(since_message, _NULL_T) else self.since_message,
             since_values=since_values if not isinstance(since_values, _NULL_T) else self.since_values,
             deprecated=deprecated if not isinstance(deprecated, _NULL_T) else self.deprecated,
+            deprecated_message=deprecated_message if not isinstance(deprecated_message, _NULL_T) else self.deprecated_message,
             deprecated_values=deprecated_values if not isinstance(deprecated_values, _NULL_T) else self.deprecated_values,
             validator=validator if not isinstance(validator, _NULL_T) else self.validator,
             convertor=convertor if not isinstance(convertor, _NULL_T) else self.convertor,
@@ -508,10 +519,10 @@ def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
                 if value is not None:
                     if info.since:
                         feature_name = info.name + ' arg in ' + name
-                        FeatureNew.single_use(feature_name, info.since, subproject, location=node)
+                        FeatureNew.single_use(feature_name, info.since, subproject, info.since_message, location=node)
                     if info.deprecated:
                         feature_name = info.name + ' arg in ' + name
-                        FeatureDeprecated.single_use(feature_name, info.deprecated, subproject, location=node)
+                        FeatureDeprecated.single_use(feature_name, info.deprecated, subproject, info.deprecated_message, location=node)
                     if info.listify:
                         kwargs[info.name] = value = mesonlib.listify(value)
                     if not check_value_type(types_tuple, value):
