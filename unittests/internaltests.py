@@ -1374,7 +1374,7 @@ class InternalTests(unittest.TestCase):
 
         _(None, mock.Mock(), tuple(), dict(native=True))
 
-    @mock.patch.dict(mesonbuild.mesonlib.project_meson_versions, {})
+    @mock.patch('mesonbuild.mesonlib.project_meson_versions', {'': '1.0'})
     def test_typed_kwarg_since_values(self) -> None:
         @typed_kwargs(
             'testfunc',
@@ -1391,33 +1391,31 @@ class InternalTests(unittest.TestCase):
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
             pass
 
-        mesonbuild.mesonlib.project_meson_versions[''] = '1.0'
-
-        with mock.patch('sys.stdout', io.StringIO()) as out:
+        with self.subTest('deprecated array string value'), mock.patch('sys.stdout', io.StringIO()) as out:
             _(None, mock.Mock(subproject=''), [], {'input': ['foo']})
             self.assertRegex(out.getvalue(), r"""WARNING:.Project targeting '1.0'.*deprecated since '0.9': "testfunc" keyword argument "input" value "foo".*""")
 
-        with mock.patch('sys.stdout', io.StringIO()) as out:
+        with self.subTest('new array string value'), mock.patch('sys.stdout', io.StringIO()) as out:
             _(None, mock.Mock(subproject=''), [], {'input': ['bar']})
             self.assertRegex(out.getvalue(), r"""WARNING:.Project targeting '1.0'.*introduced in '1.1': "testfunc" keyword argument "input" value "bar".*""")
 
-        with mock.patch('sys.stdout', io.StringIO()) as out:
+        with self.subTest('deprecated dict string value'), mock.patch('sys.stdout', io.StringIO()) as out:
             _(None, mock.Mock(subproject=''), [], {'output': {'foo': 'a'}})
             self.assertRegex(out.getvalue(), r"""WARNING:.Project targeting '1.0'.*deprecated since '0.9': "testfunc" keyword argument "output" value "foo".*""")
 
-        with mock.patch('sys.stdout', io.StringIO()) as out:
-            _(None, mock.Mock(subproject=''), [], {'install_dir': False})
-            self.assertRegex(out.getvalue(), r"""WARNING:.Project targeting '1.0'.*deprecated since '0.9': "testfunc" keyword argument "install_dir" value "False".*""")
-
-        with mock.patch('sys.stdout', io.StringIO()) as out:
+        with self.subTest('new dict string value'), mock.patch('sys.stdout', io.StringIO()) as out:
             _(None, mock.Mock(subproject=''), [], {'output': {'bar': 'b'}})
             self.assertRegex(out.getvalue(), r"""WARNING:.Project targeting '1.0'.*introduced in '1.1': "testfunc" keyword argument "output" value "bar".*""")
 
-        with mock.patch('sys.stdout', io.StringIO()) as out:
+        with self.subTest('non string union'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [], {'install_dir': False})
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targeting '1.0'.*deprecated since '0.9': "testfunc" keyword argument "install_dir" value "False".*""")
+
+        with self.subTest('deprecated string union'), mock.patch('sys.stdout', io.StringIO()) as out:
             _(None, mock.Mock(subproject=''), [], {'mode': 'deprecated'})
             self.assertRegex(out.getvalue(), r"""WARNING:.Project targeting '1.0'.*deprecated since '1.0': "testfunc" keyword argument "mode" value "deprecated".*""")
 
-        with mock.patch('sys.stdout', io.StringIO()) as out:
+        with self.subTest('new string union'), mock.patch('sys.stdout', io.StringIO()) as out:
             _(None, mock.Mock(subproject=''), [], {'mode': 'since'})
             self.assertRegex(out.getvalue(), r"""WARNING:.Project targeting '1.0'.*introduced in '1.1': "testfunc" keyword argument "mode" value "since".*""")
 
