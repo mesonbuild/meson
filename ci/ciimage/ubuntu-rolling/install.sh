@@ -12,7 +12,6 @@ pkgs=(
   python3-pip libxml2-dev libxslt1-dev libyaml-dev libjson-glib-dev
   wget unzip
   qt5-qmake qtbase5-dev qtchooser qtbase5-dev-tools clang
-  pkg-config-arm-linux-gnueabihf
   libomp-dev
   llvm lcov
   dub ldc
