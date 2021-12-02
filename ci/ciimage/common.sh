@@ -13,6 +13,7 @@ set -x
 base_python_pkgs=(
   pytest
   pytest-xdist
+  pytest-subtests
   coverage
   codecov
   jsonschema
