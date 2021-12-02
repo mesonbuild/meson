@@ -138,7 +138,7 @@ class I18nModule(ExtensionModule):
         CT_OUTPUT_KW,
         INSTALL_KW,
         _ARGS.evolve(since='0.51.0'),
-        _DATA_DIRS,
+        _DATA_DIRS.evolve(since='0.41.0'),
         KwargInfo('po_dir', str, required=True),
         KwargInfo('type', str, default='xml', validator=in_set_validator({'xml', 'desktop'})),
     )
@@ -188,7 +188,7 @@ class I18nModule(ExtensionModule):
     @typed_kwargs(
         'i18n.gettext',
         _ARGS,
-        _DATA_DIRS,
+        _DATA_DIRS.evolve(since='0.36.0'),
         INSTALL_KW.evolve(default=True),
         KwargInfo('install_dir', (str, NoneType), since='0.50.0'),
         KwargInfo('languages', ContainerTypeInfo(list, str), default=[], listify=True),
