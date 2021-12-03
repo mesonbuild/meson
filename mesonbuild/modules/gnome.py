@@ -1621,22 +1621,18 @@ class GnomeModule(ExtensionModule):
         hdr_filename = f'{args[0]}.h'
         body_filename = f'{args[0]}.c'
 
-        mkenums_kwargs: T.Dict[str, T.Any] = {
-            'sources': kwargs['sources'],
-        }
-        if kwargs['install_dir']:
-            mkenums_kwargs['install_dir'] = kwargs['install_dir']
-
-        # .c file generation
-        c_file_kwargs = mkenums_kwargs.copy()
-        # Never install the C file
-        c_file_kwargs['install_header'] = False
-
         header_prefix = kwargs['header_prefix']
         decl_decorator = kwargs['decorator']
         func_prefix = kwargs['function_prefix']
         body_prefix = kwargs['body_prefix']
 
+        cmd: T.List[str] = []
+        if kwargs['identifier_prefix']:
+            cmd.extend(['--identifier-prefix', kwargs['identifier_prefix']])
+        if kwargs['symbol_prefix']:
+            cmd.extend(['--symbol-prefix', kwargs['symbol_prefix']])
+
+        c_cmd = cmd.copy()
         # Maybe we should write our own template files into the build dir
         # instead, but that seems like much more work, nice as it would be.
         fhead = ''
@@ -1650,24 +1646,27 @@ class GnomeModule(ExtensionModule):
             #define C_ENUM(v) ((gint) v)
             #define C_FLAGS(v) ((guint) v)
             ''')
-        c_file_kwargs['fhead'] = fhead
+        c_cmd.extend(['--fhead', fhead])
 
-        c_file_kwargs['fprod'] = textwrap.dedent(
+        c_cmd.append('--fprod')
+        c_cmd.append(textwrap.dedent(
             '''
             /* enumerations from "@basename@" */
-            ''')
+            '''))
 
-        c_file_kwargs['vhead'] = textwrap.dedent(
+        c_cmd.append('--vhead')
+        c_cmd.append(textwrap.dedent(
             f'''
             GType
             {func_prefix}@enum_name@_get_type (void)
             {{
             static gsize gtype_id = 0;
-            static const G@Type@Value values[] = {{''')
+            static const G@Type@Value values[] = {{'''))
 
-        c_file_kwargs['vprod'] = '    { C_@TYPE@(@VALUENAME@), "@VALUENAME@", "@valuenick@" },'
+        c_cmd.extend(['--vprod', '    { C_@TYPE@(@VALUENAME@), "@VALUENAME@", "@valuenick@" },'])
 
-        c_file_kwargs['vtail'] = textwrap.dedent(
+        c_cmd.append('--vtail')
+        c_cmd.append(textwrap.dedent(
             '''    { 0, NULL, NULL }
             };
             if (g_once_init_enter (&gtype_id)) {
@@ -1675,43 +1674,71 @@ class GnomeModule(ExtensionModule):
                 g_once_init_leave (&gtype_id, new_type);
             }
             return (GType) gtype_id;
-            }''')
+            }'''))
 
-        rv = self.mkenums(state, [body_filename], c_file_kwargs)
-        c_file = rv.return_value
+        c_file = self._make_mkenum_impl(state, kwargs['sources'], body_filename, c_cmd)
 
         # .h file generation
-        h_file_kwargs = mkenums_kwargs.copy()
-        h_file_kwargs['install_header'] = kwargs['install_header']
+        h_cmd = cmd.copy()
 
-        h_file_kwargs['fhead'] = textwrap.dedent(
+        h_cmd.append('--fhead')
+        h_cmd.append(textwrap.dedent(
             f'''#pragma once
 
             #include <glib-object.h>
             {header_prefix}
 
             G_BEGIN_DECLS
-            ''')
+            '''))
 
-        h_file_kwargs['fprod'] = textwrap.dedent(
+        h_cmd.append('--fprod')
+        h_cmd.append(textwrap.dedent(
             '''
             /* enumerations from "@basename@" */
-            ''')
+            '''))
 
-        h_file_kwargs['vhead'] = textwrap.dedent(
+        h_cmd.append('--vhead')
+        h_cmd.append(textwrap.dedent(
             f'''
             {decl_decorator}
             GType {func_prefix}@enum_name@_get_type (void);
-            #define @ENUMPREFIX@_TYPE_@ENUMSHORT@ ({func_prefix}@enum_name@_get_type())''')
+            #define @ENUMPREFIX@_TYPE_@ENUMSHORT@ ({func_prefix}@enum_name@_get_type())'''))
 
-        h_file_kwargs['ftail'] = textwrap.dedent(
+        h_cmd.append('--ftail')
+        h_cmd.append(textwrap.dedent(
             '''
-            G_END_DECLS''')
+            G_END_DECLS'''))
 
-        rv = self.mkenums(state, [hdr_filename], h_file_kwargs)
-        h_file = rv.return_value
+        h_file = self._make_mkenum_impl(
+            state, kwargs['sources'], hdr_filename, h_cmd,
+            install=kwargs['install_header'],
+            install_dir=kwargs['install_dir'])
 
         return ModuleReturnValue([c_file, h_file], [c_file, h_file])
+
+    @staticmethod
+    def _make_mkenum_impl(
+            state: 'ModuleState',
+            sources: T.Sequence[T.Union[str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]],
+            output: str,
+            cmd: T.List[str],
+            *,
+            install: bool = False,
+            install_dir: T.Optional[T.Sequence[T.Union[str, bool]]] = None) -> build.CustomTarget:
+        real_cmd: T.List[T.Union[str, ExternalProgram]] = [state.find_program(['glib-mkenums', 'mkenums'])]
+        real_cmd.extend(cmd)
+        real_cmd.append('@INPUT@')
+        custom_kwargs = {
+            'input': sources,
+            'output': [output],
+            'capture': True,
+            'command': real_cmd,
+            'install': install,
+            'install_dir': install_dir or state.environment.coredata.get_option(mesonlib.OptionKey('includedir')),
+        }
+        return build.CustomTarget(output, state.subdir, state.subproject, custom_kwargs,
+                                  # https://github.com/mesonbuild/meson/issues/973
+                                  absolute_paths=True)
 
     @staticmethod
     def _make_mkenum_custom_target(
