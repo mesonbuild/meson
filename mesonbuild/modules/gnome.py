@@ -1493,7 +1493,7 @@ class GnomeModule(ExtensionModule):
 
         cmd = []
         known_kwargs = ['comments', 'eprod', 'fhead', 'fprod', 'ftail',
-                        'identifier_prefix', 'symbol_prefix', 'template',
+                        'identifier_prefix', 'symbol_prefix',
                         'vhead', 'vprod', 'vtail']
         known_custom_target_kwargs = ['install_dir', 'build_always',
                                       'depends', 'depend_files']
@@ -1506,18 +1506,10 @@ class GnomeModule(ExtensionModule):
                 c_template = value
                 if isinstance(c_template, mesonlib.File):
                     c_template = c_template.absolute_path(state.environment.source_dir, state.environment.build_dir)
-                if 'template' in kwargs:
-                    raise MesonException('Mkenums does not accept both '
-                                         'c_template and template keyword '
-                                         'arguments at the same time.')
             elif arg == 'h_template':
                 h_template = value
                 if isinstance(h_template, mesonlib.File):
                     h_template = h_template.absolute_path(state.environment.source_dir, state.environment.build_dir)
-                if 'template' in kwargs:
-                    raise MesonException('Mkenums does not accept both '
-                                         'h_template and template keyword '
-                                         'arguments at the same time.')
             elif arg == 'install_header':
                 install_header = value
             elif arg in known_kwargs:
