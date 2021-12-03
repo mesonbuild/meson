@@ -21,7 +21,7 @@ from .. import coredata
 from .. import mlog
 from ..mesonlib import (
     EnvironmentException, MachineChoice, Popen_safe, OptionOverrideProxy,
-    is_windows, LibType, OptionKey,
+    is_windows, LibType, OptionKey, version_compare
 )
 from .compilers import (Compiler, cuda_buildtype_args, cuda_optimization_args,
                         cuda_debug_args, CompileCheckMode)
@@ -749,6 +749,12 @@ class CudaCompiler(Compiler):
 
     def get_dependency_compile_args(self, dep: 'Dependency') -> T.List[str]:
         return self._to_host_flags(super().get_dependency_compile_args(dep))
+
+    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
+        if version_compare(self.version, '>=10.1.168'):
+            return ['-MD', '-MT', outtarget, '-MF', outfile]
+        else:
+            return []
 
     def get_dependency_link_args(self, dep: 'Dependency') -> T.List[str]:
         return self._to_host_flags(super().get_dependency_link_args(dep), _Phase.LINKER)
