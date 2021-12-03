@@ -166,6 +166,22 @@ if T.TYPE_CHECKING:
         gir_dirs: T.List[str]
         packages: T.List[T.Union[str, InternalDependency]]
 
+    class _MkEnumsCommon(TypedDict):
+
+        sources: T.List[T.Union[FileOrString, build.GeneratedTypes]]
+        install_header: bool
+        install_dir: T.Optional[str]
+        identifier_prefix: T.Optional[str]
+        symbol_prefix: T.Optional[str]
+
+    class MkEnumsSimple(_MkEnumsCommon):
+
+        header_prefix: str
+        decorator: str
+        function_prefix: str
+        body_prefix: str
+
+
 # Differs from the CustomTarget version in that it straight defaults to True
 _BUILD_BY_DEFAULT: KwargInfo[bool] = KwargInfo(
     'build_by_default', bool, default=True,
@@ -177,6 +193,19 @@ _EXTRA_ARGS_KW: KwargInfo[T.List[str]] = KwargInfo(
     default=[],
     listify=True,
 )
+
+_MK_ENUMS_COMMON_KWS: T.List[KwargInfo] = [
+    INSTALL_KW.evolve(name='install_header'),
+    KwargInfo(
+        'sources',
+        ContainerTypeInfo(list, (str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)),
+        listify=True,
+        required=True,
+    ),
+    KwargInfo('install_dir', (str, NoneType)),
+    KwargInfo('identifier_prefix', (str, NoneType)),
+    KwargInfo('symbol_prefix', (str, NoneType)),
+]
 
 # gresource compilation is broken due to the way
 # the resource compiler and Ninja clash about it
@@ -1580,46 +1609,33 @@ class GnomeModule(ExtensionModule):
 
     @FeatureNew('gnome.mkenums_simple', '0.42.0')
     @typed_pos_args('gnome.mkenums_simple', str)
-    def mkenums_simple(self, state: 'ModuleState', args: T.Tuple[str], kwargs) -> ModuleReturnValue:
+    @typed_kwargs(
+        'gnome.mkenums_simple',
+        *_MK_ENUMS_COMMON_KWS,
+        KwargInfo('header_prefix', str, default=''),
+        KwargInfo('function_prefix', str, default=''),
+        KwargInfo('body_prefix', str, default=''),
+        KwargInfo('decorator', str, default=''),
+    )
+    def mkenums_simple(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'MkEnumsSimple') -> ModuleReturnValue:
         hdr_filename = f'{args[0]}.h'
         body_filename = f'{args[0]}.c'
 
-        # not really needed, just for sanity checking
-        forbidden_kwargs = ['c_template', 'h_template', 'eprod', 'fhead',
-                            'fprod', 'ftail', 'vhead', 'vtail', 'comments']
-        for arg in forbidden_kwargs:
-            if arg in kwargs:
-                raise MesonException(f'mkenums_simple() does not take a {arg} keyword argument')
-
-        # kwargs to pass as-is from mkenums_simple() to mkenums()
-        shared_kwargs = ['sources', 'install_header', 'install_dir',
-                         'identifier_prefix', 'symbol_prefix']
-        mkenums_kwargs = {}
-        for arg in shared_kwargs:
-            if arg in kwargs:
-                mkenums_kwargs[arg] = kwargs[arg]
+        mkenums_kwargs: T.Dict[str, T.Any] = {
+            'sources': kwargs['sources'],
+        }
+        if kwargs['install_dir']:
+            mkenums_kwargs['install_dir'] = kwargs['install_dir']
 
         # .c file generation
-        c_file_kwargs = copy.deepcopy(mkenums_kwargs)
-        if 'sources' not in kwargs:
-            raise MesonException('Missing keyword argument "sources".')
-        sources = kwargs['sources']
-        if isinstance(sources, str):
-            sources = [sources]
-        elif not isinstance(sources, list):
-            raise MesonException(
-                'Sources keyword argument must be a string or array.')
-
-        # The `install_header` argument will be used by mkenums() when
-        # not using template files, so we need to forcibly unset it
-        # when generating the C source file, otherwise we will end up
-        # installing it
+        c_file_kwargs = mkenums_kwargs.copy()
+        # Never install the C file
         c_file_kwargs['install_header'] = False
 
-        header_prefix = kwargs.get('header_prefix', '')
-        decl_decorator = kwargs.get('decorator', '')
-        func_prefix = kwargs.get('function_prefix', '')
-        body_prefix = kwargs.get('body_prefix', '')
+        header_prefix = kwargs['header_prefix']
+        decl_decorator = kwargs['decorator']
+        func_prefix = kwargs['function_prefix']
+        body_prefix = kwargs['body_prefix']
 
         # Maybe we should write our own template files into the build dir
         # instead, but that seems like much more work, nice as it would be.
@@ -1627,7 +1643,7 @@ class GnomeModule(ExtensionModule):
         if body_prefix != '':
             fhead += '%s\n' % body_prefix
         fhead += '#include "%s"\n' % hdr_filename
-        for hdr in sources:
+        for hdr in kwargs['sources']:
             fhead += '#include "{}"\n'.format(os.path.basename(str(hdr)))
         fhead += textwrap.dedent(
             '''
@@ -1665,7 +1681,8 @@ class GnomeModule(ExtensionModule):
         c_file = rv.return_value
 
         # .h file generation
-        h_file_kwargs = copy.deepcopy(mkenums_kwargs)
+        h_file_kwargs = mkenums_kwargs.copy()
+        h_file_kwargs['install_header'] = kwargs['install_header']
 
         h_file_kwargs['fhead'] = textwrap.dedent(
             f'''#pragma once
