@@ -10,6 +10,7 @@ export DC=gdc
 
 pkgs=(
   python3-pip libxml2-dev libxslt1-dev libyaml-dev libjson-glib-dev
+  python3.7 python3.7-dev
   wget unzip cmake doxygen
   clang
   pkg-config-arm-linux-gnueabihf
@@ -47,7 +48,13 @@ done
 # packages
 eatmydata apt-get -y install "${pkgs[@]}"
 
-install_python_packages
+# Actually select the right python version
+update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.6 1 \
+    --slave /usr/lib/x86_64-linux-gnu/pkgconfig/python3.pc python3.pc /usr/lib/x86_64-linux-gnu/pkgconfig/python-3.6.pc
+update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.7 2 \
+    --slave /usr/lib/x86_64-linux-gnu/pkgconfig/python3.pc python3.pc /usr/lib/x86_64-linux-gnu/pkgconfig/python-3.7.pc
+
+python3 -m pip install -U "${base_python_pkgs[@]}" "${python_pkgs[@]}"
 
 # Install the ninja 0.10
 wget https://github.com/ninja-build/ninja/releases/download/v1.10.0/ninja-linux.zip
