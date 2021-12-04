@@ -754,7 +754,7 @@ class GnomeModule(ExtensionModule):
 
         return ret
 
-    def _scan_gir_targets(self, state: 'ModuleState', girtargets: T.List[build.BuildTarget]) -> T.List[T.Union[str, build.Executable]]:
+    def _scan_gir_targets(self, state: 'ModuleState', girtargets: T.Sequence[build.BuildTarget]) -> T.List[T.Union[str, build.Executable]]:
         ret: T.List[T.Union[str, build.Executable]] = []
 
         for girtarget in girtargets:
@@ -806,7 +806,7 @@ class GnomeModule(ExtensionModule):
             ret += girtarget.get_external_deps()
         return ret
 
-    def _get_gir_targets_inc_dirs(self, girtargets: T.List[build.BuildTarget]) -> T.List[build.IncludeDirs]:
+    def _get_gir_targets_inc_dirs(self, girtargets: T.Sequence[build.BuildTarget]) -> T.List[build.IncludeDirs]:
         ret: T.List[build.IncludeDirs] = []
         for girtarget in girtargets:
             ret += girtarget.get_include_dirs()
@@ -841,7 +841,7 @@ class GnomeModule(ExtensionModule):
         return cflags, internal_ldflags, external_ldflags
 
     def _make_gir_filelist(self, state: 'ModuleState', srcdir: str, ns: str,
-                           nsversion: str, girtargets: T.List[build.BuildTarget],
+                           nsversion: str, girtargets: T.Sequence[build.BuildTarget],
                            libsources: T.Sequence[T.Union[
                                str, mesonlib.File, build.GeneratedList,
                                build.CustomTarget, build.CustomTargetIndex]]
