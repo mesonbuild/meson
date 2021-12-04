@@ -29,10 +29,10 @@ from .. import build
 from .. import interpreter
 from .. import mesonlib
 from .. import mlog
-from ..build import CustomTarget, CustomTargetIndex, GeneratedList, InvalidArguments
+from ..build import BuildTarget, CustomTarget, CustomTargetIndex, GeneratedList, InvalidArguments
 from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
 from ..interpreter.type_checking import DEPENDS_KW, DEPEND_FILES_KW, INSTALL_KW, NoneType, in_set_validator
-from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, FeatureNew, FeatureDeprecated
+from ..interpreterbase import noPosargs, noKwargs, FeatureNew, FeatureDeprecated
 from ..interpreterbase import typed_kwargs, KwargInfo, ContainerTypeInfo
 from ..interpreterbase.decorators import typed_pos_args
 from ..mesonlib import (
@@ -180,6 +180,20 @@ if T.TYPE_CHECKING:
         decorator: str
         function_prefix: str
         body_prefix: str
+
+    class MkEnums(_MkEnumsCommon):
+
+        c_template: T.Optional[FileOrString]
+        h_template: T.Optional[FileOrString]
+        comments: T.Optional[str]
+        eprod: T.Optional[str]
+        fhead: T.Optional[str]
+        fprod: T.Optional[str]
+        ftail: T.Optional[str]
+        vhead: T.Optional[str]
+        vprod: T.Optional[str]
+        vtail: T.Optional[str]
+        depends: T.List[T.Union[BuildTarget, CustomTarget, CustomTargetIndex]]
 
 
 # Differs from the CustomTarget version in that it straight defaults to True
@@ -1504,72 +1518,53 @@ class GnomeModule(ExtensionModule):
 
         return ModuleReturnValue(targets, targets)
 
-    @permittedKwargs({'sources', 'c_template', 'h_template', 'install_header', 'install_dir',
-                      'comments', 'identifier_prefix', 'symbol_prefix', 'eprod', 'vprod',
-                      'fhead', 'fprod', 'ftail', 'vhead', 'vtail', 'depends'})
     @typed_pos_args('gnome.mkenums', str)
-    def mkenums(self, state: 'ModuleState', args: T.Tuple[str], kwargs) -> ModuleReturnValue:
+    @typed_kwargs(
+        'gnome.mkenums',
+        *_MK_ENUMS_COMMON_KWS,
+        DEPENDS_KW,
+        KwargInfo('c_template', (str, mesonlib.File, NoneType)),
+        KwargInfo('h_template', (str, mesonlib.File, NoneType)),
+        KwargInfo('comments', (str, NoneType)),
+        KwargInfo('eprod', (str, NoneType)),
+        KwargInfo('fhead', (str, NoneType)),
+        KwargInfo('fprod', (str, NoneType)),
+        KwargInfo('ftail', (str, NoneType)),
+        KwargInfo('vhead', (str, NoneType)),
+        KwargInfo('vprod', (str, NoneType)),
+        KwargInfo('vtail', (str, NoneType)),
+    )
+    def mkenums(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'MkEnums') -> ModuleReturnValue:
         basename = args[0]
 
-        if 'sources' not in kwargs:
-            raise MesonException('Missing keyword argument "sources".')
-        sources = kwargs.pop('sources')
-        if isinstance(sources, str):
-            sources = [sources]
-        elif not isinstance(sources, list):
-            raise MesonException(
-                'Sources keyword argument must be a string or array.')
+        c_template = kwargs['c_template']
+        if isinstance(c_template, mesonlib.File):
+            c_template = c_template.absolute_path(state.environment.source_dir, state.environment.build_dir)
+        h_template = kwargs['h_template']
+        if isinstance(h_template, mesonlib.File):
+            h_template = h_template.absolute_path(state.environment.source_dir, state.environment.build_dir)
 
-        cmd = []
+        cmd: T.List[str] = []
         known_kwargs = ['comments', 'eprod', 'fhead', 'fprod', 'ftail',
                         'identifier_prefix', 'symbol_prefix',
                         'vhead', 'vprod', 'vtail']
-        known_custom_target_kwargs = ['install_dir', 'build_always',
-                                      'depends', 'depend_files']
-        c_template = h_template = None
-        install_header = False
-        for arg, value in kwargs.items():
-            if arg == 'sources':
-                raise AssertionError("sources should've already been handled")
-            elif arg == 'c_template':
-                c_template = value
-                if isinstance(c_template, mesonlib.File):
-                    c_template = c_template.absolute_path(state.environment.source_dir, state.environment.build_dir)
-            elif arg == 'h_template':
-                h_template = value
-                if isinstance(h_template, mesonlib.File):
-                    h_template = h_template.absolute_path(state.environment.source_dir, state.environment.build_dir)
-            elif arg == 'install_header':
-                install_header = value
-            elif arg in known_kwargs:
-                cmd += ['--' + arg.replace('_', '-'), value]
-            elif arg not in known_custom_target_kwargs:
-                raise MesonException(
-                    f'Mkenums does not take a {arg} keyword argument.')
-        cmd = [state.find_program(['glib-mkenums', 'mkenums'])] + cmd
-        custom_kwargs = {}
-        for arg in known_custom_target_kwargs:
-            if arg in kwargs:
-                custom_kwargs[arg] = kwargs[arg]
+        for arg in known_kwargs:
+            # mypy can't figure this out
+            if kwargs[arg]:                                         # type: ignore
+                cmd += ['--' + arg.replace('_', '-'), kwargs[arg]]  # type: ignore
 
-        targets = []
+        targets: T.List[CustomTarget] = []
 
+        h_target: T.Optional[CustomTarget] = None
         if h_template is not None:
             h_output = os.path.basename(os.path.splitext(h_template)[0])
             # We always set template as the first element in the source array
             # so --template consumes it.
             h_cmd = cmd + ['--template', '@INPUT@']
-            h_sources = [h_template] + sources
-
-            # Copy so we don't mutate the arguments for the c_template
-            h_kwargs = custom_kwargs.copy()
-            h_kwargs['install'] = install_header
-            if 'install_dir' not in h_kwargs:
-                h_kwargs['install_dir'] = \
-                    state.environment.coredata.get_option(mesonlib.OptionKey('includedir'))
-            h_target = self._make_mkenum_custom_target(state, h_sources,
-                                                       h_output, h_cmd,
-                                                       h_kwargs)
+            h_sources = [h_template] + kwargs['sources']
+            h_target = self._make_mkenum_impl(
+                state, h_sources, h_output, h_cmd, install=kwargs['install_header'],
+                install_dir=kwargs['install_dir'])
             targets.append(h_target)
 
         if c_template is not None:
@@ -1577,33 +1572,22 @@ class GnomeModule(ExtensionModule):
             # We always set template as the first element in the source array
             # so --template consumes it.
             c_cmd = cmd + ['--template', '@INPUT@']
-            c_sources = [c_template] + sources
+            c_sources = [c_template] + kwargs['sources']
 
-            c_kwargs = custom_kwargs.copy()
-            # Never install the C file. Complain on bug tracker if you need it.
-            c_kwargs['install'] = False
-            c_kwargs['install_dir'] = []
-            if h_template is not None:
-                if 'depends' in custom_kwargs:
-                    c_kwargs['depends'] += [h_target]
-                else:
-                    c_kwargs['depends'] = h_target
-            c_target = self._make_mkenum_custom_target(state, c_sources,
-                                                       c_output, c_cmd,
-                                                       c_kwargs)
+            depends = kwargs['depends'].copy()
+            if h_target is not None:
+                depends.append(h_target)
+            c_target = self._make_mkenum_impl(
+                state, c_sources, c_output, c_cmd, depends=depends)
             targets.insert(0, c_target)
 
         if c_template is None and h_template is None:
             generic_cmd = cmd + ['@INPUT@']
-            custom_kwargs['install'] = install_header
-            if 'install_dir' not in custom_kwargs:
-                custom_kwargs['install_dir'] = \
-                    state.environment.coredata.get_option(mesonlib.OptionKey('includedir'))
-            target = self._make_mkenum_custom_target(state, sources, basename,
-                                                     generic_cmd, custom_kwargs)
+            target = self._make_mkenum_impl(
+                state, kwargs['sources'], basename, generic_cmd,
+                install=kwargs['install_header'],
+                install_dir=kwargs['install_dir'])
             return ModuleReturnValue(target, [target])
-        elif len(targets) == 1:
-            return ModuleReturnValue(targets[0], [targets[0]])
         else:
             return ModuleReturnValue(targets, targets)
 
@@ -1675,6 +1659,7 @@ class GnomeModule(ExtensionModule):
             }
             return (GType) gtype_id;
             }'''))
+        c_cmd.append('@INPUT@')
 
         c_file = self._make_mkenum_impl(state, kwargs['sources'], body_filename, c_cmd)
 
@@ -1708,6 +1693,7 @@ class GnomeModule(ExtensionModule):
         h_cmd.append(textwrap.dedent(
             '''
             G_END_DECLS'''))
+        h_cmd.append('@INPUT@')
 
         h_file = self._make_mkenum_impl(
             state, kwargs['sources'], hdr_filename, h_cmd,
@@ -1724,10 +1710,10 @@ class GnomeModule(ExtensionModule):
             cmd: T.List[str],
             *,
             install: bool = False,
-            install_dir: T.Optional[T.Sequence[T.Union[str, bool]]] = None) -> build.CustomTarget:
+            install_dir: T.Optional[T.Sequence[T.Union[str, bool]]] = None,
+            depends: T.Optional[T.List[CustomTarget]] = None) -> build.CustomTarget:
         real_cmd: T.List[T.Union[str, ExternalProgram]] = [state.find_program(['glib-mkenums', 'mkenums'])]
         real_cmd.extend(cmd)
-        real_cmd.append('@INPUT@')
         custom_kwargs = {
             'input': sources,
             'output': [output],
@@ -1735,23 +1721,8 @@ class GnomeModule(ExtensionModule):
             'command': real_cmd,
             'install': install,
             'install_dir': install_dir or state.environment.coredata.get_option(mesonlib.OptionKey('includedir')),
+            'depends': depends or [],
         }
-        return build.CustomTarget(output, state.subdir, state.subproject, custom_kwargs,
-                                  # https://github.com/mesonbuild/meson/issues/973
-                                  absolute_paths=True)
-
-    @staticmethod
-    def _make_mkenum_custom_target(
-            state: 'ModuleState',
-            sources: T.Sequence[T.Union[str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]],
-            output: str, cmd: T.List[str], kwargs: T.Dict[str, T.Any]) -> build.CustomTarget:
-        custom_kwargs = {
-            'input': sources,
-            'output': [output],
-            'capture': True,
-            'command': cmd
-        }
-        custom_kwargs.update(kwargs)
         return build.CustomTarget(output, state.subdir, state.subproject, custom_kwargs,
                                   # https://github.com/mesonbuild/meson/issues/973
                                   absolute_paths=True)
