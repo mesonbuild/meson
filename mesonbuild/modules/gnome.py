@@ -943,19 +943,23 @@ class GnomeModule(ExtensionModule):
 
         return TypelibTarget(typelib_output, state.subdir, state.subproject, typelib_kwargs)
 
-    # May mutate depends
-    def _gather_typelib_includes_and_update_depends(self, state: 'ModuleState', deps: T.List[Dependency], depends: T.List[build.Target]) -> T.List[str]:
+    def _gather_typelib_includes_and_update_depends(
+            self, state: 'ModuleState',
+            deps: T.Sequence[T.Union[Dependency, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]],
+            depends: T.Sequence[T.Union[build.BuildTarget, 'build.GeneratedTypes', 'FileOrString']]
+            ) -> T.Tuple[T.List[str], T.List[T.Union[build.BuildTarget, 'build.GeneratedTypes', 'FileOrString']]]:
         # Need to recursively add deps on GirTarget sources from our
         # dependencies and also find the include directories needed for the
         # typelib generation custom target below.
         typelib_includes: T.List[str] = []
+        new_depends = list(depends)
         for dep in deps:
             # Add a dependency on each GirTarget listed in dependencies and add
             # the directory where it will be generated to the typelib includes
             if isinstance(dep, InternalDependency):
                 for source in dep.sources:
                     if isinstance(source, GirTarget) and source not in depends:
-                        depends.append(source)
+                        new_depends.append(source)
                         subdir = os.path.join(state.environment.get_build_dir(),
                                               source.get_subdir())
                         if subdir not in typelib_includes:
@@ -977,7 +981,7 @@ class GnomeModule(ExtensionModule):
                 assert isinstance(girdir, str), 'for mypy'
                 if girdir and girdir not in typelib_includes:
                     typelib_includes.append(girdir)
-        return typelib_includes
+        return typelib_includes, new_depends
 
     def _get_external_args_for_langs(self, state: 'ModuleState', langs: T.Sequence[str]) -> T.List[str]:
         ret: T.List[str] = []
@@ -1053,7 +1057,7 @@ class GnomeModule(ExtensionModule):
         deps = self._get_gir_targets_deps(girtargets)
         deps += kwargs['dependencies']
         deps += [gir_dep]
-        typelib_includes = self._gather_typelib_includes_and_update_depends(state, deps, depends)
+        typelib_includes, depends = self._gather_typelib_includes_and_update_depends(state, deps, depends)
         # ldflags will be misinterpreted by gir scanner (showing
         # spurious dependencies) but building GStreamer fails if they
         # are not used here.
