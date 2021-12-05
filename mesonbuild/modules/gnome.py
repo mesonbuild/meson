@@ -1958,7 +1958,7 @@ class GnomeModule(ExtensionModule):
         KwargInfo('packages', ContainerTypeInfo(list, (str, InternalDependency)), listify=True, default=[]),
     )
     def generate_vapi(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'GenerateVapi') -> ModuleReturnValue:
-        created_values: T.List[Dependency] = []
+        created_values: T.List[T.Union[Dependency, build.Data]] = []
         library = args[0]
         build_dir = os.path.join(state.environment.get_build_dir(), state.subdir)
         source_dir = os.path.join(state.environment.get_source_dir(), state.subdir)
