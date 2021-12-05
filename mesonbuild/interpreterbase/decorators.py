@@ -584,7 +584,7 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
 
     @staticmethod
     @abc.abstractmethod
-    def check_version(target_version: str, feature_Version: str) -> bool:
+    def check_version(target_version: str, feature_version: str) -> bool:
         pass
 
     def use(self, subproject: str) -> None:
