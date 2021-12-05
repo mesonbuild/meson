@@ -139,12 +139,12 @@ class DependencyOverride(HoldableObject):
 class Headers(HoldableObject):
 
     def __init__(self, sources: T.List[File], install_subdir: T.Optional[str],
-                 install_dir: T.Optional[str], install_mode: 'FileMode',
+                 custom_install_dir: T.Optional[str], custom_install_mode: 'FileMode',
                  subproject: str):
         self.sources = sources
         self.install_subdir = install_subdir
-        self.custom_install_dir = install_dir
-        self.custom_install_mode = install_mode
+        self.custom_install_dir = custom_install_dir
+        self.custom_install_mode = custom_install_mode
         self.subproject = subproject
 
     # TODO: we really don't need any of these methods, but they're preserved to
@@ -168,12 +168,12 @@ class Headers(HoldableObject):
 
 class Man(HoldableObject):
 
-    def __init__(self, sources: T.List[File], install_dir: T.Optional[str],
-                 install_mode: 'FileMode', subproject: str,
+    def __init__(self, sources: T.List[File], custom_install_dir: T.Optional[str],
+                 custom_install_mode: 'FileMode', subproject: str,
                  locale: T.Optional[str]):
         self.sources = sources
-        self.custom_install_dir = install_dir
-        self.custom_install_mode = install_mode
+        self.custom_install_dir = custom_install_dir
+        self.custom_install_mode = custom_install_mode
         self.subproject = subproject
         self.locale = locale
 
@@ -199,14 +199,14 @@ class EmptyDir(HoldableObject):
 
 class InstallDir(HoldableObject):
 
-    def __init__(self, src_subdir: str, inst_subdir: str, install_dir: str,
+    def __init__(self, source_subdir: str, installable_subdir: str, install_dir: str,
                  install_mode: 'FileMode',
                  exclude: T.Tuple[T.Set[str], T.Set[str]],
                  strip_directory: bool, subproject: str,
                  from_source_dir: bool = True,
                  install_tag: T.Optional[str] = None):
-        self.source_subdir = src_subdir
-        self.installable_subdir = inst_subdir
+        self.source_subdir = source_subdir
+        self.installable_subdir = installable_subdir
         self.install_dir = install_dir
         self.install_mode = install_mode
         self.exclude = exclude
@@ -367,9 +367,9 @@ class IncludeDirs(HoldableObject):
 
     """Internal representation of an include_directories call."""
 
-    def __init__(self, curdir: str, dirs: T.List[str], is_system: bool, extra_build_dirs: T.Optional[T.List[str]] = None):
+    def __init__(self, curdir: str, incdirs: T.List[str], is_system: bool, extra_build_dirs: T.Optional[T.List[str]] = None):
         self.curdir = curdir
-        self.incdirs = dirs
+        self.incdirs = incdirs
         self.is_system = is_system
 
         # Interpreter has validated that all given directories

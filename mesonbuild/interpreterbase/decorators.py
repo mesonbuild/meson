@@ -569,10 +569,10 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
     feature_registry: T.ClassVar[T.Dict[str, T.Dict[str, T.Set[T.Tuple[str, T.Optional['mparser.BaseNode']]]]]]
     emit_notice = False
 
-    def __init__(self, feature_name: str, version: str, extra_message: T.Optional[str] = None, location: T.Optional['mparser.BaseNode'] = None):
+    def __init__(self, feature_name: str, feature_version: str, extra_message: str = '', location: T.Optional['mparser.BaseNode'] = None):
         self.feature_name = feature_name  # type: str
-        self.feature_version = version    # type: str
-        self.extra_message = extra_message or ''  # type: str
+        self.feature_version = feature_version    # type: str
+        self.extra_message = extra_message  # type: str
         self.location = location
 
     @staticmethod
@@ -656,7 +656,7 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
 
     @classmethod
     def single_use(cls, feature_name: str, version: str, subproject: str,
-                   extra_message: T.Optional[str] = None, location: T.Optional['mparser.BaseNode'] = None) -> None:
+                   extra_message: str = '', location: T.Optional['mparser.BaseNode'] = None) -> None:
         """Oneline version that instantiates and calls use()."""
         cls(feature_name, version, extra_message, location).use(subproject)
 
