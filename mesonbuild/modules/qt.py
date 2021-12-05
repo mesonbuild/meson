@@ -277,7 +277,7 @@ class QtBaseModule(ExtensionModule):
     @noPosargs
     @typed_kwargs(
         'qt.compile_resources',
-        KwargInfo('name', str),
+        KwargInfo('name', (str, NoneType)),
         KwargInfo(
             'sources',
             ContainerTypeInfo(list, (File, str, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList), allow_empty=False),
