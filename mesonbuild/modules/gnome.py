@@ -310,7 +310,10 @@ class GnomeModule(ExtensionModule):
     def _get_dep(self, state: 'ModuleState', depname: str, native: bool = False,
                  required: bool = True) -> Dependency:
         kwargs = {'native': native, 'required': required}
-        return self.interpreter.func_dependency(state.current_node, [depname], kwargs)
+        # FIXME: Even if we fix the function, mypy still can't figure out what's
+        # going on here. And we really dont want to call interpreter
+        # implementations of meson functions anyway.
+        return self.interpreter.func_dependency(state.current_node, [depname], kwargs)  # type: ignore
 
     def _get_native_binary(self, state: 'ModuleState', name: str, depname: str,
                            varname: str, required: bool = True) -> T.Union[ExternalProgram, OverrideProgram, 'build.Executable']:
@@ -1048,7 +1051,7 @@ class GnomeModule(ExtensionModule):
         srcdir = os.path.join(state.environment.get_source_dir(), state.subdir)
         builddir = os.path.join(state.environment.get_build_dir(), state.subdir)
 
-        depends: T.List[T.Union['FileOrString', build.GeneratedTypes, build.Executable, build.SharedLibrary, build.StaticLibrary]] = []
+        depends: T.List[T.Union['FileOrString', 'build.GeneratedTypes', build.BuildTarget]] = []
         depends.extend(gir_dep.sources)
         depends.extend(girtargets)
 
