@@ -255,12 +255,14 @@ native_glib_version = None
 class GnomeModule(ExtensionModule):
     def __init__(self, interpreter: 'Interpreter') -> None:
         super().__init__(interpreter)
-        self.gir_dep = None
+        self.gir_dep: T.Optional[Dependency] = None
+        self.giscanner: T.Optional[T.Union[ExternalProgram, build.Executable, OverrideProgram]] = None
+        self.gicompiler: T.Optional[T.Union[ExternalProgram, build.Executable, OverrideProgram]] = None
         self.install_glib_compile_schemas = False
-        self.install_gio_querymodules = []
+        self.install_gio_querymodules: T.List[str] = []
         self.install_gtk_update_icon_cache = False
         self.install_update_desktop_database = False
-        self.devenv = None
+        self.devenv: T.Optional[build.EnvironmentVariables] = None
         self.methods.update({
             'post_install': self.post_install,
             'compile_resources': self.compile_resources,
