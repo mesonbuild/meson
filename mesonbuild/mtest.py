@@ -1350,18 +1350,18 @@ class SingleTestRunner:
         elif not self.test.is_cross_built and run_with_mono(self.test.fname[0]):
             return ['mono'] + self.test.fname
         elif self.test.cmd_is_built and self.test.is_cross_built and self.test.needs_exe_wrapper:
-            if self.test.exe_runner is None:
+            if self.test.exe_wrapper is None:
                 # Can not run test on cross compiled executable
                 # because there is no execute wrapper.
                 return None
             elif self.test.cmd_is_built:
                 # If the command is not built (ie, its a python script),
                 # then we don't check for the exe-wrapper
-                if not self.test.exe_runner.found():
+                if not self.test.exe_wrapper.found():
                     msg = ('The exe_wrapper defined in the cross file {!r} was not '
                            'found. Please check the command and/or add it to PATH.')
-                    raise TestException(msg.format(self.test.exe_runner.name))
-                return self.test.exe_runner.get_command() + self.test.fname
+                    raise TestException(msg.format(self.test.exe_wrapper.name))
+                return self.test.exe_wrapper.get_command() + self.test.fname
         return self.test.fname
 
     def _get_cmd(self) -> T.Optional[T.List[str]]:
@@ -1575,8 +1575,8 @@ class TestHarness:
         test_env = test.env.get_env(env)
         env.update(test_env)
         if (test.is_cross_built and test.needs_exe_wrapper and
-                test.exe_runner and test.exe_runner.found()):
-            env['MESON_EXE_WRAPPER'] = join_args(test.exe_runner.get_command())
+                test.exe_wrapper and test.exe_wrapper.found()):
+            env['MESON_EXE_WRAPPER'] = join_args(test.exe_wrapper.get_command())
         return SingleTestRunner(test, env, name, options)
 
     def process_test_result(self, result: TestRun) -> None:

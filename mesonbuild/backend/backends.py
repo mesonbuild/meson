@@ -203,7 +203,7 @@ class ExecutableSerialisation:
         self.env = env
         if exe_wrapper is not None:
             assert isinstance(exe_wrapper, programs.ExternalProgram)
-        self.exe_runner = exe_wrapper
+        self.exe_wrapper = exe_wrapper
         self.workdir = workdir
         self.extra_paths = extra_paths
         self.capture = capture
@@ -229,7 +229,7 @@ class TestSerialisation:
         self.is_cross_built = is_cross_built
         if exe_wrapper is not None:
             assert isinstance(exe_wrapper, programs.ExternalProgram)
-        self.exe_runner = exe_wrapper
+        self.exe_wrapper = exe_wrapper
         self.is_parallel = is_parallel
         self.cmd_args = cmd_args
         self.env = env
@@ -617,7 +617,7 @@ class Backend:
         if es.extra_paths:
             reasons.append('to set PATH')
 
-        if es.exe_runner:
+        if es.exe_wrapper:
             reasons.append('to use exe_wrapper')
 
         if workdir:
