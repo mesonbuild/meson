@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from dataclasses import dataclass
 import subprocess
 import typing as T
 from enum import Enum
@@ -234,27 +235,15 @@ class Properties:
     def get(self, key: str, default: T.Optional[T.Union[str, bool, int, T.List[str]]] = None) -> T.Optional[T.Union[str, bool, int, T.List[str]]]:
         return self.properties.get(key, default)
 
+@dataclass(unsafe_hash=True)
 class MachineInfo(HoldableObject):
-    def __init__(self, system: str, cpu_family: str, cpu: str, endian: str):
-        self.system = system
-        self.cpu_family = cpu_family
-        self.cpu = cpu
-        self.endian = endian
-        self.is_64_bit = cpu_family in CPU_FAMILIES_64_BIT  # type: bool
+    system: str
+    cpu_family: str
+    cpu: str
+    endian: str
 
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, MachineInfo):
-            return NotImplemented
-        return \
-            self.system == other.system and \
-            self.cpu_family == other.cpu_family and \
-            self.cpu == other.cpu and \
-            self.endian == other.endian
-
-    def __ne__(self, other: object) -> bool:
-        if not isinstance(other, MachineInfo):
-            return NotImplemented
-        return not self.__eq__(other)
+    def __post_init__(self) -> None:
+        self.is_64_bit: bool = self.cpu_family in CPU_FAMILIES_64_BIT
 
     def __repr__(self) -> str:
         return f'<MachineInfo: {self.system} {self.cpu_family} ({self.cpu})>'

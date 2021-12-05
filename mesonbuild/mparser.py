@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from dataclasses import dataclass
 import re
 import codecs
 import textwrap
@@ -87,15 +88,15 @@ class BlockParseException(MesonException):
 
 TV_TokenTypes = T.TypeVar('TV_TokenTypes', int, str, bool)
 
+@dataclass(eq=False)
 class Token(T.Generic[TV_TokenTypes]):
-    def __init__(self, tid: str, filename: str, line_start: int, lineno: int, colno: int, bytespan: T.Tuple[int, int], value: TV_TokenTypes):
-        self.tid = tid                # type: str
-        self.filename = filename      # type: str
-        self.line_start = line_start  # type: int
-        self.lineno = lineno          # type: int
-        self.colno = colno            # type: int
-        self.bytespan = bytespan      # type: T.Tuple[int, int]
-        self.value = value            # type: TV_TokenTypes
+    tid: str
+    filename: str
+    line_start: int
+    lineno: int
+    colno: int
+    bytespan: T.Tuple[int, int]
+    value: TV_TokenTypes
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, str):
@@ -237,13 +238,19 @@ class Lexer:
             if not matched:
                 raise ParseException('lexer', self.getline(line_start), lineno, col)
 
+@dataclass(eq=False)
 class BaseNode:
-    def __init__(self, lineno: int, colno: int, filename: str, end_lineno: T.Optional[int] = None, end_colno: T.Optional[int] = None):
-        self.lineno = lineno      # type: int
-        self.colno = colno        # type: int
-        self.filename = filename  # type: str
-        self.end_lineno = end_lineno if end_lineno is not None else self.lineno
-        self.end_colno = end_colno if end_colno is not None else self.colno
+    lineno: int
+    colno: int
+    filename: str
+    end_lineno: T.Optional[int] = None
+    end_colno: T.Optional[int] = None
+
+    def __post_init__(self) -> None:
+        if self.end_lineno is None:
+            self.end_lineno = self.lineno
+        if self.end_colno is None:
+            self.end_colno = self.colno
 
         # Attributes for the visitors
         self.level = 0            # type: int

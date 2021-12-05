@@ -1,3 +1,4 @@
+from dataclasses import dataclass, InitVar
 import os, subprocess
 import argparse
 import asyncio
@@ -94,18 +95,22 @@ class Logger:
             self.print_progress()
 
 
+@dataclass(eq=False)
 class Runner:
-    def __init__(self, logger: Logger, r: Resolver, wrap: PackageDefinition, repo_dir: str, options: 'Arguments') -> None:
+    logger: Logger
+    r: InitVar[Resolver]
+    wrap: PackageDefinition
+    repo_dir: str
+    options: 'Arguments'
+
+    def __post_init__(self, r: Resolver) -> None:
         # FIXME: Do a copy because Resolver.resolve() is stateful method that
         # cannot be called from multiple threads.
         self.wrap_resolver = copy.copy(r)
-        self.wrap_resolver.dirname = os.path.join(r.subdir_root, wrap.directory)
-        self.wrap = self.wrap_resolver.wrap = wrap
-        self.repo_dir = repo_dir
-        self.options = options
-        self.run_method: T.Callable[[], bool] = options.subprojects_func.__get__(self) # type: ignore
+        self.wrap_resolver.dirname = os.path.join(r.subdir_root, self.wrap.directory)
+        self.wrap_resolver.wrap = self.wrap
+        self.run_method: T.Callable[[], bool] = self.options.subprojects_func.__get__(self) # type: ignore
         self.log_queue: T.List[T.Tuple[mlog.TV_LoggableList, T.Any]] = []
-        self.logger = logger
 
     def log(self, *args: mlog.TV_Loggable, **kwargs: T.Any) -> None:
         self.log_queue.append((list(args), kwargs))

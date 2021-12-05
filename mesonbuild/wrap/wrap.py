@@ -14,6 +14,7 @@
 
 from .. import mlog
 import contextlib
+from dataclasses import dataclass
 import urllib.request
 import urllib.error
 import urllib.parse
@@ -203,13 +204,15 @@ def verbose_git(cmd: T.List[str], workingdir: str, check: bool = False) -> bool:
     except mesonlib.GitException as e:
         raise WrapException(str(e))
 
+@dataclass(eq=False)
 class Resolver:
-    def __init__(self, source_dir: str, subdir: str, subproject: str = '', wrap_mode: WrapMode = WrapMode.default) -> None:
-        self.source_dir = source_dir
-        self.subdir = subdir
-        self.subproject = subproject
-        self.wrap_mode = wrap_mode
-        self.subdir_root = os.path.join(source_dir, subdir)
+    source_dir: str
+    subdir: str
+    subproject: str = ''
+    wrap_mode: WrapMode = WrapMode.default
+
+    def __post_init__(self) -> None:
+        self.subdir_root = os.path.join(self.source_dir, self.subdir)
         self.cachedir = os.path.join(self.subdir_root, 'packagecache')
         self.wraps = {} # type: T.Dict[str, PackageDefinition]
         self.provided_deps = {} # type: T.Dict[str, PackageDefinition]
