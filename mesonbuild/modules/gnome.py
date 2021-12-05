@@ -30,7 +30,7 @@ from .. import build
 from .. import interpreter
 from .. import mesonlib
 from .. import mlog
-from ..build import BuildTarget, CustomTarget, CustomTargetIndex, GeneratedList, InvalidArguments
+from ..build import BuildTarget, CustomTarget, CustomTargetIndex, Executable, GeneratedList, InvalidArguments
 from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
 from ..interpreter.type_checking import DEPENDS_KW, DEPEND_FILES_KW, INSTALL_KW, NoneType, in_set_validator
 from ..interpreterbase import noPosargs, noKwargs, FeatureNew, FeatureDeprecated
@@ -896,9 +896,14 @@ class GnomeModule(ExtensionModule):
 
         return gir_filelist_filename
 
-    def _make_gir_target(self, state: 'ModuleState', girfile: str, scan_command: T.List[str],
-                         generated_files: T.Sequence[T.Union[str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]],
-                         depends: T.List[build.Target], kwargs: T.Dict[str, T.Any]) -> GirTarget:
+    def _make_gir_target(
+            self,
+            state: 'ModuleState',
+            girfile: str,
+            scan_command: T.Sequence[T.Union['FileOrString', Executable, ExternalProgram, OverrideProgram]],
+            generated_files: T.Sequence[T.Union[str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]],
+            depends: T.Sequence[T.Union['FileOrString', build.BuildTarget, 'build.GeneratedTypes']],
+            kwargs: T.Dict[str, T.Any]) -> GirTarget:
         install = kwargs['install_gir']
         if install is None:
             install = kwargs['install']
@@ -1125,7 +1130,10 @@ class GnomeModule(ExtensionModule):
 
         generated_files = [f for f in libsources if isinstance(f, (GeneratedList, CustomTarget, CustomTargetIndex))]
 
-        scan_target = self._make_gir_target(state, girfile, scan_command, generated_files, depends, kwargs)
+        scan_target = self._make_gir_target(
+            state, girfile, scan_command, generated_files, depends,
+            # We have to cast here because mypy can't figure this out
+            T.cast(T.Dict[str, T.Any], kwargs))
 
         typelib_output = f'{ns}-{nsversion}.typelib'
         typelib_cmd = [gicompiler, scan_target, '--output', '@OUTPUT@']
