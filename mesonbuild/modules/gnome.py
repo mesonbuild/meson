@@ -1795,7 +1795,8 @@ class GnomeModule(ExtensionModule):
             *,
             install: bool = False,
             install_dir: T.Optional[T.Sequence[T.Union[str, bool]]] = None,
-            depends: T.Optional[T.List[CustomTarget]] = None) -> build.CustomTarget:
+            depends: T.Optional[T.Sequence[T.Union[CustomTarget, CustomTargetIndex, BuildTarget]]] = None
+            ) -> build.CustomTarget:
         real_cmd: T.List[T.Union[str, ExternalProgram]] = [state.find_program(['glib-mkenums', 'mkenums'])]
         real_cmd.extend(cmd)
         custom_kwargs = {
@@ -1805,7 +1806,7 @@ class GnomeModule(ExtensionModule):
             'command': real_cmd,
             'install': install,
             'install_dir': install_dir or state.environment.coredata.get_option(mesonlib.OptionKey('includedir')),
-            'depends': depends or [],
+            'depends': list(depends or []),
         }
         return build.CustomTarget(output, state.subdir, state.subproject, custom_kwargs,
                                   # https://github.com/mesonbuild/meson/issues/973
