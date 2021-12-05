@@ -30,7 +30,7 @@ if T.TYPE_CHECKING:
     from .._typing import ImmutableListProtocol
     from ..compilers.compilers import Compiler
     from ..environment import Environment
-    from ..build import BuildTarget, CustomTarget
+    from ..build import BuildTarget, CustomTarget, IncludeDirs
     from ..mesonlib import FileOrString
 
 
@@ -219,9 +219,10 @@ class Dependency(HoldableObject):
         return new_dep
 
 class InternalDependency(Dependency):
-    def __init__(self, version: str, incdirs: T.List[str], compile_args: T.List[str],
-                 link_args: T.List[str], libraries: T.List['BuildTarget'],
-                 whole_libraries: T.List['BuildTarget'],
+    def __init__(self, version: str, incdirs: T.List['IncludeDirs'], compile_args: T.List[str],
+                 link_args: T.List[str],
+                 libraries: T.List[T.Union['BuildTarget', 'CustomTarget']],
+                 whole_libraries: T.List[T.Union['BuildTarget', 'CustomTarget']],
                  sources: T.Sequence[T.Union['FileOrString', 'CustomTarget']],
                  ext_deps: T.List[Dependency], variables: T.Dict[str, T.Any]):
         super().__init__(DependencyTypeName('internal'), {})
