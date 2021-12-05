@@ -217,7 +217,7 @@ class ExecutableSerialisation:
         self.tag = tag
 
 class TestSerialisation:
-    def __init__(self, name: str, project: str, suite: T.List[str], fname: T.List[str],
+    def __init__(self, name: str, project_name: str, suite: T.List[str], fname: T.List[str],
                  is_cross_built: bool, exe_wrapper: T.Optional[programs.ExternalProgram],
                  needs_exe_wrapper: bool, is_parallel: bool, cmd_args: T.List[str],
                  env: build.EnvironmentVariables, should_fail: bool,
@@ -225,7 +225,7 @@ class TestSerialisation:
                  extra_paths: T.List[str], protocol: TestProtocol, priority: int,
                  cmd_is_built: bool, depends: T.List[str], version: str):
         self.name = name
-        self.project_name = project
+        self.project_name = project_name
         self.suite = suite
         self.fname = fname
         self.is_cross_built = is_cross_built
