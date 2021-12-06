@@ -276,8 +276,11 @@ class EnvironmentVariablesHolder(ObjectHolder[build.EnvironmentVariables], Mutab
         self.held_object.prepend(name, values, kwargs['separator'])
 
 
+_CONF_DATA_SET_KWS: KwargInfo[T.Optional[str]] = KwargInfo('description', (str, NoneType))
+
+
 class ConfigurationDataObject(MutableInterpreterObject, MesonInterpreterObject):
-    def __init__(self, subproject: str, initial_values: T.Optional[T.Dict[str, T.Any]] = None) -> None:
+    def __init__(self, subproject: str, initial_values: T.Optional[T.Dict[str, T.Union[str, int, bool]]] = None) -> None:
         self.used = False # These objects become immutable after use in configure_file.
         super().__init__(subproject=subproject)
         self.conf_data = build.ConfigurationData()
@@ -302,51 +305,28 @@ class ConfigurationDataObject(MutableInterpreterObject, MesonInterpreterObject):
     def mark_used(self) -> None:
         self.used = True
 
-    def validate_args(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.Tuple[str, T.Union[str, int, bool], T.Optional[str]]:
-        if len(args) == 1 and isinstance(args[0], list) and len(args[0]) == 2:
-            mlog.deprecation('Passing a list as the single argument to '
-                             'configuration_data.set is deprecated. This will '
-                             'become a hard error in the future.',
-                             location=self.current_node)
-            args = args[0]
-
-        if len(args) != 2:
-            raise InterpreterException("Configuration set requires 2 arguments.")
+    def __check_used(self) -> None:
         if self.used:
             raise InterpreterException("Can not set values on configuration object that has been used.")
-        name, val = args
-        if not isinstance(val, (int, str)):
-            msg = f'Setting a configuration data value to {val!r} is invalid, ' \
-                  'and will fail at configure_file(). If you are using it ' \
-                  'just to store some values, please use a dict instead.'
-            mlog.deprecation(msg, location=self.current_node)
-        desc = kwargs.get('description', None)
-        if not isinstance(name, str):
-            raise InterpreterException("First argument to set must be a string.")
-        if desc is not None and not isinstance(desc, str):
-            raise InterpreterException('Description must be a string.')
 
-        # TODO: Remove the cast once we get rid of the deprecation
-        return name, T.cast(T.Union[str, bool, int], val), desc
+    @typed_pos_args('configuration_data.set', str, (str, int, bool))
+    @typed_kwargs('configuration_data.set', _CONF_DATA_SET_KWS)
+    def set_method(self, args: T.Tuple[str, T.Union[str, int, bool]], kwargs: 'kwargs.ConfigurationDataSet') -> None:
+        self.__check_used()
+        self.conf_data.values[args[0]] = (args[1], kwargs['description'])
 
-    @noArgsFlattening
-    def set_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> None:
-        (name, val, desc) = self.validate_args(args, kwargs)
-        self.conf_data.values[name] = (val, desc)
+    @typed_pos_args('configuration_data.set_quoted', str, str)
+    @typed_kwargs('configuration_data.set_quoted', _CONF_DATA_SET_KWS)
+    def set_quoted_method(self, args: T.Tuple[str, str], kwargs: 'kwargs.ConfigurationDataSet') -> None:
+        self.__check_used()
+        escaped_val = '\\"'.join(args[1].split('"'))
+        self.conf_data.values[args[0]] = (f'"{escaped_val}"', kwargs['description'])
 
-    def set_quoted_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> None:
-        (name, val, desc) = self.validate_args(args, kwargs)
-        if not isinstance(val, str):
-            raise InterpreterException("Second argument to set_quoted must be a string.")
-        escaped_val = '\\"'.join(val.split('"'))
-        self.conf_data.values[name] = ('"' + escaped_val + '"', desc)
-
-    def set10_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> None:
-        (name, val, desc) = self.validate_args(args, kwargs)
-        if val:
-            self.conf_data.values[name] = (1, desc)
-        else:
-            self.conf_data.values[name] = (0, desc)
+    @typed_pos_args('configuration_data.set10', str, (int, bool))
+    @typed_kwargs('configuration_data.set10', _CONF_DATA_SET_KWS)
+    def set10_method(self, args: T.Tuple[str, T.Union[int, bool]], kwargs: 'kwargs.ConfigurationDataSet') -> None:
+        self.__check_used()
+        self.conf_data.values[args[0]] = (int(args[1]), kwargs['description'])
 
     @typed_pos_args('configuration_data.has', (str, int, bool))
     @noKwargs

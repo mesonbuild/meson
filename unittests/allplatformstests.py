@@ -2306,7 +2306,6 @@ class AllPlatformTests(BasePlatformTests):
             self.assertEqual(f.read().strip(), b'/* #undef FOO_BAR */')
         with open(os.path.join(self.builddir, 'nosubst-nocopy2.txt'), 'rb') as f:
             self.assertEqual(f.read().strip(), b'')
-        self.assertRegex(out, r"DEPRECATION:.*\['array'\] is invalid.*dict")
 
     def test_dirs(self):
         with tempfile.TemporaryDirectory() as containing:
