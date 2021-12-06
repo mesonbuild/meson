@@ -43,7 +43,6 @@ from .mesonmain import MesonMain
 from .dependencyfallbacks import DependencyFallbacksHolder
 from .interpreterobjects import (
     SubprojectHolder,
-    ConfigurationDataObject,
     Test,
     RunProcess,
     extract_required_kwarg,
@@ -433,6 +432,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             dependencies.ExternalLibrary: OBJ.ExternalLibraryHolder,
             coredata.UserFeatureOption: OBJ.FeatureOptionHolder,
             envconfig.MachineInfo: OBJ.MachineHolder,
+            build.ConfigurationData: OBJ.ConfigurationDataHolder,
         })
 
         '''
@@ -488,7 +488,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             elif isinstance(v, Test):
                 self.build.tests.append(v)
             elif isinstance(v, (int, str, bool, Disabler, ObjectHolder, build.GeneratedList,
-                                ExternalProgram)):
+                                ExternalProgram, build.ConfigurationData)):
                 pass
             else:
                 raise InterpreterException(f'Module returned a value of unknown type {v!r}.')
@@ -1020,13 +1020,16 @@ external dependencies (including libraries) must go to "dependencies".''')
 
     @typed_pos_args('configuration_data', optargs=[dict])
     @noKwargs
-    def func_configuration_data(self, node: mparser.BaseNode, args: T.Optional[dict], kwargs: 'TYPE_kwargs') -> ConfigurationDataObject:
+    def func_configuration_data(self, node: mparser.BaseNode, args: T.Tuple[T.Optional[T.Dict[str, T.Any]]],
+                                kwargs: 'TYPE_kwargs') -> build.ConfigurationData:
         initial_values = args[0]
         if initial_values is not None:
             FeatureNew.single_use('configuration_data dictionary', '0.49.0', self.subproject)
-        else:
-            initial_values = {}
-        return ConfigurationDataObject(self.subproject, initial_values)
+            for k, v in initial_values.items():
+                if not isinstance(v, (str, int ,bool)):
+                    raise InvalidArguments(
+                        f'"configuration_data": initial value dictionary key "{k!r}"" must be "str | int | bool", not "{v!r}"')
+        return build.ConfigurationData(initial_values)
 
     def set_backend(self):
         # The backend is already set when parsing subprojects
@@ -2235,8 +2238,12 @@ external dependencies (including libraries) must go to "dependencies".''')
             conf = kwargs['configuration']
             if isinstance(conf, dict):
                 FeatureNew.single_use('configure_file.configuration dictionary', '0.49.0', self.subproject)
-                conf = ConfigurationDataObject(self.subproject, conf)
-            elif not isinstance(conf, ConfigurationDataObject):
+                for k, v in conf.items():
+                    if not isinstance(v, (str, int ,bool)):
+                        raise InvalidArguments(
+                            f'"configuration_data": initial value dictionary key "{k!r}"" must be "str | int | bool", not "{v!r}"')
+                conf = build.ConfigurationData(conf)
+            elif not isinstance(conf, build.ConfigurationData):
                 raise InterpreterException('Argument "configuration" is not of type configuration_data')
             mlog.log('Configuring', mlog.bold(output), 'using configuration')
             if len(inputs) > 1:
@@ -2245,7 +2252,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 os.makedirs(os.path.join(self.environment.build_dir, self.subdir), exist_ok=True)
                 file_encoding = kwargs.setdefault('encoding', 'utf-8')
                 missing_variables, confdata_useless = \
-                    mesonlib.do_conf_file(inputs_abs[0], ofile_abs, conf.conf_data,
+                    mesonlib.do_conf_file(inputs_abs[0], ofile_abs, conf,
                                           fmt, file_encoding)
                 if missing_variables:
                     var_list = ", ".join(map(repr, sorted(missing_variables)))
@@ -2261,8 +2268,8 @@ external dependencies (including libraries) must go to "dependencies".''')
                                      'copy a file to the build dir, use the \'copy:\' keyword '
                                      'argument added in 0.47.0', location=node)
             else:
-                mesonlib.dump_conf_header(ofile_abs, conf.conf_data, output_format)
-            conf.mark_used()
+                mesonlib.dump_conf_header(ofile_abs, conf, output_format)
+            conf.used = True
         elif 'command' in kwargs:
             if len(inputs) > 1:
                 FeatureNew.single_use('multiple inputs in configure_file()', '0.52.0', self.subproject)

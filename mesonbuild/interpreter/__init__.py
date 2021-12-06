@@ -28,7 +28,7 @@ __all__ = [
     'CustomTargetIndexHolder',
     'MachineHolder',
     'Test',
-    'ConfigurationDataObject',
+    'ConfigurationDataHolder',
     'SubprojectHolder',
     'DependencyHolder',
     'GeneratedListHolder',
@@ -46,7 +46,7 @@ from .interpreter import Interpreter, permitted_dependency_kwargs
 from .compiler import CompilerHolder
 from .interpreterobjects import (ExecutableHolder, BuildTargetHolder, CustomTargetHolder,
                                  CustomTargetIndexHolder, MachineHolder, Test,
-                                 ConfigurationDataObject, SubprojectHolder, DependencyHolder,
+                                 ConfigurationDataHolder, SubprojectHolder, DependencyHolder,
                                  GeneratedListHolder, ExternalProgramHolder,
                                  extract_required_kwarg)
 
