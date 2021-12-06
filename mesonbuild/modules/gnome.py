@@ -1238,7 +1238,8 @@ class GnomeModule(ExtensionModule):
 
         pot_file = os.path.join('@SOURCE_ROOT@', state.subdir, 'C', project_id + '.pot')
         pot_sources = [os.path.join('@SOURCE_ROOT@', state.subdir, 'C', s) for s in sources]
-        pot_args = [itstool, '-o', pot_file] + pot_sources
+        pot_args: T.List[T.Union['ExternalProgram', str]] = [itstool, '-o', pot_file]
+        pot_args.extend(pot_sources)
         pottarget = build.RunTarget(f'help-{project_id}-pot', pot_args, [],
                                     os.path.join(state.subdir, 'C'), state.subproject)
         targets.append(pottarget)
@@ -1250,6 +1251,7 @@ class GnomeModule(ExtensionModule):
             for i, m in enumerate(media):
                 m_dir = os.path.dirname(m)
                 m_install_dir = os.path.join(l_install_dir, m_dir)
+                l_data: T.Union[build.Data, build.SymlinkData]
                 if symlinks:
                     link_target = os.path.join(os.path.relpath(c_install_dir, start=m_install_dir), m)
                     l_data = build.SymlinkData(link_target, os.path.basename(m),
@@ -1264,9 +1266,10 @@ class GnomeModule(ExtensionModule):
                 targets.append(l_data)
 
             po_file = l + '.po'
-            po_args = [msgmerge, '-q', '-o',
-                       os.path.join('@SOURCE_ROOT@', l_subdir, po_file),
-                       os.path.join('@SOURCE_ROOT@', l_subdir, po_file), pot_file]
+            po_args: T.List[T.Union['ExternalProgram', str]] = [
+                msgmerge, '-q', '-o',
+                os.path.join('@SOURCE_ROOT@', l_subdir, po_file),
+                os.path.join('@SOURCE_ROOT@', l_subdir, po_file), pot_file]
             potarget = build.RunTarget(f'help-{project_id}-{l}-update-po',
                                        po_args, [pottarget], l_subdir, state.subproject)
             targets.append(potarget)
@@ -1663,7 +1666,8 @@ class GnomeModule(ExtensionModule):
             # We always set template as the first element in the source array
             # so --template consumes it.
             h_cmd = cmd + ['--template', '@INPUT@']
-            h_sources = [h_template] + kwargs['sources']
+            h_sources: T.List[T.Union[FileOrString, 'build.GeneratedTypes']] = [h_template]
+            h_sources.extend(kwargs['sources'])
             h_target = self._make_mkenum_impl(
                 state, h_sources, h_output, h_cmd, install=kwargs['install_header'],
                 install_dir=kwargs['install_dir'])
@@ -1674,7 +1678,8 @@ class GnomeModule(ExtensionModule):
             # We always set template as the first element in the source array
             # so --template consumes it.
             c_cmd = cmd + ['--template', '@INPUT@']
-            c_sources = [c_template] + kwargs['sources']
+            c_sources: T.List[T.Union[FileOrString, 'build.GeneratedTypes']] = [c_template]
+            c_sources.extend(kwargs['sources'])
 
             depends = kwargs['depends'].copy()
             if h_target is not None:
@@ -1903,7 +1908,7 @@ class GnomeModule(ExtensionModule):
         return ModuleReturnValue(rv, rv)
 
     def _extract_vapi_packages(self, state: 'ModuleState', packages: T.List[T.Union[InternalDependency, str]],
-                               ) -> T.Tuple[T.List[str], T.List[build.Target], T.List[str], T.List[str], T.List[str]]:
+                               ) -> T.Tuple[T.List[str], T.List[VapiTarget], T.List[str], T.List[str], T.List[str]]:
         '''
         Packages are special because we need to:
         - Get a list of packages for the .deps file
@@ -1913,7 +1918,7 @@ class GnomeModule(ExtensionModule):
         '''
         if not packages:
             return [], [], [], [], []
-        vapi_depends: T.List[build.Target] = []
+        vapi_depends: T.List[VapiTarget] = []
         vapi_packages: T.List[str] = []
         vapi_includes: T.List[str] = []
         vapi_args: T.List[str] = []
