@@ -477,14 +477,9 @@ class DependencyHolder(ObjectHolder[Dependency]):
     @FeatureDeprecated('dependency.get_configtool_variable', '0.56.0',
                        'use dependency.get_variable(configtool : ...) instead')
     @noKwargs
-    def configtool_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
-        args = listify(args)
-        if len(args) != 1:
-            raise InterpreterException('get_configtool_variable takes exactly one argument.')
-        varname = args[0]
-        if not isinstance(varname, str):
-            raise InterpreterException('Variable name must be a string.')
-        return self.held_object.get_configtool_variable(varname)
+    @typed_pos_args('dependency.get_config_tool_variable', str)
+    def configtool_method(self, args: T.Tuple[str], kwargs: TYPE_kwargs) -> str:
+        return self.held_object.get_configtool_variable(args[0])
 
     @FeatureNew('dependency.partial_dependency', '0.46.0')
     @noPosargs
