@@ -508,17 +508,9 @@ class DependencyHolder(ObjectHolder[Dependency]):
 
     @FeatureNew('dependency.as_system', '0.52.0')
     @noKwargs
-    def as_system_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> Dependency:
-        args = listify(args)
-        new_is_system = 'system'
-        if len(args) > 1:
-            raise InterpreterException('as_system takes only one optional value')
-        if len(args) == 1:
-            if not isinstance(args[0], str):
-                raise InterpreterException('as_system takes exactly one string parameter')
-            new_is_system = args[0]
-        new_dep = self.held_object.generate_system_dependency(new_is_system)
-        return new_dep
+    @typed_pos_args('dependency.as_system', optargs=[str])
+    def as_system_method(self, args: T.Tuple[T.Optional[str]], kwargs: TYPE_kwargs) -> Dependency:
+        return self.held_object.generate_system_dependency(args[0] or 'system')
 
     @FeatureNew('dependency.as_link_whole', '0.56.0')
     @noKwargs
