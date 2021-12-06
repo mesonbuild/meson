@@ -325,7 +325,7 @@ class GnomeModule(ExtensionModule):
         # Check if pkgconfig has a variable
         dep = self._get_dep(state, depname, native=True, required=False)
         if dep.found() and dep.type_name == 'pkgconfig':
-            value = dep.get_pkgconfig_variable(varname, {})
+            value = dep.get_pkgconfig_variable(varname, [], None)
             if value:
                 return ExternalProgram(name, [value])
 

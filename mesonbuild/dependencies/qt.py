@@ -181,7 +181,7 @@ class QtPkgConfigDependency(_QtBase, PkgConfigDependency, metaclass=abc.ABCMeta)
                 self.is_found = False
                 return
             if self.private_headers:
-                qt_inc_dir = mod.get_pkgconfig_variable('includedir', {})
+                qt_inc_dir = mod.get_pkgconfig_variable('includedir', [], None)
                 mod_private_dir = os.path.join(qt_inc_dir, 'Qt' + m)
                 if not os.path.isdir(mod_private_dir):
                     # At least some versions of homebrew don't seem to set this
@@ -203,7 +203,7 @@ class QtPkgConfigDependency(_QtBase, PkgConfigDependency, metaclass=abc.ABCMeta)
                 if arg == f'-l{debug_lib_name}' or arg.endswith(f'{debug_lib_name}.lib') or arg.endswith(f'{debug_lib_name}.a'):
                     is_debug = True
                     break
-            libdir = self.get_pkgconfig_variable('libdir', {})
+            libdir = self.get_pkgconfig_variable('libdir', [], None)
             if not self._link_with_qtmain(is_debug, libdir):
                 self.is_found = False
                 return
@@ -211,7 +211,7 @@ class QtPkgConfigDependency(_QtBase, PkgConfigDependency, metaclass=abc.ABCMeta)
         self.bindir = self.get_pkgconfig_host_bins(self)
         if not self.bindir:
             # If exec_prefix is not defined, the pkg-config file is broken
-            prefix = self.get_pkgconfig_variable('exec_prefix', {})
+            prefix = self.get_pkgconfig_variable('exec_prefix', [], None)
             if prefix:
                 self.bindir = os.path.join(prefix, 'bin')
 
@@ -387,7 +387,7 @@ class Qt4PkgConfigDependency(QtPkgConfigDependency):
         applications = ['moc', 'uic', 'rcc', 'lupdate', 'lrelease']
         for application in applications:
             try:
-                return os.path.dirname(core.get_pkgconfig_variable(f'{application}_location', {}))
+                return os.path.dirname(core.get_pkgconfig_variable(f'{application}_location', [], None))
             except mesonlib.MesonException:
                 pass
         return None
@@ -400,7 +400,7 @@ class Qt5PkgConfigDependency(QtPkgConfigDependency):
 
     @staticmethod
     def get_pkgconfig_host_bins(core: PkgConfigDependency) -> str:
-        return core.get_pkgconfig_variable('host_bins', {})
+        return core.get_pkgconfig_variable('host_bins', [], None)
 
     def get_private_includes(self, mod_inc_dir: str, module: str) -> T.List[str]:
         return _qt_get_private_includes(mod_inc_dir, module, self.version)
@@ -410,7 +410,7 @@ class Qt6PkgConfigDependency(QtPkgConfigDependency):
 
     @staticmethod
     def get_pkgconfig_host_bins(core: PkgConfigDependency) -> str:
-        return core.get_pkgconfig_variable('host_bins', {})
+        return core.get_pkgconfig_variable('host_bins', [], None)
 
     def get_private_includes(self, mod_inc_dir: str, module: str) -> T.List[str]:
         return _qt_get_private_includes(mod_inc_dir, module, self.version)
