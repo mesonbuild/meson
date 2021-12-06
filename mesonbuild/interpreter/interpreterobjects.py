@@ -293,11 +293,9 @@ class ConfigurationDataObject(MutableInterpreterObject, MesonInterpreterObject):
                              'get_unquoted': self.get_unquoted_method,
                              'merge_from': self.merge_from_method,
                              })
-        if isinstance(initial_values, dict):
+        if initial_values:
             for k, v in initial_values.items():
-                self.set_method([k, v], {})
-        elif initial_values:
-            raise AssertionError('Unsupported ConfigurationDataObject initial_values')
+                self.conf_data.values[k] = (v, None)
 
     def is_used(self) -> bool:
         return self.used
