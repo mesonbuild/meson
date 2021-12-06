@@ -46,6 +46,7 @@ It takes no positional arguments, and the following keyword arguments:
   - `extra_args` string[]: Extra arguments to pass directly to `qt-moc`
   - `method` string: The method to use to detect qt, see `dependency()` for more
     information.
+  - `dependencies`: dependency objects whose include directories are used by moc.
   - `include_directories` (string | IncludeDirectory)[]: A list of `include_directory()`
     objects used when transpiling the .moc files
 
