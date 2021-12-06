@@ -244,3 +244,9 @@ class RunCommand(TypedDict):
 class FeatureOptionRequire(TypedDict):
 
     error_message: T.Optional[str]
+
+
+class DependencyPkgConfigVar(TypedDict):
+
+    default: T.Optional[str]
+    define_variable: T.List[str]
