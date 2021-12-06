@@ -367,16 +367,14 @@ class ConfigurationDataObject(MutableInterpreterObject, MesonInterpreterObject):
         raise InterpreterException(f'Entry {name} not in configuration data.')
 
     @FeatureNew('configuration_data.get_unquoted()', '0.44.0')
-    def get_unquoted_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.Union[str, int, bool]:
-        if len(args) < 1 or len(args) > 2:
-            raise InterpreterException('Get method takes one or two arguments.')
-        if not isinstance(args[0], str):
-            raise InterpreterException('The variable name must be a string.')
+    @typed_pos_args('configuration_data.get_unquoted', str, optargs=[(str, int, bool)])
+    @noKwargs
+    def get_unquoted_method(self, args: T.Tuple[str, T.Optional[T.Union[str, int, bool]]],
+                            kwargs: TYPE_kwargs) -> T.Union[str, int, bool]:
         name = args[0]
         if name in self.conf_data:
             val = self.conf_data.get(name)[0]
-        elif len(args) > 1:
-            assert isinstance(args[1], (str, int, bool))
+        elif args[1] is not None:
             val = args[1]
         else:
             raise InterpreterException(f'Entry {name} not in configuration data.')
