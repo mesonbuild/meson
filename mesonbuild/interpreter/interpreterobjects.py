@@ -469,14 +469,9 @@ class DependencyHolder(ObjectHolder[Dependency]):
     @FeatureDeprecated('dependency.get_pkgconfig_variable', '0.56.0',
                        'use dependency.get_variable(pkgconfig : ...) instead')
     @permittedKwargs({'define_variable', 'default'})
-    def pkgconfig_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
-        args = listify(args)
-        if len(args) != 1:
-            raise InterpreterException('get_pkgconfig_variable takes exactly one argument.')
-        varname = args[0]
-        if not isinstance(varname, str):
-            raise InterpreterException('Variable name must be a string.')
-        return self.held_object.get_pkgconfig_variable(varname, kwargs)
+    @typed_pos_args('dependency.get_pkgconfig_variable', str)
+    def pkgconfig_method(self, args: T.Tuple[str], kwargs: TYPE_kwargs) -> str:
+        return self.held_object.get_pkgconfig_variable(args[0], kwargs)
 
     @FeatureNew('dependency.get_configtool_variable', '0.44.0')
     @FeatureDeprecated('dependency.get_configtool_variable', '0.56.0',
