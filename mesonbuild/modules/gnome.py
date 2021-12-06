@@ -935,7 +935,8 @@ class GnomeModule(ExtensionModule):
 
         return GirTarget(girfile, state.subdir, state.subproject, scankwargs)
 
-    def _make_typelib_target(self, state: 'ModuleState', typelib_output: str, typelib_cmd: T.List[str],
+    def _make_typelib_target(self, state: 'ModuleState', typelib_output: str,
+                             typelib_cmd: T.Sequence[T.Union[str, build.Executable, ExternalProgram, build.CustomTarget]],
                              generated_files: T.Sequence[T.Union[str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]],
                              kwargs: T.Dict[str, T.Any]) -> TypelibTarget:
         install = kwargs['install_typelib']
@@ -951,7 +952,7 @@ class GnomeModule(ExtensionModule):
         typelib_kwargs = {
             'input': generated_files,
             'output': [typelib_output],
-            'command': typelib_cmd,
+            'command': list(typelib_cmd),
             'install': install,
             'install_dir': install_dir,
             'install_tag': 'typelib',
@@ -1150,7 +1151,7 @@ class GnomeModule(ExtensionModule):
         for incdir in typelib_includes:
             typelib_cmd += ["--includedir=" + incdir]
 
-        typelib_target = self._make_typelib_target(state, typelib_output, typelib_cmd, generated_files, kwargs)
+        typelib_target = self._make_typelib_target(state, typelib_output, typelib_cmd, generated_files, T.cast(T.Dict[str, T.Any], kwargs))
 
         self._devenv_prepend('GI_TYPELIB_PATH', os.path.join(state.environment.get_build_dir(), state.subdir))
 
