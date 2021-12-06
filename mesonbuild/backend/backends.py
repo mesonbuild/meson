@@ -748,7 +748,8 @@ class Backend:
                         raise MesonException(f'Invalid arg for --just-symbols, {dir} is a directory.')
         return dirs
 
-    def rpaths_for_bundled_shared_libraries(self, target: build.BuildTarget, exclude_system: bool = True) -> T.List[str]:
+    @lru_cache(maxsize=None)
+    def rpaths_for_bundled_shared_libraries(self, target: build.BuildTarget, exclude_system: bool = True) -> 'ImmutableListProtocol[str]':
         paths: T.List[str] = []
         for dep in target.external_deps:
             if not isinstance(dep, (dependencies.ExternalLibrary, dependencies.PkgConfigDependency)):
