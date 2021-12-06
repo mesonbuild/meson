@@ -16,8 +16,8 @@ from ..backend.backends import TestProtocol
 from ..interpreterbase import (
                                ContainerTypeInfo, KwargInfo, MesonOperator,
                                InterpreterObject, MesonInterpreterObject, ObjectHolder, MutableInterpreterObject,
-                               FeatureCheckBase, FeatureNewKwargs, FeatureNew, FeatureDeprecated,
-                               typed_pos_args, typed_kwargs, typed_operator, permittedKwargs,
+                               FeatureCheckBase, FeatureNew, FeatureDeprecated,
+                               typed_pos_args, typed_kwargs, typed_operator,
                                noArgsFlattening, noPosargs, noKwargs, unholder_return, TYPE_var, TYPE_kwargs, TYPE_nvar, TYPE_nkwargs,
                                flatten, resolve_second_level_holders, InterpreterException, InvalidArguments, InvalidCode)
 from ..interpreter.type_checking import NoneType
@@ -493,15 +493,27 @@ class DependencyHolder(ObjectHolder[Dependency]):
 
     @FeatureNew('dependency.get_variable', '0.51.0')
     @typed_pos_args('dependency.get_variable', optargs=[str])
-    @permittedKwargs({'cmake', 'pkgconfig', 'configtool', 'internal', 'default_value', 'pkgconfig_define'})
-    @FeatureNewKwargs('dependency.get_variable', '0.54.0', ['internal'])
-    def variable_method(self, args: T.Tuple[T.Optional[str]], kwargs: T.Dict[str, T.Any]) -> T.Union[str, T.List[str]]:
+    @typed_kwargs(
+        'dependency.get_variable',
+        KwargInfo('cmake', (str, NoneType)),
+        KwargInfo('pkgconfig', (str, NoneType)),
+        KwargInfo('configtool', (str, NoneType)),
+        KwargInfo('internal', (str, NoneType), since='0.54.0'),
+        KwargInfo('default_value', (str, NoneType)),
+        KwargInfo('pkgconfig_define', ContainerTypeInfo(list, str, pairs=True), default=[], listify=True),
+    )
+    def variable_method(self, args: T.Tuple[T.Optional[str]], kwargs: 'kwargs.DependencyGetVariable') -> T.Union[str, T.List[str]]:
         default_varname = args[0]
         if default_varname is not None:
             FeatureNew('Positional argument to dependency.get_variable()', '0.58.0', location=self.current_node).use(self.subproject)
-            for k in ['cmake', 'pkgconfig', 'configtool', 'internal']:
-                kwargs.setdefault(k, default_varname)
-        return self.held_object.get_variable(**kwargs)
+        return self.held_object.get_variable(
+            cmake=kwargs['cmake'] or default_varname,
+            pkgconfig=kwargs['pkgconfig'] or default_varname,
+            configtool=kwargs['configtool'] or default_varname,
+            internal=kwargs['internal'] or default_varname,
+            default_value=kwargs['default_value'],
+            pkgconfig_define=kwargs['pkgconfig_define'],
+        )
 
     @FeatureNew('dependency.include_type', '0.52.0')
     @noPosargs
