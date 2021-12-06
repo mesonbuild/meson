@@ -393,15 +393,13 @@ class ConfigurationDataObject(MutableInterpreterObject, MesonInterpreterObject):
     def keys(self) -> T.List[str]:
         return list(self.conf_data.values.keys())
 
+    @typed_pos_args('configuration_data.merge_from', object)  # yay for recursive type validation!
+    @noKwargs
     def merge_from_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> None:
-        if len(args) != 1:
-            raise InterpreterException('Merge_from takes one positional argument.')
-        from_object_holder = args[0]
-        if not isinstance(from_object_holder, ConfigurationDataObject):
+        from_object = args[0]
+        if not isinstance(from_object, ConfigurationDataObject):
             raise InterpreterException('Merge_from argument must be a configuration data object.')
-        from_object = from_object_holder.conf_data
-        for k, v in from_object.values.items():
-            self.conf_data.values[k] = v
+        self.conf_data.values.update(from_object.conf_data.values)
 
 
 _PARTIAL_DEP_KWARGS = [
