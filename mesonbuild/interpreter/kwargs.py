@@ -239,3 +239,8 @@ class RunCommand(TypedDict):
     check: bool
     capture: T.Optional[bool]
     env: build.EnvironmentVariables
+
+
+class FeatureOptionRequire(TypedDict):
+
+    error_message: T.Optional[str]
