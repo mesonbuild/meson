@@ -596,17 +596,19 @@ class GnomeModule(ExtensionModule):
 
     def _get_link_args(self, state: 'ModuleState',
                        lib: T.Union[build.SharedLibrary, build.StaticLibrary],
-                       depends: T.List[build.BuildTarget],
+                       depends: T.Sequence[T.Union[build.BuildTarget, 'build.GeneratedTypes', 'FileOrString']],
                        include_rpath: bool = False,
-                       use_gir_args: bool = False) -> T.List[str]:
+                       use_gir_args: bool = False
+                       ) -> T.Tuple[T.List[str], T.List[T.Union[build.BuildTarget, 'build.GeneratedTypes', 'FileOrString']]]:
         link_command: T.List[str] = []
+        new_depends = list(depends)
         # Construct link args
         if isinstance(lib, build.SharedLibrary):
             libdir = os.path.join(state.environment.get_build_dir(), state.backend.get_target_dir(lib))
             link_command.append('-L' + libdir)
             if include_rpath:
                 link_command.append('-Wl,-rpath,' + libdir)
-            depends.append(lib)
+            new_depends.append(lib)
             # Needed for the following binutils bug:
             # https://github.com/mesonbuild/meson/issues/1911
             # However, g-ir-scanner does not understand -Wl,-rpath
@@ -620,13 +622,17 @@ class GnomeModule(ExtensionModule):
             link_command.append('--extra-library=' + lib.name)
         else:
             link_command.append('-l' + lib.name)
-        return link_command
+        return link_command, new_depends
 
     def _get_dependencies_flags(
-            self, deps: T.Sequence[T.Union['Dependency', build.SharedLibrary, build.StaticLibrary]],
-            state: 'ModuleState', depends: T.List[build.BuildTarget], include_rpath: bool = False,
-            use_gir_args: bool = False, separate_nodedup: bool = False
-            ) -> T.Tuple[OrderedSet[str], OrderedSet[str], OrderedSet[str], T.Optional[T.List[str]], OrderedSet[str]]:
+            self, deps: T.Sequence[T.Union['Dependency', build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]],
+            state: 'ModuleState',
+            depends: T.Sequence[T.Union[build.BuildTarget, 'build.GeneratedTypes', 'FileOrString']],
+            include_rpath: bool = False,
+            use_gir_args: bool = False,
+            separate_nodedup: bool = False
+            ) -> T.Tuple[OrderedSet[str], OrderedSet[str], OrderedSet[str], T.Optional[T.List[str]], OrderedSet[str],
+                         T.List[T.Union[build.BuildTarget, 'build.GeneratedTypes', 'FileOrString']]]:
         cflags: OrderedSet[str] = OrderedSet()
         internal_ldflags: OrderedSet[str] = OrderedSet()
         external_ldflags: OrderedSet[str] = OrderedSet()
@@ -635,6 +641,7 @@ class GnomeModule(ExtensionModule):
         external_ldflags_nodedup: T.List[str] = []
         gi_includes: OrderedSet[str] = OrderedSet()
         deps = mesonlib.listify(deps)
+        depends = list(depends)
 
         for dep in deps:
             if isinstance(dep, Dependency):
@@ -647,7 +654,8 @@ class GnomeModule(ExtensionModule):
                 cflags.update(state.get_include_args(dep.include_directories))
                 for lib in dep.libraries:
                     if isinstance(lib, build.SharedLibrary):
-                        internal_ldflags.update(self._get_link_args(state, lib, depends, include_rpath))
+                        _ld, depends = self._get_link_args(state, lib, depends, include_rpath)
+                        internal_ldflags.update(_ld)
                         libdepflags = self._get_dependencies_flags(lib.get_external_deps(), state, depends, include_rpath,
                                                                    use_gir_args, True)
                         cflags.update(libdepflags[0])
@@ -711,9 +719,9 @@ class GnomeModule(ExtensionModule):
             external_ldflags = fix_ldflags(external_ldflags)
         if not separate_nodedup:
             external_ldflags.update(external_ldflags_nodedup)
-            return cflags, internal_ldflags, external_ldflags, None, gi_includes
+            return cflags, internal_ldflags, external_ldflags, None, gi_includes, depends
         else:
-            return cflags, internal_ldflags, external_ldflags, external_ldflags_nodedup, gi_includes
+            return cflags, internal_ldflags, external_ldflags, external_ldflags_nodedup, gi_includes, depends
 
     def _unwrap_gir_target(self, girtarget: T.Union[build.Executable, build.StaticLibrary, build.SharedLibrary], state: 'ModuleState'
                            ) -> T.Union[build.Executable, build.StaticLibrary, build.SharedLibrary]:
@@ -827,8 +835,8 @@ class GnomeModule(ExtensionModule):
         return ret
 
     def _get_gir_targets_deps(self, girtargets: T.Sequence[build.BuildTarget]
-                              ) -> T.List[T.Union[build.Target, Dependency]]:
-        ret: T.List[T.Union[build.Target, Dependency]] = []
+                              ) -> T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, Dependency]]:
+        ret: T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, Dependency]] = []
         for girtarget in girtargets:
             ret += girtarget.get_all_link_deps()
             ret += girtarget.get_external_deps()
@@ -979,10 +987,10 @@ class GnomeModule(ExtensionModule):
             # FIXME: Store this in the original form from declare_dependency()
             # so it can be used here directly.
             elif isinstance(dep, build.SharedLibrary):
-                for source in dep.generated:
-                    if isinstance(source, GirTarget):
+                for g_source in dep.generated:
+                    if isinstance(g_source, GirTarget):
                         subdir = os.path.join(state.environment.get_build_dir(),
-                                              source.get_subdir())
+                                              g_source.get_subdir())
                         if subdir not in typelib_includes:
                             typelib_includes.append(subdir)
             if isinstance(dep, Dependency):
@@ -1070,7 +1078,7 @@ class GnomeModule(ExtensionModule):
         # ldflags will be misinterpreted by gir scanner (showing
         # spurious dependencies) but building GStreamer fails if they
         # are not used here.
-        dep_cflags, dep_internal_ldflags, dep_external_ldflags, _, gi_includes = \
+        dep_cflags, dep_internal_ldflags, dep_external_ldflags, _, gi_includes, depends = \
             self._get_dependencies_flags(deps, state, depends, use_gir_args=True)
         scan_cflags = []
         scan_cflags += list(self._get_scanner_cflags(cflags))
