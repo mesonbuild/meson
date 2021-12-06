@@ -2767,17 +2767,16 @@ class CustomTargetIndex(HoldableObject):
         return self.target.get_custom_install_dir()
 
 class ConfigurationData(HoldableObject):
-    def __init__(self) -> None:
+    def __init__(self, initial_values: T.Optional[T.Union[
+                T.Dict[str, T.Tuple[T.Union[str, int, bool], T.Optional[str]]],
+                T.Dict[str, T.Union[str, int, bool]]]
+            ] = None):
         super().__init__()
-        self.values: T.Dict[
-            str,
-            T.Tuple[
-                T.Union[str, int, bool],
-                T.Optional[str]
-            ]
-        ] = {}
+        self.values: T.Dict[str, T.Tuple[T.Union[str, int, bool], T.Optional[str]]] = \
+            {k: v if isinstance(v, tuple) else (v, None) for k, v in initial_values.items()} if initial_values else {}
+        self.used: bool = False
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return repr(self.values)
 
     def __contains__(self, value: str) -> bool:
