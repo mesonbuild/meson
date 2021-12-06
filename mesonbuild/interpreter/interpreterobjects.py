@@ -125,11 +125,8 @@ class FeatureOptionHolder(ObjectHolder[coredata.UserFeatureOption]):
         return self.value == 'auto'
 
     @permittedKwargs({'error_message'})
-    def require_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> coredata.UserFeatureOption:
-        if len(args) != 1:
-            raise InvalidArguments(f'Expected 1 argument, got {len(args)}.')
-        if not isinstance(args[0], bool):
-            raise InvalidArguments('boolean argument expected.')
+    @typed_pos_args('feature_option.require', bool)
+    def require_method(self, args: T.Tuple[bool], kwargs: TYPE_kwargs) -> coredata.UserFeatureOption:
         error_message = kwargs.pop('error_message', '')
         if error_message and not isinstance(error_message, str):
             raise InterpreterException("Error message must be a string.")
@@ -145,11 +142,8 @@ class FeatureOptionHolder(ObjectHolder[coredata.UserFeatureOption]):
         return self.as_disabled()
 
     @noKwargs
-    def disable_auto_if_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> coredata.UserFeatureOption:
-        if len(args) != 1:
-            raise InvalidArguments(f'Expected 1 argument, got {len(args)}.')
-        if not isinstance(args[0], bool):
-            raise InvalidArguments('boolean argument expected.')
+    @typed_pos_args('feature_option.disable_auto_if', bool)
+    def disable_auto_if_method(self, args: T.Tuple[bool], kwargs: TYPE_kwargs) -> coredata.UserFeatureOption:
         return copy.deepcopy(self.held_object) if self.value != 'auto' or not args[0] else self.as_disabled()
 
 
