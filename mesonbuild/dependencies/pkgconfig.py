@@ -24,6 +24,7 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
+    from .._typing import ImmutableListProtocol
 
 class PkgConfigDependency(ExternalDependency):
     # The class's copy of the pkg-config path. Avoids having to search for it
@@ -380,18 +381,13 @@ class PkgConfigDependency(ExternalDependency):
             raise DependencyException(f'Could not generate libs for {self.name}:\n\n{out_raw}')
         self.link_args, self.raw_link_args = self._search_libs(out, out_raw)
 
-    def get_pkgconfig_variable(self, variable_name: str, kwargs: T.Dict[str, T.Union[str, T.List[str]]]) -> str:
+    def get_pkgconfig_variable(self, variable_name: str,
+                               define_variable: 'ImmutableListProtocol[str]',
+                               default: T.Optional[str]) -> str:
         options = ['--variable=' + variable_name, self.name]
 
-        if 'define_variable' in kwargs:
-            definition = kwargs.get('define_variable', [])
-            if not isinstance(definition, list):
-                raise DependencyException('define_variable takes a list')
-
-            if len(definition) != 2 or not all(isinstance(i, str) for i in definition):
-                raise DependencyException('define_variable must be made up of 2 strings for VARIABLENAME and VARIABLEVALUE')
-
-            options = ['--define-variable=' + '='.join(definition)] + options
+        if define_variable:
+            options = ['--define-variable=' + '='.join(define_variable)] + options
 
         ret, out, err = self._call_pkgbin(options)
         variable = ''
@@ -406,9 +402,8 @@ class PkgConfigDependency(ExternalDependency):
             if not variable:
                 ret, out, _ = self._call_pkgbin(['--print-variables', self.name])
                 if not re.search(r'^' + variable_name + r'$', out, re.MULTILINE):
-                    if 'default' in kwargs:
-                        assert isinstance(kwargs['default'], str)
-                        variable = kwargs['default']
+                    if default:
+                        variable = default
                     else:
                         mlog.warning(f"pkgconfig variable '{variable_name}' not defined for dependency {self.name}.")
 
@@ -483,13 +478,8 @@ class PkgConfigDependency(ExternalDependency):
                      default_value: T.Optional[str] = None,
                      pkgconfig_define: T.Optional[T.List[str]] = None) -> T.Union[str, T.List[str]]:
         if pkgconfig:
-            kwargs: T.Dict[str, T.Union[str, T.List[str]]] = {}
-            if default_value is not None:
-                kwargs['default'] = default_value
-            if pkgconfig_define is not None:
-                kwargs['define_variable'] = pkgconfig_define
             try:
-                return self.get_pkgconfig_variable(pkgconfig, kwargs)
+                return self.get_pkgconfig_variable(pkgconfig, pkgconfig_define or [], default_value)
             except DependencyException:
                 pass
         if default_value is not None:

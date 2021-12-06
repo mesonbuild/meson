@@ -27,6 +27,7 @@ from ..mesonlib import version_compare_many
 from ..interpreterbase import FeatureDeprecated
 
 if T.TYPE_CHECKING:
+    from .._typing import ImmutableListProtocol
     from ..compilers.compilers import Compiler
     from ..environment import Environment
     from ..build import BuildTarget, CustomTarget
@@ -162,7 +163,9 @@ class Dependency(HoldableObject):
     def get_exe_args(self, compiler: 'Compiler') -> T.List[str]:
         return []
 
-    def get_pkgconfig_variable(self, variable_name: str, kwargs: T.Dict[str, T.Any]) -> str:
+    def get_pkgconfig_variable(self, variable_name: str,
+                               define_variable: 'ImmutableListProtocol[str]',
+                               default: T.Optional[str]) -> str:
         raise DependencyException(f'{self.name!r} is not a pkgconfig dependency')
 
     def get_configtool_variable(self, variable_name: str) -> str:
@@ -254,7 +257,9 @@ class InternalDependency(Dependency):
             return True
         return any(d.is_built() for d in self.ext_deps)
 
-    def get_pkgconfig_variable(self, variable_name: str, kwargs: T.Dict[str, T.Any]) -> str:
+    def get_pkgconfig_variable(self, variable_name: str,
+                               define_variable: 'ImmutableListProtocol[str]',
+                               default: T.Optional[str]) -> str:
         raise DependencyException('Method "get_pkgconfig_variable()" is '
                                   'invalid for an internal dependency')
 

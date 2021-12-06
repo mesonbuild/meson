@@ -148,18 +148,18 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertTrue(foo_dep.found())
         self.assertEqual(foo_dep.get_version(), '1.0')
         self.assertIn('-lfoo', foo_dep.get_link_args())
-        self.assertEqual(foo_dep.get_pkgconfig_variable('foo', {}), 'bar')
-        self.assertPathEqual(foo_dep.get_pkgconfig_variable('datadir', {}), '/usr/data')
+        self.assertEqual(foo_dep.get_pkgconfig_variable('foo', [], None), 'bar')
+        self.assertPathEqual(foo_dep.get_pkgconfig_variable('datadir', [], None), '/usr/data')
 
         libhello_nolib = PkgConfigDependency('libhello_nolib', env, kwargs)
         self.assertTrue(libhello_nolib.found())
         self.assertEqual(libhello_nolib.get_link_args(), [])
         self.assertEqual(libhello_nolib.get_compile_args(), [])
-        self.assertEqual(libhello_nolib.get_pkgconfig_variable('foo', {}), 'bar')
-        self.assertEqual(libhello_nolib.get_pkgconfig_variable('prefix', {}), self.prefix)
+        self.assertEqual(libhello_nolib.get_pkgconfig_variable('foo', [], None), 'bar')
+        self.assertEqual(libhello_nolib.get_pkgconfig_variable('prefix', [], None), self.prefix)
         if version_compare(libhello_nolib.check_pkgconfig(libhello_nolib.pkgbin),">=0.29.1"):
-            self.assertEqual(libhello_nolib.get_pkgconfig_variable('escaped_var', {}), r'hello\ world')
-        self.assertEqual(libhello_nolib.get_pkgconfig_variable('unescaped_var', {}), 'hello world')
+            self.assertEqual(libhello_nolib.get_pkgconfig_variable('escaped_var', [], None), r'hello\ world')
+        self.assertEqual(libhello_nolib.get_pkgconfig_variable('unescaped_var', [], None), 'hello world')
 
         cc = detect_c_compiler(env, MachineChoice.HOST)
         if cc.get_id() in {'gcc', 'clang'}:

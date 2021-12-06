@@ -464,7 +464,7 @@ class DependencyHolder(ObjectHolder[Dependency]):
     @permittedKwargs({'define_variable', 'default'})
     @typed_pos_args('dependency.get_pkgconfig_variable', str)
     def pkgconfig_method(self, args: T.Tuple[str], kwargs: TYPE_kwargs) -> str:
-        return self.held_object.get_pkgconfig_variable(args[0], kwargs)
+        return self.held_object.get_pkgconfig_variable(args[0], **kwargs)
 
     @FeatureNew('dependency.get_configtool_variable', '0.44.0')
     @FeatureDeprecated('dependency.get_configtool_variable', '0.56.0',
