@@ -466,8 +466,8 @@ class DependencyHolder(ObjectHolder[Dependency]):
     def name_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.held_object.get_name()
 
-    @FeatureDeprecated('Dependency.get_pkgconfig_variable', '0.56.0',
-                       'use Dependency.get_variable(pkgconfig : ...) instead')
+    @FeatureDeprecated('dependency.get_pkgconfig_variable', '0.56.0',
+                       'use dependency.get_variable(pkgconfig : ...) instead')
     @permittedKwargs({'define_variable', 'default'})
     def pkgconfig_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         args = listify(args)
@@ -478,9 +478,9 @@ class DependencyHolder(ObjectHolder[Dependency]):
             raise InterpreterException('Variable name must be a string.')
         return self.held_object.get_pkgconfig_variable(varname, kwargs)
 
-    @FeatureNew('dep.get_configtool_variable', '0.44.0')
-    @FeatureDeprecated('Dependency.get_configtool_variable', '0.56.0',
-                       'use Dependency.get_variable(configtool : ...) instead')
+    @FeatureNew('dependency.get_configtool_variable', '0.44.0')
+    @FeatureDeprecated('dependency.get_configtool_variable', '0.56.0',
+                       'use dependency.get_variable(configtool : ...) instead')
     @noKwargs
     def configtool_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         args = listify(args)
@@ -491,32 +491,32 @@ class DependencyHolder(ObjectHolder[Dependency]):
             raise InterpreterException('Variable name must be a string.')
         return self.held_object.get_configtool_variable(varname)
 
-    @FeatureNew('dep.partial_dependency', '0.46.0')
+    @FeatureNew('dependency.partial_dependency', '0.46.0')
     @noPosargs
-    @typed_kwargs('dep.partial_dependency', *_PARTIAL_DEP_KWARGS)
+    @typed_kwargs('dependency.partial_dependency', *_PARTIAL_DEP_KWARGS)
     def partial_dependency_method(self, args: T.List[TYPE_nvar], kwargs: 'kwargs.DependencyMethodPartialDependency') -> Dependency:
         pdep = self.held_object.get_partial_dependency(**kwargs)
         return pdep
 
-    @FeatureNew('dep.get_variable', '0.51.0')
-    @typed_pos_args('dep.get_variable', optargs=[str])
+    @FeatureNew('dependency.get_variable', '0.51.0')
+    @typed_pos_args('dependency.get_variable', optargs=[str])
     @permittedKwargs({'cmake', 'pkgconfig', 'configtool', 'internal', 'default_value', 'pkgconfig_define'})
-    @FeatureNewKwargs('dep.get_variable', '0.54.0', ['internal'])
+    @FeatureNewKwargs('dependency.get_variable', '0.54.0', ['internal'])
     def variable_method(self, args: T.Tuple[T.Optional[str]], kwargs: T.Dict[str, T.Any]) -> T.Union[str, T.List[str]]:
         default_varname = args[0]
         if default_varname is not None:
-            FeatureNew('Positional argument to dep.get_variable()', '0.58.0', location=self.current_node).use(self.subproject)
+            FeatureNew('Positional argument to dependency.get_variable()', '0.58.0', location=self.current_node).use(self.subproject)
             for k in ['cmake', 'pkgconfig', 'configtool', 'internal']:
                 kwargs.setdefault(k, default_varname)
         return self.held_object.get_variable(**kwargs)
 
-    @FeatureNew('dep.include_type', '0.52.0')
+    @FeatureNew('dependency.include_type', '0.52.0')
     @noPosargs
     @noKwargs
     def include_type_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.held_object.get_include_type()
 
-    @FeatureNew('dep.as_system', '0.52.0')
+    @FeatureNew('dependency.as_system', '0.52.0')
     @noKwargs
     def as_system_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> Dependency:
         args = listify(args)
@@ -530,7 +530,7 @@ class DependencyHolder(ObjectHolder[Dependency]):
         new_dep = self.held_object.generate_system_dependency(new_is_system)
         return new_dep
 
-    @FeatureNew('dep.as_link_whole', '0.56.0')
+    @FeatureNew('dependency.as_link_whole', '0.56.0')
     @noKwargs
     @noPosargs
     def as_link_whole_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> Dependency:
@@ -592,9 +592,9 @@ class ExternalLibraryHolder(ObjectHolder[ExternalLibrary]):
     def found_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
         return self.held_object.found()
 
-    @FeatureNew('dep.partial_dependency', '0.46.0')
+    @FeatureNew('dependency.partial_dependency', '0.46.0')
     @noPosargs
-    @typed_kwargs('dep.partial_dependency', *_PARTIAL_DEP_KWARGS)
+    @typed_kwargs('dependency.partial_dependency', *_PARTIAL_DEP_KWARGS)
     def partial_dependency_method(self, args: T.List[TYPE_nvar], kwargs: 'kwargs.DependencyMethodPartialDependency') -> Dependency:
         pdep = self.held_object.get_partial_dependency(**kwargs)
         return pdep
