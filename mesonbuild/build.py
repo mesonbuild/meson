@@ -1001,11 +1001,11 @@ class BuildTarget(Target):
         return ExtractedObjects(self, self.sources, self.generated, self.objects,
                                 recursive)
 
-    def get_all_link_deps(self) -> 'ImmutableListProtocol[Target]':
+    def get_all_link_deps(self) -> 'ImmutableListProtocol[T.Union[BuildTarget, CustomTarget, CustomTargetIndex]]':
         return self.get_transitive_link_deps()
 
     @lru_cache(maxsize=None)
-    def get_transitive_link_deps(self) -> 'ImmutableListProtocol[Target]':
+    def get_transitive_link_deps(self) -> 'ImmutableListProtocol[T.Union[BuildTarget, CustomTarget, CustomTargetIndex]]':
         result: T.List[Target] = []
         for i in self.link_targets:
             result += i.get_all_link_deps()
