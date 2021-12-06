@@ -355,21 +355,15 @@ class ConfigurationDataObject(MutableInterpreterObject, MesonInterpreterObject):
 
     @FeatureNew('configuration_data.get()', '0.38.0')
     @noArgsFlattening
-    def get_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.Union[str, int, bool]:
-        if len(args) < 1 or len(args) > 2:
-            raise InterpreterException('Get method takes one or two arguments.')
-        if not isinstance(args[0], str):
-            raise InterpreterException('The variable name must be a string.')
+    @typed_pos_args('configuration_data.get', str, optargs=[(str, int, bool)])
+    @noKwargs
+    def get_method(self, args: T.Tuple[str, T.Optional[T.Union[str, int, bool]]],
+                   kwargs: TYPE_kwargs) -> T.Union[str, int, bool]:
         name = args[0]
         if name in self.conf_data:
             return self.conf_data.get(name)[0]
-        if len(args) > 1:
-            # Assertion does not work because setting other values is still
-            # supported, but deprecated. Use T.cast in the meantime (even though
-            # this is a lie).
-            # TODO: Fix this once the deprecation is removed
-            # assert isinstance(args[1], (int, str, bool))
-            return T.cast(T.Union[str, int, bool], args[1])
+        elif args[1] is not None:
+            return args[1]
         raise InterpreterException(f'Entry {name} not in configuration data.')
 
     @FeatureNew('configuration_data.get_unquoted()', '0.44.0')
