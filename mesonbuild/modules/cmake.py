@@ -20,7 +20,7 @@ from . import ExtensionModule, ModuleReturnValue, ModuleObject
 
 from .. import build, mesonlib, mlog, dependencies
 from ..cmake import SingleTargetOptions, TargetOptions, cmake_defines_to_args
-from ..interpreter import ConfigurationDataObject, SubprojectHolder
+from ..interpreter import SubprojectHolder
 from ..interpreterbase import (
     FeatureNew,
     FeatureNewKwargs,
@@ -358,7 +358,7 @@ class CmakeModule(ExtensionModule):
         if 'configuration' not in kwargs:
             raise mesonlib.MesonException('"configuration" not specified.')
         conf = kwargs['configuration']
-        if not isinstance(conf, ConfigurationDataObject):
+        if not isinstance(conf, build.ConfigurationData):
             raise mesonlib.MesonException('Argument "configuration" is not of type configuration_data')
 
         prefix = state.environment.coredata.get_option(mesonlib.OptionKey('prefix'))
@@ -372,8 +372,8 @@ class CmakeModule(ExtensionModule):
             extra = PACKAGE_INIT_EXT.replace('@absInstallDir@', abs_install_dir)
             extra = extra.replace('@installPrefix@', prefix)
 
-        self.create_package_file(ifile_abs, ofile_abs, PACKAGE_RELATIVE_PATH, extra, conf.conf_data)
-        conf.mark_used()
+        self.create_package_file(ifile_abs, ofile_abs, PACKAGE_RELATIVE_PATH, extra, conf)
+        conf.used = True
 
         conffile = os.path.normpath(inputfile.relative_name())
         if conffile not in self.interpreter.build_def_files:

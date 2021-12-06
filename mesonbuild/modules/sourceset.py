@@ -154,8 +154,12 @@ class SourceSet(MutableModuleObject):
             def _get_from_config_data(key):
                 nonlocal config_cache
                 if key not in config_cache:
-                    args = [key] if strict else [key, False]
-                    config_cache[key] = config_data.get_method(args, {})
+                    if key in config_data:
+                        config_cache[key] = config_data.get(key)[0]
+                    elif strict:
+                        raise InvalidArguments(f'sourceset.apply: key "{key}" not in passed configuration, and strict set.')
+                    else:
+                        config_cache[key] = False
                 return config_cache[key]
 
         files = self.collect(_get_from_config_data, False)

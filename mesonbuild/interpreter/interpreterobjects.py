@@ -279,11 +279,10 @@ class EnvironmentVariablesHolder(ObjectHolder[build.EnvironmentVariables], Mutab
 _CONF_DATA_SET_KWS: KwargInfo[T.Optional[str]] = KwargInfo('description', (str, NoneType))
 
 
-class ConfigurationDataObject(MutableInterpreterObject, MesonInterpreterObject):
-    def __init__(self, subproject: str, initial_values: T.Optional[T.Dict[str, T.Union[str, int, bool]]] = None) -> None:
-        self.used = False # These objects become immutable after use in configure_file.
-        super().__init__(subproject=subproject)
-        self.conf_data = build.ConfigurationData()
+class ConfigurationDataHolder(ObjectHolder[build.ConfigurationData], MutableInterpreterObject):
+
+    def __init__(self, obj: build.ConfigurationData, interpreter: 'Interpreter'):
+        super().__init__(obj, interpreter)
         self.methods.update({'set': self.set_method,
                              'set10': self.set10_method,
                              'set_quoted': self.set_quoted_method,
@@ -293,43 +292,40 @@ class ConfigurationDataObject(MutableInterpreterObject, MesonInterpreterObject):
                              'get_unquoted': self.get_unquoted_method,
                              'merge_from': self.merge_from_method,
                              })
-        if initial_values:
-            for k, v in initial_values.items():
-                self.conf_data.values[k] = (v, None)
+
+    def __deepcopy__(self, memo: T.Dict) -> 'ConfigurationDataHolder':
+        return ConfigurationDataHolder(copy.deepcopy(self.held_object), self.interpreter)
 
     def is_used(self) -> bool:
-        return self.used
-
-    def mark_used(self) -> None:
-        self.used = True
+        return self.held_object.used
 
     def __check_used(self) -> None:
-        if self.used:
+        if self.is_used():
             raise InterpreterException("Can not set values on configuration object that has been used.")
 
     @typed_pos_args('configuration_data.set', str, (str, int, bool))
     @typed_kwargs('configuration_data.set', _CONF_DATA_SET_KWS)
     def set_method(self, args: T.Tuple[str, T.Union[str, int, bool]], kwargs: 'kwargs.ConfigurationDataSet') -> None:
         self.__check_used()
-        self.conf_data.values[args[0]] = (args[1], kwargs['description'])
+        self.held_object.values[args[0]] = (args[1], kwargs['description'])
 
     @typed_pos_args('configuration_data.set_quoted', str, str)
     @typed_kwargs('configuration_data.set_quoted', _CONF_DATA_SET_KWS)
     def set_quoted_method(self, args: T.Tuple[str, str], kwargs: 'kwargs.ConfigurationDataSet') -> None:
         self.__check_used()
         escaped_val = '\\"'.join(args[1].split('"'))
-        self.conf_data.values[args[0]] = (f'"{escaped_val}"', kwargs['description'])
+        self.held_object.values[args[0]] = (f'"{escaped_val}"', kwargs['description'])
 
     @typed_pos_args('configuration_data.set10', str, (int, bool))
     @typed_kwargs('configuration_data.set10', _CONF_DATA_SET_KWS)
     def set10_method(self, args: T.Tuple[str, T.Union[int, bool]], kwargs: 'kwargs.ConfigurationDataSet') -> None:
         self.__check_used()
-        self.conf_data.values[args[0]] = (int(args[1]), kwargs['description'])
+        self.held_object.values[args[0]] = (int(args[1]), kwargs['description'])
 
     @typed_pos_args('configuration_data.has', (str, int, bool))
     @noKwargs
     def has_method(self, args: T.Tuple[T.Union[str, int, bool]], kwargs: TYPE_kwargs) -> bool:
-        return args[0] in self.conf_data.values
+        return args[0] in self.held_object.values
 
     @FeatureNew('configuration_data.get()', '0.38.0')
     @noArgsFlattening
@@ -338,8 +334,8 @@ class ConfigurationDataObject(MutableInterpreterObject, MesonInterpreterObject):
     def get_method(self, args: T.Tuple[str, T.Optional[T.Union[str, int, bool]]],
                    kwargs: TYPE_kwargs) -> T.Union[str, int, bool]:
         name = args[0]
-        if name in self.conf_data:
-            return self.conf_data.get(name)[0]
+        if name in self.held_object:
+            return self.held_object.get(name)[0]
         elif args[1] is not None:
             return args[1]
         raise InterpreterException(f'Entry {name} not in configuration data.')
@@ -350,8 +346,8 @@ class ConfigurationDataObject(MutableInterpreterObject, MesonInterpreterObject):
     def get_unquoted_method(self, args: T.Tuple[str, T.Optional[T.Union[str, int, bool]]],
                             kwargs: TYPE_kwargs) -> T.Union[str, int, bool]:
         name = args[0]
-        if name in self.conf_data:
-            val = self.conf_data.get(name)[0]
+        if name in self.held_object:
+            val = self.held_object.get(name)[0]
         elif args[1] is not None:
             val = args[1]
         else:
@@ -361,7 +357,7 @@ class ConfigurationDataObject(MutableInterpreterObject, MesonInterpreterObject):
         return val
 
     def get(self, name: str) -> T.Tuple[T.Union[str, int, bool], T.Optional[str]]:
-        return self.conf_data.values[name]
+        return self.held_object.values[name]
 
     @FeatureNew('configuration_data.keys()', '0.57.0')
     @noPosargs
@@ -369,15 +365,13 @@ class ConfigurationDataObject(MutableInterpreterObject, MesonInterpreterObject):
         return sorted(self.keys())
 
     def keys(self) -> T.List[str]:
-        return list(self.conf_data.values.keys())
+        return list(self.held_object.values.keys())
 
-    @typed_pos_args('configuration_data.merge_from', object)  # yay for recursive type validation!
+    @typed_pos_args('configuration_data.merge_from', build.ConfigurationData)
     @noKwargs
-    def merge_from_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> None:
+    def merge_from_method(self, args: T.Tuple[build.ConfigurationData], kwargs: TYPE_kwargs) -> None:
         from_object = args[0]
-        if not isinstance(from_object, ConfigurationDataObject):
-            raise InterpreterException('Merge_from argument must be a configuration data object.')
-        self.conf_data.values.update(from_object.conf_data.values)
+        self.held_object.values.update(from_object.values)
 
 
 _PARTIAL_DEP_KWARGS = [

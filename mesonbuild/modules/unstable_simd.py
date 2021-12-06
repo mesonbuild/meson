@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from .. import mesonlib, compilers, mlog
+from .. import build
 
 from . import ExtensionModule
 
@@ -57,8 +58,7 @@ class SimdModule(ExtensionModule):
         compiler = kwargs['compiler']
         if not isinstance(compiler, compilers.compilers.Compiler):
             raise mesonlib.MesonException('Compiler argument must be a compiler object.')
-        cdata = self.interpreter.func_configuration_data(None, [], {})
-        conf = cdata.conf_data
+        conf = build.ConfigurationData()
         for iset in self.isets:
             if iset not in kwargs:
                 continue
@@ -82,7 +82,7 @@ class SimdModule(ExtensionModule):
             all_lang_args = old_lang_args + args
             lib_kwargs[langarg_key] = all_lang_args
             result.append(self.interpreter.func_static_lib(None, [libname], lib_kwargs))
-        return [result, cdata]
+        return [result, conf]
 
 def initialize(*args, **kwargs):
     return SimdModule(*args, **kwargs)
