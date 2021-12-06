@@ -124,21 +124,20 @@ class FeatureOptionHolder(ObjectHolder[coredata.UserFeatureOption]):
     def auto_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
         return self.value == 'auto'
 
-    @permittedKwargs({'error_message'})
     @typed_pos_args('feature_option.require', bool)
-    def require_method(self, args: T.Tuple[bool], kwargs: TYPE_kwargs) -> coredata.UserFeatureOption:
-        error_message = kwargs.pop('error_message', '')
-        if error_message and not isinstance(error_message, str):
-            raise InterpreterException("Error message must be a string.")
+    @typed_kwargs(
+        'feature_option.require',
+        KwargInfo('error_message', (str, NoneType))
+    )
+    def require_method(self, args: T.Tuple[bool], kwargs: 'kwargs.FeatureOptionRequire') -> coredata.UserFeatureOption:
         if args[0]:
             return copy.deepcopy(self.held_object)
 
-        assert isinstance(error_message, str)
         if self.value == 'enabled':
-            prefix = f'Feature {self.held_object.name} cannot be enabled'
-            if error_message:
-                prefix += ': '
-            raise InterpreterException(prefix + error_message)
+            err_msg = f'Feature {self.held_object.name} cannot be enabled'
+            if kwargs['error_message']:
+                err_msg += f': {kwargs["error_message"]}'
+            raise InterpreterException(err_msg)
         return self.as_disabled()
 
     @noKwargs
