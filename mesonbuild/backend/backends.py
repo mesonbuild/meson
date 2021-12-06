@@ -1058,7 +1058,7 @@ class Backend:
         tests.
         """
         result: T.Set[str] = set()
-        prospectives: T.Set[build.Target] = set()
+        prospectives: T.Set[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]] = set()
         if isinstance(target, build.BuildTarget):
             prospectives.update(target.get_transitive_link_deps())
             # External deps
