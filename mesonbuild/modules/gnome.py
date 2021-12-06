@@ -1437,7 +1437,8 @@ class GnomeModule(ExtensionModule):
 
     def _get_build_args(self, c_args: T.List[str], inc_dirs: T.List[T.Union[str, build.IncludeDirs]],
                         deps: T.List[T.Union[Dependency, build.SharedLibrary, build.StaticLibrary]],
-                        state: 'ModuleState', depends: T.List[build.BuildTarget]) -> T.List[str]:
+                        state: 'ModuleState',
+                        depends: T.Sequence[T.Union[build.BuildTarget, 'build.GeneratedTypes']]) -> T.List[str]:
         args: T.List[str] = []
         cflags = c_args.copy()
         deps_cflags, internal_ldflags, external_ldflags, *_ = \
