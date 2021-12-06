@@ -348,7 +348,9 @@ class ConfigurationDataObject(MutableInterpreterObject, MesonInterpreterObject):
         else:
             self.conf_data.values[name] = (0, desc)
 
-    def has_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
+    @typed_pos_args('configuration_data.has', (str, int, bool))
+    @noKwargs
+    def has_method(self, args: T.Tuple[T.Union[str, int, bool]], kwargs: TYPE_kwargs) -> bool:
         return args[0] in self.conf_data.values
 
     @FeatureNew('configuration_data.get()', '0.38.0')
