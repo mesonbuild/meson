@@ -383,9 +383,10 @@ class Installer:
         if not self.dry_run and not destdir:
             restore_selinux_contexts()
 
-    def apply_ldconfig(self, dm: DirMaker, destdir: str, libdir: str) -> None:
-        if not self.dry_run and not destdir:
-            apply_ldconfig(dm, libdir)
+    def apply_ldconfig(self, dm: DirMaker, destdir: str, is_cross_build: bool, libdir: str) -> None:
+        if any([self.dry_run, destdir, is_cross_build]):
+            return
+        apply_ldconfig(dm, libdir)
 
     def Popen_safe(self, *args: T.Any, **kwargs: T.Any) -> T.Tuple[int, str, str]:
         if not self.dry_run:
@@ -589,7 +590,7 @@ class Installer:
                 self.install_data(d, dm, destdir, fullprefix)
                 self.install_symlinks(d, dm, destdir, fullprefix)
                 self.restore_selinux_contexts(destdir)
-                self.apply_ldconfig(dm, destdir, libdir)
+                self.apply_ldconfig(dm, destdir, d.is_cross_build, libdir)
                 self.run_install_script(d, destdir, fullprefix)
                 if not self.did_install_something:
                     self.log('Nothing to install.')

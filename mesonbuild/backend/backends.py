@@ -109,7 +109,8 @@ class CleanTrees:
 class InstallData:
     def __init__(self, source_dir: str, build_dir: str, prefix: str, libdir: str,
                  strip_bin: T.List[str], install_umask: T.Union[str, int],
-                 mesonintrospect: T.List[str], version: str):
+                 mesonintrospect: T.List[str], version: str,
+                 is_cross_build: bool):
         # TODO: in python 3.8 or with typing_Extensions install_umask could be:
         # `T.Union[T.Literal['preserve'], int]`, which would be more accurate.
         self.source_dir = source_dir
@@ -128,6 +129,7 @@ class InstallData:
         self.install_subdirs: T.List[SubdirInstallData] = []
         self.mesonintrospect = mesonintrospect
         self.version = version
+        self.is_cross_build = is_cross_build
 
 class TargetInstallData:
 
@@ -1510,7 +1512,8 @@ class Backend:
                         strip_bin,
                         umask,
                         self.environment.get_build_command() + ['introspect'],
-                        self.environment.coredata.version)
+                        self.environment.coredata.version,
+                        self.environment.is_cross_build())
         self.generate_depmf_install(d)
         self.generate_target_install(d)
         self.generate_header_install(d)
