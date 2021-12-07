@@ -193,6 +193,7 @@ DEPFILE_KW: KwargInfo[T.Optional[str]] = KwargInfo(
     validator=lambda x: 'Depfile must be a plain filename with a subdirectory' if has_path_sep(x) else None
 )
 
+# TODO: CustomTargetIndex should be supported here as well
 DEPENDS_KW: KwargInfo[T.List[T.Union[BuildTarget, CustomTarget]]] = KwargInfo(
     'depends',
     ContainerTypeInfo(list, (BuildTarget, CustomTarget)),
