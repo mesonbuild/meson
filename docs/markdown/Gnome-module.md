@@ -120,18 +120,22 @@ typelib_target]`
 Generates a marshal file using the `glib-genmarshal` tool. The first
 argument is the basename of the output files.
 
-* `extra_args`: (*Added 0.42.0*) additional command line arguments to
-  pass
+* `depends` [](BuildTarget | CustomTarget | CustomTargetIndex):
+  passed directly to CustomTarget (*since 0.61.0*)
+* `depend_files` [](str | File): Passed directly to CustomTarget (*since 0.61.0*)
+* `extra_args`: (*Added 0.42.0*) additional command line arguments to pass
+* `install_dir`: directory to install header to
 * `install_header`: if true, install the generated header
 * `install_dir`: directory to install header to
-* `nostdinc`: if true, don't include the standard marshallers from
-  glib
-* `internal`: if true, mark generated sources as internal to
-  `glib-genmarshal` (*Requires GLib 2.54*)
+* `install_header`: if true, install the generated header
+* `internal`: if true, mark generated sources as internal to `glib-genmarshal`
+  (*Requires GLib 2.54*)
+* `nostdinc`: if true, don't include the standard marshallers from glib
 * `prefix`: the prefix to use for symbols
 * `skip_source`: if true, skip source location comments
-* `stdinc`: if true, include the standard marshallers from glib
+* `sources` []str *required*: List of string sources to consume
 * `sources`: the list of sources to use as inputs
+* `stdinc`: if true, include the standard marshallers from glib
 * `valist_marshallers`: if true, generate va_list marshallers
 
 *Added 0.35.0*
@@ -158,6 +162,7 @@ template with only minor tweaks, in which case the
 Note that if you `#include` the generated header in any of the sources
 for a build target, you must add the generated header to the build
 target's list of sources to codify the dependency. This is true for
+
 all generated sources, not just `mkenums`.
 
 * `c_template`: template to use for generating the source

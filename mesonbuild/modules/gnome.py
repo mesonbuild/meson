@@ -1692,7 +1692,7 @@ class GnomeModule(ExtensionModule):
 
     @permittedKwargs({'sources', 'prefix', 'install_header', 'install_dir', 'stdinc',
                       'nostdinc', 'internal', 'skip_source', 'valist_marshallers',
-                      'extra_args'})
+                      'extra_args', 'depends', 'depend_files'})
     @typed_pos_args('gnome.genmarshal', str)
     def genmarshal(self, state: 'ModuleState', args: T.Tuple[str], kwargs) -> ModuleReturnValue:
         output = args[0]
