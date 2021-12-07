@@ -1086,12 +1086,15 @@ class GnomeModule(ExtensionModule):
         self._devenv_prepend('GSETTINGS_SCHEMA_DIR', os.path.join(state.environment.get_build_dir(), state.subdir))
         return ModuleReturnValue(target_g, [target_g])
 
-    @FeatureDeprecatedKwargs('gnome.yelp', '0.43.0', ['languages'],
-                             'Use a LINGUAS file in the source directory instead')
     @typed_pos_args('gnome.yelp', str, varargs=str)
     @typed_kwargs(
         'gnome.yelp',
-        KwargInfo('languages', ContainerTypeInfo(list, str), listify=True, default=[]),
+        KwargInfo(
+            'languages', ContainerTypeInfo(list, str),
+            listify=True, default=[],
+            deprecated='0.43.0',
+            deprecated_message='Use a LINGUAS file in the source directory instead',
+        ),
         KwargInfo('media', ContainerTypeInfo(list, str), listify=True, default=[]),
         KwargInfo('sources', ContainerTypeInfo(list, str), listify=True, default=[]),
         KwargInfo('symlink_media', bool, default=True),
