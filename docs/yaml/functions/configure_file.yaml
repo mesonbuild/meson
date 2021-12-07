@@ -40,6 +40,13 @@ kwargs:
       argument, see [[custom_target]] for details about string
       substitutions.
 
+  configuration:
+    type: "cfg_data | dict[str | int | bool]"
+    description: |
+      As explained above, when passed this will provide the replacement
+      data for the input file (if provided) or key value pairs to be
+      written to the output.
+
   copy:
     type: bool
     default: false
