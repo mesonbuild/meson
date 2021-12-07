@@ -209,11 +209,10 @@ TEST_KWARGS: T.List[KwargInfo] = [
               default='exitcode',
               validator=in_set_validator({'exitcode', 'tap', 'gtest', 'rust'}),
               since_values={'gtest': '0.55.0', 'rust': '0.57.0'}),
-    KwargInfo('depends', ContainerTypeInfo(list, (build.CustomTarget, build.BuildTarget)),
-              listify=True, default=[], since='0.46.0'),
     KwargInfo('priority', int, default=0, since='0.52.0'),
     # TODO: env needs reworks of the way the environment variable holder itself works probably
     ENV_KW,
+    DEPENDS_KW.evolve(since='0.46.0'),
     KwargInfo('suite', ContainerTypeInfo(list, str), listify=True, default=['']),  # yes, a list of empty string
 ]
 
@@ -1822,8 +1821,8 @@ This will become a hard error in the future.''', location=node)
         KwargInfo('arguments', ContainerTypeInfo(list, str, allow_empty=False), required=True, listify=True),
         KwargInfo('output', ContainerTypeInfo(list, str, allow_empty=False), required=True, listify=True),
         DEPFILE_KW,
+        DEPENDS_KW,
         KwargInfo('capture', bool, default=False, since='0.43.0'),
-        KwargInfo('depends', ContainerTypeInfo(list, (build.BuildTarget, build.CustomTarget)), default=[], listify=True),
     )
     def func_generator(self, node: mparser.FunctionNode,
                        args: T.Tuple[T.Union[build.Executable, ExternalProgram]],
