@@ -521,8 +521,9 @@ class GnomeModule(ExtensionModule):
         rv = [target_c, target_h]
         return ModuleReturnValue(rv, rv)
 
+    @staticmethod
     def _get_gresource_dependencies(
-            self, state: 'ModuleState', input_file: str, source_dirs: T.List[str],
+            state: 'ModuleState', input_file: str, source_dirs: T.List[str],
             dependencies: T.Sequence[T.Union[mesonlib.File, build.CustomTarget, build.CustomTargetIndex]]
             ) -> T.Tuple[T.List[mesonlib.FileOrString], T.List[T.Union[build.CustomTarget, build.CustomTargetIndex]], T.List[str]]:
 
@@ -763,7 +764,8 @@ class GnomeModule(ExtensionModule):
         return p.returncode == 0 and option in o
 
     # May mutate depends and gir_inc_dirs
-    def _scan_include(self, state: 'ModuleState', includes: T.List[T.Union[str, GirTarget]]
+    @staticmethod
+    def _scan_include(state: 'ModuleState', includes: T.List[T.Union[str, GirTarget]]
                       ) -> T.Tuple[T.List[str], T.List[str], T.List[GirTarget]]:
         ret: T.List[str] = []
         gir_inc_dirs: T.List[str] = []
@@ -779,7 +781,8 @@ class GnomeModule(ExtensionModule):
 
         return ret, gir_inc_dirs, depends
 
-    def _scan_langs(self, state: 'ModuleState', langs: T.Iterable[str]) -> T.List[str]:
+    @staticmethod
+    def _scan_langs(state: 'ModuleState', langs: T.Iterable[str]) -> T.List[str]:
         ret: T.List[str] = []
 
         for lang in langs:
@@ -790,7 +793,8 @@ class GnomeModule(ExtensionModule):
 
         return ret
 
-    def _scan_gir_targets(self, state: 'ModuleState', girtargets: T.Sequence[build.BuildTarget]) -> T.List[T.Union[str, build.Executable]]:
+    @staticmethod
+    def _scan_gir_targets(state: 'ModuleState', girtargets: T.Sequence[build.BuildTarget]) -> T.List[T.Union[str, build.Executable]]:
         ret: T.List[T.Union[str, build.Executable]] = []
 
         for girtarget in girtargets:
@@ -823,7 +827,8 @@ class GnomeModule(ExtensionModule):
 
         return ret
 
-    def _get_girtargets_langs_compilers(self, girtargets: T.Sequence[build.BuildTarget]) -> T.List[T.Tuple[str, 'Compiler']]:
+    @staticmethod
+    def _get_girtargets_langs_compilers(girtargets: T.Sequence[build.BuildTarget]) -> T.List[T.Tuple[str, 'Compiler']]:
         ret: T.List[T.Tuple[str, 'Compiler']] = []
         for girtarget in girtargets:
             for lang, compiler in girtarget.compilers.items():
@@ -834,7 +839,8 @@ class GnomeModule(ExtensionModule):
 
         return ret
 
-    def _get_gir_targets_deps(self, girtargets: T.Sequence[build.BuildTarget]
+    @staticmethod
+    def _get_gir_targets_deps(girtargets: T.Sequence[build.BuildTarget]
                               ) -> T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, Dependency]]:
         ret: T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, Dependency]] = []
         for girtarget in girtargets:
@@ -842,13 +848,15 @@ class GnomeModule(ExtensionModule):
             ret += girtarget.get_external_deps()
         return ret
 
-    def _get_gir_targets_inc_dirs(self, girtargets: T.Sequence[build.BuildTarget]) -> T.List[build.IncludeDirs]:
+    @staticmethod
+    def _get_gir_targets_inc_dirs(girtargets: T.Sequence[build.BuildTarget]) -> T.List[build.IncludeDirs]:
         ret: T.List[build.IncludeDirs] = []
         for girtarget in girtargets:
             ret += girtarget.get_include_dirs()
         return ret
 
-    def _get_langs_compilers_flags(self, state: 'ModuleState', langs_compilers: T.List[T.Tuple[str, 'Compiler']]
+    @staticmethod
+    def _get_langs_compilers_flags(state: 'ModuleState', langs_compilers: T.List[T.Tuple[str, 'Compiler']]
                                    ) -> T.Tuple[T.List[str], T.List[str], T.List[str]]:
         cflags: T.List[str] = []
         internal_ldflags: T.List[str] = []
@@ -876,7 +884,8 @@ class GnomeModule(ExtensionModule):
 
         return cflags, internal_ldflags, external_ldflags
 
-    def _make_gir_filelist(self, state: 'ModuleState', srcdir: str, ns: str,
+    @staticmethod
+    def _make_gir_filelist(state: 'ModuleState', srcdir: str, ns: str,
                            nsversion: str, girtargets: T.Sequence[build.BuildTarget],
                            libsources: T.Sequence[T.Union[
                                str, mesonlib.File, build.GeneratedList,
@@ -904,8 +913,8 @@ class GnomeModule(ExtensionModule):
 
         return gir_filelist_filename
 
+    @staticmethod
     def _make_gir_target(
-            self,
             state: 'ModuleState',
             girfile: str,
             scan_command: T.Sequence[T.Union['FileOrString', Executable, ExternalProgram, OverrideProgram]],
@@ -935,7 +944,8 @@ class GnomeModule(ExtensionModule):
 
         return GirTarget(girfile, state.subdir, state.subproject, scankwargs)
 
-    def _make_typelib_target(self, state: 'ModuleState', typelib_output: str,
+    @staticmethod
+    def _make_typelib_target(state: 'ModuleState', typelib_output: str,
                              typelib_cmd: T.Sequence[T.Union[str, build.Executable, ExternalProgram, build.CustomTarget]],
                              generated_files: T.Sequence[T.Union[str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]],
                              kwargs: T.Dict[str, T.Any]) -> TypelibTarget:
@@ -961,8 +971,9 @@ class GnomeModule(ExtensionModule):
 
         return TypelibTarget(typelib_output, state.subdir, state.subproject, typelib_kwargs)
 
+    @staticmethod
     def _gather_typelib_includes_and_update_depends(
-            self, state: 'ModuleState',
+            state: 'ModuleState',
             deps: T.Sequence[T.Union[Dependency, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]],
             depends: T.Sequence[T.Union[build.BuildTarget, 'build.GeneratedTypes', 'FileOrString']]
             ) -> T.Tuple[T.List[str], T.List[T.Union[build.BuildTarget, 'build.GeneratedTypes', 'FileOrString']]]:
@@ -1001,7 +1012,8 @@ class GnomeModule(ExtensionModule):
                     typelib_includes.append(girdir)
         return typelib_includes, new_depends
 
-    def _get_external_args_for_langs(self, state: 'ModuleState', langs: T.Sequence[str]) -> T.List[str]:
+    @staticmethod
+    def _get_external_args_for_langs(state: 'ModuleState', langs: T.Sequence[str]) -> T.List[str]:
         ret: T.List[str] = []
         for lang in langs:
             ret += mesonlib.listify(state.environment.coredata.get_external_args(MachineChoice.HOST, lang))
