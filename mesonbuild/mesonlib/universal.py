@@ -155,7 +155,7 @@ if os.path.basename(sys.executable) == 'meson.exe':
     python_command = [sys.executable, 'runpython']
 else:
     python_command = [sys.executable]
-_meson_command = None
+_meson_command: T.Optional['ImmutableListProtocol[str]'] = None
 
 class MesonException(Exception):
     '''Exceptions thrown by Meson'''
@@ -230,7 +230,7 @@ def set_meson_command(mainfile: str) -> None:
         mlog.log(f'meson_command is {_meson_command!r}')
 
 
-def get_meson_command() -> T.Optional[T.List[str]]:
+def get_meson_command() -> T.Optional['ImmutableListProtocol[str]']:
     return _meson_command
 
 
