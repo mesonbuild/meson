@@ -46,7 +46,7 @@ class ExternalProgram(mesonlib.HoldableObject):
         self.path: T.Optional[str] = None
         self.cached_version: T.Optional[str] = None
         if command is not None:
-            self.command = mesonlib.listify(command)
+            self.command: T.List[str] = mesonlib.listify(command)
             if mesonlib.is_windows():
                 cmd = self.command[0]
                 args = self.command[1:]
@@ -90,6 +90,7 @@ class ExternalProgram(mesonlib.HoldableObject):
     def summary_value(self) -> T.Union[str, mlog.AnsiDecorator]:
         if not self.found():
             return mlog.red('NO')
+        assert self.path
         return self.path
 
     def __repr__(self) -> str:
@@ -114,6 +115,7 @@ class ExternalProgram(mesonlib.HoldableObject):
             if not match:
                 raise mesonlib.MesonException(f'Could not find a version number in output of {raw_cmd!r}')
             self.cached_version = match.group(1)
+        assert self.cached_version
         return self.cached_version
 
     @classmethod
@@ -143,7 +145,7 @@ class ExternalProgram(mesonlib.HoldableObject):
         # WindowsApps path in the search path, replace it with
         # dirname(sys.executable).
         appstore_dir = Path(os.environ['USERPROFILE']) / 'AppData' / 'Local' / 'Microsoft' / 'WindowsApps'
-        paths = []
+        paths: T.List[str] = []
         for each in path.split(os.pathsep):
             if Path(each) != appstore_dir:
                 paths.append(each)
@@ -223,7 +225,7 @@ class ExternalProgram(mesonlib.HoldableObject):
             return not os.path.isdir(path)
         return False
 
-    def _search_dir(self, name: str, search_dir: T.Optional[str]) -> T.Optional[list]:
+    def _search_dir(self, name: str, search_dir: T.Optional[str]) -> T.Optional[T.List[str]]:
         if search_dir is None:
             return None
         trial = os.path.join(search_dir, name)
@@ -242,7 +244,7 @@ class ExternalProgram(mesonlib.HoldableObject):
                         return [trial_ext]
         return None
 
-    def _search_windows_special_cases(self, name: str, command: str) -> T.List[T.Optional[str]]:
+    def _search_windows_special_cases(self, name: str, command: T.Optional[str]) -> T.List[str]:
         '''
         Lots of weird Windows quirks:
         1. PATH search for @name returns files with extensions from PATHEXT,
@@ -266,7 +268,7 @@ class ExternalProgram(mesonlib.HoldableObject):
             commands = self._shebang_to_cmd(command)
             if commands:
                 return commands
-            return [None]
+            return []
         # Maybe the name is an absolute path to a native Windows
         # executable, but without the extension. This is technically wrong,
         # but many people do it because it works in the MinGW shell.
@@ -283,9 +285,9 @@ class ExternalProgram(mesonlib.HoldableObject):
             commands = self._search_dir(name, search_dir)
             if commands:
                 return commands
-        return [None]
+        return []
 
-    def _search(self, name: str, search_dir: T.Optional[str]) -> T.List[T.Optional[str]]:
+    def _search(self, name: str, search_dir: T.Optional[str]) -> T.List[str]:
         '''
         Search in the specified dir for the specified executable by name
         and if not found search in PATH
@@ -295,7 +297,7 @@ class ExternalProgram(mesonlib.HoldableObject):
             return commands
         # If there is a directory component, do not look in PATH
         if os.path.dirname(name) and not os.path.isabs(name):
-            return [None]
+            return []
         # Do a standard search in PATH
         path = os.environ.get('PATH', None)
         if mesonlib.is_windows() and path:
@@ -305,7 +307,7 @@ class ExternalProgram(mesonlib.HoldableObject):
             return self._search_windows_special_cases(name, command)
         # On UNIX-like platforms, shutil.which() is enough to find
         # all executables whether in PATH or with an absolute path
-        return [command]
+        return [command] if command else []
 
     def found(self) -> bool:
         return self.command[0] is not None
@@ -325,7 +327,7 @@ class NonExistingExternalProgram(ExternalProgram):  # lgtm [py/missing-call-to-i
 
     def __init__(self, name: str = 'nonexistingprogram') -> None:
         self.name = name
-        self.command = [None]
+        self.command: T.List[str] = []
         self.path = None
 
     def __repr__(self) -> str:
