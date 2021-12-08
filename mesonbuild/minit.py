@@ -85,7 +85,7 @@ def autodetect_options(options: 'argparse.Namespace', sample: bool = False) -> N
         # The rest of the autodetection is not applicable to generating sample projects.
         return
     if not options.srcfiles:
-        srcfiles = []
+        srcfiles: T.List[Path] = []
         for f in (f for f in Path().iterdir() if f.is_file()):
             if f.suffix in LANG_SUFFIXES:
                 srcfiles.append(f)
@@ -176,7 +176,7 @@ def run(options: 'argparse.Namespace') -> int:
             print('Build directory already exists, deleting it.')
             shutil.rmtree(options.builddir)
         print('Building...')
-        cmd = mesonlib.get_meson_command() + [options.builddir]
+        cmd = T.cast(T.List[str], mesonlib.get_meson_command()) + [options.builddir]
         ret = subprocess.run(cmd)
         if ret.returncode:
             raise SystemExit
