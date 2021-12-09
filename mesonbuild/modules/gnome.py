@@ -1726,7 +1726,7 @@ class GnomeModule(ExtensionModule):
         DEPEND_FILES_KW.evolve(since='0.61.0'),
         DEPENDS_KW.evolve(since='0.61.0'),
         INSTALL_KW.evolve(name='install_header'),
-        KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True),
+        KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
         KwargInfo('install_dir', (str, NoneType)),
         KwargInfo('internal', (str, NoneType)),
         KwargInfo('nostdinc', (str, NoneType)),
