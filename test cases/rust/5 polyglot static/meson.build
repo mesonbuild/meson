@@ -6,7 +6,7 @@ deps = [
   dependency('threads'),
 ]
 
-extra_winlibs = meson.get_compiler('c').get_id() in ['msvc', 'clang-cl'] ? ['userenv.lib', 'ws2_32.lib'] : []
+extra_winlibs = meson.get_compiler('c').get_id() in ['msvc', 'clang-cl'] ? ['userenv.lib', 'ws2_32.lib', 'bcrypt.lib'] : []
 
 l = static_library('stuff', 'stuff.rs', rust_crate_type : 'staticlib', install : true)
 e = executable('prog', 'prog.c',
