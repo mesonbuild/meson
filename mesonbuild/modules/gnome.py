@@ -148,13 +148,13 @@ if T.TYPE_CHECKING:
         extra_args: T.List[str]
         install_dir: T.List[T.Union[str, bool]]
         install_header: bool
-        internal: T.Optional[str]
-        nostdinc: T.Optional[str]
+        internal: bool
+        nostdinc: bool
         prefix: T.Optional[str]
-        skip_source: T.Optional[str]
+        skip_source: bool
         sources: T.List[str]
-        stdinc: T.Optional[str]
-        valist_marshallers: T.Optional[str]
+        stdinc: bool
+        valist_marshallers: bool
 
     class GenerateVapi(TypedDict):
 
@@ -1728,13 +1728,13 @@ class GnomeModule(ExtensionModule):
         INSTALL_KW.evolve(name='install_header'),
         KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
         KwargInfo('install_dir', (str, NoneType)),
-        KwargInfo('internal', (str, NoneType)),
-        KwargInfo('nostdinc', (str, NoneType)),
+        KwargInfo('internal', bool, default=False),
+        KwargInfo('nostdinc', bool, default=False),
         KwargInfo('prefix', (str, NoneType)),
-        KwargInfo('skip_source', (str, NoneType)),
+        KwargInfo('skip_source', bool, default=False),
         KwargInfo('sources', ContainerTypeInfo(list, str, allow_empty=False), listify=True, required=True),
-        KwargInfo('stdinc', (str, NoneType)),
-        KwargInfo('valist_marshallers', (str, NoneType)),
+        KwargInfo('stdinc', bool, default=False),
+        KwargInfo('valist_marshallers', bool, default=False),
     )
     def genmarshal(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'GenMarshal') -> ModuleReturnValue:
         output = args[0]
@@ -1755,7 +1755,7 @@ class GnomeModule(ExtensionModule):
         for k in ['internal', 'nostdinc', 'skip_source', 'stdinc', 'valist_marshallers']:
             # Mypy can't figure out that this is correct
             if kwargs[k]:                                            # type: ignore
-                cmd.extend([f'--{k.replace("_", "-")}', kwargs[k]])  # type: ignore
+                cmd.append(f'--{k.replace("_", "-")}')
 
         install_header = kwargs['install_header']
         install_dir = kwargs['install_dir']
