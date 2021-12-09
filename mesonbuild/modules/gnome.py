@@ -1758,7 +1758,7 @@ class GnomeModule(ExtensionModule):
                 cmd.append(f'--{k.replace("_", "-")}')
 
         install_header = kwargs['install_header']
-        install_dir = kwargs['install_dir']
+        install_dir: T.List[T.Union[str, bool]] = kwargs['install_dir'] or []
 
 
         custom_kwargs: T.Dict[str, T.Any] = {
