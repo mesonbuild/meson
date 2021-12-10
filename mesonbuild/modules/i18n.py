@@ -184,7 +184,7 @@ class I18nModule(ExtensionModule):
 
         return ModuleReturnValue(ct, [ct])
 
-    @typed_pos_args('i81n.gettex', str)
+    @typed_pos_args('i81n.gettext', str)
     @typed_kwargs(
         'i18n.gettext',
         _ARGS,
