@@ -44,7 +44,7 @@ from . import mlog
 from .coredata import major_versions_differ, MesonVersionMismatchException
 from .coredata import version as coredata_version
 from .mesonlib import (MesonException, OrderedSet, RealPathAction,
-                       get_wine_shortpath, join_args, split_args)
+                       get_wine_shortpath, join_args, split_args, setup_vsenv)
 from .mintro import get_infodir, load_info_file
 from .programs import ExternalProgram
 from .backend.backends import TestProtocol, TestSerialisation
@@ -2000,6 +2000,9 @@ def run(options: argparse.Namespace) -> int:
         if not exe.found():
             print(f'Could not find requested program: {check_bin!r}')
             return 1
+
+    b = build.load(options.wd)
+    setup_vsenv(b.need_vsenv)
 
     with TestHarness(options) as th:
         try:
