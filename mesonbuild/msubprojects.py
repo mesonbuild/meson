@@ -205,6 +205,7 @@ class Runner:
             self.git_stash()
             self.git_output(['reset', '--hard', 'FETCH_HEAD'])
             self.wrap_resolver.apply_patch()
+            self.wrap_resolver.apply_diff_files()
         except GitException as e:
             self.log('  -> Could not reset', mlog.bold(self.repo_dir), 'to', mlog.bold(revision))
             self.log(mlog.red(e.output))
