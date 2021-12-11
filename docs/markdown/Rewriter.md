@@ -77,6 +77,17 @@ and print an error message.
 For more information see the help output of the rewriter target
 command.
 
+### Adding and removing `extra_files`
+
+*Since 0.61.0*
+
+In the same way you can add and remove source files from a target, you can modify a target's
+`extra_files` list:
+
+```bash
+meson rewrite target <target name/id> {add_extra_files/rm_extra_files} [list of extra files]
+```
+
 ### Setting the project version
 
 It is also possible to set kwargs of specific functions with the
@@ -191,7 +202,7 @@ The format for the type `target` is defined as follows:
 {
   "type": "target",
   "target": "target ID/name/assignment variable",
-  "operation": "one of ['src_add', 'src_rm', 'target_rm', 'target_add', 'info']",
+  "operation": "one of ['src_add', 'src_rm', 'target_rm', 'target_add', 'extra_files_add', 'extra_files_rm', 'info']",
   "sources": ["list", "of", "source", "files", "to", "add, remove"],
   "subdir": "subdir where the new target should be added (only has an effect for operation 'tgt_add')",
   "target_type": "function name of the new target -- same as in the CLI (only has an effect for operation 'tgt_add')"
