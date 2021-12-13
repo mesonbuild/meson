@@ -90,6 +90,7 @@ set in the cross file.
 | csky                | 32 bit CSky processor    |
 | dspic               | 16 bit Microchip dsPIC   |
 | e2k                 | MCST Elbrus processor    |
+| ft32                | 32 bit Bridgetek MCU     |
 | ia64                | Itanium processor        |
 | loongarch64         | 64 bit Loongson processor|
 | m68k                | Motorola 68000 processor |
