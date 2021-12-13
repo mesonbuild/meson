@@ -45,6 +45,7 @@ known_cpu_families = (
     'csky',
     'dspic',
     'e2k',
+    'ft32',
     'ia64',
     'loongarch64',
     'm68k',
