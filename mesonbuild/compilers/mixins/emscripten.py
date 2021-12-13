@@ -75,6 +75,7 @@ class EmscriptenMixin(Compiler):
             key: coredata.UserIntegerOption(
                 'Number of threads to use in web assembly, set to 0 to disable',
                 (0, None, 4),  # Default was picked at random
+                'thread_count',
             ),
         })
 

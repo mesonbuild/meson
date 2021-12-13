@@ -92,6 +92,7 @@ class ClangObjCCompiler(ClangCompiler, ObjCCompiler):
                 'C language standard to use',
                 ['none', 'c89', 'c99', 'c11', 'c17', 'gnu89', 'gnu99', 'gnu11', 'gnu17'],
                 'none',
+                'std',
             )
         })
         return opts

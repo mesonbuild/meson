@@ -176,6 +176,7 @@ class CPPCompiler(CLikeCompiler, Compiler):
                 'C++ language standard to use',
                 ['none'],
                 'none',
+                'std',
             ),
         })
         return opts
@@ -204,8 +205,9 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
                 'C++ exception handling type.',
                 ['none', 'default', 'a', 's', 'sc'],
                 'default',
+                'eh',
             ),
-            key.evolve('rtti'): coredata.UserBooleanOption('Enable RTTI', True),
+            key.evolve('rtti'): coredata.UserBooleanOption('Enable RTTI', True, 'rtti'),
         })
         opts[key.evolve('std')].choices = [
             'none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'c++1z',
@@ -217,6 +219,7 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
                 key.evolve('winlibs'): coredata.UserArrayOption(
                     'Standard Win libraries to link against',
                     gnu_winlibs,
+                    'winlibs',
                 ),
             })
         return opts
@@ -317,6 +320,7 @@ class ArmclangCPPCompiler(ArmclangCompiler, CPPCompiler):
                 'C++ exception handling type.',
                 ['none', 'default', 'a', 's', 'sc'],
                 'default',
+                'eh',
             ),
         })
         opts[key].choices = [
@@ -363,11 +367,13 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
                 'C++ exception handling type.',
                 ['none', 'default', 'a', 's', 'sc'],
                 'default',
+                'eh',
             ),
-            key.evolve('rtti'): coredata.UserBooleanOption('Enable RTTI', True),
+            key.evolve('rtti'): coredata.UserBooleanOption('Enable RTTI', True, 'rtti'),
             key.evolve('debugstl'): coredata.UserBooleanOption(
                 'STL debug mode',
                 False,
+                'debugstl',
             )
         })
         opts[key].choices = [
@@ -380,6 +386,7 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
                 key.evolve('winlibs'): coredata.UserArrayOption(
                     'Standard Win libraries to link against',
                     gnu_winlibs,
+                    'winlibs'
                 ),
             })
         return opts
@@ -484,10 +491,12 @@ class ElbrusCPPCompiler(ElbrusCompiler, CPPCompiler):
                 'C++ exception handling type.',
                 ['none', 'default', 'a', 's', 'sc'],
                 'default',
+                'eh',
             ),
             key.evolve('debugstl'): coredata.UserBooleanOption(
                 'STL debug mode',
                 False,
+                'debugstl',
             ),
         })
         opts[key].choices = cpp_stds
@@ -560,9 +569,10 @@ class IntelCPPCompiler(IntelGnuLikeCompiler, CPPCompiler):
                 'C++ exception handling type.',
                 ['none', 'default', 'a', 's', 'sc'],
                 'default',
+                'eh',
             ),
-            key.evolve('rtti'): coredata.UserBooleanOption('Enable RTTI', True),
-            key.evolve('debugstl'): coredata.UserBooleanOption('STL debug mode', False),
+            key.evolve('rtti'): coredata.UserBooleanOption('Enable RTTI', True, 'rtti'),
+            key.evolve('debugstl'): coredata.UserBooleanOption('STL debug mode', False, 'debugstl'),
         })
         opts[key].choices = ['none'] + c_stds + g_stds
         return opts
@@ -619,11 +629,13 @@ class VisualStudioLikeCPPCompilerMixin(CompilerMixinBase):
                 'C++ exception handling type.',
                 ['none', 'default', 'a', 's', 'sc'],
                 'default',
+                'eh',
             ),
-            key.evolve('rtti'): coredata.UserBooleanOption('Enable RTTI', True),
+            key.evolve('rtti'): coredata.UserBooleanOption('Enable RTTI', True, 'rtti'),
             key.evolve('winlibs'): coredata.UserArrayOption(
                 'Windows libs to link against.',
                 msvc_winlibs,
+                'winlibs',
             ),
         })
         opts[key.evolve('std')].choices = cpp_stds

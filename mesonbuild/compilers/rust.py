@@ -150,6 +150,7 @@ class RustCompiler(Compiler):
                 'Rust edition to use',
                 ['none', '2015', '2018', '2021'],
                 'none',
+                'std',
             ),
         }
 

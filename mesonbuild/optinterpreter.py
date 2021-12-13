@@ -182,42 +182,43 @@ class OptionInterpreter:
         self.options[key] = opt
 
     @permittedKwargs({'value', 'yield'})
-    def string_parser(self, description: str, kwargs: 'ParserArgs') -> coredata.UserOption:
+    def string_parser(self, opt_name: str, description: str, kwargs: 'ParserArgs') -> coredata.UserOption:
         value = kwargs.get('value', '')
-        return coredata.UserStringOption(description, value, kwargs['yield'])
+        return coredata.UserStringOption(description, value, opt_name, kwargs['yield'])
 
     @permittedKwargs({'value', 'yield'})
-    def boolean_parser(self, description: str, kwargs: 'ParserArgs') -> coredata.UserOption:
+    def boolean_parser(self, opt_name: str, description: str, kwargs: 'ParserArgs') -> coredata.UserOption:
         value = kwargs.get('value', True)
-        return coredata.UserBooleanOption(description, value, kwargs['yield'])
+        return coredata.UserBooleanOption(description, value, opt_name, kwargs['yield'])
 
     @permittedKwargs({'value', 'yield', 'choices'})
-    def combo_parser(self, description: str, kwargs: 'ParserArgs') -> coredata.UserOption:
+    def combo_parser(self, opt_name: str, description: str, kwargs: 'ParserArgs') -> coredata.UserOption:
         choices = kwargs.get('choices')
         if not choices:
-            raise OptionException('Combo option missing "choices" keyword.')
+            raise OptionException(f'Choice list for combo option "{opt_name}" misses "choices" keyword.')
         value = kwargs.get('value', choices[0])
-        return coredata.UserComboOption(description, choices, value, kwargs['yield'])
+        return coredata.UserComboOption(description, choices, value, opt_name, kwargs['yield'])
 
     @permittedKwargs({'value', 'min', 'max', 'yield'})
-    def integer_parser(self, description: str, kwargs: 'ParserArgs') -> coredata.UserOption:
+    def integer_parser(self, opt_name: str, description: str, kwargs: 'ParserArgs') -> coredata.UserOption:
         value = kwargs.get('value')
         if value is None:
-            raise OptionException('Integer option must contain value argument.')
+            raise OptionException(f'Integer option "{opt_name}" must contain a "value" argument.')
         inttuple = (kwargs.get('min'), kwargs.get('max'), value)
-        return coredata.UserIntegerOption(description, inttuple, kwargs['yield'])
+        return coredata.UserIntegerOption(description, inttuple, opt_name, kwargs['yield'])
 
     @permittedKwargs({'value', 'yield', 'choices'})
-    def string_array_parser(self, description: str, kwargs: 'ParserArgs') -> coredata.UserOption:
+    def string_array_parser(self, opt_name: str, description: str, kwargs: 'ParserArgs') -> coredata.UserOption:
         choices = kwargs.get('choices', [])
         value = kwargs.get('value', choices)
         if not isinstance(value, list):
-            raise OptionException('Array choices must be passed as an array.')
+            raise OptionException(f'Choice options "{choices}" for array option "{opt_name}" must be passed as an array.')
         return coredata.UserArrayOption(description, value,
                                         choices=choices,
+                                        opt_name=opt_name,
                                         yielding=kwargs['yield'])
 
     @permittedKwargs({'value', 'yield'})
-    def feature_parser(self, description: str, kwargs: 'ParserArgs') -> coredata.UserOption:
+    def feature_parser(self, opt_name: str, description: str, kwargs: 'ParserArgs') -> coredata.UserOption:
         value = kwargs.get('value', 'auto')
-        return coredata.UserFeatureOption(description, value, kwargs['yield'])
+        return coredata.UserFeatureOption(description, value, opt_name, kwargs['yield'])

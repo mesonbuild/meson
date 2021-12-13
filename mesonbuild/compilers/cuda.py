@@ -614,9 +614,9 @@ class CudaCompiler(Compiler):
         ccbindir_key = OptionKey('ccbindir', machine=self.for_machine, lang=self.language)
         opts.update({
             std_key:      coredata.UserComboOption('C++ language standard to use with CUDA',
-                                                   ['none', 'c++03', 'c++11', 'c++14', 'c++17'], 'none'),
+                                                   ['none', 'c++03', 'c++11', 'c++14', 'c++17'], 'none', 'std'),
             ccbindir_key: coredata.UserStringOption('CUDA non-default toolchain directory to use (-ccbin)',
-                                                    ''),
+                                                    '', 'ccbindir'),
         })
         return opts
 
