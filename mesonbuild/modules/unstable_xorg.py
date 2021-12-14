@@ -6,12 +6,14 @@ import typing as T
 
 from . import NewExtensionModule, ModuleReturnValue
 from .. import mesonlib
-from ..build import InvalidArguments, CustomTarget
-from ..interpreterbase import FeatureNew, KwargInfo, typed_kwargs, typed_pos_args
+from .. import mlog
+from ..build import InvalidArguments, CustomTarget, ConfigurationData
+from ..interpreterbase import FeatureNew, KwargInfo, noKwargs, noPosargs, typed_kwargs, typed_pos_args
 
 if T.TYPE_CHECKING:
     from . import ModuleState
     from ..interpreter import Interpreter
+    from ..interpreterbase import TYPE_var, TYPE_kwargs
 
     from typing_extensions import TypedDict
 
@@ -58,6 +60,7 @@ class XorgModule(NewExtensionModule):
         super().__init__()
         self.methods.update({
             'format_man': self.format_man_method,
+            'xtrans_connection': self.xtrans_connection_method,
         })
 
     def _uses_sysv_man_sections(self) -> bool:
@@ -134,6 +137,40 @@ class XorgModule(NewExtensionModule):
         )
 
         return ModuleReturnValue(ct, [ct])
+
+    @noPosargs
+    @noKwargs
+    def xtrans_connection_method(self, state: 'ModuleState', args: T.List['TYPE_var'],
+                                 kwargs: 'TYPE_kwargs') -> ModuleReturnValue:
+        conf = ConfigurationData()
+
+        key = mesonlib.OptionKey('xtrans-unix-transport', module='xorg')
+
+        def use(f: bool) -> mlog.AnsiDecorator:
+            return mlog.green('YES') if f else mlog.red('NO')
+
+        unix = state.environment.coredata.get_option(key)
+        assert isinstance(unix, str), 'for mypy'
+        # TODO: a more robust check here, maybe an actual cc.compiles check?
+        if unix == 'enabled' or (unix == 'auto' and state.environment.machines.host.system != 'windows'):
+            conf.values['UNIXCONN'] = (1, 'Support UNIX socket connections')
+        mlog.log('Xtrans using Unix domain sockets', use('UNIXCONN' in conf.values))
+
+        tcp = state.environment.coredata.get_option(key.evolve('xtrans-tcp-transport'))
+        assert isinstance(tcp, bool), 'for mypy'
+        if tcp:
+            conf.values['TCPCONN'] = (1, 'Support TCP socket connections')
+        mlog.log('Xtrans using TCP sockets', use('TCPCONN' in conf.values))
+
+        local = state.environment.coredata.get_option(key.evolve('xtrans-local-transport'))
+        assert isinstance(local, str), 'for mypy'
+        # the original m4 provides for sco and sysv4 as well as sunos/solaris,
+        # but that doesn't seem relavent in 2021
+        if local == 'enabled' or (local == 'auto' and state.environment.machines.host.system == 'sunos'):
+            conf.values['LOCALCONN'] = (1, 'Support Operating System specific connections')
+        mlog.log('Xtrans using OS specific transport', use('LOCALCONN' in conf.values))
+
+        return ModuleReturnValue(conf, [conf])
 
 
 def initialize(interp: 'Interpreter') -> XorgModule:

@@ -51,3 +51,44 @@ xorg.format_man('man.page', 'lib')
 | lib         | 3                | 3                  |
 | misc        | 5                | 7                  |
 | file        | 4                | 5                  |
+
+
+### xtrans_connection
+
+```
+  xtrans_connection(): ConfiguratinoData
+```
+
+This function provides an equivalent to the xtrans.m4 macro
+`XTRANS_CONNECTION_FLAGS`. It takes no options, and returns a ConfigurationData
+object, such as would be returned by `configuration_data()`. It uses three new,
+module specific options, the `xorg.xtrans-tcp-transport`,
+`xorg.xtrans-unix-transport` and `xorg.xtrans-local-transport`
+
+The first option is a boolean option, which defaults to `true`, the latter two
+are feature options, and default to `auto`. It can be used as follows:
+
+```meson
+xorg = import('unstable-xorg')
+
+conf = xorg.xtrans_connection()
+
+configure_file(
+  configuration : conf,
+  output : config.h,
+)
+```
+
+If you already have a `configuration_data` object, you can merge them together:
+
+```meson
+xorg = import('unstable-xorg')
+
+conf = configuration_data()
+conf.merge_from(xorg.xtrans_connection())
+
+configure_file(
+  configuration : conf,
+  output : config.h,
+)
+```
