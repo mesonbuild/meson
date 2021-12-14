@@ -253,7 +253,7 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=abc.ABCMeta):
             return
 
         # Query library path, header path, and binary path
-        stdo = self.get_config_value(['-query'], 'args')
+        stdo = self.get_config_value(['-query'], 'qmake variables')
         qvars: T.Dict[str, str] = {}
         for line in stdo:
             line = line.strip()
@@ -318,6 +318,9 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=abc.ABCMeta):
         if self.env.machines[self.for_machine].is_windows() and self.qtmain:
             if not self._link_with_qtmain(is_debug, libdir):
                 self.is_found = False
+
+    def get_configtool_args_for_variable(self, variable_name: str) -> T.List[str]:
+        return self.config + ['-query', variable_name]
 
     def _sanitize_version(self, version: str) -> str:
         m = re.search(rf'({self.qtver}(\.\d+)+)', version)
