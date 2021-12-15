@@ -18,11 +18,13 @@ import typing as T
 
 from . import ExtensionModule, ModuleObject, MutableModuleObject
 from .. import build
+from .. import dependencies
 from .. import mesonlib
 from ..interpreterbase import (
     noPosargs, noKwargs, permittedKwargs,
     InterpreterException, InvalidArguments, InvalidCode, FeatureNew,
 )
+from ..interpreterbase.decorators import typed_pos_args
 from ..mesonlib import listify, OrderedSet
 
 if T.TYPE_CHECKING:
@@ -33,7 +35,16 @@ if T.TYPE_CHECKING:
 SourceSetRule = namedtuple('SourceSetRule', 'keys sources if_false sourcesets dependencies extra_deps')
 SourceFiles = namedtuple('SourceFiles', 'sources dependencies')
 
-class SourceSet(MutableModuleObject):
+
+class SourceSet:
+    """Base class to avoid circular references.
+
+    Because of error messages, this class is called SourceSet, and the actual
+    implementation is an Impl.
+    """
+
+
+class SourceSetImpl(SourceSet, MutableModuleObject):
     def __init__(self, interpreter: Interpreter):
         super().__init__()
         self.rules = []
@@ -81,15 +92,18 @@ class SourceSet(MutableModuleObject):
         return keys, deps
 
     @permittedKwargs(['when', 'if_false', 'if_true'])
-    def add_method(self, state: ModuleState, args, kwargs):
+    @typed_pos_args('sourceset.add', varargs=(str, mesonlib.File, build.GeneratedList, build.CustomTarget, build.CustomTargetIndex, dependencies.Dependency))
+    def add_method(self, state: ModuleState,
+                   args: T.Tuple[T.List[T.Union[mesonlib.FileOrString, build.GeneratedTypes, dependencies.Dependency]]],
+                   kwargs):
         if self.frozen:
             raise InvalidCode('Tried to use \'add\' after querying the source set')
         when = listify(kwargs.get('when', []))
         if_true = listify(kwargs.get('if_true', []))
         if_false = listify(kwargs.get('if_false', []))
         if not when and not if_true and not if_false:
-            if_true = args
-        elif args:
+            if_true = args[0]
+        elif args[0]:
             raise InterpreterException('add called with both positional and keyword arguments')
         keys, dependencies = self.check_conditions(when)
         sources, extra_deps = self.check_source_files(if_true, True)
@@ -97,18 +111,19 @@ class SourceSet(MutableModuleObject):
         self.rules.append(SourceSetRule(keys, sources, if_false, [], dependencies, extra_deps))
 
     @permittedKwargs(['when', 'if_true'])
-    def add_all_method(self, state: ModuleState, args, kwargs):
+    @typed_pos_args('sourceset.add_all', varargs=SourceSet)
+    def add_all_method(self, state: ModuleState, args: T.Tuple[T.List[SourceSetImpl]], kwargs):
         if self.frozen:
             raise InvalidCode('Tried to use \'add_all\' after querying the source set')
         when = listify(kwargs.get('when', []))
         if_true = listify(kwargs.get('if_true', []))
         if not when and not if_true:
-            if_true = args
-        elif args:
+            if_true = args[0]
+        elif args[0]:
             raise InterpreterException('add_all called with both positional and keyword arguments')
         keys, dependencies = self.check_conditions(when)
         for s in if_true:
-            if not isinstance(s, SourceSet):
+            if not isinstance(s, SourceSetImpl):
                 raise InvalidCode('Arguments to \'add_all\' after the first must be source sets')
             s.frozen = True
         self.rules.append(SourceSetRule(keys, [], [], if_true, dependencies, []))
@@ -145,9 +160,8 @@ class SourceSet(MutableModuleObject):
         return list(files.dependencies)
 
     @permittedKwargs(['strict'])
-    def apply_method(self, state: ModuleState, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('Apply takes exactly one argument')
+    @typed_pos_args('sourceset.apply', (build.ConfigurationData, dict))
+    def apply_method(self, state: ModuleState, args: T.Tuple[T.Union[build.ConfigurationData, T.Dict[str, TYPE_var]]], kwargs):
         config_data = args[0]
         self.frozen = True
         strict = kwargs.get('strict', True)
@@ -203,8 +217,8 @@ class SourceSetModule(ExtensionModule):
 
     @noKwargs
     @noPosargs
-    def source_set(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> SourceSet:
-        return SourceSet(self.interpreter)
+    def source_set(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> SourceSetImpl:
+        return SourceSetImpl(self.interpreter)
 
 def initialize(interp: Interpreter) -> SourceSetModule:
     return SourceSetModule(interp)
