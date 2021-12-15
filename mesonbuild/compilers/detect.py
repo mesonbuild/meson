@@ -292,9 +292,9 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
             linkers = default_linkers
     popen_exceptions = {}
     for linker in linkers:
-        if not {'lib', 'lib.exe', 'llvm-lib', 'llvm-lib.exe', 'xilib', 'xilib.exe'}.isdisjoint(linker):
+        if any(os.path.basename(x) in {'lib', 'lib.exe', 'llvm-lib', 'llvm-lib.exe', 'xilib', 'xilib.exe'} for x in linker):
             arg = '/?'
-        elif not {'ar2000', 'ar2000.exe'}.isdisjoint(linker):
+        elif any(os.path.basename(x) in {'ar2000', 'ar2000.exe'} for x in linker):
             arg = '?'
         else:
             arg = '--version'
@@ -320,11 +320,11 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
         if 'GDC' in out and ' based on D ' in out:
             assert isinstance(compiler, DCompiler)
             return DLinker(linker, compiler.arch)
-        if err.startswith('Renesas') and ('rlink' in linker or 'rlink.exe' in linker):
+        if err.startswith('Renesas') and ('rlink' in linker or 'rlink.exe' in linker): #FIXME
             return CcrxLinker(linker)
-        if out.startswith('GNU ar') and ('xc16-ar' in linker or 'xc16-ar.exe' in linker):
+        if out.startswith('GNU ar') and ('xc16-ar' in linker or 'xc16-ar.exe' in linker): #FIXME
             return Xc16Linker(linker)
-        if out.startswith('TMS320C2000') and ('ar2000' in linker or 'ar2000.exe' in linker):
+        if out.startswith('TMS320C2000') and ('ar2000' in linker or 'ar2000.exe' in linker): #FIXME
             return C2000Linker(linker)
         if out.startswith('The CompCert'):
             return CompCertLinker(linker)
