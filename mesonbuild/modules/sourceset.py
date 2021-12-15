@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
 from collections import namedtuple
+import typing as T
 
 from . import ExtensionModule, ModuleObject, MutableModuleObject
 from .. import build
@@ -23,11 +25,16 @@ from ..interpreterbase import (
 )
 from ..mesonlib import listify, OrderedSet
 
+if T.TYPE_CHECKING:
+    from . import ModuleState
+    from ..interpreter import Interpreter
+    from ..interpreterbase import TYPE_var, TYPE_kwargs
+
 SourceSetRule = namedtuple('SourceSetRule', 'keys sources if_false sourcesets dependencies extra_deps')
 SourceFiles = namedtuple('SourceFiles', 'sources dependencies')
 
 class SourceSet(MutableModuleObject):
-    def __init__(self, interpreter):
+    def __init__(self, interpreter: Interpreter):
         super().__init__()
         self.rules = []
         self.subproject = interpreter.subproject
@@ -74,7 +81,7 @@ class SourceSet(MutableModuleObject):
         return keys, deps
 
     @permittedKwargs(['when', 'if_false', 'if_true'])
-    def add_method(self, state, args, kwargs):
+    def add_method(self, state: ModuleState, args, kwargs):
         if self.frozen:
             raise InvalidCode('Tried to use \'add\' after querying the source set')
         when = listify(kwargs.get('when', []))
@@ -90,7 +97,7 @@ class SourceSet(MutableModuleObject):
         self.rules.append(SourceSetRule(keys, sources, if_false, [], dependencies, extra_deps))
 
     @permittedKwargs(['when', 'if_true'])
-    def add_all_method(self, state, args, kwargs):
+    def add_all_method(self, state: ModuleState, args, kwargs):
         if self.frozen:
             raise InvalidCode('Tried to use \'add_all\' after querying the source set')
         when = listify(kwargs.get('when', []))
@@ -124,7 +131,7 @@ class SourceSet(MutableModuleObject):
 
     @noKwargs
     @noPosargs
-    def all_sources_method(self, state, args, kwargs):
+    def all_sources_method(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs):
         self.frozen = True
         files = self.collect(lambda x: True, True)
         return list(files.sources)
@@ -132,13 +139,13 @@ class SourceSet(MutableModuleObject):
     @noKwargs
     @noPosargs
     @FeatureNew('source_set.all_dependencies() method', '0.52.0')
-    def all_dependencies_method(self, state, args, kwargs):
+    def all_dependencies_method(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs):
         self.frozen = True
         files = self.collect(lambda x: True, True)
         return list(files.dependencies)
 
     @permittedKwargs(['strict'])
-    def apply_method(self, state, args, kwargs):
+    def apply_method(self, state: ModuleState, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Apply takes exactly one argument')
         config_data = args[0]
@@ -178,26 +185,26 @@ class SourceFilesObject(ModuleObject):
 
     @noPosargs
     @noKwargs
-    def sources_method(self, state, args, kwargs):
+    def sources_method(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs):
         return list(self.files.sources)
 
     @noPosargs
     @noKwargs
-    def dependencies_method(self, state, args, kwargs):
+    def dependencies_method(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs):
         return list(self.files.dependencies)
 
 class SourceSetModule(ExtensionModule):
     @FeatureNew('SourceSet module', '0.51.0')
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, interpreter: Interpreter):
+        super().__init__(interpreter)
         self.methods.update({
             'source_set': self.source_set,
         })
 
     @noKwargs
     @noPosargs
-    def source_set(self, state, args, kwargs):
+    def source_set(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> SourceSet:
         return SourceSet(self.interpreter)
 
-def initialize(*args, **kwargs):
-    return SourceSetModule(*args, **kwargs)
+def initialize(interp: Interpreter) -> SourceSetModule:
+    return SourceSetModule(interp)
