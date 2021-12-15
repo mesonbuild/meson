@@ -72,13 +72,14 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     override = []  # type: T.List[str]
     value = env.lookup_binary_entry(for_machine, comp_class.language + '_ld')
     if value is not None:
+        compiler = value # If meson is explicitly told a value for the linker so use it!
         override = comp_class.use_linker_args(value[0])
         check_args += override
 
     if extra_args is not None:
         check_args.extend(extra_args)
 
-    p, o, _ = Popen_safe(compiler + check_args)
+    p, o, _ = Popen_safe(compiler + check_args) # This assume whatever 'compiler' is, is either on PATH or it is an absolute path to a valid executable!
     if 'LLD' in o.split('\n')[0]:
         if '(compatible with GNU linkers)' in o:
             return LLVMDynamicLinker(
@@ -88,10 +89,6 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
             return ClangClDynamicLinker(
                 for_machine, override, exelist=compiler, prefix=comp_class.LINKER_PREFIX,
                 version=search_version(o), direct=False, machine=None)
-
-    if value is not None and invoked_directly:
-        compiler = value
-        # We've already hanedled the non-direct case above
 
     p, o, e = Popen_safe(compiler + check_args)
     if 'LLD' in o.split('\n')[0]:
