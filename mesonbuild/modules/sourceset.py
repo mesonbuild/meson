@@ -13,14 +13,15 @@
 # limitations under the License.
 
 from collections import namedtuple
-from .. import mesonlib
-from .. import build
-from ..mesonlib import listify, OrderedSet
+
 from . import ExtensionModule, ModuleObject, MutableModuleObject
+from .. import build
+from .. import mesonlib
 from ..interpreterbase import (
     noPosargs, noKwargs, permittedKwargs,
     InterpreterException, InvalidArguments, InvalidCode, FeatureNew,
 )
+from ..mesonlib import listify, OrderedSet
 
 SourceSetRule = namedtuple('SourceSetRule', 'keys sources if_false sourcesets dependencies extra_deps')
 SourceFiles = namedtuple('SourceFiles', 'sources dependencies')
