@@ -41,6 +41,14 @@ if T.TYPE_CHECKING:
         include_directories: T.List[T.Union[str, build.IncludeDirs]]
         args: T.List[str]
 
+    class RcKwargs(TypedDict):
+        output: str
+        input: T.List[T.Union[mesonlib.FileOrString, build.CustomTargetIndex]]
+        depfile: T.Optional[str]
+        depend_files: T.List[mesonlib.FileOrString]
+        depends: T.List[T.Union[build.BuildTarget, build.CustomTarget]]
+        command: T.List[T.Union[str, ExternalProgram]]
+
 class ResourceCompilerType(enum.Enum):
     windres = 1
     rc = 2
@@ -174,11 +182,13 @@ class WindowsModule(ExtensionModule):
             command.append(rescomp)
             command.extend(res_args)
 
-            res_kwargs = {
+            res_kwargs: 'RcKwargs' = {
                 'output': output,
                 'input': [src],
+                'depfile': None,
                 'depend_files': wrc_depend_files,
                 'depends': wrc_depends,
+                'command': [],
             }
 
             # instruct binutils windres to generate a preprocessor depfile
