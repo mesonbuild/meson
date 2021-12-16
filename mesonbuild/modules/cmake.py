@@ -19,7 +19,7 @@ import typing as T
 from . import ExtensionModule, ModuleReturnValue, ModuleObject
 
 from .. import build, mesonlib, mlog, dependencies
-from ..cmake import SingleTargetOptions, TargetOptions, cmake_defines_to_args
+from ..cmake import SingleTargetOptions, TargetOptions, cmake_defines_to_args, CMakeExecutor
 from ..interpreter import ConfigurationDataObject, SubprojectHolder
 from ..interpreterbase import (
     FeatureNew,
@@ -34,8 +34,6 @@ from ..interpreterbase import (
     InvalidArguments,
     InterpreterException,
 )
-from ..programs import ExternalProgram
-
 
 COMPATIBILITIES = ['AnyNewerVersion', 'SameMajorVersion', 'SameMinorVersion', 'ExactVersion']
 
@@ -237,7 +235,7 @@ class CmakeModule(ExtensionModule):
         if self.cmake_detected:
             return True
 
-        cmakebin = ExternalProgram('cmake', silent=False)
+        cmakebin = CMakeExecutor(self.interpreter.environment, '>=3.4', mesonlib.MachineChoice.HOST)
         if not cmakebin.found():
             return False
 
