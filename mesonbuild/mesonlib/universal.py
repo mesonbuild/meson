@@ -1731,9 +1731,7 @@ class OrderedSet(T.MutableSet[_T]):
         return 'OrderedSet()'
 
     def __reversed__(self) -> T.Iterator[_T]:
-        # Mypy is complaining that sets can't be reversed, which is true for
-        # unordered sets, but this is an ordered, set so reverse() makes sense.
-        return reversed(self.__container.keys())  # type: ignore
+        return reversed(self.__container.keys())
 
     def add(self, value: _T) -> None:
         self.__container[value] = None
