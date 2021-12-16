@@ -54,6 +54,7 @@ from .c import (
     AppleClangCCompiler,
     ArmCCompiler,
     ArmclangCCompiler,
+    ArmLtdClangCCompiler,
     ClangCCompiler,
     ClangClCCompiler,
     GnuCCompiler,
@@ -74,6 +75,7 @@ from .cpp import (
     AppleClangCPPCompiler,
     ArmCPPCompiler,
     ArmclangCPPCompiler,
+    ArmLtdClangCPPCompiler,
     ClangCPPCompiler,
     ClangClCPPCompiler,
     GnuCPPCompiler,
@@ -97,6 +99,7 @@ from .d import (
 from .cuda import CudaCompiler
 from .fortran import (
     FortranCompiler,
+    ArmLtdFlangFortranCompiler,
     G95FortranCompiler,
     GnuFortranCompiler,
     ElbrusFortranCompiler,
@@ -462,6 +465,20 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
                 ccache + compiler, version, for_machine, is_cross, info,
                 exe_wrap, linker=linker, full_version=full_version)
 
+        if 'Arm C/C++/Fortran Compiler' in out:
+            arm_ver_match = re.search('version (\d+)\.(\d+) \(build number (\d+)\)', out)
+            arm_ver_major = arm_ver_match.group(1)
+            arm_ver_minor = arm_ver_match.group(2)
+            arm_ver_build = arm_ver_match.group(3)
+            version = '.'.join([arm_ver_major, arm_ver_minor, arm_ver_build])
+            if lang == 'c':
+                cls = ArmLtdClangCCompiler
+            elif lang == 'cpp':
+                cls = ArmLtdClangCPPCompiler
+            linker = guess_nix_linker(env, compiler, cls, for_machine)
+            return cls(
+                ccache + compiler, version, for_machine, is_cross, info,
+                exe_wrap, linker=linker)
         if 'armclang' in out:
             # The compiler version is not present in the first line of output,
             # instead it is present in second line, startswith 'Component:'.
@@ -711,6 +728,17 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
                         compiler, version, for_machine, is_cross, info,
                         exe_wrap, defines, full_version=full_version, linker=linker)
 
+            if 'Arm C/C++/Fortran Compiler' in out:
+                cls = ArmLtdFlangFortranCompiler
+                arm_ver_match = re.search('version (\d+)\.(\d+) \(build number (\d+)\)', out)
+                arm_ver_major = arm_ver_match.group(1)
+                arm_ver_minor = arm_ver_match.group(2)
+                arm_ver_build = arm_ver_match.group(3)
+                version = '.'.join([arm_ver_major, arm_ver_minor, arm_ver_build])
+                linker = guess_nix_linker(env, compiler, cls, for_machine)
+                return cls(
+                    ccache + compiler, version, for_machine, is_cross, info,
+                    exe_wrap, linker=linker)
             if 'G95' in out:
                 cls = G95FortranCompiler
                 linker = guess_nix_linker(env, compiler, cls, for_machine)

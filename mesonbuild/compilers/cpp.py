@@ -155,7 +155,7 @@ class CPPCompiler(CLikeCompiler, Compiler):
         }
 
         # Currently, remapping is only supported for Clang, Elbrus and GCC
-        assert self.id in frozenset(['clang', 'lcc', 'gcc', 'emscripten'])
+        assert self.id in frozenset(['clang', 'lcc', 'gcc', 'emscripten', 'armltdclang'])
 
         if cpp_std not in CPP_FALLBACKS:
             # 'c++03' and 'c++98' don't have fallback types
@@ -257,6 +257,12 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
             for d in search_dir.split()[-1][len('libraries: ='):].split(':'):
                 search_dirs.append(f'-L{d}')
         return search_dirs + ['-lstdc++']
+
+
+class ArmLtdClangCPPCompiler(ClangCPPCompiler):
+    def __init__(self, *args, **kwargs):
+        ClangCPPCompiler.__init__(self, *args, **kwargs)
+        self.id = 'armltdclang'
 
 
 class AppleClangCPPCompiler(ClangCPPCompiler):

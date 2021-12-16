@@ -183,6 +183,13 @@ class ClangCCompiler(_ClangCStds, ClangCompiler, CCompiler):
         return []
 
 
+class ArmLtdClangCCompiler(ClangCCompiler):
+
+    def __init__(self, *args, **kwargs):
+        ClangCCompiler.__init__(self, *args, **kwargs)
+        self.id = 'armltdclang'
+
+
 class AppleClangCCompiler(ClangCCompiler):
 
     """Handle the differences between Apple Clang and Vanilla Clang.
