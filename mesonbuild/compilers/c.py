@@ -211,6 +211,10 @@ class EmscriptenCCompiler(EmscriptenMixin, ClangCCompiler):
 
 
 class ArmclangCCompiler(ArmclangCompiler, CCompiler):
+    '''
+    Keil armclang
+    '''
+
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
                  info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
                  linker: T.Optional['DynamicLinker'] = None,
