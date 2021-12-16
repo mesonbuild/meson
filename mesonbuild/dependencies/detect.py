@@ -59,12 +59,12 @@ def get_dep_identifier(name: str, kwargs: T.Dict[str, T.Any]) -> 'TV_DepID':
             continue
         # All keyword arguments are strings, ints, or lists (or lists of lists)
         if isinstance(value, list):
-            value = frozenset(listify(value))
             for i in value:
                 assert isinstance(i, str)
+            value = tuple(frozenset(listify(value)))
         else:
             assert isinstance(value, (str, bool, int))
-        identifier += (key, value)
+        identifier = (*identifier, (key, value),)
     return identifier
 
 display_name_map = {

@@ -783,6 +783,7 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
     def __repr__(self) -> str:
         r = '<{} {}: {}>'
         h = self.held_object
+        assert isinstance(h, build.BuildTarget)
         return r.format(self.__class__.__name__, h.get_id(), h.filename)
 
     @property

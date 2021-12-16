@@ -313,7 +313,7 @@ class StopException(Exception):
     def __init__(self) -> None:
         super().__init__('Stopped by user')
 
-def stop_handler(signal: signal.Signals, frame: T.Optional['FrameType']) -> None:
+def stop_handler(signal: int, frame: T.Optional['FrameType']) -> None:
     global stop
     stop = True
 signal.signal(signal.SIGINT, stop_handler)
