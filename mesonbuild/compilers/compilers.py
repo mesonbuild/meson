@@ -875,7 +875,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         return None
 
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
-                         rpath_paths: str, build_rpath: str,
+                         rpath_paths: T.Tuple[str, ...], build_rpath: str,
                          install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
         return self.linker.build_rpath_args(
             env, build_dir, from_dir, rpath_paths, build_rpath, install_rpath)
