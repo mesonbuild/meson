@@ -11,7 +11,8 @@
     {"type": "file", "file": "usr/share/applications/test3.desktop"},
     {"type": "file", "file": "usr/share/applications/test4.desktop"},
     {"type": "file", "file": "usr/share/applications/test5.desktop"},
-    {"type": "file", "file": "usr/share/applications/test6.desktop"}
+    {"type": "file", "file": "usr/share/applications/test6.desktop"},
+    {"type": "file", "file": "usr/share/metainfo/com.mesonbuild.test.intlprog.metainfo.xml"}
   ],
   "matrix": {
     "options": {

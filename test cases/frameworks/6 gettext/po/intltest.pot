@@ -32,3 +32,7 @@ msgstr ""
 #: data/test.desktop.in:5
 msgid "Test Application"
 msgstr ""
+
+#: data/com.mesonbuild.test.dummy.metainfo.xml:19
+msgid "This is <code>text</code> with <em>embedded XML tags</em>. Nice!"
+msgstr ""

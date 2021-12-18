@@ -20,3 +20,7 @@ msgstr ""
 #: src/intlmain.c:15
 msgid "International greeting."
 msgstr "Internationale Gruss."
+
+#: data/com.mesonbuild.test.dummy.metainfo.xml:19
+msgid "This is <code>text</code> with <em>embedded XML tags</em>. Nice!"
+msgstr "Dies ist <code>Text</code> mit <em>eingebetteten XML Tags</em>. Toll!"

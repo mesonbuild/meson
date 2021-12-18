@@ -56,3 +56,15 @@ for normal keywords. In addition it accepts these keywords:
 * `args`: (*Added 0.51.0*) list of extra arguments to pass to `msgfmt`
 
 *Added 0.37.0*
+
+### i18n.itstool_join()
+
+This joins translations into a XML file using `itstool`. See
+[[@custom_tgt]]
+for normal keywords. In addition it accepts these keywords:
+
+* `its_files`: filenames of ITS files that should be used explicitly
+  (XML translation rules are autodetected otherwise).
+* `mo_targets` *required*: mo file generation targets as returned by `i18n.gettext()`.
+
+*Added 0.61.0*

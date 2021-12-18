@@ -15,10 +15,13 @@ if not intl.found()
   error('MESON_SKIP_TEST libintl/gettext functions not found.')
 endif
 
+itstool = find_program('itstool', required: false)
+
 i18n = import('i18n')
 
 subdir('po')
 subdir('src')
 subdir('data')
 subdir('data2')
+subdir('data3')
 subdir('generated')
