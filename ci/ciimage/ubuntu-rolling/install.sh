@@ -25,6 +25,7 @@ pkgs=(
   libperl-dev
   liblapack-dev libscalapack-mpi-dev
   bindgen
+  itstool
 )
 
 sed -i '/^#\sdeb-src /s/^#//' "/etc/apt/sources.list"
