@@ -232,7 +232,7 @@ class CMakeToolchain:
         temp_toolchain_file.write_text(CMakeToolchain._print_vars(self.variables), encoding='utf-8')
 
         # Configure
-        trace = CMakeTraceParser(self.cmakebin.version(), build_dir)
+        trace = CMakeTraceParser(self.cmakebin.version(), build_dir, self.env)
         self.cmakebin.set_exec_mode(print_cmout=False, always_capture_stderr=trace.requires_stderr())
         cmake_args = []
         cmake_args += trace.trace_args()

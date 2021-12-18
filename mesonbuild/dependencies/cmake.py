@@ -127,7 +127,7 @@ class CMakeDependency(ExternalDependency):
             return
 
         # Setup the trace parser
-        self.traceparser = CMakeTraceParser(self.cmakebin.version(), self._get_build_dir())
+        self.traceparser = CMakeTraceParser(self.cmakebin.version(), self._get_build_dir(), self.env)
 
         cm_args = stringlistify(extract_as_list(kwargs, 'cmake_args'))
         cm_args = check_cmake_args(cm_args)
@@ -166,7 +166,7 @@ class CMakeDependency(ExternalDependency):
             gen_list += [CMakeDependency.class_working_generator]
         gen_list += CMakeDependency.class_cmake_generators
 
-        temp_parser = CMakeTraceParser(self.cmakebin.version(), self._get_build_dir())
+        temp_parser = CMakeTraceParser(self.cmakebin.version(), self._get_build_dir(), self.env)
         toolchain = CMakeToolchain(self.cmakebin, self.env, self.for_machine, CMakeExecScope.DEPENDENCY, self._get_build_dir())
         toolchain.write()
 

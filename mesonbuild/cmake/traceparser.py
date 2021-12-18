@@ -27,6 +27,9 @@ import re
 import json
 import textwrap
 
+if T.TYPE_CHECKING:
+    from ..environment import Environment
+
 class CMakeTraceLine:
     def __init__(self, file_str: str, line: int, func: str, args: T.List[str]) -> None:
         self.file = CMakeTraceLine._to_path(file_str)
@@ -90,7 +93,7 @@ class CMakeGeneratorTarget(CMakeTarget):
         self.working_dir = None  # type: T.Optional[Path]
 
 class CMakeTraceParser:
-    def __init__(self, cmake_version: str, build_dir: Path, permissive: bool = True) -> None:
+    def __init__(self, cmake_version: str, build_dir: Path, env: 'Environment', permissive: bool = True) -> None:
         self.vars:                      T.Dict[str, T.List[str]]     = {}
         self.vars_by_file: T.Dict[Path, T.Dict[str, T.List[str]]]    = {}
         self.targets:                   T.Dict[str, CMakeTarget]     = {}
@@ -101,6 +104,7 @@ class CMakeTraceParser:
         # T.List of targes that were added with add_custom_command to generate files
         self.custom_targets = []  # type: T.List[CMakeGeneratorTarget]
 
+        self.env = env
         self.permissive = permissive  # type: bool
         self.cmake_version = cmake_version  # type: str
         self.trace_file = 'cmake_trace.txt'
@@ -202,12 +206,13 @@ class CMakeTraceParser:
         }
 
         for tgt in self.targets.values():
-            tgt.name = parse_generator_expressions(tgt.name, self)
-            tgt.type = parse_generator_expressions(tgt.type, self)
+            tgtlist_gen: T.Callable[[T.List[str], CMakeTarget],  T.List[str]] = lambda strlist, t: [parse_generator_expressions(x, self, context_tgt=t) for x in strlist]
+            tgt.name = parse_generator_expressions(tgt.name, self, context_tgt=tgt)
+            tgt.type = parse_generator_expressions(tgt.type, self, context_tgt=tgt)
             tgt.properties = {
-                k: strlist_gen(v) for k, v in tgt.properties.items()
+                k: tgtlist_gen(v, tgt) for k, v in tgt.properties.items()
             } if tgt.properties is not None else None
-            tgt.depends = strlist_gen(tgt.depends)
+            tgt.depends = tgtlist_gen(tgt.depends, tgt)
 
         for ctgt in self.custom_targets:
             ctgt.outputs = pathlist_gen(ctgt.outputs)

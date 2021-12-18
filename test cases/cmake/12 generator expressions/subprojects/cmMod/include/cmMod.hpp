@@ -18,6 +18,38 @@
 #error "The flag CMAKE_FLAG_ERROR_A was set"
 #endif
 
+#ifndef CMAKE_TRUE_FLAG
+#error "The flag CMAKE_TRUE_FLAG was not set"
+#endif
+
+#ifdef CMAKE_FALSE_FLAG
+#error "The flag CMAKE_FALSE_FLAG was set"
+#endif
+
+#ifndef CMAKE_TGT_EXISTS
+#error "The flag CMAKE_TGT_EXISTS was not set"
+#endif
+
+#ifdef CMAKE_TGT_NEXISTS
+#error "The flag CMAKE_TGT_NEXISTS was set"
+#endif
+
+#ifndef CMAKE_PROP1_OK
+#error "The flag CMAKE_PROP1_OK was not set"
+#endif
+
+#ifdef CMAKE_PROP1_ERROR
+#error "The flag CMAKE_PROP1_ERROR was set"
+#endif
+
+#ifndef CMAKE_PROP2_OK
+#error "The flag CMAKE_PROP2_OK was not set"
+#endif
+
+#ifdef CMAKE_PROP2_ERROR
+#error "The flag CMAKE_PROP2_ERROR was set"
+#endif
+
 class cmModClass {
   private:
     std::string str;
