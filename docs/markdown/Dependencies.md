@@ -678,11 +678,17 @@ or as an OSX framework.
 
 *(added 0.51.0)*
 
-Shaderc currently does not ship with any means of detection.
-Nevertheless, Meson can try to detect it using `pkg-config`, but will
-default to looking for the appropriate library manually. If the
-`static` keyword argument is `true`, `shaderc_combined` is preferred.
-Otherwise, `shaderc_shared` is preferred. Note that it is not possible
+Meson will first attempt to find shaderc using `pkg-config`. Upstream
+currently ships three different `pkg-config` files and by default will
+check them in this order: `shaderc`, `shaderc_combined`, and
+`shaderc_static`. If the `static` keyword argument is `true`, then
+Meson instead checks in this order: `shaderc_combined`, `shaderc_static`,
+and `shaderc`.
+
+If no `pkg-config` file is found, then Meson will try to detect the
+library manually. In this case, it will try to link against either
+`-lshaderc_shared` or `-lshaderc_combined`, preferring the latter
+if the static keyword argument is true. Note that it is not possible
 to obtain the shaderc version using this method.
 
 `method` may be `auto`, `pkg-config` or `system`.
