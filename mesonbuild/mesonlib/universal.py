@@ -245,7 +245,7 @@ def is_ascii_string(astring: T.Union[str, bytes]) -> bool:
     return True
 
 
-def check_direntry_issues(direntry_array: T.Union[T.List[T.Union[str, bytes]], str, bytes]) -> None:
+def check_direntry_issues(direntry_array: T.Union[T.Iterable[T.Union[str, bytes]], str, bytes]) -> None:
     import locale
     # Warn if the locale is not UTF-8. This can cause various unfixable issues
     # such as os.stat not being able to decode filenames with unicode in them.
@@ -253,7 +253,7 @@ def check_direntry_issues(direntry_array: T.Union[T.List[T.Union[str, bytes]], s
     # encoding, so we can just warn about it.
     e = locale.getpreferredencoding()
     if e.upper() != 'UTF-8' and not is_windows():
-        if not isinstance(direntry_array, list):
+        if isinstance(direntry_array, (str, bytes)):
             direntry_array = [direntry_array]
         for de in direntry_array:
             if is_ascii_string(de):
