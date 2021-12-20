@@ -66,7 +66,7 @@ class SourceSetRule(T.NamedTuple):
 
 
 class SourceFiles(T.NamedTuple):
-    sources: OrderedSet[T.Union['mesonlib.FileOrString', build.GeneratedTypes]]
+    sources: OrderedSet[T.Union[mesonlib.FileOrString, build.GeneratedTypes]]
     dependencies: OrderedSet[dependencies.Dependency]
 
 
@@ -81,7 +81,7 @@ class SourceSet:
 class SourceSetImpl(SourceSet, MutableModuleObject):
     def __init__(self, interpreter: Interpreter):
         super().__init__()
-        self.rules: T.List['SourceSetRule'] = []
+        self.rules: T.List[SourceSetRule] = []
         self.subproject = interpreter.subproject
         self.environment = interpreter.environment
         self.subdir = interpreter.subdir
@@ -191,7 +191,7 @@ class SourceSetImpl(SourceSet, MutableModuleObject):
 
     def collect(self, enabled_fn: T.Callable[[str], bool],
                 all_sources: bool,
-                into: T.Optional['SourceFiles'] = None) -> 'SourceFiles':
+                into: T.Optional['SourceFiles'] = None) -> SourceFiles:
         if not into:
             into = SourceFiles(OrderedSet(), OrderedSet())
         for entry in self.rules:
