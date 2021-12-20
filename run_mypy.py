@@ -46,6 +46,7 @@ modules = [
     'mesonbuild/modules/java.py',
     'mesonbuild/modules/keyval.py',
     'mesonbuild/modules/qt.py',
+    'mesonbuild/modules/sourceset.py',
     'mesonbuild/modules/unstable_external_project.py',
     'mesonbuild/modules/unstable_rust.py',
     'mesonbuild/modules/windows.py',
