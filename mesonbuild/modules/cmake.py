@@ -34,7 +34,6 @@ from ..interpreterbase import (
     InvalidArguments,
     InterpreterException,
 )
-from ..programs import ExternalProgram
 
 
 COMPATIBILITIES = ['AnyNewerVersion', 'SameMajorVersion', 'SameMinorVersion', 'ExactVersion']
@@ -233,11 +232,11 @@ class CmakeModule(ExtensionModule):
 
         return compiler.sizeof('void *', '', env)
 
-    def detect_cmake(self):
+    def detect_cmake(self, state):
         if self.cmake_detected:
             return True
 
-        cmakebin = ExternalProgram('cmake', silent=False)
+        cmakebin = state.find_program('cmake', silent=False)
         if not cmakebin.found():
             return False
 
@@ -272,7 +271,7 @@ class CmakeModule(ExtensionModule):
         if compatibility not in COMPATIBILITIES:
             raise mesonlib.MesonException('compatibility must be either AnyNewerVersion, SameMajorVersion or ExactVersion.')
 
-        if not self.detect_cmake():
+        if not self.detect_cmake(state):
             raise mesonlib.MesonException('Unable to find cmake')
 
         pkgroot = pkgroot_name = kwargs.get('install_dir', None)
