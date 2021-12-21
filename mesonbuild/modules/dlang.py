@@ -22,7 +22,6 @@ from . import ExtensionModule
 from .. import dependencies
 from .. import mlog
 from ..mesonlib import Popen_safe, MesonException
-from ..programs import ExternalProgram
 
 class DlangModule(ExtensionModule):
     class_dubbin = None
@@ -34,7 +33,7 @@ class DlangModule(ExtensionModule):
             'generate_dub_file': self.generate_dub_file,
         })
 
-    def _init_dub(self):
+    def _init_dub(self, state):
         if DlangModule.class_dubbin is None:
             self.dubbin = dependencies.DubDependency.class_dubbin
             DlangModule.class_dubbin = self.dubbin
@@ -42,7 +41,7 @@ class DlangModule(ExtensionModule):
             self.dubbin = DlangModule.class_dubbin
 
         if DlangModule.class_dubbin is None:
-            self.dubbin = self.check_dub()
+            self.dubbin = self.check_dub(state)
             DlangModule.class_dubbin = self.dubbin
         else:
             self.dubbin = DlangModule.class_dubbin
@@ -53,7 +52,7 @@ class DlangModule(ExtensionModule):
 
     def generate_dub_file(self, state, args, kwargs):
         if not DlangModule.init_dub:
-            self._init_dub()
+            self._init_dub(state)
 
         if len(args) < 2:
             raise MesonException('Missing arguments')
@@ -109,8 +108,8 @@ class DlangModule(ExtensionModule):
         p, out = Popen_safe(self.dubbin.get_command() + args, env=env)[0:2]
         return p.returncode, out.strip()
 
-    def check_dub(self):
-        dubbin = ExternalProgram('dub', silent=True)
+    def check_dub(self, state):
+        dubbin = state.find_program('dub', silent=True)
         if dubbin.found():
             try:
                 p, out = Popen_safe(dubbin.get_command() + ['--version'])[0:2]
