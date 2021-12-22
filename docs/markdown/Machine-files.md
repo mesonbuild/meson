@@ -181,7 +181,7 @@ Or must be defined with their absolute path.
 c = '/opt/toolchain/bin/gcc'
 ```
 
-*New in 0.60.0* A further option is to define the binaries relative
+*New in 0.61.0* A further option is to define the binaries relative
 to the machine file. If the following machine file is located 
 under `/my_project/toolchain` the entry for `c` will be extended 
 to `/my_project/toolchain/bin/gcc`.
