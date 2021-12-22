@@ -252,7 +252,8 @@ def apply_ldconfig(dm: DirMaker) -> None:
         # If we don't have ldconfig, failure is ignored quietly.
         return
 
-    if 'bsd' in platform.system().lower():
+    platlower = platform.system().lower()
+    if platlower == 'dragonfly' or 'bsd' in platlower:
         return
 
     # Try to update ld cache, it could fail if we don't have permission.
