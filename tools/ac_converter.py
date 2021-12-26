@@ -382,7 +382,7 @@ with open(sys.argv[1], encoding='utf-8') as f:
             tarr = token.split('_')[1:-1]
             tarr = [x.lower() for x in tarr]
             hname = '/'.join(tarr) + '.h'
-            headers.append((token, hname))
+            headers.append(hname)
 
         # Check for functions.
         try:
@@ -413,13 +413,13 @@ cdata = configuration_data()''')
 # Convert header checks.
 
 print('check_headers = [')
-for token, hname in headers:
-    print(f"  ['{token}', '{hname}'],")
+for hname in headers:
+    print(f"  '{hname}',")
 print(']\n')
 
 print('''foreach h : check_headers
-  if cc.has_header(h.get(1))
-    cdata.set(h.get(0), 1)
+  if cc.has_header(h)
+    cdata.set('HAVE_' + h.underscorify().to_upper(), 1)
   endif
 endforeach
 ''')
