@@ -104,7 +104,7 @@ class MesonMain(MesonInterpreterObject):
                 str, mesonlib.File, build.BuildTarget, build.CustomTarget,
                 build.CustomTargetIndex,
                 ExternalProgram,
-            ]], allow_built: bool = False) -> T.List[str]:
+            ]]) -> T.List[str]:
         script_args = []  # T.List[str]
         new = False
         for a in args:
@@ -114,8 +114,6 @@ class MesonMain(MesonInterpreterObject):
                 new = True
                 script_args.append(a.rel_to_builddir(self.interpreter.environment.source_dir))
             elif isinstance(a, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
-                if not allow_built:
-                    raise InterpreterException(f'Arguments to {name} cannot be built')
                 new = True
                 script_args.extend([os.path.join(a.get_subdir(), o) for o in a.get_outputs()])
 
@@ -153,7 +151,7 @@ class MesonMain(MesonInterpreterObject):
             args: T.Tuple[T.Union[str, mesonlib.File, build.Executable, ExternalProgram],
                           T.List[T.Union[str, mesonlib.File, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, ExternalProgram]]],
             kwargs: 'AddInstallScriptKW') -> None:
-        script_args = self._process_script_args('add_install_script', args[1], allow_built=True)
+        script_args = self._process_script_args('add_install_script', args[1])
         script = self._find_source_script('add_install_script', args[0], script_args)
         script.skip_if_destdir = kwargs['skip_if_destdir']
         script.tag = kwargs['install_tag']
@@ -170,7 +168,7 @@ class MesonMain(MesonInterpreterObject):
             args: T.Tuple[T.Union[str, mesonlib.File, ExternalProgram],
                           T.List[T.Union[str, mesonlib.File, ExternalProgram]]],
             kwargs: 'TYPE_kwargs') -> None:
-        script_args = self._process_script_args('add_postconf_script', args[1], allow_built=False)
+        script_args = self._process_script_args('add_postconf_script', args[1])
         script = self._find_source_script('add_postconf_script', args[0], script_args)
         self.build.postconf_scripts.append(script)
 
@@ -191,7 +189,7 @@ class MesonMain(MesonInterpreterObject):
         if self.interpreter.subproject != '':
             FeatureNew.single_use('Calling "add_dist_script" in a subproject',
                                   '0.58.0', self.interpreter.subproject)
-        script_args = self._process_script_args('add_dist_script', args[1], allow_built=False)
+        script_args = self._process_script_args('add_dist_script', args[1])
         script = self._find_source_script('add_dist_script', args[0], script_args)
         self.build.dist_scripts.append(script)
 
