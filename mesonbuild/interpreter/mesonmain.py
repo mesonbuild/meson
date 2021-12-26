@@ -162,28 +162,28 @@ class MesonMain(MesonInterpreterObject):
     @typed_pos_args(
         'meson.add_postconf_script',
         (str, mesonlib.File, ExternalProgram),
-        varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex)
+        varargs=(str, mesonlib.File, ExternalProgram)
     )
     @noKwargs
     def add_postconf_script_method(
             self,
             args: T.Tuple[T.Union[str, mesonlib.File, ExternalProgram],
-                          T.List[T.Union[str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex]]],
+                          T.List[T.Union[str, mesonlib.File, ExternalProgram]]],
             kwargs: 'TYPE_kwargs') -> None:
-        script_args = self._process_script_args('add_postconf_script', args[1], allow_built=True)
+        script_args = self._process_script_args('add_postconf_script', args[1], allow_built=False)
         script = self._find_source_script('add_postconf_script', args[0], script_args)
         self.build.postconf_scripts.append(script)
 
     @typed_pos_args(
         'meson.add_dist_script',
-        (str, mesonlib.File, build.Executable, ExternalProgram),
-        varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex)
+        (str, mesonlib.File, ExternalProgram),
+        varargs=(str, mesonlib.File, ExternalProgram)
     )
     @noKwargs
     def add_dist_script_method(
             self,
-            args: T.Tuple[T.Union[str, mesonlib.File, build.Executable, ExternalProgram],
-                          T.List[T.Union[str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex]]],
+            args: T.Tuple[T.Union[str, mesonlib.File, ExternalProgram],
+                          T.List[T.Union[str, mesonlib.File, ExternalProgram]]],
             kwargs: 'TYPE_kwargs') -> None:
         if args[1]:
             FeatureNew.single_use('Calling "add_dist_script" with multiple arguments',
@@ -191,7 +191,7 @@ class MesonMain(MesonInterpreterObject):
         if self.interpreter.subproject != '':
             FeatureNew.single_use('Calling "add_dist_script" in a subproject',
                                   '0.58.0', self.interpreter.subproject)
-        script_args = self._process_script_args('add_dist_script', args[1], allow_built=True)
+        script_args = self._process_script_args('add_dist_script', args[1], allow_built=False)
         script = self._find_source_script('add_dist_script', args[0], script_args)
         self.build.dist_scripts.append(script)
 
