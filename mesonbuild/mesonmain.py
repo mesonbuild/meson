@@ -134,6 +134,9 @@ class CommandLineParser:
         args = mesonlib.expand_arguments(args)
         options = parser.parse_args(args)
 
+        if hasattr(options, 'fatal_warnings'):
+            mlog.log_fatal_warnings = options.fatal_warnings
+
         try:
             return options.run_func(options)
         except MesonException as e:

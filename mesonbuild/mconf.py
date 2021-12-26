@@ -37,6 +37,9 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     parser.add_argument('builddir', nargs='?', default='.')
     parser.add_argument('--clearcache', action='store_true', default=False,
                         help='Clear cached state (e.g. found dependencies)')
+    parser.add_argument('--fatal-meson-warnings', action='store_true', dest='fatal_warnings',
+                        help='Make all Meson warnings fatal')
+
 
 def make_lower_case(val: T.Any) -> T.Union[str, T.List[T.Any]]:  # T.Any because of recursion...
     if isinstance(val, bool):
