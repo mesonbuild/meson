@@ -79,13 +79,19 @@ class MesonMain(MesonInterpreterObject):
                              })
 
     def _find_source_script(
-            self, prog: T.Union[str, mesonlib.File, build.Executable, ExternalProgram],
+            self, name: str, prog: T.Union[str, mesonlib.File, build.Executable, ExternalProgram],
             args: T.List[str]) -> 'ExecutableSerialisation':
         largs: T.List[T.Union[str, build.Executable, ExternalProgram]] = []
+
         if isinstance(prog, (build.Executable, ExternalProgram)):
+            FeatureNew.single_use(f'Passing executable/found program object to script parameter of {name}',
+                                  '0.55.0', self.subproject, location=self.current_node)
             largs.append(prog)
             largs.extend(args)
             return self.interpreter.backend.get_executable_serialisation(largs)
+        elif isinstance(prog, mesonlib.File):
+            FeatureNew.single_use(f'Passing file object to script parameter of {name}',
+                                  '0.57.0', self.subproject, location=self.current_node)
         found = self.interpreter.find_program_impl([prog])
         largs.append(found)
         largs.extend(args)
@@ -147,12 +153,8 @@ class MesonMain(MesonInterpreterObject):
             args: T.Tuple[T.Union[str, mesonlib.File, build.Executable, ExternalProgram],
                           T.List[T.Union[str, mesonlib.File, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, ExternalProgram]]],
             kwargs: 'AddInstallScriptKW') -> None:
-        if isinstance(args[0], mesonlib.File):
-            FeatureNew.single_use('Passing file object to script parameter of add_install_script',
-                                  '0.57.0', self.interpreter.subproject)
-
         script_args = self._process_script_args('add_install_script', args[1], allow_built=True)
-        script = self._find_source_script(args[0], script_args)
+        script = self._find_source_script('add_install_script', args[0], script_args)
         script.skip_if_destdir = kwargs['skip_if_destdir']
         script.tag = kwargs['install_tag']
         self.build.install_scripts.append(script)
@@ -168,11 +170,8 @@ class MesonMain(MesonInterpreterObject):
             args: T.Tuple[T.Union[str, mesonlib.File, ExternalProgram],
                           T.List[T.Union[str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex]]],
             kwargs: 'TYPE_kwargs') -> None:
-        if isinstance(args[0], mesonlib.File):
-            FeatureNew.single_use('Passing file object to script parameter of add_postconf_script',
-                                  '0.57.0', self.interpreter.subproject)
         script_args = self._process_script_args('add_postconf_script', args[1], allow_built=True)
-        script = self._find_source_script(args[0], script_args)
+        script = self._find_source_script('add_postconf_script', args[0], script_args)
         self.build.postconf_scripts.append(script)
 
     @typed_pos_args(
@@ -189,14 +188,11 @@ class MesonMain(MesonInterpreterObject):
         if args[1]:
             FeatureNew.single_use('Calling "add_dist_script" with multiple arguments',
                                   '0.49.0', self.interpreter.subproject)
-        if isinstance(args[0], mesonlib.File):
-            FeatureNew.single_use('Passing file object to script parameter of add_dist_script',
-                                  '0.57.0', self.interpreter.subproject)
         if self.interpreter.subproject != '':
             FeatureNew.single_use('Calling "add_dist_script" in a subproject',
                                   '0.58.0', self.interpreter.subproject)
         script_args = self._process_script_args('add_dist_script', args[1], allow_built=True)
-        script = self._find_source_script(args[0], script_args)
+        script = self._find_source_script('add_dist_script', args[0], script_args)
         self.build.dist_scripts.append(script)
 
     @noPosargs
