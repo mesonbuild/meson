@@ -41,6 +41,7 @@ if T.TYPE_CHECKING:
 
 class FSModule(ExtensionModule):
 
+    @FeatureNew('Fs Module', '0.53.0')
     def __init__(self, interpreter: 'Interpreter') -> None:
         super().__init__(interpreter)
         self.methods.update({

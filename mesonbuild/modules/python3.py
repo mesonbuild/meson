@@ -16,12 +16,13 @@ import sysconfig
 from .. import mesonlib
 
 from . import ExtensionModule
-from ..interpreterbase import noKwargs, permittedKwargs, FeatureDeprecated
+from ..interpreterbase import noKwargs, permittedKwargs, FeatureDeprecated, FeatureNew
 from ..build import known_shmod_kwargs
 from ..programs import ExternalProgram
 
 
 class Python3Module(ExtensionModule):
+    @FeatureNew('python3 module', '0.38.0')
     @FeatureDeprecated('python3 module', '0.48.0')
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
