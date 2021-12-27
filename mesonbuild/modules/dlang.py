@@ -21,12 +21,14 @@ import os
 from . import ExtensionModule
 from .. import dependencies
 from .. import mlog
+from ..interpreterbase import FeatureNew
 from ..mesonlib import Popen_safe, MesonException
 
 class DlangModule(ExtensionModule):
     class_dubbin = None
     init_dub = False
 
+    @FeatureNew('Dlang Module', '0.48.0')
     def __init__(self, interpreter):
         super().__init__(interpreter)
         self.methods.update({

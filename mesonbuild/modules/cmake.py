@@ -212,6 +212,7 @@ class CmakeModule(ExtensionModule):
     cmake_detected = False
     cmake_root = None
 
+    @FeatureNew('CMake Module', '0.50.0')
     def __init__(self, interpreter):
         super().__init__(interpreter)
         self.methods.update({
