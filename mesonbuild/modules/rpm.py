@@ -90,7 +90,7 @@ class RPMModule(ExtensionModule):
             for compiler in required_compilers:
                 fn.write('BuildRequires: %s\n' % compiler)
             for dep in state.environment.coredata.deps.host:
-                fn.write('BuildRequires: pkgconfig(%s)\n' % dep[0])
+                fn.write('BuildRequires: pkgconfig(%s)\n' % dep)
 #   ext_libs and ext_progs have been removed from coredata so the following code
 #   no longer works. It is kept as a reminder of the idea should anyone wish
 #   to re-implement it.
