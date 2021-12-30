@@ -1,22 +1,22 @@
-name: LintMypy
+name: Lint
 
 concurrency:
-  group: mypy-${{ github.head_ref }}
+  group: lint-${{ github.head_ref }}
   cancel-in-progress: true
 
 on:
   push:
     paths:
     - "**.py"
-    - ".github/workflows/lint_mypy.yml"
+    - ".github/workflows/lint.yml"
   pull_request:
     paths:
     - "**.py"
-    - ".github/workflows/lint_mypy.yml"
+    - ".github/workflows/lint.yml"
 
 jobs:
 
-  lint:
+  pylint:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
