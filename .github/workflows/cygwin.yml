@@ -71,6 +71,13 @@ jobs:
             vala
             zlib-devel
 
+      - name: workaround wrong python version
+        run: |
+          export PATH=/usr/sbin:/usr/bin:/usr/local/bin:$(cygpath ${SYSTEMROOT})/system32
+          update-alternatives --verbose --set python /usr/bin/python3.8
+          update-alternatives --verbose --set python3 /usr/bin/python3.8
+        shell: C:\cygwin\bin\bash.exe --noprofile --norc -o igncr -eo pipefail '{0}'
+
       - name: Run pip
         run: |
           export PATH=/usr/bin:/usr/local/bin:$(cygpath ${SYSTEMROOT})/system32
