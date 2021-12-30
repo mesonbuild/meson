@@ -437,7 +437,7 @@ class CLikeCompiler(Compiler):
             dependencies = []
         elif not isinstance(dependencies, collections.abc.Iterable):
             # TODO: we want to ensure the front end does the listifing here
-            dependencies = [dependencies]  # type: ignore
+            dependencies = [dependencies]
         # Collect compiler arguments
         cargs = self.compiler_args()  # type: arglist.CompilerArgs
         largs = []  # type: T.List[str]

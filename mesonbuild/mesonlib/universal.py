@@ -1319,11 +1319,11 @@ def extract_as_list(dict_object: T.Dict[_T, _U], key: _T, pop: bool = False) -> 
     '''
     Extracts all values from given dict_object and listifies them.
     '''
-    fetch = dict_object.get
+    fetch: T.Callable[[_T], _U] = dict_object.get
     if pop:
         fetch = dict_object.pop
     # If there's only one key, we don't return a list with one element
-    return listify(fetch(key, []), flatten=True)
+    return listify(fetch(key) or [], flatten=True)
 
 
 def typeslistify(item: 'T.Union[_T, T.Sequence[_T]]',
