@@ -34,26 +34,23 @@ methods:
 
     posargs:
       script_name:
-        type: str | file | external_program | exe | custom_tgt | custom_idx
+        type: str | file | external_program
         description: |
           The script to execute.
 
-          *(since 0.55.0)* The output of [[configure_file]], [[files]], and [[find_program]]
-          as well as strings are accepted.
+          *(since 0.55.0)* The output of [[find_program]] as well as strings are accepted.
 
           *(since 0.57.0)* [[@file]] objects and the output of [[configure_file]] may be used.
 
     varargs:
       name: arg
-      type: str | file | external_program | exe | custom_tgt | custom_idx
+      type: str | file | external_program
       since: 0.49.0
       description: |
         Additional arguments
 
         *(since 0.55.0)* The output of [[configure_file]], [[files]], and [[find_program]]
         as well as strings are accepted.
-
-        *(since 0.57.0)* [[@file]] objects and the output of [[configure_file]] may be used.
 
   - name: add_install_script
     returns: void
@@ -89,8 +86,26 @@ methods:
       shell would. If your script uses Python, `shlex.split()` is the
       easiest correct way to do this.
 
-    posargs_inherit: meson.add_dist_script
-    varargs_inherit: meson.add_dist_script
+    posargs:
+      script_name:
+        type: str | file | external_program | exe | custom_tgt | custom_idx
+        description: |
+          The script to execute.
+
+          *(since 0.55.0)* The output of [[find_program]], [[executable]],
+          [[custom_target]], as well as strings are accepted.
+
+          *(since 0.57.0)* [[@file]] objects and the output of [[configure_file]] may be used.
+
+    varargs:
+      name: arg
+      type: str | file | external_program | exe | custom_tgt | custom_idx
+      since: 0.49.0
+      description: |
+        Additional arguments
+
+        *(since 0.55.0)* The output of [[find_program]], [[executable]],
+        [[custom_target]], as well as strings are accepted.
 
     kwargs:
       skip_if_destdir:
