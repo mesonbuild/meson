@@ -1,0 +1,7 @@
+{
+    "stdout": [
+        {
+            "line": "test cases/failing/113 empty fallback/meson.build:6:0: ERROR: Dependency \"foo\" not found, tried pkgconfig and cmake"
+        }
+    ]
+}
