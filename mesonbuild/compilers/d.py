@@ -249,7 +249,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
         return self.linker.import_library_args(implibname)
 
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
-                         rpath_paths: str, build_rpath: str,
+                         rpath_paths: T.Tuple[str, ...], build_rpath: str,
                          install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
         if self.info.is_windows():
             return ([], set())

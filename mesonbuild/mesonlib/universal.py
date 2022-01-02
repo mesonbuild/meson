@@ -425,7 +425,7 @@ class File(HoldableObject):
     def suffix(self) -> str:
         return os.path.splitext(self.fname)[1][1:].lower()
 
-    def endswith(self, ending: str) -> bool:
+    def endswith(self, ending: T.Union[str, T.Tuple[str, ...]]) -> bool:
         return self.fname.endswith(ending)
 
     def split(self, s: str, maxsplit: int = -1) -> T.List[str]:

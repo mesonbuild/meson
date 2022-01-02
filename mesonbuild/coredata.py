@@ -234,7 +234,7 @@ class UserArrayOption(UserOption[T.List[str]]):
         elif isinstance(value, list):
             newvalue = value
         else:
-            raise MesonException(f'"{newvalue}" should be a string array, but it is not')
+            raise MesonException(f'"{value}" should be a string array, but it is not')
         return newvalue
 
     def validate_value(self, value: T.Union[str, T.List[str]], user_input: bool = True) -> T.List[str]:

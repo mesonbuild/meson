@@ -206,7 +206,7 @@ def process_markup(args: T.Sequence[TV_Loggable], keep: bool) -> T.List[str]:
             arr.append(str(arg))
     return arr
 
-def force_print(*args: str, nested: str, **kwargs: T.Any) -> None:
+def force_print(*args: str, nested: bool, **kwargs: T.Any) -> None:
     if log_disable_stdout:
         return
     iostr = io.StringIO()
