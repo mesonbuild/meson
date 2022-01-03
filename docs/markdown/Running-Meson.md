@@ -31,7 +31,7 @@ meson setup builddir
 
 We invoke Meson with the `setup` command, giving it the location of the build
 directory. Meson uses [out of source
-builds](http://voices.canonical.com/jussi.pakkanen/2013/04/16/why-you-should-consider-using-separate-build-directories/).
+builds](http://web.archive.org/web/20190715081007/http://voices.canonical.com/jussi.pakkanen/2013/04/16/why-you-should-consider-using-separate-build-directories/).
 
 Hint: The syntax of Meson is `meson [command] [arguments] [options]`.
 The `setup` command takes a `builddir` and a `srcdir` argument. If no
