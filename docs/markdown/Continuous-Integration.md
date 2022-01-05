@@ -207,7 +207,7 @@ GCC on Linux, Mac and Windows. The optional `on:` parameters only run
 this CI when the C code is changed--corresponding ci_python.yml might
 run only on "**.py" file changes.
 
-```yml
+```yaml
 name: ci_meson
 
 on:
