@@ -63,6 +63,22 @@ refman_json = custom_target(
     ],
 )
 
+refman_man = custom_target(
+    'gen_refman_man',
+    build_by_default: true,
+    input: refman_binary,
+    output: 'meson-reference.3',
+    command: [
+        genrefman,
+        '-l', 'pickle',
+        '-g', 'man',
+        '-i', '@INPUT@',
+        '-o', '@OUTPUT@',
+        '--force-color',
+        '--no-modules',
+    ],
+)
+
 test('validate_docs', find_program('./jsonvalidator.py'), args: [refman_json])
 
 hotdoc_prog = find_program('hotdoc', version: '>=0.13.7')
