@@ -1213,7 +1213,7 @@ class GnomeModule(ExtensionModule):
 
         media = kwargs['media']
         symlinks = kwargs['symlink_media']
-        targets: T.List[T.Union['Target', build.Data, build.SymlinkData]] = []
+        targets: T.List[T.Union['build.Target', build.Data, build.SymlinkData]] = []
         potargets: T.List[build.RunTarget] = []
 
         itstool = state.find_program('itstool')
