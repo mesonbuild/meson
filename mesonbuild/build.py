@@ -2610,7 +2610,7 @@ class RunTarget(Target, CommandBase):
 
     def __init__(self, name: str,
                  command: T.Sequence[T.Union[str, File, BuildTarget, 'CustomTarget', 'CustomTargetIndex', programs.ExternalProgram]],
-                 dependencies: T.Sequence[T.Union[BuildTarget, 'CustomTarget']],
+                 dependencies: T.Sequence[Target],
                  subdir: str,
                  subproject: str,
                  env: T.Optional['EnvironmentVariables'] = None):
@@ -2654,7 +2654,7 @@ class RunTarget(Target, CommandBase):
         return "@run"
 
 class AliasTarget(RunTarget):
-    def __init__(self, name: str, dependencies: T.Sequence[T.Union[BuildTarget, 'CustomTarget']],
+    def __init__(self, name: str, dependencies: T.Sequence['Target'],
                  subdir: str, subproject: str):
         super().__init__(name, [], dependencies, subdir, subproject)
 
