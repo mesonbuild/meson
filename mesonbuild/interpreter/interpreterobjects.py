@@ -361,6 +361,7 @@ class ConfigurationDataHolder(ObjectHolder[build.ConfigurationData], MutableInte
 
     @FeatureNew('configuration_data.keys()', '0.57.0')
     @noPosargs
+    @noKwargs
     def keys_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.List[str]:
         return sorted(self.keys())
 
