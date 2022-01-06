@@ -41,8 +41,17 @@ methods:
       type: str
       description: The name of the variable to set
     value:
-      type: bool
-      description: The value to set as either `1` or `0`
+      type: bool | int
+      description: |
+        The value to set as either `1` or `0`
+
+        Passing numbers was never intended to work, and since 0.62 it has been
+        deprecated. It will be removed in a future version of Meson. If you
+        need to pass numbers use the `.set` method.
+  warnings:
+  - numeric values < 0 have the surprising behavior of being converted to
+    [[true]], values > 1 have the more expected but unintentional behavior of
+    being interpretered as [[true]].
 
   kwargs_inherit: cfg_data.set
 
