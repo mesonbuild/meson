@@ -320,6 +320,14 @@ class ConfigurationDataHolder(ObjectHolder[build.ConfigurationData], MutableInte
     @typed_kwargs('configuration_data.set10', _CONF_DATA_SET_KWS)
     def set10_method(self, args: T.Tuple[str, T.Union[int, bool]], kwargs: 'kwargs.ConfigurationDataSet') -> None:
         self.__check_used()
+        if isinstance(args[1], int):
+            mlog.deprecation('configuration_data.set10 with number. the `set10` '
+                             'method should only be used with booleans',
+                             location=self.interpreter.current_node)
+            if args[1] < 0:
+                mlog.warning('Passing a number that is less than 0 may not have the intended result, '
+                             'as meson will treat all non-zero values as true.',
+                             location=self.interpreter.current_node)
         self.held_object.values[args[0]] = (int(args[1]), kwargs['description'])
 
     @typed_pos_args('configuration_data.has', (str, int, bool))
