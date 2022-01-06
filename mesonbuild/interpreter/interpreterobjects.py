@@ -328,7 +328,6 @@ class ConfigurationDataHolder(ObjectHolder[build.ConfigurationData], MutableInte
         return args[0] in self.held_object.values
 
     @FeatureNew('configuration_data.get()', '0.38.0')
-    @noArgsFlattening
     @typed_pos_args('configuration_data.get', str, optargs=[(str, int, bool)])
     @noKwargs
     def get_method(self, args: T.Tuple[str, T.Optional[T.Union[str, int, bool]]],
