@@ -5,7 +5,7 @@ if meson.get_compiler('c').get_id() != 'clang'
 endif
 
 if meson.backend() == 'xcode'
-  error('MESON_SKIP_TEST: LLMV ir not supported with the Xcode backend. Patches welcome.')
+  error('MESON_SKIP_TEST: LLVM ir not supported with the Xcode backend. Patches welcome.')
 endif
 
 copy = find_program('copyfile.py')
