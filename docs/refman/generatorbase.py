@@ -43,6 +43,11 @@ class GeneratorBase(metaclass=ABCMeta):
             return f'0_{fn.name}'
         return sorted([x for x in raw if not x.hidden], key=key_fn)
 
+    @staticmethod
+    def _extract_meson_version() -> str:
+        from mesonbuild.coredata import version
+        return version
+
     @property
     def functions(self) -> T.List[Function]:
         return GeneratorBase.sorted_and_filtered(self.manual.functions)

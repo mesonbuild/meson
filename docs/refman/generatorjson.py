@@ -92,13 +92,6 @@ class GeneratorJSON(GeneratorBase):
             'methods': {x.name: self._generate_function(x) for x in self.sorted_and_filtered(obj.methods)},
         }
 
-    def _extract_meson_version(self) -> str:
-        # Hack around python relative imports to get to the Meson version
-        import sys
-        sys.path.append(Path(__file__).resolve().parents[2].as_posix())
-        from mesonbuild.coredata import version
-        return version
-
     def generate(self) -> None:
         data: J.Root = {
             'version_major': J.VERSION_MAJOR,
