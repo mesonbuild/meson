@@ -1313,10 +1313,11 @@ class SingleTestRunner:
             for c in self.cmd:
                 winecmd.append(c)
                 if os.path.basename(c).startswith('wine'):
-                    env['WINEPATH'] = get_wine_shortpath(
-                        winecmd,
-                        ['Z:' + p for p in self.test.extra_paths] + env.get('WINEPATH', '').split(';')
-                    )
+                    build_dir = os.getcwd()
+                    wine_paths = list(set(['Z:' + os.path.normpath(p) for p in self.test.extra_paths]
+                                          + env.get('WINEPATH', '').split(';')))
+                    wine_paths.sort(key=lambda x: not build_dir in x)
+                    env['WINEPATH'] = get_wine_shortpath(winecmd, wine_paths)
                     break
 
         # If MALLOC_PERTURB_ is not set, or if it is set to an empty value,
