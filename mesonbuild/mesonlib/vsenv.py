@@ -56,6 +56,7 @@ def _setup_vsenv(force: bool) -> bool:
             '-prerelease',
             '-requiresAny',
             '-requires', 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64',
+            '-requires', 'Microsoft.VisualStudio.Workload.WDExpress',
             '-products', '*',
             '-utf8',
             '-format',
@@ -71,6 +72,9 @@ def _setup_vsenv(force: bool) -> bool:
         bat_path = bat_root / 'VC/Auxiliary/Build/vcvarsx86_arm64.bat'
     else:
         bat_path = bat_root / 'VC/Auxiliary/Build/vcvars64.bat'
+        # if VS is not found try VS Express
+        if not bat_path.exists():
+            bat_path = bat_root / 'VC/Auxiliary/Build/vcvarsx86_amd64.bat'
     if not bat_path.exists():
         raise MesonException(f'Could not find {bat_path}')
 
