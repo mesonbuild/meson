@@ -1004,7 +1004,8 @@ class NinjaBackend(backends.Backend):
                                                 extra_bdeps=target.get_transitive_build_target_deps(),
                                                 capture=ofilenames[0] if target.capture else None,
                                                 feed=srcs[0] if target.feed else None,
-                                                env=target.env)
+                                                env=target.env,
+                                                verbose=target.console)
         if reason:
             cmd_type = f' (wrapped by meson {reason})'
         else:
