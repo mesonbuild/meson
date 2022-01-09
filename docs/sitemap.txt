@@ -86,7 +86,6 @@ index.md
 		Using-wraptool.md
 		Wrap-best-practices-and-tips.md
 		Shipping-prebuilt-binaries-as-wraps.md
-		fallback-wraptool.md
 	Release-notes.md
 		Release-notes-for-0.60.0.md
 		Release-notes-for-0.59.0.md
