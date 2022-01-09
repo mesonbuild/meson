@@ -117,6 +117,7 @@ class CommandLineParser:
         return 0
 
     def run(self, args):
+        pending_python_deprecation_notice = False
         # If first arg is not a known command, assume user wants to run the setup
         # command.
         known_commands = list(self.commands.keys()) + ['-h', '--help']
@@ -130,9 +131,16 @@ class CommandLineParser:
             args = args[1:]
         else:
             parser = self.parser
+            command = None
 
         args = mesonlib.expand_arguments(args)
         options = parser.parse_args(args)
+
+        if command is None:
+            command = options.command
+
+        if command in ('setup', 'compile', 'test', 'install') and sys.version_info < (3, 7):
+            pending_python_deprecation_notice = True
 
         try:
             return options.run_func(options)
@@ -156,6 +164,9 @@ class CommandLineParser:
             mlog.exception(e)
             return 2
         finally:
+            if pending_python_deprecation_notice:
+                mlog.notice('You are using Python 3.6 which is EOL. Starting with v0.62.0, '
+                            'Meson will require Python 3.7 or newer', fatal=False)
             mlog.shutdown()
 
 def run_script_command(script_name, script_args):
