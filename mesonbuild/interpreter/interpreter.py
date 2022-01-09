@@ -829,6 +829,11 @@ external dependencies (including libraries) must go to "dependencies".''')
             subproject = self.subprojects[subp_name]
             if required and not subproject.found():
                 raise InterpreterException(f'Subproject "{subproject.subdir}" required but not found.')
+            if 'version' in kwargs:
+                pv = self.build.subprojects[subp_name]
+                wanted = kwargs['version']
+                if pv == 'undefined' or not mesonlib.version_compare_many(pv, wanted)[0]:
+                    raise InterpreterException(f'Subproject {subp_name} version is {pv} but {wanted} required.')
             return subproject
 
         r = self.environment.wrap_resolver
