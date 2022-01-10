@@ -34,7 +34,7 @@ that automatically.
 Additional, test only dependencies may be passed via the dependencies
 argument.
 
-### bindgen(*, input: string | BuildTarget | []string | []BuildTarget, output: string, include_directories: []include_directories, c_args: []string, args: []string)
+### bindgen(*, input: string | BuildTarget | [](string | BuildTarget), output: string, include_directories: []include_directories, c_args: []string, args: []string)
 
 This function wraps bindgen to simplify creating rust bindings around C
 libraries. This has two advantages over hand-rolling ones own with a
@@ -60,8 +60,8 @@ rust = import('unstable-rust')
 inc = include_directories('..'¸ '../../foo')
 
 generated = rust.bindgen(
-    'myheader.h',
-    'generated.rs',
+    input : 'myheader.h',
+    output : 'generated.rs',
     include_directories : [inc, include_directories('foo')],
     args : ['--no-rustfmt-bindings'],
     c_args : ['-DFOO=1'],
@@ -77,7 +77,7 @@ h1 = custom_target(...)
 h2 = custom_target(...)
 
 r1 = rust.bindgen(
-  [h1, h2],  # h1 includes h2,
-  'out.rs',
+  input : [h1, h2],  # h1 includes h2,
+  output : 'out.rs',
 )
 ```
