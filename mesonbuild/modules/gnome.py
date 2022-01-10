@@ -1934,7 +1934,7 @@ class GnomeModule(ExtensionModule):
         cmd: T.List[T.Union[str, 'ExternalProgram']]
         cmd = [state.find_program('vapigen'), '--quiet', f'--library={library}', f'--directory={build_dir}']
         cmd.extend([f'--vapidir={d}' for d in kwargs['vapi_dirs']])
-        cmd.extend([f'--metadatdir={d}' for d in kwargs['metadata_dirs']])
+        cmd.extend([f'--metadatadir={d}' for d in kwargs['metadata_dirs']])
         cmd.extend([f'--girdir={d}' for d in kwargs['gir_dirs']])
         cmd += pkg_cmd
         cmd += ['--metadatadir=' + source_dir]
