@@ -260,9 +260,8 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
 
 
 class ArmLtdClangCPPCompiler(ClangCPPCompiler):
-    def __init__(self, *args, **kwargs):
-        ClangCPPCompiler.__init__(self, *args, **kwargs)
-        self.id = 'armltdclang'
+
+    id = 'armltdclang'
 
 
 class AppleClangCPPCompiler(ClangCPPCompiler):
@@ -280,6 +279,9 @@ class AppleClangCPPCompiler(ClangCPPCompiler):
 
 
 class EmscriptenCPPCompiler(EmscriptenMixin, ClangCPPCompiler):
+
+    id = 'emscripten'
+
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
                  info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
                  linker: T.Optional['DynamicLinker'] = None,
@@ -290,7 +292,6 @@ class EmscriptenCPPCompiler(EmscriptenMixin, ClangCPPCompiler):
         ClangCPPCompiler.__init__(self, exelist, version, for_machine, is_cross,
                                   info, exe_wrapper=exe_wrapper, linker=linker,
                                   defines=defines, full_version=full_version)
-        self.id = 'emscripten'
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []
@@ -448,6 +449,9 @@ class PGICPPCompiler(PGICompiler, CPPCompiler):
 
 
 class NvidiaHPC_CPPCompiler(PGICompiler, CPPCompiler):
+
+    id = 'nvidia_hpc'
+
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
                  info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
                  linker: T.Optional['DynamicLinker'] = None,
@@ -455,8 +459,6 @@ class NvidiaHPC_CPPCompiler(PGICompiler, CPPCompiler):
         CPPCompiler.__init__(self, exelist, version, for_machine, is_cross,
                              info, exe_wrapper, linker=linker, full_version=full_version)
         PGICompiler.__init__(self)
-
-        self.id = 'nvidia_hpc'
 
 
 class ElbrusCPPCompiler(ElbrusCompiler, CPPCompiler):
@@ -697,6 +699,9 @@ class CPP11AsCPP14Mixin(CompilerMixinBase):
 
 
 class VisualStudioCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixin, MSVCCompiler, CPPCompiler):
+
+    id = 'msvc'
+
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo', target: str,
                  exe_wrapper: T.Optional['ExternalProgram'] = None,
@@ -705,7 +710,6 @@ class VisualStudioCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixi
         CPPCompiler.__init__(self, exelist, version, for_machine, is_cross,
                              info, exe_wrapper, linker=linker, full_version=full_version)
         MSVCCompiler.__init__(self, target)
-        self.id = 'msvc'
 
     def get_options(self) -> 'KeyedOptionDictType':
         cpp_stds = ['none', 'c++11', 'vc++11']
@@ -737,6 +741,9 @@ class VisualStudioCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixi
         return args
 
 class ClangClCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixin, ClangClCompiler, CPPCompiler):
+
+    id = 'clang-cl'
+
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo', target: str,
                  exe_wrapper: T.Optional['ExternalProgram'] = None,
@@ -745,7 +752,6 @@ class ClangClCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixin, Cl
         CPPCompiler.__init__(self, exelist, version, for_machine, is_cross,
                              info, exe_wrapper, linker=linker, full_version=full_version)
         ClangClCompiler.__init__(self, target)
-        self.id = 'clang-cl'
 
     def get_options(self) -> 'KeyedOptionDictType':
         cpp_stds = ['none', 'c++11', 'vc++11', 'c++14', 'vc++14', 'c++17', 'vc++17', 'c++latest']

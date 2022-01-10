@@ -27,12 +27,12 @@ if T.TYPE_CHECKING:
 class ValaCompiler(Compiler):
 
     language = 'vala'
+    id = 'valac'
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo'):
         super().__init__(exelist, version, for_machine, info, is_cross=is_cross)
         self.version = version
-        self.id = 'valac'
         self.base_options = {OptionKey('b_colorout')}
 
     def needs_static_linker(self) -> bool:

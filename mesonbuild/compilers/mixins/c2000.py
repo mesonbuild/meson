@@ -55,10 +55,11 @@ c2000_debug_args = {
 
 class C2000Compiler(Compiler):
 
+    id = 'c2000'
+
     def __init__(self) -> None:
         if not self.is_cross:
             raise EnvironmentException('c2000 supports only cross-compilation.')
-        self.id = 'c2000'
 
         self.can_compile_suffixes.add('asm')    # Assembly
         self.can_compile_suffixes.add('cla')    # Control Law Accelerator (CLA)

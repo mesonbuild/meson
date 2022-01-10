@@ -388,9 +388,7 @@ class MSVCCompiler(VisualStudioLikeCompiler):
 
     """Specific to the Microsoft Compilers."""
 
-    def __init__(self, target: str):
-        super().__init__(target)
-        self.id = 'msvc'
+    id = 'msvc'
 
     def get_compile_debugfile_args(self, rel_obj: str, pch: bool = False) -> T.List[str]:
         args = super().get_compile_debugfile_args(rel_obj, pch)
@@ -420,9 +418,10 @@ class ClangClCompiler(VisualStudioLikeCompiler):
 
     """Specific to Clang-CL."""
 
+    id = 'clang-cl'
+
     def __init__(self, target: str):
         super().__init__(target)
-        self.id = 'clang-cl'
 
         # Assembly
         self.can_compile_suffixes.add('s')

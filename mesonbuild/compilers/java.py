@@ -30,11 +30,11 @@ if T.TYPE_CHECKING:
 class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
 
     language = 'java'
+    id = 'unknown'
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  info: 'MachineInfo', full_version: T.Optional[str] = None):
         super().__init__(exelist, version, for_machine, info, full_version=full_version)
-        self.id = 'unknown'
         self.javarunner = 'java'
 
     def get_werror_args(self) -> T.List[str]:

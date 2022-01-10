@@ -74,10 +74,11 @@ class ArmCompiler(Compiler):
 
     """Functionality that is common to all ARM family compilers."""
 
+    id = 'arm'
+
     def __init__(self) -> None:
         if not self.is_cross:
             raise mesonlib.EnvironmentException('armcc supports only cross-compilation.')
-        self.id = 'arm'
         default_warn_args = []  # type: T.List[str]
         self.warn_args = {'0': [],
                           '1': default_warn_args,
@@ -140,6 +141,8 @@ class ArmclangCompiler(Compiler):
     This is the Keil armclang.
     '''
 
+    id = 'armclang'
+
     def __init__(self) -> None:
         if not self.is_cross:
             raise mesonlib.EnvironmentException('armclang supports only cross-compilation.')
@@ -148,7 +151,6 @@ class ArmclangCompiler(Compiler):
             raise mesonlib.EnvironmentException(f'Unsupported Linker {self.linker.exelist}, must be armlink')
         if not mesonlib.version_compare(self.version, '==' + self.linker.version):
             raise mesonlib.EnvironmentException('armlink version does not match with compiler version')
-        self.id = 'armclang'
         self.base_options = {
             OptionKey(o) for o in
             ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',

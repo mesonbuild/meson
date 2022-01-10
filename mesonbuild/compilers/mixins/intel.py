@@ -66,6 +66,7 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
         '3': ['-O3'],
         's': ['-Os'],
     }
+    id = 'intel'
 
     def __init__(self) -> None:
         super().__init__()
@@ -77,7 +78,6 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
         self.base_options = {mesonlib.OptionKey(o) for o in [
             'b_pch', 'b_lundef', 'b_asneeded', 'b_pgo', 'b_coverage',
             'b_ndebug', 'b_staticpic', 'b_pie']}
-        self.id = 'intel'
         self.lang_header = 'none'
 
     def get_pch_suffix(self) -> str:
@@ -145,9 +145,7 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
         's': ['/Os'],
     }
 
-    def __init__(self, target: str) -> None:
-        super().__init__(target)
-        self.id = 'intel-cl'
+    id = 'intel-cl'
 
     def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
         args = super().get_compiler_check_args(mode)

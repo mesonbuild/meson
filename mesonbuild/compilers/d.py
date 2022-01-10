@@ -681,6 +681,7 @@ class GnuDCompiler(GnuCompiler, DCompiler):
 
     # we mostly want DCompiler, but that gives us the Compiler.LINKER_PREFIX instead
     LINKER_PREFIX = GnuCompiler.LINKER_PREFIX
+    id = 'gcc'
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  info: 'MachineInfo', arch: str, *,
@@ -692,7 +693,6 @@ class GnuDCompiler(GnuCompiler, DCompiler):
                            exe_wrapper=exe_wrapper, linker=linker,
                            full_version=full_version, is_cross=is_cross)
         GnuCompiler.__init__(self, {})
-        self.id = 'gcc'
         default_warn_args = ['-Wall', '-Wdeprecated']
         self.warn_args = {'0': [],
                           '1': default_warn_args,
@@ -760,6 +760,8 @@ def find_ldc_dmd_frontend_version(version_output: T.Optional[str]) -> T.Optional
 
 class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
 
+    id = 'llvm'
+
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  info: 'MachineInfo', arch: str, *,
                  exe_wrapper: T.Optional['ExternalProgram'] = None,
@@ -770,7 +772,6 @@ class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
                            exe_wrapper=exe_wrapper, linker=linker,
                            full_version=full_version, is_cross=is_cross)
         DmdLikeCompilerMixin.__init__(self, dmd_frontend_version=find_ldc_dmd_frontend_version(version_output))
-        self.id = 'llvm'
         self.base_options = {OptionKey(o) for o in ['b_coverage', 'b_colorout', 'b_vscrt', 'b_ndebug']}
 
     def get_colorout_args(self, colortype: str) -> T.List[str]:
@@ -824,6 +825,8 @@ class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
 
 class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
 
+    id = 'dmd'
+
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  info: 'MachineInfo', arch: str, *,
                  exe_wrapper: T.Optional['ExternalProgram'] = None,
@@ -834,7 +837,6 @@ class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
                            exe_wrapper=exe_wrapper, linker=linker,
                            full_version=full_version, is_cross=is_cross)
         DmdLikeCompilerMixin.__init__(self, version)
-        self.id = 'dmd'
         self.base_options = {OptionKey(o) for o in ['b_coverage', 'b_colorout', 'b_vscrt', 'b_ndebug']}
 
     def get_colorout_args(self, colortype: str) -> T.List[str]:

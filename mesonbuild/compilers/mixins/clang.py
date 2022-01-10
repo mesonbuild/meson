@@ -45,9 +45,10 @@ clang_optimization_args = {
 
 class ClangCompiler(GnuLikeCompiler):
 
+    id = 'clang'
+
     def __init__(self, defines: T.Optional[T.Dict[str, str]]):
         super().__init__()
-        self.id = 'clang'
         self.defines = defines or {}
         self.base_options.update(
             {OptionKey('b_colorout'), OptionKey('b_lto_threads'), OptionKey('b_lto_mode')})
