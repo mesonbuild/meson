@@ -53,7 +53,6 @@ index.md
 			Qt4-module.md
 			Qt5-module.md
 			Qt6-module.md
-			RPM-module.md
 			Rust-module.md
 			Simd-module.md
 			SourceSet-module.md
