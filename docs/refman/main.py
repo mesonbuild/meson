@@ -33,7 +33,7 @@ meson_root = Path(__file__).absolute().parents[2]
 
 def main() -> int:
     parser = argparse.ArgumentParser(description='Meson reference manual generator')
-    parser.add_argument('-l', '--loader', type=str, default='yaml', choices=['yaml', 'pickle'], help='Information loader backend')
+    parser.add_argument('-l', '--loader', type=str, default='yaml', choices=['yaml', 'fastyaml', 'pickle'], help='Information loader backend')
     parser.add_argument('-g', '--generator', type=str, choices=['print', 'pickle', 'md', 'json', 'man'], required=True, help='Generator backend')
     parser.add_argument('-s', '--sitemap', type=Path, default=meson_root / 'docs' / 'sitemap.txt', help='Path to the input sitemap.txt')
     parser.add_argument('-o', '--out', type=Path, required=True, help='Output directory for generated files')
@@ -49,6 +49,7 @@ def main() -> int:
 
     loaders: T.Dict[str, T.Callable[[], LoaderBase]] = {
         'yaml': lambda: LoaderYAML(args.input),
+        'fastyaml': lambda: LoaderYAML(args.input, strict=False),
         'pickle': lambda: LoaderPickle(args.input),
     }
 
