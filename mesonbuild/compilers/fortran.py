@@ -494,6 +494,12 @@ class FlangFortranCompiler(ClangCompiler, FortranCompiler):
                 search_dirs.append(f'-L{d}')
         return search_dirs + ['-lflang', '-lpgmath']
 
+class ArmLtdFlangFortranCompiler(FlangFortranCompiler):
+
+    def __init__(self, *args, **kwargs):
+        FlangFortranCompiler.__init__(self, *args, **kwargs)
+        self.id = 'armltdflang'
+
 class Open64FortranCompiler(FortranCompiler):
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,

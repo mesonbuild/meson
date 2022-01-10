@@ -1777,8 +1777,8 @@ class Executable(BuildTarget):
                 self.suffix = 'exe'
             elif machine.system.startswith('wasm') or machine.system == 'emscripten':
                 self.suffix = 'js'
-            elif ('c' in self.compilers and self.compilers['c'].get_id().startswith('arm') or
-                  'cpp' in self.compilers and self.compilers['cpp'].get_id().startswith('arm')):
+            elif ('c' in self.compilers and self.compilers['c'].get_id().startswith('armclang') or
+                  'cpp' in self.compilers and self.compilers['cpp'].get_id().startswith('armclang')):
                 self.suffix = 'axf'
             elif ('c' in self.compilers and self.compilers['c'].get_id().startswith('ccrx') or
                   'cpp' in self.compilers and self.compilers['cpp'].get_id().startswith('ccrx')):

@@ -155,7 +155,7 @@ class CPPCompiler(CLikeCompiler, Compiler):
         }
 
         # Currently, remapping is only supported for Clang, Elbrus and GCC
-        assert self.id in frozenset(['clang', 'lcc', 'gcc', 'emscripten'])
+        assert self.id in frozenset(['clang', 'lcc', 'gcc', 'emscripten', 'armltdclang'])
 
         if cpp_std not in CPP_FALLBACKS:
             # 'c++03' and 'c++98' don't have fallback types
@@ -259,6 +259,12 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
         return search_dirs + ['-lstdc++']
 
 
+class ArmLtdClangCPPCompiler(ClangCPPCompiler):
+    def __init__(self, *args, **kwargs):
+        ClangCPPCompiler.__init__(self, *args, **kwargs)
+        self.id = 'armltdclang'
+
+
 class AppleClangCPPCompiler(ClangCPPCompiler):
     def language_stdlib_only_link_flags(self, env: 'Environment') -> T.List[str]:
         # We need to apply the search prefix here, as these link arguments may
@@ -296,6 +302,10 @@ class EmscriptenCPPCompiler(EmscriptenMixin, ClangCPPCompiler):
 
 
 class ArmclangCPPCompiler(ArmclangCompiler, CPPCompiler):
+    '''
+    Keil armclang
+    '''
+
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
                  info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
                  linker: T.Optional['DynamicLinker'] = None,

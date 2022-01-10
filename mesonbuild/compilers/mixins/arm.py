@@ -136,6 +136,9 @@ class ArmCompiler(Compiler):
 
 
 class ArmclangCompiler(Compiler):
+    '''
+    This is the Keil armclang.
+    '''
 
     def __init__(self) -> None:
         if not self.is_cross:
