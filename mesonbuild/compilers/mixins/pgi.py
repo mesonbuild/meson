@@ -43,9 +43,10 @@ pgi_buildtype_args = {
 
 class PGICompiler(Compiler):
 
+    id = 'pgi'
+
     def __init__(self) -> None:
         self.base_options = {OptionKey('b_pch')}
-        self.id = 'pgi'
 
         default_warn_args = ['-Minform=inform']
         self.warn_args = {'0': [],

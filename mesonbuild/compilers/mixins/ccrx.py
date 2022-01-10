@@ -59,10 +59,11 @@ class CcrxCompiler(Compiler):
         is_cross = True
         can_compile_suffixes = set()  # type: T.Set[str]
 
+    id = 'ccrx'
+
     def __init__(self) -> None:
         if not self.is_cross:
             raise EnvironmentException('ccrx supports only cross-compilation.')
-        self.id = 'ccrx'
         # Assembly
         self.can_compile_suffixes.add('src')
         default_warn_args = []  # type: T.List[str]

@@ -37,6 +37,7 @@ class SwiftCompiler(Compiler):
 
     LINKER_PREFIX = ['-Xlinker']
     language = 'swift'
+    id = 'llvm'
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo', full_version: T.Optional[str] = None,
@@ -45,7 +46,6 @@ class SwiftCompiler(Compiler):
                          is_cross=is_cross, full_version=full_version,
                          linker=linker)
         self.version = version
-        self.id = 'llvm'
 
     def needs_static_linker(self) -> bool:
         return True

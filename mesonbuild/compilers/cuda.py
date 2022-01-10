@@ -173,6 +173,8 @@ class CudaCompiler(Compiler):
     # Reverse map -short to --long options.
     _FLAG_SHORT2LONG_WITHARGS = {v: k for k, v in _FLAG_LONG2SHORT_WITHARGS.items()}
 
+    id = 'nvcc'
+
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  is_cross: bool, exe_wrapper: T.Optional['ExternalProgram'],
                  host_compiler: Compiler, info: 'MachineInfo',
@@ -182,7 +184,6 @@ class CudaCompiler(Compiler):
         self.exe_wrapper = exe_wrapper
         self.host_compiler = host_compiler
         self.base_options = host_compiler.base_options
-        self.id = 'nvcc'
         self.warn_args = {level: self._to_host_flags(flags) for level, flags in host_compiler.warn_args.items()}
 
     @classmethod

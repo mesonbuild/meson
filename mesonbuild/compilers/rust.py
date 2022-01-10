@@ -44,6 +44,7 @@ class RustCompiler(Compiler):
 
     # rustc doesn't invoke the compiler itself, it doesn't need a LINKER_PREFIX
     language = 'rust'
+    id = 'rustc'
 
     _WARNING_LEVELS: T.Dict[str, T.List[str]] = {
         '0': ['-A', 'warnings'],
@@ -61,7 +62,6 @@ class RustCompiler(Compiler):
                          is_cross=is_cross, full_version=full_version,
                          linker=linker)
         self.exe_wrapper = exe_wrapper
-        self.id = 'rustc'
         self.base_options.add(OptionKey('b_colorout'))
         if 'link' in self.linker.id:
             self.base_options.add(OptionKey('b_vscrt'))
@@ -205,11 +205,4 @@ class ClippyRustCompiler(RustCompiler):
     This just provides us a different id
     """
 
-    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
-                 is_cross: bool, info: 'MachineInfo',
-                 exe_wrapper: T.Optional['ExternalProgram'] = None,
-                 full_version: T.Optional[str] = None,
-                 linker: T.Optional['DynamicLinker'] = None):
-        super().__init__(exelist, version, for_machine, is_cross, info,
-                         exe_wrapper, full_version, linker)
-        self.id = 'clippy-driver rustc'
+    id = 'clippy-driver rustc'

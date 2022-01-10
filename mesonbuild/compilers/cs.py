@@ -40,9 +40,8 @@ class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):
     language = 'cs'
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
-                 info: 'MachineInfo', comp_id: str, runner: T.Optional[str] = None):
+                 info: 'MachineInfo', runner: T.Optional[str] = None):
         super().__init__(exelist, version, for_machine, info)
-        self.id = comp_id
         self.runner = runner
 
     @classmethod
@@ -121,19 +120,20 @@ class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):
 
 
 class MonoCompiler(CsCompiler):
+
+    id = 'mono'
+
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  info: 'MachineInfo'):
-        super().__init__(exelist, version, for_machine, info, 'mono',
-                         runner='mono')
+        super().__init__(exelist, version, for_machine, info, runner='mono')
 
     def rsp_file_syntax(self) -> 'RSPFileSyntax':
         return RSPFileSyntax.GCC
 
 
 class VisualStudioCsCompiler(CsCompiler):
-    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
-                 info: 'MachineInfo'):
-        super().__init__(exelist, version, for_machine, info, 'csc')
+
+    id = 'csc'
 
     def get_buildtype_args(self, buildtype: str) -> T.List[str]:
         res = mono_buildtype_args[buildtype]

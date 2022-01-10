@@ -60,8 +60,9 @@ ccomp_args_to_wul = [
 
 class CompCertCompiler(Compiler):
 
+    id = 'ccomp'
+
     def __init__(self) -> None:
-        self.id = 'ccomp'
         # Assembly
         self.can_compile_suffixes.add('s')
         default_warn_args = []  # type: T.List[str]

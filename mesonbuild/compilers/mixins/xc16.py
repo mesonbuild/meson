@@ -55,10 +55,11 @@ xc16_debug_args = {
 
 class Xc16Compiler(Compiler):
 
+    id = 'xc16'
+
     def __init__(self) -> None:
         if not self.is_cross:
             raise EnvironmentException('xc16 supports only cross-compilation.')
-        self.id = 'xc16'
         # Assembly
         self.can_compile_suffixes.add('s')
         default_warn_args = []  # type: T.List[str]

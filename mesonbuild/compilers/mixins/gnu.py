@@ -328,10 +328,10 @@ class GnuCompiler(GnuLikeCompiler):
     GnuCompiler represents an actual GCC in its many incarnations.
     Compilers imitating GCC (Clang/Intel) should use the GnuLikeCompiler ABC.
     """
+    id = 'gcc'
 
     def __init__(self, defines: T.Optional[T.Dict[str, str]]):
         super().__init__()
-        self.id = 'gcc'
         self.defines = defines or {}
         self.base_options.update({OptionKey('b_colorout'), OptionKey('b_lto_threads')})
 
