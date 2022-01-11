@@ -17,6 +17,7 @@ from ..interpreterbase import (ObjectHolder, noPosargs, noKwargs,
                                FeatureNew, disablerIfNotFound,
                                InterpreterException)
 from ..interpreterbase.decorators import ContainerTypeInfo, typed_kwargs, KwargInfo, typed_pos_args
+from ..mesonlib import OptionKey
 from .interpreterobjects import (extract_required_kwarg, extract_search_dirs)
 from .type_checking import REQUIRED_KW, in_set_validator, NoneType
 
@@ -592,10 +593,13 @@ class CompilerHolder(ObjectHolder['Compiler']):
 
         search_dirs = extract_search_dirs(kwargs)
 
+        prefer_static = self.environment.coredata.get_option(OptionKey('prefer_static'))
         if kwargs['static'] is True:
             libtype = mesonlib.LibType.STATIC
         elif kwargs['static'] is False:
             libtype = mesonlib.LibType.SHARED
+        elif prefer_static:
+            libtype = mesonlib.LibType.PREFER_STATIC
         else:
             libtype = mesonlib.LibType.PREFER_SHARED
         linkargs = self.compiler.find_library(libname, self.environment, search_dirs, libtype)
