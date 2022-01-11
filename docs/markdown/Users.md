@@ -94,7 +94,7 @@ format files
  - [Libvirt](https://libvirt.org), a toolkit to manage virtualization platforms
  - [Libzim](https://github.com/openzim/libzim), the reference implementation for the ZIM file format
  - [Marker](https://github.com/fabiocolacio/Marker), a GTK-3 markdown editor
- - [Mesa](https://gitlab.freedesktop.org/mesa/mesa/), an open source graphics driver project
+ - [Mesa](https://mesa3d.org/), an open source graphics driver project
  - [MiracleCast](https://github.com/albfan/miraclecast), connect external monitors to your system via Wifi-Display specification aka Miracast
  - [mpv](https://github.com/mpv-player/mpv), a free, open source, and cross-platform media player
  - [mrsh](https://github.com/emersion/mrsh), a minimal POSIX shell
