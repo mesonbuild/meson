@@ -22,7 +22,7 @@ from enum import Enum
 
 from .. import mlog
 from ..compilers import clib_langs
-from ..mesonlib import LibType, MachineChoice, MesonException, HoldableObject
+from ..mesonlib import LibType, MachineChoice, MesonException, HoldableObject, OptionKey
 from ..mesonlib import version_compare_many
 from ..interpreterbase import FeatureDeprecated
 
@@ -325,7 +325,7 @@ class ExternalDependency(Dependency, HasNativeKwarg):
             self.version_reqs = [self.version_reqs]
         self.required = kwargs.get('required', True)
         self.silent = kwargs.get('silent', False)
-        self.static = kwargs.get('static', False)
+        self.static = kwargs.get('static', self.env.coredata.get_option(OptionKey('prefer_static')))
         self.libtype = LibType.STATIC if self.static else LibType.PREFER_SHARED
         if not isinstance(self.static, bool):
             raise DependencyException('Static keyword must be boolean')

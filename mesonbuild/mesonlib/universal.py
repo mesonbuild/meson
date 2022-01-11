@@ -2001,6 +2001,7 @@ _BUILTIN_NAMES = {
     'install_umask',
     'layout',
     'optimization',
+    'prefer_static',
     'stdsplit',
     'strip',
     'unity',
