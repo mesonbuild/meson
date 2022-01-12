@@ -1437,7 +1437,7 @@ class GnomeModule(ExtensionModule):
             'annotations', ContainerTypeInfo(list, str),
             listify=True,
             default=[],
-            validator=lambda x: 'must be made up of 3 strings for ELEMENT, KEY, and VALUE' if len(x) != 3 else None
+            validator=lambda x: 'must be made up of 3 strings for ELEMENT, KEY, and VALUE' if len(x) % 3 != 0 else None
         ),
         KwargInfo('install_header', bool, default=False, since='0.46.0'),
         KwargInfo('install_dir', (str, NoneType), since='0.46.0'),
