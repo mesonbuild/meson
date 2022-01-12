@@ -1424,7 +1424,7 @@ class GnomeModule(ExtensionModule):
     def gtkdoc_html_dir(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> str:
         return os.path.join('share/gtk-doc/html', args[0])
 
-    @typed_pos_args('gnome.gdbus_codegen', str, optargs=[str])
+    @typed_pos_args('gnome.gdbus_codegen', str, optargs=[(str, mesonlib.File)])
     @typed_kwargs(
         'gnome.gdbus_codegen',
         _BUILD_BY_DEFAULT.evolve(since='0.40.0'),
@@ -1446,7 +1446,7 @@ class GnomeModule(ExtensionModule):
             'autocleanup', str, default='default', since='0.47.0',
             validator=in_set_validator({'all', 'none', 'objects'})),
     )
-    def gdbus_codegen(self, state: 'ModuleState', args: T.Tuple[str, T.Optional[str]],
+    def gdbus_codegen(self, state: 'ModuleState', args: T.Tuple[str, T.Optional['FileOrString']],
                       kwargs: 'GdbusCodegen') -> ModuleReturnValue:
         namebase = args[0]
         xml_files: T.List['FileOrString'] = [args[1]] if args[1] else []
