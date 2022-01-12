@@ -428,11 +428,11 @@ class Installer:
         append_to_log(self.lf, to_file)
         return True
 
-    def do_symlink(self, target: str, link: str, full_dst_dir: str) -> bool:
+    def do_symlink(self, target: str, link: str, full_dst_dir: str, allow_missing: bool) -> bool:
         abs_target = target
         if not os.path.isabs(target):
             abs_target = os.path.join(full_dst_dir, target)
-        if not os.path.exists(abs_target):
+        if not os.path.exists(abs_target) and not allow_missing:
             raise MesonException(f'Tried to install symlink to missing file {abs_target}')
         if os.path.exists(link):
             if not os.path.islink(link):
@@ -592,7 +592,7 @@ class Installer:
             full_dst_dir = get_destdir_path(destdir, fullprefix, s.install_path)
             full_link_name = get_destdir_path(destdir, fullprefix, s.name)
             dm.makedirs(full_dst_dir, exist_ok=True)
-            if self.do_symlink(s.target, full_link_name, full_dst_dir):
+            if self.do_symlink(s.target, full_link_name, full_dst_dir, s.allow_missing):
                 self.did_install_something = True
 
     def install_man(self, d: InstallData, dm: DirMaker, destdir: str, fullprefix: str) -> None:
@@ -676,7 +676,6 @@ class Installer:
             outdir = get_destdir_path(destdir, fullprefix, t.outdir)
             outname = os.path.join(outdir, os.path.basename(fname))
             final_path = os.path.join(d.prefix, t.outdir, os.path.basename(fname))
-            aliases = t.aliases
             should_strip = t.strip
             install_rpath = t.install_rpath
             install_name_mappings = t.install_name_mappings
@@ -711,9 +710,6 @@ class Installer:
                 self.do_copydir(d, fname, outname, None, install_mode, dm)
             else:
                 raise RuntimeError(f'Unknown file type for {fname!r}')
-            for alias, target in aliases.items():
-                symlinkfilename = os.path.join(outdir, alias)
-                self.do_symlink(target, symlinkfilename, outdir)
             if file_copied:
                 self.did_install_something = True
                 try:

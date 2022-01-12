@@ -43,6 +43,12 @@ both_libraries('both', 'lib.c',
   install: true,
 )
 
+# Unversioned .so file should have 'devel' tag, others should have 'runtime' tag
+shared_library('versioned_shared', 'lib.c',
+  install: true,
+  version: '1.2.3',
+)
+
 # Those files should have custom tag
 install_data('bar-custom.txt',
   install_dir: get_option('datadir'),
