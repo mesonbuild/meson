@@ -119,9 +119,9 @@ if T.TYPE_CHECKING:
         install_dir: T.List[str]
         check: bool
         install: bool
-        gobject_typesfile: T.List[str]
-        html_assets: T.List[str]
-        expand_content_files: T.List[str]
+        gobject_typesfile: T.List[FileOrString]
+        html_assets: T.List[FileOrString]
+        expand_content_files: T.List[FileOrString]
         c_args: T.List[str]
         include_directories: T.List[T.Union[str, build.IncludeDirs]]
         dependencies: T.List[T.Union[Dependency, build.SharedLibrary, build.StaticLibrary]]
@@ -1259,11 +1259,11 @@ class GnomeModule(ExtensionModule):
             'dependencies',
             ContainerTypeInfo(list, (Dependency, build.SharedLibrary, build.StaticLibrary)),
             listify=True, default=[]),
-        KwargInfo('expand_content_files', ContainerTypeInfo(list, str), default=[], listify=True),
+        KwargInfo('expand_content_files', ContainerTypeInfo(list, (str, mesonlib.File)), default=[], listify=True),
         KwargInfo('fixxref_args', ContainerTypeInfo(list, str), default=[], listify=True),
-        KwargInfo('gobject_typesfile', ContainerTypeInfo(list, str), default=[], listify=True),
+        KwargInfo('gobject_typesfile', ContainerTypeInfo(list, (str, mesonlib.File)), default=[], listify=True),
         KwargInfo('html_args', ContainerTypeInfo(list, str), default=[], listify=True),
-        KwargInfo('html_assets', ContainerTypeInfo(list, str), default=[], listify=True),
+        KwargInfo('html_assets', ContainerTypeInfo(list, (str, mesonlib.File)), default=[], listify=True),
         KwargInfo('ignore_headers', ContainerTypeInfo(list, str), default=[], listify=True),
         KwargInfo(
             'include_directories',
