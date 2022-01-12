@@ -1289,7 +1289,7 @@ class GnomeModule(ExtensionModule):
         main_xml = kwargs['main_xml']
         if main_xml is not None:
             if main_file is not None:
-                raise InvalidArguments('gnome.gtkdoc: main_xml and main_xgml are exclusive arguments')
+                raise InvalidArguments('gnome.gtkdoc: main_xml and main_sgml are exclusive arguments')
             main_file = main_xml
         moduleversion = kwargs['module_version']
         targetname = modulename + ('-' + moduleversion if moduleversion else '') + '-doc'
