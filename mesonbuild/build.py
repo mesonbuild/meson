@@ -1471,8 +1471,8 @@ You probably should put it in link_with instead.''')
         else:
             self.extra_args[language] = args
 
-    def get_aliases(self) -> T.Dict[str, str]:
-        return {}
+    def get_aliases(self) -> T.List[T.Tuple[str, str, str]]:
+        return []
 
     def get_langs_used_by_deps(self) -> T.List[str]:
         '''
@@ -2240,7 +2240,7 @@ class SharedLibrary(BuildTarget):
     def get_all_link_deps(self):
         return [self] + self.get_transitive_link_deps()
 
-    def get_aliases(self) -> T.Dict[str, str]:
+    def get_aliases(self) -> T.List[T.Tuple[str, str, str]]:
         """
         If the versioned library name is libfoo.so.0.100.0, aliases are:
         * libfoo.so.0 (soversion) -> libfoo.so.0.100.0
@@ -2248,7 +2248,7 @@ class SharedLibrary(BuildTarget):
         Same for dylib:
         * libfoo.dylib (unversioned; for linking) -> libfoo.0.dylib
         """
-        aliases: T.Dict[str, str] = {}
+        aliases: T.List[T.Tuple[str, str, str]] = []
         # Aliases are only useful with .so and .dylib libraries. Also if
         # there's no self.soversion (no versioning), we don't need aliases.
         if self.suffix not in ('so', 'dylib') or not self.soversion:
@@ -2260,14 +2260,16 @@ class SharedLibrary(BuildTarget):
         if self.suffix == 'so' and self.ltversion and self.ltversion != self.soversion:
             alias_tpl = self.filename_tpl.replace('ltversion', 'soversion')
             ltversion_filename = alias_tpl.format(self)
-            aliases[ltversion_filename] = self.filename
+            tag = self.install_tag[0] or 'runtime'
+            aliases.append((ltversion_filename, self.filename, tag))
         # libfoo.so.0/libfoo.0.dylib is the actual library
         else:
             ltversion_filename = self.filename
         # Unversioned alias:
         #  libfoo.so -> libfoo.so.0
         #  libfoo.dylib -> libfoo.0.dylib
-        aliases[self.basic_filename_tpl.format(self)] = ltversion_filename
+        tag = self.install_tag[0] or 'devel'
+        aliases.append((self.basic_filename_tpl.format(self), ltversion_filename, tag))
         return aliases
 
     def type_suffix(self):

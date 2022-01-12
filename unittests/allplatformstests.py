@@ -3886,10 +3886,12 @@ class AllPlatformTests(BasePlatformTests):
                 Path(installpath, 'usr/bin/both2.pdb'),
                 Path(installpath, 'usr/bin/bothcustom.pdb'),
                 Path(installpath, 'usr/bin/shared.pdb'),
+                Path(installpath, 'usr/bin/versioned_shared-1.pdb'),
                 Path(installpath, 'usr/lib/both.lib'),
                 Path(installpath, 'usr/lib/both2.lib'),
                 Path(installpath, 'usr/lib/bothcustom.lib'),
                 Path(installpath, 'usr/lib/shared.lib'),
+                Path(installpath, 'usr/lib/versioned_shared.lib'),
             }
         elif is_windows() or is_cygwin():
             expected_devel |= {
@@ -3897,6 +3899,11 @@ class AllPlatformTests(BasePlatformTests):
                 Path(installpath, 'usr/lib/libboth2.dll.a'),
                 Path(installpath, 'usr/lib/libshared.dll.a'),
                 Path(installpath, 'usr/lib/libbothcustom.dll.a'),
+                Path(installpath, 'usr/lib/libversioned_shared.dll.a'),
+            }
+        else:
+            expected_devel |= {
+                Path(installpath, 'usr/' + shared_lib_name('versioned_shared')),
             }
 
         expected_runtime = expected_common | {
@@ -3907,6 +3914,20 @@ class AllPlatformTests(BasePlatformTests):
             Path(installpath, 'usr/' + shared_lib_name('both')),
             Path(installpath, 'usr/' + shared_lib_name('both2')),
         }
+
+        if is_windows() or is_cygwin():
+            expected_runtime |= {
+                Path(installpath, 'usr/' + shared_lib_name('versioned_shared-1')),
+            }
+        elif is_osx():
+            expected_runtime |= {
+                Path(installpath, 'usr/' + shared_lib_name('versioned_shared.1')),
+            }
+        else:
+            expected_runtime |= {
+                Path(installpath, 'usr/' + shared_lib_name('versioned_shared') + '.1'),
+                Path(installpath, 'usr/' + shared_lib_name('versioned_shared') + '.1.2.3'),
+            }
 
         expected_custom = expected_common | {
             Path(installpath, 'usr/share'),

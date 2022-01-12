@@ -3092,8 +3092,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         return self.get_target_filename(t)
 
     def generate_shlib_aliases(self, target, outdir):
-        aliases = target.get_aliases()
-        for alias, to in aliases.items():
+        for alias, to, tag in target.get_aliases():
             aliasfile = os.path.join(self.environment.get_build_dir(), outdir, alias)
             try:
                 os.remove(aliasfile)

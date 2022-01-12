@@ -107,9 +107,6 @@ def list_installed(installdata: backends.InstallData) -> T.Dict[str, str]:
         for t in installdata.targets:
             res[os.path.join(installdata.build_dir, t.fname)] = \
                 os.path.join(installdata.prefix, t.outdir, os.path.basename(t.fname))
-            for alias in t.aliases.keys():
-                res[os.path.join(installdata.build_dir, alias)] = \
-                    os.path.join(installdata.prefix, t.outdir, os.path.basename(alias))
         for i in installdata.data:
             res[i.path] = os.path.join(installdata.prefix, i.install_path)
         for i in installdata.headers:
@@ -118,6 +115,9 @@ def list_installed(installdata: backends.InstallData) -> T.Dict[str, str]:
             res[i.path] = os.path.join(installdata.prefix, i.install_path)
         for i in installdata.install_subdirs:
             res[i.path] = os.path.join(installdata.prefix, i.install_path)
+        for s in installdata.symlinks:
+            basename = os.path.basename(s.name)
+            res[basename] = os.path.join(installdata.prefix, s.install_path, basename)
     return res
 
 def list_install_plan(installdata: backends.InstallData) -> T.Dict[str, T.Dict[str, T.Dict[str, T.Optional[str]]]]:
@@ -216,9 +216,17 @@ def list_targets(builddata: build.Build, installdata: backends.InstallData, back
     # Fast lookup table for installation files
     install_lookuptable = {}
     for i in installdata.targets:
-        out = [os.path.join(installdata.prefix, i.outdir, os.path.basename(i.fname))]
-        out += [os.path.join(installdata.prefix, i.outdir, os.path.basename(x)) for x in i.aliases]
-        install_lookuptable[os.path.basename(i.fname)] = [str(PurePath(x)) for x in out]
+        basename = os.path.basename(i.fname)
+        install_lookuptable[basename] = [str(PurePath(installdata.prefix, i.outdir, basename))]
+    for s in installdata.symlinks:
+        # Symlink's target must already be in the table. They share the same list
+        # to support symlinks to symlinks recursively, such as .so -> .so.0 -> .so.1.2.3
+        basename = os.path.basename(s.name)
+        try:
+            install_lookuptable[basename] = install_lookuptable[os.path.basename(s.target)]
+            install_lookuptable[basename].append(str(PurePath(installdata.prefix, s.install_path, basename)))
+        except KeyError:
+            pass
 
     for (idname, target) in builddata.get_targets().items():
         if not isinstance(target, build.Target):
