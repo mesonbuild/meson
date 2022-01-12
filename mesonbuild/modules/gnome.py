@@ -134,7 +134,7 @@ if T.TYPE_CHECKING:
         namespace: T.Optional[str]
         object_manager: bool
         build_by_default: bool
-        annotations: T.List[str]
+        annotations: T.List[T.List[str]]
         install_header: bool
         install_dir: T.Optional[str]
         docbook: T.Optional[str]
@@ -221,6 +221,27 @@ _MK_ENUMS_COMMON_KWS: T.List[KwargInfo] = [
     KwargInfo('identifier_prefix', (str, NoneType)),
     KwargInfo('symbol_prefix', (str, NoneType)),
 ]
+
+def annotations_validator(annotations: T.List[T.Union[str, T.List[str]]]) -> T.Optional[str]:
+
+    """Validate gdbus-codegen annotations argument"""
+
+    badlist = 'must be made up of 3 strings for ELEMENT, KEY, and VALUE'
+
+    if all(isinstance(annot, str) for annot in annotations):
+        if len(annotations) == 3:
+            return None
+        else:
+            return badlist
+    elif not all(isinstance(annot, list) for annot in annotations):
+        for c, annot in enumerate(annotations):
+            if not isinstance(annot, list):
+                return f'element {c+1} must be a list'
+    else:
+        for c, annot in enumerate(annotations):
+            if len(annot) != 3 or not all(isinstance(i, str) for i in annot):
+                return f'element {c+1} {badlist}'
+    return None
 
 # gresource compilation is broken due to the way
 # the resource compiler and Ninja clash about it
@@ -1434,10 +1455,10 @@ class GnomeModule(ExtensionModule):
         KwargInfo('namespace', (str, NoneType)),
         KwargInfo('object_manager', bool, default=False),
         KwargInfo(
-            'annotations', ContainerTypeInfo(list, str),
-            listify=True,
+            'annotations', ContainerTypeInfo(list, (list, str)),
             default=[],
-            validator=lambda x: 'must be made up of 3 strings for ELEMENT, KEY, and VALUE' if len(x) % 3 != 0 else None
+            validator=annotations_validator,
+            convertor=lambda x: [x] if x and isinstance(x[0], str) else x,
         ),
         KwargInfo('install_header', bool, default=False, since='0.46.0'),
         KwargInfo('install_dir', (str, NoneType), since='0.46.0'),
@@ -1477,9 +1498,9 @@ class GnomeModule(ExtensionModule):
         build_by_default = kwargs['build_by_default']
 
         # Annotations are a bit ugly in that they are a list of lists of strings...
-        if kwargs['annotations']:
+        for annot in kwargs['annotations']:
             cmd.append('--annotate')
-            cmd.extend(kwargs['annotations'])
+            cmd.extend(annot)
 
         targets = []
         install_header = kwargs['install_header']
