@@ -305,7 +305,14 @@ def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler', 
     except (KeyError, AttributeError):
         pass
     try:
-        args += compiler.sanitizer_compile_args(options.get_value(OptionKey('b_sanitize')))
+        sani_opt = options.get_value(OptionKey('b_sanitize'))
+        assert isinstance(sani_opt, str), 'for mypy'
+        sani_args = compiler.sanitizer_compile_args(sani_opt)
+        # We consider that if there are no sanitizer arguments returned, then the language doesn't support them
+        if sani_args:
+            if not compiler.has_multi_arguments(sani_args, env)[0]:
+                raise MesonException(f'Compiler {compiler.name_string()} does not support sanitizer arguments {sani_args}')
+            args.extend(sani_args)
     except (KeyError, AttributeError):
         pass
     try:
@@ -340,7 +347,7 @@ def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler', 
     return args
 
 def get_base_link_args(options: 'KeyedOptionDictType', linker: 'Compiler',
-                       is_shared_module: bool, build_dir: str) -> T.List[str]:
+                       is_shared_module: bool, env: Environment) -> T.List[str]:
     args: T.List[str] = []
     try:
         if options.get_value('b_lto'):
@@ -351,7 +358,7 @@ def get_base_link_args(options: 'KeyedOptionDictType', linker: 'Compiler',
             if get_option_value(options, OptionKey('b_thinlto_cache'), False):
                 thinlto_cache_dir = get_option_value(options, OptionKey('b_thinlto_cache_dir'), '')
                 if thinlto_cache_dir == '':
-                    thinlto_cache_dir = os.path.join(build_dir, 'meson-private', 'thinlto-cache')
+                    thinlto_cache_dir = os.path.join(env.get_build_dir(), 'meson-private', 'thinlto-cache')
             args.extend(linker.get_lto_link_args(
                 threads=get_option_value(options, OptionKey('b_lto_threads'), 0),
                 mode=get_option_value(options, OptionKey('b_lto_mode'), 'default'),
@@ -359,7 +366,13 @@ def get_base_link_args(options: 'KeyedOptionDictType', linker: 'Compiler',
     except (KeyError, AttributeError):
         pass
     try:
-        args += linker.sanitizer_link_args(options.get_value('b_sanitize'))
+        sani_opt = options.get_value(OptionKey('b_sanitize'))
+        sani_args = linker.sanitizer_link_args(sani_opt)
+        # We consider that if there are no sanitizer arguments returned, then the language doesn't support them
+        if sani_args:
+            if not linker.has_multi_link_arguments(sani_args, env)[0]:
+                raise MesonException(f'Linker {linker.name_string()} does not support sanitizer arguments {sani_args}')
+            args.extend(sani_args)
     except (KeyError, AttributeError):
         pass
     try:
