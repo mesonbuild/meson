@@ -322,7 +322,7 @@ def get_option_value(options: 'KeyedOptionDictType', opt: OptionKey, fallback: '
     return v
 
 
-def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler') -> T.List[str]:
+def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler', env: 'Environment') -> T.List[str]:
     args = []  # type T.List[str]
     try:
         if options[OptionKey('b_lto')].value:
@@ -336,7 +336,14 @@ def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler') 
     except KeyError:
         pass
     try:
-        args += compiler.sanitizer_compile_args(options[OptionKey('b_sanitize')].value)
+        sani_opt: T.List[str] = options[OptionKey('b_sanitize')].value
+        assert isinstance(sani_opt, list), 'for mypy'
+        sani_args = compiler.sanitizer_compile_args(sani_opt)
+        # We consider that if there are no sanitizer arguments returned, then the language doesn't support them
+        if sani_args:
+            if not compiler.has_multi_arguments(sani_args, env)[0]:
+                raise MesonException(f'Compiler {compiler.name_string()} does not support sanitizer arguments {sani_args}')
+            args.extend(sani_args)
     except KeyError:
         pass
     try:
@@ -374,7 +381,7 @@ def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler') 
     return args
 
 def get_base_link_args(options: 'KeyedOptionDictType', linker: 'Compiler',
-                       is_shared_module: bool) -> T.List[str]:
+                       is_shared_module: bool, env: 'Environment') -> T.List[str]:
     args = []  # type: T.List[str]
     try:
         if options[OptionKey('b_lto')].value:
@@ -384,7 +391,13 @@ def get_base_link_args(options: 'KeyedOptionDictType', linker: 'Compiler',
     except KeyError:
         pass
     try:
-        args += linker.sanitizer_link_args(options[OptionKey('b_sanitize')].value)
+        sani_opt = options[OptionKey('b_sanitize')].value
+        sani_args = linker.sanitizer_link_args(sani_opt)
+        # We consider that if there are no sanitizer arguments returned, then the language doesn't support them
+        if sani_args:
+            if not linker.has_multi_link_arguments(sani_args, env)[0]:
+                raise MesonException(f'Linker {linker.name_string()} does not support sanitizer arguments {sani_args}')
+            args.extend(sani_args)
     except KeyError:
         pass
     try:

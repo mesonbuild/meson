@@ -205,9 +205,6 @@ class RustCompiler(Compiler):
         return self.has_arguments(args, env, 'fn main { std::process::exit(0) };\n', 'compile')
 
     def _has_multi_link_arguments(self, args: T.List[str], env: 'Environment', code: str) -> T.Tuple[bool, bool]:
-        # First time we check for link flags we need to first check if we have
-        # --fatal-warnings, otherwise some linker checks could give some
-        # false positive.
         args = self.linker.fatal_warnings() + args
         return self.has_arguments(args, env, code, mode='link')
 
