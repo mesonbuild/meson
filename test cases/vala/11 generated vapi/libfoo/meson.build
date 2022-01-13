@@ -24,7 +24,14 @@ libfoo_gir = gnome.generate_gir(libfoo,
   ],
 )
 
+configure_file(
+  input: 'foo.metadata',
+  output: 'Foo-@0@.metadata'.format(libfoo_api_ver),
+  copy: true
+)
+
 libfoo_vapi = gnome.generate_vapi('foo-' + libfoo_api_ver,
+  metadata_dirs: meson.current_build_dir(),
   sources: libfoo_gir[0],
   install: true,
 )
