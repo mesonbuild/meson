@@ -2728,7 +2728,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 mlog.warning(f'Consider using the built-in debug option instead of using "{arg}".',
                              location=self.current_node)
             # Don't catch things like `-fsanitize-recover`
-            elif arg == '-fsanitize' or arg.startswith('-fsanitize='):
+            elif arg in {'-fsanitize', '/fsanitize'} or arg.startswith(('-fsanitize=', '/fsanitize=')):
                 mlog.warning(f'Consider using the built-in option for sanitizers instead of using "{arg}".',
                              location=self.current_node)
             elif arg.startswith('-std=') or arg.startswith('/std:'):
