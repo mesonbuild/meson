@@ -277,9 +277,7 @@ base_options: 'KeyedOptionDictType' = {
     OptionKey('b_lto_mode'): coredata.UserComboOption('Select between different LTO modes.',
                                                       ['default', 'thin'],
                                                       'default'),
-    OptionKey('b_sanitize'): coredata.UserComboOption('Code sanitizer to use',
-                                                      ['none', 'address', 'thread', 'undefined', 'memory', 'leak', 'address,undefined'],
-                                                      'none'),
+    OptionKey('b_sanitize'): coredata.UserArrayOption('Code sanitizer to use', []),
     OptionKey('b_lundef'): coredata.UserBooleanOption('Use -Wl,--no-undefined when linking', True),
     OptionKey('b_asneeded'): coredata.UserBooleanOption('Use -Wl,--as-needed when linking', True),
     OptionKey('b_pgo'): coredata.UserComboOption('Use profile guided optimization',
@@ -391,7 +389,8 @@ def get_base_link_args(options: 'KeyedOptionDictType', linker: 'Compiler',
     except KeyError:
         pass
     try:
-        sani_opt = options[OptionKey('b_sanitize')].value
+        sani_opt: T.List[str] = options[OptionKey('b_sanitize')].value
+        assert isinstance(sani_opt, list), 'for mypy'
         sani_args = linker.sanitizer_link_args(sani_opt)
         # We consider that if there are no sanitizer arguments returned, then the language doesn't support them
         if sani_args:
@@ -994,10 +993,10 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def get_lto_link_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
         return self.linker.get_lto_args()
 
-    def sanitizer_compile_args(self, value: str) -> T.List[str]:
+    def sanitizer_compile_args(self, value: T.List[str]) -> T.List[str]:
         return []
 
-    def sanitizer_link_args(self, value: str) -> T.List[str]:
+    def sanitizer_link_args(self, value: T.List[str]) -> T.List[str]:
         return self.linker.sanitizer_args(value)
 
     def get_asneeded_args(self) -> T.List[str]:
