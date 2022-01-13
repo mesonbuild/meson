@@ -2,6 +2,8 @@
   "installed": [
     {"type": "file", "file": "usr/include/foo-version.h"},
     {"type": "file", "file": "usr/share/gtk-doc/html/foobar/BAR.html"},
+    {"type": "file", "file": "usr/share/gtk-doc/html/foobar/baz.jpg"},
+    {"type": "file", "file": "usr/share/gtk-doc/html/foobar/baz.png"},
     {"type": "file", "file": "usr/share/gtk-doc/html/foobar/foobar.devhelp2"},
     {"type": "file", "file": "usr/share/gtk-doc/html/foobar/foobar.html"},
     {"type": "file", "file": "usr/share/gtk-doc/html/foobar/FooObj.html"},
