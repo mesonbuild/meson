@@ -438,6 +438,10 @@ class ClangClCompiler(VisualStudioLikeCompiler):
     def get_pch_base_name(self, header: str) -> str:
         return header
 
+    def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
+        if path == '':
+            path = '.'
+        return ['/clang:-isystem' + path] if is_system else ['-I' + path]
 
     def get_dependency_compile_args(self, dep: 'Dependency') -> T.List[str]:
         if dep.get_include_type() == 'system':
