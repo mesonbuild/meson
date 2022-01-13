@@ -301,9 +301,7 @@ base_options: 'KeyedOptionDictType' = {
                                                       'default'),
     OptionKey('b_thinlto_cache'): coredata.UserBooleanOption('Use LLVM ThinLTO caching for faster incremental builds', False),
     OptionKey('b_thinlto_cache_dir'): coredata.UserStringOption('Directory to store ThinLTO cache objects', ''),
-    OptionKey('b_sanitize'): coredata.UserComboOption('Code sanitizer to use',
-                                                      ['none', 'address', 'thread', 'undefined', 'memory', 'leak', 'address,undefined'],
-                                                      'none'),
+    OptionKey('b_sanitize'): coredata.UserArrayOption('Code sanitizer to use', []),
     OptionKey('b_lundef'): coredata.UserBooleanOption('Use -Wl,--no-undefined when linking', True),
     OptionKey('b_asneeded'): coredata.UserBooleanOption('Use -Wl,--as-needed when linking', True),
     OptionKey('b_pgo'): coredata.UserComboOption('Use profile guided optimization',
@@ -372,8 +370,8 @@ def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler',
     except KeyError:
         pass
     try:
-        sani_opt = options[OptionKey('b_sanitize')].value
-        assert isinstance(sani_opt, str), 'for mypy'
+        sani_opt: T.List[str] = options[OptionKey('b_sanitize')].value
+        assert isinstance(sani_opt, list), 'for mypy'
         sani_args = compiler.sanitizer_compile_args(sani_opt)
         # We consider that if there are no sanitizer arguments returned, then the language doesn't support them
         if sani_args:
@@ -430,7 +428,8 @@ def get_base_link_args(options: 'KeyedOptionDictType', linker: 'Compiler',
     except KeyError:
         pass
     try:
-        sani_opt = options[OptionKey('b_sanitize')].value
+        sani_opt: T.List[str] = options[OptionKey('b_sanitize')].value
+        assert isinstance(sani_opt, list), 'for mypy'
         sani_args = linker.sanitizer_link_args(sani_opt)
         # We consider that if there are no sanitizer arguments returned, then the language doesn't support them
         if sani_args:
@@ -1069,10 +1068,10 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                           thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:
         return self.linker.get_lto_args()
 
-    def sanitizer_compile_args(self, value: str) -> T.List[str]:
+    def sanitizer_compile_args(self, value: T.List[str]) -> T.List[str]:
         return []
 
-    def sanitizer_link_args(self, value: str) -> T.List[str]:
+    def sanitizer_link_args(self, value: T.List[str]) -> T.List[str]:
         return self.linker.sanitizer_args(value)
 
     def get_asneeded_args(self) -> T.List[str]:

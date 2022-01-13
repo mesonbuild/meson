@@ -1080,7 +1080,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     @typed_pos_args('get_option', str)
     @noKwargs
-    def func_get_option(self, nodes: mparser.BaseNode, args: T.Tuple[str],
+    def func_get_option(self, node: mparser.BaseNode, args: T.Tuple[str],
                         kwargs: 'TYPE_kwargs') -> T.Union[coredata.UserOption, 'TYPE_var']:
         optname = args[0]
         if ':' in optname:
@@ -1091,10 +1091,19 @@ class Interpreter(InterpreterBase, HoldableObject):
         if optname_regex.search(optname.split('.', maxsplit=1)[-1]) is not None:
             raise InterpreterException(f'Invalid option name {optname!r}')
 
-        opt = self.get_option_internal(optname)
+        if optname == 'b_sanitizers':
+            FeatureNew.single_use('get_option(\'b_sanitizers\')', '1.4', self.subproject, 'use b_sanitize instead', node)
+            opt = self.get_option_internal('b_sanitize')
+        else:
+            opt = self.get_option_internal(optname)
+
         if isinstance(opt, coredata.UserFeatureOption):
             opt.name = optname
             return opt
+        elif optname == 'b_sanitize':
+            assert isinstance(opt, coredata.UserArrayOption), 'for mypy'
+            # to ensure backwards compat this always returns a string
+            return ','.join(sorted(opt.value))
         elif isinstance(opt, coredata.UserOption):
             if isinstance(opt.value, str):
                 return P_OBJ.OptionString(opt.value, f'{{{optname}}}')
@@ -3016,7 +3025,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         if OptionKey('b_sanitize') not in self.coredata.options:
             return
         if (self.coredata.options[OptionKey('b_lundef')].value and
-                self.coredata.options[OptionKey('b_sanitize')].value != 'none'):
+                self.coredata.options[OptionKey('b_sanitize')].value):
             value = self.coredata.options[OptionKey('b_sanitize')].value
             mlog.warning(textwrap.dedent(f'''\
                     Trying to use {value} sanitizer on Clang with b_lundef.
