@@ -6,5 +6,9 @@
       <arg direction="in" type="s" name="name"/>
       <arg direction="out" type="s" name="greeting"/>
     </method>
+    <method name="Bye">
+      <arg direction="in" type="s" name="name"/>
+      <arg direction="out" type="s" name="greeting"/>
+    </method>
   </interface>
 </node>
