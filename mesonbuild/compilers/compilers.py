@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2022 The Meson development team
+# Copyright © 2023 Intel Corporation
 
 from __future__ import annotations
 
@@ -784,11 +785,23 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         return []
 
     def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
+        """Checks if the compiler has all of the arguments.
+
+        :returns:
+            A tuple of (bool, bool). The first value is whether the check
+            succeeded, and the second is whether it was retrieved from a cache
+        """
         raise EnvironmentException(
             'Language {} does not support has_multi_arguments.'.format(
                 self.get_display_language()))
 
     def has_multi_link_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
+        """Checks if the linker has all of the arguments.
+
+        :returns:
+            A tuple of (bool, bool). The first value is whether the check
+            succeeded, and the second is whether it was retrieved from a cache
+        """
         return self.linker.has_multi_arguments(args, env)
 
     def _get_compile_output(self, dirname: str, mode: CompileCheckMode) -> str:
@@ -1330,6 +1343,12 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                  dependencies: T.Optional[T.List['Dependency']] = None,
                  mode: CompileCheckMode = CompileCheckMode.COMPILE,
                  disable_cache: bool = False) -> T.Tuple[bool, bool]:
+        """Run a compilation or link test to see if code can be compiled/linked.
+
+        :returns:
+            A tuple of (bool, bool). The first value is whether the check
+            succeeded, and the second is whether it was retrieved from a cache
+        """
         with self._build_wrapper(code, env, extra_args, dependencies, mode, disable_cache=disable_cache) as p:
             return p.returncode == 0, p.cached
 
