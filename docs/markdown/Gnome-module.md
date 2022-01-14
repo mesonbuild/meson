@@ -133,8 +133,7 @@ argument is the basename of the output files.
 * `nostdinc`: if true, don't include the standard marshallers from glib
 * `prefix`: the prefix to use for symbols
 * `skip_source`: if true, skip source location comments
-* `sources` []str *required*: List of string sources to consume
-* `sources`: the list of sources to use as inputs
+* `sources` [](str | File) *required*: the list of sources to use as inputs
 * `stdinc`: if true, include the standard marshallers from glib
 * `valist_marshallers`: if true, generate va_list marshallers
 
