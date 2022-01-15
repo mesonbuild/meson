@@ -1150,7 +1150,7 @@ class Backend:
                                    isinstance(exe, build.Executable),
                                    [x.get_id() for x in depends],
                                    self.environment.coredata.version,
-                                   False)
+                                   t.verbose)
             arr.append(ts)
         return arr
 

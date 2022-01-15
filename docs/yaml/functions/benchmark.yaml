@@ -104,3 +104,11 @@ kwargs:
       The starting order of tests with identical priorities is
       implementation-defined. The default priority is 0, negative numbers are
       permitted.
+
+  verbose:
+    type: bool
+    since: 0.62.0
+    default: false
+    description: |
+      if true, forces the test results to be logged as if `--verbose` was passed
+      to `meson test`.

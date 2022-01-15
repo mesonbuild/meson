@@ -215,6 +215,7 @@ TEST_KWARGS: T.List[KwargInfo] = [
     ENV_KW,
     DEPENDS_KW.evolve(since='0.46.0'),
     KwargInfo('suite', ContainerTypeInfo(list, str), listify=True, default=['']),  # yes, a list of empty string
+    KwargInfo('verbose', bool, default=False, since='0.62.0'),
 ]
 
 permitted_dependency_kwargs = {
@@ -1972,7 +1973,8 @@ external dependencies (including libraries) must go to "dependencies".''')
                     kwargs['timeout'],
                     kwargs['workdir'],
                     kwargs['protocol'],
-                    kwargs['priority'])
+                    kwargs['priority'],
+                    kwargs['verbose'])
 
     def add_test(self, node: mparser.BaseNode, args: T.List, kwargs: T.Dict[str, T.Any], is_base_test: bool):
         t = self.make_test(node, args, kwargs)

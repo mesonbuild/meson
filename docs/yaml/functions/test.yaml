@@ -33,6 +33,13 @@ description: |
   test(..., env: nomalloc, ...)
   ```
 
+  In addition to running individual executables as test cases, `test()`
+  can also be used to invoke an external test harness.  In this case,
+  it is best to use `verbose: true` *(since 0.62.0)* and, if supported
+  by the external harness, `protocol: 'tap'` *(since 0.50.0)*.  This will
+  ensure that Meson logs each subtest as it runs, instead of including
+  the whole log at the end of the run.
+
   Defined tests can be run in a backend-agnostic way by calling
   `meson test` inside the build dir, or by using backend-specific
   commands, such as `ninja test` or `msbuild RUN_TESTS.vcxproj`.
