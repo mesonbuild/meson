@@ -153,7 +153,7 @@ Because this is such a common operation, Meson provides a shortcut for
 this use case.
 
 ```meson
-dep = dependency('foo', fallback : [subproject_name, variable_name])
+dep = dependency('foo', fallback : ['subproject_name', 'variable_name'])
 ```
 
 The `fallback` keyword argument takes two items, the name of the
