@@ -205,7 +205,7 @@ methods:
 
       default_value:
         type: str
-        description: The davault value to return when the variable does not exist
+        description: The default value to return when the variable does not exist
 
       pkgconfig_define:
         type: list[str]
