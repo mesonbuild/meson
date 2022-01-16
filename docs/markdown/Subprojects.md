@@ -84,12 +84,13 @@ return variables as strings.
 ### Build options in subproject
 
 All Meson features of the subproject, such as project options keep
-working and can be set in the master project. There are a few
-limitations, the most important being that global compiler arguments
-must be set in the main project before calling subproject. Subprojects
-must not set global arguments because there is no way to do that
-reliably over multiple subprojects. To check whether you are running
-as a subproject, use [[meson.is_subproject]].
+working and [can be set in the master
+project](Builtin-options.md#specifying-options-per-subproject). There
+are a few limitations, the most important being that global compiler
+arguments must be set in the main project before calling subproject.
+Subprojects must not set global arguments because there is no way to
+do that reliably over multiple subprojects. To check whether you are
+running as a subproject, use [[meson.is_subproject]].
 
 ## Using a subproject
 
@@ -175,9 +176,23 @@ executable('my_project',
   install : true)
 ```
 
-With this setup when libsimple is provided by the system, we use it.
-When that is not the case we use the embedded version (the one from
-subprojects).
+You may change default [options of the
+subproject](Builtin-options.md#specifying-options-per-subproject) by
+adding a keyword argument to the invocation. For example, to change the
+default library type:
+
+```
+libsimple_dep = dependency(
+  'libsimple',
+  fallback : ['libsimple', 'libsimple_dep'],
+  default_options: ['default_library=static']
+)
+```
+
+With this setup, when libsimple is provided by the system we use it and
+completely ignore subproject options (i.e. we link to a shared system
+library). When that is not the case, we use the embedded version (the
+one from subprojects).
 
 Note that `libsimple_dep` can point to an external or an internal
 dependency but you don't have to worry about their differences. Meson
