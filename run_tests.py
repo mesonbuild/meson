@@ -261,11 +261,10 @@ def ensure_backend_detects_changes(backend: Backend) -> None:
         time.sleep(1)
 
 def run_mtest_inprocess(commandlist: T.List[str]) -> T.Tuple[int, str, str]:
-    stderr = StringIO()
-    stdout = StringIO()
-    with mock.patch.object(sys, 'stdout', stdout), mock.patch.object(sys, 'stderr', stderr):
+    out = StringIO()
+    with mock.patch.object(sys, 'stdout', out), mock.patch.object(sys, 'stderr', out):
         returncode = mtest.run_with_args(commandlist)
-    return returncode, stdout.getvalue(), stderr.getvalue()
+    return returncode, stdout.getvalue()
 
 def clear_meson_configure_class_caches() -> None:
     compilers.CCompiler.find_library_cache = {}

@@ -373,3 +373,29 @@ class WindowsTests(BasePlatformTests):
             raise SkipTest('Not using MSVC')
         self.init(testdir, extra_args=['-Dtest-failure=true'])
         self.assertRaises(subprocess.CalledProcessError, self.build)
+
+    @unittest.skipIf(is_cygwin(), "Needs visual studio")
+    def test_vsenv_option(self):
+        if self.backend is not Backend.ninja:
+            raise SkipTest('Only ninja backend is valid for test')
+        env = os.environ.copy()
+        env['MESON_FORCE_VSENV_FOR_UNITTEST'] = '1'
+        # Remove ninja from PATH to ensure that the one provided by Visual
+        # Studio is picked, as a regression test for
+        # https://github.com/mesonbuild/meson/issues/9774
+        env['PATH'] = get_path_without_cmd('ninja', env['PATH'])
+        testdir = os.path.join(self.common_test_dir, '1 trivial')
+        out = self.init(testdir, extra_args=['--vsenv'], override_envvars=env)
+        self.assertIn('Activating VS', out)
+        self.assertRegex(out, 'Visual Studio environment is needed to run Ninja')
+        # All these directly call ninja with the full path, so we need to patch
+        # it out to use meson subcommands
+        with mock.patch.object(self, 'build_command', self.meson_command + ['compile']):
+            out = self.build(override_envvars=env)
+            self.assertIn('Activating VS', out)
+        with mock.patch.object(self, 'test_command', self.meson_command + ['test']):
+            out = self.run_tests(override_envvars=env)
+            self.assertIn('Activating VS', out)
+        with mock.patch.object(self, 'install_command', self.meson_command + ['install']):
+            out = self.install(override_envvars=env)
+            self.assertIn('Activating VS', out)

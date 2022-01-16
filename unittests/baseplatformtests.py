@@ -249,10 +249,10 @@ class BasePlatformTests(TestCase):
 
     def run_tests(self, *, inprocess=False, override_envvars=None):
         if not inprocess:
-            self._run(self.test_command, workdir=self.builddir, override_envvars=override_envvars)
+            return self._run(self.test_command, workdir=self.builddir, override_envvars=override_envvars)
         else:
             with mock.patch.dict(os.environ, override_envvars):
-                run_mtest_inprocess(['-C', self.builddir])
+                return run_mtest_inprocess(['-C', self.builddir])[1]
 
     def install(self, *, use_destdir=True, override_envvars=None):
         if self.backend is not Backend.ninja:
@@ -263,7 +263,7 @@ class BasePlatformTests(TestCase):
                 override_envvars = destdir
             else:
                 override_envvars.update(destdir)
-        self._run(self.install_command, workdir=self.builddir, override_envvars=override_envvars)
+        return self._run(self.install_command, workdir=self.builddir, override_envvars=override_envvars)
 
     def uninstall(self, *, override_envvars=None):
         self._run(self.uninstall_command, workdir=self.builddir, override_envvars=override_envvars)

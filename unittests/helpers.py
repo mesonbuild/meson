@@ -5,11 +5,13 @@ import unittest
 import functools
 import re
 import typing as T
+from pathlib import Path
 from contextlib import contextmanager
 
 from mesonbuild.compilers import detect_c_compiler, compiler_from_language
 from mesonbuild.mesonlib import (
-    MachineChoice, is_osx, is_cygwin, EnvironmentException, OptionKey, MachineChoice
+    MachineChoice, is_osx, is_cygwin, EnvironmentException, OptionKey, MachineChoice,
+    OrderedSet
 )
 from run_tests import get_fake_env
 
@@ -170,3 +172,15 @@ def get_rpath(fname: str) -> T.Optional[str]:
     # don't check for, so clear those
     final = ':'.join([e for e in raw.split(':') if not e.startswith('/nix')])
     return final
+
+def get_path_without_cmd(cmd: str, path: str) -> str:
+    pathsep = os.pathsep
+    paths = OrderedSet([Path(p).resolve() for p in path.split(pathsep)])
+    while True:
+        full_path = shutil.which(cmd, path=path)
+        if full_path is None:
+            break
+        dirname = Path(full_path).resolve().parent
+        paths.discard(dirname)
+        path = pathsep.join([str(p) for p in paths])
+    return path
