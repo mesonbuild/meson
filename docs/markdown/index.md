@@ -31,14 +31,16 @@ read [this beginner guide](SimpleStart.md) to get started.
 
 ## Community
 
-There are two main methods of connecting with other Meson
-developers. The easiest way for most people is a web chat. The channel
-to use is `#mesonbuild` either via Matrix ([web
+The easiest way for most people to connect to other Meson developers is
+a web chat. The channel to use is `#mesonbuild` either via Matrix ([web
 interface](https://app.element.io/#/room/#mesonbuild:matrix.org)) or
 [OFTC IRC](https://www.oftc.net/).
 
-The second one is the mailing list, which is hosted at
-[Google Groups](https://groups.google.com/forum/#!forum/mesonbuild).
+Other methods of communication include the [mailing
+list](https://groups.google.com/forum/#!forum/mesonbuild) (hosted by
+Google Groups) and the
+[Discussions](https://github.com/mesonbuild/meson/discussions) section
+of the Meson GitHub repository.
 
 ### [Projects using Meson](Users.md)
 
