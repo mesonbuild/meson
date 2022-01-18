@@ -60,6 +60,14 @@ for example when done in CI that already does its own testing.
 So with `--no-tests` you can tell Meson "Do not build and test generated
 packages.".
 
+## Use `--allow-dirty` to override error when git repository contains uncommitted changes
+
+*Since 0.62.0* Instead of emitting a warning when a repository contains
+uncommitted changes, Meson will produce an error message notifying the
+user and immediately exit. If `--allow-dirty` is given as an option to
+`meson dist`, a warning will be emitted instead and Meson will proceed
+as usual.
+
 ## Release a subproject separately
 
 *Since 0.57.0* the `meson dist` command can now create a distribution tarball
