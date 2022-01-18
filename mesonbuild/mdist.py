@@ -40,6 +40,8 @@ archive_extension = {'gztar': '.tar.gz',
 def add_arguments(parser):
     parser.add_argument('-C', dest='wd', action=RealPathAction,
                         help='directory to cd into before running')
+    parser.add_argument('--allow-dirty', action='store_true',
+                        help='Allow even when repository contains uncommitted changes.')
     parser.add_argument('--formats', default='xztar',
                         help='Comma separated list of archive types to create. Supports xztar (default), gztar, and zip.')
     parser.add_argument('--include-subprojects', action='store_true',
@@ -70,7 +72,17 @@ def copy_git(src, distdir, revision='HEAD', prefix=None, subdir=None):
         t = tarfile.open(fileobj=f) # [ignore encoding]
         t.extractall(path=distdir)
 
-def process_submodules(src, distdir):
+msg_uncommitted_changes = 'Repository has uncommitted changes that will not be included in the dist tarball'
+
+def handle_dirty_opt(msg, allow_dirty: bool):
+    if allow_dirty:
+        mlog.warning(msg)
+    else:
+        mlog.error(msg + '\n' + 'Use --allow-dirty to ignore the warning and proceed anyway')
+        sys.exit(1)
+    return
+
+def process_submodules(src, distdir, options):
     module_file = os.path.join(src, '.gitmodules')
     if not os.path.exists(module_file):
         return
@@ -85,7 +97,7 @@ def process_submodules(src, distdir):
             mlog.warning(f'Submodule {subpath!r} is not checked out and cannot be added to the dist')
             continue
         elif status in {'+', 'U'}:
-            mlog.warning(f'Submodule {subpath!r} has uncommitted changes that will not be included in the dist tarball')
+            handle_dirty_opt(f'Submodule {subpath!r} has uncommitted changes that will not be included in the dist tarball', options.allow_dirty)
 
         copy_git(os.path.join(src, subpath), distdir, revision=sha1, prefix=subpath)
 
@@ -134,9 +146,9 @@ def git_have_dirty_index(src_root):
     ret = subprocess.call(['git', '-C', src_root, 'diff-index', '--quiet', 'HEAD'])
     return ret == 1
 
-def process_git_project(src_root, distdir):
+def process_git_project(src_root, distdir, options):
     if git_have_dirty_index(src_root):
-        mlog.warning('Repository has uncommitted changes that will not be included in the dist tarball')
+        handle_dirty_opt(msg_uncommitted_changes, options.allow_dirty)
     if os.path.exists(distdir):
         windows_proof_rmtree(distdir)
     repo_root = git_root(src_root)
@@ -152,18 +164,18 @@ def process_git_project(src_root, distdir):
         copy_git(repo_root, tmp_distdir, subdir=str(subdir))
         Path(tmp_distdir, subdir).rename(distdir)
         windows_proof_rmtree(tmp_distdir)
-    process_submodules(src_root, distdir)
+    process_submodules(src_root, distdir, options)
 
-def create_dist_git(dist_name, archives, src_root, bld_root, dist_sub, dist_scripts, subprojects):
+def create_dist_git(dist_name, archives, src_root, bld_root, dist_sub, dist_scripts, subprojects, options):
     distdir = os.path.join(dist_sub, dist_name)
-    process_git_project(src_root, distdir)
+    process_git_project(src_root, distdir, options)
     for path in subprojects.values():
         sub_src_root = os.path.join(src_root, path)
         sub_distdir = os.path.join(distdir, path)
         if os.path.exists(sub_distdir):
             continue
         if is_git(sub_src_root):
-            process_git_project(sub_src_root, sub_distdir)
+            process_git_project(sub_src_root, sub_distdir, options)
         else:
             shutil.copytree(sub_src_root, sub_distdir)
     run_dist_scripts(src_root, bld_root, distdir, dist_scripts, subprojects)
@@ -183,9 +195,9 @@ def hg_have_dirty_index(src_root):
     out = subprocess.check_output(['hg', '-R', src_root, 'summary'])
     return b'commit: (clean)' not in out
 
-def create_dist_hg(dist_name, archives, src_root, bld_root, dist_sub, dist_scripts):
+def create_dist_hg(dist_name, archives, src_root, bld_root, dist_sub, dist_scripts, options):
     if hg_have_dirty_index(src_root):
-        mlog.warning('Repository has uncommitted changes that will not be included in the dist tarball')
+        handle_dirty_opt(msg_uncommitted_changes, options.allow_dirty)
     if dist_scripts:
         mlog.warning('dist scripts are not supported in Mercurial projects')
 
@@ -304,12 +316,12 @@ def run(options):
         extra_meson_args.append('-Dwrap_mode=nodownload')
 
     if is_git(src_root):
-        names = create_dist_git(dist_name, archives, src_root, bld_root, dist_sub, b.dist_scripts, subprojects)
+        names = create_dist_git(dist_name, archives, src_root, bld_root, dist_sub, b.dist_scripts, subprojects, options)
     elif is_hg(src_root):
         if subprojects:
             print('--include-subprojects option currently not supported with Mercurial')
             return 1
-        names = create_dist_hg(dist_name, archives, src_root, bld_root, dist_sub, b.dist_scripts)
+        names = create_dist_hg(dist_name, archives, src_root, bld_root, dist_sub, b.dist_scripts, options)
     else:
         print('Dist currently only works with Git or Mercurial repos')
         return 1
