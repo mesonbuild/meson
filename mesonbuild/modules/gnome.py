@@ -1417,8 +1417,10 @@ class GnomeModule(ExtensionModule):
             t_args.append(f'--{program_name}={path}')
         if namespace:
             t_args.append('--namespace=' + namespace)
-        if state.environment.need_exe_wrapper() and not isinstance(state.environment.get_exe_wrapper(), EmptyExternalProgram):
-            t_args.append('--run=' + ' '.join(state.environment.get_exe_wrapper().get_command()))
+        # if not need_exe_wrapper, we get an EmptyExternalProgram. If none provided, we get NoneType
+        exe_wrapper = state.environment.get_exe_wrapper()
+        if not isinstance(exe_wrapper, (NoneType, EmptyExternalProgram)):
+            t_args.append('--run=' + ' '.join(exe_wrapper.get_command()))
         t_args.append(f'--htmlargs={"@@".join(kwargs["html_args"])}')
         t_args.append(f'--scanargs={"@@".join(kwargs["scan_args"])}')
         t_args.append(f'--scanobjsargs={"@@".join(kwargs["scanobjs_args"])}')
