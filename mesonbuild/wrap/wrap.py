@@ -26,6 +26,7 @@ import stat
 import subprocess
 import sys
 import configparser
+import time
 import typing as T
 import textwrap
 
@@ -534,12 +535,22 @@ class Resolver:
         if dhash != expected:
             raise WrapException(f'Incorrect hash for {what}:\n {expected} expected\n {dhash} actual.')
 
+    def get_data_with_backoff(self, urlstring: str) -> T.Tuple[str, str]:
+        delays = [1, 2, 4, 8, 16]
+        for d in delays:
+            try:
+                return self.get_data(urlstring)
+            except Exception as e:
+                mlog.warning(f'failed to download with error: {e}. Trying after a delay...', fatal=False)
+                time.sleep(d)
+        return self.get_data(urlstring)
+
     def download(self, what: str, ofname: str, fallback: bool = False) -> None:
         self.check_can_download()
         srcurl = self.wrap.get(what + ('_fallback_url' if fallback else '_url'))
         mlog.log('Downloading', mlog.bold(self.packagename), what, 'from', mlog.bold(srcurl))
         try:
-            dhash, tmpfile = self.get_data(srcurl)
+            dhash, tmpfile = self.get_data_with_backoff(srcurl)
             expected = self.wrap.get(what + '_hash').lower()
             if dhash != expected:
                 os.remove(tmpfile)
