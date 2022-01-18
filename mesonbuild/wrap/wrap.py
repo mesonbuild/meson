@@ -32,7 +32,7 @@ import textwrap
 from pathlib import Path
 from . import WrapMode
 from .. import coredata
-from ..mesonlib import quiet_git, GIT, ProgressBar, MesonException
+from ..mesonlib import quiet_git, GIT, ProgressBar, MesonException, windows_proof_rmtree
 from ..interpreterbase import FeatureNew
 from .. import mesonlib
 
@@ -345,7 +345,11 @@ class Resolver:
                     self.get_svn()
                 else:
                     raise WrapException(f'Unknown wrap type {self.wrap.type!r}')
-            self.apply_patch()
+            try:
+                self.apply_patch()
+            except:
+                windows_proof_rmtree(self.dirname)
+                raise
 
         # A meson.build or CMakeLists.txt file is required in the directory
         if method == 'meson' and not os.path.exists(meson_file):
