@@ -328,14 +328,16 @@ class QtBaseModule(ExtensionModule):
             for s in sources:
                 qrc_deps.extend(self._parse_qrc_deps(state, s))
 
-            rcc_kwargs: T.Dict[str, T.Any] = {  # TODO: if CustomTarget had typing information we could use that here...
-                'input': sources,
-                'output': name + '.cpp',
-                'command': self.tools['rcc'].get_command() + ['-name', name, '-o', '@OUTPUT@'] + extra_args + ['@INPUT@'] + DEPFILE_ARGS,
-                'depend_files': qrc_deps,
-                'depfile': f'{name}.d',
-            }
-            res_target = build.CustomTarget(name, state.subdir, state.subproject, rcc_kwargs)
+            res_target = build.CustomTarget(
+                name,
+                state.subdir,
+                state.subproject,
+                self.tools['rcc'].get_command() + ['-name', name, '-o', '@OUTPUT@'] + extra_args + ['@INPUT@'] + DEPFILE_ARGS,
+                sources,
+                [f'{name}.cpp'],
+                depend_files=qrc_deps,
+                depfile=f'{name}.d',
+            )
             targets.append(res_target)
         else:
             for rcc_file in sources:
@@ -345,14 +347,16 @@ class QtBaseModule(ExtensionModule):
                 else:
                     basename = os.path.basename(rcc_file.fname)
                 name = f'qt{self.qt_version}-{basename.replace(".", "_")}'
-                rcc_kwargs = {
-                    'input': rcc_file,
-                    'output': f'{name}.cpp',
-                    'command': self.tools['rcc'].get_command() + ['-name', '@BASENAME@', '-o', '@OUTPUT@'] + extra_args + ['@INPUT@'] + DEPFILE_ARGS,
-                    'depend_files': qrc_deps,
-                    'depfile': f'{name}.d',
-                }
-                res_target = build.CustomTarget(name, state.subdir, state.subproject, rcc_kwargs)
+                res_target = build.CustomTarget(
+                    name,
+                    state.subdir,
+                    state.subproject,
+                    self.tools['rcc'].get_command() + ['-name', '@BASENAME@', '-o', '@OUTPUT@'] + extra_args + ['@INPUT@'] + DEPFILE_ARGS,
+                    [rcc_file],
+                    [f'{name}.cpp'],
+                    depend_files=qrc_deps,
+                    depfile=f'{name}.d',
+                )
                 targets.append(res_target)
 
         return targets
@@ -570,16 +574,19 @@ class QtBaseModule(ExtensionModule):
                 ts = os.path.basename(ts)
             else:
                 outdir = state.subdir
-            cmd = [self.tools['lrelease'], '@INPUT@', '-qm', '@OUTPUT@']
-            lrelease_kwargs: T.Dict[str, T.Any] = {
-                'output': '@BASENAME@.qm',
-                'input': ts,
-                'install': kwargs['install'],
-                'install_dir': install_dir or [],
-                'install_tag': 'i18n',
-                'build_by_default': kwargs['build_by_default'],
-                'command': cmd}
-            lrelease_target = build.CustomTarget(f'qt{self.qt_version}-compile-{ts}', outdir, state.subproject, lrelease_kwargs)
+            cmd: T.List[T.Union[ExternalProgram, str]] = [self.tools['lrelease'], '@INPUT@', '-qm', '@OUTPUT@']
+            lrelease_target = build.CustomTarget(
+                f'qt{self.qt_version}-compile-{ts}',
+                outdir,
+                state.subproject,
+                cmd,
+                [ts],
+                ['@BASENAME@.qm'],
+                install=kwargs['install'],
+                install_dir=install_dir,
+                install_tag=['i18n'],
+                build_by_default=kwargs['build_by_default'],
+            )
             translations.append(lrelease_target)
         if qresource:
             return ModuleReturnValue(results.return_value[0], [results.new_objects, translations])

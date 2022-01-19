@@ -188,18 +188,18 @@ class I18nModule(ExtensionModule):
         if build_by_default is None:
             build_by_default = kwargs['install']
 
-        real_kwargs = {
-            'build_by_default': build_by_default,
-            'command': command,
-            'install': kwargs['install'],
-            'install_dir': kwargs['install_dir'],
-            'output': kwargs['output'],
-            'input': kwargs['input'],
-            'install_tag': kwargs['install_tag'],
-        }
-
-        ct = build.CustomTarget('', state.subdir, state.subproject,
-                                T.cast(T.Dict[str, T.Any], real_kwargs))
+        ct = build.CustomTarget(
+            '',
+            state.subdir,
+            state.subproject,
+            command,
+            kwargs['input'],
+            kwargs['output'],
+            build_by_default=build_by_default,
+            install=kwargs['install'],
+            install_dir=kwargs['install_dir'],
+            install_tag=kwargs['install_tag'],
+        )
 
         return ModuleReturnValue(ct, [ct])
 
@@ -258,18 +258,21 @@ class I18nModule(ExtensionModule):
         for l in languages:
             po_file = mesonlib.File.from_source_file(state.environment.source_dir,
                                                      state.subdir, l+'.po')
-            gmo_kwargs = {'command': ['msgfmt', '@INPUT@', '-o', '@OUTPUT@'],
-                          'input': po_file,
-                          'output': packagename+'.mo',
-                          'install': install,
-                          # We have multiple files all installed as packagename+'.mo' in different install subdirs.
-                          # What we really wanted to do, probably, is have a rename: kwarg, but that's not available
-                          # to custom_targets. Crude hack: set the build target's subdir manually.
-                          # Bonus: the build tree has something usable as an uninstalled bindtextdomain() target dir.
-                          'install_dir': path.join(install_dir, l, 'LC_MESSAGES'),
-                          'install_tag': 'i18n',
-                          }
-            gmotarget = build.CustomTarget(f'{packagename}-{l}.mo', path.join(state.subdir, l, 'LC_MESSAGES'), state.subproject, gmo_kwargs)
+            gmotarget = build.CustomTarget(
+                f'{packagename}-{l}.mo',
+                path.join(state.subdir, l, 'LC_MESSAGES'),
+                state.subproject,
+                ['msgfmt', '@INPUT@', '-o', '@OUTPUT@'],
+                [po_file],
+                [f'{packagename}.mo'],
+                install=install,
+                # We have multiple files all installed as packagename+'.mo' in different install subdirs.
+                # What we really wanted to do, probably, is have a rename: kwarg, but that's not available
+                # to custom_targets. Crude hack: set the build target's subdir manually.
+                # Bonus: the build tree has something usable as an uninstalled bindtextdomain() target dir.
+                install_dir=[path.join(install_dir, l, 'LC_MESSAGES')],
+                install_tag=['i18n'],
+            )
             targets.append(gmotarget)
             gmotargets.append(gmotarget)
 
@@ -331,19 +334,19 @@ class I18nModule(ExtensionModule):
         if build_by_default is None:
             build_by_default = kwargs['install']
 
-        real_kwargs = {
-            'build_by_default': build_by_default,
-            'command': command,
-            'depends': mo_targets,
-            'install': kwargs['install'],
-            'install_dir': kwargs['install_dir'],
-            'output': kwargs['output'],
-            'input': kwargs['input'],
-            'install_tag': kwargs['install_tag'],
-        }
-
-        ct = build.CustomTarget('', state.subdir, state.subproject,
-                                T.cast(T.Dict[str, T.Any], real_kwargs))
+        ct = build.CustomTarget(
+            '',
+            state.subdir,
+            state.subproject,
+            command,
+            kwargs['input'],
+            kwargs['output'],
+            build_by_default=build_by_default,
+            extra_depends=mo_targets,
+            install=kwargs['install'],
+            install_dir=kwargs['install_dir'],
+            install_tag=kwargs['install_tag'],
+        )
 
         return ModuleReturnValue(ct, [ct])
 

@@ -212,18 +212,16 @@ class RustModule(ExtensionModule):
             f'rustmod-bindgen-{name}'.replace('/', '_'),
             state.subdir,
             state.subproject,
-            {
-                'input': header,
-                'output': kwargs['output'],
-                'command': self._bindgen_bin.get_command() + [
-                    '@INPUT@', '--output',
-                    os.path.join(state.environment.build_dir, '@OUTPUT@')] +
-                    kwargs['args'] + ['--'] + kwargs['c_args'] + inc_strs +
-                    ['-MD', '-MQ', '@INPUT@', '-MF', '@DEPFILE@'],
-                'depfile': '@PLAINNAME@.d',
-                'depends': depends,
-                'depend_files': depend_files,
-            },
+            self._bindgen_bin.get_command() + [
+                '@INPUT@', '--output',
+                os.path.join(state.environment.build_dir, '@OUTPUT@')] +
+                kwargs['args'] + ['--'] + kwargs['c_args'] + inc_strs +
+                ['-MD', '-MQ', '@INPUT@', '-MF', '@DEPFILE@'],
+            [header],
+            [kwargs['output']],
+            depfile='@PLAINNAME@.d',
+            extra_depends=depends,
+            depend_files=depend_files,
             backend=state.backend,
         )
 

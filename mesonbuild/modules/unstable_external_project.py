@@ -227,15 +227,16 @@ class ExternalProject(NewExtensionModule):
         if self.verbose:
             cmd.append('--verbose')
 
-        target_kwargs = {'output': f'{self.name}.stamp',
-                         'depfile': f'{self.name}.d',
-                         'command': cmd + ['@OUTPUT@', '@DEPFILE@'],
-                         'console': True,
-                         }
-        self.target = build.CustomTarget(self.name,
-                                         self.subdir.as_posix(),
-                                         self.subproject,
-                                         target_kwargs)
+        self.target = build.CustomTarget(
+            self.name,
+            self.subdir.as_posix(),
+            self.subproject,
+            cmd + ['@OUTPUT@', '@DEPFILE@'],
+            [],
+            [f'{self.name}.stamp'],
+            depfile=f'{self.name}.d',
+            console=True,
+        )
 
         idir = build.InstallDir(self.subdir.as_posix(),
                                 Path('dist', self.rel_prefix).as_posix(),
