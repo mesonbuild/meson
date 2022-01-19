@@ -1924,21 +1924,6 @@ class GnomeModule(ExtensionModule):
             capture = True
 
         header_file = output + '.h'
-        c_cmd = cmd + ['--body', '@INPUT@']
-        if mesonlib.version_compare(self._get_native_glib_version(state), '>= 2.53.4'):
-            # Silence any warnings about missing prototypes
-            c_cmd += ['--include-header', header_file]
-        body = build.CustomTarget(
-            output + '_c',
-            state.subdir,
-            state.subproject,
-            c_cmd,
-            sources,
-            [f'{output}.c'],
-            capture=capture,
-            depend_files=kwargs['depend_files'],
-        )
-
         h_cmd = cmd + ['--header', '@INPUT@']
         if new_genmarshal:
             h_cmd += ['--pragma-once']
@@ -1953,6 +1938,24 @@ class GnomeModule(ExtensionModule):
             install_dir=[kwargs['install_dir']] if kwargs['install_dir'] else [],
             capture=capture,
             depend_files=kwargs['depend_files'],
+        )
+
+        c_cmd = cmd + ['--body', '@INPUT@']
+        extra_deps: T.List[build.CustomTarget] = []
+        if mesonlib.version_compare(self._get_native_glib_version(state), '>= 2.53.4'):
+            # Silence any warnings about missing prototypes
+            c_cmd += ['--include-header', header_file]
+            extra_deps.append(header)
+        body = build.CustomTarget(
+            output + '_c',
+            state.subdir,
+            state.subproject,
+            c_cmd,
+            sources,
+            [f'{output}.c'],
+            capture=capture,
+            depend_files=kwargs['depend_files'],
+            extra_depends=extra_deps,
         )
 
         rv = [body, header]
