@@ -1686,8 +1686,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         vcs_cmd = kwargs['command']
         source_dir = os.path.normpath(os.path.join(self.environment.get_source_dir(), self.subdir))
         if vcs_cmd:
-            # Is the command an executable in path or maybe a script in the source tree?
-            vcs_cmd[0] = shutil.which(vcs_cmd[0]) or os.path.join(source_dir, vcs_cmd[0])
+            vcs_cmd[0] = self.find_program_impl(vcs_cmd[0])
         else:
             vcs = mesonlib.detect_vcs(source_dir)
             if vcs:
