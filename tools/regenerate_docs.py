@@ -131,7 +131,8 @@ def generate_wrapdb_table(output_dir: Path) -> None:
             dependency_names_str = ', '.join(dependency_names)
             program_names = info.get('program_names', [])
             program_names_str = ', '.join(program_names)
-            f.write(f'| {name} | {versions_str} | {dependency_names_str} | {program_names_str} |\n')
+            website = info.get('website', '#')
+            f.write(f'| [{name}]({website}) | {versions_str} | {dependency_names_str} | {program_names_str} |\n')
 
 def regenerate_docs(output_dir: PathLike,
                     dummy_output_file: T.Optional[PathLike]) -> None:
