@@ -244,6 +244,8 @@ def _output_validator(outputs: T.List[str]) -> T.Optional[str]:
             return 'Output must not consist only of whitespace.'
         elif has_path_sep(i):
             return f'Output {i!r} must not contain a path segment.'
+        elif '@INPUT' in i:
+            return f'output {i!r} contains "@INPUT", which is invalid. Did you mean "@PLAINNAME@" or "@BASENAME@?'
 
     return None
 
@@ -269,6 +271,7 @@ CT_INSTALL_TAG_KW: KwargInfo[T.List[T.Union[str, bool]]] = KwargInfo(
     listify=True,
     default=[],
     since='0.60.0',
+    convertor=lambda x: [y if isinstance(y, str) else None for y in x],
 )
 
 INSTALL_KW = KwargInfo('install', bool, default=False)

@@ -50,7 +50,9 @@ from .interpreterobjects import (
     NullSubprojectInterpreter,
 )
 from .type_checking import (
-    COMMAND_KW, CT_BUILD_ALWAYS, CT_BUILD_ALWAYS_STALE,
+    COMMAND_KW,
+    CT_BUILD_ALWAYS,
+    CT_BUILD_ALWAYS_STALE,
     CT_BUILD_BY_DEFAULT,
     CT_INPUT_KW,
     CT_INSTALL_DIR_KW,
@@ -1696,8 +1698,14 @@ external dependencies (including libraries) must go to "dependencies".''')
             else:
                 vcs_cmd = [' '] # executing this cmd will fail in vcstagger.py and force to use the fallback string
         # vcstagger.py parameters: infile, outfile, fallback, source_dir, replace_string, regex_selector, command...
-        cmd_kwargs = {
-            'command': self.environment.get_build_command() + \
+
+        self._validate_custom_target_outputs(len(kwargs['input']) > 1, kwargs['output'], "vcs_tag")
+
+        tg = build.CustomTarget(
+            kwargs['output'][0],
+            self.subdir,
+            self.subproject,
+            self.environment.get_build_command() + \
                 ['--internal',
                 'vcstagger',
                 '@INPUT0@',
@@ -1706,18 +1714,31 @@ external dependencies (including libraries) must go to "dependencies".''')
                 source_dir,
                 replace_string,
                 regex_selector] + vcs_cmd,
-            'input': kwargs['input'],
-            'output': kwargs['output'],
-            'build_by_default': True,
-            'build_always_stale':True,
-        }
-        return self._func_custom_target_impl(node, [kwargs['output']], cmd_kwargs)
+            self.source_strings_to_files(kwargs['input']),
+            kwargs['output'],
+            build_by_default=True,
+            build_always_stale=True,
+        )
+        self.add_target(tg.name, tg)
+        return tg
 
     @FeatureNew('subdir_done', '0.46.0')
     @noPosargs
     @noKwargs
     def func_subdir_done(self, node, args, kwargs):
         raise SubdirDoneRequest()
+
+    @staticmethod
+    def _validate_custom_target_outputs(has_multi_in: bool, outputs: T.Iterable[str], name: str) -> None:
+        """Checks for additional invalid values in a custom_target output.
+
+        This cannot be done with typed_kwargs because it requires the number of
+        inputs.
+        """
+        for out in outputs:
+            if has_multi_in and ('@PLAINNAME@' in out or '@BASENAME@' in out):
+                raise InvalidArguments(f'{name}: output cannot containe "@PLAINNAME@" or "@BASENAME@" '
+                                       'when there is more than one input (we can\'t know which to use)')
 
     @typed_pos_args('custom_target', optargs=[str])
     @typed_kwargs(
@@ -1747,49 +1768,87 @@ external dependencies (including libraries) must go to "dependencies".''')
             FeatureNew.single_use('substitutions in custom_target depfile', '0.47.0', self.subproject, location=node)
 
         # Don't mutate the kwargs
-        kwargs = kwargs.copy()
 
+        build_by_default = kwargs['build_by_default']
+        build_always_stale = kwargs['build_always_stale']
         # Remap build_always to build_by_default and build_always_stale
         if kwargs['build_always'] is not None and kwargs['build_always_stale'] is not None:
             raise InterpreterException('CustomTarget: "build_always" and "build_always_stale" are mutually exclusive')
 
-        if kwargs['build_by_default'] is None and kwargs['install']:
-            kwargs['build_by_default'] = True
+        if build_by_default is None and kwargs['install']:
+            build_by_default = True
 
         elif kwargs['build_always'] is not None:
-            if kwargs['build_by_default'] is None:
-                kwargs['build_by_default'] = kwargs['build_always']
-            kwargs['build_always_stale'] = kwargs['build_by_default']
-
-            # Set this to None to satisfy process_kwargs
-            kwargs['build_always'] = None
+            if build_by_default is None:
+                build_by_default = kwargs['build_always']
+            build_always_stale = kwargs['build_by_default']
 
         # These are are nullaable so that we can know whether they're explicitly
         # set or not. If they haven't been overwritten, set them to their true
         # default
-        if kwargs['build_by_default'] is None:
-            kwargs['build_by_default'] = False
-        if kwargs['build_always_stale'] is None:
-            kwargs['build_always_stale'] = False
+        if build_by_default is None:
+            build_by_default = False
+        if build_always_stale is None:
+            build_always_stale = False
 
-        return self._func_custom_target_impl(node, args, kwargs)
-
-    def _func_custom_target_impl(self, node, args, kwargs):
-        'Implementation-only, without FeatureNew checks, for internal use'
         name = args[0]
         if name is None:
             # name will default to first output, but we cannot do that yet because
             # they could need substitutions (e.g. @BASENAME@) first. CustomTarget()
             # will take care of setting a proper default but name must be an empty
             # string in the meantime.
-            FeatureNew('custom_target() with no name argument', '0.60.0', location=node).use(self.subproject)
+            FeatureNew.single_use('custom_target() with no name argument', '0.60.0', self.subproject, location=node)
             name = ''
-        if 'input' in kwargs:
-            kwargs['input'] = self.source_strings_to_files(extract_as_list(kwargs, 'input'), strict=False)
-        if 'command' in kwargs and isinstance(kwargs['command'], list) and kwargs['command']:
-            if isinstance(kwargs['command'][0], str):
-                kwargs['command'][0] = self.find_program_impl([kwargs['command'][0]])
-        tg = build.CustomTarget(name, self.subdir, self.subproject, kwargs, backend=self.backend)
+        inputs = self.source_strings_to_files(kwargs['input'], strict=False)
+        command = kwargs['command']
+        if command and isinstance(command[0], str):
+            command[0] = self.find_program_impl([command[0]])
+
+        if len(inputs) > 1 and kwargs['feed']:
+            raise InvalidArguments('custom_target: "feed" keyword argument can only be used used with a single input')
+        if len(kwargs['output']) > 1 and kwargs['capture']:
+            raise InvalidArguments('custom_target: "capture" keyword argument can only be used used with a single output')
+        if kwargs['capture'] and kwargs['console']:
+            raise InvalidArguments('custom_target: "capture" and "console" keyword arguments are mutually exclusive')
+        for c in command:
+            if kwargs['capture'] and isinstance(c, str) and '@OUTPUT@' in c:
+                raise InvalidArguments('custom_target: "capture" keyword argument cannot be used with "@OUTPUT@"')
+            if kwargs['feed'] and isinstance(c, str) and '@INPUT@' in c:
+                raise InvalidArguments('custom_target: "feed" keyword argument cannot be used with "@INPUT@"')
+        if kwargs['install'] and not kwargs['install_dir']:
+            raise InvalidArguments('custom_target: "install_dir" keyword argument must be set when "install" is true.')
+        if len(kwargs['install_dir']) > 1:
+            FeatureNew.single_use('multiple install_dir for custom_target', '0.40.0', self.subproject, location=node)
+        if len(kwargs['install_tag']) not in {0, 1, len(kwargs['output'])}:
+            raise InvalidArguments('custom_target: install_tag argument must have 0 or 1 outputs, '
+                                   'or the same number of elements as the output keyword argument. '
+                                   f'(there are {len(kwargs["install_tag"])} install_tags, '
+                                   f'and {len(kwargs["output"])} outputs)')
+
+        self._validate_custom_target_outputs(len(inputs) > 1, kwargs['output'], "custom_target")
+
+        tg = build.CustomTarget(
+            name,
+            self.subdir,
+            self.subproject,
+            command,
+            inputs,
+            kwargs['output'],
+            build_always_stale=build_always_stale,
+            build_by_default=build_by_default,
+            capture=kwargs['capture'],
+            console=kwargs['console'],
+            depend_files=kwargs['depend_files'],
+            depfile=kwargs['depfile'],
+            extra_depends=kwargs['depends'],
+            env=kwargs['env'],
+            feed=kwargs['feed'],
+            install=kwargs['install'],
+            install_dir=kwargs['install_dir'],
+            install_mode=kwargs['install_mode'],
+            install_tag=kwargs['install_tag'],
+            override_options=kwargs['override_options'],
+            backend=self.backend)
         self.add_target(tg.name, tg)
         return tg
 

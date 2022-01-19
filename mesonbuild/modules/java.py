@@ -51,20 +51,22 @@ class JavaModule(ExtensionModule):
         else:
             header = f'{pathlib.Path(file.fname).stem}.h'
 
-        ct_kwargs = {
-            'input': file,
-            'output': header,
-            'command': [
+        target = CustomTarget(
+            os.path.basename(header),
+            state.subdir,
+            state.subproject,
+            [
                 self.javac.exelist[0],
                 '-d',
                 '@PRIVATE_DIR@',
                 '-h',
                 state.subdir,
                 '@INPUT@',
-            ]
-        }
-
-        target = CustomTarget(os.path.basename(header), state.subdir, state.subproject, backend=state.backend, kwargs=ct_kwargs)
+            ],
+            [file],
+            [header],
+            backend=state.backend,
+        )
         # It is only known that 1.8.0 won't pre-create the directory. 11 and 16
         # do not exhibit this behavior.
         if version_compare(self.javac.version, '1.8.0'):

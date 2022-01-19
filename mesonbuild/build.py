@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from functools import lru_cache
@@ -23,6 +24,7 @@ import pickle
 import re
 import textwrap
 import typing as T
+
 
 from . import environment
 from . import dependencies
@@ -2328,47 +2330,78 @@ class CommandBase:
         return final_cmd
 
 class CustomTarget(Target, CommandBase):
-    known_kwargs = {
-        'input',
-        'output',
-        'command',
-        'capture',
-        'feed',
-        'install',
-        'install_dir',
-        'install_mode',
-        'install_tag',
-        'build_always',
-        'build_always_stale',
-        'depends',
-        'depend_files',
-        'depfile',
-        'build_by_default',
-        'override_options',
-        'console',
-        'env',
-    }
 
-    install_dir: T.List[T.Union[str, bool]]
+    typename = 'custom'
 
-    def __init__(self, name: str, subdir: str, subproject: str, kwargs: T.Mapping[str, T.Any],
-                 absolute_paths: bool = False, backend: T.Optional['Backend'] = None):
-        self.typename = 'custom'
+    def __init__(self,
+                 name: T.Optional[str],
+                 subdir: str,
+                 subproject: str,
+                 command: T.Sequence[T.Union[
+                     str, BuildTarget, CustomTarget, CustomTargetIndex, GeneratedList, programs.ExternalProgram, File]],
+                 sources: T.Sequence[T.Union[
+                     str, File, BuildTarget, CustomTarget, CustomTargetIndex,
+                     ExtractedObjects, GeneratedList, programs.ExternalProgram]],
+                 outputs: T.List[str],
+                 *,
+                 build_always_stale: bool = False,
+                 build_by_default: T.Optional[bool] = None,
+                 capture: bool = False,
+                 console: bool = False,
+                 depend_files: T.Optional[T.Sequence[FileOrString]] = None,
+                 extra_depends: T.Optional[T.Sequence[T.Union[str, SourceOutputs]]] = None,
+                 depfile: T.Optional[str] = None,
+                 env: T.Optional[EnvironmentVariables] = None,
+                 feed: bool = False,
+                 install: bool = False,
+                 install_dir: T.Optional[T.Sequence[T.Union[str, bool]]] = None,
+                 install_mode: T.Optional[FileMode] = None,
+                 install_tag: T.Optional[T.Sequence[T.Optional[str]]] = None,
+                 override_options: T.Optional[T.Dict[OptionKey, str]] = None,
+                 absolute_paths: bool = False,
+                 backend: T.Optional['Backend'] = None,
+                 ):
         # TODO expose keyword arg to make MachineChoice.HOST configurable
         super().__init__(name, subdir, subproject, False, MachineChoice.HOST)
+        self.sources = list(sources)
+        self.outputs = substitute_values(
+            outputs, get_filenames_templates_dict(
+                get_sources_string_names(sources, backend),
+                []))
+        self.build_by_default = build_by_default if build_by_default is not None else install
+        self.build_always_stale = build_always_stale
+        self.capture = capture
+        self.console = console
+        self.depend_files = list(depend_files or [])
         self.dependencies: T.List[T.Union[CustomTarget, BuildTarget]] = []
-        self.extra_depends: T.List[T.Union[CustomTarget, BuildTarget]] = []
-        self.depend_files = [] # Files that this target depends on but are not on the command line.
-        self.depfile = None
-        self.process_kwargs(kwargs, backend)
+        # must be after depend_files and dependencies
+        self.command = self.flatten_command(command)
+        self.depfile = depfile
+        self.env = env or EnvironmentVariables()
+        self.extra_depends = list(extra_depends or [])
+        self.feed = feed
+        self.install = install
+        self.install_dir = list(install_dir or [])
+        self.install_mode = install_mode
+        _install_tag: T.List[T.Optional[str]]
+        if not install_tag:
+            _install_tag = [None] * len(self.outputs)
+        elif len(install_tag) == 1:
+            _install_tag = list(install_tag) * len(self.outputs)
+        else:
+            _install_tag = list(install_tag)
+        self.install_tag = _install_tag
+        self.name = name if name else self.outputs[0]
+
+        if override_options:
+            for k, v in override_options.items():
+                if k.lang:
+                    self.option_overrides_compiler[k.evolve(machine=self.for_machine)] = v
+                else:
+                    self.option_overrides_base[k] = v
+
         # Whether to use absolute paths for all files on the commandline
         self.absolute_paths = absolute_paths
-        unknowns = []
-        for k in kwargs:
-            if k not in CustomTarget.known_kwargs:
-                unknowns.append(k)
-        if unknowns:
-            mlog.warning('Unknown keyword arguments in target {}: {}'.format(self.name, ', '.join(unknowns)))
 
     def get_default_install_dir(self, environment) -> T.Tuple[str, str]:
         return None, None
@@ -2404,119 +2437,6 @@ class CustomTarget(Target, CommandBase):
             elif isinstance(d, CustomTarget):
                 bdeps.update(d.get_transitive_build_target_deps())
         return bdeps
-
-    def process_kwargs(self, kwargs, backend):
-        self.process_kwargs_base(kwargs)
-        self.sources = extract_as_list(kwargs, 'input')
-        if 'output' not in kwargs:
-            raise InvalidArguments('Missing keyword argument "output".')
-        self.outputs = listify(kwargs['output'])
-        # This will substitute values from the input into output and return it.
-        inputs = get_sources_string_names(self.sources, backend)
-        values = get_filenames_templates_dict(inputs, [])
-        for i in self.outputs:
-            if not isinstance(i, str):
-                raise InvalidArguments('Output argument not a string.')
-            if i == '':
-                raise InvalidArguments('Output must not be empty.')
-            if i.strip() == '':
-                raise InvalidArguments('Output must not consist only of whitespace.')
-            if has_path_sep(i):
-                raise InvalidArguments(f'Output {i!r} must not contain a path segment.')
-            if '@INPUT@' in i or '@INPUT0@' in i:
-                m = 'Output cannot contain @INPUT@ or @INPUT0@, did you ' \
-                    'mean @PLAINNAME@ or @BASENAME@?'
-                raise InvalidArguments(m)
-            # We already check this during substitution, but the error message
-            # will be unclear/confusing, so check it here.
-            if len(inputs) != 1 and ('@PLAINNAME@' in i or '@BASENAME@' in i):
-                m = "Output cannot contain @PLAINNAME@ or @BASENAME@ when " \
-                    "there is more than one input (we can't know which to use)"
-                raise InvalidArguments(m)
-        self.outputs = substitute_values(self.outputs, values)
-        if not self.name:
-            self.name = self.outputs[0]
-        self.capture = kwargs.get('capture', False)
-        if self.capture and len(self.outputs) != 1:
-            raise InvalidArguments('Capturing can only output to a single file.')
-        self.feed = kwargs.get('feed', False)
-        if self.feed and len(self.sources) != 1:
-            raise InvalidArguments('Feeding can only input from a single file.')
-        self.console = kwargs.get('console', False)
-        if not isinstance(self.console, bool):
-            raise InvalidArguments('"console" kwarg only accepts booleans')
-        if self.capture and self.console:
-            raise InvalidArguments("Can't both capture output and output to console")
-        if 'command' not in kwargs:
-            raise InvalidArguments('Missing keyword argument "command".')
-        if kwargs.get('depfile') is not None:
-            depfile = kwargs['depfile']
-            if not isinstance(depfile, str):
-                raise InvalidArguments('Depfile must be a string.')
-            if os.path.basename(depfile) != depfile:
-                raise InvalidArguments('Depfile must be a plain filename without a subdirectory.')
-            self.depfile = depfile
-        self.command = self.flatten_command(kwargs['command'])
-        for c in self.command:
-            if self.capture and isinstance(c, str) and '@OUTPUT@' in c:
-                raise InvalidArguments('@OUTPUT@ is not allowed when capturing output.')
-            if self.feed and isinstance(c, str) and '@INPUT@' in c:
-                raise InvalidArguments('@INPUT@ is not allowed when feeding input.')
-        if 'install' in kwargs:
-            self.install = kwargs['install']
-            if not isinstance(self.install, bool):
-                raise InvalidArguments('"install" must be boolean.')
-            if self.install:
-                if not kwargs.get('install_dir', False):
-                    raise InvalidArguments('"install_dir" must be specified '
-                                           'when installing a target')
-
-            if isinstance(kwargs['install_dir'], list):
-                FeatureNew.single_use('multiple install_dir for custom_target', '0.40.0', self.subproject)
-            # If an item in this list is False, the output corresponding to
-            # the list index of that item will not be installed
-            self.install_dir = typeslistify(kwargs['install_dir'], (str, bool))
-            self.install_mode = kwargs.get('install_mode', None)
-            # If only one tag is provided, assume all outputs have the same tag.
-            # Otherwise, we must have as much tags as outputs.
-            install_tag: T.List[T.Union[str, bool, None]] = typeslistify(kwargs.get('install_tag', []), (str, bool, type(None)))
-            if not install_tag:
-                self.install_tag = [None] * len(self.outputs)
-            elif len(install_tag) == 1:
-                self.install_tag = install_tag * len(self.outputs)
-            elif install_tag and len(install_tag) != len(self.outputs):
-                m = f'Target {self.name!r} has {len(self.outputs)} outputs but {len(install_tag)} "install_tag"s were found.'
-                raise InvalidArguments(m)
-            else:
-                self.install_tag = install_tag
-        else:
-            self.install = False
-            self.install_dir = []
-            self.install_mode = None
-            self.install_tag = []
-        if kwargs.get('build_always') is not None and kwargs.get('build_always_stale') is not None:
-            raise InvalidArguments('build_always and build_always_stale are mutually exclusive. Combine build_by_default and build_always_stale.')
-        elif kwargs.get('build_always') is not None:
-            if kwargs.get('build_by_default') is not None:
-                self.build_by_default = kwargs['build_always']
-            self.build_always_stale = kwargs['build_always']
-        elif kwargs.get('build_always_stale') is not None:
-            self.build_always_stale = kwargs['build_always_stale']
-        if not isinstance(self.build_always_stale, bool):
-            raise InvalidArguments('Argument build_always_stale must be a boolean.')
-        extra_deps, depend_files = (extract_as_list(kwargs, c, pop=False) for c in ['depends', 'depend_files'])
-        for ed in extra_deps:
-            if not isinstance(ed, (CustomTarget, BuildTarget)):
-                raise InvalidArguments('Can only depend on toplevel targets: custom_target or build_target '
-                                       f'(executable or a library) got: {type(ed)}({ed})')
-            self.extra_depends.append(ed)
-        for i in depend_files:
-            if isinstance(i, (File, str)):
-                self.depend_files.append(i)
-            else:
-                mlog.debug(i)
-                raise InvalidArguments(f'Unknown type {type(i).__name__!r} in depend_files.')
-        self.env = kwargs.get('env')
 
     def get_dependencies(self):
         return self.dependencies

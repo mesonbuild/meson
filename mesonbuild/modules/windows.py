@@ -181,26 +181,25 @@ class WindowsModule(ExtensionModule):
             command: T.List[T.Union[str, ExternalProgram]] = []
             command.append(rescomp)
             command.extend(res_args)
-
-            res_kwargs: 'RcKwargs' = {
-                'output': output,
-                'input': [src],
-                'depfile': None,
-                'depend_files': wrc_depend_files,
-                'depends': wrc_depends,
-                'command': [],
-            }
-
+            depfile: T.Optional[str] = None
             # instruct binutils windres to generate a preprocessor depfile
             if rescomp_type == ResourceCompilerType.windres:
-                res_kwargs['depfile'] = f'{output}.d'
+                depfile = f'{output}.d'
                 command.extend(['--preprocessor-arg=-MD',
                                 '--preprocessor-arg=-MQ@OUTPUT@',
                                 '--preprocessor-arg=-MF@DEPFILE@'])
 
-            res_kwargs['command'] = command
-
-            res_targets.append(build.CustomTarget(name_formatted, state.subdir, state.subproject, res_kwargs))
+            res_targets.append(build.CustomTarget(
+                name_formatted,
+                state.subdir,
+                state.subproject,
+                command,
+                [src],
+                [output],
+                depfile=depfile,
+                depend_files=wrc_depend_files,
+                extra_depends=wrc_depends,
+            ))
 
         return ModuleReturnValue(res_targets, [res_targets])
 
