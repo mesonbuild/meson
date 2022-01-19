@@ -266,3 +266,13 @@ class DependencyGetVariable(TypedDict):
 class ConfigurationDataSet(TypedDict):
 
     description: T.Optional[str]
+
+class VcsTag(TypedDict):
+
+    command: T.List[T.Union[str, build.BuildTarget, build.CustomTarget,
+                            build.CustomTargetIndex, ExternalProgram, File]]
+    fallback: T.Optional[str]
+    input: T.List[T.Union[str, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex,
+                          build.ExtractedObjects, build.GeneratedList, ExternalProgram, File]]
+    output: T.List[str]
+    replace_string: str

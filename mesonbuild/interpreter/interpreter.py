@@ -1662,21 +1662,28 @@ external dependencies (including libraries) must go to "dependencies".''')
         else:
             raise InterpreterException('Unknown target_type.')
 
-    @permittedKwargs({'input', 'output', 'fallback', 'command', 'replace_string'})
     @noPosargs
-    def func_vcs_tag(self, node, args, kwargs):
-        if 'input' not in kwargs or 'output' not in kwargs:
-            raise InterpreterException('Keyword arguments input and output must exist')
-        if 'fallback' not in kwargs:
+    @typed_kwargs(
+        'vcs_tag',
+        CT_INPUT_KW.evolve(required=True),
+        CT_OUTPUT_KW,
+        # Cannot use the COMMAND_KW because command is allowed to be empty
+        KwargInfo(
+            'command',
+            ContainerTypeInfo(list, (str, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, ExternalProgram, mesonlib.File)),
+            listify=True,
+            default=[],
+        ),
+        KwargInfo('fallback', (str, NoneType)),
+        KwargInfo('replace_string', str, default='@VCS_TAG@'),
+    )
+    def func_vcs_tag(self, node: mparser.BaseNode, args: T.List['TYPE_var'], kwargs: 'kwargs.VcsTag') -> build.CustomTarget:
+        if kwargs['fallback'] is None:
             FeatureNew.single_use('Optional fallback in vcs_tag', '0.41.0', self.subproject, location=node)
-        fallback = kwargs.pop('fallback', self.project_version)
-        if not isinstance(fallback, str):
-            raise InterpreterException('Keyword argument fallback must be a string.')
-        replace_string = kwargs.pop('replace_string', '@VCS_TAG@')
+        fallback = kwargs['fallback'] or self.project_version
+        replace_string = kwargs['replace_string']
         regex_selector = '(.*)' # default regex selector for custom command: use complete output
-        vcs_cmd = kwargs.get('command', None)
-        if vcs_cmd and not isinstance(vcs_cmd, list):
-            vcs_cmd = [vcs_cmd]
+        vcs_cmd = kwargs['command']
         source_dir = os.path.normpath(os.path.join(self.environment.get_source_dir(), self.subdir))
         if vcs_cmd:
             # Is the command an executable in path or maybe a script in the source tree?
@@ -1690,18 +1697,22 @@ external dependencies (including libraries) must go to "dependencies".''')
             else:
                 vcs_cmd = [' '] # executing this cmd will fail in vcstagger.py and force to use the fallback string
         # vcstagger.py parameters: infile, outfile, fallback, source_dir, replace_string, regex_selector, command...
-        kwargs['command'] = self.environment.get_build_command() + \
-            ['--internal',
-             'vcstagger',
-             '@INPUT0@',
-             '@OUTPUT0@',
-             fallback,
-             source_dir,
-             replace_string,
-             regex_selector] + vcs_cmd
-        kwargs.setdefault('build_by_default', True)
-        kwargs.setdefault('build_always_stale', True)
-        return self._func_custom_target_impl(node, [kwargs['output']], kwargs)
+        cmd_kwargs = {
+            'command': self.environment.get_build_command() + \
+                ['--internal',
+                'vcstagger',
+                '@INPUT0@',
+                '@OUTPUT0@',
+                fallback,
+                source_dir,
+                replace_string,
+                regex_selector] + vcs_cmd,
+            'input': kwargs['input'],
+            'output': kwargs['output'],
+            'build_by_default': True,
+            'build_always_stale':True,
+        }
+        return self._func_custom_target_impl(node, [kwargs['output']], cmd_kwargs)
 
     @FeatureNew('subdir_done', '0.46.0')
     @noPosargs
