@@ -188,6 +188,7 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
         else:
             v = 'unknown version'
         linker = AppleDynamicLinker(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
+    # TODO: Use the right linker for lfortran
     elif 'GNU' in o or 'GNU' in e:
         cls: T.Type[GnuDynamicLinker]
         if 'gold' in o or 'gold' in e:

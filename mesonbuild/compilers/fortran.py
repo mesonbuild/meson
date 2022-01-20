@@ -493,6 +493,27 @@ class ArmLtdFlangFortranCompiler(FlangFortranCompiler):
 
     id = 'armltdflang'
 
+class LFortranCompiler(FortranCompiler):
+
+    LINKER_PREFIX = ''
+
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
+                 info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 linker: T.Optional['DynamicLinker'] = None,
+                 full_version: T.Optional[str] = None):
+        FortranCompiler.__init__(self, exelist, version, for_machine,
+                                 is_cross, info, exe_wrapper, linker=linker,
+                                 full_version=full_version)
+        self.id = 'lfortran'
+        default_warn_args = []
+        self.warn_args = {'0': [],
+                          '1': default_warn_args,
+                          '2': default_warn_args,
+                          '3': default_warn_args}
+
+    def language_stdlib_only_link_flags(self) -> T.List[str]:
+        return ['-llfortran_runtime_static', '-llfortran_runtime']
+
 class Open64FortranCompiler(FortranCompiler):
 
     id = 'open64'

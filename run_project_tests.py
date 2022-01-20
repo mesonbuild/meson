@@ -1047,6 +1047,7 @@ def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List
 
     skip_fortran = not(shutil.which('gfortran') or
                        shutil.which('flang') or
+                       shutil.which('lfortran') or
                        shutil.which('pgfortran') or
                        shutil.which('nagfor') or
                        shutil.which('ifort'))

@@ -104,6 +104,7 @@ from .fortran import (
     GnuFortranCompiler,
     ElbrusFortranCompiler,
     FlangFortranCompiler,
+    LFortranCompiler,
     IntelFortranCompiler,
     IntelClFortranCompiler,
     NAGFortranCompiler,
@@ -162,7 +163,7 @@ if is_windows():
     defaults['c'] = ['icl', 'cl', 'cc', 'gcc', 'clang', 'clang-cl', 'pgcc']
     # There is currently no pgc++ for Windows, only for  Mac and Linux.
     defaults['cpp'] = ['icl', 'cl', 'c++', 'g++', 'clang++', 'clang-cl']
-    defaults['fortran'] = ['ifort', 'gfortran', 'flang', 'pgfortran', 'g95']
+    defaults['fortran'] = ['ifort', 'gfortran', 'flang', 'lfortran', 'pgfortran', 'g95']
     # Clang and clang++ are valid, but currently unsupported.
     defaults['objc'] = ['cc', 'gcc']
     defaults['objcpp'] = ['c++', 'g++']
@@ -178,7 +179,7 @@ else:
         defaults['cpp'] = ['c++', 'g++', 'clang++', 'nvc++', 'pgc++', 'icpc']
         defaults['objc'] = ['cc', 'gcc', 'clang']
         defaults['objcpp'] = ['c++', 'g++', 'clang++']
-    defaults['fortran'] = ['gfortran', 'flang', 'nvfortran', 'pgfortran', 'ifort', 'g95']
+    defaults['fortran'] = ['gfortran', 'flang', 'lfortran', 'nvfortran', 'pgfortran', 'ifort', 'g95']
     defaults['cs'] = ['mcs', 'csc']
 defaults['d'] = ['ldc2', 'ldc', 'gdc', 'dmd']
 defaults['java'] = ['javac']
@@ -797,6 +798,14 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
                 linker = guess_nix_linker(env,
                     compiler, FlangFortranCompiler, for_machine)
                 return FlangFortranCompiler(
+                    compiler, version, for_machine, is_cross, info,
+                    exe_wrap, full_version=full_version, linker=linker)
+
+            if 'LFortran' in out:
+                cls = LFortranCompiler
+                linker = guess_nix_linker(env,
+                    compiler, cls, for_machine)
+                return cls(
                     compiler, version, for_machine, is_cross, info,
                     exe_wrap, full_version=full_version, linker=linker)
 
