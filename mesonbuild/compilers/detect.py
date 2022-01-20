@@ -518,7 +518,7 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             return cls(
                 compiler, version, for_machine, is_cross, info, target,
                 exe_wrap, linker=linker)
-        if 'clang' in out or 'Clang' in out:
+        if 'clang' in out or 'Clang' in out or 'oneAPI DPC++/C++' in out:
             linker = None
 
             defines = _get_clang_compiler_defines(compiler)
