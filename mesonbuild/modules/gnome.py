@@ -1630,9 +1630,6 @@ class GnomeModule(ExtensionModule):
 
         if kwargs['docbook'] is not None:
             docbook = kwargs['docbook']
-            if not isinstance(docbook, str):
-                raise MesonException('docbook value must be a string.')
-
             # The docbook output is always ${docbook}-${name_of_xml_file}
             output = namebase + '-docbook'
             outputs = []
