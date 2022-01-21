@@ -322,19 +322,17 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     )
 
 def run(options: 'argparse.Namespace') -> int:
-    cdata = coredata.load(options.wd)
     bdir = Path(options.wd)
-    buildfile = bdir / 'meson-private' / 'build.dat'
-    if not buildfile.is_file():
-        raise MesonException(f'Directory {options.wd!r} does not seem to be a Meson build directory.')
+    validate_builddir(bdir)
+    if options.targets and options.clean:
+        raise MesonException('`TARGET` and `--clean` can\'t be used simultaneously')
+
+    cdata = coredata.load(options.wd)
     b = build.load(options.wd)
     setup_vsenv(b.need_vsenv)
 
     cmd = []    # type: T.List[str]
     env = None  # type: T.Optional[T.Dict[str, str]]
-
-    if options.targets and options.clean:
-        raise MesonException('`TARGET` and `--clean` can\'t be used simultaneously')
 
     backend = cdata.get_option(mesonlib.OptionKey('backend'))
     assert isinstance(backend, str)
