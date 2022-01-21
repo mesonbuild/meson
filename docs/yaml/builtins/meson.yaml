@@ -446,3 +446,8 @@ methods:
       env:
         type: env
         description: The [[@env]] object to add.
+
+  - name: command
+    returns: list[str]
+    since: 0.62.0
+    description: Returns the command used to run Meson as an array, with arguments.

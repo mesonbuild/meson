@@ -76,6 +76,7 @@ class MesonMain(MesonInterpreterObject):
                              'has_external_property': self.has_external_property_method,
                              'backend': self.backend_method,
                              'add_devenv': self.add_devenv_method,
+                             'command': self.command_method,
                              })
 
     def _find_source_script(
@@ -448,3 +449,9 @@ class MesonMain(MesonInterpreterObject):
         converted = ENV_KW.convertor(env)
         assert isinstance(converted, build.EnvironmentVariables)
         self.build.devenv.append(converted)
+
+    @FeatureNew('command', '0.62.0')
+    @noPosargs
+    @noKwargs
+    def command_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> T.List[str]:
+        return self.interpreter.environment.get_build_command()
