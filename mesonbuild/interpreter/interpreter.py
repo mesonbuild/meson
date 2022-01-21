@@ -12,6 +12,7 @@
 # limitations under the License.
 
 from __future__ import annotations
+
 from .. import mparser
 from .. import environment
 from .. import coredata
@@ -120,6 +121,8 @@ if T.TYPE_CHECKING:
     SourceOutputs = T.Union[mesonlib.File, build.GeneratedList,
                             build.BuildTarget, build.CustomTargetIndex, build.CustomTarget,
                             build.ExtractedObjects, build.GeneratedList, build.StructuredSources]
+
+    BuildTargetSource = T.Union[mesonlib.FileOrString, build.GeneratedTypes, build.StructuredSources]
 
 
 def _project_version_validator(value: T.Union[T.List, str, mesonlib.File, None]) -> T.Optional[str]:
@@ -1726,39 +1729,64 @@ class Interpreter(InterpreterBase, HoldableObject):
     @FeatureNewKwargs('executable', '0.56.0', ['win_subsystem'])
     @FeatureDeprecatedKwargs('executable', '0.56.0', ['gui_app'], extra_message="Use 'win_subsystem' instead.")
     @permittedKwargs(build.known_exe_kwargs)
-    def func_executable(self, node, args, kwargs):
+    @typed_pos_args('executable', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.StructuredSources))
+    def func_executable(self, node: mparser.BaseNode,
+                        args: T.Tuple[str, T.List[BuildTargetSource]],
+                        kwargs) -> build.Executable:
         return self.build_target(node, args, kwargs, build.Executable)
 
     @permittedKwargs(build.known_stlib_kwargs)
-    def func_static_lib(self, node, args, kwargs):
+    @typed_pos_args('static_library', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.StructuredSources))
+    def func_static_lib(self, node: mparser.BaseNode,
+                        args: T.Tuple[str, T.List[BuildTargetSource]],
+                        kwargs) -> build.StaticLibrary:
         return self.build_target(node, args, kwargs, build.StaticLibrary)
 
     @permittedKwargs(build.known_shlib_kwargs)
-    def func_shared_lib(self, node, args, kwargs):
+    @typed_pos_args('shared_library', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.StructuredSources))
+    def func_shared_lib(self, node: mparser.BaseNode,
+                        args: T.Tuple[str, T.List[BuildTargetSource]],
+                        kwargs) -> build.SharedLibrary:
         holder = self.build_target(node, args, kwargs, build.SharedLibrary)
         holder.shared_library_only = True
         return holder
 
     @permittedKwargs(known_library_kwargs)
-    def func_both_lib(self, node, args, kwargs):
+    @typed_pos_args('both_library', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.StructuredSources))
+    def func_both_lib(self, node: mparser.BaseNode,
+                      args: T.Tuple[str, T.List[T.Union[mesonlib.FileOrString, build.GeneratedTypes]]],
+                      kwargs) -> build.BothLibraries:
         return self.build_both_libraries(node, args, kwargs)
 
     @FeatureNew('shared_module', '0.37.0')
     @permittedKwargs(build.known_shmod_kwargs)
-    def func_shared_module(self, node, args, kwargs):
+    @typed_pos_args('shared_module', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.StructuredSources))
+    def func_shared_module(self, node: mparser.BaseNode,
+                           args: T.Tuple[str, T.List[BuildTargetSource]],
+                           kwargs) -> build.SharedModule:
         return self.build_target(node, args, kwargs, build.SharedModule)
 
     @permittedKwargs(known_library_kwargs)
-    def func_library(self, node, args, kwargs):
+    @typed_pos_args('library', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.StructuredSources))
+    def func_library(self, node: mparser.BaseNode,
+                     args: T.Tuple[str, T.List[BuildTargetSource]],
+                     kwargs) -> build.Executable:
         return self.build_library(node, args, kwargs)
 
     @permittedKwargs(build.known_jar_kwargs)
-    def func_jar(self, node, args, kwargs):
+    @typed_pos_args('jar', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.StructuredSources))
+    def func_jar(self, node: mparser.BaseNode,
+                 args: T.Tuple[str, T.List[BuildTargetSource]],
+                 kwargs) -> build.Jar:
         return self.build_target(node, args, kwargs, build.Jar)
 
     @FeatureNewKwargs('build_target', '0.40.0', ['link_whole', 'override_options'])
     @permittedKwargs(known_build_target_kwargs)
-    def func_build_target(self, node, args, kwargs):
+    @typed_pos_args('build_target', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList))
+    def func_build_target(self, node: mparser.BaseNode,
+                          args: T.Tuple[str, T.List[BuildTargetSource]],
+                          kwargs) -> T.Union[build.Executable, build.StaticLibrary, build.SharedLibrary,
+                                             build.SharedModule, build.BothLibraries, build.Jar]:
         if 'target_type' not in kwargs:
             raise InterpreterException('Missing target_type keyword argument')
         target_type = kwargs.pop('target_type')
@@ -3038,7 +3066,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
 
         if reuse_object_files:
             # Exclude sources from args and kwargs to avoid building them twice
-            static_args = [args[0]]
+            static_args = (args[0], [])
             static_kwargs = kwargs.copy()
             static_kwargs['sources'] = []
             static_kwargs['objects'] = shared_lib.extract_all_objects()
@@ -3071,9 +3099,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
 
         build_target_decorator_caller(self, node, args, kwargs)
 
-        if not args:
-            raise InterpreterException('Target does not have a name.')
-        name, *sources = args
+        name, sources = args
         for_machine = self.machine_from_native_kwarg(kwargs)
         if 'sources' in kwargs:
             sources += listify(kwargs['sources'])
