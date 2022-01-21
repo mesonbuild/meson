@@ -26,6 +26,7 @@ pkgs=(
   libboost-python-dev libboost-regex-dev
   libblocksruntime-dev
   libperl-dev libscalapack-mpi-dev libncurses-dev
+  itstool
 )
 
 boost_pkgs=(atomic chrono date-time filesystem log regex serialization system test thread)

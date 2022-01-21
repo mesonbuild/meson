@@ -59,6 +59,20 @@ if T.TYPE_CHECKING:
         languages: T.List[str]
         preset: T.Optional[str]
 
+    class ItsJoinFile(TypedDict):
+
+        input: T.List[T.Union[
+            str, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex,
+            build.ExtractedObjects, build.GeneratedList, ExternalProgram,
+            mesonlib.File]]
+        output: T.List[str]
+        build_by_default: bool
+        install: bool
+        install_dir: T.List[T.Union[str, bool]]
+        install_tag: T.List[str]
+        its_files: T.List[str]
+        mo_targets: T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]]
+
 
 _ARGS: KwargInfo[T.List[str]] = KwargInfo(
     'args',
@@ -115,11 +129,16 @@ class I18nModule(ExtensionModule):
         self.methods.update({
             'merge_file': self.merge_file,
             'gettext': self.gettext,
+            'itstool_join': self.itstool_join,
         })
 
     @staticmethod
     def nogettext_warning() -> None:
         mlog.warning('Gettext not found, all translation targets will be ignored.', once=True)
+
+    @staticmethod
+    def noitstool_error() -> T.NoReturn:
+        raise mesonlib.MesonException('Did not find itstool. Please install it to continue.')
 
     @staticmethod
     def _get_data_dirs(state: 'ModuleState', dirs: T.Iterable[str]) -> T.List[str]:
@@ -184,7 +203,7 @@ class I18nModule(ExtensionModule):
 
         return ModuleReturnValue(ct, [ct])
 
-    @typed_pos_args('i81n.gettex', str)
+    @typed_pos_args('i81n.gettext', str)
     @typed_kwargs(
         'i18n.gettext',
         _ARGS,
@@ -268,6 +287,66 @@ class I18nModule(ExtensionModule):
         targets.append(updatepotarget)
 
         return ModuleReturnValue([gmotargets, pottarget, updatepotarget], targets)
+
+    @FeatureNew('i18n.itstool_join', '0.61.0')
+    @noPosargs
+    @typed_kwargs(
+        'i18n.itstool_join',
+        CT_BUILD_BY_DEFAULT,
+        CT_INPUT_KW,
+        CT_INSTALL_DIR_KW,
+        CT_INSTALL_TAG_KW,
+        CT_OUTPUT_KW,
+        INSTALL_KW,
+        _ARGS.evolve(),
+        KwargInfo('its_files', ContainerTypeInfo(list, str)),
+        KwargInfo('mo_targets', ContainerTypeInfo(list, build.CustomTarget), required=True),
+    )
+    def itstool_join(self, state: 'ModuleState', args: T.List['TYPE_var'], kwargs: 'ItsJoinFile') -> ModuleReturnValue:
+        if not shutil.which('itstool'):
+            self.noitstool_error()
+        mo_targets = kwargs['mo_targets']
+        its_files = kwargs.get('its_files', [])
+
+        mo_fnames = []
+        for target in mo_targets:
+            mo_fnames.append(path.join(target.get_subdir(), target.get_outputs()[0]))
+
+        command: T.List[T.Union[str, build.BuildTarget, build.CustomTarget,
+                                build.CustomTargetIndex, 'ExternalProgram', mesonlib.File]] = []
+        command.extend(state.environment.get_build_command())
+        command.extend([
+            '--internal', 'itstool', 'join',
+            '-i', '@INPUT@',
+            '-o', '@OUTPUT@'
+        ])
+        if its_files:
+            for fname in its_files:
+                if not path.isabs(fname):
+                    fname = path.join(state.environment.source_dir, state.subdir, fname)
+                command.extend(['--its', fname])
+        command.extend(mo_fnames)
+
+        build_by_default = kwargs['build_by_default']
+        if build_by_default is None:
+            build_by_default = kwargs['install']
+
+        real_kwargs = {
+            'build_by_default': build_by_default,
+            'command': command,
+            'depends': mo_targets,
+            'install': kwargs['install'],
+            'install_dir': kwargs['install_dir'],
+            'output': kwargs['output'],
+            'input': kwargs['input'],
+            'install_tag': kwargs['install_tag'],
+        }
+
+        ct = build.CustomTarget('', state.subdir, state.subproject,
+                T.cast(T.Dict[str, T.Any], real_kwargs))
+
+        return ModuleReturnValue(ct, [ct])
+
 
 def initialize(interp: 'Interpreter') -> I18nModule:
     return I18nModule(interp)
