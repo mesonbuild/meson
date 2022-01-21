@@ -51,7 +51,7 @@ class HDF5PkgConfigDependency(PkgConfigDependency):
         newinc = []  # type: T.List[str]
         for arg in self.compile_args:
             if arg.startswith('-I'):
-                stem = 'static' if kwargs.get('static', False) else 'shared'
+                stem = 'static' if self.static else 'shared'
                 if (Path(arg[2:]) / stem).is_dir():
                     newinc.append('-I' + str(Path(arg[2:]) / stem))
         self.compile_args += newinc
@@ -129,7 +129,7 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
         # We first need to call the tool with -c to get the compile arguments
         # and then without -c to get the link arguments.
         args = self.get_config_value(['-show', '-c'], 'args')[1:]
-        args += self.get_config_value(['-show', '-noshlib' if kwargs.get('static', False) else '-shlib'], 'args')[1:]
+        args += self.get_config_value(['-show', '-noshlib' if self.static else '-shlib'], 'args')[1:]
         for arg in args:
             if arg.startswith(('-I', '-f', '-D')) or arg == '-pthread':
                 self.compile_args.append(arg)
