@@ -196,7 +196,6 @@ class Python3DependencySystem(SystemDependency):
             return
 
         self.name = 'python3'
-        self.static = kwargs.get('static', False)
         # We can only be sure that it is Python 3 at this point
         self.version = '3'
         self._find_libpy3_windows(environment)
