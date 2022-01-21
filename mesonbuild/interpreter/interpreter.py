@@ -122,6 +122,8 @@ if T.TYPE_CHECKING:
                             build.BuildTarget, build.CustomTargetIndex, build.CustomTarget,
                             build.ExtractedObjects, build.GeneratedList, build.StructuredSources]
 
+    BuildTargetSource = T.Union[mesonlib.FileOrString, build.GeneratedTypes, build.StructuredSources]
+
 
 def _project_version_validator(value: T.Union[T.List, str, mesonlib.File, None]) -> T.Optional[str]:
     if isinstance(value, list):
@@ -1730,39 +1732,64 @@ class Interpreter(InterpreterBase, HoldableObject):
     @FeatureNewKwargs('executable', '0.56.0', ['win_subsystem'])
     @FeatureDeprecatedKwargs('executable', '0.56.0', ['gui_app'], extra_message="Use 'win_subsystem' instead.")
     @permittedKwargs(build.known_exe_kwargs)
-    def func_executable(self, node, args, kwargs):
+    @typed_pos_args('executable', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.StructuredSources, build.ExtractedObjects, build.BuildTarget))
+    def func_executable(self, node: mparser.BaseNode,
+                        args: T.Tuple[str, T.List[BuildTargetSource]],
+                        kwargs) -> build.Executable:
         return self.build_target(node, args, kwargs, build.Executable)
 
     @permittedKwargs(build.known_stlib_kwargs)
-    def func_static_lib(self, node, args, kwargs):
+    @typed_pos_args('static_library', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.StructuredSources, build.ExtractedObjects, build.BuildTarget))
+    def func_static_lib(self, node: mparser.BaseNode,
+                        args: T.Tuple[str, T.List[BuildTargetSource]],
+                        kwargs) -> build.StaticLibrary:
         return self.build_target(node, args, kwargs, build.StaticLibrary)
 
     @permittedKwargs(build.known_shlib_kwargs)
-    def func_shared_lib(self, node, args, kwargs):
+    @typed_pos_args('shared_library', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.StructuredSources, build.ExtractedObjects, build.BuildTarget))
+    def func_shared_lib(self, node: mparser.BaseNode,
+                        args: T.Tuple[str, T.List[BuildTargetSource]],
+                        kwargs) -> build.SharedLibrary:
         holder = self.build_target(node, args, kwargs, build.SharedLibrary)
         holder.shared_library_only = True
         return holder
 
     @permittedKwargs(known_library_kwargs)
-    def func_both_lib(self, node, args, kwargs):
+    @typed_pos_args('both_libraries', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.StructuredSources, build.ExtractedObjects, build.BuildTarget))
+    def func_both_lib(self, node: mparser.BaseNode,
+                      args: T.Tuple[str, T.List[BuildTargetSource]],
+                      kwargs) -> build.BothLibraries:
         return self.build_both_libraries(node, args, kwargs)
 
     @FeatureNew('shared_module', '0.37.0')
     @permittedKwargs(build.known_shmod_kwargs)
-    def func_shared_module(self, node, args, kwargs):
+    @typed_pos_args('shared_module', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.StructuredSources, build.ExtractedObjects, build.BuildTarget))
+    def func_shared_module(self, node: mparser.BaseNode,
+                           args: T.Tuple[str, T.List[BuildTargetSource]],
+                           kwargs) -> build.SharedModule:
         return self.build_target(node, args, kwargs, build.SharedModule)
 
     @permittedKwargs(known_library_kwargs)
-    def func_library(self, node, args, kwargs):
+    @typed_pos_args('library', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.StructuredSources, build.ExtractedObjects, build.BuildTarget))
+    def func_library(self, node: mparser.BaseNode,
+                     args: T.Tuple[str, T.List[BuildTargetSource]],
+                     kwargs) -> build.Executable:
         return self.build_library(node, args, kwargs)
 
     @permittedKwargs(build.known_jar_kwargs)
-    def func_jar(self, node, args, kwargs):
+    @typed_pos_args('jar', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.ExtractedObjects, build.BuildTarget))
+    def func_jar(self, node: mparser.BaseNode,
+                 args: T.Tuple[str, T.List[T.Union[str, mesonlib.File, build.GeneratedTypes]]],
+                 kwargs) -> build.Jar:
         return self.build_target(node, args, kwargs, build.Jar)
 
     @FeatureNewKwargs('build_target', '0.40.0', ['link_whole', 'override_options'])
     @permittedKwargs(known_build_target_kwargs)
-    def func_build_target(self, node, args, kwargs):
+    @typed_pos_args('build_target', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.StructuredSources, build.ExtractedObjects, build.BuildTarget))
+    def func_build_target(self, node: mparser.BaseNode,
+                          args: T.Tuple[str, T.List[BuildTargetSource]],
+                          kwargs) -> T.Union[build.Executable, build.StaticLibrary, build.SharedLibrary,
+                                             build.SharedModule, build.BothLibraries, build.Jar]:
         if 'target_type' not in kwargs:
             raise InterpreterException('Missing target_type keyword argument')
         target_type = kwargs.pop('target_type')
@@ -3106,12 +3133,22 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         build_target_decorator_caller(self, node, args, kwargs)
 
-        if not args:
-            raise InterpreterException('Target does not have a name.')
-        name, *sources = args
+        name, sources = args
         for_machine = self.machine_from_native_kwarg(kwargs)
         if 'sources' in kwargs:
             sources += listify(kwargs['sources'])
+        if any(isinstance(s, build.BuildTarget) for s in sources):
+            FeatureDeprecated.single_use('passing references to built targets as a source file', '1.1.0', self.subproject,
+                                         'consider using `link_with` or `link_whole` if you meant to link, or dropping them as otherwise they are ignored',
+                                         node)
+        if any(isinstance(s, build.ExtractedObjects) for s in sources):
+            FeatureDeprecated.single_use('passing object files as sources', '1.1.0', self.subproject,
+                                         'pass these to the `objects` keyword instead, they are ignored when passed as sources',
+                                         node)
+        # Go ahead and drop these here, since they're only allowed through for
+        # backwards compatibility anyway
+        sources = [s for s in sources
+                   if not isinstance(s, (build.BuildTarget, build.ExtractedObjects))]
         sources = self.source_strings_to_files(sources)
         objs = extract_as_list(kwargs, 'objects')
         kwargs['dependencies'] = extract_as_list(kwargs, 'dependencies')
