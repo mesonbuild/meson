@@ -10,6 +10,8 @@ methods:
     Returns `true` if the array contains the object
     given as argument, `false` otherwise
 
+  arg_flattening: false
+
   posargs:
     item:
       type: any
@@ -22,6 +24,8 @@ methods:
     negative indices count from the back of the array, indexing out of
     bounds returns the `fallback` value *(since 0.38.0)* or, if it is
     not specified, causes a fatal error
+
+  arg_flattening: false
 
   posargs:
     index:

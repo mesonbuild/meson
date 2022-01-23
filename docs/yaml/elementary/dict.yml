@@ -30,6 +30,8 @@ methods:
     fallback value given as the second argument. If a single argument
     was given and the key was not found, causes a fatal error
 
+  arg_flattening: false
+
   posargs:
     key:
       type: str

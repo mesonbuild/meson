@@ -21,6 +21,8 @@ methods:
     # res now has value 'string: text, number: 1, bool: true'
     ```
 
+  arg_flattening: false
+
   posargs:
     fmt:
       description: |

@@ -6,6 +6,8 @@ description: |
 
   *(since 0.46.1)* The `value` parameter can be an array type.
 
+arg_flattening: false
+
 posargs:
   variable_name:
     type: str

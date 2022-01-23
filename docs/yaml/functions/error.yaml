@@ -2,6 +2,8 @@ name: error
 returns: void
 description: Print the argument string and halts the build process.
 
+arg_flattening: false
+
 posargs:
   message:
     type: str

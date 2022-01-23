@@ -61,6 +61,8 @@ example: |
                        True
   ```
 
+arg_flattening: false
+
 posargs:
   key_or_dict:
     type: str | dict[str | bool | int | dep | external_program | list[str | bool | int | dep | external_program]]

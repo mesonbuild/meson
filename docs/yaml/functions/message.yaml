@@ -2,6 +2,8 @@ name: message
 returns: void
 description: This function prints its argument to stdout.
 
+arg_flattening: false
+
 posargs:
   text:
     type: str | int | bool | list[str | int | bool] | dict[str | int | bool]
