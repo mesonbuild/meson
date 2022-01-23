@@ -89,6 +89,7 @@ class StrictTemplate(Template):
             Optional('varargs_inherit', default=''): Str(),
             Optional('kwargs'): MapPattern(Str(), self.s_kwarg),
             Optional('kwargs_inherit', default=[]): OrValidator(OrValidator(Seq(Str()), EmptyList()), Str()),
+            Optional('arg_flattening', default=True): Bool(),
         })
 
         self.s_object = Map({
@@ -138,6 +139,7 @@ class FastTemplate(Template):
         'varargs_inherit': '',
         'kwargs': {},
         'kwargs_inherit': [],
+        'arg_flattening': True,
     }
 
     s_object = {

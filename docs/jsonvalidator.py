@@ -82,6 +82,7 @@ def validate_function(path: str, name: str, func: dict) -> None:
         'optargs': dict,
         'kwargs': dict,
         'varargs': (dict, T_None),
+        'arg_flattening': bool,
     }
     cur = assert_has_typed_keys(f'{path}.{name}', func, expected)
     assert not func, f'{path}.{name} has extra keys: {func.keys()}'

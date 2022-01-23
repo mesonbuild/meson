@@ -8,7 +8,7 @@ import typing as T
 # the Meson version
 
 VERSION_MAJOR = 1  # Changes here indicate breaking format changes (changes to existing keys)
-VERSION_MINOR = 0  # Changes here indicate non-breaking changes (only new keys are added to the existing structure)
+VERSION_MINOR = 1  # Changes here indicate non-breaking changes (only new keys are added to the existing structure)
 
 class BaseObject(T.TypedDict):
     '''
@@ -43,13 +43,14 @@ class Function(BaseObject):
     '''
         Represents a function or method.
     '''
-    returns:     T.List[Type]  # A non-empty list of types that are supported.
-    returns_str: str           # Formated version of `returns`. Is guranteed to not contain any whitespaces.
-    example:     T.Optional[str]
-    posargs:     T.Dict[str, Argument]
-    optargs:     T.Dict[str, Argument]
-    kwargs:      T.Dict[str, Argument]
-    varargs:     T.Optional[Argument]
+    returns:        T.List[Type]  # A non-empty list of types that are supported.
+    returns_str:    str           # Formatted version of `returns`. Is guaranteed to not contain any whitespaces.
+    example:        T.Optional[str]
+    posargs:        T.Dict[str, Argument]
+    optargs:        T.Dict[str, Argument]
+    kwargs:         T.Dict[str, Argument]
+    varargs:        T.Optional[Argument]
+    arg_flattening: bool
 
 class Object(BaseObject):
     '''

@@ -18,6 +18,11 @@ the yaml manual using a strict subset of yaml at the cost of loading slowly.
 You may optionally disable all these safety checks using the `fastyaml` loader,
 which will significantly speed things up at the cost of being less correct.
 
+The following python packages are required for the `genrefman` script:
+
+- chevron
+- strictyaml
+
 ## Linking to the Reference Manual
 
 Links to the Reference Manual can be inserted *anywhere* in the Meson docs with
@@ -118,6 +123,9 @@ optargs_inherit: _build_target_base  # Use the optargs definition of `_build_tar
 varargs_inherit: _build_target_base  # Use the varargs definition of `_build_target_base` here
 kwargs_inherit: _build_target_base   # Add all kwargs of `_build_target_base` to this function
 
+# Whether argument flattening (see Syntax.md) is enabled
+# for this function. Defaults to `true`.
+args_flattening: true
 
 posargs:
   arg_name:
