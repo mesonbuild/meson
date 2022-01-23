@@ -527,6 +527,54 @@ executable('progname', 'prog.c',
 
 Attempting to do this causes Meson to immediately exit with an error.
 
+### Argument flattening
+
+Argument flattening is a Meson feature that aims to simplify using
+methods and functions. For functions where this feature is active,
+Meson takes the list of arguments and flattens all nested lists into
+one big list.
+
+For instance the following function calls to [[executable]] are
+identical in Meson:
+
+```meson
+# A normal example:
+executable('exe1', ['foo.c', 'bar.c', 'foobar.c'])
+
+# A more contrived example that also works but certainly
+# isn't good Meson code:
+l1 = ['bar.c']
+executable('exe1', [[['foo.c', l1]], ['foobar.c']])
+
+# How meson will treat all the previous calls internally:
+executable('exe1', 'foo.c', 'bar.c', 'foobar.c')
+```
+
+Because of an internal implementation detail, the following syntax
+is currently also supported, even though the first argument of
+[[executable]] is a single [[@str]] and not a [[@list]]:
+
+```meson
+# WARNING: This example is only valid because of an internal
+#          implementation detail and not because it is intended
+#
+#          PLEASE DO NOT DO SOMETHING LIKE THIS!
+#
+executable(['exe1', 'foo.c'], 'bar.c', 'foobar.c')
+```
+
+This code is currently accepted because argument flattening *currently*
+happens before the parameters are evaluated. "Support" for
+such constructs will likely be removed in future Meson releases!
+
+Argument flattening is supported by *most* but not *all* Meson
+functions and methods. As a general rule, it can be assumed that a
+function or method supports argument flattening if the exact list
+structure is irrelevant to a function.
+
+Whether a function supports argument flattening is documented in the
+[Reference Manual](Reference-manual.md).
+
 ## Method calls
 
 Objects can have methods, which are called with the dot operator. The
