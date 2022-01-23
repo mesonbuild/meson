@@ -72,6 +72,7 @@ class GeneratorJSON(GeneratorBase):
             'optargs': {x.name: self._generate_arg(x, True) for x in func.optargs},
             'kwargs': {x.name: self._generate_arg(x) for x in self.sorted_and_filtered(list(func.kwargs.values()))},
             'varargs': self._generate_arg(func.varargs) if func.varargs else None,
+            'arg_flattening': func.arg_flattening,
         }
 
     def _generate_objects(self, obj: Object) -> J.Object:

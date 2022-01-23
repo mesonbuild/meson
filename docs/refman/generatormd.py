@@ -267,6 +267,7 @@ class GeneratorMD(GeneratorBase):
             } if func.posargs or func.optargs else None,
             'kwargs':  {'args': [gen_arg_data(x) for x in self.sorted_and_filtered(list(func.kwargs.values()))]} if func.kwargs else None,
             'varargs': gen_arg_data(func.varargs) if func.varargs else None,
+            'arg_flattening': func.arg_flattening,
 
             # For the feature taggs template
             'since': func.since or None,

@@ -77,6 +77,7 @@ class Function(NamedObject, FetureCheck):
     optargs_inherit: str
     varargs_inherit: str
     kwargs_inherit: T.List[str]
+    arg_flattening: bool
 
 @dataclass
 class Method(Function):
