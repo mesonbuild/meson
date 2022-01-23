@@ -50,8 +50,8 @@ methods:
         need to pass numbers use the `.set` method.
   warnings:
   - numeric values < 0 have the surprising behavior of being converted to
-    [[true]], values > 1 have the more expected but unintentional behavior of
-    being interpretered as [[true]].
+    `true`, values > 1 have the more expected but unintentional behavior of
+    being interpreted as `true`.
 
   kwargs_inherit: cfg_data.set
 
