@@ -19,6 +19,8 @@ methods:
     If a fallback is not specified, then attempting to read a non-existing
     variable will cause a fatal error.
 
+  arg_flattening: false
+
   posargs:
     var_name:
       type: str

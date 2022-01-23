@@ -8,6 +8,8 @@ description: |
   `res`instead. If a fallback is not specified, then attempting to read
   a non-existing variable will cause a fatal error.
 
+arg_flattening: false
+
 posargs:
   variable_name:
     type: str

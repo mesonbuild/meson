@@ -259,6 +259,7 @@ methods:
 
       This method is replaced by [[meson.get_external_property]].
 
+    arg_flattening: false
     posargs_inherit: meson.get_external_property
     optargs_inherit: meson.get_external_property
 
@@ -268,6 +269,8 @@ methods:
     description: |
       Returns the given property from a native or cross file.
       The optional fallback_value is returned if the given property is not found.
+
+    arg_flattening: false
 
     posargs:
       propname:
