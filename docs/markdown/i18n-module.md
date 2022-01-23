@@ -67,4 +67,4 @@ for normal keywords. In addition it accepts these keywords:
   (XML translation rules are autodetected otherwise).
 * `mo_targets` *required*: mo file generation targets as returned by `i18n.gettext()`.
 
-*Added 0.61.0*
+*Added 0.62.0*

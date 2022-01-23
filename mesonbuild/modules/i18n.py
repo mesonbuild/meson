@@ -288,7 +288,7 @@ class I18nModule(ExtensionModule):
 
         return ModuleReturnValue([gmotargets, pottarget, updatepotarget], targets)
 
-    @FeatureNew('i18n.itstool_join', '0.61.0')
+    @FeatureNew('i18n.itstool_join', '0.62.0')
     @noPosargs
     @typed_kwargs(
         'i18n.itstool_join',
