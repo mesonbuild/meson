@@ -89,7 +89,7 @@ limitations, the most important being that global compiler arguments
 must be set in the main project before calling subproject. Subprojects
 must not set global arguments because there is no way to do that
 reliably over multiple subprojects. To check whether you are running
-as a subproject, use the `is_subproject` function.
+as a subproject, use [[meson.is_subproject]].
 
 ## Using a subproject
 
