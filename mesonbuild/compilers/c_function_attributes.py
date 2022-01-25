@@ -113,6 +113,7 @@ C_FUNC_ATTRIBUTES = {
     'weakref': '''
         static int foo(void) { return 0; }
         static int var(void) __attribute__((weakref("foo")));''',
+    'retain': '__attribute__((retain)) int x;',
 }
 
 CXX_FUNC_ATTRIBUTES = {

@@ -240,6 +240,7 @@ which are supported by GCC, Clang, and other compilers.
 | optimize                 |
 | packed                   |
 | pure                     |
+| retain⁴                  |
 | returns_nonnull          |
 | unused                   |
 | used                     |
@@ -260,6 +261,8 @@ which are supported by GCC, Clang, and other compilers.
 "visibility" as they provide narrower checks.
 
 ³ *New in 0.55.0*
+
+⁴ *New in 0.62.0*
 
 ### MSVC __declspec
 
