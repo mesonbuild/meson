@@ -109,4 +109,5 @@ run_target('upload',
       '--git-upload',
       '-vv',
     ],
+    depends: documentation,
 )
