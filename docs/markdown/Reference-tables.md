@@ -252,7 +252,7 @@ which are supported by GCC, Clang, and other compilers.
 | warning                  |
 | warn_unused_result       |
 | weak                     |
-| weakreaf                 |
+| weakref                  |
 
 \* *Changed in 0.52.0* the "visibility" target no longer includes
 "protected", which is not present in Apple's clang.
