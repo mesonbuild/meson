@@ -40,7 +40,7 @@ def _get_meson_output(root_dir: Path, args: T.List) -> str:
 def get_commands_data(root_dir: Path) -> T.Dict[str, T.Any]:
     usage_start_pattern = re.compile(r'^usage: ', re.MULTILINE)
     positional_start_pattern = re.compile(r'^positional arguments:[\t ]*[\r\n]+', re.MULTILINE)
-    options_start_pattern = re.compile(r'^optional arguments:[\t ]*[\r\n]+', re.MULTILINE)
+    options_start_pattern = re.compile(r'^(optional arguments|options):[\t ]*[\r\n]+', re.MULTILINE)
     commands_start_pattern = re.compile(r'^[A-Za-z ]*[Cc]ommands:[\t ]*[\r\n]+', re.MULTILINE)
 
     def get_next_start(iterators: T.Sequence[T.Any], end: T.Optional[int]) -> int:
