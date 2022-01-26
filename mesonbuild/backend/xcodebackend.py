@@ -1319,7 +1319,7 @@ class XCodeBackend(backends.Backend):
 
         for t in self.custom_targets:
             idval = self.pbx_custom_dep_map[t]
-            targets.append((idval, self.custom_aggregate_targets[t], t, None))#self.containerproxy_map[t]))
+            targets.append((idval, self.custom_aggregate_targets[t], t, None)) # self.containerproxy_map[t]))
 
         # Sort object by ID
         sorted_targets = sorted(targets, key=operator.itemgetter(0))
