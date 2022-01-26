@@ -133,7 +133,7 @@ class MesonMain(MesonInterpreterObject):
             FeatureNew.single_use(
                 f'Calling "{name}" with File, CustomTarget, Index of CustomTarget, '
                 'Executable, or ExternalProgram',
-                '0.55.0', self.interpreter.subproject)
+                '0.55.0', self.interpreter.subproject, location=self.current_node)
         return script_args
 
     @typed_pos_args(
@@ -185,10 +185,10 @@ class MesonMain(MesonInterpreterObject):
             kwargs: 'TYPE_kwargs') -> None:
         if args[1]:
             FeatureNew.single_use('Calling "add_dist_script" with multiple arguments',
-                                  '0.49.0', self.interpreter.subproject)
+                                  '0.49.0', self.interpreter.subproject, location=self.current_node)
         if self.interpreter.subproject != '':
             FeatureNew.single_use('Calling "add_dist_script" in a subproject',
-                                  '0.58.0', self.interpreter.subproject)
+                                  '0.58.0', self.interpreter.subproject, location=self.current_node)
         script_args = self._process_script_args('add_dist_script', args[1])
         script = self._find_source_script('add_dist_script', args[0], script_args)
         self.build.dist_scripts.append(script)

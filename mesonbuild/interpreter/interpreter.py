@@ -546,7 +546,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 except KeyError:
                     continue
                 if len(di) == 1:
-                    FeatureNew.single_use('stdlib without variable name', '0.56.0', self.subproject)
+                    FeatureNew.single_use('stdlib without variable name', '0.56.0', self.subproject, location=self.current_node)
                 kwargs = {'native': for_machine is MachineChoice.BUILD,
                           }
                 name = l + '_stdlib'
@@ -608,11 +608,11 @@ class Interpreter(InterpreterBase, HoldableObject):
         variables = kwargs.get(argname, {})
         if isinstance(variables, dict):
             if dict_new and variables:
-                FeatureNew.single_use(f'{argname} as dictionary', '0.56.0', self.subproject)
+                FeatureNew.single_use(f'{argname} as dictionary', '0.56.0', self.subproject, location=self.current_node)
         else:
             varlist = mesonlib.stringlistify(variables)
             if list_new:
-                FeatureNew.single_use(f'{argname} as list of strings', '0.56.0', self.subproject)
+                FeatureNew.single_use(f'{argname} as list of strings', '0.56.0', self.subproject, location=self.current_node)
             variables = collections.OrderedDict()
             for v in varlist:
                 try:
@@ -668,7 +668,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                     kwargs: 'TYPE_kwargs') -> None:
         value, message = args
         if message is None:
-            FeatureNew.single_use('assert function without message argument', '0.53.0', self.subproject)
+            FeatureNew.single_use('assert function without message argument', '0.53.0', self.subproject, location=node)
 
         if not value:
             if message is None:
@@ -1018,7 +1018,7 @@ external dependencies (including libraries) must go to "dependencies".''')
     def func_configuration_data(self, node: mparser.BaseNode, args: T.Optional[dict], kwargs: 'TYPE_kwargs') -> ConfigurationDataObject:
         initial_values = args[0]
         if initial_values is not None:
-            FeatureNew.single_use('configuration_data dictionary', '0.49.0', self.subproject)
+            FeatureNew.single_use('configuration_data dictionary', '0.49.0', self.subproject, location=node)
         else:
             initial_values = {}
         return ConfigurationDataObject(self.subproject, initial_values)
@@ -1105,7 +1105,7 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         version = kwargs['version']
         if isinstance(version, mesonlib.File):
-            FeatureNew.single_use('version from file', '0.57.0', self.subproject)
+            FeatureNew.single_use('version from file', '0.57.0', self.subproject, location=node)
             self.add_build_def_file(version)
             ifname = version.absolute_path(self.environment.source_dir,
                                            self.environment.build_dir)
@@ -1202,7 +1202,7 @@ external dependencies (including libraries) must go to "dependencies".''')
     @noKwargs
     def func_message(self, node, args, kwargs):
         if len(args) > 1:
-            FeatureNew.single_use('message with more than one argument', '0.54.0', self.subproject)
+            FeatureNew.single_use('message with more than one argument', '0.54.0', self.subproject, location=node)
         args_str = [stringifyUserArguments(i) for i in args]
         self.message_impl(args_str)
 
@@ -1278,7 +1278,7 @@ external dependencies (including libraries) must go to "dependencies".''')
     @noKwargs
     def func_warning(self, node, args, kwargs):
         if len(args) > 1:
-            FeatureNew.single_use('warning with more than one argument', '0.54.0', self.subproject)
+            FeatureNew.single_use('warning with more than one argument', '0.54.0', self.subproject, location=node)
         args_str = [stringifyUserArguments(i) for i in args]
         mlog.warning(*args_str, location=node)
 
@@ -1286,7 +1286,7 @@ external dependencies (including libraries) must go to "dependencies".''')
     @noKwargs
     def func_error(self, node, args, kwargs):
         if len(args) > 1:
-            FeatureNew.single_use('error with more than one argument', '0.58.0', self.subproject)
+            FeatureNew.single_use('error with more than one argument', '0.58.0', self.subproject, location=node)
         args_str = [stringifyUserArguments(i) for i in args]
         raise InterpreterException('Problem encountered: ' + ' '.join(args_str))
 
@@ -1323,7 +1323,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         # compilers we don't add anything for cython here, and instead do it
         # When the first cython target using a particular language is used.
         if 'vala' in langs and 'c' not in langs:
-            FeatureNew.single_use('Adding Vala language without C', '0.59.0', self.subproject)
+            FeatureNew.single_use('Adding Vala language without C', '0.59.0', self.subproject, location=self.current_node)
             args.append('c')
 
         success = True
@@ -1660,7 +1660,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         if 'input' not in kwargs or 'output' not in kwargs:
             raise InterpreterException('Keyword arguments input and output must exist')
         if 'fallback' not in kwargs:
-            FeatureNew.single_use('Optional fallback in vcs_tag', '0.41.0', self.subproject)
+            FeatureNew.single_use('Optional fallback in vcs_tag', '0.41.0', self.subproject, location=node)
         fallback = kwargs.pop('fallback', self.project_version)
         if not isinstance(fallback, str):
             raise InterpreterException('Keyword argument fallback must be a string.')
@@ -1726,7 +1726,7 @@ external dependencies (including libraries) must go to "dependencies".''')
     def func_custom_target(self, node: mparser.FunctionNode, args: T.Tuple[str],
                            kwargs: 'kwargs.CustomTarget') -> build.CustomTarget:
         if kwargs['depfile'] and ('@BASENAME@' in kwargs['depfile'] or '@PLAINNAME@' in kwargs['depfile']):
-            FeatureNew.single_use('substitutions in custom_target depfile', '0.47.0', self.subproject)
+            FeatureNew.single_use('substitutions in custom_target depfile', '0.47.0', self.subproject, location=node)
 
         # Don't mutate the kwargs
         kwargs = kwargs.copy()
@@ -1875,7 +1875,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         env = self.unpack_env_kwarg(kwargs)
 
         if kwargs['timeout'] <= 0:
-            FeatureNew.single_use('test() timeout <= 0', '0.57.0', self.subproject)
+            FeatureNew.single_use('test() timeout <= 0', '0.57.0', self.subproject, location=node)
 
         prj = self.subproject if self.is_subproject() else self.build.project_name
 
@@ -2227,7 +2227,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         if 'configuration' in kwargs:
             conf = kwargs['configuration']
             if isinstance(conf, dict):
-                FeatureNew.single_use('configure_file.configuration dictionary', '0.49.0', self.subproject)
+                FeatureNew.single_use('configure_file.configuration dictionary', '0.49.0', self.subproject, location=node)
                 conf = ConfigurationDataObject(self.subproject, conf)
             elif not isinstance(conf, ConfigurationDataObject):
                 raise InterpreterException('Argument "configuration" is not of type configuration_data')
@@ -2258,7 +2258,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             conf.mark_used()
         elif 'command' in kwargs:
             if len(inputs) > 1:
-                FeatureNew.single_use('multiple inputs in configure_file()', '0.52.0', self.subproject)
+                FeatureNew.single_use('multiple inputs in configure_file()', '0.52.0', self.subproject, location=node)
             # We use absolute paths for input and output here because the cwd
             # that the command is run from is 'unspecified', so it could change.
             # Currently it's builddir/subdir for in_builddir else srcdir/subdir.
@@ -2533,7 +2533,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                          kwargs: 'TYPE_kwargs') -> build.EnvironmentVariables:
         init = args[0]
         if init is not None:
-            FeatureNew.single_use('environment positional arguments', '0.52.0', self.subproject)
+            FeatureNew.single_use('environment positional arguments', '0.52.0', self.subproject, location=node)
             msg = ENV_KW.validator(init)
             if msg:
                 raise InvalidArguments(f'"environment": {msg}')
