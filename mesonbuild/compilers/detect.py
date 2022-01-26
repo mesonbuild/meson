@@ -466,7 +466,7 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
                 exe_wrap, linker=linker, full_version=full_version)
 
         if 'Arm C/C++/Fortran Compiler' in out:
-            arm_ver_match = re.search('version (\d+)\.(\d+) \(build number (\d+)\)', out)
+            arm_ver_match = re.search(r'version (\d+)\.(\d+) \(build number (\d+)\)', out)
             arm_ver_major = arm_ver_match.group(1)
             arm_ver_minor = arm_ver_match.group(2)
             arm_ver_build = arm_ver_match.group(3)
@@ -730,7 +730,7 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
 
             if 'Arm C/C++/Fortran Compiler' in out:
                 cls = ArmLtdFlangFortranCompiler
-                arm_ver_match = re.search('version (\d+)\.(\d+) \(build number (\d+)\)', out)
+                arm_ver_match = re.search(r'version (\d+)\.(\d+) \(build number (\d+)\)', out)
                 arm_ver_major = arm_ver_match.group(1)
                 arm_ver_minor = arm_ver_match.group(2)
                 arm_ver_build = arm_ver_match.group(3)
