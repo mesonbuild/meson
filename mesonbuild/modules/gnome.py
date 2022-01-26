@@ -360,7 +360,7 @@ class GnomeModule(ExtensionModule):
                 rv.append(script)
         if kwargs['gtk_update_icon_cache'] and not self.install_gtk_update_icon_cache:
             self.install_gtk_update_icon_cache = True
-            prog = self._get_native_binary(state, 'gtk4-update-icon-cache', 'gtk-4.0', 'gtk4_update_icon_cache', required=False)
+            prog = self._get_native_binary(state, 'gtk4-update-icon-cache', 'gtk4', 'gtk4_update_icon_cache', required=False)
             found = isinstance(prog, build.Executable) or prog.found()
             if not found:
                 prog = self._get_native_binary(state, 'gtk-update-icon-cache', 'gtk+-3.0', 'gtk_update_icon_cache')
