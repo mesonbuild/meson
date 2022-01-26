@@ -27,7 +27,7 @@ from .pkgconfig import PkgConfigDependency
 from .factory import DependencyFactory
 from .detect import find_external_dependency, get_dep_identifier, packages, _packages_accept_language
 from .dev import (
-    ValgrindDependency, JDKSystemDependency, gmock_factory, gtest_factory,
+    ValgrindDependency, JNISystemDependency, JDKSystemDependency, gmock_factory, gtest_factory,
     llvm_factory, zlib_factory)
 from .coarrays import coarray_factory
 from .mpi import mpi_factory
@@ -229,6 +229,7 @@ packages.update({
     'llvm': llvm_factory,
     'valgrind': ValgrindDependency,
     'zlib': zlib_factory,
+    'jni': JNISystemDependency,
     'jdk': JDKSystemDependency,
 
     'boost': BoostDependency,
