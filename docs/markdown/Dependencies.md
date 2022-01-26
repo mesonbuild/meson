@@ -472,6 +472,20 @@ instead.
 
 `method` may be `auto`, `builtin` or `system`.
 
+## JDK
+
+*(added 0.58.0)*
+
+Provides access to compiling with the Java Native Interface (JNI). Lookup is
+entirely dependent on the `target_machine` Java compiler. In a
+cross-compilation, remember to override the Java compiler in order to add the
+correct flags. The `version` keyword is compared against the version of the
+Java compiler. No other `dependency()` keywords are respected.
+
+```meson
+dep = dependency('jdk', version: '>= 1.8.0')
+```
+
 ## libgcrypt
 
 *(added 0.49.0)*
