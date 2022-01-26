@@ -3,7 +3,6 @@
 
 import re
 import os
-from pathlib import PurePath
 
 import typing as T
 

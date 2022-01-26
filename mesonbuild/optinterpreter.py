@@ -21,7 +21,7 @@ from . import mparser
 from . import mlog
 from .interpreterbase import FeatureNew, typed_pos_args, typed_kwargs, ContainerTypeInfo, KwargInfo, permittedKwargs
 if T.TYPE_CHECKING:
-    from .interpreterbase import TV_func, TYPE_var, TYPE_kwargs
+    from .interpreterbase import TYPE_var, TYPE_kwargs
     from typing_extensions import TypedDict
     FuncOptionArgs = TypedDict('FuncOptionArgs', {
         'type': str,
