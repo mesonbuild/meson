@@ -486,16 +486,30 @@ instead.
 ## JDK
 
 *(added 0.58.0)*
+*(deprecated 0.62.0)*
 
-Provides access to compiling with the Java Native Interface (JNI). Lookup is
-entirely dependent on the `target_machine` Java compiler. In a
-cross-compilation, remember to override the Java compiler in order to add the
-correct flags. The `version` keyword is compared against the version of the
-Java compiler. No other `dependency()` keywords are respected.
+Deprecated name for JNI. `dependency('jdk')` instead of `dependency('jni')`.
+
+## JNI
+
+*(added 0.62.0)*
+
+Provides access to compiling with the Java Native Interface (JNI). The lookup
+will first check if `JAVA_HOME` is set in the environment, and if not will use
+the resolved path of `javac`. Systems will usually link your preferred JDK to
+well known paths like `/usr/bin/javac` on Linux for instance. Using the path
+from `JAVA_HOME` or the resolved `javac`, this dependency will place the JDK
+installation's `include` directory and its platform-dependent subdirectory on
+the compiler's include path.
 
 ```meson
-dep = dependency('jdk', version: '>= 1.8.0')
+dep = dependency('jni', version: '>= 1.8.0')
 ```
+
+**Note**: Due to usage of a resolved path, upgrading the JDK may cause the
+various headers to not be found. In that case, please reconfigure the build
+directory. One workaround is to explicitly set `JAVA_HOME` instead of relying on
+the fallback `javac` resolved path behavior.
 
 ## libgcrypt
 

@@ -22,6 +22,8 @@ import pathlib
 import shutil
 import typing as T
 
+from mesonbuild.interpreterbase.decorators import FeatureDeprecated
+
 from .. import mesonlib, mlog
 from ..compilers import AppleClangCCompiler, AppleClangCPPCompiler, detect_compiler_for
 from ..environment import get_llvm_tool_names
@@ -497,10 +499,11 @@ class ZlibSystemDependency(SystemDependency):
         self.version = v.strip('"')
 
 
-class JDKSystemDependency(SystemDependency):
+class JNISystemDependency(SystemDependency):
     def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
-        super().__init__('jdk', environment, kwargs)
-        self.feature_since = ('0.59.0', '')
+        super().__init__('jni', environment, kwargs)
+
+        self.feature_since = ('0.62.0', '')
 
         m = self.env.machines[self.for_machine]
 
@@ -547,6 +550,18 @@ class JDKSystemDependency(SystemDependency):
             return 'solaris'
 
         return None
+
+
+class JDKSystemDependency(JNISystemDependency):
+    def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
+        super().__init__(environment, kwargs)
+
+        self.feature_since = ('0.59.0', '')
+        self.featurechecks.append(FeatureDeprecated(
+            'jdk system dependency',
+            '0.62.0',
+            'Use the jni system dependency instead'
+        ))
 
 
 llvm_factory = DependencyFactory(
