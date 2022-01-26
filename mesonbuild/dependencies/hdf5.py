@@ -164,7 +164,7 @@ def hdf5_factory(env: 'Environment', for_machine: 'MachineChoice',
         if PCEXE:
             # some distros put hdf5-1.2.3.pc with version number in .pc filename.
             ret = subprocess.run([PCEXE, '--list-all'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                                    text=True)
+                                 text=True)
             if ret.returncode == 0:
                 for pkg in ret.stdout.split('\n'):
                     if pkg.startswith('hdf5'):

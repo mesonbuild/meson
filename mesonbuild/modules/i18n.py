@@ -199,7 +199,7 @@ class I18nModule(ExtensionModule):
         }
 
         ct = build.CustomTarget('', state.subdir, state.subproject,
-                T.cast(T.Dict[str, T.Any], real_kwargs))
+                                T.cast(T.Dict[str, T.Any], real_kwargs))
 
         return ModuleReturnValue(ct, [ct])
 
@@ -343,7 +343,7 @@ class I18nModule(ExtensionModule):
         }
 
         ct = build.CustomTarget('', state.subdir, state.subproject,
-                T.cast(T.Dict[str, T.Any], real_kwargs))
+                                T.cast(T.Dict[str, T.Any], real_kwargs))
 
         return ModuleReturnValue(ct, [ct])
 

@@ -381,9 +381,9 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
                     return os.path.normcase(os.path.abspath(p))
 
                 watcom_cls = [sanitize(os.path.join(os.environ['WATCOM'], 'BINNT', 'cl')),
-                                sanitize(os.path.join(os.environ['WATCOM'], 'BINNT', 'cl.exe')),
-                                sanitize(os.path.join(os.environ['WATCOM'], 'BINNT64', 'cl')),
-                                sanitize(os.path.join(os.environ['WATCOM'], 'BINNT64', 'cl.exe')),]
+                              sanitize(os.path.join(os.environ['WATCOM'], 'BINNT', 'cl.exe')),
+                              sanitize(os.path.join(os.environ['WATCOM'], 'BINNT64', 'cl')),
+                              sanitize(os.path.join(os.environ['WATCOM'], 'BINNT64', 'cl.exe')),]
                 found_cl = sanitize(shutil.which('cl'))
                 if found_cl in watcom_cls:
                     mlog.debug('Skipping unsupported cl.exe clone at:', found_cl)
@@ -779,7 +779,7 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
                 cls = PGIFortranCompiler
                 env.coredata.add_lang_args(cls.language, cls, for_machine, env)
                 linker = PGIDynamicLinker(compiler, for_machine,
-                                            cls.LINKER_PREFIX, [], version=version)
+                                          cls.LINKER_PREFIX, [], version=version)
                 return cls(
                     compiler, version, for_machine, is_cross, info, exe_wrap,
                     full_version=full_version, linker=linker)
@@ -788,21 +788,21 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
                 cls = NvidiaHPC_FortranCompiler
                 env.coredata.add_lang_args(cls.language, cls, for_machine, env)
                 linker = PGIDynamicLinker(compiler, for_machine,
-                                            cls.LINKER_PREFIX, [], version=version)
+                                          cls.LINKER_PREFIX, [], version=version)
                 return cls(
                     compiler, version, for_machine, is_cross, info, exe_wrap,
                     full_version=full_version, linker=linker)
 
             if 'flang' in out or 'clang' in out:
                 linker = guess_nix_linker(env,
-                    compiler, FlangFortranCompiler, for_machine)
+                                          compiler, FlangFortranCompiler, for_machine)
                 return FlangFortranCompiler(
                     compiler, version, for_machine, is_cross, info,
                     exe_wrap, full_version=full_version, linker=linker)
 
             if 'Open64 Compiler Suite' in err:
                 linker = guess_nix_linker(env,
-                    compiler, Open64FortranCompiler, for_machine)
+                                          compiler, Open64FortranCompiler, for_machine)
                 return Open64FortranCompiler(
                     compiler, version, for_machine, is_cross, info,
                     exe_wrap, full_version=full_version, linker=linker)
@@ -1036,14 +1036,14 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
                 # TODO rewrite this without type: ignore
                 if is_link_exe:
                     linker = type(cc.linker)(for_machine, always_args, exelist=cc.linker.exelist,   # type: ignore
-                                                version=cc.linker.version, **extra_args)            # type: ignore
+                                             version=cc.linker.version, **extra_args)               # type: ignore
                 else:
                     linker = type(cc.linker)(compiler, for_machine, cc.LINKER_PREFIX,
-                                                always_args=always_args, version=cc.linker.version,
-                                                **extra_args) # type: ignore
+                                             always_args=always_args, version=cc.linker.version,
+                                             **extra_args) # type: ignore
             elif 'link' in override[0]:
                 linker = guess_win_linker(env,
-                    override, cls, for_machine, use_linker_prefix=False)
+                                          override, cls, for_machine, use_linker_prefix=False)
                 # rustc takes linker arguments without a prefix, and
                 # inserts the correct prefix itself.
                 assert isinstance(linker, VisualStudioLikeLinkerMixin)
@@ -1118,17 +1118,17 @@ def detect_d_compiler(env: 'Environment', for_machine: MachineChoice) -> Compile
                 if info.is_windows() or info.is_cygwin():
                     objfile = os.path.basename(f)[:-1] + 'obj'
                     linker = guess_win_linker(env,
-                        exelist,
-                        LLVMDCompiler, for_machine,
-                        use_linker_prefix=True, invoked_directly=False,
-                        extra_args=[f])
+                                              exelist,
+                                              LLVMDCompiler, for_machine,
+                                              use_linker_prefix=True, invoked_directly=False,
+                                              extra_args=[f])
                 else:
                     # LDC writes an object file to the current working directory.
                     # Clean it up.
                     objfile = os.path.basename(f)[:-1] + 'o'
                     linker = guess_nix_linker(env,
-                        exelist, LLVMDCompiler, for_machine,
-                        extra_args=[f])
+                                              exelist, LLVMDCompiler, for_machine,
+                                              extra_args=[f])
             finally:
                 windows_proof_rm(f)
                 windows_proof_rm(objfile)
@@ -1157,13 +1157,13 @@ def detect_d_compiler(env: 'Environment', for_machine: MachineChoice) -> Compile
                 if info.is_windows() or info.is_cygwin():
                     objfile = os.path.basename(f)[:-1] + 'obj'
                     linker = guess_win_linker(env,
-                        exelist, DmdDCompiler, for_machine,
-                        invoked_directly=False, extra_args=[f, arch_arg])
+                                              exelist, DmdDCompiler, for_machine,
+                                              invoked_directly=False, extra_args=[f, arch_arg])
                 else:
                     objfile = os.path.basename(f)[:-1] + 'o'
                     linker = guess_nix_linker(env,
-                        exelist, DmdDCompiler, for_machine,
-                        extra_args=[f, arch_arg])
+                                              exelist, DmdDCompiler, for_machine,
+                                              extra_args=[f, arch_arg])
             finally:
                 windows_proof_rm(f)
                 windows_proof_rm(objfile)
@@ -1193,8 +1193,8 @@ def detect_swift_compiler(env: 'Environment', for_machine: MachineChoice) -> Com
         # As for 5.0.1 swiftc *requires* a file to check the linker:
         with tempfile.NamedTemporaryFile(suffix='.swift') as f:
             linker = guess_nix_linker(env,
-                exelist, SwiftCompiler, for_machine,
-                extra_args=[f.name])
+                                      exelist, SwiftCompiler, for_machine,
+                                      extra_args=[f.name])
         return SwiftCompiler(
             exelist, version, for_machine, is_cross, info, linker=linker)
 

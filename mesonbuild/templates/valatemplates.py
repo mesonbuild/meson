@@ -93,9 +93,9 @@ class ValaProject(SampleImpl):
         open(source_name, 'w', encoding='utf-8').write(hello_vala_template.format(project_name=self.name))
         open('meson.build', 'w', encoding='utf-8').write(
             hello_vala_meson_template.format(project_name=self.name,
-                                            exe_name=lowercase_token,
-                                            source_name=source_name,
-                                            version=self.version))
+                                             exe_name=lowercase_token,
+                                             source_name=source_name,
+                                             version=self.version))
 
     def create_library(self) -> None:
         lowercase_token = re.sub(r'[^a-z0-9]', '_', self.name.lower())

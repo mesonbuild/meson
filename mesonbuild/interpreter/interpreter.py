@@ -701,14 +701,14 @@ external dependencies (including libraries) must go to "dependencies".''')
     )
     def func_run_command(self, node: mparser.BaseNode,
                          args: T.Tuple[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str],
-                                               T.List[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str]]],
+                                       T.List[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str]]],
                          kwargs: 'kwargs.RunCommand') -> RunProcess:
         return self.run_command_impl(node, args, kwargs)
 
     def run_command_impl(self,
                          node: mparser.BaseNode,
                          args: T.Tuple[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str],
-                                               T.List[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str]]],
+                                       T.List[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str]]],
                          kwargs: 'kwargs.RunCommand',
                          in_builddir: bool = False) -> RunProcess:
         cmd, cargs = args
@@ -2286,7 +2286,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             cmd, *args = mesonlib.listify(_cmd)
             res = self.run_command_impl(node, (cmd, args),
                                         {'capture': True, 'check': True, 'env': build.EnvironmentVariables()},
-                                         True)
+                                        True)
             if 'capture' in kwargs and kwargs['capture']:
                 dst_tmp = ofile_abs + '~'
                 file_encoding = kwargs.setdefault('encoding', 'utf-8')

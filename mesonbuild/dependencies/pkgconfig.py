@@ -296,7 +296,7 @@ class PkgConfigDependency(ExternalDependency):
                         continue
                     else:
                         mlog.warning('Library {!r} not found for dependency {!r}, may '
-                                    'not be successfully linked'.format(libfilename, self.name))
+                                     'not be successfully linked'.format(libfilename, self.name))
                     libs_notfound.append(lib)
                 else:
                     lib = foundname
