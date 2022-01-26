@@ -608,11 +608,11 @@ class Interpreter(InterpreterBase, HoldableObject):
         variables = kwargs.get(argname, {})
         if isinstance(variables, dict):
             if dict_new and variables:
-                FeatureNew.single_use('variables as dictionary', '0.56.0', self.subproject)
+                FeatureNew.single_use(f'{argname} as dictionary', '0.56.0', self.subproject)
         else:
             varlist = mesonlib.stringlistify(variables)
             if list_new:
-                FeatureNew.single_use('variables as list of strings', '0.56.0', self.subproject)
+                FeatureNew.single_use(f'{argname} as list of strings', '0.56.0', self.subproject)
             variables = collections.OrderedDict()
             for v in varlist:
                 try:
