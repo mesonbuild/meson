@@ -222,9 +222,9 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return self.compiler.exelist
 
     def _determine_args(self, nobuiltins: bool,
-                       incdirs: T.List[build.IncludeDirs],
-                       extra_args: T.List[str],
-                       mode: CompileCheckMode = CompileCheckMode.LINK) -> T.List[str]:
+                        incdirs: T.List[build.IncludeDirs],
+                        extra_args: T.List[str],
+                        mode: CompileCheckMode = CompileCheckMode.LINK) -> T.List[str]:
         args: T.List[str] = []
         for i in incdirs:
             for idir in i.to_string_list(self.environment.get_source_dir()):
