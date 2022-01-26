@@ -14,15 +14,15 @@
 
 # This file contains the base representation for import('modname')
 
-import os
 import typing as T
 
 from .. import build, mesonlib
-from ..mesonlib import relpath, HoldableObject, MachineChoice, OptionKey
+from ..mesonlib import relpath, HoldableObject, MachineChoice
 from ..interpreterbase.decorators import noKwargs, noPosargs
 
 if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
+    from ..interpreter.interpreterobjects import MachineHolder
     from ..interpreterbase import TYPE_var, TYPE_kwargs
     from ..programs import ExternalProgram
     from ..wrap import WrapMode
