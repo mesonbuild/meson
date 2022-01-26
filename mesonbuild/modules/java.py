@@ -15,9 +15,10 @@
 import os
 import pathlib
 import typing as T
+from mesonbuild import mesonlib
 from mesonbuild.build import CustomTarget
 from mesonbuild.compilers import detect_compiler_for
-from mesonbuild.interpreterbase.decorators import FeatureNew, KwargInfo, typed_pos_args, typed_kwargs
+from mesonbuild.interpreterbase.decorators import ContainerTypeInfo, FeatureDeprecated, FeatureNew, KwargInfo, typed_pos_args, typed_kwargs
 from mesonbuild.interpreter.interpreterobjects import FileHolder
 from mesonbuild.mesonlib import version_compare, MachineChoice
 from . import ExtensionModule, ModuleReturnValue, ModuleState
@@ -29,18 +30,18 @@ class JavaModule(ExtensionModule):
         super().__init__(interpreter)
         self.methods.update({
             'generate_native_header': self.generate_native_header,
+            'generate_native_headers': self.generate_native_headers,
         })
 
         if 'java' not in interpreter.environment.coredata.compilers[MachineChoice.BUILD]:
             detect_compiler_for(interpreter.environment, 'java', MachineChoice.BUILD)
         self.javac = interpreter.environment.coredata.compilers[MachineChoice.BUILD]['java']
 
+    @FeatureDeprecated('java.generate_native_header', '0.62.0', 'Use java.generate_native_headers instead')
     @typed_pos_args('generate_native_header', (str, FileHolder))
     @typed_kwargs('java.generate_native_header', KwargInfo('package', str, default=None))
     def generate_native_header(self, state: ModuleState, args: T.Tuple[T.Union[str, FileHolder]],
                                kwargs: T.Dict[str, T.Optional[str]]) -> ModuleReturnValue:
-        assert state.backend
-
         package = kwargs.get('package')
 
         file = self.interpreter.source_strings_to_files(
@@ -67,6 +68,46 @@ class JavaModule(ExtensionModule):
             [header],
             backend=state.backend,
         )
+        # It is only known that 1.8.0 won't pre-create the directory. 11 and 16
+        # do not exhibit this behavior.
+        if version_compare(self.javac.version, '1.8.0'):
+            pathlib.Path(state.backend.get_target_private_dir_abs(target)).mkdir(parents=True, exist_ok=True)
+
+        return ModuleReturnValue(target, [target])
+
+    @FeatureNew('java.generate_native_headers', '0.62.0')
+    @typed_pos_args('generate_native_headers', (str, mesonlib.File), min_varargs=1)
+    @typed_kwargs('java.generate_native_headers',
+        KwargInfo('classes', (ContainerTypeInfo(list, str)), default=[], listify=True,
+            required=True),
+        KwargInfo('package', str, default=None))
+    def generate_native_headers(self, state: ModuleState, args: T.List[mesonlib.FileOrString],
+                               kwargs: T.Dict[str, T.Optional[str]]) -> ModuleReturnValue:
+        classes = T.cast(T.List[str], kwargs.get('classes'))
+        package = kwargs.get('package')
+
+        headers: T.List[str] = []
+        for clazz in classes:
+            underscore_clazz = clazz.replace(".", "_")
+            if package:
+                headers.append(f'{package.replace(".", "_")}_{underscore_clazz}.h')
+            else:
+                headers.append(f'{underscore_clazz}.h')
+
+        command = mesonlib.listify([
+            self.javac.exelist,
+            '-d',
+            '@PRIVATE_DIR@',
+            '-h',
+            state.subdir,
+            '@INPUT@',
+        ])
+
+        prefix = classes[0] if not package else package
+
+        target = CustomTarget(f'{prefix}-native-headers', state.subdir, state.subproject, command,
+                              sources=list(args), outputs=headers, backend=state.backend)
+
         # It is only known that 1.8.0 won't pre-create the directory. 11 and 16
         # do not exhibit this behavior.
         if version_compare(self.javac.version, '1.8.0'):
