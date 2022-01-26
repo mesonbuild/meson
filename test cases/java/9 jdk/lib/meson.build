@@ -3,7 +3,7 @@ sources = [
     'native.c',
     'com_mesonbuild_JdkTest.c',
   ),
-  native_header
+  native_headers
 ]
 
 jdkjava = shared_module(

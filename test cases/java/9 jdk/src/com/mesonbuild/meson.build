@@ -1,2 +1,3 @@
-native_header = javamod.generate_native_header('JdkTest.java', package: 'com.mesonbuild')
+native_headers = javamod.generate_native_headers(
+  'JdkTest.java', package: 'com.mesonbuild', classes: ['JdkTest'])
 native_header_includes = include_directories('.')
