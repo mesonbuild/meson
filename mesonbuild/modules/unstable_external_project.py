@@ -205,7 +205,7 @@ class ExternalProject(NewExtensionModule):
             output.flush()
         else:
             mlog.log(m)
-        p, *_ = Popen_safe(command, cwd=str(workdir), env=self.run_env,
+        p, *_ = Popen_safe(command, cwd=workdir, env=self.run_env,
                            stderr=subprocess.STDOUT,
                            stdout=output)
         if p.returncode != 0:

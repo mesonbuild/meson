@@ -185,14 +185,14 @@ class GitException(MesonException):
         self.output = output.strip() if output else ''
 
 GIT = shutil.which('git')
-def git(cmd: T.List[str], workingdir: str, check: bool = False, **kwargs: T.Any) -> T.Tuple[subprocess.Popen, str, str]:
+def git(cmd: T.List[str], workingdir: T.Union[str, bytes, os.PathLike], check: bool = False, **kwargs: T.Any) -> T.Tuple[subprocess.Popen, str, str]:
     cmd = [GIT] + cmd
     p, o, e = Popen_safe(cmd, cwd=workingdir, **kwargs)
     if check and p.returncode != 0:
         raise GitException('Git command failed: ' + str(cmd), e)
     return p, o, e
 
-def quiet_git(cmd: T.List[str], workingdir: str, check: bool = False) -> T.Tuple[bool, str]:
+def quiet_git(cmd: T.List[str], workingdir: T.Union[str, bytes, os.PathLike], check: bool = False) -> T.Tuple[bool, str]:
     if not GIT:
         m = 'Git program not found.'
         if check:
@@ -203,7 +203,7 @@ def quiet_git(cmd: T.List[str], workingdir: str, check: bool = False) -> T.Tuple
         return False, e
     return True, o
 
-def verbose_git(cmd: T.List[str], workingdir: str, check: bool = False) -> bool:
+def verbose_git(cmd: T.List[str], workingdir: T.Union[str, bytes, os.PathLike], check: bool = False) -> bool:
     if not GIT:
         m = 'Git program not found.'
         if check:
