@@ -53,6 +53,7 @@ known_cpu_families = (
     'microblaze',
     'mips',
     'mips64',
+    'msp430',
     'parisc',
     'pic24',
     'ppc',

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Representations specific to the Texas Instruments C2000 compiler family."""
+"""Representations specific to the Texas Instruments compiler family."""
 
 import os
 import typing as T
@@ -29,7 +29,7 @@ else:
     # do). This gives up DRYer type checking, with no runtime impact
     Compiler = object
 
-c2000_buildtype_args = {
+ti_buildtype_args = {
     'plain': [],
     'debug': [],
     'debugoptimized': [],
@@ -38,7 +38,7 @@ c2000_buildtype_args = {
     'custom': [],
 }  # type: T.Dict[str, T.List[str]]
 
-c2000_optimization_args = {
+ti_optimization_args = {
     '0': ['-O0'],
     'g': ['-Ooff'],
     '1': ['-O1'],
@@ -47,22 +47,22 @@ c2000_optimization_args = {
     's': ['-04']
 }  # type: T.Dict[str, T.List[str]]
 
-c2000_debug_args = {
+ti_debug_args = {
     False: [],
     True: ['-g']
 }  # type: T.Dict[bool, T.List[str]]
 
 
-class C2000Compiler(Compiler):
+class TICompiler(Compiler):
 
-    id = 'c2000'
+    id = 'ti'
 
     def __init__(self) -> None:
         if not self.is_cross:
-            raise EnvironmentException('c2000 supports only cross-compilation.')
+            raise EnvironmentException('TI compilers only support cross-compilation.')
 
         self.can_compile_suffixes.add('asm')    # Assembly
-        self.can_compile_suffixes.add('cla')    # Control Law Accelerator (CLA)
+        self.can_compile_suffixes.add('cla')    # Control Law Accelerator (CLA) used in C2000
 
         default_warn_args = []  # type: T.List[str]
         self.warn_args = {'0': [],
@@ -71,12 +71,12 @@ class C2000Compiler(Compiler):
                           '3': default_warn_args + []}  # type: T.Dict[str, T.List[str]]
 
     def get_pic_args(self) -> T.List[str]:
-        # PIC support is not enabled by default for c2000,
+        # PIC support is not enabled by default for TI compilers,
         # if users want to use it, they need to add the required arguments explicitly
         return []
 
     def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        return c2000_buildtype_args[buildtype]
+        return ti_buildtype_args[buildtype]
 
     def get_pch_suffix(self) -> str:
         return 'pch'
@@ -97,10 +97,27 @@ class C2000Compiler(Compiler):
         return []
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
-        return c2000_optimization_args[optimization_level]
+        return ti_optimization_args[optimization_level]
 
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
-        return c2000_debug_args[is_debug]
+        return ti_debug_args[is_debug]
+
+    def get_compile_only_args(self) -> T.List[str]:
+        return []
+
+    def get_no_optimization_args(self) -> T.List[str]:
+        return ['-Ooff']
+
+    def get_output_args(self, target: str) -> T.List[str]:
+        return [f'--output_file={target}']
+
+    def get_werror_args(self) -> T.List[str]:
+        return ['--emit_warnings_as_errors']
+
+    def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
+        if path == '':
+            path = '.'
+        return ['-I=' + path]
 
     @classmethod
     def unix_args_to_native(cls, args: T.List[str]) -> T.List[str]:
@@ -108,8 +125,6 @@ class C2000Compiler(Compiler):
         for i in args:
             if i.startswith('-D'):
                 i = '--define=' + i[2:]
-            if i.startswith('-I'):
-                i = '--include_path=' + i[2:]
             if i.startswith('-Wl,-rpath='):
                 continue
             elif i == '--print-search-dirs':
@@ -121,8 +136,8 @@ class C2000Compiler(Compiler):
 
     def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str], build_dir: str) -> T.List[str]:
         for idx, i in enumerate(parameter_list):
-            if i[:14] == '--include_path':
-                parameter_list[idx] = i[:14] + os.path.normpath(os.path.join(build_dir, i[14:]))
+            if i[:15] == '--include_path=':
+                parameter_list[idx] = i[:15] + os.path.normpath(os.path.join(build_dir, i[15:]))
             if i[:2] == '-I':
                 parameter_list[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
 

@@ -23,7 +23,7 @@ from .mixins.clike import CLikeCompiler
 from .mixins.ccrx import CcrxCompiler
 from .mixins.xc16 import Xc16Compiler
 from .mixins.compcert import CompCertCompiler
-from .mixins.c2000 import C2000Compiler
+from .mixins.ti import TICompiler
 from .mixins.arm import ArmCompiler, ArmclangCompiler
 from .mixins.visualstudio import MSVCCompiler, ClangClCompiler
 from .mixins.gnu import GnuCompiler
@@ -685,7 +685,7 @@ class CompCertCCompiler(CompCertCompiler, CCompiler):
             path = '.'
         return ['-I' + path]
 
-class C2000CCompiler(C2000Compiler, CCompiler):
+class TICCompiler(TICompiler, CCompiler):
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo',
                  exe_wrapper: T.Optional['ExternalProgram'] = None,
@@ -693,7 +693,7 @@ class C2000CCompiler(C2000Compiler, CCompiler):
                  full_version: T.Optional[str] = None):
         CCompiler.__init__(self, exelist, version, for_machine, is_cross,
                            info, exe_wrapper, linker=linker, full_version=full_version)
-        C2000Compiler.__init__(self)
+        TICompiler.__init__(self)
 
     # Override CCompiler.get_always_args
     def get_always_args(self) -> T.List[str]:
@@ -716,19 +716,6 @@ class C2000CCompiler(C2000Compiler, CCompiler):
             args.append('--' + std.value)
         return args
 
-    def get_compile_only_args(self) -> T.List[str]:
-        return []
-
-    def get_no_optimization_args(self) -> T.List[str]:
-        return ['-Ooff']
-
-    def get_output_args(self, target: str) -> T.List[str]:
-        return [f'--output_file={target}']
-
-    def get_werror_args(self) -> T.List[str]:
-        return ['-change_message=error']
-
-    def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
-        if path == '':
-            path = '.'
-        return ['--include_path=' + path]
+class C2000CCompiler(TICCompiler):
+    # Required for backwards compat with projects created before ti-cgt support existed
+    id = 'c2000'
