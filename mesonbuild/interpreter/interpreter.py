@@ -1663,8 +1663,6 @@ external dependencies (including libraries) must go to "dependencies".''')
             raise InterpreterException('Unknown target_type.')
 
     @permittedKwargs({'input', 'output', 'fallback', 'command', 'replace_string'})
-    @FeatureDeprecatedKwargs('custom_target', '0.47.0', ['build_always'],
-                             'combine build_by_default and build_always_stale instead.')
     @noPosargs
     def func_vcs_tag(self, node, args, kwargs):
         if 'input' not in kwargs or 'output' not in kwargs:
