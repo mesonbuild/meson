@@ -285,6 +285,7 @@ CT_BUILD_BY_DEFAULT: KwargInfo[T.Optional[bool]] = KwargInfo('build_by_default',
 CT_BUILD_ALWAYS: KwargInfo[T.Optional[bool]] = KwargInfo(
     'build_always', (bool, NoneType),
      deprecated='0.47.0',
+     deprecated_message='combine build_by_default and build_always_stale instead.',
 )
 
 CT_BUILD_ALWAYS_STALE: KwargInfo[T.Optional[bool]] = KwargInfo(
