@@ -155,6 +155,11 @@ class CommandLineParser:
             if os.environ.get('MESON_FORCE_BACKTRACE'):
                 raise
             return 1
+        except PermissionError:
+            if os.environ.get('MESON_FORCE_BACKTRACE'):
+                raise
+            traceback.print_exc()
+            return 2
         except Exception as e:
             if os.environ.get('MESON_FORCE_BACKTRACE'):
                 raise
