@@ -372,12 +372,16 @@ class Resolver:
         # definitely cannot try to conveniently set up a submodule.
         if not GIT:
             return False
+        # Does the directory exist? Even uninitialised submodules checkout an
+        # empty directory to work in
+        if not os.path.isdir(self.dirname):
+            return False
         # Are we in a git repository?
-        ret, out = quiet_git(['rev-parse'], self.subdir_root)
+        ret, out = quiet_git(['rev-parse'], Path(self.dirname).parent)
         if not ret:
             return False
         # Is `dirname` a submodule?
-        ret, out = quiet_git(['submodule', 'status', self.dirname], self.subdir_root)
+        ret, out = quiet_git(['submodule', 'status', '.'], self.dirname)
         if not ret:
             return False
         # Submodule has not been added, add it
@@ -388,11 +392,12 @@ class Resolver:
             raise WrapException('git submodule has merge conflicts')
         # Submodule exists, but is deinitialized or wasn't initialized
         elif out.startswith('-'):
-            if verbose_git(['submodule', 'update', '--init', self.dirname], self.subdir_root):
+            if verbose_git(['submodule', 'update', '--init', '.'], self.dirname):
                 return True
             raise WrapException('git submodule failed to init')
         # Submodule looks fine, but maybe it wasn't populated properly. Do a checkout.
         elif out.startswith(' '):
+            verbose_git(['submodule', 'update', '.'], self.dirname)
             verbose_git(['checkout', '.'], self.dirname)
             # Even if checkout failed, try building it anyway and let the user
             # handle any problems manually.
