@@ -223,12 +223,13 @@ _MK_ENUMS_COMMON_KWS: T.List[KwargInfo] = [
 ]
 
 def annotations_validator(annotations: T.List[T.Union[str, T.List[str]]]) -> T.Optional[str]:
-
     """Validate gdbus-codegen annotations argument"""
 
     badlist = 'must be made up of 3 strings for ELEMENT, KEY, and VALUE'
 
-    if all(isinstance(annot, str) for annot in annotations):
+    if not annotations:
+        return None
+    elif all(isinstance(annot, str) for annot in annotations):
         if len(annotations) == 3:
             return None
         else:
