@@ -30,7 +30,7 @@ from .compilers import (
 from .c_function_attributes import CXX_FUNC_ATTRIBUTES, C_FUNC_ATTRIBUTES
 from .mixins.clike import CLikeCompiler
 from .mixins.ccrx import CcrxCompiler
-from .mixins.c2000 import C2000Compiler
+from .mixins.ti import TICompiler
 from .mixins.arm import ArmCompiler, ArmclangCompiler
 from .mixins.visualstudio import MSVCCompiler, ClangClCompiler
 from .mixins.gnu import GnuCompiler
@@ -839,14 +839,14 @@ class CcrxCPPCompiler(CcrxCompiler, CPPCompiler):
     def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
         return []
 
-class C2000CPPCompiler(C2000Compiler, CPPCompiler):
+class TICPPCompiler(TICompiler, CPPCompiler):
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
                  info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
         CPPCompiler.__init__(self, exelist, version, for_machine, is_cross,
                              info, exe_wrapper, linker=linker, full_version=full_version)
-        C2000Compiler.__init__(self)
+        TICompiler.__init__(self)
 
     def get_options(self) -> 'KeyedOptionDictType':
         opts = CPPCompiler.get_options(self)
@@ -862,13 +862,12 @@ class C2000CPPCompiler(C2000Compiler, CPPCompiler):
             args.append('--' + std.value)
         return args
 
-    def get_no_optimization_args(self) -> T.List[str]:
-        return ['-Ooff']
+    def get_always_args(self) -> T.List[str]:
+        return []
 
-    def get_output_args(self, target: str) -> T.List[str]:
-        return [f'--output_file={target}']
+    def get_option_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
+        return []
 
-    def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
-        if path == '':
-            path = '.'
-        return ['--include_path=' + path]
+class C2000CPPCompiler(TICPPCompiler):
+    # Required for backwards compat with projects created before ti-cgt support existed
+    id = 'c2000'

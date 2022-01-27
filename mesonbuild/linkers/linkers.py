@@ -288,11 +288,11 @@ class CompCertLinker(StaticLinker):
         return [f'-o{target}']
 
 
-class C2000Linker(StaticLinker):
+class TILinker(StaticLinker):
 
     def __init__(self, exelist: T.List[str]):
         super().__init__(exelist)
-        self.id = 'ar2000'
+        self.id = 'ti-ar'
 
     def can_linker_accept_rsp(self) -> bool:
         return False
@@ -302,6 +302,11 @@ class C2000Linker(StaticLinker):
 
     def get_linker_always_args(self) -> T.List[str]:
         return ['-r']
+
+
+class C2000Linker(TILinker):
+    # Required for backwards compat with projects created before ti-cgt support existed
+    id = 'ar2000'
 
 
 class AIXArLinker(ArLikeLinker):
@@ -971,15 +976,15 @@ class CompCertDynamicLinker(DynamicLinker):
                          install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
         return ([], set())
 
-class C2000DynamicLinker(DynamicLinker):
+class TIDynamicLinker(DynamicLinker):
 
-    """Linker for Texas Instruments C2000 compiler."""
+    """Linker for Texas Instruments compiler family."""
 
-    id = 'cl2000'
+    id = 'ti'
 
     def __init__(self, exelist: T.List[str], for_machine: mesonlib.MachineChoice,
                  *, version: str = 'unknown version'):
-        super().__init__(exelist or ['cl2000.exe'], for_machine, '', [],
+        super().__init__(exelist, for_machine, '', [],
                          version=version)
 
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
@@ -1000,13 +1005,18 @@ class C2000DynamicLinker(DynamicLinker):
         return ['-z', f'--output_file={outputname}']
 
     def get_search_args(self, dirname: str) -> 'T.NoReturn':
-        raise OSError('cl2000.exe does not have a search dir argument')
+        raise OSError('TI compilers do not have a search dir argument')
 
     def get_allow_undefined_args(self) -> T.List[str]:
         return []
 
     def get_always_args(self) -> T.List[str]:
         return []
+
+
+class C2000DynamicLinker(TIDynamicLinker):
+    # Required for backwards compat with projects created before ti-cgt support existed
+    id = 'cl2000'
 
 
 class ArmDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):

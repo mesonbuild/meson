@@ -9,7 +9,6 @@ These are return values of the `get_id` (Compiler family) and
 | -----     | ---------------                  | --------------- |
 | arm       | ARM compiler                     |                 |
 | armclang  | ARMCLANG compiler                |                 |
-| c2000     | Texas Instruments C2000 compiler |                 |
 | ccomp     | The CompCert formally-verified C compiler |        |
 | ccrx      | Renesas RX Family C/C++ compiler |                 |
 | clang     | The Clang compiler               | gcc             |
@@ -32,6 +31,8 @@ These are return values of the `get_id` (Compiler family) and
 | pgi       | Portland PGI C/C++/Fortran compilers |             |
 | rustc     | Rust compiler                    |                 |
 | sun       | Sun Fortran compiler             |                 |
+| c2000     | Texas Instruments C/C++ Compiler (C2000) |                 |
+| ti        | Texas Instruments C/C++ Compiler |                 |
 | valac     | Vala compiler                    |                 |
 | xc16      | Microchip XC16 C compiler        |                 |
 | cython    | The Cython compiler              |                 |
@@ -55,6 +56,7 @@ These are return values of the `get_linker_id` method in a compiler object.
 | rlink      | The Renesas linker, used with CCrx only     |
 | xc16-ar    | The Microchip linker, used with XC16 only   |
 | ar2000     | The Texas Instruments linker, used with C2000 only |
+| ti-ar      | The Texas Instruments linker |
 | armlink    | The ARM linker (arm and armclang compilers) |
 | pgi        | Portland/Nvidia PGI                         |
 | nvlink     | Nvidia Linker used with cuda                |
@@ -97,6 +99,7 @@ set in the cross file.
 | microblaze          | MicroBlaze processor     |
 | mips                | 32 bit MIPS processor    |
 | mips64              | 64 bit MIPS processor    |
+| msp430              | 16 bit MSP430 processor  |
 | parisc              | HP PA-RISC processor     |
 | pic24               | 16 bit Microchip PIC24   |
 | ppc                 | 32 bit PPC processors    |
