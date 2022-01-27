@@ -1707,8 +1707,8 @@ external dependencies (including libraries) must go to "dependencies".''')
     @typed_kwargs(
         'custom_target',
         COMMAND_KW,
-        CT_BUILD_ALWAYS.evolve(deprecated='0.47.0'),
-        CT_BUILD_ALWAYS_STALE.evolve(since='0.47.0'),
+        CT_BUILD_ALWAYS,
+        CT_BUILD_ALWAYS_STALE,
         CT_BUILD_BY_DEFAULT,
         CT_INPUT_KW,
         CT_INSTALL_DIR_KW,
