@@ -1785,10 +1785,8 @@ external dependencies (including libraries) must go to "dependencies".''')
             # string in the meantime.
             FeatureNew('custom_target() with no name argument', '0.60.0', location=node).use(self.subproject)
             name = ''
-        kwargs['install_mode'] = self._get_kwarg_install_mode(kwargs)
         if 'input' in kwargs:
             kwargs['input'] = self.source_strings_to_files(extract_as_list(kwargs, 'input'), strict=False)
-        kwargs['env'] = self.unpack_env_kwarg(kwargs)
         if 'command' in kwargs and isinstance(kwargs['command'], list) and kwargs['command']:
             if isinstance(kwargs['command'][0], str):
                 kwargs['command'][0] = self.find_program_impl([kwargs['command'][0]])
