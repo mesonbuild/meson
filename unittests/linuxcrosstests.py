@@ -44,7 +44,7 @@ class LinuxCrossArmTests(BaseLinuxCrossTests):
 
     def setUp(self):
         super().setUp()
-        self.meson_cross_file = os.path.join(self.src_root, 'cross', 'ubuntu-armhf.txt')
+        self.meson_cross_files = [os.path.join(self.src_root, 'cross', 'ubuntu-armhf.txt')]
 
     def test_cflags_cross_environment_pollution(self):
         '''
@@ -66,7 +66,7 @@ class LinuxCrossArmTests(BaseLinuxCrossTests):
         https://github.com/mesonbuild/meson/issues/3089
         '''
         testdir = os.path.join(self.unit_test_dir, '33 cross file overrides always args')
-        self.meson_cross_file = os.path.join(testdir, 'ubuntu-armhf-overrides.txt')
+        self.meson_cross_files = [os.path.join(testdir, 'ubuntu-armhf-overrides.txt')]
         self.init(testdir)
         compdb = self.get_compdb()
         self.assertRegex(compdb[0]['command'], '-D_FILE_OFFSET_BITS=64.*-U_FILE_OFFSET_BITS')
@@ -137,7 +137,7 @@ class LinuxCrossMingwTests(BaseLinuxCrossTests):
 
     def setUp(self):
         super().setUp()
-        self.meson_cross_file = os.path.join(self.src_root, 'cross', 'linux-mingw-w64-64bit.txt')
+        self.meson_cross_files = [os.path.join(self.src_root, 'cross', 'linux-mingw-w64-64bit.txt')]
 
     def test_exe_wrapper_behaviour(self):
         '''
@@ -154,7 +154,7 @@ class LinuxCrossMingwTests(BaseLinuxCrossTests):
         self.wipe()
         os.mkdir(self.builddir)
         # Change cross file to use a non-existing exe_wrapper and it should fail
-        self.meson_cross_file = os.path.join(testdir, 'broken-cross.txt')
+        self.meson_cross_files = [os.path.join(testdir, 'broken-cross.txt')]
         # Force tracebacks so we can detect them properly
         env = {'MESON_FORCE_BACKTRACE': '1'}
         error_message = "An exe_wrapper is needed but was not found. Please define one in cross file and check the command and/or add it to PATH."
