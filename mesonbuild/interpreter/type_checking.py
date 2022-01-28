@@ -292,6 +292,8 @@ CT_INSTALL_TAG_KW: KwargInfo[T.List[T.Union[str, bool]]] = KwargInfo(
     convertor=lambda x: [y if isinstance(y, str) else None for y in x],
 )
 
+INSTALL_TAG_KW: KwargInfo[T.Optional[str]] = KwargInfo('install_tag', (str, NoneType))
+
 INSTALL_KW = KwargInfo('install', bool, default=False)
 
 CT_INSTALL_DIR_KW: KwargInfo[T.List[T.Union[str, bool]]] = KwargInfo(
