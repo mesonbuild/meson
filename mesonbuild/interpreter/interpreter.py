@@ -68,6 +68,7 @@ from .type_checking import (
     INSTALL_KW,
     INSTALL_MODE_KW,
     CT_INSTALL_TAG_KW,
+    INSTALL_TAG_KW,
     LANGUAGE_KW,
     NATIVE_KW, OVERRIDE_OPTIONS_KW,
     REQUIRED_KW,
@@ -2056,7 +2057,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         'install_symlink',
         KwargInfo('pointing_to', str, required=True),
         KwargInfo('install_dir', str, required=True),
-        KwargInfo('install_tag', (str, NoneType)),
+        INSTALL_TAG_KW,
     )
     def func_install_symlink(self, node: mparser.BaseNode,
                              args: T.Tuple[T.List[str]],
@@ -2154,7 +2155,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         KwargInfo('sources', ContainerTypeInfo(list, (str, mesonlib.File)), listify=True, default=[]),
         KwargInfo('rename', ContainerTypeInfo(list, str), default=[], listify=True, since='0.46.0'),
         INSTALL_MODE_KW.evolve(since='0.38.0'),
-        KwargInfo('install_tag', (str, NoneType), since='0.60.0'),
+        INSTALL_TAG_KW.evolve(since='0.60.0'),
     )
     def func_install_data(self, node: mparser.BaseNode,
                           args: T.Tuple[T.List['mesonlib.FileOrString']],
@@ -2192,7 +2193,6 @@ external dependencies (including libraries) must go to "dependencies".''')
     @typed_kwargs(
         'install_subdir',
         KwargInfo('install_dir', str, required=True),
-        KwargInfo('install_tag', (str, NoneType), since='0.60.0'),
         KwargInfo('strip_directory', bool, default=False),
         KwargInfo('exclude_files', ContainerTypeInfo(list, str),
                   default=[], listify=True, since='0.42.0',
@@ -2201,6 +2201,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                   default=[], listify=True, since='0.42.0',
                   validator=lambda x: 'cannot be absolute' if any(os.path.isabs(d) for d in x) else None),
         INSTALL_MODE_KW.evolve(since='0.38.0'),
+        INSTALL_TAG_KW.evolve(since='0.60.0'),
     )
     def func_install_subdir(self, node: mparser.BaseNode, args: T.Tuple[str],
                             kwargs: 'kwargs.FuncInstallSubdir') -> build.InstallDir:
