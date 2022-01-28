@@ -1659,7 +1659,10 @@ class NinjaBackend(backends.Backend):
         self.generate_generator_list_rules(target)
 
         # dependencies need to cause a relink, they're not just for odering
-        deps = [os.path.join(t.subdir, t.get_filename()) for t in target.link_targets]
+        deps = [
+            os.path.join(t.subdir, t.get_filename())
+            for t in itertools.chain(target.link_targets, target.link_whole_targets)
+        ]
 
         orderdeps: T.List[str] = []
 
@@ -1710,7 +1713,7 @@ class NinjaBackend(backends.Backend):
         args += rustc.get_output_args(os.path.join(target.subdir, target.get_filename()))
         linkdirs = mesonlib.OrderedSet()
         external_deps = target.external_deps.copy()
-        for d in target.link_targets:
+        for d in itertools.chain(target.link_targets, target.link_whole_targets):
             linkdirs.add(d.subdir)
             if d.uses_rust():
                 # specify `extern CRATE_NAME=OUTPUT_FILE` for each Rust
