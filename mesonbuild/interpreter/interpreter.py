@@ -11,6 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
 from .. import mparser
 from .. import environment
 from .. import coredata
@@ -2218,67 +2219,67 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.build.install_dirs.append(idir)
         return idir
 
-    @FeatureNewKwargs('configure_file', '0.47.0', ['copy', 'output_format', 'install_mode', 'encoding'])
-    @FeatureNewKwargs('configure_file', '0.46.0', ['format'])
-    @FeatureNewKwargs('configure_file', '0.41.0', ['capture'])
-    @FeatureNewKwargs('configure_file', '0.50.0', ['install'])
-    @FeatureNewKwargs('configure_file', '0.52.0', ['depfile'])
-    @FeatureNewKwargs('configure_file', '0.60.0', ['install_tag'])
-    @permittedKwargs({'input', 'output', 'configuration', 'command', 'copy', 'depfile',
-                      'install_dir', 'install_mode', 'capture', 'install', 'format',
-                      'output_format', 'encoding', 'install_tag'})
     @noPosargs
-    def func_configure_file(self, node, args, kwargs):
-        if 'output' not in kwargs:
-            raise InterpreterException('Required keyword argument "output" not defined.')
-        actions = {'configuration', 'command', 'copy'}.intersection(kwargs.keys())
-        if len(actions) == 0:
+    @typed_kwargs(
+        'configure_file',
+        DEPFILE_KW.evolve(since='0.52.0'),
+        INSTALL_MODE_KW.evolve(since='0.47.0,'),
+        INSTALL_TAG_KW.evolve(since='0.60.0'),
+        KwargInfo('capture', bool, default=False, since='0.41.0'),
+        KwargInfo(
+            'command',
+            (ContainerTypeInfo(list, (build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str), allow_empty=False), NoneType),
+            listify=True,
+        ),
+        KwargInfo(
+            'configuration',
+            (ContainerTypeInfo(dict, (str, int, bool)), build.ConfigurationData, NoneType),
+        ),
+        KwargInfo('copy', bool, default=False, since='0.47.0'),
+        KwargInfo('encoding', str, default='utf-8', since='0.47.0'),
+        KwargInfo('format', str, default='meson', since='0.46.0',
+                  validator=in_set_validator({'meson', 'cmake', 'cmake@'})),
+        KwargInfo(
+            'input',
+            ContainerTypeInfo(list, (mesonlib.File, str)),
+            listify=True,
+            default=[],
+        ),
+        # Cannot use shared implementation until None backwards compat is dropped
+        KwargInfo('install', (bool, NoneType), since='0.50.0'),
+        KwargInfo('install_dir', (str, bool), default='',
+                  validator=lambda x: 'must be `false` if boolean' if x is True else None),
+        KwargInfo('output', str, required=True),
+        KwargInfo('output_format', str, default='c', since='0.47.0',
+                  validator=in_set_validator({'c', 'nasm'})),
+    )
+    def func_configure_file(self, node: mparser.BaseNode, args: T.List[TYPE_var],
+                            kwargs: kwargs.ConfigureFile):
+        actions = sorted(x for x in {'configuration', 'command', 'copy'}
+                         if kwargs[x] not in [None, False])
+        num_actions = len(actions)
+        if num_actions == 0:
             raise InterpreterException('Must specify an action with one of these '
                                        'keyword arguments: \'configuration\', '
                                        '\'command\', or \'copy\'.')
-        elif len(actions) == 2:
+        elif num_actions == 2:
             raise InterpreterException('Must not specify both {!r} and {!r} '
                                        'keyword arguments since they are '
                                        'mutually exclusive.'.format(*actions))
-        elif len(actions) == 3:
+        elif num_actions == 3:
             raise InterpreterException('Must specify one of {!r}, {!r}, and '
                                        '{!r} keyword arguments since they are '
                                        'mutually exclusive.'.format(*actions))
-        if 'capture' in kwargs:
-            if not isinstance(kwargs['capture'], bool):
-                raise InterpreterException('"capture" keyword must be a boolean.')
-            if 'command' not in kwargs:
-                raise InterpreterException('"capture" keyword requires "command" keyword.')
 
-        if 'format' in kwargs:
-            fmt = kwargs['format']
-            if not isinstance(fmt, str):
-                raise InterpreterException('"format" keyword must be a string.')
-        else:
-            fmt = 'meson'
+        if kwargs['capture'] and not kwargs['command']:
+            raise InvalidArguments('configure_file: "capture" keyword requires "command" keyword.')
 
-        if fmt not in ('meson', 'cmake', 'cmake@'):
-            raise InterpreterException('"format" possible values are "meson", "cmake" or "cmake@".')
-
-        if 'output_format' in kwargs:
-            output_format = kwargs['output_format']
-            if not isinstance(output_format, str):
-                raise InterpreterException('"output_format" keyword must be a string.')
-        else:
-            output_format = 'c'
-
-        if output_format not in ('c', 'nasm'):
-            raise InterpreterException('"format" possible values are "c" or "nasm".')
-
-        if 'depfile' in kwargs:
-            depfile = kwargs['depfile']
-            if not isinstance(depfile, str):
-                raise InterpreterException('depfile file name must be a string')
-        else:
-            depfile = None
+        fmt = kwargs['format']
+        output_format = kwargs['output_format']
+        depfile = kwargs['depfile']
 
         # Validate input
-        inputs = self.source_strings_to_files(extract_as_list(kwargs, 'input'))
+        inputs = self.source_strings_to_files(kwargs['input'])
         inputs_abs = []
         for f in inputs:
             if isinstance(f, mesonlib.File):
@@ -2287,10 +2288,9 @@ external dependencies (including libraries) must go to "dependencies".''')
                 self.add_build_def_file(f)
             else:
                 raise InterpreterException('Inputs can only be strings or file objects')
+
         # Validate output
         output = kwargs['output']
-        if not isinstance(output, str):
-            raise InterpreterException('Output file name must be a string')
         if inputs_abs:
             values = mesonlib.get_filenames_templates_dict(inputs_abs, None)
             outputs = mesonlib.substitute_values([output], values)
@@ -2309,8 +2309,9 @@ external dependencies (including libraries) must go to "dependencies".''')
             raise InterpreterException('Output file name must not contain a subdirectory.')
         (ofile_path, ofile_fname) = os.path.split(os.path.join(self.subdir, output))
         ofile_abs = os.path.join(self.environment.build_dir, ofile_path, ofile_fname)
+
         # Perform the appropriate action
-        if 'configuration' in kwargs:
+        if kwargs['configuration'] is not None:
             conf = kwargs['configuration']
             if isinstance(conf, dict):
                 FeatureNew.single_use('configure_file.configuration dictionary', '0.49.0', self.subproject, location=node)
@@ -2319,14 +2320,12 @@ external dependencies (including libraries) must go to "dependencies".''')
                         raise InvalidArguments(
                             f'"configuration_data": initial value dictionary key "{k!r}"" must be "str | int | bool", not "{v!r}"')
                 conf = build.ConfigurationData(conf)
-            elif not isinstance(conf, build.ConfigurationData):
-                raise InterpreterException('Argument "configuration" is not of type configuration_data')
             mlog.log('Configuring', mlog.bold(output), 'using configuration')
             if len(inputs) > 1:
                 raise InterpreterException('At most one input file can given in configuration mode')
             if inputs:
                 os.makedirs(os.path.join(self.environment.build_dir, self.subdir), exist_ok=True)
-                file_encoding = kwargs.setdefault('encoding', 'utf-8')
+                file_encoding = kwargs['encoding']
                 missing_variables, confdata_useless = \
                     mesonlib.do_conf_file(inputs_abs[0], ofile_abs, conf,
                                           fmt, file_encoding)
@@ -2346,7 +2345,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             else:
                 mesonlib.dump_conf_header(ofile_abs, conf, output_format)
             conf.used = True
-        elif 'command' in kwargs:
+        elif kwargs['command'] is not None:
             if len(inputs) > 1:
                 FeatureNew.single_use('multiple inputs in configure_file()', '0.52.0', self.subproject, location=node)
             # We use absolute paths for input and output here because the cwd
@@ -2359,13 +2358,13 @@ external dependencies (including libraries) must go to "dependencies".''')
             # Substitute @INPUT@, @OUTPUT@, etc here.
             _cmd = mesonlib.substitute_values(kwargs['command'], values)
             mlog.log('Configuring', mlog.bold(output), 'with command')
-            cmd, *args = mesonlib.listify(_cmd)
+            cmd, *args = _cmd
             res = self.run_command_impl(node, (cmd, args),
                                         {'capture': True, 'check': True, 'env': build.EnvironmentVariables()},
                                         True)
-            if 'capture' in kwargs and kwargs['capture']:
+            if kwargs['capture']:
                 dst_tmp = ofile_abs + '~'
-                file_encoding = kwargs.setdefault('encoding', 'utf-8')
+                file_encoding = kwargs['encoding']
                 with open(dst_tmp, 'w', encoding=file_encoding) as f:
                     f.writelines(res.stdout)
                 if inputs_abs:
@@ -2379,42 +2378,28 @@ external dependencies (including libraries) must go to "dependencies".''')
                     for dep in deps:
                         self.add_build_def_file(dep)
 
-        elif 'copy' in kwargs:
+        elif kwargs['copy']:
             if len(inputs_abs) != 1:
                 raise InterpreterException('Exactly one input file must be given in copy mode')
             os.makedirs(os.path.join(self.environment.build_dir, self.subdir), exist_ok=True)
             shutil.copy2(inputs_abs[0], ofile_abs)
-        else:
-            # Not reachable
-            raise AssertionError
+
         # Install file if requested, we check for the empty string
         # for backwards compatibility. That was the behaviour before
         # 0.45.0 so preserve it.
-        idir = kwargs.get('install_dir', '')
+        idir = kwargs['install_dir']
         if idir is False:
             idir = ''
             FeatureDeprecated.single_use('configure_file install_dir: false', '0.50.0',
                                          self.subproject, 'Use the `install:` kwarg instead', location=node)
-        if not isinstance(idir, str):
-            if isinstance(idir, list) and len(idir) == 0:
-                mlog.deprecation('install_dir: kwarg must be a string and not an empty array. '
-                                 'Please use the install: kwarg to enable or disable installation. '
-                                 'This will be a hard error in the next release.')
-            else:
-                raise InterpreterException('"install_dir" must be a string')
-        install = kwargs.get('install', idir != '')
-        if not isinstance(install, bool):
-            raise InterpreterException('"install" must be a boolean')
+        install = kwargs['install'] if kwargs['install'] is not None else idir != ''
         if install:
             if not idir:
-                raise InterpreterException('"install_dir" must be specified '
-                                           'when "install" in a configure_file '
-                                           'is true')
+                raise InterpreterException(
+                    '"install_dir" must be specified when "install" in a configure_file is true')
             cfile = mesonlib.File.from_built_file(ofile_path, ofile_fname)
-            install_mode = self._get_kwarg_install_mode(kwargs)
-            install_tag = kwargs.get('install_tag')
-            if install_tag is not None and not isinstance(install_tag, str):
-                raise InvalidArguments('install_tag keyword argument must be string')
+            install_mode = kwargs['install_mode']
+            install_tag = kwargs['install_tag']
             self.build.data.append(build.Data([cfile], idir, idir, install_mode, self.subproject,
                                               install_tag=install_tag, data_type='configure'))
         return mesonlib.File.from_built_file(self.subdir, output)
