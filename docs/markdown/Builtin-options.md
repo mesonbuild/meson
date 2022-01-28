@@ -267,6 +267,16 @@ Since 0.56.0 `warning_level` can also be defined per subproject.
 Some Meson modules have built-in options. They can be set by prefixing the option
 name with the module name: `-D<module>.<option>=<value>` (e.g. `-Dpython.platlibdir=/foo`).
 
+### Gnome module
+
+| Option           | Default value | Possible values          | Description |
+| ------           | ------------- | ------------------------ | ----------- |
+| gtkdoc           | enabled       | enabled, disabled, auto  | Whether to build the Gtk API html docs (Since 0.61.0) |
+
+*Since 0.61.0* `gnome.gtkdoc` is used by the gnome module method
+`gnome.gtkdoc()`. By default gtkdoc must be run, but can be disabled or made
+contingent on the required tools being found.
+
 ### Python module
 
 | Option           | Default value | Possible values | Description |
