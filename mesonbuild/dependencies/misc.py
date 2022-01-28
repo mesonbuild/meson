@@ -693,18 +693,21 @@ intl_factory = DependencyFactory(
 
 openssl_factory = DependencyFactory(
     'openssl',
-    [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM],
+    [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM, DependencyMethods.CMAKE],
     system_class=OpensslSystemDependency,
+    cmake_class=lambda name, env, kwargs: CMakeDependency('OpenSSL', env, dict(kwargs, modules=['OpenSSL::Crypto', 'OpenSSL::SSL'])),
 )
 
 libcrypto_factory = DependencyFactory(
     'libcrypto',
-    [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM],
+    [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM, DependencyMethods.CMAKE],
     system_class=OpensslSystemDependency,
+    cmake_class=lambda name, env, kwargs: CMakeDependency('OpenSSL', env, dict(kwargs, modules=['OpenSSL::Crypto'])),
 )
 
 libssl_factory = DependencyFactory(
     'libssl',
-    [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM],
+    [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM, DependencyMethods.CMAKE],
     system_class=OpensslSystemDependency,
+    cmake_class=lambda name, env, kwargs: CMakeDependency('OpenSSL', env, dict(kwargs, modules=['OpenSSL::SSL'])),
 )
