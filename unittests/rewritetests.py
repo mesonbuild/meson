@@ -15,9 +15,10 @@
 import subprocess
 import json
 import os
+import shutil
 import unittest
-from distutils.dir_util import copy_tree
 
+from mesonbuild.mesonlib import windows_proof_rmtree
 from .baseplatformtests import BasePlatformTests
 
 class RewriterTests(BasePlatformTests):
@@ -26,7 +27,9 @@ class RewriterTests(BasePlatformTests):
         self.maxDiff = None
 
     def prime(self, dirname):
-        copy_tree(os.path.join(self.rewrite_test_dir, dirname), self.builddir)
+        if os.path.exists(self.builddir):
+            windows_proof_rmtree(self.builddir)
+        shutil.copytree(os.path.join(self.rewrite_test_dir, dirname), self.builddir)
 
     def rewrite_raw(self, directory, args):
         if isinstance(args, str):
