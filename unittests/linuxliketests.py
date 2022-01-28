@@ -1030,7 +1030,7 @@ class LinuxlikeTests(BasePlatformTests):
             endian = 'little'
             '''))
         crossfile.flush()
-        self.meson_cross_file = crossfile.name
+        self.meson_cross_files = [crossfile.name]
         self.init(testdir)
 
     def test_reconfigure(self):
@@ -1501,21 +1501,28 @@ class LinuxlikeTests(BasePlatformTests):
     def test_identity_cross(self):
         testdir = os.path.join(self.unit_test_dir, '61 identity cross')
 
+        constantsfile = tempfile.NamedTemporaryFile(mode='w')
+        constantsfile.write(textwrap.dedent('''\
+            [constants]
+            py_ext = '.py'
+            '''))
+        constantsfile.flush()
+
         nativefile = tempfile.NamedTemporaryFile(mode='w')
         nativefile.write(textwrap.dedent('''\
             [binaries]
-            c = ['{}']
-            '''.format(os.path.join(testdir, 'build_wrapper.py'))))
+            c = ['{}' + py_ext]
+            '''.format(os.path.join(testdir, 'build_wrapper'))))
         nativefile.flush()
-        self.meson_native_file = nativefile.name
+        self.meson_native_files = [constantsfile.name, nativefile.name]
 
         crossfile = tempfile.NamedTemporaryFile(mode='w')
         crossfile.write(textwrap.dedent('''\
             [binaries]
-            c = ['{}']
-            '''.format(os.path.join(testdir, 'host_wrapper.py'))))
+            c = ['{}' + py_ext]
+            '''.format(os.path.join(testdir, 'host_wrapper'))))
         crossfile.flush()
-        self.meson_cross_file = crossfile.name
+        self.meson_cross_files = [constantsfile.name, crossfile.name]
 
         # TODO should someday be explicit about build platform only here
         self.init(testdir)
@@ -1531,7 +1538,7 @@ class LinuxlikeTests(BasePlatformTests):
             c = ['{}']
             '''.format(os.path.join(testdir, 'host_wrapper.py'))))
         crossfile.flush()
-        self.meson_cross_file = crossfile.name
+        self.meson_cross_files = [crossfile.name]
         # TODO should someday be explicit about build platform only here
         self.init(testdir, override_envvars=env)
 

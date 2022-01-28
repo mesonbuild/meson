@@ -56,8 +56,8 @@ class BasePlatformTests(TestCase):
         # Get the backend
         self.backend = getattr(Backend, os.environ['MESON_UNIT_TEST_BACKEND'])
         self.meson_args = ['--backend=' + self.backend.name]
-        self.meson_native_file = None
-        self.meson_cross_file = None
+        self.meson_native_files = []
+        self.meson_cross_files = []
         self.meson_command = python_command + [get_meson_script()]
         self.setup_command = self.meson_command + self.meson_args
         self.mconf_command = self.meson_command + ['configure']
@@ -192,10 +192,10 @@ class BasePlatformTests(TestCase):
             args += ['--prefix', self.prefix]
             if self.libdir:
                 args += ['--libdir', self.libdir]
-            if self.meson_native_file:
-                args += ['--native-file', self.meson_native_file]
-            if self.meson_cross_file:
-                args += ['--cross-file', self.meson_cross_file]
+            for f in self.meson_native_files:
+                args += ['--native-file', f]
+            for f in self.meson_cross_files:
+                args += ['--cross-file', f]
         self.privatedir = os.path.join(self.builddir, 'meson-private')
         if inprocess:
             try:
