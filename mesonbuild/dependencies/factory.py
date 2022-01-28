@@ -49,6 +49,10 @@ if T.TYPE_CHECKING:
         T.List[DependencyGenerator]
     ]
 
+    # This should be str, Environment, T.Dict[str, T.Any], T.Optional[str]
+    # But if you try that, you get error: Cannot infer type of lambda
+    CmakeDependencyFunc = T.Callable[..., CMakeDependency]
+
 class DependencyFactory:
 
     """Factory to get dependencies from multiple sources.
@@ -77,7 +81,7 @@ class DependencyFactory:
                  pkgconfig_name: T.Optional[str] = None,
                  pkgconfig_class: 'T.Type[PkgConfigDependency]' = PkgConfigDependency,
                  cmake_name: T.Optional[str] = None,
-                 cmake_class: 'T.Type[CMakeDependency]' = CMakeDependency,
+                 cmake_class: 'T.Union[T.Type[CMakeDependency], CmakeDependencyFunc]' = CMakeDependency,
                  configtool_class: 'T.Optional[T.Type[ConfigToolDependency]]' = None,
                  framework_name: T.Optional[str] = None,
                  framework_class: 'T.Type[ExtraFrameworkDependency]' = ExtraFrameworkDependency,
