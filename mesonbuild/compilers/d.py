@@ -105,6 +105,8 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
         return ['-of=' + outputname]
 
     def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
+        if path == "":
+            path = "."
         return ['-I=' + path]
 
     def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
