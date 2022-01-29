@@ -23,13 +23,15 @@ For legacy reasons `--warnlevel` is the cli argument for the
 They can also be edited after setup using `meson configure
 -Doption=value`.
 
-Installation options are all relative to the prefix, except:
+Installation options are usually relative to the prefix but it should
+not be relied on, since they can be absolute paths in the following cases:
 
 * When the prefix is `/usr`: `sysconfdir` defaults to `/etc`,
  `localstatedir` defaults to `/var`, and `sharedstatedir` defaults to
  `/var/lib`
 * When the prefix is `/usr/local`: `localstatedir` defaults
  to `/var/local`, and `sharedstatedir` defaults to `/var/local/lib`
+* When an absolute path outside of prefix is provided by the user/distributor.
 
 ### Directories
 

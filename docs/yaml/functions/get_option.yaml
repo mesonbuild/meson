@@ -5,16 +5,14 @@ description: |
   specified in the positional argument.
 
   Note that the value returned for built-in options that end in `dir`
-  such as `bindir` and `libdir` is always a path relative to (and
-  inside) the `prefix`.
-
-  The only exceptions are: `sysconfdir`, `localstatedir`, and
-  `sharedstatedir` which will return the value passed during
-  configuration as-is, which may be absolute, or relative to `prefix`.
-  [`install_dir` arguments](Installing.md) handles that as expected, but
-  if you need the absolute path to one of these e.g. to use in a define
-  etc., you should use `get_option('prefix') /
-  get_option('localstatedir')`
+  such as `bindir` and `libdir` is usually a path relative to (and
+  inside) the `prefix` but you should not rely on that, as it can also
+  be an absolute path [in some cases](Builtin-options.md#Universal options).
+  [`install_dir` arguments](Installing.md) handle that as expected
+  but if you need an absolute path, e.g. to use in a define etc.,
+  you should use the path concatenation operator like this:
+  `get_option('prefix') / get_option('localstatedir')`.
+  Never manually join paths as if they were strings.
 
   For options of type `feature` a
   [[@feature]] option object

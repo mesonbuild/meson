@@ -549,14 +549,13 @@ class CoreData:
 
     def sanitize_dir_option_value(self, prefix: str, option: OptionKey, value: T.Any) -> T.Any:
         '''
-        If the option is an installation directory option and the value is an
-        absolute path, check that it resides within prefix and return the value
-        as a path relative to the prefix.
+        If the option is an installation directory option, the value is an
+        absolute path and resides within prefix, return the value
+        as a path relative to the prefix. Otherwise, return it as is.
 
-        This way everyone can do f.ex, get_option('libdir') and be sure to get
-        the library directory relative to prefix.
-
-        .as_posix() keeps the posix-like file separators Meson uses.
+        This way everyone can do f.ex, get_option('libdir') and usually get
+        the library directory relative to prefix, even though it really
+        should not be relied upon.
         '''
         try:
             value = PurePath(value)
@@ -564,21 +563,20 @@ class CoreData:
             return value
         if option.name.endswith('dir') and value.is_absolute() and \
            option not in BULITIN_DIR_NOPREFIX_OPTIONS:
-            # Value must be a subdir of the prefix
-            # commonpath will always return a path in the native format, so we
-            # must use pathlib.PurePath to do the same conversion before
-            # comparing.
-            msg = ('The value of the \'{!s}\' option is \'{!s}\' which must be a '
-                   'subdir of the prefix {!r}.\nNote that if you pass a '
-                   'relative path, it is assumed to be a subdir of prefix.')
-            # os.path.commonpath doesn't understand case-insensitive filesystems,
-            # but PurePath().relative_to() does.
             try:
+                # Try to relativize the path.
                 value = value.relative_to(prefix)
             except ValueError:
-                raise MesonException(msg.format(option, value, prefix))
-            if '..' in str(value):
-                raise MesonException(msg.format(option, value, prefix))
+                # Path is not relative, let’s keep it as is.
+                pass
+            if '..' in value.parts:
+                raise MesonException(
+                    f'The value of the \'{option}\' option is \'{value}\' but '
+                    'directory options are not allowed to contain \'..\'.\n'
+                    f'If you need a path outside of the {prefix!r} prefix, '
+                    'please use an absolute path.'
+                )
+        # .as_posix() keeps the posix-like file separators Meson uses.
         return value.as_posix()
 
     def init_builtins(self, subproject: str) -> None:
