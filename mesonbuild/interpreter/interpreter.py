@@ -730,8 +730,6 @@ external dependencies (including libraries) must go to "dependencies".''')
             mlog.warning(implicit_check_false_warning, once=True)
             check = False
 
-        m = 'must be a string, or the output of find_program(), files() '\
-            'or configure_file(), or a compiler object; not {!r}'
         overridden_msg = ('Program {!r} was overridden with the compiled '
                           'executable {!r} and therefore cannot be used during '
                           'configuration')
@@ -753,9 +751,6 @@ external dependencies (including libraries) must go to "dependencies".''')
         else:
             if isinstance(cmd, mesonlib.File):
                 cmd = cmd.absolute_path(srcdir, builddir)
-            # FIXME: This case can only be reached through configure_file, delete once that is typesafe
-            elif not isinstance(cmd, str):
-                raise InterpreterException('First argument ' + m.format(cmd))
             # Prefer scripts in the current source directory
             search_dir = os.path.join(srcdir, self.subdir)
             prog = ExternalProgram(cmd, silent=True, search_dir=search_dir)
