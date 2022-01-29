@@ -24,7 +24,9 @@ description: |
   (because the command invocator will reject the command otherwise) and
   Unixes (if the script file does not have the executable bit set).
   Hence, you *must not* manually add the interpreter while using this
-  script as part of a list of commands.
+  script as part of a list of commands. Since *0.50.0* if the "python3"
+  program is requested and it is not found in the system, Meson will return
+  its current interpreter.
 
   If you need to check for a program in a non-standard location, you can
   just pass an absolute path to `find_program`, e.g.
