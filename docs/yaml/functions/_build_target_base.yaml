@@ -161,10 +161,10 @@ kwargs:
   install_dir:
     type: str
     description: |
-      override install directory for this file. The value is
-      relative to the `prefix` specified. F.ex, if you want to install
-      plugins into a subdir, you'd use something like this: `install_dir :
-      get_option('libdir') / 'projectname-1.0'`.
+      override install directory for this file. If the value is a relative path,
+      it will be considered relative the `prefix` option.
+      For example, if you want to install plugins into a subdir, you'd use
+      something like this: `install_dir : get_option('libdir') / 'projectname-1.0'`.
 
   install_mode:
     type: list[str | int]
