@@ -8,7 +8,7 @@ if meson.backend() != 'ninja'
 endif
 
 py_mod = import('python')
-py3 = py_mod.find_installation()
+py3 = py_mod.find_installation('python3')
 py3_dep = py3.dependency(required : false)
 cc = meson.get_compiler('c')
 

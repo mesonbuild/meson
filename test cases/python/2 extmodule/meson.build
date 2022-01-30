@@ -9,7 +9,7 @@ endif
 
 
 py_mod = import('python')
-py = py_mod.find_installation()
+py = py_mod.find_installation('python3')
 py_dep = py.dependency(required: false)
 
 if not py_dep.found()

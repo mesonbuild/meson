@@ -23,11 +23,7 @@ pymod.find_installation(name_or_path, ...)
 ```
 
 Find a python installation matching `name_or_path`.
-
-That argument is optional, if not provided then the returned python
-installation will be the one used to run Meson.
-
-If provided, it can be:
+It can be:
 
 - A simple name, eg `python-2.7`, Meson will look for an external program
   named that way, using [[find_program]]
