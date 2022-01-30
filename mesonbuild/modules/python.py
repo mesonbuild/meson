@@ -693,6 +693,11 @@ class PythonModule(ExtensionModule):
             if not python.found() and name_or_path in ['python2', 'python3']:
                 python = PythonExternalProgram('python')
 
+            # Even more dire effort, Meson must be using python3,
+            # even though it might be a minimal bootstrapping instance.
+            if not python.found() and name_or_path == 'python3':
+                python = ExternalProgram('python3', mesonlib.python_command, silent=True)
+
         if python.found() and want_modules:
             for mod in want_modules:
                 p, *_ = mesonlib.Popen_safe(
