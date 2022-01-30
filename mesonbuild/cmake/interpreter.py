@@ -15,20 +15,18 @@
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool.
 
-from .common import CMakeException, CMakeTarget, TargetOptions, CMakeConfiguration, language_map, backend_generator_map, cmake_get_generator_args, check_cmake_args
-from .client import CMakeClient, RequestCMakeInputs, RequestConfigure, RequestCompute, RequestCodeModel, ReplyCMakeInputs, ReplyCodeModel
+from .common import CMakeException, CMakeTarget, TargetOptions, CMakeConfiguration, language_map, cmake_get_generator_args, check_cmake_args
 from .fileapi import CMakeFileAPI
 from .executor import CMakeExecutor
 from .toolchain import CMakeToolchain, CMakeExecScope
 from .traceparser import CMakeTraceParser, CMakeGeneratorTarget
 from .tracetargets import resolve_cmake_trace_targets
 from .. import mlog, mesonlib
-from ..mesonlib import MachineChoice, OrderedSet, version_compare, path_is_in_root, relative_to_if_possible, OptionKey
+from ..mesonlib import MachineChoice, OrderedSet, path_is_in_root, relative_to_if_possible, OptionKey
 from ..mesondata import DataFile
 from ..compilers.compilers import assembler_suffixes, lang_suffixes, header_suffixes, obj_suffixes, lib_suffixes, is_header
 from ..programs import ExternalProgram
 from ..coredata import FORBIDDEN_TARGET_NAMES
-from enum import Enum
 from functools import lru_cache
 from pathlib import Path
 import typing as T
@@ -763,10 +761,6 @@ class ConverterCustomTarget:
         mlog.log('  -- inputs:       ', mlog.bold(str(self.inputs)))
         mlog.log('  -- depends:      ', mlog.bold(str(self.depends)))
 
-class CMakeAPI(Enum):
-    SERVER = 1
-    FILE = 2
-
 class CMakeInterpreter:
     def __init__(self, build: 'Build', subdir: Path, src_dir: Path, install_prefix: Path, env: 'Environment', backend: 'Backend'):
         self.build          = build
@@ -779,8 +773,6 @@ class CMakeInterpreter:
         self.for_machine    = MachineChoice.HOST # TODO make parameter
         self.backend_name   = backend.name
         self.linkers        = set()  # type: T.Set[str]
-        self.cmake_api      = CMakeAPI.SERVER
-        self.client         = CMakeClient(self.env)
         self.fileapi        = CMakeFileAPI(self.build_dir)
 
         # Raw CMake results
@@ -811,7 +803,7 @@ class CMakeInterpreter:
     def configure(self, extra_cmake_options: T.List[str]) -> CMakeExecutor:
         # Find CMake
         # TODO: Using MachineChoice.BUILD should always be correct here, but also evaluate the use of self.for_machine
-        cmake_exe = CMakeExecutor(self.env, '>=3.7', MachineChoice.BUILD)
+        cmake_exe = CMakeExecutor(self.env, '>=3.14', MachineChoice.BUILD)
         if not cmake_exe.found():
             raise CMakeException('Unable to find CMake')
         self.trace = CMakeTraceParser(cmake_exe.version(), self.build_dir, permissive=True)
@@ -830,11 +822,7 @@ class CMakeInterpreter:
         trace_args = self.trace.trace_args()
         cmcmp_args = [f'-DCMAKE_POLICY_WARNING_{x}=OFF' for x in disable_policy_warnings]
 
-        if version_compare(cmake_exe.version(), '>=3.14'):
-            self.cmake_api = CMakeAPI.FILE
-            self.fileapi.setup_request()
-        else:
-            mlog.deprecation(f'Support for CMake <3.14 (Meson found {cmake_exe.version()}) is deprecated since Meson 0.61.0')
+        self.fileapi.setup_request()
 
         if version_compare(cmake_exe.version(), '<3.17.0'):
             mlog.warning(textwrap.dedent(f'''\
@@ -876,51 +864,21 @@ class CMakeInterpreter:
         return cmake_exe
 
     def initialise(self, extra_cmake_options: T.List[str]) -> None:
-        # Run configure the old way because doing it
-        # with the server doesn't work for some reason
-        # Additionally, the File API requires a configure anyway
-        cmake_exe = self.configure(extra_cmake_options)
+        # Configure the CMake project to generate the file API data
+        self.configure(extra_cmake_options)
 
-        # Continue with the file API If supported
-        if self.cmake_api is CMakeAPI.FILE:
-            # Parse the result
-            self.fileapi.load_reply()
+        # Parse the result
+        self.fileapi.load_reply()
 
-            # Load the buildsystem file list
-            cmake_files = self.fileapi.get_cmake_sources()
-            self.bs_files = [x.file for x in cmake_files if not x.is_cmake and not x.is_temp]
-            self.bs_files = [relative_to_if_possible(x, Path(self.env.get_source_dir())) for x in self.bs_files]
-            self.bs_files = [x for x in self.bs_files if not path_is_in_root(x, Path(self.env.get_build_dir()), resolve=True)]
-            self.bs_files = list(OrderedSet(self.bs_files))
-
-            # Load the codemodel configurations
-            self.codemodel_configs = self.fileapi.get_cmake_configurations()
-            return
-
-        with self.client.connect(cmake_exe):
-            generator = backend_generator_map[self.backend_name]
-            self.client.do_handshake(self.src_dir, self.build_dir, generator, 1)
-
-            # Do a second configure to initialise the server
-            self.client.query_checked(RequestConfigure(), 'CMake server configure')
-
-            # Generate the build system files
-            self.client.query_checked(RequestCompute(), 'Generating build system files')
-
-            # Get CMake build system files
-            bs_reply = self.client.query_checked(RequestCMakeInputs(), 'Querying build system files')
-            assert isinstance(bs_reply, ReplyCMakeInputs)
-
-            # Now get the CMake code model
-            cm_reply = self.client.query_checked(RequestCodeModel(), 'Querying the CMake code model')
-            assert isinstance(cm_reply, ReplyCodeModel)
-
-        src_dir = bs_reply.src_dir
-        self.bs_files = [x.file for x in bs_reply.build_files if not x.is_cmake and not x.is_temp]
-        self.bs_files = [relative_to_if_possible(src_dir / x, Path(self.env.get_source_dir()), resolve=True) for x in self.bs_files]
+        # Load the buildsystem file list
+        cmake_files = self.fileapi.get_cmake_sources()
+        self.bs_files = [x.file for x in cmake_files if not x.is_cmake and not x.is_temp]
+        self.bs_files = [relative_to_if_possible(x, Path(self.env.get_source_dir())) for x in self.bs_files]
         self.bs_files = [x for x in self.bs_files if not path_is_in_root(x, Path(self.env.get_build_dir()), resolve=True)]
         self.bs_files = list(OrderedSet(self.bs_files))
-        self.codemodel_configs = cm_reply.configs
+
+        # Load the codemodel configurations
+        self.codemodel_configs = self.fileapi.get_cmake_configurations()
 
     def analyse(self) -> None:
         if self.codemodel_configs is None:
