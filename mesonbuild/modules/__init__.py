@@ -103,6 +103,13 @@ class ModuleState:
                    module: T.Optional[str] = None) -> T.Union[str, int, bool, 'WrapMode']:
         return self.environment.coredata.get_option(mesonlib.OptionKey(name, subproject, machine, lang, module))
 
+    def is_user_defined_option(self, name: str, subproject: str = '',
+                               machine: MachineChoice = MachineChoice.HOST,
+                               lang: T.Optional[str] = None,
+                               module: T.Optional[str] = None) -> bool:
+        key = mesonlib.OptionKey(name, subproject, machine, lang, module)
+        return key in self._interpreter.user_defined_options.cmd_line_options
+
 
 class ModuleObject(HoldableObject):
     """Base class for all objects returned by modules
