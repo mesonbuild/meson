@@ -1059,7 +1059,7 @@ def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List
             self.stdout_mandatory = stdout_mandatory  # expected stdout is mandatory for tests in this category
 
     all_tests = [
-        TestCategory('cmake', 'cmake', not shutil.which('cmake') or (os.environ.get('compiler') == 'msvc2015' and under_ci)),
+        TestCategory('cmake', 'cmake', not shutil.which('cmake') or (os.environ.get('compiler') == 'msvc2015' and under_ci) or (os.environ.get('MESON_CI_JOBNAME') == 'linux-bionic-gcc')),
         TestCategory('common', 'common'),
         TestCategory('native', 'native'),
         TestCategory('warning-meson', 'warning', stdout_mandatory=True),
