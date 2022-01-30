@@ -659,9 +659,13 @@ class PythonModule(ExtensionModule):
         # easily be `['py', '-3']`, or `['py', '-3.7']` to get a very specific
         # version of python. On Linux we might want a python that's not in
         # $PATH, or that uses a wrapper of some kind.
-        np: T.List[str] = state.environment.lookup_binary_entry(MachineChoice.HOST, 'python') or []
+        np: T.List[str] = []
         fallback = args[0]
         display_name = fallback or 'python'
+        if fallback in ['python2', 'python3']:
+            np = state.environment.lookup_binary_entry(MachineChoice.HOST, fallback) or []
+        if not np:
+            np = state.environment.lookup_binary_entry(MachineChoice.HOST, 'python') or []
         if not np and fallback is not None:
             np = [fallback]
         name_or_path = np[0] if np else None

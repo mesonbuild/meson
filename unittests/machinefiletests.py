@@ -210,7 +210,7 @@ class NativeFileTests(BasePlatformTests):
     def test_python3_module(self):
         self._simple_test('python3', 'python3')
 
-    def test_python_module(self):
+    def test_python_module_python2(self):
         if is_windows():
             # Bat adds extra crap to stdout, so the version check logic in the
             # python module breaks. This is fine on other OSes because they
@@ -230,7 +230,12 @@ class NativeFileTests(BasePlatformTests):
                     break
             else:
                 raise SkipTest('Not running Python 2 tests because dev packages not installed.')
-        self._simple_test('python', binary, entry='python')
+        self._simple_test('python-implicit', binary, entry='python')
+        self._simple_test('python-python2', binary, entry='python2')
+
+    def test_python_module_python3(self):
+        self._simple_test('python-implicit', 'python3', entry='python')
+        self._simple_test('python-python3', 'python3', entry='python3')
 
     @skipIf(is_windows(), 'Setting up multiple compilers on windows is hard')
     @skip_if_env_set('CC')
