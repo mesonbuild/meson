@@ -27,8 +27,6 @@ def _setup_vsenv(force: bool) -> bool:
     if os.environ.get('OSTYPE') == 'cygwin':
         return False
     if 'MESON_FORCE_VSENV_FOR_UNITTEST' not in os.environ:
-        if 'Visual Studio' in os.environ['PATH']:
-            return False
         # VSINSTALL is set when running setvars from a Visual Studio installation
         # Tested with Visual Studio 2012 and 2017
         if 'VSINSTALLDIR' in os.environ:
