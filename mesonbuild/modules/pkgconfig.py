@@ -347,7 +347,8 @@ class PkgConfigModule(ExtensionModule):
                 ofile.write('prefix={}\n'.format(self._escape(prefix)))
                 if uninstalled:
                     ofile.write('srcdir={}\n'.format(self._escape(srcdir)))
-                ofile.write('libdir={}\n'.format(self._escape('${prefix}' / libdir)))
+                if deps.pub_libs or deps.priv_libs:
+                    ofile.write('libdir={}\n'.format(self._escape('${prefix}' / libdir)))
                 ofile.write('includedir={}\n'.format(self._escape('${prefix}' / incdir)))
             if variables or unescaped_variables:
                 ofile.write('\n')
