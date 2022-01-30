@@ -138,6 +138,17 @@ class CMakeTraceParser:
             'meson_ps_disabled_function': self._meson_ps_disabled_function,
         }  # type: T.Dict[str, T.Callable[[CMakeTraceLine], None]]
 
+        if version_compare(self.cmake_version, '<3.17.0'):
+            mlog.deprecation(textwrap.dedent(f'''\
+                CMake support for versions <3.17 is deprecated since Meson 0.62.0.
+                |
+                |   However, Meson was only able to find CMake {self.cmake_version}.
+                |
+                |   Support for all CMake versions below 3.17.0 will be removed once
+                |   newer CMake versions are more widely adopted. If you encounter
+                |   any errors please try upgrading CMake to a newer version first.
+            '''), once=True)
+
     def trace_args(self) -> T.List[str]:
         arg_map = {
             'human': ['--trace', '--trace-expand'],

@@ -31,7 +31,6 @@ from functools import lru_cache
 from pathlib import Path
 import typing as T
 import re
-import textwrap
 from os import environ
 
 from ..mparser import (
@@ -823,17 +822,6 @@ class CMakeInterpreter:
         cmcmp_args = [f'-DCMAKE_POLICY_WARNING_{x}=OFF' for x in disable_policy_warnings]
 
         self.fileapi.setup_request()
-
-        if version_compare(cmake_exe.version(), '<3.17.0'):
-            mlog.warning(textwrap.dedent(f'''\
-                The minimum recommended CMake version is 3.17.0.
-                |
-                |   However, Meson was only able to find CMake {cmake_exe.version()} at {cmake_exe.cmakebin.command}.
-                |
-                |   Support for all CMake versions below 3.17.0 will be deprecated and
-                |   removed once newer CMake versions are more widely adopted. If you encounter
-                |   any errors please try upgrading CMake to a newer version first.
-            '''))
 
         # Run CMake
         mlog.log()
