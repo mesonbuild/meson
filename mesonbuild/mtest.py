@@ -1768,7 +1768,6 @@ class TestHarness:
 
     def format(self, result: TestRun, colorize: bool,
                max_left_width: int = 0,
-               prefix: str = '',
                left: T.Optional[str] = None,
                middle: T.Optional[str] = None,
                right: T.Optional[str] = None) -> str:
@@ -1781,7 +1780,7 @@ class TestHarness:
 
         if middle is None:
             middle = result.name
-        extra_mid_width = max_left_width + self.name_max_len + 1 - uniwidth(middle) - uniwidth(left) - uniwidth(prefix)
+        extra_mid_width = max_left_width + self.name_max_len + 1 - uniwidth(middle) - uniwidth(left)
         middle += ' ' * max(1, extra_mid_width)
 
         if right is None:
@@ -1808,7 +1807,7 @@ class TestHarness:
                 details = result.get_details()
                 if details:
                     right += '   ' + details
-        return prefix + left + middle + right
+        return left + middle + right
 
     def format_subtest(self,
                        test: 'TestRun',
