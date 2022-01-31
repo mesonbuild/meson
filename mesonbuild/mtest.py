@@ -1681,6 +1681,8 @@ class TestHarness:
             sys.exit(125)
 
         self.name_max_len = max(uniwidth(self.get_pretty_suite(test)) for test in tests)
+        self.options.num_processes = min(self.options.num_processes,
+                                         len(tests) * self.options.repeat)
         startdir = os.getcwd()
         try:
             os.chdir(self.options.wd)
