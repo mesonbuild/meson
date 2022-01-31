@@ -1120,15 +1120,13 @@ async def read_decode(reader: asyncio.StreamReader, console_mode: ConsoleUser) -
 # Extract lines out of the StreamReader.  Print them
 # along the way if requested, and at the end collect
 # them all into a future.
-async def read_decode_lines(reader: asyncio.StreamReader, q: 'asyncio.Queue[T.Optional[str]]',
-                            console_mode: ConsoleUser) -> str:
+async def read_decode_lines(reader: asyncio.StreamReader,
+                            q: 'asyncio.Queue[T.Optional[str]]') -> str:
     stdo_lines = []
     try:
         while not reader.at_eof():
             line = decode(await reader.readline())
             stdo_lines.append(line)
-            if console_mode is ConsoleUser.STDOUT:
-                print(line, end='', flush=True)
             await q.put(line)
         return ''.join(stdo_lines)
     except asyncio.CancelledError:
@@ -1217,9 +1215,9 @@ class TestSubprocess:
         self.postwait_fn = postwait_fn   # type: T.Callable[[], None]
         self.all_futures = []            # type: T.List[asyncio.Future]
 
-    def stdout_lines(self, console_mode: ConsoleUser) -> T.AsyncIterator[str]:
+    def stdout_lines(self) -> T.AsyncIterator[str]:
         q = asyncio.Queue()              # type: asyncio.Queue[T.Optional[str]]
-        decode_coro = read_decode_lines(self._process.stdout, q, console_mode)
+        decode_coro = read_decode_lines(self._process.stdout, q)
         self.stdo_task = asyncio.ensure_future(decode_coro)
         return queue_iter(q)
 
@@ -1464,7 +1462,7 @@ class SingleTestRunner:
 
         parse_task = None
         if self.runobj.needs_parsing:
-            parse_coro = self.runobj.parse(harness, p.stdout_lines(self.console_mode))
+            parse_coro = self.runobj.parse(harness, p.stdout_lines())
             parse_task = asyncio.ensure_future(parse_coro)
 
         stdo_task, stde_task = p.communicate(self.console_mode)
