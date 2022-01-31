@@ -703,8 +703,13 @@ class TextLogfileBuilder(TestFileLogger):
         if cmdline:
             starttime_str = time.strftime("%H:%M:%S", time.gmtime(result.starttime))
             self.file.write(starttime_str + ' ' + cmdline + '\n')
-            self.file.write(dashes('output', '-', 78) + '\n')
-            self.file.write(result.get_log())
+            if result.stdo:
+                name = 'stdout' if harness.options.split else 'output'
+                self.file.write(dashes(name, '-', 78) + '\n')
+                self.file.write(result.stdo)
+            if result.stde:
+                self.file.write(dashes('stderr', '-', 78) + '\n')
+                self.file.write(result.stde)
             self.file.write(dashes('', '-', 78) + '\n\n')
 
     async def finish(self, harness: 'TestHarness') -> None:
