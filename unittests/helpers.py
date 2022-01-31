@@ -17,7 +17,7 @@ from run_tests import get_fake_env
 
 
 def is_ci():
-    if 'CI' in os.environ:
+    if 'MESON_CI_JOBNAME' in os.environ:
         return True
     return False
 
