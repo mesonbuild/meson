@@ -18,7 +18,6 @@ from pathlib import Path
 from collections import deque
 from contextlib import suppress
 from copy import deepcopy
-from itertools import islice
 import argparse
 import asyncio
 import datetime
@@ -546,11 +545,20 @@ class ConsoleLogger(TestLogger):
 
     def emit_progress(self, harness: 'TestHarness') -> None:
         lines: T.List[str] = []
-        for test in islice(reversed(self.running_tests), 10):
-            left = ' ' * (len(str(self.test_count)) * 2 + 2)
+        now = time.time()
+        left = ' ' * len(harness.get_test_num_prefix(0))
+        remainder = 0
+
+        for test in reversed(self.running_tests):
+            runtime = int(now - test.starttime)
+            if not test.direct_output and runtime < 1:
+                break
+            elif len(lines) > 10:
+                remainder += 1
+                continue
             right = '{status} {dur:{durlen}}'.format(
                 status=test.res.get_text(mlog.colorize_console()),
-                dur=int(time.time() - test.starttime),
+                dur=runtime,
                 durlen=harness.duration_max_len)
             if test.timeout:
                 right += '/{timeout}'.format(
@@ -563,9 +571,9 @@ class ConsoleLogger(TestLogger):
                                     colorize=mlog.colorize_console(),
                                     left=left,
                                     right=right)] + lines
-        if len(self.running_tests) > 10:
-            lines += [' ' * len(harness.get_test_num_prefix(0))
-                      + f'[{len(self.running_tests) - 10} more tests running]']
+        if remainder > 0:
+            msg = f'[omitting {remainder} running test(s) from above]'
+            lines += [' ' * len(harness.get_test_num_prefix(0)) + msg]
         self.print_progress(lines)
 
     def start(self, harness: 'TestHarness') -> None:
@@ -678,36 +686,38 @@ class ConsoleLogger(TestLogger):
     def print_log(self,
                   harness: 'TestHarness',
                   result: 'TestRun') -> None:
-        if not result.verbose or (result.res.is_bad() and harness.options.print_errorlogs):
-            return
-        prefix = harness.get_test_num_prefix(result.num)
-        if not result.direct_stdout:
-            self.print_command_details(prefix, result)
-        if not (result.direct_stdout and not result.needs_parsing):
-            # This was printed "live" when running the test.
-            if result.stdo:
-                if harness.options.split or result.stde:
-                    name = 'stdout'
-                else:
-                    name = 'output'
+        if result.verbose or (result.res.is_bad() and harness.options.print_errorlogs):
+            prefix = harness.get_test_num_prefix(result.num)
+            if harness.options.verbose and not result.direct_stdout:
+                self.print_horizontal_line(harness)
+            if not result.direct_stdout:
+                self.print_command_details(prefix, result)
+            if not (result.direct_stdout and not result.needs_parsing):
+                # This was printed "live" when running the test.
+                if result.stdo:
+                    if harness.options.split or result.stde:
+                        name = 'stdout'
+                    else:
+                        name = 'output'
+                    self.print_section(prefix,
+                                       name,
+                                       result.stdo.splitlines(),
+                                       not result.verbose)
+                if result.stde:
+                    self.print_section(prefix,
+                                       "stderr",
+                                       result.stde.splitlines(),
+                                       not result.verbose)
+            if result.results and not (result.direct_stdout and result.needs_parsing):
+                self.print_subtests_section(prefix, result)
+            if result.additional_error:
                 self.print_section(prefix,
-                                   name,
-                                   result.stdo.splitlines(),
+                                   "additional error",
+                                   result.additional_error.splitlines(),
                                    not result.verbose)
-            if result.stde:
-                self.print_section(prefix,
-                                   "stderr",
-                                   result.stde.splitlines(),
-                                   not result.verbose)
-        if not (result.direct_stdout and result.needs_parsing):
-            self.print_subtests_section(prefix, result)
-
-        if result.additional_error:
-            self.print_section(prefix,
-                               "additional error",
-                               result.additional_error.splitlines(),
-                               not result.verbose)
-        self.print_exit_details_section(prefix, result)
+            self.print_exit_details_section(prefix, result)
+        self.print_test_status(harness, result, update=False)
+        self.request_update()
 
     def log(self, harness: 'TestHarness', result: 'TestRun') -> None:
         self.running_tests.remove(result)
@@ -715,10 +725,7 @@ class ConsoleLogger(TestLogger):
                                                  harness.options.print_errorlogs):
             result.additional_error += f'timed out (after {result.timeout} seconds)\n'
         if not harness.options.quiet or not result.res.is_ok():
-            self.flush()
             self.print_log(harness, result)
-            self.print_test_status(harness, result)
-        self.request_update()
 
     async def finish(self, harness: 'TestHarness') -> None:
         self.stop = True
