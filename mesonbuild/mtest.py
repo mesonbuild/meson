@@ -900,11 +900,7 @@ class TestRun:
     def direct_stdout(self) -> bool:
         return self.verbose and not self.is_parallel and not self.needs_parsing
 
-    def get_details(self) -> str:
-        if self.res is TestResult.PENDING:
-            return ''
-        if self.returncode:
-            return returncode_to_status(self.returncode)
+    def get_results(self) -> str:
         if self.results:
             # running or succeeded
             passed = sum(x.result.is_ok() for x in self.results)
@@ -914,6 +910,16 @@ class TestRun:
             else:
                 return f'{passed}/{ran} subtests passed'
         return ''
+
+    def get_exit_status(self) -> str:
+        return returncode_to_status(self.returncode)
+
+    def get_details(self) -> str:
+        if self.res is TestResult.PENDING:
+            return ''
+        if self.returncode:
+            return self.get_exit_status()
+        return self.get_results()
 
     def _complete(self, returncode: int, res: TestResult,
                   stdo: T.Optional[str], stde: T.Optional[str]) -> None:
