@@ -687,15 +687,20 @@ class ConsoleLogger(TestLogger):
                              result: 'TestResult') -> None:
         self.print_line(prefix, harness.format_subtest(None, name, result))
 
-    def print_subtests_section(self, prefix: str, result: 'TestRun') -> None:
+    def print_subtests_section(self,
+                               harness: 'TestHarness',
+                               prefix: str,
+                               result: 'TestRun') -> None:
         if result.results:
             self.print_header(prefix, 'subtest results', update=False)
+        name_max_len = max(len(subtest.name or str(subtest.number)) for subtest in result.results)
         for subtest in result.results:
-            name = subtest.name or subtest.number
-            res = subtest.result.get_text(mlog.colorize_console())
+            name = subtest.name or str(subtest.number)
             self.print_line(prefix,
-                            f'subtest {name} {res}',
-                            update=False)
+                            harness.format_subtest(None,
+                                                   name,
+                                                   subtest.result,
+                                                   name_max_len=name_max_len))
 
     def print_horizontal_line(self, harness: 'TestHarness') -> None:
         self.safe_print(dashes(None, '-', harness.get_formatted_line_length()))
@@ -727,7 +732,7 @@ class ConsoleLogger(TestLogger):
                                        result.stde.splitlines(),
                                        not result.verbose)
             if result.results and not (result.direct_output and result.needs_parsing):
-                self.print_subtests_section(prefix, result)
+                self.print_subtests_section(harness, prefix, result)
             if result.additional_error:
                 self.print_section(prefix,
                                    "additional error",
@@ -1797,21 +1802,24 @@ class TestHarness:
                                                     num=num,
                                                     testcount=self.test_count)
 
-    def format(self, result: TestRun, colorize: bool,
-               max_left_width: int = 0,
+    def format(self, result: TestRun,
+               colorize: bool,
+               max_left_width: T.Optional[int] = None,
                left: T.Optional[str] = None,
                middle: T.Optional[str] = None,
-               right: T.Optional[str] = None) -> str:
+               right: T.Optional[str] = None,
+               extra_mid_width: T.Optional[int] = None) -> str:
         if left is None:
             left = self.get_test_num_prefix(result.num)
 
         # A non-default max_left_width lets the logger print more stuff before the
         # name, while ensuring that the rightmost columns remain aligned.
-        max_left_width = max(max_left_width, self.max_left_width)
+        max_left_width = max_left_width or self.max_left_width
 
         if middle is None:
             middle = result.name
-        extra_mid_width = max_left_width + self.name_max_len + 1 - uniwidth(middle) - uniwidth(left)
+        if extra_mid_width is None:
+            extra_mid_width = max_left_width + self.name_max_len + 1 - uniwidth(middle) - uniwidth(left)
         middle += ' ' * max(1, extra_mid_width)
 
         if right is None:
@@ -1854,11 +1862,15 @@ class TestHarness:
     def format_subtest(self,
                        test: 'TestRun',
                        name: str,
-                       result: TestResult) -> str:
+                       result: TestResult,
+                       name_max_len: T.Optional[int] = None) -> str:
+        extra_middle = 0
+        if name_max_len:
+            extra_middle = 1 + name_max_len - len(name)
         return self.format(test,
-                           mlog.colorize_console(),
+                           colorize=mlog.colorize_console(),
+                           extra_mid_width=extra_middle,
                            left='',
-                           max_left_width=self.max_left_width,
                            middle=name,
                            right=result.get_text(mlog.colorize_console()))
 
