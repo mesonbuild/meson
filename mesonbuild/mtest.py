@@ -1661,7 +1661,6 @@ class TestHarness:
 
     def summary(self) -> str:
         return textwrap.dedent('''
-
             Ok:                 {:<4}
             Expected Fail:      {:<4}
             Fail:               {:<4}
