@@ -18,6 +18,7 @@ from pathlib import Path
 from collections import deque
 from contextlib import suppress
 from copy import deepcopy
+from itertools import islice
 import argparse
 import asyncio
 import datetime
@@ -459,77 +460,90 @@ class TestFileLogger(TestLogger):
 
 
 class ConsoleLogger(TestLogger):
-    ASCII_SPINNER = ['..', ':.', '.:']
-    SPINNER = ["\U0001f311", "\U0001f312", "\U0001f313", "\U0001f314",
-               "\U0001f315", "\U0001f316", "\U0001f317", "\U0001f318"]
-
     def __init__(self, use_statusline: bool) -> None:
         self.running_tests = OrderedSet()  # type: OrderedSet['TestRun']
-        self.progress_test = None          # type: T.Optional['TestRun']
         self.progress_task = None          # type: T.Optional[asyncio.Future]
         self.max_left_width = 0            # type: int
         self.stop = False
         self.update = asyncio.Event()
-        self.should_erase_line = ''
+        self.should_erase_line = 0
         self.test_count = 0
         self.started_tests = 0
-        self.spinner_index = 0
+        self.print_queue = []  # type: T.List[T.Collection[T.Any]]
         try:
             self.cols, _ = os.get_terminal_size(1)
             self.is_tty = True
         except OSError:
             self.cols = 80
             self.is_tty = False
-        try:
-            self.spinner = self.SPINNER
-            self.spinner[0].encode(sys.stdout.encoding or 'ascii')
-        except UnicodeEncodeError:
-            self.spinner = self.ASCII_SPINNER
         self.use_statusline = self.is_tty and use_statusline
 
-    def flush(self) -> None:
-        if self.should_erase_line:
-            print(self.should_erase_line, end='')
-            self.should_erase_line = ''
+    def safe_print(self, fmt: str, *args: T.Any, **kwargs: T.Any) -> None:
+        if self.use_statusline:
+            if self.should_erase_line:
+                self.print_queue += [[fmt, args, kwargs]]
+            else:
+                if 'end' in kwargs:
+                    kwargs['end'] = '\x1b[K' + kwargs['end']
+                else:
+                    kwargs['end'] = '\x1b[K\n'
+                print('\r' + fmt, *args, **kwargs)
+        else:
+            print(fmt, *args, **kwargs)
 
-    def print_progress(self, line: str) -> None:
-        print(self.should_erase_line, line, sep='', end='\r')
-        self.should_erase_line = '\x1b[K'
+    def flush(self) -> None:
+        if self.should_erase_line > 0:
+            msg = '\r\x1b[K'
+            if self.should_erase_line > 1:
+                self.should_erase_line -= 1
+                msg += '\x1b[B\x1b[K' * self.should_erase_line
+                msg += f'\x1b[{self.should_erase_line}A'
+            self.should_erase_line = 0
+            print(msg, end='')
+
+    def print_progress(self, lines: T.List[str]) -> None:
+        # self.flush() could be called here but that would cause more
+        # flickering of the status line. Set self.should_erase_line to zero
+        # instead to allow overwriting of the old status lines.
+        self.should_erase_line = 0
+        for fmt, args, kwargs in self.print_queue:
+            self.safe_print(fmt, *args, **kwargs)
+        self.print_queue = []
+        line_count = len(lines)
+        if line_count > 0:
+            for line in lines[:-1]:
+                self.safe_print(line)
+            self.safe_print(lines[-1], end='\r')
+            if line_count > 1:
+                print(f'\x1b[{line_count - 1}A', end='')
+            self.should_erase_line = line_count
 
     def request_update(self) -> None:
         self.update.set()
 
     def emit_progress(self, harness: 'TestHarness') -> None:
-        if self.progress_test is None:
-            self.flush()
-            return
-
-        if len(self.running_tests) == 1:
-            count = f'{self.started_tests}/{self.test_count}'
-        else:
-            count = '{}-{}/{}'.format(self.started_tests - len(self.running_tests) + 1,
-                                      self.started_tests, self.test_count)
-
-        left = '[{}] {} '.format(count, self.spinner[self.spinner_index])
-        self.spinner_index = (self.spinner_index + 1) % len(self.spinner)
-
-        right = '{spaces} {dur:{durlen}}'.format(
-            spaces=' ' * TestResult.maxlen(),
-            dur=int(time.time() - self.progress_test.starttime),
-            durlen=harness.duration_max_len)
-        if self.progress_test.timeout:
-            right += '/{timeout:{durlen}}'.format(
-                timeout=self.progress_test.timeout,
+        lines: T.List[str] = []
+        for test in islice(reversed(self.running_tests), 10):
+            left = ' ' * (len(str(self.test_count)) * 2 + 2)
+            right = '{status} {dur:{durlen}}'.format(
+                status=test.res.get_text(mlog.colorize_console()),
+                dur=int(time.time() - test.starttime),
                 durlen=harness.duration_max_len)
-        right += 's'
-        details = self.progress_test.get_details()
-        if details:
-            right += '   ' + details
-
-        line = harness.format(self.progress_test, colorize=True,
-                              max_left_width=self.max_left_width,
-                              left=left, right=right)
-        self.print_progress(line)
+            if test.timeout:
+                right += '/{timeout}'.format(
+                    timeout=test.timeout)
+            right += 's'
+            details = test.get_details()
+            if details:
+                right += '   ' + details
+            lines = [harness.format(test,
+                                    colorize=mlog.colorize_console(),
+                                    left=left,
+                                    right=right)] + lines
+        if len(self.running_tests) > 10:
+            lines += [' ' * len(harness.get_test_num_prefix(0))
+                      + f'[{len(self.running_tests) - 10} more tests running]']
+        self.print_progress(lines)
 
     def start(self, harness: 'TestHarness') -> None:
         async def report_progress() -> None:
@@ -543,21 +557,8 @@ class ConsoleLogger(TestLogger):
                 # overwritten, so do not always switch.  Only do so every
                 # second, or if the printed test has finished
                 if loop.time() >= next_update:
-                    self.progress_test = None
                     next_update = loop.time() + 1
                     loop.call_at(next_update, self.request_update)
-
-                if (self.progress_test and
-                        self.progress_test.res is not TestResult.RUNNING):
-                    self.progress_test = None
-
-                if not self.progress_test:
-                    if not self.running_tests:
-                        continue
-                    # Pick a test in round robin order
-                    self.progress_test = self.running_tests.pop(last=False)
-                    self.running_tests.add(self.progress_test)
-
                 self.emit_progress(harness)
             self.flush()
 
@@ -565,7 +566,6 @@ class ConsoleLogger(TestLogger):
         self.cols = max(self.cols, harness.max_left_width + 30)
 
         if self.use_statusline:
-            # Account for "[aa-bb/cc] OO " in the progress report
             self.max_left_width = 3 * len(str(self.test_count)) + 8
             self.progress_task = asyncio.ensure_future(report_progress())
 
@@ -586,8 +586,7 @@ class ConsoleLogger(TestLogger):
                      update: bool = True) -> None:
         header += ':'
 
-        self.flush()
-        print(prefix + mlog.italic(f'{header:<9}').get_text(mlog.colorize_console()))
+        self.safe_print(prefix + mlog.italic(f'{header:<9}').get_text(mlog.colorize_console()))
 
         if update:
             self.request_update()
@@ -596,8 +595,7 @@ class ConsoleLogger(TestLogger):
                    prefix: str,
                    line: str,
                    update: bool = True) -> None:
-        self.flush()
-        print(prefix + '  ' + line.strip())
+        self.safe_print(prefix + '  ' + line.strip())
 
         if update:
             self.request_update()
@@ -687,7 +685,7 @@ class ConsoleLogger(TestLogger):
         if not harness.options.quiet or not result.res.is_ok():
             self.flush()
             self.print_log(harness, result)
-            print(harness.format(result, mlog.colorize_console(), max_left_width=self.max_left_width))
+            print(harness.format(result, mlog.colorize_console()))
         self.request_update()
 
     async def finish(self, harness: 'TestHarness') -> None:
