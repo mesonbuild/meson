@@ -35,6 +35,7 @@ jobs:
     - env:
         CPPFLAGS: "-I/usr/local/include"
         LDFLAGS: "-L/usr/local/lib"
+        MESON_CI_JOBNAME: unittests-appleclang
         MESON_UNIT_TEST_BACKEND: ninja
         # These cannot evaluate anything, so we cannot set PATH or SDKROOT here
       run: |
