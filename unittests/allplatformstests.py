@@ -578,7 +578,10 @@ class AllPlatformTests(BasePlatformTests):
         self.init(testdir)
         self.build()
         out = self._run(self.mtest_command + ['--suite', 'verbose'])
-        self.assertIn('1/1 subtest 1', out)
+        self.assertIn('subtest 1 OK', out)
+        self.assertIn('subtest 2 SKIP', out)
+        self.assertIn('command:', out)
+        self.assertIn('exit details:', out)
 
     def test_long_output(self):
         testdir = os.path.join(self.common_test_dir, '254 long output')

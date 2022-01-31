@@ -146,21 +146,6 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
                         '"subprojname:" to run all tests defined by "subprojname".')
 
 
-def print_safe(s: str) -> None:
-    end = '' if s[-1] == '\n' else '\n'
-    try:
-        print(s, end=end)
-    except UnicodeEncodeError:
-        s = s.encode('ascii', errors='backslashreplace').decode('ascii')
-        print(s, end=end)
-
-def join_lines(a: str, b: str) -> str:
-    if not a:
-        return b
-    if not b:
-        return a
-    return a + '\n' + b
-
 def dashes(s: str, dash: str, cols: int) -> str:
     if not s:
         return dash * cols
@@ -266,9 +251,6 @@ class TestResult(enum.Enum):
     def get_text(self, colorize: bool) -> str:
         result_str = '{res:{reslen}}'.format(res=self.value, reslen=self.maxlen())
         return self.colorize(result_str).get_text(colorize)
-
-    def get_command_marker(self) -> str:
-        return str(self.colorize('>>> '))
 
 
 TYPE_TAPResult = T.Union['TAPParser.Test',
@@ -481,11 +463,6 @@ class ConsoleLogger(TestLogger):
     SPINNER = ["\U0001f311", "\U0001f312", "\U0001f313", "\U0001f314",
                "\U0001f315", "\U0001f316", "\U0001f317", "\U0001f318"]
 
-    SCISSORS = "\u2700 "
-    HLINE = "\u2015"
-    RTRI = "\u25B6 "
-    SUB = RTRI
-
     def __init__(self) -> None:
         self.running_tests = OrderedSet()  # type: OrderedSet['TestRun']
         self.progress_test = None          # type: T.Optional['TestRun']
@@ -503,16 +480,10 @@ class ConsoleLogger(TestLogger):
         except OSError:
             self.cols = 80
             self.is_tty = False
-
-        self.output_start = dashes(self.SCISSORS, self.HLINE, self.cols - 2)
-        self.output_end = dashes('', self.HLINE, self.cols - 2)
-        self.spinner = self.SPINNER
         try:
-            self.output_start.encode(sys.stdout.encoding or 'ascii')
+            self.spinner = self.SPINNER
+            self.spinner[0].encode(sys.stdout.encoding or 'ascii')
         except UnicodeEncodeError:
-            self.output_start = dashes('8<', '-', self.cols - 2)
-            self.output_end = dashes('', '-', self.cols - 2)
-            ConsoleLogger.SUB = '| '
             self.spinner = self.ASCII_SPINNER
 
     def flush(self) -> None:
@@ -598,71 +569,124 @@ class ConsoleLogger(TestLogger):
             self.progress_task = asyncio.ensure_future(report_progress())
 
     def start_test(self, harness: 'TestHarness', test: 'TestRun') -> None:
-        if test.verbose and test.cmdline:
+        if test.verbose > 1 and test.cmdline:
             self.flush()
             print(harness.format(test, mlog.colorize_console(),
                                  max_left_width=self.max_left_width,
                                  right=test.res.get_text(mlog.colorize_console())))
-            print(test.res.get_command_marker() + test.cmdline)
-            if test.direct_stdout:
-                print(self.output_start, flush=True)
-            elif not test.needs_parsing:
-                print(flush=True)
-
         self.started_tests += 1
         self.running_tests.add(test)
         self.running_tests.move_to_end(test, last=False)
         self.request_update()
 
-    def shorten_log(self, harness: 'TestHarness', result: 'TestRun') -> str:
-        if not result.verbose and not harness.options.print_errorlogs:
-            return ''
+    def print_header(self,
+                     prefix: str,
+                     header: str,
+                     update: bool = True) -> None:
+        header += ':'
 
-        log = result.get_log(mlog.colorize_console(),
-                             stderr_only=result.needs_parsing)
-        if result.verbose:
-            return log
+        self.flush()
+        print(prefix + mlog.italic(f'{header:<9}').get_text(mlog.colorize_console()))
 
-        lines = log.splitlines()
-        if len(lines) < 100:
-            return log
-        else:
-            return str(mlog.bold('Listing only the last 100 lines from a long log.\n')) + '\n'.join(lines[-100:])
+        if update:
+            self.request_update()
 
-    def print_log(self, harness: 'TestHarness', result: 'TestRun') -> None:
-        if not result.verbose:
-            cmdline = result.cmdline
-            if not cmdline:
-                print(result.res.get_command_marker() + result.stdo)
-                return
-            print(result.res.get_command_marker() + cmdline)
+    def print_line(self,
+                   prefix: str,
+                   line: str,
+                   update: bool = True) -> None:
+        self.flush()
+        print(prefix + '  ' + line.strip())
 
-        log = self.shorten_log(harness, result)
-        if log:
-            print(self.output_start)
-            print_safe(log)
-            print(self.output_end)
+        if update:
+            self.request_update()
+
+    def print_section(self,
+                      prefix: str,
+                      header: str,
+                      lines: T.Union[T.List[str], str],
+                      clip: T.Optional[bool] = False) -> None:
+        offset = 0
+        if not isinstance(lines, list):
+            lines = [lines]
+        if clip and len(lines) > 100:
+            offset = -100
+            header += ' (only the last 100 lines from a long output included)'
+        self.print_header(prefix, header, update=False)
+        for line in lines[offset:]:
+            self.print_line(prefix, line, update=False)
+
+    def print_exit_details_section(self, prefix: str, result: 'TestRun') -> None:
+        details = [result.get_exit_status()]
+        results = result.get_results()
+        if results:
+            details += [results]
+        self.print_section(prefix, "exit details", details)
+
+    def print_command_details(self, prefix: str, result: 'TestRun') -> None:
+        if result.cmdline:
+            self.print_section(prefix, "command", result.cmdline)
+
+    def print_subtest_result(self,
+                             harness: 'TestHarness',
+                             prefix: str,
+                             name: str,
+                             result: 'TestResult') -> None:
+        self.print_line(prefix, harness.format_subtest(None, name, result))
+
+    def print_subtests_section(self, prefix: str, result: 'TestRun') -> None:
+        if result.results:
+            self.print_header(prefix, 'subtest results', update=False)
+        for subtest in result.results:
+            name = subtest.name or subtest.number
+            res = subtest.result.get_text(mlog.colorize_console())
+            self.print_line(prefix,
+                            f'subtest {name} {res}',
+                            update=False)
+
+    def print_log(self,
+                  harness: 'TestHarness',
+                  result: 'TestRun') -> None:
+        if not result.verbose or (result.res.is_bad() and harness.options.print_errorlogs):
+            return
+        prefix = harness.get_test_num_prefix(result.num)
+        if not result.direct_stdout:
+            self.print_command_details(prefix, result)
+        if not (result.direct_stdout and not result.needs_parsing):
+            # This was printed "live" when running the test.
+            if result.stdo:
+                if harness.options.split or result.stde:
+                    name = 'stdout'
+                else:
+                    name = 'output'
+                self.print_section(prefix,
+                                   name,
+                                   result.stdo.splitlines(),
+                                   not result.verbose)
+            if result.stde:
+                self.print_section(prefix,
+                                   "stderr",
+                                   result.stde.splitlines(),
+                                   not result.verbose)
+        if not (result.direct_stdout and result.needs_parsing):
+            self.print_subtests_section(prefix, result)
+
+        if result.additional_error:
+            self.print_section(prefix,
+                               "additional error",
+                               result.additional_error.splitlines(),
+                               not result.verbose)
+        self.print_exit_details_section(prefix, result)
 
     def log(self, harness: 'TestHarness', result: 'TestRun') -> None:
         self.running_tests.remove(result)
         if result.res is TestResult.TIMEOUT and (result.verbose or
                                                  harness.options.print_errorlogs):
-            self.flush()
-            print(f'{result.name} time out (After {result.timeout} seconds)')
-
+            result.additional_error += f'timed out (after {result.timeout} seconds)\n'
         if not harness.options.quiet or not result.res.is_ok():
             self.flush()
-            if result.cmdline and result.direct_stdout:
-                print(self.output_end)
-                print(harness.format(result, mlog.colorize_console(), max_left_width=self.max_left_width))
-            else:
-                print(harness.format(result, mlog.colorize_console(), max_left_width=self.max_left_width),
-                      flush=True)
-                if result.verbose or result.res.is_bad():
-                    self.print_log(harness, result)
-            if result.verbose or result.res.is_bad():
-                print(flush=True)
-
+            self.print_log(harness, result)
+            print(harness.format(result, mlog.colorize_console(), max_left_width=self.max_left_width))
         self.request_update()
 
     async def finish(self, harness: 'TestHarness') -> None:
@@ -901,7 +925,7 @@ class TestRun:
 
     @property
     def direct_stdout(self) -> bool:
-        return bool(self.verbose) and not self.is_parallel and not self.needs_parsing
+        return bool(self.verbose) and not self.is_parallel
 
     def get_results(self) -> str:
         if self.results:
@@ -952,23 +976,6 @@ class TestRun:
 
     def complete(self) -> None:
         self._complete()
-
-    def get_log(self, colorize: bool = False, stderr_only: bool = False) -> str:
-        stdo = '' if stderr_only else self.stdo
-        if self.stde or self.additional_error:
-            res = ''
-            if stdo:
-                res += mlog.cyan('stdout:').get_text(colorize) + '\n'
-                res += stdo
-                if res[-1:] != '\n':
-                    res += '\n'
-            res += mlog.cyan('stderr:').get_text(colorize) + '\n'
-            res += join_lines(self.stde, self.additional_error)
-        else:
-            res = stdo
-        if res and res[-1:] != '\n':
-            res += '\n'
-        return res
 
     @property
     def needs_parsing(self) -> bool:
@@ -1301,8 +1308,9 @@ class TestSubprocess:
             if self.stde_task:
                 self.stde_task.cancel()
 
-    async def wait(self, test: 'TestRun') -> None:
+    async def wait(self, test: 'TestRun') -> bool:
         p = self._process
+        rv = False
 
         self.all_futures.append(asyncio.ensure_future(p.wait()))
         try:
@@ -1310,15 +1318,19 @@ class TestSubprocess:
         except asyncio.TimeoutError:
             test.additional_error += await self._kill() or ''
             test.res = TestResult.TIMEOUT
+            rv = True
         except asyncio.CancelledError:
             # The main loop must have seen Ctrl-C.
             test.additional_error += await self._kill() or ''
             test.res = TestResult.INTERRUPT
+            rv = True
         finally:
             if self.postwait_fn:
                 self.postwait_fn()
 
         test.returncode = p.returncode or 0
+
+        return rv
 
 class SingleTestRunner:
 
@@ -1461,11 +1473,33 @@ class SingleTestRunner:
                               postwait_fn=postwait_fn if not is_windows() else None)
 
     async def _run_cmd(self, harness: 'TestHarness', cmd: T.List[str]) -> None:
+        console_log = harness.get_console_logger()
+        prefix = None  # type: T.Optional[str]
+        printer_header = None
+
+        # The test numbers get enumerated when self.runobj.num is accessed
+        # for the first time. In order to number the tests by their
+        # completion order postpone accessing self.runobj.num as much as
+        # possible.
+        def get_prefix() -> str:
+            nonlocal prefix
+            if prefix is None:
+                prefix = harness.get_test_num_prefix(self.runobj.num)
+            return prefix
+
         def printer(line: str, result: T.Optional[TestResult]) -> None:
-            if result and (self.runobj.verbose or self.runobj.direct_stdout):
-                print(harness.format_subtest(self.runobj, line, result), end='', flush=True)
-            elif self.runobj.direct_stdout:
-                print(line, end='', flush=True)
+            nonlocal printer_header
+            if self.runobj.direct_stdout:
+                if printer_header:
+                    console_log.print_header(get_prefix(), printer_header)
+                    printer_header = None
+                if result:
+                    console_log.print_subtest_result(harness,
+                                                     get_prefix(),
+                                                     line,
+                                                     result)
+                else:
+                    console_log.print_line(get_prefix(), line)
 
         if self.console_mode is ConsoleUser.GDB:
             stdout = None
@@ -1490,19 +1524,27 @@ class SingleTestRunner:
                                        cwd=self.test.workdir)
 
         if self.runobj.needs_parsing:
+            printer_header = 'parsed output'
             parse_coro = self.runobj.parse(harness,
                                            p.stdout_lines(),
                                            printer)
             parse_task = asyncio.ensure_future(parse_coro)
             stdo_task, stde_task = p.communicate(self.runobj)
         else:
+            printer_header = 'output'
             stdo_task, stde_task = p.communicate(self.runobj, printer)
             parse_task = None
 
-        await p.wait(self.runobj)
+        if self.runobj.direct_stdout:
+            console_log.print_command_details(get_prefix(), self.runobj)
+
+        err = await p.wait(self.runobj)
 
         if parse_task:
-            await parse_task
+            if err:
+                parse_task.cancel()
+            else:
+                await parse_task
         if stdo_task:
             await stdo_task
         if stde_task:
@@ -1724,14 +1766,13 @@ class TestHarness:
     def format_subtest(self,
                        test: 'TestRun',
                        name: str,
-                       result: TestResult,
-                       prefix: T.Optional[str] = None) -> str:
+                       result: TestResult) -> str:
         return self.format(test,
                            mlog.colorize_console(),
+                           left='',
                            max_left_width=self.max_left_width,
-                           prefix=prefix if prefix is not None else ConsoleLogger.SUB,
                            middle=name,
-                           right=result.get_text(mlog.colorize_console())) + '\n'
+                           right=result.get_text(mlog.colorize_console()))
 
     def summary(self) -> str:
         return textwrap.dedent('''
