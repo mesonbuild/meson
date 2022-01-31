@@ -883,8 +883,8 @@ class TestRun:
         self.returncode = 0
         self.starttime = None  # type: T.Optional[float]
         self.duration = None   # type: T.Optional[float]
-        self.stdo = None       # type: T.Optional[str]
-        self.stde = None       # type: T.Optional[str]
+        self.stdo = ''
+        self.stde = ''
         self.cmd = None        # type: T.Optional[T.List[str]]
         self.env = test_env    # type: T.Dict[str, str]
         self.should_fail = test.should_fail
@@ -930,17 +930,18 @@ class TestRun:
             return self.get_exit_status()
         return self.get_results()
 
-    def _complete(self, returncode: int, res: TestResult,
-                  stdo: T.Optional[str], stde: T.Optional[str]) -> None:
+    def _complete(self, returncode: int, res: TestResult) -> None:
         assert isinstance(res, TestResult)
         if self.should_fail and res in (TestResult.OK, TestResult.FAIL):
             res = TestResult.UNEXPECTEDPASS if res.is_ok() else TestResult.EXPECTEDFAIL
 
+        if self.stdo and not self.stdo.endswith('\n'):
+            self.stdo += '\n'
+        if self.stde and not self.stde.endswith('\n'):
+            self.stde += '\n'
         self.res = res
         self.returncode = returncode
         self.duration = time.time() - self.starttime
-        self.stdo = stdo
-        self.stde = stde
 
     @property
     def cmdline(self) -> T.Optional[str]:
@@ -950,13 +951,12 @@ class TestRun:
         return env_tuple_to_str(test_only_env) + \
             ' '.join(sh_quote(x) for x in self.cmd)
 
-    def complete_skip(self, message: str) -> None:
+    def complete_skip(self) -> None:
         self.starttime = time.time()
-        self._complete(GNU_SKIP_RETURNCODE, TestResult.SKIP, message, None)
+        self._complete(GNU_SKIP_RETURNCODE, TestResult.SKIP)
 
-    def complete(self, returncode: int, res: TestResult,
-                 stdo: T.Optional[str], stde: T.Optional[str]) -> None:
-        self._complete(returncode, res, stdo, stde)
+    def complete(self, returncode: int, res: TestResult) -> None:
+        self._complete(returncode, res)
 
     def get_log(self, colorize: bool = False, stderr_only: bool = False) -> str:
         stdo = '' if stderr_only else self.stdo
@@ -987,8 +987,7 @@ class TestRun:
 
 class TestRunExitCode(TestRun):
 
-    def complete(self, returncode: int, res: TestResult,
-                 stdo: T.Optional[str], stde: T.Optional[str]) -> None:
+    def complete(self, returncode: int, res: TestResult) -> None:
         if res:
             pass
         elif returncode == GNU_SKIP_RETURNCODE:
@@ -997,14 +996,13 @@ class TestRunExitCode(TestRun):
             res = TestResult.ERROR
         else:
             res = TestResult.FAIL if bool(returncode) else TestResult.OK
-        super().complete(returncode, res, stdo, stde)
+        super().complete(returncode, res)
 
 TestRun.PROTOCOL_TO_CLASS[TestProtocol.EXITCODE] = TestRunExitCode
 
 
 class TestRunGTest(TestRunExitCode):
-    def complete(self, returncode: int, res: TestResult,
-                 stdo: T.Optional[str], stde: T.Optional[str]) -> None:
+    def complete(self, returncode: int, res: TestResult) -> None:
         filename = f'{self.test.name}.xml'
         if self.test.workdir:
             filename = os.path.join(self.test.workdir, filename)
@@ -1017,7 +1015,7 @@ class TestRunGTest(TestRunExitCode):
             # will handle the failure, don't generate a stacktrace.
             pass
 
-        super().complete(returncode, res, stdo, stde)
+        super().complete(returncode, res)
 
 TestRun.PROTOCOL_TO_CLASS[TestProtocol.GTEST] = TestRunGTest
 
@@ -1027,14 +1025,13 @@ class TestRunTAP(TestRun):
     def needs_parsing(self) -> bool:
         return True
 
-    def complete(self, returncode: int, res: TestResult,
-                 stdo: str, stde: str) -> None:
+    def complete(self, returncode: int, res: TestResult) -> None:
         if returncode != 0 and not res.was_killed():
             res = TestResult.ERROR
-            stde = stde or ''
-            stde += f'\n(test program exited with status code {returncode})'
+            self.stde = self.stde or ''
+            self.stde += f'\n(test program exited with status code {returncode})'
 
-        super().complete(returncode, res, stdo, stde)
+        super().complete(returncode, res)
 
     async def parse(self, harness: 'TestHarness', lines: T.AsyncIterator[str]) -> T.Tuple[TestResult, str]:
         res = TestResult.OK
@@ -1230,16 +1227,28 @@ class TestSubprocess:
         self.stdo_task = asyncio.ensure_future(decode_coro)
         return queue_iter(q)
 
-    def communicate(self, console_mode: ConsoleUser) -> T.Tuple[T.Optional[T.Awaitable[str]],
-                                                                T.Optional[T.Awaitable[str]]]:
+    def communicate(self,
+                    test: 'TestRun',
+                    console_mode: ConsoleUser) -> T.Tuple[T.Optional[T.Awaitable[str]],
+                                                          T.Optional[T.Awaitable[str]]]:
+        async def collect_stdo(test: 'TestRun',
+                               reader: asyncio.StreamReader,
+                               console_mode: ConsoleUser) -> None:
+            test.stdo = await read_decode(reader, console_mode)
+
+        async def collect_stde(test: 'TestRun',
+                               reader: asyncio.StreamReader,
+                               console_mode: ConsoleUser) -> None:
+            test.stde = await read_decode(reader, console_mode)
+
         # asyncio.ensure_future ensures that printing can
         # run in the background, even before it is awaited
         if self.stdo_task is None and self.stdout is not None:
-            decode_coro = read_decode(self._process.stdout, console_mode)
+            decode_coro = collect_stdo(test, self._process.stdout, console_mode)
             self.stdo_task = asyncio.ensure_future(decode_coro)
             self.all_futures.append(self.stdo_task)
         if self.stderr is not None and self.stderr != asyncio.subprocess.STDOUT:
-            decode_coro = read_decode(self._process.stderr, console_mode)
+            decode_coro = collect_stde(test, self._process.stderr, console_mode)
             self.stde_task = asyncio.ensure_future(decode_coro)
             self.all_futures.append(self.stde_task)
 
@@ -1402,9 +1411,9 @@ class SingleTestRunner:
 
     async def run(self, harness: 'TestHarness') -> TestRun:
         if self.cmd is None:
-            skip_stdout = 'Not run because can not execute cross compiled binaries.'
+            self.stdo = 'Not run because can not execute cross compiled binaries.'
             harness.log_start_test(self.runobj)
-            self.runobj.complete_skip(skip_stdout)
+            self.runobj.complete_skip()
         else:
             cmd = self.cmd + self.test.cmd_args + self.options.test_args
             self.runobj.start(cmd)
@@ -1473,8 +1482,11 @@ class SingleTestRunner:
         if self.runobj.needs_parsing:
             parse_coro = self.runobj.parse(harness, p.stdout_lines())
             parse_task = asyncio.ensure_future(parse_coro)
+            stdo_task = stde_task = None
+        else:
+            stdo_task, stde_task = p.communicate(self.runobj, self.console_mode)
+            parse_task = None
 
-        stdo_task, stde_task = p.communicate(self.console_mode)
         returncode, result, additional_error = await p.wait(self.runobj.timeout)
 
         if parse_task is not None:
@@ -1483,10 +1495,13 @@ class SingleTestRunner:
                 additional_error = join_lines(additional_error, error)
             result = result or res
 
-        stdo = await stdo_task if stdo_task else ''
-        stde = await stde_task if stde_task else ''
-        stde = join_lines(stde, additional_error)
-        self.runobj.complete(returncode, result, stdo, stde)
+        if stdo_task:
+            await stdo_task
+        if stde_task:
+            await stde_task
+
+        self.runobj.stde = join_lines(self.runobj.stde, additional_error)
+        self.runobj.complete(returncode, result)
 
 
 class TestHarness:
