@@ -880,11 +880,12 @@ class TestRun:
         self.name = name
         self.timeout = timeout
         self.results = list()  # type: T.List[TAPParser.Test]
-        self.returncode = 0
+        self.returncode = None  # type: T.Optional[int]
         self.starttime = None  # type: T.Optional[float]
         self.duration = None   # type: T.Optional[float]
         self.stdo = ''
         self.stde = ''
+        self.additional_error = ''
         self.cmd = None        # type: T.Optional[T.List[str]]
         self.env = test_env    # type: T.Dict[str, str]
         self.should_fail = test.should_fail
@@ -930,17 +931,16 @@ class TestRun:
             return self.get_exit_status()
         return self.get_results()
 
-    def _complete(self, returncode: int, res: TestResult) -> None:
-        assert isinstance(res, TestResult)
-        if self.should_fail and res in (TestResult.OK, TestResult.FAIL):
-            res = TestResult.UNEXPECTEDPASS if res.is_ok() else TestResult.EXPECTEDFAIL
-
+    def _complete(self) -> None:
+        if self.res == TestResult.RUNNING:
+            self.res = TestResult.OK
+        assert isinstance(self.res, TestResult)
+        if self.should_fail and self.res in (TestResult.OK, TestResult.FAIL):
+            self.res = TestResult.UNEXPECTEDPASS if self.res is TestResult.OK else TestResult.EXPECTEDFAIL
         if self.stdo and not self.stdo.endswith('\n'):
             self.stdo += '\n'
         if self.stde and not self.stde.endswith('\n'):
             self.stde += '\n'
-        self.res = res
-        self.returncode = returncode
         self.duration = time.time() - self.starttime
 
     @property
@@ -953,14 +953,16 @@ class TestRun:
 
     def complete_skip(self) -> None:
         self.starttime = time.time()
-        self._complete(GNU_SKIP_RETURNCODE, TestResult.SKIP)
+        self.returncode = GNU_SKIP_RETURNCODE
+        self.res = TestResult.SKIP
+        self._complete()
 
-    def complete(self, returncode: int, res: TestResult) -> None:
-        self._complete(returncode, res)
+    def complete(self) -> None:
+        self._complete()
 
     def get_log(self, colorize: bool = False, stderr_only: bool = False) -> str:
         stdo = '' if stderr_only else self.stdo
-        if self.stde:
+        if self.stde or self.additional_error:
             res = ''
             if stdo:
                 res += mlog.cyan('stdout:').get_text(colorize) + '\n'
@@ -968,7 +970,7 @@ class TestRun:
                 if res[-1:] != '\n':
                     res += '\n'
             res += mlog.cyan('stderr:').get_text(colorize) + '\n'
-            res += self.stde
+            res += join_lines(self.stde, self.additional_error)
         else:
             res = stdo
         if res and res[-1:] != '\n':
@@ -979,30 +981,29 @@ class TestRun:
     def needs_parsing(self) -> bool:
         return False
 
-    async def parse(self, harness: 'TestHarness', lines: T.AsyncIterator[str]) -> T.Tuple[TestResult, str]:
+    async def parse(self, harness: 'TestHarness', lines: T.AsyncIterator[str]) -> None:
         async for l in lines:
             pass
-        return TestResult.OK, ''
 
 
 class TestRunExitCode(TestRun):
 
-    def complete(self, returncode: int, res: TestResult) -> None:
-        if res:
+    def complete(self) -> None:
+        if self.res != TestResult.RUNNING:
             pass
-        elif returncode == GNU_SKIP_RETURNCODE:
-            res = TestResult.SKIP
-        elif returncode == GNU_ERROR_RETURNCODE:
-            res = TestResult.ERROR
+        elif self.returncode == GNU_SKIP_RETURNCODE:
+            self.res = TestResult.SKIP
+        elif self.returncode == GNU_ERROR_RETURNCODE:
+            self.res = TestResult.ERROR
         else:
-            res = TestResult.FAIL if bool(returncode) else TestResult.OK
-        super().complete(returncode, res)
+            self.res = TestResult.FAIL if bool(self.returncode) else TestResult.OK
+        super().complete()
 
 TestRun.PROTOCOL_TO_CLASS[TestProtocol.EXITCODE] = TestRunExitCode
 
 
 class TestRunGTest(TestRunExitCode):
-    def complete(self, returncode: int, res: TestResult) -> None:
+    def complete(self) -> None:
         filename = f'{self.test.name}.xml'
         if self.test.workdir:
             filename = os.path.join(self.test.workdir, filename)
@@ -1015,7 +1016,7 @@ class TestRunGTest(TestRunExitCode):
             # will handle the failure, don't generate a stacktrace.
             pass
 
-        super().complete(returncode, res)
+        super().complete()
 
 TestRun.PROTOCOL_TO_CLASS[TestProtocol.GTEST] = TestRunGTest
 
@@ -1025,17 +1026,15 @@ class TestRunTAP(TestRun):
     def needs_parsing(self) -> bool:
         return True
 
-    def complete(self, returncode: int, res: TestResult) -> None:
-        if returncode != 0 and not res.was_killed():
-            res = TestResult.ERROR
+    def complete(self) -> None:
+        if self.returncode != 0 and not self.res.was_killed():
+            self.res = TestResult.ERROR
             self.stde = self.stde or ''
-            self.stde += f'\n(test program exited with status code {returncode})'
+            self.stde += f'\n(test program exited with status code {self.returncode})'
+        super().complete()
 
-        super().complete(returncode, res)
-
-    async def parse(self, harness: 'TestHarness', lines: T.AsyncIterator[str]) -> T.Tuple[TestResult, str]:
-        res = TestResult.OK
-        error = ''
+    async def parse(self, harness: 'TestHarness', lines: T.AsyncIterator[str]) -> None:
+        res = None
 
         async for i in TAPParser().parse_async(lines):
             if isinstance(i, TAPParser.Bailout):
@@ -1047,13 +1046,15 @@ class TestRunTAP(TestRun):
                     res = TestResult.FAIL
                 harness.log_subtest(self, i.name or f'subtest {i.number}', i.result)
             elif isinstance(i, TAPParser.Error):
-                error = '\nTAP parsing error: ' + i.message
+                self.additional_error += 'TAP parsing error: ' + i.message
                 res = TestResult.ERROR
 
         if all(t.result is TestResult.SKIP for t in self.results):
             # This includes the case where self.results is empty
             res = TestResult.SKIP
-        return res, error
+
+        if res and self.res == TestResult.RUNNING:
+            self.res = res
 
 TestRun.PROTOCOL_TO_CLASS[TestProtocol.TAP] = TestRunTAP
 
@@ -1063,7 +1064,7 @@ class TestRunRust(TestRun):
     def needs_parsing(self) -> bool:
         return True
 
-    async def parse(self, harness: 'TestHarness', lines: T.AsyncIterator[str]) -> T.Tuple[TestResult, str]:
+    async def parse(self, harness: 'TestHarness', lines: T.AsyncIterator[str]) -> None:
         def parse_res(n: int, name: str, result: str) -> TAPParser.Test:
             if result == 'ok':
                 return TAPParser.Test(n, name, TestResult.OK, None)
@@ -1084,14 +1085,18 @@ class TestRunRust(TestRun):
                 harness.log_subtest(self, name, t.result)
                 n += 1
 
+        res = None
+
         if all(t.result is TestResult.SKIP for t in self.results):
             # This includes the case where self.results is empty
-            return TestResult.SKIP, ''
+            res = TestResult.SKIP
         elif any(t.result is TestResult.ERROR for t in self.results):
-            return TestResult.ERROR, ''
+            res = TestResult.ERROR
         elif any(t.result is TestResult.FAIL for t in self.results):
-            return TestResult.FAIL, ''
-        return TestResult.OK, ''
+            res = TestResult.FAIL
+
+        if res and self.res == TestResult.RUNNING:
+            self.res = res
 
 TestRun.PROTOCOL_TO_CLASS[TestProtocol.RUST] = TestRunRust
 
@@ -1299,26 +1304,24 @@ class TestSubprocess:
             if self.stde_task:
                 self.stde_task.cancel()
 
-    async def wait(self, timeout: T.Optional[int]) -> T.Tuple[int, TestResult, T.Optional[str]]:
+    async def wait(self, test: 'TestRun') -> None:
         p = self._process
-        result = None
-        additional_error = None
 
         self.all_futures.append(asyncio.ensure_future(p.wait()))
         try:
-            await complete_all(self.all_futures, timeout=timeout)
+            await complete_all(self.all_futures, timeout=test.timeout)
         except asyncio.TimeoutError:
-            additional_error = await self._kill()
-            result = TestResult.TIMEOUT
+            test.additional_error += await self._kill() or ''
+            test.res = TestResult.TIMEOUT
         except asyncio.CancelledError:
             # The main loop must have seen Ctrl-C.
-            additional_error = await self._kill()
-            result = TestResult.INTERRUPT
+            test.additional_error += await self._kill() or ''
+            test.res = TestResult.INTERRUPT
         finally:
             if self.postwait_fn:
                 self.postwait_fn()
 
-        return p.returncode or 0, result, additional_error
+        test.returncode = p.returncode or 0
 
 class SingleTestRunner:
 
@@ -1478,7 +1481,6 @@ class SingleTestRunner:
                                        env=self.runobj.env,
                                        cwd=self.test.workdir)
 
-        parse_task = None
         if self.runobj.needs_parsing:
             parse_coro = self.runobj.parse(harness, p.stdout_lines())
             parse_task = asyncio.ensure_future(parse_coro)
@@ -1487,21 +1489,16 @@ class SingleTestRunner:
             stdo_task, stde_task = p.communicate(self.runobj, self.console_mode)
             parse_task = None
 
-        returncode, result, additional_error = await p.wait(self.runobj.timeout)
+        await p.wait(self.runobj)
 
-        if parse_task is not None:
-            res, error = await parse_task
-            if error:
-                additional_error = join_lines(additional_error, error)
-            result = result or res
-
+        if parse_task:
+            await parse_task
         if stdo_task:
             await stdo_task
         if stde_task:
             await stde_task
 
-        self.runobj.stde = join_lines(self.runobj.stde, additional_error)
-        self.runobj.complete(returncode, result)
+        self.runobj.complete()
 
 
 class TestHarness:
