@@ -1619,18 +1619,19 @@ class TestHarness:
     def max_left_width(self) -> int:
         return 2 * self.numlen + 2
 
+    def get_test_num_prefix(self, num: int) -> str:
+        return '{num:{numlen}}/{testcount} '.format(numlen=self.numlen,
+                                                    num=num,
+                                                    testcount=self.test_count)
+
     def format(self, result: TestRun, colorize: bool,
                max_left_width: int = 0,
                prefix: str = '',
                left: T.Optional[str] = None,
                middle: T.Optional[str] = None,
                right: T.Optional[str] = None) -> str:
-
         if left is None:
-            left = '{num:{numlen}}/{testcount} '.format(
-                numlen=self.numlen,
-                num=result.num,
-                testcount=self.test_count)
+            left = self.get_test_num_prefix(result.num)
 
         # A non-default max_left_width lets the logger print more stuff before the
         # name, while ensuring that the rightmost columns remain aligned.
