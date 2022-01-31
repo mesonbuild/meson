@@ -274,12 +274,12 @@ class LoaderYAML(LoaderBase):
         methods = raw.pop('methods', [])
         obj = Object(methods=[], obj_type=obj_type, **raw)
 
-        methods = []
+        newmethods = []
         for x in methods:
             if not self.strict:
                 x = {**self.template.s_function, **x}
-            methods += [self._process_function_base(x, obj)]
-        obj.methods = as_methods(methods)
+            newmethods += [self._process_function_base(x, obj)]
+        obj.methods = as_methods(newmethods)
         return obj
 
     def _load_module(self, path: Path) -> T.List[Object]:
