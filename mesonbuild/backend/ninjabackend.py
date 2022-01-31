@@ -735,6 +735,9 @@ class NinjaBackend(backends.Backend):
         self.introspection_data[name] = {}
         # Generate rules for all dependency targets
         self.process_target_dependencies(target)
+
+        self.generate_shlib_aliases(target, self.get_target_dir(target))
+
         # If target uses a language that cannot link to C objects,
         # just generate for that language and return.
         if isinstance(target, build.Jar):
@@ -899,7 +902,6 @@ class NinjaBackend(backends.Backend):
             final_obj_list = obj_list
         elem = self.generate_link(target, outname, final_obj_list, linker, pch_objects, stdlib_args=stdlib_args)
         self.generate_dependency_scan_target(target, compiled_sources, source2object, generated_source_files)
-        self.generate_shlib_aliases(target, self.get_target_dir(target))
         self.add_build(elem)
 
     def should_use_dyndeps_for_target(self, target: 'build.BuildTarget') -> bool:
