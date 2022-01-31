@@ -103,10 +103,14 @@ There are several keyword arguments. Many of these map directly to the
 * `header`: *(Added 0.43.0)* name of main c header to include for the library, e.g. `glib.h`
 * `include_directories`: extra include paths to look for gir files
 * `install`: if true, install the generated files
+* `install_gir`: (*Added 0.61.0*) overrides `install`, whether to install the
+  generated gir
 * `install_dir_gir`: (*Added 0.35.0*) which directory to install the
-  gir file into; can be false to disable installation
+  gir file into; (*Deprecated since 0.61.0*) can be false to disable installation
+* `install_typelib`: (*Added 0.61.0*) overrides `install`, whether to install the
+  generated typelib
 * `install_dir_typelib`: (*Added 0.35.0*) which directory to install
-  the typelib file into; can be false to disable installation
+  the typelib file into; (*Deprecated since 0.61.0*) can be false to disable installation
 * `link_with`: list of libraries to link with
 * `symbol_prefix`: the symbol prefix for the gir object, e.g. `gtk`,
   (*Since 0.43.0*) an ordered list of multiple prefixes is allowed
