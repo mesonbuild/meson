@@ -156,6 +156,9 @@ class AnsiText:
 def bold(text: str, quoted: bool = False) -> AnsiDecorator:
     return AnsiDecorator(text, "\033[1m", quoted=quoted)
 
+def italic(text: str, quoted: bool = False) -> AnsiDecorator:
+    return AnsiDecorator(text, "\033[3m", quoted=quoted)
+
 def plain(text: str) -> AnsiDecorator:
     return AnsiDecorator(text, "")
 
