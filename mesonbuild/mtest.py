@@ -455,9 +455,6 @@ class TestLogger:
     def start_test(self, harness: 'TestHarness', test: 'TestRun') -> None:
         pass
 
-    def log_subtest(self, harness: 'TestHarness', test: 'TestRun', s: str, res: TestResult) -> None:
-        pass
-
     def log(self, harness: 'TestHarness', result: 'TestRun') -> None:
         pass
 
@@ -487,6 +484,7 @@ class ConsoleLogger(TestLogger):
     SCISSORS = "\u2700 "
     HLINE = "\u2015"
     RTRI = "\u25B6 "
+    SUB = RTRI
 
     def __init__(self) -> None:
         self.running_tests = OrderedSet()  # type: OrderedSet['TestRun']
@@ -508,14 +506,13 @@ class ConsoleLogger(TestLogger):
 
         self.output_start = dashes(self.SCISSORS, self.HLINE, self.cols - 2)
         self.output_end = dashes('', self.HLINE, self.cols - 2)
-        self.sub = self.RTRI
         self.spinner = self.SPINNER
         try:
             self.output_start.encode(sys.stdout.encoding or 'ascii')
         except UnicodeEncodeError:
             self.output_start = dashes('8<', '-', self.cols - 2)
             self.output_end = dashes('', '-', self.cols - 2)
-            self.sub = '| '
+            ConsoleLogger.SUB = '| '
             self.spinner = self.ASCII_SPINNER
 
     def flush(self) -> None:
@@ -645,16 +642,6 @@ class ConsoleLogger(TestLogger):
             print(self.output_start)
             print_safe(log)
             print(self.output_end)
-
-    def log_subtest(self, harness: 'TestHarness', test: 'TestRun', s: str, result: TestResult) -> None:
-        if test.verbose or (harness.options.print_errorlogs and result.is_bad()):
-            self.flush()
-            print(harness.format(test, mlog.colorize_console(), max_left_width=self.max_left_width,
-                                 prefix=self.sub,
-                                 middle=s,
-                                 right=result.get_text(mlog.colorize_console())), flush=True)
-
-            self.request_update()
 
     def log(self, harness: 'TestHarness', result: 'TestRun') -> None:
         self.running_tests.remove(result)
@@ -987,8 +974,11 @@ class TestRun:
     def needs_parsing(self) -> bool:
         return False
 
-    async def parse(self, harness: 'TestHarness', lines: T.AsyncIterator[str]) -> None:
-        async for l in lines:
+    async def parse(self,
+                    harness: 'TestHarness',
+                    lines: T.AsyncIterator[str],
+                    printer: T.Optional[T.Callable[[str, T.Optional[TestResult]], None]] = None) -> None:
+        async for line in lines:
             pass
 
 
@@ -1039,25 +1029,37 @@ class TestRunTAP(TestRun):
             self.stde += f'\n(test program exited with status code {self.returncode})'
         super().complete()
 
-    async def parse(self, harness: 'TestHarness', lines: T.AsyncIterator[str]) -> None:
+    async def parse(self,
+                    harness: 'TestHarness',
+                    lines: T.AsyncIterator[str],
+                    printer: T.Optional[T.Callable[[str, T.Optional[TestResult]], None]] = None) -> None:
         res = None
 
         async for i in TAPParser().parse_async(lines):
             if isinstance(i, TAPParser.Bailout):
-                res = TestResult.ERROR
-                harness.log_subtest(self, i.message, res)
+                if printer:
+                    printer(i.message, TestResult.ERROR)
+                else:
+                    self.additional_error += \
+                            f'{i.message} {TestResult.ERROR.get_text(False)}\n'
+                res = res or TestResult.ERROR
             elif isinstance(i, TAPParser.Test):
                 self.results.append(i)
+                if printer:
+                    printer(i.name or f'subtest {i.number}', i.result)
                 if i.result.is_bad():
-                    res = TestResult.FAIL
-                harness.log_subtest(self, i.name or f'subtest {i.number}', i.result)
+                    res = res or TestResult.FAIL
             elif isinstance(i, TAPParser.Error):
-                self.additional_error += 'TAP parsing error: ' + i.message
-                res = TestResult.ERROR
+                msg = 'TAP parsing error: ' + i.message
+                if printer:
+                    printer(msg, None)
+                else:
+                    self.additional_error += msg + ('\n' if msg[-1] != '\n' else '')
+                res = res or TestResult.ERROR
 
         if all(t.result is TestResult.SKIP for t in self.results):
             # This includes the case where self.results is empty
-            res = TestResult.SKIP
+            res = res or TestResult.SKIP
 
         if res and self.res == TestResult.RUNNING:
             self.res = res
@@ -1070,7 +1072,10 @@ class TestRunRust(TestRun):
     def needs_parsing(self) -> bool:
         return True
 
-    async def parse(self, harness: 'TestHarness', lines: T.AsyncIterator[str]) -> None:
+    async def parse(self,
+                    harness: 'TestHarness',
+                    lines: T.AsyncIterator[str],
+                    printer: T.Optional[T.Callable[[str, T.Optional[TestResult]], None]] = None) -> None:
         def parse_res(n: int, name: str, result: str) -> TAPParser.Test:
             if result == 'ok':
                 return TAPParser.Test(n, name, TestResult.OK, None)
@@ -1088,7 +1093,8 @@ class TestRunRust(TestRun):
                 name = name.replace('::', '.')
                 t = parse_res(n, name, result)
                 self.results.append(t)
-                harness.log_subtest(self, name, t.result)
+                if printer:
+                    printer(name, t.result)
                 n += 1
 
         res = None
@@ -1117,7 +1123,7 @@ def decode(stream: T.Union[None, bytes]) -> str:
 
 async def read_decode(reader: asyncio.StreamReader,
                       queue: T.Optional['asyncio.Queue[T.Optional[str]]'],
-                      console_mode: ConsoleUser) -> str:
+                      printer: T.Optional[T.Callable[[str, T.Optional[TestResult]], None]] = None) -> str:
     stdo_lines = []
     try:
         while not reader.at_eof():
@@ -1131,16 +1137,15 @@ async def read_decode(reader: asyncio.StreamReader,
             if line_bytes:
                 line = decode(line_bytes)
                 stdo_lines.append(line)
-                if console_mode is ConsoleUser.STDOUT:
-                    print(line, end='', flush=True)
                 if queue:
                     await queue.put(line)
+                if printer:
+                    printer(line, None)
+        if queue:
+            await queue.put(None)
         return ''.join(stdo_lines)
     except asyncio.CancelledError:
         return ''.join(stdo_lines)
-    finally:
-        if queue:
-            await queue.put(None)
 
 def run_with_mono(fname: str) -> bool:
     return fname.endswith('.exe') and not (is_windows() or is_cygwin())
@@ -1225,26 +1230,24 @@ class TestSubprocess:
 
     def communicate(self,
                     test: 'TestRun',
-                    console_mode: ConsoleUser) -> T.Tuple[T.Optional[T.Awaitable[str]],
-                                                          T.Optional[T.Awaitable[str]]]:
+                    printer: T.Optional[T.Callable[[str, T.Optional[TestResult]], None]] = None) \
+            -> T.Tuple[T.Optional[T.Awaitable[str]], T.Optional[T.Awaitable[str]]]:
         async def collect_stdo(test: 'TestRun',
-                               reader: asyncio.StreamReader,
-                               console_mode: ConsoleUser) -> None:
-            test.stdo = await read_decode(reader, self.queue, console_mode)
+                               reader: asyncio.StreamReader) -> None:
+            test.stdo = await read_decode(reader, self.queue, printer)
 
         async def collect_stde(test: 'TestRun',
-                               reader: asyncio.StreamReader,
-                               console_mode: ConsoleUser) -> None:
-            test.stde = await read_decode(reader, None, console_mode)
+                               reader: asyncio.StreamReader) -> None:
+            test.stde = await read_decode(reader, None, printer)
 
         # asyncio.ensure_future ensures that printing can
         # run in the background, even before it is awaited
         if self.stdo_task is None and self.stdout is not None:
-            decode_coro = collect_stdo(test, self._process.stdout, console_mode)
+            decode_coro = collect_stdo(test, self._process.stdout)
             self.stdo_task = asyncio.ensure_future(decode_coro)
             self.all_futures.append(self.stdo_task)
         if self.stderr is not None and self.stderr != asyncio.subprocess.STDOUT:
-            decode_coro = collect_stde(test, self._process.stderr, console_mode)
+            decode_coro = collect_stde(test, self._process.stderr)
             self.stde_task = asyncio.ensure_future(decode_coro)
             self.all_futures.append(self.stde_task)
 
@@ -1454,6 +1457,12 @@ class SingleTestRunner:
                               postwait_fn=postwait_fn if not is_windows() else None)
 
     async def _run_cmd(self, harness: 'TestHarness', cmd: T.List[str]) -> None:
+        def printer(line: str, result: T.Optional[TestResult]) -> None:
+            if result and (self.runobj.verbose or self.runobj.direct_stdout):
+                print(harness.format_subtest(self.runobj, line, result), end='', flush=True)
+            elif self.runobj.direct_stdout:
+                print(line, end='', flush=True)
+
         if self.console_mode is ConsoleUser.GDB:
             stdout = None
             stderr = None
@@ -1477,12 +1486,15 @@ class SingleTestRunner:
                                        cwd=self.test.workdir)
 
         if self.runobj.needs_parsing:
-            parse_coro = self.runobj.parse(harness, p.stdout_lines())
+            parse_coro = self.runobj.parse(harness,
+                                           p.stdout_lines(),
+                                           printer)
             parse_task = asyncio.ensure_future(parse_coro)
+            stdo_task, stde_task = p.communicate(self.runobj)
         else:
+            stdo_task, stde_task = p.communicate(self.runobj, printer)
             parse_task = None
 
-        stdo_task, stde_task = p.communicate(self.runobj, self.console_mode)
         await p.wait(self.runobj)
 
         if parse_task:
@@ -1705,6 +1717,18 @@ class TestHarness:
                 right += '   ' + details
         return prefix + left + middle + right
 
+    def format_subtest(self,
+                       test: 'TestRun',
+                       name: str,
+                       result: TestResult,
+                       prefix: T.Optional[str] = None) -> str:
+        return self.format(test,
+                           mlog.colorize_console(),
+                           max_left_width=self.max_left_width,
+                           prefix=prefix if prefix is not None else ConsoleLogger.SUB,
+                           middle=name,
+                           right=result.get_text(mlog.colorize_console())) + '\n'
+
     def summary(self) -> str:
         return textwrap.dedent('''
             Ok:                 {:<4}
@@ -1893,10 +1917,6 @@ class TestHarness:
             loop.run_until_complete(self._run_tests(runners))
         finally:
             self.close_logfiles()
-
-    def log_subtest(self, test: TestRun, s: str, res: TestResult) -> None:
-        for l in self.loggers:
-            l.log_subtest(self, test, s, res)
 
     def log_start_test(self, test: TestRun) -> None:
         for l in self.loggers:
