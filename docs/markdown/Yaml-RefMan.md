@@ -13,7 +13,10 @@ Additionally, multiple generation backends can be supported (besides the
 Markdown generator for mesonbuild.com).
 
 The generator that reads these YAML files is located in `docs/refman`, with the
-main executable being `docs/genrefman.py`.
+main executable being `docs/genrefman.py`.  By default `genrefman.py` will load
+the yaml manual using a strict subset of yaml at the cost of loading slowly.
+You may optionally disable all these safety checks using the `fastyaml` loader,
+which will significantly speed things up at the cost of being less correct.
 
 ## Linking to the Reference Manual
 
