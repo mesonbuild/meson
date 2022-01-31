@@ -295,9 +295,9 @@ class LoaderYAML(LoaderBase):
         return [module, *objs]
 
     def load_impl(self) -> ReferenceManual:
-        mlog.log('Loading YAML refererence manual')
+        mlog.log('Loading YAML reference manual')
         with mlog.nested():
-            return ReferenceManual(
+            manual = ReferenceManual(
                 functions=[self._load_function(x) for x in self.func_dir.iterdir()],
                 objects=mesonlib.listify([
                     [self._load_object(ObjectType.ELEMENTARY, x) for x in self.elem_dir.iterdir()],
@@ -306,3 +306,8 @@ class LoaderYAML(LoaderBase):
                     [self._load_module(x) for x in self.modules_dir.iterdir()]
                 ], flatten=True)
             )
+
+            if not self.strict:
+                mlog.warning('YAML reference manual loaded using the best-effort fastyaml loader.  Results are not guaranteed to be stable or correct.')
+
+            return manual
