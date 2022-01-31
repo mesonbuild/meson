@@ -1416,7 +1416,7 @@ def Popen_safe_legacy(args: T.List[str], write: T.Optional[str] = None,
         else:
             o = o.decode(errors='replace').replace('\r\n', '\n')
     if e is not None:
-        if sys.stderr.encoding:
+        if sys.stderr is not None and sys.stderr.encoding:
             e = e.decode(encoding=sys.stderr.encoding, errors='replace').replace('\r\n', '\n')
         else:
             e = e.decode(errors='replace').replace('\r\n', '\n')
