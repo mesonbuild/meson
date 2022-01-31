@@ -40,9 +40,13 @@ def main() -> int:
     parser.add_argument('-i', '--input', type=Path, default=meson_root / 'docs' / 'yaml', help='Input path for the selected loader')
     parser.add_argument('--link-defs', type=Path, help='Output file for the MD generator link definition file')
     parser.add_argument('--depfile', type=Path, default=None, help='Set to generate a depfile')
+    parser.add_argument('-q', '--quiet', action='store_true', help='Suppress verbose output')
     parser.add_argument('--force-color', action='store_true', help='Force enable colors')
     parser.add_argument('--no-modules', action='store_true', help='Disable building modules')
     args = parser.parse_args()
+
+    if args.quiet:
+        mlog.set_quiet()
 
     if args.force_color:
         mlog.colorize_console = lambda: True
