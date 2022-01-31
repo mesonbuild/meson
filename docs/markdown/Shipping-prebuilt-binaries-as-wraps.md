@@ -34,3 +34,11 @@ Note that often libraries compiled with different compilers (or even
 compiler flags) might not be compatible. If you do this, then you are
 responsible for verifying that your libraries are compatible, Meson
 will not check things for you.
+
+## Note for Linux libraries
+
+A precompiled linux shared library (.so) requires a soname field to be properly installed. If the soname field is missing, binaries referencing the library will require a hard link to the location of the library at install time (`/path/to/your/project/subprojects/precompiledlibrary/lib.so` instead of `$INSTALL_PREFIX/lib/lib.so`) after installation.
+
+You should change the compilation options for the precompiled library to avoid this issue. If recompiling is not an option, you can use the [patchelf](https://github.com/NixOS/patchelf) tool with the command `patchelf --set-soname libfoo.so libfoo.so` to edit the precompiled library after the fact.
+
+Meson generally guarantees any library it compiles has a soname. One notable exception is libraries built with the [[shared_module]] function.
