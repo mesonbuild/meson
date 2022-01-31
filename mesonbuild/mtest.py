@@ -1758,9 +1758,22 @@ class TestHarness:
                 res=result.res.get_text(colorize),
                 dur=result.duration,
                 durlen=self.duration_max_len + 3)
-            details = result.get_details()
-            if details:
-                right += '   ' + details
+
+            # print details IFF either:
+            # * test is still running
+            # * test needs parsing -> show subtest counts
+            # * an error occurred
+            #
+            # BUT do not show those again after test has finished if they were already
+            # shown because:
+            #  - the --verbose option was given
+            #  - the --print-errorlogs option was given (and error occurred)
+            if (result.res == TestResult.RUNNING or result.res.is_bad() or result.needs_parsing) \
+                    and not result.verbose \
+                    and not (result.res.is_bad() and self.options.print_errorlogs):
+                details = result.get_details()
+                if details:
+                    right += '   ' + details
         return prefix + left + middle + right
 
     def format_subtest(self,
