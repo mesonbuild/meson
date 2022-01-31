@@ -470,6 +470,9 @@ class ConsoleLogger(TestLogger):
         self.test_count = 0
         self.started_tests = 0
         self.print_queue = []  # type: T.List[T.Collection[T.Any]]
+        self.spinner = ['   ', '.  ', '.. ', '...', ' ..', '  .']
+        self.spinner_index = 0
+        self.spinner_tstamp = time.time()
         try:
             self.cols, _ = os.get_terminal_size(1)
             self.is_tty = True
@@ -491,6 +494,13 @@ class ConsoleLogger(TestLogger):
         else:
             print(fmt, *args, **kwargs)
 
+    def get_spinner(self) -> str:
+        now = time.time()
+        if now - self.spinner_tstamp > 1:
+            self.spinner_tstamp = time.time()
+            self.spinner_index = (self.spinner_index + 1) % len(self.spinner)
+        return self.spinner[self.spinner_index]
+
     def flush(self) -> None:
         if self.should_erase_line > 0:
             msg = '\r\x1b[K'
@@ -501,7 +511,7 @@ class ConsoleLogger(TestLogger):
             self.should_erase_line = 0
             print(msg, end='')
 
-    def print_progress(self, lines: T.List[str]) -> None:
+    def print_progress(self, lines: T.List[str], right: bool = False) -> None:
         # self.flush() could be called here but that would cause more
         # flickering of the status line. Set self.should_erase_line to zero
         # instead to allow overwriting of the old status lines.
@@ -513,13 +523,26 @@ class ConsoleLogger(TestLogger):
         if line_count > 0:
             for line in lines[:-1]:
                 self.safe_print(line)
-            self.safe_print(lines[-1], end='\r')
+            self.safe_print(lines[-1], flush=True, end='' if right else '\r')
             if line_count > 1:
                 print(f'\x1b[{line_count - 1}A', end='')
             self.should_erase_line = line_count
 
     def request_update(self) -> None:
         self.update.set()
+
+    def emit_quiet_status(self, harness: 'TestHarness') -> None:
+        tests_total = self.test_count
+        done_tests = TestRun.TEST_NUM
+        running_count = len(self.running_tests)
+        running_count_width = len(str(harness.options.num_processes))
+        msg = '{:>{}} test(s) running, {}/{} tests completed {} '.format(
+                    running_count,
+                    running_count_width,
+                    done_tests,
+                    tests_total,
+                    self.get_spinner())
+        self.print_progress([msg], right=True)
 
     def emit_progress(self, harness: 'TestHarness') -> None:
         lines: T.List[str] = []
@@ -559,7 +582,10 @@ class ConsoleLogger(TestLogger):
                 if loop.time() >= next_update:
                     next_update = loop.time() + 1
                     loop.call_at(next_update, self.request_update)
-                self.emit_progress(harness)
+                if harness.options.quiet:
+                    self.emit_quiet_status(harness)
+                else:
+                    self.emit_progress(harness)
             self.flush()
 
         self.test_count = harness.test_count
@@ -704,6 +730,8 @@ class ConsoleLogger(TestLogger):
             print("\nSummary of Failures:\n")
             for i, result in enumerate(harness.collected_failures, 1):
                 self.print_test_status(harness, result)
+        elif harness.options.quiet:
+            print('\nTest results:')
         print(harness.summary())
 
 
