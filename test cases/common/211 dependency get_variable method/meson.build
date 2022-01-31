@@ -19,6 +19,7 @@ else
         'pkg-config didn\'t get default when we should have.')
   assert(dep.get_variable(pkgconfig : 'prefix', default_value : default) != default,
         'pkg-config got default when we shouldn\'t have.')
+  assert(dep.get_variable(pkgconfig : 'pkgvarnotfound', default_value : '') == '')
 endif
 
 dep_ct = dependency('llvm', method : 'config-tool', required : false)
