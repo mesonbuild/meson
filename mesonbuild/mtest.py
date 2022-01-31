@@ -656,7 +656,8 @@ class ConsoleLogger(TestLogger):
 
     def log(self, harness: 'TestHarness', result: 'TestRun') -> None:
         self.running_tests.remove(result)
-        if result.res is TestResult.TIMEOUT and result.verbose:
+        if result.res is TestResult.TIMEOUT and (result.verbose or
+                                                 harness.options.print_errorlogs):
             self.flush()
             print(f'{result.name} time out (After {result.timeout} seconds)')
 
