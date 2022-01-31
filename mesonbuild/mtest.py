@@ -698,19 +698,23 @@ class TextLogfileBuilder(TestFileLogger):
         self.file.write(f'Inherited environment: {inherit_env}\n\n')
 
     def log(self, harness: 'TestHarness', result: 'TestRun') -> None:
-        self.file.write(harness.format(result, False) + '\n')
-        cmdline = result.cmdline
-        if cmdline:
-            starttime_str = time.strftime("%H:%M:%S", time.gmtime(result.starttime))
-            self.file.write(starttime_str + ' ' + cmdline + '\n')
-            if result.stdo:
-                name = 'stdout' if harness.options.split else 'output'
-                self.file.write(dashes(name, '-', 78) + '\n')
-                self.file.write(result.stdo)
-            if result.stde:
-                self.file.write(dashes('stderr', '-', 78) + '\n')
-                self.file.write(result.stde)
-            self.file.write(dashes('', '-', 78) + '\n\n')
+        title = f'{result.num}/{harness.test_count}'
+        self.file.write(dashes(title, '=', 78) + '\n')
+        self.file.write('test:         ' + result.name + '\n')
+        starttime_str = time.strftime("%H:%M:%S", time.gmtime(result.starttime))
+        self.file.write('start time:   ' + starttime_str + '\n')
+        self.file.write('duration:     ' + '%.2fs' % result.duration + '\n')
+        self.file.write('result:       ' + result.get_exit_status() + '\n')
+        if result.cmdline:
+            self.file.write('command:      ' + result.cmdline + '\n')
+        if result.stdo:
+            name = 'stdout' if harness.options.split else 'output'
+            self.file.write(dashes(name, '-', 78) + '\n')
+            self.file.write(result.stdo)
+        if result.stde:
+            self.file.write(dashes('stderr', '-', 78) + '\n')
+            self.file.write(result.stde)
+        self.file.write(dashes('', '=', 78) + '\n\n')
 
     async def finish(self, harness: 'TestHarness') -> None:
         if harness.collected_failures:
