@@ -463,7 +463,7 @@ class ConsoleLogger(TestLogger):
     SPINNER = ["\U0001f311", "\U0001f312", "\U0001f313", "\U0001f314",
                "\U0001f315", "\U0001f316", "\U0001f317", "\U0001f318"]
 
-    def __init__(self) -> None:
+    def __init__(self, use_statusline: bool) -> None:
         self.running_tests = OrderedSet()  # type: OrderedSet['TestRun']
         self.progress_test = None          # type: T.Optional['TestRun']
         self.progress_task = None          # type: T.Optional[asyncio.Future]
@@ -485,6 +485,7 @@ class ConsoleLogger(TestLogger):
             self.spinner[0].encode(sys.stdout.encoding or 'ascii')
         except UnicodeEncodeError:
             self.spinner = self.ASCII_SPINNER
+        self.use_statusline = self.is_tty and use_statusline
 
     def flush(self) -> None:
         if self.should_erase_line:
@@ -563,7 +564,7 @@ class ConsoleLogger(TestLogger):
         self.test_count = harness.test_count
         self.cols = max(self.cols, harness.max_left_width + 30)
 
-        if self.is_tty and not harness.need_console:
+        if self.use_statusline:
             # Account for "[aa-bb/cc] OO " in the progress report
             self.max_left_width = 3 * len(str(self.test_count)) + 8
             self.progress_task = asyncio.ensure_future(report_progress())
@@ -1567,9 +1568,6 @@ class TestHarness:
         self.name_max_len = 0
         self.is_run = False
         self.loggers = []         # type: T.List[TestLogger]
-        self.console_logger = ConsoleLogger()
-        self.loggers.append(self.console_logger)
-        self.need_console = False
         self.ninja = None # type: T.List[str]
 
         self.logfile_base = None  # type: T.Optional[str]
@@ -1593,6 +1591,9 @@ class TestHarness:
             for s in t.suite:
                 ss.add(s)
         self.suites = list(ss)
+        console_busy = self.options.gdb
+        self.console_logger = ConsoleLogger(not console_busy)
+        self.loggers.append(self.console_logger)
 
     def get_console_logger(self) -> 'ConsoleLogger':
         assert self.console_logger
@@ -1828,9 +1829,6 @@ class TestHarness:
                 if i == 0:
                     self.duration_max_len = max(len(str(int(runner.timeout or 99)))
                                                 for runner in runners)
-                    # Disable the progress report if it gets in the way
-                    self.need_console = any(runner.console_mode is not ConsoleUser.LOGGER
-                                            for runner in runners)
 
             self.test_count = len(runners)
             self.run_tests(runners)
