@@ -42,5 +42,5 @@ jobs:
     - uses: actions/setup-python@v2
       with:
         python-version: '3.x'
-    - run: python -m pip install mypy
+    - run: python -m pip install mypy types-PyYAML
     - run: python run_mypy.py
