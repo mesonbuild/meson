@@ -550,9 +550,9 @@ class ConsoleLogger(TestLogger):
                 timeout=self.progress_test.timeout,
                 durlen=harness.duration_max_len)
         right += 's'
-        detail = self.progress_test.detail
-        if detail:
-            right += '   ' + detail
+        details = self.progress_test.get_details()
+        if details:
+            right += '   ' + details
 
         line = harness.format(self.progress_test, colorize=True,
                               max_left_width=self.max_left_width,
@@ -900,8 +900,7 @@ class TestRun:
     def direct_stdout(self) -> bool:
         return self.verbose and not self.is_parallel and not self.needs_parsing
 
-    @property
-    def detail(self) -> str:
+    def get_details(self) -> str:
         if self.res is TestResult.PENDING:
             return ''
         if self.returncode:
@@ -1641,9 +1640,9 @@ class TestHarness:
                 res=result.res.get_text(colorize),
                 dur=result.duration,
                 durlen=self.duration_max_len + 3)
-            detail = result.detail
-            if detail:
-                right += '   ' + detail
+            details = result.get_details()
+            if details:
+                right += '   ' + details
         return prefix + left + middle + right
 
     def summary(self) -> str:
