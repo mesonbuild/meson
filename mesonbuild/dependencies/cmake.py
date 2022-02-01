@@ -546,7 +546,7 @@ class CMakeDependency(ExternalDependency):
             if not autodetected_module_list:
                 self.found_modules += [i]
 
-            rtgt = resolve_cmake_trace_targets(i ,self.traceparser, self.env,
+            rtgt = resolve_cmake_trace_targets(i, self.traceparser, self.env,
                 clib_compiler=self.clib_compiler,
                 not_found_warning=lambda x: mlog.warning('CMake: Dependency', mlog.bold(x), 'for', mlog.bold(name), 'was not found')
             )

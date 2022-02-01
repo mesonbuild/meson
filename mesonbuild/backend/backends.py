@@ -51,7 +51,7 @@ if T.TYPE_CHECKING:
     class TargetIntrospectionData(TypedDict):
 
         language: str
-        compiler : T.List[str]
+        compiler: T.List[str]
         parameters: T.List[str]
         sources: T.List[str]
         generated_sources: T.List[str]

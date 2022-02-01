@@ -1029,7 +1029,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         if initial_values is not None:
             FeatureNew.single_use('configuration_data dictionary', '0.49.0', self.subproject, location=node)
             for k, v in initial_values.items():
-                if not isinstance(v, (str, int ,bool)):
+                if not isinstance(v, (str, int, bool)):
                     raise InvalidArguments(
                         f'"configuration_data": initial value dictionary key "{k!r}"" must be "str | int | bool", not "{v!r}"')
         return build.ConfigurationData(initial_values)
@@ -2308,7 +2308,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             if isinstance(conf, dict):
                 FeatureNew.single_use('configure_file.configuration dictionary', '0.49.0', self.subproject, location=node)
                 for k, v in conf.items():
-                    if not isinstance(v, (str, int ,bool)):
+                    if not isinstance(v, (str, int, bool)):
                         raise InvalidArguments(
                             f'"configuration_data": initial value dictionary key "{k!r}"" must be "str | int | bool", not "{v!r}"')
                 conf = build.ConfigurationData(conf)

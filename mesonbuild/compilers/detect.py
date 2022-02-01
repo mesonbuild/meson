@@ -613,7 +613,7 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
                 ccache + compiler, version, for_machine, is_cross, info,
                 exe_wrap, full_version=full_version, linker=l)
         if 'TMS320C2000 C/C++' in out or 'MSP430 C/C++' in out or 'TI ARM C/C++ Compiler' in out:
-            lnk : T.Union[T.Type[C2000DynamicLinker], T.Type[TIDynamicLinker]]
+            lnk: T.Union[T.Type[C2000DynamicLinker], T.Type[TIDynamicLinker]]
             if 'TMS320C2000 C/C++' in out:
                 cls = C2000CCompiler if lang == 'c' else C2000CPPCompiler
                 lnk = C2000DynamicLinker
