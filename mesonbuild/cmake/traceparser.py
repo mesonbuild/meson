@@ -388,6 +388,7 @@ class CMakeTraceParser:
             target.depends += [key]
 
         working_dir = None
+
         def handle_working_dir(key: str, target: CMakeGeneratorTarget) -> None:
             nonlocal working_dir
             if working_dir is None:

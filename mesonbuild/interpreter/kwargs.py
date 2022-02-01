@@ -252,7 +252,6 @@ class DependencyPkgConfigVar(TypedDict):
     define_variable: T.List[str]
 
 
-
 class DependencyGetVariable(TypedDict):
 
     cmake: T.Optional[str]

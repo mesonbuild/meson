@@ -482,7 +482,6 @@ class CMakeDependency(ExternalDependency):
                 for tgt in partial_modules:
                     mlog.debug(tgt)
 
-
             incDirs = [x for x in self.traceparser.get_cmake_var('PACKAGE_INCLUDE_DIRS') if x]
             defs = [x for x in self.traceparser.get_cmake_var('PACKAGE_DEFINITIONS') if x]
             libs_raw = [x for x in self.traceparser.get_cmake_var('PACKAGE_LIBRARIES') if x]

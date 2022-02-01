@@ -259,10 +259,13 @@ class CudaCompiler(Compiler):
 
         def is_xcompiler_flag_isolated(flag: str) -> bool:
             return flag == '-Xcompiler'
+
         def is_xcompiler_flag_glued(flag: str) -> bool:
             return flag.startswith('-Xcompiler=')
+
         def is_xcompiler_flag(flag: str) -> bool:
             return is_xcompiler_flag_isolated(flag) or is_xcompiler_flag_glued(flag)
+
         def get_xcompiler_val(flag: str, flagit: T.Iterator[str]) -> str:
             if is_xcompiler_flag_glued(flag):
                 return flag[len('-Xcompiler='):]
