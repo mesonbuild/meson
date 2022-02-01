@@ -474,10 +474,11 @@ class ConsoleLogger(TestLogger):
         self.spinner_tstamp = time.time()
         self.should_print_closing_line = False
         try:
-            self.cols, _ = os.get_terminal_size(1)
+            self.cols, self.rows = os.get_terminal_size(1)
             self.is_tty = True
         except OSError:
             self.cols = 80
+            self.rows = 24
             self.is_tty = False
         self.use_statusline = self.is_tty and use_statusline
 
@@ -551,6 +552,7 @@ class ConsoleLogger(TestLogger):
         now = time.time()
         left = ' ' * len(harness.get_test_num_prefix(0))
         remainder = 0
+        max_lines = min(10, self.rows / 5)
         direct_output = True
 
         for test in reversed(self.running_tests):
@@ -558,7 +560,7 @@ class ConsoleLogger(TestLogger):
             direct_output = direct_output and test.direct_output
             if not test.direct_output and runtime < 1:
                 break
-            elif len(lines) > 10:
+            elif len(lines) > max_lines:
                 remainder += 1
                 continue
             right = '{status} {dur:{durlen}}'.format(
@@ -603,10 +605,10 @@ class ConsoleLogger(TestLogger):
                 if loop.time() >= next_update:
                     next_update = loop.time() + 1
                     loop.call_at(next_update, self.request_update)
-                if harness.options.quiet:
-                    self.emit_quiet_status(harness)
-                else:
+                if not harness.options.quiet and self.rows >= 24 and self.cols >= 80:
                     self.emit_progress(harness)
+                else:
+                    self.emit_quiet_status(harness)
             self.flush()
 
         self.test_count = harness.test_count
