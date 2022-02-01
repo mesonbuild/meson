@@ -16,6 +16,4 @@ include run_tests.py
 include run_unittests.py
 include run_meson_command_tests.py
 include run_project_tests.py
-include ghwt.py
-include __main__.py
 include meson.py
