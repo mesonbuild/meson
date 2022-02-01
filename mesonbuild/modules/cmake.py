@@ -21,6 +21,7 @@ from . import ExtensionModule, ModuleReturnValue, ModuleObject
 from .. import build, mesonlib, mlog, dependencies
 from ..cmake import SingleTargetOptions, TargetOptions, cmake_defines_to_args
 from ..interpreter import SubprojectHolder
+from ..interpreter.type_checking import NoneType, in_set_validator
 from ..interpreterbase import (
     FeatureNew,
     FeatureNewKwargs,
@@ -33,8 +34,18 @@ from ..interpreterbase import (
 
     InvalidArguments,
     InterpreterException,
+
+    typed_kwargs,
+    KwargInfo,
 )
 
+if T.TYPE_CHECKING:
+    class WriteBasicPackageVersionFile(T.TypedDict):
+
+        compatibility: str
+        install_dir: T.Optional[str]
+        name: str
+        version: str
 
 COMPATIBILITIES = ['AnyNewerVersion', 'SameMajorVersion', 'SameMinorVersion', 'ExactVersion']
 
@@ -256,31 +267,26 @@ class CmakeModule(ExtensionModule):
         self.cmake_detected = True
         return True
 
-    @permittedKwargs({'version', 'name', 'compatibility', 'install_dir'})
-    def write_basic_package_version_file(self, state, _args, kwargs):
-        version = kwargs.get('version', None)
-        if not isinstance(version, str):
-            raise mesonlib.MesonException('Version must be specified.')
-
-        name = kwargs.get('name', None)
-        if not isinstance(name, str):
-            raise mesonlib.MesonException('Name not specified.')
-
-        compatibility = kwargs.get('compatibility', 'AnyNewerVersion')
-        if not isinstance(compatibility, str):
-            raise mesonlib.MesonException('compatibility is not string.')
-        if compatibility not in COMPATIBILITIES:
-            raise mesonlib.MesonException('compatibility must be either AnyNewerVersion, SameMajorVersion or ExactVersion.')
+    @noPosargs
+    @typed_kwargs(
+        'cmake.write_basic_package_version_file',
+        KwargInfo('compatibility', str, default='AnyNewerVersion', validator=in_set_validator(set(COMPATIBILITIES))),
+        KwargInfo('install_dir', (str, NoneType), default=None),
+        KwargInfo('name', str, required=True),
+        KwargInfo('version', str, required=True),
+    )
+    def write_basic_package_version_file(self, state, args, kwargs: 'WriteBasicPackageVersionFile'):
+        compatibility = kwargs['compatibility']
+        name = kwargs['name']
+        version = kwargs['version']
 
         if not self.detect_cmake(state):
             raise mesonlib.MesonException('Unable to find cmake')
 
-        pkgroot = pkgroot_name = kwargs.get('install_dir', None)
+        pkgroot = pkgroot_name = kwargs['install_dir']
         if pkgroot is None:
             pkgroot = os.path.join(state.environment.coredata.get_option(mesonlib.OptionKey('libdir')), 'cmake', name)
             pkgroot_name = os.path.join('{libdir}', 'cmake', name)
-        if not isinstance(pkgroot, str):
-            raise mesonlib.MesonException('Install_dir must be a string.')
 
         template_file = os.path.join(self.cmake_root, 'Modules', f'BasicConfigVersion-{compatibility}.cmake.in')
         if not os.path.exists(template_file):
