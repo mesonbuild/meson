@@ -122,13 +122,16 @@ def main():
 
     try:
         import pytest # noqa: F401
-        # Need pytest-xdist for `-n` arg
-        import xdist # noqa: F401
         pytest_args = []
-        # Don't use pytest-xdist when running single unit tests since it wastes
-        # time spawning a lot of processes to distribute tests to in that case.
-        if not running_single_tests(sys.argv, cases):
-            pytest_args += ['-n', 'auto']
+        try:
+            # Need pytest-xdist for `-n` arg
+            import xdist # noqa: F401
+            # Don't use pytest-xdist when running single unit tests since it wastes
+            # time spawning a lot of processes to distribute tests to in that case.
+            if not running_single_tests(sys.argv, cases):
+                pytest_args += ['-n', 'auto']
+        except ImportError:
+            print('pytest-xdist not found, tests will not be distributed across CPU cores')
         # Let there be colors!
         if 'CI' in os.environ:
             pytest_args += ['--color=yes']
@@ -143,7 +146,7 @@ def main():
             pass
         return subprocess.run(python_command + ['-m', 'pytest'] + pytest_args).returncode
     except ImportError:
-        print('pytest-xdist not found, using unittest instead')
+        print('pytest not found, using unittest instead')
     # Fallback to plain unittest.
     return unittest.main(defaultTest=cases, buffer=True)
 
