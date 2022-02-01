@@ -119,7 +119,6 @@ class InstallData:
     install_umask: T.Union[str, int]
     mesonintrospect: T.List[str]
     version: str
-    is_cross_build: bool
 
     def __post_init__(self) -> None:
         self.targets: T.List[TargetInstallData] = []
@@ -1502,8 +1501,7 @@ class Backend:
                         strip_bin,
                         umask,
                         self.environment.get_build_command() + ['introspect'],
-                        self.environment.coredata.version,
-                        self.environment.is_cross_build())
+                        self.environment.coredata.version)
         self.generate_depmf_install(d)
         self.generate_target_install(d)
         self.generate_header_install(d)

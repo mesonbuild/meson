@@ -18,7 +18,6 @@ import argparse
 import errno
 import os
 import pickle
-import platform
 import shlex
 import shutil
 import subprocess
@@ -248,41 +247,6 @@ def restore_selinux_contexts() -> None:
               'Standard output:', out,
               'Standard error:', err, sep='\n')
 
-def apply_ldconfig(dm: DirMaker, libdir: str) -> None:
-    '''
-    Apply ldconfig to update the ld.so.cache.
-    '''
-    if not shutil.which('ldconfig'):
-        # If we don't have ldconfig, failure is ignored quietly.
-        return
-
-    platlower = platform.system().lower()
-    if platlower == 'dragonfly' or 'bsd' in platlower:
-        if libdir in dm.all_dirs:
-            proc, out, err = Popen_safe(['ldconfig', '-m', libdir])
-            if proc.returncode != 0:
-                print('Failed to apply ldconfig ...',
-                      'Standard output:', out,
-                      'Standard error:', err, sep='\n')
-        return
-
-    # Try to update ld cache, it could fail if we don't have permission.
-    proc, out, err = Popen_safe(['ldconfig', '-v'])
-    if proc.returncode == 0:
-        return
-
-    # ldconfig failed, print the error only if we actually installed files in
-    # any of the directories it lookup for libraries. Otherwise quietly ignore
-    # the error.
-    for l in out.splitlines():
-        # Lines that start with a \t are libraries, not directories.
-        if not l or l[0].isspace():
-            continue
-        # Example: `/usr/lib/i386-linux-gnu/i686: (hwcap: 0x0002000000000000)`
-        if l[:l.find(':')] in dm.all_dirs:
-            print(f'Failed to apply ldconfig:\n{err}')
-            break
-
 def get_destdir_path(destdir: str, fullprefix: str, path: str) -> str:
     if os.path.isabs(path):
         output = destdir_join(destdir, path)
@@ -383,11 +347,6 @@ class Installer:
     def restore_selinux_contexts(self, destdir: str) -> None:
         if not self.dry_run and not destdir:
             restore_selinux_contexts()
-
-    def apply_ldconfig(self, dm: DirMaker, destdir: str, is_cross_build: bool, libdir: str) -> None:
-        if any([self.dry_run, destdir, is_cross_build]):
-            return
-        apply_ldconfig(dm, libdir)
 
     def Popen_safe(self, *args: T.Any, **kwargs: T.Any) -> T.Tuple[int, str, str]:
         if not self.dry_run:
@@ -574,7 +533,6 @@ class Installer:
             os.environ['DESTDIR'] = destdir
         destdir = destdir or ''
         fullprefix = destdir_join(destdir, d.prefix)
-        libdir = os.path.join(d.prefix, d.libdir)
 
         if d.install_umask != 'preserve':
             assert isinstance(d.install_umask, int)
@@ -591,7 +549,6 @@ class Installer:
                 self.install_data(d, dm, destdir, fullprefix)
                 self.install_symlinks(d, dm, destdir, fullprefix)
                 self.restore_selinux_contexts(destdir)
-                self.apply_ldconfig(dm, destdir, d.is_cross_build, libdir)
                 self.run_install_script(d, destdir, fullprefix)
                 if not self.did_install_something:
                     self.log('Nothing to install.')
