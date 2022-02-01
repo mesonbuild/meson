@@ -1706,7 +1706,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             kwargs['output'][0],
             self.subdir,
             self.subproject,
-            self.environment.get_build_command() + \
+            self.environment.get_build_command() +
                 ['--internal',
                 'vcstagger',
                 '@INPUT0@',

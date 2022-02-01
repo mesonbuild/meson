@@ -586,7 +586,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
 
     p = subparsers.add_parser('update', help='Update all subprojects from wrap files')
     p.add_argument('--rebase', default=True, action='store_true',
-                   help='Rebase your branch on top of wrap\'s revision. ' + \
+                   help='Rebase your branch on top of wrap\'s revision. ' +
                         'Deprecated, it is now the default behaviour. (git only)')
     p.add_argument('--reset', default=False, action='store_true',
                    help='Checkout wrap\'s revision and hard reset to that commit. (git only)')
