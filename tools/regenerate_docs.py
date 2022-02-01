@@ -118,7 +118,7 @@ def generate_hotdoc_includes(root_dir: Path, output_dir: Path) -> None:
                 f.write(parsed[typ])
 
 def markdown_url(label: str, url: T.Optional[str]) -> str:
-    if url is none:
+    if url is None:
         return label
     return f'[{label}]({url})'
 
