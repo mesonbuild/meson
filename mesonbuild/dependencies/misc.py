@@ -60,6 +60,25 @@ def netcdf_factory(env: 'Environment',
     return candidates
 
 
+class DlBuiltinDependency(BuiltinDependency):
+    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]):
+        super().__init__(name, env, kwargs)
+
+        if self.clib_compiler.has_function('dlopen', '#include <dlfcn.h>', env)[0]:
+            self.is_found = True
+
+
+class DlSystemDependency(SystemDependency):
+    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]):
+        super().__init__(name, env, kwargs)
+
+        h = self.clib_compiler.has_header('dlfcn.h', '', env)
+        self.link_args = self.clib_compiler.find_library('dl', env, [], self.libtype)
+
+        if h[0] and self.link_args:
+            self.is_found = True
+
+
 class OpenMPDependency(SystemDependency):
     # Map date of specification release (which is the macro value) to a version.
     VERSIONS = {
@@ -557,6 +576,13 @@ cups_factory = DependencyFactory(
     [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK, DependencyMethods.CMAKE],
     configtool_class=CupsDependencyConfigTool,
     cmake_name='Cups',
+)
+
+dl_factory = DependencyFactory(
+    'dl',
+    [DependencyMethods.BUILTIN, DependencyMethods.SYSTEM],
+    builtin_class=DlBuiltinDependency,
+    system_class=DlSystemDependency,
 )
 
 gpgme_factory = DependencyFactory(
