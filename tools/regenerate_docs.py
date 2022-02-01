@@ -117,6 +117,11 @@ def generate_hotdoc_includes(root_dir: Path, output_dir: Path) -> None:
             with open(output_dir / (cmd+'_'+typ+'.inc'), 'w', encoding='utf-8') as f:
                 f.write(parsed[typ])
 
+def markdown_url(label: str, url: T.Optional[str]) -> str:
+    if url is none:
+        return label
+    return f'[{label}]({url})'
+
 def generate_wrapdb_table(output_dir: Path) -> None:
     url = urlopen('https://wrapdb.mesonbuild.com/v2/releases.json')
     releases = json.loads(url.read().decode())
@@ -131,8 +136,8 @@ def generate_wrapdb_table(output_dir: Path) -> None:
             dependency_names_str = ', '.join(dependency_names)
             program_names = info.get('program_names', [])
             program_names_str = ', '.join(program_names)
-            website = info.get('website', '#')
-            f.write(f'| [{name}]({website}) | {versions_str} | {dependency_names_str} | {program_names_str} |\n')
+            name_str = markdown_url(name, info.get('website', None))
+            f.write(f'| {name_str} | {versions_str} | {dependency_names_str} | {program_names_str} |\n')
 
 def regenerate_docs(output_dir: PathLike,
                     dummy_output_file: T.Optional[PathLike]) -> None:
