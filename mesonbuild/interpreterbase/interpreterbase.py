@@ -526,7 +526,7 @@ class InterpreterBase:
         self.argument_depth += 1
         reduced_pos = [self.evaluate_statement(arg) for arg in args.arguments]
         if any(x is None for x in reduced_pos):
-            raise InvalidArguments(f'At least one value in the arguments is void.')
+            raise InvalidArguments('At least one value in the arguments is void.')
         reduced_kw: T.Dict[str, InterpreterObject] = {}
         for key, val in args.kwargs.items():
             reduced_key = key_resolver(key)
