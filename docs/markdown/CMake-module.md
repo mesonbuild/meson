@@ -226,7 +226,7 @@ specification](Machine-files.md).
 ### cmake.write_basic_package_version_file()
 
 This function is the equivalent of the corresponding [CMake
-function](https://cmake.org/cmake/help/v3.11/module/CMakePackageConfigHelpers.html#generating-a-package-version-file),
+function](https://cmake.org/cmake/help/latest/module/CMakePackageConfigHelpers.html#command:write_basic_package_version_file),
 it generates a `name` package version file.
 
 * `name`: the name of the package.
@@ -235,6 +235,8 @@ it generates a `name` package version file.
 `AnyNewerVersion`, `SameMajorVersion`, `SameMinorVersion` or `ExactVersion`.
 It defaults to `AnyNewerVersion`. Depending on your cmake installation some kind of
 compatibility may not be available.
+* `arch_independent`: *new in 0.62.0*, if true the generated package file
+  will skip architecture checks. Useful for header-only libraries.
 * `install_dir`: optional installation directory, it defaults to `$(libdir)/cmake/$(name)`
 
 

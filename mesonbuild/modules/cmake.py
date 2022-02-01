@@ -42,6 +42,7 @@ from ..interpreterbase import (
 if T.TYPE_CHECKING:
     class WriteBasicPackageVersionFile(T.TypedDict):
 
+        arch_independent: bool
         compatibility: str
         install_dir: T.Optional[str]
         name: str
@@ -270,12 +271,14 @@ class CmakeModule(ExtensionModule):
     @noPosargs
     @typed_kwargs(
         'cmake.write_basic_package_version_file',
+        KwargInfo('arch_independent', bool, default=False, since='0.62.0'),
         KwargInfo('compatibility', str, default='AnyNewerVersion', validator=in_set_validator(set(COMPATIBILITIES))),
         KwargInfo('install_dir', (str, NoneType), default=None),
         KwargInfo('name', str, required=True),
         KwargInfo('version', str, required=True),
     )
     def write_basic_package_version_file(self, state, args, kwargs: 'WriteBasicPackageVersionFile'):
+        arch_independent = kwargs['arch_independent']
         compatibility = kwargs['compatibility']
         name = kwargs['name']
         version = kwargs['version']
@@ -296,7 +299,8 @@ class CmakeModule(ExtensionModule):
 
         conf = {
             'CVF_VERSION': (version, ''),
-            'CMAKE_SIZEOF_VOID_P': (str(self.detect_voidp_size(state.environment)), '')
+            'CMAKE_SIZEOF_VOID_P': (str(self.detect_voidp_size(state.environment)), ''),
+            'CVF_ARCH_INDEPENDENT': (arch_independent, ''),
         }
         mesonlib.do_conf_file(template_file, version_file, conf, 'meson')
 
