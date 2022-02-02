@@ -225,6 +225,7 @@ class TestSerialisation:
     cmd_is_built: bool
     depends: T.List[str]
     version: str
+    verbose: bool
 
     def __post_init__(self) -> None:
         if self.exe_wrapper is not None:
@@ -1147,7 +1148,8 @@ class Backend:
                                    extra_paths, t.protocol, t.priority,
                                    isinstance(exe, build.Executable),
                                    [x.get_id() for x in depends],
-                                   self.environment.coredata.version)
+                                   self.environment.coredata.version,
+                                   t.verbose)
             arr.append(ts)
         return arr
 

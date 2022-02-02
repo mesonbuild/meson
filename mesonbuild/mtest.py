@@ -600,7 +600,7 @@ class ConsoleLogger(TestLogger):
             self.progress_task = asyncio.ensure_future(report_progress())
 
     def start_test(self, harness: 'TestHarness', test: 'TestRun') -> None:
-        if harness.options.verbose and test.cmdline:
+        if test.verbose and test.cmdline:
             self.flush()
             print(harness.format(test, mlog.colorize_console(),
                                  max_left_width=self.max_left_width,
@@ -619,12 +619,12 @@ class ConsoleLogger(TestLogger):
         self.request_update()
 
     def shorten_log(self, harness: 'TestHarness', result: 'TestRun') -> str:
-        if not harness.options.verbose and not harness.options.print_errorlogs:
+        if not result.verbose and not harness.options.print_errorlogs:
             return ''
 
         log = result.get_log(mlog.colorize_console(),
                              stderr_only=result.needs_parsing)
-        if harness.options.verbose:
+        if result.verbose:
             return log
 
         lines = log.splitlines()
@@ -634,7 +634,7 @@ class ConsoleLogger(TestLogger):
             return str(mlog.bold('Listing only the last 100 lines from a long log.\n')) + '\n'.join(lines[-100:])
 
     def print_log(self, harness: 'TestHarness', result: 'TestRun') -> None:
-        if not harness.options.verbose:
+        if not result.verbose:
             cmdline = result.cmdline
             if not cmdline:
                 print(result.res.get_command_marker() + result.stdo)
@@ -648,7 +648,7 @@ class ConsoleLogger(TestLogger):
             print(self.output_end)
 
     def log_subtest(self, harness: 'TestHarness', test: 'TestRun', s: str, result: TestResult) -> None:
-        if harness.options.verbose or (harness.options.print_errorlogs and result.is_bad()):
+        if test.verbose or (harness.options.print_errorlogs and result.is_bad()):
             self.flush()
             print(harness.format(test, mlog.colorize_console(), max_left_width=self.max_left_width,
                                  prefix=self.sub,
@@ -659,22 +659,22 @@ class ConsoleLogger(TestLogger):
 
     def log(self, harness: 'TestHarness', result: 'TestRun') -> None:
         self.running_tests.remove(result)
-        if result.res is TestResult.TIMEOUT and harness.options.verbose:
+        if result.res is TestResult.TIMEOUT and result.verbose:
             self.flush()
             print(f'{result.name} time out (After {result.timeout} seconds)')
 
         if not harness.options.quiet or not result.res.is_ok():
             self.flush()
-            if harness.options.verbose and not result.is_parallel and result.cmdline:
+            if result.verbose and not result.is_parallel and result.cmdline:
                 if not result.needs_parsing:
                     print(self.output_end)
                 print(harness.format(result, mlog.colorize_console(), max_left_width=self.max_left_width))
             else:
                 print(harness.format(result, mlog.colorize_console(), max_left_width=self.max_left_width),
                       flush=True)
-                if harness.options.verbose or result.res.is_bad():
+                if result.verbose or result.res.is_bad():
                     self.print_log(harness, result)
-            if harness.options.verbose or result.res.is_bad():
+            if result.verbose or result.res.is_bad():
                 print(flush=True)
 
         self.request_update()
@@ -867,7 +867,7 @@ class TestRun:
         return super().__new__(TestRun.PROTOCOL_TO_CLASS[test.protocol])
 
     def __init__(self, test: TestSerialisation, test_env: T.Dict[str, str],
-                 name: str, timeout: T.Optional[int], is_parallel: bool):
+                 name: str, timeout: T.Optional[int], is_parallel: bool, verbose: bool):
         self.res = TestResult.PENDING
         self.test = test
         self._num = None       # type: T.Optional[int]
@@ -885,6 +885,7 @@ class TestRun:
         self.project = test.project_name
         self.junit = None      # type: T.Optional[et.ElementTree]
         self.is_parallel = is_parallel
+        self.verbose = verbose
 
     def start(self, cmd: T.List[str]) -> None:
         self.res = TestResult.RUNNING
@@ -1335,11 +1336,12 @@ class SingleTestRunner:
             timeout = self.test.timeout * self.options.timeout_multiplier
 
         is_parallel = test.is_parallel and self.options.num_processes > 1 and not self.options.gdb
-        self.runobj = TestRun(test, env, name, timeout, is_parallel)
+        verbose = (test.verbose or self.options.verbose) and not self.options.quiet
+        self.runobj = TestRun(test, env, name, timeout, is_parallel, verbose)
 
         if self.options.gdb:
             self.console_mode = ConsoleUser.GDB
-        elif self.options.verbose and not is_parallel and not self.runobj.needs_parsing:
+        elif self.runobj.verbose and not is_parallel and not self.runobj.needs_parsing:
             self.console_mode = ConsoleUser.STDOUT
         else:
             self.console_mode = ConsoleUser.LOGGER

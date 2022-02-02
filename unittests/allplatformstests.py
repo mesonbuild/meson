@@ -570,6 +570,13 @@ class AllPlatformTests(BasePlatformTests):
         self.build()
         self._run(self.mtest_command + ['--repeat=2'])
 
+    def test_verbose(self):
+        testdir = os.path.join(self.common_test_dir, '206 tap tests')
+        self.init(testdir)
+        self.build()
+        out = self._run(self.mtest_command + ['--suite', 'verbose'])
+        self.assertIn('1/1 subtest 1', out)
+
     def test_testsetups(self):
         if not shutil.which('valgrind'):
             raise SkipTest('Valgrind not installed.')

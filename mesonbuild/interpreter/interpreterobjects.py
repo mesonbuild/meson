@@ -636,7 +636,7 @@ class Test(MesonInterpreterObject):
                  cmd_args: T.List[T.Union[str, mesonlib.File, build.Target]],
                  env: build.EnvironmentVariables,
                  should_fail: bool, timeout: int, workdir: T.Optional[str], protocol: str,
-                 priority: int):
+                 priority: int, verbose: bool):
         super().__init__()
         self.name = name
         self.suite = listify(suite)
@@ -651,6 +651,7 @@ class Test(MesonInterpreterObject):
         self.workdir = workdir
         self.protocol = TestProtocol.from_str(protocol)
         self.priority = priority
+        self.verbose = verbose
 
     def get_exe(self) -> T.Union[ExternalProgram, build.Executable, build.CustomTarget]:
         return self.exe
