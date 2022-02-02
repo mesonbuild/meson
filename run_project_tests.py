@@ -832,15 +832,15 @@ def load_test_json(t: TestDef, stdout_mandatory: bool) -> T.List[TestDef]:
         t.stdout = stdout
         return [t]
 
-    new_opt_list: T.List[T.List[T.Tuple[str, bool, bool]]]
+    new_opt_list: T.List[T.List[T.Tuple[str, str, bool, bool]]]
 
     # 'matrix; entry is present, so build multiple tests from matrix definition
-    opt_list = []  # type: T.List[T.List[T.Tuple[str, bool, bool]]]
+    opt_list = []  # type: T.List[T.List[T.Tuple[str, str, bool, bool]]]
     matrix = test_def['matrix']
     assert "options" in matrix
     for key, val in matrix["options"].items():
         assert isinstance(val, list)
-        tmp_opts = []  # type: T.List[T.Tuple[str, bool, bool]]
+        tmp_opts = []  # type: T.List[T.Tuple[str, str, bool, bool]]
         for i in val:
             assert isinstance(i, dict)
             assert "val" in i
@@ -856,10 +856,10 @@ def load_test_json(t: TestDef, stdout_mandatory: bool) -> T.List[TestDef]:
 
             # Add an empty matrix entry
             if i['val'] is None:
-                tmp_opts += [(None, skip, skip_expected)]
+                tmp_opts += [(key, None, skip, skip_expected)]
                 continue
 
-            tmp_opts += [('{}={}'.format(key, i['val']), skip, skip_expected)]
+            tmp_opts += [(key, i['val'], skip, skip_expected)]
 
         if opt_list:
             new_opt_list = []
@@ -876,10 +876,10 @@ def load_test_json(t: TestDef, stdout_mandatory: bool) -> T.List[TestDef]:
         new_opt_list = []
         for i in opt_list:
             exclude = False
-            opt_names = [x[0] for x in i]
+            opt_tuple = [(x[0], x[1]) for x in i]
             for j in matrix['exclude']:
-                ex_list = [f'{k}={v}' for k, v in j.items()]
-                if all([x in opt_names for x in ex_list]):
+                ex_list = [(k, v) for k, v in j.items()]
+                if all([x in opt_tuple for x in ex_list]):
                     exclude = True
                     break
 
@@ -889,10 +889,10 @@ def load_test_json(t: TestDef, stdout_mandatory: bool) -> T.List[TestDef]:
         opt_list = new_opt_list
 
     for i in opt_list:
-        name = ' '.join([x[0] for x in i if x[0] is not None])
-        opts = ['-D' + x[0] for x in i if x[0] is not None]
-        skip = any([x[1] for x in i])
-        skip_expected = any([x[2] for x in i])
+        name = ' '.join([f'{x[0]}={x[1]}' for x in i if x[1] is not None])
+        opts = [f'-D{x[0]}={x[1]}' for x in i if x[1] is not None]
+        skip = any([x[2] for x in i])
+        skip_expected = any([x[3] for x in i])
         test = TestDef(t.path, name, opts, skip or t.skip)
         test.env.update(env)
         test.installed_files = installed
