@@ -32,7 +32,7 @@ TV_fw_kwargs = T.Dict[str, T.Union[mparser.BaseNode, TV_fw_var]]
 
 TV_func = T.TypeVar('TV_func', bound=T.Callable[..., T.Any])
 
-TYPE_elementary = T.Union[str, int, bool, T.List[T.Any], T.Dict[str, T.Any]]
+TYPE_elementary = T.Union[str, int, bool, T.List[T.Any], T.Dict[str, T.Any], None]
 TYPE_var = T.Union[TYPE_elementary, HoldableObject, 'MesonInterpreterObject']
 TYPE_nvar = T.Union[TYPE_var, mparser.BaseNode]
 TYPE_kwargs = T.Dict[str, TYPE_var]
@@ -74,6 +74,11 @@ class InterpreterObject:
     # The type of the object that can be printed to the user
     def display_name(self) -> str:
         return type(self).__name__
+
+    @property
+    def is_assignable(self) -> bool:
+        ''' Property used to indicate whether an object can be used at all '''
+        return True
 
     def method_call(
                 self,
@@ -130,7 +135,7 @@ class MesonInterpreterObject(InterpreterObject):
 class MutableInterpreterObject:
     ''' Dummy class to mark the object type as mutable '''
 
-HoldableTypes = (HoldableObject, int, bool, str, list, dict)
+HoldableTypes = (HoldableObject, int, bool, str, list, dict, type(None))
 TYPE_HoldableTypes = T.Union[TYPE_elementary, HoldableObject]
 InterpreterObjectTypeVar = T.TypeVar('InterpreterObjectTypeVar', bound=TYPE_HoldableTypes)
 

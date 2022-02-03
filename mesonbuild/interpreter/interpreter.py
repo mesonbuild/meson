@@ -2899,7 +2899,7 @@ This will become a hard error in the future.''', location=self.current_node)
     @noSecondLevelHolderResolving
     def func_set_variable(self, node: mparser.BaseNode, args: T.Tuple[str, object], kwargs: 'TYPE_kwargs') -> None:
         varname, value = args
-        self.set_variable(varname, value, holderify=True)
+        self.set_variable(varname, self._holderify(value))
 
     @typed_pos_args('get_variable', (str, Disabler), optargs=[object])
     @noKwargs
