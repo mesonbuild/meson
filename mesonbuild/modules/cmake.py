@@ -37,16 +37,26 @@ from ..interpreterbase import (
 
     typed_kwargs,
     KwargInfo,
+    ContainerTypeInfo,
 )
 
 if T.TYPE_CHECKING:
-    class WriteBasicPackageVersionFile(T.TypedDict):
+    from typing_extensions import TypedDict
+
+    class WriteBasicPackageVersionFile(TypedDict):
 
         arch_independent: bool
         compatibility: str
         install_dir: T.Optional[str]
         name: str
         version: str
+
+    class ConfigurePackageConfigFile(TypedDict):
+
+        configuration: build.ConfigurationData
+        input: T.Union[str, mesonlib.File]
+        install_dir: T.Optional[str]
+        name: str
 
 COMPATIBILITIES = ['AnyNewerVersion', 'SameMajorVersion', 'SameMinorVersion', 'ExactVersion']
 
@@ -334,42 +344,34 @@ class CmakeModule(ExtensionModule):
         shutil.copymode(infile, outfile_tmp)
         mesonlib.replace_if_different(outfile, outfile_tmp)
 
-    @permittedKwargs({'input', 'name', 'install_dir', 'configuration'})
-    def configure_package_config_file(self, state, args, kwargs):
-        if args:
-            raise mesonlib.MesonException('configure_package_config_file takes only keyword arguments.')
-
-        if 'input' not in kwargs:
-            raise mesonlib.MesonException('configure_package_config_file requires "input" keyword.')
+    @noPosargs
+    @typed_kwargs(
+        'cmake.configure_package_config_file',
+        KwargInfo('configuration', build.ConfigurationData, required=True),
+        KwargInfo('input',
+                  (str, mesonlib.File, ContainerTypeInfo(list, mesonlib.File)), required=True,
+                  validator=lambda x: 'requires exactly one file' if isinstance(x, list) and len(x) != 1 else None,
+                  convertor=lambda x: x[0] if isinstance(x, list) else x),
+        KwargInfo('install_dir', (str, NoneType), default=None),
+        KwargInfo('name', str, required=True),
+    )
+    def configure_package_config_file(self, state, args, kwargs: 'ConfigurePackageConfigFile'):
         inputfile = kwargs['input']
-        if isinstance(inputfile, list):
-            if len(inputfile) != 1:
-                m = "Keyword argument 'input' requires exactly one file"
-                raise mesonlib.MesonException(m)
-            inputfile = inputfile[0]
-        if not isinstance(inputfile, (str, mesonlib.File)):
-            raise mesonlib.MesonException("input must be a string or a file")
         if isinstance(inputfile, str):
             inputfile = mesonlib.File.from_source_file(state.environment.source_dir, state.subdir, inputfile)
 
         ifile_abs = inputfile.absolute_path(state.environment.source_dir, state.environment.build_dir)
 
-        if 'name' not in kwargs:
-            raise mesonlib.MesonException('"name" not specified.')
         name = kwargs['name']
 
         (ofile_path, ofile_fname) = os.path.split(os.path.join(state.subdir, f'{name}Config.cmake'))
         ofile_abs = os.path.join(state.environment.build_dir, ofile_path, ofile_fname)
 
-        install_dir = kwargs.get('install_dir', os.path.join(state.environment.coredata.get_option(mesonlib.OptionKey('libdir')), 'cmake', name))
-        if not isinstance(install_dir, str):
-            raise mesonlib.MesonException('"install_dir" must be a string.')
+        install_dir = kwargs['install_dir']
+        if install_dir is None:
+            install_dir = os.path.join(state.environment.coredata.get_option(mesonlib.OptionKey('libdir')), 'cmake', name)
 
-        if 'configuration' not in kwargs:
-            raise mesonlib.MesonException('"configuration" not specified.')
         conf = kwargs['configuration']
-        if not isinstance(conf, build.ConfigurationData):
-            raise mesonlib.MesonException('Argument "configuration" is not of type configuration_data')
 
         prefix = state.environment.coredata.get_option(mesonlib.OptionKey('prefix'))
         abs_install_dir = install_dir
