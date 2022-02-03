@@ -53,7 +53,7 @@ if T.TYPE_CHECKING:
 
     class ConfigurePackageConfigFile(TypedDict):
 
-        configuration: build.ConfigurationData
+        configuration: T.Union[build.ConfigurationData, dict]
         input: T.Union[str, mesonlib.File]
         install_dir: T.Optional[str]
         name: str
@@ -347,7 +347,7 @@ class CmakeModule(ExtensionModule):
     @noPosargs
     @typed_kwargs(
         'cmake.configure_package_config_file',
-        KwargInfo('configuration', build.ConfigurationData, required=True),
+        KwargInfo('configuration', (build.ConfigurationData, dict), required=True),
         KwargInfo('input',
                   (str, mesonlib.File, ContainerTypeInfo(list, mesonlib.File)), required=True,
                   validator=lambda x: 'requires exactly one file' if isinstance(x, list) and len(x) != 1 else None,
@@ -372,6 +372,9 @@ class CmakeModule(ExtensionModule):
             install_dir = os.path.join(state.environment.coredata.get_option(mesonlib.OptionKey('libdir')), 'cmake', name)
 
         conf = kwargs['configuration']
+        if isinstance(conf, dict):
+            FeatureNew.single_use('cmake.configure_package_config_file dict as configuration', '0.62.0', state.subproject, location=state.current_node)
+            conf = build.ConfigurationData(conf)
 
         prefix = state.environment.coredata.get_option(mesonlib.OptionKey('prefix'))
         abs_install_dir = install_dir
