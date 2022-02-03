@@ -67,15 +67,23 @@ kwargs:
     type: str | list[str]
     description: |
       Takes a string or array of strings describing the license(s) the code is under.
-      To avoid ambiguity it is recommended to use a standardized
-      license identifier from the [SPDX license list](https://spdx.org/licenses/).
-      Usually this would be something like `license : 'GPL-2.0-or-later'`, but if
-      the code has multiple licenses you can specify them as an array like this:
-      `license : ['proprietary', 'GPL-3.0-only']`. Note that the text is informal
-      and is only written to the dependency manifest. Meson does not do any license
-      validation, you are responsible for verifying that you abide by all licensing
-      terms. You can access the value in your Meson build files with
-      `meson.project_license()`.
+
+      This *should* be an [SPDX license expression](https://spdx.dev/ids/),
+      using the standardized license identifier from the [SPDX license
+      list](https://spdx.org/licenses/).  Usually this would be something like
+      `license : 'GPL-2.0-or-later'`. If there are multiple licenses you can use the
+      `AND` and `OR` operators to join them: `license : 'Apache-2.0 OR GPL-2.0'`.
+
+      For backwards compatibility reasons you can also pass an array of
+      licenses here. This is not recommended, as it is ambiguous: `license :
+      ['Apache-2.0', 'GPL-2.0-only']` instead use an SPDX espression: `license
+      : 'Apache-2.0 OR GPL-2.0-only'`, which makes it clear that the license
+      mean OR, not AND.
+
+      Note that the text is informal and is only written to the dependency
+      manifest. Meson does not do any license validation, you are responsible
+      for verifying that you abide by all licensing terms. You can access the
+      value in your Meson build files with `meson.project_license()`.
 
   subproject_dir:
     type: str
