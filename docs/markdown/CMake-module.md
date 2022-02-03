@@ -262,6 +262,7 @@ the `configuration` parameter.
 * `input`: the template file where that will be treated for variable substitutions contained in `configuration`.
 * `install_dir`: optional installation directory, it defaults to `$(libdir)/cmake/$(name)`.
 * `configuration`: a `configuration_data` object that will be used for variable substitution in the template file.
+  *Since 0.62.0* it can take a dictionary instead.
 
 
 Example:
