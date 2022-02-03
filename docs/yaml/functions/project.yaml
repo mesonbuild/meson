@@ -78,7 +78,8 @@ kwargs:
       licenses here. This is not recommended, as it is ambiguous: `license :
       ['Apache-2.0', 'GPL-2.0-only']` instead use an SPDX espression: `license
       : 'Apache-2.0 OR GPL-2.0-only'`, which makes it clear that the license
-      mean OR, not AND.
+      mean OR, not AND. This has been deprecated as of Meson 0.63.0, and will
+      be removed in the future.
 
       Note that the text is informal and is only written to the dependency
       manifest. Meson does not do any license validation, you are responsible

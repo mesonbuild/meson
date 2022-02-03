@@ -1123,7 +1123,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             validator=_project_version_validator,
             convertor=lambda x: x[0] if isinstance(x, list) else x,
         ),
-        KwargInfo('license', ContainerTypeInfo(list, str), default=['unknown'], listify=True),
+        KwargInfo('license', (str, ContainerTypeInfo(list, str)), default='unknown'),
         KwargInfo('subproject_dir', str, default='subprojects'),
     )
     def func_project(self, node: mparser.FunctionNode, args: T.Tuple[str, T.List[str]], kwargs: 'kwargs.Project') -> None:
@@ -1189,6 +1189,13 @@ class Interpreter(InterpreterBase, HoldableObject):
         if self.build.project_version is None:
             self.build.project_version = self.project_version
         proj_license = kwargs['license']
+        if isinstance(proj_license, list):
+            FeatureDeprecated.single_use(
+                'project license as an array of strings', '0.63.0', self.subproject,
+                'Use an SPDX license expression with AND and/or OR instead', node,
+                always_warn=True)
+        else:
+            proj_license = [proj_license]
         self.build.dep_manifest[proj_name] = build.DepManifest(self.project_version, proj_license)
         if self.subproject in self.build.projects:
             raise InvalidCode('Second call to project().')
