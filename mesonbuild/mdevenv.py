@@ -48,7 +48,11 @@ def run(options: argparse.Namespace) -> int:
     args = options.command
     if not args:
         prompt_prefix = f'[{b.project_name}]'
-        if is_windows():
+        shell_env = os.environ.get("SHELL")
+        # Prefer $SHELL in a MSYS2 bash despite it being Windows
+        if shell_env and os.path.exists(shell_env):
+            args = [shell_env]
+        elif is_windows():
             shell = get_windows_shell()
             if shell == 'powershell.exe':
                 args = ['powershell.exe']
@@ -62,9 +66,7 @@ def run(options: argparse.Namespace) -> int:
             args = [os.environ.get("SHELL", os.path.realpath("/bin/sh"))]
         if "bash" in args[0] and not os.environ.get("MESON_DISABLE_PS1_OVERRIDE"):
             tmprc = tempfile.NamedTemporaryFile(mode='w')
-            bashrc = os.path.expanduser('~/.bashrc')
-            if os.path.exists(bashrc):
-                tmprc.write(f'. {bashrc}\n')
+            tmprc.write('[ -e ~/.bashrc ] && . ~/.bashrc\n')
             tmprc.write(f'export PS1="{prompt_prefix} $PS1"')
             tmprc.flush()
             # Let the GC remove the tmp file
