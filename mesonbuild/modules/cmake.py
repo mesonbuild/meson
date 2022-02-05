@@ -52,6 +52,7 @@ if T.TYPE_CHECKING:
 
     class GenerateExport(T.TypedDict):
         name: T.Optional[str]
+        subdirs: T.List[str]
 #        targets: T.List[T.Union[build.SharedLibrary, build.StaticLibrary]]
 #        compile_options: T.List[str]
 
@@ -142,7 +143,7 @@ TARGETS_IMPORT = '''
 add_library(@namespace@::@name@ @lib_type@ IMPORTED)
 
 target_compile_options(@namespace@::@name@ INTERFACE @compile_options@)
-target_include_directories(@namespace@::@name@ INTERFACE "${_IMPORT_PREFIX}/@include_dirs@")
+target_include_directories(@namespace@::@name@ INTERFACE @include_dirs@)
 target_link_libraries(@namespace@::@name@ INTERFACE @libraries@)
 target_link_options(@namespace@::@name@ INTERFACE @link_options@)
 '''
@@ -488,7 +489,8 @@ class CmakeModule(ExtensionModule):
     @typed_pos_args('cmake.generate_export', dependencies.InternalDependency)
     @typed_kwargs(
         'cmake.generate_export',
-        KwargInfo('name', (str, NoneType), default=None),
+        KwargInfo('name', (str, NoneType)),
+        KwargInfo('subdirs', ContainerTypeInfo(list, str), default=[], listify=True)
 #        KwargInfo('targets',  ContainerTypeInfo(list, (dependencies.InternalDependency)), required=True),
 #        KwargInfo('compile_options', ContainerTypeInfo(list, str), default=[]),
     )
@@ -503,10 +505,17 @@ class CmakeModule(ExtensionModule):
 
         targets: T.List[T.Union[build.SharedLibrary, build.StaticLibrary]] = dep.libraries
 
+        # These options are space-separated lists because they are passed to CMake's target_*()
         compile_options = ''
         for compile_arg in dep.compile_args:
             compile_options += compile_arg + ' '
         compile_options = compile_options.strip()
+
+        includedir = coredata.get_option(mesonlib.OptionKey('includedir'))
+        include_dirs = f'"${{_IMPORT_PREFIX}}/{includedir}" '
+        for subdir in kwargs['subdirs']:
+            include_dirs += f'"${{_IMPORT_PREFIX}}/{includedir}/{subdir}" '
+        include_dirs = include_dirs.strip()
 
         link_options = ''
         for link_arg in dep.link_args:
@@ -516,7 +525,6 @@ class CmakeModule(ExtensionModule):
         mlog.error(targets, compile_options, link_options)
 
         expected_targets = ''
-
         for target in targets:
             if not isinstance(target, build.SharedLibrary) and not isinstance(target, build.StaticLibrary):
                 raise mesonlib.MesonException('cmake.generate_export only supports dependencies wrapping libraries.')
@@ -534,6 +542,7 @@ class CmakeModule(ExtensionModule):
             targets_file = targets_file.replace('@lib_type@', lib_type)
 
             targets_file = targets_file.replace('@compile_options@', compile_options)
+            targets_file = targets_file.replace('@include_dirs@', include_dirs)
             targets_file = targets_file.replace('@libraries@', '')
             targets_file = targets_file.replace('@link_options@', link_options)
 
