@@ -2082,6 +2082,8 @@ external dependencies (including libraries) must go to "dependencies".''')
             raise InvalidArguments('Must not go into subprojects dir with subdir(), use subproject() instead.')
         if self.subdir == '' and args[0].startswith('meson-'):
             raise InvalidArguments('The "meson-" prefix is reserved and cannot be used for top-level subdir().')
+        if args[0] == '':
+            raise InvalidArguments("The argument given to subdir() is the empty string ''. This is prohibited.")
         for i in kwargs['if_found']:
             if not i.found():
                 return
