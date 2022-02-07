@@ -189,8 +189,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
     def compiler(self) -> 'Compiler':
         return self.held_object
 
-    @staticmethod
-    def _dep_msg(deps: T.List['dependencies.Dependency'], endl: str) -> str:
+    def _dep_msg(self, deps: T.List['dependencies.Dependency'], endl: str) -> str:
         msg_single = 'with dependency {}'
         msg_many = 'with dependencies {}'
         if not deps:
@@ -200,6 +199,8 @@ class CompilerHolder(ObjectHolder['Compiler']):
         names = []
         for d in deps:
             if isinstance(d, dependencies.InternalDependency):
+                FeatureNew.single_use('compiler method "dependencies" kwarg with internal dep', '0.57.0', self.subproject,
+                                      location=self.current_node)
                 continue
             if isinstance(d, dependencies.ExternalLibrary):
                 name = '-l' + d.name
