@@ -1461,6 +1461,7 @@ class GnomeModule(ExtensionModule):
             [],
             [f'{modulename}-decl.txt'],
             build_always_stale=True,
+            build_by_default=True,
             extra_depends=depends,
         )
         alias_target = build.AliasTarget(targetname, [custom_target], state.subdir, state.subproject)
