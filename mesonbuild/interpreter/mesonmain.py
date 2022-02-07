@@ -87,13 +87,13 @@ class MesonMain(MesonInterpreterObject):
             FeatureNew.single_use(f'Passing executable/found program object to script parameter of {name}',
                                   '0.55.0', self.subproject, location=self.current_node)
             largs.append(prog)
-            largs.extend(args)
-            return self.interpreter.backend.get_executable_serialisation(largs)
-        elif isinstance(prog, mesonlib.File):
-            FeatureNew.single_use(f'Passing file object to script parameter of {name}',
-                                  '0.57.0', self.subproject, location=self.current_node)
-        found = self.interpreter.find_program_impl([prog])
-        largs.append(found)
+        else:
+            if isinstance(prog, mesonlib.File):
+                FeatureNew.single_use(f'Passing file object to script parameter of {name}',
+                                      '0.57.0', self.subproject, location=self.current_node)
+            found = self.interpreter.find_program_impl([prog])
+            largs.append(found)
+
         largs.extend(args)
         es = self.interpreter.backend.get_executable_serialisation(largs)
         es.subproject = self.interpreter.subproject
