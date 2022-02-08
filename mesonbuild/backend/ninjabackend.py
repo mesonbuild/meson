@@ -1709,7 +1709,8 @@ class NinjaBackend(backends.Backend):
             args.extend(rustc.get_linker_always_args())
 
         args += self.generate_basic_compiler_args(target, rustc, False)
-        args += ['--crate-name', target.name]
+        # This matches rustc's default behavior.
+        args += ['--crate-name', target.name.replace('-', '_')]
         depfile = os.path.join(target.subdir, target.name + '.d')
         args += ['--emit', f'dep-info={depfile}', '--emit', 'link']
         args += target.get_extra_args('rust')
