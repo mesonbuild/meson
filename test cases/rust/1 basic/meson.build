@@ -1,6 +1,6 @@
 project('rustprog', 'rust')
 
-e = executable('program', 'prog.rs',
+e = executable('rust-program', 'prog.rs',
   rust_args : ['-C', 'lto'], # Just a test
   install : true
 )
