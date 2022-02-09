@@ -26,3 +26,16 @@ Ed ora la lista di cose da fare per ogni library:
 - Ottengo la lista delle dipendenze da `dependencies`, e per ognuna di esse mi prendo la lista di librerie e flag pubblici da `compile_args`, `link_args` e `link_with` per metterli in `INTERFACE_*`. Questa cosa va fatta ricorsivamente, perché ogni dependency può dipendere da altre dependency.
 
 - projectConfig richiederà poche modifiche
+
+Dopo qualche commento di Eli, ho un po' cambiato idea sull'interfaccia della funzione. Sarà così:
+
+```meson
+cmake.generate_export(
+  dep target...
+  name: str -> dep.lib.name
+  namespace: str -> project.name
+  subdirs: str
+)
+```
+
+Dove dep è una InternalDependency che linka con una sola library. La funzione può prendere più di una dep qualora fosse necessario generare un export set che contiene più target nello stesso `nameTargets*.cmake`; questo rende l'utilizzo dei file più complicato da gestire per Meson, perché non ha una corrispondenza 1:1 con pkg-config (più dipendenze con lo stesso nome vs una dep per nome), ma è indispensabile per permettere agli utenti che passano da CMake a Meson di continuare a generare lo stesso export set, così da non rompere compatibilità con i loro utenti.

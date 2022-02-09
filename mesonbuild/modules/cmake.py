@@ -52,6 +52,7 @@ if T.TYPE_CHECKING:
 
     class GenerateExport(T.TypedDict):
         name: T.Optional[str]
+        namespace: T.Optional[str]
         subdirs: T.List[str]
 #        targets: T.List[T.Union[build.SharedLibrary, build.StaticLibrary]]
 #        compile_options: T.List[str]
@@ -486,30 +487,54 @@ class CmakeModule(ExtensionModule):
         return CMakeSubprojectOptions()
 
     @FeatureNew('generate_export', '0.62.0')
-    @typed_pos_args('cmake.generate_export', dependencies.InternalDependency)
+    @typed_pos_args('cmake.generate_export', varargs=dependencies.InternalDependency, min_varargs=1)
     @typed_kwargs(
         'cmake.generate_export',
         KwargInfo('name', (str, NoneType)),
+        KwargInfo('namespace', (str, NoneType)),
         KwargInfo('subdirs', ContainerTypeInfo(list, str), default=[], listify=True)
 #        KwargInfo('targets',  ContainerTypeInfo(list, (dependencies.InternalDependency)), required=True),
 #        KwargInfo('compile_options', ContainerTypeInfo(list, str), default=[]),
     )
-    def generate_export(self, state, args: T.Tuple[dependencies.InternalDependency], kwargs: 'GenerateExport'):
-        dep = args[0]
-
-        name = kwargs['name']
-        if not name:
-            name = state.project_name
+    def generate_export(self, state, args: T.Tuple[T.List[dependencies.InternalDependency]], kwargs: 'GenerateExport'):
+        deps = args[0]
 
         coredata = state.environment.get_coredata()
 
-        targets: T.List[T.Union[build.SharedLibrary, build.StaticLibrary]] = dep.libraries
+        namespace = kwargs['namespace']
+        if not namespace:
+            namespace = state.project_name
 
+        targets: T.List[T.Union[build.SharedLibrary, build.StaticLibrary]] = []
+        expected_targets = ''
         # These options are space-separated lists because they are passed to CMake's target_*()
-        compile_options = ''
-        for compile_arg in dep.compile_args:
-            compile_options += compile_arg + ' '
-        compile_options = compile_options.strip()
+        compile_options: T.List[str] = []
+        link_options: T.List[str] = []
+
+        for dep in deps:
+            if len(dep.libraries) != 1 or not isinstance(dep.libraries[0], (build.SharedLibrary, build.StaticLibrary)):
+                raise mesonlib.MesonException('cmake.generate_export only supports dependencies wrapping a single library')
+
+            target = dep.libraries[0]
+            targets += target
+            expected_targets += target.name + ' '
+
+            target_compile_options = ''
+            for compile_arg in dep.compile_args:
+                target_compile_options += compile_arg + ' '
+            compile_options += target_compile_options.strip()
+
+            target_link_options = ''
+            for link_arg in dep.link_args:
+                target_link_options += link_arg + ' '
+            link_options += target_link_options.strip()
+        expected_targets = expected_targets.strip()
+
+        name = kwargs['name']
+        if not name:
+            if len(deps) > 1:
+                raise mesonlib.MesonException('When passing multiple deps to cmake.generate_export, the name kwarg is required')
+            name = deps[0].libraries[0].name
 
         includedir = coredata.get_option(mesonlib.OptionKey('includedir'))
         include_dirs = f'"${{_IMPORT_PREFIX}}/{includedir}" '
@@ -517,34 +542,22 @@ class CmakeModule(ExtensionModule):
             include_dirs += f'"${{_IMPORT_PREFIX}}/{includedir}/{subdir}" '
         include_dirs = include_dirs.strip()
 
-        link_options = ''
-        for link_arg in dep.link_args:
-            link_options += link_arg + ' '
-        link_options = link_options.strip()
-
         mlog.error(targets, compile_options, link_options)
-
-        expected_targets = ''
-        for target in targets:
-            if not isinstance(target, build.SharedLibrary) and not isinstance(target, build.StaticLibrary):
-                raise mesonlib.MesonException('cmake.generate_export only supports dependencies wrapping libraries.')
-            expected_targets += target.name + ' '
-        expected_targets = expected_targets.strip()
 
         targets_file = TARGETS_INIT.replace('@expected_targets@', expected_targets)
         targets_file = targets_file.replace('@prefix@', coredata.get_option(mesonlib.OptionKey('prefix')))
 
-        for target in targets:
-            targets_file += TARGETS_IMPORT.replace('@namespace@', name)
+        for i, target in enumerate(targets):
+            targets_file += TARGETS_IMPORT.replace('@namespace@', namespace)
             targets_file = targets_file.replace('@name@', target.name)
 
             lib_type = 'SHARED' if isinstance(target, build.SharedLibrary) else 'STATIC'
             targets_file = targets_file.replace('@lib_type@', lib_type)
 
-            targets_file = targets_file.replace('@compile_options@', compile_options)
+            targets_file = targets_file.replace('@compile_options@', compile_options[i])
             targets_file = targets_file.replace('@include_dirs@', include_dirs)
             targets_file = targets_file.replace('@libraries@', '')
-            targets_file = targets_file.replace('@link_options@', link_options)
+            targets_file = targets_file.replace('@link_options@', link_options[i])
 
         return mlog.error(targets_file)
 
