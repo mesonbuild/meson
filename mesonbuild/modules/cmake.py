@@ -137,8 +137,8 @@ if(_IMPORT_PREFIX STREQUAL "/")
 endif()
 '''
 
-TARGETS_IMPORT = '''
-# Create imported target @namespace@::@name@
+TARGETS_TARGET = '''
+# Create imported target @namespace@::@target_name@
 add_library(@namespace@::@target_name@ @lib_type@ IMPORTED)
 
 target_compile_options(@namespace@::@target_name@ INTERFACE @compile_options@)
@@ -162,13 +162,13 @@ set(_IMPORT_PREFIX)
 foreach(target ${_IMPORT_CHECK_TARGETS} )
   foreach(file ${_IMPORT_CHECK_FILES_FOR_${target}} )
     if(NOT EXISTS "${file}" )
-      message(FATAL_ERROR "The imported target \"${target}\" references the file
-   \"${file}\"
+      message(FATAL_ERROR "The imported target \\"${target}\\" references the file
+   \\"${file}\\"
 but this file does not exist.  Possible reasons include:
 * The file was deleted, renamed, or moved to another location.
 * An install or uninstall procedure did not complete successfully.
 * The installation package was faulty and contained
-   \"${CMAKE_CURRENT_LIST_FILE}\"
+   \\"${CMAKE_CURRENT_LIST_FILE}\\"
 but not all the files it references.
 ")
     endif()
@@ -183,6 +183,26 @@ unset(_IMPORT_CHECK_TARGETS)
 # Commands beyond this point should not need to know the version.
 set(CMAKE_IMPORT_FILE_VERSION)
 cmake_policy(POP)
+'''
+
+TARGETS_CONFIG_INIT = '''
+#----------------------------------------------------------------
+# Generated CMake target import file for configuration "@buildtype@".
+#----------------------------------------------------------------
+
+# Commands may need to know the format version.
+set(CMAKE_IMPORT_FILE_VERSION 1)
+'''
+
+TARGETS_CONFIG_TARGET = '''
+# Import target "@namespace@::@target_name@" for configuration "@buildtype@"
+set_property(TARGET @namespace@::@target_name@ APPEND PROPERTY IMPORTED_CONFIGURATIONS @buildtype@)
+set_target_properties(@namespace@::@target_name@ PROPERTIES
+  IMPORTED_LOCATION_@buildtype@ "${_IMPORT_PREFIX}/@libdir@/@lib_file_name@"
+)
+
+list(APPEND _IMPORT_CHECK_TARGETS @namespace@::@target_name@)
+list(APPEND _IMPORT_CHECK_FILES_FOR_@namespace@::@target_name@ "${_IMPORT_PREFIX}/@libdir@/@lib_file_name@")
 '''
 
 class CMakeSubproject(ModuleObject):
@@ -529,8 +549,6 @@ class CmakeModule(ExtensionModule):
         KwargInfo('name', (str, NoneType)),
         KwargInfo('namespace', (str, NoneType)),
         KwargInfo('subdirs', ContainerTypeInfo(list, str), default=[], listify=True)
-#        KwargInfo('targets',  ContainerTypeInfo(list, (dependencies.InternalDependency)), required=True),
-#        KwargInfo('compile_options', ContainerTypeInfo(list, str), default=[]),
     )
     def generate_export(self, state, args: T.Tuple[T.List[dependencies.InternalDependency]], kwargs: 'GenerateExport'):
         deps = args[0]
@@ -578,13 +596,14 @@ class CmakeModule(ExtensionModule):
             include_dirs += f'"${{_IMPORT_PREFIX}}/{includedir}/{subdir}" '
         include_dirs = include_dirs.strip()
 
-        mlog.error(targets, compile_options, link_options)
-
         targets_file = TARGETS_INIT.replace('@expected_targets@', expected_targets)
         targets_file = targets_file.replace('@prefix@', coredata.get_option(mesonlib.OptionKey('prefix')))
 
+        buildtype: str = coredata.get_option(mesonlib.OptionKey('buildtype')).upper()
+        targets_config_file = TARGETS_CONFIG_INIT.replace('@buildtype@', buildtype)
+
         for i, target in enumerate(targets):
-            targets_file += TARGETS_IMPORT.replace('@namespace@', namespace)
+            targets_file += TARGETS_TARGET.replace('@namespace@', namespace)
             targets_file = targets_file.replace('@target_name@', target.name)
 
             lib_type = 'SHARED' if isinstance(target, build.SharedLibrary) else 'STATIC'
@@ -595,9 +614,19 @@ class CmakeModule(ExtensionModule):
             #targets_file = targets_file.replace('@libraries@', '')
             targets_file = targets_file.replace('@link_options@', link_options[i])
 
+            targets_config_file += TARGETS_CONFIG_TARGET.replace('@namespace@', namespace)
+            targets_config_file = targets_config_file.replace('@target_name@', target.name)
+            targets_config_file = targets_config_file.replace('@buildtype@', buildtype)
+            targets_config_file = targets_config_file.replace('@libdir@', coredata.get_option(mesonlib.OptionKey('libdir')))
+            targets_config_file = targets_config_file.replace('@lib_file_name@', target.filename)
+
         targets_file += TARGETS_END.replace('@name@', name)
 
-        return mlog.error(targets_file)
+        open(f'{state.environment.build_dir}/{name}Targets.cmake', 'w', encoding='utf-8') \
+            .write(targets_file)
+
+        open(f'{state.environment.build_dir}/{name}Targets-{buildtype}.cmake', 'w', encoding='utf-8') \
+            .write(targets_config_file)
 
 def initialize(*args, **kwargs):
     return CmakeModule(*args, **kwargs)
