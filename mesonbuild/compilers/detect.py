@@ -240,8 +240,9 @@ def _get_compilers(env: 'Environment', lang: str, for_machine: MachineChoice) ->
         # Return value has to be a list of compiler 'choices'
         compilers = [comp]
     else:
-        if not env.machines.matches_build_machine(for_machine):
-            raise EnvironmentException(f'{lang!r} compiler binary not defined in cross or native file')
+        # Cross compilers must NEVER EVER be taken from envvars.
+        if env.is_cross_build() and for_machine == MachineChoice.HOST:
+            raise EnvironmentException(f'{lang!r} compiler binary not defined in a cross file')
         compilers = [[x] for x in defaults[lang]]
         ccache = BinaryTable.detect_compiler_cache()
 

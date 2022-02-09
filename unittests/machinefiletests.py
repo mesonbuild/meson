@@ -740,7 +740,7 @@ class CrossFileTests(BasePlatformTests):
                     self.init(testdir, extra_args=['--cross-file=' + name], inprocess=True)
                     self.wipe()
 
-    def helper_create_cross_file(self, values):
+    def helper_create_cross_file(self, values, *, add_fake_compilers=True):
         """Create a config file as a temporary file.
 
         values should be a nested dictionary structure of {section: {key:
@@ -748,6 +748,13 @@ class CrossFileTests(BasePlatformTests):
         """
         filename = os.path.join(self.builddir, f'generated{self.current_config}.config')
         self.current_config += 1
+        if add_fake_compilers:
+            if is_windows() and shutil.which('cl'):
+                base = {'binaries': {'c': 'cl', 'cpp': 'cl'}}
+            else:
+                base = {'binaries': {'c': 'cc', 'cpp': 'c++'}}
+            base.update(values)
+            values = base
         with open(filename, 'wt', encoding='utf-8') as f:
             for section, entries in values.items():
                 f.write(f'[{section}]\n')

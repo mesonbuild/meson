@@ -3597,6 +3597,8 @@ class AllPlatformTests(BasePlatformTests):
         machinefile = os.path.join(self.builddir, 'machine.txt')
         with open(machinefile, 'w', encoding='utf-8') as f:
             f.write(textwrap.dedent('''
+                [binaries]
+                c = 'cc'
                 [properties]
                 c_stdlib = 'mylibc'
                 '''))

@@ -125,6 +125,14 @@ class LinuxCrossArmTests(BaseLinuxCrossTests):
         self.run_tests()
         self.assertPathExists(stamp_file)
 
+    def test_missing_compilers(self):
+        '''
+        Requesting a compiler that is not in the cross file must be an error.
+        '''
+        testdir = os.path.join(self.common_test_dir, '1 trivial')
+        self.meson_cross_files = [os.path.join(self.src_root, 'cross', 'noexes.txt')]
+        with self.assertRaises(subprocess.CalledProcessError, msg='compiler binary not defined in a cross file'):
+            self.init(testdir)
 
 def should_run_cross_mingw_tests():
     return shutil.which('x86_64-w64-mingw32-gcc') and not (is_windows() or is_cygwin())
