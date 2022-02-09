@@ -2929,7 +2929,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
             raise InvalidArguments(f"Target name '{name}' is reserved for Meson's "
                                    "internal use. Please rename.")
 
-    def add_target(self, name, tobj):
+    def add_target(self, name: str, tobj: build.Target) -> None:
         if name == '':
             raise InterpreterException('Target name must not be empty.')
         if name.strip() == '':
