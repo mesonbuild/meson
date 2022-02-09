@@ -33,7 +33,7 @@ from .backend.backends import (
 )
 from .coredata import major_versions_differ, MesonVersionMismatchException
 from .coredata import version as coredata_version
-from .mesonlib import Popen_safe, RealPathAction, is_windows, setup_vsenv
+from .mesonlib import MesonException, Popen_safe, RealPathAction, is_windows, setup_vsenv
 from .scripts import depfixer, destdir_join
 from .scripts.meson_exe import run_exe
 try:
@@ -427,13 +427,13 @@ class Installer:
                     makedirs: T.Optional[T.Tuple[T.Any, str]] = None) -> bool:
         outdir = os.path.split(to_file)[0]
         if not os.path.isfile(from_file) and not os.path.islink(from_file):
-            raise RuntimeError(f'Tried to install something that isn\'t a file: {from_file!r}')
+            raise MesonException(f'Tried to install something that isn\'t a file: {from_file!r}')
         # copyfile fails if the target file already exists, so remove it to
         # allow overwriting a previous install. If the target is not a file, we
         # want to give a readable error.
         if os.path.exists(to_file):
             if not os.path.isfile(to_file):
-                raise RuntimeError(f'Destination {to_file!r} already exists and is not a file')
+                raise MesonException(f'Destination {to_file!r} already exists and is not a file')
             if self.should_preserve_existing_file(from_file, to_file):
                 append_to_log(self.lf, f'# Preserving old file {to_file}\n')
                 self.preserved_file_count += 1
@@ -465,10 +465,10 @@ class Installer:
         if not os.path.isabs(target):
             abs_target = os.path.join(full_dst_dir, target)
         if not os.path.exists(abs_target):
-            raise RuntimeError(f'Tried to install symlink to missing file {abs_target}')
+            raise MesonException(f'Tried to install symlink to missing file {abs_target}')
         if os.path.exists(link):
             if not os.path.islink(link):
-                raise RuntimeError(f'Destination {link!r} already exists and is not a symlink')
+                raise MesonException(f'Destination {link!r} already exists and is not a symlink')
             self.remove(link)
         if not self.printed_symlink_error:
             self.log(f'Installing symlink pointing to {target} to {link}')
@@ -713,7 +713,7 @@ class Installer:
                     self.log(f'File {t.fname!r} not found, skipping')
                     continue
                 else:
-                    raise RuntimeError(f'File {t.fname!r} could not be found')
+                    raise MesonException(f'File {t.fname!r} could not be found')
             file_copied = False # not set when a directory is copied
             fname = check_for_stampfile(t.fname)
             outdir = get_destdir_path(destdir, fullprefix, t.outdir)
@@ -725,7 +725,7 @@ class Installer:
             install_name_mappings = t.install_name_mappings
             install_mode = t.install_mode
             if not os.path.exists(fname):
-                raise RuntimeError(f'File {fname!r} could not be found')
+                raise MesonException(f'File {fname!r} could not be found')
             elif os.path.isfile(fname):
                 file_copied = self.do_copyfile(fname, outname, makedirs=(dm, outdir))
                 self.set_mode(outname, install_mode, d.install_umask)
