@@ -155,21 +155,23 @@ class CommandLineParser:
             if os.environ.get('MESON_FORCE_BACKTRACE'):
                 raise
             return 1
-        except PermissionError:
-            if os.environ.get('MESON_FORCE_BACKTRACE'):
-                raise
-            traceback.print_exc()
-            return 2
         except Exception as e:
             if os.environ.get('MESON_FORCE_BACKTRACE'):
                 raise
             traceback.print_exc()
-            msg = 'Unhandled python exception'
-            if all(getattr(e, a, None) is not None for a in ['file', 'lineno', 'colno']):
-                e = MesonBugException(msg, e.file, e.lineno, e.colno) # type: ignore
-            else:
-                e = MesonBugException(msg)
-            mlog.exception(e)
+            # We assume many types of traceback are Meson logic bugs, but most
+            # particularly anything coming from the interpreter during `setup`.
+            # Some things definitely aren't:
+            # - PermissionError is always a problem in the user environment
+            # - runpython doesn't run Meson's own code, even though it is
+            #   dispatched by our run()
+            if command != 'runpython' and not isinstance(e, PermissionError):
+                msg = 'Unhandled python exception'
+                if all(getattr(e, a, None) is not None for a in ['file', 'lineno', 'colno']):
+                    e = MesonBugException(msg, e.file, e.lineno, e.colno) # type: ignore
+                else:
+                    e = MesonBugException(msg)
+                mlog.exception(e)
             return 2
         finally:
             if pending_python_deprecation_notice:
