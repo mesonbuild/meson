@@ -516,18 +516,18 @@ class CmakeModule(ExtensionModule):
                 raise mesonlib.MesonException('cmake.generate_export only supports dependencies wrapping a single library')
 
             target = dep.libraries[0]
-            targets += target
-            expected_targets += target.name + ' '
+            targets.append(target)
+            expected_targets += namespace + '::' + target.name + ' '
 
             target_compile_options = ''
             for compile_arg in dep.compile_args:
                 target_compile_options += compile_arg + ' '
-            compile_options += target_compile_options.strip()
+            compile_options.append(target_compile_options.strip())
 
             target_link_options = ''
             for link_arg in dep.link_args:
                 target_link_options += link_arg + ' '
-            link_options += target_link_options.strip()
+            link_options.append(target_link_options.strip())
         expected_targets = expected_targets.strip()
 
         name = kwargs['name']
