@@ -116,6 +116,7 @@ class FeatureOptionHolder(ObjectHolder[coredata.UserFeatureOption]):
 
     @noPosargs
     @noKwargs
+    @FeatureNew('feature_option.allowed()', '0.59.0')
     def allowed_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
         return self.value != 'disabled'
 
@@ -124,6 +125,7 @@ class FeatureOptionHolder(ObjectHolder[coredata.UserFeatureOption]):
     def auto_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
         return self.value == 'auto'
 
+    @FeatureNew('feature_option.require()', '0.59.0')
     @permittedKwargs({'error_message'})
     def require_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> coredata.UserFeatureOption:
         if len(args) != 1:
@@ -144,6 +146,7 @@ class FeatureOptionHolder(ObjectHolder[coredata.UserFeatureOption]):
             raise InterpreterException(prefix + error_message)
         return self.as_disabled()
 
+    @FeatureNew('feature_option.disable_auto_if()', '0.59.0')
     @noKwargs
     def disable_auto_if_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> coredata.UserFeatureOption:
         if len(args) != 1:
