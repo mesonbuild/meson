@@ -54,8 +54,6 @@ if T.TYPE_CHECKING:
         name: T.Optional[str]
         namespace: T.Optional[str]
         subdirs: T.List[str]
-#        targets: T.List[T.Union[build.SharedLibrary, build.StaticLibrary]]
-#        compile_options: T.List[str]
 
 COMPATIBILITIES = ['AnyNewerVersion', 'SameMajorVersion', 'SameMinorVersion', 'ExactVersion']
 
@@ -141,12 +139,50 @@ endif()
 
 TARGETS_IMPORT = '''
 # Create imported target @namespace@::@name@
-add_library(@namespace@::@name@ @lib_type@ IMPORTED)
+add_library(@namespace@::@target_name@ @lib_type@ IMPORTED)
 
-target_compile_options(@namespace@::@name@ INTERFACE @compile_options@)
-target_include_directories(@namespace@::@name@ INTERFACE @include_dirs@)
-target_link_libraries(@namespace@::@name@ INTERFACE @libraries@)
-target_link_options(@namespace@::@name@ INTERFACE @link_options@)
+target_compile_options(@namespace@::@target_name@ INTERFACE @compile_options@)
+target_include_directories(@namespace@::@target_name@ INTERFACE @include_dirs@)
+#target_link_libraries(@namespace@::@target_name@ INTERFACE @libraries@)
+target_link_options(@namespace@::@target_name@ INTERFACE @link_options@)
+'''
+
+TARGETS_END = '''
+# Load information for each installed configuration.
+get_filename_component(_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+file(GLOB CONFIG_FILES "${_DIR}/@name@Targets-*.cmake")
+foreach(f ${CONFIG_FILES})
+  include(${f})
+endforeach()
+
+# Cleanup temporary variables.
+set(_IMPORT_PREFIX)
+
+# Loop over all imported files and verify that they actually exist
+foreach(target ${_IMPORT_CHECK_TARGETS} )
+  foreach(file ${_IMPORT_CHECK_FILES_FOR_${target}} )
+    if(NOT EXISTS "${file}" )
+      message(FATAL_ERROR "The imported target \"${target}\" references the file
+   \"${file}\"
+but this file does not exist.  Possible reasons include:
+* The file was deleted, renamed, or moved to another location.
+* An install or uninstall procedure did not complete successfully.
+* The installation package was faulty and contained
+   \"${CMAKE_CURRENT_LIST_FILE}\"
+but not all the files it references.
+")
+    endif()
+  endforeach()
+  unset(_IMPORT_CHECK_FILES_FOR_${target})
+endforeach()
+unset(_IMPORT_CHECK_TARGETS)
+
+# This file does not depend on other imported targets which have
+# been exported from the same project but in a separate export set.
+
+# Commands beyond this point should not need to know the version.
+set(CMAKE_IMPORT_FILE_VERSION)
+cmake_policy(POP)
 '''
 
 class CMakeSubproject(ModuleObject):
@@ -549,15 +585,17 @@ class CmakeModule(ExtensionModule):
 
         for i, target in enumerate(targets):
             targets_file += TARGETS_IMPORT.replace('@namespace@', namespace)
-            targets_file = targets_file.replace('@name@', target.name)
+            targets_file = targets_file.replace('@target_name@', target.name)
 
             lib_type = 'SHARED' if isinstance(target, build.SharedLibrary) else 'STATIC'
             targets_file = targets_file.replace('@lib_type@', lib_type)
 
             targets_file = targets_file.replace('@compile_options@', compile_options[i])
             targets_file = targets_file.replace('@include_dirs@', include_dirs)
-            targets_file = targets_file.replace('@libraries@', '')
+            #targets_file = targets_file.replace('@libraries@', '')
             targets_file = targets_file.replace('@link_options@', link_options[i])
+
+        targets_file += TARGETS_END.replace('@name@', name)
 
         return mlog.error(targets_file)
 
