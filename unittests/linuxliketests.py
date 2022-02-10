@@ -387,8 +387,8 @@ class LinuxlikeTests(BasePlatformTests):
         Test that qt6 detection with qmake works. This can't be an ordinary
         test case because it involves setting the environment.
         '''
-        # Verify that qmake is for Qt5
-        if not shutil.which('qmake-qt6'):
+        # Verify that qmake is for Qt6
+        if not shutil.which('qmake6'):
             if not shutil.which('qmake'):
                 raise SkipTest('QMake not found')
             output = subprocess.getoutput('qmake --version')
