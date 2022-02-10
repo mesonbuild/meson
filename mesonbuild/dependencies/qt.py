@@ -127,6 +127,7 @@ class _QtBase:
     libexecdir: T.Optional[str] = None
 
     def __init__(self, name: str, kwargs: T.Dict[str, T.Any]):
+        self.name = name
         self.qtname = name.capitalize()
         self.qtver = name[-1]
         if self.qtver == "4":
@@ -244,7 +245,7 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=abc.ABCMeta):
 
     def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]):
         _QtBase.__init__(self, name, kwargs)
-        self.tools = [f'qmake-{self.qtname}', 'qmake']
+        self.tools = [f'qmake-{self.name}', 'qmake']
 
         # Add additional constraints that the Qt version is met, but preserve
         # any version requrements the user has set as well. For example, if Qt5
