@@ -72,6 +72,7 @@ def get_more_modules():
             'distutils.version',
             'distutils.command.build_ext',
             'distutils.command.build',
+            'distutils.command.install',
             'filecmp',
             ]
 
