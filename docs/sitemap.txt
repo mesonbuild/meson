@@ -58,6 +58,7 @@ index.md
 			SourceSet-module.md
 			Windows-module.md
 			i18n-module.md
+			Wayland-module.md
 		Java.md
 		Vala.md
 		D.md

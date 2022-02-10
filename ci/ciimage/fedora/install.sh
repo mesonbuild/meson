@@ -15,7 +15,7 @@ pkgs=(
   doxygen vulkan-devel vulkan-validation-layers-devel openssh mercurial gtk-sharp2-devel libpcap-devel gpgme-devel
   qt5-qtbase-devel qt5-qttools-devel qt5-linguist qt5-qtbase-private-devel
   libwmf-devel valgrind cmake openmpi-devel nasm gnustep-base-devel gettext-devel ncurses-devel
-  libxml2-devel libxslt-devel libyaml-devel glib2-devel json-glib-devel libgcrypt-devel
+  libxml2-devel libxslt-devel libyaml-devel glib2-devel json-glib-devel libgcrypt-devel wayland-devel wayland-protocols-devel
 )
 
 # Sys update
