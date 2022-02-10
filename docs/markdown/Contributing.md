@@ -198,7 +198,7 @@ The (optional) `test.json` file, in the root of a test case, is used
 for configuring the test. All of the following root entries in the `test.json`
 are independent of each other and can be combined as needed.
 
-Exanple `test.json`:
+Example `test.json`:
 
 ```json
 {
