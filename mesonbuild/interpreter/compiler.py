@@ -441,7 +441,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
                 code.rel_to_builddir(self.environment.source_dir))
         testname = kwargs['name']
         extra_args = functools.partial(self._determine_args, kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
-        deps, msg = self._determine_dependencies(kwargs['dependencies'])
+        deps, msg = self._determine_dependencies(kwargs['dependencies'], endl=None)
         result, cached = self.compiler.compiles(code, self.environment,
                                                 extra_args=extra_args,
                                                 dependencies=deps)
