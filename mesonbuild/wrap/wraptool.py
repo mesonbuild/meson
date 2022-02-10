@@ -225,7 +225,7 @@ def status(options: 'argparse.Namespace') -> None:
         try:
             (current_branch, current_revision, _, _, _) = get_current_version(w)
         except Exception:
-            print('Wrap file not from wrapdb.', file=sys.stderr)
+            print('', name, 'Wrap file not from wrapdb.', file=sys.stderr)
             continue
         if current_branch == latest_branch and current_revision == latest_revision:
             print('', name, f'up to date. Branch {current_branch}, revision {current_revision}.')
