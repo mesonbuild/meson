@@ -24,7 +24,7 @@ from .. import mlog
 from ..compilers import clib_langs
 from ..mesonlib import LibType, MachineChoice, MesonException, HoldableObject
 from ..mesonlib import version_compare_many
-from ..interpreterbase import FeatureDeprecated
+#from ..interpreterbase import FeatureDeprecated, FeatureNew
 
 if T.TYPE_CHECKING:
     from .._typing import ImmutableListProtocol
@@ -496,14 +496,21 @@ def process_method_kw(possible: T.Iterable[DependencyMethods], kwargs: T.Dict[st
         raise DependencyException(f'method {method!r} is invalid')
     method = DependencyMethods(method)
 
+    # Raise FeatureNew where appropriate
+    if method is DependencyMethods.CONFIG_TOOL:
+        # FIXME: needs to get a handle on the subproject
+        # FeatureNew.single_use('Configuration method "config-tool"', '0.44.0')
+        pass
     # This sets per-tool config methods which are deprecated to to the new
     # generic CONFIG_TOOL value.
     if method in [DependencyMethods.SDLCONFIG, DependencyMethods.CUPSCONFIG,
                   DependencyMethods.PCAPCONFIG, DependencyMethods.LIBWMFCONFIG]:
-        FeatureDeprecated.single_use(f'Configuration method {method.value}', '0.44', 'Use "config-tool" instead.')
+        # FIXME: needs to get a handle on the subproject
+        #FeatureDeprecated.single_use(f'Configuration method {method.value}', '0.44', 'Use "config-tool" instead.')
         method = DependencyMethods.CONFIG_TOOL
     if method is DependencyMethods.QMAKE:
-        FeatureDeprecated.single_use('Configuration method "qmake"', '0.58', 'Use "config-tool" instead.')
+        # FIXME: needs to get a handle on the subproject
+        # FeatureDeprecated.single_use('Configuration method "qmake"', '0.58', 'Use "config-tool" instead.')
         method = DependencyMethods.CONFIG_TOOL
 
     # Set the detection method. If the method is set to auto, use any available method.
