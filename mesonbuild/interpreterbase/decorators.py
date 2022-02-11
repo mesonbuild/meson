@@ -27,8 +27,9 @@ import copy
 import typing as T
 if T.TYPE_CHECKING:
     from .. import mparser
+    from .interpreterbase import SubProject
 
-def get_callee_args(wrapped_args: T.Sequence[T.Any]) -> T.Tuple['mparser.BaseNode', T.List['TYPE_var'], 'TYPE_kwargs', str]:
+def get_callee_args(wrapped_args: T.Sequence[T.Any]) -> T.Tuple['mparser.BaseNode', T.List['TYPE_var'], 'TYPE_kwargs', 'SubProject']:
     # First argument could be InterpreterBase, InterpreterObject or ModuleObject.
     # In the case of a ModuleObject it is the 2nd argument (ModuleState) that
     # contains the needed information.
@@ -600,7 +601,7 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
     def check_version(target_version: str, feature_version: str) -> bool:
         pass
 
-    def use(self, subproject: str) -> None:
+    def use(self, subproject: 'SubProject') -> None:
         tv = self.get_target_version(subproject)
         # No target version
         if tv == '':
@@ -668,7 +669,7 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
         return T.cast(TV_func, wrapped)
 
     @classmethod
-    def single_use(cls, feature_name: str, version: str, subproject: str,
+    def single_use(cls, feature_name: str, version: str, subproject: 'SubProject',
                    extra_message: str = '', location: T.Optional['mparser.BaseNode'] = None) -> None:
         """Oneline version that instantiates and calls use()."""
         cls(feature_name, version, extra_message, location).use(subproject)

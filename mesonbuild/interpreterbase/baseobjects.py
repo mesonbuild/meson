@@ -39,6 +39,8 @@ TYPE_kwargs = T.Dict[str, TYPE_var]
 TYPE_nkwargs = T.Dict[str, TYPE_nvar]
 TYPE_key_resolver = T.Callable[[mparser.BaseNode], str]
 
+SubProject = T.NewType('SubProject', str)
+
 if T.TYPE_CHECKING:
     from typing_extensions import Protocol
     __T = T.TypeVar('__T', bound=TYPE_var, contravariant=True)
@@ -47,7 +49,7 @@ if T.TYPE_CHECKING:
         def __call__(self, other: __T) -> TYPE_var: ...
 
 class InterpreterObject:
-    def __init__(self, *, subproject: T.Optional[str] = None) -> None:
+    def __init__(self, *, subproject: T.Optional['SubProject'] = None) -> None:
         self.methods: T.Dict[
             str,
             T.Callable[[T.List[TYPE_var], TYPE_kwargs], TYPE_var]
@@ -63,7 +65,7 @@ class InterpreterObject:
         # Current node set during a method call. This can be used as location
         # when printing a warning message during a method call.
         self.current_node:  mparser.BaseNode = None
-        self.subproject: str = subproject or ''
+        self.subproject = subproject or SubProject('')
 
         # Some default operators supported by all objects
         self.operators.update({

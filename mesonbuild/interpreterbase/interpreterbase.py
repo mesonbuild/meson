@@ -26,6 +26,8 @@ from .baseobjects import (
     ObjectHolder,
     IterableObject,
 
+    SubProject,
+
     TYPE_var,
     TYPE_kwargs,
 
@@ -73,7 +75,7 @@ FunctionType = T.Dict[
 ]
 
 class InterpreterBase:
-    def __init__(self, source_root: str, subdir: str, subproject: str):
+    def __init__(self, source_root: str, subdir: str, subproject: 'SubProject'):
         self.source_root = source_root
         self.funcs: FunctionType = {}
         self.builtin: T.Dict[str, InterpreterObject] = {}

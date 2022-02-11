@@ -49,6 +49,7 @@ if T.TYPE_CHECKING:
     from ._typing import ImmutableListProtocol, ImmutableSetProtocol
     from .backend.backends import Backend, ExecutableSerialisation
     from .interpreter.interpreter import Test, SourceOutputs, Interpreter
+    from .interpreterbase import SubProject
     from .mesonlib import FileMode, FileOrString
     from .modules import ModuleState
     from .mparser import BaseNode
@@ -514,7 +515,7 @@ class Target(HoldableObject):
 
     name: str
     subdir: str
-    subproject: str
+    subproject: 'SubProject'
     build_by_default: bool
     for_machine: MachineChoice
 
@@ -675,7 +676,7 @@ class BuildTarget(Target):
 
     install_dir: T.List[T.Union[str, bool]]
 
-    def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
+    def __init__(self, name: str, subdir: str, subproject: 'SubProject', for_machine: MachineChoice,
                  sources: T.List['SourceOutputs'], objects, environment: environment.Environment, kwargs):
         super().__init__(name, subdir, subproject, True, for_machine)
         unity_opt = environment.coredata.get_option(OptionKey('unity'))

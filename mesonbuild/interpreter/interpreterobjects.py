@@ -31,6 +31,7 @@ if T.TYPE_CHECKING:
     from . import kwargs
     from .interpreter import Interpreter
     from ..envconfig import MachineInfo
+    from ..interpreterbase import SubProject
 
     from typing_extensions import TypedDict
 
@@ -40,7 +41,7 @@ if T.TYPE_CHECKING:
 
 
 def extract_required_kwarg(kwargs: 'kwargs.ExtractRequired',
-                           subproject: str,
+                           subproject: 'SubProject',
                            feature_check: T.Optional[FeatureCheckBase] = None,
                            default: bool = True) -> T.Tuple[bool, bool, T.Optional[str]]:
     val = kwargs.get('required', default)

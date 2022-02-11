@@ -22,6 +22,7 @@ from . import mlog
 from .interpreterbase import FeatureNew, typed_pos_args, typed_kwargs, ContainerTypeInfo, KwargInfo, permittedKwargs
 if T.TYPE_CHECKING:
     from .interpreterbase import TYPE_var, TYPE_kwargs
+    from .interpreterbase import SubProject
     from typing_extensions import TypedDict
     FuncOptionArgs = TypedDict('FuncOptionArgs', {
         'type': str,
@@ -50,7 +51,7 @@ optname_regex = re.compile('[^a-zA-Z0-9_-]')
 
 
 class OptionInterpreter:
-    def __init__(self, subproject: str) -> None:
+    def __init__(self, subproject: 'SubProject') -> None:
         self.options: 'coredata.KeyedOptionDictType' = {}
         self.subproject = subproject
         self.option_types = {'string': self.string_parser,

@@ -35,6 +35,7 @@ from . import WrapMode
 from .. import coredata
 from ..mesonlib import quiet_git, GIT, ProgressBar, MesonException, windows_proof_rmtree
 from ..interpreterbase import FeatureNew
+from ..interpreterbase import SubProject
 from .. import mesonlib
 
 if T.TYPE_CHECKING:
@@ -95,7 +96,7 @@ class WrapNotFoundException(WrapException):
 class PackageDefinition:
     def __init__(self, fname: str, subproject: str = ''):
         self.filename = fname
-        self.subproject = subproject
+        self.subproject = SubProject(subproject)
         self.type = None  # type: T.Optional[str]
         self.values = {} # type: T.Dict[str, str]
         self.provided_deps = {} # type: T.Dict[str, T.Optional[str]]
