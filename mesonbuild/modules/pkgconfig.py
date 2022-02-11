@@ -342,12 +342,21 @@ class PkgConfigModule(ExtensionModule):
         libdir = PurePath(coredata.get_option(mesonlib.OptionKey('libdir')))
         incdir = PurePath(coredata.get_option(mesonlib.OptionKey('includedir')))
         fname = os.path.join(outdir, pcfile)
+
+        # check if any variables reference libdir, to make sure we include it
+        # when its needed
+        need_libdir = False
+
+        for k, v in variables + unescaped_variables:
+            if '${libdir}' in v:
+                need_libdir = True
+
         with open(fname, 'w', encoding='utf-8') as ofile:
             if not dataonly:
                 ofile.write('prefix={}\n'.format(self._escape(prefix)))
                 if uninstalled:
                     ofile.write('srcdir={}\n'.format(self._escape(srcdir)))
-                if deps.pub_libs or deps.priv_libs:
+                if deps.pub_libs or deps.priv_libs or need_libdir:
                     ofile.write('libdir={}\n'.format(self._escape('${prefix}' / libdir)))
                 ofile.write('includedir={}\n'.format(self._escape('${prefix}' / incdir)))
             if variables or unescaped_variables:
