@@ -1,4 +1,4 @@
-project('pkgconfig-gen', 'c')
+project('pkgconfig-gen', 'c', meson_version: '>=0.60.0')
 
 # Some CI runners does not have zlib, just skip them as we need some common
 # external dependency.
@@ -149,3 +149,17 @@ ct = custom_target('stat3',
 )
 simple6 = library('simple6', link_with: ct)
 pkgg.generate(simple6)
+
+# implicit variables
+pkgg.generate(
+  name : 'libvartest',
+  description : 'Check that implicit vars are created',
+  version : libver,
+  variables: ['datadir=${prefix}/data', 'foo=${datadir}/foo', 'bar=${bindir}/bar']
+)
+pkgg.generate(
+  name : 'libvartest2',
+  description : 'Check that libdir is not an implicit var',
+  version : libver,
+  variables: ['bar=${libdir}/bar']
+)

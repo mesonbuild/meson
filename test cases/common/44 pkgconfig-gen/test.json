@@ -7,11 +7,26 @@
     {"type": "file", "file": "usr/lib/pkgconfig/libfoo.pc"},
     {"type": "file", "file": "usr/lib/pkgconfig/libhello.pc"},
     {"type": "file", "file": "usr/lib/pkgconfig/libhello_nolib.pc"},
+    {"type": "file", "file": "usr/lib/pkgconfig/libvartest.pc"},
+    {"type": "file", "file": "usr/lib/pkgconfig/libvartest2.pc"},
     {"type": "file", "file": "usr/lib/pkgconfig/simple2.pc"},
     {"type": "file", "file": "usr/lib/pkgconfig/simple3.pc"},
     {"type": "file", "file": "usr/lib/pkgconfig/simple5.pc"},
     {"type": "file", "file": "usr/lib/pkgconfig/simple6.pc"},
     {"type": "file", "file": "usr/lib/pkgconfig/ct.pc"},
     {"type": "file", "file": "usr/lib/pkgconfig/ct0.pc"}
+  ],
+  "stdout": [
+    {
+      "line": "test cases/common/44 pkgconfig-gen/meson.build:158: WARNING: Project targeting '>=0.60.0' but tried to use feature introduced in '0.62.0': pkgconfig.generate implicit variable for builtin directories."
+    },
+    {
+      "line": "test cases/common/44 pkgconfig-gen/meson.build:164: WARNING: Project targeting '>=0.60.0' but tried to use feature introduced in '0.62.0': pkgconfig.generate implicit variable for builtin directories.",
+      "count": 0
+    },
+    {
+      "comment": "This will either match in the future-deprecated notice summary, or match the warning summary",
+      "line": " * 0.62.0: {'pkgconfig.generate variable for builtin directories'}"
+    }
   ]
 }

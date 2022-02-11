@@ -22,8 +22,9 @@ from .. import build
 from .. import dependencies
 from .. import mesonlib
 from .. import mlog
+from ..coredata import BUILTIN_DIR_OPTIONS
 from ..dependencies import ThreadDependency
-from ..interpreterbase import permittedKwargs, FeatureNew, FeatureNewKwargs
+from ..interpreterbase import permittedKwargs, FeatureNew, FeatureDeprecated, FeatureNewKwargs
 
 if T.TYPE_CHECKING:
     from . import ModuleState
@@ -329,6 +330,41 @@ class PkgConfigModule(ExtensionModule):
                                  url, version, pcfile, conflicts, variables,
                                  unescaped_variables, uninstalled=False, dataonly=False):
         coredata = state.environment.get_coredata()
+        referenced_vars = set()
+        optnames = [x.name for x in BUILTIN_DIR_OPTIONS.keys()]
+
+        if not dataonly:
+            # includedir is always implied, although libdir may not be
+            # needed for header-only libraries
+            referenced_vars |= {'prefix', 'includedir'}
+            if deps.pub_libs or deps.priv_libs:
+                referenced_vars |= {'libdir'}
+        # also automatically infer variables referenced in other variables
+        implicit_vars_warning = False
+        redundant_vars_warning = False
+        varnames = set()
+        varstrings = set()
+        for k, v in variables + unescaped_variables:
+            varnames |= {k}
+            varstrings |= {v}
+        for optname in optnames:
+            optvar = f'${{{optname}}}'
+            if any(x.startswith(optvar) for x in varstrings):
+                if optname in varnames:
+                    redundant_vars_warning = True
+                else:
+                    # these 3 vars were always "implicit"
+                    if dataonly or optname not in {'prefix', 'includedir', 'libdir'}:
+                        implicit_vars_warning = True
+                    referenced_vars |= {'prefix', optname}
+        if redundant_vars_warning:
+            FeatureDeprecated.single_use('pkgconfig.generate variable for builtin directories', '0.62.0',
+                                         state.subproject, 'They will be automatically included when referenced',
+                                         state.current_node)
+        if implicit_vars_warning:
+            FeatureNew.single_use('pkgconfig.generate implicit variable for builtin directories', '0.62.0',
+                                  state.subproject, location=state.current_node)
+
         if uninstalled:
             outdir = os.path.join(state.environment.build_dir, 'meson-uninstalled')
             if not os.path.exists(outdir):
@@ -338,18 +374,17 @@ class PkgConfigModule(ExtensionModule):
         else:
             outdir = state.environment.scratch_dir
             prefix = PurePath(coredata.get_option(mesonlib.OptionKey('prefix')))
-        # These always return paths relative to prefix
-        libdir = PurePath(coredata.get_option(mesonlib.OptionKey('libdir')))
-        incdir = PurePath(coredata.get_option(mesonlib.OptionKey('includedir')))
         fname = os.path.join(outdir, pcfile)
         with open(fname, 'w', encoding='utf-8') as ofile:
-            if not dataonly:
-                ofile.write('prefix={}\n'.format(self._escape(prefix)))
-                if uninstalled:
-                    ofile.write('srcdir={}\n'.format(self._escape(srcdir)))
-                if deps.pub_libs or deps.priv_libs:
-                    ofile.write('libdir={}\n'.format(self._escape('${prefix}' / libdir)))
-                ofile.write('includedir={}\n'.format(self._escape('${prefix}' / incdir)))
+            for optname in optnames:
+                if optname in referenced_vars - varnames:
+                    if optname == 'prefix':
+                        ofile.write('prefix={}\n'.format(self._escape(prefix)))
+                    else:
+                        dirpath = PurePath(coredata.get_option(mesonlib.OptionKey(optname)))
+                        ofile.write('{}={}\n'.format(optname, self._escape('${prefix}' / dirpath)))
+            if uninstalled and not dataonly:
+                ofile.write('srcdir={}\n'.format(self._escape(srcdir)))
             if variables or unescaped_variables:
                 ofile.write('\n')
             for k, v in variables:
