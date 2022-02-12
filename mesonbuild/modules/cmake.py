@@ -562,8 +562,8 @@ class CmakeModule(ExtensionModule):
         targets: T.List[T.Union[build.SharedLibrary, build.StaticLibrary]] = []
         expected_targets = ''
         # These options are space-separated lists because they are passed to CMake's target_*()
-        compile_options: T.List[str] = []
-        link_options: T.List[str] = []
+        all_compile_options: T.List[str] = []
+        all_link_options: T.List[str] = []
 
         for dep in deps:
             if len(dep.libraries) != 1 or not isinstance(dep.libraries[0], (build.SharedLibrary, build.StaticLibrary)):
@@ -576,12 +576,12 @@ class CmakeModule(ExtensionModule):
             target_compile_options = ''
             for compile_arg in dep.compile_args:
                 target_compile_options += compile_arg + ' '
-            compile_options.append(target_compile_options.strip())
+            all_compile_options.append(target_compile_options.strip())
 
             target_link_options = ''
             for link_arg in dep.link_args:
                 target_link_options += link_arg + ' '
-            link_options.append(target_link_options.strip())
+            all_link_options.append(target_link_options.strip())
         expected_targets = expected_targets.strip()
 
         name = kwargs['name']
@@ -602,17 +602,17 @@ class CmakeModule(ExtensionModule):
         buildtype: str = coredata.get_option(mesonlib.OptionKey('buildtype')).upper()
         targets_config_file = TARGETS_CONFIG_INIT.replace('@buildtype@', buildtype)
 
-        for i, target in enumerate(targets):
+        for target, compile_options, link_options in zip(targets, all_compile_options, all_link_options):
             targets_file += TARGETS_TARGET.replace('@namespace@', namespace)
             targets_file = targets_file.replace('@target_name@', target.name)
 
             lib_type = 'SHARED' if isinstance(target, build.SharedLibrary) else 'STATIC'
             targets_file = targets_file.replace('@lib_type@', lib_type)
 
-            targets_file = targets_file.replace('@compile_options@', compile_options[i])
+            targets_file = targets_file.replace('@compile_options@', compile_options)
             targets_file = targets_file.replace('@include_dirs@', include_dirs)
             #targets_file = targets_file.replace('@libraries@', '')
-            targets_file = targets_file.replace('@link_options@', link_options[i])
+            targets_file = targets_file.replace('@link_options@', link_options)
 
             targets_config_file += TARGETS_CONFIG_TARGET.replace('@namespace@', namespace)
             targets_config_file = targets_config_file.replace('@target_name@', target.name)
@@ -622,11 +622,11 @@ class CmakeModule(ExtensionModule):
 
         targets_file += TARGETS_END.replace('@name@', name)
 
-        open(f'{state.environment.build_dir}/{name}Targets.cmake', 'w', encoding='utf-8') \
-            .write(targets_file)
+        with open(f'{state.environment.build_dir}/{name}Targets.cmake', 'w', encoding='utf-8') as f:
+            f.write(targets_file)
 
-        open(f'{state.environment.build_dir}/{name}Targets-{buildtype}.cmake', 'w', encoding='utf-8') \
-            .write(targets_config_file)
+        with open(f'{state.environment.build_dir}/{name}Targets-{buildtype}.cmake', 'w', encoding='utf-8') as f:
+            f.write(targets_config_file)
 
 def initialize(*args, **kwargs):
     return CmakeModule(*args, **kwargs)
