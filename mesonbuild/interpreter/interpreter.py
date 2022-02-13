@@ -2681,11 +2681,12 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
             # /opt/vendorsdk/src/file_with_license_restrictions.c
             return
         project_root = Path(srcdir, self.root_subdir)
+        subproject_dir = project_root / self.subproject_dir
         if norm == project_root:
             return
         if project_root not in norm.parents:
             raise InterpreterException(f'Sandbox violation: Tried to grab {inputtype} {norm.name} outside current (sub)project.')
-        if project_root / self.subproject_dir in norm.parents:
+        if subproject_dir == norm or subproject_dir in norm.parents:
             raise InterpreterException(f'Sandbox violation: Tried to grab {inputtype} {norm.name} from a nested subproject.')
 
     @T.overload
