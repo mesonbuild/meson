@@ -2462,9 +2462,9 @@ external dependencies (including libraries) must go to "dependencies".''')
                 try:
                     self.validate_within_subproject(self.subdir, a)
                 except InterpreterException:
-                    mlog.warning('include_directories sandbox violation!')
+                    mlog.warning('include_directories sandbox violation!', location=self.current_node)
                     print(textwrap.dedent(f'''\
-                        The project is trying to access the directory {a} which belongs to a different
+                        The project is trying to access the directory {a!r} which belongs to a different
                         subproject. This is a problem as it hardcodes the relative paths of these two projects.
                         This makes it impossible to compile the project in any other directory layout and also
                         prevents the subproject from changing its own directory layout.
