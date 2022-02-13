@@ -215,7 +215,7 @@ def set_mode(path: str, mode: T.Optional['FileMode'], default_umask: T.Union[str
         try:
             set_chmod(path, mode.perms, follow_symlinks=False)
         except PermissionError as e:
-            print('{path!r}: Unable to set permissions {mode.perms_s!r}: {e.strerror}, ignoring...')
+            print(f'{path!r}: Unable to set permissions {mode.perms_s!r}: {e.strerror}, ignoring...')
     else:
         sanitize_permissions(path, default_umask)
 
