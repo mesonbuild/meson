@@ -40,10 +40,10 @@ def run_join(build_dir: str, itstool: str, its_files: T.List[str], mo_files: T.L
         locale_mo_files = []
         for mo_file in mo_files:
             if not os.path.exists(mo_file):
-                print('Could not find mo file {}'.format(mo_file))
+                print(f'Could not find mo file {mo_file}')
                 return 1
             if not mo_file.endswith('.mo'):
-                print('File is not a mo file: {}'.format(mo_file))
+                print(f'File is not a mo file: {mo_file}')
                 return 1
             # determine locale of this mo file
             parts = mo_file.partition('LC_MESSAGES')

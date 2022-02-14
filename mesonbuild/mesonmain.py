@@ -22,7 +22,6 @@ import platform
 import importlib
 import traceback
 import argparse
-import codecs
 import shutil
 
 from . import mesonlib
@@ -207,14 +206,7 @@ def run_script_command(script_name, script_args):
 
 def ensure_stdout_accepts_unicode():
     if sys.stdout.encoding and not sys.stdout.encoding.upper().startswith('UTF-'):
-        if sys.version_info >= (3, 7):
-            sys.stdout.reconfigure(errors='surrogateescape')
-        else:
-            sys.stdout = codecs.getwriter('utf-8')(sys.stdout.detach(),
-                                                   errors='surrogateescape')
-            sys.stdout.encoding = 'UTF-8'
-            if not hasattr(sys.stdout, 'buffer'):
-                sys.stdout.buffer = sys.stdout.raw if hasattr(sys.stdout, 'raw') else sys.stdout
+        sys.stdout.reconfigure(errors='surrogateescape')
 
 def run(original_args, mainfile):
     if sys.version_info < (3, 7):

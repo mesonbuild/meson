@@ -52,10 +52,10 @@ ALL_TYPES_STRING = ', '.join(ALL_TYPES)
 def read_archive_files(path: Path, base_path: Path) -> T.Set[Path]:
     if path.suffix == '.zip':
         with zipfile.ZipFile(path, 'r') as zip_archive:
-            archive_files = set(base_path / i.filename for i in zip_archive.infolist())
+            archive_files = {base_path / i.filename for i in zip_archive.infolist()}
     else:
         with tarfile.open(path) as tar_archive: # [ignore encoding]
-            archive_files = set(base_path / i.name for i in tar_archive)
+            archive_files = {base_path / i.name for i in tar_archive}
     return archive_files
 
 class Logger:
