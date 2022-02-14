@@ -924,6 +924,8 @@ class MachineFileParser():
                 raise EnvironmentException(f'Malformed variable name {entry!r} in machine file.')
             # Windows paths...
             value = value.replace('\\', '\\\\')
+            # replace 'function call'
+            value = value.replace('meson.source_root()', os.getcwd())
             try:
                 ast = mparser.Parser(value, 'machinefile').parse()
                 res = self._evaluate_statement(ast.lines[0])
