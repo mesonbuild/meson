@@ -1588,10 +1588,15 @@ You probably should put it in link_with instead.''')
         Warn if shared modules are linked with target: (link_with) #2865
         '''
         for link_target in self.link_targets:
-            if isinstance(link_target, SharedModule) and not link_target.backwards_compat_want_soname:
+            if isinstance(link_target, SharedModule) and not link_target.force_soname:
                 if self.environment.machines[self.for_machine].is_darwin():
                     raise MesonException(
                         f'target {self.name} links against shared module {link_target.name}. This is not permitted on OSX')
+                elif self.environment.machines[self.for_machine].is_android() and isinstance(self, SharedModule):
+                    # Android requires shared modules that use symbols from other shared modules to
+                    # be linked before they can be dlopen()ed in the correct order. Not doing so
+                    # leads to a missing symbol error: https://github.com/android/ndk/issues/201
+                    link_target.force_soname = True
                 else:
                     mlog.deprecation(f'target {self.name} links against shared module {link_target.name}, which is incorrect.'
                             '\n             '
@@ -1600,7 +1605,7 @@ You probably should put it in link_with instead.''')
                             f'If shared_module() was used for {link_target.name} because it has references to undefined symbols,'
                             '\n             '
                             'use shared_libary() with `override_options: [\'b_lundef=false\']` instead.')
-                    link_target.backwards_compat_want_soname = True
+                    link_target.force_soname = True
 
 class Generator(HoldableObject):
     def __init__(self, exe: T.Union['Executable', programs.ExternalProgram],
@@ -2269,7 +2274,7 @@ class SharedModule(SharedLibrary):
         self.typename = 'shared module'
         # We need to set the soname in cases where build files link the module
         # to build targets, see: https://github.com/mesonbuild/meson/issues/9492
-        self.backwards_compat_want_soname = False
+        self.force_soname = False
 
     def get_default_install_dir(self, environment) -> T.Tuple[str, str]:
         return environment.get_shared_module_dir(), '{moduledir_shared}'

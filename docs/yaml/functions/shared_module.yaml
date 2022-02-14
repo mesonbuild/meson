@@ -15,12 +15,18 @@ description: |
 
 notes:
  - |
-   *Linking to a shared module is deprecated, and will be an error in the future*.
-   It used to be allowed because it was the only way to have a shared-library-like target that
+   *Linking to a shared module on platforms other than Android is deprecated, and will be an error
+   in the future*.
+   It was previously allowed because it was the only way to have a shared-library-like target that
    contained references to undefined symbols. However, since 0.40.0, the `override_options:`
-   [[build_target]] keyword argument can be used to create such a [[shared_library]], and shared
-   modules have other characteristics that make them incompatible with linking, such as a lack of
-   SONAME. Linking to shared modules also does not work on some platforms, such as on macOS / iOS.
+   [[build_target]] keyword argument can be used to create such a [[shared_library]] by passing
+   `override_options: 'b_lundef=false'`. Shared modules have other characteristics that make
+   them incompatible with linking, such as a lack of SONAME.
+   On macOS and iOS, linking to shared modules is disallowed by the linker, so we disallow it at
+   configure time.
+   On Android, if a shared module `foo` uses symbols from another shared module `bar`, `foo` must
+   also be linked to `bar`. Hence, linking one shared module to another will always be allowed when
+   building for Android.
 
 posargs_inherit: _build_target_base
 varargs_inherit: _build_target_base
