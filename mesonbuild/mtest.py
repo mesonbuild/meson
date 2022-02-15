@@ -571,10 +571,7 @@ class ConsoleLogger(TestLogger):
 
     def start_test(self, harness: 'TestHarness', test: 'TestRun') -> None:
         if test.verbose > 1 and test.cmdline:
-            self.flush()
-            print(harness.format(test, mlog.colorize_console(),
-                                 max_left_width=self.max_left_width,
-                                 right=test.res.get_text(mlog.colorize_console())))
+            self.print_test_status(harness, test)
         self.started_tests += 1
         self.running_tests.add(test)
         self.running_tests.move_to_end(test, last=False)
@@ -596,6 +593,15 @@ class ConsoleLogger(TestLogger):
                    line: str,
                    update: bool = True) -> None:
         self.safe_print(prefix + '  ' + line.strip())
+
+        if update:
+            self.request_update()
+
+    def print_test_status(self,
+                          harness: 'TestHarness',
+                          test: 'TestRun',
+                          update: bool = True) -> None:
+        self.safe_print(harness.format(test, mlog.colorize_console()))
 
         if update:
             self.request_update()
@@ -685,7 +691,7 @@ class ConsoleLogger(TestLogger):
         if not harness.options.quiet or not result.res.is_ok():
             self.flush()
             self.print_log(harness, result)
-            print(harness.format(result, mlog.colorize_console()))
+            self.print_test_status(harness, result)
         self.request_update()
 
     async def finish(self, harness: 'TestHarness') -> None:
@@ -693,13 +699,11 @@ class ConsoleLogger(TestLogger):
         self.request_update()
         if self.progress_task:
             await self.progress_task
-
         if harness.collected_failures and \
                 (harness.options.print_errorlogs or harness.options.verbose):
             print("\nSummary of Failures:\n")
             for i, result in enumerate(harness.collected_failures, 1):
-                print(harness.format(result, mlog.colorize_console()))
-
+                self.print_test_status(harness, result)
         print(harness.summary())
 
 
