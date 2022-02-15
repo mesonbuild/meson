@@ -1755,10 +1755,13 @@ class TestHarness:
         middle += ' ' * max(1, extra_mid_width)
 
         if right is None:
-            right = '{res} {dur:{durlen}.2f}s'.format(
-                res=result.res.get_text(colorize),
-                dur=result.duration,
-                durlen=self.duration_max_len + 3)
+            if result.duration:
+                right = '{res} {dur:{durlen}.2f}s'.format(
+                    res=result.res.get_text(colorize),
+                    dur=result.duration,
+                    durlen=self.duration_max_len + 3)
+            else:
+                right = result.res.get_text(colorize)
 
             # print details IFF either:
             # * test is still running
