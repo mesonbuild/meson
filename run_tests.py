@@ -46,13 +46,13 @@ from mesonbuild.mesonlib import OptionKey, setup_vsenv
 
 NINJA_1_9_OR_NEWER = False
 NINJA_CMD = None
-# If we're on CI, just assume we have ninja in PATH and it's new enough because
-# we provide that. This avoids having to detect ninja for every subprocess unit
-# test that we run.
-if 'CI' in os.environ:
-    NINJA_1_9_OR_NEWER = True
-    NINJA_CMD = ['ninja']
-else:
+# If we're on CI, detecting ninja for every subprocess unit test that we run is slow
+# Optimize this by respecting $NINJA and skipping detection, then exporting it on
+# first run.
+try:
+    NINJA_1_9_OR_NEWER = bool(int(os.environ['NINJA_1_9_OR_NEWER']))
+    NINJA_CMD = [os.environ['NINJA']]
+except (KeyError, ValueError):
     # Look for 1.9 to see if https://github.com/ninja-build/ninja/issues/1219
     # is fixed
     NINJA_CMD = detect_ninja('1.9')
@@ -61,7 +61,11 @@ else:
     else:
         mlog.warning('Found ninja <1.9, tests will run slower', once=True)
         NINJA_CMD = detect_ninja()
-if NINJA_CMD is None:
+
+if NINJA_CMD is not None:
+    os.environ['NINJA_1_9_OR_NEWER'] = str(int(NINJA_1_9_OR_NEWER))
+    os.environ['NINJA'] = NINJA_CMD[0]
+else:
     raise RuntimeError('Could not find Ninja v1.7 or newer')
 
 def guess_backend(backend_str: str, msbuild_exe: str) -> T.Tuple['Backend', T.List[str]]:
