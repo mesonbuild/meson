@@ -665,9 +665,8 @@ class ConsoleLogger(TestLogger):
 
         if not harness.options.quiet or not result.res.is_ok():
             self.flush()
-            if harness.options.verbose and not result.is_parallel and result.cmdline:
-                if not result.needs_parsing:
-                    print(self.output_end)
+            if harness.options.verbose and not result.is_parallel and result.cmdline and not result.needs_parsing:
+                print(self.output_end)
                 print(harness.format(result, mlog.colorize_console(), max_left_width=self.max_left_width))
             else:
                 print(harness.format(result, mlog.colorize_console(), max_left_width=self.max_left_width),
