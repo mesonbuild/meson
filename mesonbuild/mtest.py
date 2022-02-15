@@ -1388,6 +1388,10 @@ class SingleTestRunner:
         if self.cmd is None:
             skip_stdout = 'Not run because can not execute cross compiled binaries.'
             harness.log_start_test(self.runobj)
+            self.runobj.complete_skip(skip_stdout)        
+        elif not (Path(self.cmd[0])).is_file():
+            skip_stdout = 'Not run because test binary does not exist.'
+            harness.log_start_test(self.runobj)
             self.runobj.complete_skip(skip_stdout)
         else:
             cmd = self.cmd + self.test.cmd_args + self.options.test_args
