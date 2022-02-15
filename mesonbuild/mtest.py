@@ -1345,9 +1345,12 @@ class SingleTestRunner:
             self.console_mode = ConsoleUser.LOGGER
 
     def _get_test_cmd(self) -> T.Optional[T.List[str]]:
-        if self.test.fname[0].endswith('.jar'):
+        testentry = self.test.fname[0]
+        if self.options.no_rebuild and not os.path.isfile(testentry):
+            raise TestException(f'The test program {testentry!r} does not exist. Cannot run tests before building them.')
+        if testentry.endswith('.jar'):
             return ['java', '-jar'] + self.test.fname
-        elif not self.test.is_cross_built and run_with_mono(self.test.fname[0]):
+        elif not self.test.is_cross_built and run_with_mono(testentry):
             return ['mono'] + self.test.fname
         elif self.test.cmd_is_built and self.test.is_cross_built and self.test.needs_exe_wrapper:
             if self.test.exe_wrapper is None:
