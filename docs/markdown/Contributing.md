@@ -387,6 +387,7 @@ Each dict contains the following keys:
 
 - `line`
 - `match` (optional)
+- `count` (optional)
 
 Each item in the list is matched, in order, against the remaining
 actual stdout lines, after any previous matches. If the actual stdout
@@ -400,6 +401,10 @@ matched:
 | --------  | ----------------------- |
 | `literal` | Literal match (default) |
 | `re`      | regex match             |
+
+The `count` element determines how many times the line is expected, and allowed,
+to be in the output. If unspecified, it must appear "any number of times, but at
+least once".
 
 #### skip_on_env
 
