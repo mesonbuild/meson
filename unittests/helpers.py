@@ -17,7 +17,7 @@ from run_tests import get_fake_env
 
 
 def is_ci():
-    if 'MESON_CI_JOBNAME' in os.environ:
+    if os.environ.get('MESON_CI_JOBNAME') not in {None, 'thirdparty'}:
         return True
     return False
 

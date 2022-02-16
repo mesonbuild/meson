@@ -282,7 +282,8 @@ class TestDef:
 failing_logs: T.List[str] = []
 print_debug = 'MESON_PRINT_TEST_OUTPUT' in os.environ
 under_ci = 'CI' in os.environ
-ci_jobname = os.environ.get('MESON_CI_JOBNAME', None)
+raw_ci_jobname = os.environ.get('MESON_CI_JOBNAME', None)
+ci_jobname = raw_ci_jobname if raw_ci_jobname != 'thirdparty' else None
 do_debug = under_ci or print_debug
 no_meson_log_msg = 'No meson-log.txt found.'
 
@@ -1506,8 +1507,8 @@ def clear_transitive_files() -> None:
             mesonlib.windows_proof_rm(str(d))
 
 if __name__ == '__main__':
-    if under_ci and not ci_jobname:
-        raise SystemExit('Running under CI but MESON_CI_JOBNAME is not set')
+    if under_ci and not raw_ci_jobname:
+        raise SystemExit('Running under CI but $MESON_CI_JOBNAME is not set (set to "thirdparty" if you are running outside of the github org)')
 
     setup_vsenv()
 
