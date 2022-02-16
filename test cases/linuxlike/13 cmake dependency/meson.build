@@ -6,9 +6,6 @@ if not find_program('cmake', required: false).found()
   error('MESON_SKIP_TEST cmake binary not available.')
 endif
 
-# CMake version
-cm_vers = run_command(find_program('./cmVers.sh'), check: true).stdout().strip()
-
 # Zlib is probably on all dev machines.
 
 dep = dependency('ZLIB', version : '>=1.2', method : 'cmake')
@@ -69,7 +66,7 @@ test('zlibtest4', exe4)
 
 # Test some edge cases with spaces, etc. (but only for CMake >= 3.15)
 
-if cm_vers.version_compare('>=3.15')
+if find_program('cmake', required: false, version: '>=3.15').found()
   testDep1 = dependency('ImportedTarget', required : true, method : 'cmake', cmake_module_path : 'cmake', modules: 'mesonTestLibDefs')
   testDep2 = dependency('ImportedTarget', required : true, method : 'cmake', cmake_module_path : 'cmake', modules : ['MesonTest::TestLibDefs'])
   testFlagSet1 = executable('testFlagSet1', ['testFlagSet.c'], dependencies: [testDep1])
