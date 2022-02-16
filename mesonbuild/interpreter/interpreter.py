@@ -295,6 +295,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.build_func_dict()
         self.build_holder_map()
         self.user_defined_options = user_defined_options
+        self.public_variables: T.Set[str] = set()
 
         # build_def_files needs to be defined before parse_project is called
         #
@@ -2897,12 +2898,15 @@ This will become a hard error in the future.''', location=self.current_node)
         return self.subproject != ''
 
     @typed_pos_args('set_variable', str, object)
-    @noKwargs
+    @typed_kwargs('set_variable',
+        KwargInfo('public', bool, default=False, since='0.62.0'))
     @noArgsFlattening
     @noSecondLevelHolderResolving
     def func_set_variable(self, node: mparser.BaseNode, args: T.Tuple[str, object], kwargs: 'TYPE_kwargs') -> None:
         varname, value = args
         self.set_variable(varname, value, holderify=True)
+        if kwargs['public']:
+            self.public_variables.add(varname)
 
     @typed_pos_args('get_variable', (str, Disabler), optargs=[object])
     @noKwargs
