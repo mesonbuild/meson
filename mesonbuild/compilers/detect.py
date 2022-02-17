@@ -255,8 +255,7 @@ def _get_compilers(env: 'Environment', lang: str, for_machine: MachineChoice) ->
 def _handle_exceptions(
         exceptions: T.Mapping[str, T.Union[Exception, str]],
         binaries: T.List[T.List[str]],
-        bintype: str = 'compiler'
-    ) -> T.NoReturn:
+        bintype: str = 'compiler') -> T.NoReturn:
     errmsg = f'Unknown {bintype}(s): {binaries}'
     if exceptions:
         errmsg += '\nThe following exception(s) were encountered:'

@@ -1224,7 +1224,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                 yield r
 
     def compiles(self, code: 'mesonlib.FileOrString', env: 'Environment', *,
-                extra_args: T.Union[None, T.List[str], CompilerArgs, T.Callable[[CompileCheckMode], T.List[str]]] = None,
+                 extra_args: T.Union[None, T.List[str], CompilerArgs, T.Callable[[CompileCheckMode], T.List[str]]] = None,
                  dependencies: T.Optional[T.List['Dependency']] = None,
                  mode: str = 'compile',
                  disable_cache: bool = False) -> T.Tuple[bool, bool]:

@@ -339,7 +339,8 @@ class GnomeModule(ExtensionModule):
         # Normal program lookup
         return state.find_program(name, required=required)
 
-    @typed_kwargs('gnome.post_install',
+    @typed_kwargs(
+        'gnome.post_install',
         KwargInfo('glib_compile_schemas', bool, default=False),
         KwargInfo('gio_querymodules', ContainerTypeInfo(list, str), default=[], listify=True),
         KwargInfo('gtk_update_icon_cache', bool, default=False),
@@ -899,7 +900,7 @@ class GnomeModule(ExtensionModule):
                            libsources: T.Sequence[T.Union[
                                str, mesonlib.File, build.GeneratedList,
                                build.CustomTarget, build.CustomTargetIndex]]
-                            ) -> str:
+                           ) -> str:
         gir_filelist_dir = state.backend.get_target_private_dir_abs(girtargets[0])
         if not os.path.isdir(gir_filelist_dir):
             os.mkdir(gir_filelist_dir)
@@ -1061,12 +1062,12 @@ class GnomeModule(ExtensionModule):
         KwargInfo('includes', ContainerTypeInfo(list, (str, GirTarget)), default=[], listify=True),
         KwargInfo('install_gir', (bool, NoneType), since='0.61.0'),
         KwargInfo('install_dir_gir', (str, bool, NoneType),
-            deprecated_values={False: ('0.61.0', 'Use install_gir to disable installation')},
-            validator=lambda x: 'as boolean can only be false' if x is True else None),
+                  deprecated_values={False: ('0.61.0', 'Use install_gir to disable installation')},
+                  validator=lambda x: 'as boolean can only be false' if x is True else None),
         KwargInfo('install_typelib', (bool, NoneType), since='0.61.0'),
         KwargInfo('install_dir_typelib', (str, bool, NoneType),
-            deprecated_values={False: ('0.61.0', 'Use install_typelib to disable installation')},
-            validator=lambda x: 'as boolean can only be false' if x is True else None),
+                  deprecated_values={False: ('0.61.0', 'Use install_typelib to disable installation')},
+                  validator=lambda x: 'as boolean can only be false' if x is True else None),
         KwargInfo('link_with', ContainerTypeInfo(list, (build.SharedLibrary, build.StaticLibrary)), default=[], listify=True),
         KwargInfo('namespace', str, required=True),
         KwargInfo('nsversion', str, required=True),
@@ -1360,7 +1361,7 @@ class GnomeModule(ExtensionModule):
         KwargInfo('mkdb_args', ContainerTypeInfo(list, str), default=[], listify=True),
         KwargInfo(
             'mode', str, default='auto', since='0.37.0',
-             validator=in_set_validator({'xml', 'sgml', 'none', 'auto'})),
+            validator=in_set_validator({'xml', 'sgml', 'none', 'auto'})),
         KwargInfo('module_version', str, default='', since='0.48.0'),
         KwargInfo('namespace', str, default='', since='0.37.0'),
         KwargInfo('scan_args', ContainerTypeInfo(list, str), default=[], listify=True),

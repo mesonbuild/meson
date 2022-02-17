@@ -1345,8 +1345,8 @@ You probably should put it in link_with instead.''')
                 if isinstance(t, (CustomTarget, CustomTargetIndex)):
                     if not t.should_install():
                         mlog.warning(f'Try to link an installed static library target {self.name} with a'
-                                      'custom target that is not installed, this might cause problems'
-                                      'when you try to use this static library')
+                                     'custom target that is not installed, this might cause problems'
+                                     'when you try to use this static library')
                 elif t.is_internal():
                     # When we're a static library and we link_with to an
                     # internal/convenience library, promote to link_whole.
@@ -1600,12 +1600,12 @@ You probably should put it in link_with instead.''')
                     link_target.force_soname = True
                 else:
                     mlog.deprecation(f'target {self.name} links against shared module {link_target.name}, which is incorrect.'
-                            '\n             '
-                            f'This will be an error in the future, so please use shared_library() for {link_target.name} instead.'
-                            '\n             '
-                            f'If shared_module() was used for {link_target.name} because it has references to undefined symbols,'
-                            '\n             '
-                            'use shared_libary() with `override_options: [\'b_lundef=false\']` instead.')
+                                     '\n             '
+                                     f'This will be an error in the future, so please use shared_library() for {link_target.name} instead.'
+                                     '\n             '
+                                     f'If shared_module() was used for {link_target.name} because it has references to undefined symbols,'
+                                     '\n             '
+                                     'use shared_libary() with `override_options: [\'b_lundef=false\']` instead.')
                     link_target.force_soname = True
 
 class Generator(HoldableObject):

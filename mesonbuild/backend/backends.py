@@ -1386,7 +1386,7 @@ class Backend:
 
     def eval_custom_target_command(
             self, target: build.CustomTarget, absolute_outputs: bool = False) -> \
-                T.Tuple[T.List[str], T.List[str], T.List[str]]:
+            T.Tuple[T.List[str], T.List[str], T.List[str]]:
         # We want the outputs to be absolute only when using the VS backend
         # XXX: Maybe allow the vs backend to use relative paths too?
         source_root = self.build_to_src
