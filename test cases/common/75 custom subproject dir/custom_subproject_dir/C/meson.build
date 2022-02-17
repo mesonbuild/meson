@@ -1,2 +1,3 @@
 project('C', 'c')
-c = shared_library('c', 'c.c')
+# libc.so cannot be used, it already exists as a reserved name
+c = shared_library('cee', 'c.c')
