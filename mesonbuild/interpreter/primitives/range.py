@@ -24,7 +24,7 @@ class RangeHolder(MesonInterpreterObject, IterableObject):
     def op_index(self, other: int) -> int:
         try:
             return self.range[other]
-        except:
+        except IndexError:
             raise InvalidArguments(f'Index {other} out of bounds of range.')
 
     def iter_tuple_size(self) -> None:

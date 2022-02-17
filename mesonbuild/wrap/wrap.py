@@ -349,7 +349,7 @@ class Resolver:
                     raise WrapException(f'Unknown wrap type {self.wrap.type!r}')
             try:
                 self.apply_patch()
-            except:
+            except Exception:
                 windows_proof_rmtree(self.dirname)
                 raise
 
