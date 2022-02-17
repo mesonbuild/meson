@@ -471,8 +471,9 @@ class IconvSystemDependency(SystemDependency):
 class IntlBuiltinDependency(BuiltinDependency):
     def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]):
         super().__init__(name, env, kwargs)
+        code = '''#include <libintl.h>\n\nint main() {\n    gettext("Hello world");\n}'''
 
-        if self.clib_compiler.has_function('ngettext', '', env)[0]:
+        if self.clib_compiler.links(code, env)[0]:
             self.is_found = True
 
 
