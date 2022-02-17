@@ -15,7 +15,6 @@
 from dataclasses import dataclass
 import re
 import codecs
-import textwrap
 import types
 import typing as T
 from .mesonlib import MesonException
@@ -194,14 +193,11 @@ class Lexer:
                     elif tid in {'string', 'fstring'}:
                         # Handle here and not on the regexp to give a better error message.
                         if match_text.find("\n") != -1:
-                            mlog.warning(textwrap.dedent("""\
-                                    Newline character in a string detected, use ''' (three single quotes) for multiline strings instead.
-                                    This will become a hard error in a future Meson release.
-                                """),
-                                self.getline(line_start),
-                                str(lineno),
-                                str(col)
-                            )
+                            msg = ParseException("Newline character in a string detected, use ''' (three single quotes) "
+                                                 "for multiline strings instead.\n"
+                                                 "This will become a hard error in a future Meson release.",
+                                                 self.getline(line_start), lineno, col)
+                            mlog.warning(msg, location=BaseNode(lineno, col, filename))
                         value = match_text[2 if tid == 'fstring' else 1:-1]
                         try:
                             value = ESCAPE_SEQUENCE_SINGLE_RE.sub(decode_match, value)
