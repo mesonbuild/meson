@@ -196,7 +196,7 @@ class Lexer:
                         if match_text.find("\n") != -1:
                             mlog.warning(textwrap.dedent("""\
                                     Newline character in a string detected, use ''' (three single quotes) for multiline strings instead.
-                                    This will become a hard error in a future Meson release.\
+                                    This will become a hard error in a future Meson release.
                                 """),
                                 self.getline(line_start),
                                 str(lineno),

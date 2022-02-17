@@ -525,7 +525,7 @@ class Target(HoldableObject):
             mlog.warning(textwrap.dedent(f'''\
                 Target "{self.name}" has a path separator in its name.
                 This is not supported, it can cause unexpected failures and will become
-                a hard error in the future.\
+                a hard error in the future.
             '''))
         self.install = False
         self.build_always_stale = False
@@ -1059,7 +1059,7 @@ class BuildTarget(Target):
                     is reserved for libraries built as part of this project. External
                     libraries must be passed using the dependencies keyword argument
                     instead, because they are conceptually "external dependencies",
-                    just like those detected with the dependency() function.\
+                    just like those detected with the dependency() function.
                 '''))
             self.link(linktarget)
         lwhole = extract_as_list(kwargs, 'link_whole')
@@ -1112,7 +1112,7 @@ class BuildTarget(Target):
                 mlog.warning(textwrap.dedent('''\
                     Please do not define rpath with a linker argument, use install_rpath
                     or build_rpath properties instead.
-                    This will become a hard error in a future Meson release.\
+                    This will become a hard error in a future Meson release.
                 '''))
         self.process_link_depends(kwargs.get('link_depends', []), environment)
         # Target-specific include dirs must be added BEFORE include dirs from
