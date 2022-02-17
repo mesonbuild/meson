@@ -973,7 +973,7 @@ def have_java() -> bool:
 
 def skip_dont_care(t: TestDef) -> bool:
     # Everything is optional when not running on CI
-    if not under_ci:
+    if ci_jobname is None:
         return True
 
     # Non-frameworks test are allowed to determine their own skipping under CI (currently)
