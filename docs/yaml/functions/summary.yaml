@@ -10,7 +10,7 @@ description: |
   the section keyword argument is omitted, those key/value pairs are
   implicitly grouped into a section with no title. key/value pairs can
   optionally be grouped into a dictionary, but keep in mind that
-  dictionaries does not guarantee ordering. `key` must be string,
+  dictionaries do not guarantee ordering. `key` must be string,
   `value` can be:
 
   - an integer, boolean or string
@@ -62,10 +62,33 @@ example: |
   ```
 
 posargs:
-  key:
-    type: str
-    description: The name of the new entry
+  key_or_dict:
+    type: str | dict[str | bool | int | dep | external_program | list[str | bool | int | dep | external_program]]
+    description: |
+      The name of the new entry, or a dict containing multiple entries.  If a
+      dict is passed it is equivalent to calling summary() once for each
+      key-value pair.  Keep in mind that dictionaries do not guarantee
+      ordering.
 
+optargs:
   value:
     type: str | bool | int | dep | external_program | list[str | bool | int | dep | external_program]
-    description: The value to print for the `key`
+    description: |
+      The value to print for the `key`.  Only valid if `key_or_dict` is a str.
+
+kwargs:
+  bool_yn:
+    type: bool
+    default: false
+    description: Convert bool values to yes and no
+  section:
+    type: str
+    description: The section to put this summary information under.  If the
+      section keyword argument is omitted, key/value pairs are implicitly
+      grouped into a section with no title.
+  list_sep:
+    type: str
+    since: 0.54.0
+    description: |
+      The separator to use when printing list values in this summary.  If no
+      separator is given, each list item will be printed on its own line.
