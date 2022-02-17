@@ -2627,6 +2627,9 @@ class Jar(BuildTarget):
             return ['-cp', os.pathsep.join(cp_paths)]
         return []
 
+    def get_default_install_dir(self, environment: environment.Environment) -> T.Tuple[str, str]:
+        return environment.get_jar_dir(), '{jardir}'
+
 @dataclass(eq=False)
 class CustomTargetIndex(HoldableObject):
 

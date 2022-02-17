@@ -814,6 +814,10 @@ class Environment:
             return self.get_bindir()
         return self.get_libdir()
 
+    def get_jar_dir(self) -> str:
+        """Install dir for JAR files"""
+        return f"{self.get_datadir()}/java"
+
     def get_static_lib_dir(self) -> str:
         "Install dir for the static library"
         return self.get_libdir()
