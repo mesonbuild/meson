@@ -717,8 +717,9 @@ class ConsoleLogger(TestLogger):
                 self.print_horizontal_line(harness)
             if not result.direct_output:
                 self.print_command_details(prefix, result)
-            if result.stdo and (not result.needs_parsing
-                                and not result.direct_output):
+            if result.stdo and (result.verbose > 1
+                                or (not result.needs_parsing
+                                    and not result.direct_output)):
                 if harness.options.split or result.stde:
                     name = 'stdout'
                 else:

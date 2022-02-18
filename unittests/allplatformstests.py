@@ -577,11 +577,26 @@ class AllPlatformTests(BasePlatformTests):
         testdir = os.path.join(self.common_test_dir, '206 tap tests')
         self.init(testdir)
         self.build()
+
         out = self._run(self.mtest_command + ['--suite', 'verbose'])
         self.assertIn('subtest 1 OK', out)
         self.assertIn('subtest 2 SKIP', out)
         self.assertIn('command:', out)
         self.assertIn('exit details:', out)
+
+        out = self._run(self.mtest_command + ['--suite', 'verbose', '-v'])
+        self.assertIn('subtest 1 OK', out)
+        self.assertIn('subtest 2 SKIP', out)
+        self.assertIn('command:', out)
+        self.assertIn('exit details:', out)
+        self.assertNotIn('stdout:', out)
+
+        out = self._run(self.mtest_command + ['--suite', 'verbose', '-vv'])
+        self.assertIn('subtest 1 OK', out)
+        self.assertIn('subtest 2 SKIP', out)
+        self.assertIn('command:', out)
+        self.assertIn('exit details:', out)
+        self.assertIn('stdout:', out)
 
     def test_long_output(self):
         testdir = os.path.join(self.common_test_dir, '254 long output')
@@ -643,7 +658,6 @@ class AllPlatformTests(BasePlatformTests):
                 i += 1
             line_number += 1
         self.assertEqual(i, 100001)
-
 
     def test_testsetups(self):
         if not shutil.which('valgrind'):
