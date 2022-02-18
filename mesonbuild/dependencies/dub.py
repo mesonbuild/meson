@@ -148,6 +148,10 @@ class DubDependency(ExternalDependency):
                     if lib_path:
                         self.link_args.append(lib_path)
                     else:
+                        if os.path.exists(file):
+                            mlog.debug("Cannot use " + file + " as a library")
+                        else:
+                            mlog.debug("Cannot find " + file)
                         self.is_found = False
 
     def _find_right_lib_path(self,
