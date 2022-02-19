@@ -150,6 +150,35 @@ Create a project in `sourcedir`:
 meson init -C sourcedir
 ```
 
+### env2mfile
+
+*This command is experimental and subject to change.*
+
+*{Since 0.62.0}*
+
+{{ env2mfile_usage.inc }}
+
+Create native and cross files from the current environment, typically
+by sniffing environment variables like `CC` and `CFLAGS`.
+
+{{ env2mfile_arguments.inc }}
+
+#### Examples:
+
+Autodetect the current cross build environment:
+
+```
+meson env2mfile --cross -o current_cross.txt --cpu=arm7a --cpu-family=arm --system=linux
+```
+
+Generate a cross build using Debian system information:
+
+```
+meson env2mfile --cross --debarch=armhf -o deb_arm_cross.txt
+```
+
+
+
 ### introspect
 
 {{ introspect_usage.inc }}
