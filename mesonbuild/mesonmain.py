@@ -30,7 +30,7 @@ from . import mconf, mdist, minit, minstall, mintro, msetup, mtest, rewriter, ms
 from .mesonlib import MesonException, MesonBugException
 from .environment import detect_msys2_arch
 from .wrap import wraptool
-
+from .scripts import env2mfile
 
 # Note: when adding arguments, please also add them to the completion
 # scripts in $MESONSRC/data/shell-completions/
@@ -70,6 +70,8 @@ class CommandLineParser:
                          help_msg='Build the project')
         self.add_command('devenv', mdevenv.add_arguments, mdevenv.run,
                          help_msg='Run commands in developer environment')
+        self.add_command('env2mfile', env2mfile.add_arguments, env2mfile.run,
+                         help_msg='Convert current environment to a cross or native file')
 
         # Hidden commands
         self.add_command('runpython', self.add_runpython_arguments, self.run_runpython_command,
