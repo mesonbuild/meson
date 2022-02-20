@@ -283,7 +283,10 @@ class DubDependency(ExternalDependency):
         # gdc doesn't support this
         frontend_id = None
         frontend_version = None
+        compiler_version = None
+
         if comp_id in ['dmd', 'ldc']:
+            compiler_version = self.compiler.version
             ret, res = self._call_compbin(['--version'])[0:2]
             if ret != 0:
                 mlog.error('Failed to run {!r}', mlog.bold(comp_id))
@@ -297,28 +300,22 @@ class DubDependency(ExternalDependency):
 
         for entry in os.listdir(dub_build_path):
 
-            mlog.debug("checking", entry)
-
             if not build_id in entry:
-                mlog.debug("nope ", build_id)
                 continue
 
             found_version = False
-            if self.compiler.version in entry:
+            if compiler_version and compiler_version in entry:
                 found_version = True
             elif frontend_id and frontend_id in entry:
                 found_version = True
             elif frontend_version and frontend_version in entry:
                 found_version = True
             if not found_version:
-                mlog.debug("nope ", self.compiler.version)
                 continue
 
             target = os.path.join(dub_build_path, entry, jpack['targetFileName'])
             if os.path.exists(target):
                 return target
-            else:
-                mlog.debug("nope ", target)
 
         return None
 
