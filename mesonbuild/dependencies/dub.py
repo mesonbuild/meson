@@ -285,7 +285,7 @@ class DubDependency(ExternalDependency):
         frontend_version = None
         compiler_version = None
 
-        if comp_id in ['dmd', 'ldc']:
+        if comp_id != 'gdc':
             compiler_version = self.compiler.version
             ret, res = self._call_compbin(['--version'])[0:2]
             if ret != 0:
@@ -310,7 +310,7 @@ class DubDependency(ExternalDependency):
                 found_version = True
             elif frontend_version and frontend_version in entry:
                 found_version = True
-            if not found_version:
+            if not found_version and comp_id != 'gdc':
                 continue
 
             target = os.path.join(dub_build_path, entry, jpack['targetFileName'])
