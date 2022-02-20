@@ -201,7 +201,7 @@ class DubDependency(ExternalDependency):
             self.compile_args.append(flag)
 
         for path in bs['importPaths']:
-            self.compile_args.append('-I=' + path)
+            self.compile_args.append('-I' + path)
 
         for path in bs['stringImportPaths']:
             if not 'import_dir' in d_feature_args[self.compiler.id]:
