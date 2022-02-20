@@ -5,7 +5,17 @@ if not dub_exe.found()
   error('MESON_SKIP_TEST: Dub not found')
 endif
 
-vibed_http_dep = dependency('vibe-d:http', method: 'dub')
+vibed_deps = [
+    dependency('vibe-d:http', method: 'dub')
+]
+if host_machine.system() == 'windows'
+    vibed_deps += declare_dependency(
+        link_args: [
+            'user32.lib'
+        ],
+    )
+endif
 
-test_exe = executable('test-vibed', 'test.d', dependencies: vibed_http_dep)
+
+test_exe = executable('test-vibed', 'test.d', dependencies: vibed_deps)
 test('test vibe-d', test_exe)
