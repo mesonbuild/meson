@@ -66,7 +66,7 @@ class DubDependency(ExternalDependency):
         arch = self.compiler.arch
 
         # we need to know the build type as well
-        buildtype = environment.coredata.get_option(OptionKey('buildtype'))
+        buildtype = str(environment.coredata.get_option(OptionKey('buildtype')))
         # MESON types: choices=['plain', 'debug', 'debugoptimized', 'release', 'minsize', 'custom'])),
         # DUB types: debug (default), plain, release, release-debug, release-nobounds, unittest, profile, profile-gc,
         # docs, ddox, cov, unittest-cov, syntax and custom
@@ -75,7 +75,7 @@ class DubDependency(ExternalDependency):
         elif buildtype == 'minsize':
             buildtype = 'release'
 
-        dub_deps_fetch_build = environment.coredata.get_option(OptionKey('dub_deps_fetch_build'))
+        dub_deps_fetch_build = bool(environment.coredata.get_option(OptionKey('dub_deps_fetch_build')))
 
         def dub_fetch_package(pack_spec: str) -> bool:
             mlog.debug('Running DUB with', describe_cmd)
