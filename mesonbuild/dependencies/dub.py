@@ -75,6 +75,8 @@ class DubDependency(ExternalDependency):
         elif buildtype == 'minsize':
             buildtype = 'release'
 
+        dub_deps_fetch_build = environment.coredata.get_option(OptionKey('dub_deps_fetch_build'))
+
         def dub_fetch_package(pack_spec: str) -> bool:
             mlog.debug('Running DUB with', describe_cmd)
             fetch_cmd = ['fetch', pack_spec]
@@ -103,7 +105,7 @@ class DubDependency(ExternalDependency):
         ret, res, err = self._call_dubbin(describe_cmd)
 
         # If not present, fetch and repeat
-        if ret != 0 and 'locally' in err:
+        if ret != 0 and dub_deps_fetch_build and 'locally' in err:
             mlog.log(mlog.bold(name), 'is not present locally. Attempting to fetch on Dub registry.')
             if dub_fetch_package(main_pack_spec):
                 ret, res, err = self._call_dubbin(describe_cmd)
@@ -125,7 +127,7 @@ class DubDependency(ExternalDependency):
             # if can't find, ask DUB to build it and repeat find operation
             pack_id = f'{pkg["name"]}@{pkg["version"]}'
             tgt_file = self._find_dub_build_target(description, pkg, comp_id)
-            if tgt_file is None and dub_build_package(pack_id, pkg['configuration']):
+            if tgt_file is None and dub_deps_fetch_build and dub_build_package(pack_id, pkg['configuration']):
                 tgt_file = self._find_dub_build_target(description, pkg, comp_id)
             if tgt_file is None:
                 mlog.error('Could not find a suitable target for', mlog.bold(pack_id))
