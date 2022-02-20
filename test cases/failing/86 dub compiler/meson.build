@@ -1,4 +1,6 @@
-project('dub')
+project('dub',
+  default_options: ['dub_fetch_build=false'],
+)
 
 if not add_languages('d', required: false)
   error('MESON_SKIP_TEST test requires D compiler')
