@@ -22,4 +22,3 @@ endif
 
 
 test_exe = executable('test-vibed', 'test.d', dependencies: vibed_deps)
-test('test vibe-d', test_exe)
