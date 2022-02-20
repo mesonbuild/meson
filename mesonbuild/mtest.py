@@ -1584,7 +1584,7 @@ class SingleTestRunner:
                                        env=self.runobj.env,
                                        cwd=self.test.workdir)
 
-        if self.runobj.needs_parsing:
+        if self.runobj.needs_parsing and self.console_mode is not ConsoleUser.GDB:
             printer_header = 'parsed output'
             parse_coro = self.runobj.parse(harness,
                                            p.stdout_lines(),
