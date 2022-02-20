@@ -5,6 +5,10 @@ if not dub_exe.found()
   error('MESON_SKIP_TEST: Dub not found')
 endif
 
+if meson.get_compiler('d').get_id() == 'gcc'
+    error('MESON_SKIP_TEST: GDC cannot build vibe-d:http')
+endif
+
 vibed_deps = [
     dependency('vibe-d:http', method: 'dub')
 ]
