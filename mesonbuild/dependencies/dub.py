@@ -82,8 +82,8 @@ class DubDependency(ExternalDependency):
 
         def dub_build_package(pack_id: str, conf: str) -> bool:
             cmd = [
-                'build', pack_id, '--config='+conf, '--arch='+arch, '--build='+buildtype,
-                '--compiler='+self.compiler.get_exelist()[-1]
+                'build', pack_id, '--yes', '--config='+conf, '--arch='+arch,
+                '--build='+buildtype, '--compiler='+self.compiler.get_exelist()[-1]
             ]
             mlog.log('Building DUB package', mlog.bold(pack_id))
             mlog.debug('Running DUB with' , cmd)
@@ -116,7 +116,7 @@ class DubDependency(ExternalDependency):
         self.compile_args = []
         self.link_args = self.raw_link_args = []
 
-        def build_if_needed(pkg: T.Dict[str, str]) -> bool:
+        def find_target_and_build_if_needed(pkg: T.Dict[str, str]) -> bool:
             # try to find a static library in a DUB folder corresponding to
             # version, configuration, compiler, arch and build-type
             # if can't find, ask DUB to build it and repeat find operation
@@ -187,12 +187,16 @@ class DubDependency(ExternalDependency):
         self.static = True
 
         # 2
-        build_if_needed(self.pkg)
+        if not find_target_and_build_if_needed(self.pkg):
+            self.is_found = False
+            return
 
         # 3
         for link_dep in targets[name]['linkDependencies']:
             pkg = packages[link_dep]
-            build_if_needed(pkg)
+            if not find_target_and_build_if_needed(pkg):
+                self.is_found = False
+                return
 
         # 4
         bs = targets[name]['buildSettings']
@@ -287,7 +291,11 @@ class DubDependency(ExternalDependency):
         build_id = f'{conf}-{build_type}-{platform}-{arch}-{comp_id}'
 
         for entry in os.listdir(dub_build_path):
+
+            mlog.debug("checking", entry)
+
             if not build_id in entry:
+                mlog.debug("nope ", build_id)
                 continue
 
             found_version = False
@@ -298,11 +306,14 @@ class DubDependency(ExternalDependency):
             elif frontend_version and frontend_version in entry:
                 found_version = True
             if not found_version:
+                mlog.debug("nope ", self.compiler.version)
                 continue
 
             target = os.path.join(dub_build_path, entry, jpack['targetFileName'])
             if os.path.exists(target):
                 return target
+            else:
+                mlog.debug("nope ", target)
 
         return None
 
