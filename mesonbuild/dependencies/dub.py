@@ -66,10 +66,13 @@ class DubDependency(ExternalDependency):
         arch = self.compiler.arch
 
         # we need to know the build type as well
-        buildtype = 'debug'
-        if OptionKey('buildtype') in environment.options:
-            buildtype = str(environment.options[OptionKey('buildtype')])
-        elif OptionKey('optimize') in environment.options:
+        buildtype = environment.coredata.get_option(OptionKey('buildtype'))
+        # MESON types: choices=['plain', 'debug', 'debugoptimized', 'release', 'minsize', 'custom'])),
+        # DUB types: debug (default), plain, release, release-debug, release-nobounds, unittest, profile, profile-gc,
+        # docs, ddox, cov, unittest-cov, syntax and custom
+        if buildtype == 'debugoptimized':
+            buildtype = 'release-debug'
+        elif buildtype == 'minsize':
             buildtype = 'release'
 
         def dub_fetch_package(pack_spec: str) -> bool:
