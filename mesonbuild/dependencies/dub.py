@@ -21,9 +21,7 @@ from ..compilers.d import d_feature_args
 from .. import mlog
 import re
 import os
-import copy
 import json
-import platform
 import typing as T
 
 if T.TYPE_CHECKING:
