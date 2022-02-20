@@ -606,11 +606,9 @@ class ConsoleLogger(TestLogger):
                                  max_left_width=self.max_left_width,
                                  right=test.res.get_text(mlog.colorize_console())))
             print(test.res.get_command_marker() + test.cmdline)
-            if test.needs_parsing:
-                pass
-            elif not test.is_parallel:
+            if test.direct_stdout:
                 print(self.output_start, flush=True)
-            else:
+            elif not test.needs_parsing:
                 print(flush=True)
 
         self.started_tests += 1
@@ -665,7 +663,7 @@ class ConsoleLogger(TestLogger):
 
         if not harness.options.quiet or not result.res.is_ok():
             self.flush()
-            if result.verbose and not result.is_parallel and result.cmdline and not result.needs_parsing:
+            if result.cmdline and result.direct_stdout:
                 print(self.output_end)
                 print(harness.format(result, mlog.colorize_console(), max_left_width=self.max_left_width))
             else:
@@ -897,6 +895,10 @@ class TestRun:
             TestRun.TEST_NUM += 1
             self._num = TestRun.TEST_NUM
         return self._num
+
+    @property
+    def direct_stdout(self) -> bool:
+        return self.verbose and not self.is_parallel and not self.needs_parsing
 
     @property
     def detail(self) -> str:
@@ -1340,7 +1342,7 @@ class SingleTestRunner:
 
         if self.options.gdb:
             self.console_mode = ConsoleUser.GDB
-        elif self.runobj.verbose and not is_parallel and not self.runobj.needs_parsing:
+        elif self.runobj.direct_stdout:
             self.console_mode = ConsoleUser.STDOUT
         else:
             self.console_mode = ConsoleUser.LOGGER
