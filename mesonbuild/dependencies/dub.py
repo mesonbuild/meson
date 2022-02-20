@@ -70,19 +70,19 @@ class DubDependency(ExternalDependency):
         # we need to know the build type as well
         buildtype = 'debug'
         if OptionKey('buildtype') in environment.options:
-            buildtype = environment.options[OptionKey('buildtype')]
+            buildtype = str(environment.options[OptionKey('buildtype')])
         elif OptionKey('optimize') in environment.options:
             buildtype = 'release'
 
-        def dub_fetch_package(pack_spec):
+        def dub_fetch_package(pack_spec: str) -> bool:
             mlog.debug('Running DUB with', describe_cmd)
             fetch_cmd = ['fetch', pack_spec]
-            ret, _, fetch_err = self._call_dubbin(fetch_cmd)
+            ret, fetch_out, fetch_err = self._call_dubbin(fetch_cmd)
             if ret != 0:
                 mlog.debug('DUB fetch failed: ' + fetch_err)
             return ret == 0
 
-        def dub_build_package(pack_id: str, conf: str):
+        def dub_build_package(pack_id: str, conf: str) -> bool:
             cmd = [
                 'build', pack_id, '--config='+conf, '--arch='+arch, '--build='+buildtype,
                 '--compiler='+self.compiler.get_exelist()[-1]
@@ -92,7 +92,7 @@ class DubDependency(ExternalDependency):
             ret, res, err = self._call_dubbin(cmd)
             if ret != 0:
                 mlog.debug('DUB build failed: ', err)
-            return ret == 0
+            return bool(ret == 0)
 
         # Ask dub for the package
         describe_cmd = [
@@ -118,7 +118,7 @@ class DubDependency(ExternalDependency):
         self.compile_args = []
         self.link_args = self.raw_link_args = []
 
-        def build_if_needed(pkg):
+        def build_if_needed(pkg: T.Dict[str, str]) -> bool:
             # try to find a static library in a DUB folder corresponding to
             # version, configuration, compiler, arch and build-type
             # if can't find, ask DUB to build it and repeat find operation
@@ -251,7 +251,7 @@ class DubDependency(ExternalDependency):
     # This function finds the target of the provided JSON package, built for the right
     # compiler, architecture, configuration...
     # A value is returned only if the file exists
-    def _find_dub_build_target(self, jdesc: T.Dict[str, str], jpack: T.Dict[str, str], comp_id: str):
+    def _find_dub_build_target(self, jdesc: T.Dict[str, str], jpack: T.Dict[str, str], comp_id: str) -> str:
         dub_build_path = os.path.join(jpack['path'], '.dub', 'build')
 
         if not os.path.exists(dub_build_path):
@@ -309,12 +309,12 @@ class DubDependency(ExternalDependency):
         return None
 
 
-    def _call_dubbin(self, args: T.List[str], env: T.Optional[T.Dict[str, str]] = None) -> T.Tuple[int, str]:
+    def _call_dubbin(self, args: T.List[str], env: T.Optional[T.Dict[str, str]] = None) -> T.Tuple[int, str, str]:
         assert isinstance(self.dubbin, ExternalProgram)
         p, out, err = Popen_safe(self.dubbin.get_command() + args, env=env)
         return p.returncode, out.strip(), err.strip()
 
-    def _call_compbin(self, args: T.List[str], env: T.Optional[T.Dict[str, str]] = None) -> T.Tuple[int, str]:
+    def _call_compbin(self, args: T.List[str], env: T.Optional[T.Dict[str, str]] = None) -> T.Tuple[int, str, str]:
         p, out, err = Popen_safe(self.compiler.get_exelist() + args, env=env)
         return p.returncode, out.strip(), err.strip()
 
