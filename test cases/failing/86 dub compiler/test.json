@@ -13,7 +13,7 @@
   },
   "stdout": [
     {
-      "line": "test cases/failing/86 dub compiler/meson.build:17:0: ERROR: Dependency \"dubtestproject:test2\" not found"
+      "line": "test cases/failing/86 dub compiler/meson.build:19:0: ERROR: Dependency \"dubtestproject:test2\" not found"
     }
   ]
 }
