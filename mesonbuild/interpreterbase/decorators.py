@@ -583,11 +583,10 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
     feature_registry: T.ClassVar[T.Dict[str, T.Dict[str, T.Set[T.Tuple[str, T.Optional['mparser.BaseNode']]]]]]
     emit_notice = False
 
-    def __init__(self, feature_name: str, feature_version: str, extra_message: str = '', location: T.Optional['mparser.BaseNode'] = None):
+    def __init__(self, feature_name: str, feature_version: str, extra_message: str = ''):
         self.feature_name = feature_name  # type: str
         self.feature_version = feature_version    # type: str
         self.extra_message = extra_message  # type: str
-        self.location = location
 
     @staticmethod
     def get_target_version(subproject: str) -> str:
@@ -601,7 +600,7 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
     def check_version(target_version: str, feature_version: str) -> bool:
         pass
 
-    def use(self, subproject: 'SubProject') -> None:
+    def use(self, subproject: 'SubProject', location: T.Optional['mparser.BaseNode'] = None) -> None:
         tv = self.get_target_version(subproject)
         # No target version
         if tv == '':
@@ -616,7 +615,7 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
         if self.feature_version not in register:
             register[self.feature_version] = set()
 
-        feature_key = (self.feature_name, self.location)
+        feature_key = (self.feature_name, location)
         if feature_key in register[self.feature_version]:
             # Don't warn about the same feature multiple times
             # FIXME: This is needed to prevent duplicate warnings, but also
@@ -626,7 +625,7 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
         # Target version is new enough, don't warn even if it is registered for notice
         if self.check_version(tv, self.feature_version):
             return
-        self.log_usage_warning(tv)
+        self.log_usage_warning(tv, location)
 
     @classmethod
     def report(cls, subproject: str) -> None:
@@ -646,7 +645,7 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
         if '\n' in warning_str:
             mlog.warning(warning_str)
 
-    def log_usage_warning(self, tv: str) -> None:
+    def log_usage_warning(self, tv: str, location: T.Optional['mparser.BaseNode']) -> None:
         raise InterpreterException('log_usage_warning not implemented')
 
     @staticmethod
@@ -663,8 +662,7 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
             node, _, _, subproject = get_callee_args(wrapped_args)
             if subproject is None:
                 raise AssertionError(f'{wrapped_args!r}')
-            self.location = node
-            self.use(subproject)
+            self.use(subproject, node)
             return f(*wrapped_args, **wrapped_kwargs)
         return T.cast(TV_func, wrapped)
 
@@ -672,7 +670,7 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
     def single_use(cls, feature_name: str, version: str, subproject: 'SubProject',
                    extra_message: str = '', location: T.Optional['mparser.BaseNode'] = None) -> None:
         """Oneline version that instantiates and calls use()."""
-        cls(feature_name, version, extra_message, location).use(subproject)
+        cls(feature_name, version, extra_message).use(subproject, location)
 
 
 class FeatureNew(FeatureCheckBase):
@@ -695,7 +693,7 @@ class FeatureNew(FeatureCheckBase):
     def get_notice_str_prefix(tv: str) -> str:
         return ''
 
-    def log_usage_warning(self, tv: str) -> None:
+    def log_usage_warning(self, tv: str, location: T.Optional['mparser.BaseNode']) -> None:
         args = [
             'Project targeting', f"'{tv}'",
             'but tried to use feature introduced in',
@@ -704,7 +702,7 @@ class FeatureNew(FeatureCheckBase):
         ]
         if self.extra_message:
             args.append(self.extra_message)
-        mlog.warning(*args, location=self.location)
+        mlog.warning(*args, location=location)
 
 class FeatureDeprecated(FeatureCheckBase):
     """Checks for deprecated features"""
@@ -728,7 +726,7 @@ class FeatureDeprecated(FeatureCheckBase):
     def get_notice_str_prefix(tv: str) -> str:
         return 'Future-deprecated features used:'
 
-    def log_usage_warning(self, tv: str) -> None:
+    def log_usage_warning(self, tv: str, location: T.Optional['mparser.BaseNode']) -> None:
         args = [
             'Project targeting', f"'{tv}'",
             'but tried to use feature deprecated since',
@@ -737,7 +735,7 @@ class FeatureDeprecated(FeatureCheckBase):
         ]
         if self.extra_message:
             args.append(self.extra_message)
-        mlog.warning(*args, location=self.location)
+        mlog.warning(*args, location=location)
 
 
 # This cannot be a dataclass due to https://github.com/python/mypy/issues/5374
