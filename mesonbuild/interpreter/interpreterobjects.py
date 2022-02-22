@@ -257,7 +257,7 @@ class EnvironmentVariablesHolder(ObjectHolder[build.EnvironmentVariables], Mutab
         # Multiple append/prepend operations was not supported until 0.58.0.
         if self.held_object.has_name(name):
             m = f'Overriding previous value of environment variable {name!r} with a new one'
-            FeatureNew(m, '0.58.0', location=self.current_node).use(self.subproject)
+            FeatureNew(m, '0.58.0').use(self.subproject, self.current_node)
 
     @typed_pos_args('environment.set', str, varargs=str, min_varargs=1)
     @typed_kwargs('environment.set', _ENV_SEPARATOR_KW)
@@ -484,7 +484,7 @@ class DependencyHolder(ObjectHolder[Dependency]):
     def variable_method(self, args: T.Tuple[T.Optional[str]], kwargs: 'kwargs.DependencyGetVariable') -> T.Union[str, T.List[str]]:
         default_varname = args[0]
         if default_varname is not None:
-            FeatureNew('Positional argument to dependency.get_variable()', '0.58.0', location=self.current_node).use(self.subproject)
+            FeatureNew('Positional argument to dependency.get_variable()', '0.58.0').use(self.subproject, self.current_node)
         return self.held_object.get_variable(
             cmake=kwargs['cmake'] or default_varname,
             pkgconfig=kwargs['pkgconfig'] or default_varname,

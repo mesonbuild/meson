@@ -101,7 +101,7 @@ class ExternalProject(NewExtensionModule):
 
     def _configure(self, state: 'ModuleState') -> None:
         if self.configure_command == 'waf':
-            FeatureNew('Waf external project', '0.60.0', location=state.current_node).use(self.subproject)
+            FeatureNew('Waf external project', '0.60.0').use(self.subproject, state.current_node)
             waf = state.find_program('waf')
             configure_cmd = waf.get_command()
             configure_cmd += ['configure', '-o', str(self.build_dir)]
@@ -176,7 +176,7 @@ class ExternalProject(NewExtensionModule):
                 if key_format in option:
                     break
             else:
-                FeatureNew('Default configure_option', '0.57.0', location=state.current_node).use(self.subproject)
+                FeatureNew('Default configure_option', '0.57.0').use(self.subproject, state.current_node)
                 self.configure_options.append(default)
 
     def _format_options(self, options: T.List[str], variables: T.List[T.Tuple[str, str, str]]) -> T.List[str]:
