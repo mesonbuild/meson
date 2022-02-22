@@ -127,6 +127,15 @@ class DirMaker:
             append_to_log(self.lf, d)
 
 
+def load_install_data(fname: str) -> InstallData:
+    with open(fname, 'rb') as ifile:
+        obj = pickle.load(ifile)
+        if not isinstance(obj, InstallData) or not hasattr(obj, 'version'):
+            raise MesonVersionMismatchException('<unknown>', coredata_version)
+        if major_versions_differ(obj.version, coredata_version):
+            raise MesonVersionMismatchException(obj.version, coredata_version)
+        return obj
+
 def is_executable(path: str, follow_symlinks: bool = False) -> bool:
     '''Checks whether any of the "x" bits are set in the source file mode.'''
     return bool(os.stat(path, follow_symlinks=follow_symlinks).st_mode & 0o111)
@@ -510,17 +519,8 @@ class Installer:
                 self.do_copyfile(abs_src, abs_dst)
                 self.set_mode(abs_dst, install_mode, data.install_umask)
 
-    @staticmethod
-    def check_installdata(obj: InstallData) -> InstallData:
-        if not isinstance(obj, InstallData) or not hasattr(obj, 'version'):
-            raise MesonVersionMismatchException('<unknown>', coredata_version)
-        if major_versions_differ(obj.version, coredata_version):
-            raise MesonVersionMismatchException(obj.version, coredata_version)
-        return obj
-
     def do_install(self, datafilename: str) -> None:
-        with open(datafilename, 'rb') as ifile:
-            d = self.check_installdata(pickle.load(ifile))
+        d = load_install_data(datafilename)
 
         destdir = self.options.destdir
         if destdir is None:

@@ -321,4 +321,7 @@ These variables are set in environment in addition to those set using `meson.add
   layout must match the installed tree layout otherwise `import subdir.mod`
   cannot work.
 
+Since *Since 0.62.0* if bash-completion scripts are being installed and the
+shell is bash, they will be automatically sourced.
+
 {{ devenv_arguments.inc }}

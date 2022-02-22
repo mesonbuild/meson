@@ -3,10 +3,12 @@ import argparse
 import tempfile
 
 from pathlib import Path
-from . import build
-from .mesonlib import MesonException, RealPathAction, is_windows, setup_vsenv
+from . import build, minstall, dependencies
+from .mesonlib import MesonException, RealPathAction, is_windows, setup_vsenv, OptionKey
 
 import typing as T
+if T.TYPE_CHECKING:
+    from .backends import InstallData
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('-C', dest='wd', action=RealPathAction,
@@ -36,11 +38,30 @@ def get_env(b: build.Build, build_dir: str) -> T.Dict[str, str]:
 
     return extra_env.get_env(env)
 
+def bash_completion_files(b: build.Build, install_data: 'InstallData') -> T.List[str]:
+    result = []
+    dep = dependencies.PkgConfigDependency('bash-completion', b.environment,
+                                           {'silent': True, 'version': '>=2.10'})
+    if dep.found():
+        prefix = b.environment.coredata.get_option(OptionKey('prefix'))
+        assert isinstance(prefix, str), 'for mypy'
+        datadir = b.environment.coredata.get_option(OptionKey('datadir'))
+        assert isinstance(datadir, str), 'for mypy'
+        datadir_abs = os.path.join(prefix, datadir)
+        completionsdir = dep.get_variable(pkgconfig='completionsdir', pkgconfig_define=['datadir', datadir_abs])
+        assert isinstance(completionsdir, str), 'for mypy'
+        completionsdir_path = Path(completionsdir)
+        for f in install_data.data:
+            if completionsdir_path in Path(f.install_path).parents:
+                result.append(f.path)
+    return result
+
 def run(options: argparse.Namespace) -> int:
     buildfile = Path(options.wd) / 'meson-private' / 'build.dat'
     if not buildfile.is_file():
         raise MesonException(f'Directory {options.wd!r} does not seem to be a Meson build directory.')
     b = build.load(options.wd)
+    install_data = minstall.load_install_data(str(buildfile.parent / 'install.dat'))
     setup_vsenv(b.need_vsenv)
 
     devenv = get_env(b, options.wd)
@@ -64,12 +85,15 @@ def run(options: argparse.Namespace) -> int:
                 args += ['/k', f'prompt {prompt_prefix} $P$G']
         else:
             args = [os.environ.get("SHELL", os.path.realpath("/bin/sh"))]
-        if "bash" in args[0] and not os.environ.get("MESON_DISABLE_PS1_OVERRIDE"):
+        if "bash" in args[0]:
+            # Let the GC remove the tmp file
             tmprc = tempfile.NamedTemporaryFile(mode='w')
             tmprc.write('[ -e ~/.bashrc ] && . ~/.bashrc\n')
-            tmprc.write(f'export PS1="{prompt_prefix} $PS1"')
+            if not os.environ.get("MESON_DISABLE_PS1_OVERRIDE"):
+                tmprc.write(f'export PS1="{prompt_prefix} $PS1"\n')
+            for f in bash_completion_files(b, install_data):
+                tmprc.write(f'. "{f}"\n')
             tmprc.flush()
-            # Let the GC remove the tmp file
             args.append("--rcfile")
             args.append(tmprc.name)
 
