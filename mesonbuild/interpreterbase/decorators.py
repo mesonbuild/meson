@@ -749,12 +749,11 @@ class FeatureCheckKwargsBase(metaclass=abc.ABCMeta):
         pass
 
     def __init__(self, feature_name: str, feature_version: str,
-                 kwargs: T.List[str], extra_message: T.Optional[str] = None, location: T.Optional['mparser.BaseNode'] = None):
+                 kwargs: T.List[str], extra_message: T.Optional[str] = None):
         self.feature_name = feature_name
         self.feature_version = feature_version
         self.kwargs = kwargs
         self.extra_message = extra_message
-        self.location = location
 
     def __call__(self, f: TV_func) -> TV_func:
         @wraps(f)
