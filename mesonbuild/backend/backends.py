@@ -1484,6 +1484,7 @@ class Backend:
             mlog.log(f'Running postconf script {name!r}')
             run_exe(s, env)
 
+    @lru_cache(maxsize=1)
     def create_install_data(self) -> InstallData:
         strip_bin = self.environment.lookup_binary_entry(MachineChoice.HOST, 'strip')
         if strip_bin is None:
