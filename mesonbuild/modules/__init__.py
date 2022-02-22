@@ -26,6 +26,7 @@ if T.TYPE_CHECKING:
     from ..interpreterbase import TYPE_var, TYPE_kwargs
     from ..programs import ExternalProgram
     from ..wrap import WrapMode
+    from ..build import EnvironmentVariables
 
 class ModuleState:
     """Object passed to all module methods.
@@ -147,6 +148,9 @@ class NewExtensionModule(ModuleObject):
     @staticmethod
     def found() -> bool:
         return True
+
+    def get_devenv(self) -> T.Optional['EnvironmentVariables']:
+        return None
 
 # FIXME: Port all modules to stop using self.interpreter and use API on
 # ModuleState instead. Modules should stop using this class and instead use

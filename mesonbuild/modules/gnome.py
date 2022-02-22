@@ -752,8 +752,10 @@ class GnomeModule(ExtensionModule):
     def _devenv_prepend(self, varname: str, value: str) -> None:
         if self.devenv is None:
             self.devenv = build.EnvironmentVariables()
-            self.interpreter.build.devenv.append(self.devenv)
         self.devenv.prepend(varname, [value])
+
+    def get_devenv(self) -> T.Optional[build.EnvironmentVariables]:
+        return self.devenv
 
     def _get_gir_dep(self, state: 'ModuleState') -> T.Tuple[Dependency, T.Union[build.Executable, 'ExternalProgram', 'OverrideProgram'],
                                                             T.Union[build.Executable, 'ExternalProgram', 'OverrideProgram']]:

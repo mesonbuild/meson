@@ -245,7 +245,7 @@ class MesonApp:
                 profile.runctx('intr.backend.generate()', globals(), locals(), filename=fname)
             else:
                 intr.backend.generate()
-            b.devenv.append(intr.backend.get_devenv())
+            self._finalize_devenv(b, intr)
             build.save(b, dumpfile)
             if env.first_invocation:
                 # Use path resolved by coredata because they could have been
@@ -287,6 +287,13 @@ class MesonApp:
                 else:
                     os.unlink(cdf)
             raise
+
+    def _finalize_devenv(self, b: build.Build, intr: interpreter.Interpreter) -> None:
+        b.devenv.append(intr.backend.get_devenv())
+        for mod in intr.modules.values():
+            devenv = mod.get_devenv()
+            if devenv:
+                b.devenv.append(devenv)
 
 def run(options: argparse.Namespace) -> int:
     coredata.parse_cmd_line_options(options)
