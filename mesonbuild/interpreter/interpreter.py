@@ -1601,6 +1601,11 @@ external dependencies (including libraries) must go to "dependencies".''')
             if wanted != actual:
                 mlog.debug(f'Current include type of {args[0]} is {actual}. Converting to requested {wanted}')
                 d = d.generate_system_dependency(wanted)
+        if d.feature_since is not None:
+            version, extra_msg = d.feature_since
+            FeatureNew.single_use(f'dep {d.name!r} custom lookup', version, self.subproject, extra_msg, node)
+        for f in d.featurechecks:
+            f.use(self.subproject, node)
         return d
 
     @FeatureNew('disabler', '0.44.0')

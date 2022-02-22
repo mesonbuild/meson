@@ -30,6 +30,7 @@ if T.TYPE_CHECKING:
     from .._typing import ImmutableListProtocol
     from ..compilers.compilers import Compiler
     from ..environment import Environment
+    from ..interpreterbase import FeatureCheckBase
     from ..build import BuildTarget, CustomTarget, IncludeDirs
     from ..mesonlib import FileOrString
 
@@ -92,6 +93,8 @@ class Dependency(HoldableObject):
         self.sources: T.List[T.Union['FileOrString', 'CustomTarget']] = []
         self.include_type = self._process_include_type_kw(kwargs)
         self.ext_deps: T.List[Dependency] = []
+        self.featurechecks: T.List['FeatureCheckBase'] = []
+        self.feature_since: T.Optional[T.Tuple[str, str]] = None
 
     def __repr__(self) -> str:
         return f'<{self.__class__.__name__} {self.name}: {self.is_found}>'
