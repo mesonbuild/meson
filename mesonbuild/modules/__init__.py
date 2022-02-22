@@ -126,28 +126,6 @@ class ModuleObject(HoldableObject):
 class MutableModuleObject(ModuleObject):
     pass
 
-
-# FIXME: Port all modules to stop using self.interpreter and use API on
-# ModuleState instead. Modules should stop using this class and instead use
-# ModuleObject base class.
-class ExtensionModule(ModuleObject):
-    def __init__(self, interpreter: 'Interpreter') -> None:
-        super().__init__()
-        self.interpreter = interpreter
-        self.methods.update({
-            'found': self.found_method,
-        })
-
-    @noPosargs
-    @noKwargs
-    def found_method(self, state: 'ModuleState', args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> bool:
-        return self.found()
-
-    @staticmethod
-    def found() -> bool:
-        return True
-
-
 class NewExtensionModule(ModuleObject):
 
     """Class for modern modules
@@ -170,6 +148,13 @@ class NewExtensionModule(ModuleObject):
     def found() -> bool:
         return True
 
+# FIXME: Port all modules to stop using self.interpreter and use API on
+# ModuleState instead. Modules should stop using this class and instead use
+# ModuleObject base class.
+class ExtensionModule(NewExtensionModule):
+    def __init__(self, interpreter: 'Interpreter') -> None:
+        super().__init__()
+        self.interpreter = interpreter
 
 class NotFoundExtensionModule(NewExtensionModule):
 
