@@ -59,11 +59,13 @@ String and list concatenation is supported using the `+` operator,
 joining paths is supported using the `/` operator. Entries defined in
 the `[constants]` section can be used in any other section (they are
 always parsed first), entries in any other section can be used only
-within that same section and only after it has been defined.
+within that same section and only after it has been defined. The root
+of the source tree is supported using `@SOURCE_ROOT@`.
 
 ```ini
 [constants]
 toolchain = '/toolchain'
+repo_toolchain = '@SOURCE_ROOT@/tools'
 common_flags = ['--sysroot=' + toolchain / 'sysroot']
 
 [properties]
@@ -72,6 +74,7 @@ cpp_args = c_args + ['-DSOMETHING_ELSE']
 
 [binaries]
 c = toolchain / 'gcc'
+somebin = repo_toolchain / 'somebin'
 ```
 
 This can be useful with cross file composition as well. A generic
