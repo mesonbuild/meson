@@ -63,6 +63,7 @@ def netcdf_factory(env: 'Environment',
 class DlBuiltinDependency(BuiltinDependency):
     def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]):
         super().__init__(name, env, kwargs)
+        self.feature_since = ('0.62.0', "consider checking for dlopen() with and without find_library('dl')")
 
         if self.clib_compiler.has_function('dlopen', '#include <dlfcn.h>', env)[0]:
             self.is_found = True
@@ -71,6 +72,7 @@ class DlBuiltinDependency(BuiltinDependency):
 class DlSystemDependency(SystemDependency):
     def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]):
         super().__init__(name, env, kwargs)
+        self.feature_since = ('0.62.0', "consider checking for dlopen() with and without find_library('dl')")
 
         h = self.clib_compiler.has_header('dlfcn.h', '', env)
         self.link_args = self.clib_compiler.find_library('dl', env, [], self.libtype)
@@ -470,6 +472,7 @@ class CursesSystemDependency(SystemDependency):
 class IconvBuiltinDependency(BuiltinDependency):
     def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]):
         super().__init__(name, env, kwargs)
+        self.feature_since = ('0.60.0', "consider checking for iconv_open() with and without find_library('iconv')")
         code = '''#include <iconv.h>\n\nint main() {\n    iconv_open("","");\n}''' # [ignore encoding] this is C, not python, Mr. Lint
 
         if self.clib_compiler.links(code, env)[0]:
@@ -479,6 +482,7 @@ class IconvBuiltinDependency(BuiltinDependency):
 class IconvSystemDependency(SystemDependency):
     def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]):
         super().__init__(name, env, kwargs)
+        self.feature_since = ('0.60.0', "consider checking for iconv_open() with and without find_library('iconv')")
 
         h = self.clib_compiler.has_header('iconv.h', '', env)
         self.link_args = self.clib_compiler.find_library('iconv', env, [], self.libtype)
@@ -490,6 +494,7 @@ class IconvSystemDependency(SystemDependency):
 class IntlBuiltinDependency(BuiltinDependency):
     def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]):
         super().__init__(name, env, kwargs)
+        self.feature_since = ('0.59.0', "consider checking for ngettext() with and without find_library('intl')")
         code = '''#include <libintl.h>\n\nint main() {\n    gettext("Hello world");\n}'''
 
         if self.clib_compiler.links(code, env)[0]:
@@ -499,6 +504,7 @@ class IntlBuiltinDependency(BuiltinDependency):
 class IntlSystemDependency(SystemDependency):
     def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]):
         super().__init__(name, env, kwargs)
+        self.feature_since = ('0.59.0', "consider checking for ngettext() with and without find_library('intl')")
 
         h = self.clib_compiler.has_header('libintl.h', '', env)
         self.link_args = self.clib_compiler.find_library('intl', env, [], self.libtype)

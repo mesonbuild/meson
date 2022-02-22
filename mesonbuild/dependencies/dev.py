@@ -500,6 +500,7 @@ class ZlibSystemDependency(SystemDependency):
 class JDKSystemDependency(SystemDependency):
     def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
         super().__init__('jdk', environment, kwargs)
+        self.feature_since = ('0.59.0', '')
 
         m = self.env.machines[self.for_machine]
 
