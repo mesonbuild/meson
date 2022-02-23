@@ -637,6 +637,7 @@ class PythonModule(ExtensionModule):
     @FeatureNew('Python Module', '0.46.0')
     def __init__(self, interpreter: 'Interpreter') -> None:
         super().__init__(interpreter)
+        self.installations: T.Dict[str, ExternalProgram] = {}
         self.methods.update({
             'find_installation': self.find_installation,
         })
@@ -658,39 +659,7 @@ class PythonModule(ExtensionModule):
         else:
             return None
 
-    @disablerIfNotFound
-    @typed_pos_args('python.find_installation', optargs=[str])
-    @typed_kwargs(
-        'python.find_installation',
-        KwargInfo('required', (bool, UserFeatureOption), default=True),
-        KwargInfo('disabler', bool, default=False, since='0.49.0'),
-        KwargInfo('modules', ContainerTypeInfo(list, str), listify=True, default=[], since='0.51.0'),
-    )
-    def find_installation(self, state: 'ModuleState', args: T.Tuple[T.Optional[str]],
-                          kwargs: 'FindInstallationKw') -> ExternalProgram:
-        feature_check = FeatureNew('Passing "feature" option to find_installation', '0.48.0')
-        disabled, required, feature = extract_required_kwarg(kwargs, state.subproject, feature_check)
-        want_modules = kwargs['modules']
-        found_modules: T.List[str] = []
-        missing_modules: T.List[str] = []
-
-        # FIXME: this code is *full* of sharp corners. It assumes that it's
-        # going to get a string value (or now a list of length 1), of `python2`
-        # or `python3` which is completely nonsense.  On windows the value could
-        # easily be `['py', '-3']`, or `['py', '-3.7']` to get a very specific
-        # version of python. On Linux we might want a python that's not in
-        # $PATH, or that uses a wrapper of some kind.
-        np: T.List[str] = state.environment.lookup_binary_entry(MachineChoice.HOST, 'python') or []
-        fallback = args[0]
-        display_name = fallback or 'python'
-        if not np and fallback is not None:
-            np = [fallback]
-        name_or_path = np[0] if np else None
-
-        if disabled:
-            mlog.log('Program', name_or_path or 'python', 'found:', mlog.red('NO'), '(disabled by:', mlog.bold(feature), ')')
-            return NonExistingExternalProgram()
-
+    def _find_installation_impl(self, state: 'ModuleState', display_name: str, name_or_path: str) -> ExternalProgram:
         if not name_or_path:
             python = PythonExternalProgram('python3', mesonlib.python_command)
         else:
@@ -710,6 +679,49 @@ class PythonModule(ExtensionModule):
             if not python.found() and name_or_path in ['python2', 'python3']:
                 python = PythonExternalProgram('python')
 
+        if python.found() and not python.sanity(state):
+            python = NonExistingExternalProgram()
+
+        return python
+
+    @disablerIfNotFound
+    @typed_pos_args('python.find_installation', optargs=[str])
+    @typed_kwargs(
+        'python.find_installation',
+        KwargInfo('required', (bool, UserFeatureOption), default=True),
+        KwargInfo('disabler', bool, default=False, since='0.49.0'),
+        KwargInfo('modules', ContainerTypeInfo(list, str), listify=True, default=[], since='0.51.0'),
+    )
+    def find_installation(self, state: 'ModuleState', args: T.Tuple[T.Optional[str]],
+                          kwargs: 'FindInstallationKw') -> ExternalProgram:
+        feature_check = FeatureNew('Passing "feature" option to find_installation', '0.48.0')
+        disabled, required, feature = extract_required_kwarg(kwargs, state.subproject, feature_check)
+
+        # FIXME: this code is *full* of sharp corners. It assumes that it's
+        # going to get a string value (or now a list of length 1), of `python2`
+        # or `python3` which is completely nonsense.  On windows the value could
+        # easily be `['py', '-3']`, or `['py', '-3.7']` to get a very specific
+        # version of python. On Linux we might want a python that's not in
+        # $PATH, or that uses a wrapper of some kind.
+        np: T.List[str] = state.environment.lookup_binary_entry(MachineChoice.HOST, 'python') or []
+        fallback = args[0]
+        display_name = fallback or 'python'
+        if not np and fallback is not None:
+            np = [fallback]
+        name_or_path = np[0] if np else None
+
+        if disabled:
+            mlog.log('Program', name_or_path or 'python', 'found:', mlog.red('NO'), '(disabled by:', mlog.bold(feature), ')')
+            return NonExistingExternalProgram()
+
+        python = self.installations.get(name_or_path)
+        if not python:
+            python = self._find_installation_impl(state, display_name, name_or_path)
+            self.installations[name_or_path] = python
+
+        want_modules = kwargs['modules']
+        found_modules: T.List[str] = []
+        missing_modules: T.List[str] = []
         if python.found() and want_modules:
             for mod in want_modules:
                 p, *_ = mesonlib.Popen_safe(
@@ -743,14 +755,7 @@ class PythonModule(ExtensionModule):
                 raise mesonlib.MesonException('{} is missing modules: {}'.format(name_or_path or 'python', ', '.join(missing_modules)))
             return NonExistingExternalProgram()
         else:
-            sane = python.sanity(state)
-
-            if sane:
-                return python
-            else:
-                if required:
-                    raise mesonlib.MesonException(f'{python} is not a valid python or it is missing distutils')
-                return NonExistingExternalProgram()
+            return python
 
         raise mesonlib.MesonBugException('Unreachable code was reached (PythonModule.find_installation).')
 
