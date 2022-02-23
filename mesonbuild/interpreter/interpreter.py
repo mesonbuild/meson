@@ -2036,10 +2036,11 @@ external dependencies (including libraries) must go to "dependencies".''')
     @FeatureNew('install_emptydir', '0.60.0')
     @typed_kwargs(
         'install_emptydir',
-        INSTALL_MODE_KW
+        INSTALL_MODE_KW,
+        KwargInfo('install_tag', (str, NoneType), since='0.62.0')
     )
     def func_install_emptydir(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs) -> None:
-        d = build.EmptyDir(args[0], kwargs['install_mode'], self.subproject)
+        d = build.EmptyDir(args[0], kwargs['install_mode'], self.subproject, kwargs['install_tag'])
         self.build.emptydir.append(d)
 
         return d
