@@ -126,6 +126,7 @@ if T.TYPE_CHECKING:
         c_args: T.List[str]
         include_directories: T.List[T.Union[str, build.IncludeDirs]]
         dependencies: T.List[T.Union[Dependency, build.SharedLibrary, build.StaticLibrary]]
+        build_during_build: bool
 
     class GdbusCodegen(TypedDict):
 
@@ -1367,6 +1368,7 @@ class GnomeModule(ExtensionModule):
         KwargInfo('scan_args', ContainerTypeInfo(list, str), default=[], listify=True),
         KwargInfo('scanobjs_args', ContainerTypeInfo(list, str), default=[], listify=True),
         KwargInfo('src_dir', ContainerTypeInfo(list, (str, build.IncludeDirs)), listify=True, required=True),
+        KwargInfo('build_during_build', bool, default=False, since='0.61.0')
     )
     def gtkdoc(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'GtkDoc') -> ModuleReturnValue:
         modulename = args[0]
@@ -1377,6 +1379,11 @@ class GnomeModule(ExtensionModule):
                 raise InvalidArguments('gnome.gtkdoc: main_xml and main_sgml are exclusive arguments')
             main_file = main_xml
         moduleversion = kwargs['module_version']
+        if not kwargs['build_during_build']:
+            mlog.warning('"gnome.gtkdoc" documentation will be built during install instead of during build. '
+                         'This is discouraged and will be changed in a future meson version. '
+                         'To avoid building docs by default, wrap "gnome.gtkdoc" around a meson_option. '
+                         'If you are already doing this, this warning is safe to ignore')
         targetname = modulename + ('-' + moduleversion if moduleversion else '') + '-doc'
         command = state.environment.get_build_command()
 
@@ -1398,16 +1405,19 @@ class GnomeModule(ExtensionModule):
             else:
                 header_dirs.append(src_dir)
 
-        t_args: T.List[str] = [
+        common_args: T.List[str] = [
             '--internal', 'gtkdoc',
-            '--sourcedir=' + state.environment.get_source_dir(),
             '--builddir=' + state.environment.get_build_dir(),
             '--subdir=' + state.subdir,
-            '--headerdirs=' + '@@'.join(header_dirs),
-            '--mainfile=' + main_file,
             '--modulename=' + modulename,
             '--moduleversion=' + moduleversion,
-            '--mode=' + kwargs['mode']]
+        ]
+        t_args: T.List[str] = [
+            '--sourcedir=' + state.environment.get_source_dir(),
+            '--headerdirs=' + '@@'.join(header_dirs),
+            '--mainfile=' + main_file,
+            '--mode=' + kwargs['mode']
+        ]
         for tool in ['scan', 'scangobj', 'mkdb', 'mkhtml', 'fixxref']:
             program_name = 'gtkdoc-' + tool
             program = state.find_program(program_name)
@@ -1451,18 +1461,18 @@ class GnomeModule(ExtensionModule):
 
         t_args.append(f'--expand-content-files={"@@".join(abs_filenames(kwargs["expand_content_files"]))}')
         t_args.append(f'--ignore-headers={"@@".join(kwargs["ignore_headers"])}')
-        t_args.append(f'--installdir={"@@".join(kwargs["install_dir"])}')
         t_args += self._get_build_args(kwargs['c_args'], kwargs['include_directories'],
                                        kwargs['dependencies'], state, depends)
         custom_target = build.CustomTarget(
             targetname,
             state.subdir,
             state.subproject,
-            command + t_args,
+            command + common_args + t_args,
             [],
             [f'{modulename}-decl.txt'],
             build_always_stale=True,
             extra_depends=depends,
+            build_by_default=kwargs['build_during_build'],
         )
         alias_target = build.AliasTarget(targetname, [custom_target], state.subdir, state.subproject)
         if kwargs['check']:
@@ -1474,7 +1484,13 @@ class GnomeModule(ExtensionModule):
             state.test(check_args, env=check_env, workdir=check_workdir, depends=[custom_target])
         res: T.List[T.Union[build.Target, build.ExecutableSerialisation]] = [custom_target, alias_target]
         if kwargs['install']:
-            res.append(state.backend.get_executable_serialisation(command + t_args, tag='doc'))
+            i_args = common_args
+            i_args.append(f'--installdir={"@@".join(kwargs["install_dir"])}')
+            if kwargs['build_during_build']:
+                i_args.append('--install-only')
+            else:
+                i_args += t_args
+            res.append(state.backend.get_executable_serialisation(command + i_args, tag='doc'))
         return ModuleReturnValue(custom_target, res)
 
     def _get_build_args(self, c_args: T.List[str], inc_dirs: T.List[T.Union[str, build.IncludeDirs]],
