@@ -21,3 +21,23 @@ directory, that file is loaded by gdb automatically.
 With `--dump` option, all envorinment variables that have been modified are
 printed instead of starting an interactive shell. It can be used by shell
 scripts that wish to setup their environment themself.
+
+## New `method` and `separator` kwargs on `environment()` and `meson.add_devenv()`
+
+It simplifies this common pattern:
+```meson
+env = environment()
+env.prepend('FOO', ['a', 'b'], separator: ',')
+meson.add_devenv(env)
+```
+
+becomes one line:
+```meson
+meson.add_devenv({'FOO': ['a', 'b']}, method: 'prepend', separator: ',')
+```
+
+or two lines:
+```meson
+env = environment({'FOO': ['a', 'b']}, method: 'prepend', separator: ',')
+meson.add_devenv(env)
+```

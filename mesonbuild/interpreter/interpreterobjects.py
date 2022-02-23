@@ -20,7 +20,7 @@ from ..interpreterbase import (
                                typed_pos_args, typed_kwargs, typed_operator,
                                noArgsFlattening, noPosargs, noKwargs, unholder_return, TYPE_var, TYPE_kwargs, TYPE_nvar, TYPE_nkwargs,
                                flatten, resolve_second_level_holders, InterpreterException, InvalidArguments, InvalidCode)
-from ..interpreter.type_checking import NoneType
+from ..interpreter.type_checking import NoneType, ENV_SEPARATOR_KW
 from ..dependencies import Dependency, ExternalLibrary, InternalDependency
 from ..programs import ExternalProgram
 from ..mesonlib import HoldableObject, MesonException, OptionKey, listify, Popen_safe
@@ -232,10 +232,6 @@ class RunProcess(MesonInterpreterObject):
     def stderr_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.stderr
 
-
-_ENV_SEPARATOR_KW = KwargInfo('separator', str, default=os.pathsep)
-
-
 class EnvironmentVariablesHolder(ObjectHolder[build.EnvironmentVariables], MutableInterpreterObject):
 
     def __init__(self, obj: build.EnvironmentVariables, interpreter: 'Interpreter'):
@@ -260,20 +256,20 @@ class EnvironmentVariablesHolder(ObjectHolder[build.EnvironmentVariables], Mutab
             FeatureNew(m, '0.58.0', location=self.current_node).use(self.subproject)
 
     @typed_pos_args('environment.set', str, varargs=str, min_varargs=1)
-    @typed_kwargs('environment.set', _ENV_SEPARATOR_KW)
+    @typed_kwargs('environment.set', ENV_SEPARATOR_KW)
     def set_method(self, args: T.Tuple[str, T.List[str]], kwargs: 'EnvironmentSeparatorKW') -> None:
         name, values = args
         self.held_object.set(name, values, kwargs['separator'])
 
     @typed_pos_args('environment.append', str, varargs=str, min_varargs=1)
-    @typed_kwargs('environment.append', _ENV_SEPARATOR_KW)
+    @typed_kwargs('environment.append', ENV_SEPARATOR_KW)
     def append_method(self, args: T.Tuple[str, T.List[str]], kwargs: 'EnvironmentSeparatorKW') -> None:
         name, values = args
         self.warn_if_has_name(name)
         self.held_object.append(name, values, kwargs['separator'])
 
     @typed_pos_args('environment.prepend', str, varargs=str, min_varargs=1)
-    @typed_kwargs('environment.prepend', _ENV_SEPARATOR_KW)
+    @typed_kwargs('environment.prepend', ENV_SEPARATOR_KW)
     def prepend_method(self, args: T.Tuple[str, T.List[str]], kwargs: 'EnvironmentSeparatorKW') -> None:
         name, values = args
         self.warn_if_has_name(name)

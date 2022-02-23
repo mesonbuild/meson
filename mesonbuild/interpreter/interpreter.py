@@ -63,6 +63,8 @@ from .type_checking import (
     DEPFILE_KW,
     DISABLER_KW,
     ENV_KW,
+    ENV_METHOD_KW,
+    ENV_SEPARATOR_KW,
     INSTALL_KW,
     INSTALL_MODE_KW,
     CT_INSTALL_TAG_KW,
@@ -71,6 +73,7 @@ from .type_checking import (
     REQUIRED_KW,
     NoneType,
     in_set_validator,
+    env_convertor_with_method
 )
 from . import primitives as P_OBJ
 
@@ -2610,9 +2613,9 @@ external dependencies (including libraries) must go to "dependencies".''')
         for lang in kwargs['language']:
             argsdict[lang] = argsdict.get(lang, []) + args
 
-    @noKwargs
     @noArgsFlattening
     @typed_pos_args('environment', optargs=[(str, list, dict)])
+    @typed_kwargs('environment', ENV_METHOD_KW, ENV_SEPARATOR_KW.evolve(since='0.62.0'))
     def func_environment(self, node: mparser.FunctionNode, args: T.Tuple[T.Union[None, str, T.List['TYPE_var'], T.Dict[str, 'TYPE_var']]],
                          kwargs: 'TYPE_kwargs') -> build.EnvironmentVariables:
         init = args[0]
@@ -2621,7 +2624,9 @@ external dependencies (including libraries) must go to "dependencies".''')
             msg = ENV_KW.validator(init)
             if msg:
                 raise InvalidArguments(f'"environment": {msg}')
-            return ENV_KW.convertor(init)
+            if isinstance(init, dict) and any(i for i in init.values() if isinstance(i, list)):
+                FeatureNew.single_use('List of string in dictionary value', '0.62.0', self.subproject, location=node)
+            return env_convertor_with_method(init, kwargs['method'], kwargs['separator'])
         return build.EnvironmentVariables()
 
     @typed_pos_args('join_paths', varargs=str, min_varargs=1)

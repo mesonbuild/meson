@@ -12,7 +12,7 @@ from .. import mlog
 
 from ..mesonlib import MachineChoice, OptionKey
 from ..programs import OverrideProgram, ExternalProgram
-from ..interpreter.type_checking import ENV_KW
+from ..interpreter.type_checking import ENV_KW, ENV_METHOD_KW, ENV_SEPARATOR_KW, env_convertor_with_method
 from ..interpreterbase import (MesonInterpreterObject, FeatureNew, FeatureDeprecated,
                                typed_pos_args,  noArgsFlattening, noPosargs, noKwargs,
                                typed_kwargs, KwargInfo, InterpreterException)
@@ -20,6 +20,7 @@ from .primitives import MesonVersionString
 from .type_checking import NATIVE_KW, NoneType
 
 if T.TYPE_CHECKING:
+    from typing_extensions import Literal
     from ..backend.backends import ExecutableSerialisation
     from ..compilers import Compiler
     from ..interpreterbase import TYPE_kwargs, TYPE_var
@@ -40,6 +41,10 @@ if T.TYPE_CHECKING:
     class NativeKW(TypedDict):
 
         native: mesonlib.MachineChoice
+
+    class AddDevenvKW(TypedDict):
+        method: Literal['set', 'prepend', 'append']
+        separator: str
 
 
 class MesonMain(MesonInterpreterObject):
@@ -438,13 +443,14 @@ class MesonMain(MesonInterpreterObject):
         return prop_name in self.interpreter.environment.properties[kwargs['native']]
 
     @FeatureNew('add_devenv', '0.58.0')
-    @noKwargs
+    @typed_kwargs('environment', ENV_METHOD_KW, ENV_SEPARATOR_KW.evolve(since='0.62.0'))
     @typed_pos_args('add_devenv', (str, list, dict, build.EnvironmentVariables))
-    def add_devenv_method(self, args: T.Tuple[T.Union[str, list, dict, build.EnvironmentVariables]], kwargs: 'TYPE_kwargs') -> None:
+    def add_devenv_method(self, args: T.Tuple[T.Union[str, list, dict, build.EnvironmentVariables]],
+                          kwargs: 'AddDevenvKW') -> None:
         env = args[0]
         msg = ENV_KW.validator(env)
         if msg:
             raise build.InvalidArguments(f'"add_devenv": {msg}')
-        converted = ENV_KW.convertor(env)
+        converted = env_convertor_with_method(env, kwargs['method'], kwargs['separator'])
         assert isinstance(converted, build.EnvironmentVariables)
         self.build.devenv.append(converted)
