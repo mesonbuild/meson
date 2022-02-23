@@ -46,6 +46,7 @@ from .linkers import StaticLinker
 from .interpreterbase import FeatureNew, FeatureDeprecated
 
 if T.TYPE_CHECKING:
+    from typing_extensions import Literal
     from ._typing import ImmutableListProtocol, ImmutableSetProtocol
     from .backend.backends import Backend, ExecutableSerialisation
     from .interpreter.interpreter import Test, SourceOutputs, Interpreter
@@ -451,15 +452,19 @@ class ExtractedObjects(HoldableObject):
             for source in self.get_sources(self.srclist, self.genlist)
         ]
 
+EnvInitValueType = T.Dict[str, T.Union[str, T.List[str]]]
+
 class EnvironmentVariables(HoldableObject):
-    def __init__(self, values: T.Optional[T.Dict[str, str]] = None) -> None:
+    def __init__(self, values: T.Optional[EnvValueType] = None,
+                 init_method: Literal['set', 'prepend', 'append'] = 'set', separator: str = os.pathsep) -> None:
         self.envvars: T.List[T.Tuple[T.Callable[[T.Dict[str, str], str, T.List[str], str], str], str, T.List[str], str]] = []
         # The set of all env vars we have operations for. Only used for self.has_name()
         self.varnames: T.Set[str] = set()
 
         if values:
+            init_func = getattr(self, init_method)
             for name, value in values.items():
-                self.set(name, [value])
+                init_func(name, listify(value), separator)
 
     def __repr__(self) -> str:
         repr_str = "<{0}: {1}>"

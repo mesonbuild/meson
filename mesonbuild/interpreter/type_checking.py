@@ -3,10 +3,13 @@
 
 """Helpers for strict type checking."""
 
+from __future__ import annotations
+import os
 import typing as T
 
 from .. import compilers
-from ..build import EnvironmentVariables, CustomTarget, BuildTarget, CustomTargetIndex, ExtractedObjects, GeneratedList, IncludeDirs
+from ..build import (EnvironmentVariables, EnvInitValueType, CustomTarget, BuildTarget,
+                     CustomTargetIndex, ExtractedObjects, GeneratedList, IncludeDirs)
 from ..coredata import UserFeatureOption
 from ..interpreterbase import TYPE_var
 from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo
@@ -16,6 +19,8 @@ from ..programs import ExternalProgram
 # Helper definition for type checks that are `Optional[T]`
 NoneType: T.Type[None] = type(None)
 
+if T.TYPE_CHECKING:
+    from typing_extensions import Literal
 
 def in_set_validator(choices: T.Set[str]) -> T.Callable[[str], T.Optional[str]]:
     """Check that the choice given was one of the given set."""
@@ -131,7 +136,8 @@ REQUIRED_KW: KwargInfo[T.Union[bool, UserFeatureOption]] = KwargInfo(
 
 DISABLER_KW: KwargInfo[bool] = KwargInfo('disabler', bool, default=False)
 
-def _env_validator(value: T.Union[EnvironmentVariables, T.List['TYPE_var'], T.Dict[str, 'TYPE_var'], str, None]) -> T.Optional[str]:
+def _env_validator(value: T.Union[EnvironmentVariables, T.List['TYPE_var'], T.Dict[str, 'TYPE_var'], str, None],
+                   allow_dict_list: bool = True) -> T.Optional[str]:
     def _splitter(v: str) -> T.Optional[str]:
         split = v.split('=', 1)
         if len(split) == 1:
@@ -152,12 +158,18 @@ def _env_validator(value: T.Union[EnvironmentVariables, T.List['TYPE_var'], T.Di
     elif isinstance(value, dict):
         # We don't need to spilt here, just do the type checking
         for k, dv in value.items():
-            if not isinstance(dv, str):
+            if allow_dict_list:
+                if any(i for i in listify(dv) if not isinstance(i, str)):
+                    return f"Dictionary element {k} must be a string or list of strings not {dv!r}"
+            elif not isinstance(dv, str):
                 return f"Dictionary element {k} must be a string not {dv!r}"
     # We know that otherwise we have an EnvironmentVariables object or None, and
     # we're okay at this point
     return None
 
+def _options_validator(value: T.Union[EnvironmentVariables, T.List['TYPE_var'], T.Dict[str, 'TYPE_var'], str, None]) -> T.Optional[str]:
+    # Reusing the env validator is a littl overkill, but nicer than duplicating the code
+    return _env_validator(value, allow_dict_list=False)
 
 def split_equal_string(input: str) -> T.Tuple[str, str]:
     """Split a string in the form `x=y`
@@ -167,18 +179,25 @@ def split_equal_string(input: str) -> T.Tuple[str, str]:
     a, b = input.split('=', 1)
     return (a, b)
 
+_FullEnvInitValueType = T.Union[EnvironmentVariables, T.List[str], T.List[T.List[str]], EnvInitValueType, str, None]
 
-def _env_convertor(value: T.Union[EnvironmentVariables, T.List[str], T.List[T.List[str]], T.Dict[str, str], str, None]) -> EnvironmentVariables:
+# Split _env_convertor() and env_convertor_with_method() to make mypy happy.
+# It does not want extra arguments in KwargInfo convertor callable.
+def env_convertor_with_method(value: _FullEnvInitValueType,
+                              init_method: Literal['set', 'prepend', 'append'] = 'set',
+                              separator: str = os.pathsep) -> EnvironmentVariables:
     if isinstance(value, str):
-        return EnvironmentVariables(dict([split_equal_string(value)]))
+        return EnvironmentVariables(dict([split_equal_string(value)]), init_method, separator)
     elif isinstance(value, list):
-        return EnvironmentVariables(dict(split_equal_string(v) for v in listify(value)))
+        return EnvironmentVariables(dict(split_equal_string(v) for v in listify(value)), init_method, separator)
     elif isinstance(value, dict):
-        return EnvironmentVariables(value)
+        return EnvironmentVariables(value, init_method, separator)
     elif value is None:
         return EnvironmentVariables()
     return value
 
+def _env_convertor(value: _FullEnvInitValueType) -> EnvironmentVariables:
+    return env_convertor_with_method(value)
 
 ENV_KW: KwargInfo[T.Union[EnvironmentVariables, T.List, T.Dict, str, None]] = KwargInfo(
     'env',
@@ -230,8 +249,7 @@ OVERRIDE_OPTIONS_KW: KwargInfo[T.List[str]] = KwargInfo(
     ContainerTypeInfo(list, str),
     listify=True,
     default=[],
-    # Reusing the env validator is a littl overkill, but nicer than duplicating the code
-    validator=_env_validator,
+    validator=_options_validator,
     convertor=_override_options_convertor,
 )
 
@@ -309,5 +327,10 @@ DEFAULT_OPTIONS: KwargInfo[T.List[str]] = KwargInfo(
     ContainerTypeInfo(list, (str, IncludeDirs)),
     listify=True,
     default=[],
-    validator=_env_validator,
+    validator=_options_validator,
 )
+
+ENV_METHOD_KW = KwargInfo('method', str, default='set', since='0.62.0',
+    validator=in_set_validator({'set', 'prepend', 'append'}))
+
+ENV_SEPARATOR_KW = KwargInfo('separator', str, default=os.pathsep, since='0.62.0')

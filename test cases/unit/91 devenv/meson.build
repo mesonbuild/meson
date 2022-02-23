@@ -11,6 +11,11 @@ env = environment()
 env.append('TEST_B', ['2', '3'], separator: '+')
 meson.add_devenv(env)
 
+meson.add_devenv({'TEST_B': '0'}, separator: '+', method: 'prepend')
+
+env = environment({'TEST_B': ['4']}, separator: '+', method: 'append')
+meson.add_devenv(env)
+
 # This exe links on a library built in another directory. On Windows this means
 # PATH must contain builddir/subprojects/sub to be able to run it.
 executable('app', 'main.c', dependencies: foo_dep, install: true)
