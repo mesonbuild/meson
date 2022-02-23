@@ -128,8 +128,8 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
                         help="Base name for log file.")
     parser.add_argument('--num-processes', default=determine_worker_count(), type=int,
                         help='How many parallel processes to use.')
-    parser.add_argument('-v', '--verbose', default=False, action='store_true',
-                        help='Do not redirect stdout and stderr')
+    parser.add_argument('-v', '--verbose', default=0, action='count',
+                        help='Display test output and details. Give twice for even more details.')
     parser.add_argument('-q', '--quiet', default=False, action='store_true',
                         help='Produce less output to the terminal.')
     parser.add_argument('-t', '--timeout-multiplier', type=float, default=None,
@@ -866,7 +866,7 @@ class TestRun:
         return super().__new__(TestRun.PROTOCOL_TO_CLASS[test.protocol])
 
     def __init__(self, test: TestSerialisation, test_env: T.Dict[str, str],
-                 name: str, timeout: T.Optional[int], is_parallel: bool, verbose: bool):
+                 name: str, timeout: T.Optional[int], is_parallel: bool, verbose: int):
         self.res = TestResult.PENDING
         self.test = test
         self._num = None       # type: T.Optional[int]
@@ -901,7 +901,7 @@ class TestRun:
 
     @property
     def direct_stdout(self) -> bool:
-        return self.verbose and not self.is_parallel and not self.needs_parsing
+        return bool(self.verbose) and not self.is_parallel and not self.needs_parsing
 
     def get_results(self) -> str:
         if self.results:
@@ -1358,8 +1358,12 @@ class SingleTestRunner:
         else:
             timeout = self.test.timeout * self.options.timeout_multiplier
 
+        if self.options.quiet:
+            verbose = 0
+        else:
+            verbose = max(test.verbose, self.options.verbose)
+
         is_parallel = test.is_parallel and self.options.num_processes > 1 and not self.options.gdb
-        verbose = (test.verbose or self.options.verbose) and not self.options.quiet
         self.runobj = TestRun(test, env, name, timeout, is_parallel, verbose)
 
         if self.options.gdb:
@@ -1630,7 +1634,7 @@ class TestHarness:
         if not options.gdb:
             options.gdb = current.gdb
         if options.gdb:
-            options.verbose = True
+            options.verbose = 1
         if options.timeout_multiplier is None:
             options.timeout_multiplier = current.timeout_multiplier
     #    if options.env is None:
@@ -2064,7 +2068,7 @@ def run(options: argparse.Namespace) -> int:
 
     check_bin = None
     if options.gdb:
-        options.verbose = True
+        options.verbose = 1
         if options.wrapper:
             print('Must not specify both a wrapper and gdb at the same time.')
             return 1
