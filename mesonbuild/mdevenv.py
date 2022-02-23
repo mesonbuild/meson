@@ -2,10 +2,11 @@ import os, subprocess
 import argparse
 import tempfile
 import shutil
+import itertools
 
 from pathlib import Path
 from . import build, minstall, dependencies
-from .mesonlib import MesonException, RealPathAction, is_windows, setup_vsenv, OptionKey
+from .mesonlib import MesonException, RealPathAction, is_windows, setup_vsenv, OptionKey, quote_arg
 from . import mlog
 
 import typing as T
@@ -14,7 +15,9 @@ if T.TYPE_CHECKING:
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('-C', dest='wd', action=RealPathAction,
-                        help='directory to cd into before running')
+                        help='Directory to cd into before running')
+    parser.add_argument('--dump', action='store_true',
+                        help='Only print required environment (Since 0.62.0)')
     parser.add_argument('command', nargs=argparse.REMAINDER,
                         help='Command to run in developer environment (default: interactive shell)')
 
@@ -25,11 +28,7 @@ def get_windows_shell() -> str:
     result = subprocess.check_output(command)
     return result.decode().strip()
 
-def get_env(b: build.Build, build_dir: str) -> T.Dict[str, str]:
-    env = os.environ.copy()
-    for i in b.devenv:
-        env = i.get_env(env)
-
+def get_env(b: build.Build, build_dir: str) -> T.Tuple[T.Dict[str, str], T.Set[str]]:
     extra_env = build.EnvironmentVariables()
     extra_env.set('MESON_DEVENV', ['1'])
     extra_env.set('MESON_PROJECT_NAME', [b.project_name])
@@ -38,7 +37,13 @@ def get_env(b: build.Build, build_dir: str) -> T.Dict[str, str]:
     if meson_uninstalled.is_dir():
         extra_env.prepend('PKG_CONFIG_PATH', [str(meson_uninstalled)])
 
-    return extra_env.get_env(env)
+    env = os.environ.copy()
+    varnames = set()
+    for i in itertools.chain(b.devenv, {extra_env}):
+        env = i.get_env(env)
+        varnames |= i.get_names()
+
+    return env, varnames
 
 def bash_completion_files(b: build.Build, install_data: 'InstallData') -> T.List[str]:
     result = []
@@ -108,11 +113,20 @@ def run(options: argparse.Namespace) -> int:
     if not buildfile.is_file():
         raise MesonException(f'Directory {options.wd!r} does not seem to be a Meson build directory.')
     b = build.load(options.wd)
-    install_data = minstall.load_install_data(str(privatedir / 'install.dat'))
-    setup_vsenv(b.need_vsenv)
 
-    devenv = get_env(b, options.wd)
+    devenv, varnames = get_env(b, options.wd)
+    if options.dump:
+        if options.command:
+            raise MesonException('--dump option does not allow running other command.')
+        for name in varnames:
+            print(f'{name}={quote_arg(devenv[name])}')
+            print(f'export {name}')
+        return 0
+
+    install_data = minstall.load_install_data(str(privatedir / 'install.dat'))
     write_gdb_script(privatedir, install_data)
+
+    setup_vsenv(b.need_vsenv)
 
     args = options.command
     if not args:

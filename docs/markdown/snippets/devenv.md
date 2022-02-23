@@ -16,3 +16,8 @@ a library name that matches one being built, Meson adds the needed auto-load
 commands into `<builddir>/.gdbinit` file. When running gdb from top build
 directory, that file is loaded by gdb automatically.
 
+## Print modified environment variables with `meson devenv --dump`
+
+With `--dump` option, all envorinment variables that have been modified are
+printed instead of starting an interactive shell. It can be used by shell
+scripts that wish to setup their environment themself.

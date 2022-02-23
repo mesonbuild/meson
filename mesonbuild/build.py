@@ -476,6 +476,9 @@ class EnvironmentVariables(HoldableObject):
     def has_name(self, name: str) -> bool:
         return name in self.varnames
 
+    def get_names(self) -> T.Set[str]:
+        return self.varnames
+
     def set(self, name: str, values: T.List[str], separator: str = os.pathsep) -> None:
         self.varnames.add(name)
         self.envvars.append((self._set, name, values, separator))
