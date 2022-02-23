@@ -1834,11 +1834,13 @@ class Backend:
                 # LD_LIBRARY_PATH. This allows running system applications using
                 # that library.
                 library_paths.add(tdir)
-        if mesonlib.is_windows() or mesonlib.is_cygwin():
-            extra_paths.update(library_paths)
-        elif mesonlib.is_osx():
-            env.prepend('DYLD_LIBRARY_PATH', list(library_paths))
-        else:
-            env.prepend('LD_LIBRARY_PATH', list(library_paths))
-        env.prepend('PATH', list(extra_paths))
+        if library_paths:
+            if mesonlib.is_windows() or mesonlib.is_cygwin():
+                extra_paths.update(library_paths)
+            elif mesonlib.is_osx():
+                env.prepend('DYLD_LIBRARY_PATH', list(library_paths))
+            else:
+                env.prepend('LD_LIBRARY_PATH', list(library_paths))
+        if extra_paths:
+            env.prepend('PATH', list(extra_paths))
         return env
