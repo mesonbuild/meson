@@ -324,4 +324,11 @@ These variables are set in environment in addition to those set using `meson.add
 Since *Since 0.62.0* if bash-completion scripts are being installed and the
 shell is bash, they will be automatically sourced.
 
+Since *Since 0.62.0* when GDB helper scripts (*-gdb.py, *-gdb.gdb, and *-gdb.csm)
+are installed with a library name that matches one being built, Meson adds the
+needed auto-load commands into `<builddir>/.gdbinit` file. When running gdb from
+top build directory, that file is loaded by gdb automatically. In the case of
+python scripts that needs to load other python modules, `PYTHONPATH` may need
+to be modified using `meson.add_devenv()`.
+
 {{ devenv_arguments.inc }}

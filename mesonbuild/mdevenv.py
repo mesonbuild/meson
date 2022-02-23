@@ -1,10 +1,12 @@
 import os, subprocess
 import argparse
 import tempfile
+import shutil
 
 from pathlib import Path
 from . import build, minstall, dependencies
 from .mesonlib import MesonException, RealPathAction, is_windows, setup_vsenv, OptionKey
+from . import mlog
 
 import typing as T
 if T.TYPE_CHECKING:
@@ -56,15 +58,61 @@ def bash_completion_files(b: build.Build, install_data: 'InstallData') -> T.List
                 result.append(f.path)
     return result
 
+def add_gdb_auto_load(autoload_path: Path, gdb_helper: str, fname: Path) -> None:
+    # Copy or symlink the GDB helper into our private directory tree
+    destdir = autoload_path / fname.parent
+    destdir.mkdir(parents=True, exist_ok=True)
+    try:
+        if is_windows():
+            shutil.copy(gdb_helper, str(destdir / os.path.basename(gdb_helper)))
+        else:
+            os.symlink(gdb_helper, str(destdir / os.path.basename(gdb_helper)))
+    except (FileExistsError, shutil.SameFileError):
+        pass
+
+def write_gdb_script(privatedir: Path, install_data: 'InstallData') -> None:
+    if not shutil.which('gdb'):
+        return
+    bdir = privatedir.parent
+    autoload_basedir = privatedir / 'gdb-auto-load'
+    autoload_path = Path(autoload_basedir, *bdir.parts[1:])
+    have_gdb_helpers = False
+    for d in install_data.data:
+        if d.path.endswith('-gdb.py') or d.path.endswith('-gdb.gdb') or d.path.endswith('-gdb.scm'):
+            # This GDB helper is made for a specific shared library, search if
+            # we have it in our builddir.
+            libname = Path(d.path).name.rsplit('-', 1)[0]
+            for t in install_data.targets:
+                path = Path(t.fname)
+                if path.name == libname:
+                    add_gdb_auto_load(autoload_path, d.path, path)
+                    have_gdb_helpers = True
+    if have_gdb_helpers:
+        gdbinit_line = f'add-auto-load-scripts-directory {autoload_basedir}\n'
+        gdbinit_path = bdir / '.gdbinit'
+        first_time = False
+        try:
+            with gdbinit_path.open('r+', encoding='utf-8') as f:
+                if gdbinit_line not in f.readlines():
+                    f.write(gdbinit_line)
+                    first_time = True
+        except FileNotFoundError:
+            gdbinit_path.write_text(gdbinit_line, encoding='utf-8')
+            first_time = True
+        if first_time:
+            mlog.log('Meson detected GDB helpers and added config in', mlog.bold(str(gdbinit_path)))
+
 def run(options: argparse.Namespace) -> int:
-    buildfile = Path(options.wd) / 'meson-private' / 'build.dat'
+    privatedir = Path(options.wd) / 'meson-private'
+    buildfile = privatedir / 'build.dat'
     if not buildfile.is_file():
         raise MesonException(f'Directory {options.wd!r} does not seem to be a Meson build directory.')
     b = build.load(options.wd)
-    install_data = minstall.load_install_data(str(buildfile.parent / 'install.dat'))
+    install_data = minstall.load_install_data(str(privatedir / 'install.dat'))
     setup_vsenv(b.need_vsenv)
 
     devenv = get_env(b, options.wd)
+    write_gdb_script(privatedir, install_data)
 
     args = options.command
     if not args:
