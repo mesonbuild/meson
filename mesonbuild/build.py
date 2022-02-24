@@ -2774,7 +2774,7 @@ def get_sources_string_names(sources, backend):
 def load(build_dir: str) -> Build:
     filename = os.path.join(build_dir, 'meson-private', 'build.dat')
     load_fail_msg = f'Build data file {filename!r} is corrupted. Try with a fresh build tree.'
-    nonexisting_fail_msg = f'No such build data file as "{filename!r}".'
+    nonexisting_fail_msg = f'No such build data file at "{filename!r}".'
     try:
         with open(filename, 'rb') as f:
             obj = pickle.load(f)
