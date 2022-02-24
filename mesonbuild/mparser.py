@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
 from dataclasses import dataclass
 import re
 import codecs
@@ -21,6 +22,8 @@ from .mesonlib import MesonException
 from . import mlog
 
 if T.TYPE_CHECKING:
+    from typing_extensions import Literal
+
     from .ast import AstVisitor
 
 # This is the regex for the supported escape sequences of a regular string
@@ -388,11 +391,11 @@ class AndNode(BaseNode):
         self.right = right  # type: BaseNode
 
 class ComparisonNode(BaseNode):
-    def __init__(self, ctype: str, left: BaseNode, right: BaseNode):
+    def __init__(self, ctype: COMPARISONS, left: BaseNode, right: BaseNode):
         super().__init__(left.lineno, left.colno, left.filename)
         self.left = left    # type: BaseNode
         self.right = right  # type: BaseNode
-        self.ctype = ctype  # type: str
+        self.ctype = ctype
 
 class ArithmeticNode(BaseNode):
     def __init__(self, operation: str, left: BaseNode, right: BaseNode):
@@ -477,15 +480,19 @@ class TernaryNode(BaseNode):
         self.trueblock = trueblock    # type: BaseNode
         self.falseblock = falseblock  # type: BaseNode
 
-comparison_map = {'equal': '==',
-                  'nequal': '!=',
-                  'lt': '<',
-                  'le': '<=',
-                  'gt': '>',
-                  'ge': '>=',
-                  'in': 'in',
-                  'notin': 'not in',
-                  }
+if T.TYPE_CHECKING:
+    COMPARISONS = Literal['==', '!=', '<', '<=', '>=', '>', 'in', 'notin']
+
+comparison_map: T.Mapping[str, COMPARISONS] = {
+    'equal': '==',
+    'nequal': '!=',
+    'lt': '<',
+    'le': '<=',
+    'gt': '>',
+    'ge': '>=',
+    'in': 'in',
+    'not in': 'notin',
+}
 
 # Recursive descent parser for Meson's definition language.
 # Very basic apart from the fact that we have many precedence
