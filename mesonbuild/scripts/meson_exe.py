@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-from __future__ import annotations
 import os
 import sys
 import argparse
@@ -12,7 +11,7 @@ import subprocess
 import typing as T
 import locale
 
-from ..utils.core import ExecutableSerialisation
+from ..utils.core import ExecutableSerialisation, EnvironmentVariables
 
 if T.TYPE_CHECKING:
     from typing_extensions import Protocol
@@ -22,6 +21,7 @@ if T.TYPE_CHECKING:
         unpickle: bool
         capture: bool
         feed: bool
+        env: T.List[str]
 
 
 def buildparser() -> argparse.ArgumentParser:
@@ -29,6 +29,7 @@ def buildparser() -> argparse.ArgumentParser:
     parser.add_argument('--unpickle')
     parser.add_argument('--capture')
     parser.add_argument('--feed')
+    parser.add_argument('--env', action='append', default=[])
     return parser
 
 def run_exe(exe: ExecutableSerialisation, extra_env: T.Optional[T.Dict[str, str]] = None) -> int:
@@ -119,7 +120,12 @@ def run(args: T.List[str]) -> int:
             exe = pickle.load(f)
             exe.pickled = True
     else:
-        exe = ExecutableSerialisation(cmd_args, capture=options.capture, feed=options.feed)
+        env = EnvironmentVariables()
+        for e in options.env:
+            name, value = e.split('=')
+            # This is internal, we can pick whatever separator we want!
+            env.append(name, value.split(':'))
+        exe = ExecutableSerialisation(cmd_args, capture=options.capture, feed=options.feed, env=env)
 
     return run_exe(exe)
 
