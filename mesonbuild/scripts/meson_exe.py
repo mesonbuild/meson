@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from __future__ import annotations
 import os
 import sys
 import argparse
@@ -12,6 +13,16 @@ import typing as T
 import locale
 
 from ..utils.core import ExecutableSerialisation
+
+if T.TYPE_CHECKING:
+    from typing_extensions import Protocol
+
+    class Args(Protocol):
+
+        unpickle: bool
+        capture: bool
+        feed: bool
+
 
 def buildparser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description='Custom executable wrapper for Meson. Do not run on your own, mmm\'kay?')
@@ -93,6 +104,7 @@ def run_exe(exe: ExecutableSerialisation, extra_env: T.Optional[T.Dict[str, str]
 
 def run(args: T.List[str]) -> int:
     parser = buildparser()
+    options: Args
     options, cmd_args = parser.parse_known_args(args)
     # argparse supports double dash to separate options and positional arguments,
     # but the user has to remove it manually.
