@@ -84,13 +84,12 @@ empty file in a custom directory.
 ```bash
 #!/bin/sh
 
-mkdir "${DESTDIR}/${MESON_INSTALL_PREFIX}/mydir"
-touch "${DESTDIR}/${MESON_INSTALL_PREFIX}/mydir/file.dat"
+mkdir "${MESON_INSTALL_DESTDIR_PREFIX}/mydir"
+touch "${MESON_INSTALL_DESTDIR_PREFIX}/mydir/file.dat"
 ```
 
 As you can see, Meson sets up some environment variables to help you
-write your script (`DESTDIR` is not set by Meson, it is inherited from
-the outside environment). In addition to the install prefix, Meson
+write your script. In addition to the install prefix, Meson
 also sets the variables `MESON_SOURCE_ROOT` and `MESON_BUILD_ROOT`.
 
 Telling Meson to run this script at install time is a one-liner.
