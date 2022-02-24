@@ -9,7 +9,7 @@ import re
 import typing as T
 
 from .. import coredata
-from ..mesonlib import EnvironmentException, MesonException, Popen_safe_logged, OptionKey
+from ..mesonlib import EnvironmentException, MesonException, Popen_safe_logged, OptionKey, version_compare
 from .compilers import Compiler, clike_debug_args
 
 if T.TYPE_CHECKING:
@@ -71,6 +71,7 @@ class RustCompiler(Compiler):
             self.base_options.add(OptionKey('b_vscrt'))
         self.native_static_libs: T.List[str] = []
         self.is_nightly = is_nightly
+        self.needs_env_wrapper = not (version_compare(self.version, '>= 1.76') and self.is_nightly)
 
     def needs_static_linker(self) -> bool:
         return False
