@@ -612,6 +612,13 @@ class VisualStudioLikeCPPCompilerMixin(CompilerMixinBase):
         'vc++17': (True, 17),
         'vc++20': (True, 20),
         'vc++latest': (True, "latest"),
+        'gnu++11' : (True, 11),
+        'gnu++14' : (True, 14),
+        'gnu++17' : (True, 17),
+        'gnu++1z' : (True, 17),
+        'gnu++2a' : (True, 20),
+        'gnu++20' : (True, 20),
+        'gnu++latest' : (True, "latest"),
         'c++11': (False, 11),
         'c++14': (False, 14),
         'c++17': (False, 17),
@@ -712,15 +719,15 @@ class VisualStudioCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixi
         MSVCCompiler.__init__(self, target)
 
     def get_options(self) -> 'KeyedOptionDictType':
-        cpp_stds = ['none', 'c++11', 'vc++11']
+        cpp_stds = ['none', 'c++11', 'vc++11', 'gnu++11']
         # Visual Studio 2015 and later
         if version_compare(self.version, '>=19'):
-            cpp_stds.extend(['c++14', 'c++latest', 'vc++latest'])
+            cpp_stds.extend(['c++14', 'gnu++14', 'c++latest', 'vc++latest', 'gnu++latest'])
         # Visual Studio 2017 and later
         if version_compare(self.version, '>=19.11'):
-            cpp_stds.extend(['vc++14', 'c++17', 'vc++17'])
+            cpp_stds.extend(['vc++14', 'c++17', 'vc++17', 'gnu++17', 'gnu++1z'])
         if version_compare(self.version, '>=19.29'):
-            cpp_stds.extend(['c++20', 'vc++20'])
+            cpp_stds.extend(['c++20', 'vc++20', 'gnu++20', 'gnu++2a'])
         return self._get_options_impl(super().get_options(), cpp_stds)
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
