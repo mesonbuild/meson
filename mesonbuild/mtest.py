@@ -535,22 +535,26 @@ class ConsoleLogger(TestLogger):
         done_tests = TestRun.TEST_NUM
         running_count = len(self.running_tests)
         running_count_width = len(str(harness.options.num_processes))
-        msg = '{:>{}} test(s) running, {}/{} tests completed {} '.format(
+        lines = ['{:>{}} test(s) running, {}/{} tests completed {} '.format(
                     running_count,
                     running_count_width,
                     done_tests,
                     tests_total,
-                    self.get_spinner())
-        self.print_progress([msg], right=True)
+                    self.get_spinner())]
+        if harness.options.verbose:
+            lines = [dashes(None, '-', harness.get_formatted_line_length())] + lines
+        self.print_progress(lines, right=True)
 
     def emit_progress(self, harness: 'TestHarness') -> None:
         lines: T.List[str] = []
         now = time.time()
         left = ' ' * len(harness.get_test_num_prefix(0))
         remainder = 0
+        direct_output = True
 
         for test in reversed(self.running_tests):
             runtime = int(now - test.starttime)
+            direct_output = direct_output and test.direct_output
             if not test.direct_output and runtime < 1:
                 break
             elif len(lines) > 10:
@@ -571,7 +575,15 @@ class ConsoleLogger(TestLogger):
                                     colorize=mlog.colorize_console(),
                                     left=left,
                                     right=right)] + lines
-        if remainder > 0:
+        if harness.options.verbose:
+            if direct_output:
+                div = '- '
+                width = int(harness.get_formatted_line_length() / 2)
+            else:
+                div = '-'
+                width = harness.get_formatted_line_length()
+            lines = [dashes(None, div, width)] + lines
+        elif remainder > 0:
             msg = f'[omitting {remainder} running test(s) from above]'
             lines += [' ' * len(harness.get_test_num_prefix(0)) + msg]
         self.print_progress(lines)
@@ -605,6 +617,7 @@ class ConsoleLogger(TestLogger):
 
     def start_test(self, harness: 'TestHarness', test: 'TestRun') -> None:
         if test.verbose > 1 and test.cmdline:
+            self.print_horizontal_line(harness)
             self.print_test_status(harness, test)
         self.started_tests += 1
         self.running_tests.add(test)
@@ -683,12 +696,15 @@ class ConsoleLogger(TestLogger):
                             f'subtest {name} {res}',
                             update=False)
 
+    def print_horizontal_line(self, harness: 'TestHarness') -> None:
+        self.safe_print(dashes(None, '-', harness.get_formatted_line_length()))
+
     def print_log(self,
                   harness: 'TestHarness',
                   result: 'TestRun') -> None:
         if result.verbose or (result.res.is_bad() and harness.options.print_errorlogs):
             prefix = harness.get_test_num_prefix(result.num)
-            if harness.options.verbose and not result.direct_output:
+            if harness.options.verbose and harness.options.num_processes != 1:
                 self.print_horizontal_line(harness)
             if not result.direct_output:
                 self.print_command_details(prefix, result)
@@ -728,6 +744,8 @@ class ConsoleLogger(TestLogger):
             self.print_log(harness, result)
 
     async def finish(self, harness: 'TestHarness') -> None:
+        if harness.options.verbose:
+            self.print_horizontal_line(harness)
         self.stop = True
         self.request_update()
         if self.progress_task:
@@ -1574,6 +1592,7 @@ class SingleTestRunner:
             parse_task = None
 
         if self.runobj.direct_output:
+            console_log.print_horizontal_line(harness)
             console_log.print_command_details(get_prefix(), self.runobj)
 
         err = await p.wait(self.runobj)
@@ -1815,6 +1834,17 @@ class TestHarness:
                 if details:
                     right += '   ' + details
         return left + middle + right
+
+    def get_formatted_line_length(self) -> int:
+        # This aims to return the number of (visible) characters a string
+        # returned by the above format() function will have. We are
+        # choosing to ignore the fact that some individual lines from
+        # format() could be a bit longer.
+        return (self.max_left_width
+                + self.name_max_len
+                + TestResult.maxlen()
+                + self.duration_max_len
+                + 6)
 
     def format_subtest(self,
                        test: 'TestRun',
