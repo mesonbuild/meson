@@ -487,8 +487,8 @@ class BoostDependency(SystemDependency):
                 comp_args += c_args
                 link_args += l_args
 
-            comp_args = list(set(comp_args))
-            link_args = list(set(link_args))
+            comp_args = list(mesonlib.OrderedSet(comp_args))
+            link_args = list(mesonlib.OrderedSet(link_args))
 
             self.modules_found = [x.mod_name for x in selected_modules]
             self.modules_found = [x[6:] for x in self.modules_found]
