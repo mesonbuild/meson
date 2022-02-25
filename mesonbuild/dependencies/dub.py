@@ -258,7 +258,7 @@ class DubDependency(ExternalDependency):
     # This function finds the target of the provided JSON package, built for the right
     # compiler, architecture, configuration...
     # A value is returned only if the file exists
-    def _find_dub_build_target(self, jdesc: T.Dict[str, str], jpack: T.Dict[str, str], comp_id: str) -> str:
+    def _find_dub_build_target(self, jdesc: T.Dict[str, str], jpack: T.Dict[str, str], dub_comp_id: str) -> str:
         dub_build_path = os.path.join(jpack['path'], '.dub', 'build')
 
         if not os.path.exists(dub_build_path):
@@ -276,41 +276,47 @@ class DubDependency(ExternalDependency):
 
         conf = jpack['configuration']
         build_type = jdesc['buildType']
-        platform = '.'.join(jdesc['platform'])
-        arch = '.'.join(jdesc['architecture'])
+        platforms = jdesc['platform']
+        archs = jdesc['architecture']
 
-        # Get D frontend version implemented in the compiler
+        # Get D frontend version implemented in the compiler, or the compiler version itself
         # gdc doesn't support this
-        frontend_id = None
-        frontend_version = None
-        compiler_version = None
+        comp_versions = []
 
-        if comp_id != 'gdc':
-            compiler_version = self.compiler.version
+        if dub_comp_id != 'gdc':
+            comp_versions.append(self.compiler.version)
+
             ret, res = self._call_compbin(['--version'])[0:2]
             if ret != 0:
-                mlog.error('Failed to run {!r}', mlog.bold(comp_id))
+                mlog.error('Failed to run {!r}', mlog.bold(dub_comp_id))
                 return None
             d_ver_reg = re.search('v[0-9].[0-9][0-9][0-9].[0-9]', res) # Ex.: v2.081.2
+
             if d_ver_reg is not None:
                 frontend_version = d_ver_reg.group()
                 frontend_id = frontend_version.rsplit('.', 1)[0].replace('v', '').replace('.', '') # Fix structure. Ex.: 2081
+                comp_versions.extend([frontend_version, frontend_id])
 
-        build_id = f'{conf}-{build_type}-{platform}-{arch}-{comp_id}'
+        # platform and archs can be array.
+        # we are not sure of the order so we don't include them in `build_id`
+        # instead we match them in the loop
+        build_id = f'{conf}-{build_type}'
 
         for entry in os.listdir(dub_build_path):
 
             if not build_id in entry:
                 continue
 
-            found_version = False
-            if compiler_version and compiler_version in entry:
-                found_version = True
-            elif frontend_id and frontend_id in entry:
-                found_version = True
-            elif frontend_version and frontend_version in entry:
-                found_version = True
-            if not found_version and comp_id != 'gdc':
+            if not all(platform in entry for platform in platforms):
+                continue
+
+            if not all(arch in entry for arch in archs):
+                continue
+
+            if not dub_comp_id in entry:
+                continue
+
+            if dub_comp_id != 'gdc' and not any(cv in entry for cv in comp_versions):
                 continue
 
             target = os.path.join(dub_build_path, entry, jpack['targetFileName'])
