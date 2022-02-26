@@ -22,7 +22,7 @@ extension_module method:
 ```meson
 project('my project', 'cython')
 
-py = import('python').find_installation()
+py = import('python').find_installation('python3')
 dep_py = py.dependency()
 
 py.extension_module(

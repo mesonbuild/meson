@@ -32,7 +32,7 @@ from ..interpreter.type_checking import NoneType
 from ..interpreterbase import (
     noPosargs, noKwargs, permittedKwargs, ContainerTypeInfo,
     InvalidArguments, typed_pos_args, typed_kwargs, KwargInfo,
-    FeatureNew, FeatureNewKwargs, disablerIfNotFound
+    FeatureDeprecated, FeatureNew, FeatureNewKwargs, disablerIfNotFound
 )
 from ..mesonlib import MachineChoice
 from ..programs import ExternalProgram, NonExistingExternalProgram
@@ -674,41 +674,49 @@ class PythonModule(ExtensionModule):
         found_modules: T.List[str] = []
         missing_modules: T.List[str] = []
 
+        if args[0] is None:
+            FeatureDeprecated.single_use('python.find_installation requires a positional argument', '0.62.0',
+                                         state.subproject, 'use \'python3\'', state.current_node)
+
         # FIXME: this code is *full* of sharp corners. It assumes that it's
         # going to get a string value (or now a list of length 1), of `python2`
         # or `python3` which is completely nonsense.  On windows the value could
         # easily be `['py', '-3']`, or `['py', '-3.7']` to get a very specific
         # version of python. On Linux we might want a python that's not in
         # $PATH, or that uses a wrapper of some kind.
-        np: T.List[str] = state.environment.lookup_binary_entry(MachineChoice.HOST, 'python') or []
-        fallback = args[0]
-        display_name = fallback or 'python'
-        if not np and fallback is not None:
-            np = [fallback]
-        name_or_path = np[0] if np else None
+        np: T.List[str] = []
+        fallback = args[0] or 'python3'
+        display_name = args[0] or 'python'
+        if fallback in ['python2', 'python3']:
+            np = state.environment.lookup_binary_entry(MachineChoice.HOST, fallback) or []
+        if not np:
+            np = state.environment.lookup_binary_entry(MachineChoice.HOST, 'python') or []
+        name_or_path = np[0] if np else fallback
 
         if disabled:
             mlog.log('Program', name_or_path or 'python', 'found:', mlog.red('NO'), '(disabled by:', mlog.bold(feature), ')')
             return NonExistingExternalProgram()
 
-        if not name_or_path:
-            python = PythonExternalProgram('python3', mesonlib.python_command)
-        else:
-            tmp_python = ExternalProgram.from_entry(display_name, name_or_path)
-            python = PythonExternalProgram(display_name, ext_prog=tmp_python)
+        tmp_python = ExternalProgram.from_entry(display_name, name_or_path)
+        python = PythonExternalProgram(display_name, ext_prog=tmp_python)
 
-            if not python.found() and mesonlib.is_windows():
-                pythonpath = self._get_win_pythonpath(name_or_path)
-                if pythonpath is not None:
-                    name_or_path = pythonpath
-                    python = PythonExternalProgram(name_or_path)
+        if not python.found() and mesonlib.is_windows():
+            pythonpath = self._get_win_pythonpath(name_or_path)
+            if pythonpath is not None:
+                name_or_path = pythonpath
+                python = PythonExternalProgram(name_or_path)
 
-            # Last ditch effort, python2 or python3 can be named python
-            # on various platforms, let's not give up just yet, if an executable
-            # named python is available and has a compatible version, let's use
-            # it
-            if not python.found() and name_or_path in ['python2', 'python3']:
-                python = PythonExternalProgram('python')
+        # Last ditch effort, python2 or python3 can be named python
+        # on various platforms, let's not give up just yet, if an executable
+        # named python is available and has a compatible version, let's use
+        # it
+        if not python.found() and name_or_path in ['python2', 'python3']:
+            python = PythonExternalProgram('python')
+
+        # Even more dire effort, Meson must be using python3,
+        # even though it might be a minimal bootstrapping instance.
+        if not python.found() and name_or_path == 'python3':
+            python = ExternalProgram('python3', mesonlib.python_command, silent=True)
 
         if python.found() and want_modules:
             for mod in want_modules:

@@ -1,6 +1,6 @@
 project('test', 'c')
 
-python = import('python').find_installation()
+python = import('python').find_installation('python3')
 
 lib = library('foo', 'foo.c')
 

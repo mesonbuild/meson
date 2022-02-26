@@ -1,5 +1,12 @@
 option(
   'case',
   type : 'combo',
-  choices : ['find_program', 'config_dep', 'python3', 'python']
+  choices : [
+    'find_program',
+    'config_dep',
+    'python3',
+    'python-implicit',
+    'python-python2',
+    'python-python3',
+  ]
 )

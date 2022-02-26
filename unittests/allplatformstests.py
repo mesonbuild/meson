@@ -3193,7 +3193,11 @@ class AllPlatformTests(BasePlatformTests):
         out_start = out.find(expected_lines[0])
         out_lines = out[out_start:].split('\n')[:len(expected_lines)]
         for e, o in zip(expected_lines, out_lines):
-            if e.startswith('    external dep'):
+            if e.startswith('    existing prog'):
+                existing_prog_pattern = re.compile(r'^    existing prog  : (?P<path>.+)$')
+                self.assertRegex(o, existing_prog_pattern)
+                self.assertEqual(Path(re.match(existing_prog_pattern, o).group('path')), Path(sys.executable))
+            elif e.startswith('    external dep'):
                 self.assertRegex(o, r'^    external dep   : (YES [0-9.]*|NO)$')
             else:
                 self.assertEqual(o, e)

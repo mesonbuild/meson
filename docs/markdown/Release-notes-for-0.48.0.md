@@ -112,7 +112,7 @@ becomes
 
 ```meson
 pymod = import('python')
-python = pymod.find_installation()
+python = pymod.find_installation('python3')
 ```
 
 ## Dictionary addition
