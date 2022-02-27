@@ -9,7 +9,7 @@ public class TestWidget : Box {
   }
 
   [GtkChild]
-  private Entry entry;
+  private unowned Entry entry;
 
   public TestWidget (string text) {
     this.text = text;
