@@ -186,7 +186,7 @@ class SourceSetImpl(SourceSet, MutableModuleObject):
         for s in if_true:
             if not isinstance(s, SourceSetImpl):
                 raise InvalidCode('Arguments to \'add_all\' after the first must be source sets')
-        s.frozen = True
+            s.frozen = True
         self.rules.append(SourceSetRule(keys, [], [], if_true, dependencies))
 
     def collect(self, enabled_fn: T.Callable[[str], bool],
