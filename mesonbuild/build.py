@@ -1982,8 +1982,8 @@ class SharedLibrary(BuildTarget):
                 mlog.debug('Defaulting Rust dynamic library target crate type to "dylib"')
                 self.rust_crate_type = 'dylib'
             # Don't let configuration proceed with a non-dynamic crate type
-            elif self.rust_crate_type not in ['dylib', 'cdylib']:
-                raise InvalidArguments(f'Crate type "{self.rust_crate_type}" invalid for dynamic libraries; must be "dylib" or "cdylib"')
+            elif self.rust_crate_type not in ['dylib', 'cdylib', 'proc-macro']:
+                raise InvalidArguments(f'Crate type "{self.rust_crate_type}" invalid for dynamic libraries; must be "dylib", "cdylib", or "proc-macro"')
         if not hasattr(self, 'prefix'):
             self.prefix = None
         if not hasattr(self, 'suffix'):
@@ -2215,6 +2215,8 @@ class SharedLibrary(BuildTarget):
                 self.rust_crate_type = rust_crate_type
             else:
                 raise InvalidArguments(f'Invalid rust_crate_type "{rust_crate_type}": must be a string.')
+            if rust_crate_type == 'proc-macro':
+                FeatureNew.single_use('Rust crate type "proc-macro"', '0.62.0', self.subproject)
 
     def get_import_filename(self) -> T.Optional[str]:
         """
