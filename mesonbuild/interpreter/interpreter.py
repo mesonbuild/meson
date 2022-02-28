@@ -1439,8 +1439,10 @@ external dependencies (including libraries) must go to "dependencies".''')
             raise InterpreterException(f'Tried to override executable "{name}" which has already been overridden.')
         self.build.find_overrides[name] = exe
 
-    def notfound_program(self, args):
-        return NonExistingExternalProgram(' '.join(args))
+    def notfound_program(self, args: T.List[mesonlib.FileOrString]) -> ExternalProgram:
+        return NonExistingExternalProgram(' '.join(
+            [a if isinstance(a, str) else a.absolute_path(self.environment.source_dir, self.environment.build_dir)
+             for a in args]))
 
     # TODO update modules to always pass `for_machine`. It is bad-form to assume
     # the host machine.
