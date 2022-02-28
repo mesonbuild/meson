@@ -104,9 +104,10 @@ endmacro()
 class CMakeSubproject(ModuleObject):
     def __init__(self, subp: SubprojectHolder):
         assert isinstance(subp, SubprojectHolder)
-        assert hasattr(subp, 'cm_interpreter')
+        assert subp.cm_interpreter is not None
         super().__init__()
         self.subp = subp
+        self.cm_interpreter = subp.cm_interpreter
         self.methods.update({'get_variable': self.get_variable,
                              'dependency': self.dependency,
                              'include_directories': self.include_directories,
@@ -121,7 +122,7 @@ class CMakeSubproject(ModuleObject):
             raise InterpreterException('Exactly one argument is required.')
 
         tgt = args[0]
-        res = self.subp.cm_interpreter.target_info(tgt)
+        res = self.cm_interpreter.target_info(tgt)
         if res is None:
             raise InterpreterException(f'The CMake target {tgt} does not exist\n' +
                                        '  Use the following command in your meson.build to list all available targets:\n\n' +
@@ -172,7 +173,7 @@ class CMakeSubproject(ModuleObject):
     @noPosargs
     @noKwargs
     def target_list(self, state, args, kwargs):
-        return self.subp.cm_interpreter.target_list()
+        return self.cm_interpreter.target_list()
 
     @noPosargs
     @noKwargs

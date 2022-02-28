@@ -1,3 +1,4 @@
+from __future__ import annotations
 import os
 import shlex
 import subprocess
@@ -29,9 +30,10 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from . import kwargs
-    from .interpreter import Interpreter
+    from ..cmake.interpreter import CMakeInterpreter
     from ..envconfig import MachineInfo
     from ..interpreterbase import SubProject
+    from .interpreter import Interpreter
 
     from typing_extensions import TypedDict
 
@@ -678,6 +680,7 @@ class SubprojectHolder(MesonInterpreterObject):
         self.disabled_feature = disabled_feature
         self.exception = exception
         self.subdir = PurePath(subdir).as_posix()
+        self.cm_interpreter: T.Optional[CMakeInterpreter] = None
         self.methods.update({'get_variable': self.get_variable_method,
                              'found': self.found_method,
                              })
