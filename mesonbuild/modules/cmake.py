@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+from __future__ import annotations
 import re
 import os, os.path, pathlib
 import shutil
@@ -21,11 +23,10 @@ from . import ExtensionModule, ModuleReturnValue, ModuleObject
 from .. import build, mesonlib, mlog, dependencies
 from ..cmake import SingleTargetOptions, TargetOptions, cmake_defines_to_args
 from ..interpreter import SubprojectHolder
-from ..interpreter.type_checking import NoneType, in_set_validator
+from ..interpreter.type_checking import REQUIRED_KW, NoneType, in_set_validator
 from ..interpreterbase import (
     FeatureNew,
     FeatureNewKwargs,
-    FeatureDeprecatedKwargs,
 
     stringArgs,
     permittedKwargs,
@@ -35,6 +36,7 @@ from ..interpreterbase import (
     InvalidArguments,
     InterpreterException,
 
+    typed_pos_args,
     typed_kwargs,
     KwargInfo,
     ContainerTypeInfo,
@@ -42,6 +44,9 @@ from ..interpreterbase import (
 
 if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
+
+    from . import ModuleState
+    from ..interpreter import kwargs
 
     class WriteBasicPackageVersionFile(TypedDict):
 
@@ -57,6 +62,12 @@ if T.TYPE_CHECKING:
         input: T.Union[str, mesonlib.File]
         install_dir: T.Optional[str]
         name: str
+
+    class Subproject(kwargs.ExtractRequired):
+
+        options: T.Optional[CMakeSubprojectOptions]
+        cmake_options: T.List[str]
+
 
 COMPATIBILITIES = ['AnyNewerVersion', 'SameMajorVersion', 'SameMinorVersion', 'ExactVersion']
 
@@ -91,7 +102,7 @@ endmacro()
 '''
 
 class CMakeSubproject(ModuleObject):
-    def __init__(self, subp, pv):
+    def __init__(self, subp: SubprojectHolder):
         assert isinstance(subp, SubprojectHolder)
         assert hasattr(subp, 'cm_interpreter')
         super().__init__()
@@ -400,20 +411,28 @@ class CmakeModule(ExtensionModule):
         return res
 
     @FeatureNew('subproject', '0.51.0')
-    @FeatureNewKwargs('subproject', '0.55.0', ['options'])
-    @FeatureDeprecatedKwargs('subproject', '0.55.0', ['cmake_options'])
-    @permittedKwargs({'cmake_options', 'required', 'options'})
-    @stringArgs
-    def subproject(self, state, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('Subproject takes exactly one argument')
-        if 'cmake_options' in kwargs and 'options' in kwargs:
+    @typed_pos_args('cmake.subproject', str)
+    @typed_kwargs(
+        'cmake.subproject',
+        REQUIRED_KW,
+        KwargInfo('options', (CMakeSubprojectOptions, NoneType), since='0.55.0'),
+        KwargInfo(
+            'cmake_options',
+            ContainerTypeInfo(list, str),
+            default=[],
+            listify=True,
+            deprecated='0.55.0',
+            deprecated_message='Use options instead',
+        ),
+    )
+    def subproject(self, state: ModuleState, args: T.Tuple[str], kwargs: Subproject) -> T.Union[SubprojectHolder, CMakeSubproject]:
+        if kwargs['cmake_options'] and kwargs['options'] is not None:
             raise InterpreterException('"options" cannot be used together with "cmake_options"')
         dirname = args[0]
         subp = self.interpreter.do_subproject(dirname, 'cmake', kwargs)
         if not subp.found():
             return subp
-        return CMakeSubproject(subp, dirname)
+        return CMakeSubproject(subp)
 
     @FeatureNew('subproject_options', '0.55.0')
     @noKwargs
