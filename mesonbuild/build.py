@@ -2719,6 +2719,9 @@ class ConfigurationData(HoldableObject):
     def __contains__(self, value: str) -> bool:
         return value in self.values
 
+    def __bool__(self) -> bool:
+        return bool(self.values)
+
     def get(self, name: str) -> T.Tuple[T.Union[str, int, bool], T.Optional[str]]:
         return self.values[name] # (val, desc)
 
