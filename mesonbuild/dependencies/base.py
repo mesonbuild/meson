@@ -216,7 +216,7 @@ class Dependency(HoldableObject):
     def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
                      configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
                      default_value: T.Optional[str] = None,
-                     pkgconfig_define: T.Optional[T.List[str]] = None) -> T.Union[str, T.List[str]]:
+                     pkgconfig_define: T.Optional[T.List[str]] = None) -> str:
         if default_value is not None:
             return default_value
         raise DependencyException(f'No default provided for dependency {self!r}, which is not pkg-config, cmake, or config-tool based.')
@@ -232,7 +232,7 @@ class InternalDependency(Dependency):
                  libraries: T.List[T.Union['BuildTarget', 'CustomTarget']],
                  whole_libraries: T.List[T.Union['BuildTarget', 'CustomTarget']],
                  sources: T.Sequence[T.Union['FileOrString', 'CustomTarget', StructuredSources]],
-                 ext_deps: T.List[Dependency], variables: T.Dict[str, T.Any],
+                 ext_deps: T.List[Dependency], variables: T.Dict[str, str],
                  d_module_versions: T.List[str], d_import_dirs: T.List['IncludeDirs']):
         super().__init__(DependencyTypeName('internal'), {})
         self.version = version
@@ -301,16 +301,10 @@ class InternalDependency(Dependency):
     def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
                      configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
                      default_value: T.Optional[str] = None,
-                     pkgconfig_define: T.Optional[T.List[str]] = None) -> T.Union[str, T.List[str]]:
+                     pkgconfig_define: T.Optional[T.List[str]] = None) -> str:
         val = self.variables.get(internal, default_value)
         if val is not None:
-            # TODO: Try removing this assert by better typing self.variables
-            if isinstance(val, str):
-                return val
-            if isinstance(val, list):
-                for i in val:
-                    assert isinstance(i, str)
-                return val
+            return val
         raise DependencyException(f'Could not get an internal variable and no default provided for {self!r}')
 
     def generate_link_whole_dependency(self) -> Dependency:
