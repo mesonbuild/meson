@@ -1,0 +1,15 @@
+{
+  "matrix": {
+    "options": {
+      "failmode": [
+        { "val": "not-installed" },
+        { "val": "parent-dir" }
+      ]
+    }
+  },
+  "stdout": [
+    {
+      "line": "test cases/failing/123 subproject sandbox violation/meson.build:19:0: ERROR: Sandbox violation: Tried to grab file file.txt from a nested subproject."
+    }
+  ]
+}
