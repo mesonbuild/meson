@@ -2453,7 +2453,10 @@ class Interpreter(InterpreterBase, HoldableObject):
             'configuration',
             (ContainerTypeInfo(dict, (str, int, bool)), build.ConfigurationData, NoneType),
         ),
-        KwargInfo('copy', bool, default=False, since='0.47.0'),
+        KwargInfo(
+            'copy', bool, default=False, since='0.47.0',
+            deprecated='0.64.0', deprecated_message='Use fs.copy instead',
+        ),
         KwargInfo('encoding', str, default='utf-8', since='0.47.0'),
         KwargInfo('format', str, default='meson', since='0.46.0',
                   validator=in_set_validator({'meson', 'cmake', 'cmake@'})),
