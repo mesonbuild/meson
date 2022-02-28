@@ -802,7 +802,8 @@ external dependencies (including libraries) must go to "dependencies".''')
     def func_subproject(self, nodes: mparser.BaseNode, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> SubprojectHolder:
         return self.do_subproject(args[0], 'meson', kwargs)
 
-    def disabled_subproject(self, subp_name, disabled_feature=None, exception=None):
+    def disabled_subproject(self, subp_name: str, disabled_feature: T.Optional[str] = None,
+                            exception: T.Optional[mesonlib.MesonException] = None) -> SubprojectHolder:
         sub = SubprojectHolder(NullSubprojectInterpreter(), os.path.join(self.subproject_dir, subp_name),
                                disabled_feature=disabled_feature, exception=exception)
         self.subprojects[subp_name] = sub
@@ -931,7 +932,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.coredata.initialized_subprojects.add(subp_name)
         return self.subprojects[subp_name]
 
-    def _do_subproject_cmake(self, subp_name, subdir, subdir_abs, default_options, kwargs):
+    def _do_subproject_cmake(self, subp_name: str, subdir: str, subdir_abs: str, default_options, kwargs):
         with mlog.nested(subp_name):
             new_build = self.build.copy()
             prefix = self.coredata.options[OptionKey('prefix')].value
