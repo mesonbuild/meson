@@ -12,8 +12,8 @@ assert(dep.get_variable(cmake : 'VAR_WITH_SPACES_PS') == 'With Spaces', 'set(PAR
 assert(dep.get_variable(cmake : 'VAR_THAT_IS_UNSET', default_value : 'sentinal') == 'sentinal', 'set() to unset is incorrect')
 assert(dep.get_variable(cmake : 'CACHED_STRING_NS') == 'foo', 'set(CACHED) without spaces is incorrect')
 assert(dep.get_variable(cmake : 'CACHED_STRING_WS') == 'foo bar', 'set(CACHED STRING) with spaces is incorrect')
-assert(dep.get_variable(cmake : 'CACHED_STRING_ARRAY_NS') == ['foo', 'bar'], 'set(CACHED STRING) without spaces is incorrect')
-assert(dep.get_variable(cmake : 'CACHED_STRING_ARRAY_WS') == ['foo', 'foo bar', 'bar'], 'set(CACHED STRING[]) with spaces is incorrect')
+assert(dep.get_variable(cmake : 'CACHED_STRING_ARRAY_NS') == 'foo;bar', 'set(CACHED STRING) without spaces is incorrect')
+assert(dep.get_variable(cmake : 'CACHED_STRING_ARRAY_WS') == 'foo;foo bar;bar', 'set(CACHED STRING[]) with spaces is incorrect')
 
 # We don't support this, so it should be unset.
 assert(dep.get_variable(cmake : 'ENV{var}', default_value : 'sentinal') == 'sentinal', 'set(ENV) should be ignored')
