@@ -279,7 +279,7 @@ class Build:
                 custom_targets[name] = t
         return custom_targets
 
-    def copy(self):
+    def copy(self) -> Build:
         other = Build(self.environment)
         for k, v in self.__dict__.items():
             if isinstance(v, (list, dict, set, OrderedDict)):
@@ -288,7 +288,7 @@ class Build:
                 other.__dict__[k] = v
         return other
 
-    def merge(self, other):
+    def merge(self, other: Build) -> None:
         for k, v in other.__dict__.items():
             self.__dict__[k] = v
 
