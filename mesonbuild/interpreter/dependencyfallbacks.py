@@ -4,7 +4,7 @@ from .. import mlog
 from .. import dependencies
 from .. import build
 from ..wrap import WrapMode
-from ..mesonlib import OptionKey, extract_as_list, stringlistify, version_compare_many
+from ..mesonlib import OptionKey, extract_as_list, stringlistify, version_compare_many, listify
 from ..dependencies import Dependency, DependencyException, NotFoundDependency
 from ..interpreterbase import (MesonInterpreterObject, FeatureNew,
                                InterpreterException, InvalidArguments,
@@ -131,6 +131,9 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         # Configure the subproject
         subp_name = self.subproject_name
         varname = self.subproject_varname
+        func_kwargs.setdefault('version', [])
+        if 'default_options' in kwargs and isinstance(kwargs['default_options'], str):
+            func_kwargs['default_options'] = listify(kwargs['default_options'])
         self.interpreter.do_subproject(subp_name, 'meson', func_kwargs)
         return self._get_subproject_dep(subp_name, varname, kwargs)
 

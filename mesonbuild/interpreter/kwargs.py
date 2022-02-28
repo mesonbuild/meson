@@ -12,6 +12,7 @@ from .. import build
 from .. import coredata
 from ..compilers import Compiler
 from ..mesonlib import MachineChoice, File, FileMode, FileOrString, OptionKey
+from ..modules.cmake import CMakeSubprojectOptions
 from ..programs import ExternalProgram
 
 
@@ -293,3 +294,17 @@ class ConfigureFile(TypedDict):
     command: T.Optional[T.List[T.Union[build.Executable, ExternalProgram, Compiler, File, str]]]
     input: T.List[FileOrString]
     configuration: T.Optional[T.Union[T.Dict[str, T.Union[str, int, bool]], build.ConfigurationData]]
+
+
+class Subproject(ExtractRequired):
+
+    default_options: T.List[str]
+    version: T.List[str]
+
+
+class DoSubproject(ExtractRequired):
+
+    default_options: T.List[str]
+    version: T.List[str]
+    cmake_options: T.List[str]
+    options: T.Optional[CMakeSubprojectOptions]

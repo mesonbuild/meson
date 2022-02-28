@@ -799,8 +799,21 @@ external dependencies (including libraries) must go to "dependencies".''')
     @FeatureNewKwargs('subproject', '0.38.0', ['default_options'])
     @permittedKwargs({'version', 'default_options', 'required'})
     @typed_pos_args('subproject', str)
-    def func_subproject(self, nodes: mparser.BaseNode, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> SubprojectHolder:
-        return self.do_subproject(args[0], 'meson', kwargs)
+    @typed_kwargs(
+        'subproject',
+        REQUIRED_KW,
+        DEFAULT_OPTIONS.evolve(since='0.38.0'),
+        KwargInfo('version', ContainerTypeInfo(list, str), default=[], listify=True),
+    )
+    def func_subproject(self, nodes: mparser.BaseNode, args: T.Tuple[str], kwargs_: kwargs.Subproject) -> SubprojectHolder:
+        kw: kwargs.DoSubproject = {
+            'required': kwargs_['required'],
+            'default_options': kwargs_['default_options'],
+            'version': kwargs_['version'],
+            'options': None,
+            'cmake_options': [],
+        }
+        return self.do_subproject(args[0], 'meson', kw)
 
     def disabled_subproject(self, subp_name: str, disabled_feature: T.Optional[str] = None,
                             exception: T.Optional[mesonlib.MesonException] = None) -> SubprojectHolder:
@@ -810,14 +823,13 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.coredata.initialized_subprojects.add(subp_name)
         return sub
 
-    def do_subproject(self, subp_name: str, method: Literal['meson', 'cmake'], kwargs) -> SubprojectHolder:
+    def do_subproject(self, subp_name: str, method: Literal['meson', 'cmake'], kwargs: kwargs.DoSubproject) -> SubprojectHolder:
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
             mlog.log('Subproject', mlog.bold(subp_name), ':', 'skipped: feature', mlog.bold(feature), 'disabled')
             return self.disabled_subproject(subp_name, disabled_feature=feature)
 
-        default_options = mesonlib.stringlistify(kwargs.get('default_options', []))
-        default_options = coredata.create_options_dict(default_options, subp_name)
+        default_options = coredata.create_options_dict(kwargs['default_options'], subp_name)
 
         if subp_name == '':
             raise InterpreterException('Subproject name must not be empty.')
@@ -838,7 +850,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             subproject = self.subprojects[subp_name]
             if required and not subproject.found():
                 raise InterpreterException(f'Subproject "{subproject.subdir}" required but not found.')
-            if 'version' in kwargs:
+            if kwargs['version']:
                 pv = self.build.subprojects[subp_name]
                 wanted = kwargs['version']
                 if pv == 'undefined' or not mesonlib.version_compare_many(pv, wanted)[0]:
@@ -885,7 +897,9 @@ external dependencies (including libraries) must go to "dependencies".''')
                 return self.disabled_subproject(subp_name, exception=e)
             raise e
 
-    def _do_subproject_meson(self, subp_name: str, subdir: str, default_options, kwargs,
+    def _do_subproject_meson(self, subp_name: str, subdir: str,
+                             default_options: T.Dict[OptionKey, str],
+                             kwargs: kwargs.DoSubproject,
                              ast: T.Optional[mparser.CodeBlockNode] = None,
                              build_def_files: T.Optional[T.List[str]] = None,
                              is_translated: bool = False) -> SubprojectHolder:
@@ -914,7 +928,7 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         mlog.log()
 
-        if 'version' in kwargs:
+        if kwargs['version']:
             pv = subi.project_version
             wanted = kwargs['version']
             if pv == 'undefined' or not mesonlib.version_compare_many(pv, wanted)[0]:
@@ -932,19 +946,16 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.coredata.initialized_subprojects.add(subp_name)
         return self.subprojects[subp_name]
 
-    def _do_subproject_cmake(self, subp_name: str, subdir: str, subdir_abs: str, default_options, kwargs):
+    def _do_subproject_cmake(self, subp_name: str, subdir: str, subdir_abs: str,
+                             default_options: T.Dict[OptionKey, str],
+                             kwargs: kwargs.DoSubproject) -> SubprojectHolder:
         with mlog.nested(subp_name):
             new_build = self.build.copy()
             prefix = self.coredata.options[OptionKey('prefix')].value
 
             from ..modules.cmake import CMakeSubprojectOptions
-            options = kwargs.get('options', CMakeSubprojectOptions())
-            if not isinstance(options, CMakeSubprojectOptions):
-                raise InterpreterException('"options" kwarg must be CMakeSubprojectOptions'
-                                           ' object (created by cmake.subproject_options())')
-
-            cmake_options = mesonlib.stringlistify(kwargs.get('cmake_options', []))
-            cmake_options += options.cmake_options
+            options = kwargs['options'] or CMakeSubprojectOptions()
+            cmake_options = kwargs['cmake_options'] + options.cmake_options
             cm_int = CMakeInterpreter(new_build, Path(subdir), Path(subdir_abs), Path(prefix), new_build.environment, self.backend)
             cm_int.initialise(cmake_options)
             cm_int.analyse()
@@ -1501,7 +1512,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             progobj.was_returned_by_find_program = True
         return progobj
 
-    def program_lookup(self, args, for_machine, required, search_dirs, extra_info):
+    def program_lookup(self, args, for_machine, required: bool, search_dirs, extra_info):
         progobj = self.program_from_overrides(args, extra_info)
         if progobj:
             return progobj
@@ -1524,10 +1535,16 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         return progobj
 
-    def find_program_fallback(self, fallback, args, required, extra_info):
+    def find_program_fallback(self, fallback: str, args, required: bool, extra_info):
         mlog.log('Fallback to subproject', mlog.bold(fallback), 'which provides program',
                  mlog.bold(' '.join(args)))
-        sp_kwargs = {'required': required}
+        sp_kwargs: kwargs.DoSubproject = {
+            'required': required,
+            'default_options': [],
+            'version': [],
+            'cmake_options': [],
+            'options': None,
+        }
         self.do_subproject(fallback, 'meson', sp_kwargs)
         return self.program_from_overrides(args, extra_info)
 

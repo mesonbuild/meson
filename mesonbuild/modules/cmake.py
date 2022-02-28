@@ -425,11 +425,18 @@ class CmakeModule(ExtensionModule):
             deprecated_message='Use options instead',
         ),
     )
-    def subproject(self, state: ModuleState, args: T.Tuple[str], kwargs: Subproject) -> T.Union[SubprojectHolder, CMakeSubproject]:
-        if kwargs['cmake_options'] and kwargs['options'] is not None:
+    def subproject(self, state: ModuleState, args: T.Tuple[str], kwargs_: Subproject) -> T.Union[SubprojectHolder, CMakeSubproject]:
+        if kwargs_['cmake_options'] and kwargs_['options'] is not None:
             raise InterpreterException('"options" cannot be used together with "cmake_options"')
         dirname = args[0]
-        subp = self.interpreter.do_subproject(dirname, 'cmake', kwargs)
+        kw: kwargs.DoSubproject = {
+            'required': kwargs_['required'],
+            'options': kwargs_['options'],
+            'cmake_options': kwargs_['cmake_options'],
+            'default_options': [],
+            'version': [],
+        }
+        subp = self.interpreter.do_subproject(dirname, 'cmake', kw)
         if not subp.found():
             return subp
         return CMakeSubproject(subp)
