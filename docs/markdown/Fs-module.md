@@ -215,3 +215,30 @@ fs.stem('foo/bar/baz.dll.a')  # baz.dll
    specified by `path` changes, this will trigger Meson to reconfigure the
    project. If the file specified by `path` is a `files()` object it
    cannot refer to a built file.
+
+
+### copyfile
+
+*Since 0.64.0*
+
+Copy a file from the source directory to the build directory at build time
+
+Has the following positional arguments:
+   - src `File | str`: the file to copy
+
+Has the following optional arguments:
+   - dest `str`: the name of the output file. If unset will be the basename of
+     the src argument
+
+Has the following keyword arguments:
+   - install `bool`: Whether to install the copied file, defaults to false
+   - install_dir `str`: Where to install the file to
+   - install_tag: `str`: the install tag to assign to this target
+   - install_mode `array[str | int]`: the mode to install the file with
+
+returns:
+   - a [[custom_target]] object
+
+```meson
+copy = fs.copyfile('input-file', 'output-file')
+```

@@ -12,24 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import typing as T
+from __future__ import annotations
+from pathlib import Path, PurePath, PureWindowsPath
 import hashlib
 import os
-from pathlib import Path, PurePath, PureWindowsPath
+import typing as T
 
+from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from .. import mlog
-from . import ExtensionModule, ModuleInfo
+from ..build import CustomTarget, InvalidArguments
+from ..interpreter.type_checking import INSTALL_KW, INSTALL_MODE_KW, INSTALL_TAG_KW, NoneType
+from ..interpreterbase import FeatureNew, KwargInfo, typed_kwargs, typed_pos_args, noKwargs
 from ..mesonlib import (
     File,
     MesonException,
+    has_path_sep,
     path_is_in_root,
 )
-from ..interpreterbase import FeatureNew, KwargInfo, typed_kwargs, typed_pos_args, noKwargs
 
 if T.TYPE_CHECKING:
     from . import ModuleState
     from ..interpreter import Interpreter
-    from ..mesonlib import FileOrString
+    from ..mesonlib import FileOrString, FileMode
 
     from typing_extensions import TypedDict
 
@@ -37,6 +41,15 @@ if T.TYPE_CHECKING:
         """Keyword Arguments for fs.read."""
 
         encoding: str
+
+    class CopyKw(TypedDict):
+
+        """Kwargs for fs.copy"""
+
+        install: bool
+        install_dir: T.Optional[str]
+        install_mode: FileMode
+        install_tag: T.Optional[str]
 
 
 class FSModule(ExtensionModule):
@@ -61,6 +74,7 @@ class FSModule(ExtensionModule):
             'name': self.name,
             'stem': self.stem,
             'read': self.read,
+            'copyfile': self.copyfile,
         })
 
     def _absolute_dir(self, state: 'ModuleState', arg: 'FileOrString') -> Path:
@@ -254,6 +268,47 @@ class FSModule(ExtensionModule):
         # fs.read_file('VERSION')` or `configure_file(...)`
         self.interpreter.add_build_def_file(path)
         return data
+
+    @FeatureNew('fs.copyfile', '0.64.0')
+    @typed_pos_args('fs.copyfile', (File, str), optargs=[str])
+    @typed_kwargs(
+        'fs.copyfile',
+        INSTALL_KW,
+        INSTALL_MODE_KW,
+        INSTALL_TAG_KW,
+        KwargInfo('install_dir', (str, NoneType)),
+    )
+    def copyfile(self, state: ModuleState, args: T.Tuple[FileOrString, T.Optional[str]],
+                 kwargs: CopyKw) -> ModuleReturnValue:
+        """Copy a file into the build directory at build time."""
+        if kwargs['install'] and not kwargs['install_dir']:
+            raise InvalidArguments('"install_dir" must be specified when "install" is true')
+
+        src = self.interpreter.source_strings_to_files([args[0]])[0]
+
+        # The input is allowed to have path separators, but the output may not,
+        # so use the basename for the default case
+        dest = args[1] if args[1] else os.path.basename(src.fname)
+        if has_path_sep(dest):
+            raise InvalidArguments('Destination path may not have path separators')
+
+        ct = CustomTarget(
+            dest,
+            state.subdir,
+            state.subproject,
+            state.environment,
+            state.environment.get_build_command() + ['--internal', 'copy', '@INPUT@', '@OUTPUT@'],
+            [src],
+            [dest],
+            build_by_default=True,
+            install=kwargs['install'],
+            install_dir=kwargs['install_dir'],
+            install_mode=kwargs['install_mode'],
+            install_tag=kwargs['install_tag'],
+            backend=state.backend,
+        )
+
+        return ModuleReturnValue(ct, [ct])
 
 
 def initialize(*args: T.Any, **kwargs: T.Any) -> FSModule:
