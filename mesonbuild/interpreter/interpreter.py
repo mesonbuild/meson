@@ -93,6 +93,8 @@ import importlib
 if T.TYPE_CHECKING:
     import argparse
 
+    from typing_extensions import Literal
+
     from . import kwargs
     from ..programs import OverrideProgram
 
@@ -807,7 +809,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.coredata.initialized_subprojects.add(subp_name)
         return sub
 
-    def do_subproject(self, subp_name: str, method: str, kwargs):
+    def do_subproject(self, subp_name: str, method: Literal['meson', 'cmake'], kwargs) -> SubprojectHolder:
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
             mlog.log('Subproject', mlog.bold(subp_name), ':', 'skipped: feature', mlog.bold(feature), 'disabled')
