@@ -260,7 +260,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 subproject: str = '',
                 subdir: str = '',
                 subproject_dir: str = 'subprojects',
-                default_project_options: T.Optional[T.Dict[str, str]] = None,
+                default_project_options: T.Optional[T.Dict[OptionKey, str]] = None,
                 mock: bool = False,
                 ast: T.Optional[mparser.CodeBlockNode] = None,
                 is_translated: bool = False,
