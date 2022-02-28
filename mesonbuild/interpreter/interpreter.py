@@ -289,7 +289,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.project_args_frozen = False
         self.global_args_frozen = False  # implies self.project_args_frozen
         self.subprojects: T.Dict[str, SubprojectHolder] = {}
-        self.subproject_stack = []
+        self.subproject_stack: T.List[str] = []
         self.configure_file_outputs = {}
         # Passed from the outside, only used in subprojects.
         if default_project_options:
