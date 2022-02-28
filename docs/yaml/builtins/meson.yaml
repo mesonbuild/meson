@@ -418,7 +418,7 @@ methods:
       to the list of environments that will be applied when using [`meson devenv`](Commands.md#devenv)
       command line.
 
-      This is useful for developpers who wish to use the project without
+      This is useful for developers who wish to use the project without
       installing it, it is often needed to set for example the path to plugins
       directory, etc. Alternatively, a list or dictionary can be passed as first
       argument.
