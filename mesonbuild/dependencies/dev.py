@@ -15,6 +15,8 @@
 # This file contains the detection logic for external dependencies useful for
 # development purposes, such as testing, debugging, etc..
 
+from __future__ import annotations
+
 import glob
 import os
 import re
@@ -38,6 +40,13 @@ from .pkgconfig import PkgConfigDependency
 if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
     from .. environment import Environment
+    from typing_extensions import TypedDict
+
+    class JNISystemDependencyKW(TypedDict):
+        modules: T.List[str]
+        # FIXME: When dependency() moves to typed Kwargs, this should inherit
+        # from its TypedDict type.
+        version: T.Optional[str]
 
 
 def get_shared_library_suffix(environment: 'Environment', for_machine: MachineChoice) -> str:
@@ -500,8 +509,8 @@ class ZlibSystemDependency(SystemDependency):
 
 
 class JNISystemDependency(SystemDependency):
-    def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
-        super().__init__('jni', environment, kwargs)
+    def __init__(self, environment: 'Environment', kwargs: JNISystemDependencyKW):
+        super().__init__('jni', environment, T.cast(T.Dict[str, T.Any], kwargs))
 
         self.feature_since = ('0.62.0', '')
 
@@ -511,6 +520,14 @@ class JNISystemDependency(SystemDependency):
             detect_compiler_for(environment, 'java', self.for_machine)
         self.javac = environment.coredata.compilers[self.for_machine]['java']
         self.version = self.javac.version
+
+        modules: T.List[str] = mesonlib.listify(kwargs.get('modules', []))
+        for module in modules:
+            if module not in {'jvm', 'awt'}:
+                log = mlog.error if self.required else mlog.debug
+                log(f'Unknown JNI module ({module})')
+                self.is_found = False
+                return
 
         if 'version' in kwargs and not version_compare(self.version, kwargs['version']):
             mlog.error(f'Incorrect JDK version found ({self.version}), wanted {kwargs["version"]}')
@@ -530,6 +547,44 @@ class JNISystemDependency(SystemDependency):
         java_home_include = self.java_home / 'include'
         self.compile_args.append(f'-I{java_home_include}')
         self.compile_args.append(f'-I{java_home_include / platform_include_dir}')
+
+        if modules:
+            if m.is_windows():
+                java_home_lib = self.java_home / 'lib'
+                java_home_lib_server = java_home_lib
+            else:
+                if version_compare(self.version, '<= 1.8.0'):
+                    # The JDK and Meson have a disagreement here, so translate it
+                    # over. In the event more translation needs to be done, add to
+                    # following dict.
+                    def cpu_translate(cpu: str) -> str:
+                        java_cpus = {
+                            'x86_64': 'amd64',
+                        }
+
+                        return java_cpus.get(cpu, cpu)
+
+                    java_home_lib = self.java_home / 'jre' / 'lib' / cpu_translate(m.cpu_family)
+                    java_home_lib_server = java_home_lib / "server"
+                else:
+                    java_home_lib = self.java_home / 'lib'
+                    java_home_lib_server = java_home_lib / "server"
+
+            if 'jvm' in modules:
+                jvm = self.clib_compiler.find_library('jvm', environment, extra_dirs=[str(java_home_lib_server)])
+                if jvm is None:
+                    mlog.debug('jvm library not found.')
+                    self.is_found = False
+                else:
+                    self.link_args.extend(jvm)
+            if 'awt' in modules:
+                jawt = self.clib_compiler.find_library('jawt', environment, extra_dirs=[str(java_home_lib)])
+                if jawt is None:
+                    mlog.debug('jawt library not found.')
+                    self.is_found = False
+                else:
+                    self.link_args.extend(jawt)
+
         self.is_found = True
 
     @staticmethod
@@ -553,7 +608,7 @@ class JNISystemDependency(SystemDependency):
 
 
 class JDKSystemDependency(JNISystemDependency):
-    def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
+    def __init__(self, environment: 'Environment', kwargs: JNISystemDependencyKW):
         super().__init__(environment, kwargs)
 
         self.feature_since = ('0.59.0', '')

@@ -13,7 +13,7 @@ javamod = import('java')
 
 java = find_program('java')
 
-jni_dep = dependency('jni', version : '>=1.8')
+jni_dep = dependency('jni', version : '>=1.8', modules: ['jvm', 'awt'])
 
 # generate native headers
 subdir('src/com/mesonbuild')
