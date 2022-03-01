@@ -2,8 +2,8 @@
 
 int main() {
 #ifdef XDG_SHELL_CLIENT_PROTOCOL_H
-    return 0;
+  return 0;
 #else
-    return 1;
+  return 1;
 #endif
 }

@@ -39,15 +39,18 @@ class WaylandModule(ExtensionModule):
     @typed_pos_args('wayland.scan_xml', varargs=(str, File), min_varargs=1)
     @typed_kwargs(
         'wayland.scan_xml',
-        KwargInfo('side', str, default='client', validator=in_set_validator({'client', 'server'})),
-        KwargInfo('scope', str, default='private', validator=in_set_validator({'private', 'public'})),
+        KwargInfo('public', bool, default=False),
+        KwargInfo('client', bool, default=True),
+        KwargInfo('server', bool, default=False),
     )
     def scan_xml(self, state, args, kwargs):
         if self.scanner_bin is None:
             self.scanner_bin = state.find_program('wayland-scanner', for_machine=MachineChoice.BUILD)
 
-        scope = kwargs['scope']
-        side = kwargs['side']
+        scope = 'public' if kwargs['public'] else 'private'
+        sides = [i for i in ['client', 'server'] if kwargs[i]]
+        if not sides:
+            raise MesonException('At least one of client or server keyword argument must be set to true.')
 
         xml_files = self.interpreter.source_strings_to_files(args[0])
         targets = []
@@ -65,16 +68,17 @@ class WaylandModule(ExtensionModule):
             )
             targets.append(code)
 
-            header = CustomTarget(
-                f'{name}-{side}-protocol',
-                state.subdir,
-                state.subproject,
-                [self.scanner_bin, f'{side}-header', '@INPUT@', '@OUTPUT@'],
-                [xml_file],
-                [f'{name}-{side}-protocol.h'],
-                backend=state.backend,
-            )
-            targets.append(header)
+            for side in sides:
+                header = CustomTarget(
+                    f'{name}-{side}-protocol',
+                    state.subdir,
+                    state.subproject,
+                    [self.scanner_bin, f'{side}-header', '@INPUT@', '@OUTPUT@'],
+                    [xml_file],
+                    [f'{name}-{side}-protocol.h'],
+                    backend=state.backend,
+                )
+                targets.append(header)
 
         return ModuleReturnValue(targets, targets)
 
