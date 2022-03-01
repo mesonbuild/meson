@@ -1393,7 +1393,8 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         return success
 
-    def program_from_file_for(self, for_machine, prognames):
+    def program_from_file_for(self, for_machine: MachineChoice, prognames: T.List[mesonlib.FileOrString]
+                              ) -> T.Optional[ExternalProgram]:
         for p in prognames:
             if isinstance(p, mesonlib.File):
                 continue # Always points to a local (i.e. self generated) file.
@@ -1404,7 +1405,8 @@ external dependencies (including libraries) must go to "dependencies".''')
                 return prog
         return None
 
-    def program_from_system(self, args, search_dirs, extra_info):
+    def program_from_system(self, args: T.List[mesonlib.FileOrString], search_dirs: T.List[str],
+                            extra_info: T.List[mlog.TV_Loggable]) -> T.Optional[ExternalProgram]:
         # Search for scripts relative to current subdir.
         # Do not cache found programs because find_program('foobar')
         # might give different results when run from different source dirs.
@@ -1430,9 +1432,11 @@ external dependencies (including libraries) must go to "dependencies".''')
             if extprog.found():
                 extra_info.append(f"({' '.join(extprog.get_command())})")
                 return extprog
+        return None
 
-    def program_from_overrides(self, command_names: T.List[str], extra_info: T.List['mlog.TV_Loggable']) -> \
-            T.Optional[T.Union[ExternalProgram, 'OverrideProgram', 'build.Executable']]:
+    def program_from_overrides(self, command_names: T.List[mesonlib.FileOrString],
+                               extra_info: T.List['mlog.TV_Loggable']
+                               ) -> T.Optional[T.Union[ExternalProgram, OverrideProgram, build.Executable]]:
         for name in command_names:
             if not isinstance(name, str):
                 continue
@@ -1442,7 +1446,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 return exe
         return None
 
-    def store_name_lookups(self, command_names):
+    def store_name_lookups(self, command_names: T.List[mesonlib.FileOrString]) -> None:
         for name in command_names:
             if isinstance(name, str):
                 self.build.searched_programs.add(name)
@@ -1470,7 +1474,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                           ) -> T.Union['ExternalProgram', 'build.Executable', 'OverrideProgram']:
         args = mesonlib.listify(args)
 
-        extra_info = []
+        extra_info: T.List[mlog.TV_Loggable] = []
         progobj = self.program_lookup(args, for_machine, required, search_dirs, extra_info)
         if progobj is None:
             progobj = self.notfound_program(args)
@@ -1487,14 +1491,15 @@ external dependencies (including libraries) must go to "dependencies".''')
             if version_func:
                 version = version_func(progobj)
             elif isinstance(progobj, build.Executable):
-                interp = self
                 if progobj.subproject:
                     interp = self.subprojects[progobj.subproject].held_object
-                    assert isinstance(interp, Interpreter)
+                else:
+                    interp = self
+                assert isinstance(interp, Interpreter)
                 version = interp.project_version
             else:
                 version = progobj.get_version(self)
-            is_found, not_found, found = mesonlib.version_compare_many(version, wanted)
+            is_found, not_found, _ = mesonlib.version_compare_many(version, wanted)
             if not is_found:
                 mlog.log('Program', mlog.bold(progobj.name), 'found:', mlog.red('NO'),
                          'found', mlog.normal_cyan(version), 'but need:',
@@ -1513,7 +1518,9 @@ external dependencies (including libraries) must go to "dependencies".''')
             progobj.was_returned_by_find_program = True
         return progobj
 
-    def program_lookup(self, args, for_machine, required: bool, search_dirs, extra_info):
+    def program_lookup(self, args: T.List[mesonlib.FileOrString], for_machine: MachineChoice,
+                       required: bool, search_dirs: T.List[str], extra_info: T.List[mlog.TV_Loggable]
+                       ) -> T.Optional[T.Union[ExternalProgram, build.Executable, OverrideProgram]]:
         progobj = self.program_from_overrides(args, extra_info)
         if progobj:
             return progobj
@@ -1536,7 +1543,9 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         return progobj
 
-    def find_program_fallback(self, fallback: str, args, required: bool, extra_info):
+    def find_program_fallback(self, fallback: str, args: T.List[mesonlib.FileOrString],
+                              required: bool, extra_info: T.List[mlog.TV_Loggable]
+                              ) -> T.Optional[T.Union[ExternalProgram, build.Executable, OverrideProgram]]:
         mlog.log('Fallback to subproject', mlog.bold(fallback), 'which provides program',
                  mlog.bold(' '.join(args)))
         sp_kwargs: kwargs.DoSubproject = {
