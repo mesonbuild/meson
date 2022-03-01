@@ -981,7 +981,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 mlog.cmd_ci_include(meson_filename)
                 mlog.log()
 
-            result = self._do_subproject_meson(subp_name, subdir, default_options, kwargs, ast, cm_int.bs_files, is_translated=True)
+            result = self._do_subproject_meson(subp_name, subdir, default_options, kwargs, ast, [str(f) for f in cm_int.bs_files], is_translated=True)
             result.cm_interpreter = cm_int
 
         mlog.log()
