@@ -36,7 +36,7 @@ from .mesonlib import (
     extract_as_list, typeslistify, stringlistify, classify_unity_sources,
     get_filenames_templates_dict, substitute_values, has_path_sep,
     OptionKey, PerMachineDefaultable,
-    MesonBugException,
+    MesonBugException
 )
 from .compilers import (
     Compiler, is_object, clink_langs, sort_clink, lang_suffixes,
@@ -122,7 +122,7 @@ known_exe_kwargs = known_build_target_kwargs | {'implib', 'export_dynamic', 'pie
 known_shlib_kwargs = known_build_target_kwargs | {'version', 'soversion', 'vs_module_defs', 'darwin_versions'}
 known_shmod_kwargs = known_build_target_kwargs | {'vs_module_defs'}
 known_stlib_kwargs = known_build_target_kwargs | {'pic', 'prelink'}
-known_jar_kwargs = known_exe_kwargs | {'main_class'}
+known_jar_kwargs = known_exe_kwargs | {'main_class', 'java_resources'}
 
 @lru_cache(maxsize=None)
 def get_target_macos_dylib_install_name(ld) -> str:
@@ -2712,6 +2712,7 @@ class Jar(BuildTarget):
         self.filename = self.name + '.jar'
         self.outputs = [self.filename]
         self.java_args = kwargs.get('java_args', [])
+        self.java_resources: T.Optional[StructuredSources] = kwargs.get('java_resources', None)
 
     def get_main_class(self):
         return self.main_class
@@ -2721,6 +2722,9 @@ class Jar(BuildTarget):
 
     def get_java_args(self):
         return self.java_args
+
+    def get_java_resources(self) -> T.Optional[StructuredSources]:
+        return self.java_resources
 
     def validate_install(self, environment):
         # All jar targets are installable.
