@@ -26,10 +26,12 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         self.environment = interpreter.environment
         self.wrap_resolver = interpreter.environment.wrap_resolver
         self.allow_fallback = allow_fallback
-        self.subproject_name = None
-        self.subproject_varname = None
+        self.subproject_name: T.Optional[str] = None
+        self.subproject_varname: T.Optional[str] = None
         self.subproject_kwargs = {'default_options': default_options or []}
         self.names: T.List[str] = []
+        self.forcefallback: bool = False
+        self.nofallback: bool = False
         for name in names:
             if not name:
                 raise InterpreterException('dependency_fallbacks empty name \'\' is not allowed')
@@ -39,6 +41,7 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
             if name in self.names:
                 raise InterpreterException('dependency_fallbacks name {name!r} is duplicated')
             self.names.append(name)
+        self._display_name = self.names[0] if self.names else '(anonymous)'
 
     def set_fallback(self, fbinfo: T.Optional[T.Union[T.List[str], str]]) -> None:
         # Legacy: This converts dependency()'s fallback kwargs.
@@ -247,7 +250,7 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
             return None
         return var_dep
 
-    def _verify_fallback_consistency(self, cached_dep: Dependency):
+    def _verify_fallback_consistency(self, cached_dep: Dependency) -> None:
         subp_name = self.subproject_name
         varname = self.subproject_varname
         subproject = self._get_subproject(subp_name)
@@ -273,12 +276,10 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         return NotFoundDependency(self.names[0] if self.names else '', self.environment)
 
     @staticmethod
-    def _check_version(wanted: T.Optional[str], found: str) -> bool:
+    def _check_version(wanted: T.List[str], found: str) -> bool:
         if not wanted:
             return True
-        if found == 'undefined' or not version_compare_many(found, wanted)[0]:
-            return False
-        return True
+        return not (found == 'undefined' or not version_compare_many(found, wanted)[0])
 
     def _get_candidates(self) -> T.List[T.Tuple[T.Callable[[TYPE_nkwargs, TYPE_nvar, TYPE_nkwargs], T.Optional[Dependency]], TYPE_nvar, TYPE_nkwargs]]:
         candidates = []
@@ -298,7 +299,6 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         return candidates
 
     def lookup(self, kwargs: TYPE_nkwargs, force_fallback: bool = False) -> Dependency:
-        self._display_name = self.names[0] if self.names else '(anonymous)'
         mods = extract_as_list(kwargs, 'modules')
         if mods:
             self._display_name += ' (modules: {})'.format(', '.join(str(i) for i in mods))
@@ -310,7 +310,9 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
 
         # Check if usage of the subproject fallback is forced
         wrap_mode = self.coredata.get_option(OptionKey('wrap_mode'))
+        assert isinstance(wrap_mode, WrapMode), 'for mypy'
         force_fallback_for = self.coredata.get_option(OptionKey('force_fallback_for'))
+        assert isinstance(force_fallback_for, list), 'for mypy'
         self.nofallback = wrap_mode == WrapMode.nofallback
         self.forcefallback = (force_fallback or
                               wrap_mode == WrapMode.forcefallback or
