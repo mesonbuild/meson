@@ -816,7 +816,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         return self.do_subproject(args[0], 'meson', kw)
 
     def disabled_subproject(self, subp_name: str, disabled_feature: T.Optional[str] = None,
-                            exception: T.Optional[mesonlib.MesonException] = None) -> SubprojectHolder:
+                            exception: T.Optional[Exception] = None) -> SubprojectHolder:
         sub = SubprojectHolder(NullSubprojectInterpreter(), os.path.join(self.subproject_dir, subp_name),
                                disabled_feature=disabled_feature, exception=exception)
         self.subprojects[subp_name] = sub

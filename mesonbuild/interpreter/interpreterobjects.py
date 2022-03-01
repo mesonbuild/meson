@@ -24,7 +24,7 @@ from ..interpreterbase import (
 from ..interpreter.type_checking import NoneType, ENV_SEPARATOR_KW
 from ..dependencies import Dependency, ExternalLibrary, InternalDependency
 from ..programs import ExternalProgram
-from ..mesonlib import HoldableObject, MesonException, OptionKey, listify, Popen_safe
+from ..mesonlib import HoldableObject, OptionKey, listify, Popen_safe
 
 import typing as T
 
@@ -673,7 +673,7 @@ class SubprojectHolder(MesonInterpreterObject):
                  subdir: str,
                  warnings: int = 0,
                  disabled_feature: T.Optional[str] = None,
-                 exception: T.Optional[MesonException] = None) -> None:
+                 exception: T.Optional[Exception] = None) -> None:
         super().__init__()
         self.held_object = subinterpreter
         self.warnings = warnings
