@@ -37,11 +37,14 @@ varargs:
 kwargs:
   install_dir:
     type: str
-    description: Where to install to
+    description: Where to install to.
 
   subdir:
     type: str
-    description: Use the `subdir` in the `install_dir`
+    description: |
+      Install to the `subdir` subdirectory of the default includedir.
+
+      Incompatible with the `install_dir` kwarg.
 
   install_mode:
     type: list[str | int]

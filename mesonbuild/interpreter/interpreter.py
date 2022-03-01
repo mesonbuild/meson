@@ -2004,8 +2004,11 @@ external dependencies (including libraries) must go to "dependencies".''')
                              kwargs: 'kwargs.FuncInstallHeaders') -> build.Headers:
         source_files = self.source_strings_to_files(args[0])
         install_subdir = kwargs['subdir']
-        if install_subdir is not None and os.path.isabs(install_subdir):
-            mlog.deprecation('Subdir keyword must not be an absolute path. This will be a hard error in the next release.')
+        if install_subdir is not None:
+            if kwargs['install_dir'] is not None:
+                raise InterpreterException('install_headers: cannot specify both "install_dir" and "subdir". Use only "install_dir".')
+            if os.path.isabs(install_subdir):
+                mlog.deprecation('Subdir keyword must not be an absolute path. This will be a hard error in the next release.')
 
         h = build.Headers(source_files, install_subdir, kwargs['install_dir'],
                           kwargs['install_mode'], self.subproject)
