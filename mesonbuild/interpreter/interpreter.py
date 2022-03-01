@@ -33,7 +33,7 @@ from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCod
 from ..interpreterbase import Disabler, disablerIfNotFound
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs, FeatureDeprecatedKwargs
 from ..interpreterbase import ObjectHolder
-from ..interpreterbase.baseobjects import TYPE_var, TYPE_kwargs
+from ..interpreterbase.baseobjects import InterpreterObject, TYPE_var, TYPE_kwargs
 from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule
 from ..cmake import CMakeInterpreter
 from ..backend.backends import Backend, ExecutableSerialisation
@@ -117,7 +117,7 @@ def _project_version_validator(value: T.Union[T.List, str, mesonlib.File, None])
     return None
 
 
-def stringifyUserArguments(args, quote=False):
+def stringifyUserArguments(args: T.List[T.Any], quote: bool = False) -> str:
     if isinstance(args, list):
         return '[%s]' % ', '.join([stringifyUserArguments(x, True) for x in args])
     elif isinstance(args, dict):
@@ -273,7 +273,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.coredata = self.environment.get_coredata()
         self.backend = backend
         self.summary: T.Dict[str, 'Summary'] = {}
-        self.modules = {}
+        self.modules: T.Dict[str, NewExtensionModule] = {}
         # Subproject directory is usually the name of the subproject, but can
         # be different for dependencies provided by wrap files.
         self.subproject_directory_name = subdir.split(os.path.sep)[-1]
@@ -292,13 +292,13 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.global_args_frozen = False  # implies self.project_args_frozen
         self.subprojects: T.Dict[str, SubprojectHolder] = {}
         self.subproject_stack: T.List[str] = []
-        self.configure_file_outputs = {}
+        self.configure_file_outputs: T.Dict[str, int] = {}
         # Passed from the outside, only used in subprojects.
         if default_project_options:
             self.default_project_options = default_project_options.copy()
         else:
             self.default_project_options = {}
-        self.project_default_options = {}
+        self.project_default_options: T.Dict[OptionKey, str] = {}
         self.build_func_dict()
         self.build_holder_map()
         self.user_defined_options = user_defined_options
@@ -319,7 +319,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def __getnewargs_ex__(self) -> T.Tuple[T.Tuple[object], T.Dict[str, object]]:
         raise MesonBugException('This class is unpicklable')
 
-    def _redetect_machines(self):
+    def _redetect_machines(self) -> None:
         # Re-initialize machine descriptions. We can do a better job now because we
         # have the compilers needed to gain more knowledge, so wipe out old
         # inference and start over.
@@ -337,7 +337,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.builtin['target_machine'] = \
             OBJ.MachineHolder(self.build.environment.machines.target, self)
 
-    def build_func_dict(self):
+    def build_func_dict(self) -> None:
         self.funcs.update({'add_global_arguments': self.func_add_global_arguments,
                            'add_global_link_arguments': self.func_add_global_link_arguments,
                            'add_languages': self.func_add_languages,
@@ -519,32 +519,32 @@ class Interpreter(InterpreterBase, HoldableObject):
             srcdir = Path(self.environment.get_source_dir())
             builddir = Path(self.environment.get_build_dir())
             try:
-                f = Path(f).resolve()
+                f_ = Path(f).resolve()
             except OSError:
-                f = Path(f)
-                s = f.stat()
+                f_ = Path(f)
+                s = f_.stat()
                 if (hasattr(s, 'st_file_attributes') and
                         s.st_file_attributes & stat.FILE_ATTRIBUTE_REPARSE_POINT != 0 and
                         s.st_reparse_tag == stat.IO_REPARSE_TAG_APPEXECLINK):
                     # This is a Windows Store link which we can't
                     # resolve, so just do our best otherwise.
-                    f = f.parent.resolve() / f.name
+                    f_ = f_.parent.resolve() / f_.name
                 else:
                     raise
-            if builddir in f.parents:
+            if builddir in f_.parents:
                 return
-            if srcdir in f.parents:
-                f = f.relative_to(srcdir)
-            f = str(f)
+            if srcdir in f_.parents:
+                f_ = f_.relative_to(srcdir)
+            f = str(f_)
         else:
             return
         if f not in self.build_def_files:
             self.build_def_files.add(f)
 
-    def get_variables(self):
+    def get_variables(self) -> T.Dict[str, InterpreterObject]:
         return self.variables
 
-    def check_stdlibs(self):
+    def check_stdlibs(self) -> None:
         machine_choices = [MachineChoice.HOST]
         if self.coredata.is_cross_build():
             machine_choices.append(MachineChoice.BUILD)
@@ -565,7 +565,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 dep = df.lookup(kwargs, force_fallback=True)
                 self.build.stdlibs[for_machine][l] = dep
 
-    def _import_module(self, modname: str, required: bool) -> T.Union[ExtensionModule, NewExtensionModule, NotFoundExtensionModule]:
+    def _import_module(self, modname: str, required: bool) -> NewExtensionModule:
         if modname in self.modules:
             return self.modules[modname]
         try:
@@ -987,7 +987,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         mlog.log()
         return result
 
-    def get_option_internal(self, optname: str):
+    def get_option_internal(self, optname: str) -> coredata.UserOption:
         key = OptionKey.from_string(optname).evolve(subproject=self.subproject)
 
         if not key.is_project():
@@ -996,6 +996,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 if v is None or v.yielding:
                     v = opts.get(key.as_root())
                 if v is not None:
+                    assert isinstance(v, coredata.UserOption), 'for mypy'
                     return v
 
         try:
@@ -1051,7 +1052,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                         f'"configuration_data": initial value dictionary key "{k!r}"" must be "str | int | bool", not "{v!r}"')
         return build.ConfigurationData(initial_values)
 
-    def set_backend(self):
+    def set_backend(self) -> None:
         # The backend is already set when parsing subprojects
         if self.backend is not None:
             return
@@ -1340,7 +1341,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             return False
         return should
 
-    def add_languages_for(self, args: T.List[str], required: bool, for_machine: MachineChoice) -> None:
+    def add_languages_for(self, args: T.List[str], required: bool, for_machine: MachineChoice) -> bool:
         args = [a.lower() for a in args]
         langs = set(self.coredata.compilers[for_machine].keys())
         langs.update(args)
