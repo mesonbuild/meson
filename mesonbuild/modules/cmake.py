@@ -403,8 +403,7 @@ class CmakeModule(ExtensionModule):
         conf.used = True
 
         conffile = os.path.normpath(inputfile.relative_name())
-        if conffile not in self.interpreter.build_def_files:
-            self.interpreter.build_def_files.append(conffile)
+        self.interpreter.build_def_files.add(conffile)
 
         res = build.Data([mesonlib.File(True, ofile_path, ofile_fname)], install_dir, install_dir, None, state.subproject)
         self.interpreter.build.data.append(res)

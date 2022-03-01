@@ -63,8 +63,8 @@ class KeyvalModule(ExtensionModule):
         else:
             s = os.path.join(self.interpreter.environment.source_dir, s)
 
-        if s not in self.interpreter.build_def_files and not is_built:
-            self.interpreter.build_def_files.append(s)
+        if not is_built:
+            self.interpreter.build_def_files.add(s)
 
         return self._load_file(s)
 
