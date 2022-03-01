@@ -14,3 +14,7 @@ kwargs:
   main_class:
     type: str
     description: Main class for running the built jar
+  java_resources:
+    type: structured_src
+    since: 0.62.0
+    description: Resources to be added to the jar
