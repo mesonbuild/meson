@@ -286,7 +286,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
         # see the comment in the "-L" section
         link_expect_arg = False
         link_flags_with_arg = [
-            '-rpath', '-soname', '-compatibility_version', '-current_version',
+            '-rpath', '-rpath-link', '-soname', '-compatibility_version', '-current_version',
         ]
         for arg in args:
             # Translate OS specific arguments first.
