@@ -121,7 +121,7 @@ class PackageDefinition:
     def parse_wrap(self) -> None:
         try:
             config = configparser.ConfigParser(interpolation=None)
-            config.read(self.filename)
+            config.read(self.filename, encoding='utf-8')
         except configparser.Error as e:
             raise WrapException(f'Failed to parse {self.basename}: {e!s}')
         self.parse_wrap_section(config)
