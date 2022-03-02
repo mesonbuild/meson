@@ -157,6 +157,10 @@ class IntelMPIConfigToolDependency(_MPIConfigToolDependency):
     """Wrapper around Intel's mpiicc and friends."""
 
     version_arg = '-v'  # --version is not the same as -v
+    # ifort.cfg with: -Xlinker -rpath=... breaks -v (as ifort -v return 1 as exitcode)
+    os.environ["ICCCFG"] = "/dev/null"
+    os.environ["ICPCCFG"] = "/dev/null"
+    os.environ["IFORTCFG"] = "/dev/null"
 
     def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
                  language: T.Optional[str] = None):
