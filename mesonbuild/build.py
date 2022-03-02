@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from __future__ import annotations
-from collections import OrderedDict
+from collections import defaultdict, OrderedDict
 from dataclasses import dataclass, field
 from functools import lru_cache
 import copy
@@ -710,7 +710,7 @@ class BuildTarget(Target):
         self.extra_args: T.Dict[str, T.List['FileOrString']] = {}
         self.sources: T.List[File] = []
         self.generated: T.List['GeneratedTypes'] = []
-        self.d_features = {}
+        self.d_features = defaultdict(list)
         self.pic = False
         self.pie = False
         # Track build_rpath entries so we can remove them at install time
@@ -1092,7 +1092,7 @@ class BuildTarget(Target):
 
         dlist = stringlistify(kwargs.get('d_args', []))
         self.add_compiler_args('d', dlist)
-        dfeatures = dict()
+        dfeatures = defaultdict(list)
         dfeature_unittest = kwargs.get('d_unittest', False)
         if dfeature_unittest:
             dfeatures['unittest'] = dfeature_unittest
@@ -1301,6 +1301,13 @@ class BuildTarget(Target):
         for dep in deps:
             if dep in self.added_deps:
                 continue
+
+            dep_d_features = dep.d_features
+
+            for feature in ('versions', 'import_dirs'):
+                if feature in dep_d_features:
+                    self.d_features[feature].extend(dep_d_features[feature])
+
             if isinstance(dep, dependencies.InternalDependency):
                 # Those parts that are internal.
                 self.process_sourcelist(dep.sources)
@@ -1315,7 +1322,7 @@ class BuildTarget(Target):
                                                               [],
                                                               dep.get_compile_args(),
                                                               dep.get_link_args(),
-                                                              [], [], [], [], {})
+                                                              [], [], [], [], {}, [], [])
                     self.external_deps.append(extpart)
                 # Deps of deps.
                 self.add_deps(dep.ext_deps)

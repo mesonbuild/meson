@@ -639,9 +639,10 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     @FeatureNewKwargs('declare_dependency', '0.46.0', ['link_whole'])
     @FeatureNewKwargs('declare_dependency', '0.54.0', ['variables'])
+    @FeatureNewKwargs('declare_dependency', '0.62.0', ['d_module_versions', 'd_import_dirs'])
     @permittedKwargs({'include_directories', 'link_with', 'sources', 'dependencies',
                       'compile_args', 'link_args', 'link_whole', 'version',
-                      'variables'})
+                      'variables', 'd_module_versions', 'd_import_dirs'})
     @noPosargs
     def func_declare_dependency(self, node, args, kwargs):
         version = kwargs.get('version', self.project_version)
@@ -656,6 +657,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         compile_args = mesonlib.stringlistify(kwargs.get('compile_args', []))
         link_args = mesonlib.stringlistify(kwargs.get('link_args', []))
         variables = self.extract_variables(kwargs, list_new=True)
+        d_module_versions = extract_as_list(kwargs, 'd_module_versions')
+        d_import_dirs = self.extract_incdirs(kwargs, 'd_import_dirs')
         final_deps = []
         for d in deps:
             if not isinstance(d, (dependencies.Dependency, dependencies.ExternalLibrary, dependencies.InternalDependency)):
@@ -667,7 +670,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 external dependencies (including libraries) must go to "dependencies".''')
         dep = dependencies.InternalDependency(version, incs, compile_args,
                                               link_args, libs, libs_whole, sources, final_deps,
-                                              variables)
+                                              variables, d_module_versions, d_import_dirs)
         return dep
 
     @typed_pos_args('assert', bool, optargs=[str])
@@ -2407,8 +2410,8 @@ external dependencies (including libraries) must go to "dependencies".''')
                                               install_tag=install_tag, data_type='configure'))
         return mesonlib.File.from_built_file(self.subdir, output)
 
-    def extract_incdirs(self, kwargs):
-        prospectives = extract_as_list(kwargs, 'include_directories')
+    def extract_incdirs(self, kwargs, key: str = 'include_directories'):
+        prospectives = extract_as_list(kwargs, key)
         result = []
         for p in prospectives:
             if isinstance(p, build.IncludeDirs):
