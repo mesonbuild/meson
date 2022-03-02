@@ -16,6 +16,7 @@
 # Custom logic for several other packages are in separate files.
 import copy
 import os
+import collections
 import itertools
 import typing as T
 from enum import Enum
@@ -93,6 +94,7 @@ class Dependency(HoldableObject):
         self.sources: T.List[T.Union['FileOrString', 'CustomTarget']] = []
         self.include_type = self._process_include_type_kw(kwargs)
         self.ext_deps: T.List[Dependency] = []
+        self.d_features: T.DefaultDict[str, T.List[T.Any]] = collections.defaultdict(list)
         self.featurechecks: T.List['FeatureCheckBase'] = []
         self.feature_since: T.Optional[T.Tuple[str, str]] = None
 
@@ -227,7 +229,8 @@ class InternalDependency(Dependency):
                  libraries: T.List[T.Union['BuildTarget', 'CustomTarget']],
                  whole_libraries: T.List[T.Union['BuildTarget', 'CustomTarget']],
                  sources: T.Sequence[T.Union['FileOrString', 'CustomTarget']],
-                 ext_deps: T.List[Dependency], variables: T.Dict[str, T.Any]):
+                 ext_deps: T.List[Dependency], variables: T.Dict[str, T.Any],
+                 d_module_versions: T.List[str], d_import_dirs: T.List['IncludeDirs']):
         super().__init__(DependencyTypeName('internal'), {})
         self.version = version
         self.is_found = True
@@ -239,6 +242,10 @@ class InternalDependency(Dependency):
         self.sources = list(sources)
         self.ext_deps = ext_deps
         self.variables = variables
+        if d_module_versions:
+            self.d_features['versions'] = d_module_versions
+        if d_import_dirs:
+            self.d_features['import_dirs'] = d_import_dirs
 
     def __deepcopy__(self, memo: T.Dict[int, 'InternalDependency']) -> 'InternalDependency':
         result = self.__class__.__new__(self.__class__)
@@ -286,7 +293,7 @@ class InternalDependency(Dependency):
         return InternalDependency(
             self.version, final_includes, final_compile_args,
             final_link_args, final_libraries, final_whole_libraries,
-            final_sources, final_deps, self.variables)
+            final_sources, final_deps, self.variables, [], [])
 
     def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
                      configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
