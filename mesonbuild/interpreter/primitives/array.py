@@ -1,5 +1,6 @@
 # Copyright 2021 The Meson development team
 # SPDX-license-identifier: Apache-2.0
+from __future__ import annotations
 
 import typing as T
 
@@ -15,7 +16,6 @@ from ...interpreterbase import (
     FeatureNew,
 
     TYPE_var,
-    TYPE_kwargs,
 
     InvalidArguments,
 )
@@ -24,6 +24,7 @@ from ...mparser import PlusAssignmentNode
 if T.TYPE_CHECKING:
     # Object holders need the actual interpreter
     from ...interpreter import Interpreter
+    from ...interpreterbase import TYPE_kwargs
 
 class ArrayHolder(ObjectHolder[T.List[TYPE_var]], IterableObject):
     def __init__(self, obj: T.List[TYPE_var], interpreter: 'Interpreter') -> None:

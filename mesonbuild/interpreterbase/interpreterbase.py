@@ -14,6 +14,7 @@
 
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool.
+from __future__ import annotations
 
 from .. import mparser, mesonlib
 from .. import environment
@@ -26,10 +27,7 @@ from .baseobjects import (
     ObjectHolder,
     IterableObject,
 
-    SubProject,
-
     TYPE_var,
-    TYPE_kwargs,
 
     HoldableTypes,
 )
@@ -54,6 +52,7 @@ import typing as T
 import textwrap
 
 if T.TYPE_CHECKING:
+    from .baseobjects import SubProject, TYPE_kwargs
     from ..interpreter import Interpreter
 
 HolderMapType = T.Dict[

@@ -11,9 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
 from .base import ExternalDependency, DependencyException, sort_libpaths, DependencyTypeName
-from ..mesonlib import MachineChoice, OptionKey, OrderedSet, PerMachine, Popen_safe
+from ..mesonlib import OptionKey, OrderedSet, PerMachine, Popen_safe
 from ..programs import find_external_program, ExternalProgram
 from .. import mlog
 from pathlib import PurePath
@@ -24,6 +25,7 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
+    from ..mesonlib import MachineChoice
     from .._typing import ImmutableListProtocol
 
 class PkgConfigDependency(ExternalDependency):

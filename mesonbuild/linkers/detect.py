@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
 from ..mesonlib import (
-    EnvironmentException, MachineChoice, OptionKey,
+    EnvironmentException, OptionKey,
     Popen_safe, search_version
 )
 from .linkers import (
-    DynamicLinker,
     AppleDynamicLinker,
-    GnuDynamicLinker,
     GnuGoldDynamicLinker,
     GnuBFDDynamicLinker,
     LLVMDynamicLinker,
@@ -36,8 +36,10 @@ import shlex
 import typing as T
 
 if T.TYPE_CHECKING:
+    from .linkers import DynamicLinker, GnuDynamicLinker
     from ..environment import Environment
     from ..compilers import Compiler
+    from ..mesonlib import MachineChoice
 
 defaults: T.Dict[str, T.List[str]] = {}
 defaults['static_linker'] = ['ar', 'gar']

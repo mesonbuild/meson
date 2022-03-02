@@ -1,5 +1,6 @@
 # Copyright 2021 The Meson development team
 # SPDX-license-identifier: Apache-2.0
+from __future__ import annotations
 
 import typing as T
 
@@ -14,7 +15,6 @@ from ...interpreterbase import (
     typed_pos_args,
 
     TYPE_var,
-    TYPE_kwargs,
 
     InvalidArguments,
 )
@@ -22,6 +22,7 @@ from ...interpreterbase import (
 if T.TYPE_CHECKING:
     # Object holders need the actual interpreter
     from ...interpreter import Interpreter
+    from ...interpreterbase import TYPE_kwargs
 
 class DictHolder(ObjectHolder[T.Dict[str, TYPE_var]], IterableObject):
     def __init__(self, obj: T.Dict[str, TYPE_var], interpreter: 'Interpreter') -> None:

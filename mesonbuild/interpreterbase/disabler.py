@@ -11,9 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
-from .baseobjects import MesonInterpreterObject, TYPE_var, TYPE_kwargs
 import typing as T
+
+from .baseobjects import MesonInterpreterObject
+
+if T.TYPE_CHECKING:
+    from .baseobjects import TYPE_var, TYPE_kwargs
 
 class Disabler(MesonInterpreterObject):
     def method_call(self, method_name: str, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> TYPE_var:

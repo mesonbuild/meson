@@ -1,5 +1,6 @@
 # Copyright 2021 The Meson development team
 # SPDX-license-identifier: Apache-2.0
+from __future__ import annotations
 
 import re
 import os
@@ -17,9 +18,6 @@ from ...interpreterbase import (
     noPosargs,
     typed_pos_args,
 
-    TYPE_var,
-    TYPE_kwargs,
-
     InvalidArguments,
 )
 
@@ -27,6 +25,7 @@ from ...interpreterbase import (
 if T.TYPE_CHECKING:
     # Object holders need the actual interpreter
     from ...interpreter import Interpreter
+    from ...interpreterbase import TYPE_var, TYPE_kwargs
 
 class StringHolder(ObjectHolder[str]):
     def __init__(self, obj: str, interpreter: 'Interpreter') -> None:

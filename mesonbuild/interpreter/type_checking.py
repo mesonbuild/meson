@@ -11,7 +11,6 @@ from .. import compilers
 from ..build import (EnvironmentVariables, EnvInitValueType, CustomTarget, BuildTarget,
                      CustomTargetIndex, ExtractedObjects, GeneratedList, IncludeDirs)
 from ..coredata import UserFeatureOption
-from ..interpreterbase import TYPE_var
 from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo
 from ..mesonlib import File, FileMode, MachineChoice, listify, has_path_sep, OptionKey
 from ..programs import ExternalProgram
@@ -21,6 +20,8 @@ NoneType: T.Type[None] = type(None)
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal
+
+    from ..interpreterbase import TYPE_var
 
 def in_set_validator(choices: T.Set[str]) -> T.Callable[[str], T.Optional[str]]:
     """Check that the choice given was one of the given set."""
