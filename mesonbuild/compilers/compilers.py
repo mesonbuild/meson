@@ -45,7 +45,7 @@ if T.TYPE_CHECKING:
 about. To support a new compiler, add its information below.
 Also add corresponding autodetection code in environment.py."""
 
-header_suffixes = ('h', 'hh', 'hpp', 'hxx', 'H', 'ipp', 'moc', 'vapi', 'di')  # type: T.Tuple[str, ...]
+header_suffixes = ('h', 'hh', 'hpp', 'hxx', 'H', 'ipp', 'moc', 'vapi', 'di', 'pxd', 'pxi')  # type: T.Tuple[str, ...]
 obj_suffixes = ('o', 'obj', 'res')  # type: T.Tuple[str, ...]
 # To the emscripten compiler, .js files are libraries
 lib_suffixes = ('a', 'lib', 'dll', 'dll.a', 'dylib', 'so', 'js')  # type: T.Tuple[str, ...]
@@ -66,7 +66,7 @@ lang_suffixes = {
     'cs': ('cs',),
     'swift': ('swift',),
     'java': ('java',),
-    'cython': ('pyx', ),
+    'cython': ('pyx', 'pxd', 'pxi'),
 }  # type: T.Dict[str, T.Tuple[str, ...]]
 all_languages = lang_suffixes.keys()
 cpp_suffixes = lang_suffixes['cpp'] + ('h',)  # type: T.Tuple[str, ...]
