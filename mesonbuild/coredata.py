@@ -35,6 +35,7 @@ import typing as T
 if T.TYPE_CHECKING:
     from . import dependencies
     from .compilers.compilers import Compiler, CompileResult
+    from .dependencies.detect import TV_DepID
     from .environment import Environment
     from .mesonlib import OptionOverrideProxy, FileOrString
     from .cmake.traceparser import CMakeCacheEntry
@@ -281,9 +282,6 @@ class UserFeatureOption(UserComboOption):
 
     def is_auto(self) -> bool:
         return self.value == 'auto'
-
-if T.TYPE_CHECKING:
-    from .dependencies.detect import TV_DepID
 
 
 class DependencyCacheType(enum.Enum):

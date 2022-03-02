@@ -47,6 +47,7 @@ from functools import lru_cache
 from mesonbuild import envconfig
 
 if T.TYPE_CHECKING:
+    import argparse
     from configparser import ConfigParser
 
     from .wrap.wrap import Resolver
@@ -54,9 +55,6 @@ if T.TYPE_CHECKING:
 build_filename = 'meson.build'
 
 CompilersDict = T.Dict[str, Compiler]
-
-if T.TYPE_CHECKING:
-    import argparse
 
 
 def _get_env_var(for_machine: MachineChoice, is_cross: bool, var_name: str) -> T.Optional[str]:

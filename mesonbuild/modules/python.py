@@ -38,27 +38,51 @@ from ..mesonlib import MachineChoice
 from ..programs import ExternalProgram, NonExistingExternalProgram
 
 if T.TYPE_CHECKING:
+    from typing_extensions import TypedDict
+
     from . import ModuleState
     from ..build import SharedModule, Data
     from ..dependencies import ExternalDependency, Dependency
     from ..dependencies.factory import DependencyGenerator
     from ..environment import Environment
     from ..interpreter import Interpreter
+    from ..interpreter.kwargs import ExtractRequired
     from ..interpreterbase.interpreterbase import TYPE_var, TYPE_kwargs
     from ..backends import InstallData
 
-    from typing_extensions import TypedDict
+    class PythonIntrospectionDict(TypedDict):
+
+        install_paths: T.Dict[str, str]
+        is_pypy: bool
+        is_venv: bool
+        link_libpython: bool
+        sysconfig_paths: T.Dict[str, str]
+        paths: T.Dict[str, str]
+        platform: str
+        suffix: str
+        variables: T.Dict[str, str]
+        version: str
+
+    class PyInstallKw(TypedDict):
+
+        pure: bool
+        subdir: str
+        install_tag: T.Optional[str]
+
+    class FindInstallationKw(ExtractRequired):
+
+        disabler: bool
+        modules: T.List[str]
+
+    _Base = ExternalDependency
+else:
+    _Base = object
 
 
 mod_kwargs = {'subdir'}
 mod_kwargs.update(known_shmod_kwargs)
 mod_kwargs -= {'name_prefix', 'name_suffix'}
 
-
-if T.TYPE_CHECKING:
-    _Base = ExternalDependency
-else:
-    _Base = object
 
 class _PythonDependencyBase(_Base):
 
@@ -350,20 +374,6 @@ print(json.dumps({
 }))
 '''
 
-if T.TYPE_CHECKING:
-    class PythonIntrospectionDict(TypedDict):
-
-        install_paths: T.Dict[str, str]
-        is_pypy: bool
-        is_venv: bool
-        link_libpython: bool
-        sysconfig_paths: T.Dict[str, str]
-        paths: T.Dict[str, str]
-        platform: str
-        suffix: str
-        variables: T.Dict[str, str]
-        version: str
-
 
 class PythonExternalProgram(ExternalProgram):
     def __init__(self, name: str, command: T.Optional[T.List[str]] = None,
@@ -473,14 +483,6 @@ class PythonExternalProgram(ExternalProgram):
 
 _PURE_KW = KwargInfo('pure', bool, default=True)
 _SUBDIR_KW = KwargInfo('subdir', str, default='')
-
-if T.TYPE_CHECKING:
-
-    class PyInstallKw(TypedDict):
-
-        pure: bool
-        subdir: str
-        install_tag: T.Optional[str]
 
 
 class PythonInstallation(ExternalProgramHolder):
@@ -647,15 +649,6 @@ class PythonInstallation(ExternalProgramHolder):
     @FeatureNew('Python module path method', '0.50.0')
     def path_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         return super().path_method(args, kwargs)
-
-
-if T.TYPE_CHECKING:
-    from ..interpreter.kwargs import ExtractRequired
-
-    class FindInstallationKw(ExtractRequired):
-
-        disabler: bool
-        modules: T.List[str]
 
 
 class PythonModule(ExtensionModule):

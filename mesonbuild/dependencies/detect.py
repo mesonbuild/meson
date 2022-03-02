@@ -27,17 +27,15 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from .factory import DependencyFactory, WrappedFactoryFunc, DependencyGenerator
 
+    TV_DepIDEntry = T.Union[str, bool, int, T.Tuple[str, ...]]
+    TV_DepID = T.Tuple[T.Tuple[str, TV_DepIDEntry], ...]
+
 # These must be defined in this file to avoid cyclical references.
 packages: T.Dict[
     str,
     T.Union[T.Type[ExternalDependency], 'DependencyFactory', 'WrappedFactoryFunc']
 ] = {}
 _packages_accept_language: T.Set[str] = set()
-
-if T.TYPE_CHECKING:
-    TV_DepIDEntry = T.Union[str, bool, int, T.Tuple[str, ...]]
-    TV_DepID = T.Tuple[T.Tuple[str, TV_DepIDEntry], ...]
-
 
 def get_dep_identifier(name: str, kwargs: T.Dict[str, T.Any]) -> 'TV_DepID':
     identifier: 'TV_DepID' = (('name', name), )
