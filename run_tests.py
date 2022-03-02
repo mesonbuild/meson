@@ -68,6 +68,14 @@ if NINJA_CMD is not None:
 else:
     raise RuntimeError('Could not find Ninja v1.7 or newer')
 
+# Emulate running meson with -X utf8 by making sure all open() calls have a
+# sane encoding. This should be a python default, but PEP 540 considered it not
+# backwards compatible. Instead, much line noise in diffs to update this, and in
+# python 3.10 we can also make it a warning when absent.
+os.environ['PYTHONWARNDEFAULTENCODING'] = '1'
+# work around https://bugs.python.org/issue34624
+os.environ['MESON_RUNNING_IN_PROJECT_TESTS'] = '1'
+
 def guess_backend(backend_str: str, msbuild_exe: str) -> T.Tuple['Backend', T.List[str]]:
     # Auto-detect backend if unspecified
     backend_flags = []

@@ -215,6 +215,11 @@ def run(original_args, mainfile):
         print('Please update your environment')
         return 1
 
+    if sys.version_info >= (3, 10) and os.environ.get('MESON_RUNNING_IN_PROJECT_TESTS'):
+        # workaround for https://bugs.python.org/issue34624
+        import warnings
+        warnings.filterwarnings('error', category=EncodingWarning, module='mesonbuild')
+
     # Meson gets confused if stdout can't output Unicode, if the
     # locale isn't Unicode, just force stdout to accept it. This tries
     # to emulate enough of PEP 540 to work elsewhere.

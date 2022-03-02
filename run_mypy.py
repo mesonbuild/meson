@@ -53,7 +53,6 @@ modules = [
     'mesonbuild/optinterpreter.py',
     'mesonbuild/programs.py',
 
-    'run_custom_lint.py',
     'run_mypy.py',
     'run_project_tests.py',
     'run_single_test.py',
