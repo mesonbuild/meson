@@ -35,6 +35,23 @@ project('myapp', 'd')
 executable('myapp', 'app.d', d_debug: [3, 'DebugFeatureA'])
 ```
 
+## In `declare_dependency`
+
+*Since 0.62.0*, when declaring your own dependency using `declare_dependency`, it is
+possible to add parameters for D specific features, e.g. to propagate
+conditional compilation versions:
+
+```meson
+my_dep = declare_dependency(
+    # ...
+    d_module_features: ['LUA_53'],
+    d_import_dirs: include_directories('my_lua_folder'),
+)
+```
+
+Accepted D specific parameters are `d_module_features` and
+`d_import_dirs`.
+
 ## Using embedded unittests
 
 If you are using embedded [unittest
