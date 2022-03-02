@@ -31,7 +31,6 @@ from ..interpreterbase import (
 )
 
 from ..interpreter import (
-    Interpreter,
     StringHolder,
     BooleanHolder,
     IntegerHolder,
@@ -63,6 +62,9 @@ from ..mparser import (
 
 import os, sys
 import typing as T
+
+if T.TYPE_CHECKING:
+    from ..interpreter import Interpreter
 
 class DontCareObject(MesonInterpreterObject):
     pass
@@ -378,15 +380,15 @@ class AstInterpreter(InterpreterBase):
             mkwargs = {} # type: T.Dict[str, TYPE_nvar]
             try:
                 if isinstance(src, str):
-                    result = StringHolder(src, T.cast(Interpreter, self)).method_call(node.name, margs, mkwargs)
+                    result = StringHolder(src, T.cast('Interpreter', self)).method_call(node.name, margs, mkwargs)
                 elif isinstance(src, bool):
-                    result = BooleanHolder(src, T.cast(Interpreter, self)).method_call(node.name, margs, mkwargs)
+                    result = BooleanHolder(src, T.cast('Interpreter', self)).method_call(node.name, margs, mkwargs)
                 elif isinstance(src, int):
-                    result = IntegerHolder(src, T.cast(Interpreter, self)).method_call(node.name, margs, mkwargs)
+                    result = IntegerHolder(src, T.cast('Interpreter', self)).method_call(node.name, margs, mkwargs)
                 elif isinstance(src, list):
-                    result = ArrayHolder(src, T.cast(Interpreter, self)).method_call(node.name, margs, mkwargs)
+                    result = ArrayHolder(src, T.cast('Interpreter', self)).method_call(node.name, margs, mkwargs)
                 elif isinstance(src, dict):
-                    result = DictHolder(src, T.cast(Interpreter, self)).method_call(node.name, margs, mkwargs)
+                    result = DictHolder(src, T.cast('Interpreter', self)).method_call(node.name, margs, mkwargs)
             except mesonlib.MesonException:
                 return None
 

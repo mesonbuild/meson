@@ -60,7 +60,7 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
 
 def get_releases() -> T.Dict[str, T.Any]:
     url = urlopen('https://wrapdb.mesonbuild.com/v2/releases.json')
-    return T.cast(T.Dict[str, T.Any], json.loads(url.read().decode()))
+    return T.cast('T.Dict[str, T.Any]', json.loads(url.read().decode()))
 
 def list_projects(options: 'argparse.Namespace') -> None:
     releases = get_releases()

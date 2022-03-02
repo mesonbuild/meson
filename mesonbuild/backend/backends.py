@@ -328,7 +328,7 @@ class Backend:
         # cast, we know what's in coredata anyway.
         # TODO: if it's possible to annotate get_option or validate_option_value
         # in the future we might be able to remove the cast here
-        return T.cast(T.Union[str, int, bool, 'WrapMode'], v)
+        return T.cast('T.Union[str, int, bool, WrapMode]', v)
 
     def get_source_dir_include_args(self, target: build.BuildTarget, compiler: 'Compiler', *, absolute_path: bool = False) -> T.List[str]:
         curdir = target.get_subdir()
@@ -937,7 +937,7 @@ class Backend:
             commands += compiler.get_no_warn_args()
         else:
             # warning_level is a string, but mypy can't determine that
-            commands += compiler.get_warn_args(T.cast(str, self.get_option_for_target(OptionKey('warning_level'), target)))
+            commands += compiler.get_warn_args(T.cast('str', self.get_option_for_target(OptionKey('warning_level'), target)))
         # Add -Werror if werror=true is set in the build options set on the
         # command-line or default_options inside project(). This only sets the
         # action to be done for warnings if/when they are emitted, so it's ok

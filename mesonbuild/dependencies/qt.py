@@ -127,13 +127,13 @@ class _QtBase:
         else:
             self.qtpkgname = self.qtname
 
-        self.private_headers = T.cast(bool, kwargs.get('private_headers', False))
+        self.private_headers = T.cast('bool', kwargs.get('private_headers', False))
 
         self.requested_modules = mesonlib.stringlistify(mesonlib.extract_as_list(kwargs, 'modules'))
         if not self.requested_modules:
             raise DependencyException('No ' + self.qtname + '  modules specified.')
 
-        self.qtmain = T.cast(bool, kwargs.get('main', False))
+        self.qtmain = T.cast('bool', kwargs.get('main', False))
         if not isinstance(self.qtmain, bool):
             raise DependencyException('"main" argument must be a boolean')
 

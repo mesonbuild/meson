@@ -657,7 +657,7 @@ class Target(HoldableObject):
         # In this case we have an already parsed and ready to go dictionary
         # provided by typed_kwargs
         if isinstance(opts, dict):
-            return T.cast(T.Dict[OptionKey, str], opts)
+            return T.cast('T.Dict[OptionKey, str]', opts)
 
         result: T.Dict[OptionKey, str] = {}
         overrides = stringlistify(opts)

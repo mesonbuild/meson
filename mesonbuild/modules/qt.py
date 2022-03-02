@@ -486,7 +486,7 @@ class QtBaseModule(ExtensionModule):
         if _sources:
             FeatureDeprecated.single_use('qt.preprocess positional sources', '0.59', state.subproject, location=state.current_node)
         # List is invariant, os we have to cast...
-        sources = T.cast(T.List[T.Union[str, File, build.GeneratedList, build.CustomTarget]],
+        sources = T.cast('T.List[T.Union[str, File, build.GeneratedList, build.CustomTarget]]',
                          _sources + kwargs['sources'])
         for s in sources:
             if not isinstance(s, (str, File)):

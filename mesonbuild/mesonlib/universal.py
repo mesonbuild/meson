@@ -890,7 +890,7 @@ def version_compare_condition_with_min(condition: str, minimum: str) -> bool:
     if re.match(r'^\d+.\d+$', condition):
         condition += '.0'
 
-    return T.cast(bool, cmpop(Version(minimum), Version(condition)))
+    return T.cast('bool', cmpop(Version(minimum), Version(condition)))
 
 def search_version(text: str) -> str:
     # Usually of the type 4.1.4 but compiler output may contain
@@ -1336,7 +1336,7 @@ def typeslistify(item: 'T.Union[_T, T.Sequence[_T]]',
     list of items all of which are of type @types
     '''
     if isinstance(item, types):
-        item = T.cast(T.List[_T], [item])
+        item = T.cast('T.List[_T]', [item])
     if not isinstance(item, list):
         raise MesonException('Item must be a list or one of {!r}, not {!r}'.format(types, type(item)))
     for i in item:

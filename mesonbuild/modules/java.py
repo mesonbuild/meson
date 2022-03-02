@@ -88,7 +88,7 @@ class JavaModule(NewExtensionModule):
         KwargInfo('package', str, default=None))
     def generate_native_headers(self, state: ModuleState, args: T.Tuple[T.List[mesonlib.FileOrString]],
                                kwargs: T.Dict[str, T.Optional[str]]) -> ModuleReturnValue:
-        classes = T.cast(T.List[str], kwargs.get('classes'))
+        classes = T.cast('T.List[str]', kwargs.get('classes'))
         package = kwargs.get('package')
 
         headers: T.List[str] = []

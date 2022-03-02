@@ -62,7 +62,7 @@ def noPosargs(f: TV_func) -> TV_func:
         if args:
             raise InvalidArguments('Function does not take positional arguments.')
         return f(*wrapped_args, **wrapped_kwargs)
-    return T.cast(TV_func, wrapped)
+    return T.cast('TV_func', wrapped)
 
 def noKwargs(f: TV_func) -> TV_func:
     @wraps(f)
@@ -71,7 +71,7 @@ def noKwargs(f: TV_func) -> TV_func:
         if kwargs:
             raise InvalidArguments('Function does not take keyword arguments.')
         return f(*wrapped_args, **wrapped_kwargs)
-    return T.cast(TV_func, wrapped)
+    return T.cast('TV_func', wrapped)
 
 def stringArgs(f: TV_func) -> TV_func:
     @wraps(f)
@@ -84,7 +84,7 @@ def stringArgs(f: TV_func) -> TV_func:
             mlog.debug('Element not a string:', str(args))
             raise InvalidArguments('Arguments must be strings.')
         return f(*wrapped_args, **wrapped_kwargs)
-    return T.cast(TV_func, wrapped)
+    return T.cast('TV_func', wrapped)
 
 def noArgsFlattening(f: TV_func) -> TV_func:
     setattr(f, 'no-args-flattening', True)  # noqa: B010
@@ -99,7 +99,7 @@ def unholder_return(f: TV_func) -> T.Callable[..., TYPE_var]:
     def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
         res = f(*wrapped_args, **wrapped_kwargs)
         return _unholder(res)
-    return T.cast(T.Callable[..., TYPE_var], wrapped)
+    return T.cast('T.Callable[..., TYPE_var]', wrapped)
 
 def disablerIfNotFound(f: TV_func) -> TV_func:
     @wraps(f)
@@ -110,7 +110,7 @@ def disablerIfNotFound(f: TV_func) -> TV_func:
         if disabler and not ret.found():
             return Disabler()
         return ret
-    return T.cast(TV_func, wrapped)
+    return T.cast('TV_func', wrapped)
 
 @dataclass(repr=False, eq=False)
 class permittedKwargs:
@@ -125,7 +125,7 @@ class permittedKwargs:
                 ustr = ', '.join([f'"{u}"' for u in sorted(unknowns)])
                 raise InvalidArguments(f'Got unknown keyword arguments {ustr}')
             return f(*wrapped_args, **wrapped_kwargs)
-        return T.cast(TV_func, wrapped)
+        return T.cast('TV_func', wrapped)
 
 def typed_operator(operator: MesonOperator,
                    types: T.Union[T.Type, T.Tuple[T.Type, ...]]) -> T.Callable[['_TV_FN_Operator'], '_TV_FN_Operator']:
@@ -276,7 +276,7 @@ def typed_pos_args(name: str, *types: T.Union[T.Type, T.Tuple[T.Type, ...]],
                 nargs[i] = tuple(args)
             return f(*nargs, **wrapped_kwargs)
 
-        return T.cast(TV_func, wrapper)
+        return T.cast('TV_func', wrapper)
     return inner
 
 
@@ -521,7 +521,7 @@ def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
 
             node, _, _kwargs, subproject = get_callee_args(wrapped_args)
             # Cast here, as the convertor function may place something other than a TYPE_var in the kwargs
-            kwargs = T.cast(T.Dict[str, object], _kwargs)
+            kwargs = T.cast('T.Dict[str, object]', _kwargs)
 
             all_names = {t.name for t in types}
             unknowns = set(kwargs).difference(all_names)
@@ -572,7 +572,7 @@ def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
                     kwargs[info.name] = info.convertor(kwargs[info.name])
 
             return f(*wrapped_args, **wrapped_kwargs)
-        return T.cast(TV_func, wrapper)
+        return T.cast('TV_func', wrapper)
     return inner
 
 
@@ -664,7 +664,7 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
                 raise AssertionError(f'{wrapped_args!r}')
             self.use(subproject, node)
             return f(*wrapped_args, **wrapped_kwargs)
-        return T.cast(TV_func, wrapped)
+        return T.cast('TV_func', wrapped)
 
     @classmethod
     def single_use(cls, feature_name: str, version: str, subproject: 'SubProject',
@@ -766,7 +766,7 @@ class FeatureCheckKwargsBase(metaclass=abc.ABCMeta):
                 self.feature_check_class.single_use(
                         name, self.feature_version, subproject, self.extra_message, node)
             return f(*wrapped_args, **wrapped_kwargs)
-        return T.cast(TV_func, wrapped)
+        return T.cast('TV_func', wrapped)
 
 class FeatureNewKwargs(FeatureCheckKwargsBase):
     feature_check_class = FeatureNew

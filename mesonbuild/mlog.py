@@ -320,7 +320,7 @@ def _log_error(severity: str, *rargs: TV_Loggable,
         location_str = get_error_location_string(location_file, location.lineno)
         # Unions are frankly awful, and we have to T.cast here to get mypy
         # to understand that the list concatenation is safe
-        location_list = T.cast(TV_LoggableList, [location_str])
+        location_list = T.cast('TV_LoggableList', [location_str])
         args = location_list + args
 
     log(*args, once=once, **kwargs)

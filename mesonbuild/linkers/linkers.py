@@ -1182,7 +1182,7 @@ class VisualStudioLikeLinkerMixin:
 
     def get_always_args(self) -> T.List[str]:
         parent = super().get_always_args() # type: ignore
-        return self._apply_prefix('/nologo') + T.cast(T.List[str], parent)
+        return self._apply_prefix('/nologo') + T.cast('T.List[str]', parent)
 
     def get_search_args(self, dirname: str) -> T.List[str]:
         return self._apply_prefix('/LIBPATH:' + dirname)

@@ -216,7 +216,7 @@ class Properties:
         return res
 
     def get_java_home(self) -> T.Optional[Path]:
-        value = T.cast(T.Optional[str], self.properties.get('java_home'))
+        value = T.cast('T.Optional[str]', self.properties.get('java_home'))
         return Path(value) if value else None
 
     def __eq__(self, other: object) -> bool:

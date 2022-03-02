@@ -176,13 +176,13 @@ def _build_external_dependency_list(name: str, env: 'Environment', for_machine: 
         # class method, if one exists, otherwise the list just consists of the
         # constructor
         if isinstance(packages[lname], type):
-            entry1 = T.cast(T.Type[ExternalDependency], packages[lname])  # mypy doesn't understand isinstance(..., type)
+            entry1 = T.cast('T.Type[ExternalDependency]', packages[lname])  # mypy doesn't understand isinstance(..., type)
             if issubclass(entry1, ExternalDependency):
                 # TODO: somehow make mypy understand that entry1(env, kwargs) is OK...
                 func: T.Callable[[], 'ExternalDependency'] = lambda: entry1(env, kwargs)  # type: ignore
                 dep = [func]
         else:
-            entry2 = T.cast(T.Union['DependencyFactory', 'WrappedFactoryFunc'], packages[lname])
+            entry2 = T.cast('T.Union[DependencyFactory, WrappedFactoryFunc]', packages[lname])
             dep = entry2(env, for_machine, kwargs)
         return dep
 

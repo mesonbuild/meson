@@ -622,7 +622,7 @@ class VisualStudioLikeCPPCompilerMixin(CompilerMixinBase):
     def get_option_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         # need a typeddict for this
         key = OptionKey('winlibs', machine=self.for_machine, lang=self.language)
-        return T.cast(T.List[str], options[key].value[:])
+        return T.cast('T.List[str]', options[key].value[:])
 
     def _get_options_impl(self, opts: 'KeyedOptionDictType', cpp_stds: T.List[str]) -> 'KeyedOptionDictType':
         key = OptionKey('std', machine=self.for_machine, lang=self.language)

@@ -1168,7 +1168,7 @@ class GnomeModule(ExtensionModule):
         scan_target = self._make_gir_target(
             state, girfile, scan_command, generated_files, depends,
             # We have to cast here because mypy can't figure this out
-            T.cast(T.Dict[str, T.Any], kwargs))
+            T.cast('T.Dict[str, T.Any]', kwargs))
 
         typelib_output = f'{ns}-{nsversion}.typelib'
         typelib_cmd = [gicompiler, scan_target, '--output', '@OUTPUT@']
@@ -1177,7 +1177,7 @@ class GnomeModule(ExtensionModule):
         for incdir in typelib_includes:
             typelib_cmd += ["--includedir=" + incdir]
 
-        typelib_target = self._make_typelib_target(state, typelib_output, typelib_cmd, generated_files, T.cast(T.Dict[str, T.Any], kwargs))
+        typelib_target = self._make_typelib_target(state, typelib_output, typelib_cmd, generated_files, T.cast('T.Dict[str, T.Any]', kwargs))
 
         self._devenv_prepend('GI_TYPELIB_PATH', os.path.join(state.environment.get_build_dir(), state.subdir))
 
