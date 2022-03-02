@@ -455,7 +455,7 @@ class ExtractedObjects(HoldableObject):
 EnvInitValueType = T.Dict[str, T.Union[str, T.List[str]]]
 
 class EnvironmentVariables(HoldableObject):
-    def __init__(self, values: T.Optional[EnvValueType] = None,
+    def __init__(self, values: T.Optional[EnvInitValueType] = None,
                  init_method: Literal['set', 'prepend', 'append'] = 'set', separator: str = os.pathsep) -> None:
         self.envvars: T.List[T.Tuple[T.Callable[[T.Dict[str, str], str, T.List[str], str], str], str, T.List[str], str]] = []
         # The set of all env vars we have operations for. Only used for self.has_name()
