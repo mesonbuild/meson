@@ -43,6 +43,9 @@ if T.TYPE_CHECKING:
     KeyedOptionDictType = T.Union[T.Dict['OptionKey', 'UserOption[T.Any]'], OptionOverrideProxy]
     CompilerCheckCacheKey = T.Tuple[T.Tuple[str, ...], str, FileOrString, T.Tuple[str, ...], str]
 
+    # typeshed
+    StrOrBytesPath = T.Union[str, bytes, os.PathLike[str], os.PathLike[bytes]]
+
 # Check major_versions_differ() if changing versioning scheme.
 #
 # Pip requires that RCs are named like this: '0.1.0.rc1'
@@ -896,6 +899,9 @@ class CmdLineFileParser(configparser.ConfigParser):
         # We don't want ':' as key delimiter, otherwise it would break when
         # storing subproject options like "subproject:option=value"
         super().__init__(delimiters=['='], interpolation=None)
+
+    def read(self, filenames: T.Union['StrOrBytesPath', T.Iterable['StrOrBytesPath']], encoding: str ='utf-8') -> T.List[str]:
+        return super().read(filenames, encoding)
 
     def optionxform(self, option: str) -> str:
         # Don't call str.lower() on keys
