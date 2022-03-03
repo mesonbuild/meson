@@ -27,6 +27,7 @@ pkgs=(
   libblocksruntime-dev
   libperl-dev libscalapack-mpi-dev libncurses-dev
   itstool
+  openjdk-11-jre
 )
 
 boost_pkgs=(atomic chrono date-time filesystem log regex serialization system test thread)

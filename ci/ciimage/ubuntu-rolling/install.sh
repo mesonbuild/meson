@@ -26,6 +26,7 @@ pkgs=(
   liblapack-dev libscalapack-mpi-dev
   bindgen
   itstool
+  openjdk-11-jre
 )
 
 sed -i '/^#\sdeb-src /s/^#//' "/etc/apt/sources.list"
