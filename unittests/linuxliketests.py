@@ -1760,3 +1760,23 @@ class LinuxlikeTests(BasePlatformTests):
 
         # If so, we can test that cmake works with "gcc -m32"
         self.do_one_test_with_nativefile('../cmake/1 basic', "['gcc', '-m32']")
+
+    @skipUnless(is_linux(), 'Test only applicable to Linux')
+    def test_install_strip(self):
+        testdir = os.path.join(self.unit_test_dir, '104 strip')
+        self.init(testdir)
+        self.build()
+
+        destdir = self.installdir + self.prefix
+        lib = os.path.join(destdir, self.libdir, 'liba.so')
+        install_cmd = self.meson_command + ['install', '--destdir', self.installdir]
+
+        # Check we have debug symbols by default
+        self._run(install_cmd, workdir=self.builddir)
+        stdout = self._run(['file', '-b', lib])
+        self.assertIn('not stripped', stdout)
+
+        # Check debug symbols got removed with --strip
+        self._run(install_cmd + ['--strip'], workdir=self.builddir)
+        stdout = self._run(['file', '-b', lib])
+        self.assertNotIn('not stripped', stdout)

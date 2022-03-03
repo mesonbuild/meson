@@ -144,6 +144,7 @@ class TargetInstallData:
     subproject: str
     optional: bool = False
     tag: T.Optional[str] = None
+    can_strip: bool = False
 
     def __post_init__(self, outdir_name: str) -> None:
         self.out_name = os.path.join(outdir_name, os.path.basename(self.fname))
@@ -1573,7 +1574,8 @@ class Backend:
                 #
                 # TODO: Create GNUStrip/AppleStrip/etc. hierarchy for more
                 #       fine-grained stripping of static archives.
-                should_strip = not isinstance(t, build.StaticLibrary) and self.get_option_for_target(OptionKey('strip'), t)
+                can_strip = not isinstance(t, build.StaticLibrary)
+                should_strip = can_strip and self.get_option_for_target(OptionKey('strip'), t)
                 assert isinstance(should_strip, bool), 'for mypy'
                 # Install primary build output (library/executable/jar, etc)
                 # Done separately because of strip/aliases/rpath
@@ -1584,7 +1586,7 @@ class Backend:
                                           install_dir_name,
                                           should_strip, mappings, t.rpath_dirs_to_remove,
                                           t.install_rpath, install_mode, t.subproject,
-                                          tag=tag)
+                                          tag=tag, can_strip=can_strip)
                     d.targets.append(i)
 
                     for alias, to, tag in t.get_aliases():
