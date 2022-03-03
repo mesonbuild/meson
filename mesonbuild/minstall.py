@@ -61,6 +61,7 @@ if T.TYPE_CHECKING:
         dry_run: bool
         skip_subprojects: str
         tags: str
+        strip: bool
 
 
 symlink_warning = '''Warning: trying to copy a symlink that points to a file. This will copy the file,
@@ -88,6 +89,8 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
                         help='Do not install files from given subprojects. (Since 0.58.0)')
     parser.add_argument('--tags', default=None,
                         help='Install only targets having one of the given tags. (Since 0.60.0)')
+    parser.add_argument('--strip', action='store_true',
+                        help='Strip targets even if strip option was not set during configure. (Since 0.62.0)')
 
 class DirMaker:
     def __init__(self, lf: T.TextIO, makedirs: T.Callable[..., None]):
@@ -564,6 +567,15 @@ class Installer:
             else:
                 raise
 
+    def do_strip(self, strip_bin: T.List[str], fname: str, outname: str) -> None:
+        self.log(f'Stripping target {fname!r}.')
+        returncode, stdo, stde = self.Popen_safe(strip_bin + [outname])
+        if returncode != 0:
+            print('Could not strip file.\n')
+            print(f'Stdout:\n{stdo}\n')
+            print(f'Stderr:\n{stde}\n')
+            sys.exit(1)
+
     def install_subdirs(self, d: InstallData, dm: DirMaker, destdir: str, fullprefix: str) -> None:
         for i in d.install_subdirs:
             if not self.should_install(i):
@@ -676,7 +688,7 @@ class Installer:
             outdir = get_destdir_path(destdir, fullprefix, t.outdir)
             outname = os.path.join(outdir, os.path.basename(fname))
             final_path = os.path.join(d.prefix, t.outdir, os.path.basename(fname))
-            should_strip = t.strip
+            should_strip = t.strip or (t.can_strip and self.options.strip)
             install_rpath = t.install_rpath
             install_name_mappings = t.install_name_mappings
             install_mode = t.install_mode
@@ -689,13 +701,7 @@ class Installer:
                     if fname.endswith('.jar'):
                         self.log('Not stripping jar target: {}'.format(os.path.basename(fname)))
                         continue
-                    self.log('Stripping target {!r} using {}.'.format(fname, d.strip_bin[0]))
-                    returncode, stdo, stde = self.Popen_safe(d.strip_bin + [outname])
-                    if returncode != 0:
-                        print('Could not strip file.\n')
-                        print(f'Stdout:\n{stdo}\n')
-                        print(f'Stderr:\n{stde}\n')
-                        sys.exit(1)
+                    self.do_strip(d.strip_bin, fname, outname)
                 if fname.endswith('.js'):
                     # Emscripten outputs js files and optionally a wasm file.
                     # If one was generated, install it as well.
@@ -720,7 +726,6 @@ class Installer:
                         pass
                     else:
                         raise
-
 
 def rebuild_all(wd: str) -> bool:
     if not (Path(wd) / 'build.ninja').is_file():
