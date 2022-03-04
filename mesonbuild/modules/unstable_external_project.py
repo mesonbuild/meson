@@ -140,13 +140,30 @@ class ExternalProject(NewExtensionModule):
                 continue
             cargs = self.env.coredata.get_external_args(MachineChoice.HOST, lang)
             assert isinstance(cargs, list), 'for mypy'
+
+            cargs += compiler.get_always_args()
+            cargs += compiler.get_warn_args(T.cast(str, self.env.coredata.get_option(
+                OptionKey('warning_level', state.subproject))))
+            cargs += compiler.get_optimization_args(T.cast(
+                str, self.env.coredata.get_option(OptionKey('optimization', state.subproject))))
+            if T.cast(bool, self.env.coredata.get_option(OptionKey('werror', state.subproject))):
+                cargs += compiler.get_werror_args()
+            cargs += compiler.get_debug_args(T.cast(bool, self.env.coredata.get_option(
+                OptionKey('debug', state.subproject))))
+            cargs += compiler.get_buildtype_args(T.cast(str,
+                self.env.coredata.get_option(OptionKey('buildtype', state.subproject))))
+
             self.run_env[ENV_VAR_PROG_MAP[lang]] = self._quote_and_join(compiler.get_exelist())
             self.run_env[CFLAGS_MAPPING[lang]] = self._quote_and_join(cargs)
             if not link_exelist:
                 link_exelist = compiler.get_linker_exelist()
                 _l = self.env.coredata.get_external_link_args(MachineChoice.HOST, lang)
                 assert isinstance(_l, list), 'for mypy'
+
                 link_args = _l
+                link_args += compiler.get_linker_always_args()
+                link_args += compiler.get_buildtype_linker_args(T.cast(str,
+                    self.env.coredata.get_option(OptionKey('buildtype', state.subproject))))
         if link_exelist:
             # FIXME: Do not pass linker because Meson uses CC as linker wrapper,
             # but autotools often expects the real linker (e.h. GNU ld).
