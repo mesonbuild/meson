@@ -19,7 +19,6 @@ from mesonbuild import mesonlib
 from mesonbuild.build import CustomTarget
 from mesonbuild.compilers import detect_compiler_for
 from mesonbuild.interpreterbase.decorators import ContainerTypeInfo, FeatureDeprecated, FeatureNew, KwargInfo, typed_pos_args, typed_kwargs
-from mesonbuild.interpreter.interpreterobjects import FileHolder
 from mesonbuild.mesonlib import version_compare, MachineChoice
 from . import ExtensionModule, ModuleReturnValue, ModuleState
 from ..interpreter import Interpreter
@@ -38,7 +37,7 @@ class JavaModule(ExtensionModule):
         self.javac = interpreter.environment.coredata.compilers[MachineChoice.BUILD]['java']
 
     @FeatureDeprecated('java.generate_native_header', '0.62.0', 'Use java.generate_native_headers instead')
-    @typed_pos_args('generate_native_header', (str, FileHolder))
+    @typed_pos_args('java.generate_native_header', (str, mesonlib.File))
     @typed_kwargs('java.generate_native_header', KwargInfo('package', str, default=None))
     def generate_native_header(self, state: ModuleState, args: T.Tuple[T.Union[str, FileHolder]],
                                kwargs: T.Dict[str, T.Optional[str]]) -> ModuleReturnValue:
