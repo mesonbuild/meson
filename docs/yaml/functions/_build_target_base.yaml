@@ -49,7 +49,7 @@ kwargs:
       eg: `cpp_args` for C++
 
   sources:
-    type: str | file | custom_tgt | custom_idx | generated_list
+    type: str | file | custom_tgt | custom_idx | generated_list | structured_src
     description: Additional source files. Same as the source varargs.
 
   build_by_default:
