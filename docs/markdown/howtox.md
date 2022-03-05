@@ -141,7 +141,7 @@ configure_file(...)
 
 ## Generate configuration data from files
 
-`The [fs module](#Fs-modules) offers the `read` function` which enables adding
+The [fs module](#Fs-modules) offers the `read` function which enables adding
 the contents of arbitrary files to configuration data (among other uses):
 
 ```meson
