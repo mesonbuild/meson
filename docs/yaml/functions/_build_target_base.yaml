@@ -276,3 +276,23 @@ kwargs:
       version specification such as `windows,6.0`. See [MSDN
       documentation](https://docs.microsoft.com/en-us/cpp/build/reference/subsystem-specify-subsystem)
       for the full list.
+
+  rust_crate_type:
+    type: str
+    since: 0.41.0
+    description: |
+      Set the specific type of rust crate to compile (when compiling rust).
+
+      If the target is an [[executable]] this defaults to "bin", the only
+      allowed value.
+
+      If it is a [[static_library]] it defaults to "lib", and may be "lib",
+      "staticlib", or "rlib". If "lib" then Rustc will pick a default, "staticlib"
+      means a C ABI library, "rlib" means a Rust ABI.
+
+      If it is a [[shared_library]] it defaults to "lib", and may be "lib",
+      "dylib", "cdylib", or "proc-macro". If "lib" then Rustc will pick a
+      default, "cdylib" means a C ABI library, "dylib" means a Rust ABI, and
+      "proc-macro" is a special rust proceedural macro crate.
+
+      "proc-macro" is new in 0.62.0.
