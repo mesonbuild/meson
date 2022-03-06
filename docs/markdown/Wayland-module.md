@@ -66,6 +66,22 @@ It takes the following keyword arguments:
 server side header. Generated header files have the name
 `<name>-<client|server>-protocol.h`.
 
+### protocols_version
+```meson
+version = wl_mod.protocols_version()
+```
+This function does not take any positional or keyword arguments.
+
+**Returns**: The version [[@str]].
+
+### scanner_version
+```meson
+version = ml_mod.scanner_version()
+```
+This functions does not take any positional or keyboard arguments.
+
+**Returns**: The version [[@str]].
+
 ## Links
 - [Official Wayland Documentation](https://wayland.freedesktop.org/docs/html/)
 - [Wayland GitLab](https://gitlab.freedesktop.org/wayland)

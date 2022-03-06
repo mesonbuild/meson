@@ -17,8 +17,8 @@ import os
 from . import ExtensionModule, ModuleReturnValue
 from ..build import CustomTarget
 from ..interpreter.type_checking import NoneType, in_set_validator
-from ..interpreterbase import FeatureNew, typed_pos_args, typed_kwargs, KwargInfo
-from ..mesonlib import File, MesonException, MachineChoice
+from ..interpreterbase import FeatureNew, typed_pos_args, typed_kwargs, KwargInfo, noKwargs, noPosargs
+from ..mesonlib import File, MesonException, MachineChoice, Popen_safe
 
 
 class WaylandModule(ExtensionModule):
@@ -34,7 +34,33 @@ class WaylandModule(ExtensionModule):
         self.methods.update({
             'scan_xml': self.scan_xml,
             'find_protocol': self.find_protocol,
+            'protocols_version': self.protocols_version,
+            'scanner_version': self.scanner_version,
         })
+
+    def set_protocols_dep(self, state):
+        if self.protocols_dep is None:
+            self.protocols_dep = self.interpreter.func_dependency(state.current_node, ['wayland-protocols'], {})
+
+        if self.pkgdatadir is None:
+            self.pkgdatadir = self.protocols_dep.get_variable(pkgconfig='pkgdatadir', internal='pkgdatadir')
+
+    def set_scanner_bin(self, state):
+        if self.scanner_bin is None:
+            self.scanner_bin = state.find_program('wayland-scanner', for_machine=MachineChoice.BUILD)
+
+    @noPosargs
+    @noKwargs
+    def protocols_version(self, state, args, kwargs):
+        self.set_protocols_dep(state)
+        return self.protocols_dep.get_version()
+
+    @noPosargs
+    @noKwargs
+    def scanner_version(self, state, args, kwargs):
+        self.set_scanner_bin(state)
+        _, _, stderr = Popen_safe(self.scanner_bin.get_command() + ['--version'])
+        return stderr.strip().split(' ')[-1]
 
     @typed_pos_args('wayland.scan_xml', varargs=(str, File), min_varargs=1)
     @typed_kwargs(
@@ -44,13 +70,12 @@ class WaylandModule(ExtensionModule):
         KwargInfo('server', bool, default=False),
     )
     def scan_xml(self, state, args, kwargs):
-        if self.scanner_bin is None:
-            self.scanner_bin = state.find_program('wayland-scanner', for_machine=MachineChoice.BUILD)
-
         scope = 'public' if kwargs['public'] else 'private'
         sides = [i for i in ['client', 'server'] if kwargs[i]]
         if not sides:
             raise MesonException('At least one of client or server keyword argument must be set to true.')
+
+        self.set_scanner_bin(state)
 
         xml_files = self.interpreter.source_strings_to_files(args[0])
         targets = []
@@ -99,11 +124,7 @@ class WaylandModule(ExtensionModule):
         if xml_state == 'stable' and version is not None:
             raise MesonException('stable protocols do not require a version number.')
 
-        if self.protocols_dep is None:
-            self.protocols_dep = self.interpreter.func_dependency(state.current_node, ['wayland-protocols'], {})
-
-        if self.pkgdatadir is None:
-            self.pkgdatadir = self.protocols_dep.get_variable(pkgconfig='pkgdatadir', internal='pkgdatadir')
+        self.set_protocols_dep(state)
 
         if xml_state == 'stable':
             xml_name = f'{base_name}.xml'
