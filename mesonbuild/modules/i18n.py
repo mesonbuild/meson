@@ -167,10 +167,7 @@ class I18nModule(ExtensionModule):
     )
     def merge_file(self, state: 'ModuleState', args: T.List['TYPE_var'], kwargs: 'MergeFile') -> ModuleReturnValue:
         if self.tools['msgfmt'] is None:
-            self.tools['msgfmt'] = state.find_program('msgfmt', required=False, for_machine=mesonlib.MachineChoice.BUILD)
-        if not self.tools['msgfmt'].found():
-            self.nogettext_warning(state.current_node)
-            return ModuleReturnValue(None, [])
+            self.tools['msgfmt'] = state.find_program('msgfmt', for_machine=mesonlib.MachineChoice.BUILD)
         podir = path.join(state.build_to_src, state.subdir, kwargs['po_dir'])
 
         ddirs = self._get_data_dirs(state, kwargs['data_dirs'])
