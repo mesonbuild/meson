@@ -24,6 +24,14 @@ methods:
     run_command(find_program('foo'), 'arg1', 'arg2')
     ```
 
+- name: version
+  returns: str
+  since: 0.62.0
+  description: |
+    The version number as a string, for example `1.2.8`.
+
+    `unknown` if the program cannot determine the version via a `--version` argument.
+
 - name: full_path
   returns: str
   since: 0.55.0

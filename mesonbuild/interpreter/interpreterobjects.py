@@ -516,6 +516,7 @@ class ExternalProgramHolder(ObjectHolder[ExternalProgram]):
         super().__init__(ep, interpreter)
         self.methods.update({'found': self.found_method,
                              'path': self.path_method,
+                             'version': self.version_method,
                              'full_path': self.full_path_method})
 
     @noPosargs
@@ -542,6 +543,17 @@ class ExternalProgramHolder(ObjectHolder[ExternalProgram]):
         path = self.held_object.get_path()
         assert path is not None
         return path
+
+    @noPosargs
+    @noKwargs
+    @FeatureNew('ExternalProgram.version', '0.62.0')
+    def version_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
+        if not self.found():
+            raise InterpreterException('Unable to get the version of a not-found external program')
+        try:
+            return self.held_object.get_version(self.interpreter)
+        except MesonException:
+            return 'unknown'
 
     def found(self) -> bool:
         return self.held_object.found()
