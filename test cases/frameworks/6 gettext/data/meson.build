@@ -4,6 +4,7 @@ i18n.merge_file(
   output: '@BASENAME@',
   type: 'desktop',
   po_dir: '../po',
+  data_dirs: '../po',
   install: true,
   install_dir: join_paths(get_option('datadir'), 'applications')
 )

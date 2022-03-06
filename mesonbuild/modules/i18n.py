@@ -175,11 +175,10 @@ class I18nModule(ExtensionModule):
         command.extend(state.environment.get_build_command())
         command.extend([
             '--internal', 'msgfmthelper',
-            '@INPUT@', '@OUTPUT@', kwargs['type'], podir
         ])
         if datadirs:
             command.append(datadirs)
-
+        command.extend(['@INPUT@', '@OUTPUT@', kwargs['type'], podir])
         if kwargs['args']:
             command.append('--')
             command.extend(kwargs['args'])
