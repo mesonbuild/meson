@@ -25,6 +25,8 @@ on:
 
 jobs:
   build:
+    # do not run the weekly scheduled job in a fork
+    if: github.event_name != 'schedule' || github.repository == 'mesonbuild/meson'
     env:
       HAS_DOCKER_CREDENTIALS: ${{ secrets.DOCKER_PASSWORD != '' }}
     name: ${{ matrix.cfg.name }}
