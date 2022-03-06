@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
 from os import path
-import shutil
 import typing as T
 
 from . import ExtensionModule, ModuleReturnValue
@@ -131,14 +131,17 @@ class I18nModule(ExtensionModule):
             'gettext': self.gettext,
             'itstool_join': self.itstool_join,
         })
+        self.tools: T.Dict[str, T.Optional[ExternalProgram]] = {
+            'itstool': None,
+            'msgfmt': None,
+            'msginit': None,
+            'msgmerge': None,
+            'xgettext': None,
+        }
 
     @staticmethod
     def nogettext_warning() -> None:
         mlog.warning('Gettext not found, all translation targets will be ignored.', once=True)
-
-    @staticmethod
-    def noitstool_error() -> T.NoReturn:
-        raise mesonlib.MesonException('Did not find itstool. Please install it to continue.')
 
     @staticmethod
     def _get_data_dirs(state: 'ModuleState', dirs: T.Iterable[str]) -> T.List[str]:
@@ -162,7 +165,9 @@ class I18nModule(ExtensionModule):
         KwargInfo('type', str, default='xml', validator=in_set_validator({'xml', 'desktop'})),
     )
     def merge_file(self, state: 'ModuleState', args: T.List['TYPE_var'], kwargs: 'MergeFile') -> ModuleReturnValue:
-        if not shutil.which('xgettext'):
+        if self.tools['msgfmt'] is None:
+            self.tools['msgfmt'] = state.find_program('msgfmt', required=False, for_machine=mesonlib.MachineChoice.BUILD)
+        if not self.tools['msgfmt'].found():
             self.nogettext_warning()
             return ModuleReturnValue(None, [])
         podir = path.join(state.build_to_src, state.subdir, kwargs['po_dir'])
@@ -175,6 +180,7 @@ class I18nModule(ExtensionModule):
         command.extend(state.environment.get_build_command())
         command.extend([
             '--internal', 'msgfmthelper',
+            '--msgfmt=' + self.tools['msgfmt'].get_path(),
         ])
         if datadirs:
             command.append(datadirs)
@@ -218,9 +224,13 @@ class I18nModule(ExtensionModule):
         ),
     )
     def gettext(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'Gettext') -> ModuleReturnValue:
-        if not shutil.which('xgettext'):
-            self.nogettext_warning()
-            return ModuleReturnValue(None, [])
+        for tool in ['msgfmt', 'msginit', 'msgmerge', 'xgettext']:
+            if self.tools[tool] is None:
+                self.tools[tool] = state.find_program(tool, required=False, for_machine=mesonlib.MachineChoice.BUILD)
+            # still not found?
+            if not self.tools[tool].found():
+                self.nogettext_warning()
+                return ModuleReturnValue(None, [])
         packagename = args[0]
         pkg_arg = f'--pkgname={packagename}'
 
@@ -246,6 +256,7 @@ class I18nModule(ExtensionModule):
             potargs.append(datadirs)
         if extra_arg:
             potargs.append(extra_arg)
+        potargs.append('--xgettext=' + self.tools['xgettext'].get_path())
         pottarget = build.RunTarget(packagename + '-pot', potargs, [], state.subdir, state.subproject)
         targets.append(pottarget)
 
@@ -261,7 +272,7 @@ class I18nModule(ExtensionModule):
                 f'{packagename}-{l}.mo',
                 path.join(state.subdir, l, 'LC_MESSAGES'),
                 state.subproject,
-                ['msgfmt', '@INPUT@', '-o', '@OUTPUT@'],
+                [self.tools['msgfmt'], '@INPUT@', '-o', '@OUTPUT@'],
                 [po_file],
                 [f'{packagename}.mo'],
                 install=install,
@@ -285,6 +296,8 @@ class I18nModule(ExtensionModule):
             updatepoargs.append(datadirs)
         if extra_arg:
             updatepoargs.append(extra_arg)
+        for tool in ['msginit', 'msgmerge']:
+            updatepoargs.append(f'--{tool}=' + self.tools[tool].get_path())
         updatepotarget = build.RunTarget(packagename + '-update-po', updatepoargs, [], state.subdir, state.subproject)
         targets.append(updatepotarget)
 
@@ -305,8 +318,8 @@ class I18nModule(ExtensionModule):
         KwargInfo('mo_targets', ContainerTypeInfo(list, build.CustomTarget), required=True),
     )
     def itstool_join(self, state: 'ModuleState', args: T.List['TYPE_var'], kwargs: 'ItsJoinFile') -> ModuleReturnValue:
-        if not shutil.which('itstool'):
-            self.noitstool_error()
+        if self.tools['itstool'] is None:
+            self.tools['itstool'] = state.find_program('itstool', for_machine=mesonlib.MachineChoice.BUILD)
         mo_targets = kwargs['mo_targets']
         its_files = kwargs.get('its_files', [])
 
@@ -320,7 +333,8 @@ class I18nModule(ExtensionModule):
         command.extend([
             '--internal', 'itstool', 'join',
             '-i', '@INPUT@',
-            '-o', '@OUTPUT@'
+            '-o', '@OUTPUT@',
+            '--itstool=' + self.tools['itstool'].get_path(),
         ])
         if its_files:
             for fname in its_files:
