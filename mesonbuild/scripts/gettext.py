@@ -24,6 +24,9 @@ parser.add_argument('--datadirs', default='')
 parser.add_argument('--langs', default='')
 parser.add_argument('--localedir', default='')
 parser.add_argument('--subdir', default='')
+parser.add_argument('--xgettext', default='xgettext')
+parser.add_argument('--msgmerge', default='msgmerge')
+parser.add_argument('--msginit', default='msginit')
 parser.add_argument('--extra-args', default='')
 
 def read_linguas(src_sub: str) -> T.List[str]:
@@ -42,7 +45,7 @@ def read_linguas(src_sub: str) -> T.List[str]:
         print(f'Could not find file LINGUAS in {src_sub}')
         return []
 
-def run_potgen(src_sub: str, pkgname: str, datadirs: str, args: T.List[str]) -> int:
+def run_potgen(src_sub: str, xgettext: str, pkgname: str, datadirs: str, args: T.List[str]) -> int:
     listfile = os.path.join(src_sub, 'POTFILES.in')
     if not os.path.exists(listfile):
         listfile = os.path.join(src_sub, 'POTFILES')
@@ -55,18 +58,18 @@ def run_potgen(src_sub: str, pkgname: str, datadirs: str, args: T.List[str]) -> 
         child_env['GETTEXTDATADIRS'] = datadirs
 
     ofile = os.path.join(src_sub, pkgname + '.pot')
-    return subprocess.call(['xgettext', '--package-name=' + pkgname, '-p', src_sub, '-f', listfile,
+    return subprocess.call([xgettext, '--package-name=' + pkgname, '-p', src_sub, '-f', listfile,
                             '-D', os.environ['MESON_SOURCE_ROOT'], '-k_', '-o', ofile] + args,
                            env=child_env)
 
-def update_po(src_sub: str, pkgname: str, langs: T.List[str]) -> int:
+def update_po(src_sub: str, msgmerge: str, msginit: str, pkgname: str, langs: T.List[str]) -> int:
     potfile = os.path.join(src_sub, pkgname + '.pot')
     for l in langs:
         pofile = os.path.join(src_sub, l + '.po')
         if os.path.exists(pofile):
-            subprocess.check_call(['msgmerge', '-q', '-o', pofile, pofile, potfile])
+            subprocess.check_call([msgmerge, '-q', '-o', pofile, pofile, potfile])
         else:
-            subprocess.check_call(['msginit', '--input', potfile, '--output-file', pofile, '--locale', l, '--no-translator'])
+            subprocess.check_call([msginit, '--input', potfile, '--output-file', pofile, '--locale', l, '--no-translator'])
     return 0
 
 def run(args: T.List[str]) -> int:
@@ -83,11 +86,11 @@ def run(args: T.List[str]) -> int:
         langs = read_linguas(src_sub)
 
     if subcmd == 'pot':
-        return run_potgen(src_sub, options.pkgname, options.datadirs, extra_args)
+        return run_potgen(src_sub, options.xgettext, options.pkgname, options.datadirs, extra_args)
     elif subcmd == 'update_po':
-        if run_potgen(src_sub, options.pkgname, options.datadirs, extra_args) != 0:
+        if run_potgen(src_sub, options.xgettext, options.pkgname, options.datadirs, extra_args) != 0:
             return 1
-        return update_po(src_sub, options.pkgname, langs)
+        return update_po(src_sub, options.msgmerge, options.msginit, options.pkgname, langs)
     else:
         print('Unknown subcommand.')
         return 1

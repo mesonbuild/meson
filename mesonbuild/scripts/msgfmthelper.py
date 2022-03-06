@@ -22,6 +22,7 @@ parser.add_argument('input')
 parser.add_argument('output')
 parser.add_argument('type')
 parser.add_argument('podir')
+parser.add_argument('--msgfmt', default='msgfmt')
 parser.add_argument('--datadirs', default='')
 parser.add_argument('args', default=[], metavar='extra msgfmt argument', nargs='*')
 
@@ -32,6 +33,6 @@ def run(args: T.List[str]) -> int:
     if options.datadirs:
         env = os.environ.copy()
         env.update({'GETTEXTDATADIRS': options.datadirs})
-    return subprocess.call(['msgfmt', '--' + options.type, '-d', options.podir,
+    return subprocess.call([options.msgfmt, '--' + options.type, '-d', options.podir,
                             '--template', options.input,  '-o', options.output] + options.args,
                            env=env)
