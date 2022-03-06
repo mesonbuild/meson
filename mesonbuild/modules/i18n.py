@@ -32,6 +32,7 @@ if T.TYPE_CHECKING:
     from ..build import Target
     from ..interpreter import Interpreter
     from ..interpreterbase import TYPE_var
+    from ..mparser import BaseNode
     from ..programs import ExternalProgram
 
     class MergeFile(TypedDict):
@@ -140,8 +141,8 @@ class I18nModule(ExtensionModule):
         }
 
     @staticmethod
-    def nogettext_warning() -> None:
-        mlog.warning('Gettext not found, all translation targets will be ignored.', once=True)
+    def nogettext_warning(location: BaseNode) -> None:
+        mlog.warning('Gettext not found, all translation targets will be ignored.', once=True, location=location)
 
     @staticmethod
     def _get_data_dirs(state: 'ModuleState', dirs: T.Iterable[str]) -> T.List[str]:
@@ -168,7 +169,7 @@ class I18nModule(ExtensionModule):
         if self.tools['msgfmt'] is None:
             self.tools['msgfmt'] = state.find_program('msgfmt', required=False, for_machine=mesonlib.MachineChoice.BUILD)
         if not self.tools['msgfmt'].found():
-            self.nogettext_warning()
+            self.nogettext_warning(state.current_node)
             return ModuleReturnValue(None, [])
         podir = path.join(state.build_to_src, state.subdir, kwargs['po_dir'])
 
@@ -229,7 +230,7 @@ class I18nModule(ExtensionModule):
                 self.tools[tool] = state.find_program(tool, required=False, for_machine=mesonlib.MachineChoice.BUILD)
             # still not found?
             if not self.tools[tool].found():
-                self.nogettext_warning()
+                self.nogettext_warning(state.current_node)
                 return ModuleReturnValue(None, [])
         packagename = args[0]
         pkg_arg = f'--pkgname={packagename}'
