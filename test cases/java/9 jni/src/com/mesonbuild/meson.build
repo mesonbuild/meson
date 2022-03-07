@@ -1,3 +1,11 @@
+configured = configure_file(
+  input: files('Configured.java.in'),
+  output: 'Configured.java',
+  configuration: configuration_data({'fingerprint': '0xdeadbeef'})
+)
+
+sources += configured
+
 native_headers = javamod.generate_native_headers(
-  'JniTest.java', package: 'com.mesonbuild', classes: ['JdkTest'])
+  sources, package: 'com.mesonbuild', classes: ['JniTest'])
 native_header_includes = include_directories('.')

@@ -16,6 +16,17 @@ java = find_program('java')
 jni_dep = dependency('jni', version : '>=1.8', modules: ['jvm', 'awt'])
 
 # generate native headers
-subdir('src/com/mesonbuild')
-subdir('lib')
 subdir('src')
+subdir('lib')
+
+test(
+  'jnitest',
+  java,
+  args: [
+    '-Djava.library.path=@0@'.format(fs.parent(jnijava.full_path())),
+    '-jar',
+    jnijar,
+  ],
+  protocol : 'exitcode',
+  depends : [jnijava],
+)
