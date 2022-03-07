@@ -16,7 +16,7 @@ import os
 import pathlib
 import typing as T
 from mesonbuild import mesonlib
-from mesonbuild.build import CustomTarget
+from mesonbuild.build import CustomTarget, CustomTargetIndex, GeneratedList, Target
 from mesonbuild.compilers import detect_compiler_for, Compiler
 from mesonbuild.interpreter import Interpreter
 from mesonbuild.interpreterbase.decorators import ContainerTypeInfo, FeatureDeprecated, FeatureNew, KwargInfo, typed_pos_args, typed_kwargs
@@ -80,12 +80,13 @@ class JavaModule(NewExtensionModule):
         return ModuleReturnValue(target, [target])
 
     @FeatureNew('java.generate_native_headers', '0.62.0')
-    @typed_pos_args('java.generate_native_headers', (str, mesonlib.File), min_varargs=1)
+    @typed_pos_args('java.generate_native_headers',
+        varargs=(str, mesonlib.File, Target, CustomTargetIndex, GeneratedList))
     @typed_kwargs('java.generate_native_headers',
-        KwargInfo('classes', (ContainerTypeInfo(list, str)), default=[], listify=True,
+        KwargInfo('classes', ContainerTypeInfo(list, str), default=[], listify=True,
             required=True),
         KwargInfo('package', str, default=None))
-    def generate_native_headers(self, state: ModuleState, args: T.List[mesonlib.FileOrString],
+    def generate_native_headers(self, state: ModuleState, args: T.Tuple[T.List[mesonlib.FileOrString]],
                                kwargs: T.Dict[str, T.Optional[str]]) -> ModuleReturnValue:
         classes = T.cast(T.List[str], kwargs.get('classes'))
         package = kwargs.get('package')
@@ -112,7 +113,7 @@ class JavaModule(NewExtensionModule):
         prefix = classes[0] if not package else package
 
         target = CustomTarget(f'{prefix}-native-headers', state.subdir, state.subproject, command,
-                              sources=list(args), outputs=headers, backend=state.backend)
+                              sources=args[0], outputs=headers, backend=state.backend)
 
         # It is only known that 1.8.0 won't pre-create the directory. 11 and 16
         # do not exhibit this behavior.
