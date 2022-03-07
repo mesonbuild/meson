@@ -13,9 +13,18 @@
 # limitations under the License.
 
 from .. import mesonlib
+from .common import cmake_is_debug
 import typing as T
 
-def parse_generator_expressions(raw: str) -> str:
+if T.TYPE_CHECKING:
+    from .traceparser import CMakeTraceParser, CMakeTarget
+
+def parse_generator_expressions(
+            raw: str,
+            trace: 'CMakeTraceParser',
+            *,
+            context_tgt: T.Optional['CMakeTarget'] = None,
+        ) -> str:
     '''Parse CMake generator expressions
 
     Most generator expressions are simply ignored for
@@ -44,12 +53,56 @@ def parse_generator_expressions(raw: str) -> str:
         else:
             return '1' if mesonlib.version_compare(arg[:col_pos], '{}{}'.format(op, arg[col_pos + 1:])) else '0'
 
+    def target_property(arg: str) -> str:
+        # We can't really support this since we don't have any context
+        if ',' not in arg:
+            if context_tgt is None:
+                return ''
+            return ';'.join(context_tgt.properties.get(arg, []))
+
+        args = arg.split(',')
+        props = trace.targets[args[0]].properties.get(args[1], []) if args[0] in trace.targets else []
+        return ';'.join(props)
+
+    def target_file(arg: str) -> str:
+        if arg not in trace.targets:
+            return ''
+        tgt = trace.targets[arg]
+
+        cfgs = []
+        cfg = ''
+
+        if 'IMPORTED_CONFIGURATIONS' in tgt.properties:
+            cfgs = [x for x in tgt.properties['IMPORTED_CONFIGURATIONS'] if x]
+            cfg = cfgs[0]
+
+        if cmake_is_debug(trace.env):
+            if 'DEBUG' in cfgs:
+                cfg = 'DEBUG'
+            elif 'RELEASE' in cfgs:
+                cfg = 'RELEASE'
+        else:
+            if 'RELEASE' in cfgs:
+                cfg = 'RELEASE'
+
+        if f'IMPORTED_IMPLIB_{cfg}' in tgt.properties:
+            return ';'.join([x for x in tgt.properties[f'IMPORTED_IMPLIB_{cfg}'] if x])
+        elif 'IMPORTED_IMPLIB' in tgt.properties:
+            return ';'.join([x for x in tgt.properties['IMPORTED_IMPLIB'] if x])
+        elif f'IMPORTED_LOCATION_{cfg}' in tgt.properties:
+            return ';'.join([x for x in tgt.properties[f'IMPORTED_LOCATION_{cfg}'] if x])
+        elif 'IMPORTED_LOCATION' in tgt.properties:
+            return ';'.join([x for x in tgt.properties['IMPORTED_LOCATION'] if x])
+        return ''
+
     supported = {
         # Boolean functions
         'BOOL': lambda x: '0' if x.upper() in ['0', 'FALSE', 'OFF', 'N', 'NO', 'IGNORE', 'NOTFOUND'] or x.endswith('-NOTFOUND') else '1',
         'AND': lambda x: '1' if all([y == '1' for y in x.split(',')]) else '0',
         'OR': lambda x: '1' if any([y == '1' for y in x.split(',')]) else '0',
         'NOT': lambda x: '0' if x == '1' else '1',
+
+        'IF': lambda x: x.split(',')[1] if x.split(',')[0] == '1' else x.split(',')[2],
 
         '0': lambda x: '',
         '1': lambda x: x,
@@ -78,6 +131,12 @@ def parse_generator_expressions(raw: str) -> str:
         'ANGLE-R': lambda x: '>',
         'COMMA': lambda x: ',',
         'SEMICOLON': lambda x: ';',
+
+        # Target related expressions
+        'TARGET_EXISTS': lambda x: '1' if x in trace.targets else '0',
+        'TARGET_NAME_IF_EXISTS': lambda x: x if x in trace.targets else '',
+        'TARGET_PROPERTY': target_property,
+        'TARGET_FILE': target_file,
     }  # type: T.Dict[str, T.Callable[[str], str]]
 
     # Recursively evaluate generator expressions

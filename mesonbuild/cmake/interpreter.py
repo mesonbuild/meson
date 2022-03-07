@@ -784,7 +784,7 @@ class CMakeInterpreter:
         self.languages         = []  # type: T.List[str]
         self.targets           = []  # type: T.List[ConverterTarget]
         self.custom_targets    = []  # type: T.List[ConverterCustomTarget]
-        self.trace             = CMakeTraceParser('', Path('.'))  # Will be replaced in analyse
+        self.trace             = CMakeTraceParser('', Path('.'), self.env)  # Will be replaced in analyse
         self.output_target_map = OutputTargetMap(self.build_dir)
 
         # Generated meson data
@@ -805,7 +805,7 @@ class CMakeInterpreter:
         cmake_exe = CMakeExecutor(self.env, '>=3.14', MachineChoice.BUILD)
         if not cmake_exe.found():
             raise CMakeException('Unable to find CMake')
-        self.trace = CMakeTraceParser(cmake_exe.version(), self.build_dir, permissive=True)
+        self.trace = CMakeTraceParser(cmake_exe.version(), self.build_dir, self.env, permissive=True)
 
         preload_file = DataFile('cmake/data/preload.cmake').write_to_private(self.env)
         toolchain = CMakeToolchain(cmake_exe, self.env, self.for_machine, CMakeExecScope.SUBPROJECT, self.build_dir, preload_file)
