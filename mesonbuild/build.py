@@ -255,7 +255,7 @@ class Build:
         self.test_setups: T.Dict[str, TestSetup] = {}
         self.test_setup_default_name = None
         self.find_overrides: T.Dict[str, T.Union['Executable', programs.ExternalProgram, programs.OverrideProgram]] = {}
-        self.searched_programs = set() # The list of all programs that have been searched for.
+        self.searched_programs: T.Set[str] = set() # The list of all programs that have been searched for.
 
         # If we are doing a cross build we need two caches, if we're doing a
         # build == host compilation the both caches should point to the same place.
@@ -279,7 +279,7 @@ class Build:
                 custom_targets[name] = t
         return custom_targets
 
-    def copy(self):
+    def copy(self) -> Build:
         other = Build(self.environment)
         for k, v in self.__dict__.items():
             if isinstance(v, (list, dict, set, OrderedDict)):
@@ -288,11 +288,11 @@ class Build:
                 other.__dict__[k] = v
         return other
 
-    def merge(self, other):
+    def merge(self, other: Build) -> None:
         for k, v in other.__dict__.items():
             self.__dict__[k] = v
 
-    def ensure_static_linker(self, compiler):
+    def ensure_static_linker(self, compiler: Compiler) -> None:
         if self.static_linker[compiler.for_machine] is None and compiler.needs_static_linker():
             self.static_linker[compiler.for_machine] = detect_static_linker(self.environment, compiler)
 

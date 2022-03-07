@@ -613,7 +613,7 @@ class CoreData:
                 'Default project to execute in Visual Studio',
                 '')
 
-    def get_option(self, key: OptionKey) -> T.Union[str, int, bool, WrapMode]:
+    def get_option(self, key: OptionKey) -> T.Union[T.List[str], str, int, bool, WrapMode]:
         try:
             v = self.options[key].value
             if key.name == 'wrap_mode':

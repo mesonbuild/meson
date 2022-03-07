@@ -326,7 +326,7 @@ def find_buildsystem_files_list(src_dir: str) -> T.List[str]:
 
 def list_buildsystem_files(builddata: build.Build, interpreter: Interpreter) -> T.List[str]:
     src_dir = builddata.environment.get_source_dir()
-    filelist = interpreter.get_build_def_files()  # type: T.List[str]
+    filelist = list(interpreter.get_build_def_files())
     filelist = [PurePath(src_dir, x).as_posix() for x in filelist]
     return filelist
 
