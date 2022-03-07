@@ -688,11 +688,11 @@ class ConsoleLogger(TestLogger):
                   result: 'TestRun') -> None:
         if result.verbose or (result.res.is_bad() and harness.options.print_errorlogs):
             prefix = harness.get_test_num_prefix(result.num)
-            if harness.options.verbose and not result.direct_stdout:
+            if harness.options.verbose and not result.direct_output:
                 self.print_horizontal_line(harness)
-            if not result.direct_stdout:
+            if not result.direct_output:
                 self.print_command_details(prefix, result)
-            if not (result.direct_stdout and not result.needs_parsing):
+            if not (result.direct_output and not result.needs_parsing):
                 # This was printed "live" when running the test.
                 if result.stdo:
                     if harness.options.split or result.stde:
@@ -708,7 +708,7 @@ class ConsoleLogger(TestLogger):
                                        "stderr",
                                        result.stde.splitlines(),
                                        not result.verbose)
-            if result.results and not (result.direct_stdout and result.needs_parsing):
+            if result.results and not (result.direct_output and result.needs_parsing):
                 self.print_subtests_section(prefix, result)
             if result.additional_error:
                 self.print_section(prefix,
@@ -962,7 +962,7 @@ class TestRun:
         return self._num
 
     @property
-    def direct_stdout(self) -> bool:
+    def direct_output(self) -> bool:
         return bool(self.verbose) and not self.is_parallel
 
     def get_results(self) -> str:
@@ -1418,7 +1418,7 @@ class SingleTestRunner:
 
         if self.options.gdb:
             self.console_mode = ConsoleUser.GDB
-        elif self.runobj.direct_stdout:
+        elif self.runobj.direct_output:
             self.console_mode = ConsoleUser.STDOUT
         else:
             self.console_mode = ConsoleUser.LOGGER
@@ -1527,7 +1527,7 @@ class SingleTestRunner:
 
         def printer(line: str, result: T.Optional[TestResult]) -> None:
             nonlocal printer_header
-            if self.runobj.direct_stdout:
+            if self.runobj.direct_output:
                 if printer_header:
                     console_log.print_header(get_prefix(), printer_header)
                     printer_header = None
@@ -1573,7 +1573,7 @@ class SingleTestRunner:
             stdo_task, stde_task = p.communicate(self.runobj, printer)
             parse_task = None
 
-        if self.runobj.direct_stdout:
+        if self.runobj.direct_output:
             console_log.print_command_details(get_prefix(), self.runobj)
 
         err = await p.wait(self.runobj)
