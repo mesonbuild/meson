@@ -554,7 +554,7 @@ class ExternalProgramHolder(ObjectHolder[ExternalProgram]):
             raise InterpreterException('Unable to get the version of a not-found external program')
         try:
             return self.held_object.get_version(self.interpreter)
-        except MesonException:
+        except mesonlib.MesonException:
             return 'unknown'
 
     def found(self) -> bool:
