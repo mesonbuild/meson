@@ -796,8 +796,6 @@ external dependencies (including libraries) must go to "dependencies".''')
     def func_option(self, nodes, args, kwargs):
         raise InterpreterException('Tried to call option() in build description file. All options must be in the option file.')
 
-    @FeatureNewKwargs('subproject', '0.38.0', ['default_options'])
-    @permittedKwargs({'version', 'default_options', 'required'})
     @typed_pos_args('subproject', str)
     @typed_kwargs(
         'subproject',
