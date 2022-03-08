@@ -158,7 +158,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
         if largs is not None:
             self.link_args = largs
 
-        self.is_found = largs is not None or self.link_libpython
+        self.is_found = largs is not None or not self.link_libpython
 
         inc_paths = mesonlib.OrderedSet([
             self.variables.get('INCLUDEPY'),
