@@ -1,4 +1,5 @@
-project('bitcode test', 'c', 'objc', 'objcpp')
+project('bitcode test', 'c', 'objc', 'objcpp',
+    default_options : ['b_bitcode=true'])
 
 both_libraries('alib', 'libfoo.m')
 shared_module('amodule', 'libfoo.m')
