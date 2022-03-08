@@ -4,13 +4,18 @@
 """Helpers for strict type checking."""
 
 from __future__ import annotations
+import functools
 import os
+import re
 import typing as T
+
 
 from .. import compilers
 from ..build import (CustomTarget, BuildTarget,
                      CustomTargetIndex, ExtractedObjects, GeneratedList, IncludeDirs,
-                     BothLibraries, SharedLibrary, StaticLibrary, Jar, Executable)
+                     BothLibraries, SharedLibrary, StaticLibrary, Jar, Executable,
+                     StructuredSources, SharedModule)
+from ..compilers.compilers import is_object
 from ..coredata import UserFeatureOption
 from ..dependencies import Dependency, InternalDependency
 from ..interpreterbase import FeatureNew
@@ -149,6 +154,12 @@ def variables_convertor(contents: T.Union[str, T.List[str], T.Dict[str, str]]) -
         key, val = v.split('=', 1)
         variables[key.strip()] = val.strip()
     return variables
+
+
+def _empty_string_validator(val: T.Optional[str]) -> T.Optional[str]:
+    if val is not None and val == '':
+        return 'may not be an empty string'
+    return None
 
 
 NATIVE_KW = KwargInfo(
@@ -476,4 +487,345 @@ TEST_KWS: T.List[KwargInfo] = [
     DEPENDS_KW.evolve(since='0.46.0'),
     KwargInfo('suite', ContainerTypeInfo(list, str), listify=True, default=['']),  # yes, a list of empty string
     KwargInfo('verbose', bool, default=False, since='0.62.0'),
+]
+
+_PCH_KW: KwargInfo[T.List[str]] = KwargInfo(
+    'c_pch',
+    ContainerTypeInfo(list, str),
+    default=[],
+    listify=True,
+    validator=lambda x: 'must be of length 1 or 2 if provided' if len(x) > 2 else None,
+)
+
+_VS_MODULE_DEF_KW: KwargInfo[T.Union[str, File, CustomTarget, CustomTargetIndex]] = KwargInfo(
+    'vs_module_defs',
+    (str, File, CustomTarget, CustomTargetIndex, NoneType),
+)
+
+
+_NAME_PREFIX_KW: KwargInfo[T.Union[str, list, None]] = KwargInfo(
+    'name_prefix',
+    (str, list, NoneType),
+    default=[],
+    validator=lambda x: 'must be an empty list to signify default value' if (isinstance(x, list) and x) else None,
+    convertor=lambda x: None if isinstance(x, list) else x,
+)
+
+# A variant used internally for build targets, and is stricter than the public
+# one. Specifically:
+# - shared_module allows linking with `Executable`, but no other `build_target`` does
+# - Jar can only be linked with other `Jar`s, but no other type can link with a `Jar`
+#
+# This also means that this is different than the version used by `declare_dependency`,
+# which must accept all of these types.
+_LINK_WITH_KW: KwargInfo[T.List[T.Union[BothLibraries, SharedLibrary, SharedModule, StaticLibrary, CustomTarget, CustomTargetIndex]]] = KwargInfo(
+    'link_with',
+    ContainerTypeInfo(
+        list,
+        (BothLibraries, SharedLibrary, StaticLibrary,
+         SharedModule, CustomTarget, CustomTargetIndex,
+         Dependency)),
+    default=[],
+    listify=True,
+    validator=lambda x: _link_with_error if isinstance(x, Dependency) else None,
+)
+
+_ALL_TARGET_KWS: T.List[KwargInfo] = [
+    KwargInfo('build_by_default', bool, default=True, since='0.40.0'),
+    DEPENDENCIES_KW,
+    KwargInfo(
+        'extra_files',
+        ContainerTypeInfo(list, (str, File)),
+        default=[],
+        listify=True,
+    ),
+    KwargInfo('implicit_include_directories', bool, default=True, since='0.42.0'),
+    INCLUDE_DIRECTORIES.evolve(feature_validator=functools.partial(include_dir_string_new, '0.50.0')),
+    INSTALL_MODE_KW.evolve(since='0.47.0'),
+    INSTALL_KW,
+    # TODO: Eventually we want this to just be the generic INSTALL_DIR_KW, but in the mean time
+    # this is allowed to be a `List[str | bool]` (not just `False`) so we have to handle it manually
+    KwargInfo(
+        'install_dir',
+        ContainerTypeInfo(list, (str, bool)),
+        default=[],
+        listify=True,
+    ),
+    INSTALL_TAG_KW.evolve(since='0.60.0'),
+    KwargInfo('link_args', ContainerTypeInfo(list, str), default=[], listify=True),
+    KwargInfo(
+        'link_depends',
+        ContainerTypeInfo(list, (str, File, CustomTarget, CustomTargetIndex)),
+        default=[],
+        listify=True,
+    ),
+    OVERRIDE_OPTIONS_KW.evolve(since='0.40.0'),
+]
+
+
+def _object_validator(vals: T.List[T.Union[str, File, ExtractedObjects, GeneratedList, CustomTarget, CustomTargetIndex]]) -> T.Optional[str]:
+    non_objects: T.List[str] = []
+
+    for val in vals:
+        if isinstance(val, ExtractedObjects):
+            continue
+        elif isinstance(val, (str, File)):
+            if not is_object(val):
+                non_objects.append(str(val))
+        else:
+            non_objects.extend([o for o in val.get_outputs() if not is_object(o)])
+
+    if non_objects:
+        return (f'File{"s" if len(non_objects) > 1 else ""}: "{", ".join(non_objects)}" '
+                'in the "objects" keyword arguments are not objects')
+    return None
+
+
+def _object_feature_validator(val: T.List[T.Union[str, File, ExtractedObjects, GeneratedList, CustomTarget, CustomTargetIndex]]) -> T.Iterable[FeatureCheckBase]:
+    if any(isinstance(x, (GeneratedList, CustomTarget, CustomTargetIndex)) for x in val):
+        yield FeatureNew('Generated sources in "objects" keyword argument', '1.1.0',
+                         'Pass these generated sources as positional source arguments')
+
+
+_BUILD_TARGET_KWS: T.List[KwargInfo] = [
+    KwargInfo('build_rpath', str, default='', since='0.42.0'),
+    KwargInfo('d_debug', ContainerTypeInfo(list, (str, int)), default=[], listify=True),
+    INCLUDE_DIRECTORIES.evolve(name='d_import_dirs'),
+    D_MODULE_VERSIONS_KW,
+    KwargInfo('d_unittest', bool, default=False),
+    KwargInfo(
+        'gnu_symbol_visibility', str, default='', since='0.48.0',
+        validator=in_set_validator({'', 'default', 'internal', 'hidden', 'protected', 'inlineshidden'}),
+    ),
+    KwargInfo('install_rpath', str, default=''),
+    KwargInfo(
+        'link_language',
+        (str, NoneType),
+        since='0.51.0',
+        validator=in_set_validator(set(compilers.all_languages)),
+    ),
+    LINK_WHOLE_KW.evolve(since='0.40.0'),
+    _NAME_PREFIX_KW,
+    _NAME_PREFIX_KW.evolve(name='name_suffix'),
+    NATIVE_KW,
+    KwargInfo(
+        'objects',
+        ContainerTypeInfo(list, (str, File, ExtractedObjects, GeneratedList, CustomTarget, CustomTargetIndex)),
+        default=[],
+        listify=True,
+        validator=_object_validator,
+        feature_validator=_object_feature_validator,
+        # TODO: since types
+    ),
+    # sources is here because JAR needs to have it's own implementation
+    KwargInfo(
+        'sources',
+        ContainerTypeInfo(list, (str, File, CustomTarget, CustomTargetIndex, GeneratedList, StructuredSources)),
+        default=[],
+        listify=True,
+    ),
+    KwargInfo(
+        'resources',
+        ContainerTypeInfo(list, str),
+        default=[],
+        listify=True,
+    ),
+    _PCH_KW,
+    _PCH_KW.evolve(name='cpp_pch'),
+    KwargInfo('vala_header', (str, NoneType), validator=_empty_string_validator),
+    KwargInfo('vala_vapi', (str, NoneType), validator=_empty_string_validator),
+    KwargInfo('vala_gir', (str, NoneType), validator=_empty_string_validator),
+]
+
+_RUST_CRATE_TYPE_KW = KwargInfo(
+    'rust_crate_type',
+    str,
+    default='lib',
+    since='0.42.0',
+)
+
+_PIE_KW: KwargInfo[T.Optional[bool]] = KwargInfo(
+    'pie', (bool, NoneType), since='0.49.0',
+)
+
+_LANGUAGE_KWS: T.List[KwargInfo] = [
+    KwargInfo(f'{lang}_args', ContainerTypeInfo(list, str), listify=True, default=[])
+    for lang in compilers.all_languages if lang != 'java'
+]
+
+_JAVA_LANGUAGE_KW: KwargInfo[T.List[str]] = KwargInfo(
+    'java_args',
+    ContainerTypeInfo(list, str),
+    listify=True,
+    default=[],
+)
+
+_EXCLUSIVE_STATIC_LIB_KWS: T.List[KwargInfo] = [
+    KwargInfo('pic', (bool, NoneType), since='0.36.0'),
+    KwargInfo('prelink', bool, default=False, since='0.57.0'),
+]
+
+STATIC_LIB_KWS: T.List[KwargInfo] = (
+    _BUILD_TARGET_KWS + _LANGUAGE_KWS + _EXCLUSIVE_STATIC_LIB_KWS +
+    [_LINK_WITH_KW,
+     _PIE_KW,
+     _RUST_CRATE_TYPE_KW.evolve(validator=in_set_validator({'lib', 'rlib', 'staticlib'}))]
+)
+
+def _validate_darwin_versions(darwin_versions: T.List[T.Union[str, int]]) -> T.Optional[str]:
+    if len(darwin_versions) > 2:
+        return f"Must contain between 0 and 2 elements, not {len(darwin_versions)}"
+    if len(darwin_versions) == 1:
+        darwin_versions = 2 * darwin_versions
+    for v in darwin_versions:
+        if isinstance(v, int):
+            v = str(v)
+        if not re.fullmatch(r'[0-9]+(\.[0-9]+){0,2}', v):
+            return 'must be X.Y.Z where X, Y, Z are numbers, and Y and Z are optional'
+        try:
+            parts = v.split('.')
+        except ValueError:
+            return f'badly formed value: "{v}, not in X.Y.Z form'
+        if len(parts) in {1, 2, 3} and int(parts[0]) > 65535:
+            return 'must be X.Y.Z where X is [0, 65535] and Y, Z are optional'
+        if len(parts) in {2, 3} and int(parts[1]) > 255:
+            return 'must be X.Y.Z where Y is [0, 255] and Y, Z are optional'
+        if len(parts) == 3 and int(parts[2]) > 255:
+            return 'must be X.Y.Z where Z is [0, 255] and Y, Z are optional'
+    return None
+
+def _convert_darwin_versions(val: T.List[T.Union[str, int]]) -> T.Optional[T.Tuple[str, str]]:
+    if not val:
+        return None
+    elif len(val) == 1:
+        v = str(val[0])
+        return (v, v)
+    return (str(val[0]), str(val[1]))
+
+
+def _validate_library_version(ver: T.Optional[str]) -> T.Optional[str]:
+    if ver is not None and not re.fullmatch(r'[0-9]+(\.[0-9]+){0,2}', ver):
+        return (f'Invalid Shared library version "{ver}". '
+                'Must be of the form X.Y.Z where all three are numbers. Y and Z are optional.')
+    return None
+
+
+_EXCLUSIVE_SHARED_LIB_KWS: T.List[KwargInfo] = [
+    _VS_MODULE_DEF_KW,
+    _LINK_WITH_KW,
+    KwargInfo('version', (str, NoneType), validator=_validate_library_version),
+    KwargInfo('soversion', (str, int, NoneType), convertor=lambda x: str(x) if x is not None else None),
+    KwargInfo(
+        'darwin_versions',
+        ContainerTypeInfo(list, (str, int)),
+        default=[],
+        listify=True,
+        validator=_validate_darwin_versions,
+        convertor=_convert_darwin_versions,
+        since='0.48.0',
+    ),
+]
+
+_SHARED_LIB_RUST_CRATE = _RUST_CRATE_TYPE_KW.evolve(
+    validator=in_set_validator({'lib', 'dylib', 'cdylib', 'proc-macro'}),
+    since_values={'proc-macro': '0.62.0'}
+)
+
+SHARED_LIB_KWS: T.List[KwargInfo] = (
+    _BUILD_TARGET_KWS + _LANGUAGE_KWS + _EXCLUSIVE_SHARED_LIB_KWS +
+    [
+        _SHARED_LIB_RUST_CRATE,
+    ]
+)
+
+SHARED_MOD_KWS: T.List[KwargInfo] = [
+    *_BUILD_TARGET_KWS,
+    *_LANGUAGE_KWS,
+    _SHARED_LIB_RUST_CRATE,
+    _VS_MODULE_DEF_KW.evolve(since='0.52.0'),
+    # Shared modules can additionally by linked with Executables
+    KwargInfo(
+        'link_with',
+        ContainerTypeInfo(
+            list,
+            (BothLibraries, SharedLibrary, StaticLibrary,
+             SharedModule, CustomTarget, CustomTargetIndex,
+             Executable, Dependency)),
+        default=[],
+        listify=True,
+        validator=lambda x: _link_with_error if any(isinstance(i, Dependency) for i in x) else None,
+    ),
+]
+
+BOTH_LIB_KWS: T.List[KwargInfo] = (
+    _BUILD_TARGET_KWS + _LANGUAGE_KWS + _EXCLUSIVE_SHARED_LIB_KWS + _EXCLUSIVE_STATIC_LIB_KWS +
+    # XXX: rust_crate_type (and rust in general?) is busted with both lib
+    [
+        _RUST_CRATE_TYPE_KW.evolve(
+            validator=in_set_validator({'lib', 'dylib', 'cdylib', 'rlib', 'staticlib', 'proc-macro'}),
+            since_values={'proc-macro': '0.62.0'}),
+        _PIE_KW,
+    ]
+)
+
+def _win_subsystem_validator(value: T.Optional[str]) -> T.Optional[str]:
+    value = value.lower()
+    if re.fullmatch(r'(boot_application|console|efi_application|efi_boot_service_driver|efi_rom|efi_runtime_driver|native|posix|windows)(,\d+(\.\d+)?)?', value) is None:
+        return f'Invalid value for win_subsystem: {value}.'
+    return None
+
+
+_EXCLUSIVE_EXECUTABLE_KWS: T.List[KwargInfo] = [
+    KwargInfo('export_dynamic', bool, default=False, since='0.45.0'),
+    KwargInfo('gui_app', (bool, NoneType), deprecated='0.56.0', deprecated_message="Use 'win_subsystem' instead."),
+    KwargInfo('implib', (bool, str, NoneType), since='0.42.0'),
+    KwargInfo('win_subsystem', (str, NoneType), since='0.56.0', validator=_win_subsystem_validator),
+    _LINK_WITH_KW,
+]
+
+EXECUTABLE_KWS: T.List[KwargInfo] = \
+    _BUILD_TARGET_KWS + _LANGUAGE_KWS + _EXCLUSIVE_EXECUTABLE_KWS + [
+        _PIE_KW,
+        _RUST_CRATE_TYPE_KW.evolve(default='bin', validator=in_set_validator({'bin'})),
+    ]
+
+_EXCLUSIVE_JAVA_KWS: T.List[KwargInfo] = [
+    KwargInfo('main_class', str, default=''),
+    KwargInfo('java_resources', (StructuredSources, NoneType), since='0.62.0'),
+    _JAVA_LANGUAGE_KW,
+]
+
+JAR_KWS: T.List[KwargInfo] = [
+    *_ALL_TARGET_KWS,
+    *_LANGUAGE_KWS,
+    *_EXCLUSIVE_JAVA_KWS,
+    SOURCES_KW,  # this doesn't include StructuredSources, which is correct for Jar
+    # Jars can only be linked with other JARs
+    KwargInfo(
+        'link_with',
+        ContainerTypeInfo(list, Jar),
+        default=[],
+        listify=True,
+    ),
+]
+
+BUILD_TARGET_KWS: T.List[KwargInfo] = [
+    *_BUILD_TARGET_KWS,
+    *_LANGUAGE_KWS,
+    *_EXCLUSIVE_SHARED_LIB_KWS,
+    *_EXCLUSIVE_STATIC_LIB_KWS,
+    *_EXCLUSIVE_EXECUTABLE_KWS,
+    *_EXCLUSIVE_JAVA_KWS,
+    _PIE_KW,
+    _RUST_CRATE_TYPE_KW.evolve(
+        validator=in_set_validator({'lib', 'dylib', 'cdylib', 'rlib', 'staticlib', 'proc-macro', 'bin'}),
+        since_values={'proc-macro': '0.62.0'}),
+    KwargInfo(
+        'target_type', str, required=True,
+        validator=in_set_validator({
+            'executable', 'shared_library', 'shared_module',
+            'static_library', 'both_libraries', 'library',
+            'jar',
+        })
+    )
 ]
