@@ -625,6 +625,12 @@ for OpenMP support.
 
 The `language` keyword may used.
 
+## OpenSSL
+
+*(added 0.62.0)*
+
+`method` may be `auto`, `pkg-config`, `system` or `cmake`.
+
 ## pcap
 
 *(added 0.42.0)*
