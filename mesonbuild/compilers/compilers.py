@@ -1,4 +1,4 @@
-# Copyright 2012-2019 The Meson development team
+# Copyright 2012-2022 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -1007,7 +1007,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         return dep.get_link_args()
 
     @classmethod
-    def use_linker_args(cls, linker: str) -> T.List[str]:
+    def use_linker_args(cls, linker: str, version: str) -> T.List[str]:
         """Get a list of arguments to pass to the compiler to set the linker.
         """
         return []

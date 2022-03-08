@@ -1,4 +1,4 @@
-# Copyright 2019 The meson development team
+# Copyright 2019-2022 The meson development team
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -313,7 +313,7 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         return ['-I' + path]
 
     @classmethod
-    def use_linker_args(cls, linker: str) -> T.List[str]:
+    def use_linker_args(cls, linker: str, version: str) -> T.List[str]:
         if linker not in {'gold', 'bfd', 'lld'}:
             raise mesonlib.MesonException(
                 f'Unsupported linker, only bfd, gold, and lld are supported, not {linker}.')
@@ -396,3 +396,9 @@ class GnuCompiler(GnuLikeCompiler):
         elif threads > 0:
             return [f'-flto={threads}']
         return super().get_lto_compile_args(threads=threads)
+
+    @classmethod
+    def use_linker_args(cls, linker: str, version: str) -> T.List[str]:
+        if linker == 'mold' and mesonlib.version_compare(version, '>=12.0.1'):
+            return ['-fuse-ld=mold']
+        return super().use_linker_args(linker, version)

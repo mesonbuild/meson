@@ -1,4 +1,4 @@
-# Copyright 2019 The meson development team
+# Copyright 2019-2022 The meson development team
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -118,7 +118,7 @@ class ClangCompiler(GnuLikeCompiler):
             return []
 
     @classmethod
-    def use_linker_args(cls, linker: str) -> T.List[str]:
+    def use_linker_args(cls, linker: str, version: str) -> T.List[str]:
         # Clang additionally can use a linker specified as a path, which GCC
         # (and other gcc-like compilers) cannot. This is because clang (being
         # llvm based) is retargetable, while GCC is not.
@@ -127,13 +127,15 @@ class ClangCompiler(GnuLikeCompiler):
         # qcld: Qualcomm Snapdragon linker, based on LLVM
         if linker == 'qcld':
             return ['-fuse-ld=qcld']
+        if linker == 'mold':
+            return ['-fuse-ld=mold']
 
         if shutil.which(linker):
             if not shutil.which(linker):
                 raise mesonlib.MesonException(
                     f'Cannot find linker {linker}.')
             return [f'-fuse-ld={linker}']
-        return super().use_linker_args(linker)
+        return super().use_linker_args(linker, version)
 
     def get_has_func_attribute_extra_args(self, name: str) -> T.List[str]:
         # Clang only warns about unknown or ignored attributes, so force an
