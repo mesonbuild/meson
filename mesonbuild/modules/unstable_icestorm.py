@@ -13,83 +13,119 @@
 # limitations under the License.
 
 from __future__ import annotations
-
+import itertools
 import typing as T
 
-from . import ExtensionModule
+from . import ExtensionModule, ModuleReturnValue
+from .. import build
 from .. import mesonlib
+from ..interpreter.type_checking import CT_INPUT_KW
 from ..interpreterbase import FeatureNew
-from ..interpreterbase import flatten
+from ..interpreterbase.decorators import KwargInfo, typed_kwargs, typed_pos_args
 
 if T.TYPE_CHECKING:
+    from typing_extensions import TypedDict
+
+    from . import ModuleState
+    from ..interpreter import Interpreter
     from ..programs import ExternalProgram
+
+    class ProjectKwargs(TypedDict):
+
+        sources: T.List[T.Union[mesonlib.FileOrString, build.GeneratedTypes]]
+        constraint_file: T.Union[mesonlib.FileOrString, build.GeneratedTypes]
 
 class IceStormModule(ExtensionModule):
 
     @FeatureNew('FPGA/Icestorm Module', '0.45.0')
-    def __init__(self, interpreter):
+    def __init__(self, interpreter: Interpreter) -> None:
         super().__init__(interpreter)
         self.tools: T.Dict[str, ExternalProgram] = {}
         self.methods.update({
             'project': self.project,
         })
 
-    def detect_tools(self, state):
+    def detect_tools(self, state: ModuleState) -> None:
         self.tools['yosys'] = state.find_program('yosys')
         self.tools['arachne'] = state.find_program('arachne-pnr')
         self.tools['icepack'] = state.find_program('icepack')
         self.tools['iceprog'] = state.find_program('iceprog')
         self.tools['icetime'] = state.find_program('icetime')
 
-    def project(self, state, args, kwargs):
+    @typed_pos_args('icestorm.project', str,
+                    varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex,
+                             build.GeneratedList))
+    @typed_kwargs(
+        'icestorm.project',
+        CT_INPUT_KW.evolve(name='sources'),
+        KwargInfo(
+            'constraint_file',
+            (str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList),
+            required=True,
+        )
+    )
+    def project(self, state: ModuleState,
+                args: T.Tuple[str, T.List[T.Union[mesonlib.FileOrString, build.GeneratedTypes]]],
+                kwargs: ProjectKwargs) -> ModuleReturnValue:
         if not self.tools:
             self.detect_tools(state)
-        if not args:
-            raise mesonlib.MesonException('Project requires at least one argument, which is the project name.')
-        proj_name = args[0]
-        arg_sources = args[1:]
-        if not isinstance(proj_name, str):
-            raise mesonlib.MesonException('Argument must be a string.')
-        kwarg_sources = kwargs.get('sources', [])
-        if not isinstance(kwarg_sources, list):
-            kwarg_sources = [kwarg_sources]
-        all_sources = self.interpreter.source_strings_to_files(flatten(arg_sources + kwarg_sources))
-        if 'constraint_file' not in kwargs:
-            raise mesonlib.MesonException('Constraint file not specified.')
+        proj_name, arg_sources = args
+        all_sources = self.interpreter.source_strings_to_files(
+            list(itertools.chain(arg_sources, kwargs['sources'])))
 
-        constraint_file = self.interpreter.source_strings_to_files(kwargs['constraint_file'])
-        if len(constraint_file) != 1:
-            raise mesonlib.MesonException('Constraint file must contain one and only one entry.')
-        blif_name = proj_name + '_blif'
-        blif_fname = proj_name + '.blif'
-        asc_name = proj_name + '_asc'
-        asc_fname = proj_name + '.asc'
-        bin_name = proj_name + '_bin'
-        bin_fname = proj_name + '.bin'
-        time_name = proj_name + '-time'
-        upload_name = proj_name + '-upload'
+        blif_target = build.CustomTarget(
+            f'{proj_name}_blif',
+            state.subdir,
+            state.subproject,
+            state.environment,
+            [self.tools['yosys'], '-q', '-p', 'synth_ice40 -blif @OUTPUT@', '@INPUT@'],
+            all_sources,
+            [f'{proj_name}.blif'],
+        )
 
-        blif_target = self.interpreter.func_custom_target(None, [blif_name], {
-            'input': all_sources,
-            'output': blif_fname,
-            'command': [self.tools['yosys'], '-q', '-p', 'synth_ice40 -blif @OUTPUT@', '@INPUT@']})
+        asc_target = build.CustomTarget(
+            f'{proj_name}_asc',
+            state.subdir,
+            state.subproject,
+            state.environment,
+            [self.tools['arachne'], '-q', '-d', '1k', '-p', '@INPUT@', '-o', '@OUTPUT@'],
+            [kwargs['constraint_file'], blif_target],
+            [f'{proj_name}.asc'],
+        )
 
-        asc_target = self.interpreter.func_custom_target(None, [asc_name], {
-            'input': blif_target,
-            'output': asc_fname,
-            'command': [self.tools['arachne'], '-q', '-d', '1k', '-p', constraint_file, '@INPUT@', '-o', '@OUTPUT@']})
+        bin_target = build.CustomTarget(
+            f'{proj_name}_bin',
+            state.subdir,
+            state.subproject,
+            state.environment,
+            [self.tools['icepack'], '@INPUT@', '@OUTPUT@'],
+            [asc_target],
+            [f'{proj_name}.bin'],
+            build_by_default=True,
+        )
 
-        bin_target = self.interpreter.func_custom_target(None, [bin_name], {
-            'input': asc_target,
-            'output': bin_fname,
-            'command': [self.tools['icepack'], '@INPUT@', '@OUTPUT@'],
-            'build_by_default': True})
+        upload_target = build.RunTarget(
+            f'{proj_name}-upload',
+            [self.tools['iceprog'], bin_target],
+            [],
+            state.subdir,
+            state.subproject,
+            state.environment,
+        )
 
-        self.interpreter.func_run_target(None, [upload_name], {
-            'command': [self.tools['iceprog'], bin_target]})
+        time_target = build.RunTarget(
+            f'{proj_name}-time',
+            [self.tools['icetime'], bin_target],
+            [],
+            state.subdir,
+            state.subproject,
+            state.environment,
+        )
 
-        self.interpreter.func_run_target(None, [time_name], {
-            'command': [self.tools['icetime'], bin_target]})
+        return ModuleReturnValue(
+            None,
+            [blif_target, asc_target, bin_target, upload_target, time_target])
 
-def initialize(*args, **kwargs):
-    return IceStormModule(*args, **kwargs)
+
+def initialize(interp: Interpreter) -> IceStormModule:
+    return IceStormModule(interp)
