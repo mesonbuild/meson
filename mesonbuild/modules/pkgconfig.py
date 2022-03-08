@@ -524,6 +524,7 @@ class PkgConfigModule(ExtensionModule):
             blocked_vars = ['libraries', 'libraries_private', 'require_private', 'extra_cflags', 'subdirs']
             if any(k in kwargs for k in blocked_vars):
                 raise mesonlib.MesonException(f'Cannot combine dataonly with any of {blocked_vars}')
+            default_install_dir = os.path.join(state.environment.get_datadir(), 'pkgconfig')
 
         subdirs = mesonlib.stringlistify(kwargs.get('subdirs', default_subdirs))
         version = kwargs.get('version', default_version)
