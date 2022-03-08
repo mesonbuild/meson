@@ -717,22 +717,21 @@ class ConsoleLogger(TestLogger):
                 self.print_horizontal_line(harness)
             if not result.direct_output:
                 self.print_command_details(prefix, result)
-            if not (result.direct_output and not result.needs_parsing):
-                # This was printed "live" when running the test.
-                if result.stdo:
-                    if harness.options.split or result.stde:
-                        name = 'stdout'
-                    else:
-                        name = 'output'
-                    self.print_section(prefix,
-                                       name,
-                                       result.stdo.splitlines(),
-                                       not result.verbose)
-                if result.stde:
-                    self.print_section(prefix,
-                                       "stderr",
-                                       result.stde.splitlines(),
-                                       not result.verbose)
+            if result.stdo and (not result.needs_parsing
+                                and not result.direct_output):
+                if harness.options.split or result.stde:
+                    name = 'stdout'
+                else:
+                    name = 'output'
+                self.print_section(prefix,
+                                   name,
+                                   result.stdo.splitlines(),
+                                   not result.verbose)
+            if result.stde and (not result.direct_output or result.needs_parsing):
+                self.print_section(prefix,
+                                   "stderr",
+                                   result.stde.splitlines(),
+                                   not result.verbose)
             if result.results and not (result.direct_output and result.needs_parsing):
                 self.print_subtests_section(harness, prefix, result)
             if result.additional_error:
