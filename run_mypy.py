@@ -45,6 +45,7 @@ modules = [
     'mesonbuild/modules/i18n.py',
     'mesonbuild/modules/java.py',
     'mesonbuild/modules/keyval.py',
+    'mesonbuild/modules/modtest.py',
     'mesonbuild/modules/qt.py',
     'mesonbuild/modules/sourceset.py',
     'mesonbuild/modules/unstable_external_project.py',
