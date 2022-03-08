@@ -1,4 +1,4 @@
-# Copyright 2012-2021 The Meson development team
+# Copyright 2012-2022 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ from .linkers import (
     AppleDynamicLinker,
     GnuGoldDynamicLinker,
     GnuBFDDynamicLinker,
+    MoldDynamicLinker,
     LLVMDynamicLinker,
     QualcommLLVMDynamicLinker,
     MSVCDynamicLinker,
@@ -56,7 +57,7 @@ def __failed_to_detect_linker(compiler: T.List[str], args: T.List[str], stdout: 
 
 
 def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Type['Compiler'],
-                     for_machine: MachineChoice, *,
+                     comp_version: str, for_machine: MachineChoice, *,
                      use_linker_prefix: bool = True, invoked_directly: bool = True,
                      extra_args: T.Optional[T.List[str]] = None) -> 'DynamicLinker':
     env.coredata.add_lang_args(comp_class.language, comp_class, for_machine, env)
@@ -74,7 +75,7 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     override = []  # type: T.List[str]
     value = env.lookup_binary_entry(for_machine, comp_class.language + '_ld')
     if value is not None:
-        override = comp_class.use_linker_args(value[0])
+        override = comp_class.use_linker_args(value[0], comp_version)
         check_args += override
 
     if extra_args is not None:
@@ -126,12 +127,13 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     __failed_to_detect_linker(compiler, check_args, o, e)
 
 def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Type['Compiler'],
-                     for_machine: MachineChoice, *,
+                     comp_version:str, for_machine: MachineChoice, *,
                      extra_args: T.Optional[T.List[str]] = None) -> 'DynamicLinker':
     """Helper for guessing what linker to use on Unix-Like OSes.
 
     :compiler: Invocation to use to get linker
     :comp_class: The Compiler Type (uninstantiated)
+    :comp_version: The compiler version string
     :for_machine: which machine this linker targets
     :extra_args: Any additional arguments required (such as a source file)
     """
@@ -147,7 +149,7 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     override = []  # type: T.List[str]
     value = env.lookup_binary_entry(for_machine, comp_class.language + '_ld')
     if value is not None:
-        override = comp_class.use_linker_args(value[0])
+        override = comp_class.use_linker_args(value[0], comp_version)
         check_args += override
 
     _, o, e = Popen_safe(compiler + check_args)
@@ -194,6 +196,8 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
         cls: T.Type[GnuDynamicLinker]
         if 'gold' in o or 'gold' in e:
             cls = GnuGoldDynamicLinker
+        elif 'mold' in o or 'mold' in e:
+            cls = MoldDynamicLinker
         else:
             cls = GnuBFDDynamicLinker
         linker = cls(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)

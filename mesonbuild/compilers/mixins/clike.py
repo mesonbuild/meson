@@ -1,4 +1,4 @@
-# Copyright 2012-2017 The Meson development team
+# Copyright 2012-2022 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -410,7 +410,7 @@ class CLikeCompiler(Compiler):
         if mode is CompileCheckMode.LINK:
             ld_value = env.lookup_binary_entry(self.for_machine, self.language + '_ld')
             if ld_value is not None:
-                largs += self.use_linker_args(ld_value[0])
+                largs += self.use_linker_args(ld_value[0], self.version)
 
             # Add LDFLAGS from the env
             sys_ld_args = env.coredata.get_external_link_args(self.for_machine, self.language)

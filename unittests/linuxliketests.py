@@ -1,4 +1,4 @@
-# Copyright 2016-2021 The Meson development team
+# Copyright 2016-2022 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -1597,7 +1597,7 @@ class LinuxlikeTests(BasePlatformTests):
                 if isinstance(comp, (AppleClangCCompiler, AppleClangCPPCompiler,
                                      AppleClangObjCCompiler, AppleClangObjCPPCompiler)):
                     raise SkipTest('AppleClang is currently only supported with ld64')
-                if lang != 'rust' and comp.use_linker_args('bfd') == []:
+                if lang != 'rust' and comp.use_linker_args('bfd', '') == []:
                     raise SkipTest(
                         f'Compiler {comp.id} does not support using alternative linkers')
                 self.assertEqual(comp.linker.id, expected)

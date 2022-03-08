@@ -1,4 +1,4 @@
-# Copyright 2012-2017 The Meson development team
+# Copyright 2012-2022 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -806,7 +806,7 @@ class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
         return ldc_optimization_args[optimization_level]
 
     @classmethod
-    def use_linker_args(cls, linker: str) -> T.List[str]:
+    def use_linker_args(cls, linker: str, version: str) -> T.List[str]:
         return [f'-linker={linker}']
 
     def get_linker_always_args(self) -> T.List[str]:
