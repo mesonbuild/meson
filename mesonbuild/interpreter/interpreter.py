@@ -1984,7 +1984,10 @@ external dependencies (including libraries) must go to "dependencies".''')
                              location=node)
             name = name.replace(':', '_')
         exe = args[1]
-        if isinstance(exe, mesonlib.File):
+        if isinstance(exe, ExternalProgram):
+            if not exe.found():
+                raise InvalidArguments('Tried to use not-found external program as test exe')
+        elif isinstance(exe, mesonlib.File):
             exe = self.find_program_impl([exe])
 
         env = self.unpack_env_kwarg(kwargs)
