@@ -12,19 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+import typing as T
+
 from . import ExtensionModule
-from ..interpreterbase import noKwargs
+from ..interpreterbase import noKwargs, noPosargs
+
+if T.TYPE_CHECKING:
+    from . import ModuleState
+    from ..interpreter.interpreter import Interpreter
+    from ..interpreterbase.baseobjects import TYPE_kwargs, TYPE_var
+
 
 class TestModule(ExtensionModule):
-    def __init__(self, interpreter):
+    def __init__(self, interpreter: Interpreter) -> None:
         super().__init__(interpreter)
         self.methods.update({
             'print_hello': self.print_hello,
         })
 
     @noKwargs
-    def print_hello(self, state, args, kwargs):
+    @noPosargs
+    def print_hello(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> None:
         print('Hello from a Meson module')
 
-def initialize(*args, **kwargs):
-    return TestModule(*args, **kwargs)
+
+def initialize(interp: Interpreter) -> TestModule:
+    return TestModule(interp)
