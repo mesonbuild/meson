@@ -37,6 +37,23 @@ def _get_meson_output(root_dir: Path, args: T.List) -> str:
     env['COLUMNS'] = '80'
     return subprocess.run([str(sys.executable), str(root_dir/'meson.py')] + args, check=True, capture_output=True, text=True, env=env).stdout.strip()
 
+def get_commands(help_output: str) -> T.Set[str]:
+    # Python's argument parser might put the command list to its own line. Or it might not.
+    assert(help_output.startswith('usage: '))
+    lines = help_output.split('\n')
+    line1 = lines[0]
+    line2 = lines[1]
+    if '{' in line1:
+        cmndline = line1
+    else:
+        assert('{' in line2)
+        cmndline = line2
+    cmndstr = cmndline.split('{')[1]
+    assert('}' in cmndstr)
+    help_commands = set(cmndstr.split('}')[0].split(','))
+    assert(len(help_commands) > 0)
+    return {c.strip() for c in help_commands}
+
 def get_commands_data(root_dir: Path) -> T.Dict[str, T.Any]:
     usage_start_pattern = re.compile(r'^usage: ', re.MULTILINE)
     positional_start_pattern = re.compile(r'^positional arguments:[\t ]*[\r\n]+', re.MULTILINE)
@@ -96,7 +113,7 @@ def get_commands_data(root_dir: Path) -> T.Dict[str, T.Any]:
         return out
 
     output = _get_meson_output(root_dir, ['--help'])
-    commands = {c.strip() for c in re.findall(r'usage:(?:.+)?{((?:[a-z]+,*)+?)}', output, re.MULTILINE|re.DOTALL)[0].split(',')}
+    commands = get_commands(output)
     commands.remove('help')
 
     cmd_data = dict()
