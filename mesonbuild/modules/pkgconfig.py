@@ -297,16 +297,17 @@ class DependenciesHelper:
 
     def remove_dups(self) -> None:
         # Set of ids that have already been handled and should not be added any more
-        exclude: T.Set[build.Target] = set()
+        exclude: T.Set[str] = set()
 
         # We can't just check if 'x' is excluded because we could have copies of
         # the same SharedLibrary object for example.
         def _ids(x: T.Union[str, build.CustomTarget, build.CustomTargetIndex, build.StaticLibrary]) -> T.Iterable[str]:
-            if isinstance(x, build.Target):
+            if isinstance(x, str):
+                yield x
+            else:
                 if x.get_id() in self.metadata:
                     yield self.metadata[x.get_id()].display_name
                 yield x.get_id()
-            yield x
 
         # Exclude 'x' in all its forms and return if it was already excluded
         def _add_exclude(x: T.Union[str, build.CustomTarget, build.CustomTargetIndex, build.StaticLibrary]) -> bool:
