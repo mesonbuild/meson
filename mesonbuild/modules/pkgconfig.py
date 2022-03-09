@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from __future__ import annotations
+from collections import defaultdict
 from pathlib import PurePath
 import os
 import typing as T
@@ -60,6 +61,7 @@ if T.TYPE_CHECKING:
         unescaped_variables: T.Dict[str, str]
         unescaped_uninstalled_variables: T.Dict[str, str]
 
+
 already_warned_objs = set()
 
 _PKG_LIBRARIES: KwargInfo[T.List[T.Union[str, dependencies.Dependency, build.SharedLibrary, build.StaticLibrary, build.CustomTarget, build.CustomTargetIndex]]] = KwargInfo(
@@ -78,33 +80,39 @@ _PKG_REQUIRES: KwargInfo[T.List[T.Union[str, build.SharedLibrary, build.StaticLi
     listify=True,
 )
 
+
+def _as_str(obj: object) -> str:
+    assert isinstance(obj, str)
+    return obj
+
+
 class DependenciesHelper:
     def __init__(self, state: ModuleState, name: str) -> None:
         self.state = state
         self.name = name
-        self.pub_libs = []
-        self.pub_reqs = []
-        self.priv_libs = []
-        self.priv_reqs = []
-        self.cflags = []
-        self.version_reqs = {}
-        self.link_whole_targets = []
+        self.pub_libs: T.List[LIBS] = []
+        self.pub_reqs: T.List[str] = []
+        self.priv_libs: T.List[LIBS] = []
+        self.priv_reqs: T.List[str] = []
+        self.cflags: T.List[str] = []
+        self.version_reqs: T.DefaultDict[str, T.Set[str]] = defaultdict(set)
+        self.link_whole_targets: T.List[T.Union[build.CustomTarget, build.CustomTargetIndex, build.StaticLibrary]] = []
 
-    def add_pub_libs(self, libs) -> None:
-        libs, reqs, cflags = self._process_libs(libs, True)
-        self.pub_libs = libs + self.pub_libs # prepend to preserve dependencies
+    def add_pub_libs(self, libs: T.Sequence[ANY_DEP]) -> None:
+        p_libs, reqs, cflags = self._process_libs(libs, True)
+        self.pub_libs = p_libs + self.pub_libs # prepend to preserve dependencies
         self.pub_reqs += reqs
         self.cflags += cflags
 
-    def add_priv_libs(self, libs) -> None:
-        libs, reqs, _ = self._process_libs(libs, False)
-        self.priv_libs = libs + self.priv_libs
+    def add_priv_libs(self, libs: T.Sequence[ANY_DEP]) -> None:
+        p_libs, reqs, _ = self._process_libs(libs, False)
+        self.priv_libs = p_libs + self.priv_libs
         self.priv_reqs += reqs
 
-    def add_pub_reqs(self, reqs) -> None:
+    def add_pub_reqs(self, reqs: T.Sequence[T.Union[str, dependencies.Dependency]]) -> None:
         self.pub_reqs += self._process_reqs(reqs)
 
-    def add_priv_reqs(self, reqs) -> None:
+    def add_priv_reqs(self, reqs: T.Sequence[T.Union[str, dependencies.Dependency]]) -> None:
         self.priv_reqs += self._process_reqs(reqs)
 
     def _check_generated_pc_deprecation(self, obj) -> None:
@@ -124,9 +132,9 @@ class DependenciesHelper:
                          location=obj.generated_pc_warn[1])
         already_warned_objs.add((name, obj.name))
 
-    def _process_reqs(self, reqs: T.List[T.Union[str, dependencies.Dependency]]):
+    def _process_reqs(self, reqs: T.Sequence[T.Union[str, dependencies.Dependency]]) -> T.List[str]:
         '''Returns string names of requirements'''
-        processed_reqs = []
+        processed_reqs: T.List[str] = []
         for obj in mesonlib.listify(reqs):
             if not isinstance(obj, str):
                 FeatureNew.single_use('pkgconfig.generate requirement from non-string object', '0.46.0', self.state.subproject)
@@ -151,14 +159,16 @@ class DependenciesHelper:
                                               f'or pkgconfig-dependency object, got {obj!r}')
         return processed_reqs
 
-    def add_cflags(self, cflags) -> None:
+    def add_cflags(self, cflags: T.List[str]) -> None:
         self.cflags += mesonlib.stringlistify(cflags)
 
-    def _process_libs(self, libs, public: bool) -> T.Tuple[T.List, T.List, T.List]:
+    def _process_libs(
+            self, libs: T.Sequence[ANY_DEP], public: bool
+            ) -> T.Tuple[T.List[T.Union[str, build.SharedLibrary, build.StaticLibrary, build.CustomTarget, build.CustomTargetIndex]], T.List[str], T.List[str]]:
         libs = mesonlib.listify(libs)
-        processed_libs = []
-        processed_reqs = []
-        processed_cflags = []
+        processed_libs: T.List[T.Union[str, build.SharedLibrary, build.StaticLibrary, build.CustomTarget, build.CustomTargetIndex]] = []
+        processed_reqs: T.List[str] = []
+        processed_cflags: T.List[str] = []
         for obj in libs:
             if hasattr(obj, 'generated_pc'):
                 self._check_generated_pc_deprecation(obj)
@@ -207,7 +217,12 @@ class DependenciesHelper:
 
         return processed_libs, processed_reqs, processed_cflags
 
-    def _add_lib_dependencies(self, link_targets, link_whole_targets, external_deps, public, private_external_deps: bool = False) -> None:
+    def _add_lib_dependencies(
+            self, link_targets: T.List[T.Union[build.StaticLibrary, build.SharedLibrary, build.CustomTarget, build.CustomTargetIndex]],
+            link_whole_targets: T.List[T.Union[build.StaticLibrary, build.CustomTarget, build.CustomTargetIndex]],
+            external_deps: T.List[dependencies.Dependency],
+            public: bool,
+            private_external_deps: bool = False) -> None:
         add_libs = self.add_pub_libs if public else self.add_priv_libs
         # Recursively add all linked libraries
         for t in link_targets:
@@ -225,7 +240,7 @@ class DependenciesHelper:
         else:
             add_libs(external_deps)
 
-    def _add_link_whole(self, t, public) -> None:
+    def _add_link_whole(self, t: T.Union[build.CustomTarget, build.CustomTargetIndex, build.StaticLibrary, build.SharedLibrary], public: bool) -> None:
         # Don't include static libraries that we link_whole. But we still need to
         # include their dependencies: a static library we link_whole
         # could itself link to a shared library or an installed static library.
@@ -236,10 +251,8 @@ class DependenciesHelper:
         if isinstance(t, build.BuildTarget):
             self._add_lib_dependencies(t.link_targets, t.link_whole_targets, t.external_deps, public)
 
-    def add_version_reqs(self, name, version_reqs) -> None:
+    def add_version_reqs(self, name: str, version_reqs: T.Optional[T.List[str]]) -> None:
         if version_reqs:
-            if name not in self.version_reqs:
-                self.version_reqs[name] = set()
             # Note that pkg-config is picky about whitespace.
             # 'foo > 1.2' is ok but 'foo>1.2' is not.
             # foo, bar' is ok, but 'foo,bar' is not.
@@ -260,8 +273,8 @@ class DependenciesHelper:
                 return op + ' ' + vreq[len(op):]
         return vreq
 
-    def format_reqs(self, reqs) -> str:
-        result = []
+    def format_reqs(self, reqs: T.List[str]) -> str:
+        result: T.List[str] = []
         for name in reqs:
             vreqs = self.version_reqs.get(name, None)
             if vreqs:
@@ -272,11 +285,11 @@ class DependenciesHelper:
 
     def remove_dups(self) -> None:
         # Set of ids that have already been handled and should not be added any more
-        exclude = set()
+        exclude: T.Set[build.Target] = set()
 
         # We can't just check if 'x' is excluded because we could have copies of
         # the same SharedLibrary object for example.
-        def _ids(x):
+        def _ids(x: T.Union[str, build.CustomTarget, build.CustomTargetIndex, build.StaticLibrary]) -> T.Iterable[str]:
             if hasattr(x, 'generated_pc'):
                 yield x.generated_pc
             if isinstance(x, build.Target):
@@ -284,7 +297,7 @@ class DependenciesHelper:
             yield x
 
         # Exclude 'x' in all its forms and return if it was already excluded
-        def _add_exclude(x):
+        def _add_exclude(x: T.Union[str, build.CustomTarget, build.CustomTargetIndex, build.StaticLibrary]) -> bool:
             was_excluded = False
             for i in _ids(x):
                 if i in exclude:
@@ -297,7 +310,17 @@ class DependenciesHelper:
         for t in self.link_whole_targets:
             _add_exclude(t)
 
-        def _fn(xs, libs=False):
+        # Mypy thinks these overlap, but since List is invariant they don't,
+        # `List[str]`` is not a valid input to `List[str | BuildTarget]`.
+        # pylance/pyright gets this right, but for mypy we have to ignore the
+        # error
+        @T.overload
+        def _fn(xs: T.List[str], libs: bool = False) -> T.List[str]: ...  # type: ignore
+
+        @T.overload
+        def _fn(xs: T.List[LIBS], libs: bool = False) -> T.List[LIBS]: ...
+
+        def _fn(xs: T.Union[T.List[str], T.List[LIBS]], libs: bool = False) -> T.Union[T.List[str], T.List[LIBS]]:
             # Remove duplicates whilst preserving original order
             result = []
             for x in xs:
@@ -332,7 +355,8 @@ class PkgConfigModule(ExtensionModule):
             'generate': self.generate,
         })
 
-    def _get_lname(self, l, msg, pcfile, is_custom_target):
+    def _get_lname(self, l: T.Union[build.SharedLibrary, build.StaticLibrary, build.CustomTarget, build.CustomTargetIndex],
+                   msg: str, pcfile: str, is_custom_target: bool) -> str:
         if is_custom_target:
             basename = os.path.basename(l.get_filename())
             name = os.path.splitext(basename)[0]
@@ -356,7 +380,7 @@ class PkgConfigModule(ExtensionModule):
         mlog.warning(msg.format(l.name, 'name_prefix', l.name, pcfile))
         return l.name
 
-    def _escape(self, value):
+    def _escape(self, value: T.Union[str, PurePath]) -> str:
         '''
         We cannot use quote_arg because it quotes with ' and " which does not
         work with pkg-config and pkgconf at all.
@@ -368,7 +392,7 @@ class PkgConfigModule(ExtensionModule):
             value = value.as_posix()
         return value.replace(' ', r'\ ')
 
-    def _make_relative(self, prefix, subdir):
+    def _make_relative(self, prefix: T.Union[PurePath, str], subdir: T.Union[PurePath, str]) -> str:
         prefix = PurePath(prefix)
         subdir = PurePath(subdir)
         try:
@@ -378,10 +402,14 @@ class PkgConfigModule(ExtensionModule):
         # pathlib joining makes sure absolute libdir is not appended to '${prefix}'
         return ('${prefix}' / libdir).as_posix()
 
-    def _generate_pkgconfig_file(self, state: ModuleState, deps, subdirs, name, description,
-                                 url, version, pcfile, conflicts, variables,
-                                 unescaped_variables, uninstalled=False, dataonly=False,
-                                 pkgroot=None):
+    def _generate_pkgconfig_file(self, state: ModuleState, deps: DependenciesHelper,
+                                 subdirs: T.List[str], name: T.Optional[str],
+                                 description: T.Optional[str], url: str, version: str,
+                                 pcfile: str, conflicts: T.List[str],
+                                 variables: T.List[T.Tuple[str, str]],
+                                 unescaped_variables: T.List[T.Tuple[str, str]],
+                                 uninstalled: bool = False, dataonly: bool = False,
+                                 pkgroot: T.Optional[str] = None) -> None:
         coredata = state.environment.get_coredata()
         referenced_vars = set()
         optnames = [x.name for x in BUILTIN_DIR_OPTIONS.keys()]
@@ -426,7 +454,7 @@ class PkgConfigModule(ExtensionModule):
             srcdir = PurePath(state.environment.get_source_dir())
         else:
             outdir = state.environment.scratch_dir
-            prefix = PurePath(coredata.get_option(mesonlib.OptionKey('prefix')))
+            prefix = PurePath(_as_str(coredata.get_option(mesonlib.OptionKey('prefix'))))
             if pkgroot:
                 pkgroot = PurePath(pkgroot)
                 if not pkgroot.is_absolute():
@@ -443,7 +471,7 @@ class PkgConfigModule(ExtensionModule):
                     if optname == 'prefix':
                         ofile.write('prefix={}\n'.format(self._escape(prefix)))
                     else:
-                        dirpath = PurePath(coredata.get_option(mesonlib.OptionKey(optname)))
+                        dirpath = PurePath(_as_str(coredata.get_option(mesonlib.OptionKey(optname))))
                         ofile.write('{}={}\n'.format(optname, self._escape('${prefix}' / dirpath)))
             if uninstalled and not dataonly:
                 ofile.write('srcdir={}\n'.format(self._escape(srcdir)))
@@ -469,7 +497,7 @@ class PkgConfigModule(ExtensionModule):
             if len(conflicts) > 0:
                 ofile.write('Conflicts: {}\n'.format(' '.join(conflicts)))
 
-            def generate_libs_flags(libs):
+            def generate_libs_flags(libs: T.List[LIBS]) -> T.Iterable[str]:
                 msg = 'Library target {0!r} has {1!r} set. Compilers ' \
                       'may not find it from its \'-l{2}\' linker flag in the ' \
                       '{3!r} pkg-config file.'
@@ -478,6 +506,7 @@ class PkgConfigModule(ExtensionModule):
                     if isinstance(l, str):
                         yield l
                     else:
+                        install_dir: T.Union[str, bool]
                         if uninstalled:
                             install_dir = os.path.dirname(state.backend.get_target_filename_abs(l))
                         else:
@@ -507,8 +536,8 @@ class PkgConfigModule(ExtensionModule):
                         if is_custom_target or 'cs' not in l.compilers:
                             yield f'-l{lname}'
 
-            def get_uninstalled_include_dirs(libs):
-                result = []
+            def get_uninstalled_include_dirs(libs: T.List[LIBS]) -> T.List[str]:
+                result: T.List[str] = []
                 for l in libs:
                     if isinstance(l, (str, build.CustomTarget, build.CustomTargetIndex)):
                         continue
@@ -522,7 +551,7 @@ class PkgConfigModule(ExtensionModule):
                                 result.append(path)
                 return result
 
-            def generate_uninstalled_cflags(libs):
+            def generate_uninstalled_cflags(libs: T.List[LIBS]) -> T.Iterable[str]:
                 for d in get_uninstalled_include_dirs(libs):
                     for basedir in ['${prefix}', '${srcdir}']:
                         path = PurePath(basedir, d)
@@ -533,7 +562,7 @@ class PkgConfigModule(ExtensionModule):
             if len(deps.priv_libs) > 0:
                 ofile.write('Libs.private: {}\n'.format(' '.join(generate_libs_flags(deps.priv_libs))))
 
-            cflags = []
+            cflags: T.List[str] = []
             if uninstalled:
                 cflags += generate_uninstalled_cflags(deps.pub_libs + deps.priv_libs)
             else:
@@ -680,5 +709,6 @@ class PkgConfigModule(ExtensionModule):
                     lib.generated_pc_warn = [name, location]
         return ModuleReturnValue(res, [res])
 
-def initialize(*args, **kwargs):
-    return PkgConfigModule(*args, **kwargs)
+
+def initialize(interp: Interpreter) -> PkgConfigModule:
+    return PkgConfigModule(interp)
