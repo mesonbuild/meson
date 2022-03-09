@@ -85,8 +85,6 @@ from .type_checking import (
     VARIABLES_KW,
     NoneType,
     in_set_validator,
-    variables_validator,
-    variables_convertor,
     env_convertor_with_method
 )
 from . import primitives as P_OBJ
@@ -672,29 +670,6 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_files(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> T.List[mesonlib.File]:
         return self.source_strings_to_files(args[0])
 
-    # Used by pkgconfig.generate()
-    def extract_variables(self, kwargs: T.Dict[str, T.Union[T.Dict[str, str], T.List[str], str]],
-                          argname: str = 'variables', list_new: bool = False,
-                          dict_new: bool = False) -> T.Dict[str, str]:
-        variables = kwargs.get(argname, {})
-        if isinstance(variables, dict):
-            if dict_new and variables:
-                FeatureNew.single_use(f'{argname} as dictionary', '0.56.0', self.subproject, location=self.current_node)
-        else:
-            variables = mesonlib.stringlistify(variables)
-            if list_new:
-                FeatureNew.single_use(f'{argname} as list of strings', '0.56.0', self.subproject, location=self.current_node)
-
-        invalid_msg = variables_validator(variables)
-        if invalid_msg is not None:
-            raise InterpreterException(invalid_msg)
-
-        variables = variables_convertor(variables)
-        for k, v in variables.items():
-            if not isinstance(v, str):
-                raise InterpreterException('variables values must be strings.')
-
-        return variables
 
     @noPosargs
     @typed_kwargs(
