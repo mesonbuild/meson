@@ -615,8 +615,14 @@ class PkgConfigModule(ExtensionModule):
             install_dir = mainlib.get_custom_install_dir()
             if install_dir and isinstance(install_dir[0], str):
                 default_install_dir = os.path.join(install_dir[0], 'pkgconfig')
-        elif kwargs['version'] is None:
-            FeatureNew.single_use('pkgconfig.generate implicit version keyword', '0.46.0', state.subproject)
+        else:
+            if kwargs['version'] is None:
+                FeatureNew.single_use('pkgconfig.generate implicit version keyword', '0.46.0', state.subproject)
+            if kwargs['name'] is None:
+                raise build.InvalidArguments(
+                    'pkgconfig.generate: if a library is not passed as a '
+                    'positional argument, the name keyword argument is '
+                    'required.')
 
         dataonly = kwargs['dataonly']
         if dataonly:
@@ -629,6 +635,7 @@ class PkgConfigModule(ExtensionModule):
         subdirs = kwargs['subdirs'] or default_subdirs
         version = kwargs['version'] if kwargs['version'] is not None else default_version
         name = kwargs['name'] if kwargs['name'] is not None else default_name
+        assert isinstance(name, str), 'for mypy'
         filebase = kwargs['filebase'] if kwargs['filebase'] is not None else name
         description = kwargs['description'] if kwargs['description'] is not None else default_description
         url = kwargs['url']
