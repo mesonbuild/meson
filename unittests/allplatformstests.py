@@ -3376,9 +3376,21 @@ class AllPlatformTests(BasePlatformTests):
         ## Validate commands
 
         md_commands = {k for k,v in md_command_sections.items()}
-
         help_output = self._run(self.meson_command + ['--help'])
-        help_commands = {c.strip() for c in re.findall(r'usage:(?:.+)?{((?:[a-z]+,*)+?)}', help_output, re.MULTILINE|re.DOTALL)[0].split(',')}
+        # Python's argument parser might put the command list to its own line. Or it might not.
+        self.assertTrue(help_output.startswith('usage: '))
+        lines = help_output.split('\n')
+        line1 = lines[0]
+        line2 = lines[1]
+        if '{' in line1:
+            cmndline = line1
+        else:
+            self.assertIn('{', line2)
+            cmndline = line2
+        cmndstr = cmndline.split('{')[1]
+        self.assertIn('}', cmndstr)
+        help_commands = set(cmndstr.split('}')[0].split(','))
+        self.assertTrue(len(help_commands) > 0, 'Must detect some command names.')
 
         self.assertEqual(md_commands | {'help'}, help_commands, f'Doc file: `{doc_path}`')
 
