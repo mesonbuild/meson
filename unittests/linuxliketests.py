@@ -46,6 +46,8 @@ from mesonbuild.compilers import (
 from mesonbuild.dependencies import PkgConfigDependency
 import mesonbuild.modules.pkgconfig
 
+PKG_CONFIG = os.environ.get('PKG_CONFIG', 'pkg-config')
+
 
 from run_tests import (
     get_fake_env
@@ -185,7 +187,7 @@ class LinuxlikeTests(BasePlatformTests):
             'PKG_CONFIG_LIBDIR': os.pathsep.join([privatedir1, privatedir2]),
             'PKG_CONFIG_SYSTEM_LIBRARY_PATH': '/usr/lib',
         }
-        self._run(['pkg-config', 'dependency-test', '--validate'], override_envvars=env)
+        self._run([PKG_CONFIG, 'dependency-test', '--validate'], override_envvars=env)
 
         # pkg-config strips some duplicated flags so we have to parse the
         # generated file ourself.
@@ -210,21 +212,21 @@ class LinuxlikeTests(BasePlatformTests):
                     matched_lines += 1
             self.assertEqual(len(expected), matched_lines)
 
-        cmd = ['pkg-config', 'requires-test']
+        cmd = [PKG_CONFIG, 'requires-test']
         out = self._run(cmd + ['--print-requires'], override_envvars=env).strip().split('\n')
         if not is_openbsd():
             self.assertEqual(sorted(out), sorted(['libexposed', 'libfoo >= 1.0', 'libhello']))
         else:
             self.assertEqual(sorted(out), sorted(['libexposed', 'libfoo>=1.0', 'libhello']))
 
-        cmd = ['pkg-config', 'requires-private-test']
+        cmd = [PKG_CONFIG, 'requires-private-test']
         out = self._run(cmd + ['--print-requires-private'], override_envvars=env).strip().split('\n')
         if not is_openbsd():
             self.assertEqual(sorted(out), sorted(['libexposed', 'libfoo >= 1.0', 'libhello']))
         else:
             self.assertEqual(sorted(out), sorted(['libexposed', 'libfoo>=1.0', 'libhello']))
 
-        cmd = ['pkg-config', 'pub-lib-order']
+        cmd = [PKG_CONFIG, 'pub-lib-order']
         out = self._run(cmd + ['--libs'], override_envvars=env).strip().split()
         self.assertEqual(out, ['-llibmain2', '-llibinternal'])
 
@@ -324,8 +326,8 @@ class LinuxlikeTests(BasePlatformTests):
         Test that qt4 and qt5 detection with pkgconfig works.
         '''
         # Verify Qt4 or Qt5 can be found with pkg-config
-        qt4 = subprocess.call(['pkg-config', '--exists', 'QtCore'])
-        qt5 = subprocess.call(['pkg-config', '--exists', 'Qt5Core'])
+        qt4 = subprocess.call([PKG_CONFIG, '--exists', 'QtCore'])
+        qt5 = subprocess.call([PKG_CONFIG, '--exists', 'Qt5Core'])
         testdir = os.path.join(self.framework_test_dir, '4 qt')
         self.init(testdir, extra_args=['-Dmethod=pkg-config'])
         # Confirm that the dependency was found with pkg-config
@@ -850,7 +852,7 @@ class LinuxlikeTests(BasePlatformTests):
                 gobject_found = True
         self.assertTrue(glib_found)
         self.assertTrue(gobject_found)
-        if subprocess.call(['pkg-config', '--exists', 'glib-2.0 >= 2.56.2']) != 0:
+        if subprocess.call([PKG_CONFIG, '--exists', 'glib-2.0 >= 2.56.2']) != 0:
             raise SkipTest('glib >= 2.56.2 needed for the rest')
         targets = self.introspect('--targets')
         docbook_target = None
@@ -1080,7 +1082,7 @@ class LinuxlikeTests(BasePlatformTests):
     def test_pkgconfig_usage(self):
         testdir1 = os.path.join(self.unit_test_dir, '27 pkgconfig usage/dependency')
         testdir2 = os.path.join(self.unit_test_dir, '27 pkgconfig usage/dependee')
-        if subprocess.call(['pkg-config', '--cflags', 'glib-2.0'],
+        if subprocess.call([PKG_CONFIG, '--cflags', 'glib-2.0'],
                            stdout=subprocess.DEVNULL,
                            stderr=subprocess.DEVNULL) != 0:
             raise SkipTest('Glib 2.0 dependency not available.')
@@ -1095,10 +1097,10 @@ class LinuxlikeTests(BasePlatformTests):
             myenv = os.environ.copy()
             myenv['PKG_CONFIG_PATH'] = pkg_dir
             # Private internal libraries must not leak out.
-            pkg_out = subprocess.check_output(['pkg-config', '--static', '--libs', 'libpkgdep'], env=myenv)
+            pkg_out = subprocess.check_output([PKG_CONFIG, '--static', '--libs', 'libpkgdep'], env=myenv)
             self.assertNotIn(b'libpkgdep-int', pkg_out, 'Internal library leaked out.')
             # Dependencies must not leak to cflags when building only a shared library.
-            pkg_out = subprocess.check_output(['pkg-config', '--cflags', 'libpkgdep'], env=myenv)
+            pkg_out = subprocess.check_output([PKG_CONFIG, '--cflags', 'libpkgdep'], env=myenv)
             self.assertNotIn(b'glib', pkg_out, 'Internal dependency leaked to headers.')
             # Test that the result is usable.
             self.init(testdir2, override_envvars=myenv)
@@ -1196,7 +1198,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.init(testdir)
         myenv = os.environ.copy()
         myenv['PKG_CONFIG_PATH'] = self.privatedir
-        stdo = subprocess.check_output(['pkg-config', '--libs-only-l', 'libsomething'], env=myenv)
+        stdo = subprocess.check_output([PKG_CONFIG, '--libs-only-l', 'libsomething'], env=myenv)
         deps = [b'-lgobject-2.0', b'-lgio-2.0', b'-lglib-2.0', b'-lsomething']
         if is_windows() or is_cygwin() or is_osx() or is_openbsd():
             # On Windows, libintl is a separate library
@@ -1210,7 +1212,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.init(testdir)
         myenv = os.environ.copy()
         myenv['PKG_CONFIG_PATH'] = self.privatedir
-        stdo = subprocess.check_output(['pkg-config', '--libs', 'libsomething'], env=myenv)
+        stdo = subprocess.check_output([PKG_CONFIG, '--libs', 'libsomething'], env=myenv)
 
         self.assertEqual("-r/usr/lib/libsomething.dll", str(stdo.decode('ascii')).strip())
 
@@ -1223,7 +1225,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.init(testdir)
         myenv = os.environ.copy()
         myenv['PKG_CONFIG_PATH'] = self.privatedir
-        stdo = subprocess.check_output(['pkg-config', '--libs', 'libsomething'], env=myenv)
+        stdo = subprocess.check_output([PKG_CONFIG, '--libs', 'libsomething'], env=myenv)
         deps = stdo.split()
         self.assertLess(deps.index(b'-lsomething'), deps.index(b'-ldependency'))
 
@@ -1365,7 +1367,7 @@ class LinuxlikeTests(BasePlatformTests):
         # skip test if pkg-config is too old.
         #   before v0.28, Libs flags like -Wl will not kept in context order with -l flags.
         #   see https://gitlab.freedesktop.org/pkg-config/pkg-config/-/blob/master/NEWS
-        pkgconfigver = subprocess.check_output(['pkg-config', '--version'])
+        pkgconfigver = subprocess.check_output([PKG_CONFIG, '--version'])
         if b'0.28' > pkgconfigver:
             raise SkipTest('pkg-config is too old to be correctly done this.')
         self.run_tests()
