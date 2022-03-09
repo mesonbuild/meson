@@ -21,7 +21,7 @@ import os
 from . import ExtensionModule
 from .. import dependencies
 from .. import mlog
-from ..interpreterbase import FeatureNew
+from ..interpreterbase import FeatureNew, typed_pos_args
 from ..mesonlib import Popen_safe, MesonException
 
 class DlangModule(ExtensionModule):
@@ -52,12 +52,10 @@ class DlangModule(ExtensionModule):
             if not self.dubbin:
                 raise MesonException('DUB not found.')
 
+    @typed_pos_args('dlang.generate_dub_file', str, str)
     def generate_dub_file(self, state, args, kwargs):
         if not DlangModule.init_dub:
             self._init_dub(state)
-
-        if len(args) < 2:
-            raise MesonException('Missing arguments')
 
         config = {
             'name': args[0]
