@@ -26,6 +26,7 @@ from .. import mlog
 from ..coredata import BUILTIN_DIR_OPTIONS
 from ..dependencies import ThreadDependency
 from ..interpreterbase import permittedKwargs, FeatureNew, FeatureDeprecated, FeatureNewKwargs
+from ..interpreterbase.decorators import typed_pos_args
 
 if T.TYPE_CHECKING:
     from . import ModuleState
@@ -511,27 +512,24 @@ class PkgConfigModule(ExtensionModule):
                       'install_dir', 'extra_cflags', 'variables', 'url', 'd_module_versions',
                       'dataonly', 'conflicts', 'uninstalled_variables',
                       'unescaped_variables', 'unescaped_uninstalled_variables'})
-    def generate(self, state: 'ModuleState', args, kwargs):
+    @typed_pos_args('pkgconfig.generate', optargs=[(build.SharedLibrary, build.StaticLibrary)])
+    def generate(self, state: ModuleState, args: T.Tuple[T.Optional[T.Union[build.SharedLibrary, build.StaticLibrary]]], kwargs):
         default_version = state.project_version
         default_install_dir = None
         default_description = None
         default_name = None
         mainlib = None
         default_subdirs = ['.']
-        if not args and 'version' not in kwargs:
-            FeatureNew.single_use('pkgconfig.generate implicit version keyword', '0.46.0', state.subproject)
-        elif len(args) == 1:
+        if args[0]:
             FeatureNew.single_use('pkgconfig.generate optional positional argument', '0.46.0', state.subproject)
             mainlib = args[0]
-            if not isinstance(mainlib, (build.StaticLibrary, build.SharedLibrary)):
-                raise mesonlib.MesonException('Pkgconfig_gen first positional argument must be a library object')
             default_name = mainlib.name
             default_description = state.project_name + ': ' + mainlib.name
             install_dir = mainlib.get_custom_install_dir()
             if install_dir and isinstance(install_dir[0], str):
                 default_install_dir = os.path.join(install_dir[0], 'pkgconfig')
-        elif len(args) > 1:
-            raise mesonlib.MesonException('Too many positional arguments passed to Pkgconfig_gen.')
+        elif 'version' not in kwargs:
+            FeatureNew.single_use('pkgconfig.generate implicit version keyword', '0.46.0', state.subproject)
 
         dataonly = kwargs.get('dataonly', False)
         if not isinstance(dataonly, bool):
