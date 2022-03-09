@@ -372,8 +372,8 @@ class PkgConfigModule(ExtensionModule):
         })
 
     def _get_lname(self, l: T.Union[build.SharedLibrary, build.StaticLibrary, build.CustomTarget, build.CustomTargetIndex],
-                   msg: str, pcfile: str, is_custom_target: bool) -> str:
-        if is_custom_target:
+                   msg: str, pcfile: str) -> str:
+        if isinstance(l, (build.CustomTargetIndex, build.CustomTarget)):
             basename = os.path.basename(l.get_filename())
             name = os.path.splitext(basename)[0]
             if name.startswith('lib'):
@@ -530,8 +530,7 @@ class PkgConfigModule(ExtensionModule):
                             install_dir = _i[0] if _i else None
                         if install_dir is False:
                             continue
-                        is_custom_target = isinstance(l, (build.CustomTarget, build.CustomTargetIndex))
-                        if not is_custom_target and 'cs' in l.compilers:
+                        if isinstance(l, build.BuildTarget) and 'cs' in l.compilers:
                             if isinstance(install_dir, str):
                                 Lflag = '-r{}/{}'.format(self._escape(self._make_relative(prefix, install_dir)), l.filename)
                             else:  # install_dir is True
@@ -544,12 +543,12 @@ class PkgConfigModule(ExtensionModule):
                         if Lflag not in Lflags:
                             Lflags.append(Lflag)
                             yield Lflag
-                        lname = self._get_lname(l, msg, pcfile, is_custom_target)
+                        lname = self._get_lname(l, msg, pcfile)
                         # If using a custom suffix, the compiler may not be able to
                         # find the library
-                        if not is_custom_target and l.name_suffix_set:
+                        if isinstance(l, build.BuildTarget) and l.name_suffix_set:
                             mlog.warning(msg.format(l.name, 'name_suffix', lname, pcfile))
-                        if is_custom_target or 'cs' not in l.compilers:
+                        if isinstance(l, (build.CustomTarget, build.CustomTargetIndex)) or 'cs' not in l.compilers:
                             yield f'-l{lname}'
 
             def get_uninstalled_include_dirs(libs: T.List[LIBS]) -> T.List[str]:
@@ -644,7 +643,7 @@ class PkgConfigModule(ExtensionModule):
         if dataonly:
             default_subdirs = []
             blocked_vars = ['libraries', 'libraries_private', 'requires_private', 'extra_cflags', 'subdirs']
-            if any(kwargs[k] for k in blocked_vars):
+            if any(kwargs[k] for k in blocked_vars):  # type: ignore
                 raise mesonlib.MesonException(f'Cannot combine dataonly with any of {blocked_vars}')
             default_install_dir = os.path.join(state.environment.get_datadir(), 'pkgconfig')
 
