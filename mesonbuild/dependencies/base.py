@@ -35,7 +35,10 @@ if T.TYPE_CHECKING:
     from ..compilers.compilers import Compiler
     from ..environment import Environment
     from ..interpreterbase import FeatureCheckBase
-    from ..build import BuildTarget, CustomTarget, IncludeDirs
+    from ..build import (
+        CustomTarget, IncludeDirs, CustomTargetIndex, SharedLibrary,
+        StaticLibrary
+    )
     from ..mesonlib import FileOrString
 
 
@@ -232,9 +235,9 @@ class Dependency(HoldableObject):
 class InternalDependency(Dependency):
     def __init__(self, version: str, incdirs: T.List['IncludeDirs'], compile_args: T.List[str],
                  link_args: T.List[str],
-                 libraries: T.List[T.Union['BuildTarget', 'CustomTarget']],
-                 whole_libraries: T.List[T.Union['BuildTarget', 'CustomTarget']],
-                 sources: T.Sequence[T.Union['FileOrString', 'CustomTarget', StructuredSources]],
+                 libraries: T.List[T.Union[SharedLibrary, StaticLibrary, CustomTarget, CustomTargetIndex]],
+                 whole_libraries: T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]],
+                 sources: T.Sequence[T.Union[FileOrString, CustomTarget, StructuredSources]],
                  ext_deps: T.List[Dependency], variables: T.Dict[str, str],
                  d_module_versions: T.List[str], d_import_dirs: T.List['IncludeDirs']):
         super().__init__(DependencyTypeName('internal'), {})
@@ -333,9 +336,10 @@ class ExternalDependency(Dependency, HasNativeKwarg):
         self.name = type_name # default
         self.is_found = False
         self.language = language
-        self.version_reqs = kwargs.get('version', None)
-        if isinstance(self.version_reqs, str):
-            self.version_reqs = [self.version_reqs]
+        version_reqs = kwargs.get('version', None)
+        if isinstance(version_reqs, str):
+            version_reqs = [version_reqs]
+        self.version_reqs: T.Optional[T.List[str]] = version_reqs
         self.required = kwargs.get('required', True)
         self.silent = kwargs.get('silent', False)
         self.static = kwargs.get('static', self.env.coredata.get_option(OptionKey('prefer_static')))
