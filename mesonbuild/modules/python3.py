@@ -16,7 +16,7 @@ import sysconfig
 from .. import mesonlib
 
 from . import ExtensionModule
-from ..interpreterbase import noKwargs, permittedKwargs, FeatureDeprecated, FeatureNew
+from ..interpreterbase import typed_pos_args, noPosargs, noKwargs, permittedKwargs, FeatureDeprecated, FeatureNew
 from ..build import known_shmod_kwargs
 from ..programs import ExternalProgram
 
@@ -52,6 +52,7 @@ class Python3Module(ExtensionModule):
         kwargs['name_suffix'] = suffix
         return self.interpreter.func_shared_module(None, args, kwargs)
 
+    @noPosargs
     @noKwargs
     def find_python(self, state, args, kwargs):
         command = state.environment.lookup_binary_entry(mesonlib.MachineChoice.HOST, 'python3')
@@ -61,14 +62,14 @@ class Python3Module(ExtensionModule):
             py3 = ExternalProgram('python3', mesonlib.python_command, silent=True)
         return py3
 
+    @noPosargs
     @noKwargs
     def language_version(self, state, args, kwargs):
         return sysconfig.get_python_version()
 
     @noKwargs
+    @typed_pos_args('python3.sysconfig_path', str)
     def sysconfig_path(self, state, args, kwargs):
-        if len(args) != 1:
-            raise mesonlib.MesonException('sysconfig_path() requires passing the name of path to get.')
         path_name = args[0]
         valid_names = sysconfig.get_path_names()
         if path_name not in valid_names:
