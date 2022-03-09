@@ -623,7 +623,9 @@ class Interpreter(InterpreterBase, HoldableObject):
         return self.source_strings_to_files(args[0])
 
     # Used by declare_dependency() and pkgconfig.generate()
-    def extract_variables(self, kwargs, argname='variables', list_new=False, dict_new=False):
+    def extract_variables(self, kwargs: T.Dict[str, T.Union[T.Dict[str, str], T.List[str], str]],
+                          argname: str = 'variables', list_new: bool = False,
+                          dict_new: bool = False) -> T.Dict[str, str]:
         variables = kwargs.get(argname, {})
         if isinstance(variables, dict):
             if dict_new and variables:
@@ -632,7 +634,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             varlist = mesonlib.stringlistify(variables)
             if list_new:
                 FeatureNew.single_use(f'{argname} as list of strings', '0.56.0', self.subproject, location=self.current_node)
-            variables = collections.OrderedDict()
+            variables = {}
             for v in varlist:
                 try:
                     (key, value) = v.split('=', 1)
