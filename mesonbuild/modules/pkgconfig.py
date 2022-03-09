@@ -1,4 +1,4 @@
-# Copyright 2015 The Meson development team
+# Copyright 2015-2022 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 from collections import defaultdict
+from dataclasses import dataclass
 from pathlib import PurePath
 import os
 import typing as T
@@ -34,6 +35,7 @@ if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
 
     from . import ModuleState
+    from .. import mparser
     from ..interpreter import Interpreter
 
     ANY_DEP = T.Union[dependencies.Dependency, build.BuildTargetTypes, str]
@@ -62,8 +64,6 @@ if T.TYPE_CHECKING:
         unescaped_uninstalled_variables: T.Dict[str, str]
 
 
-already_warned_objs = set()
-
 _PKG_LIBRARIES: KwargInfo[T.List[T.Union[str, dependencies.Dependency, build.SharedLibrary, build.StaticLibrary, build.CustomTarget, build.CustomTargetIndex]]] = KwargInfo(
     'libraries',
     ContainerTypeInfo(list, (str, dependencies.Dependency,
@@ -86,8 +86,17 @@ def _as_str(obj: object) -> str:
     return obj
 
 
+@dataclass
+class MetaData:
+
+    filebase: str
+    display_name: str
+    location: mparser.BaseNode
+    warned: bool = False
+
+
 class DependenciesHelper:
-    def __init__(self, state: ModuleState, name: str) -> None:
+    def __init__(self, state: ModuleState, name: str, metadata: T.Dict[str, MetaData]) -> None:
         self.state = state
         self.name = name
         self.pub_libs: T.List[LIBS] = []
@@ -97,6 +106,7 @@ class DependenciesHelper:
         self.cflags: T.List[str] = []
         self.version_reqs: T.DefaultDict[str, T.Set[str]] = defaultdict(set)
         self.link_whole_targets: T.List[T.Union[build.CustomTarget, build.CustomTargetIndex, build.StaticLibrary]] = []
+        self.metadata = metadata
 
     def add_pub_libs(self, libs: T.Sequence[ANY_DEP]) -> None:
         p_libs, reqs, cflags = self._process_libs(libs, True)
@@ -115,22 +125,22 @@ class DependenciesHelper:
     def add_priv_reqs(self, reqs: T.Sequence[T.Union[str, dependencies.Dependency]]) -> None:
         self.priv_reqs += self._process_reqs(reqs)
 
-    def _check_generated_pc_deprecation(self, obj) -> None:
-        if not hasattr(obj, 'generated_pc_warn'):
+    def _check_generated_pc_deprecation(self, obj: T.Union[build.CustomTarget, build.CustomTargetIndex, build.StaticLibrary, build.SharedLibrary]) -> None:
+        if obj.get_id() in self.metadata:
             return
-        name = obj.generated_pc_warn[0]
-        if (name, obj.name) in already_warned_objs:
+        data = self.metadata[obj.get_id()]
+        if data.warned:
             return
         mlog.deprecation('Library', mlog.bold(obj.name), 'was passed to the '
                          '"libraries" keyword argument of a previous call '
                          'to generate() method instead of first positional '
-                         'argument.', 'Adding', mlog.bold(obj.generated_pc),
+                         'argument.', 'Adding', mlog.bold(data.display_name),
                          'to "Requires" field, but this is a deprecated '
                          'behaviour that will change in a future version '
                          'of Meson. Please report the issue if this '
                          'warning cannot be avoided in your case.',
-                         location=obj.generated_pc_warn[1])
-        already_warned_objs.add((name, obj.name))
+                         location=data.location)
+        data.warned = True
 
     def _process_reqs(self, reqs: T.Sequence[T.Union[str, dependencies.Dependency]]) -> T.List[str]:
         '''Returns string names of requirements'''
@@ -138,9 +148,10 @@ class DependenciesHelper:
         for obj in mesonlib.listify(reqs):
             if not isinstance(obj, str):
                 FeatureNew.single_use('pkgconfig.generate requirement from non-string object', '0.46.0', self.state.subproject)
-            if hasattr(obj, 'generated_pc'):
+            if (isinstance(obj, (build.CustomTarget, build.CustomTargetIndex, build.SharedLibrary, build.StaticLibrary))
+                    and obj.get_id() in self.metadata):
                 self._check_generated_pc_deprecation(obj)
-                processed_reqs.append(obj.generated_pc)
+                processed_reqs.append(self.metadata[obj.get_id()].filebase)
             elif isinstance(obj, dependencies.PkgConfigDependency):
                 if obj.found():
                     processed_reqs.append(obj.name)
@@ -170,9 +181,10 @@ class DependenciesHelper:
         processed_reqs: T.List[str] = []
         processed_cflags: T.List[str] = []
         for obj in libs:
-            if hasattr(obj, 'generated_pc'):
+            if (isinstance(obj, (build.CustomTarget, build.CustomTargetIndex, build.SharedLibrary, build.StaticLibrary))
+                    and obj.get_id() in self.metadata):
                 self._check_generated_pc_deprecation(obj)
-                processed_reqs.append(obj.generated_pc)
+                processed_reqs.append(self.metadata[obj.get_id()].filebase)
             elif isinstance(obj, dependencies.ValgrindDependency):
                 pass
             elif isinstance(obj, dependencies.PkgConfigDependency):
@@ -290,9 +302,9 @@ class DependenciesHelper:
         # We can't just check if 'x' is excluded because we could have copies of
         # the same SharedLibrary object for example.
         def _ids(x: T.Union[str, build.CustomTarget, build.CustomTargetIndex, build.StaticLibrary]) -> T.Iterable[str]:
-            if hasattr(x, 'generated_pc'):
-                yield x.generated_pc
             if isinstance(x, build.Target):
+                if x.get_id() in self.metadata:
+                    yield self.metadata[x.get_id()].display_name
                 yield x.get_id()
             yield x
 
@@ -348,6 +360,10 @@ class DependenciesHelper:
 class PkgConfigModule(ExtensionModule):
 
     INFO = ModuleInfo('pkgconfig')
+
+    # Track already generated pkg-config files This is stored as a class
+    # variable so that multiple `import()`s share metadata
+    _metadata: T.ClassVar[T.Dict[str, MetaData]] = {}
 
     def __init__(self, interpreter: Interpreter):
         super().__init__(interpreter)
@@ -648,7 +664,7 @@ class PkgConfigModule(ExtensionModule):
         if mainlib:
             libraries.insert(0, mainlib)
 
-        deps = DependenciesHelper(state, filebase)
+        deps = DependenciesHelper(state, filebase, self._metadata)
         deps.add_pub_libs(libraries)
         deps.add_priv_libs(kwargs['libraries_private'])
         deps.add_pub_reqs(kwargs['requires'])
@@ -704,16 +720,16 @@ class PkgConfigModule(ExtensionModule):
         # libraries instead of just the main one. Keep doing that but warn if
         # anyone is relying on that deprecated behaviour.
         if mainlib:
-            if not hasattr(mainlib, 'generated_pc'):
-                mainlib.generated_pc = filebase
+            if mainlib.get_id() not in self._metadata:
+                self._metadata[mainlib.get_id()] = MetaData(
+                    filebase, name, state.current_node)
             else:
                 mlog.warning('Already generated a pkg-config file for', mlog.bold(mainlib.name))
         else:
             for lib in deps.pub_libs:
-                if not isinstance(lib, str) and not hasattr(lib, 'generated_pc'):
-                    lib.generated_pc = filebase
-                    location = state.current_node
-                    lib.generated_pc_warn = [name, location]
+                if not isinstance(lib, str) and lib.get_id() not in self._metadata:
+                    self._metadata[lib.get_id()] = MetaData(
+                        filebase, name, state.current_node)
         return ModuleReturnValue(res, [res])
 
 
