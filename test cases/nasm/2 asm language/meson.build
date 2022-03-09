@@ -1,7 +1,8 @@
 project('test', 'c')
 
 nasm = find_program('nasm', required: false)
-if not nasm.found()
+yasm = find_program('yasm', required: false)
+if not nasm.found() and not yasm.found()
   assert(not add_languages('nasm', required: false))
   error('MESON_SKIP_TEST: nasm not available')
 endif

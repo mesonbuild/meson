@@ -2,10 +2,7 @@
 
 When the `nasm` language is added to the project, `.asm` files are
 automatically compiled with NASM. This is only supported for x86 and x86_64 CPU
-family.
-
-Support for other compilers compatible with NASM language, such as YASM, could
-be added in the future.
+family. `yasm` is used as fallback if `nasm` command is not found.
 
 Note that GNU Assembly files usually have `.s` extension and were already built
 using C compiler such as GCC or CLANG.
