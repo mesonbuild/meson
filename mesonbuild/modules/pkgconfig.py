@@ -25,14 +25,58 @@ from .. import mesonlib
 from .. import mlog
 from ..coredata import BUILTIN_DIR_OPTIONS
 from ..dependencies import ThreadDependency
-from ..interpreterbase import permittedKwargs, FeatureNew, FeatureDeprecated, FeatureNewKwargs
-from ..interpreterbase.decorators import typed_pos_args
+from ..interpreter.type_checking import D_MODULE_VERSIONS_KW, INSTALL_DIR_KW, VARIABLES_KW, NoneType
+from ..interpreterbase import FeatureNew, FeatureDeprecated
+from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, typed_kwargs, typed_pos_args
 
 if T.TYPE_CHECKING:
+    from typing_extensions import TypedDict
+
     from . import ModuleState
     from ..interpreter import Interpreter
 
+    ANY_DEP = T.Union[dependencies.Dependency, build.BuildTargetTypes, str]
+    LIBS = T.Union[build.LibTypes, str]
+
+    class GenerateKw(TypedDict):
+
+        version: T.Optional[str]
+        name: T.Optional[str]
+        filebase: T.Optional[str]
+        description: T.Optional[str]
+        url: str
+        subdirs: T.List[str]
+        conflicts: T.List[str]
+        dataonly: bool
+        libraries: T.List[ANY_DEP]
+        libraries_private: T.List[ANY_DEP]
+        requires: T.List[T.Union[str, build.StaticLibrary, build.SharedLibrary, dependencies.Dependency]]
+        requires_private: T.List[T.Union[str, build.StaticLibrary, build.SharedLibrary, dependencies.Dependency]]
+        install_dir: T.Optional[str]
+        d_module_versions: T.List[T.Union[str, int]]
+        extra_cflags: T.List[str]
+        variables: T.Dict[str, str]
+        uninstalled_variables: T.Dict[str, str]
+        unescaped_variables: T.Dict[str, str]
+        unescaped_uninstalled_variables: T.Dict[str, str]
+
 already_warned_objs = set()
+
+_PKG_LIBRARIES: KwargInfo[T.List[T.Union[str, dependencies.Dependency, build.SharedLibrary, build.StaticLibrary, build.CustomTarget, build.CustomTargetIndex]]] = KwargInfo(
+    'libraries',
+    ContainerTypeInfo(list, (str, dependencies.Dependency,
+                             build.SharedLibrary, build.StaticLibrary,
+                             build.CustomTarget, build.CustomTargetIndex)),
+    default=[],
+    listify=True,
+)
+
+_PKG_REQUIRES: KwargInfo[T.List[T.Union[str, build.SharedLibrary, build.StaticLibrary, dependencies.Dependency]]] = KwargInfo(
+    'requires',
+    ContainerTypeInfo(list, (str, build.SharedLibrary, build.StaticLibrary, dependencies.Dependency)),
+    default=[],
+    listify=True,
+)
 
 class DependenciesHelper:
     def __init__(self, state: ModuleState, name: str) -> None:
@@ -502,23 +546,37 @@ class PkgConfigModule(ExtensionModule):
             if cflags and not dataonly:
                 ofile.write('Cflags: {}\n'.format(' '.join(cflags)))
 
-    @FeatureNewKwargs('pkgconfig.generate', '0.59.0', ['unescaped_variables', 'unescaped_uninstalled_variables'])
-    @FeatureNewKwargs('pkgconfig.generate', '0.54.0', ['uninstalled_variables'])
-    @FeatureNewKwargs('pkgconfig.generate', '0.42.0', ['extra_cflags'])
-    @FeatureNewKwargs('pkgconfig.generate', '0.41.0', ['variables'])
-    @FeatureNewKwargs('pkgconfig.generate', '0.54.0', ['dataonly'])
-    @permittedKwargs({'libraries', 'version', 'name', 'description', 'filebase',
-                      'subdirs', 'requires', 'requires_private', 'libraries_private',
-                      'install_dir', 'extra_cflags', 'variables', 'url', 'd_module_versions',
-                      'dataonly', 'conflicts', 'uninstalled_variables',
-                      'unescaped_variables', 'unescaped_uninstalled_variables'})
     @typed_pos_args('pkgconfig.generate', optargs=[(build.SharedLibrary, build.StaticLibrary)])
-    def generate(self, state: ModuleState, args: T.Tuple[T.Optional[T.Union[build.SharedLibrary, build.StaticLibrary]]], kwargs):
+    @typed_kwargs(
+        'pkgconfig.generate',
+        D_MODULE_VERSIONS_KW.evolve(since='0.43.0'),
+        INSTALL_DIR_KW,
+        KwargInfo('conflicts', ContainerTypeInfo(list, str), default=[], listify=True),
+        KwargInfo('dataonly', bool, default=False, since='0.54.0'),
+        KwargInfo('description', (str, NoneType)),
+        KwargInfo('extra_cflags', ContainerTypeInfo(list, str), default=[], listify=True, since='0.42.0'),
+        KwargInfo('filebase', (str, NoneType), validator=lambda x: 'must not be an empty string' if x == '' else None),
+        KwargInfo('name', (str, NoneType), validator=lambda x: 'must not be an empty string' if x == '' else None),
+        KwargInfo('subdirs', ContainerTypeInfo(list, str), default=[], listify=True),
+        KwargInfo('url', str, default=''),
+        KwargInfo('version', (str, NoneType)),
+        VARIABLES_KW.evolve(name="unescaped_uninstalled_variables", since='0.59.0'),
+        VARIABLES_KW.evolve(name="unescaped_variables", since='0.59.0'),
+        VARIABLES_KW.evolve(name="uninstalled_variables", since='0.54.0', since_values={dict: '0.56.0'}),
+        VARIABLES_KW.evolve(since='0.41.0', since_values={dict: '0.56.0'}),
+        _PKG_LIBRARIES,
+        _PKG_LIBRARIES.evolve(name='libraries_private'),
+        _PKG_REQUIRES,
+        _PKG_REQUIRES.evolve(name='requires_private'),
+    )
+    def generate(self, state: ModuleState,
+                 args: T.Tuple[T.Optional[T.Union[build.SharedLibrary, build.StaticLibrary]]],
+                 kwargs: GenerateKw) -> ModuleReturnValue:
         default_version = state.project_version
-        default_install_dir = None
-        default_description = None
-        default_name = None
-        mainlib = None
+        default_install_dir: T.Optional[str] = None
+        default_description: T.Optional[str] = None
+        default_name: T.Optional[str] = None
+        mainlib: T.Optional[T.Union[build.SharedLibrary, build.StaticLibrary]] = None
         default_subdirs = ['.']
         if args[0]:
             FeatureNew.single_use('pkgconfig.generate optional positional argument', '0.46.0', state.subproject)
@@ -528,52 +586,40 @@ class PkgConfigModule(ExtensionModule):
             install_dir = mainlib.get_custom_install_dir()
             if install_dir and isinstance(install_dir[0], str):
                 default_install_dir = os.path.join(install_dir[0], 'pkgconfig')
-        elif 'version' not in kwargs:
+        elif kwargs['version'] is None:
             FeatureNew.single_use('pkgconfig.generate implicit version keyword', '0.46.0', state.subproject)
 
-        dataonly = kwargs.get('dataonly', False)
-        if not isinstance(dataonly, bool):
-            raise mesonlib.MesonException('dataonly must be boolean.')
+        dataonly = kwargs['dataonly']
         if dataonly:
             default_subdirs = []
             blocked_vars = ['libraries', 'libraries_private', 'requires_private', 'extra_cflags', 'subdirs']
-            if any(k in kwargs for k in blocked_vars):
+            if any(kwargs[k] for k in blocked_vars):
                 raise mesonlib.MesonException(f'Cannot combine dataonly with any of {blocked_vars}')
             default_install_dir = os.path.join(state.environment.get_datadir(), 'pkgconfig')
 
-        subdirs = mesonlib.stringlistify(kwargs.get('subdirs', default_subdirs))
-        version = kwargs.get('version', default_version)
-        if not isinstance(version, str):
-            raise mesonlib.MesonException('Version must be specified.')
-        name = kwargs.get('name', default_name)
-        if not isinstance(name, str):
-            raise mesonlib.MesonException('Name not specified.')
-        filebase = kwargs.get('filebase', name)
-        if not isinstance(filebase, str):
-            raise mesonlib.MesonException('Filebase must be a string.')
-        description = kwargs.get('description', default_description)
-        if not isinstance(description, str):
-            raise mesonlib.MesonException('Description is not a string.')
-        url = kwargs.get('url', '')
-        if not isinstance(url, str):
-            raise mesonlib.MesonException('URL is not a string.')
-        conflicts = mesonlib.stringlistify(kwargs.get('conflicts', []))
+        subdirs = kwargs['subdirs'] or default_subdirs
+        version = kwargs['version'] if kwargs['version'] is not None else default_version
+        name = kwargs['name'] if kwargs['name'] is not None else default_name
+        filebase = kwargs['filebase'] if kwargs['filebase'] is not None else name
+        description = kwargs['description'] if kwargs['description'] is not None else default_description
+        url = kwargs['url']
+        conflicts = kwargs['conflicts']
 
         # Prepend the main library to public libraries list. This is required
         # so dep.add_pub_libs() can handle dependency ordering correctly and put
         # extra libraries after the main library.
-        libraries = mesonlib.extract_as_list(kwargs, 'libraries')
+        libraries = kwargs['libraries'].copy()
         if mainlib:
-            libraries = [mainlib] + libraries
+            libraries.insert(0, mainlib)
 
         deps = DependenciesHelper(state, filebase)
         deps.add_pub_libs(libraries)
-        deps.add_priv_libs(kwargs.get('libraries_private', []))
-        deps.add_pub_reqs(kwargs.get('requires', []))
-        deps.add_priv_reqs(kwargs.get('requires_private', []))
-        deps.add_cflags(kwargs.get('extra_cflags', []))
+        deps.add_priv_libs(kwargs['libraries_private'])
+        deps.add_pub_reqs(kwargs['requires'])
+        deps.add_priv_reqs(kwargs['requires_private'])
+        deps.add_cflags(kwargs['extra_cflags'])
 
-        dversions = kwargs.get('d_module_versions', None)
+        dversions = kwargs['d_module_versions']
         if dversions:
             compiler = state.environment.coredata.compilers.host.get('d')
             if compiler:
@@ -581,7 +627,7 @@ class PkgConfigModule(ExtensionModule):
 
         deps.remove_dups()
 
-        def parse_variable_list(vardict):
+        def parse_variable_list(vardict: T.Dict[str, str]) -> T.List[T.Tuple[str, str]]:
             reserved = ['prefix', 'libdir', 'includedir']
             variables = []
             for name, value in vardict.items():
@@ -590,13 +636,11 @@ class PkgConfigModule(ExtensionModule):
                 variables.append((name, value))
             return variables
 
-        variables = self.interpreter.extract_variables(kwargs, dict_new=True)
-        variables = parse_variable_list(variables)
-        unescaped_variables = self.interpreter.extract_variables(kwargs, argname='unescaped_variables')
-        unescaped_variables = parse_variable_list(unescaped_variables)
+        variables = parse_variable_list(kwargs['variables'])
+        unescaped_variables = parse_variable_list(kwargs['unescaped_variables'])
 
         pcfile = filebase + '.pc'
-        pkgroot = pkgroot_name = kwargs.get('install_dir', default_install_dir)
+        pkgroot = pkgroot_name = kwargs['install_dir'] or default_install_dir
         if pkgroot is None:
             if mesonlib.is_freebsd():
                 pkgroot = os.path.join(state.environment.coredata.get_option(mesonlib.OptionKey('prefix')), 'libdata', 'pkgconfig')
@@ -604,18 +648,14 @@ class PkgConfigModule(ExtensionModule):
             else:
                 pkgroot = os.path.join(state.environment.coredata.get_option(mesonlib.OptionKey('libdir')), 'pkgconfig')
                 pkgroot_name = os.path.join('{libdir}', 'pkgconfig')
-        if not isinstance(pkgroot, str):
-            raise mesonlib.MesonException('Install_dir must be a string.')
         relocatable = state.get_option('relocatable', module='pkgconfig')
         self._generate_pkgconfig_file(state, deps, subdirs, name, description, url,
                                       version, pcfile, conflicts, variables,
                                       unescaped_variables, False, dataonly,
                                       pkgroot=pkgroot if relocatable else None)
         res = build.Data([mesonlib.File(True, state.environment.get_scratch_dir(), pcfile)], pkgroot, pkgroot_name, None, state.subproject, install_tag='devel')
-        variables = self.interpreter.extract_variables(kwargs, argname='uninstalled_variables', dict_new=True)
-        variables = parse_variable_list(variables)
-        unescaped_variables = self.interpreter.extract_variables(kwargs, argname='unescaped_uninstalled_variables')
-        unescaped_variables = parse_variable_list(unescaped_variables)
+        variables = parse_variable_list(kwargs['uninstalled_variables'])
+        unescaped_variables = parse_variable_list(kwargs['unescaped_uninstalled_variables'])
 
         pcfile = filebase + '-uninstalled.pc'
         self._generate_pkgconfig_file(state, deps, subdirs, name, description, url,
