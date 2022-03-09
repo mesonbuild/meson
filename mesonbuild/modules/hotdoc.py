@@ -23,7 +23,7 @@ from mesonbuild.coredata import MesonException
 from . import ModuleReturnValue
 from . import ExtensionModule
 from ..dependencies import Dependency, InternalDependency
-from ..interpreterbase import FeatureNew, InvalidArguments, noPosargs, noKwargs
+from ..interpreterbase import FeatureNew, InvalidArguments, noPosargs, noKwargs, typed_pos_args
 from ..interpreter import CustomTargetHolder
 from ..programs import ExternalProgram
 
@@ -413,14 +413,12 @@ class HotDocModule(ExtensionModule):
         })
 
     @noKwargs
+    @typed_pos_args('hotdoc.has_extensions', varargs=str, min_varargs=1)
     def has_extensions(self, state, args, kwargs):
-        return self.hotdoc.run_hotdoc([f'--has-extension={extension}' for extension in args]) == 0
+        return self.hotdoc.run_hotdoc([f'--has-extension={extension}' for extension in args[0]]) == 0
 
+    @typed_pos_args('hotdoc.generate_doc', str)
     def generate_doc(self, state, args, kwargs):
-        if len(args) != 1:
-            raise MesonException('One positional argument is'
-                                 ' required for the project name.')
-
         project_name = args[0]
         builder = HotdocTargetBuilder(project_name, state, self.hotdoc, self.interpreter, kwargs)
         target, install_script = builder.make_targets()
