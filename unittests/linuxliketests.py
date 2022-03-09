@@ -56,6 +56,18 @@ from run_tests import (
 from .baseplatformtests import BasePlatformTests
 from .helpers import *
 
+def _prepend_pkg_config_path(path: str) -> str:
+    """Prepend a string value to pkg_config_path
+
+    :param path: The path to prepend
+    :return: The path, followed by any PKG_CONFIG_PATH already in the environment
+    """
+    pkgconf = os.environ.get('PKG_CONFIG_PATH')
+    if pkgconf:
+        return f'{path}{os.path.pathsep}{pkgconf}'
+    return path
+
+
 def _clang_at_least(compiler: 'Compiler', minver: str, apple_minver: T.Optional[str]) -> bool:
     """
     check that Clang compiler is at least a specified version, whether AppleClang or regular Clang
@@ -1197,7 +1209,7 @@ class LinuxlikeTests(BasePlatformTests):
         testdir = os.path.join(self.unit_test_dir, '38 pkgconfig format')
         self.init(testdir)
         myenv = os.environ.copy()
-        myenv['PKG_CONFIG_PATH'] = self.privatedir
+        myenv['PKG_CONFIG_PATH'] = _prepend_pkg_config_path(self.privatedir)
         stdo = subprocess.check_output([PKG_CONFIG, '--libs-only-l', 'libsomething'], env=myenv)
         deps = [b'-lgobject-2.0', b'-lgio-2.0', b'-lglib-2.0', b'-lsomething']
         if is_windows() or is_cygwin() or is_osx() or is_openbsd():
@@ -1211,7 +1223,7 @@ class LinuxlikeTests(BasePlatformTests):
         testdir = os.path.join(self.unit_test_dir, '50 pkgconfig csharp library')
         self.init(testdir)
         myenv = os.environ.copy()
-        myenv['PKG_CONFIG_PATH'] = self.privatedir
+        myenv['PKG_CONFIG_PATH'] = _prepend_pkg_config_path(self.privatedir)
         stdo = subprocess.check_output([PKG_CONFIG, '--libs', 'libsomething'], env=myenv)
 
         self.assertEqual("-r/usr/lib/libsomething.dll", str(stdo.decode('ascii')).strip())
@@ -1224,7 +1236,7 @@ class LinuxlikeTests(BasePlatformTests):
         testdir = os.path.join(self.unit_test_dir, '53 pkgconfig static link order')
         self.init(testdir)
         myenv = os.environ.copy()
-        myenv['PKG_CONFIG_PATH'] = self.privatedir
+        myenv['PKG_CONFIG_PATH'] = _prepend_pkg_config_path(self.privatedir)
         stdo = subprocess.check_output([PKG_CONFIG, '--libs', 'libsomething'], env=myenv)
         deps = stdo.split()
         self.assertLess(deps.index(b'-lsomething'), deps.index(b'-ldependency'))
@@ -1295,7 +1307,7 @@ class LinuxlikeTests(BasePlatformTests):
         ## New builddir for the consumer
         self.new_builddir()
         env = {'LIBRARY_PATH': os.path.join(installdir, self.libdir),
-               'PKG_CONFIG_PATH': os.path.join(installdir, self.libdir, 'pkgconfig')}
+               'PKG_CONFIG_PATH': _prepend_pkg_config_path(os.path.join(installdir, self.libdir, 'pkgconfig'))}
         testdir = os.path.join(self.unit_test_dir, '40 external, internal library rpath', 'built library')
         # install into installdir without using DESTDIR
         self.prefix = self.installdir
@@ -1348,7 +1360,7 @@ class LinuxlikeTests(BasePlatformTests):
 
         self.new_builddir()
         env = {'LIBRARY_PATH': os.path.join(installdir, self.libdir),
-               'PKG_CONFIG_PATH': os.path.join(installdir, self.libdir, 'pkgconfig')}
+               'PKG_CONFIG_PATH': _prepend_pkg_config_path(os.path.join(installdir, self.libdir, 'pkgconfig'))}
         testdir = os.path.join(self.unit_test_dir, '98 link full name','proguser')
         self.init(testdir,override_envvars=env)
 
