@@ -88,7 +88,7 @@ defaults['clang_cl_static_linker'] = ['llvm-lib']
 defaults['cuda_static_linker'] = ['nvlink']
 defaults['gcc_static_linker'] = ['gcc-ar']
 defaults['clang_static_linker'] = ['llvm-ar']
-defaults['nasm'] = ['nasm']
+defaults['nasm'] = ['nasm', 'yasm']
 
 
 def compiler_from_language(env: 'Environment', lang: str, for_machine: MachineChoice) -> T.Optional[Compiler]:
@@ -1137,7 +1137,7 @@ def detect_swift_compiler(env: 'Environment', for_machine: MachineChoice) -> Com
     raise EnvironmentException('Unknown compiler: ' + join_args(exelist))
 
 def detect_nasm_compiler(env: 'Environment', for_machine: MachineChoice) -> Compiler:
-    from .asm import NasmCompiler
+    from .asm import NasmCompiler, YasmCompiler
     compilers, _, _ = _get_compilers(env, 'nasm', for_machine)
     is_cross = env.is_cross_build(for_machine)
 
@@ -1160,6 +1160,10 @@ def detect_nasm_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
         version = search_version(output)
         if 'NASM' in output:
             comp_class = NasmCompiler
+            env.coredata.add_lang_args(comp_class.language, comp_class, for_machine, env)
+            return comp_class(comp, version, for_machine, info, cc.linker, is_cross=is_cross)
+        elif 'yasm' in output:
+            comp_class = YasmCompiler
             env.coredata.add_lang_args(comp_class.language, comp_class, for_machine, env)
             return comp_class(comp, version, for_machine, info, cc.linker, is_cross=is_cross)
     _handle_exceptions(popen_exceptions, compilers)

@@ -1,7 +1,7 @@
 import os
 import typing as T
 
-from ..mesonlib import EnvironmentException
+from ..mesonlib import EnvironmentException, get_meson_command
 from .compilers import Compiler
 
 if T.TYPE_CHECKING:
@@ -75,3 +75,21 @@ class NasmCompiler(Compiler):
             if i[:2] == '-I':
                 parameter_list[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
         return parameter_list
+
+class YasmCompiler(NasmCompiler):
+    id = 'yasm'
+
+    def get_exelist(self) -> T.List[str]:
+        # Wrap yasm executable with an internal script that will write depfile.
+        exelist = super().get_exelist()
+        return get_meson_command() + ['--internal', 'yasm'] + exelist
+
+    def get_debug_args(self, is_debug: bool) -> T.List[str]:
+        if is_debug:
+            if self.info.is_windows():
+                return ['-g', 'null']
+            return ['-g', 'dwarf2']
+        return []
+
+    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
+        return ['--depfile', outfile]
