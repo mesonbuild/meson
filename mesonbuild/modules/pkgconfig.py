@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
 from pathlib import PurePath
 import os
 import typing as T
@@ -28,11 +29,12 @@ from ..interpreterbase import permittedKwargs, FeatureNew, FeatureDeprecated, Fe
 
 if T.TYPE_CHECKING:
     from . import ModuleState
+    from ..interpreter import Interpreter
 
 already_warned_objs = set()
 
 class DependenciesHelper:
-    def __init__(self, state, name):
+    def __init__(self, state: ModuleState, name: str) -> None:
         self.state = state
         self.name = name
         self.pub_libs = []
@@ -43,24 +45,24 @@ class DependenciesHelper:
         self.version_reqs = {}
         self.link_whole_targets = []
 
-    def add_pub_libs(self, libs):
+    def add_pub_libs(self, libs) -> None:
         libs, reqs, cflags = self._process_libs(libs, True)
         self.pub_libs = libs + self.pub_libs # prepend to preserve dependencies
         self.pub_reqs += reqs
         self.cflags += cflags
 
-    def add_priv_libs(self, libs):
+    def add_priv_libs(self, libs) -> None:
         libs, reqs, _ = self._process_libs(libs, False)
         self.priv_libs = libs + self.priv_libs
         self.priv_reqs += reqs
 
-    def add_pub_reqs(self, reqs):
+    def add_pub_reqs(self, reqs) -> None:
         self.pub_reqs += self._process_reqs(reqs)
 
-    def add_priv_reqs(self, reqs):
+    def add_priv_reqs(self, reqs) -> None:
         self.priv_reqs += self._process_reqs(reqs)
 
-    def _check_generated_pc_deprecation(self, obj):
+    def _check_generated_pc_deprecation(self, obj) -> None:
         if not hasattr(obj, 'generated_pc_warn'):
             return
         name = obj.generated_pc_warn[0]
@@ -77,7 +79,7 @@ class DependenciesHelper:
                          location=obj.generated_pc_warn[1])
         already_warned_objs.add((name, obj.name))
 
-    def _process_reqs(self, reqs):
+    def _process_reqs(self, reqs: T.List[T.Union[str, dependencies.Dependency]]):
         '''Returns string names of requirements'''
         processed_reqs = []
         for obj in mesonlib.listify(reqs):
@@ -104,10 +106,10 @@ class DependenciesHelper:
                                               f'or pkgconfig-dependency object, got {obj!r}')
         return processed_reqs
 
-    def add_cflags(self, cflags):
+    def add_cflags(self, cflags) -> None:
         self.cflags += mesonlib.stringlistify(cflags)
 
-    def _process_libs(self, libs, public: bool):
+    def _process_libs(self, libs, public: bool) -> T.Tuple[T.List, T.List, T.List]:
         libs = mesonlib.listify(libs)
         processed_libs = []
         processed_reqs = []
@@ -160,7 +162,7 @@ class DependenciesHelper:
 
         return processed_libs, processed_reqs, processed_cflags
 
-    def _add_lib_dependencies(self, link_targets, link_whole_targets, external_deps, public, private_external_deps=False):
+    def _add_lib_dependencies(self, link_targets, link_whole_targets, external_deps, public, private_external_deps: bool = False) -> None:
         add_libs = self.add_pub_libs if public else self.add_priv_libs
         # Recursively add all linked libraries
         for t in link_targets:
@@ -178,7 +180,7 @@ class DependenciesHelper:
         else:
             add_libs(external_deps)
 
-    def _add_link_whole(self, t, public):
+    def _add_link_whole(self, t, public) -> None:
         # Don't include static libraries that we link_whole. But we still need to
         # include their dependencies: a static library we link_whole
         # could itself link to a shared library or an installed static library.
@@ -189,7 +191,7 @@ class DependenciesHelper:
         if isinstance(t, build.BuildTarget):
             self._add_lib_dependencies(t.link_targets, t.link_whole_targets, t.external_deps, public)
 
-    def add_version_reqs(self, name, version_reqs):
+    def add_version_reqs(self, name, version_reqs) -> None:
         if version_reqs:
             if name not in self.version_reqs:
                 self.version_reqs[name] = set()
@@ -199,21 +201,21 @@ class DependenciesHelper:
             new_vreqs = [s for s in mesonlib.stringlistify(version_reqs)]
             self.version_reqs[name].update(new_vreqs)
 
-    def split_version_req(self, s):
+    def split_version_req(self, s: str) -> T.Tuple[str, T.Optional[str]]:
         for op in ['>=', '<=', '!=', '==', '=', '>', '<']:
             pos = s.find(op)
             if pos > 0:
                 return s[0:pos].strip(), s[pos:].strip()
         return s, None
 
-    def format_vreq(self, vreq):
+    def format_vreq(self, vreq: str) -> str:
         # vreq are '>=1.0' and pkgconfig wants '>= 1.0'
         for op in ['>=', '<=', '!=', '==', '=', '>', '<']:
             if vreq.startswith(op):
                 return op + ' ' + vreq[len(op):]
         return vreq
 
-    def format_reqs(self, reqs):
+    def format_reqs(self, reqs) -> str:
         result = []
         for name in reqs:
             vreqs = self.version_reqs.get(name, None)
@@ -223,7 +225,7 @@ class DependenciesHelper:
                 result += [name]
         return ', '.join(result)
 
-    def remove_dups(self):
+    def remove_dups(self) -> None:
         # Set of ids that have already been handled and should not be added any more
         exclude = set()
 
@@ -279,7 +281,7 @@ class PkgConfigModule(ExtensionModule):
 
     INFO = ModuleInfo('pkgconfig')
 
-    def __init__(self, interpreter):
+    def __init__(self, interpreter: Interpreter):
         super().__init__(interpreter)
         self.methods.update({
             'generate': self.generate,
@@ -331,7 +333,7 @@ class PkgConfigModule(ExtensionModule):
         # pathlib joining makes sure absolute libdir is not appended to '${prefix}'
         return ('${prefix}' / libdir).as_posix()
 
-    def _generate_pkgconfig_file(self, state, deps, subdirs, name, description,
+    def _generate_pkgconfig_file(self, state: ModuleState, deps, subdirs, name, description,
                                  url, version, pcfile, conflicts, variables,
                                  unescaped_variables, uninstalled=False, dataonly=False,
                                  pkgroot=None):
