@@ -12,32 +12,38 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .. import mesonlib
-from ..interpreterbase import flatten
-from ..interpreterbase import FeatureNew
+from __future__ import annotations
+
+import typing as T
 
 from . import ExtensionModule
+from .. import mesonlib
+from ..interpreterbase import FeatureNew
+from ..interpreterbase import flatten
+
+if T.TYPE_CHECKING:
+    from ..programs import ExternalProgram
 
 class IceStormModule(ExtensionModule):
 
     @FeatureNew('FPGA/Icestorm Module', '0.45.0')
     def __init__(self, interpreter):
         super().__init__(interpreter)
-        self.yosys_bin = None
+        self.tools: T.Dict[str, ExternalProgram] = {}
         self.methods.update({
             'project': self.project,
         })
 
-    def detect_binaries(self, state):
-        self.yosys_bin = state.find_program('yosys')
-        self.arachne_bin = state.find_program('arachne-pnr')
-        self.icepack_bin = state.find_program('icepack')
-        self.iceprog_bin = state.find_program('iceprog')
-        self.icetime_bin = state.find_program('icetime')
+    def detect_tools(self, state):
+        self.tools['yosys'] = state.find_program('yosys')
+        self.tools['arachne'] = state.find_program('arachne-pnr')
+        self.tools['icepack'] = state.find_program('icepack')
+        self.tools['iceprog'] = state.find_program('iceprog')
+        self.tools['icetime'] = state.find_program('icetime')
 
     def project(self, state, args, kwargs):
-        if not self.yosys_bin:
-            self.detect_binaries(state)
+        if not self.tools:
+            self.detect_tools(state)
         if not args:
             raise mesonlib.MesonException('Project requires at least one argument, which is the project name.')
         proj_name = args[0]
@@ -66,24 +72,24 @@ class IceStormModule(ExtensionModule):
         blif_target = self.interpreter.func_custom_target(None, [blif_name], {
             'input': all_sources,
             'output': blif_fname,
-            'command': [self.yosys_bin, '-q', '-p', 'synth_ice40 -blif @OUTPUT@', '@INPUT@']})
+            'command': [self.tools['yosys'], '-q', '-p', 'synth_ice40 -blif @OUTPUT@', '@INPUT@']})
 
         asc_target = self.interpreter.func_custom_target(None, [asc_name], {
             'input': blif_target,
             'output': asc_fname,
-            'command': [self.arachne_bin, '-q', '-d', '1k', '-p', constraint_file, '@INPUT@', '-o', '@OUTPUT@']})
+            'command': [self.tools['arachne'], '-q', '-d', '1k', '-p', constraint_file, '@INPUT@', '-o', '@OUTPUT@']})
 
         bin_target = self.interpreter.func_custom_target(None, [bin_name], {
             'input': asc_target,
             'output': bin_fname,
-            'command': [self.icepack_bin, '@INPUT@', '@OUTPUT@'],
+            'command': [self.tools['icepack'], '@INPUT@', '@OUTPUT@'],
             'build_by_default': True})
 
         self.interpreter.func_run_target(None, [upload_name], {
-            'command': [self.iceprog_bin, bin_target]})
+            'command': [self.tools['iceprog'], bin_target]})
 
         self.interpreter.func_run_target(None, [time_name], {
-            'command': [self.icetime_bin, bin_target]})
+            'command': [self.tools['icetime'], bin_target]})
 
 def initialize(*args, **kwargs):
     return IceStormModule(*args, **kwargs)
