@@ -2545,6 +2545,16 @@ class CustomTarget(Target, CommandBase):
         suf = os.path.splitext(self.outputs[0])[-1]
         return suf in {'.a', '.dll', '.lib', '.so', '.dylib'}
 
+    def links_dynamically(self) -> bool:
+        """Whether this target links dynamically or statically
+
+        Does not assert the target is linkable, just that it is not shared
+
+        :return: True if is dynamically linked, otherwise False
+        """
+        suf = os.path.splitext(self.outputs[0])[-1]
+        return suf not in {'.a', '.lib'}
+
     def get_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:
         return {}
 
@@ -2743,6 +2753,16 @@ class CustomTargetIndex(HoldableObject):
     def is_linkable_target(self) -> bool:
         suf = os.path.splitext(self.output)[-1]
         return suf in {'.a', '.dll', '.lib', '.so'}
+
+    def links_dynamically(self) -> bool:
+        """Whether this target links dynamically or statically
+
+        Does not assert the target is linkable, just that it is not shared
+
+        :return: True if is dynamically linked, otherwise False
+        """
+        suf = os.path.splitext(self.output)[-1]
+        return suf not in {'.a', '.lib'}
 
     def should_install(self) -> bool:
         return self.target.should_install()
