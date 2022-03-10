@@ -119,10 +119,10 @@ class DependenciesHelper:
         self.priv_libs = p_libs + self.priv_libs
         self.priv_reqs += reqs
 
-    def add_pub_reqs(self, reqs: T.Sequence[T.Union[str, dependencies.Dependency]]) -> None:
+    def add_pub_reqs(self, reqs: T.Sequence[T.Union[str, build.StaticLibrary, build.SharedLibrary, dependencies.Dependency]]) -> None:
         self.pub_reqs += self._process_reqs(reqs)
 
-    def add_priv_reqs(self, reqs: T.Sequence[T.Union[str, dependencies.Dependency]]) -> None:
+    def add_priv_reqs(self, reqs: T.Sequence[T.Union[str, build.StaticLibrary, build.SharedLibrary, dependencies.Dependency]]) -> None:
         self.priv_reqs += self._process_reqs(reqs)
 
     def _check_generated_pc_deprecation(self, obj: T.Union[build.CustomTarget, build.CustomTargetIndex, build.StaticLibrary, build.SharedLibrary]) -> None:
@@ -142,7 +142,7 @@ class DependenciesHelper:
                          location=data.location)
         data.warned = True
 
-    def _process_reqs(self, reqs: T.Sequence[T.Union[str, dependencies.Dependency]]) -> T.List[str]:
+    def _process_reqs(self, reqs: T.Sequence[T.Union[str, build.StaticLibrary, build.SharedLibrary, dependencies.Dependency]]) -> T.List[str]:
         '''Returns string names of requirements'''
         processed_reqs: T.List[str] = []
         for obj in mesonlib.listify(reqs):
@@ -159,7 +159,7 @@ class DependenciesHelper:
             elif isinstance(obj, str):
                 name, version_req = self.split_version_req(obj)
                 processed_reqs.append(name)
-                self.add_version_reqs(name, version_req)
+                self.add_version_reqs(name, [version_req] if version_req is not None else None)
             elif isinstance(obj, dependencies.Dependency) and not obj.found():
                 pass
             elif isinstance(obj, ThreadDependency):
@@ -230,8 +230,8 @@ class DependenciesHelper:
         return processed_libs, processed_reqs, processed_cflags
 
     def _add_lib_dependencies(
-            self, link_targets: T.List[T.Union[build.StaticLibrary, build.SharedLibrary, build.CustomTarget, build.CustomTargetIndex]],
-            link_whole_targets: T.List[T.Union[build.StaticLibrary, build.CustomTarget, build.CustomTargetIndex]],
+            self, link_targets: T.Sequence[build.BuildTargetTypes],
+            link_whole_targets: T.Sequence[T.Union[build.StaticLibrary, build.CustomTarget, build.CustomTargetIndex]],
             external_deps: T.List[dependencies.Dependency],
             public: bool,
             private_external_deps: bool = False) -> None:
@@ -241,6 +241,9 @@ class DependenciesHelper:
             # Internal libraries (uninstalled static library) will be promoted
             # to link_whole, treat them as such here.
             if t.is_internal():
+                # `is_internal` shouldn't return True for anything but a
+                # StaticLibrary, or a CustomTarget that is a StaticLibrary
+                assert isinstance(t, (build.StaticLibrary, build.CustomTarget, build.CustomTargetIndex)), 'for mypy'
                 self._add_link_whole(t, public)
             else:
                 add_libs([t])
@@ -252,7 +255,7 @@ class DependenciesHelper:
         else:
             add_libs(external_deps)
 
-    def _add_link_whole(self, t: T.Union[build.CustomTarget, build.CustomTargetIndex, build.StaticLibrary, build.SharedLibrary], public: bool) -> None:
+    def _add_link_whole(self, t: T.Union[build.CustomTarget, build.CustomTargetIndex, build.StaticLibrary], public: bool) -> None:
         # Don't include static libraries that we link_whole. But we still need to
         # include their dependencies: a static library we link_whole
         # could itself link to a shared library or an installed static library.
@@ -301,7 +304,7 @@ class DependenciesHelper:
 
         # We can't just check if 'x' is excluded because we could have copies of
         # the same SharedLibrary object for example.
-        def _ids(x: T.Union[str, build.CustomTarget, build.CustomTargetIndex, build.StaticLibrary]) -> T.Iterable[str]:
+        def _ids(x: T.Union[str, build.CustomTarget, build.CustomTargetIndex, build.StaticLibrary, build.SharedLibrary]) -> T.Iterable[str]:
             if isinstance(x, str):
                 yield x
             else:
@@ -310,7 +313,7 @@ class DependenciesHelper:
                 yield x.get_id()
 
         # Exclude 'x' in all its forms and return if it was already excluded
-        def _add_exclude(x: T.Union[str, build.CustomTarget, build.CustomTargetIndex, build.StaticLibrary]) -> bool:
+        def _add_exclude(x: T.Union[str, build.CustomTarget, build.CustomTargetIndex, build.StaticLibrary, build.SharedLibrary]) -> bool:
             was_excluded = False
             for i in _ids(x):
                 if i in exclude:
@@ -473,14 +476,14 @@ class PkgConfigModule(ExtensionModule):
             outdir = state.environment.scratch_dir
             prefix = PurePath(_as_str(coredata.get_option(mesonlib.OptionKey('prefix'))))
             if pkgroot:
-                pkgroot = PurePath(pkgroot)
-                if not pkgroot.is_absolute():
-                    pkgroot = prefix / pkgroot
-                elif prefix not in pkgroot.parents:
+                pkgroot_ = PurePath(pkgroot)
+                if not pkgroot_.is_absolute():
+                    pkgroot_ = prefix / pkgroot
+                elif prefix not in pkgroot_.parents:
                     raise mesonlib.MesonException('Pkgconfig prefix cannot be outside of the prefix '
                                                   'when pkgconfig.relocatable=true. '
-                                                  f'Pkgconfig prefix is {pkgroot.as_posix()}.')
-                prefix = PurePath('${pcfiledir}', os.path.relpath(prefix, pkgroot))
+                                                  f'Pkgconfig prefix is {pkgroot_.as_posix()}.')
+                prefix = PurePath('${pcfiledir}', os.path.relpath(prefix, pkgroot_))
         fname = os.path.join(outdir, pcfile)
         with open(fname, 'w', encoding='utf-8') as ofile:
             for optname in optnames:
@@ -695,10 +698,10 @@ class PkgConfigModule(ExtensionModule):
         pkgroot = pkgroot_name = kwargs['install_dir'] or default_install_dir
         if pkgroot is None:
             if mesonlib.is_freebsd():
-                pkgroot = os.path.join(state.environment.coredata.get_option(mesonlib.OptionKey('prefix')), 'libdata', 'pkgconfig')
+                pkgroot = os.path.join(_as_str(state.environment.coredata.get_option(mesonlib.OptionKey('prefix'))), 'libdata', 'pkgconfig')
                 pkgroot_name = os.path.join('{prefix}', 'libdata', 'pkgconfig')
             else:
-                pkgroot = os.path.join(state.environment.coredata.get_option(mesonlib.OptionKey('libdir')), 'pkgconfig')
+                pkgroot = os.path.join(_as_str(state.environment.coredata.get_option(mesonlib.OptionKey('libdir'))), 'pkgconfig')
                 pkgroot_name = os.path.join('{libdir}', 'pkgconfig')
         relocatable = state.get_option('relocatable', module='pkgconfig')
         self._generate_pkgconfig_file(state, deps, subdirs, name, description, url,
