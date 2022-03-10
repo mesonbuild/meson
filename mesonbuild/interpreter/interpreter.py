@@ -687,10 +687,19 @@ class Interpreter(InterpreterBase, HoldableObject):
         for d in deps:
             if not isinstance(d, dependencies.Dependency):
                 raise InterpreterException('Invalid dependency')
+
+        dep_err = 'declare_dependency: Entries in "{}" may only be self-built targets, external dependencies (including libraries) must go to "dependencies".'
+
         for l in libs:
             if isinstance(l, dependencies.Dependency):
-                raise InterpreterException('''Entries in "link_with" may only be self-built targets,
-external dependencies (including libraries) must go to "dependencies".''')
+                raise InvalidArguments(dep_err.format('link_with'))
+        for l in libs_whole:
+            if isinstance(l, dependencies.Dependency):
+                raise InvalidArguments(dep_err.format('link_whole'))
+            if isinstance(l, build.SharedLibrary):
+                raise InvalidArguments('declare_dependency: SharedLibrary objects are not allowed in "link_whole"')
+            if isinstance(l, (build.CustomTarget, build.CustomTargetIndex)) and l.links_dynamically():
+                raise InvalidArguments('declare_dependency: CustomTarget and CustomTargetIndex returning shared libaries are not allowed in "link_whole"')
         dep = dependencies.InternalDependency(version, incs, compile_args,
                                               link_args, libs, libs_whole, sources, deps,
                                               variables, d_module_versions, d_import_dirs)
