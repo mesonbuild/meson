@@ -48,6 +48,7 @@ modules = [
     'mesonbuild/modules/java.py',
     'mesonbuild/modules/keyval.py',
     'mesonbuild/modules/modtest.py',
+    'mesonbuild/modules/pkgconfig.py',
     'mesonbuild/modules/qt.py',
     'mesonbuild/modules/rust.py',
     'mesonbuild/modules/sourceset.py',
