@@ -317,8 +317,19 @@ class InternalDependency(Dependency):
         raise DependencyException(f'Could not get an internal variable and no default provided for {self!r}')
 
     def generate_link_whole_dependency(self) -> Dependency:
+        from ..build import SharedLibrary, CustomTarget, CustomTargetIndex
         new_dep = copy.deepcopy(self)
-        new_dep.whole_libraries += new_dep.libraries
+        for x in new_dep.libraries:
+            if isinstance(x, SharedLibrary):
+                raise MesonException('Cannot convert a dependency to link_whole when it contains a '
+                                     'SharedLibrary')
+            elif isinstance(x, (CustomTarget, CustomTargetIndex)) and x.links_dynamically():
+                raise MesonException('Cannot convert a dependency to link_whole when it contains a '
+                                     'CustomTarget or CustomTargetIndex which is a shared library')
+
+        # Mypy doesn't understand that the above is a TypeGuard
+        new_dep.whole_libraries += T.cast('T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]]',
+                                          new_dep.libraries)
         new_dep.libraries = []
         return new_dep
 
