@@ -414,7 +414,6 @@ class PythonExternalProgram(ExternalProgram):
         if subdir_parts[-len(install_subdir_parts):] == install_subdir_parts:
             pypath = os.path.join(basedir, *subdir_parts[:-len(install_subdir_parts)])
             self.devenv_pythonpath.add(pypath)
-            print('done', pypath)
 
     def _check_version(self, version: str) -> bool:
         if self.name == 'python2':
