@@ -619,7 +619,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_pos_args('files', varargs=str)
     @noKwargs
     def func_files(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> T.List[mesonlib.File]:
-        return [mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, fname) for fname in args[0]]
+        return self.source_strings_to_files(args[0])
 
     # Used by declare_dependency() and pkgconfig.generate()
     def extract_variables(self, kwargs, argname='variables', list_new=False, dict_new=False):
