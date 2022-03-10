@@ -1418,8 +1418,8 @@ You probably should put it in link_with instead.''')
             if isinstance(t, (CustomTarget, CustomTargetIndex)):
                 if not t.is_linkable_target():
                     raise InvalidArguments(f'Custom target {t!r} is not linkable.')
-                if not t.get_filename().endswith('.a'):
-                    raise InvalidArguments('Can only link_whole custom targets that are .a archives.')
+                if t.links_dynamically():
+                    raise InvalidArguments('Can only link_whole custom targets that are static archives.')
                 if isinstance(self, StaticLibrary):
                     # FIXME: We could extract the .a archive to get object files
                     raise InvalidArguments('Cannot link_whole a custom target into a static library')
