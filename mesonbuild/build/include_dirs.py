@@ -44,3 +44,11 @@ class IncludeDirs(HoldableObject):
             strlist.append(os.path.join(sourcedir, self.curdir, idir))
             strlist.append(os.path.join(builddir, self.curdir, idir))
         return strlist
+
+    def to_system(self) -> IncludeDirs:
+        """Create a shallow copy of this IncludeDirs as a system dependency."""
+        return IncludeDirs(self.curdir, self.incdirs, True, self.extra_build_dirs)
+
+    def to_non_system(self) -> IncludeDirs:
+        """Create a shallow copy of this IncludeDirs as a non-system dependency."""
+        return IncludeDirs(self.curdir, self.incdirs, False, self.extra_build_dirs)
