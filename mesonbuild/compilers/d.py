@@ -17,22 +17,27 @@ import re
 import subprocess
 import typing as T
 
+from .. import mesonlib
+from .. import mlog
+from ..arglist import CompilerArgs
+from ..linkers import RSPFileSyntax
 from ..mesonlib import (
     EnvironmentException, MachineChoice, version_compare, OptionKey, is_windows
 )
 
-from ..arglist import CompilerArgs
-from ..linkers import RSPFileSyntax
+from . import compilers
 from .compilers import (
     d_dmd_buildtype_args,
     d_gdc_buildtype_args,
     d_ldc_buildtype_args,
     clike_debug_args,
     Compiler,
+    CompileCheckMode,
 )
 from .mixins.gnu import GnuCompiler
 
 if T.TYPE_CHECKING:
+    from ..dependencies import Dependency
     from ..programs import ExternalProgram
     from ..envconfig import MachineInfo
     from ..environment import Environment
@@ -678,6 +683,98 @@ class DCompiler(Compiler):
     def get_crt_link_args(self, crt_val: str, buildtype: str) -> T.List[str]:
         return []
 
+    def _get_compile_extra_args(self, extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]], None] = None) -> T.List[str]:
+        args = self._get_target_arch_args()
+        if extra_args:
+            if callable(extra_args):
+                extra_args = extra_args(CompileCheckMode.COMPILE)
+            if isinstance(extra_args, list):
+                args.extend(extra_args)
+            elif isinstance(extra_args, str):
+                args.append(extra_args)
+        return args
+
+    def run(self, code: 'mesonlib.FileOrString', env: 'Environment', *,
+            extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]], None] = None,
+            dependencies: T.Optional[T.List['Dependency']] = None) -> compilers.RunResult:
+        need_exe_wrapper = env.need_exe_wrapper(self.for_machine)
+        if need_exe_wrapper and self.exe_wrapper is None:
+            raise compilers.CrossNoRunException('Can not run test applications in this cross environment.')
+        extra_args = self._get_compile_extra_args(extra_args)
+        with self._build_wrapper(code, env, extra_args, dependencies, mode='link', want_output=True) as p:
+            if p.returncode != 0:
+                mlog.debug(f'Could not compile test file {p.input_name}: {p.returncode}\n')
+                return compilers.RunResult(False)
+            if need_exe_wrapper:
+                cmdlist = self.exe_wrapper.get_command() + [p.output_name]
+            else:
+                cmdlist = [p.output_name]
+            try:
+                pe, so, se = mesonlib.Popen_safe(cmdlist)
+            except Exception as e:
+                mlog.debug(f'Could not run: {cmdlist} (error: {e})\n')
+                return compilers.RunResult(False)
+
+        mlog.debug('Program stdout:\n')
+        mlog.debug(so)
+        mlog.debug('Program stderr:\n')
+        mlog.debug(se)
+        return compilers.RunResult(True, pe.returncode, so, se)
+
+    def sizeof(self, typename: str, prefix: str, env: 'Environment', *,
+               extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
+               dependencies: T.Optional[T.List['Dependency']] = None) -> int:
+        if extra_args is None:
+            extra_args = []
+        t = f'''
+        import std.stdio : writeln;
+        {prefix}
+        void main() {{
+            writeln(({typename}).sizeof);
+        }}
+        '''
+        res = self.run(t, env, extra_args=extra_args,
+                       dependencies=dependencies)
+        if not res.compiled:
+            return -1
+        if res.returncode != 0:
+            raise mesonlib.EnvironmentException('Could not run sizeof test binary.')
+        return int(res.stdout)
+
+    def alignment(self, typename: str, prefix: str, env: 'Environment', *,
+                  extra_args: T.Optional[T.List[str]] = None,
+                  dependencies: T.Optional[T.List['Dependency']] = None) -> int:
+        if extra_args is None:
+            extra_args = []
+        t = f'''
+        import std.stdio : writeln;
+        {prefix}
+        void main() {{
+            writeln(({typename}).alignof);
+        }}
+        '''
+        res = self.run(t, env, extra_args=extra_args,
+                       dependencies=dependencies)
+        if not res.compiled:
+            raise mesonlib.EnvironmentException('Could not compile alignment test.')
+        if res.returncode != 0:
+            raise mesonlib.EnvironmentException('Could not run alignment test binary.')
+        align = int(res.stdout)
+        if align == 0:
+            raise mesonlib.EnvironmentException(f'Could not determine alignment of {typename}. Sorry. You might want to file a bug.')
+        return align
+
+    def has_header(self, hname: str, prefix: str, env: 'Environment', *,
+                   extra_args: T.Union[None, T.List[str], T.Callable[['CompileCheckMode'], T.List[str]]] = None,
+                   dependencies: T.Optional[T.List['Dependency']] = None,
+                   disable_cache: bool = False) -> T.Tuple[bool, bool]:
+
+        extra_args = self._get_compile_extra_args(extra_args)
+        code = f'''{prefix}
+        import {hname};
+        '''
+        return self.compiles(code, env, extra_args=extra_args,
+                             dependencies=dependencies, mode='compile', disable_cache=disable_cache)
 
 class GnuDCompiler(GnuCompiler, DCompiler):
 
