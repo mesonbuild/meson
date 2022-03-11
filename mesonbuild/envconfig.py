@@ -120,6 +120,7 @@ ENV_VAR_PROG_MAP: T.Mapping[str, str] = {
     'cmake': 'CMAKE',
     'qmake': 'QMAKE',
     'pkgconfig': 'PKG_CONFIG',
+    'pkg-config': 'PKG_CONFIG',
     'make': 'MAKE',
     'vapigen': 'VAPIGEN',
 }
