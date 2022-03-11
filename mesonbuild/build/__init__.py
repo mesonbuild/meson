@@ -1453,11 +1453,10 @@ You probably should put it in link_with instead.''')
             if not isinstance(a, IncludeDirs):
                 raise InvalidArguments('Include directory to be added is not an include directory object.')
             ids.append(a)
-        if set_is_system is None:
-            set_is_system = 'preserve'
-        if set_is_system != 'preserve':
-            is_system = set_is_system == 'system'
-            ids = [IncludeDirs(x.get_curdir(), x.get_incdirs(), is_system, x.get_extra_build_dirs()) for x in ids]
+        if set_is_system == 'system':
+            ids = [x.to_system() for x in ids]
+        elif set_is_system == 'non-system':
+            ids = [x.to_non_system() for x in ids]
         self.include_dirs += ids
 
     def add_compiler_args(self, language: str, args: T.List['FileOrString']) -> None:
