@@ -14,11 +14,11 @@ import re
 import textwrap
 import typing as T
 
-from . import coredata
-from . import dependencies
-from . import mlog
-from . import programs
-from .mesonlib import (
+from .. import coredata
+from .. import dependencies
+from .. import mlog
+from .. import programs
+from ..mesonlib import (
     HoldableObject, SecondLevelHolder,
     File, MesonException, MachineChoice, PerMachine, OrderedSet, listify,
     extract_as_list, typeslistify, stringlistify, classify_unity_sources,
@@ -26,27 +26,27 @@ from .mesonlib import (
     OptionKey, PerMachineDefaultable,
     MesonBugException, EnvironmentVariables, pickle_load,
 )
-from .compilers import (
+from ..compilers import (
     is_header, is_object, is_source, clink_langs, sort_clink, all_languages,
     is_known_suffix, detect_static_linker
 )
-from .interpreterbase import FeatureNew, FeatureDeprecated
+from ..interpreterbase import FeatureNew, FeatureDeprecated
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypedDict
 
-    from . import environment
-    from ._typing import ImmutableListProtocol
-    from .backend.backends import Backend
-    from .compilers import Compiler
-    from .interpreter.interpreter import SourceOutputs, Interpreter
-    from .interpreter.interpreterobjects import Test
-    from .interpreterbase import SubProject
-    from .linkers.linkers import StaticLinker
-    from .mesonlib import ExecutableSerialisation, FileMode, FileOrString
-    from .modules import ModuleState
-    from .mparser import BaseNode
-    from .wrap import WrapMode
+    from .. import environment
+    from .._typing import ImmutableListProtocol
+    from ..backend.backends import Backend
+    from ..compilers import Compiler
+    from ..interpreter.interpreter import SourceOutputs, Interpreter
+    from ..interpreter.interpreterobjects import Test
+    from ..interpreterbase import SubProject
+    from ..linkers.linkers import StaticLinker
+    from ..mesonlib import ExecutableSerialisation, FileMode, FileOrString
+    from ..modules import ModuleState
+    from ..mparser import BaseNode
+    from ..wrap import WrapMode
 
     GeneratedTypes = T.Union['CustomTarget', 'CustomTargetIndex', 'GeneratedList']
     LibTypes = T.Union['SharedLibrary', 'StaticLibrary', 'CustomTarget', 'CustomTargetIndex']
