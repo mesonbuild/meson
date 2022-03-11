@@ -224,6 +224,7 @@ class TestSerialisation:
     protocol: TestProtocol
     priority: int
     cmd_is_built: bool
+    cmd_is_exe: bool
     depends: T.List[str]
     version: str
     verbose: bool
@@ -1147,6 +1148,7 @@ class Backend:
                                    t.is_parallel, cmd_args, t.env,
                                    t.should_fail, t.timeout, t.workdir,
                                    extra_paths, t.protocol, t.priority,
+                                   isinstance(exe, build.Target),
                                    isinstance(exe, build.Executable),
                                    [x.get_id() for x in depends],
                                    self.environment.coredata.version,
