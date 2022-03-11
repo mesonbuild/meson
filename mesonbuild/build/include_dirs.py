@@ -17,7 +17,7 @@ class IncludeDirs(HoldableObject):
 
     curdir: str
     incdirs: T.List[str]
-    is_system: bool
+    is_system: bool = False
     # Interpreter has validated that all given directories
     # actually exist.
     extra_build_dirs: T.List[str] = field(default_factory=list)
