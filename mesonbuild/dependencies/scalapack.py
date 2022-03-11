@@ -19,6 +19,7 @@ import os
 import typing as T
 
 from ..mesonlib import OptionKey
+from ..build.include_dirs import IncludeDirs
 from .base import DependencyMethods
 from .base import DependencyException
 from .cmake import CMakeDependency
@@ -147,10 +148,19 @@ class MKLPkgConfigDependency(PkgConfigDependency):
             env = os.environ.copy()
             env['PKG_CONFIG_ALLOW_SYSTEM_CFLAGS'] = '1'
         ret, out, err = self._call_pkgbin([
-            '--cflags', self.name,
+            '--cflags-only-other', self.name,
             '--define-variable=prefix=' + self.__mklroot.as_posix()],
             env=env)
         if ret != 0:
-            raise DependencyException('Could not generate cargs for %s:\n%s\n' %
+            raise DependencyException('Could not generate compile arguments for %s:\n%s\n' %
                                       (self.name, err))
         self.compile_args = self._convert_mingw_paths(self._split_args(out))
+
+        ret, out, err = self._call_pkgbin([
+            '--cflags-only-I', self.name,
+            '--define-variable=prefix=' + self.__mklroot.as_posix()],
+            env=env)
+        if ret != 0:
+            raise DependencyException('Could not generate include arguments for %s:\n%s\n' %
+                                      (self.name, err))
+        self.include_directories.append(IncludeDirs(None, self._convert_mingw_paths(self._split_args(out))))

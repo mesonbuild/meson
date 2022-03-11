@@ -16,6 +16,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from .base import ExternalDependency, DependencyException, sort_libpaths, DependencyTypeName
+from ..build.include_dirs import IncludeDirs
 from ..mesonlib import OptionKey, OrderedSet, PerMachine, Popen_safe, Popen_safe_logged
 from ..programs import find_external_program, ExternalProgram
 from .. import mlog
@@ -211,10 +212,16 @@ class PkgConfigDependency(ExternalDependency):
             # so don't allow pkg-config to suppress -I flags for system paths
             env = os.environ.copy()
             env['PKG_CONFIG_ALLOW_SYSTEM_CFLAGS'] = '1'
-        ret, out, err = self._call_pkgbin(['--cflags', self.name], env=env)
+        ret, out, err = self._call_pkgbin(['--cflags-only-other', self.name], env=env)
         if ret != 0:
-            raise DependencyException(f'Could not generate cargs for {self.name}:\n{err}\n')
+            raise DependencyException(f'Could not generate compile arguments for {self.name}:\n{err}\n')
         self.compile_args = self._convert_mingw_paths(self._split_args(out))
+
+        ret, out, err = self._call_pkgbin(['--cflags-only-I', self.name], env=env)
+        if ret != 0:
+            raise DependencyException(f'Could not generate include directory arguments for {self.name}:\n{err}\n')
+        self.include_directories.append(
+            IncludeDirs(None, [i[2:] for i in self._convert_mingw_paths(self._split_args(out))]))
 
     def _search_libs(self, out: str, out_raw: str) -> T.Tuple[T.List[str], T.List[str]]:
         '''
