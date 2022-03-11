@@ -2807,10 +2807,14 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         return (rel_obj, rel_src)
 
     @lru_cache(maxsize=None)
-    def generate_inc_dir(self, compiler: 'Compiler', d: str, basedir: str, is_system: bool) -> \
+    def generate_inc_dir(self, compiler: 'Compiler', d: str, basedir: T.Optional[str], is_system: bool) -> \
             T.Tuple['ImmutableListProtocol[str]', 'ImmutableListProtocol[str]']:
+        # If the basedir is None, this is a system provided path
+        if basedir is None:
+            return (compiler.get_include_args(d, is_system), [])
+
         # Avoid superfluous '/.' at the end of paths when d is '.'
-        if d not in ('', '.'):
+        if d not in {'', '.'}:
             expdir = os.path.normpath(os.path.join(basedir, d))
         else:
             expdir = basedir

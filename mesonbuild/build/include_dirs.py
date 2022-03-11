@@ -15,14 +15,14 @@ class IncludeDirs(HoldableObject):
 
     """Internal representation of an include_directories call."""
 
-    curdir: str
+    curdir: T.Optional[str]
     incdirs: T.List[str]
     is_system: bool = False
     # Interpreter has validated that all given directories
     # actually exist.
     extra_build_dirs: T.List[str] = field(default_factory=list)
 
-    def get_curdir(self) -> str:
+    def get_curdir(self) -> T.Optional[str]:
         return self.curdir
 
     def get_incdirs(self) -> T.List[str]:
@@ -40,6 +40,11 @@ class IncludeDirs(HoldableObject):
         :returns: A list of strings (without compiler argument)
         """
         strlist: T.List[str] = []
+        # If curdir is `None`, then we are dealing with some kind of external
+        # dependency include paths, and we don't want to make them relative to
+        # the source or builddir. Otherwise, we do.
+        if self.curdir is None:
+            return self.incdirs
         for idir in self.incdirs:
             strlist.append(os.path.join(sourcedir, self.curdir, idir))
             strlist.append(os.path.join(builddir, self.curdir, idir))
