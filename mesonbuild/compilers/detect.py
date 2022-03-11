@@ -1055,7 +1055,7 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
                 else:
                     linker = type(cc.linker)(compiler, for_machine, cc.LINKER_PREFIX,
                                              always_args=always_args, version=cc.linker.version,
-                                             **extra_args) # type: ignore
+                                             **extra_args)
             elif 'link' in override[0]:
                 linker = guess_win_linker(env,
                                           override, cls, for_machine, use_linker_prefix=False)
