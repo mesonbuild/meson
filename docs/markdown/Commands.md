@@ -340,15 +340,6 @@ These variables are set in environment in addition to those set using `meson.add
   schemas is compiled. This is automatically set when using `gnome.compile_schemas()`.
   Note that this requires GLib >= 2.64 when `gnome.compile_schemas()` is used in
   more than one directory.
-- `PYTHONPATH` *Since 0.62.0* includes every directory where a python module is being
-  installed using [`python.install_sources()`](Python-module.md#install_sources)
-  and [`python.extension_module()`](Python-module.md#extension_module). Python
-  modules installed by other means, such as `install_data()` or `install_subdir()`,
-  will not be included and should be added to `PYTHONPATH` manually using
-  [`meson.add_devenv()`](Reference-manual_builtin_meson.md#mesonadd_devenv).
-  Note that when modules are installed into subdirectories the source tree
-  layout must match the installed tree layout otherwise `import subdir.mod`
-  cannot work.
 
 Since *Since 0.62.0* if bash-completion scripts are being installed and the
 shell is bash, they will be automatically sourced.

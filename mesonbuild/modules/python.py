@@ -23,7 +23,7 @@ from . import ExtensionModule
 from .. import mesonlib
 from .. import mlog
 from ..coredata import UserFeatureOption
-from ..build import known_shmod_kwargs, EnvironmentVariables
+from ..build import known_shmod_kwargs
 from ..dependencies import DependencyMethods, PkgConfigDependency, NotFoundDependency, SystemDependency, ExtraFrameworkDependency
 from ..dependencies.base import process_method_kw
 from ..environment import detect_cpu_family
@@ -48,7 +48,6 @@ if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
     from ..interpreter.kwargs import ExtractRequired
     from ..interpreterbase.interpreterbase import TYPE_var, TYPE_kwargs
-    from ..backends import InstallData
 
     class PythonIntrospectionDict(TypedDict):
 
@@ -400,20 +399,6 @@ class PythonExternalProgram(ExternalProgram):
             'variables': {},
             'version': '0.0',
         }
-        self.devenv_pythonpath: T.Set[str] = set()
-
-    def add_devenv_pythonpath(self, basedir: str, subdir: str, install_subdir: str) -> None:
-        # If we install python module into 'foo/bar' subdir, we need the last 2
-        # parts of source dir to be ['foo', 'bar'] and set PYTHONPATH
-        # pointing grandparent directory. That way scripts will be able to
-        # `import foo.bar.something` just like when the are installed.
-        # If the source tree layout does not match installed layout there is
-        # nothing we can do.
-        install_subdir_parts = Path(install_subdir).parts
-        subdir_parts = Path(subdir).parts
-        if subdir_parts[-len(install_subdir_parts):] == install_subdir_parts:
-            pypath = os.path.join(basedir, *subdir_parts[:-len(install_subdir_parts)])
-            self.devenv_pythonpath.add(pypath)
 
     def _check_version(self, version: str) -> bool:
         if self.name == 'python2':
@@ -522,10 +507,8 @@ class PythonInstallation(ExternalProgramHolder):
             subdir = kwargs.pop('subdir', '')
             if not isinstance(subdir, str):
                 raise InvalidArguments('"subdir" argument must be a string.')
+
             kwargs['install_dir'] = os.path.join(self.platlib_install_path, subdir)
-            self.held_object.add_devenv_pythonpath(
-                self.interpreter.environment.get_build_dir(),
-                self.interpreter.subdir, subdir)
 
         # On macOS and some Linux distros (Debian) distutils doesn't link
         # extensions against libpython. We call into distutils and mirror its
@@ -580,19 +563,11 @@ class PythonInstallation(ExternalProgramHolder):
     def install_sources_method(self, args: T.Tuple[T.List[T.Union[str, mesonlib.File]]],
                                kwargs: 'PyInstallKw') -> 'Data':
         tag = kwargs['install_tag'] or 'runtime'
-        pure = kwargs['pure']
-        sources = self.interpreter.source_strings_to_files(args[0])
-        install_subdir = kwargs['subdir']
-        install_dir = self._get_install_dir_impl(pure, install_subdir)
-        builddir = self.interpreter.environment.get_build_dir()
-        srcdir = self.interpreter.environment.get_source_dir()
-        for src in sources:
-            basedir = builddir if src.is_built else srcdir
-            subdir = os.path.dirname(src.relative_name())
-            self.held_object.add_devenv_pythonpath(basedir, subdir, install_subdir)
-        return self.interpreter.install_data_impl(sources, install_dir,
+        return self.interpreter.install_data_impl(
+            self.interpreter.source_strings_to_files(args[0]),
+            self._get_install_dir_impl(kwargs['pure'], kwargs['subdir']),
             mesonlib.FileMode(), rename=None, tag=tag, install_data_type='python',
-            install_dir_name=self._get_install_dir_name_impl(pure, install_subdir))
+            install_dir_name=self._get_install_dir_name_impl(kwargs['pure'], kwargs['subdir']))
 
     @noPosargs
     @typed_kwargs('python_installation.install_dir', _PURE_KW, _SUBDIR_KW)
@@ -659,18 +634,6 @@ class PythonModule(ExtensionModule):
         self.methods.update({
             'find_installation': self.find_installation,
         })
-
-    def get_devenv(self) -> T.Optional[EnvironmentVariables]:
-        pythonpath = set()
-        for python in self.installations.values():
-            version = python.info['version']
-            if mesonlib.version_compare(version, '>=3.0'):
-                pythonpath |= python.devenv_pythonpath
-        if pythonpath:
-            env = EnvironmentVariables()
-            env.prepend('PYTHONPATH', list(pythonpath))
-            return env
-        return None
 
     # https://www.python.org/dev/peps/pep-0397/
     @staticmethod
