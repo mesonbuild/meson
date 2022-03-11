@@ -1058,6 +1058,7 @@ class Backend:
                     commands += dep.get_link_args('vala')
             else:
                 commands += compiler.get_dependency_compile_args(dep)
+                commands.extend(compiler.get_dependency_include_args(dep))
             # Qt needs -fPIC for executables
             # XXX: We should move to -fPIC for all executables
             if isinstance(target, build.Executable):
