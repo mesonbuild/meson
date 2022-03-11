@@ -128,6 +128,7 @@ class Dependency(HoldableObject):
         self.d_features: T.DefaultDict[str, T.List[T.Any]] = collections.defaultdict(list)
         self.featurechecks: T.List['FeatureCheckBase'] = []
         self.feature_since: T.Optional[T.Tuple[str, str]] = None
+        self.include_directories: T.List[IncludeDirs] = []
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Dependency):
@@ -205,8 +206,8 @@ class Dependency(HoldableObject):
         else:
             return 'unknown'
 
-    def get_include_dirs(self) -> T.List['IncludeDirs']:
-        return []
+    def get_include_dirs(self) -> T.List[IncludeDirs]:
+        return self.include_directories
 
     def get_include_type(self) -> str:
         return self.include_type
