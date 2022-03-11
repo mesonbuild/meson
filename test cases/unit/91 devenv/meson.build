@@ -1,8 +1,4 @@
-project('devenv', 'c',
-  # Because Windows Python ships only with optimized libs,
-  # we must build this project the same way.
-  default_options : ['buildtype=release'],
-)
+project('devenv', 'c')
 
 meson.add_devenv('TEST_A=1')
 foo_dep = dependency('foo', fallback: 'sub')
@@ -19,7 +15,3 @@ meson.add_devenv(env)
 # This exe links on a library built in another directory. On Windows this means
 # PATH must contain builddir/subprojects/sub to be able to run it.
 executable('app', 'main.c', dependencies: foo_dep, install: true)
-
-py = import('python').find_installation()
-py.install_sources('src/mymod/mod.py', subdir: 'mymod')
-subdir('src/mymod2')
