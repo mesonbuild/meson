@@ -13,7 +13,20 @@ from ..mesonlib import HoldableObject
 @dataclass(eq=False)
 class IncludeDirs(HoldableObject):
 
-    """Internal representation of an include_directories call."""
+    """Internal representation of paths to be treated as compiler include
+    paths.
+
+    The `include_directories` function is lowered into this, and it is used
+    internally.
+
+    :param curdir: The current working directory, set to none for system
+        dependencies
+    :param incdirs: a list of paths, either relative to the source dir, or
+        absolute
+    :param is_system: is a system path. Use this if you want these to be used
+        with `-isystem` (or equivalent) when possible
+    :param extra_build_dirs: Extra build directory relative paths to include
+    """
 
     curdir: T.Optional[str]
     incdirs: T.List[str]
