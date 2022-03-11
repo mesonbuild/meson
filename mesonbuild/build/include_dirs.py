@@ -22,10 +22,6 @@ class IncludeDirs(HoldableObject):
     # actually exist.
     extra_build_dirs: T.List[str] = field(default_factory=list)
 
-    def __repr__(self) -> str:
-        r = '<{} {}/{}>'
-        return r.format(self.__class__.__name__, self.curdir, self.incdirs)
-
     def get_curdir(self) -> str:
         return self.curdir
 
