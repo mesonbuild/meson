@@ -86,7 +86,7 @@ if T.TYPE_CHECKING:
         fatal_warnings: bool
         header: T.List[str]
         identifier_prefix: T.List[str]
-        include_directories: T.List[T.Union[build.IncludeDirs, str]]
+        include_directories: T.List[T.Union[build.include_dirs.IncludeDirs, str]]
         includes: T.List[T.Union[str, GirTarget]]
         install: bool
         install_dir_gir: T.Optional[str]
@@ -99,7 +99,7 @@ if T.TYPE_CHECKING:
 
     class GtkDoc(TypedDict):
 
-        src_dir: T.List[T.Union[str, build.IncludeDirs]]
+        src_dir: T.List[T.Union[str, build.include_dirs.IncludeDirs]]
         main_sgml: str
         main_xml: str
         module_version: str
@@ -119,7 +119,7 @@ if T.TYPE_CHECKING:
         html_assets: T.List[FileOrString]
         expand_content_files: T.List[FileOrString]
         c_args: T.List[str]
-        include_directories: T.List[T.Union[str, build.IncludeDirs]]
+        include_directories: T.List[T.Union[str, build.include_dirs.IncludeDirs]]
         dependencies: T.List[T.Union[Dependency, build.SharedLibrary, build.StaticLibrary]]
 
     class GdbusCodegen(TypedDict):
@@ -886,7 +886,7 @@ class GnomeModule(ExtensionModule):
         return ret
 
     @staticmethod
-    def _get_gir_targets_inc_dirs(girtargets: T.Sequence[build.BuildTarget]) -> OrderedSet[build.IncludeDirs]:
+    def _get_gir_targets_inc_dirs(girtargets: T.Sequence[build.BuildTarget]) -> OrderedSet[build.include_dirs.IncludeDirs]:
         ret: OrderedSet = OrderedSet()
         for girtarget in girtargets:
             ret.update(girtarget.get_include_dirs())
@@ -1101,7 +1101,7 @@ class GnomeModule(ExtensionModule):
         KwargInfo('fatal_warnings', bool, default=False, since='0.55.0'),
         KwargInfo('header', ContainerTypeInfo(list, str), default=[], listify=True),
         KwargInfo('identifier_prefix', ContainerTypeInfo(list, str), default=[], listify=True),
-        KwargInfo('include_directories', ContainerTypeInfo(list, (str, build.IncludeDirs)), default=[], listify=True),
+        KwargInfo('include_directories', ContainerTypeInfo(list, (str, build.include_dirs.IncludeDirs)), default=[], listify=True),
         KwargInfo('includes', ContainerTypeInfo(list, (str, GirTarget)), default=[], listify=True),
         KwargInfo('install_gir', (bool, NoneType), since='0.61.0'),
         KwargInfo('install_dir_gir', (str, bool, NoneType),
@@ -1409,7 +1409,7 @@ class GnomeModule(ExtensionModule):
         KwargInfo('ignore_headers', ContainerTypeInfo(list, str), default=[], listify=True),
         KwargInfo(
             'include_directories',
-            ContainerTypeInfo(list, (str, build.IncludeDirs)),
+            ContainerTypeInfo(list, (str, build.include_dirs.IncludeDirs)),
             listify=True, default=[]),
         KwargInfo('install', bool, default=True),
         KwargInfo('install_dir', ContainerTypeInfo(list, str), default=[], listify=True),
@@ -1423,7 +1423,7 @@ class GnomeModule(ExtensionModule):
         KwargInfo('namespace', str, default='', since='0.37.0'),
         KwargInfo('scan_args', ContainerTypeInfo(list, str), default=[], listify=True),
         KwargInfo('scanobjs_args', ContainerTypeInfo(list, str), default=[], listify=True),
-        KwargInfo('src_dir', ContainerTypeInfo(list, (str, build.IncludeDirs)), listify=True, required=True),
+        KwargInfo('src_dir', ContainerTypeInfo(list, (str, build.include_dirs.IncludeDirs)), listify=True, required=True),
     )
     def gtkdoc(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'GtkDoc') -> ModuleReturnValue:
         modulename = args[0]
@@ -1452,7 +1452,7 @@ class GnomeModule(ExtensionModule):
         src_dirs = kwargs['src_dir']
         header_dirs: T.List[str] = []
         for src_dir in src_dirs:
-            if isinstance(src_dir, build.IncludeDirs):
+            if isinstance(src_dir, build.include_dirs.IncludeDirs):
                 header_dirs.extend(src_dir.to_string_list(state.environment.get_source_dir(),
                                                           state.environment.get_build_dir()))
             else:
@@ -1543,7 +1543,7 @@ class GnomeModule(ExtensionModule):
             res.append(state.backend.get_executable_serialisation(command + t_args, tag='doc'))
         return ModuleReturnValue(custom_target, res)
 
-    def _get_build_args(self, c_args: T.List[str], inc_dirs: T.List[T.Union[str, build.IncludeDirs]],
+    def _get_build_args(self, c_args: T.List[str], inc_dirs: T.List[T.Union[str, build.include_dirs.IncludeDirs]],
                         deps: T.List[T.Union[Dependency, build.SharedLibrary, build.StaticLibrary]],
                         state: 'ModuleState',
                         depends: T.Sequence[T.Union[build.BuildTarget, 'build.GeneratedTypes']]) -> T.Tuple[
@@ -2191,7 +2191,7 @@ class GnomeModule(ExtensionModule):
         # - link with the correct library
         # - include the vapi and dependent vapi files in sources
         # - add relevant directories to include dirs
-        incs = [build.IncludeDirs(state.subdir, ['.'] + vapi_includes, False)]
+        incs = [build.include_dirs.IncludeDirs(state.subdir, ['.'] + vapi_includes, False)]
         sources = [vapi_target] + vapi_depends
         rv = InternalDependency(None, incs, [], [], link_with, [], sources, [], [], {}, [], [], [])
         created_values.append(rv)

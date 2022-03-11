@@ -163,7 +163,7 @@ class DependenciesHelper:
     def add_cflags(self, cflags: T.List[str]) -> None:
         self.cflags += mesonlib.stringlistify(cflags)
 
-    def _add_uninstalled_incdirs(self, incdirs: T.List[build.IncludeDirs], subdir: T.Optional[str] = None) -> None:
+    def _add_uninstalled_incdirs(self, incdirs: T.List[build.include_dirs.IncludeDirs], subdir: T.Optional[str] = None) -> None:
         for i in incdirs:
             curdir = i.get_curdir()
             for d in i.get_incdirs():

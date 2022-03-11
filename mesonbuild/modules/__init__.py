@@ -8,7 +8,7 @@ import dataclasses
 import typing as T
 
 from .. import build, mesonlib
-from ..build import IncludeDirs
+from ..build.include_dirs import IncludeDirs
 from ..interpreterbase.decorators import noKwargs, noPosargs
 from ..mesonlib import relpath, HoldableObject, MachineChoice
 from ..programs import ExternalProgram
@@ -53,7 +53,7 @@ class ModuleState:
         self.project_args = interpreter.build.projects_args.host.get(interpreter.subproject, {})
         self.current_node = interpreter.current_node
 
-    def get_include_args(self, include_dirs: T.Iterable[T.Union[str, build.IncludeDirs]], prefix: str = '-I') -> T.List[str]:
+    def get_include_args(self, include_dirs: T.Iterable[T.Union[str, IncludeDirs]], prefix: str = '-I') -> T.List[str]:
         if not include_dirs:
             return []
 

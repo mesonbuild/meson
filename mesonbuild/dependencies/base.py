@@ -24,9 +24,10 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..interpreterbase import FeatureCheckBase
     from ..build import (
-        CustomTarget, IncludeDirs, CustomTargetIndex, LibTypes,
+        CustomTarget, CustomTargetIndex, LibTypes,
         StaticLibrary, StructuredSources, ExtractedObjects, GeneratedTypes
     )
+    from ..build.include_dirs import IncludeDirs
     from ..interpreter.type_checking import PkgConfigDefineType
 
     _MissingCompilerBase = Compiler

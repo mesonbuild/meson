@@ -181,6 +181,7 @@
       "mesonbuild.backend.backends",
       "mesonbuild.backend.ninjabackend",
       "mesonbuild.build",
+      "mesonbuild.build.include_dirs",
       "mesonbuild.compilers",
       "mesonbuild.compilers.compilers",
       "mesonbuild.compilers.detect",
@@ -237,6 +238,6 @@
       "mesonbuild.wrap",
       "mesonbuild.wrap.wrap"
     ],
-    "count": 68
+    "count": 69
   }
 }

@@ -9,8 +9,9 @@ import typing as T
 
 from .. import compilers
 from ..build import (CustomTarget, BuildTarget,
-                     CustomTargetIndex, ExtractedObjects, GeneratedList, IncludeDirs,
+                     CustomTargetIndex, ExtractedObjects, GeneratedList,
                      BothLibraries, SharedLibrary, StaticLibrary, Jar, Executable, StructuredSources)
+from ..build.include_dirs import IncludeDirs
 from ..coredata import UserFeatureOption
 from ..dependencies import Dependency, InternalDependency
 from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo

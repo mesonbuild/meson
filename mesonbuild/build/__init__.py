@@ -14,6 +14,7 @@ import re
 import textwrap
 import typing as T
 
+from .include_dirs import IncludeDirs
 from .. import coredata
 from .. import dependencies
 from .. import mlog
@@ -362,45 +363,6 @@ class Build:
             return []
 
         return link_args.get(compiler.get_language(), [])
-
-@dataclass(eq=False)
-class IncludeDirs(HoldableObject):
-
-    """Internal representation of an include_directories call."""
-
-    curdir: str
-    incdirs: T.List[str]
-    is_system: bool
-    # Interpreter has validated that all given directories
-    # actually exist.
-    extra_build_dirs: T.List[str] = field(default_factory=list)
-
-    def __repr__(self) -> str:
-        r = '<{} {}/{}>'
-        return r.format(self.__class__.__name__, self.curdir, self.incdirs)
-
-    def get_curdir(self) -> str:
-        return self.curdir
-
-    def get_incdirs(self) -> T.List[str]:
-        return self.incdirs
-
-    def get_extra_build_dirs(self) -> T.List[str]:
-        return self.extra_build_dirs
-
-    def to_string_list(self, sourcedir: str, builddir: str) -> T.List[str]:
-        """Convert IncludeDirs object to a list of strings.
-
-        :param sourcedir: The absolute source directory
-        :param builddir: The absolute build directory, option, build dir will not
-            be added if this is unset
-        :returns: A list of strings (without compiler argument)
-        """
-        strlist: T.List[str] = []
-        for idir in self.incdirs:
-            strlist.append(os.path.join(sourcedir, self.curdir, idir))
-            strlist.append(os.path.join(builddir, self.curdir, idir))
-        return strlist
 
 @dataclass(eq=False)
 class ExtractedObjects(HoldableObject):

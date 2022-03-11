@@ -58,7 +58,7 @@ if T.TYPE_CHECKING:
         headers: T.Sequence[T.Union[FileOrString, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
         extra_args: T.List[str]
         method: str
-        include_directories: T.List[T.Union[str, build.IncludeDirs]]
+        include_directories: T.List[T.Union[str, build.include_dirs.IncludeDirs]]
         dependencies: T.List[T.Union[Dependency, ExternalLibrary]]
         preserve_paths: bool
 
@@ -72,7 +72,7 @@ if T.TYPE_CHECKING:
         moc_extra_arguments: T.List[str]
         rcc_extra_arguments: T.List[str]
         uic_extra_arguments: T.List[str]
-        include_directories: T.List[T.Union[str, build.IncludeDirs]]
+        include_directories: T.List[T.Union[str, build.include_dirs.IncludeDirs]]
         dependencies: T.List[T.Union[Dependency, ExternalLibrary]]
         method: str
         preserve_paths: bool
@@ -425,7 +425,7 @@ class QtBaseModule(ExtensionModule):
         ),
         KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
         KwargInfo('method', str, default='auto'),
-        KwargInfo('include_directories', ContainerTypeInfo(list, (build.IncludeDirs, str)), listify=True, default=[]),
+        KwargInfo('include_directories', ContainerTypeInfo(list, (build.include_dirs.IncludeDirs, str)), listify=True, default=[]),
         KwargInfo('dependencies', ContainerTypeInfo(list, (Dependency, ExternalLibrary)), listify=True, default=[]),
         KwargInfo('preserve_paths', bool, default=False, since='1.4.0'),
     )
@@ -492,7 +492,7 @@ class QtBaseModule(ExtensionModule):
         KwargInfo('rcc_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[], since='0.49.0'),
         KwargInfo('uic_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[], since='0.49.0'),
         KwargInfo('method', str, default='auto'),
-        KwargInfo('include_directories', ContainerTypeInfo(list, (build.IncludeDirs, str)), listify=True, default=[]),
+        KwargInfo('include_directories', ContainerTypeInfo(list, (build.include_dirs.IncludeDirs, str)), listify=True, default=[]),
         KwargInfo('dependencies', ContainerTypeInfo(list, (Dependency, ExternalLibrary)), listify=True, default=[]),
         KwargInfo('preserve_paths', bool, default=False, since='1.4.0'),
     )

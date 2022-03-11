@@ -704,7 +704,7 @@ class MachineHolder(ObjectHolder['MachineInfo']):
         raise InterpreterException('Subsystem not defined or could not be autodetected.')
 
 
-class IncludeDirsHolder(ObjectHolder[build.IncludeDirs]):
+class IncludeDirsHolder(ObjectHolder[build.include_dirs.IncludeDirs]):
     pass
 
 class FileHolder(ObjectHolder[mesonlib.File]):
@@ -897,8 +897,8 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
 
     @noPosargs
     @noKwargs
-    def private_dir_include_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> build.IncludeDirs:
-        return build.IncludeDirs('', [], False, [self.interpreter.backend.get_target_private_dir(self._target_object)])
+    def private_dir_include_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> build.include_dirs.IncludeDirs:
+        return build.include_dirs.IncludeDirs('', [], False, [self.interpreter.backend.get_target_private_dir(self._target_object)])
 
     @noPosargs
     @noKwargs
