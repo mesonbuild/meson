@@ -2007,9 +2007,10 @@ class AllPlatformTests(BasePlatformTests):
         self.assertEqual(foo_dep.get_link_args(), link_args)
         # Ensure include args are properly quoted
         incdir = PurePath(prefix) / PurePath('include')
-        cargs = ['-I' + incdir.as_posix(), '-DLIBFOO']
+        cargs = [incdir.as_posix()]
         # pkg-config and pkgconf does not respect the same order
-        self.assertEqual(sorted(foo_dep.get_compile_args()), sorted(cargs))
+        self.assertEqual(len(foo_dep.include_directories), 1)
+        self.assertEqual(foo_dep.include_directories[0].to_string_list('', ''), cargs)
 
     @skipIfNoPkgconfig
     def test_pkgconfig_relocatable(self):

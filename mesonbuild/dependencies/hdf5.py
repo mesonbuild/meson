@@ -9,6 +9,7 @@ import os
 import re
 from pathlib import Path
 
+from ..build.include_dirs import IncludeDirs
 from ..mesonlib import OrderedSet, join_args
 from .base import DependencyException, DependencyMethods
 from .configtool import ConfigToolDependency
@@ -38,12 +39,12 @@ class HDF5PkgConfigDependency(PkgConfigDependency):
 
         # some broken pkgconfig don't actually list the full path to the needed includes
         newinc: T.List[str] = []
-        for arg in self.compile_args:
-            if arg.startswith('-I'):
+        for i in self.include_directories:
+            for arg in i.incdirs:
                 stem = 'static' if self.static else 'shared'
                 if (Path(arg[2:]) / stem).is_dir():
-                    newinc.append('-I' + str(Path(arg[2:]) / stem))
-        self.compile_args += newinc
+                    newinc.append(str(Path(arg[2:]) / stem))
+        self.include_directories.append(IncludeDirs(None, newinc))
 
         link_args: T.List[str] = []
         for larg in self.get_link_args():

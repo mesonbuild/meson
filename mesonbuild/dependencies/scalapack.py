@@ -19,6 +19,7 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..mesonlib import MachineChoice
     from .factory import DependencyGenerator
+    from ..interpreter.type_checking import PkgConfigDefineType
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE})
@@ -132,11 +133,5 @@ class MKLPkgConfigDependency(PkgConfigDependency):
             self.link_args.insert(i, '-lmkl_scalapack_lp64')
             self.link_args.insert(i + 1, '-lmkl_blacs_intelmpi_lp64')
 
-    def _set_cargs(self) -> None:
-        allow_system = False
-        if self.language == 'fortran':
-            # gfortran doesn't appear to look in system paths for INCLUDE files,
-            # so don't allow pkg-config to suppress -I flags for system paths
-            allow_system = True
-        cflags = self.pkgconfig.cflags(self.name, allow_system, define_variable=(('prefix', self.__mklroot.as_posix()),))
-        self.compile_args = self._convert_mingw_paths(cflags)
+    def _set_cargs(self, defines: PkgConfigDefineType = None) -> None:
+        return super()._set_cargs((('prefix', self.__mklroot.as_posix()), ))

@@ -17,6 +17,7 @@ from .detect import packages
 from .framework import ExtraFrameworkDependency
 from .pkgconfig import PkgConfigDependency
 from .factory import DependencyFactory
+from ..build.include_dirs import IncludeDirs
 from .. import mlog
 from .. import mesonlib
 
@@ -198,8 +199,7 @@ class QtPkgConfigDependency(_QtBase, PkgConfigDependency, metaclass=abc.ABCMeta)
                     # the Qt + m_name there is not a symlink, it's a file
                     mod_private_dir = qt_inc_dir
                 mod_private_inc = _qt_get_private_includes(mod_private_dir, m, mod.version)
-                for directory in mod_private_inc:
-                    mod.compile_args.append('-I' + directory)
+                mod.include_directories.append(IncludeDirs(None, mod_private_inc))
             self._add_sub_dependency([lambda: mod])
 
         if self.env.machines[self.for_machine].is_windows() and self.qtmain:

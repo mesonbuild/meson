@@ -6,6 +6,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from .base import ExternalDependency, DependencyException, sort_libpaths, DependencyTypeName
+from ..build.include_dirs import IncludeDirs
 from ..mesonlib import EnvironmentVariables, OptionKey, OrderedSet, PerMachine, Popen_safe, Popen_safe_logged, MachineChoice, join_args
 from ..programs import find_external_program, ExternalProgram
 from .. import mlog
@@ -344,14 +345,22 @@ class PkgConfigDependency(ExternalDependency):
             converted.append(arg)
         return converted
 
-    def _set_cargs(self) -> None:
+    def _set_cargs(self, defines: PkgConfigDefineType = None) -> None:
         allow_system = False
         if self.language == 'fortran':
             # gfortran doesn't appear to look in system paths for INCLUDE files,
             # so don't allow pkg-config to suppress -I flags for system paths
             allow_system = True
-        cflags = self.pkgconfig.cflags(self.name, allow_system)
-        self.compile_args = self._convert_mingw_paths(cflags)
+        cflags = self.pkgconfig.cflags(self.name, allow_system, defines)
+
+        incs: T.List[str] = []
+        for a in self._convert_mingw_paths(cflags):
+            if a.startswith(('-I', '/I')):
+                incs.append(a[2:])
+            else:
+                self.compile_args.append(a)
+        if incs:
+            self.include_directories.append(IncludeDirs(None, incs))
 
     def _search_libs(self, libs_in: ImmutableListProtocol[str], raw_libs_in: ImmutableListProtocol[str]) -> T.Tuple[T.List[str], T.List[str]]:
         '''
