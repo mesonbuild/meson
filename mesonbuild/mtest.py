@@ -1349,18 +1349,18 @@ class SingleTestRunner:
 
     def _get_test_cmd(self) -> T.Optional[T.List[str]]:
         testentry = self.test.fname[0]
-        if self.options.no_rebuild and not os.path.isfile(testentry):
+        if self.options.no_rebuild and self.test.cmd_is_built and not os.path.isfile(testentry):
             raise TestException(f'The test program {testentry!r} does not exist. Cannot run tests before building them.')
         if testentry.endswith('.jar'):
             return ['java', '-jar'] + self.test.fname
         elif not self.test.is_cross_built and run_with_mono(testentry):
             return ['mono'] + self.test.fname
-        elif self.test.cmd_is_built and self.test.is_cross_built and self.test.needs_exe_wrapper:
+        elif self.test.cmd_is_exe and self.test.is_cross_built and self.test.needs_exe_wrapper:
             if self.test.exe_wrapper is None:
                 # Can not run test on cross compiled executable
                 # because there is no execute wrapper.
                 return None
-            elif self.test.cmd_is_built:
+            elif self.test.cmd_is_exe:
                 # If the command is not built (ie, its a python script),
                 # then we don't check for the exe-wrapper
                 if not self.test.exe_wrapper.found():
