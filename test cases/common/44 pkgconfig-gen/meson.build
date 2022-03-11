@@ -38,9 +38,15 @@ pkgg.generate(
   libraries_private : [lib, '-lz'],
 )
 
-test('pkgconfig-validation', pkgconfig,
+env = environment()
+env.prepend('PKG_CONFIG_PATH', meson.current_build_dir() / 'meson-private')
+
+test(
+  'pkgconfig-validation',
+  pkgconfig,
   args: ['--validate', 'simple'],
-  env: [ 'PKG_CONFIG_PATH=' + meson.current_build_dir() + '/meson-private' ])
+  env : env,
+)
 
 answerlib = shared_library('answer', 'answer.c')
 
