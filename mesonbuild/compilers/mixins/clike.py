@@ -432,9 +432,9 @@ class CLikeCompiler(Compiler):
             # Add compile flags needed by dependencies
             cargs += d.get_compile_args()
             inctype = IncludeType.SYSTEM if d.get_include_type() == 'system' else IncludeType.NORMAL
-            for i in d.get_include_dirs():
-                for idir in i.to_string_list(env.get_source_dir(), env.get_build_dir()):
-                    cargs.extend(self.get_include_args(idir, inctype))
+            for i in d.include_directories:
+                for x in i.to_string_list(env.source_dir, env.build_dir):
+                    cargs.extend(self.get_include_args(x, inctype))
             if mode is CompileCheckMode.LINK:
                 # Add link flags needed to find dependencies
                 largs += d.get_link_args()

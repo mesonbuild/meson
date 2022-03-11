@@ -1276,6 +1276,8 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         for d in dependencies:
             # Add compile flags needed by dependencies
             args += d.get_compile_args()
+            for i in d.include_directories:
+                args.extend(f'-I{x}' for x in i.to_string_list(env.source_dir, env.build_dir))
             if mode is CompileCheckMode.LINK:
                 # Add link flags needed to find dependencies
                 args += d.get_link_args()
