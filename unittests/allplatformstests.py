@@ -4000,6 +4000,7 @@ class AllPlatformTests(BasePlatformTests):
         def output_name(name, type_):
             return type_(name=name, subdir=None, subproject=None,
                          for_machine=MachineChoice.HOST, sources=[],
+                         structured_sources=None,
                          objects=[], environment=env, kwargs={}).filename
 
         shared_lib_name = lambda name: output_name(name, SharedLibrary)

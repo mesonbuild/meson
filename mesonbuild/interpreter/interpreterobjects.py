@@ -978,3 +978,9 @@ class GeneratorHolder(ObjectHolder[build.Generator]):
                                             preserve_path_from, extra_args=kwargs['extra_args'])
 
         return gl
+
+
+class StructuredSourcesHolder(ObjectHolder[build.StructuredSources]):
+
+    def __init__(self, sources: build.StructuredSources, interp: 'Interpreter'):
+        super().__init__(sources, interp)

@@ -116,6 +116,7 @@ syn keyword mesonBuiltin
   \ shared_library
   \ shared_module
   \ static_library
+  \ structured_sources
   \ subdir
   \ subdir_done
   \ subproject

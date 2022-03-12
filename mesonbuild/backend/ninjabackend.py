@@ -54,6 +54,7 @@ if T.TYPE_CHECKING:
     from .._typing import ImmutableListProtocol
     from ..linkers import DynamicLinker, StaticLinker
     from ..compilers.cs import CsCompiler
+    from ..interpreter.interpreter import SourceOutputs
 
 
 FORTRAN_INCLUDE_PAT = r"^\s*#?include\s*['\"](\w+\.\w+)['\"]"
@@ -1176,6 +1177,8 @@ class NinjaBackend(backends.Backend):
         self.add_rule(NinjaRule('CUSTOM_COMMAND_DEP', ['$COMMAND'], [], '$DESC',
                                 deps='gcc', depfile='$DEPFILE',
                                 extra='restat = 1'))
+        self.add_rule(NinjaRule('COPY_FILE', self.environment.get_build_command() + ['--internal', 'copy'],
+                                ['$in', '$out'], 'Copying $in to $out'))
 
         c = self.environment.get_build_command() + \
             ['--internal',
@@ -1650,6 +1653,39 @@ class NinjaBackend(backends.Backend):
 
         return static_sources, generated_sources, cython_sources
 
+    def _generate_copy_target(self, src: 'mesonlib.FileOrString', output: Path) -> None:
+        """Create a target to copy a source file from one location to another."""
+        if isinstance(src, File):
+            instr = src.absolute_path(self.environment.source_dir, self.environment.build_dir)
+        else:
+            instr = src
+        elem = NinjaBuildElement(self.all_outputs, [str(output)], 'COPY_FILE', [instr])
+        elem.add_orderdep(instr)
+        self.add_build(elem)
+
+    def __generate_compile_structure(self, target: build.BuildTarget) -> T.Tuple[T.List[str], T.Optional[str]]:
+        first_file: T.Optional[str] = None
+        orderdeps: T.List[str] = []
+        root = Path(self.get_target_private_dir(target)) / 'structured'
+        for path, files in target.structured_sources.sources.items():
+            for file in files:
+                if isinstance(file, (str, File)):
+                    if isinstance(file, str):
+                        file = File.from_absolute_file(file)
+                    out = root / path / Path(file.fname).name
+                    orderdeps.append(str(out))
+                    self._generate_copy_target(file, out)
+                    if first_file is None:
+                        first_file = str(out)
+                else:
+                    for f in file.get_outputs():
+                        out = root / path / f
+                        orderdeps.append(str(out))
+                        self._generate_copy_target(str(Path(file.subdir) / f), out)
+                        if first_file is None:
+                            first_file = str(out)
+        return orderdeps, first_file
+
     def generate_rust_target(self, target: build.BuildTarget) -> None:
         rustc = target.compilers['rust']
         # Rust compiler takes only the main file as input and
@@ -1670,6 +1706,25 @@ class NinjaBackend(backends.Backend):
         orderdeps: T.List[str] = []
 
         main_rust_file = None
+        if target.structured_sources:
+            if target.structured_sources.needs_copy(target):
+                _ods, main_rust_file = self.__generate_compile_structure(target)
+                orderdeps.extend(_ods)
+            else:
+                g = target.structured_sources.first_file()
+                if isinstance(g, str):
+                    g = File.from_source_file(self.environment.source_dir, target.subdir, g)
+
+                if isinstance(g, File):
+                    main_rust_file = g.rel_to_builddir(self.build_to_src)
+                elif isinstance(g, GeneratedList):
+                    main_rust_file = os.path.join(self.get_target_private_dir(target), i)
+                else:
+                    main_rust_file = os.path.join(g.get_subdir(), i)
+                orderdeps.extend([os.path.join(self.build_to_src, target.subdir, s)
+                                  for s in  target.structured_sources.as_list()])
+
+
         for i in target.get_sources():
             if not rustc.can_compile(i):
                 raise InvalidArguments(f'Rust target {target.get_basename()} contains a non-rust source file.')

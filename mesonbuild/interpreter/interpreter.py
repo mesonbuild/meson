@@ -106,7 +106,7 @@ if T.TYPE_CHECKING:
     # Input source types passed to the build.Target classes
     SourceOutputs = T.Union[mesonlib.File, build.GeneratedList,
                             build.BuildTarget, build.CustomTargetIndex, build.CustomTarget,
-                            build.ExtractedObjects, build.GeneratedList]
+                            build.ExtractedObjects, build.GeneratedList, build.StructuredSources]
 
 
 def _project_version_validator(value: T.Union[T.List, str, mesonlib.File, None]) -> T.Optional[str]:
@@ -386,6 +386,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                            'run_command': self.func_run_command,
                            'run_target': self.func_run_target,
                            'set_variable': self.func_set_variable,
+                           'structured_sources': self.func_structured_sources,
                            'subdir': self.func_subdir,
                            'shared_library': self.func_shared_lib,
                            'shared_module': self.func_shared_module,
@@ -439,6 +440,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             build.InstallDir: OBJ.InstallDirHolder,
             build.IncludeDirs: OBJ.IncludeDirsHolder,
             build.EnvironmentVariables: OBJ.EnvironmentVariablesHolder,
+            build.StructuredSources: OBJ.StructuredSourcesHolder,
             compilers.RunResult: compilerOBJ.TryRunResultHolder,
             dependencies.ExternalLibrary: OBJ.ExternalLibraryHolder,
             coredata.UserFeatureOption: OBJ.FeatureOptionHolder,
@@ -2110,6 +2112,31 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.build.symlinks.append(l)
         return l
 
+    @FeatureNew('structured_sources', '0.62.0')
+    @typed_pos_args('structured_sources', object, optargs=[dict])
+    @noKwargs
+    @noArgsFlattening
+    def func_structured_sources(
+            self, node: mparser.BaseNode,
+            args: T.Tuple[object, T.Optional[T.Dict[str, object]]],
+            kwargs: 'TYPE_kwargs') -> build.StructuredSources:
+        valid_types = (str, mesonlib.File, build.GeneratedList, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)
+        sources: T.Dict[str, T.List[T.Union['mesonlib.FileOrString', 'build.GeneratedTypes']]] = collections.defaultdict(list)
+
+        for arg in mesonlib.listify(args[0]):
+            if not isinstance(arg, valid_types):
+                raise InvalidArguments(f'structured_sources: type "{type(arg)}" is not valid')
+            sources[''].append(arg)
+        if args[1]:
+            if '' in args[1]:
+                raise InvalidArguments('structured_sources: keys to dictionary argument may not be an empty string.')
+            for k, v in args[1].items():
+                for arg in mesonlib.listify(v):
+                    if not isinstance(arg, valid_types):
+                        raise InvalidArguments(f'structured_sources: type "{type(arg)}" is not valid')
+                    sources[k].append(arg)
+        return build.StructuredSources(sources)
+
     @typed_pos_args('subdir', str)
     @typed_kwargs(
         'subdir',
@@ -2757,7 +2784,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
                 results.append(s)
             elif isinstance(s, (build.GeneratedList, build.BuildTarget,
                                 build.CustomTargetIndex, build.CustomTarget,
-                                build.ExtractedObjects)):
+                                build.ExtractedObjects, build.StructuredSources)):
                 results.append(s)
             else:
                 raise InterpreterException(f'Source item is {s!r} instead of '
@@ -2840,7 +2867,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
         else:
             raise InterpreterException(f'Unknown default_library value: {default_library}.')
 
-    def build_target(self, node, args, kwargs, targetclass):
+    def build_target(self, node: mparser.BaseNode, args, kwargs, targetclass):
         @FeatureNewKwargs('build target', '0.42.0', ['rust_crate_type', 'build_rpath', 'implicit_include_directories'])
         @FeatureNewKwargs('build target', '0.41.0', ['rust_args'])
         @FeatureNewKwargs('build target', '0.40.0', ['build_by_default'])
@@ -2873,8 +2900,39 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
         # passed to library() when default_library == 'static'.
         kwargs = {k: v for k, v in kwargs.items() if k in targetclass.known_kwargs}
 
+        srcs: T.List['SourceInputs'] = []
+        struct: T.Optional[build.StructuredSources] = build.StructuredSources()
+        for s in sources:
+            if isinstance(s, build.StructuredSources):
+                struct = struct + s
+            else:
+                srcs.append(s)
+
+        if not struct:
+            struct = None
+        else:
+            # Validate that we won't end up with two outputs with the same name.
+            # i.e, don't allow:
+            # [structured_sources('foo/bar.rs'), structured_sources('bar/bar.rs')]
+            for v in struct.sources.values():
+                outputs: T.Set[str] = set()
+                for f in v:
+                    o: T.List[str]
+                    if isinstance(f, str):
+                        o = [os.path.basename(f)]
+                    elif isinstance(f, mesonlib.File):
+                        o = [f.fname]
+                    else:
+                        o = f.get_outputs()
+                    conflicts = outputs.intersection(o)
+                    if conflicts:
+                        raise InvalidArguments.from_node(
+                            f"Conflicting sources in structured sources: {', '.join(sorted(conflicts))}",
+                            node=node)
+                    outputs.update(o)
+
         kwargs['include_directories'] = self.extract_incdirs(kwargs)
-        target = targetclass(name, self.subdir, self.subproject, for_machine, sources, objs, self.environment, kwargs)
+        target = targetclass(name, self.subdir, self.subproject, for_machine, srcs, struct, objs, self.environment, kwargs)
         target.project_version = self.project_version
 
         self.add_stdlib_info(target)

@@ -17,7 +17,7 @@ import typing as T
 
 from . import ExtensionModule, ModuleReturnValue
 from .. import mlog
-from ..build import BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList, IncludeDirs, CustomTarget
+from ..build import BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList, IncludeDirs, CustomTarget, StructuredSources
 from ..dependencies import Dependency, ExternalLibrary
 from ..interpreter.interpreter import TEST_KWARGS
 from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, FeatureNew, typed_kwargs, typed_pos_args, noPosargs
@@ -149,10 +149,9 @@ class RustModule(ExtensionModule):
         new_target_kwargs['dependencies'] = new_target_kwargs.get('dependencies', []) + dependencies
 
         new_target = Executable(
-            name, base_target.subdir, state.subproject,
-            base_target.for_machine, base_target.sources,
-            base_target.objects, base_target.environment,
-            new_target_kwargs
+            name, base_target.subdir, state.subproject, base_target.for_machine,
+            base_target.sources, base_target.structured_sources,
+            base_target.objects, base_target.environment, new_target_kwargs
         )
 
         test = self.interpreter.make_test(
@@ -203,7 +202,7 @@ class RustModule(ExtensionModule):
         name: str
         if isinstance(header, File):
             name = header.fname
-        elif isinstance(header, (BuildTarget, BothLibraries, ExtractedObjects)):
+        elif isinstance(header, (BuildTarget, BothLibraries, ExtractedObjects, StructuredSources)):
             raise InterpreterException('bindgen source file must be a C header, not an object or build target')
         else:
             name = header.get_outputs()[0]
