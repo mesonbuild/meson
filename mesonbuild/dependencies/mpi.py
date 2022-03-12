@@ -160,7 +160,8 @@ class IntelMPIConfigToolDependency(_MPIConfigToolDependency):
             return
 
         args = self.get_config_value(['-show'], 'link and compile args')
-        self.compile_args = self._filter_compile_args(args)
+        self.include_directories, self.compile_args = self._split_include_dirs(
+            self._filter_compile_args(args))
         self.link_args = self._filter_link_args(args)
 
     def _sanitize_version(self, out: str) -> str:
@@ -183,7 +184,8 @@ class OpenMPIConfigToolDependency(_MPIConfigToolDependency):
             return
 
         c_args = self.get_config_value(['--showme:compile'], 'compile_args')
-        self.compile_args = self._filter_compile_args(c_args)
+        self.include_directories, self.compile_args = self._split_include_dirs(
+            self._filter_compile_args(c_args))
 
         l_args = self.get_config_value(['--showme:link'], 'link_args')
         self.link_args = self._filter_link_args(l_args)

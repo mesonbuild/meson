@@ -121,11 +121,16 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
 
         # We first need to call the tool with -c to get the compile arguments
         # and then without -c to get the link arguments.
-        args = self.get_config_value(['-show', '-c'], 'args')[1:]
-        args += self.get_config_value(['-show', '-noshlib' if self.static else '-shlib'], 'args')[1:]
+        inc, args = self._split_include_dirs(self.get_config_value(['-show', '-c'], 'args')[1:])
+        _i, _a = self._split_include_dirs(self.get_config_value(['-show', '-noshlib' if self.static else '-shlib'], 'args')[1:])
+        args.extend(_a)
+        inc.extend(_i)
+        self.include_directories.extend(inc)
+
         found = False
         for arg in args:
-            if arg.startswith(('-I', '-f', '-D')) or arg == '-pthread':
+            assert not arg.startswith('-I')
+            if arg.startswith(('-f', '-D')) or arg == '-pthread':
                 self.compile_args.append(arg)
             elif arg.startswith(('-L', '-l', '-Wl')):
                 self.link_args.append(arg)

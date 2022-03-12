@@ -11,15 +11,15 @@ import re
 import os
 import typing as T
 
+from .. import mesonlib
+from .. import mlog
+from ..build.include_dirs import IncludeDirs
 from .base import DependencyException, DependencyMethods
 from .configtool import ConfigToolDependency
 from .detect import packages
+from .factory import DependencyFactory
 from .framework import ExtraFrameworkDependency
 from .pkgconfig import PkgConfigDependency
-from .factory import DependencyFactory
-from ..build.include_dirs import IncludeDirs
-from .. import mlog
-from .. import mesonlib
 
 if T.TYPE_CHECKING:
     from ..compilers import Compiler
@@ -288,7 +288,7 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=abc.ABCMeta):
             else:
                 mlog.debug("Building for macOS, couldn't find framework, falling back to library search")
         incdir = qvars['QT_INSTALL_HEADERS']
-        self.compile_args.append('-I' + incdir)
+        inc = [incdir]
         libdir = qvars['QT_INSTALL_LIBS']
         # Used by qt.compilers_detect()
         self.bindir = get_qmake_host_bins(qvars)
@@ -304,7 +304,7 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=abc.ABCMeta):
 
         for module in self.requested_modules:
             mincdir = os.path.join(incdir, 'Qt' + module)
-            self.compile_args.append('-I' + mincdir)
+            inc.append(mincdir)
 
             if module == 'QuickTest':
                 define_base = 'QMLTEST'
@@ -316,8 +316,7 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=abc.ABCMeta):
 
             if self.private_headers:
                 priv_inc = self.get_private_includes(mincdir, module)
-                for directory in priv_inc:
-                    self.compile_args.append('-I' + directory)
+                inc.extend(priv_inc)
             libfiles = self.clib_compiler.find_library(
                 self.qtpkgname + module + modules_lib_suffix, self.env,
                 mesonlib.listify(libdir)) # TODO: shouldn't be necessary
@@ -334,6 +333,8 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=abc.ABCMeta):
         if self.env.machines[self.for_machine].is_windows() and self.qtmain:
             if not self._link_with_qt_winmain(is_debug, libdir):
                 self.is_found = False
+
+        self.include_directories.append(IncludeDirs(None, inc))
 
     def _sanitize_version(self, version: str) -> str:
         m = re.search(rf'({self.qtver}(\.\d+)+)', version)
