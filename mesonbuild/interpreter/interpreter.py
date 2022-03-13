@@ -907,7 +907,8 @@ external dependencies (including libraries) must go to "dependencies".''')
         with mlog.nested(subp_name):
             new_build = self.build.copy()
             subi = Interpreter(new_build, self.backend, subp_name, subdir, self.subproject_dir,
-                               default_options, ast=ast, is_translated=is_translated)
+                               default_options, ast=ast, is_translated=is_translated,
+                               user_defined_options=self.user_defined_options)
             # Those lists are shared by all interpreters. That means that
             # even if the subproject fails, any modification that the subproject
             # made to those lists will affect the parent project.
