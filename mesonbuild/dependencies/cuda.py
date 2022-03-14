@@ -11,6 +11,7 @@ from pathlib import Path
 
 from .. import mesonlib
 from .. import mlog
+from ..build.include_dirs import IncludeDirs
 from ..environment import detect_cpu_family
 from .base import DependencyException, SystemDependency
 from .detect import packages
@@ -59,7 +60,7 @@ class CudaDependency(SystemDependency):
         # a mixed C/C++/CUDA project, we still need to make the include dir searchable
         if self.language != 'cuda' or len(compilers) > 1:
             self.incdir = os.path.join(self.cuda_path, 'include')
-            self.compile_args += [f'-I{self.incdir}']
+            self.include_directories.append(IncludeDirs(None, [self.incdir]))
 
         if self.language != 'cuda':
             arch_libdir = self._detect_arch_libdir()

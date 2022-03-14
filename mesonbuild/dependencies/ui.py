@@ -13,6 +13,7 @@ import typing as T
 from .. import mlog
 from .. import mesonlib
 from ..compilers.compilers import CrossNoRunException
+from ..build.include_dirs import IncludeDirs
 from ..mesonlib import (
     Popen_safe, extract_as_list, version_compare_many
 )
@@ -225,7 +226,7 @@ class VulkanDependencySystem(SystemDependency):
             # XXX: this is very odd, and may deserve being removed
             self.type_name = DependencyTypeName('vulkan_sdk')
             self.is_found = True
-            self.compile_args.append('-I' + inc_path)
+            self.include_directories.append(IncludeDirs(None, [inc_path]))
             self.link_args.append('-L' + lib_path)
             self.link_args.append('-l' + lib_name)
         else:
