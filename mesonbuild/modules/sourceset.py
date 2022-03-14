@@ -59,8 +59,8 @@ _WHEN_KW: KwargInfo[T.List[T.Union[str, dependencies.Dependency]]] = KwargInfo(
 
 class SourceSetRule(T.NamedTuple):
     keys: T.List[str]
-    sources: T.Any
-    if_false: T.Any
+    sources: T.List[T.Union[mesonlib.FileOrString, build.GeneratedTypes]]
+    if_false: T.List[T.Union[mesonlib.FileOrString, build.GeneratedTypes]]
     sourcesets: T.List[SourceSetImpl]
     deps: T.List[dependencies.Dependency]
     extra_deps: T.List[dependencies.Dependency]
