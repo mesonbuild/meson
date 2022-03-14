@@ -2725,7 +2725,6 @@ external dependencies (including libraries) must go to "dependencies".''')
         FeatureDeprecated.report(self.subproject)
         if not self.is_subproject():
             self.print_extra_warnings()
-        if self.subproject == '':
             self._print_summary()
 
     def print_extra_warnings(self) -> None:
