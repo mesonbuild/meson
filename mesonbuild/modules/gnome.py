@@ -1132,9 +1132,9 @@ class GnomeModule(ExtensionModule):
         scan_command += ['-I' + srcdir, '-I' + builddir]
         scan_command += state.get_include_args(girtargets_inc_dirs)
         scan_command += ['--filelist=' + self._make_gir_filelist(state, srcdir, ns, nsversion, girtargets, libsources)]
-        scan_command += mesonlib.listify([self._get_link_args(state, l, depends, use_gir_args=True)
-                                          for l in kwargs['link_with']])
-
+        for l in kwargs['link_with']:
+            _cflags, depends = self._get_link_args(state, l, depends, use_gir_args=True)
+            scan_command.extend(_cflags)
         _cmd, _ginc, _deps = self._scan_include(state, kwargs['includes'])
         scan_command.extend(_cmd)
         gir_inc_dirs.extend(_ginc)
