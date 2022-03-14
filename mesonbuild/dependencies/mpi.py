@@ -18,6 +18,7 @@ import typing as T
 import os
 import re
 
+from ..build import IncludeDirs
 from ..environment import detect_cpu_family
 from .base import DependencyMethods, detect_compiler, SystemDependency
 from .configtool import ConfigToolDependency
@@ -234,6 +235,6 @@ class MSMPIDependency(SystemDependency):
 
         self.is_found = True
         self.link_args = ['-l' + os.path.join(libdir, 'msmpi')]
-        self.compile_args = ['-I' + incdir, '-I' + os.path.join(incdir, post)]
+        self.include_directories.append(IncludeDirs(None, [incdir, os.path.join(incdir, post)]))
         if self.language == 'fortran':
             self.link_args.append('-l' + os.path.join(libdir, 'msmpifec'))
