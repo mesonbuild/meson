@@ -63,6 +63,7 @@ class SourceSetRule(T.NamedTuple):
     if_false: T.Any
     sourcesets: T.List[SourceSetImpl]
     deps: T.List[dependencies.Dependency]
+    extra_deps: T.List[dependencies.Dependency]
 
 
 class SourceFiles(T.NamedTuple):
@@ -159,7 +160,7 @@ class SourceSetImpl(SourceSet, MutableModuleObject):
         keys, dependencies = self.check_conditions(when)
         sources, extra_deps = self.check_source_files(if_true)
         if_false, _ = self.check_source_files(if_false)
-        self.rules.append(SourceSetRule(keys, sources, if_false, [], dependencies + extra_deps))
+        self.rules.append(SourceSetRule(keys, sources, if_false, [], dependencies, extra_deps))
 
     @typed_pos_args('sourceset.add_all', varargs=SourceSet)
     @typed_kwargs(
@@ -187,7 +188,7 @@ class SourceSetImpl(SourceSet, MutableModuleObject):
             if not isinstance(s, SourceSetImpl):
                 raise InvalidCode('Arguments to \'add_all\' after the first must be source sets')
             s.frozen = True
-        self.rules.append(SourceSetRule(keys, [], [], if_true, dependencies))
+        self.rules.append(SourceSetRule(keys, [], [], if_true, dependencies, []))
 
     def collect(self, enabled_fn: T.Callable[[str], bool],
                 all_sources: bool,
@@ -199,6 +200,7 @@ class SourceSetImpl(SourceSet, MutableModuleObject):
                all(enabled_fn(key) for key in entry.keys):
                 into.sources.update(entry.sources)
                 into.deps.update(entry.deps)
+                into.deps.update(entry.extra_deps)
                 for ss in entry.sourcesets:
                     ss.collect(enabled_fn, all_sources, into)
                 if not all_sources:
