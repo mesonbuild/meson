@@ -59,11 +59,23 @@ _WHEN_KW: KwargInfo[T.List[T.Union[str, dependencies.Dependency]]] = KwargInfo(
 
 class SourceSetRule(T.NamedTuple):
     keys: T.List[str]
+    """Configuration keys that enable this rule if true"""
+
     sources: T.List[T.Union[mesonlib.FileOrString, build.GeneratedTypes]]
+    """Source files added when this rule's conditions are true"""
+
     if_false: T.List[T.Union[mesonlib.FileOrString, build.GeneratedTypes]]
+    """Source files added when this rule's conditons are false"""
+
     sourcesets: T.List[SourceSetImpl]
+    """Other sourcesets added when this rule's conditions are true"""
+
     deps: T.List[dependencies.Dependency]
+    """Dependencies that enable this rule if true"""
+
     extra_deps: T.List[dependencies.Dependency]
+    """Dependencies added when this rule's conditions are true, but
+       that do not make the condition false if they're absent."""
 
 
 class SourceFiles(T.NamedTuple):
