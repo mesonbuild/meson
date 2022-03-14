@@ -401,7 +401,7 @@ class ExternalDependency(Dependency, HasNativeKwarg):
         if not sources:
             new.sources = []
         if not includes:
-            pass # TODO maybe filter compile_args?
+            self.include_directories = []
         if not sources:
             new.sources = []
 
