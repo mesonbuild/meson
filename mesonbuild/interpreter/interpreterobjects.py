@@ -717,7 +717,13 @@ class SubprojectHolder(MesonInterpreterObject):
         if not isinstance(varname, str):
             raise InterpreterException('Get_variable first argument must be a string.')
         try:
-            return self.held_object.variables[varname]
+            value = self.held_object.variables[varname]
+            if varname not in self.held_object.public_variables:
+                FeatureDeprecated.single_use(
+                    'subproject.get_variable() for variable not marked public',
+                    '0.62.0', self.subproject,
+                    f'The subproject should mark public variables using set_variable({varname}, value, public: true)',self.current_node)
+            return value
         except KeyError:
             pass
 

@@ -69,3 +69,7 @@ assert(not is_disabler(list_t1))
 assert(not is_disabler(list_t2))
 assert(not is_disabler(list_t3))
 assert(not is_disabler(list_t4))
+
+sub = subproject('sub')
+assert(sub.get_variable('private') == 'private')
+assert(sub.get_variable('public') == 'public')
