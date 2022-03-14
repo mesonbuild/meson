@@ -101,14 +101,14 @@ class QtExtraFrameworkDependency(ExtraFrameworkDependency):
         self.mod_name = name[2:]
         self.qt_extra_include_directory = qvars['QT_INSTALL_HEADERS']
 
-    def get_compile_args(self, with_private_headers: bool = False, qt_version: str = "0") -> T.List[str]:
+    def get_include_args(self, with_private_headers: bool = False, qt_version: str = "0") -> T.List[str]:
         if self.found():
             mod_inc_dir = os.path.join(self.framework_path, 'Headers')
-            args = ['-I' + mod_inc_dir]
+            args = [mod_inc_dir]
             if with_private_headers:
-                args += ['-I' + dirname for dirname in _qt_get_private_includes(mod_inc_dir, self.mod_name, qt_version)]
+                args.extend(_qt_get_private_includes(mod_inc_dir, self.mod_name, qt_version))
             if self.qt_extra_include_directory:
-                args += ['-I' + self.qt_extra_include_directory]
+                args.extend(self.qt_extra_include_directory)
             return args
         return []
 
@@ -363,8 +363,8 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=abc.ABCMeta):
             fwdep = QtExtraFrameworkDependency(fname, self.env, fw_kwargs, qvars, language=self.language)
             if fwdep.found():
                 self.compile_args.append('-F' + libdir)
-                self.compile_args += fwdep.get_compile_args(with_private_headers=self.private_headers,
-                                                            qt_version=self.version)
+                self.include_directories.append(IncludeDirs(
+                    None, fwdep.get_include_args(with_private_headers=self.private_headers, qt_version=self.version)))
                 self.link_args += fwdep.get_link_args()
             else:
                 self.is_found = False

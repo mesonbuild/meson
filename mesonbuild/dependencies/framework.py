@@ -3,11 +3,13 @@
 
 from __future__ import annotations
 
-from .base import DependencyTypeName, ExternalDependency, DependencyException
-from ..mesonlib import MesonException, Version, stringlistify
-from .. import mlog
 from pathlib import Path
 import typing as T
+
+from .. import mlog
+from ..build.include_dirs import IncludeDirs
+from ..mesonlib import MesonException, Version, stringlistify
+from .base import DependencyTypeName, ExternalDependency, DependencyException
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
@@ -66,7 +68,8 @@ class ExtraFrameworkDependency(ExternalDependency):
             # https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/BPFrameworks/Tasks/IncludingFrameworks.html
             incdir = self._get_framework_include_path(framework_path)
             if incdir:
-                self.compile_args += ['-idirafter' + incdir]
+                # TODO: need -idirafter...
+                self.include_directories.append(IncludeDirs(None, [incdir]))
             self.is_found = True
             return
 
