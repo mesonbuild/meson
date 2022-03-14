@@ -8,7 +8,7 @@ source_set = import('sourceset')
 
 sources = source_set.source_set()
 sources.add(when: 'YES',  if_false: ['nope.c'])
-sources.add(when: 'YES1', if_true: files('a.c'))
+sources.add(when: 'YES1', if_true: [files('a.c'), not_found])
 subdir('subdir')
 sources.add(when: 'NO',   if_true: 'nope.c', if_false: ['f.c'])
 sources.add(when: 'NO',   if_true: bad,      if_false: ['f.c'])
@@ -24,7 +24,7 @@ sources2.add(when: 'YES1',  if_true: 'nope.c')
 sources.add_all(when: 'NO', if_true: sources2)
 
 # test duplicate items
-sources.add(when: 'YES1',   if_true: files('a.c'))
+sources.add(when: 'YES1',   if_true: [files('a.c'), not_found])
 
 conf1 = configuration_data()
 conf1.set10('YES', true)
