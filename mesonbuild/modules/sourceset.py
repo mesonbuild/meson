@@ -61,21 +61,21 @@ class SourceSetRule(T.NamedTuple):
     keys: T.List[str]
     """Configuration keys that enable this rule if true"""
 
-    sources: T.List[T.Union[mesonlib.FileOrString, build.GeneratedTypes]]
-    """Source files added when this rule's conditions are true"""
-
-    if_false: T.List[T.Union[mesonlib.FileOrString, build.GeneratedTypes]]
-    """Source files added when this rule's conditons are false"""
-
-    sourcesets: T.List[SourceSetImpl]
-    """Other sourcesets added when this rule's conditions are true"""
-
     deps: T.List[dependencies.Dependency]
     """Dependencies that enable this rule if true"""
+
+    sources: T.List[T.Union[mesonlib.FileOrString, build.GeneratedTypes]]
+    """Source files added when this rule's conditions are true"""
 
     extra_deps: T.List[dependencies.Dependency]
     """Dependencies added when this rule's conditions are true, but
        that do not make the condition false if they're absent."""
+
+    sourcesets: T.List[SourceSetImpl]
+    """Other sourcesets added when this rule's conditions are true"""
+
+    if_false: T.List[T.Union[mesonlib.FileOrString, build.GeneratedTypes]]
+    """Source files added when this rule's conditons are false"""
 
 
 class SourceFiles(T.NamedTuple):
@@ -172,7 +172,7 @@ class SourceSetImpl(SourceSet, MutableModuleObject):
         keys, dependencies = self.check_conditions(when)
         sources, extra_deps = self.check_source_files(if_true)
         if_false, _ = self.check_source_files(if_false)
-        self.rules.append(SourceSetRule(keys, sources, if_false, [], dependencies, extra_deps))
+        self.rules.append(SourceSetRule(keys, dependencies, sources, extra_deps, [], if_false))
 
     @typed_pos_args('sourceset.add_all', varargs=SourceSet)
     @typed_kwargs(
@@ -200,7 +200,7 @@ class SourceSetImpl(SourceSet, MutableModuleObject):
             if not isinstance(s, SourceSetImpl):
                 raise InvalidCode('Arguments to \'add_all\' after the first must be source sets')
             s.frozen = True
-        self.rules.append(SourceSetRule(keys, [], [], if_true, dependencies, []))
+        self.rules.append(SourceSetRule(keys, dependencies, [], [], if_true, []))
 
     def collect(self, enabled_fn: T.Callable[[str], bool],
                 all_sources: bool,
