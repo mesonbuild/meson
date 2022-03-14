@@ -62,12 +62,12 @@ class SourceSetRule(T.NamedTuple):
     sources: T.Any
     if_false: T.Any
     sourcesets: T.List[SourceSetImpl]
-    dependencies: T.List[dependencies.Dependency]
+    deps: T.List[dependencies.Dependency]
 
 
 class SourceFiles(T.NamedTuple):
     sources: OrderedSet[T.Union[mesonlib.FileOrString, build.GeneratedTypes]]
-    dependencies: OrderedSet[dependencies.Dependency]
+    deps: OrderedSet[dependencies.Dependency]
 
 
 class SourceSet:
@@ -195,10 +195,10 @@ class SourceSetImpl(SourceSet, MutableModuleObject):
         if not into:
             into = SourceFiles(OrderedSet(), OrderedSet())
         for entry in self.rules:
-            if all(x.found() for x in entry.dependencies) and \
+            if all(x.found() for x in entry.deps) and \
                all(enabled_fn(key) for key in entry.keys):
                 into.sources.update(entry.sources)
-                into.dependencies.update(entry.dependencies)
+                into.deps.update(entry.deps)
                 for ss in entry.sourcesets:
                     ss.collect(enabled_fn, all_sources, into)
                 if not all_sources:
@@ -221,7 +221,7 @@ class SourceSetImpl(SourceSet, MutableModuleObject):
                                 ) -> T.List[dependencies.Dependency]:
         self.frozen = True
         files = self.collect(lambda x: True, True)
-        return list(files.dependencies)
+        return list(files.deps)
 
     @typed_pos_args('sourceset.apply', (build.ConfigurationData, dict))
     @typed_kwargs('sourceset.apply', KwargInfo('strict', bool, default=True))
@@ -272,7 +272,7 @@ class SourceFilesObject(ModuleObject):
     @noKwargs
     def dependencies_method(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs
                             ) -> T.List[dependencies.Dependency]:
-        return list(self.files.dependencies)
+        return list(self.files.deps)
 
 class SourceSetModule(ExtensionModule):
     @FeatureNew('SourceSet module', '0.51.0')
