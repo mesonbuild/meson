@@ -1049,6 +1049,7 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
                 # This trickery with type() gets us the class of the linker
                 # so we can initialize a new copy for the Rust Compiler
                 # TODO rewrite this without type: ignore
+                assert cc.linker is not None, 'for mypy'
                 if is_link_exe:
                     linker = type(cc.linker)(for_machine, always_args, exelist=cc.linker.exelist,   # type: ignore
                                              version=cc.linker.version, **extra_args)               # type: ignore
