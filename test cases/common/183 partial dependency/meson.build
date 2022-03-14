@@ -14,4 +14,8 @@
 
 project('partial dependency', ['c', 'cpp'])
 
-subdir('declare_dependency')
+if get_option('unittest')
+  subdir('pkg-config')
+else
+  subdir('declare_dependency')
+endif

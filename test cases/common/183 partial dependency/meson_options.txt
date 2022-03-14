@@ -1,0 +1,6 @@
+option(
+  'unittest',
+  type : 'boolean',
+  value : false,
+  description : 'for running as a unittest. This is required for pkg-config so we can generate a valid pkg-config file'
+)

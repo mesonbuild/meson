@@ -5013,3 +5013,21 @@ class AllPlatformTests(BasePlatformTests):
             # The first supported std should be selected
             self.setconf('-Dcpp_std=c++11,gnu++11,vc++11')
             self.assertEqual(self.getconf('cpp_std'), 'c++11')
+
+    def test_pkg_config_partial_dependency(self) -> None:
+        testdir = os.path.join(self.common_test_dir, '183 partial dependency')
+        with tempfile.TemporaryDirectory() as d:
+            with open(os.path.join(d, 'system.pc'), 'w', encoding='utf-8') as f:
+                p = testdir.replace(' ', r'\ ')
+                f.write(textwrap.dedent(f'''\
+                    includedir={p}/pkg-config/dep/
+
+                    Name: system
+                    Description: a package
+                    Version : 1.0
+                    Cflags: -I${{includedir}}
+                    '''))
+            with mock.patch.dict(os.environ, {'PKG_CONFIG_PATH': d}):
+                self.init(testdir, extra_args=['-Dunittest=true'])
+                self.build()
+                self.run_tests()
