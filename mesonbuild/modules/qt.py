@@ -106,6 +106,8 @@ class QtBaseModule(ExtensionModule):
     def __init__(self, interpreter: 'Interpreter', qt_version: int = 5):
         ExtensionModule.__init__(self, interpreter)
         self.qt_version = qt_version
+        # It is important that this list does not change order as the order of
+        # the returned ExternalPrograms will change as well
         self.tools: T.Dict[str, ExternalProgram] = {
             'moc': NonExistingExternalProgram('moc'),
             'uic': NonExistingExternalProgram('uic'),
@@ -123,8 +125,6 @@ class QtBaseModule(ExtensionModule):
 
     def compilers_detect(self, state: 'ModuleState', qt_dep: 'QtDependencyType') -> None:
         """Detect Qt (4 or 5) moc, uic, rcc in the specified bindir or in PATH"""
-        # It is important that this list does not change order as the order of
-        # the returned ExternalPrograms will change as well
         wanted = f'== {qt_dep.version}'
 
         def gen_bins() -> T.Generator[T.Tuple[str, str], None, None]:
