@@ -152,22 +152,6 @@ class Dependency(HoldableObject):
         return mlog.AnsiText(mlog.green('YES'), ' ', mlog.cyan(self.version))
 
     def get_compile_args(self) -> T.List[str]:
-        if self.include_type == 'system':
-            converted = []
-            for i in self.compile_args:
-                if i.startswith('-I') or i.startswith('/I'):
-                    converted += ['-isystem' + i[2:]]
-                else:
-                    converted += [i]
-            return converted
-        if self.include_type == 'non-system':
-            converted = []
-            for i in self.compile_args:
-                if i.startswith('-isystem'):
-                    converted += ['-I' + i[8:]]
-                else:
-                    converted += [i]
-            return converted
         return self.compile_args
 
     def get_all_compile_args(self) -> T.List[str]:
