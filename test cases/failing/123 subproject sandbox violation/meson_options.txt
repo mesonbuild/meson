@@ -1,1 +1,1 @@
-option('failmode', type: 'combo', choices: ['parent-dir', 'not-installed'])
+option('failmode', type: 'combo', choices: ['parent-dir', 'not-installed', 'root-subdir'])

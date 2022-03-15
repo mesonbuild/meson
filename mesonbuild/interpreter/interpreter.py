@@ -666,6 +666,18 @@ class Interpreter(InterpreterBase, HoldableObject):
         d_module_versions = extract_as_list(kwargs, 'd_module_versions')
         d_import_dirs = self.extract_incdirs(kwargs, 'd_import_dirs')
         final_deps = []
+        srcdir = Path(self.environment.source_dir)
+        # convert variables which refer to an -uninstalled.pc style datadir
+        for k, v in variables.items():
+            try:
+                p = Path(v)
+            except ValueError:
+                continue
+            else:
+                if not self.is_subproject() and srcdir / self.subproject_dir in p.parents:
+                    continue
+                if p.is_absolute() and p.is_dir() and srcdir / self.root_subdir in p.resolve().parents:
+                    variables[k] = P_OBJ.DependencyVariableString(v)
         for d in deps:
             if not isinstance(d, (dependencies.Dependency, dependencies.ExternalLibrary, dependencies.InternalDependency)):
                 raise InterpreterException('Dependencies must be external deps')
@@ -2696,8 +2708,9 @@ external dependencies (including libraries) must go to "dependencies".''')
     @noKwargs
     def func_join_paths(self, node: mparser.BaseNode, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> str:
         parts = args[0]
+        other = os.path.join('', *parts[1:]).replace('\\', '/')
         ret = os.path.join(*parts).replace('\\', '/')
-        if isinstance(parts[0], P_OBJ.DependencyVariableString):
+        if isinstance(parts[0], P_OBJ.DependencyVariableString) and '..' not in other:
             return P_OBJ.DependencyVariableString(ret)
         else:
             return ret
@@ -2761,7 +2774,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
             norm = Path(fname)
             # variables built from a dep.get_variable are allowed to refer to
             # subproject files, as long as they are scheduled to be installed.
-            if norm.is_absolute() and '..' not in norm.parts and validate_installable_file(norm):
+            if validate_installable_file(norm):
                 return
         norm = Path(srcdir, subdir, fname).resolve()
         if os.path.isdir(norm):

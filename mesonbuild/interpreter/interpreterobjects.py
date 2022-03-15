@@ -21,7 +21,6 @@ from ..interpreterbase import (
                                typed_pos_args, typed_kwargs, typed_operator,
                                noArgsFlattening, noPosargs, noKwargs, unholder_return, TYPE_var, TYPE_kwargs, TYPE_nvar, TYPE_nkwargs,
                                flatten, resolve_second_level_holders, InterpreterException, InvalidArguments, InvalidCode)
-from ..interpreter.primitives import DependencyVariableString
 from ..interpreter.type_checking import NoneType, ENV_SEPARATOR_KW
 from ..dependencies import Dependency, ExternalLibrary, InternalDependency
 from ..programs import ExternalProgram
@@ -484,14 +483,14 @@ class DependencyHolder(ObjectHolder[Dependency]):
         default_varname = args[0]
         if default_varname is not None:
             FeatureNew('Positional argument to dependency.get_variable()', '0.58.0').use(self.subproject, self.current_node)
-        return DependencyVariableString(self.held_object.get_variable(
+        return self.held_object.get_variable(
             cmake=kwargs['cmake'] or default_varname,
             pkgconfig=kwargs['pkgconfig'] or default_varname,
             configtool=kwargs['configtool'] or default_varname,
             internal=kwargs['internal'] or default_varname,
             default_value=kwargs['default_value'],
             pkgconfig_define=kwargs['pkgconfig_define'],
-        ))
+        )
 
     @FeatureNew('dependency.include_type', '0.52.0')
     @noPosargs
