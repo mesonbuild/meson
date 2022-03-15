@@ -171,6 +171,9 @@ def get_rpath(fname: str) -> T.Optional[str]:
     # nix/nixos adds a bunch of stuff to the rpath out of necessity that we
     # don't check for, so clear those
     final = ':'.join([e for e in raw.split(':') if not e.startswith('/nix')])
+    # If we didn't end up anything but nix paths, return None here
+    if not final:
+        return None
     return final
 
 def get_path_without_cmd(cmd: str, path: str) -> str:
