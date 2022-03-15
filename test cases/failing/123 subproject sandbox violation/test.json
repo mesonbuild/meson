@@ -3,13 +3,14 @@
     "options": {
       "failmode": [
         { "val": "not-installed" },
-        { "val": "parent-dir" }
+        { "val": "parent-dir" },
+        { "val": "root-subdir" }
       ]
     }
   },
   "stdout": [
     {
-      "line": "test cases/failing/123 subproject sandbox violation/meson.build:19:0: ERROR: Sandbox violation: Tried to grab file file.txt from a nested subproject."
+      "line": "test cases/failing/123 subproject sandbox violation/meson.build:24:0: ERROR: Sandbox violation: Tried to grab file file.txt from a nested subproject."
     }
   ]
 }

@@ -189,5 +189,8 @@ class DependencyVariableString(str):
     pass
 
 class DependencyVariableStringHolder(StringHolder):
-    def op_div(self, other: str) -> DependencyVariableString:
-        return DependencyVariableString(super().op_div(other))
+    def op_div(self, other: str) -> T.Union[str, DependencyVariableString]:
+        ret = super().op_div(other)
+        if '..' in other:
+            return ret
+        return DependencyVariableString(ret)
