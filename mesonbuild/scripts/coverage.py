@@ -17,7 +17,9 @@ from mesonbuild import environment, mesonlib
 import argparse, re, sys, os, subprocess, pathlib, stat
 import typing as T
 
-def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build_root: str, log_dir: str, use_llvm_cov: bool) -> int:
+def coverage(outputs: T.List[str], source_root: str, subproject_root: str,
+             build_root: str, log_dir: str, use_llvm_cov: bool,
+             exclude_patterns: T.List[str]) -> int:
     outfiles = []
     exitcode = 0
 
@@ -34,13 +36,18 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
     else:
         gcov_exe_args = []
 
+    gcovr_exclude_args = []
+    if exclude_patterns is not None:
+        for exclude_pattern in exclude_patterns:
+            gcovr_exclude_args = gcovr_exclude_args + ['-e', exclude_pattern]
+
     if not outputs or 'xml' in outputs:
         if gcovr_exe and mesonlib.version_compare(gcovr_version, '>=3.3'):
             subprocess.check_call(gcovr_base_cmd +
                                   ['-x',
                                    '-e', re.escape(subproject_root),
                                    '-o', os.path.join(log_dir, 'coverage.xml')
-                                   ] + gcov_exe_args)
+                                   ] + gcov_exe_args + gcovr_exclude_args)
             outfiles.append(('Xml', pathlib.Path(log_dir, 'coverage.xml')))
         elif outputs:
             print('gcovr >= 3.3 needed to generate Xml coverage report')
@@ -122,6 +129,14 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
                                    os.path.join(subproject_root, '*'),
                                    '--rc', 'lcov_branch_coverage=1',
                                    '--output-file', covinfo])
+            # Remove all paths matching 'exclude_patterns'
+            if exclude_patterns is not None:
+                subprocess.check_call([lcov_exe,
+                                       '--remove', covinfo] +
+                                       [ os.path.join(source_root, exclude_pattern) for exclude_pattern in exclude_patterns] +
+                                       ['--rc', 'lcov_branch_coverage=1',
+                                       '--output-file', covinfo])
+           # Generate the HTML output
             subprocess.check_call([genhtml_exe,
                                    '--prefix', build_root,
                                    '--prefix', source_root,
@@ -136,13 +151,20 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
             htmloutdir = os.path.join(log_dir, 'coveragereport')
             if not os.path.isdir(htmloutdir):
                 os.mkdir(htmloutdir)
+
+            gcovr_exclude_args = []
+            if exclude_patterns is not None:
+                for exclude_pattern in exclude_patterns:
+                    gcovr_exclude_args = gcovr_exclude_args + ['-e', exclude_pattern]
+
             subprocess.check_call(gcovr_base_cmd +
                                   ['--html',
                                    '--html-details',
                                    '--print-summary',
                                    '-e', re.escape(subproject_root),
                                    '-o', os.path.join(htmloutdir, 'index.html'),
-                                   ])
+                                   ] + gcovr_exclude_args)
+
             outfiles.append(('Html', pathlib.Path(htmloutdir, 'index.html')))
         elif outputs:
             print('lcov/genhtml or gcovr >= 3.3 needed to generate Html coverage report')
@@ -174,6 +196,8 @@ def run(args: T.List[str]) -> int:
                         const='html', help='generate Html report')
     parser.add_argument('--use_llvm_cov', action='store_true',
                         help='use llvm-cov')
+    parser.add_argument('--exclude-patterns', action='store', default=None,
+                        help='exclude paths matching these patterns')
     parser.add_argument('source_root')
     parser.add_argument('subproject_root')
     parser.add_argument('build_root')
@@ -181,7 +205,8 @@ def run(args: T.List[str]) -> int:
     options = parser.parse_args(args)
     return coverage(options.outputs, options.source_root,
                     options.subproject_root, options.build_root,
-                    options.log_dir, options.use_llvm_cov)
+                    options.log_dir, options.use_llvm_cov,
+                    options.exclude_patterns)
 
 if __name__ == '__main__':
     sys.exit(run(sys.argv[1:]))
