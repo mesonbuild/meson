@@ -39,7 +39,7 @@ from .mesonlib import (
     MesonBugException
 )
 from .compilers import (
-    Compiler, is_object, clink_langs, sort_clink, lang_suffixes,
+    Compiler, is_object, clink_langs, sort_clink, lang_suffixes, all_languages,
     is_known_suffix, detect_static_linker, detect_compiler_for
 )
 from .linkers import StaticLinker
@@ -59,23 +59,12 @@ if T.TYPE_CHECKING:
 
 pch_kwargs = {'c_pch', 'cpp_pch'}
 
-lang_arg_kwargs = {
-    'c_args',
-    'cpp_args',
-    'cuda_args',
-    'd_args',
+lang_arg_kwargs = {f'{lang}_args' for lang in all_languages}
+lang_arg_kwargs |= {
     'd_import_dirs',
     'd_unittest',
     'd_module_versions',
     'd_debug',
-    'fortran_args',
-    'java_args',
-    'objc_args',
-    'objcpp_args',
-    'rust_args',
-    'vala_args',
-    'cs_args',
-    'cython_args',
 }
 
 vala_kwargs = {'vala_header', 'vala_gir', 'vala_vapi'}
@@ -1141,24 +1130,18 @@ class BuildTarget(Target):
         for linktarget in lwhole:
             self.link_whole(linktarget)
 
-        c_pchlist, cpp_pchlist, clist, cpplist, cudalist, cslist, valalist,  objclist, objcpplist, fortranlist, rustlist \
-            = (extract_as_list(kwargs, c) for c in ['c_pch', 'cpp_pch', 'c_args', 'cpp_args', 'cuda_args', 'cs_args', 'vala_args', 'objc_args', 'objcpp_args', 'fortran_args', 'rust_args'])
+        for lang in all_languages:
+            lang_args = extract_as_list(kwargs, f'{lang}_args')
+            self.add_compiler_args(lang, lang_args)
 
-        self.add_pch('c', c_pchlist)
-        self.add_pch('cpp', cpp_pchlist)
-        compiler_args = {'c': clist, 'cpp': cpplist, 'cuda': cudalist, 'cs': cslist, 'vala': valalist, 'objc': objclist, 'objcpp': objcpplist,
-                         'fortran': fortranlist, 'rust': rustlist
-                         }
-        for key, value in compiler_args.items():
-            self.add_compiler_args(key, value)
+        self.add_pch('c', extract_as_list(kwargs, 'c_pch'))
+        self.add_pch('cpp', extract_as_list(kwargs, 'cpp_pch'))
 
         if not isinstance(self, Executable) or 'export_dynamic' in kwargs:
             self.vala_header = kwargs.get('vala_header', self.name + '.h')
             self.vala_vapi = kwargs.get('vala_vapi', self.name + '.vapi')
             self.vala_gir = kwargs.get('vala_gir', None)
 
-        dlist = stringlistify(kwargs.get('d_args', []))
-        self.add_compiler_args('d', dlist)
         dfeatures = defaultdict(list)
         dfeature_unittest = kwargs.get('d_unittest', False)
         if dfeature_unittest:
