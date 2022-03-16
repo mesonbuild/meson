@@ -453,15 +453,6 @@ class PythonExternalProgram(ExternalProgram):
                 raise mesonlib.MesonException('python.install_env cannot be set to "venv" unless you are in a venv!')
             # inside a venv, deb_system is *never* active hence info['paths'] may be wrong
             rel_path = self.info['sysconfig_paths'][key]
-
-        # Use python's path relative to prefix, and warn if that's not a location
-        # python will lookup for modules.
-        abs_path = Path(state.get_option('prefix'), rel_path)
-        sys_paths = [Path(i) for i in self.info['sys_paths']]
-        if abs_path not in sys_paths:
-            mlog.warning('Python files installed by Meson might not be found by python interpreter.\n',
-                         f'This warning can be avoided by setting "python.{key}dir" option.',
-                         once=True)
         return rel_path
 
 
@@ -473,13 +464,14 @@ class PythonInstallation(ExternalProgramHolder):
     def __init__(self, python: 'PythonExternalProgram', interpreter: 'Interpreter'):
         ExternalProgramHolder.__init__(self, python, interpreter)
         info = python.info
-        prefix = self.interpreter.environment.coredata.get_option(mesonlib.OptionKey('prefix'))
-        assert isinstance(prefix, str), 'for mypy'
+        self.prefix = self.interpreter.environment.coredata.get_option(mesonlib.OptionKey('prefix'))
+        assert isinstance(self.prefix, str), 'for mypy'
         self.variables = info['variables']
         self.suffix = info['suffix']
         self.paths = info['paths']
-        self.platlib_install_path = os.path.join(prefix, python.platlib)
-        self.purelib_install_path = os.path.join(prefix, python.purelib)
+        self.platlib_install_path = os.path.join(self.prefix, python.platlib)
+        self.purelib_install_path = os.path.join(self.prefix, python.purelib)
+        self.sys_paths = [Path(i) for i in info['sys_paths']]
         self.version = info['version']
         self.platform = info['platform']
         self.is_pypy = info['is_pypy']
@@ -498,6 +490,16 @@ class PythonInstallation(ExternalProgramHolder):
             'path': self.path_method,
         })
 
+    def _warn_if_bad_install_path(self, install_path: str, key: str):
+        # Warn if that's not a location python will lookup for modules.
+        # Special case /usr/local prefix because it is the default and it is
+        # expected that python won't find installed modules there, this avoids
+        # annoying warning by default.
+        if self.prefix != '/usr/local' and install_path not in self.sys_paths:
+            mlog.warning('Python files installed by Meson might not be found by python interpreter.\n',
+                         f'This warning can be avoided by setting "python.{key}dir" option.',
+                         once=True)
+
     @permittedKwargs(mod_kwargs)
     def extension_module_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> 'SharedModule':
         if 'install_dir' in kwargs:
@@ -509,6 +511,7 @@ class PythonInstallation(ExternalProgramHolder):
                 raise InvalidArguments('"subdir" argument must be a string.')
 
             kwargs['install_dir'] = os.path.join(self.platlib_install_path, subdir)
+            self._warn_if_bad_install_path(self.platlib_install_path, 'plat')
 
         # On macOS and some Linux distros (Debian) distutils doesn't link
         # extensions against libpython. We call into distutils and mirror its
@@ -575,8 +578,12 @@ class PythonInstallation(ExternalProgramHolder):
         return self._get_install_dir_impl(kwargs['pure'], kwargs['subdir'])
 
     def _get_install_dir_impl(self, pure: bool, subdir: str) -> str:
-        return os.path.join(
-            self.purelib_install_path if pure else self.platlib_install_path, subdir)
+        if pure:
+            self._warn_if_bad_install_path(self.purelib_install_path, 'pure')
+            return os.path.join(self.purelib_install_path, subdir)
+        else:
+            self._warn_if_bad_install_path(self.platlib_install_path, 'plat')
+            return os.path.join(self.platlib_install_path, subdir)
 
     def _get_install_dir_name_impl(self, pure: bool, subdir: str) -> str:
         return os.path.join('{py_purelib}' if pure else '{py_platlib}', subdir)
