@@ -326,7 +326,6 @@ print(json.dumps({
   'variables': variables,
   'paths': paths,
   'install_paths': install_paths,
-  'sys_paths': sys.path,
   'version': sysconfig.get_python_version(),
   'platform': sysconfig.get_platform(),
   'is_pypy': '__pypy__' in sys.builtin_module_names,
@@ -415,14 +414,6 @@ class PythonExternalProgram(ExternalProgram):
         value = state.get_option(f'{key}dir', module='python')
         if value:
             return value
-        # Use python's path relative to prefix, and warn if that's not a location
-        # python will lookup for modules.
-        abs_path = Path(state.get_option('prefix'), rel_path)
-        sys_paths = [Path(i) for i in self.info['sys_paths']]
-        if abs_path not in sys_paths:
-            mlog.warning('Python files installed by Meson might not be found by python interpreter.\n',
-                         f'This warning can be avoided by setting "python.{key}dir" option.',
-                         once=True)
         return rel_path
 
 
