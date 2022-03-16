@@ -215,11 +215,9 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
         # be passed to a different compiler with a different set of default
         # search paths, such as when using Clang for C/C++ and gfortran for
         # fortran,
-        search_dir = self._get_search_dirs(env)
         search_dirs: T.List[str] = []
-        if search_dir is not None:
-            for d in search_dir.split()[-1][len('libraries: ='):].split(':'):
-                search_dirs.append(f'-L{d}')
+        for d in self.get_compiler_dirs(env, 'libraries'):
+            search_dirs.append(f'-L{d}')
         return search_dirs + ['-lgfortran', '-lm']
 
     def has_header(self, hname: str, prefix: str, env: 'Environment', *,
@@ -482,11 +480,9 @@ class FlangFortranCompiler(ClangCompiler, FortranCompiler):
         # search paths, such as when using Clang for C/C++ and gfortran for
         # fortran,
         # XXX: Untested....
-        search_dir = self._get_search_dirs(env)
         search_dirs: T.List[str] = []
-        if search_dir is not None:
-            for d in search_dir.split()[-1][len('libraries: ='):].split(':'):
-                search_dirs.append(f'-L{d}')
+        for d in self.get_compiler_dirs(env, 'libraries'):
+            search_dirs.append(f'-L{d}')
         return search_dirs + ['-lflang', '-lpgmath']
 
 class ArmLtdFlangFortranCompiler(FlangFortranCompiler):
