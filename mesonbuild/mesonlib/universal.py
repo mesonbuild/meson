@@ -418,6 +418,11 @@ class File(HoldableObject):
         return File(True, subdir, fname)
 
     @staticmethod
+    def from_built_relative(relative: str) -> 'File':
+        dirpart, fnamepart = os.path.split(relative)
+        return File(True, dirpart, fnamepart)
+
+    @staticmethod
     def from_absolute_file(fname: str) -> 'File':
         return File(False, '', fname)
 

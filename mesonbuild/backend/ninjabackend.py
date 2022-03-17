@@ -635,14 +635,14 @@ class NinjaBackend(backends.Backend):
     def get_target_generated_sources(self, target: build.BuildTarget) -> T.MutableMapping[str, File]:
         """
         Returns a dictionary with the keys being the path to the file
-        (relative to the build directory) of that type and the value
-        being the GeneratorList or CustomTarget that generated it.
+        (relative to the build directory) and the value being the File object
+        representing the same path.
         """
         srcs: T.MutableMapping[str, File] = OrderedDict()
         for gensrc in target.get_generated_sources():
             for s in gensrc.get_outputs():
-                f = self.get_target_generated_dir(target, gensrc, s)
-                srcs[f] = s
+                rel_src = self.get_target_generated_dir(target, gensrc, s)
+                srcs[rel_src] = File.from_built_relative(rel_src)
         return srcs
 
     def get_target_sources(self, target: build.BuildTarget) -> T.MutableMapping[str, File]:
@@ -809,8 +809,7 @@ class NinjaBackend(backends.Backend):
         # same time, also deal with generated sources that need to be compiled.
         generated_source_files = []
         for rel_src in generated_sources.keys():
-            dirpart, fnamepart = os.path.split(rel_src)
-            raw_src = File(True, dirpart, fnamepart)
+            raw_src = File.from_built_relative(rel_src)
             if self.environment.is_source(rel_src):
                 if is_unity and self.get_target_source_can_unity(target, rel_src):
                     unity_deps.append(raw_src)
@@ -854,8 +853,7 @@ class NinjaBackend(backends.Backend):
         # often contain duplicate symbols and will fail to compile properly
         vala_generated_source_files = []
         for src in transpiled_sources:
-            dirpart, fnamepart = os.path.split(src)
-            raw_src = File(True, dirpart, fnamepart)
+            raw_src = File.from_built_relative(src)
             # Generated targets are ordered deps because the must exist
             # before the sources compiling them are used. After the first
             # compile we get precise dependency info from dep files.
@@ -1251,8 +1249,7 @@ class NinjaBackend(backends.Backend):
         generated_sources = self.get_target_generated_sources(target)
         gen_src_list = []
         for rel_src in generated_sources.keys():
-            dirpart, fnamepart = os.path.split(rel_src)
-            raw_src = File(True, dirpart, fnamepart)
+            raw_src = File.from_built_relative(rel_src)
             if rel_src.endswith('.java'):
                 gen_src_list.append(raw_src)
 
