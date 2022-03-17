@@ -811,7 +811,7 @@ class NinjaBackend(backends.Backend):
         for rel_src in generated_sources.keys():
             dirpart, fnamepart = os.path.split(rel_src)
             raw_src = File(True, dirpart, fnamepart)
-            if self.environment.is_source(rel_src) and not self.environment.is_header(rel_src):
+            if self.environment.is_source(rel_src):
                 if is_unity and self.get_target_source_can_unity(target, rel_src):
                     unity_deps.append(raw_src)
                     abs_src = os.path.join(self.environment.get_build_dir(), rel_src)

@@ -45,12 +45,13 @@ if T.TYPE_CHECKING:
 about. To support a new compiler, add its information below.
 Also add corresponding autodetection code in environment.py."""
 
-header_suffixes = ('h', 'hh', 'hpp', 'hxx', 'H', 'ipp', 'moc', 'vapi', 'di')  # type: T.Tuple[str, ...]
-obj_suffixes = ('o', 'obj', 'res')  # type: T.Tuple[str, ...]
+header_suffixes = {'h', 'hh', 'hpp', 'hxx', 'H', 'ipp', 'moc', 'vapi', 'di'}
+obj_suffixes = {'o', 'obj', 'res'}
 # To the emscripten compiler, .js files are libraries
-lib_suffixes = ('a', 'lib', 'dll', 'dll.a', 'dylib', 'so', 'js')  # type: T.Tuple[str, ...]
+lib_suffixes = {'a', 'lib', 'dll', 'dll.a', 'dylib', 'so', 'js'}
 # Mapping of language to suffixes of files that should always be in that language
 # This means we can't include .h headers here since they could be C, C++, ObjC, etc.
+# First suffix is the language's default.
 lang_suffixes = {
     'c': ('c',),
     'cpp': ('cpp', 'cc', 'cxx', 'c++', 'hh', 'hpp', 'ipp', 'hxx', 'ino', 'ixx', 'C'),
@@ -67,23 +68,24 @@ lang_suffixes = {
     'swift': ('swift',),
     'java': ('java',),
     'cython': ('pyx', ),
-}  # type: T.Dict[str, T.Tuple[str, ...]]
+}
 all_languages = lang_suffixes.keys()
-cpp_suffixes = lang_suffixes['cpp'] + ('h',)  # type: T.Tuple[str, ...]
-c_suffixes = lang_suffixes['c'] + ('h',)  # type: T.Tuple[str, ...]
+c_cpp_suffixes =  {'h'}
+cpp_suffixes = set(lang_suffixes['cpp']) | c_cpp_suffixes
+c_suffixes = set(lang_suffixes['c']) | c_cpp_suffixes
+assembler_suffixes = {'s', 'S'}
+llvm_ir_suffixes = {'ll'}
+all_suffixes = set(itertools.chain(*lang_suffixes.values(), assembler_suffixes, llvm_ir_suffixes, c_cpp_suffixes))
+source_suffixes = all_suffixes - header_suffixes
 # List of languages that by default consume and output libraries following the
 # C ABI; these can generally be used interchangeably
-clib_langs = ('objcpp', 'cpp', 'objc', 'c', 'fortran',)  # type: T.Tuple[str, ...]
-# List of assembler suffixes that can be linked with C code directly by the linker
-assembler_suffixes: T.Tuple[str, ...] = ('s', 'S')
+# This must be sorted, see sort_clink().
+clib_langs = ('objcpp', 'cpp', 'objc', 'c', 'fortran')
 # List of languages that can be linked with C code directly by the linker
 # used in build.py:process_compilers() and build.py:get_dynamic_linker()
-clink_langs = ('d', 'cuda') + clib_langs  # type: T.Tuple[str, ...]
-clink_suffixes = tuple()  # type: T.Tuple[str, ...]
-for _l in clink_langs + ('vala',):
-    clink_suffixes += lang_suffixes[_l]
-clink_suffixes += ('h', 'll', 's')
-all_suffixes = set(itertools.chain(*lang_suffixes.values(), clink_suffixes))  # type: T.Set[str]
+# This must be sorted, see sort_clink().
+clink_langs = ('d', 'cuda') + clib_langs
+
 SUFFIX_TO_LANG = dict(itertools.chain(*(
     [(suffix, lang) for suffix in v] for lang, v in lang_suffixes.items()))) # type: T.Dict[str, str]
 
@@ -130,17 +132,19 @@ def is_source(fname: 'mesonlib.FileOrString') -> bool:
     if isinstance(fname, mesonlib.File):
         fname = fname.fname
     suffix = fname.split('.')[-1].lower()
-    return suffix in clink_suffixes
+    return suffix in source_suffixes
 
 def is_assembly(fname: 'mesonlib.FileOrString') -> bool:
     if isinstance(fname, mesonlib.File):
         fname = fname.fname
-    return fname.split('.')[-1].lower() == 's'
+    suffix = fname.split('.')[-1]
+    return suffix in assembler_suffixes
 
 def is_llvm_ir(fname: 'mesonlib.FileOrString') -> bool:
     if isinstance(fname, mesonlib.File):
         fname = fname.fname
-    return fname.split('.')[-1] == 'll'
+    suffix = fname.split('.')[-1]
+    return suffix in llvm_ir_suffixes
 
 @lru_cache(maxsize=None)
 def cached_by_name(fname: 'mesonlib.FileOrString') -> bool:

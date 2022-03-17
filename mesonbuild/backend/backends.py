@@ -820,7 +820,7 @@ class Backend:
         # Filter out headers and all non-source files
         sources: T.List['FileOrString'] = []
         for s in raw_sources:
-            if self.environment.is_source(s) and not self.environment.is_header(s):
+            if self.environment.is_source(s):
                 sources.append(s)
             elif self.environment.is_object(s):
                 result.append(s.relative_name())

@@ -413,7 +413,7 @@ class ExtractedObjects(HoldableObject):
                 sources.append(s)
 
         # Filter out headers and all non-source files
-        return [s for s in sources if environment.is_source(s) and not environment.is_header(s)]
+        return [s for s in sources if environment.is_source(s)]
 
     def classify_all_sources(self, sources: T.List[FileOrString], generated_sources: T.Sequence['GeneratedTypes']) -> T.Dict['Compiler', T.List['FileOrString']]:
         sources_ = self.get_sources(sources, generated_sources)
