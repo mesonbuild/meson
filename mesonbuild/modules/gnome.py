@@ -368,17 +368,17 @@ class GnomeModule(ExtensionModule):
                 rv.append(script)
         if kwargs['gtk_update_icon_cache'] and not self.install_gtk_update_icon_cache:
             self.install_gtk_update_icon_cache = True
-            prog = self._get_native_binary(state, 'gtk4-update-icon-cache', 'gtk4', 'gtk4_update_icon_cache', required=False)
+            prog = state.find_program('gtk4-update-icon-cache', required=False)
             found = isinstance(prog, build.Executable) or prog.found()
             if not found:
-                prog = self._get_native_binary(state, 'gtk-update-icon-cache', 'gtk+-3.0', 'gtk_update_icon_cache')
+                prog = state.find_program('gtk4-update-icon-cache')
             icondir = os.path.join(datadir_abs, 'icons', 'hicolor')
             script = state.backend.get_executable_serialisation([prog, '-q', '-t', '-f', icondir])
             script.skip_if_destdir = True
             rv.append(script)
         if kwargs['update_desktop_database'] and not self.install_update_desktop_database:
             self.install_update_desktop_database = True
-            prog = self._get_native_binary(state, 'update-desktop-database', 'desktop-file-utils', 'update_desktop_database')
+            prog = state.find_program('update-desktop-database')
             appdir = os.path.join(datadir_abs, 'applications')
             script = state.backend.get_executable_serialisation([prog, '-q', appdir])
             script.skip_if_destdir = True
