@@ -23,3 +23,15 @@ kwargs:
       If `true` the object files in the target will be prelinked,
       meaning that it will contain only one prelinked
       object file rather than the individual object files.
+
+  thin:
+    type: bool
+    since: 0.61.0
+    description: |
+      If `true` (the default) and the static linker supports it,
+      attempt to use thin archives, which only contain references to
+      the linked object files rather than a copy of them. Doing so
+      speeds up the build and reduces disk space usage. This option
+      is ignored for static libraries to be installed; it is also
+      ignored on OS X because its toolchain does not support thin
+      archives.
