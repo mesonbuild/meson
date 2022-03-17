@@ -20,8 +20,7 @@ import typing as T
 
 from glob import glob
 from urllib.parse import urlparse
-from urllib.request import urlopen
-from .wrap import WrapException
+from .wrap import open_wrapdburl, WrapException
 
 from .. import mesonlib
 
@@ -59,7 +58,7 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     p.set_defaults(wrap_func=promote)
 
 def get_releases() -> T.Dict[str, T.Any]:
-    url = urlopen('https://wrapdb.mesonbuild.com/v2/releases.json')
+    url = open_wrapdburl('https://wrapdb.mesonbuild.com/v2/releases.json')
     return T.cast('T.Dict[str, T.Any]', json.loads(url.read().decode()))
 
 def list_projects(options: 'argparse.Namespace') -> None:
@@ -97,7 +96,7 @@ def install(options: 'argparse.Namespace') -> None:
     if os.path.exists(wrapfile):
         raise SystemExit('Wrap file already exists.')
     (version, revision) = get_latest_version(name)
-    url = urlopen(f'https://wrapdb.mesonbuild.com/v2/{name}_{version}-{revision}/{name}.wrap')
+    url = open_wrapdburl(f'https://wrapdb.mesonbuild.com/v2/{name}_{version}-{revision}/{name}.wrap')
     with open(wrapfile, 'wb') as f:
         f.write(url.read())
     print(f'Installed {name} version {version} revision {revision}')
@@ -140,7 +139,7 @@ def get_current_version(wrapfile: str) -> T.Tuple[str, str, str, str, T.Optional
     return branch, revision, wrap_data['directory'], wrap_data['source_filename'], patch_filename
 
 def update_wrap_file(wrapfile: str, name: str, new_version: str, new_revision: str) -> None:
-    url = urlopen(f'https://wrapdb.mesonbuild.com/v2/{name}_{new_version}-{new_revision}/{name}.wrap')
+    url = open_wrapdburl(f'https://wrapdb.mesonbuild.com/v2/{name}_{new_version}-{new_revision}/{name}.wrap')
     with open(wrapfile, 'wb') as f:
         f.write(url.read())
 
