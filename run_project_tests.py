@@ -651,7 +651,8 @@ def _run_test(test: TestDef,
     (returncode, stdo, stde) = run_configure(gen_args, env=test.env, catch_exception=True)
     try:
         logfile = Path(test_build_dir, 'meson-logs', 'meson-log.txt')
-        mesonlog = logfile.open(errors='ignore', encoding='utf-8').read()
+        with logfile.open(errors='ignore', encoding='utf-8') as fid:
+            mesonlog = fid.read()
     except Exception:
         mesonlog = no_meson_log_msg
     cicmds = run_ci_commands(mesonlog)

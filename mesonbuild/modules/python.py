@@ -186,12 +186,20 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
     def _get_windows_link_args(self) -> T.Optional[T.List[str]]:
         if self.platform.startswith('win'):
             vernum = self.variables.get('py_version_nodot')
+            verdot = self.variables.get('py_version_short')
+            imp_lower = self.variables.get('implementation_lower', 'python')
             if self.static:
                 libpath = Path('libs') / f'libpython{vernum}.a'
             else:
                 comp = self.get_compiler()
                 if comp.id == "gcc":
-                    libpath = Path(f'python{vernum}.dll')
+                    if imp_lower == 'pypy' and verdot == '3.8':
+                        # The naming changed between 3.8 and 3.9
+                        libpath = Path(f'libpypy3-c.dll')
+                    elif imp_lower == 'pypy':
+                        libpath = Path(f'libpypy{verdot}-c.dll')
+                    else:
+                        libpath = Path(f'python{vernum}.dll')
                 else:
                     libpath = Path('libs') / f'python{vernum}.lib'
             # base_prefix to allow for virtualenvs.
