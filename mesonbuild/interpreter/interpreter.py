@@ -2122,11 +2122,13 @@ external dependencies (including libraries) must go to "dependencies".''')
             args: T.Tuple[object, T.Optional[T.Dict[str, object]]],
             kwargs: 'TYPE_kwargs') -> build.StructuredSources:
         valid_types = (str, mesonlib.File, build.GeneratedList, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)
-        sources: T.Dict[str, T.List[T.Union['mesonlib.FileOrString', 'build.GeneratedTypes']]] = collections.defaultdict(list)
+        sources: T.Dict[str, T.List[T.Union[mesonlib.File, 'build.GeneratedTypes']]] = collections.defaultdict(list)
 
         for arg in mesonlib.listify(args[0]):
             if not isinstance(arg, valid_types):
                 raise InvalidArguments(f'structured_sources: type "{type(arg)}" is not valid')
+            if isinstance(arg, str):
+                arg = mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, arg)
             sources[''].append(arg)
         if args[1]:
             if '' in args[1]:
@@ -2135,6 +2137,8 @@ external dependencies (including libraries) must go to "dependencies".''')
                 for arg in mesonlib.listify(v):
                     if not isinstance(arg, valid_types):
                         raise InvalidArguments(f'structured_sources: type "{type(arg)}" is not valid')
+                    if isinstance(arg, str):
+                        arg = mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, arg)
                     sources[k].append(arg)
         return build.StructuredSources(sources)
 

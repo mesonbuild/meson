@@ -1669,9 +1669,7 @@ class NinjaBackend(backends.Backend):
         root = Path(self.get_target_private_dir(target)) / 'structured'
         for path, files in target.structured_sources.sources.items():
             for file in files:
-                if isinstance(file, (str, File)):
-                    if isinstance(file, str):
-                        file = File.from_absolute_file(file)
+                if isinstance(file, File):
                     out = root / path / Path(file.fname).name
                     orderdeps.append(str(out))
                     self._generate_copy_target(file, out)
@@ -1707,13 +1705,11 @@ class NinjaBackend(backends.Backend):
 
         main_rust_file = None
         if target.structured_sources:
-            if target.structured_sources.needs_copy(target):
+            if target.structured_sources.needs_copy():
                 _ods, main_rust_file = self.__generate_compile_structure(target)
                 orderdeps.extend(_ods)
             else:
                 g = target.structured_sources.first_file()
-                if isinstance(g, str):
-                    g = File.from_source_file(self.environment.source_dir, target.subdir, g)
 
                 if isinstance(g, File):
                     main_rust_file = g.rel_to_builddir(self.build_to_src)
