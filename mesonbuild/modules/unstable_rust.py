@@ -194,7 +194,8 @@ class RustModule(ExtensionModule):
         inc_strs: T.List[str] = []
         for i in kwargs['include_directories']:
             # bindgen always uses clang, so it's safe to hardcode -I here
-            inc_strs.extend([f'-I{x}' for x in i.to_string_list(state.environment.get_source_dir())])
+            inc_strs.extend([f'-I{x}' for x in i.to_string_list(
+                state.environment.get_source_dir(), state.environment.get_build_dir())])
 
         if self._bindgen_bin is None:
             self._bindgen_bin = state.find_program('bindgen')
