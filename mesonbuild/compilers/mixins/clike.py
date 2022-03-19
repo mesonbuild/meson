@@ -179,9 +179,6 @@ class CLikeCompiler(Compiler):
     def get_depfile_suffix(self) -> str:
         return 'd'
 
-    def get_exelist(self) -> T.List[str]:
-        return self.exelist.copy()
-
     def get_preprocess_only_args(self) -> T.List[str]:
         return ['-E', '-P']
 
@@ -1194,7 +1191,7 @@ class CLikeCompiler(Compiler):
         if self.id != 'clang':
             raise mesonlib.MesonException('Cannot find framework path with non-clang compiler')
         # Construct the compiler command-line
-        commands = self.get_exelist() + ['-v', '-E', '-']
+        commands = self.get_exelist(ccache=False) + ['-v', '-E', '-']
         commands += self.get_always_args()
         # Add CFLAGS/CXXFLAGS/OBJCFLAGS/OBJCXXFLAGS from the env
         commands += env.coredata.get_external_args(self.for_machine, self.language)
