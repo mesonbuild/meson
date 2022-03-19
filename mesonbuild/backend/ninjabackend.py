@@ -1709,17 +1709,24 @@ class NinjaBackend(backends.Backend):
                 _ods, main_rust_file = self.__generate_compile_structure(target)
                 orderdeps.extend(_ods)
             else:
+                # The only way to get here is to have only files in the "root"
+                # positional argument, which are all generated into the same
+                # directory
                 g = target.structured_sources.first_file()
 
                 if isinstance(g, File):
                     main_rust_file = g.rel_to_builddir(self.build_to_src)
                 elif isinstance(g, GeneratedList):
-                    main_rust_file = os.path.join(self.get_target_private_dir(target), i)
+                    main_rust_file = os.path.join(self.get_target_private_dir(target), g.get_outputs()[0])
                 else:
-                    main_rust_file = os.path.join(g.get_subdir(), i)
-                orderdeps.extend([os.path.join(self.build_to_src, target.subdir, s)
-                                  for s in  target.structured_sources.as_list()])
+                    main_rust_file = os.path.join(g.get_subdir(), g.get_outputs()[0])
 
+                for f in target.structured_sources.as_list():
+                    if isinstance(f, File):
+                        orderdeps.append(f.rel_to_builddir(self.build_to_src))
+                    else:
+                        orderdeps.extend([os.path.join(self.build_to_src, f.subdir, s)
+                                          for s in f.get_outputs()])
 
         for i in target.get_sources():
             if not rustc.can_compile(i):
