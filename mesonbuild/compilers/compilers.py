@@ -492,6 +492,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None, is_cross: bool = False):
         self.exelist = exelist
+        self.exelist_no_ccache = exelist[1:] if exelist and 'ccache' in exelist[0] else exelist
         # In case it's been overridden by a child class already
         if not hasattr(self, 'file_suffixes'):
             self.file_suffixes = lang_suffixes[self.language]
@@ -578,8 +579,8 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def symbols_have_underscore_prefix(self, env: 'Environment') -> bool:
         raise EnvironmentException('%s does not support symbols_have_underscore_prefix ' % self.get_id())
 
-    def get_exelist(self) -> T.List[str]:
-        return self.exelist.copy()
+    def get_exelist(self, ccache: bool = True) -> T.List[str]:
+        return self.exelist.copy() if ccache else self.exelist_no_ccache.copy()
 
     def get_linker_exelist(self) -> T.List[str]:
         return self.linker.get_exelist()
@@ -796,7 +797,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             if extra_args:
                 commands += extra_args
             # Generate full command-line with the exelist
-            command_list = self.get_exelist() + commands.to_native()
+            command_list = self.get_exelist(ccache=not no_ccache) + commands.to_native()
             mlog.debug('Running compile:')
             mlog.debug('Working directory: ', tmpdirname)
             mlog.debug('Command line: ', ' '.join(command_list), '\n')

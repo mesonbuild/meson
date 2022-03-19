@@ -110,7 +110,7 @@ class RustCompiler(Compiler):
         return rust_buildtype_args[buildtype]
 
     def get_sysroot(self) -> str:
-        cmd = self.exelist + ['--print', 'sysroot']
+        cmd = self.get_exelist(ccache=False) + ['--print', 'sysroot']
         p, stdo, stde = Popen_safe(cmd)
         return stdo.split('\n')[0]
 

@@ -48,7 +48,7 @@ class ElbrusCompiler(GnuLikeCompiler):
     def get_library_dirs(self, env: 'Environment', elf_class: T.Optional[int] = None) -> T.List[str]:
         os_env = os.environ.copy()
         os_env['LC_ALL'] = 'C'
-        stdo = Popen_safe(self.exelist + ['--print-search-dirs'], env=os_env)[1]
+        stdo = Popen_safe(self.get_exelist(ccache=False) + ['--print-search-dirs'], env=os_env)[1]
         for line in stdo.split('\n'):
             if line.startswith('libraries:'):
                 # lcc does not include '=' in --print-search-dirs output. Also it could show nonexistent dirs.
@@ -59,7 +59,7 @@ class ElbrusCompiler(GnuLikeCompiler):
     def get_program_dirs(self, env: 'Environment') -> T.List[str]:
         os_env = os.environ.copy()
         os_env['LC_ALL'] = 'C'
-        stdo = Popen_safe(self.exelist + ['--print-search-dirs'], env=os_env)[1]
+        stdo = Popen_safe(self.get_exelist(ccache=False) + ['--print-search-dirs'], env=os_env)[1]
         for line in stdo.split('\n'):
             if line.startswith('programs:'):
                 # lcc does not include '=' in --print-search-dirs output.
@@ -70,7 +70,7 @@ class ElbrusCompiler(GnuLikeCompiler):
     def get_default_include_dirs(self) -> T.List[str]:
         os_env = os.environ.copy()
         os_env['LC_ALL'] = 'C'
-        p = subprocess.Popen(self.exelist + ['-xc', '-E', '-v', '-'], env=os_env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(self.get_exelist(ccache=False) + ['-xc', '-E', '-v', '-'], env=os_env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stderr = p.stderr.read().decode('utf-8', errors='replace')
         includes = []
         for line in stderr.split('\n'):
