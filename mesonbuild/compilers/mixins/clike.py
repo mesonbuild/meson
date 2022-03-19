@@ -37,7 +37,7 @@ from ...linkers import GnuLikeDynamicLinkerMixin, SolarisDynamicLinker, CompCert
 from ...mesonlib import LibType
 from ...coredata import OptionKey
 from .. import compilers
-from ..compilers import CompileCheckMode
+from ..compilers import CompileCheckMode, CompilerMode
 from .visualstudio import VisualStudioLikeCompiler
 
 if T.TYPE_CHECKING:
@@ -46,6 +46,7 @@ if T.TYPE_CHECKING:
     from ...environment import Environment
     from ...compilers.compilers import Compiler
     from ...programs import ExternalProgram
+    from ..coredata import KeyedOptionDictType
 else:
     # This is a bit clever, for mypy we pretend that these mixins descend from
     # Compiler, so we get all of the methods and attributes defined for us, but
@@ -1328,3 +1329,26 @@ class CLikeCompiler(Compiler):
 
     def get_disable_assert_args(self) -> T.List[str]:
         return ['-DNDEBUG']
+
+    def get_compiler_modes(self) -> T.List[CompilerMode]:
+        return super().get_compiler_modes() + [
+            CLikePreprocessorMode(self),
+        ]
+
+
+class CLikePreprocessorMode(CompilerMode):
+    def __init__(self, compiler: 'Compiler', output_suffix: str = 'i'):
+        super().__init__(compiler)
+        self.output_suffix = output_suffix
+
+    def get_id(self) -> str:
+        return f'{self.compiler.language}_PREPROCESSOR'
+
+    def get_description(self, output: str) -> str:
+        return f'Preprocessing source {output}'
+
+    def get_exelist(self, ccache: bool = True) -> T.List[str]:
+        return super().get_exelist(ccache) + self.compiler.get_preprocess_only_args()
+
+    def get_output_suffix(self, options: 'KeyedOptionDictType') -> str:
+        return self.output_suffix

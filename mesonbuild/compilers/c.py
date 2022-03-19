@@ -26,7 +26,7 @@ from .mixins.compcert import CompCertCompiler
 from .mixins.ti import TICompiler
 from .mixins.arm import ArmCompiler, ArmclangCompiler
 from .mixins.visualstudio import MSVCCompiler, ClangClCompiler
-from .mixins.gnu import GnuCompiler
+from .mixins.gnu import GnuCompiler, GnuCCPPCompiler
 from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
 from .mixins.clang import ClangCompiler
 from .mixins.elbrus import ElbrusCompiler
@@ -252,7 +252,7 @@ class ArmclangCCompiler(ArmclangCompiler, CCompiler):
         return []
 
 
-class GnuCCompiler(GnuCompiler, CCompiler):
+class GnuCCompiler(GnuCCPPCompiler, CCompiler):
 
     _C18_VERSION = '>=8.0.0'
     _C2X_VERSION = '>=9.0.0'

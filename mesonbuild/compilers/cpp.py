@@ -33,7 +33,7 @@ from .mixins.ccrx import CcrxCompiler
 from .mixins.ti import TICompiler
 from .mixins.arm import ArmCompiler, ArmclangCompiler
 from .mixins.visualstudio import MSVCCompiler, ClangClCompiler
-from .mixins.gnu import GnuCompiler
+from .mixins.gnu import GnuCompiler, GnuCCPPCompiler
 from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
 from .mixins.clang import ClangCompiler
 from .mixins.elbrus import ElbrusCompiler
@@ -347,7 +347,7 @@ class ArmclangCPPCompiler(ArmclangCompiler, CPPCompiler):
         return []
 
 
-class GnuCPPCompiler(GnuCompiler, CPPCompiler):
+class GnuCPPCompiler(GnuCCPPCompiler, CPPCompiler):
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
                  info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
                  linker: T.Optional['DynamicLinker'] = None,

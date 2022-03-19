@@ -774,10 +774,13 @@ class Backend:
             fname = fname.replace(ch, '_')
         return fname
 
-    def object_filename_from_source(self, target: build.BuildTarget, source: 'FileOrString', obj_suffix: T.Optional[str] = None) -> str:
+    def object_filename_from_source(self, target: build.BuildTarget, source: 'FileOrString', suffix: T.Optional[str] = None) -> str:
         assert isinstance(source, mesonlib.File)
         build_dir = self.environment.get_build_dir()
         rel_src = source.rel_to_builddir(self.build_to_src)
+
+        # A meson- prefixed directory is reserved; hopefully no-one creates a file name with such a weird prefix.
+        meson_prefix = 'meson-generated_'
 
         # foo.vala files compile down to foo.c and then foo.c.o, not foo.vala.o
         if rel_src.endswith(('.vala', '.gs')):
@@ -788,14 +791,14 @@ class Backend:
                 rel_src = os.path.relpath(rel_src, self.get_target_private_dir(target))
             else:
                 rel_src = os.path.basename(rel_src)
-            # A meson- prefixed directory is reserved; hopefully no-one creates a file name with such a weird prefix.
-            gen_source = 'meson-generated_' + rel_src[:-5] + '.c'
+            gen_source = meson_prefix + rel_src[:-5] + '.c'
         elif source.is_built:
             if os.path.isabs(rel_src):
                 rel_src = rel_src[len(build_dir) + 1:]
             targetdir = self.get_target_private_dir(target)
-            # A meson- prefixed directory is reserved; hopefully no-one creates a file name with such a weird prefix.
-            gen_source = 'meson-generated_' + os.path.relpath(rel_src, targetdir)
+            gen_source = os.path.relpath(rel_src, targetdir)
+            if not gen_source.startswith(meson_prefix):
+                gen_source = meson_prefix + gen_source
         else:
             if os.path.isabs(rel_src):
                 # Use the absolute path directly to avoid file name conflicts
@@ -803,8 +806,12 @@ class Backend:
             else:
                 gen_source = os.path.relpath(os.path.join(build_dir, rel_src),
                                              os.path.join(self.environment.get_source_dir(), target.get_subdir()))
-        machine = self.environment.machines[target.for_machine]
-        suffix = obj_suffix or machine.get_object_suffix()
+        if not suffix:
+            machine = self.environment.machines[target.for_machine]
+            suffix = machine.get_object_suffix()
+            # .S files are preprocessed to .S.s first then compiled to .S.s.o
+            if gen_source.endswith('.S'):
+                suffix = f's.{suffix}'
         return self.canonicalize_filename(gen_source) + '.' + suffix
 
     def determine_ext_objs(self, extobj: 'build.ExtractedObjects', proj_dir_to_build_root: str) -> T.List[str]:

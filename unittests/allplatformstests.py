@@ -957,6 +957,8 @@ class AllPlatformTests(BasePlatformTests):
             if 'Ic-asm' in cmd['command']:
                 if cmd['file'].endswith('.S'):
                     commands['c-asm']['asm'] = compiler
+                elif cmd['file'].endswith('.s'):
+                    pass
                 elif cmd['file'].endswith('.c'):
                     commands['c-asm']['c'] = compiler
                 else:
@@ -964,6 +966,8 @@ class AllPlatformTests(BasePlatformTests):
             elif 'Icpp-asm' in cmd['command']:
                 if cmd['file'].endswith('.S'):
                     commands['cpp-asm']['asm'] = compiler
+                elif cmd['file'].endswith('.s'):
+                    pass
                 elif cmd['file'].endswith('.cpp'):
                     commands['cpp-asm']['cpp'] = compiler
                 else:
@@ -971,6 +975,8 @@ class AllPlatformTests(BasePlatformTests):
             elif 'Ic-cpp-asm' in cmd['command']:
                 if cmd['file'].endswith('.S'):
                     commands['c-cpp-asm']['asm'] = compiler
+                elif cmd['file'].endswith('.s'):
+                    pass
                 elif cmd['file'].endswith('.c'):
                     commands['c-cpp-asm']['c'] = compiler
                 elif cmd['file'].endswith('.cpp'):
@@ -980,6 +986,8 @@ class AllPlatformTests(BasePlatformTests):
             elif 'Icpp-c-asm' in cmd['command']:
                 if cmd['file'].endswith('.S'):
                     commands['cpp-c-asm']['asm'] = compiler
+                elif cmd['file'].endswith('.s'):
+                    pass
                 elif cmd['file'].endswith('.c'):
                     commands['cpp-c-asm']['c'] = compiler
                 elif cmd['file'].endswith('.cpp'):

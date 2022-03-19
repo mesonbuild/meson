@@ -134,6 +134,7 @@ __all__ = [
 # Bring symbols from each module into compilers sub-package namespace
 from .compilers import (
     Compiler,
+    CompilerMode,
     RunResult,
     all_languages,
     base_options,

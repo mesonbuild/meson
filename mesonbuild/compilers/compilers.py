@@ -1282,6 +1282,41 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         """
         return None
 
+    def get_compiler_modes(self) -> T.List['CompilerMode']:
+        """Get a list of CompilerMode.
+
+        Some compilers can have different modes, such as preprocessor or assembler.
+        For each mode a subclass of CompilerMode can be added into this list.
+        """
+        return [CompilerMode(self)]
+
+    def get_mode_for_source(self, source: 'mesonlib.File') -> 'CompilerMode':
+        """Get the CompilerMode for a specific source file.
+
+        For example some file suffixes can only be preprocessed and the result
+        needs to be compiled by another compiler or mode.
+        """
+        return CompilerMode(self)
+
+class CompilerMode:
+    def __init__(self, compiler: Compiler):
+        self.compiler = compiler
+
+    def get_id(self) -> str:
+        return f'{self.compiler.language}_COMPILER'
+
+    def get_description(self, output: str) -> str:
+        return f'Compiling {self.compiler.get_display_language()} object {output}'
+
+    def get_exelist(self, ccache: bool = True) -> T.List[str]:
+        return self.compiler.get_exelist(ccache)
+
+    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
+        return self.compiler.get_dependency_gen_args(outtarget, outfile)
+
+    def get_output_suffix(self, options: 'KeyedOptionDictType') -> T.Optional[str]:
+        return self.compiler.get_output_suffix(options)
+
 
 def get_global_options(lang: str,
                        comp: T.Type[Compiler],

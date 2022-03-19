@@ -26,11 +26,15 @@ import typing as T
 from ... import mesonlib
 from ... import mlog
 from ...mesonlib import OptionKey
+from ..compilers import CompilerMode
+from .clike import CLikePreprocessorMode
 
 if T.TYPE_CHECKING:
     from ..._typing import ImmutableListProtocol
     from ...environment import Environment
     from ..compilers import Compiler
+    from ...arglist import CompilerArgs
+    from ...envconfig import MachineInfo
 else:
     # This is a bit clever, for mypy we pretend that these mixins descend from
     # Compiler, so we get all of the methods and attributes defined for us, but
@@ -395,3 +399,32 @@ class GnuCompiler(GnuLikeCompiler):
         if linker == 'mold' and mesonlib.version_compare(version, '>=12.0.1'):
             return ['-fuse-ld=mold']
         return super().use_linker_args(linker, version)
+
+
+class GnuCCPPCompiler(GnuCompiler):
+    def get_compiler_modes(self) -> T.List[CompilerMode]:
+        return super().get_compiler_modes() + [
+            GnuAssemblerMode(self),
+        ]
+
+    def get_mode_for_source(self, source: 'mesonlib.File') -> CompilerMode:
+        if source.endswith('.S'):
+            return CLikePreprocessorMode(self, 's')
+        if source.endswith('.s'):
+            return GnuAssemblerMode(self)
+        return super().get_mode_for_source(source)
+
+
+class GnuAssemblerMode(CompilerMode):
+    def get_id(self) -> str:
+        return f'{self.compiler.language}_ASSEMBLER'
+
+    def get_description(self, output: str) -> str:
+        return f'Assembling object {output}'
+
+    def get_exelist(self, ccache: bool = True) -> T.List[str]:
+        # ccache does not understand -Wa,-MD and won't regenerate depfile
+        return super().get_exelist(ccache=False)
+
+    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
+        return [f'-Wa,-MD,{outfile}']
