@@ -774,7 +774,7 @@ class Backend:
             fname = fname.replace(ch, '_')
         return fname
 
-    def object_filename_from_source(self, target: build.BuildTarget, source: 'FileOrString') -> str:
+    def object_filename_from_source(self, target: build.BuildTarget, source: 'FileOrString', obj_suffix: T.Optional[str] = None) -> str:
         assert isinstance(source, mesonlib.File)
         build_dir = self.environment.get_build_dir()
         rel_src = source.rel_to_builddir(self.build_to_src)
@@ -804,7 +804,8 @@ class Backend:
                 gen_source = os.path.relpath(os.path.join(build_dir, rel_src),
                                              os.path.join(self.environment.get_source_dir(), target.get_subdir()))
         machine = self.environment.machines[target.for_machine]
-        return self.canonicalize_filename(gen_source) + '.' + machine.get_object_suffix()
+        suffix = obj_suffix or machine.get_object_suffix()
+        return self.canonicalize_filename(gen_source) + '.' + suffix
 
     def determine_ext_objs(self, extobj: 'build.ExtractedObjects', proj_dir_to_build_root: str) -> T.List[str]:
         result: T.List[str] = []

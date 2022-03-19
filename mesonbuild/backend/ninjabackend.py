@@ -757,40 +757,19 @@ class NinjaBackend(backends.Backend):
 
         # Pre-existing target C/C++ sources to be built; dict of full path to
         # source relative to build root and the original File object.
-        target_sources: T.MutableMapping[str, File]
+        target_sources = self.get_target_sources(target)
 
         # GeneratedList and CustomTarget sources to be built; dict of the full
-        # path to source relative to build root and the generating target/list
-        generated_sources: T.MutableMapping[str, File]
+        # path to source relative to build root and its File object.
+        generated_sources = self.get_target_generated_sources(target)
 
-        # List of sources that have been transpiled from a DSL (like Vala) into
-        # a language that is haneled below, such as C or C++
-        transpiled_sources: T.List[str]
-
-        if 'vala' in target.compilers:
-            # Sources consumed by valac are filtered out. These only contain
-            # C/C++ sources, objects, generated libs, and unknown sources now.
-            target_sources, generated_sources, \
-                transpiled_sources = self.generate_vala_compile(target)
-        elif 'cython' in target.compilers:
-            target_sources, generated_sources, \
-                transpiled_sources = self.generate_cython_transpile(target)
-        else:
-            target_sources = self.get_target_sources(target)
-            generated_sources = self.get_target_generated_sources(target)
-            transpiled_sources = []
         self.scan_fortran_module_outputs(target)
         # Generate rules for GeneratedLists
         self.generate_generator_list_rules(target)
 
         # Generate rules for building the remaining source files in this target
         outname = self.get_target_filename(target)
-        obj_list = []
         is_unity = self.is_unity(target)
-        header_deps = []
-        unity_src = []
-        unity_deps = [] # Generated sources that must be built before compiling a Unity target.
-        header_deps += self.get_generated_headers(target)
 
         if is_unity:
             # Warn about incompatible sources if a unity build is enabled
@@ -803,37 +782,69 @@ class NinjaBackend(backends.Backend):
                       f'sources in the {target.name!r} target will be compiled normally'
                 mlog.log(mlog.red('FIXME'), msg)
 
-        # Get a list of all generated headers that will be needed while building
-        # this target's sources (generated sources and pre-existing sources).
-        # This will be set as dependencies of all the target's sources. At the
-        # same time, also deal with generated sources that need to be compiled.
-        generated_source_files = []
-        for rel_src in generated_sources.keys():
-            raw_src = File.from_built_relative(rel_src)
+        # Classify all sources:
+        # - obj_list: List of prebuilt object files.
+        # - unity_src: List of sources that will be unified.
+        # - unity_deps: List of unity sources that needs to be built first.
+        # - header_deps: All files that needs to be built before compiling any
+        #                source file. Usually generated header files.
+        # - all_source_files: All source files that will be compiled/transpiled.
+        #                     Files are paired with a is_generated boolean or
+        #                     the name of the language it got transpiled from
+        #                     (e.g. vala, cython).
+        # - all_other_files: Everything that is not a source, object or library.
+        #                    Usually header files, generated or not.
+        obj_list: T.List[str] = []
+        unity_src: T.List[str] = []
+        unity_deps: T.List[File] = []
+        header_deps: T.List[T.Union[File, str]] = []
+        all_source_files: T.List[T.Tuple[File, T.Union[bool, str]]] = []
+        all_other_files: T.List[File] = []
+        for rel_src, raw_src in itertools.chain(generated_sources.items(), target_sources.items()):
             if self.environment.is_source(rel_src):
                 if is_unity and self.get_target_source_can_unity(target, rel_src):
-                    unity_deps.append(raw_src)
+                    if raw_src.is_built:
+                        unity_deps.append(raw_src)
                     abs_src = os.path.join(self.environment.get_build_dir(), rel_src)
                     unity_src.append(abs_src)
                 else:
-                    generated_source_files.append(raw_src)
+                    all_source_files.append((raw_src, raw_src.is_built))
             elif self.environment.is_object(rel_src):
                 obj_list.append(rel_src)
             elif self.environment.is_library(rel_src) or modules.is_module_library(rel_src):
                 pass
             else:
-                # Assume anything not specifically a source file is a header. This is because
-                # people generate files with weird suffixes (.inc, .fh) that they then include
-                # in their source files.
-                header_deps.append(raw_src)
+                all_other_files.append(raw_src)
+                if raw_src.is_built:
+                    # Assume anything not specifically a source file is a header. This is because
+                    # people generate files with weird suffixes (.inc, .fh) that they then include
+                    # in their source files.
+                    header_deps.append(raw_src)
+
+        # Add generated headers for libraries this target links to.
+        header_deps += self.get_generated_headers(target)
+
+        # FIXME: Not sure this list is complete. Should it include generated
+        # sources that were used for unity or got transpiled? Should it include
+        # transpiled sources? header_deps? Doing it here because it should
+        # contain the same files as before the refactoring.
+        generated_source_files = [f for f, is_generated in all_source_files if is_generated]
+
+        # Vala is special because it transpiles all sources at once and
+        # needs its header files (vapi) that are not part of target_sources.
+        # Removes from all_source_files vala files and add generated C files.
+        # FIXME: Should it use order_deps too?
+        if 'vala' in target.compilers:
+            self.generate_vala_compile(target, all_source_files, all_other_files)
+
         # These are the generated source files that need to be built for use by
         # this target. We create the Ninja build file elements for this here
         # because we need `header_deps` to be fully generated in the above loop.
-        for src in generated_source_files:
+        for src, is_generated in all_source_files:
             if self.environment.is_llvm_ir(src):
                 o, s = self.generate_llvm_ir_compile(target, src)
             else:
-                o, s = self.generate_single_compile(target, src, True,
+                o, s = self.generate_single_compile(target, src, is_generated,
                                                     order_deps=header_deps)
             compiled_sources.append(s)
             source2object[s] = o
@@ -844,49 +855,6 @@ class NinjaBackend(backends.Backend):
             pch_objects = self.generate_pch(target, header_deps=header_deps)
         else:
             pch_objects = []
-
-        # Generate compilation targets for C sources generated from Vala
-        # sources. This can be extended to other $LANG->C compilers later if
-        # necessary. This needs to be separate for at least Vala
-        #
-        # Do not try to unity-build the generated c files from vala, as these
-        # often contain duplicate symbols and will fail to compile properly
-        vala_generated_source_files = []
-        for src in transpiled_sources:
-            raw_src = File.from_built_relative(src)
-            # Generated targets are ordered deps because the must exist
-            # before the sources compiling them are used. After the first
-            # compile we get precise dependency info from dep files.
-            # This should work in all cases. If it does not, then just
-            # move them from orderdeps to proper deps.
-            if self.environment.is_header(src):
-                header_deps.append(raw_src)
-            else:
-                # We gather all these and generate compile rules below
-                # after `header_deps` (above) is fully generated
-                vala_generated_source_files.append(raw_src)
-        for src in vala_generated_source_files:
-            # Passing 'vala' here signifies that we want the compile
-            # arguments to be specialized for C code generated by
-            # valac. For instance, no warnings should be emitted.
-            o, s = self.generate_single_compile(target, src, 'vala', [], header_deps)
-            obj_list.append(o)
-
-        # Generate compile targets for all the pre-existing sources for this target
-        for src in target_sources.values():
-            if not self.environment.is_header(src):
-                if self.environment.is_llvm_ir(src):
-                    o, s = self.generate_llvm_ir_compile(target, src)
-                    obj_list.append(o)
-                elif is_unity and self.get_target_source_can_unity(target, src):
-                    abs_src = os.path.join(self.environment.get_build_dir(),
-                                           src.rel_to_builddir(self.build_to_src))
-                    unity_src.append(abs_src)
-                else:
-                    o, s = self.generate_single_compile(target, src, False, [], header_deps)
-                    obj_list.append(o)
-                    compiled_sources.append(s)
-                    source2object[s] = o
 
         obj_list += self.flatten_object_list(target)
         if is_unity:
@@ -1417,78 +1385,35 @@ class NinjaBackend(backends.Backend):
                     break
         return list(result)
 
-    def split_vala_sources(self, t: build.BuildTarget) -> \
-            T.Tuple[T.MutableMapping[str, File], T.MutableMapping[str, File],
-                    T.Tuple[T.MutableMapping[str, File], T.MutableMapping]]:
-        """
-        Splits the target's sources into .vala, .gs, .vapi, and other sources.
-        Handles both pre-existing and generated sources.
-
-        Returns a tuple (vala, vapi, others) each of which is a dictionary with
-        the keys being the path to the file (relative to the build directory)
-        and the value being the object that generated or represents the file.
-        """
-        vala: T.MutableMapping[str, File] = OrderedDict()
-        vapi: T.MutableMapping[str, File] = OrderedDict()
-        others: T.MutableMapping[str, File] = OrderedDict()
-        othersgen: T.MutableMapping[str, File] = OrderedDict()
-        # Split pre-existing sources
-        for s in t.get_sources():
-            # BuildTarget sources are always mesonlib.File files which are
-            # either in the source root, or generated with configure_file and
-            # in the build root
-            if not isinstance(s, File):
-                raise InvalidArguments(f'All sources in target {t!r} must be of type mesonlib.File, not {s!r}')
-            f = s.rel_to_builddir(self.build_to_src)
-            if s.endswith(('.vala', '.gs')):
-                srctype = vala
-            elif s.endswith('.vapi'):
-                srctype = vapi
-            else:
-                srctype = others
-            srctype[f] = s
-        # Split generated sources
-        for gensrc in t.get_generated_sources():
-            for s in gensrc.get_outputs():
-                f = self.get_target_generated_dir(t, gensrc, s)
-                if s.endswith(('.vala', '.gs')):
-                    srctype = vala
-                elif s.endswith('.vapi'):
-                    srctype = vapi
-                # Generated non-Vala (C/C++) sources. Won't be used for
-                # generating the Vala compile rule below.
-                else:
-                    srctype = othersgen
-                # Duplicate outputs are disastrous
-                if f in srctype and srctype[f] is not gensrc:
-                    msg = 'Duplicate output {0!r} from {1!r} {2!r}; ' \
-                          'conflicts with {0!r} from {4!r} {3!r}' \
-                          ''.format(f, type(gensrc).__name__, gensrc.name,
-                                    srctype[f].name, type(srctype[f]).__name__)
-                    raise InvalidArguments(msg)
-                # Store 'somefile.vala': GeneratedList (or CustomTarget)
-                srctype[f] = gensrc
-        return vala, vapi, (others, othersgen)
-
-    def generate_vala_compile(self, target: build.BuildTarget) -> \
-            T.Tuple[T.MutableMapping[str, File], T.MutableMapping[str, File], T.List[str]]:
+    def generate_vala_compile(self, target: build.BuildTarget,
+                              target_sources: T.List[File],
+                              target_others: T.List[File]) -> None:
         """Vala is compiled into C. Set up all necessary build steps here."""
-        (vala_src, vapi_src, other_src) = self.split_vala_sources(target)
-        extra_dep_files = []
-        if not vala_src:
+        valac = target.compilers['vala']
+        suffixes = valac.file_suffixes
+
+        # Remove vala sources out of target_sources and put them in vala_sources.
+        vala_sources: T.List[File] = []
+        other_sources: T.List[T.Tuple[File, T.Union[bool, str]]] = []
+        for f, is_generated in target_sources:
+            if any(f.endswith(f'.{s}') for s in suffixes):
+                vala_sources.append(f)
+            else:
+                other_sources.append((f, is_generated))
+        target_sources[:] = other_sources
+
+        if not vala_sources:
             raise InvalidArguments(f'Vala library {target.name!r} has no Vala or Genie source files.')
 
-        valac = target.compilers['vala']
         c_out_dir = self.get_target_private_dir(target)
-        # C files generated by valac
-        vala_c_src: T.List[str] = []
         # Files generated by valac
-        valac_outputs: T.List = []
+        valac_outputs: T.List[str] = []
         # All sources that are passed to valac on the commandline
-        all_files = list(vapi_src)
+        all_files = [s.rel_to_builddir(self.build_to_src) for s in target_others if s.endswith('.vapi')]
         # Passed as --basedir
         srcbasedir = os.path.join(self.build_to_src, target.get_subdir())
-        for (vala_file, gensrc) in vala_src.items():
+        for s in vala_sources:
+            vala_file = s.rel_to_builddir(self.build_to_src)
             all_files.append(vala_file)
             # Figure out where the Vala compiler will write the compiled C file
             #
@@ -1503,7 +1428,7 @@ class NinjaBackend(backends.Backend):
             # If the Vala file is outside the build directory, the paths from
             # the --basedir till the subdir will be duplicated inside the
             # private builddir.
-            if isinstance(gensrc, (build.CustomTarget, build.GeneratedList)) or gensrc.is_built:
+            if s.is_built:
                 vala_c_file = os.path.splitext(os.path.basename(vala_file))[0] + '.c'
                 # Check if the vala file is in a subdir of --basedir
                 abs_srcbasedir = os.path.join(self.environment.get_source_dir(), target.get_subdir())
@@ -1519,7 +1444,7 @@ class NinjaBackend(backends.Backend):
                     vala_c_file = os.path.splitext(os.path.basename(vala_file))[0] + '.c'
             # All this will be placed inside the c_out_dir
             vala_c_file = os.path.join(c_out_dir, vala_c_file)
-            vala_c_src.append(vala_c_file)
+            target_sources.append((File.from_built_relative(vala_c_file), 'vala'))
             valac_outputs.append(vala_c_file)
 
         args = self.generate_basic_compiler_args(target, valac)
@@ -1566,12 +1491,13 @@ class NinjaBackend(backends.Backend):
                 if len(target.install_dir) > 3 and target.install_dir[3] is True:
                     target.install_dir[3] = os.path.join(self.environment.get_datadir(), 'gir-1.0')
         # Detect gresources and add --gresources arguments for each
-        for gensrc in other_src[1].values():
+        for gensrc in target.get_generated_sources():
             if isinstance(gensrc, modules.GResourceTarget):
                 gres_xml, = self.get_custom_target_sources(gensrc)
                 args += ['--gresources=' + gres_xml]
         extra_args = []
 
+        extra_dep_files = []
         for a in target.extra_args.get('vala', []):
             if isinstance(a, File):
                 relname = a.rel_to_builddir(self.build_to_src)
@@ -1589,70 +1515,6 @@ class NinjaBackend(backends.Backend):
         element.add_dep(extra_dep_files)
         self.add_build(element)
         self.create_target_source_introspection(target, valac, args, all_files, [])
-        return other_src[0], other_src[1], vala_c_src
-
-    def generate_cython_transpile(self, target: build.BuildTarget) -> \
-            T.Tuple[T.MutableMapping[str, File], T.MutableMapping[str, File], T.List[str]]:
-        """Generate rules for transpiling Cython files to C or C++
-
-        XXX: Currently only C is handled.
-        """
-        static_sources: T.MutableMapping[str, File] = OrderedDict()
-        generated_sources: T.MutableMapping[str, File] = OrderedDict()
-        cython_sources: T.List[str] = []
-
-        cython = target.compilers['cython']
-
-        args: T.List[str] = []
-        args += cython.get_always_args()
-        args += cython.get_buildtype_args(target.get_option(OptionKey('buildtype')))
-        args += cython.get_debug_args(target.get_option(OptionKey('debug')))
-        args += cython.get_optimization_args(target.get_option(OptionKey('optimization')))
-        args += cython.get_option_compile_args(target.get_options())
-        args += self.build.get_global_args(cython, target.for_machine)
-        args += self.build.get_project_args(cython, target.subproject, target.for_machine)
-        args += target.get_extra_args('cython')
-
-        ext = target.get_option(OptionKey('language', machine=target.for_machine, lang='cython'))
-
-        for src in target.get_sources():
-            if src.endswith('.pyx'):
-                output = os.path.join(self.get_target_private_dir(target), f'{src}.{ext}')
-                args = args.copy()
-                args += cython.get_output_args(output)
-                element = NinjaBuildElement(
-                    self.all_outputs, [output],
-                    self.compiler_to_rule_name(cython),
-                    [src.absolute_path(self.environment.get_source_dir(), self.environment.get_build_dir())])
-                element.add_item('ARGS', args)
-                self.add_build(element)
-                # TODO: introspection?
-                cython_sources.append(output)
-            else:
-                static_sources[src.rel_to_builddir(self.build_to_src)] = src
-
-        for gen in target.get_generated_sources():
-            for ssrc in gen.get_outputs():
-                if isinstance(gen, GeneratedList):
-                    ssrc = os.path.join(self.get_target_private_dir(target), ssrc)
-                else:
-                    ssrc = os.path.join(gen.get_subdir(), ssrc)
-                if ssrc.endswith('.pyx'):
-                    args = args.copy()
-                    output = os.path.join(self.get_target_private_dir(target), f'{ssrc}.{ext}')
-                    args += cython.get_output_args(output)
-                    element = NinjaBuildElement(
-                        self.all_outputs, [output],
-                        self.compiler_to_rule_name(cython),
-                        [ssrc])
-                    element.add_item('ARGS', args)
-                    self.add_build(element)
-                    # TODO: introspection?
-                    cython_sources.append(output)
-                else:
-                    generated_sources[ssrc] = mesonlib.File.from_built_file(gen.get_subdir(), ssrc)
-
-        return static_sources, generated_sources, cython_sources
 
     def _generate_copy_target(self, src: 'mesonlib.FileOrString', output: Path) -> None:
         """Create a target to copy a source file from one location to another."""
@@ -2106,6 +1968,7 @@ class NinjaBackend(backends.Backend):
     def generate_cython_compile_rules(self, compiler: 'Compiler') -> None:
         rule = self.compiler_to_rule_name(compiler)
         command = compiler.get_exelist() + ['$ARGS', '$in']
+        command += NinjaCommandArg.list(compiler.get_output_args('$out'), Quoting.none)
         description = 'Compiling Cython source $in'
         self.add_rule(NinjaRule(rule, command, [], description, extra='restat = 1'))
 
@@ -2538,7 +2401,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                                              is_generated: bool = False) -> 'ImmutableListProtocol[str]':
         # The code generated by valac is usually crap and has tons of unused
         # variables and such, so disable warnings for Vala C sources.
-        no_warn_args = (is_generated == 'vala')
+        no_warn_args = (is_generated in {'vala', 'cython'})
         # Add compiler args and include paths from several sources; defaults,
         # build options, external dependencies, etc.
         commands = self.generate_basic_compiler_args(target, compiler, no_warn_args)
@@ -2604,6 +2467,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             raise AssertionError(f'BUG: sources should not contain headers {src!r}')
 
         compiler = get_compiler_for_source(target.compilers.values(), src)
+
         commands = self._generate_single_compile_base_args(target, compiler)
 
         # Include PCH header as first thing as it must be the first one or it will be
@@ -2633,7 +2497,10 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             raise AssertionError(f'BUG: broken generated source file handling for {src!r}')
         else:
             raise InvalidArguments(f'Invalid source type: {src!r}')
-        obj_basename = self.object_filename_from_source(target, src)
+
+        opt_proxy = self.get_compiler_options_for_target(target)
+        out_suffix = compiler.get_output_suffix(opt_proxy)
+        obj_basename = self.object_filename_from_source(target, src, out_suffix)
         rel_obj = os.path.join(self.get_target_private_dir(target), obj_basename)
         dep_file = compiler.depfile_for_object(rel_obj)
 
@@ -2694,13 +2561,21 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         element.add_dep(pch_dep)
         for i in self.get_fortran_orderdeps(target, compiler):
             element.add_orderdep(i)
-        element.add_item('DEPFILE', dep_file)
+        if dep_file:
+            element.add_item('DEPFILE', dep_file)
         element.add_item('ARGS', commands)
 
         self.add_dependency_scanner_entries_to_element(target, compiler, element, src)
         self.add_build(element)
         assert isinstance(rel_obj, str)
         assert isinstance(rel_src, str)
+
+        if out_suffix:
+            # It is a transpiler/preprocessor, recurse until we have an object file.
+            f = File.from_built_relative(rel_obj)
+            return self.generate_single_compile(target, f, compiler.language,
+                    header_deps=header_deps, order_deps=order_deps)
+
         return (rel_obj, rel_src.replace('\\', '/'))
 
     def add_dependency_scanner_entries_to_element(self, target, compiler, element, src):
