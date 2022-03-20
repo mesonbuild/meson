@@ -1229,19 +1229,21 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
     # Ensure we only cancel once
     tests_canceled = False
 
-    # Optionally enable the tqdm progress bar
+    # Optionally enable the tqdm progress bar, but only if there is at least
+    # one LogRunFuture and one TestRunFuture
     global safe_print
     futures_iter: T.Iterable[RunFutureUnion] = futures
-    try:
-        from tqdm import tqdm
-        futures_iter = tqdm(futures, desc='Running tests', unit='test')
+    if len(futures) > 2:
+        try:
+            from tqdm import tqdm
+            futures_iter = tqdm(futures, desc='Running tests', unit='test')
 
-        def tqdm_print(*args: mlog.TV_Loggable, sep: str = ' ') -> None:
-            tqdm.write(sep.join([str(x) for x in args]))
+            def tqdm_print(*args: mlog.TV_Loggable, sep: str = ' ') -> None:
+                tqdm.write(sep.join([str(x) for x in args]))
 
-        safe_print = tqdm_print
-    except ImportError:
-        pass
+            safe_print = tqdm_print
+        except ImportError:
+            pass
 
     # Wait and handle the test results and print the stored log output
     for f in futures_iter:
