@@ -1173,6 +1173,12 @@ class LogRunFuture:
 
 RunFutureUnion = T.Union[TestRunFuture, LogRunFuture]
 
+def test_emits_skip_msg(line: str) -> bool:
+    for prefix in {'Problem encountered', 'Assert failed', 'Failed to configure the CMake subproject'}:
+        if f'{prefix}: MESON_SKIP_TEST' in line:
+            return True
+    return False
+
 def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
                log_name_base: str,
                failfast: bool,
@@ -1281,10 +1287,19 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
         if result is None:
             # skipped due to skipped category skip or 'tools:' or 'skip_on_env:'
             is_skipped = True
+            skip_reason = 'not run because preconditions were not met'
             skip_as_expected = True
         else:
             # skipped due to test outputting 'MESON_SKIP_TEST'
-            is_skipped = 'MESON_SKIP_TEST' in result.stdo
+            for l in result.stdo.splitlines():
+                if test_emits_skip_msg(l):
+                    is_skipped = True
+                    offset = l.index('MESON_SKIP_TEST') + 16
+                    skip_reason = l[offset:].strip()
+                    break
+            else:
+                is_skipped = False
+                skip_reason = ''
             if not skip_dont_care(t):
                 skip_as_expected = (is_skipped == t.skip_expected)
             else:
@@ -1295,6 +1310,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
 
         if is_skipped and skip_as_expected:
             f.update_log(TestStatus.SKIP)
+            safe_print(bold('Reason:'), skip_reason)
             current_test = ET.SubElement(current_suite, 'testcase', {'name': testname, 'classname': t.category})
             ET.SubElement(current_test, 'skipped', {})
             continue
