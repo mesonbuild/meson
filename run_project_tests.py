@@ -13,6 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
 # Work around some pathlib bugs...
 from mesonbuild import _pathlib
@@ -80,6 +81,20 @@ if T.TYPE_CHECKING:
         failfast: bool
         no_unittests: bool
         only: T.List[str]
+
+    # In previous python versions the global variables are lost in ProcessPoolExecutor.
+    # So, we use this tuple to restore some of them
+    class GlobalState(T.NamedTuple):
+        compile_commands:   T.List[str]
+        clean_commands:     T.List[str]
+        test_commands:      T.List[str]
+        install_commands:   T.List[str]
+        uninstall_commands: T.List[str]
+
+        backend:      'Backend'
+        backend_flags: T.List[str]
+
+        host_c_compiler: T.Optional[str]
 
 ALL_TESTS = ['cmake', 'common', 'native', 'warning-meson', 'failing-meson', 'failing-build', 'failing-test',
              'keyval', 'platform-osx', 'platform-windows', 'platform-linux',
@@ -586,20 +601,6 @@ def detect_parameter_files(test: TestDef, test_build_dir: str) -> T.Tuple[Path, 
         crossfile = format_parameter_file('crossfile.ini', test, test_build_dir)
 
     return nativefile, crossfile
-
-# In previous python versions the global variables are lost in ProcessPoolExecutor.
-# So, we use this tuple to restore some of them
-class GlobalState(T.NamedTuple):
-    compile_commands:   T.List[str]
-    clean_commands:     T.List[str]
-    test_commands:      T.List[str]
-    install_commands:   T.List[str]
-    uninstall_commands: T.List[str]
-
-    backend:      'Backend'
-    backend_flags: T.List[str]
-
-    host_c_compiler: T.Optional[str]
 
 def run_test(test: TestDef,
              extra_args: T.List[str],
