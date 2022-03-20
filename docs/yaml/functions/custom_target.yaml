@@ -173,7 +173,7 @@ kwargs:
       custom_target('different-install-dirs',
         output : ['first.file', 'second.file'],
         install : true,
-        install_dir : ['somedir', 'otherdir])
+        install_dir : ['somedir', 'otherdir'])
       ```
       This would install `first.file` to `somedir` and `second.file` to `otherdir`.
 
@@ -183,7 +183,7 @@ kwargs:
           custom_target('only-install-second',
             output : ['first.file', 'second.file'],
             install : true,
-            install_dir : [false, 'otherdir])
+            install_dir : [false, 'otherdir'])
       ```
       This would install `second.file` to `otherdir` and not install `first.file`.
 
