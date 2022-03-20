@@ -50,7 +50,7 @@ kwargs_inherit: benchmark
 kwargs:
   is_parallel:
     type: bool
-    default: false
+    default: true
     description: |
       when false, specifies that no other test must be
       running at the same time as this test
