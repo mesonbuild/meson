@@ -37,3 +37,22 @@ executable(
 )
 
 test('no-copy', find_program('no_copy_test.py'), args : meson.current_build_dir())
+
+subdir('src2')
+
+executable('copy-no-gen', srcs2)
+
+m_src = configure_file(
+  input : 'main-gen-copy.rs',
+  output : 'main-gen-copy.rs',
+  configuration : {'dir' : meson.current_build_dir().replace('\\', '/')},
+)
+
+m_src2 = configure_file(
+  input : 'priv.rs',
+  output : 'include.rs',
+  copy : true
+)
+
+executable('gen-no-copy', structured_sources([m_src, m_src2]))
+

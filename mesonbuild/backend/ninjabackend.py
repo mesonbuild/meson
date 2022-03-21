@@ -1669,9 +1669,7 @@ class NinjaBackend(backends.Backend):
         root = Path(self.get_target_private_dir(target)) / 'structured'
         for path, files in target.structured_sources.sources.items():
             for file in files:
-                if isinstance(file, (str, File)):
-                    if isinstance(file, str):
-                        file = File.from_absolute_file(file)
+                if isinstance(file, File):
                     out = root / path / Path(file.fname).name
                     orderdeps.append(str(out))
                     self._generate_copy_target(file, out)
@@ -1707,23 +1705,28 @@ class NinjaBackend(backends.Backend):
 
         main_rust_file = None
         if target.structured_sources:
-            if target.structured_sources.needs_copy(target):
+            if target.structured_sources.needs_copy():
                 _ods, main_rust_file = self.__generate_compile_structure(target)
                 orderdeps.extend(_ods)
             else:
+                # The only way to get here is to have only files in the "root"
+                # positional argument, which are all generated into the same
+                # directory
                 g = target.structured_sources.first_file()
-                if isinstance(g, str):
-                    g = File.from_source_file(self.environment.source_dir, target.subdir, g)
 
                 if isinstance(g, File):
                     main_rust_file = g.rel_to_builddir(self.build_to_src)
                 elif isinstance(g, GeneratedList):
-                    main_rust_file = os.path.join(self.get_target_private_dir(target), i)
+                    main_rust_file = os.path.join(self.get_target_private_dir(target), g.get_outputs()[0])
                 else:
-                    main_rust_file = os.path.join(g.get_subdir(), i)
-                orderdeps.extend([os.path.join(self.build_to_src, target.subdir, s)
-                                  for s in  target.structured_sources.as_list()])
+                    main_rust_file = os.path.join(g.get_subdir(), g.get_outputs()[0])
 
+                for f in target.structured_sources.as_list():
+                    if isinstance(f, File):
+                        orderdeps.append(f.rel_to_builddir(self.build_to_src))
+                    else:
+                        orderdeps.extend([os.path.join(self.build_to_src, f.subdir, s)
+                                          for s in f.get_outputs()])
 
         for i in target.get_sources():
             if not rustc.can_compile(i):

@@ -463,7 +463,7 @@ class StructuredSources(HoldableObject):
     represent the required filesystem layout.
     """
 
-    sources: T.DefaultDict[str, T.List[T.Union[str, File, CustomTarget, CustomTargetIndex, GeneratedList]]] = field(
+    sources: T.DefaultDict[str, T.List[T.Union[File, CustomTarget, CustomTargetIndex, GeneratedList]]] = field(
         default_factory=lambda: defaultdict(list))
 
     def __add__(self, other: StructuredSources) -> StructuredSources:
@@ -475,30 +475,26 @@ class StructuredSources(HoldableObject):
     def __bool__(self) -> bool:
         return bool(self.sources)
 
-    def first_file(self) -> T.Union[str, File, CustomTarget, CustomTargetIndex, GeneratedList]:
+    def first_file(self) -> T.Union[File, CustomTarget, CustomTargetIndex, GeneratedList]:
         """Get the first source in the root
 
         :return: The first source in the root
         """
         return self.sources[''][0]
 
-    def as_list(self) -> T.List[T.Union[str, File, CustomTarget, CustomTargetIndex, GeneratedList]]:
+    def as_list(self) -> T.List[T.Union[File, CustomTarget, CustomTargetIndex, GeneratedList]]:
         return list(itertools.chain.from_iterable(self.sources.values()))
 
-    def needs_copy(self, target: BuildTarget) -> bool:
+    def needs_copy(self) -> bool:
         """Do we need to create a structure in the build directory.
 
         This allows us to avoid making copies if the structures exists in the
         source dir. Which could happen in situations where a generated source
         only exists in some configurations
         """
-        p = pathlib.Path(target.subdir)
         for files in self.sources.values():
             for f in files:
-                if isinstance(f, str):
-                    if not (target.environment.source_dir / p / f).exists():
-                        return True
-                elif isinstance(f, File):
+                if isinstance(f, File):
                     if f.is_built:
                         return True
                 else:
