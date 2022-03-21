@@ -23,7 +23,8 @@ from .. import compilers
 from .. import envconfig
 from ..wrap import wrap, WrapMode
 from .. import mesonlib
-from ..mesonlib import MesonBugException, HoldableObject, FileMode, MachineChoice, OptionKey, listify, extract_as_list, has_path_sep
+from ..mesonlib import (MesonBugException, HoldableObject, FileMode, MachineChoice, OptionKey,
+                        listify, extract_as_list, has_path_sep, PerMachine)
 from ..programs import ExternalProgram, NonExistingExternalProgram
 from ..dependencies import Dependency
 from ..depfile import DepFile
@@ -304,6 +305,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.build_func_dict()
         self.build_holder_map()
         self.user_defined_options = user_defined_options
+        self.compilers: PerMachine[T.Dict[str, 'Compiler']] = PerMachine({}, {})
 
         # build_def_files needs to be defined before parse_project is called
         #
@@ -1346,7 +1348,7 @@ external dependencies (including libraries) must go to "dependencies".''')
 
     def add_languages_for(self, args: T.List[str], required: bool, for_machine: MachineChoice) -> bool:
         args = [a.lower() for a in args]
-        langs = set(self.coredata.compilers[for_machine].keys())
+        langs = set(self.compilers[for_machine].keys())
         langs.update(args)
         # We'd really like to add cython's default language here, but it can't
         # actually be done because the cython compiler hasn't been initialized,
@@ -1360,11 +1362,11 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         success = True
         for lang in sorted(args, key=compilers.sort_clink):
-            clist = self.coredata.compilers[for_machine]
+            if lang in self.compilers[for_machine]:
+                continue
             machine_name = for_machine.get_lower_case_name()
-            if lang in clist:
-                comp = clist[lang]
-            else:
+            comp = self.coredata.compilers[for_machine].get(lang)
+            if not comp:
                 try:
                     comp = compilers.detect_compiler_for(self.environment, lang, for_machine)
                     if comp is None:
@@ -1402,6 +1404,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 logger_fun(comp.get_display_language(), 'linker for the', machine_name, 'machine:',
                            mlog.bold(' '.join(comp.linker.get_exelist())), comp.linker.id, comp.linker.version)
             self.build.ensure_static_linker(comp)
+            self.compilers[for_machine][lang] = comp
 
         return success
 
@@ -2830,6 +2833,13 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
         idname = tobj.get_id()
         if idname in self.build.targets:
             raise InvalidCode(f'Tried to create target "{name}", but a target of that name already exists.')
+
+        if isinstance(tobj, build.BuildTarget):
+            missing_languages = tobj.process_compilers()
+            self.add_languages(missing_languages, True, tobj.for_machine)
+            tobj.process_compilers_late(missing_languages)
+            self.add_stdlib_info(tobj)
+
         self.build.targets[idname] = tobj
         if idname not in self.coredata.target_guids:
             self.coredata.target_guids[idname] = str(uuid.uuid4()).upper()
@@ -2947,10 +2957,10 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
                     outputs.update(o)
 
         kwargs['include_directories'] = self.extract_incdirs(kwargs)
-        target = targetclass(name, self.subdir, self.subproject, for_machine, srcs, struct, objs, self.environment, kwargs)
+        target = targetclass(name, self.subdir, self.subproject, for_machine, srcs, struct, objs,
+                             self.environment, self.compilers[for_machine], kwargs)
         target.project_version = self.project_version
 
-        self.add_stdlib_info(target)
         self.add_target(name, target)
         self.project_args_frozen = True
         return target
@@ -2972,17 +2982,8 @@ This will become a hard error in the future.''', location=self.current_node)
                 cleaned_items.append(i)
             kwargs['d_import_dirs'] = cleaned_items
 
-    def get_used_languages(self, target):
-        result = set()
-        for i in target.sources:
-            for lang, c in self.coredata.compilers[target.for_machine].items():
-                if c.can_compile(i):
-                    result.add(lang)
-                    break
-        return result
-
     def add_stdlib_info(self, target):
-        for l in self.get_used_languages(target):
+        for l in target.compilers.keys():
             dep = self.build.stdlibs[target.for_machine].get(l, None)
             if dep:
                 target.add_deps(dep)

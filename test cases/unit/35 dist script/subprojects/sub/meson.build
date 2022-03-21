@@ -1,4 +1,4 @@
-project('sub')
+project('sub', 'c')
 
 if get_option('broken_dist_script')
   # Make sure we can add a dist script in a subproject, but it won't be run

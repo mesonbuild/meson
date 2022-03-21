@@ -3998,10 +3998,14 @@ class AllPlatformTests(BasePlatformTests):
         env = get_fake_env(testdir, self.builddir, self.prefix)
 
         def output_name(name, type_):
-            return type_(name=name, subdir=None, subproject=None,
-                         for_machine=MachineChoice.HOST, sources=[],
-                         structured_sources=None,
-                         objects=[], environment=env, kwargs={}).filename
+            target = type_(name=name, subdir=None, subproject=None,
+                           for_machine=MachineChoice.HOST, sources=[],
+                           structured_sources=None,
+                           objects=[], environment=env, compilers=env.coredata.compilers[MachineChoice.HOST],
+                           kwargs={})
+            target.process_compilers()
+            target.process_compilers_late([])
+            return target.filename
 
         shared_lib_name = lambda name: output_name(name, SharedLibrary)
         static_lib_name = lambda name: output_name(name, StaticLibrary)

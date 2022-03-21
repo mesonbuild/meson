@@ -29,7 +29,7 @@ kwargs:
         the `implib` argument.
 
   implib:
-    type: bool
+    type: bool | str
     since: 0.42.0
     description: |
       When set to true, an import library is generated for the
