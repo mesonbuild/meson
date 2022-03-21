@@ -132,9 +132,9 @@ class Runner:
             branch, revision = wraptool.parse_patch_url(patch_url)
         except WrapException:
             return
-        new_branch, new_revision = wraptool.get_latest_version(self.wrap.name)
+        new_branch, new_revision = wraptool.get_latest_version(self.wrap.name, self.options.allow_insecure)
         if new_branch != branch or new_revision != revision:
-            wraptool.update_wrap_file(self.wrap.filename, self.wrap.name, new_branch, new_revision)
+            wraptool.update_wrap_file(self.wrap.filename, self.wrap.name, new_branch, new_revision, self.options.allow_insecure)
             self.log('  -> New wrap file downloaded.')
 
     def update_file(self) -> bool:
