@@ -32,43 +32,55 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     subparsers.required = True
 
     p = subparsers.add_parser('list', help='show all available projects')
+    p.add_argument('--allow-insecure', default=False, action='store_true',
+                   help='Allow insecure server connections.')
     p.set_defaults(wrap_func=list_projects)
 
     p = subparsers.add_parser('search', help='search the db by name')
+    p.add_argument('--allow-insecure', default=False, action='store_true',
+                   help='Allow insecure server connections.')
     p.add_argument('name')
     p.set_defaults(wrap_func=search)
 
     p = subparsers.add_parser('install', help='install the specified project')
+    p.add_argument('--allow-insecure', default=False, action='store_true',
+                   help='Allow insecure server connections.')
     p.add_argument('name')
     p.set_defaults(wrap_func=install)
 
     p = subparsers.add_parser('update', help='update the project to its newest available release')
+    p.add_argument('--allow-insecure', default=False, action='store_true',
+                   help='Allow insecure server connections.')
     p.add_argument('name')
     p.set_defaults(wrap_func=update)
 
     p = subparsers.add_parser('info', help='show available versions of a project')
+    p.add_argument('--allow-insecure', default=False, action='store_true',
+                   help='Allow insecure server connections.')
     p.add_argument('name')
     p.set_defaults(wrap_func=info)
 
     p = subparsers.add_parser('status', help='show installed and available versions of your projects')
+    p.add_argument('--allow-insecure', default=False, action='store_true',
+                   help='Allow insecure server connections.')
     p.set_defaults(wrap_func=status)
 
     p = subparsers.add_parser('promote', help='bring a subsubproject up to the master project')
     p.add_argument('project_path')
     p.set_defaults(wrap_func=promote)
 
-def get_releases() -> T.Dict[str, T.Any]:
-    url = open_wrapdburl('https://wrapdb.mesonbuild.com/v2/releases.json')
+def get_releases(allow_insecure: bool) -> T.Dict[str, T.Any]:
+    url = open_wrapdburl('https://wrapdb.mesonbuild.com/v2/releases.json', allow_insecure, True)
     return T.cast('T.Dict[str, T.Any]', json.loads(url.read().decode()))
 
 def list_projects(options: 'argparse.Namespace') -> None:
-    releases = get_releases()
+    releases = get_releases(options.allow_insecure)
     for p in releases.keys():
         print(p)
 
 def search(options: 'argparse.Namespace') -> None:
     name = options.name
-    releases = get_releases()
+    releases = get_releases(options.allow_insecure)
     for p, info in releases.items():
         if p.find(name) != -1:
             print(p)
@@ -77,8 +89,8 @@ def search(options: 'argparse.Namespace') -> None:
                 if dep.find(name) != -1:
                     print(f'Dependency {dep} found in wrap {p}')
 
-def get_latest_version(name: str) -> T.Tuple[str, str]:
-    releases = get_releases()
+def get_latest_version(name: str, allow_insecure: bool) -> T.Tuple[str, str]:
+    releases = get_releases(allow_insecure)
     info = releases.get(name)
     if not info:
         raise WrapException(f'Wrap {name} not found in wrapdb')
@@ -95,8 +107,8 @@ def install(options: 'argparse.Namespace') -> None:
     wrapfile = os.path.join('subprojects', name + '.wrap')
     if os.path.exists(wrapfile):
         raise SystemExit('Wrap file already exists.')
-    (version, revision) = get_latest_version(name)
-    url = open_wrapdburl(f'https://wrapdb.mesonbuild.com/v2/{name}_{version}-{revision}/{name}.wrap')
+    (version, revision) = get_latest_version(name, options.allow_insecure)
+    url = open_wrapdburl(f'https://wrapdb.mesonbuild.com/v2/{name}_{version}-{revision}/{name}.wrap', options.allow_insecure, True)
     with open(wrapfile, 'wb') as f:
         f.write(url.read())
     print(f'Installed {name} version {version} revision {revision}')
@@ -138,8 +150,9 @@ def get_current_version(wrapfile: str) -> T.Tuple[str, str, str, str, T.Optional
         patch_filename = wrap_data['patch_filename']
     return branch, revision, wrap_data['directory'], wrap_data['source_filename'], patch_filename
 
-def update_wrap_file(wrapfile: str, name: str, new_version: str, new_revision: str) -> None:
-    url = open_wrapdburl(f'https://wrapdb.mesonbuild.com/v2/{name}_{new_version}-{new_revision}/{name}.wrap')
+def update_wrap_file(wrapfile: str, name: str, new_version: str, new_revision: str, allow_insecure: bool) -> None:
+    url = open_wrapdburl(f'https://wrapdb.mesonbuild.com/v2/{name}_{new_version}-{new_revision}/{name}.wrap',
+                         allow_insecure, True)
     with open(wrapfile, 'wb') as f:
         f.write(url.read())
 
@@ -151,11 +164,11 @@ def update(options: 'argparse.Namespace') -> None:
     if not os.path.exists(wrapfile):
         raise SystemExit('Project ' + name + ' is not in use.')
     (branch, revision, subdir, src_file, patch_file) = get_current_version(wrapfile)
-    (new_branch, new_revision) = get_latest_version(name)
+    (new_branch, new_revision) = get_latest_version(name, options.allow_insecure)
     if new_branch == branch and new_revision == revision:
         print('Project ' + name + ' is already up to date.')
         raise SystemExit
-    update_wrap_file(wrapfile, name, new_branch, new_revision)
+    update_wrap_file(wrapfile, name, new_branch, new_revision, options.allow_insecure)
     shutil.rmtree(os.path.join('subprojects', subdir), ignore_errors=True)
     try:
         os.unlink(os.path.join('subprojects/packagecache', src_file))
@@ -170,7 +183,7 @@ def update(options: 'argparse.Namespace') -> None:
 
 def info(options: 'argparse.Namespace') -> None:
     name = options.name
-    releases = get_releases()
+    releases = get_releases(options.allow_insecure)
     info = releases.get(name)
     if not info:
         raise WrapException(f'Wrap {name} not found in wrapdb')
@@ -217,7 +230,7 @@ def status(options: 'argparse.Namespace') -> None:
     for w in glob('subprojects/*.wrap'):
         name = os.path.basename(w)[:-5]
         try:
-            (latest_branch, latest_revision) = get_latest_version(name)
+            (latest_branch, latest_revision) = get_latest_version(name, options.allow_insecure)
         except Exception:
             print('', name, 'not available in wrapdb.', file=sys.stderr)
             continue
