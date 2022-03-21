@@ -66,21 +66,36 @@ def whitelist_wrapdb(urlstr: str) -> urllib.parse.ParseResult:
         raise WrapException(f'WrapDB did not have expected SSL https url, instead got {urlstr}')
     return url
 
-def open_wrapdburl(urlstring: str) -> 'http.client.HTTPResponse':
-    global SSL_WARNING_PRINTED
+def open_wrapdburl(urlstring: str, allow_insecure: bool = False, have_opt: bool = False) -> 'http.client.HTTPResponse':
+    if have_opt:
+        insecure_msg = '\n\n    To allow connecting anyway, pass `--allow-insecure`.'
+    else:
+        insecure_msg = ''
 
     url = whitelist_wrapdb(urlstring)
     if has_ssl:
         try:
             return T.cast('http.client.HTTPResponse', urllib.request.urlopen(urllib.parse.urlunparse(url), timeout=REQ_TIMEOUT))
         except urllib.error.URLError as excp:
-            raise WrapException(f'WrapDB connection failed to {urlstring} with error {excp}')
+            msg = f'WrapDB connection failed to {urlstring} with error {excp}.'
+            if isinstance(excp.reason, ssl.SSLCertVerificationError):
+                if allow_insecure:
+                    mlog.warning(f'{msg}\n\n    Proceeding without authentication.')
+                else:
+                    raise WrapException(f'{msg}{insecure_msg}')
+            else:
+                raise WrapException(msg)
+    elif not allow_insecure:
+        raise WrapException(f'SSL module not available in {sys.executable}: Cannot contact the WrapDB.{insecure_msg}')
+    else:
+        # following code is only for those without Python SSL
+        global SSL_WARNING_PRINTED
+        if not SSL_WARNING_PRINTED:
+            mlog.warning(f'SSL module not available in {sys.executable}: WrapDB traffic not authenticated.')
+            SSL_WARNING_PRINTED = True
 
-    # following code is only for those without Python SSL
+    # If we got this far, allow_insecure was manually passed
     nossl_url = url._replace(scheme='http')
-    if not SSL_WARNING_PRINTED:
-        mlog.warning(f'SSL module not available in {sys.executable}: WrapDB traffic not authenticated.')
-        SSL_WARNING_PRINTED = True
     try:
         return T.cast('http.client.HTTPResponse', urllib.request.urlopen(urllib.parse.urlunparse(nossl_url), timeout=REQ_TIMEOUT))
     except urllib.error.URLError as excp:
@@ -212,6 +227,8 @@ class Resolver:
     subdir: str
     subproject: str = ''
     wrap_mode: WrapMode = WrapMode.default
+    wrap_frontend: bool = False
+    allow_insecure: bool = False
 
     def __post_init__(self) -> None:
         self.subdir_root = os.path.join(self.source_dir, self.subdir)
@@ -491,7 +508,7 @@ class Resolver:
         tmpfile = tempfile.NamedTemporaryFile(mode='wb', dir=self.cachedir, delete=False)
         url = urllib.parse.urlparse(urlstring)
         if url.hostname and url.hostname.endswith(WHITELIST_SUBDOMAIN):
-            resp = open_wrapdburl(urlstring)
+            resp = open_wrapdburl(urlstring, allow_insecure=self.allow_insecure, have_opt=self.wrap_frontend)
         elif WHITELIST_SUBDOMAIN in urlstring:
             raise WrapException(f'{urlstring} may be a WrapDB-impersonating URL')
         else:
