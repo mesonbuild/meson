@@ -472,6 +472,7 @@ class ConsoleLogger(TestLogger):
         self.spinner = ['   ', '.  ', '.. ', '...', ' ..', '  .']
         self.spinner_index = 0
         self.spinner_tstamp = time.time()
+        self.should_print_closing_line = False
         try:
             self.cols, _ = os.get_terminal_size(1)
             self.is_tty = True
@@ -541,7 +542,7 @@ class ConsoleLogger(TestLogger):
                     done_tests,
                     tests_total,
                     self.get_spinner())]
-        if harness.options.verbose:
+        if harness.options.verbose or self.should_print_closing_line:
             lines = [dashes(None, '-', harness.get_formatted_line_length())] + lines
         self.print_progress(lines, right=True)
 
@@ -575,7 +576,7 @@ class ConsoleLogger(TestLogger):
                                     colorize=mlog.colorize_console(),
                                     left=left,
                                     right=right)] + lines
-        if harness.options.verbose:
+        if harness.options.verbose or self.should_print_closing_line:
             if direct_output:
                 div = '- '
                 width = int(harness.get_formatted_line_length() / 2)
@@ -704,7 +705,8 @@ class ConsoleLogger(TestLogger):
                   result: 'TestRun') -> None:
         if result.verbose or (result.res.is_bad() and harness.options.print_errorlogs):
             prefix = harness.get_test_num_prefix(result.num)
-            if harness.options.verbose and harness.options.num_processes != 1:
+            if not result.direct_output:
+                self.should_print_closing_line = True
                 self.print_horizontal_line(harness)
             if not result.direct_output:
                 self.print_command_details(prefix, result)
@@ -732,7 +734,11 @@ class ConsoleLogger(TestLogger):
                                    result.additional_error.splitlines(),
                                    not result.verbose)
             self.print_exit_details_section(prefix, result)
-        self.print_test_status(harness, result, update=False)
+        elif self.should_print_closing_line:
+            self.print_horizontal_line(harness)
+            self.should_print_closing_line = False
+        if not harness.options.quiet or not result.res.is_ok():
+            self.print_test_status(harness, result, update=False)
         self.request_update()
 
     def log(self, harness: 'TestHarness', result: 'TestRun') -> None:
@@ -740,8 +746,7 @@ class ConsoleLogger(TestLogger):
         if result.res is TestResult.TIMEOUT and (result.verbose or
                                                  harness.options.print_errorlogs):
             result.additional_error += f'timed out (after {result.timeout} seconds)\n'
-        if not harness.options.quiet or not result.res.is_ok():
-            self.print_log(harness, result)
+        self.print_log(harness, result)
 
     async def finish(self, harness: 'TestHarness') -> None:
         if harness.options.verbose:
