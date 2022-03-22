@@ -605,7 +605,7 @@ class NinjaBackend(backends.Backend):
             with open(os.path.join(builddir, 'compile_commands.json'), 'wb') as f:
                 f.write(jsondb)
         except Exception:
-            mlog.warning('Could not create compilation database.')
+            mlog.warning('Could not create compilation database.', fatal=False)
 
     # Get all generated headers. Any source file might need them so
     # we need to add an order dependency to them.
