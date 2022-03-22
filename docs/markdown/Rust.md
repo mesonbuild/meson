@@ -1,7 +1,7 @@
 ---
 title: Rust
 short-description: Working with Rust in Meson
----
+...
 
 # Using Rust with Meson
 
