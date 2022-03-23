@@ -32,7 +32,7 @@ from .. import mesonlib
 from .. import mlog
 from ..compilers import LANGUAGES_USING_LDFLAGS, detect
 from ..mesonlib import (
-    File, MachineChoice, MesonException, OrderedSet, OptionOverrideProxy,
+    File, MachineChoice, MesonException, OrderedSet,
     classify_unity_sources, OptionKey, join_args
 )
 
@@ -310,19 +310,6 @@ class Backend:
     def get_target_filename_abs(self, target: T.Union[build.Target, build.CustomTargetIndex]) -> str:
         return os.path.join(self.environment.get_build_dir(), self.get_target_filename(target))
 
-    def get_options_for_target(self, target: build.BuildTarget) -> OptionOverrideProxy:
-        return OptionOverrideProxy(target.option_overrides,
-                                   self.environment.coredata.options,
-                                   target.subproject)
-
-    def get_option_for_target(self, key: 'OptionKey', target: build.BuildTarget) -> T.Union[str, int, bool, 'WrapMode']:
-        options = self.get_options_for_target(target)
-        # We don't actually have wrapmode here to do an assert, so just do a
-        # cast, we know what's in coredata anyway.
-        # TODO: if it's possible to annotate get_option or validate_option_value
-        # in the future we might be able to remove the cast here
-        return T.cast('T.Union[str, int, bool, WrapMode]', options[key].value)
-
     def get_source_dir_include_args(self, target: build.BuildTarget, compiler: 'Compiler', *, absolute_path: bool = False) -> T.List[str]:
         curdir = target.get_subdir()
         if absolute_path:
@@ -420,7 +407,7 @@ class Backend:
         abs_files: T.List[str] = []
         result: T.List[mesonlib.File] = []
         compsrcs = classify_unity_sources(target.compilers.values(), unity_src)
-        unity_size = self.get_option_for_target(OptionKey('unity_size'), target)
+        unity_size = target.get_option(OptionKey('unity_size'))
         assert isinstance(unity_size, int), 'for mypy'
 
         def init_language_file(suffix: str, unity_file_number: int) -> T.TextIO:
@@ -850,7 +837,7 @@ class Backend:
         if self.is_unity(extobj.target):
             compsrcs = classify_unity_sources(extobj.target.compilers.values(), sources)
             sources = []
-            unity_size = self.get_option_for_target(OptionKey('unity_size'), extobj.target)
+            unity_size = extobj.target.get_option(OptionKey('unity_size'))
             assert isinstance(unity_size, int), 'for mypy'
 
             for comp, srcs in compsrcs.items():
@@ -917,7 +904,7 @@ class Backend:
         # starting from hard-coded defaults followed by build options and so on.
         commands = compiler.compiler_args()
 
-        copt_proxy = self.get_options_for_target(target)
+        copt_proxy = target.get_options()
         # First, the trivial ones that are impossible to override.
         #
         # Add -nostdinc/-nostdinc++ if needed; can't be overridden
@@ -930,27 +917,27 @@ class Backend:
             commands += compiler.get_no_warn_args()
         else:
             # warning_level is a string, but mypy can't determine that
-            commands += compiler.get_warn_args(T.cast('str', self.get_option_for_target(OptionKey('warning_level'), target)))
+            commands += compiler.get_warn_args(T.cast('str', target.get_option(OptionKey('warning_level'))))
         # Add -Werror if werror=true is set in the build options set on the
         # command-line or default_options inside project(). This only sets the
         # action to be done for warnings if/when they are emitted, so it's ok
         # to set it after get_no_warn_args() or get_warn_args().
-        if self.get_option_for_target(OptionKey('werror'), target):
+        if target.get_option(OptionKey('werror')):
             commands += compiler.get_werror_args()
         # Add compile args for c_* or cpp_* build options set on the
         # command-line or default_options inside project().
         commands += compiler.get_option_compile_args(copt_proxy)
 
         # Add buildtype args: optimization level, debugging, etc.
-        buildtype = self.get_option_for_target(OptionKey('buildtype'), target)
+        buildtype = target.get_option(OptionKey('buildtype'))
         assert isinstance(buildtype, str), 'for mypy'
         commands += compiler.get_buildtype_args(buildtype)
 
-        optimization = self.get_option_for_target(OptionKey('optimization'), target)
+        optimization = target.get_option(OptionKey('optimization'))
         assert isinstance(optimization, str), 'for mypy'
         commands += compiler.get_optimization_args(optimization)
 
-        debug = self.get_option_for_target(OptionKey('debug'), target)
+        debug = target.get_option(OptionKey('debug'))
         assert isinstance(debug, bool), 'for mypy'
         commands += compiler.get_debug_args(debug)
 
@@ -1290,7 +1277,7 @@ class Backend:
         return libs
 
     def is_unity(self, target: build.BuildTarget) -> bool:
-        optval = self.get_option_for_target(OptionKey('unity'), target)
+        optval = target.get_option(OptionKey('unity'))
         return optval == 'on' or (optval == 'subprojects' and target.subproject != '')
 
     def get_custom_target_sources(self, target: build.CustomTarget) -> T.List[str]:
@@ -1568,7 +1555,7 @@ class Backend:
                 # TODO: Create GNUStrip/AppleStrip/etc. hierarchy for more
                 #       fine-grained stripping of static archives.
                 can_strip = not isinstance(t, build.StaticLibrary)
-                should_strip = can_strip and self.get_option_for_target(OptionKey('strip'), t)
+                should_strip = can_strip and t.get_option(OptionKey('strip'))
                 assert isinstance(should_strip, bool), 'for mypy'
                 # Install primary build output (library/executable/jar, etc)
                 # Done separately because of strip/aliases/rpath

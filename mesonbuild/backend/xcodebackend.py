@@ -1503,8 +1503,8 @@ class XCodeBackend(backends.Backend):
                 if compiler is None:
                     continue
                 # Start with warning args
-                warn_args = compiler.get_warn_args(self.get_option_for_target(OptionKey('warning_level'), target))
-                copt_proxy = self.get_options_for_target(target)
+                warn_args = compiler.get_warn_args(target.get_option(OptionKey('warning_level')))
+                copt_proxy = target.get_options()
                 std_args = compiler.get_option_compile_args(copt_proxy)
                 # Add compile args added using add_project_arguments()
                 pargs = self.build.projects_args[target.for_machine].get(target.subproject, {}).get(lang, [])
@@ -1556,9 +1556,9 @@ class XCodeBackend(backends.Backend):
             if target.suffix:
                 suffix = '.' + target.suffix
                 settings_dict.add_item('EXECUTABLE_SUFFIX', suffix)
-            settings_dict.add_item('GCC_GENERATE_DEBUGGING_SYMBOLS', BOOL2XCODEBOOL[self.get_option_for_target(OptionKey('debug'), target)])
+            settings_dict.add_item('GCC_GENERATE_DEBUGGING_SYMBOLS', BOOL2XCODEBOOL[target.get_option(OptionKey('debug'))])
             settings_dict.add_item('GCC_INLINES_ARE_PRIVATE_EXTERN', 'NO')
-            settings_dict.add_item('GCC_OPTIMIZATION_LEVEL', OPT2XCODEOPT[self.get_option_for_target(OptionKey('optimization'), target)])
+            settings_dict.add_item('GCC_OPTIMIZATION_LEVEL', OPT2XCODEOPT[target.get_option(OptionKey('optimization'))])
             if target.has_pch:
                 # Xcode uses GCC_PREFIX_HEADER which only allows one file per target/executable. Precompiling various header files and
                 # applying a particular pch to each source file will require custom scripts (as a build phase) and build flags per each

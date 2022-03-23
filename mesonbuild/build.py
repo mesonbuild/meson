@@ -35,7 +35,7 @@ from .mesonlib import (
     File, MesonException, MachineChoice, PerMachine, OrderedSet, listify,
     extract_as_list, typeslistify, stringlistify, classify_unity_sources,
     get_filenames_templates_dict, substitute_values, has_path_sep,
-    OptionKey, PerMachineDefaultable,
+    OptionKey, PerMachineDefaultable, OptionOverrideProxy,
     MesonBugException
 )
 from .compilers import (
@@ -578,7 +578,7 @@ class Target(HoldableObject):
             '''))
         self.install = False
         self.build_always_stale = False
-        self.option_overrides: T.Dict[OptionKey, str] = {}
+        self.options = OptionOverrideProxy({}, self.environment.coredata.options, self.subproject)
         self.extra_files = []  # type: T.List[File]
         if not hasattr(self, 'typename'):
             raise RuntimeError(f'Target type is not set for target class "{type(self).__name__}". This is a bug')
@@ -682,13 +682,25 @@ class Target(HoldableObject):
             # set, use the value of 'install' if it's enabled.
             self.build_by_default = True
 
-        option_overrides = self.parse_overrides(kwargs)
+        self.set_option_overrides(self.parse_overrides(kwargs))
 
+    def set_option_overrides(self, option_overrides: T.Dict[OptionKey, str]) -> None:
+        self.options.overrides = {}
         for k, v in option_overrides.items():
             if k.lang:
-                self.option_overrides[k.evolve(machine=self.for_machine)] = v
-                continue
-            self.option_overrides[k] = v
+                self.options.overrides[k.evolve(machine=self.for_machine)] = v
+            else:
+                self.options.overrides[k] = v
+
+    def get_options(self) -> OptionOverrideProxy:
+        return self.options
+
+    def get_option(self, key: 'OptionKey') -> T.Union[str, int, bool, 'WrapMode']:
+        # We don't actually have wrapmode here to do an assert, so just do a
+        # cast, we know what's in coredata anyway.
+        # TODO: if it's possible to annotate get_option or validate_option_value
+        # in the future we might be able to remove the cast here
+        return T.cast('T.Union[str, int, bool, WrapMode]', self.options[key].value)
 
     @staticmethod
     def parse_overrides(kwargs: T.Dict[str, T.Any]) -> T.Dict[OptionKey, str]:
@@ -959,10 +971,8 @@ class BuildTarget(Target):
             self.compilers['c'] = self.all_compilers['c']
         if 'cython' in self.compilers:
             key = OptionKey('language', machine=self.for_machine, lang='cython')
-            if key in self.option_overrides:
-                value = self.option_overrides[key]
-            else:
-                value = self.environment.coredata.options[key].value
+            value = self.get_option(key)
+
             try:
                 self.compilers[value] = self.all_compilers[value]
             except KeyError:
@@ -2450,12 +2460,7 @@ class CustomTarget(Target, CommandBase):
         self.install_tag = _install_tag
         self.name = name if name else self.outputs[0]
 
-        if override_options:
-            for k, v in override_options.items():
-                if k.lang:
-                    self.option_overrides_compiler[k.evolve(machine=self.for_machine)] = v
-                else:
-                    self.option_overrides_base[k] = v
+        self.set_option_overrides(override_options or {})
 
         # Whether to use absolute paths for all files on the commandline
         self.absolute_paths = absolute_paths
