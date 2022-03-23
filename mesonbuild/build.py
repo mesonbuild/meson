@@ -971,21 +971,9 @@ class BuildTarget(Target):
         return missing_languages
 
     def validate_sources(self):
-        if not self.sources:
-            return
-        for lang in ('cs', 'java'):
-            if lang in self.compilers:
-                check_sources = list(self.sources)
-                compiler = self.compilers[lang]
-                if not self.can_compile_remove_sources(compiler, check_sources):
-                    raise InvalidArguments(f'No {lang} sources found in target {self.name!r}')
-                if check_sources:
-                    m = '{0} targets can only contain {0} files:\n'.format(lang.capitalize())
-                    m += '\n'.join([repr(c) for c in check_sources])
-                    raise InvalidArguments(m)
-                # CSharp and Java targets can't contain any other file types
-                assert len(self.compilers) == 1
-                return
+        if len(self.compilers) > 1 and any(lang in self.compilers for lang in {'cs', 'java'}):
+            langs = ', '.join(self.compilers.keys())
+            raise InvalidArguments(f'Cannot mix those languages into a target: {langs}')
 
     def process_link_depends(self, sources, environment):
         """Process the link_depends keyword argument.
