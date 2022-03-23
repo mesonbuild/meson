@@ -1529,7 +1529,7 @@ class Backend:
         for t in self.build.get_targets().values():
             if not t.should_install():
                 continue
-            outdirs, install_dir_name, custom_install_dir = t.get_install_dir(self.environment)
+            outdirs, install_dir_name, custom_install_dir = t.get_install_dir()
             # Sanity-check the outputs and install_dirs
             num_outdirs, num_out = len(outdirs), len(t.get_outputs())
             if num_outdirs != 1 and num_outdirs != num_out:
@@ -1561,7 +1561,7 @@ class Backend:
                 # Done separately because of strip/aliases/rpath
                 if outdirs[0] is not False:
                     tag = t.install_tag[0] or ('devel' if isinstance(t, build.StaticLibrary) else 'runtime')
-                    mappings = t.get_link_deps_mapping(d.prefix, self.environment)
+                    mappings = t.get_link_deps_mapping(d.prefix)
                     i = TargetInstallData(self.get_target_filename(t), outdirs[0],
                                           install_dir_name,
                                           should_strip, mappings, t.rpath_dirs_to_remove,
@@ -1803,7 +1803,7 @@ class Backend:
         for t in self.build.get_targets().values():
             cross_built = not self.environment.machines.matches_build_machine(t.for_machine)
             can_run = not cross_built or not self.environment.need_exe_wrapper()
-            in_default_dir = t.should_install() and not t.get_install_dir(self.environment)[2]
+            in_default_dir = t.should_install() and not t.get_install_dir()[2]
             if not can_run or not in_default_dir:
                 continue
             tdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(t))
