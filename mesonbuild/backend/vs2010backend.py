@@ -990,7 +990,7 @@ class Vs2010Backend(backends.Backend):
         for l, comp in target.compilers.items():
             if l in file_args:
                 file_args[l] += compilers.get_base_compile_args(
-                    self.get_options_for_target(target), comp)
+                    target.get_options(), comp)
                 file_args[l] += comp.get_option_compile_args(
                     self.environment.coredata.options)
 
@@ -1114,9 +1114,9 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(clconf, 'PreprocessorDefinitions').text = ';'.join(target_defines)
         ET.SubElement(clconf, 'FunctionLevelLinking').text = 'true'
         # Warning level
-        warning_level = self.get_option_for_target(OptionKey('warning_level'), target)
+        warning_level = target.get_option(OptionKey('warning_level'))
         ET.SubElement(clconf, 'WarningLevel').text = 'Level' + str(1 + int(warning_level))
-        if self.get_option_for_target(OptionKey('werror'), target):
+        if target.get_option(OptionKey('werror')):
             ET.SubElement(clconf, 'TreatWarningAsError').text = 'true'
         # Optimization flags
         o_flags = split_o_flags_args(build_args)

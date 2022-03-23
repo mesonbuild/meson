@@ -1311,7 +1311,7 @@ class NinjaBackend(backends.Backend):
         return args, deps
 
     def generate_cs_target(self, target: build.BuildTarget):
-        buildtype = self.get_option_for_target(OptionKey('buildtype'), target)
+        buildtype = target.get_option(OptionKey('buildtype'))
         fname = target.get_filename()
         outname_rel = os.path.join(self.get_target_dir(target), fname)
         src_list = target.get_sources()
@@ -1320,8 +1320,8 @@ class NinjaBackend(backends.Backend):
         deps = []
         commands = compiler.compiler_args(target.extra_args.get('cs', []))
         commands += compiler.get_buildtype_args(buildtype)
-        commands += compiler.get_optimization_args(self.get_option_for_target(OptionKey('optimization'), target))
-        commands += compiler.get_debug_args(self.get_option_for_target(OptionKey('debug'), target))
+        commands += compiler.get_optimization_args(target.get_option(OptionKey('optimization')))
+        commands += compiler.get_debug_args(target.get_option(OptionKey('debug')))
         if isinstance(target, build.Executable):
             commands.append('-target:exe')
         elif isinstance(target, build.SharedLibrary):
@@ -1362,7 +1362,7 @@ class NinjaBackend(backends.Backend):
 
     def determine_single_java_compile_args(self, target, compiler):
         args = []
-        args += compiler.get_buildtype_args(self.get_option_for_target(OptionKey('buildtype'), target))
+        args += compiler.get_buildtype_args(target.get_option(OptionKey('buildtype')))
         args += self.build.get_global_args(compiler, target.for_machine)
         args += self.build.get_project_args(compiler, target.subproject, target.for_machine)
         args += target.get_java_args()
@@ -1605,19 +1605,17 @@ class NinjaBackend(backends.Backend):
 
         cython = target.compilers['cython']
 
-        opt_proxy = self.get_options_for_target(target)
-
         args: T.List[str] = []
         args += cython.get_always_args()
-        args += cython.get_buildtype_args(self.get_option_for_target(OptionKey('buildtype'), target))
-        args += cython.get_debug_args(self.get_option_for_target(OptionKey('debug'), target))
-        args += cython.get_optimization_args(self.get_option_for_target(OptionKey('optimization'), target))
-        args += cython.get_option_compile_args(opt_proxy)
+        args += cython.get_buildtype_args(target.get_option(OptionKey('buildtype')))
+        args += cython.get_debug_args(target.get_option(OptionKey('debug')))
+        args += cython.get_optimization_args(target.get_option(OptionKey('optimization')))
+        args += cython.get_option_compile_args(target.get_options())
         args += self.build.get_global_args(cython, target.for_machine)
         args += self.build.get_project_args(cython, target.subproject, target.for_machine)
         args += target.get_extra_args('cython')
 
-        ext = opt_proxy[OptionKey('language', machine=target.for_machine, lang='cython')].value
+        ext = target.get_option(OptionKey('language', machine=target.for_machine, lang='cython'))
 
         for src in target.get_sources():
             if src.endswith('.pyx'):
@@ -1693,7 +1691,7 @@ class NinjaBackend(backends.Backend):
         # Rust compiler takes only the main file as input and
         # figures out what other files are needed via import
         # statements and magic.
-        base_proxy = self.get_options_for_target(target)
+        base_proxy = target.get_options()
         args = rustc.compiler_args()
         # Compiler args for compiling this target
         args += compilers.get_base_compile_args(base_proxy, rustc)
@@ -1935,8 +1933,8 @@ class NinjaBackend(backends.Backend):
                 raise InvalidArguments(f'Swift target {target.get_basename()} contains a non-swift source file.')
         os.makedirs(self.get_target_private_dir_abs(target), exist_ok=True)
         compile_args = swiftc.get_compile_only_args()
-        compile_args += swiftc.get_optimization_args(self.get_option_for_target(OptionKey('optimization'), target))
-        compile_args += swiftc.get_debug_args(self.get_option_for_target(OptionKey('debug'), target))
+        compile_args += swiftc.get_optimization_args(target.get_option(OptionKey('optimization')))
+        compile_args += swiftc.get_debug_args(target.get_option(OptionKey('debug')))
         compile_args += swiftc.get_module_args(module_name)
         compile_args += self.build.get_project_args(swiftc, target.subproject, target.for_machine)
         compile_args += self.build.get_global_args(swiftc, target.for_machine)
@@ -2464,7 +2462,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         return linker.get_link_debugfile_args(outname)
 
     def generate_llvm_ir_compile(self, target, src):
-        base_proxy = self.get_options_for_target(target)
+        base_proxy = target.get_options()
         compiler = get_compiler_for_source(target.compilers.values(), src)
         commands = compiler.compiler_args()
         # Compiler args for compiling this target
@@ -2524,7 +2522,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         return commands
 
     def _generate_single_compile_base_args(self, target: build.BuildTarget, compiler: 'Compiler') -> 'CompilerArgs':
-        base_proxy = self.get_options_for_target(target)
+        base_proxy = target.get_options()
         # Create an empty commands list, and start adding arguments from
         # various sources in the order in which they must override each other
         commands = compiler.compiler_args()
@@ -3026,9 +3024,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # options passed on the command-line, in default_options, etc.
         # These have the lowest priority.
         if isinstance(target, build.StaticLibrary):
-            commands += linker.get_base_link_args(self.get_options_for_target(target))
+            commands += linker.get_base_link_args(target.get_options())
         else:
-            commands += compilers.get_base_link_args(self.get_options_for_target(target),
+            commands += compilers.get_base_link_args(target.get_options(),
                                                      linker,
                                                      isinstance(target, build.SharedModule))
         # Add -nostdlib if needed; can't be overridden
@@ -3036,9 +3034,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # Add things like /NOLOGO; usually can't be overridden
         commands += linker.get_linker_always_args()
         # Add buildtype linker args: optimization level, etc.
-        commands += linker.get_buildtype_linker_args(self.get_option_for_target(OptionKey('buildtype'), target))
+        commands += linker.get_buildtype_linker_args(target.get_option(OptionKey('buildtype')))
         # Add /DEBUG and the pdb filename when using MSVC
-        if self.get_option_for_target(OptionKey('debug'), target):
+        if target.get_option(OptionKey('debug')):
             commands += self.get_link_debugfile_args(linker, target, outname)
             debugfile = self.get_link_debugfile_name(linker, target, outname)
             if debugfile is not None:
