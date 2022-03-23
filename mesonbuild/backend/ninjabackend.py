@@ -1608,6 +1608,7 @@ class NinjaBackend(backends.Backend):
         args += cython.get_option_compile_args(opt_proxy)
         args += self.build.get_global_args(cython, target.for_machine)
         args += self.build.get_project_args(cython, target.subproject, target.for_machine)
+        args += target.get_extra_args('cython')
 
         ext = opt_proxy[OptionKey('language', machine=target.for_machine, lang='cython')].value
 
