@@ -20,7 +20,7 @@ from . import ExtensionModule, ModuleReturnValue
 from .. import build
 from .. import mesonlib
 from .. import mlog
-from ..interpreter.type_checking import CT_BUILD_BY_DEFAULT, CT_INPUT_KW, CT_INSTALL_DIR_KW, CT_INSTALL_TAG_KW, MULTI_OUTPUT_KW, INSTALL_KW, NoneType, in_set_validator
+from ..interpreter.type_checking import CT_BUILD_BY_DEFAULT, CT_INPUT_KW, INSTALL_TAG_KW, OUTPUT_KW, INSTALL_KW, NoneType, in_set_validator
 from ..interpreterbase import FeatureNew
 from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, noPosargs, typed_kwargs, typed_pos_args
 from ..scripts.gettext import read_linguas
@@ -41,11 +41,11 @@ if T.TYPE_CHECKING:
             str, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex,
             build.ExtractedObjects, build.GeneratedList, ExternalProgram,
             mesonlib.File]]
-        output: T.List[str]
+        output: str
         build_by_default: bool
         install: bool
-        install_dir: T.List[T.Union[str, bool]]
-        install_tag: T.List[str]
+        install_dir: T.Optional[str]
+        install_tag: T.Optional[str]
         args: T.List[str]
         data_dirs: T.List[str]
         po_dir: str
@@ -66,11 +66,11 @@ if T.TYPE_CHECKING:
             str, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex,
             build.ExtractedObjects, build.GeneratedList, ExternalProgram,
             mesonlib.File]]
-        output: T.List[str]
+        output: str
         build_by_default: bool
         install: bool
-        install_dir: T.List[T.Union[str, bool]]
-        install_tag: T.List[str]
+        install_dir: T.Optional[str]
+        install_tag: T.Optional[str]
         its_files: T.List[str]
         mo_targets: T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]]
 
@@ -152,9 +152,9 @@ class I18nModule(ExtensionModule):
         'i18n.merge_file',
         CT_BUILD_BY_DEFAULT,
         CT_INPUT_KW,
-        CT_INSTALL_DIR_KW,
-        CT_INSTALL_TAG_KW,
-        MULTI_OUTPUT_KW,
+        KwargInfo('install_dir', (str, NoneType)),
+        INSTALL_TAG_KW,
+        OUTPUT_KW,
         INSTALL_KW,
         _ARGS.evolve(since='0.51.0'),
         _DATA_DIRS.evolve(since='0.41.0'),
@@ -187,6 +187,9 @@ class I18nModule(ExtensionModule):
         if build_by_default is None:
             build_by_default = kwargs['install']
 
+        install_dir = [kwargs['install_dir']] if kwargs['install_dir'] is not None else None
+        install_tag = [kwargs['install_tag']] if kwargs['install_tag'] is not None else None
+
         ct = build.CustomTarget(
             '',
             state.subdir,
@@ -194,11 +197,11 @@ class I18nModule(ExtensionModule):
             state.environment,
             command,
             kwargs['input'],
-            kwargs['output'],
+            [kwargs['output']],
             build_by_default=build_by_default,
             install=kwargs['install'],
-            install_dir=kwargs['install_dir'],
-            install_tag=kwargs['install_tag'],
+            install_dir=install_dir,
+            install_tag=install_tag,
         )
 
         return ModuleReturnValue(ct, [ct])
@@ -321,9 +324,9 @@ class I18nModule(ExtensionModule):
         'i18n.itstool_join',
         CT_BUILD_BY_DEFAULT,
         CT_INPUT_KW,
-        CT_INSTALL_DIR_KW,
-        CT_INSTALL_TAG_KW,
-        MULTI_OUTPUT_KW,
+        KwargInfo('install_dir', (str, NoneType)),
+        INSTALL_TAG_KW,
+        OUTPUT_KW,
         INSTALL_KW,
         _ARGS.evolve(),
         KwargInfo('its_files', ContainerTypeInfo(list, str)),
@@ -359,6 +362,9 @@ class I18nModule(ExtensionModule):
         if build_by_default is None:
             build_by_default = kwargs['install']
 
+        install_dir = [kwargs['install_dir']] if kwargs['install_dir'] is not None else None
+        install_tag = [kwargs['install_tag']] if kwargs['install_tag'] is not None else None
+
         ct = build.CustomTarget(
             '',
             state.subdir,
@@ -366,12 +372,12 @@ class I18nModule(ExtensionModule):
             state.environment,
             command,
             kwargs['input'],
-            kwargs['output'],
+            [kwargs['output']],
             build_by_default=build_by_default,
             extra_depends=mo_targets,
             install=kwargs['install'],
-            install_dir=kwargs['install_dir'],
-            install_tag=kwargs['install_tag'],
+            install_dir=install_dir,
+            install_tag=install_tag,
         )
 
         return ModuleReturnValue(ct, [ct])
