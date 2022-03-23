@@ -14,6 +14,7 @@
 
 '''This module provides helper functions for Gnome/GLib related
 functionality such as gobject-introspection, gresources and gtk-doc'''
+from __future__ import annotations
 
 import copy
 import itertools
@@ -30,7 +31,7 @@ from .. import build
 from .. import interpreter
 from .. import mesonlib
 from .. import mlog
-from ..build import BuildTarget, CustomTarget, CustomTargetIndex, Executable, GeneratedList, InvalidArguments
+from ..build import CustomTarget, CustomTargetIndex, Executable, GeneratedList, InvalidArguments
 from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
 from ..interpreter.type_checking import DEPENDS_KW, DEPEND_FILES_KW, INSTALL_KW, NoneType, in_set_validator
 from ..interpreterbase import noPosargs, noKwargs, FeatureNew, FeatureDeprecated
@@ -46,6 +47,7 @@ if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypedDict
 
     from . import ModuleState
+    from ..build import BuildTarget
     from ..compilers import Compiler
     from ..interpreter import Interpreter
     from ..interpreterbase import TYPE_var, TYPE_kwargs

@@ -29,7 +29,7 @@ from mesonbuild.interpreterbase.decorators import FeatureDeprecated
 from .. import mesonlib, mlog
 from ..compilers import AppleClangCCompiler, AppleClangCPPCompiler, detect_compiler_for
 from ..environment import get_llvm_tool_names
-from ..mesonlib import version_compare, stringlistify, extract_as_list, MachineChoice
+from ..mesonlib import version_compare, stringlistify, extract_as_list
 from .base import DependencyException, DependencyMethods, strip_system_libdirs, SystemDependency
 from .cmake import CMakeDependency
 from .configtool import ConfigToolDependency
@@ -39,7 +39,8 @@ from .pkgconfig import PkgConfigDependency
 
 if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
-    from .. environment import Environment
+    from ..environment import Environment
+    from ..mesonlib import MachineChoice
     from typing_extensions import TypedDict
 
     class JNISystemDependencyKW(TypedDict):

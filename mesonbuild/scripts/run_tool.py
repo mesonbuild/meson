@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
-import subprocess
 import itertools
 import fnmatch
 from pathlib import Path
@@ -21,6 +21,9 @@ from concurrent.futures import ThreadPoolExecutor
 from ..compilers import lang_suffixes
 from ..mesonlib import Popen_safe
 import typing as T
+
+if T.TYPE_CHECKING:
+    import subprocess
 
 def parse_pattern_file(fname: Path) -> T.List[str]:
     patterns = []

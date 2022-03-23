@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
 import os
 import shutil
@@ -23,17 +24,19 @@ from .. import build
 from .. import coredata
 from .. import mlog
 from ..dependencies import find_external_dependency, Dependency, ExternalLibrary
-from ..mesonlib import MesonException, File, FileOrString, version_compare, Popen_safe
+from ..mesonlib import MesonException, File, version_compare, Popen_safe
 from ..interpreter import extract_required_kwarg
 from ..interpreter.type_checking import NoneType
 from ..interpreterbase import ContainerTypeInfo, FeatureDeprecated, KwargInfo, noPosargs, FeatureNew, typed_kwargs
-from ..programs import ExternalProgram, NonExistingExternalProgram
+from ..programs import NonExistingExternalProgram
 
 if T.TYPE_CHECKING:
     from . import ModuleState
     from ..dependencies.qt import QtPkgConfigDependency, QmakeQtDependency
     from ..interpreter import Interpreter
     from ..interpreter import kwargs
+    from ..mesonlib import FileOrString
+    from ..programs import ExternalProgram
 
     QtDependencyType = T.Union[QtPkgConfigDependency, QmakeQtDependency]
 

@@ -21,7 +21,6 @@ from .. import mlog
 from . import ExtensionModule
 from ..mesonlib import (
     File,
-    FileOrString,
     MesonException,
     path_is_in_root,
 )
@@ -30,6 +29,7 @@ from ..interpreterbase import FeatureNew, KwargInfo, typed_kwargs, typed_pos_arg
 if T.TYPE_CHECKING:
     from . import ModuleState
     from ..interpreter import Interpreter
+    from ..mesonlib import FileOrString
 
     from typing_extensions import TypedDict
 

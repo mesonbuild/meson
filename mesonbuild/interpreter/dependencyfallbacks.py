@@ -1,5 +1,6 @@
-from .interpreterobjects import SubprojectHolder, extract_required_kwarg
+from __future__ import annotations
 
+from .interpreterobjects import extract_required_kwarg
 from .. import mlog
 from .. import dependencies
 from .. import build
@@ -7,12 +8,13 @@ from ..wrap import WrapMode
 from ..mesonlib import OptionKey, extract_as_list, stringlistify, version_compare_many, listify
 from ..dependencies import Dependency, DependencyException, NotFoundDependency
 from ..interpreterbase import (MesonInterpreterObject, FeatureNew,
-                               InterpreterException, InvalidArguments,
-                               TYPE_nkwargs, TYPE_nvar)
+                               InterpreterException, InvalidArguments)
 
 import typing as T
 if T.TYPE_CHECKING:
     from .interpreter import Interpreter
+    from ..interpreterbase import TYPE_nkwargs, TYPE_nvar
+    from .interpreterobjects import SubprojectHolder
 
 
 class DependencyFallbacksHolder(MesonInterpreterObject):
