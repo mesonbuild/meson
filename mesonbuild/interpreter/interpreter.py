@@ -1924,6 +1924,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                                    f'(there are {len(kwargs["install_tag"])} install_tags, '
                                    f'and {len(kwargs["output"])} outputs)')
 
+        for t in kwargs['output']:
+            self.validate_forbidden_targets(t)
         self._validate_custom_target_outputs(len(inputs) > 1, kwargs['output'], "custom_target")
 
         tg = build.CustomTarget(
@@ -2914,6 +2916,18 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
                                            'string or File-type object')
         return results
 
+    @staticmethod
+    def validate_forbidden_targets(name: str) -> None:
+        if name.startswith('meson-internal__'):
+            raise InvalidArguments("Target names starting with 'meson-internal__' are reserved "
+                                   "for Meson's internal use. Please rename.")
+        if name.startswith('meson-') and '.' not in name:
+            raise InvalidArguments("Target names starting with 'meson-' and without a file extension "
+                                   "are reserved for Meson's internal use. Please rename.")
+        if name in coredata.FORBIDDEN_TARGET_NAMES:
+            raise InvalidArguments(f"Target name '{name}' is reserved for Meson's "
+                                   "internal use. Please rename.")
+
     def add_target(self, name, tobj):
         if name == '':
             raise InterpreterException('Target name must not be empty.')
@@ -2927,15 +2941,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
                     To define a target that builds in that directory you must define it
                     in the meson.build file in that directory.
             '''))
-        if name.startswith('meson-internal__'):
-            raise InvalidArguments("Target names starting with 'meson-internal__' are reserved "
-                                   "for Meson's internal use. Please rename.")
-        if name.startswith('meson-') and '.' not in name:
-            raise InvalidArguments("Target names starting with 'meson-' and without a file extension "
-                                   "are reserved for Meson's internal use. Please rename.")
-        if name in coredata.FORBIDDEN_TARGET_NAMES:
-            raise InvalidArguments(f"Target name '{name}' is reserved for Meson's "
-                                   "internal use. Please rename.")
+        self.validate_forbidden_targets(name)
         # To permit an executable and a shared library to have the
         # same name, such as "foo.exe" and "libfoo.a".
         idname = tobj.get_id()
