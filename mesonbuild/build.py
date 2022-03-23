@@ -1141,12 +1141,12 @@ class BuildTarget(Target):
         for linktarget in lwhole:
             self.link_whole(linktarget)
 
-        c_pchlist, cpp_pchlist, clist, cpplist, cudalist, cslist, valalist,  objclist, objcpplist, fortranlist, rustlist \
-            = (extract_as_list(kwargs, c) for c in ['c_pch', 'cpp_pch', 'c_args', 'cpp_args', 'cuda_args', 'cs_args', 'vala_args', 'objc_args', 'objcpp_args', 'fortran_args', 'rust_args'])
+        c_pchlist, cpp_pchlist, clist, cpplist, cudalist, cslist, cythonlist, valalist, objclist, objcpplist, fortranlist, rustlist \
+            = (extract_as_list(kwargs, c) for c in ['c_pch', 'cpp_pch', 'c_args', 'cpp_args', 'cuda_args', 'cs_args', 'cython_args', 'vala_args', 'objc_args', 'objcpp_args', 'fortran_args', 'rust_args'])
 
         self.add_pch('c', c_pchlist)
         self.add_pch('cpp', cpp_pchlist)
-        compiler_args = {'c': clist, 'cpp': cpplist, 'cuda': cudalist, 'cs': cslist, 'vala': valalist, 'objc': objclist, 'objcpp': objcpplist,
+        compiler_args = {'c': clist, 'cpp': cpplist, 'cuda': cudalist, 'cs': cslist, 'cython': cythonlist, 'vala': valalist, 'objc': objclist, 'objcpp': objcpplist,
                          'fortran': fortranlist, 'rust': rustlist
                          }
         for key, value in compiler_args.items():
