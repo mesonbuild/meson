@@ -60,6 +60,7 @@ class JavaModule(NewExtensionModule):
             os.path.basename(header),
             state.subdir,
             state.subproject,
+            state.environment,
             mesonlib.listify([
                 javac.exelist,
                 '-d',
@@ -112,7 +113,11 @@ class JavaModule(NewExtensionModule):
 
         prefix = classes[0] if not package else package
 
-        target = CustomTarget(f'{prefix}-native-headers', state.subdir, state.subproject, command,
+        target = CustomTarget(f'{prefix}-native-headers',
+                              state.subdir,
+                              state.subproject,
+                              state.environment,
+                              command,
                               sources=args[0], outputs=headers, backend=state.backend)
 
         # It is only known that 1.8.0 won't pre-create the directory. 11 and 16

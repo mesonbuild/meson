@@ -566,6 +566,7 @@ class Target(HoldableObject):
     subproject: 'SubProject'
     build_by_default: bool
     for_machine: MachineChoice
+    environment: environment.Environment
 
     def __post_init__(self) -> None:
         if has_path_sep(self.name):
@@ -726,10 +727,9 @@ class BuildTarget(Target):
     def __init__(self, name: str, subdir: str, subproject: SubProject, for_machine: MachineChoice,
                  sources: T.List['SourceOutputs'], structured_sources: T.Optional[StructuredSources],
                  objects, environment: environment.Environment, compilers: T.Dict[str, 'Compiler'], kwargs):
-        super().__init__(name, subdir, subproject, True, for_machine)
+        super().__init__(name, subdir, subproject, True, for_machine, environment)
         unity_opt = environment.coredata.get_option(OptionKey('unity'))
         self.is_unity = unity_opt == 'on' or (unity_opt == 'subprojects' and subproject != '')
-        self.environment = environment
         self.all_compilers = compilers
         self.compilers = OrderedDict() # type: OrderedDict[str, Compiler]
         self.objects: T.List[T.Union[str, 'File', 'ExtractedObjects']] = []
@@ -2393,6 +2393,7 @@ class CustomTarget(Target, CommandBase):
                  name: T.Optional[str],
                  subdir: str,
                  subproject: str,
+                 environment: environment.Environment,
                  command: T.Sequence[T.Union[
                      str, BuildTarget, CustomTarget, CustomTargetIndex, GeneratedList, programs.ExternalProgram, File]],
                  sources: T.Sequence[T.Union[
@@ -2418,7 +2419,7 @@ class CustomTarget(Target, CommandBase):
                  backend: T.Optional['Backend'] = None,
                  ):
         # TODO expose keyword arg to make MachineChoice.HOST configurable
-        super().__init__(name, subdir, subproject, False, MachineChoice.HOST)
+        super().__init__(name, subdir, subproject, False, MachineChoice.HOST, environment)
         self.sources = list(sources)
         self.outputs = substitute_values(
             outputs, get_filenames_templates_dict(
@@ -2589,10 +2590,11 @@ class RunTarget(Target, CommandBase):
                  dependencies: T.Sequence[Target],
                  subdir: str,
                  subproject: str,
+                 environment: environment.Environment,
                  env: T.Optional['EnvironmentVariables'] = None):
         self.typename = 'run'
         # These don't produce output artifacts
-        super().__init__(name, subdir, subproject, False, MachineChoice.BUILD)
+        super().__init__(name, subdir, subproject, False, MachineChoice.BUILD, environment)
         self.dependencies = dependencies
         self.depend_files = []
         self.command = self.flatten_command(command)
@@ -2631,8 +2633,8 @@ class RunTarget(Target, CommandBase):
 
 class AliasTarget(RunTarget):
     def __init__(self, name: str, dependencies: T.Sequence['Target'],
-                 subdir: str, subproject: str):
-        super().__init__(name, [], dependencies, subdir, subproject)
+                 subdir: str, subproject: str, environment: environment.Environment):
+        super().__init__(name, [], dependencies, subdir, subproject, environment)
 
     def __repr__(self):
         repr_str = "<{0} {1}>"

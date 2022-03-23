@@ -338,6 +338,7 @@ class HotdocTargetBuilder:
         target = HotdocTarget(fullname,
                               subdir=self.subdir,
                               subproject=self.state.subproject,
+                              environment=self.state.environment,
                               hotdoc_conf=mesonlib.File.from_built_file(
                                   self.subdir, hotdoc_config_name),
                               extra_extension_paths=self._extra_extension_paths,
@@ -379,8 +380,8 @@ class HotdocTargetHolder(CustomTargetHolder):
 
 class HotdocTarget(build.CustomTarget):
     def __init__(self, name, subdir, subproject, hotdoc_conf, extra_extension_paths, extra_assets,
-                 subprojects, **kwargs):
-        super().__init__(name, subdir, subproject, **kwargs, absolute_paths=True)
+                 subprojects, environment, **kwargs):
+        super().__init__(name, subdir, subproject, environment, **kwargs, absolute_paths=True)
         self.hotdoc_conf = hotdoc_conf
         self.extra_extension_paths = extra_extension_paths
         self.extra_assets = extra_assets

@@ -195,6 +195,7 @@ class I18nModule(ExtensionModule):
             '',
             state.subdir,
             state.subproject,
+            state.environment,
             command,
             kwargs['input'],
             kwargs['output'],
@@ -255,7 +256,8 @@ class I18nModule(ExtensionModule):
         if extra_arg:
             potargs.append(extra_arg)
         potargs.append('--xgettext=' + self.tools['xgettext'].get_path())
-        pottarget = build.RunTarget(packagename + '-pot', potargs, [], state.subdir, state.subproject)
+        pottarget = build.RunTarget(packagename + '-pot', potargs, [], state.subdir, state.subproject,
+                                    state.environment)
         targets.append(pottarget)
 
         install = kwargs['install']
@@ -270,6 +272,7 @@ class I18nModule(ExtensionModule):
                 f'{packagename}-{l}.mo',
                 path.join(state.subdir, l, 'LC_MESSAGES'),
                 state.subproject,
+                state.environment,
                 [self.tools['msgfmt'], '@INPUT@', '-o', '@OUTPUT@'],
                 [po_file],
                 [f'{packagename}.mo'],
@@ -284,7 +287,8 @@ class I18nModule(ExtensionModule):
             targets.append(gmotarget)
             gmotargets.append(gmotarget)
 
-        allgmotarget = build.AliasTarget(packagename + '-gmo', gmotargets, state.subdir, state.subproject)
+        allgmotarget = build.AliasTarget(packagename + '-gmo', gmotargets, state.subdir, state.subproject,
+                                         state.environment)
         targets.append(allgmotarget)
 
         updatepoargs = state.environment.get_build_command() + ['--internal', 'gettext', 'update_po', pkg_arg]
@@ -296,7 +300,8 @@ class I18nModule(ExtensionModule):
             updatepoargs.append(extra_arg)
         for tool in ['msginit', 'msgmerge']:
             updatepoargs.append(f'--{tool}=' + self.tools[tool].get_path())
-        updatepotarget = build.RunTarget(packagename + '-update-po', updatepoargs, [], state.subdir, state.subproject)
+        updatepotarget = build.RunTarget(packagename + '-update-po', updatepoargs, [], state.subdir, state.subproject,
+                                         state.environment)
         targets.append(updatepotarget)
 
         return ModuleReturnValue([gmotargets, pottarget, updatepotarget], targets)
@@ -349,6 +354,7 @@ class I18nModule(ExtensionModule):
             '',
             state.subdir,
             state.subproject,
+            state.environment,
             command,
             kwargs['input'],
             kwargs['output'],

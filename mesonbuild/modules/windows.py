@@ -193,6 +193,7 @@ class WindowsModule(ExtensionModule):
                 name_formatted,
                 state.subdir,
                 state.subproject,
+                state.environment,
                 command,
                 [src],
                 [output],
