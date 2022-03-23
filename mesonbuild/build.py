@@ -1582,25 +1582,7 @@ You probably should put it in link_with instead.''')
         raise AssertionError(f'Could not get a dynamic linker for build target {self.name!r}')
 
     def uses_rust(self) -> bool:
-        """Is this target a rust target."""
-        if self.sources:
-            first_file = self.sources[0]
-            if first_file.fname.endswith('.rs'):
-                return True
-        elif self.generated:
-            if self.generated[0].get_outputs()[0].endswith('.rs'):
-                return True
-        elif self.structured_sources:
-            for v in self.structured_sources.sources.values():
-                for s in v:
-                    if isinstance(s, (str, File)):
-                        if s.endswith('.rs'):
-                            return True
-                    else:
-                        for ss in s.get_outputs():
-                            if ss.endswith('.rs'):
-                                return True
-        return False
+        return 'rust' in self.compilers
 
     def get_using_msvc(self) -> bool:
         '''
