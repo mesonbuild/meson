@@ -20,7 +20,7 @@ from . import ExtensionModule, ModuleReturnValue
 from .. import build
 from .. import mesonlib
 from .. import mlog
-from ..interpreter.type_checking import CT_BUILD_BY_DEFAULT, CT_INPUT_KW, CT_INSTALL_DIR_KW, CT_INSTALL_TAG_KW, CT_OUTPUT_KW, INSTALL_KW, NoneType, in_set_validator
+from ..interpreter.type_checking import CT_BUILD_BY_DEFAULT, CT_INPUT_KW, CT_INSTALL_DIR_KW, CT_INSTALL_TAG_KW, MULTI_OUTPUT_KW, INSTALL_KW, NoneType, in_set_validator
 from ..interpreterbase import FeatureNew
 from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, noPosargs, typed_kwargs, typed_pos_args
 from ..scripts.gettext import read_linguas
@@ -154,7 +154,7 @@ class I18nModule(ExtensionModule):
         CT_INPUT_KW,
         CT_INSTALL_DIR_KW,
         CT_INSTALL_TAG_KW,
-        CT_OUTPUT_KW,
+        MULTI_OUTPUT_KW,
         INSTALL_KW,
         _ARGS.evolve(since='0.51.0'),
         _DATA_DIRS.evolve(since='0.41.0'),
@@ -323,7 +323,7 @@ class I18nModule(ExtensionModule):
         CT_INPUT_KW,
         CT_INSTALL_DIR_KW,
         CT_INSTALL_TAG_KW,
-        CT_OUTPUT_KW,
+        MULTI_OUTPUT_KW,
         INSTALL_KW,
         _ARGS.evolve(),
         KwargInfo('its_files', ContainerTypeInfo(list, str)),

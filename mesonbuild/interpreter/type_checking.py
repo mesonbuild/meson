@@ -268,7 +268,7 @@ def _output_validator(outputs: T.List[str]) -> T.Optional[str]:
 
     return None
 
-CT_OUTPUT_KW: KwargInfo[T.List[str]] = KwargInfo(
+MULTI_OUTPUT_KW: KwargInfo[T.List[str]] = KwargInfo(
     'output',
     ContainerTypeInfo(list, str, allow_empty=False),
     listify=True,

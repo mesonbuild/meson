@@ -57,7 +57,7 @@ from .type_checking import (
     CT_BUILD_BY_DEFAULT,
     CT_INPUT_KW,
     CT_INSTALL_DIR_KW,
-    CT_OUTPUT_KW,
+    MULTI_OUTPUT_KW,
     OUTPUT_KW,
     DEFAULT_OPTIONS,
     DEPENDS_KW,
@@ -1761,7 +1761,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_kwargs(
         'vcs_tag',
         CT_INPUT_KW.evolve(required=True),
-        CT_OUTPUT_KW,
+        MULTI_OUTPUT_KW,
         # Cannot use the COMMAND_KW because command is allowed to be empty
         KwargInfo(
             'command',
@@ -1851,7 +1851,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         CT_INPUT_KW,
         CT_INSTALL_DIR_KW,
         CT_INSTALL_TAG_KW,
-        CT_OUTPUT_KW,
+        MULTI_OUTPUT_KW,
         DEPENDS_KW,
         DEPEND_FILES_KW,
         DEPFILE_KW,
