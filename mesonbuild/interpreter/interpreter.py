@@ -58,6 +58,7 @@ from .type_checking import (
     CT_INPUT_KW,
     CT_INSTALL_DIR_KW,
     CT_OUTPUT_KW,
+    OUTPUT_KW,
     DEFAULT_OPTIONS,
     DEPENDS_KW,
     DEPEND_FILES_KW,
@@ -2392,7 +2393,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         KwargInfo('install', (bool, NoneType), since='0.50.0'),
         KwargInfo('install_dir', (str, bool), default='',
                   validator=lambda x: 'must be `false` if boolean' if x is True else None),
-        KwargInfo('output', str, required=True),
+        OUTPUT_KW,
         KwargInfo('output_format', str, default='c', since='0.47.0',
                   validator=in_set_validator({'c', 'nasm'})),
     )
@@ -2448,8 +2449,6 @@ class Interpreter(InterpreterBase, HoldableObject):
             mlog.warning('Output file', mlog.bold(ofile_rpath, True), 'for configure_file() at', current_call, 'overwrites configure_file() output at', first_call)
         else:
             self.configure_file_outputs[ofile_rpath] = self.current_lineno
-        if os.path.dirname(output) != '':
-            raise InterpreterException('Output file name must not contain a subdirectory.')
         (ofile_path, ofile_fname) = os.path.split(os.path.join(self.subdir, output))
         ofile_abs = os.path.join(self.environment.build_dir, ofile_path, ofile_fname)
 

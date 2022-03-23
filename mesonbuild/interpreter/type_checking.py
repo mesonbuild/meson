@@ -277,6 +277,13 @@ CT_OUTPUT_KW: KwargInfo[T.List[str]] = KwargInfo(
     validator=_output_validator,
 )
 
+OUTPUT_KW: KwargInfo[str] = KwargInfo(
+    'output',
+    str,
+    required=True,
+    validator=lambda x: _output_validator([x])
+)
+
 CT_INPUT_KW: KwargInfo[T.List[T.Union[str, File, ExternalProgram, BuildTarget, CustomTarget, CustomTargetIndex, ExtractedObjects, GeneratedList]]] = KwargInfo(
     'input',
     ContainerTypeInfo(list, (str, File, ExternalProgram, BuildTarget, CustomTarget, CustomTargetIndex, ExtractedObjects, GeneratedList)),

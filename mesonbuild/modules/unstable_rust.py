@@ -19,7 +19,7 @@ from . import ExtensionModule, ModuleReturnValue
 from .. import mlog
 from ..build import BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList, IncludeDirs, CustomTarget, StructuredSources
 from ..dependencies import Dependency, ExternalLibrary
-from ..interpreter.interpreter import TEST_KWARGS
+from ..interpreter.interpreter import TEST_KWARGS, OUTPUT_KW
 from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, FeatureNew, typed_kwargs, typed_pos_args, noPosargs
 from ..mesonlib import File
 
@@ -173,7 +173,7 @@ class RustModule(ExtensionModule):
             listify=True,
             required=True,
         ),
-        KwargInfo('output', str, required=True),
+        OUTPUT_KW,
     )
     def bindgen(self, state: 'ModuleState', args: T.List, kwargs: 'FuncBindgen') -> ModuleReturnValue:
         """Wrapper around bindgen to simplify it's use.
