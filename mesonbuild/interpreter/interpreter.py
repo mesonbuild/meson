@@ -1763,6 +1763,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             kwargs['output'][0],
             self.subdir,
             self.subproject,
+            self.environment,
             self.environment.get_build_command() +
                 ['--internal',
                 'vcstagger',
@@ -1889,6 +1890,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             name,
             self.subdir,
             self.subproject,
+            self.environment,
             command,
             inputs,
             kwargs['output'],
@@ -1927,7 +1929,8 @@ external dependencies (including libraries) must go to "dependencies".''')
         if isinstance(all_args[0], str):
             all_args[0] = self.find_program_impl([all_args[0]])
         name = args[0]
-        tg = build.RunTarget(name, all_args, kwargs['depends'], self.subdir, self.subproject, kwargs['env'])
+        tg = build.RunTarget(name, all_args, kwargs['depends'], self.subdir, self.subproject, self.environment,
+                             kwargs['env'])
         self.add_target(name, tg)
         full_name = (self.subproject, name)
         assert full_name not in self.build.run_target_names
@@ -1940,7 +1943,7 @@ external dependencies (including libraries) must go to "dependencies".''')
     def func_alias_target(self, node: mparser.BaseNode, args: T.Tuple[str, T.List[build.Target]],
                           kwargs: 'TYPE_kwargs') -> build.AliasTarget:
         name, deps = args
-        tg = build.AliasTarget(name, deps, self.subdir, self.subproject)
+        tg = build.AliasTarget(name, deps, self.subdir, self.subproject, self.environment)
         self.add_target(name, tg)
         return tg
 

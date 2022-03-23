@@ -500,6 +500,7 @@ class GnomeModule(ExtensionModule):
             name,
             state.subdir,
             state.subproject,
+            state.environment,
             target_cmd,
             [input_file],
             [output],
@@ -520,6 +521,7 @@ class GnomeModule(ExtensionModule):
             f'{target_name}_h',
             state.subdir,
             state.subproject,
+            state.environment,
             cmd,
             [input_file],
             [f'{target_name}.h'],
@@ -967,6 +969,7 @@ class GnomeModule(ExtensionModule):
             girfile,
             state.subdir,
             state.subproject,
+            state.environment,
             scan_command,
             generated_files,
             [girfile],
@@ -996,6 +999,7 @@ class GnomeModule(ExtensionModule):
             typelib_output,
             state.subdir,
             state.subproject,
+            state.environment,
             typelib_cmd,
             generated_files,
             [typelib_output],
@@ -1220,6 +1224,7 @@ class GnomeModule(ExtensionModule):
             targetname,
             state.subdir,
             state.subproject,
+            state.environment,
             cmd,
             [],
             ['gschemas.compiled'],
@@ -1292,7 +1297,8 @@ class GnomeModule(ExtensionModule):
         pot_args: T.List[T.Union['ExternalProgram', str]] = [itstool, '-o', pot_file]
         pot_args.extend(pot_sources)
         pottarget = build.RunTarget(f'help-{project_id}-pot', pot_args, [],
-                                    os.path.join(state.subdir, 'C'), state.subproject)
+                                    os.path.join(state.subdir, 'C'), state.subproject,
+                                    state.environment)
         targets.append(pottarget)
 
         for l in langs:
@@ -1322,7 +1328,8 @@ class GnomeModule(ExtensionModule):
                 os.path.join('@SOURCE_ROOT@', l_subdir, po_file),
                 os.path.join('@SOURCE_ROOT@', l_subdir, po_file), pot_file]
             potarget = build.RunTarget(f'help-{project_id}-{l}-update-po',
-                                       po_args, [pottarget], l_subdir, state.subproject)
+                                       po_args, [pottarget], l_subdir, state.subproject,
+                                       state.environment)
             targets.append(potarget)
             potargets.append(potarget)
 
@@ -1331,6 +1338,7 @@ class GnomeModule(ExtensionModule):
                 f'help-{project_id}-{l}-gmo',
                 l_subdir,
                 state.subproject,
+                state.environment,
                 [msgfmt, '@INPUT@', '-o', '@OUTPUT@'],
                 [po_file],
                 [gmo_file],
@@ -1341,6 +1349,7 @@ class GnomeModule(ExtensionModule):
                 f'help-{project_id}-{l}',
                 l_subdir,
                 state.subproject,
+                state.environment,
                 [itstool, '-m', os.path.join(l_subdir, gmo_file), '-o', '@OUTDIR@', '@INPUT@'],
                 sources_files,
                 sources,
@@ -1351,7 +1360,7 @@ class GnomeModule(ExtensionModule):
             targets.append(mergetarget)
 
         allpotarget = build.AliasTarget(f'help-{project_id}-update-po', potargets,
-                                        state.subdir, state.subproject)
+                                        state.subdir, state.subproject, state.environment)
         targets.append(allpotarget)
 
         return ModuleReturnValue(None, targets)
@@ -1484,13 +1493,14 @@ class GnomeModule(ExtensionModule):
             targetname,
             state.subdir,
             state.subproject,
+            state.environment,
             command + t_args,
             [],
             [f'{modulename}-decl.txt'],
             build_always_stale=True,
             extra_depends=new_depends,
         )
-        alias_target = build.AliasTarget(targetname, [custom_target], state.subdir, state.subproject)
+        alias_target = build.AliasTarget(targetname, [custom_target], state.subdir, state.subproject, state.environment)
         if kwargs['check']:
             check_cmd = state.find_program('gtkdoc-check')
             check_env = ['DOC_MODULE=' + modulename,
@@ -1627,6 +1637,7 @@ class GnomeModule(ExtensionModule):
             output,
             state.subdir,
             state.subproject,
+            state.environment,
             c_cmd,
             xml_files,
             [output],
@@ -1646,6 +1657,7 @@ class GnomeModule(ExtensionModule):
             output,
             state.subdir,
             state.subproject,
+            state.environment,
             hfile_cmd,
             xml_files,
             [output],
@@ -1675,6 +1687,7 @@ class GnomeModule(ExtensionModule):
                 output,
                 state.subdir,
                 state.subproject,
+                state.environment,
                 docbook_cmd,
                 xml_files,
                 outputs,
@@ -1891,6 +1904,7 @@ class GnomeModule(ExtensionModule):
             output,
             state.subdir,
             state.subproject,
+            state.environment,
             real_cmd,
             sources,
             [output],
@@ -1956,6 +1970,7 @@ class GnomeModule(ExtensionModule):
             output + '_h',
             state.subdir,
             state.subproject,
+            state.environment,
             h_cmd,
             sources,
             [header_file],
@@ -1975,6 +1990,7 @@ class GnomeModule(ExtensionModule):
             output + '_c',
             state.subdir,
             state.subproject,
+            state.environment,
             c_cmd,
             sources,
             [f'{output}.c'],
@@ -2099,6 +2115,7 @@ class GnomeModule(ExtensionModule):
             vapi_output,
             state.subdir,
             state.subproject,
+            state.environment,
             command=cmd,
             sources=inputs,
             outputs=[vapi_output],

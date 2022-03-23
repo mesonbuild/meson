@@ -231,6 +231,7 @@ class ExternalProject(NewExtensionModule):
             self.name,
             self.subdir.as_posix(),
             self.subproject,
+            self.env,
             cmd + ['@OUTPUT@', '@DEPFILE@'],
             [],
             [f'{self.name}.stamp'],

@@ -213,6 +213,7 @@ class RustModule(ExtensionModule):
             f'rustmod-bindgen-{name}'.replace('/', '_'),
             state.subdir,
             state.subproject,
+            state.environment,
             self._bindgen_bin.get_command() + [
                 '@INPUT@', '--output',
                 os.path.join(state.environment.build_dir, '@OUTPUT@')] +
