@@ -1181,10 +1181,10 @@ class BuildTarget(Target):
         self.add_deps(deplist)
         # If an item in this list is False, the output corresponding to
         # the list index of that item will not be installed
-        self.install_dir = typeslistify(kwargs.get('install_dir', []),
+        self.install_dir = typeslistify(kwargs.get('install_dir') or [],
                                         (str, bool))
         self.install_mode = kwargs.get('install_mode', None)
-        self.install_tag = stringlistify(kwargs.get('install_tag', [None]))
+        self.install_tag = [kwargs['install_tag']] if kwargs['install_tag'] else [None]
         main_class = kwargs.get('main_class', '')
         if not isinstance(main_class, str):
             raise InvalidArguments('Main class must be a string')
@@ -1193,17 +1193,13 @@ class BuildTarget(Target):
             # This kwarg is deprecated. The value of "none" means that the kwarg
             # was not specified and win_subsystem should be used instead.
             self.gui_app = None
-            if 'gui_app' in kwargs:
-                if 'win_subsystem' in kwargs:
+            if kwargs['gui_app'] is not None:
+                if kwargs['win_subsystem'] is not None:
                     raise InvalidArguments('Can specify only gui_app or win_subsystem for a target, not both.')
                 self.gui_app = kwargs['gui_app']
                 if not isinstance(self.gui_app, bool):
                     raise InvalidArguments('Argument gui_app must be boolean.')
-            self.win_subsystem = self.validate_win_subsystem(kwargs.get('win_subsystem', 'console'))
-        elif 'gui_app' in kwargs:
-            raise InvalidArguments('Argument gui_app can only be used on executables.')
-        elif 'win_subsystem' in kwargs:
-            raise InvalidArguments('Argument win_subsystem can only be used on executables.')
+            self.win_subsystem = self.validate_win_subsystem(kwargs['win_subsystem'] or 'console')
         extra_files = extract_as_list(kwargs, 'extra_files')
         for i in extra_files:
             assert isinstance(i, File)
@@ -1225,30 +1221,12 @@ class BuildTarget(Target):
             if not os.path.isfile(trial):
                 raise InvalidArguments(f'Tried to add non-existing resource {r}.')
         self.resources = resources
-        if 'name_prefix' in kwargs:
-            name_prefix = kwargs['name_prefix']
-            if isinstance(name_prefix, list):
-                if name_prefix:
-                    raise InvalidArguments('name_prefix array must be empty to signify default.')
-            else:
-                if not isinstance(name_prefix, str):
-                    raise InvalidArguments('name_prefix must be a string.')
-                self.prefix = name_prefix
-                self.name_prefix_set = True
-        if 'name_suffix' in kwargs:
-            name_suffix = kwargs['name_suffix']
-            if isinstance(name_suffix, list):
-                if name_suffix:
-                    raise InvalidArguments('name_suffix array must be empty to signify default.')
-            else:
-                if not isinstance(name_suffix, str):
-                    raise InvalidArguments('name_suffix must be a string.')
-                if name_suffix == '':
-                    raise InvalidArguments('name_suffix should not be an empty string. '
-                                           'If you want meson to use the default behaviour '
-                                           'for each platform pass `[]` (empty array)')
-                self.suffix = name_suffix
-                self.name_suffix_set = True
+        if kwargs['name_prefix'] is not None:
+            self.prefix = kwargs['name_prefix']
+            self.name_prefix_set = True
+        if kwargs['name_suffix'] is not None:
+            self.suffix = kwargs['name_suffix']
+            self.name_suffix_set = True
         if isinstance(self, StaticLibrary):
             # You can't disable PIC on OS X. The compiler ignores -fno-PIC.
             # PIC is always on for Windows (all code is position-independent
@@ -1289,7 +1267,7 @@ class BuildTarget(Target):
             return True
 
         k = OptionKey(option)
-        if arg in kwargs:
+        if kwargs[arg] is not None:
             val = kwargs[arg]
         elif k in self.environment.coredata.options:
             val = self.environment.coredata.options[k].value
@@ -2199,6 +2177,8 @@ class SharedLibrary(BuildTarget):
                 darwin_versions = str(darwin_versions)
             if isinstance(darwin_versions, str):
                 darwin_versions = 2 * [darwin_versions]
+            if darwin_versions is None:
+                darwin_versions = []
             if not isinstance(darwin_versions, list):
                 raise InvalidArguments('Shared library darwin_versions: must be a string, integer,'
                                        f'or a list, not {darwin_versions!r}')
@@ -2240,14 +2220,14 @@ class SharedLibrary(BuildTarget):
 
         if supports_versioning:
             # Shared library version
-            if 'version' in kwargs:
+            if 'version' in kwargs and kwargs['version'] is not None:
                 self.ltversion = kwargs['version']
                 if not isinstance(self.ltversion, str):
                     raise InvalidArguments('Shared library version needs to be a string, not ' + type(self.ltversion).__name__)
                 if not re.fullmatch(r'[0-9]+(\.[0-9]+){0,2}', self.ltversion):
                     raise InvalidArguments(f'Invalid Shared library version "{self.ltversion}". Must be of the form X.Y.Z where all three are numbers. Y and Z are optional.')
             # Try to extract/deduce the soversion
-            if 'soversion' in kwargs:
+            if 'soversion' in kwargs and kwargs['soversion'] is not None:
                 self.soversion = kwargs['soversion']
                 if isinstance(self.soversion, int):
                     self.soversion = str(self.soversion)
@@ -2266,7 +2246,7 @@ class SharedLibrary(BuildTarget):
                 self.darwin_versions = 2 * [self.soversion]
 
         # Visual Studio module-definitions file
-        if 'vs_module_defs' in kwargs:
+        if kwargs['vs_module_defs'] is not None:
             path = kwargs['vs_module_defs']
             if isinstance(path, str):
                 if os.path.isabs(path):
@@ -2285,7 +2265,7 @@ class SharedLibrary(BuildTarget):
                     'a file object or a Custom Target')
             self.process_link_depends(path)
 
-        if 'rust_crate_type' in kwargs:
+        if 'rust_crate_type' in kwargs and kwargs['rust_crate_type'] is not None:
             rust_crate_type = kwargs['rust_crate_type']
             if isinstance(rust_crate_type, str):
                 self.rust_crate_type = rust_crate_type

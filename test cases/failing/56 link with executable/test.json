@@ -1,7 +1,7 @@
 {
   "stdout": [
     {
-      "line": "test cases/failing/56 link with executable/meson.build:4:0: ERROR: Link target 'prog' is not linkable."
+      "line": "test cases/failing/56 link with executable/meson.build:4:0: ERROR: shared_module keyword argument 'link_with' was of type array[Executable] but should have been array[BothLibraries | SharedLibrary | StaticLibrary | SharedModule | CustomTarget | CustomTargetIndex | Jar]"
     }
   ]
 }
