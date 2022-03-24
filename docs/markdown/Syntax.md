@@ -235,6 +235,15 @@ s = f'result: @n + m@'
 Strings also support a number of other methods that return transformed
 copies.
 
+#### .length()
+
+Since 0.63.0, you can get the length of the string (e.g. to iterate
+through its chars via `range()`)
+
+```meson
+string_length = 'my_string'.length()
+```
+
 #### .replace()
 
 Since 0.58.0, you can replace a substring from a string.

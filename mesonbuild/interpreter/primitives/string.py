@@ -36,6 +36,7 @@ class StringHolder(ObjectHolder[str]):
             'endswith': self.endswith_method,
             'format': self.format_method,
             'join': self.join_method,
+            'length': self.length_method,
             'replace': self.replace_method,
             'split': self.split_method,
             'strip': self.strip_method,
@@ -106,6 +107,12 @@ class StringHolder(ObjectHolder[str]):
     @typed_pos_args('str.join', varargs=str)
     def join_method(self, args: T.Tuple[T.List[str]], kwargs: TYPE_kwargs) -> str:
         return self.held_object.join(args[0])
+
+    @noKwargs
+    @FeatureNew('str.length', '0.63.0')
+    @noPosargs
+    def length_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> int:
+        return len(self.held_object)
 
     @noKwargs
     @typed_pos_args('str.replace', str, str)
