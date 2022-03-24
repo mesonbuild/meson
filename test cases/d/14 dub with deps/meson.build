@@ -1,4 +1,4 @@
-project('dub-with-deps-example', ['c', 'd'])
+project('dub-with-deps-example', ['d'])
 
 dub_exe = find_program('dub', required : false)
 if not dub_exe.found()
@@ -17,7 +17,7 @@ arch = host_machine.cpu_family()
 
 if host_machine.system() == 'windows'
     # check if toolchain is 32bits
-    sz = meson.get_compiler('c').sizeof('void*')
+    sz = meson.get_compiler('d').sizeof('void*')
     if arch == 'x86' or sz == 4
         arch = 'x86_mscoff'
     endif
