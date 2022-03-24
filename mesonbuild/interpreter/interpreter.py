@@ -702,7 +702,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     )
     def func_declare_dependency(self, node, args, kwargs):
         deps = kwargs['dependencies']
-        incs = self.extract_incdirs(kwargs)
+        incs = self._convert_include_dirs(kwargs['include_directories'])
         libs = kwargs['link_with']
         libs_whole = kwargs['link_whole']
         sources = self.source_strings_to_files(kwargs['sources'])
@@ -713,9 +713,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         if version is None:
             version = self.project_version
         d_module_versions = kwargs['d_module_versions']
-        d_import_dirs = self.extract_incdirs(kwargs, 'd_import_dirs')
+        d_import_dirs = self._convert_include_dirs(kwargs['d_import_dirs'])
         srcdir = Path(self.environment.source_dir)
-        # convert variables which refer to an -uninstalled.pc style datadir
         for k, v in variables.items():
             try:
                 p = Path(v)
@@ -2640,16 +2639,13 @@ class Interpreter(InterpreterBase, HoldableObject):
                                               install_tag=install_tag, data_type='configure'))
         return mesonlib.File.from_built_file(self.subdir, output)
 
-    def extract_incdirs(self, kwargs, key: str = 'include_directories'):
-        prospectives = extract_as_list(kwargs, key)
-        result = []
+    def _convert_include_dirs(self, prospectives: T.Iterable[T.Union[str, build.IncludeDirs]]) -> T.List[build.IncludeDirs]:
+        result: T.List[build.IncludeDirs] = []
         for p in prospectives:
             if isinstance(p, build.IncludeDirs):
                 result.append(p)
-            elif isinstance(p, str):
-                result.append(self.build_incdir_object([p]))
             else:
-                raise InterpreterException('Include directory objects can only be created from strings or include directories.')
+                result.append(self.build_incdir_object([p]))
         return result
 
     @typed_pos_args('include_directories', varargs=str)
@@ -3127,7 +3123,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
             ef = extract_as_list(kwargs, 'extra_files')
             kwargs['extra_files'] = self.source_strings_to_files(ef)
         self.check_sources_exist(os.path.join(self.source_root, self.subdir), sources)
-        self.kwarg_strings_to_includedirs(kwargs)
+        kwargs['include_directories'] = self._convert_include_dirs(kwargs['include_directories'])
 
         # Filter out kwargs from other target types. For example 'soversion'
         # passed to library() when default_library == 'static'.
@@ -3182,7 +3178,6 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
                             node=node)
                     outputs.update(o)
 
-        kwargs['include_directories'] = self.extract_incdirs(kwargs)
         target = targetclass(name, self.subdir, self.subproject, for_machine,
                              srcs, struct, kwargs['objects'], self.environment,
                              self.compilers[for_machine], kwargs)
@@ -3191,23 +3186,6 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
         self.add_target(name, target)
         self.project_args_frozen = True
         return target
-
-    def kwarg_strings_to_includedirs(self, kwargs):
-        if 'd_import_dirs' in kwargs:
-            items = mesonlib.extract_as_list(kwargs, 'd_import_dirs')
-            cleaned_items = []
-            for i in items:
-                if isinstance(i, str):
-                    # BW compatibility. This was permitted so we must support it
-                    # for a few releases so people can transition to "correct"
-                    # path declarations.
-                    if os.path.normpath(i).startswith(self.environment.get_source_dir()):
-                        mlog.warning('''Building a path to the source dir is not supported. Use a relative path instead.
-This will become a hard error in the future.''', location=self.current_node)
-                        i = os.path.relpath(i, os.path.join(self.environment.get_source_dir(), self.subdir))
-                        i = self.build_incdir_object([i])
-                cleaned_items.append(i)
-            kwargs['d_import_dirs'] = cleaned_items
 
     def add_stdlib_info(self, target):
         for l in target.compilers.keys():
