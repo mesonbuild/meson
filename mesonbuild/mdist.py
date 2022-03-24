@@ -326,7 +326,7 @@ def run(options):
     archives = determine_archives_to_generate(options)
 
     subprojects = {}
-    extra_meson_args = []
+    extra_meson_args = ['setup']
 
     if options.reuse_setup_args or not options.SETUP_ARGS:
         extra_meson_args += create_cmdline_args(bld_root)
