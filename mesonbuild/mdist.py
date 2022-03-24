@@ -13,9 +13,11 @@
 # limitations under the License.
 
 
+import argparse
 import gzip
 import os
 import sys
+import shlex
 import shutil
 import subprocess
 import tarfile
@@ -27,8 +29,9 @@ from pathlib import Path
 from mesonbuild.environment import detect_ninja
 from mesonbuild.mesonlib import (MesonException, RealPathAction, quiet_git,
                                  windows_proof_rmtree, setup_vsenv)
+from mesonbuild.msetup import add_arguments as msetup_argparse
 from mesonbuild.wrap import wrap
-from mesonbuild import mlog, build
+from mesonbuild import mlog, build, coredata
 from .scripts.meson_exe import run_exe
 
 archive_choices = ['gztar', 'xztar', 'zip']
@@ -263,9 +266,7 @@ def check_dist(packagename, meson_command, extra_meson_args, bld_root, privdir):
     unpacked_files = glob(os.path.join(unpackdir, '*'))
     assert len(unpacked_files) == 1
     unpacked_src_dir = unpacked_files[0]
-    with open(os.path.join(bld_root, 'meson-info', 'intro-buildoptions.json'), encoding='utf-8') as boptions:
-        meson_command += ['-D{name}={value}'.format(**o) for o in json.load(boptions)
-                          if o['name'] not in ['backend', 'install_umask', 'buildtype']]
+    meson_command += create_cmdline_args(bld_root)
     meson_command += extra_meson_args
 
     ret = run_dist_steps(meson_command, unpacked_src_dir, builddir, installdir, ninja_args)
@@ -277,6 +278,15 @@ def check_dist(packagename, meson_command, extra_meson_args, bld_root, privdir):
         windows_proof_rmtree(installdir)
         print(f'Distribution package {packagename} tested')
     return ret
+
+def create_cmdline_args(bld_root):
+    parser = argparse.ArgumentParser()
+    msetup_argparse(parser)
+    args = parser.parse_args([])
+    coredata.parse_cmd_line_options(args)
+    coredata.read_cmd_line_file(bld_root, args)
+    args.cmd_line_options.pop(coredata.OptionKey('backend'), '')
+    return shlex.split(coredata.format_cmd_line_options(args))
 
 def determine_archives_to_generate(options):
     result = []
