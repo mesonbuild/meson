@@ -431,10 +431,12 @@ class Installer:
         append_to_log(self.lf, to_file)
         return True
 
-    def do_symlink(self, target: str, link: str, full_dst_dir: str, allow_missing: bool) -> bool:
+    def do_symlink(self, target: str, link: str, destdir: str, full_dst_dir: str, allow_missing: bool) -> bool:
         abs_target = target
         if not os.path.isabs(target):
             abs_target = os.path.join(full_dst_dir, target)
+        elif not os.path.exists(abs_target) and not allow_missing:
+            abs_target = destdir_join(destdir, abs_target)
         if not os.path.exists(abs_target) and not allow_missing:
             raise MesonException(f'Tried to install symlink to missing file {abs_target}')
         if os.path.exists(link):
@@ -604,7 +606,7 @@ class Installer:
             full_dst_dir = get_destdir_path(destdir, fullprefix, s.install_path)
             full_link_name = get_destdir_path(destdir, fullprefix, s.name)
             dm.makedirs(full_dst_dir, exist_ok=True)
-            if self.do_symlink(s.target, full_link_name, full_dst_dir, s.allow_missing):
+            if self.do_symlink(s.target, full_link_name, destdir, full_dst_dir, s.allow_missing):
                 self.did_install_something = True
 
     def install_man(self, d: InstallData, dm: DirMaker, destdir: str, fullprefix: str) -> None:
