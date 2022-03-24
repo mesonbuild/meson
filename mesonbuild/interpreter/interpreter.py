@@ -32,7 +32,7 @@ from ..interpreterbase import ContainerTypeInfo, InterpreterBase, KwargInfo, typ
 from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, noArgsFlattening, noSecondLevelHolderResolving, unholder_return
 from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
 from ..interpreterbase import Disabler, disablerIfNotFound
-from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs, FeatureDeprecatedKwargs
+from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs
 from ..interpreterbase import ObjectHolder, ContextManagerObject
 from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule
 from ..cmake import CMakeInterpreter
@@ -84,6 +84,13 @@ from .type_checking import (
     SOURCES_KW,
     VARIABLES_KW,
     TEST_KWS,
+    BOTH_LIB_KWS,
+    BUILD_TARGET_KWS,
+    SHARED_LIB_KWS,
+    SHARED_MOD_KWS,
+    STATIC_LIB_KWS,
+    EXECUTABLE_KWS,
+    JAR_KWS,
     NoneType,
     in_set_validator,
     env_convertor_with_method
@@ -1769,90 +1776,95 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_disabler(self, node, args, kwargs):
         return Disabler()
 
-    @FeatureNewKwargs('executable', '0.42.0', ['implib'])
-    @FeatureNewKwargs('executable', '0.56.0', ['win_subsystem'])
-    @FeatureDeprecatedKwargs('executable', '0.56.0', ['gui_app'], extra_message="Use 'win_subsystem' instead.")
-    @permittedKwargs(build.known_exe_kwargs)
     @typed_pos_args('executable', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.StructuredSources, build.ExtractedObjects, build.BuildTarget))
+    @typed_kwargs('executable', *EXECUTABLE_KWS)
     def func_executable(self, node: mparser.BaseNode,
                         args: T.Tuple[str, T.List[BuildTargetSource]],
-                        kwargs) -> build.Executable:
+                        kwargs: kwtypes.Executable) -> build.Executable:
         return self.build_target(node, args, kwargs, build.Executable)
 
-    @permittedKwargs(build.known_stlib_kwargs)
     @typed_pos_args('static_library', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.StructuredSources, build.ExtractedObjects, build.BuildTarget))
+    @typed_kwargs('static_library', *STATIC_LIB_KWS)
     def func_static_lib(self, node: mparser.BaseNode,
                         args: T.Tuple[str, T.List[BuildTargetSource]],
-                        kwargs) -> build.StaticLibrary:
+                        kwargs: kwtypes.StaticLibrary) -> build.StaticLibrary:
         return self.build_target(node, args, kwargs, build.StaticLibrary)
 
-    @permittedKwargs(build.known_shlib_kwargs)
     @typed_pos_args('shared_library', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.StructuredSources, build.ExtractedObjects, build.BuildTarget))
+    @typed_kwargs('shared_library', *SHARED_LIB_KWS)
     def func_shared_lib(self, node: mparser.BaseNode,
                         args: T.Tuple[str, T.List[BuildTargetSource]],
-                        kwargs) -> build.SharedLibrary:
+                        kwargs: kwtypes.SharedLibrary) -> build.SharedLibrary:
         holder = self.build_target(node, args, kwargs, build.SharedLibrary)
         holder.shared_library_only = True
         return holder
 
-    @permittedKwargs(known_library_kwargs)
     @typed_pos_args('both_libraries', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.StructuredSources, build.ExtractedObjects, build.BuildTarget))
+    @typed_kwargs('both_libraries', *BOTH_LIB_KWS)
     def func_both_lib(self, node: mparser.BaseNode,
                       args: T.Tuple[str, T.List[BuildTargetSource]],
-                      kwargs) -> build.BothLibraries:
+                      kwargs: kwtypes.BothLibrary) -> build.BothLibraries:
         return self.build_both_libraries(node, args, kwargs)
 
     @FeatureNew('shared_module', '0.37.0')
-    @permittedKwargs(build.known_shmod_kwargs)
     @typed_pos_args('shared_module', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.StructuredSources, build.ExtractedObjects, build.BuildTarget))
+    @typed_kwargs('shared_module', *SHARED_MOD_KWS)
     def func_shared_module(self, node: mparser.BaseNode,
                            args: T.Tuple[str, T.List[BuildTargetSource]],
-                           kwargs) -> build.SharedModule:
+                           kwargs: kwtypes.SharedModule) -> build.SharedModule:
         return self.build_target(node, args, kwargs, build.SharedModule)
 
-    @permittedKwargs(known_library_kwargs)
     @typed_pos_args('library', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.StructuredSources, build.ExtractedObjects, build.BuildTarget))
+    @typed_kwargs('library', *BOTH_LIB_KWS)
     def func_library(self, node: mparser.BaseNode,
                      args: T.Tuple[str, T.List[BuildTargetSource]],
-                     kwargs) -> build.Executable:
+                     kwargs: kwtypes.BothLibrary
+                     ) -> T.Union[build.SharedLibrary, build.StaticLibrary, build.BothLibrary]:
         return self.build_library(node, args, kwargs)
 
-    @permittedKwargs(build.known_jar_kwargs)
     @typed_pos_args('jar', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.ExtractedObjects, build.BuildTarget))
+    @typed_kwargs('jar', *JAR_KWS)
     def func_jar(self, node: mparser.BaseNode,
                  args: T.Tuple[str, T.List[T.Union[str, mesonlib.File, build.GeneratedTypes]]],
-                 kwargs) -> build.Jar:
+                 kwargs: kwtypes.Jar) -> build.Jar:
         return self.build_target(node, args, kwargs, build.Jar)
 
-    @FeatureNewKwargs('build_target', '0.40.0', ['link_whole', 'override_options'])
-    @permittedKwargs(known_build_target_kwargs)
     @typed_pos_args('build_target', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.StructuredSources, build.ExtractedObjects, build.BuildTarget))
+    @typed_kwargs('build_target', *BUILD_TARGET_KWS)
     def func_build_target(self, node: mparser.BaseNode,
                           args: T.Tuple[str, T.List[BuildTargetSource]],
-                          kwargs) -> T.Union[build.Executable, build.StaticLibrary, build.SharedLibrary,
-                                             build.SharedModule, build.BothLibraries, build.Jar]:
-        if 'target_type' not in kwargs:
-            raise InterpreterException('Missing target_type keyword argument')
-        target_type = kwargs.pop('target_type')
+                          kwargs: kwtypes.BuildTarget
+                          ) -> T.Union[build.Executable, build.SharedLibrary, build.SharedModule,
+                                       build.StaticLibrary, build.BothLibraries, build.Jar]:
+        target_type = kwargs['target_type']
+        # We can cast here because, for the most part, kwargs.BuildTarget is a
+        # strict superset of the sub types, except for the rust_crate_type,
+        # which we check manually before casting
         if target_type == 'executable':
-            return self.build_target(node, args, kwargs, build.Executable)
+            return self.build_target(node, args, T.cast('kwtypes.Executable', kwargs), build.Executable)
         elif target_type == 'shared_library':
-            return self.build_target(node, args, kwargs, build.SharedLibrary)
+            m = mesonlib.first(SHARED_LIB_KWS, lambda x: x.name == 'rust_crate_type').validator(kwargs['rust_crate_type'])
+            if m:
+                raise InvalidArguments(f'shared_library: {m}')
+            return self.build_target(node, args, T.cast('kwtypes.SharedLibrary', kwargs), build.SharedLibrary)
         elif target_type == 'shared_module':
             FeatureNew.single_use(
                 'build_target(target_type: \'shared_module\')',
                 '0.51.0', self.subproject, location=node)
-            return self.build_target(node, args, kwargs, build.SharedModule)
+            return self.build_target(node, args, T.cast('kwtypes.SharedModule', kwargs), build.SharedModule)
         elif target_type == 'static_library':
-            return self.build_target(node, args, kwargs, build.StaticLibrary)
+            m = mesonlib.first(STATIC_LIB_KWS, lambda x: x.name == 'rust_crate_type').validator(kwargs['rust_crate_type'])
+            if m:
+                raise InvalidArguments(f'static_library: {m}')
+            return self.build_target(node, args, T.cast('kwtypes.StaticLibrary', kwargs), build.StaticLibrary)
         elif target_type == 'both_libraries':
-            return self.build_both_libraries(node, args, kwargs)
+            m = mesonlib.first(BOTH_LIB_KWS, lambda x: x.name == 'rust_crate_type').validator(kwargs['rust_crate_type'])
+            if m:
+                raise InvalidArguments(f'both_library: {m}')
+            return self.build_both_libraries(node, args, T.cast('kwtypes.BothLibrary', kwargs))
         elif target_type == 'library':
-            return self.build_library(node, args, kwargs)
-        elif target_type == 'jar':
-            return self.build_target(node, args, kwargs, build.Jar)
-        else:
-            raise InterpreterException('Unknown target_type.')
+            return self.build_library(node, args, T.cast('kwtypes.BothLibrary', kwargs))
+        return self.build_target(node, args, T.cast('kwtypes.Jar', kwargs), build.Jar)
 
     @noPosargs
     @typed_kwargs(
@@ -3127,9 +3139,9 @@ class Interpreter(InterpreterBase, HoldableObject):
     def build_both_libraries(
             self, node: mparser.BaseNode,
             args: T.Tuple[str, T.List[BuildTargetSource]],
-            kwargs) -> build.BothLibraries:
-        shared_lib = self.build_target(node, args, kwargs, build.SharedLibrary)
-        static_lib = self.build_target(node, args, kwargs, build.StaticLibrary)
+            kwargs: kwtypes.BothLibrary) -> build.BothLibraries:
+        static_lib = self.build_target(node, (args[0], args[1].copy()), kwargs.copy(), build.StaticLibrary)
+        shared_lib = self.build_target(node, (args[0], args[1].copy()), kwargs.copy(), build.SharedLibrary)
 
         if self.backend.name == 'xcode':
             # Xcode is a bit special in that you can't (at least for the moment)
@@ -3143,10 +3155,6 @@ class Interpreter(InterpreterBase, HoldableObject):
             reuse_object_files = static_lib.pic
 
         if reuse_object_files:
-            # Replace sources with objects from the shared library to avoid
-            # building them twice. We post-process the static library instead of
-            # removing sources from args because sources could also come from
-            # any InternalDependency, see BuildTarget.add_deps().
             static_lib.objects.append(build.ExtractedObjects(shared_lib, shared_lib.sources, shared_lib.generated, []))
             static_lib.sources = []
             static_lib.generated = []
@@ -3173,21 +3181,12 @@ class Interpreter(InterpreterBase, HoldableObject):
     def build_target(
             self, node: mparser.BaseNode,
             args: T.Tuple[str, T.List[BuildTargetSource]],
-            kwargs,
+            kwargs: kwtypes.BuildTarget,
             targetclass: T.Type[_BuildClassType]) -> _BuildClassType:
-        @FeatureNewKwargs('build target', '0.42.0', ['rust_crate_type', 'build_rpath', 'implicit_include_directories'])
-        @FeatureNewKwargs('build target', '0.41.0', ['rust_args'])
-        @FeatureNewKwargs('build target', '0.38.0', ['build_by_default'])
-        @FeatureNewKwargs('build target', '0.48.0', ['gnu_symbol_visibility'])
-        def build_target_decorator_caller(self, node, args, kwargs):
-            return True
-
-        build_target_decorator_caller(self, node, args, kwargs)
-
         name, sources = args
-        for_machine = self.machine_from_native_kwarg(kwargs)
-        if 'sources' in kwargs:
-            sources += listify(kwargs['sources'])
+        for_machine = kwargs['native']
+        sources += listify(kwargs['sources'])
+
         if any(isinstance(s, build.BuildTarget) for s in sources):
             FeatureDeprecated.single_use('passing references to built targets as a source file', '1.1.0', self.subproject,
                                          'consider using `link_with` or `link_whole` if you meant to link, or dropping them as otherwise they are ignored',
@@ -3215,7 +3214,25 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         # Filter out kwargs from other target types. For example 'soversion'
         # passed to library() when default_library == 'static'.
-        kwargs = {k: v for k, v in kwargs.items() if k in targetclass.known_kwargs}
+        if targetclass is build.Executable:
+            checks = EXECUTABLE_KWS
+        elif targetclass is build.StaticLibrary:
+            checks = STATIC_LIB_KWS
+        elif targetclass is build.SharedLibrary:
+            checks = SHARED_LIB_KWS
+        elif targetclass is build.SharedModule:
+            checks = SHARED_MOD_KWS
+        else:
+            checks = JAR_KWS
+        keys = {k.name for k in checks}
+        kwargs = {k: v for k, v in kwargs.items() if k in keys}
+
+        if targetclass is build.Executable:
+            if kwargs['gui_app'] is not None:
+                if kwargs['win_subsystem'] is not None:
+                    raise InvalidArguments('Executable: can not specify both "gui_app" and "win_subsystem" together, they are mutually exclusive')
+                kwargs['win_subsystem'] = 'windows' if kwargs['gui_app'] else 'console'
+                kwargs['gui_app'] = None
 
         srcs: T.List['SourceInputs'] = []
         struct: T.Optional[build.StructuredSources] = build.StructuredSources()
