@@ -1,4 +1,4 @@
-# Copyright 2016 The Meson development team
+# Copyright 2016-2022 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# TODO: consider switching to pathlib for this
+from pathlib import Path
+import os
+
 def destdir_join(d1: str, d2: str) -> str:
     # c:\destdir + c:\prefix must produce c:\destdir\prefix
-    if len(d1) > 1 and d1[1] == ':' \
-            and len(d2) > 1 and d2[1] == ':':
-        return d1 + d2[2:]
-    return d1 + d2
+    p = pathlib.Path(d2)
+    if d1 and p.is_absolute():
+        p = p.relative_to(p.anchor)
+    return os.path.join(d1, p)
