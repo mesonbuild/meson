@@ -1744,8 +1744,9 @@ class Interpreter(InterpreterBase, HoldableObject):
         elif target_type == 'shared_library':
             return self.build_target(node, args, kwargs, build.SharedLibrary)
         elif target_type == 'shared_module':
-            FeatureNew('build_target(target_type: \'shared_module\')',
-                       '0.51.0').use(self.subproject)
+            FeatureNew.single_use(
+                'build_target(target_type: \'shared_module\')',
+                '0.51.0', self.subproject, location=node)
             return self.build_target(node, args, kwargs, build.SharedModule)
         elif target_type == 'static_library':
             return self.build_target(node, args, kwargs, build.StaticLibrary)
