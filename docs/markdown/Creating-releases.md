@@ -60,6 +60,13 @@ for example when done in CI that already does its own testing.
 So with `--no-tests` you can tell Meson "Do not build and test generated
 packages.".
 
+## Run the build and test with custom configurations
+
+The `meson dist` comand accepts arbitrary arguments after `--`, which will be
+forwarded to `meson setup` when invoking the build and test step of the
+generated packages. It can be used to perform a distcheck for specific
+configurations.
+
 ## Use `--allow-dirty` to override error when git repository contains uncommitted changes
 
 *Since 0.62.0* Instead of emitting a warning when a repository contains
