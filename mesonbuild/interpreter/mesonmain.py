@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2021 The Meson development team
 # Copyright © 2021 Intel Corporation
+from __future__ import annotations
 
 import os
 import typing as T
@@ -15,7 +16,7 @@ from ..programs import OverrideProgram, ExternalProgram
 from ..interpreter.type_checking import ENV_KW, ENV_METHOD_KW, ENV_SEPARATOR_KW, env_convertor_with_method
 from ..interpreterbase import (MesonInterpreterObject, FeatureNew, FeatureDeprecated,
                                typed_pos_args,  noArgsFlattening, noPosargs, noKwargs,
-                               typed_kwargs, KwargInfo, InterpreterException)
+                               typed_kwargs, KwargInfo, InterpreterException, InvalidArguments)
 from .primitives import MesonVersionString
 from .type_checking import NATIVE_KW, NoneType
 
@@ -46,6 +47,9 @@ if T.TYPE_CHECKING:
         method: Literal['set', 'prepend', 'append']
         separator: str
 
+    class AddDistArgsKW(TypedDict):
+        overwrite: bool
+
 
 class MesonMain(MesonInterpreterObject):
     def __init__(self, build: 'build.Build', interpreter: 'Interpreter'):
@@ -68,6 +72,7 @@ class MesonMain(MesonInterpreterObject):
                              'global_build_root': self.global_build_root_method,
                              'add_install_script': self.add_install_script_method,
                              'add_postconf_script': self.add_postconf_script_method,
+                             'add_dist_args': self.add_dist_args_method,
                              'add_dist_script': self.add_dist_script_method,
                              'install_dependency_manifest': self.install_dependency_manifest_method,
                              'override_dependency': self.override_dependency_method,
@@ -176,6 +181,20 @@ class MesonMain(MesonInterpreterObject):
         script_args = self._process_script_args('add_postconf_script', args[1])
         script = self._find_source_script('add_postconf_script', args[0], script_args)
         self.build.postconf_scripts.append(script)
+
+    @FeatureNew('meson.add_dist_args', '0.63.0')
+    @typed_pos_args('meson.add_dist_args', varargs=str, min_varargs=1)
+    @typed_kwargs('meson.add_dist_args', KwargInfo('overwrite', bool, default=False))
+    def add_dist_args_method(self, args: T.Tuple[T.List[str]], kwargs: AddDistArgsKW) -> None:
+        if kwargs['overwrite']:
+            if self.build.dist_args or self.build.dist_args_exclusive:
+                raise InvalidArguments('meson.add_dist_args can only be used once if overwrite is true')
+            to = self.build.dist_args_exclusive
+        else:
+            to = self.build.dist_args
+        if not to:
+            to.append('--')
+        to.extend(args[0])
 
     @typed_pos_args(
         'meson.add_dist_script',

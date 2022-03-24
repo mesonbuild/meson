@@ -236,6 +236,8 @@ class Build:
         self.subproject_dir = ''
         self.install_scripts: T.List['ExecutableSerialisation'] = []
         self.postconf_scripts: T.List['ExecutableSerialisation'] = []
+        self.dist_args: T.List[str] = []
+        self.dist_args_exclusive: T.List[str] = []
         self.dist_scripts: T.List['ExecutableSerialisation'] = []
         self.install_dirs: T.List[InstallDir] = []
         self.dep_manifest_name: T.Optional[str] = None
