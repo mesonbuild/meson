@@ -117,6 +117,7 @@ class StringHolder(ObjectHolder[str]):
         return self.held_object.join(args[0])
 
     @noKwargs
+    @FeatureNew('str.replace', '0.58.0')
     @typed_pos_args('str.replace', str, str)
     def replace_method(self, args: T.Tuple[str, str], kwargs: TYPE_kwargs) -> str:
         return self.held_object.replace(args[0], args[1])
@@ -129,9 +130,12 @@ class StringHolder(ObjectHolder[str]):
     @noKwargs
     @typed_pos_args('str.strip', optargs=[str])
     def strip_method(self, args: T.Tuple[T.Optional[str]], kwargs: TYPE_kwargs) -> str:
+        if args[0]:
+            FeatureNew.single_use('str.strip with a positional argument', '0.43.0', self.subproject, location=self.current_node)
         return self.held_object.strip(args[0])
 
     @noKwargs
+    @FeatureNew('str.substring', '0.56.0')
     @typed_pos_args('str.substring', optargs=[int, int])
     def substring_method(self, args: T.Tuple[T.Optional[int], T.Optional[int]], kwargs: TYPE_kwargs) -> str:
         start = args[0] if args[0] is not None else 0
