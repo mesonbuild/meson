@@ -665,12 +665,15 @@ class CLikeCompiler(Compiler):
                    dependencies: T.Optional[T.List['Dependency']],
                    disable_cache: bool = False) -> T.Tuple[str, bool]:
         delim = '"MESON_GET_DEFINE_DELIMITER"'
+        not_found_delim = '"MESON_GET_DEFINE_NOT_DEFINED"'
         code = f'''
         {prefix}
         #ifndef {dname}
-        # define {dname}
+        {not_found_delim}
+        #else
+        {delim}\n{dname}
         #endif
-        {delim}\n{dname}'''
+        '''
         args = self.build_wrapper_args(env, extra_args, dependencies,
                                        mode=CompileCheckMode.PREPROCESS).to_native()
         func = functools.partial(self.cached_compile, code, env.coredata, extra_args=args, mode='preprocess')
@@ -680,6 +683,8 @@ class CLikeCompiler(Compiler):
             cached = p.cached
             if p.returncode != 0:
                 raise mesonlib.EnvironmentException(f'Could not get define {dname!r}')
+        if not_found_delim in p.stdout:
+            return '', cached
         # Get the preprocessed value after the delimiter,
         # minus the extra newline at the end and
         # merge string literals.
