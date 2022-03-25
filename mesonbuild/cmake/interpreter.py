@@ -793,7 +793,7 @@ class CMakeInterpreter:
         self.languages         = []  # type: T.List[str]
         self.targets           = []  # type: T.List[ConverterTarget]
         self.custom_targets    = []  # type: T.List[ConverterCustomTarget]
-        self.trace             = CMakeTraceParser('', Path('.'))  # Will be replaced in analyse
+        self.trace: CMakeTraceParser
         self.output_target_map = OutputTargetMap(self.build_dir)
 
         # Generated meson data
