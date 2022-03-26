@@ -31,9 +31,15 @@ libfoo = shared_library('foo', 'foo.c',
   dependencies: gobject,
 )
 
+deps = []
+if host_machine.system() == 'darwin'
+  deps += dependency('appleframeworks', modules : ['Foundation', 'CoreFoundation'])
+endif
+
 foo_dep = declare_dependency(
   link_with: libfoo,
   include_directories: inc,
+  dependencies: deps,
 )
 
 subdir('doc')
