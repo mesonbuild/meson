@@ -255,6 +255,7 @@ permitted_dependency_kwargs = {
     'cmake_module_path',
     'cmake_package_version',
     'components',
+    'configuration',
     'default_options',
     'fallback',
     'include_type',
@@ -1666,6 +1667,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                           )
 
     # When adding kwargs, please check if they make sense in dependencies.get_dep_identifier()
+    @FeatureNewKwargs('dependency', '0.65.0', ['configuration'])
     @FeatureNewKwargs('dependency', '0.57.0', ['cmake_package_version'])
     @FeatureNewKwargs('dependency', '0.56.0', ['allow_fallback'])
     @FeatureNewKwargs('dependency', '0.54.0', ['components'])
