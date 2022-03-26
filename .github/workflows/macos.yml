@@ -66,7 +66,7 @@ jobs:
     - uses: actions/checkout@v2
     # use python3 from homebrew because it is a valid framework, unlike the actions one:
     # https://github.com/actions/setup-python/issues/58
-    - run: brew install pkg-config ninja llvm qt@5 boost ldc hdf5 openmpi lapack scalapack sdl2 python3 boost-python3
+    - run: brew install pkg-config ninja llvm qt@5 boost ldc hdf5 openmpi lapack scalapack sdl2 python3 boost-python3 gtk-doc
     - run: |
         python3 -m pip install --upgrade setuptools
         python3 -m pip install --upgrade pip
@@ -81,6 +81,7 @@ jobs:
         export SDKROOT="$(xcodebuild -version -sdk macosx Path)"
         export PATH="$HOME/tools:/usr/local/opt/qt@5/bin:$PATH:$(brew --prefix llvm)/bin"
         export PKG_CONFIG_PATH="/usr/local/opt/qt@5/lib/pkgconfig:$PKG_CONFIG_PATH"
+        export XML_CATALOG_FILES="/usr/local/etc/xml/catalog"
         ./tools/run_with_cov.py ./run_project_tests.py --backend=ninja
     - name: Upload coverage report
       run: ./ci/upload_cov.sh "appleclang [project tests; unity=${{ matrix.unity }}]"
