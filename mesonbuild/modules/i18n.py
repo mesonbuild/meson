@@ -257,7 +257,7 @@ class I18nModule(ExtensionModule):
             potargs.append(extra_arg)
         potargs.append('--xgettext=' + self.tools['xgettext'].get_path())
         pottarget = build.RunTarget(packagename + '-pot', potargs, [], state.subdir, state.subproject,
-                                    state.environment)
+                                    state.environment, default_env=False)
         targets.append(pottarget)
 
         install = kwargs['install']
@@ -301,7 +301,7 @@ class I18nModule(ExtensionModule):
         for tool in ['msginit', 'msgmerge']:
             updatepoargs.append(f'--{tool}=' + self.tools[tool].get_path())
         updatepotarget = build.RunTarget(packagename + '-update-po', updatepoargs, [], state.subdir, state.subproject,
-                                         state.environment)
+                                         state.environment, default_env=False)
         targets.append(updatepotarget)
 
         return ModuleReturnValue([gmotargets, pottarget, updatepotarget], targets)
