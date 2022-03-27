@@ -1445,11 +1445,12 @@ class Backend:
 
     def get_run_target_env(self, target: build.RunTarget) -> build.EnvironmentVariables:
         env = target.env if target.env else build.EnvironmentVariables()
-        introspect_cmd = join_args(self.environment.get_build_command() + ['introspect'])
-        env.set('MESON_SOURCE_ROOT', [self.environment.get_source_dir()])
-        env.set('MESON_BUILD_ROOT', [self.environment.get_build_dir()])
-        env.set('MESON_SUBDIR', [target.subdir])
-        env.set('MESONINTROSPECT', [introspect_cmd])
+        if target.default_env:
+            introspect_cmd = join_args(self.environment.get_build_command() + ['introspect'])
+            env.set('MESON_SOURCE_ROOT', [self.environment.get_source_dir()])
+            env.set('MESON_BUILD_ROOT', [self.environment.get_build_dir()])
+            env.set('MESON_SUBDIR', [target.subdir])
+            env.set('MESONINTROSPECT', [introspect_cmd])
         return env
 
     def run_postconf_scripts(self) -> None:

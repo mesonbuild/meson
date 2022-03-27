@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
 from collections import OrderedDict
 from enum import Enum, unique
@@ -1034,7 +1035,7 @@ class NinjaBackend(backends.Backend):
             subproject_prefix = ''
         return f'{subproject_prefix}{target.name}'
 
-    def generate_run_target(self, target):
+    def generate_run_target(self, target: build.RunTarget):
         target_name = self.build_run_target_name(target)
         if not target.command:
             # This is an alias target, it has no command, it just depends on
@@ -1044,9 +1045,9 @@ class NinjaBackend(backends.Backend):
             target_env = self.get_run_target_env(target)
             _, _, cmd = self.eval_custom_target_command(target)
             meson_exe_cmd, reason = self.as_meson_exe_cmdline(target.command[0], cmd[1:],
-                                                              force_serialize=True, env=target_env,
+                                                              env=target_env,
                                                               verbose=True)
-            cmd_type = f' (wrapped by meson {reason})'
+            cmd_type = f' (wrapped by meson {reason})' if reason else ''
             internal_target_name = f'meson-{target_name}'
             elem = NinjaBuildElement(self.all_outputs, internal_target_name, 'CUSTOM_COMMAND', [])
             elem.add_item('COMMAND', meson_exe_cmd)
