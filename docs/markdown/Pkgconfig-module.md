@@ -58,7 +58,8 @@ keyword arguments.
   Spaces in values are escaped with `\`, this is required in the case the value is
   a path that and is used in `cflags` or `libs` arguments. *Since 0.59.0* if
   escaping is not desired (e.g. space separate list of values) `unescaped_variables`
-  keyword argument should be used instead.
+  keyword argument should be used instead. *Since 0.62.0* builtin directory variables
+  that are referenced are automatically created by default.
 - `uninstalled_variables` used instead of the `variables` keyword argument, when
   generating the uninstalled pkg-config file. Since *0.54.0*
   Spaces in values are escaped with `\`, this is required in the case the value is
