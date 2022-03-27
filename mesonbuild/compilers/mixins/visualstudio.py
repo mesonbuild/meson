@@ -17,6 +17,7 @@ interface.
 """
 
 import abc
+import functools
 import os
 import typing as T
 
@@ -27,6 +28,7 @@ from ... import mlog
 if T.TYPE_CHECKING:
     from ...environment import Environment
     from ...dependencies import Dependency
+    from ..._typing import ImmutableListProtocol
     from .clike import CLikeCompiler as Compiler
 else:
     # This is a bit clever, for mypy we pretend that these mixins descend from
@@ -276,6 +278,16 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
             else:
                 result.append(arg)
         return result
+
+    @functools.lru_cache()
+    def _get_user_library_dirs(self, env: 'Environment') -> 'ImmutableListProtocol[str]':
+        '''
+        Override since we need to also convert from the external argument format
+        to the GNU-style that CLikeCompilerArgs requires.
+        '''
+        args = env.coredata.get_external_link_args(self.for_machine, self.language)
+        args = self.native_args_to_unix(args if isinstance(args, list) else [args])
+        return self.compiler_args(args).get_library_dirs()
 
     def get_werror_args(self) -> T.List[str]:
         return ['/WX']

@@ -86,6 +86,8 @@ class CompilerArgs(collections.abc.MutableSequence):
     '''
     # Arg prefixes that override by prepending instead of appending
     prepend_prefixes = ()  # type: T.Tuple[str, ...]
+    # Arg prefixes that consider the argument a library directory
+    library_prefixes = ()  # type: T.Tuple[str, ...]
 
     # Arg prefixes and args that must be de-duped by returning 2
     dedup2_prefixes = ()   # type: T.Tuple[str, ...]
@@ -232,6 +234,15 @@ class CompilerArgs(collections.abc.MutableSequence):
     def _should_prepend(cls, arg: str) -> bool:
         return arg.startswith(cls.prepend_prefixes)
 
+    @classmethod
+    @lru_cache(maxsize=None)
+    def _extract_libdir(cls, arg: str) -> T.Optional[str]:
+        for prefix in cls.library_prefixes:
+            if arg.startswith(prefix):
+                print(arg, prefix)
+                return arg[len(prefix):]
+        return None
+
     def to_native(self, copy: bool = False) -> T.List[str]:
         # Check if we need to add --start/end-group for circular dependencies
         # between static libraries, and for recursively searching for symbols
@@ -243,6 +254,14 @@ class CompilerArgs(collections.abc.MutableSequence):
         else:
             new = self
         return self.compiler.unix_args_to_native(new._container)
+
+    def get_library_dirs(self) -> T.List[str]:
+        '''
+        Get the list of library search dirs, which are from arguments prefixed
+        by one of the library_prefixes.
+        '''
+        self.flush_pre_post()
+        return list(filter(None, (self._extract_libdir(arg) for arg in self._container)))
 
     def append_direct(self, arg: str) -> None:
         '''

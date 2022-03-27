@@ -514,6 +514,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
 
 class DCompilerArgs(CompilerArgs):
     prepend_prefixes = ('-I', '-L')
+    library_prefixes = ('-L',)
     dedup2_prefixes = ('-I', )
 
 

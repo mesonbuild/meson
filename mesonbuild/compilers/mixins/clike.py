@@ -59,6 +59,7 @@ GROUP_FLAGS = re.compile(r'''\.so (?:\.[0-9]+)? (?:\.[0-9]+)? (?:\.[0-9]+)?$ |
 
 class CLikeCompilerArgs(arglist.CompilerArgs):
     prepend_prefixes = ('-I', '-L')
+    library_prefixes = ('-L',)
     dedup2_prefixes = ('-I', '-isystem', '-L', '-D', '-U')
 
     # NOTE: not thorough. A list of potential corner cases can be found in
@@ -252,6 +253,17 @@ class CLikeCompiler(Compiler):
         mutation of the cached value.
         """
         return self._get_library_dirs(env, elf_class).copy()
+
+    @functools.lru_cache()
+    def _get_user_library_dirs(self, env: 'Environment') -> 'ImmutableListProtocol[str]':
+        args = env.coredata.get_external_link_args(self.for_machine, self.language)
+        return self.compiler_args(args).get_library_dirs()
+
+    def get_user_library_dirs(self, env: 'Environment') -> T.List[str]:
+        """Wrap the lru_cache so that we return a new copy and don't allow
+        mutation of the cached value.
+        """
+        return self._get_user_library_dirs(env).copy()
 
     @functools.lru_cache()
     def _get_program_dirs(self, env: 'Environment') -> 'ImmutableListProtocol[str]':
@@ -1151,7 +1163,8 @@ class CLikeCompiler(Compiler):
         except (mesonlib.MesonException, KeyError): # TODO evaluate if catching KeyError is wanted here
             elf_class = 0
         # Search in the specified dirs, and then in the system libraries
-        for d in itertools.chain(extra_dirs, self.get_library_dirs(env, elf_class)):
+        for d in itertools.chain(extra_dirs, self.get_user_library_dirs(env),
+                                 self.get_library_dirs(env, elf_class)):
             for p in patterns:
                 trials = self._get_trials_from_pattern(p, d, libname)
                 if not trials:

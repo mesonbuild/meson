@@ -335,6 +335,10 @@ class AllPlatformTests(BasePlatformTests):
             self.assertTrue(os.path.exists(d))
             self.assertTrue(os.path.isdir(d))
             self.assertTrue(os.path.isabs(d))
+        for d in cc.get_user_library_dirs(env):
+            self.assertTrue(os.path.exists(d))
+            self.assertTrue(os.path.isdir(d))
+            self.assertTrue(os.path.isabs(d))
 
     def test_static_library_overwrite(self):
         '''
@@ -1466,9 +1470,19 @@ class AllPlatformTests(BasePlatformTests):
         objectfile = os.path.join(tdir, 'libdir/best.' + object_suffix)
         stlibfile = os.path.join(tdir, 'libdir/libbest.a')
         self.build_static_lib(cc, stlinker, source, objectfile, stlibfile)
+
+        libdir_prefix = '-L'
+        if cc.get_argument_syntax() == 'msvc':
+            libdir_prefix = '/LIBPATH:'
+
         # Run the test
         try:
             self.init(tdir)
+            self.build()
+            self.run_tests()
+
+            self.init(tdir, extra_args=['-Dsearch_dir=none',
+                      f'-Dc_link_args={libdir_prefix}libdir'])
             self.build()
             self.run_tests()
         finally:
@@ -1499,8 +1513,10 @@ class AllPlatformTests(BasePlatformTests):
         source = os.path.join(tdir, 'alexandria.c')
         objectfile = os.path.join(tdir, 'alexandria.' + object_suffix)
         impfile = os.path.join(tdir, 'alexandria.lib')
+        libdir_prefix = '-L'
         if cc.get_argument_syntax() == 'msvc':
             shlibfile = os.path.join(tdir, 'alexandria.' + shared_suffix)
+            libdir_prefix = '/LIBPATH:'
         elif is_cygwin():
             shlibfile = os.path.join(tdir, 'cygalexandria.' + shared_suffix)
         else:
@@ -1520,6 +1536,12 @@ class AllPlatformTests(BasePlatformTests):
 
         # Run the test
         self.init(tdir)
+        self.build()
+        self.run_tests()
+
+        # Run the test again with different settings
+        self.init(tdir, extra_args=['-Dsearch_dir=none',
+                  f'-Dc_link_args={libdir_prefix}.'])
         self.build()
         self.run_tests()
 
