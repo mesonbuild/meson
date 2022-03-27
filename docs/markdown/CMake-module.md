@@ -163,7 +163,7 @@ following methods are supported:
  - `set_install(bool)` override whether targets should be installed or not
  - `append_compile_args(lang, arg1, ...)` append compile flags for a specific
    language to the targets
- - `append_link_args(arg1, ...)` append linger args to the targets
+ - `append_link_args(arg1, ...)` append linker args to the targets
  - `clear()` reset all data in the `cmake options` object
 
 The methods `set_override_option`, `set_install`,
