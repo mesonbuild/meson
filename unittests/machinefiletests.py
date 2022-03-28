@@ -62,7 +62,7 @@ class NativeFileTests(BasePlatformTests):
 
     def setUp(self):
         super().setUp()
-        self.testcase = os.path.join(self.unit_test_dir, '47 native file binary')
+        self.testcase = os.path.join(self.unit_test_dir, '46 native file binary')
         self.current_config = 0
         self.current_wrapper = 0
 
@@ -379,12 +379,12 @@ class NativeFileTests(BasePlatformTests):
         self.assertEqual(compiler.version, '1.2345')
 
     def test_native_file_dirs(self):
-        testcase = os.path.join(self.unit_test_dir, '60 native file override')
+        testcase = os.path.join(self.unit_test_dir, '59 native file override')
         self.init(testcase, default_args=False,
                   extra_args=['--native-file', os.path.join(testcase, 'nativefile')])
 
     def test_native_file_dirs_overridden(self):
-        testcase = os.path.join(self.unit_test_dir, '60 native file override')
+        testcase = os.path.join(self.unit_test_dir, '59 native file override')
         self.init(testcase, default_args=False,
                   extra_args=['--native-file', os.path.join(testcase, 'nativefile'),
                               '-Ddef_libdir=liblib', '-Dlibdir=liblib'])
@@ -422,7 +422,7 @@ class NativeFileTests(BasePlatformTests):
         self.init(testcase, extra_args=['--native-file', config, '-Dother_one=false'])
 
     def test_user_options_subproject(self):
-        testcase = os.path.join(self.unit_test_dir, '79 user options for subproject')
+        testcase = os.path.join(self.unit_test_dir, '78 user options for subproject')
 
         s = os.path.join(testcase, 'subprojects')
         if not os.path.exists(s):
@@ -650,7 +650,7 @@ class CrossFileTests(BasePlatformTests):
             ''')
 
     def test_needs_exe_wrapper_true(self):
-        testdir = os.path.join(self.unit_test_dir, '71 cross test passed')
+        testdir = os.path.join(self.unit_test_dir, '70 cross test passed')
         with tempfile.TemporaryDirectory() as d:
             p = Path(d) / 'crossfile'
             with p.open('wt', encoding='utf-8') as f:
@@ -660,7 +660,7 @@ class CrossFileTests(BasePlatformTests):
             self.assertRegex(out, r'Skipped:\s*1\s*\n')
 
     def test_needs_exe_wrapper_false(self):
-        testdir = os.path.join(self.unit_test_dir, '71 cross test passed')
+        testdir = os.path.join(self.unit_test_dir, '70 cross test passed')
         with tempfile.TemporaryDirectory() as d:
             p = Path(d) / 'crossfile'
             with p.open('wt', encoding='utf-8') as f:
@@ -670,7 +670,7 @@ class CrossFileTests(BasePlatformTests):
             self.assertNotRegex(out, r'Skipped:\s*1\n')
 
     def test_needs_exe_wrapper_true_wrapper(self):
-        testdir = os.path.join(self.unit_test_dir, '71 cross test passed')
+        testdir = os.path.join(self.unit_test_dir, '70 cross test passed')
         with tempfile.TemporaryDirectory() as d:
             s = Path(d) / 'wrapper.py'
             with s.open('wt', encoding='utf-8') as f:
@@ -687,7 +687,7 @@ class CrossFileTests(BasePlatformTests):
             self.assertRegex(out, r'Ok:\s*3\s*\n')
 
     def test_cross_exe_passed_no_wrapper(self):
-        testdir = os.path.join(self.unit_test_dir, '71 cross test passed')
+        testdir = os.path.join(self.unit_test_dir, '70 cross test passed')
         with tempfile.TemporaryDirectory() as d:
             p = Path(d) / 'crossfile'
             with p.open('wt', encoding='utf-8') as f:
@@ -756,7 +756,7 @@ class CrossFileTests(BasePlatformTests):
         return filename
 
     def test_cross_file_dirs(self):
-        testcase = os.path.join(self.unit_test_dir, '60 native file override')
+        testcase = os.path.join(self.unit_test_dir, '59 native file override')
         self.init(testcase, default_args=False,
                   extra_args=['--native-file', os.path.join(testcase, 'nativefile'),
                               '--cross-file', os.path.join(testcase, 'crossfile'),
@@ -774,7 +774,7 @@ class CrossFileTests(BasePlatformTests):
                               '-Ddef_sysconfdir=sysconfbar'])
 
     def test_cross_file_dirs_overridden(self):
-        testcase = os.path.join(self.unit_test_dir, '60 native file override')
+        testcase = os.path.join(self.unit_test_dir, '59 native file override')
         self.init(testcase, default_args=False,
                   extra_args=['--native-file', os.path.join(testcase, 'nativefile'),
                               '--cross-file', os.path.join(testcase, 'crossfile'),
@@ -793,7 +793,7 @@ class CrossFileTests(BasePlatformTests):
 
     def test_cross_file_dirs_chain(self):
         # crossfile2 overrides crossfile overrides nativefile
-        testcase = os.path.join(self.unit_test_dir, '60 native file override')
+        testcase = os.path.join(self.unit_test_dir, '59 native file override')
         self.init(testcase, default_args=False,
                   extra_args=['--native-file', os.path.join(testcase, 'nativefile'),
                               '--cross-file', os.path.join(testcase, 'crossfile'),
