@@ -600,7 +600,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
         return self.typename
 
     @staticmethod
-    def _get_id_hash(target_id):
+    def _get_id_hash(target_id: str) -> str:
         # We don't really need cryptographic security here.
         # Small-digest hash function with unlikely collision is good enough.
         h = hashlib.sha256()
