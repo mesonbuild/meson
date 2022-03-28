@@ -16,6 +16,7 @@ from __future__ import annotations
 from collections import defaultdict, OrderedDict
 from dataclasses import dataclass, field
 from functools import lru_cache
+import abc
 import copy
 import hashlib
 import itertools, pathlib
@@ -505,9 +506,7 @@ class StructuredSources(HoldableObject):
 
 
 @dataclass(eq=False)
-class Target(HoldableObject):
-
-    # TODO: should Target be an abc.ABCMeta?
+class Target(HoldableObject, metaclass=abc.ABCMeta):
 
     name: str
     subdir: str
@@ -515,6 +514,14 @@ class Target(HoldableObject):
     build_by_default: bool
     for_machine: MachineChoice
     environment: environment.Environment
+
+    @abc.abstractproperty
+    def typename(self) -> str:
+        pass
+
+    @abc.abstractmethod
+    def type_suffix(self) -> str:
+        pass
 
     def __post_init__(self) -> None:
         if has_path_sep(self.name):
@@ -528,8 +535,6 @@ class Target(HoldableObject):
         self.build_always_stale = False
         self.options = OptionOverrideProxy({}, self.environment.coredata.options, self.subproject)
         self.extra_files = []  # type: T.List[File]
-        if not hasattr(self, 'typename'):
-            raise RuntimeError(f'Target type is not set for target class "{type(self).__name__}". This is a bug')
 
     # dataclass comparators?
     def __lt__(self, other: object) -> bool:
