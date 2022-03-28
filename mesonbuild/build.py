@@ -61,61 +61,6 @@ if T.TYPE_CHECKING:
     LibTypes = T.Union['SharedLibrary', 'StaticLibrary', 'CustomTarget', 'CustomTargetIndex']
     BuildTargetTypes = T.Union['BuildTarget', 'CustomTarget', 'CustomTargetIndex']
 
-pch_kwargs = {'c_pch', 'cpp_pch'}
-
-lang_arg_kwargs = {f'{lang}_args' for lang in all_languages}
-lang_arg_kwargs |= {
-    'd_import_dirs',
-    'd_unittest',
-    'd_module_versions',
-    'd_debug',
-}
-
-vala_kwargs = {'vala_header', 'vala_gir', 'vala_vapi'}
-rust_kwargs = {'rust_crate_type'}
-cs_kwargs = {'resources', 'cs_args'}
-
-buildtarget_kwargs = {
-    'build_by_default',
-    'build_rpath',
-    'dependencies',
-    'extra_files',
-    'gui_app',
-    'link_with',
-    'link_whole',
-    'link_args',
-    'link_depends',
-    'implicit_include_directories',
-    'include_directories',
-    'install',
-    'install_rpath',
-    'install_dir',
-    'install_mode',
-    'install_tag',
-    'name_prefix',
-    'name_suffix',
-    'native',
-    'objects',
-    'override_options',
-    'sources',
-    'gnu_symbol_visibility',
-    'link_language',
-    'win_subsystem',
-}
-
-known_build_target_kwargs = (
-    buildtarget_kwargs |
-    lang_arg_kwargs |
-    pch_kwargs |
-    vala_kwargs |
-    rust_kwargs |
-    cs_kwargs)
-
-known_exe_kwargs = known_build_target_kwargs | {'implib', 'export_dynamic', 'pie'}
-known_shlib_kwargs = known_build_target_kwargs | {'version', 'soversion', 'vs_module_defs', 'darwin_versions'}
-known_shmod_kwargs = known_build_target_kwargs | {'vs_module_defs'}
-known_stlib_kwargs = known_build_target_kwargs | {'pic', 'prelink'}
-known_jar_kwargs = known_exe_kwargs | {'main_class', 'java_resources'}
 
 def _process_install_tag(install_tag: T.Optional[T.List[T.Optional[str]]],
                          num_outputs: int) -> T.List[T.Optional[str]]:
@@ -682,7 +627,6 @@ class Target(HoldableObject):
         return False
 
 class BuildTarget(Target):
-    known_kwargs = known_build_target_kwargs
 
     install_dir: T.List[T.Union[str, Literal[False]]]
 
@@ -723,7 +667,6 @@ class BuildTarget(Target):
         # 2. Compiled objects created by and extracted from another target
         self.process_objectlist(objects)
         self.process_kwargs(kwargs)
-        self.check_unknown_kwargs(kwargs)
         if not any([self.sources, self.generated, self.objects, self.link_whole_targets, self.structured_sources]):
             mlog.warning(f'Build target {name} has no sources. '
                          'This was never supposed to be allowed but did because of a bug, '
@@ -758,19 +701,6 @@ class BuildTarget(Target):
                 raise InvalidArguments('Tried to install a target for the build machine in a cross build.')
             else:
                 mlog.warning('Installing target build for the build machine. This will fail in a cross build.')
-
-    def check_unknown_kwargs(self, kwargs):
-        # Override this method in derived classes that have more
-        # keywords.
-        self.check_unknown_kwargs_int(kwargs, self.known_kwargs)
-
-    def check_unknown_kwargs_int(self, kwargs, known_kwargs):
-        unknowns = []
-        for k in kwargs:
-            if k not in known_kwargs:
-                unknowns.append(k)
-        if len(unknowns) > 0:
-            mlog.warning('Unknown keyword argument(s) in target {}: {}.'.format(self.name, ', '.join(unknowns)))
 
     def process_objectlist(self, objects):
         assert isinstance(objects, list)
@@ -1766,7 +1696,6 @@ class GeneratedList(HoldableObject):
 
 
 class Executable(BuildTarget):
-    known_kwargs = known_exe_kwargs
 
     typename = 'executable'
 
@@ -1904,7 +1833,6 @@ class Executable(BuildTarget):
 
 
 class StaticLibrary(BuildTarget):
-    known_kwargs = known_stlib_kwargs
 
     typename = 'static library'
 
@@ -1976,7 +1904,6 @@ class StaticLibrary(BuildTarget):
         return not self.need_install
 
 class SharedLibrary(BuildTarget):
-    known_kwargs = known_shlib_kwargs
 
     typename = 'shared library'
 
@@ -2272,7 +2199,6 @@ class SharedLibrary(BuildTarget):
 # A shared library that is meant to be used with dlopen rather than linking
 # into something else.
 class SharedModule(SharedLibrary):
-    known_kwargs = known_shmod_kwargs
 
     typename = 'shared module'
 
@@ -2652,7 +2578,6 @@ class AliasTarget(RunTarget):
         return repr_str.format(self.__class__.__name__, self.get_id())
 
 class Jar(BuildTarget):
-    known_kwargs = known_jar_kwargs
 
     typename = 'jar'
 
