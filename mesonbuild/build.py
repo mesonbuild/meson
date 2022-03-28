@@ -61,6 +61,7 @@ if T.TYPE_CHECKING:
     GeneratedTypes = T.Union['CustomTarget', 'CustomTargetIndex', 'GeneratedList']
     LibTypes = T.Union['SharedLibrary', 'StaticLibrary', 'CustomTarget', 'CustomTargetIndex']
     BuildTargetTypes = T.Union['BuildTarget', 'CustomTarget', 'CustomTargetIndex']
+    ObjectTypes = T.Union[str, 'File', 'ExtractedObjects', 'GeneratedTypes']
 
 pch_kwargs = {'c_pch', 'cpp_pch'}
 
@@ -697,13 +698,22 @@ class BuildTarget(Target):
 
     install_dir: T.List[T.Union[str, Literal[False]]]
 
-    def __init__(self, name: str, subdir: str, subproject: SubProject, for_machine: MachineChoice,
-                 sources: T.List['SourceOutputs'], structured_sources: T.Optional[StructuredSources],
-                 objects, environment: environment.Environment, compilers: T.Dict[str, 'Compiler'], kwargs):
+    def __init__(
+            self,
+            name: str,
+            subdir: str,
+            subproject: SubProject,
+            for_machine: MachineChoice,
+            sources: T.List['SourceOutputs'],
+            structured_sources: T.Optional[StructuredSources],
+            objects: T.List[ObjectTypes],
+            environment: environment.Environment,
+            compilers: T.Dict[str, 'Compiler'],
+            kwargs):
         super().__init__(name, subdir, subproject, True, for_machine, environment)
         self.all_compilers = compilers
         self.compilers = OrderedDict() # type: OrderedDict[str, Compiler]
-        self.objects: T.List[T.Union[str, 'File', 'ExtractedObjects']] = []
+        self.objects: T.List[ObjectTypes] = []
         self.structured_sources = structured_sources
         self.external_deps: T.List[dependencies.Dependency] = []
         self.include_dirs: T.List['IncludeDirs'] = []
@@ -1796,10 +1806,18 @@ class Executable(BuildTarget):
 
     typename = 'executable'
 
-    def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
-                 sources: T.List[SourceOutputs], structured_sources: T.Optional['StructuredSources'],
-                 objects, environment: environment.Environment, compilers: T.Dict[str, 'Compiler'],
-                 kwargs):
+    def __init__(
+            self,
+            name: str,
+            subdir: str,
+            subproject: SubProject,
+            for_machine: MachineChoice,
+            sources: T.List['SourceOutputs'],
+            structured_sources: T.Optional[StructuredSources],
+            objects: T.List[ObjectTypes],
+            environment: environment.Environment,
+            compilers: T.Dict[str, 'Compiler'],
+            kwargs):
         key = OptionKey('b_pie')
         if 'pie' not in kwargs and key in environment.coredata.options:
             kwargs['pie'] = environment.coredata.options[key].value
@@ -1934,10 +1952,18 @@ class StaticLibrary(BuildTarget):
 
     typename = 'static library'
 
-    def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
-                 sources: T.List[SourceOutputs], structured_sources: T.Optional['StructuredSources'],
-                 objects, environment: environment.Environment, compilers: T.Dict[str, 'Compiler'],
-                 kwargs):
+    def __init__(
+            self,
+            name: str,
+            subdir: str,
+            subproject: SubProject,
+            for_machine: MachineChoice,
+            sources: T.List['SourceOutputs'],
+            structured_sources: T.Optional[StructuredSources],
+            objects: T.List[ObjectTypes],
+            environment: environment.Environment,
+            compilers: T.Dict[str, 'Compiler'],
+            kwargs):
         self.prelink = kwargs.get('prelink', False)
         if not isinstance(self.prelink, bool):
             raise InvalidArguments('Prelink keyword argument must be a boolean.')
@@ -2006,10 +2032,18 @@ class SharedLibrary(BuildTarget):
 
     typename = 'shared library'
 
-    def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
-                 sources: T.List[SourceOutputs], structured_sources: T.Optional['StructuredSources'],
-                 objects, environment: environment.Environment, compilers: T.Dict[str, 'Compiler'],
-                 kwargs):
+    def __init__(
+            self,
+            name: str,
+            subdir: str,
+            subproject: SubProject,
+            for_machine: MachineChoice,
+            sources: T.List['SourceOutputs'],
+            structured_sources: T.Optional[StructuredSources],
+            objects: T.List[ObjectTypes],
+            environment: environment.Environment,
+            compilers: T.Dict[str, 'Compiler'],
+            kwargs):
         self.soversion = None
         self.ltversion = None
         # Max length 2, first element is compatibility_version, second is current_version
@@ -2340,10 +2374,18 @@ class SharedModule(SharedLibrary):
 
     typename = 'shared module'
 
-    def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
-                 sources: T.List[SourceOutputs], structured_sources: T.Optional['StructuredSources'],
-                 objects, environment: environment.Environment,
-                 compilers: T.Dict[str, 'Compiler'], kwargs):
+    def __init__(
+            self,
+            name: str,
+            subdir: str,
+            subproject: SubProject,
+            for_machine: MachineChoice,
+            sources: T.List['SourceOutputs'],
+            structured_sources: T.Optional[StructuredSources],
+            objects: T.List[ObjectTypes],
+            environment: environment.Environment,
+            compilers: T.Dict[str, 'Compiler'],
+            kwargs):
         if 'version' in kwargs:
             raise MesonException('Shared modules must not specify the version kwarg.')
         if 'soversion' in kwargs:
