@@ -1807,11 +1807,12 @@ class GeneratedList(HoldableObject):
 class Executable(BuildTarget):
     known_kwargs = known_exe_kwargs
 
+    typename = 'executable'
+
     def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
                  sources: T.List[File], structured_sources: T.Optional['StructuredSources'],
                  objects, environment: environment.Environment, compilers: T.Dict[str, 'Compiler'],
                  kwargs):
-        self.typename = 'executable'
         key = OptionKey('b_pie')
         if 'pie' not in kwargs and key in environment.coredata.options:
             kwargs['pie'] = environment.coredata.options[key].value
@@ -1935,11 +1936,12 @@ class Executable(BuildTarget):
 class StaticLibrary(BuildTarget):
     known_kwargs = known_stlib_kwargs
 
+    typename = 'static library'
+
     def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
                  sources: T.List[File], structured_sources: T.Optional['StructuredSources'],
                  objects, environment: environment.Environment, compilers: T.Dict[str, 'Compiler'],
                  kwargs):
-        self.typename = 'static library'
         self.prelink = kwargs.get('prelink', False)
         if not isinstance(self.prelink, bool):
             raise InvalidArguments('Prelink keyword argument must be a boolean.')
@@ -2003,11 +2005,12 @@ class StaticLibrary(BuildTarget):
 class SharedLibrary(BuildTarget):
     known_kwargs = known_shlib_kwargs
 
+    typename = 'shared library'
+
     def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
                  sources: T.List[File], structured_sources: T.Optional['StructuredSources'],
                  objects, environment: environment.Environment, compilers: T.Dict[str, 'Compiler'],
                  kwargs):
-        self.typename = 'shared library'
         self.soversion = None
         self.ltversion = None
         # Max length 2, first element is compatibility_version, second is current_version
@@ -2339,6 +2342,8 @@ class SharedLibrary(BuildTarget):
 class SharedModule(SharedLibrary):
     known_kwargs = known_shmod_kwargs
 
+    typename = 'shared module'
+
     def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
                  sources: T.List[File], structured_sources: T.Optional['StructuredSources'],
                  objects, environment: environment.Environment,
@@ -2349,7 +2354,6 @@ class SharedModule(SharedLibrary):
             raise MesonException('Shared modules must not specify the soversion kwarg.')
         super().__init__(name, subdir, subproject, for_machine, sources,
                          structured_sources, objects, environment, compilers, kwargs)
-        self.typename = 'shared module'
         # We need to set the soname in cases where build files link the module
         # to build targets, see: https://github.com/mesonbuild/meson/issues/9492
         self.force_soname = False
@@ -2607,6 +2611,8 @@ class CustomTarget(Target, CommandBase):
 
 class RunTarget(Target, CommandBase):
 
+    typename = 'run'
+
     def __init__(self, name: str,
                  command: T.Sequence[T.Union[str, File, BuildTarget, 'CustomTarget', 'CustomTargetIndex', programs.ExternalProgram]],
                  dependencies: T.Sequence[Target],
@@ -2615,7 +2621,6 @@ class RunTarget(Target, CommandBase):
                  environment: environment.Environment,
                  env: T.Optional['EnvironmentVariables'] = None,
                  default_env: bool = True):
-        self.typename = 'run'
         # These don't produce output artifacts
         super().__init__(name, subdir, subproject, False, MachineChoice.BUILD, environment)
         self.dependencies = dependencies
@@ -2667,11 +2672,12 @@ class AliasTarget(RunTarget):
 class Jar(BuildTarget):
     known_kwargs = known_jar_kwargs
 
+    typename = 'jar'
+
     def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
                  sources: T.List[File], structured_sources: T.Optional['StructuredSources'],
                  objects, environment: environment.Environment, compilers: T.Dict[str, 'Compiler'],
                  kwargs):
-        self.typename = 'jar'
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
                          environment, compilers, kwargs)
         for s in self.sources:
@@ -2725,11 +2731,12 @@ class CustomTargetIndex(HoldableObject):
     the sources.
     """
 
+    typename: T.ClassVar[str] = 'custom'
+
     target: CustomTarget
     output: str
 
     def __post_init__(self) -> None:
-        self.typename = 'custom'
         self.for_machine = self.target.for_machine
 
     @property
