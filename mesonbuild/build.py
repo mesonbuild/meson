@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 from collections import defaultdict, OrderedDict
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, InitVar
 from functools import lru_cache
 import abc
 import copy
@@ -514,6 +514,10 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
     build_by_default: bool
     for_machine: MachineChoice
     environment: environment.Environment
+    install: bool = False
+    build_always_stale: bool = False
+    extra_files: T.List[File] = field(default_factory=list)
+    override_options: InitVar[T.Optional[T.Dict[OptionKey, str]]] = None
 
     @abc.abstractproperty
     def typename(self) -> str:
@@ -523,18 +527,20 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
     def type_suffix(self) -> str:
         pass
 
-    def __post_init__(self) -> None:
+    def __post_init__(self, overrides: T.Optional[T.Dict[OptionKey, str]]) -> None:
+        if overrides:
+            ovr = {k.evolve(machine=self.for_machine) if k.lang else k: v
+                   for k, v in overrides.items()}
+        else:
+            ovr = {}
+        self.options = OptionOverrideProxy(ovr, self.environment.coredata.options, self.subproject)
+        # XXX: this should happen in the interpreter
         if has_path_sep(self.name):
             # Fix failing test 53 when this becomes an error.
             mlog.warning(textwrap.dedent(f'''\
                 Target "{self.name}" has a path separator in its name.
                 This is not supported, it can cause unexpected failures and will become
-                a hard error in the future.
-            '''))
-        self.install = False
-        self.build_always_stale = False
-        self.options = OptionOverrideProxy({}, self.environment.coredata.options, self.subproject)
-        self.extra_files = []  # type: T.List[File]
+                a hard error in the future.'''))
 
     # dataclass comparators?
     def __lt__(self, other: object) -> bool:
@@ -2440,14 +2446,14 @@ class CustomTarget(Target, CommandBase):
                  backend: T.Optional['Backend'] = None,
                  ):
         # TODO expose keyword arg to make MachineChoice.HOST configurable
-        super().__init__(name, subdir, subproject, False, MachineChoice.HOST, environment)
+        super().__init__(name, subdir, subproject, False, MachineChoice.HOST, environment,
+                         install, build_always_stale)
         self.sources = list(sources)
         self.outputs = substitute_values(
             outputs, get_filenames_templates_dict(
                 get_sources_string_names(sources, backend),
                 []))
         self.build_by_default = build_by_default if build_by_default is not None else install
-        self.build_always_stale = build_always_stale
         self.capture = capture
         self.console = console
         self.depend_files = list(depend_files or [])
@@ -2458,7 +2464,6 @@ class CustomTarget(Target, CommandBase):
         self.env = env or EnvironmentVariables()
         self.extra_depends = list(extra_depends or [])
         self.feed = feed
-        self.install = install
         self.install_dir = list(install_dir or [])
         self.install_mode = install_mode
         self.install_tag = _process_install_tag(install_tag, len(self.outputs))
