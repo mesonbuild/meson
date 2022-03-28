@@ -2381,14 +2381,14 @@ class CustomTarget(Target, CommandBase):
                  backend: T.Optional['Backend'] = None,
                  ):
         # TODO expose keyword arg to make MachineChoice.HOST configurable
-        super().__init__(name, subdir, subproject, False, MachineChoice.HOST, environment)
+        super().__init__(name, subdir, subproject, False, MachineChoice.HOST, environment,
+                        install, build_always_stale)
         self.sources = list(sources)
         self.outputs = substitute_values(
             outputs, get_filenames_templates_dict(
                 get_sources_string_names(sources, backend),
                 []))
         self.build_by_default = build_by_default if build_by_default is not None else install
-        self.build_always_stale = build_always_stale
         self.capture = capture
         self.console = console
         self.depend_files = list(depend_files or [])
@@ -2399,7 +2399,6 @@ class CustomTarget(Target, CommandBase):
         self.env = env or EnvironmentVariables()
         self.extra_depends = list(extra_depends or [])
         self.feed = feed
-        self.install = install
         self.install_dir = list(install_dir or [])
         self.install_mode = install_mode
         self.install_tag = _process_install_tag(install_tag, len(self.outputs))
