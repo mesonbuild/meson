@@ -3098,43 +3098,270 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
         else:
             raise InterpreterException(f'Unknown default_library value: {default_library}.')
 
+    def __build_target_executable(
+            self, node: mparser.BaseNode,
+            name: str, sources: BuildTargetSource,
+            structured_sources: T.Optional[build.StructuredSources],
+            kwargs: kwargs.Executable) -> build.Executable:
+        if kwargs['gui_app'] is not None:
+            if kwargs['win_subsystem'] is not None:
+                raise InvalidArguments('Executable: can not specify both "gui_app" and "win_subsystem" together, they are mutually exclusive')
+            kwargs['win_subsystem'] = 'windows' if kwargs['gui_app'] else 'console'
+
+        return build.Executable(
+            name,
+            self.subdir,
+            self.subproject,
+            kwargs['native'],
+            self.environment,
+            sources,
+            structured_sources,
+            kwargs['objects'],
+            self.compilers[kwargs['native']],
+            build_by_default=kwargs['build_by_default'],
+            build_rpath=kwargs['build_rpath'],
+            d_debug=kwargs['d_debug'],
+            d_import_dirs=kwargs['d_import_dirs'],
+            d_module_versions=kwargs['d_module_versions'],
+            d_unittest=kwargs['d_unittest'],
+            dependencies=kwargs['dependencies'],
+            dot_net_resources=kwargs['resources'],
+            export_dynamic=kwargs['export_dynamic'],
+            extra_files=kwargs['extra_files'],
+            gnu_symbol_visibility=kwargs['gnu_symbol_visibility'],
+            implib=kwargs['implib'],
+            implicit_include_directories=kwargs['implicit_include_directories'],
+            include_directories=kwargs['include_directories'],
+            install=kwargs['install'],
+            install_dir=kwargs['install_dir'],
+            install_mode=kwargs['install_mode'],
+            install_rpath=kwargs['install_rpath'],
+            install_tag=[kwargs['install_tag']],
+            language_args={k: kwargs[f'{k}_args'] for k in compilers.all_languages},
+            link_args=kwargs['link_args'],
+            link_depends=self.source_strings_to_files(kwargs['link_depends']),
+            link_language=kwargs['link_language'],
+            link_whole=kwargs['link_whole'],
+            link_with=kwargs['link_with'],
+            name_prefix=kwargs['name_prefix'],
+            name_suffix=kwargs['name_suffix'],
+            option_overrides=kwargs['override_options'],
+            pch_args={'c': kwargs['c_pch'], 'cpp': kwargs['cpp_pch']},
+            pie=kwargs['pie'],
+            rust_crate_type=kwargs['rust_crate_type'],
+            vala_gir=kwargs['vala_gir'],
+            vala_header=kwargs['vala_header'],
+            vala_vapi=kwargs['vala_vapi'],
+            win_subsystem=kwargs['win_subsystem'] or 'console',
+        )
+
+    def __build_target_shared_library(
+            self, node: mparser.BaseNode,
+            name: str, sources: BuildTargetSource,
+            structured_sources: T.Optional[build.StructuredSources],
+            kwargs: kwargs.SharedLibrary) -> build.SharedLibrary:
+        return build.SharedLibrary(
+            name,
+            self.subdir,
+            self.subproject,
+            kwargs['native'],
+            self.environment,
+            sources,
+            structured_sources,
+            kwargs['objects'],
+            self.compilers[kwargs['native']],
+            build_by_default=kwargs['build_by_default'],
+            build_rpath=kwargs['build_rpath'],
+            d_debug=kwargs['d_debug'],
+            d_import_dirs=kwargs['d_import_dirs'],
+            d_module_versions=kwargs['d_module_versions'],
+            d_unittest=kwargs['d_unittest'],
+            dependencies=kwargs['dependencies'],
+            dot_net_resources=kwargs['resources'],
+            extra_files=kwargs['extra_files'],
+            gnu_symbol_visibility=kwargs['gnu_symbol_visibility'],
+            implicit_include_directories=kwargs['implicit_include_directories'],
+            include_directories=kwargs['include_directories'],
+            install=kwargs['install'],
+            install_dir=kwargs['install_dir'],
+            install_mode=kwargs['install_mode'],
+            install_rpath=kwargs['install_rpath'],
+            install_tag=[kwargs['install_tag']],
+            language_args={k: kwargs[f'{k}_args'] for k in compilers.all_languages},
+            link_args=kwargs['link_args'],
+            link_depends=self.source_strings_to_files(kwargs['link_depends']),
+            link_language=kwargs['link_language'],
+            link_whole=kwargs['link_whole'],
+            link_with=kwargs['link_with'],
+            name_prefix=kwargs['name_prefix'],
+            name_suffix=kwargs['name_suffix'],
+            option_overrides=kwargs['override_options'],
+            pch_args={'c': kwargs['c_pch'], 'cpp': kwargs['cpp_pch']},
+            rust_crate_type=kwargs['rust_crate_type'],
+            vala_gir=kwargs['vala_gir'],
+            vala_header=kwargs['vala_header'],
+            vala_vapi=kwargs['vala_vapi'],
+            vs_module_defs=self.source_strings_to_files([kwargs['vs_module_defs']])[0] if kwargs['vs_module_defs'] is not None else None,
+            version=kwargs['version'],
+            soversion=kwargs['soversion'],
+            darwin_versions=kwargs['darwin_versions'],
+        )
+
+    def __build_target_shared_module(
+            self, node: mparser.BaseNode,
+            name: str, sources: BuildTargetSource,
+            structured_sources: T.Optional[build.StructuredSources],
+            kwargs: kwargs.SharedModule) -> build.SharedModule:
+        for l in kwargs['link_with']:
+            if isinstance(l, build.Executable) and not l.export_dynamic:
+                raise InvalidArguments('Cannot link a shared module to an executable that has `export_dynamic` set to false')
+        return build.SharedModule(
+            name,
+            self.subdir,
+            self.subproject,
+            kwargs['native'],
+            self.environment,
+            sources,
+            structured_sources,
+            kwargs['objects'],
+            self.compilers[kwargs['native']],
+            build_by_default=kwargs['build_by_default'],
+            build_rpath=kwargs['build_rpath'],
+            d_debug=kwargs['d_debug'],
+            d_import_dirs=kwargs['d_import_dirs'],
+            d_module_versions=kwargs['d_module_versions'],
+            d_unittest=kwargs['d_unittest'],
+            dependencies=kwargs['dependencies'],
+            dot_net_resources=kwargs['resources'],
+            extra_files=kwargs['extra_files'],
+            gnu_symbol_visibility=kwargs['gnu_symbol_visibility'],
+            implicit_include_directories=kwargs['implicit_include_directories'],
+            include_directories=kwargs['include_directories'],
+            install=kwargs['install'],
+            install_dir=kwargs['install_dir'],
+            install_mode=kwargs['install_mode'],
+            install_rpath=kwargs['install_rpath'],
+            install_tag=[kwargs['install_tag']],
+            language_args={k: kwargs[f'{k}_args'] for k in compilers.all_languages},
+            link_args=kwargs['link_args'],
+            link_depends=self.source_strings_to_files(kwargs['link_depends']),
+            link_language=kwargs['link_language'],
+            link_whole=kwargs['link_whole'],
+            link_with=kwargs['link_with'],
+            name_prefix=kwargs['name_prefix'],
+            name_suffix=kwargs['name_suffix'],
+            option_overrides=kwargs['override_options'],
+            pch_args={'c': kwargs['c_pch'], 'cpp': kwargs['cpp_pch']},
+            vala_gir=kwargs['vala_gir'],
+            vala_header=kwargs['vala_header'],
+            vala_vapi=kwargs['vala_vapi'],
+            vs_module_defs=self.source_strings_to_files([kwargs['vs_module_defs']])[0] if kwargs['vs_module_defs'] is not None else None,
+        )
+
+    def __build_target_static_library(
+            self, node: mparser.BaseNode,
+            name: str, sources: BuildTargetSource,
+            structured_sources: T.Optional[build.StructuredSources],
+            kwargs: kwargs.StaticLibrary) -> build.StaticLibrary:
+        return build.StaticLibrary(
+            name,
+            self.subdir,
+            self.subproject,
+            kwargs['native'],
+            self.environment,
+            sources,
+            structured_sources,
+            kwargs['objects'],
+            self.compilers[kwargs['native']],
+            build_by_default=kwargs['build_by_default'],
+            build_rpath=kwargs['build_rpath'],
+            d_debug=kwargs['d_debug'],
+            d_import_dirs=kwargs['d_import_dirs'],
+            d_module_versions=kwargs['d_module_versions'],
+            d_unittest=kwargs['d_unittest'],
+            dependencies=kwargs['dependencies'],
+            dot_net_resources=kwargs['resources'],
+            extra_files=kwargs['extra_files'],
+            gnu_symbol_visibility=kwargs['gnu_symbol_visibility'],
+            implicit_include_directories=kwargs['implicit_include_directories'],
+            include_directories=kwargs['include_directories'],
+            install=kwargs['install'],
+            install_dir=kwargs['install_dir'],
+            install_mode=kwargs['install_mode'],
+            install_rpath=kwargs['install_rpath'],
+            install_tag=[kwargs['install_tag']],
+            language_args={k: kwargs[f'{k}_args'] for k in compilers.all_languages},
+            link_args=kwargs['link_args'],
+            link_depends=self.source_strings_to_files(kwargs['link_depends']),
+            link_language=kwargs['link_language'],
+            link_whole=kwargs['link_whole'],
+            link_with=kwargs['link_with'],
+            name_prefix=kwargs['name_prefix'],
+            name_suffix=kwargs['name_suffix'],
+            option_overrides=kwargs['override_options'],
+            pic=kwargs['pic'],
+            prelink=kwargs['prelink'],
+            pch_args={'c': kwargs['c_pch'], 'cpp': kwargs['cpp_pch']},
+            rust_crate_type=kwargs['rust_crate_type'],
+            vala_gir=kwargs['vala_gir'],
+            vala_header=kwargs['vala_header'],
+            vala_vapi=kwargs['vala_vapi'],
+        )
+
+    def __build_target_jar(
+            self, node: mparser.BaseNode,
+            name: str, sources: BuildTargetSource,
+            structured_sources: T.Optional[build.StructuredSources],
+            kwargs: kwargs.Jar) -> build.Jar:
+        return build.Jar(
+            name,
+            self.subdir,
+            self.subproject,
+            kwargs['native'],
+            self.environment,
+            sources,
+            structured_sources,
+            kwargs['objects'],
+            self.compilers[kwargs['native']],
+            build_by_default=kwargs['build_by_default'],
+            build_rpath=kwargs['build_rpath'],
+            dependencies=kwargs['dependencies'],
+            dot_net_resources=kwargs['resources'],
+            extra_files=kwargs['extra_files'],
+            gnu_symbol_visibility=kwargs['gnu_symbol_visibility'],
+            implicit_include_directories=kwargs['implicit_include_directories'],
+            include_directories=kwargs['include_directories'],
+            install=kwargs['install'],
+            install_dir=kwargs['install_dir'],
+            install_mode=kwargs['install_mode'],
+            install_rpath=kwargs['install_rpath'],
+            install_tag=[kwargs['install_tag']],
+            language_args={k: kwargs[f'{k}_args'] for k in compilers.all_languages},
+            link_args=kwargs['link_args'],
+            link_depends=self.source_strings_to_files(kwargs['link_depends']),
+            link_language=kwargs['link_language'],
+            link_whole=kwargs['link_whole'],
+            link_with=kwargs['link_with'],
+            main_class=kwargs['main_class'],
+            name_prefix=kwargs['name_prefix'],
+            name_suffix=kwargs['name_suffix'],
+            option_overrides=kwargs['override_options'],
+        )
+
     def build_target(
             self, node: mparser.BaseNode,
-            args: T.Tuple[str, T.List[BuildTargetSource]],
+            args: T.Tuple[str, T.List[SourceInputs]],
             kwargs: kwargs.BuildTarget,
             targetclass: T.Type[_BuildClassType]) -> _BuildClassType:
-        name, sources = args
-        for_machine = kwargs['native']
-        sources += listify(kwargs['sources'])
-        sources = self.source_strings_to_files(sources)
+        name, _sources = args
+        _sources += listify(kwargs['sources'])
+        sources = self.source_strings_to_files(_sources)
         if 'extra_files' in kwargs:
             ef = extract_as_list(kwargs, 'extra_files')
             kwargs['extra_files'] = self.source_strings_to_files(ef)
         self.check_sources_exist(os.path.join(self.source_root, self.subdir), sources)
         kwargs['include_directories'] = self._convert_include_dirs(kwargs['include_directories'])
-
-        # Filter out kwargs from other target types. For example 'soversion'
-        # passed to library() when default_library == 'static'.
-        if targetclass is build.Executable:
-            checks = EXECUTABLE_KWS
-        elif targetclass is build.StaticLibrary:
-            checks = STATIC_LIB_KWS
-        elif targetclass is build.SharedLibrary:
-            checks = SHARED_LIB_KWS
-        elif targetclass is build.SharedModule:
-            checks = SHARED_MOD_KWS
-        else:
-            checks = JAR_KWS
-        keys = {k.name for k in checks}
-        kwargs = {k: v for k, v in kwargs.items() if k in keys}
-
-        if targetclass is build.Executable:
-            if kwargs['gui_app'] is not None:
-                if kwargs['win_subsystem'] is not None:
-                    raise InvalidArguments('Executable: can not specify both "gui_app" and "win_subsystem" together, they are mutually exclusive')
-                kwargs['win_subsystem'] = 'windows' if kwargs['gui_app'] else 'console'
-                kwargs['gui_app'] = None
-
+        kwargs['d_import_dirs'] = self._convert_include_dirs(kwargs['d_import_dirs'])
         srcs: T.List['SourceInputs'] = []
         struct: T.Optional[build.StructuredSources] = build.StructuredSources()
         for s in sources:
@@ -3166,9 +3393,43 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
                             node=node)
                     outputs.update(o)
 
-        target = targetclass(name, self.subdir, self.subproject, for_machine,
-                             srcs, struct, kwargs['objects'], self.environment,
-                             self.compilers[for_machine], kwargs)
+        if not isinstance(kwargs['install_dir'], list):
+            kwargs['install_dir'] = [kwargs['install_dir']]
+
+        # Filter out kwargs from other target types. For example 'soversion'
+        # passed to library() when default_library == 'static'.
+        if targetclass is build.Executable:
+            checks = EXECUTABLE_KWS
+        elif targetclass is build.StaticLibrary:
+            checks = STATIC_LIB_KWS
+        elif targetclass is build.SharedLibrary:
+            checks = SHARED_LIB_KWS
+        elif targetclass is build.SharedModule:
+            checks = SHARED_MOD_KWS
+        else:
+            checks = JAR_KWS
+        keys = {k.name for k in checks}
+        kwargs = {k: v for k, v in kwargs.items() if k in keys}
+
+        if targetclass is build.Executable:
+            # We can safely cast here because we've already removed any extra keys
+            target = self.__build_target_executable(
+                node, name, sources, struct, T.cast('kwargs.Executable', kwargs))
+        elif targetclass is build.SharedLibrary:
+            # We can safely cast here because we've already removed any extra keys
+            target = self.__build_target_shared_library(
+                node, name, sources, struct, T.cast('kwargs.SharedLibrary', kwargs))
+        elif targetclass is build.StaticLibrary:
+            # We can safely cast here because we've already removed any extra keys
+            target = self.__build_target_static_library(
+                node, name, sources, struct, T.cast('kwargs.StaticLibrary', kwargs))
+        elif targetclass is build.SharedModule:
+            target = self.__build_target_shared_module(
+                node, name, sources, struct, T.cast('kwargs.SharedModule', kwargs))
+        else:
+            target = self.__build_target_jar(
+                node, name, sources, struct, T.cast('kwargs.Jar', kwargs))
+
         target.project_version = self.project_version
 
         self.add_target(name, target)

@@ -632,7 +632,7 @@ class NinjaBackend(backends.Backend):
             vala_header = File.from_built_file(self.get_target_dir(target), target.vala_header)
             header_deps.append(vala_header)
         # Recurse and find generated headers
-        for dep in itertools.chain(target.link_targets, target.link_whole_targets):
+        for dep in itertools.chain(target.link_with, target.link_whole):
             if isinstance(dep, (build.StaticLibrary, build.SharedLibrary)):
                 header_deps += self.get_generated_headers(dep)
         target.cached_generated_headers = header_deps
@@ -1263,9 +1263,9 @@ class NinjaBackend(backends.Backend):
         manifest_fullpath = os.path.join(self.environment.get_build_dir(), manifest_path)
         os.makedirs(os.path.dirname(manifest_fullpath), exist_ok=True)
         with open(manifest_fullpath, 'w', encoding='utf-8') as manifest:
-            if any(target.link_targets):
+            if any(target.link_with):
                 manifest.write('Class-Path: ')
-                cp_paths = [os.path.join(self.get_target_dir(l), l.get_filename()) for l in target.link_targets]
+                cp_paths = [os.path.join(self.get_target_dir(l), l.get_filename()) for l in target.link_with]
                 manifest.write(' '.join(cp_paths))
             manifest.write('\n')
         jar_rule = 'java_LINKER'
@@ -1288,14 +1288,14 @@ class NinjaBackend(backends.Backend):
         # Create introspection information
         self.create_target_source_introspection(target, compiler, compile_args, src_list, gen_src_list)
 
-    def generate_cs_resource_tasks(self, target):
+    def generate_cs_resource_tasks(self, target: build.BuildTarget):
         args = []
         deps = []
-        for r in target.resources:
+        for r in target.dot_net_resources:
             rel_sourcefile = os.path.join(self.build_to_src, target.subdir, r)
             if r.endswith('.resources'):
                 a = '-resource:' + rel_sourcefile
-            elif r.endswith('.txt') or r.endswith('.resx'):
+            elif r.endswith(('.txt', '.resx')):
                 ofilebase = os.path.splitext(os.path.basename(r))[0] + '.resources'
                 ofilename = os.path.join(self.get_target_private_dir(target), ofilebase)
                 elem = NinjaBuildElement(self.all_outputs, ofilename, "CUSTOM_COMMAND", rel_sourcefile)
@@ -1331,7 +1331,7 @@ class NinjaBackend(backends.Backend):
         commands += resource_args
         deps += resource_deps
         commands += compiler.get_output_args(outname_rel)
-        for l in target.link_targets:
+        for l in target.link_with:
             lname = os.path.join(self.get_target_dir(l), l.get_filename())
             commands += compiler.get_link_args(lname)
             deps.append(lname)
@@ -1377,7 +1377,7 @@ class NinjaBackend(backends.Backend):
         return args
 
     def generate_single_java_compile(self, src, target, compiler, args):
-        deps = [os.path.join(self.get_target_dir(l), l.get_filename()) for l in target.link_targets]
+        deps = [os.path.join(self.get_target_dir(l), l.get_filename()) for l in target.link_with]
         generated_sources = self.get_target_generated_sources(target)
         for rel_src in generated_sources.keys():
             if rel_src.endswith('.java'):
@@ -1405,7 +1405,7 @@ class NinjaBackend(backends.Backend):
         the build directory.
         """
         result = OrderedSet()
-        for dep in itertools.chain(target.link_targets, target.link_whole_targets):
+        for dep in itertools.chain(target.link_with, target.link_whole):
             if not dep.is_linkable_target():
                 continue
             for i in dep.sources:
@@ -1549,23 +1549,11 @@ class NinjaBackend(backends.Backend):
             # Without this, it will write it inside c_out_dir
             args += ['--vapi', os.path.join('..', target.vala_vapi)]
             valac_outputs.append(vapiname)
-            target.outputs += [target.vala_header, target.vala_vapi]
-            target.install_tag += ['devel', 'devel']
-            # Install header and vapi to default locations if user requests this
-            if len(target.install_dir) > 1 and target.install_dir[1] is True:
-                target.install_dir[1] = self.environment.get_includedir()
-            if len(target.install_dir) > 2 and target.install_dir[2] is True:
-                target.install_dir[2] = os.path.join(self.environment.get_datadir(), 'vala', 'vapi')
             # Generate GIR if requested
             if isinstance(target.vala_gir, str):
                 girname = os.path.join(self.get_target_dir(target), target.vala_gir)
                 args += ['--gir', os.path.join('..', target.vala_gir)]
                 valac_outputs.append(girname)
-                target.outputs.append(target.vala_gir)
-                target.install_tag.append('devel')
-                # Install GIR to default location if requested by user
-                if len(target.install_dir) > 3 and target.install_dir[3] is True:
-                    target.install_dir[3] = os.path.join(self.environment.get_datadir(), 'gir-1.0')
         # Detect gresources and add --gresources arguments for each
         for gensrc in other_src[1].values():
             if isinstance(gensrc, gnome.GResourceTarget):
@@ -1699,7 +1687,7 @@ class NinjaBackend(backends.Backend):
         # dependencies need to cause a relink, they're not just for ordering
         deps = [
             os.path.join(t.subdir, t.get_filename())
-            for t in itertools.chain(target.link_targets, target.link_whole_targets)
+            for t in itertools.chain(target.link_with, target.link_whole)
         ]
 
         orderdeps: T.List[str] = []
@@ -1777,7 +1765,7 @@ class NinjaBackend(backends.Backend):
         args += rustc.get_output_args(os.path.join(target.subdir, target.get_filename()))
         linkdirs = mesonlib.OrderedSet()
         external_deps = target.external_deps.copy()
-        for d in itertools.chain(target.link_targets, target.link_whole_targets):
+        for d in itertools.chain(target.link_with, target.link_whole):
             linkdirs.add(d.subdir)
             if d.uses_rust():
                 # specify `extern CRATE_NAME=OUTPUT_FILE` for each Rust
@@ -1888,14 +1876,14 @@ class NinjaBackend(backends.Backend):
 
     def determine_swift_dep_modules(self, target):
         result = []
-        for l in target.link_targets:
+        for l in target.link_with:
             if self.is_swift_target(l):
                 result.append(self.swift_module_file_name(l))
         return result
 
     def get_swift_link_deps(self, target):
         result = []
-        for l in target.link_targets:
+        for l in target.link_with:
             result.append(self.get_target_filename(l))
         return result
 
@@ -1959,7 +1947,7 @@ class NinjaBackend(backends.Backend):
             module_includes += swiftc.get_include_args(x, False)
         link_deps = self.get_swift_link_deps(target)
         abs_link_deps = [os.path.join(self.environment.get_build_dir(), x) for x in link_deps]
-        for d in target.link_targets:
+        for d in target.link_with:
             reldir = self.get_target_dir(d)
             if reldir == '':
                 reldir = '.'
@@ -2755,7 +2743,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             return []
         return [
             os.path.join(self.get_target_dir(lt), lt.get_filename())
-            for lt in itertools.chain(target.link_targets, target.link_whole_targets)
+            for lt in itertools.chain(target.link_with, target.link_whole)
         ]
 
     def generate_msvc_pch_command(self, target, compiler, pch):
@@ -2871,8 +2859,12 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                     self.environment, target.prefix, target.name, target.suffix,
                     target.soversion, target.darwin_versions)
             # This is only visited when building for Windows using either GCC or Visual Studio
-            if target.vs_module_defs and hasattr(linker, 'gen_vs_module_defs_args'):
-                commands += linker.gen_vs_module_defs_args(target.vs_module_defs.rel_to_builddir(self.build_to_src))
+            if target.vs_module_defs:
+                if isinstance(target.vs_module_defs, File):
+                    _vdf = target.vs_module_defs.rel_to_builddir(self.build_to_src)
+                else:
+                    _vdf = os.path.join(self.get_target_dir(target.vs_module_defs), target.vs_module_defs.get_outputs()[0])
+                commands += linker.gen_vs_module_defs_args(_vdf)
             # This is only visited when building for Windows using either GCC or Visual Studio
             if target.import_filename:
                 commands += linker.gen_import_library_args(self.get_import_filename(target))
@@ -2882,8 +2874,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             raise RuntimeError('Unknown build target type.')
         return commands
 
-    def get_target_type_link_args_post_dependencies(self, target, linker):
-        commands = []
+    def get_target_type_link_args_post_dependencies(self, target: build.BuildTarget, linker: Compiler) -> T.List[str]:
+        commands: T.List[str] = []
         if isinstance(target, build.Executable):
             # If gui_app is significant on this platform, add the appropriate linker arguments.
             # Unfortunately this can't be done in get_target_type_link_args, because some misguided
@@ -2891,10 +2883,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             m = self.environment.machines[target.for_machine]
 
             if m.is_windows() or m.is_cygwin():
-                if target.gui_app is not None:
-                    commands += linker.get_gui_app_args(target.gui_app)
-                else:
-                    commands += linker.get_win_subsystem_args(target.win_subsystem)
+                commands += linker.get_win_subsystem_args(target.win_subsystem)
         return commands
 
     def get_link_whole_args(self, linker, target):
@@ -2907,14 +2896,14 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
         if use_custom:
             objects_from_static_libs: T.List[ExtractedObjects] = []
-            for dep in target.link_whole_targets:
+            for dep in target.link_whole:
                 l = dep.extract_all_objects(False)
                 objects_from_static_libs += self.determine_ext_objs(l, '')
                 objects_from_static_libs.extend(self.flatten_object_list(dep))
 
             return objects_from_static_libs
         else:
-            target_args = self.build_target_link_arguments(linker, target.link_whole_targets)
+            target_args = self.build_target_link_arguments(linker, target.link_whole)
             return linker.get_link_whole_for(target_args) if target_args else []
 
     @lru_cache(maxsize=None)

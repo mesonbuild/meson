@@ -25,8 +25,8 @@ from ..programs import ExternalProgram
 
 if T.TYPE_CHECKING:
     from . import ModuleState
-    from ..interpreter.interpreter import BuildTargetSource
-    from ..interpreter.kwargs import SharedModule
+    from ..interpreter.interpreter import SourceInputs
+    from ..interpreter.kwargs import BuildTarget
 
 _MOD_KWARGS = [k for k in SHARED_MOD_KWS if k.name not in {'name_prefix', 'name_suffix'}]
 
@@ -47,8 +47,8 @@ class Python3Module(ExtensionModule):
     @typed_pos_args('python3.extension_module', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList))
     @typed_kwargs('python3.extension_module', *_MOD_KWARGS)
     def extension_module(self, state: ModuleState,
-                         args: T.Tuple[str, T.List[BuildTargetSource]],
-                         kwargs: SharedModule) -> 'SharedModule':
+                         args: T.Tuple[str, T.List[SourceInputs]],
+                         kwargs: BuildTarget) -> build.SharedModule:
         host_system = state.host_machine.system
         suffix: T.Optional[str] = None
         if host_system == 'darwin':
@@ -59,7 +59,8 @@ class Python3Module(ExtensionModule):
             suffix = 'pyd'
         kwargs['name_prefix'] = ''
         kwargs['name_suffix'] = suffix
-        return self.interpreter.func_shared_module(state.current_node, [args[0], *args[1:]], kwargs)
+        return self.interpreter.build_target(
+            state.current_node, (args[0], args[1]), kwargs, build.SharedModule)
 
     @noPosargs
     @noKwargs

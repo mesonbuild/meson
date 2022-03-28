@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+import copy
 import os
 import typing as T
 
@@ -142,19 +144,11 @@ class RustModule(ExtensionModule):
         tkwargs['args'] = extra_args + ['--test', '--format', 'pretty']
         tkwargs['protocol'] = 'rust'
 
-        new_target_kwargs = base_target.kwargs.copy()
-        # Don't mutate the shallow copied list, instead replace it with a new
-        # one
-        new_target_kwargs['rust_args'] = new_target_kwargs.get('rust_args', []) + ['--test']
-        new_target_kwargs['install'] = False
-        new_target_kwargs['dependencies'] = new_target_kwargs.get('dependencies', []) + dependencies
-
-        new_target = Executable(
-            name, base_target.subdir, state.subproject, base_target.for_machine,
-            base_target.sources, base_target.structured_sources,
-            base_target.objects, base_target.environment, base_target.compilers,
-            new_target_kwargs
-        )
+        new_target = copy.copy(base_target)
+        new_target.name = name
+        new_target.install = False
+        new_target.extra_args['rust'].append('--test')
+        new_target.add_deps(dependencies)
 
         test = self.interpreter.make_test(
             self.interpreter.current_node, (name, new_target), tkwargs)

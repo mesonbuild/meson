@@ -213,8 +213,8 @@ class DependenciesHelper:
                 # If there is a static library in `Libs:` all its deps must be
                 # public too, otherwise the generated pc file will never be
                 # usable without --static.
-                self._add_lib_dependencies(obj.link_targets,
-                                           obj.link_whole_targets,
+                self._add_lib_dependencies(obj.link_with,
+                                           obj.link_whole,
                                            obj.external_deps,
                                            isinstance(obj, build.StaticLibrary) and public)
             elif isinstance(obj, (build.CustomTarget, build.CustomTargetIndex)):
@@ -264,7 +264,7 @@ class DependenciesHelper:
         # See remove_dups() below.
         self.link_whole_targets.append(t)
         if isinstance(t, build.BuildTarget):
-            self._add_lib_dependencies(t.link_targets, t.link_whole_targets, t.external_deps, public)
+            self._add_lib_dependencies(t.link_with, t.link_whole, t.external_deps, public)
 
     def add_version_reqs(self, name: str, version_reqs: T.Optional[T.List[str]]) -> None:
         if version_reqs:
