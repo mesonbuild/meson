@@ -1,7 +1,0 @@
-{
-  "stdout": [
-    {
-      "line": "test cases/failing/101 no glib-compile-resources/meson.build:8:0: ERROR: Program 'glib-compile-resources' not found or not executable"
-    }
-  ]
-}

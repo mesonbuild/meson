@@ -169,7 +169,7 @@ class WindowsTests(BasePlatformTests):
             self.assertRebuiltTarget('prog_1')
 
     def test_msvc_cpp17(self):
-        testdir = os.path.join(self.unit_test_dir, '45 vscpp17')
+        testdir = os.path.join(self.unit_test_dir, '44 vscpp17')
 
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = detect_c_compiler(env, MachineChoice.HOST)
@@ -357,7 +357,7 @@ class WindowsTests(BasePlatformTests):
             raise SkipTest('C++ modules is only supported with Visual Studio.')
         if version_compare(os.environ['VSCMD_VER'], '<16.10.0'):
             raise SkipTest('C++ modules are only supported with VS 2019 Preview or newer.')
-        self.init(os.path.join(self.unit_test_dir, '86 cpp modules'))
+        self.init(os.path.join(self.unit_test_dir, '85 cpp modules'))
         self.build()
 
     def test_non_utf8_fails(self):

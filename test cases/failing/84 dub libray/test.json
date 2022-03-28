@@ -1,7 +1,0 @@
-{
-  "stdout": [
-    {
-      "line": "test cases/failing/84 dub libray/meson.build:11:0: ERROR: Dependency \"dubtestproject\" not found"
-    }
-  ]
-}

@@ -1,0 +1,7 @@
+{
+    "stdout": [
+        {
+            "line": "test cases/failing/118 subproject version conflict/meson.build:4:0: ERROR: Subproject B version is 100 but ['1'] required."
+        }
+    ]
+}

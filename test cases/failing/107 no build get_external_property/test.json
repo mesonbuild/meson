@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/failing/107 no build get_external_property/meson.build:3:0: ERROR: Unknown property for build machine: nonexisting"
+    }
+  ]
+}

@@ -945,7 +945,7 @@ class LinuxlikeTests(BasePlatformTests):
         '''
         if is_cygwin():
             raise SkipTest('Windows PE/COFF binaries do not use RPATH')
-        testdir = os.path.join(self.unit_test_dir, '90 pkgconfig build rpath order')
+        testdir = os.path.join(self.unit_test_dir, '89 pkgconfig build rpath order')
         self.init(testdir, override_envvars={'PKG_CONFIG_PATH': testdir})
         self.build()
         build_rpath = get_rpath(os.path.join(self.builddir, 'prog'))
@@ -964,7 +964,7 @@ class LinuxlikeTests(BasePlatformTests):
         if is_osx():
             raise SkipTest('Global RPATHs via LDFLAGS not yet supported on MacOS (does anybody need it?)')
 
-        testdir = os.path.join(self.unit_test_dir, '80 global-rpath')
+        testdir = os.path.join(self.unit_test_dir, '79 global-rpath')
         oldinstalldir = self.installdir
 
         # Build and install an external library without DESTDIR.
@@ -1129,7 +1129,7 @@ class LinuxlikeTests(BasePlatformTests):
 
     @skipIfNoPkgconfig
     def test_pkgconfig_relative_paths(self):
-        testdir = os.path.join(self.unit_test_dir, '62 pkgconfig relative paths')
+        testdir = os.path.join(self.unit_test_dir, '61 pkgconfig relative paths')
         pkg_dir = os.path.join(testdir, 'pkgconfig')
         self.assertPathExists(os.path.join(pkg_dir, 'librelativepath.pc'))
 
@@ -1183,7 +1183,7 @@ class LinuxlikeTests(BasePlatformTests):
         Check that Meson produces valid static archives with --strip enabled
         '''
         with tempfile.TemporaryDirectory() as tempdirname:
-            testdirbase = os.path.join(self.unit_test_dir, '66 static archive stripping')
+            testdirbase = os.path.join(self.unit_test_dir, '65 static archive stripping')
 
             # build lib
             self.new_builddir()
@@ -1220,7 +1220,7 @@ class LinuxlikeTests(BasePlatformTests):
     @skipIfNoPkgconfig
     @skip_if_not_language('cs')
     def test_pkgconfig_csharp_library(self):
-        testdir = os.path.join(self.unit_test_dir, '50 pkgconfig csharp library')
+        testdir = os.path.join(self.unit_test_dir, '49 pkgconfig csharp library')
         self.init(testdir)
         myenv = os.environ.copy()
         myenv['PKG_CONFIG_PATH'] = _prepend_pkg_config_path(self.privatedir)
@@ -1233,7 +1233,7 @@ class LinuxlikeTests(BasePlatformTests):
         '''
         Test that libraries are listed before their dependencies.
         '''
-        testdir = os.path.join(self.unit_test_dir, '53 pkgconfig static link order')
+        testdir = os.path.join(self.unit_test_dir, '52 pkgconfig static link order')
         self.init(testdir)
         myenv = os.environ.copy()
         myenv['PKG_CONFIG_PATH'] = _prepend_pkg_config_path(self.privatedir)
@@ -1245,7 +1245,7 @@ class LinuxlikeTests(BasePlatformTests):
         '''
         Test that the dependencies are always listed in a deterministic order.
         '''
-        testdir = os.path.join(self.unit_test_dir, '43 dep order')
+        testdir = os.path.join(self.unit_test_dir, '42 dep order')
         self.init(testdir)
         with open(os.path.join(self.builddir, 'build.ninja'), encoding='utf-8') as bfile:
             for line in bfile:
@@ -1260,7 +1260,7 @@ class LinuxlikeTests(BasePlatformTests):
         '''
         if is_cygwin():
             raise SkipTest('rpath are not used on Cygwin')
-        testdir = os.path.join(self.unit_test_dir, '42 rpath order')
+        testdir = os.path.join(self.unit_test_dir, '41 rpath order')
         self.init(testdir)
         if is_osx():
             rpathre = re.compile(r'-rpath,.*/subprojects/sub1.*-rpath,.*/subprojects/sub2')
@@ -1296,7 +1296,7 @@ class LinuxlikeTests(BasePlatformTests):
         '''
         oldprefix = self.prefix
         # Install external library so we can find it
-        testdir = os.path.join(self.unit_test_dir, '40 external, internal library rpath', 'external library')
+        testdir = os.path.join(self.unit_test_dir, '39 external, internal library rpath', 'external library')
         # install into installdir without using DESTDIR
         installdir = self.installdir
         self.prefix = installdir
@@ -1308,7 +1308,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.new_builddir()
         env = {'LIBRARY_PATH': os.path.join(installdir, self.libdir),
                'PKG_CONFIG_PATH': _prepend_pkg_config_path(os.path.join(installdir, self.libdir, 'pkgconfig'))}
-        testdir = os.path.join(self.unit_test_dir, '40 external, internal library rpath', 'built library')
+        testdir = os.path.join(self.unit_test_dir, '39 external, internal library rpath', 'built library')
         # install into installdir without using DESTDIR
         self.prefix = self.installdir
         self.init(testdir, override_envvars=env)
@@ -1348,7 +1348,7 @@ class LinuxlikeTests(BasePlatformTests):
         see: https://github.com/mesonbuild/meson/issues/9000
              https://stackoverflow.com/questions/48532868/gcc-library-option-with-a-colon-llibevent-a
         '''
-        testdir = os.path.join(self.unit_test_dir, '98 link full name','libtestprovider')
+        testdir = os.path.join(self.unit_test_dir, '97 link full name','libtestprovider')
         oldprefix = self.prefix
         # install into installdir without using DESTDIR
         installdir = self.installdir
@@ -1361,7 +1361,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.new_builddir()
         env = {'LIBRARY_PATH': os.path.join(installdir, self.libdir),
                'PKG_CONFIG_PATH': _prepend_pkg_config_path(os.path.join(installdir, self.libdir, 'pkgconfig'))}
-        testdir = os.path.join(self.unit_test_dir, '98 link full name','proguser')
+        testdir = os.path.join(self.unit_test_dir, '97 link full name','proguser')
         self.init(testdir,override_envvars=env)
 
         # test for link with full path
@@ -1394,7 +1394,7 @@ class LinuxlikeTests(BasePlatformTests):
         oldinstalldir = self.installdir
 
         # Build and install both external libraries without DESTDIR
-        val1dir = os.path.join(self.unit_test_dir, '75 pkgconfig prefixes', 'val1')
+        val1dir = os.path.join(self.unit_test_dir, '74 pkgconfig prefixes', 'val1')
         val1prefix = os.path.join(oldinstalldir, 'val1')
         self.prefix = val1prefix
         self.installdir = val1prefix
@@ -1405,7 +1405,7 @@ class LinuxlikeTests(BasePlatformTests):
 
         env1 = {}
         env1['PKG_CONFIG_PATH'] = os.path.join(val1prefix, self.libdir, 'pkgconfig')
-        val2dir = os.path.join(self.unit_test_dir, '75 pkgconfig prefixes', 'val2')
+        val2dir = os.path.join(self.unit_test_dir, '74 pkgconfig prefixes', 'val2')
         val2prefix = os.path.join(oldinstalldir, 'val2')
         self.prefix = val2prefix
         self.installdir = val2prefix
@@ -1417,7 +1417,7 @@ class LinuxlikeTests(BasePlatformTests):
         # Build, install, and run the client program
         env2 = {}
         env2['PKG_CONFIG_PATH'] = os.path.join(val2prefix, self.libdir, 'pkgconfig')
-        testdir = os.path.join(self.unit_test_dir, '75 pkgconfig prefixes', 'client')
+        testdir = os.path.join(self.unit_test_dir, '74 pkgconfig prefixes', 'client')
         testprefix = os.path.join(oldinstalldir, 'client')
         self.prefix = testprefix
         self.installdir = testprefix
@@ -1471,7 +1471,7 @@ class LinuxlikeTests(BasePlatformTests):
 
     @skipIfNoPkgconfigDep('gmodule-2.0')
     def test_ldflag_dedup(self):
-        testdir = os.path.join(self.unit_test_dir, '52 ldflagdedup')
+        testdir = os.path.join(self.unit_test_dir, '51 ldflagdedup')
         if is_cygwin() or is_osx():
             raise SkipTest('Not applicable on Cygwin or OSX.')
         env = get_fake_env()
@@ -1489,7 +1489,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertEqual(max_count, 1, 'Export dynamic incorrectly deduplicated.')
 
     def test_compiler_libs_static_dedup(self):
-        testdir = os.path.join(self.unit_test_dir, '56 dedup compiler libs')
+        testdir = os.path.join(self.unit_test_dir, '55 dedup compiler libs')
         self.init(testdir)
         build_ninja = os.path.join(self.builddir, 'build.ninja')
         with open(build_ninja, encoding='utf-8') as f:
@@ -1504,7 +1504,7 @@ class LinuxlikeTests(BasePlatformTests):
     @skipIfNoPkgconfig
     def test_noncross_options(self):
         # C_std defined in project options must be in effect also when native compiling.
-        testdir = os.path.join(self.unit_test_dir, '51 noncross options')
+        testdir = os.path.join(self.unit_test_dir, '50 noncross options')
         self.init(testdir, extra_args=['-Dpkg_config_path=' + testdir])
         compdb = self.get_compdb()
         self.assertEqual(len(compdb), 2)
@@ -1513,7 +1513,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.build()
 
     def test_identity_cross(self):
-        testdir = os.path.join(self.unit_test_dir, '61 identity cross')
+        testdir = os.path.join(self.unit_test_dir, '60 identity cross')
 
         constantsfile = tempfile.NamedTemporaryFile(mode='w')
         constantsfile.write(textwrap.dedent('''\
@@ -1542,7 +1542,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.init(testdir)
 
     def test_identity_cross_env(self):
-        testdir = os.path.join(self.unit_test_dir, '61 identity cross')
+        testdir = os.path.join(self.unit_test_dir, '60 identity cross')
         env = {
             'CC_FOR_BUILD': '"' + os.path.join(testdir, 'build_wrapper.py') + '"',
         }
@@ -1562,7 +1562,7 @@ class LinuxlikeTests(BasePlatformTests):
             raise SkipTest("Cygwin doesn't support LD_LIBRARY_PATH.")
 
         # Build some libraries and install them
-        testdir = os.path.join(self.unit_test_dir, '67 static link/lib')
+        testdir = os.path.join(self.unit_test_dir, '66 static link/lib')
         libdir = os.path.join(self.installdir, self.libdir)
         oldprefix = self.prefix
         self.prefix = self.installdir
@@ -1574,7 +1574,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.prefix = oldprefix
         meson_args = [f'-Dc_link_args=-L{libdir}',
                       '--fatal-meson-warnings']
-        testdir = os.path.join(self.unit_test_dir, '67 static link')
+        testdir = os.path.join(self.unit_test_dir, '66 static link')
         env = {'PKG_CONFIG_LIBDIR': os.path.join(libdir, 'pkgconfig')}
         self.init(testdir, extra_args=meson_args, override_envvars=env)
         self.build()
@@ -1648,7 +1648,7 @@ class LinuxlikeTests(BasePlatformTests):
             return hashlib.sha256(f.read()).hexdigest()
 
     def test_wrap_with_file_url(self):
-        testdir = os.path.join(self.unit_test_dir, '73 wrap file url')
+        testdir = os.path.join(self.unit_test_dir, '72 wrap file url')
         source_filename = os.path.join(testdir, 'subprojects', 'foo.tar.xz')
         patch_filename = os.path.join(testdir, 'subprojects', 'foo-patch.tar.xz')
         wrap_filename = os.path.join(testdir, 'subprojects', 'foo.wrap')
@@ -1705,7 +1705,7 @@ class LinuxlikeTests(BasePlatformTests):
             self.init(d, override_envvars={'PKG_CONFIG_LIBDIR': privatedir})
 
     def test_as_link_whole(self):
-        testdir = os.path.join(self.unit_test_dir, '77 as link whole')
+        testdir = os.path.join(self.unit_test_dir, '76 as link whole')
         self.init(testdir)
         with open(os.path.join(self.privatedir, 'bar1.pc'), encoding='utf-8') as f:
             content = f.read()
@@ -1722,7 +1722,7 @@ class LinuxlikeTests(BasePlatformTests):
             raise SkipTest('Prelinking not supported on Darwin.')
         if 'clang' in os.environ.get('CC', 'dummy'):
             raise SkipTest('Prelinking not supported with Clang.')
-        testdir = os.path.join(self.unit_test_dir, '87 prelinking')
+        testdir = os.path.join(self.unit_test_dir, '86 prelinking')
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = detect_c_compiler(env, MachineChoice.HOST)
         if cc.id == "gcc":
@@ -1777,7 +1777,7 @@ class LinuxlikeTests(BasePlatformTests):
 
     @skipUnless(is_linux(), 'Test only applicable to Linux')
     def test_install_strip(self):
-        testdir = os.path.join(self.unit_test_dir, '104 strip')
+        testdir = os.path.join(self.unit_test_dir, '103 strip')
         self.init(testdir)
         self.build()
 
