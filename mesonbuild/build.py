@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 from collections import defaultdict, OrderedDict
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, InitVar
 from functools import lru_cache
 import abc
 import copy
@@ -520,6 +520,10 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
     build_by_default: bool
     for_machine: MachineChoice
     environment: environment.Environment
+    install: bool = False
+    build_always_stale: bool = False
+    extra_files: T.List[File] = field(default_factory=list)
+    override_options: InitVar[T.Optional[T.Dict[OptionKey, str]]] = None
 
     @abc.abstractproperty
     def typename(self) -> str:
@@ -529,18 +533,15 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
     def type_suffix(self) -> str:
         pass
 
-    def __post_init__(self) -> None:
+    def __post_init__(self, overrides: T.Optional[T.Dict[OptionKey, str]]) -> None:
+        self.options = OptionOverrideProxy(overrides or {}, self.environment.coredata.options, self.subproject)
+        # XXX: this should happen in the interpreter
         if has_path_sep(self.name):
             # Fix failing test 53 when this becomes an error.
             mlog.warning(textwrap.dedent(f'''\
                 Target "{self.name}" has a path separator in its name.
                 This is not supported, it can cause unexpected failures and will become
-                a hard error in the future.
-            '''))
-        self.install = False
-        self.build_always_stale = False
-        self.options = OptionOverrideProxy({}, self.environment.coredata.options, self.subproject)
-        self.extra_files = []  # type: T.List[File]
+                a hard error in the future.'''))
 
     # dataclass comparators?
     def __lt__(self, other: object) -> bool:
