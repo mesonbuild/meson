@@ -222,18 +222,6 @@ class Summary:
             line_len += v_len
         mlog.log(*line, sep=list_sep)
 
-known_library_kwargs = (
-    build.known_shlib_kwargs |
-    build.known_stlib_kwargs
-)
-
-known_build_target_kwargs = (
-    known_library_kwargs |
-    build.known_exe_kwargs |
-    build.known_jar_kwargs |
-    {'target_type'}
-)
-
 TEST_KWARGS: T.List[KwargInfo] = [
     KwargInfo('args', ContainerTypeInfo(list, (str, mesonlib.File, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)),
               listify=True, default=[]),
