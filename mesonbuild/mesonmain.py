@@ -96,16 +96,14 @@ class CommandLineParser:
 
     def add_runpython_arguments(self, parser: argparse.ArgumentParser):
         parser.add_argument('-c', action='store_true', dest='eval_arg', default=False)
-        parser.add_argument('--version', action='store_true')
-        parser.add_argument('script_file', nargs='?')
+        parser.add_argument('--version', action='version', version=platform.python_version())
+        parser.add_argument('script_file')
         parser.add_argument('script_args', nargs=argparse.REMAINDER)
 
     def run_runpython_command(self, options):
         import runpy
         if options.eval_arg:
             exec(options.script_file)
-        elif options.version:
-            print(platform.python_version())
         else:
             sys.argv[1:] = options.script_args
             sys.path.insert(0, os.path.dirname(options.script_file))
