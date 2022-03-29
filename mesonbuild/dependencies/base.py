@@ -165,6 +165,9 @@ class Dependency(HoldableObject):
         else:
             return 'unknown'
 
+    def get_include_dirs(self) -> T.List['IncludeDirs']:
+        return []
+
     def get_include_type(self) -> str:
         return self.include_type
 
@@ -297,6 +300,9 @@ class InternalDependency(Dependency):
             self.version, final_includes, final_compile_args,
             final_link_args, final_libraries, final_whole_libraries,
             final_sources, final_deps, self.variables, [], [])
+
+    def get_include_dirs(self) -> T.List['IncludeDirs']:
+        return self.include_directories
 
     def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
                      configtool: T.Optional[str] = None, internal: T.Optional[str] = None,

@@ -346,6 +346,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                            'add_global_link_arguments': self.func_add_global_link_arguments,
                            'add_languages': self.func_add_languages,
                            'add_project_arguments': self.func_add_project_arguments,
+                           'add_project_dependencies': self.func_add_project_dependencies,
                            'add_project_link_arguments': self.func_add_project_link_arguments,
                            'add_test_setup': self.func_add_test_setup,
                            'alias_target': self.func_alias_target,
@@ -2653,6 +2654,27 @@ external dependencies (including libraries) must go to "dependencies".''')
     @typed_kwargs('add_global_arguments', NATIVE_KW, LANGUAGE_KW)
     def func_add_project_link_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwargs.FuncAddProjectArgs') -> None:
         self._add_project_arguments(node, self.build.projects_link_args[kwargs['native']], args[0], kwargs)
+
+    @FeatureNew('add_project_dependencies', '0.63.0')
+    @typed_pos_args('add_project_dependencies', varargs=dependencies.Dependency)
+    @typed_kwargs('add_project_dependencies', NATIVE_KW, LANGUAGE_KW)
+    def func_add_project_dependencies(self, node: mparser.FunctionNode, args: T.Tuple[T.List[dependencies.Dependency]], kwargs: 'kwargs.FuncAddProjectArgs') -> None:
+        for_machine = kwargs['native']
+        for lang in kwargs['language']:
+            if lang not in self.compilers[for_machine]:
+                raise InvalidCode(f'add_project_dependencies() called before add_language() for language "{lang}"')
+
+        for d in dependencies.get_leaf_external_dependencies(args[0]):
+            compile_args = list(d.get_compile_args())
+            system_incdir = d.get_include_type() == 'system'
+            for i in d.get_include_dirs():
+                for lang in kwargs['language']:
+                    comp = self.coredata.compilers[for_machine][lang]
+                    for idir in i.to_string_list(self.environment.get_source_dir()):
+                        compile_args.extend(comp.get_include_args(idir, system_incdir))
+
+            self._add_project_arguments(node, self.build.projects_args[for_machine], compile_args, kwargs)
+            self._add_project_arguments(node, self.build.projects_link_args[for_machine], d.get_link_args(), kwargs)
 
     def _warn_about_builtin_args(self, args: T.List[str]) -> None:
         # -Wpedantic is deliberately not included, since some people want to use it but not use -Wextra
