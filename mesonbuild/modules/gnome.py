@@ -25,7 +25,6 @@ import textwrap
 import typing as T
 
 from . import ExtensionModule
-from . import GResourceTarget, GResourceHeaderTarget, GirTarget, TypelibTarget, VapiTarget
 from . import ModuleReturnValue
 from .. import build
 from .. import interpreter
@@ -246,6 +245,21 @@ def annotations_validator(annotations: T.List[T.Union[str, T.List[str]]]) -> T.O
             if len(annot) != 3 or not all(isinstance(i, str) for i in annot):
                 return f'element {c+1} {badlist}'
     return None
+
+class GResourceTarget(build.CustomTarget):
+    pass
+
+class GResourceHeaderTarget(build.CustomTarget):
+    pass
+
+class GirTarget(build.CustomTarget):
+    pass
+
+class TypelibTarget(build.CustomTarget):
+    pass
+
+class VapiTarget(build.CustomTarget):
+    pass
 
 # gresource compilation is broken due to the way
 # the resource compiler and Ninja clash about it

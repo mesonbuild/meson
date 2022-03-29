@@ -29,6 +29,7 @@ import typing as T
 
 from . import backends
 from .. import modules
+from ..modules import gnome
 from .. import environment, mesonlib
 from .. import build
 from .. import mlog
@@ -1558,7 +1559,7 @@ class NinjaBackend(backends.Backend):
                     target.install_dir[3] = os.path.join(self.environment.get_datadir(), 'gir-1.0')
         # Detect gresources and add --gresources arguments for each
         for gensrc in other_src[1].values():
-            if isinstance(gensrc, modules.GResourceTarget):
+            if isinstance(gensrc, gnome.GResourceTarget):
                 gres_xml, = self.get_custom_target_sources(gensrc)
                 args += ['--gresources=' + gres_xml]
         extra_args = []

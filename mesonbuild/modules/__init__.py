@@ -14,9 +14,10 @@
 
 # This file contains the base representation for import('modname')
 
+from __future__ import annotations
 import typing as T
 
-from .. import build, mesonlib
+from .. import mesonlib
 from ..mesonlib import relpath, HoldableObject, MachineChoice
 from ..interpreterbase.decorators import noKwargs, noPosargs
 
@@ -189,18 +190,3 @@ class ModuleReturnValue:
         self.return_value = return_value
         assert isinstance(new_objects, list)
         self.new_objects: T.List[T.Union['TYPE_var', 'build.ExecutableSerialisation']] = new_objects
-
-class GResourceTarget(build.CustomTarget):
-    pass
-
-class GResourceHeaderTarget(build.CustomTarget):
-    pass
-
-class GirTarget(build.CustomTarget):
-    pass
-
-class TypelibTarget(build.CustomTarget):
-    pass
-
-class VapiTarget(build.CustomTarget):
-    pass
