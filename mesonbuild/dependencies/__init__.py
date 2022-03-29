@@ -18,7 +18,7 @@ from .hdf5 import hdf5_factory
 from .base import Dependency, InternalDependency, ExternalDependency, NotFoundDependency
 from .base import (
         ExternalLibrary, DependencyException, DependencyMethods,
-        BuiltinDependency, SystemDependency)
+        BuiltinDependency, SystemDependency, get_leaf_external_dependencies)
 from .cmake import CMakeDependency
 from .configtool import ConfigToolDependency
 from .dub import DubDependency
@@ -65,6 +65,7 @@ __all__ = [
 
     'find_external_dependency',
     'get_dep_identifier',
+    'get_leaf_external_dependencies',
 ]
 
 """Dependency representations and discovery logic.
