@@ -114,6 +114,7 @@ class AstInterpreter(InterpreterBase):
                            'add_global_arguments': self.func_do_nothing,
                            'add_global_link_arguments': self.func_do_nothing,
                            'add_project_arguments': self.func_do_nothing,
+                           'add_project_dependencies': self.func_do_nothing,
                            'add_project_link_arguments': self.func_do_nothing,
                            'message': self.func_do_nothing,
                            'generator': self.func_do_nothing,

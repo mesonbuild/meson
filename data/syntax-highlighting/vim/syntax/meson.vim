@@ -68,6 +68,7 @@ syn keyword mesonBuiltin
   \ add_global_link_arguments
   \ add_languages
   \ add_project_arguments
+  \ add_project_dependencies
   \ add_project_link_arguments
   \ add_test_setup
   \ alias_target
