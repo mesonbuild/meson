@@ -127,6 +127,7 @@ syn keyword mesonBuiltin
   \ vcs_tag
   \ warning
   \ range
+  \ debug
 
 if exists("meson_space_error_highlight")
   " trailing whitespace
