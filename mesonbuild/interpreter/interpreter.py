@@ -669,7 +669,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         variables = self.extract_variables(kwargs, list_new=True)
         d_module_versions = extract_as_list(kwargs, 'd_module_versions')
         d_import_dirs = self.extract_incdirs(kwargs, 'd_import_dirs')
-        final_deps = []
         srcdir = Path(self.environment.source_dir)
         # convert variables which refer to an -uninstalled.pc style datadir
         for k, v in variables.items():
@@ -683,15 +682,14 @@ class Interpreter(InterpreterBase, HoldableObject):
                 if p.is_absolute() and p.is_dir() and srcdir / self.root_subdir in p.resolve().parents:
                     variables[k] = P_OBJ.DependencyVariableString(v)
         for d in deps:
-            if not isinstance(d, (dependencies.Dependency, dependencies.ExternalLibrary, dependencies.InternalDependency)):
-                raise InterpreterException('Dependencies must be external deps')
-            final_deps.append(d)
+            if not isinstance(d, dependencies.Dependency):
+                raise InterpreterException('Invalid dependency')
         for l in libs:
             if isinstance(l, dependencies.Dependency):
                 raise InterpreterException('''Entries in "link_with" may only be self-built targets,
 external dependencies (including libraries) must go to "dependencies".''')
         dep = dependencies.InternalDependency(version, incs, compile_args,
-                                              link_args, libs, libs_whole, sources, final_deps,
+                                              link_args, libs, libs_whole, sources, deps,
                                               variables, d_module_versions, d_import_dirs)
         return dep
 
