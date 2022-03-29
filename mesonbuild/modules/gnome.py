@@ -674,6 +674,7 @@ class GnomeModule(ExtensionModule):
                         external_ldflags.update(libdepflags[2])
                         external_ldflags_nodedup += libdepflags[3]
                         gi_includes.update(libdepflags[4])
+                        depends.extend(libdepflags[5])
                 extdepflags = self._get_dependencies_flags(dep.ext_deps, state, depends, include_rpath,
                                                            use_gir_args, True)
                 cflags.update(extdepflags[0])
@@ -681,6 +682,7 @@ class GnomeModule(ExtensionModule):
                 external_ldflags.update(extdepflags[2])
                 external_ldflags_nodedup += extdepflags[3]
                 gi_includes.update(extdepflags[4])
+                depends.extend(libdepflags[5])
                 for source in dep.sources:
                     if isinstance(source, GirTarget):
                         gi_includes.update([os.path.join(state.environment.get_build_dir(),
@@ -1456,8 +1458,10 @@ class GnomeModule(ExtensionModule):
         t_args.append(f'--expand-content-files={"@@".join(abs_filenames(kwargs["expand_content_files"]))}')
         t_args.append(f'--ignore-headers={"@@".join(kwargs["ignore_headers"])}')
         t_args.append(f'--installdir={"@@".join(kwargs["install_dir"])}')
-        t_args += self._get_build_args(kwargs['c_args'], kwargs['include_directories'],
-                                       kwargs['dependencies'], state, depends)
+        build_args, new_depends = self._get_build_args(kwargs['c_args'], kwargs['include_directories'],
+                                                       kwargs['dependencies'], state, depends)
+        t_args.extend(build_args)
+        new_depends.extend(depends)
         custom_target = build.CustomTarget(
             targetname,
             state.subdir,
@@ -1466,7 +1470,7 @@ class GnomeModule(ExtensionModule):
             [],
             [f'{modulename}-decl.txt'],
             build_always_stale=True,
-            extra_depends=depends,
+            extra_depends=new_depends,
         )
         alias_target = build.AliasTarget(targetname, [custom_target], state.subdir, state.subproject)
         if kwargs['check']:
@@ -1484,10 +1488,11 @@ class GnomeModule(ExtensionModule):
     def _get_build_args(self, c_args: T.List[str], inc_dirs: T.List[T.Union[str, build.IncludeDirs]],
                         deps: T.List[T.Union[Dependency, build.SharedLibrary, build.StaticLibrary]],
                         state: 'ModuleState',
-                        depends: T.Sequence[T.Union[build.BuildTarget, 'build.GeneratedTypes']]) -> T.List[str]:
+                        depends: T.Sequence[T.Union[build.BuildTarget, 'build.GeneratedTypes']]) -> T.Tuple[
+                                T.List[str], T.List[T.Union[build.BuildTarget, 'build.GeneratedTypes', 'FileOrString', build.StructuredSources]]]:
         args: T.List[str] = []
         cflags = c_args.copy()
-        deps_cflags, internal_ldflags, external_ldflags, *_ = \
+        deps_cflags, internal_ldflags, external_ldflags, _nodedup, _gi_includes, new_depends = \
             self._get_dependencies_flags(deps, state, depends, include_rpath=True)
 
         cflags.extend(deps_cflags)
@@ -1512,7 +1517,7 @@ class GnomeModule(ExtensionModule):
         if ldflags:
             args += ['--ldflags=%s' % join_args(ldflags)]
 
-        return args
+        return args, new_depends
 
     @noKwargs
     @typed_pos_args('gnome.gtkdoc_html_dir', str)
