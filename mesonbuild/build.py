@@ -1277,10 +1277,13 @@ class BuildTarget(Target):
 
     def _extract_pic_pie(self, kwargs, arg: str, option: str):
         # Check if we have -fPIC, -fpic, -fPIE, or -fpie in cflags
-        all_flags = self.extra_args['c'] + self.extra_args['cpp']
-        if '-f' + arg.lower() in all_flags or '-f' + arg.upper() in all_flags:
+        all_flags = set(self.extra_args['c']) | set(self.extra_args['cpp'])
+        if {f'-f-{arg.lower()}', f'-f-{arg.upper()}'}.issubset(all_flags):
             mlog.warning(f"Use the '{arg}' kwarg instead of passing '-f{arg}' manually to {self.name!r}")
             return True
+        elif {f'-fno-{arg.lower()}', f'-fno-{arg.upper()}'}.issubset(all_flags):
+            mlog.warning(f"Use the '{arg}' kwarg instead of passing '-fno-{arg}' manually to {self.name!r}")
+            return False
 
         k = OptionKey(option)
         if arg in kwargs:
