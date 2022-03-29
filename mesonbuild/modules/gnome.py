@@ -682,7 +682,7 @@ class GnomeModule(ExtensionModule):
                 external_ldflags.update(extdepflags[2])
                 external_ldflags_nodedup += extdepflags[3]
                 gi_includes.update(extdepflags[4])
-                depends.extend(libdepflags[5])
+                depends.extend(extdepflags[5])
                 for source in dep.sources:
                     if isinstance(source, GirTarget):
                         gi_includes.update([os.path.join(state.environment.get_build_dir(),
