@@ -239,20 +239,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return args
 
     def _determine_dependencies(self, deps: T.List['dependencies.Dependency'], endl: str = ':') -> T.Tuple[T.List['dependencies.Dependency'], str]:
-        if deps:
-            final_deps = []
-            while deps:
-                next_deps = []
-                for d in mesonlib.listify(deps):
-                    if not isinstance(d, dependencies.Dependency) or d.is_built():
-                        raise InterpreterException('Dependencies must be external dependencies')
-                    final_deps.append(d)
-                    next_deps.extend(d.ext_deps)
-                deps = next_deps
-            deps = final_deps
-        else:
-            # Ensure that we always return a new instance
-            deps = deps.copy()
+        deps = dependencies.get_leaf_external_dependencies(deps)
         return deps, self._dep_msg(deps, endl)
 
     @typed_pos_args('compiler.alignment', str)
