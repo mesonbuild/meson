@@ -17,9 +17,9 @@ kwargs:
       instead (see above).
 
   soversion:
-    type: str
+    type: str | int
     description: |
-      A string specifying the soversion of this shared library,
+      A string or integer specifying the soversion of this shared library,
       such as `0`. On Linux and Windows this is used to set the
       soversion (or equivalent) in the filename. For example, if
       `soversion` is `4`, a Windows DLL will be called `foo-4.dll` and one
