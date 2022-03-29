@@ -356,6 +356,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                            'configuration_data': self.func_configuration_data,
                            'configure_file': self.func_configure_file,
                            'custom_target': self.func_custom_target,
+                           'debug': self.func_debug,
                            'declare_dependency': self.func_declare_dependency,
                            'dependency': self.func_dependency,
                            'disabler': self.func_disabler,
@@ -1323,6 +1324,13 @@ external dependencies (including libraries) must go to "dependencies".''')
             FeatureNew.single_use('error with more than one argument', '0.58.0', self.subproject, location=node)
         args_str = [stringifyUserArguments(i) for i in args]
         raise InterpreterException('Problem encountered: ' + ' '.join(args_str))
+
+    @noArgsFlattening
+    @FeatureNew('debug', '0.63.0')
+    @noKwargs
+    def func_debug(self, node, args, kwargs):
+        args_str = [stringifyUserArguments(i) for i in args]
+        mlog.debug('Debug:', *args_str)
 
     @noKwargs
     @noPosargs
