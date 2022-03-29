@@ -113,6 +113,18 @@ known_shmod_kwargs = known_build_target_kwargs | {'vs_module_defs'}
 known_stlib_kwargs = known_build_target_kwargs | {'pic', 'prelink'}
 known_jar_kwargs = known_exe_kwargs | {'main_class', 'java_resources'}
 
+def _process_install_tag(install_tag: T.List[T.Optional[str]],
+                         num_outputs: int) -> T.List[T.Optional[str]]:
+    _install_tag: T.List[T.Optional[str]]
+    if not install_tag:
+        _install_tag = [None] * num_outputs
+    elif len(install_tag) == 1:
+        _install_tag = list(install_tag) * num_outputs
+    else:
+        _install_tag = list(install_tag)
+    return _install_tag
+
+
 @lru_cache(maxsize=None)
 def get_target_macos_dylib_install_name(ld) -> str:
     name = ['@rpath/', ld.prefix, ld.name]
@@ -2451,10 +2463,7 @@ class CustomTarget(Target, CommandBase):
         self.install = install
         self.install_dir = list(install_dir or [])
         self.install_mode = install_mode
-        _install_tag: T.List[T.Optional[str]] = [None] if not install_tag else stringlistify(install_tag)
-        if len(_install_tag) == 1:
-            _install_tag = list(_install_tag) * len(self.outputs)
-        self.install_tag = _install_tag
+        self.install_tag = _process_install_tag(install_tag, len(self.outputs))
         self.name = name if name else self.outputs[0]
 
         # Whether to use absolute paths for all files on the commandline
