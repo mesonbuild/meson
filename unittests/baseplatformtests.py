@@ -322,6 +322,10 @@ class BasePlatformTests(TestCase):
                     each['command'] = compiler + ' ' + f.read()
         return contents
 
+    def get_meson_log_raw(self):
+        with self._open_meson_log() as f:
+            return f.read()
+
     def get_meson_log(self):
         with self._open_meson_log() as f:
             return f.readlines()

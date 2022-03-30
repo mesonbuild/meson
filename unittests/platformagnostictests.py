@@ -83,9 +83,8 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.assertNotIn(log_msg, output)
 
         # Check if message is written to the meson log
-        mesonlog = os.path.join(self.builddir, 'meson-logs/meson-log.txt')
-        with open(mesonlog, mode='r', encoding='utf-8') as file:
-            self.assertIn(log_msg, file.read())
+        mesonlog = self.get_meson_log_raw()
+        self.assertIn(log_msg, mesonlog)
 
     def test_new_subproject_reconfigure(self):
         testdir = os.path.join(self.unit_test_dir, '107 new subproject on reconfigure')
