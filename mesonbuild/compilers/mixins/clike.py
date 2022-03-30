@@ -918,7 +918,7 @@ class CLikeCompiler(Compiler):
         n = '_symbols_have_underscore_prefix_searchbin'
         with self._build_wrapper(code, env, extra_args=args, mode='compile', want_output=True, temp_dir=env.scratch_dir) as p:
             if p.returncode != 0:
-                raise RuntimeError(f'BUG: Unable to compile {n!r} check: {p.stdout}')
+                raise RuntimeError(f'BUG: Unable to compile {n!r} check: {p.stderr}')
             if not os.path.isfile(p.output_name):
                 raise RuntimeError(f'BUG: Can\'t find compiled test code for {n!r} check')
             with open(p.output_name, 'rb') as o:
