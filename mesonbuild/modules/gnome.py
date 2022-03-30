@@ -671,14 +671,14 @@ class GnomeModule(ExtensionModule):
                         internal_ldflags.update(libdepflags[1])
                         external_ldflags.update(libdepflags[2])
                         gi_includes.update(libdepflags[3])
-                        depends.extend(libdepflags[4])
+                        depends = libdepflags[4]
                 extdepflags = self._get_dependencies_flags_raw(dep.ext_deps, state, depends, include_rpath,
                                                                use_gir_args)
                 cflags.update(extdepflags[0])
                 internal_ldflags.update(extdepflags[1])
                 external_ldflags.update(extdepflags[2])
                 gi_includes.update(extdepflags[3])
-                depends.extend(extdepflags[4])
+                depends = extdepflags[4]
                 for source in dep.sources:
                     if isinstance(source, GirTarget):
                         gi_includes.update([os.path.join(state.environment.get_build_dir(),
