@@ -60,7 +60,7 @@ from mesonbuild.scripts import destdir_join
 from mesonbuild.wrap.wrap import PackageDefinition, WrapException
 
 from run_tests import (
-    Backend, exe_suffix, get_fake_env
+    Backend, exe_suffix, get_fake_env, get_convincing_fake_env_and_cc
 )
 
 from .baseplatformtests import BasePlatformTests
@@ -1546,23 +1546,12 @@ class AllPlatformTests(BasePlatformTests):
             self.build()
             self.run_tests()
 
-    def get_convincing_fake_env_and_cc(self) -> None:
-        '''
-        Return a fake env and C compiler with the fake env
-        machine info properly detected using that compiler.
-        '''
-        env = get_fake_env('', self.builddir, self.prefix)
-        cc = detect_c_compiler(env, MachineChoice.HOST)
-        # Detect machine info
-        env.machines.host = mesonbuild.environment.detect_machine_info({'c':cc})
-        return (env, cc)
-
     def test_underscore_prefix_detection_list(self) -> None:
         '''
         Test the underscore detection hardcoded lookup list
         against what was detected in the binary.
         '''
-        env, cc = self.get_convincing_fake_env_and_cc()
+        env, cc = get_convincing_fake_env_and_cc(self.builddir, self.prefix)
         expected_uscore = cc._symbols_have_underscore_prefix_searchbin(env)
         list_uscore = cc._symbols_have_underscore_prefix_list(env)
         if list_uscore is not None:
@@ -1575,7 +1564,7 @@ class AllPlatformTests(BasePlatformTests):
         Test the underscore detection based on compiler-defined preprocessor macro
         against what was detected in the binary.
         '''
-        env, cc = self.get_convincing_fake_env_and_cc()
+        env, cc = get_convincing_fake_env_and_cc(self.builddir, self.prefix)
         expected_uscore = cc._symbols_have_underscore_prefix_searchbin(env)
         define_uscore = cc._symbols_have_underscore_prefix_define(env)
         if define_uscore is not None:
