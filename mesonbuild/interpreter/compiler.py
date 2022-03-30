@@ -2,9 +2,14 @@
 # Copyright 2012-2021 The Meson development team
 # Copyright © 2021 Intel Corporation
 
+from __future__ import annotations
 import enum
 import functools
+import itertools
+import os
 import typing as T
+
+from mesonbuild.interpreter.interpreter import SourceInputs
 
 from .. import build
 from .. import coredata
@@ -13,6 +18,7 @@ from .. import mesonlib
 from .. import mlog
 from ..compilers import SUFFIX_TO_LANG
 from ..compilers.compilers import CompileCheckMode
+from .interpreterobjects import ExternalProgramHolder
 from ..interpreterbase import (ObjectHolder, noPosargs, noKwargs,
                                FeatureNew, disablerIfNotFound,
                                InterpreterException)
@@ -21,9 +27,10 @@ from .interpreterobjects import (extract_required_kwarg, extract_search_dirs)
 from .type_checking import REQUIRED_KW, in_set_validator, NoneType
 
 if T.TYPE_CHECKING:
-    from ..interpreter import Interpreter
     from ..compilers import Compiler, RunResult
+    from ..interpreter import Interpreter
     from ..interpreterbase import TYPE_var, TYPE_kwargs
+    from ..programs import ExternalProgram
     from .kwargs import ExtractRequired, ExtractSearchDirs
 
     from typing_extensions import TypedDict, Literal
@@ -117,6 +124,100 @@ class TryRunResultHolder(ObjectHolder['RunResult']):
         return self.held_object.stderr
 
 
+class PreprocessorHolder(ExternalProgramHolder):
+
+    """Interpreter interface for A language (usually C) pre-processor."""
+
+    def __init__(self, ep: ExternalProgram, compiler: Compiler, interpreter: Interpreter):
+        super().__init__(ep, interpreter)
+        self.compiler = compiler
+        self.methods.update({
+            'cmd_array': self.cmd_array_method,
+            'first_supported_argument': self.first_supported_argument_method,
+            'get_supported_arguments': self.get_supported_arguments_method,
+            'has_argument': self.has_argument_method,
+            'has_multi_arguments': self.has_multi_arguments_method,
+            'preprocess': self.preprocessor_method,
+        })
+
+    def __has_arguments(self, args: T.List[str]) -> bool:
+        result, cached = self.compiler.has_multi_arguments(
+            self.compiler.get_preprocess_only_args() + args, self.interpreter.environment)
+        mlog.log(
+            'Preprocessor for', self.compiler.get_display_language(),
+            'supports arguments', ' '.join(args),
+            mlog.green('YES') if result else  mlog.red('NO'),
+            mlog.blue('(cached)') if cached else '')
+        return result
+
+    @noPosargs
+    @noKwargs
+    def cmd_array_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.List[str]:
+        return self.held_object.get_command()
+
+    @noKwargs
+    @typed_pos_args('preprocessor.has_argument', str)
+    def has_argument_method(self, args: T.Tuple[str], kwargs: TYPE_kwargs) -> bool:
+        return self.__has_arguments([args[0]])
+
+    @noKwargs
+    @typed_pos_args('preprocessor.has_multi_arguments', varargs=str, min_varargs=1)
+    def has_multi_arguments_method(self, args: T.Tuple[T.List[str]], kwargs: TYPE_kwargs) -> bool:
+        return self.__has_arguments(args[0])
+
+    @noKwargs
+    @typed_pos_args('preprocessor.get_supported_arguments', varargs=str, min_varargs=1)
+    def get_supported_arguments_method(self, args: T.Tuple[T.List[str]], kwargs: TYPE_kwargs) -> T.List[str]:
+        return [a for a in args[0] if self.__has_arguments([a])]
+
+    @noKwargs
+    @typed_pos_args('preprocessor.first_supported_argument', varargs=str, min_varargs=1)
+    def first_supported_argument_method(self, args: T.Tuple[T.List[str]], kwargs: TYPE_kwargs) -> T.List[str]:
+        mlog.log('First supported argument:')
+        for arg in args[0]:
+            if self.__has_arguments([arg]):
+                mlog.log(mlog.bold(arg))
+                return [arg]
+        mlog.log(mlog.red('None'))
+        return []
+
+    @typed_pos_args('preprocessor.process', varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList), min_varargs=1)
+    @typed_kwargs(
+        'preprocessor.process',
+        KwargInfo('args', ContainerTypeInfo(list, str), listify=True, default=[]),
+    )
+    def preprocessor_method(self, args: T.Tuple[T.List[T.Union[str, mesonlib.File, build.GeneratedTypes]]],
+                            kwargs: TYPE_kwargs) -> T.List[build.CustomTarget]:
+        outputs: T.List[build.CustomTarget] = []
+
+        # Mypy gets confused by the `[s]` below for some reason
+        srcs: T.Iterable[mesonlib.FileOrString] = itertools.chain.from_iterable(
+            [s] if isinstance(s, (str, mesonlib.File)) else s.get_outputs()  # type: ignore
+            for s in args[0])
+
+        for s in srcs:
+            if isinstance(s, mesonlib.File):
+                base, ext = os.path.splitext(s.fname)
+            else:
+                base, ext = os.path.splitext(s)
+            output = f'{base}.preprocessed{ext}'
+            outputs.append(
+                build.CustomTarget(
+                    output,
+                    self.interpreter.subdir,
+                    self.subproject,
+                    self.interpreter.environment,
+                    # TODO: are we going to need a PreProcessor Object?
+                    self.held_object.get_command() + self.compiler.get_output_args('@OUTPUT@') + ['@INPUT@'],
+                    [s],
+                    [output],
+                    backend=self.interpreter.backend,
+                )
+            )
+
+        return outputs
+
+
 _ARGS_KW: KwargInfo[T.List[str]] = KwargInfo(
     'args',
     ContainerTypeInfo(list, str),
@@ -183,6 +284,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
                              'first_supported_link_argument': self.first_supported_link_argument_method,
                              'symbols_have_underscore_prefix': self.symbols_have_underscore_prefix_method,
                              'get_argument_syntax': self.get_argument_syntax_method,
+                             'get_preprocessor': self.get_preprocessor_method,
                              })
 
     @property
@@ -743,3 +845,16 @@ class CompilerHolder(ObjectHolder['Compiler']):
     @noKwargs
     def get_argument_syntax_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         return self.compiler.get_argument_syntax()
+
+    @FeatureNew('compiler.get_preprocessor', '0.63.0')
+    @noPosargs
+    @noKwargs
+    def get_preprocessor_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> 'PreprocessorHolder':
+        try:
+            pp_args = self.compiler.get_preprocess_only_args()
+        except mesonlib.EnvironmentException as e:
+            raise InterpreterException(str(e))
+
+        pp = ExternalProgram(f'{self.compiler.language} preprocessor', self.compiler.exelist + pp_args, silent=True)
+        return PreprocessorHolder(pp, self.compiler, self.interpreter)
+
