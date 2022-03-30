@@ -15,6 +15,7 @@
 from pathlib import PurePath
 from unittest import mock, TestCase, SkipTest
 import json
+import io
 import os
 import re
 import subprocess
@@ -120,13 +121,17 @@ class BasePlatformTests(TestCase):
         newdir = os.path.realpath(newdir)
         self.change_builddir(newdir)
 
-    def _get_meson_log(self) -> T.Optional[str]:
+    def _open_meson_log(self) -> io.TextIOWrapper:
         log = os.path.join(self.logdir, 'meson-log.txt')
-        if not os.path.isfile(log):
-            print(f"{log!r} doesn't exist", file=sys.stderr)
+        return open(log, encoding='utf-8')
+
+    def _get_meson_log(self) -> T.Optional[str]:
+        try:
+            with self._open_meson_log() as f:
+                return f.read()
+        except FileNotFoundError as e:
+            print(f"{e.filename!r} doesn't exist", file=sys.stderr)
             return None
-        with open(log, encoding='utf-8') as f:
-            return f.read()
 
     def _print_meson_log(self) -> None:
         log = self._get_meson_log()
@@ -318,7 +323,7 @@ class BasePlatformTests(TestCase):
         return contents
 
     def get_meson_log(self):
-        with open(os.path.join(self.builddir, 'meson-logs', 'meson-log.txt'), encoding='utf-8') as f:
+        with self._open_meson_log() as f:
             return f.readlines()
 
     def get_meson_log_compiler_checks(self):
@@ -326,19 +331,19 @@ class BasePlatformTests(TestCase):
         Fetch a list command-lines run by meson for compiler checks.
         Each command-line is returned as a list of arguments.
         '''
-        log = self.get_meson_log()
         prefix = 'Command line:'
-        cmds = [l[len(prefix):].split() for l in log if l.startswith(prefix)]
-        return cmds
+        with self._open_meson_log() as log:
+            cmds = [l[len(prefix):].split() for l in log if l.startswith(prefix)]
+            return cmds
 
     def get_meson_log_sanitychecks(self):
         '''
         Same as above, but for the sanity checks that were run
         '''
-        log = self.get_meson_log()
         prefix = 'Sanity check compiler command line:'
-        cmds = [l[len(prefix):].split() for l in log if l.startswith(prefix)]
-        return cmds
+        with self._open_meson_log() as log:
+            cmds = [l[len(prefix):].split() for l in log if l.startswith(prefix)]
+            return cmds
 
     def introspect(self, args):
         if isinstance(args, str):
