@@ -106,14 +106,7 @@ def gnulike_default_include_dirs(compiler: T.Tuple[str, ...], lang: str) -> 'Imm
     env = os.environ.copy()
     env["LC_ALL"] = 'C'
     cmd = list(compiler) + [f'-x{lang}', '-E', '-v', '-']
-    p = subprocess.Popen(
-        cmd,
-        stdin=subprocess.DEVNULL,
-        stderr=subprocess.STDOUT,
-        stdout=subprocess.PIPE,
-        env=env
-    )
-    stdout = p.stdout.read().decode('utf-8', errors='replace')
+    _, stdout, _ = mesonlib.Popen_safe(cmd, stderr=subprocess.STDOUT, env=env)
     parse_state = 0
     paths = []  # type: T.List[str]
     for line in stdout.split('\n'):
