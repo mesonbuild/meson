@@ -822,7 +822,7 @@ class XCodeBackend(backends.Backend):
                 if isinstance(s, mesonlib.File):
                     s = os.path.join(s.subdir, s.fname)
                 elif isinstance(s, str):
-                    s = os.path.joni(t.subdir, s)
+                    s = os.path.join(t.subdir, s)
                 else:
                     continue
                 custom_dict = PbxDict()
@@ -942,7 +942,7 @@ class XCodeBackend(backends.Backend):
                 if isinstance(s, mesonlib.File):
                     s = os.path.join(s.subdir, s.fname)
                 elif isinstance(s, str):
-                    s = os.path.joni(t.subdir, s)
+                    s = os.path.join(t.subdir, s)
                 else:
                     continue
                 source_file_children.add_item(self.fileref_ids[(tname, s)], s)
@@ -975,7 +975,7 @@ class XCodeBackend(backends.Backend):
             if isinstance(s, mesonlib.File):
                 s = os.path.join(s.subdir, s.fname)
             elif isinstance(s, str):
-                s = os.path.joni(t.subdir, s)
+                s = os.path.join(t.subdir, s)
             else:
                 continue
             target_children.add_item(self.fileref_ids[(tid, s)], s)
