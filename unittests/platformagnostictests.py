@@ -77,9 +77,9 @@ class PlatformAgnosticTests(BasePlatformTests):
         output = self.init(testdir)
 
         # Check if message is not printed to stdout while configuring
-        assert(log_msg not in output)
+        self.assertNotIn(log_msg, output)
 
         # Check if message is written to the meson log
         mesonlog = os.path.join(self.builddir, 'meson-logs/meson-log.txt')
         with open(mesonlog, mode='r', encoding='utf-8') as file:
-            assert(log_msg in file.read())
+            self.assertIn(log_msg, file.read())
