@@ -1177,7 +1177,8 @@ class XCodeBackend(backends.Backend):
             (srcs, ofilenames, cmd) = self.eval_custom_target_command(t, absolute_outputs=True)
             fixed_cmd, _ = self.as_meson_exe_cmdline(cmd[0],
                                                      cmd[1:],
-                                                     #workdir=None,
+                                                     capture=ofilenames[0] if t.capture else None,
+                                                     feed=srcs[0] if t.feed else None,
                                                      env=t.env)
             custom_dict = PbxDict()
             objects_dict.add_item(self.shell_targets[tname], custom_dict, f'/* Custom target {tname} */')
