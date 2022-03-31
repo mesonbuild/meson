@@ -900,9 +900,10 @@ class CLikeCompiler(Compiler):
         return self.compiles(t, env, extra_args=extra_args,
                              dependencies=dependencies)
 
-    def symbols_have_underscore_prefix(self, env: 'Environment') -> bool:
+    def _symbols_have_underscore_prefix_searchbin(self, env: 'Environment') -> bool:
         '''
-        Check if the compiler prefixes an underscore to global C symbols
+        Check if symbols have underscore prefix by compiling a small test binary
+        and then searching the binary for the string,
         '''
         symbol_name = b'meson_uscore_prefix'
         code = '''#ifdef __cplusplus
@@ -914,10 +915,10 @@ class CLikeCompiler(Compiler):
         #endif
         '''
         args = self.get_compiler_check_args(CompileCheckMode.COMPILE)
-        n = 'symbols_have_underscore_prefix'
+        n = '_symbols_have_underscore_prefix_searchbin'
         with self._build_wrapper(code, env, extra_args=args, mode='compile', want_output=True, temp_dir=env.scratch_dir) as p:
             if p.returncode != 0:
-                raise RuntimeError(f'BUG: Unable to compile {n!r} check: {p.stdout}')
+                raise RuntimeError(f'BUG: Unable to compile {n!r} check: {p.stderr}')
             if not os.path.isfile(p.output_name):
                 raise RuntimeError(f'BUG: Can\'t find compiled test code for {n!r} check')
             with open(p.output_name, 'rb') as o:
@@ -925,13 +926,79 @@ class CLikeCompiler(Compiler):
                     # Check if the underscore form of the symbol is somewhere
                     # in the output file.
                     if b'_' + symbol_name in line:
-                        mlog.debug("Symbols have underscore prefix: YES")
+                        mlog.debug("Underscore prefix check found prefixed function in binary")
                         return True
                     # Else, check if the non-underscored form is present
                     elif symbol_name in line:
-                        mlog.debug("Symbols have underscore prefix: NO")
+                        mlog.debug("Underscore prefix check found non-prefixed function in binary")
                         return False
-        raise RuntimeError(f'BUG: {n!r} check failed unexpectedly')
+        raise RuntimeError(f'BUG: {n!r} check did not find symbol string in binary')
+
+    def _symbols_have_underscore_prefix_define(self, env: 'Environment') -> T.Optional[bool]:
+        '''
+        Check if symbols have underscore prefix by querying the
+        __USER_LABEL_PREFIX__ define that most compilers provide
+        for this. Return if functions have underscore prefix or None
+        if it was not possible to determine, like when the compiler
+        does not set the define or the define has an unexpected value.
+        '''
+        delim = '"MESON_HAVE_UNDERSCORE_DELIMITER" '
+        code = f'''
+        #ifndef __USER_LABEL_PREFIX__
+        #define MESON_UNDERSCORE_PREFIX unsupported
+        #else
+        #define MESON_UNDERSCORE_PREFIX __USER_LABEL_PREFIX__
+        #endif
+        {delim}MESON_UNDERSCORE_PREFIX
+        '''
+        with self._build_wrapper(code, env, mode='preprocess', want_output=False, temp_dir=env.scratch_dir) as p:
+            if p.returncode != 0:
+                raise RuntimeError(f'BUG: Unable to preprocess _symbols_have_underscore_prefix_define check: {p.stdout}')
+            symbol_prefix = p.stdout.partition(delim)[-1].rstrip()
+
+            mlog.debug(f'Queried compiler for function prefix: __USER_LABEL_PREFIX__ is "{symbol_prefix!s}"')
+            if symbol_prefix == '_':
+                return True
+            elif symbol_prefix == '':
+                return False
+            else:
+                return None
+
+    def _symbols_have_underscore_prefix_list(self, env: 'Environment') -> T.Optional[bool]:
+        '''
+        Check if symbols have underscore prefix by consulting a hardcoded
+        list of cases where we know the results.
+        Return if functions have underscore prefix or None if unknown.
+        '''
+        m = env.machines[self.for_machine]
+        # Darwin always uses the underscore prefix, not matter what
+        if m.is_darwin():
+            return True
+        # Windows uses the underscore prefix on x86 (32bit) only
+        if m.is_windows() or m.is_cygwin():
+            return m.cpu_family == 'x86'
+        return None
+
+
+    def symbols_have_underscore_prefix(self, env: 'Environment') -> bool:
+        '''
+        Check if the compiler prefixes an underscore to global C symbols
+        '''
+        # First, try to query the compiler directly
+        result = self._symbols_have_underscore_prefix_define(env)
+        if result is not None:
+            return result
+
+        # Else, try to consult a hardcoded list of cases we know
+        # absolutely have an underscore prefix
+        result = self._symbols_have_underscore_prefix_list(env)
+        if result is not None:
+            return result
+
+        # As a last resort, try search in a compiled binary, which is the
+        # most unreliable way of checking this, see #5482
+        return self._symbols_have_underscore_prefix_searchbin(env)
+
 
     def _get_patterns(self, env: 'Environment', prefixes: T.List[str], suffixes: T.List[str], shared: bool = False) -> T.List[str]:
         patterns = []  # type: T.List[str]

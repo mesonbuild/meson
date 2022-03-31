@@ -40,7 +40,7 @@ from mesonbuild import mesonlib
 from mesonbuild import mesonmain
 from mesonbuild import mtest
 from mesonbuild import mlog
-from mesonbuild.environment import Environment, detect_ninja
+from mesonbuild.environment import Environment, detect_ninja, detect_machine_info
 from mesonbuild.coredata import backendlist, version as meson_version
 from mesonbuild.mesonlib import OptionKey, setup_vsenv
 
@@ -153,6 +153,17 @@ def get_fake_env(sdir='', bdir=None, prefix='', opts=None):
     env.machines.host.cpu_family = 'x86_64' # Used on macOS inside find_library
     return env
 
+def get_convincing_fake_env_and_cc(bdir, prefix):
+    '''
+    Return a fake env and C compiler with the fake env
+    machine info properly detected using that compiler.
+    Useful for running compiler checks in the unit tests.
+    '''
+    env = get_fake_env('', bdir, prefix)
+    cc = compilers.detect_c_compiler(env, mesonlib.MachineChoice.HOST)
+    # Detect machine info
+    env.machines.host = detect_machine_info({'c':cc})
+    return (env, cc)
 
 Backend = Enum('Backend', 'ninja vs xcode')
 
