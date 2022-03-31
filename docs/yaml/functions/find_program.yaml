@@ -46,15 +46,17 @@ description: |
 
 posargs:
   program_name:
-    type: str
-    description: The name of the program to search
+    type: str | file
+    description: |
+      The name of the program to search, or a [[@file]] object to be used
+      without searching.
 
 varargs:
   name: fallback
-  type: str
+  type: str | file
   since: 0.37.0
   description: |
-    These parameters are used as fallback strings to search for.
+    These parameters are used as fallback names to search for.
     This is meant to be used for cases where the
     program may have many alternative names, such as `foo` and
     `foo.py`. The function will check for the arguments one by one and the
