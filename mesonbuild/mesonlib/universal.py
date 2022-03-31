@@ -423,6 +423,12 @@ class File(HoldableObject):
 
     @lru_cache(maxsize=None)
     def rel_to_builddir(self, build_to_src: str) -> str:
+        """String path relative to the build directory.
+
+        :param build_to_src:
+            The relative path of the build directory to the source directory
+        :return: the file path relative to the build directory
+        """
         if self.is_built:
             return self.relative_name()
         else:
