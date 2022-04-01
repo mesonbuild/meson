@@ -16,7 +16,7 @@ elseif ("${CMAKE_SYSTEM_PROCESSOR}" MATCHES "arm")
 elseif ("${CMAKE_SYSTEM_PROCESSOR}" MATCHES "aarch64")
     SET(TEST_PROCESSOR "arm")
 else ()
-    message(FATAL_ERROR, 'MESON_SKIP_TEST: Unsupported Assembler Platform')
+    message(FATAL_ERROR "MESON_SKIP_TEST: Unsupported Assembler Platform")
 endif ()
 
 #Detect ABI
@@ -29,7 +29,7 @@ elseif ("${CMAKE_SYSTEM_NAME}" MATCHES "NetBSD")
 elseif ("${CMAKE_SYSTEM_NAME}" MATCHES "OpenBSD")
     SET(TEST_ABI "sysv")
 else ()
-    message(FATAL_ERROR, 'MESON_SKIP_TEST: Unsupported Assembler Platform')
+    message(FATAL_ERROR "MESON_SKIP_TEST: Unsupported Assembler Platform")
 endif ()
 
 SET(TEST_PLATFORM "${TEST_PROCESSOR}-${TEST_ABI}")
