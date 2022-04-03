@@ -777,7 +777,7 @@ class CMakeInterpreter:
         # Raw CMake results
         self.bs_files          = []    # type: T.List[Path]
         self.codemodel_configs = None  # type: T.Optional[T.List[CMakeConfiguration]]
-        self.raw_trace         = None  # type: T.Optional[str]
+        self.cmake_stderr      = None  # type: T.Optional[str]
 
         # Analysed data
         self.project_name      = ''
@@ -841,13 +841,17 @@ class CMakeInterpreter:
             final_args = cmake_args + trace_args + cmcmp_args + toolchain.get_cmake_args() + [self.src_dir.as_posix()]
 
             cmake_exe.set_exec_mode(print_cmout=True, always_capture_stderr=self.trace.requires_stderr())
-            rc, _, self.raw_trace = cmake_exe.call(final_args, self.build_dir, env=os_env, disable_cache=True)
+            rc, _, self.cmake_stderr = cmake_exe.call(final_args, self.build_dir, env=os_env, disable_cache=True)
 
         mlog.log()
         h = mlog.green('SUCCEEDED') if rc == 0 else mlog.red('FAILED')
         mlog.log('CMake configuration:', h)
         if rc != 0:
-            raise CMakeException('Failed to configure the CMake subproject')
+            # get the last CMake error - We only need the message function for this:
+            self.trace.functions = {'message': self.trace.functions['message']}
+            self.trace.parse(self.cmake_stderr)
+            error = f': {self.trace.errors[-1]}' if self.trace.errors else ''
+            raise CMakeException(f'Failed to configure the CMake subproject{error}')
 
         return cmake_exe
 
@@ -879,7 +883,7 @@ class CMakeInterpreter:
         self.custom_targets = []
 
         # Parse the trace
-        self.trace.parse(self.raw_trace)
+        self.trace.parse(self.cmake_stderr)
 
         # Find all targets
         added_target_names = []  # type: T.List[str]

@@ -111,6 +111,8 @@ class CMakeTraceParser:
         self.trace_file_path = build_dir / self.trace_file
         self.trace_format = 'json-v1' if version_compare(cmake_version, '>=3.17') else 'human'
 
+        self.errors: T.List[str] = []
+
         # State for delayed command execution. Delayed command execution is realised
         # with a custom CMake file that overrides some functions and adds some
         # introspection information to the trace.
@@ -133,6 +135,7 @@ class CMakeTraceParser:
             'target_link_libraries': self._cmake_target_link_libraries,
             'target_link_options': self._cmake_target_link_options,
             'add_dependencies': self._cmake_add_dependencies,
+            'message': self._cmake_message,
 
             # Special functions defined in the preload script.
             # These functions do nothing in the CMake code, but have special
@@ -638,6 +641,18 @@ class CMakeTraceParser:
     def _cmake_target_link_libraries(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/target_link_libraries.html
         self._parse_common_target_options('target_link_options', 'LINK_LIBRARIES', 'INTERFACE_LINK_LIBRARIES', tline)
+
+    def _cmake_message(self, tline: CMakeTraceLine) -> None:
+        # DOC: https://cmake.org/cmake/help/latest/command/message.html
+        args = list(tline.args)
+
+        if len(args) < 1:
+            return self._gen_exception('message', 'takes at least 1 argument', tline)
+
+        if args[0].upper().strip() not in ['FATAL_ERROR', 'SEND_ERROR']:
+            return
+
+        self.errors += [' '.join(args[1:])]
 
     def _parse_common_target_options(self, func: str, private_prop: str, interface_prop: str, tline: CMakeTraceLine, ignore: T.Optional[T.List[str]] = None, paths: bool = False) -> None:
         if ignore is None:
