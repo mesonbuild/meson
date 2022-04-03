@@ -7,6 +7,9 @@ PyInstaller hook to make mesonbuild include everything it needs to.
 import os
 from glob import glob
 
+from PyInstaller.utils.hooks import collect_data_files
+
+datas = []
 hiddenimports = []
 
 def get_all_modules_from_dir(dirname):
@@ -17,6 +20,10 @@ def get_all_modules_from_dir(dirname):
     modules = [os.path.splitext(os.path.split(x)[1])[0] for x in glob(os.path.join(dirname, '*'))]
     modules = ['mesonbuild.' + modname + '.' + x for x in modules if not x.startswith('_')]
     return modules
+
+datas += collect_data_files('mesonbuild.scripts')
+datas += collect_data_files('mesonbuild.cmake.data')
+datas += collect_data_files('mesonbuild.dependencies.data')
 
 hiddenimports += get_all_modules_from_dir('mesonbuild/modules')
 hiddenimports += get_all_modules_from_dir('mesonbuild/scripts')
