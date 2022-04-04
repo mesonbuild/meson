@@ -35,7 +35,7 @@ if T.TYPE_CHECKING:
 
 class WaylandModule(ExtensionModule):
 
-    INFO = ModuleInfo('wayland', '0.62.0', unstable=True)
+    INFO = ModuleInfo('wayland', '0.62.0', stabilized='1.8.0')
 
     def __init__(self, interpreter: Interpreter) -> None:
         super().__init__(interpreter)
