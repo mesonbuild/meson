@@ -321,9 +321,25 @@ class GnomeModule(ExtensionModule):
 
     def _get_native_binary(self, state: 'ModuleState', name: str, depname: str,
                            varname: str, required: bool = True) -> T.Union[ExternalProgram, OverrideProgram, 'build.Executable']:
-        return state.find_program(name, for_machine=MachineChoice.BUILD,
-                                  required=required,
-                                  depname=depname, varname=varname)
+        # Look in overrides in case glib/gtk/etc are built as subproject
+        prog = self.interpreter.program_from_overrides([name], [])
+        if prog is not None:
+            return prog
+
+        # Look in machine file
+        prog_list = state.environment.lookup_binary_entry(MachineChoice.HOST, name)
+        if prog_list is not None:
+            return ExternalProgram.from_entry(name, prog_list)
+
+        # Check if pkgconfig has a variable
+        dep = self._get_dep(state, depname, native=True, required=False)
+        if dep.found() and dep.type_name == 'pkgconfig':
+            value = dep.get_pkgconfig_variable(varname, [], None)
+            if value:
+                return ExternalProgram(name, [value])
+
+        # Normal program lookup
+        return state.find_program(name, required=required)
 
     @typed_kwargs(
         'gnome.post_install',
