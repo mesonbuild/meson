@@ -14,7 +14,7 @@
 from __future__ import annotations
 
 from ..mesonlib import (
-    MesonException, EnvironmentException,
+    MesonException, EnvironmentException, MachineChoice,
     search_version, is_windows, Popen_safe, windows_proof_rm,
 )
 from ..envconfig import BinaryTable
@@ -149,7 +149,6 @@ if T.TYPE_CHECKING:
     from .objcpp import ObjCPPCompiler
     from ..linkers import StaticLinker
     from ..environment import Environment
-    from ..mesonlib import MachineChoice
     from ..programs import ExternalProgram
 
 
@@ -941,7 +940,7 @@ def detect_cs_compiler(env: 'Environment', for_machine: MachineChoice) -> Compil
 
 def detect_cython_compiler(env: 'Environment', for_machine: MachineChoice) -> Compiler:
     """Search for a cython compiler."""
-    compilers, _, _ = _get_compilers(env, 'cython', for_machine)
+    compilers, _, _ = _get_compilers(env, 'cython', MachineChoice.BUILD)
     is_cross = env.is_cross_build(for_machine)
     info = env.machines[for_machine]
 
@@ -962,7 +961,7 @@ def detect_cython_compiler(env: 'Environment', for_machine: MachineChoice) -> Co
     raise EnvironmentException('Unreachable code (exception to make mypy happy)')
 
 def detect_vala_compiler(env: 'Environment', for_machine: MachineChoice) -> Compiler:
-    exelist = env.lookup_binary_entry(for_machine, 'vala')
+    exelist = env.lookup_binary_entry(MachineChoice.BUILD, 'vala')
     is_cross = env.is_cross_build(for_machine)
     info = env.machines[for_machine]
     if exelist is None:
