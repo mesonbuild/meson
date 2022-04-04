@@ -1569,7 +1569,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             dep = df.lookup({'native': for_machine == MachineChoice.BUILD,
                              'required': False})
             if dep.found():
-                path = dep.get_variable(pkgconfig=varname, default_value='')
+                path = dep.get_variable(varname, default_value='')
                 if path:
                     progobj = ExternalProgram(name, [path], silent=True)
         if progobj is None:
@@ -1605,6 +1605,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         REQUIRED_KW,
         KwargInfo('dirs', ContainerTypeInfo(list, str), default=[], listify=True, since='0.53.0'),
         KwargInfo('version', ContainerTypeInfo(list, str), default=[], listify=True, since='0.52.0'),
+        KwargInfo('from_dependency', (str, ContainerTypeInfo(list, str)), default=[], since='0.63.0')
     )
     @disablerIfNotFound
     def func_find_program(self, node: mparser.BaseNode, args: T.Tuple[T.List[mesonlib.FileOrString]],
@@ -1615,10 +1616,23 @@ external dependencies (including libraries) must go to "dependencies".''')
             mlog.log('Program', mlog.bold(' '.join(args[0])), 'skipped: feature', mlog.bold(feature), 'disabled')
             return self.notfound_program(args[0])
 
+        depinfo = kwargs['from_dependency']
+        if isinstance(depinfo, str):
+            depname, varname = depinfo, None
+        elif len(depinfo) == 0:
+            depname, varname = None, None
+        elif len(depinfo) == 1:
+            depname, varname = depinfo[0], None
+        elif len(depinfo) == 2:
+            depname, varname = depinfo[0], depinfo[1]
+        else:
+            raise InterpreterException('find_program\'s from_dependency argument takes at most 2 strings')
+
         search_dirs = extract_search_dirs(kwargs)
         return self.find_program_impl(args[0], kwargs['native'], required=required,
                                       silent=False, wanted=kwargs['version'],
-                                      search_dirs=search_dirs)
+                                      search_dirs=search_dirs,
+                                      depname=depname, varname=varname)
 
     def func_find_library(self, node, args, kwargs):
         raise InvalidCode('find_library() is removed, use meson.get_compiler(\'name\').find_library() instead.\n'

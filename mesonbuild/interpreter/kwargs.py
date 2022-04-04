@@ -234,6 +234,7 @@ class FindProgram(ExtractRequired, ExtractSearchDirs):
 
     native: MachineChoice
     version: T.List[str]
+    from_dependency: T.Union[str, T.List[str]]
 
 
 class RunCommand(TypedDict):
