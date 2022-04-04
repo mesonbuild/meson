@@ -82,11 +82,9 @@ class ModuleState:
     def find_program(self, prog: T.Union[str, T.List[str]], required: bool = True,
                      version_func: T.Optional[T.Callable[['ExternalProgram'], str]] = None,
                      wanted: T.Optional[str] = None, silent: bool = False,
-                     for_machine: MachineChoice = MachineChoice.HOST,
-                     depname: T.Optional[str] = None, varname: T.Optional[str] = None) -> 'ExternalProgram':
+                     for_machine: MachineChoice = MachineChoice.HOST) -> 'ExternalProgram':
         return self._interpreter.find_program_impl(prog, required=required, version_func=version_func,
-                                                   wanted=wanted, silent=silent, for_machine=for_machine,
-                                                   depname=depname, varname=varname)
+                                                   wanted=wanted, silent=silent, for_machine=for_machine)
 
     def test(self, args: T.Tuple[str, T.Union[build.Executable, build.Jar, 'ExternalProgram', mesonlib.File]],
              workdir: T.Optional[str] = None,
