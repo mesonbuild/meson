@@ -213,7 +213,8 @@ class Dependency(HoldableObject):
                 return True
         return False
 
-    def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
+    def get_variable(self, varname: T.Optional[str] = None,
+                     cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
                      configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
                      default_value: T.Optional[str] = None,
                      pkgconfig_define: T.Optional[T.List[str]] = None) -> T.Union[str, T.List[str]]:
@@ -298,10 +299,12 @@ class InternalDependency(Dependency):
             final_link_args, final_libraries, final_whole_libraries,
             final_sources, final_deps, self.variables, [], [])
 
-    def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
+    def get_variable(self, varname: T.Optional[str] = None,
+                     cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
                      configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
                      default_value: T.Optional[str] = None,
                      pkgconfig_define: T.Optional[T.List[str]] = None) -> T.Union[str, T.List[str]]:
+        internal = internal or varname
         val = self.variables.get(internal, default_value)
         if val is not None:
             # TODO: Try removing this assert by better typing self.variables

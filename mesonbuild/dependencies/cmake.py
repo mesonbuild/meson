@@ -624,10 +624,12 @@ class CMakeDependency(ExternalDependency):
             return 'modules: ' + ', '.join(modules)
         return ''
 
-    def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
+    def get_variable(self, varname: T.Optional[str] = None,
+                     cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
                      configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
                      default_value: T.Optional[str] = None,
                      pkgconfig_define: T.Optional[T.List[str]] = None) -> T.Union[str, T.List[str]]:
+        cmake = cmake or varname
         if cmake and self.traceparser is not None:
             try:
                 v = self.traceparser.vars[cmake]
