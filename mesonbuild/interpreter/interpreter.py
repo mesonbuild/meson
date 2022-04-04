@@ -1569,7 +1569,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             dep = df.lookup({'native': for_machine == MachineChoice.BUILD,
                              'required': False})
             if dep.found():
-                path = dep.get_variable(pkgconfig=varname, default_value='')
+                path = dep.get_variable(pkgconfig=varname)
                 if path:
                     progobj = ExternalProgram(name, [path], silent=True)
         if progobj is None:
