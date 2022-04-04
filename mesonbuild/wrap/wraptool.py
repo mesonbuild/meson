@@ -14,6 +14,7 @@
 
 import json
 import sys, os
+import pathlib
 import configparser
 import shutil
 import typing as T
@@ -97,6 +98,15 @@ def get_latest_version(name: str, allow_insecure: bool) -> T.Tuple[str, str]:
     latest_version = info['versions'][0]
     version, revision = latest_version.rsplit('-', 1)
     return version, revision
+
+def get_project_root() -> pathlib.Path:
+    cwd = pathlib.Path.cwd()
+    while str(cwd) != cwd.root:
+        meson_build = cwd / "meson.build"
+        if meson_build.is_file():
+            return cwd
+        cwd = cwd.parent
+    raise SystemExit("Project root could not be found")
 
 def install(options: 'argparse.Namespace') -> None:
     name = options.name
