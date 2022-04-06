@@ -1236,23 +1236,29 @@ external dependencies (including libraries) must go to "dependencies".''')
     @noArgsFlattening
     @typed_kwargs(
         'message',
-        KwargInfo('status', (bool, NoneType), since='0.63.0')
+        KwargInfo('status', (bool, NoneType), since='0.63.0'),
+        KwargInfo('extra_info', (str, NoneType), since='0.63.0')
     )
     def func_message(self, node, args, kwargs: 'kwargs.Message'):
         if len(args) > 1:
             FeatureNew.single_use('message with more than one argument', '0.54.0', self.subproject, location=node)
         args_str = [stringifyUserArguments(i) for i in args]
-        self.message_impl(args_str, status=kwargs['status'])
+        self.message_impl(args_str, status=kwargs['status'], extra_info=kwargs['extra_info'])
 
-    def message_impl(self, args, status: T.Optional[bool] = None):
+    def message_impl(self, args, status: T.Optional[bool] = None, extra_info: T.Optional[str] = None):
         if status is None:
+            if extra_info is not None:
+                raise InvalidArguments('`extra_info` must be used together with `status`.')
             mlog.log(mlog.bold('Message:'), *args)
         else:
             if len(''.join(args)) == 0:
                 raise InvalidArguments('message must not be empty when `status` kwarg is used.')
             status_str = mlog.green('YES') if status else mlog.red('NO')
             args[-1] += ':'
-            mlog.log(*args, status_str)
+            args.append(status_str)
+            if extra_info:
+                args.append(mlog.blue(f'({extra_info})'))
+            mlog.log(*args)
 
     @noArgsFlattening
     @FeatureNew('summary', '0.53.0')

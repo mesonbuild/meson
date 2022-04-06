@@ -312,3 +312,4 @@ class DoSubproject(ExtractRequired):
 class Message(TypedDict):
 
     status: T.Optional[bool]
+    extra_info: T.Optional[str]
