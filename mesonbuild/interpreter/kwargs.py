@@ -308,3 +308,7 @@ class DoSubproject(ExtractRequired):
     version: T.List[str]
     cmake_options: T.List[str]
     options: T.Optional[CMakeSubprojectOptions]
+
+class Message(TypedDict):
+
+    status: T.Optional[bool]

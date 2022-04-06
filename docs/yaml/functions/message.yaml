@@ -1,6 +1,22 @@
 name: message
 returns: void
-description: This function prints its argument to stdout.
+description: |
+  This function prints its argument to stdout.
+
+  The optional `status` kwarg can be used to print a status,
+  similar to how meson prints it's own check results. If the
+  status argument is used, the `Message:` prefix will be omitted
+  and a colon will be added after the message and before the status.
+
+example: |
+  ```meson
+  message('Found usable MinGW', status: true)
+  ```
+
+  Output:
+  ```
+  Found usable MinGW: YES
+  ```
 
 posargs:
   text:
@@ -12,3 +28,9 @@ varargs:
   since: 0.54.0
   type: str | int | bool | list[str | int | bool] | dict[str | int | bool]
   description: Additional text that will be printed separated by spaces.
+
+kwargs:
+  status:
+    type: bool
+    since: 0.63.0
+    description: Status to print as YES/NO after the message.
