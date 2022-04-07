@@ -54,18 +54,26 @@ echo "Extracting ci_data.zip"
 Expand-Archive $env:AGENT_WORKFOLDER\ci_data.zip -DestinationPath $env:AGENT_WORKFOLDER\ci_data
 & "$env:AGENT_WORKFOLDER\ci_data\install.ps1" -Arch $env:arch -Compiler $env:compiler -Boost $true -DMD $dmd
 
+if ($env:arch -eq 'x64') {
+    DownloadFile -Source https://downloads.python.org/pypy/pypy3.8-v7.3.9-win64.zip -Destination $env:AGENT_WORKFOLDER\pypy38.zip
+    Expand-Archive $env:AGENT_WORKFOLDER\pypy38.zip -DestinationPath $env:AGENT_WORKFOLDER\pypy38
+    $ENV:Path = $ENV:Path + ";$ENV:AGENT_WORKFOLDER\pypy38\pypy3.8-v7.3.9-win64;$ENV:AGENT_WORKFOLDER\pypy38\pypy3.8-v7.3.9-win64\Scripts"
+    pypy3 -m ensurepip
+}
+
 
 echo "=== PATH BEGIN ==="
 echo ($env:Path).Replace(';',"`n")
 echo "=== PATH END ==="
 echo ""
 
-$progs = @("python","ninja","pkg-config","cl","rc","link")
+$progs = @("python","ninja","pkg-config","cl","rc","link","pypy3")
 foreach ($prog in $progs) {
   echo ""
   echo "Locating ${prog}:"
   where.exe $prog
 }
+
 
 echo ""
 echo "Ninja / MSBuld version:"
