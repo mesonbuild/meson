@@ -76,10 +76,10 @@ class CMakeDependency(ExternalDependency):
         # one module
         return module
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None) -> None:
+    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None, force_use_global_compilers: bool = False) -> None:
         # Gather a list of all languages to support
         self.language_list = []  # type: T.List[str]
-        if language is None:
+        if language is None or force_use_global_compilers:
             compilers = None
             if kwargs.get('native', False):
                 compilers = environment.coredata.compilers.build
