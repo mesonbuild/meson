@@ -110,3 +110,16 @@ kwargs:
     type: list[str]
     since: 0.53.0
     description: extra list of absolute paths where to look for program names.
+
+  from_dependency:
+    type: str | list[str]
+    since: 0.63.0
+    description: |
+      An optional `[dependency_name, variable_name]` pair. If a single string is
+      provided instead of a pair of strings the `variable_name` default to
+      `program_name` with dash replaced by underscores (e.g. `wayland-scanner`
+      -> `wayland_scanner`).
+
+      Before looking for the program into system `PATH`, Meson will check if the
+      program path is provided by the specified native dependency, doing the
+      equivalent of `dependency('dependency_name', native: true).get_variable('variable_name')`.

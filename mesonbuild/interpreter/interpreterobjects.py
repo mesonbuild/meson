@@ -483,11 +483,11 @@ class DependencyHolder(ObjectHolder[Dependency]):
         default_varname = args[0]
         if default_varname is not None:
             FeatureNew('Positional argument to dependency.get_variable()', '0.58.0').use(self.subproject, self.current_node)
-        return self.held_object.get_variable(
-            cmake=kwargs['cmake'] or default_varname,
-            pkgconfig=kwargs['pkgconfig'] or default_varname,
-            configtool=kwargs['configtool'] or default_varname,
-            internal=kwargs['internal'] or default_varname,
+        return self.held_object.get_variable(default_varname,
+            cmake=kwargs['cmake'],
+            pkgconfig=kwargs['pkgconfig'],
+            configtool=kwargs['configtool'],
+            internal=kwargs['internal'],
             default_value=kwargs['default_value'],
             pkgconfig_define=kwargs['pkgconfig_define'],
         )
