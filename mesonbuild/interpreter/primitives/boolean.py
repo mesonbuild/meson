@@ -1,5 +1,6 @@
 # Copyright 2021 The Meson development team
 # SPDX-license-identifier: Apache-2.0
+from __future__ import annotations
 
 from ...interpreterbase import (
     ObjectHolder,
@@ -7,9 +8,6 @@ from ...interpreterbase import (
     typed_pos_args,
     noKwargs,
     noPosargs,
-
-    TYPE_var,
-    TYPE_kwargs,
 
     InvalidArguments
 )
@@ -19,6 +17,7 @@ import typing as T
 if T.TYPE_CHECKING:
     # Object holders need the actual interpreter
     from ...interpreter import Interpreter
+    from ...interpreterbase import TYPE_var, TYPE_kwargs
 
 class BooleanHolder(ObjectHolder[bool]):
     def __init__(self, obj: bool, interpreter: 'Interpreter') -> None:

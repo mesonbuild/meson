@@ -12,11 +12,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
 import functools
 import typing as T
 
-from ..mesonlib import MachineChoice
 from .base import DependencyException, DependencyMethods
 from .base import ExternalDependency
 from .base import process_method_kw
@@ -26,8 +26,9 @@ from .framework import ExtraFrameworkDependency
 from .pkgconfig import PkgConfigDependency
 
 if T.TYPE_CHECKING:
-    from ..environment import Environment
     from .configtool import ConfigToolDependency
+    from ..environment import Environment
+    from ..mesonlib import MachineChoice
 
     DependencyGenerator = T.Callable[[], ExternalDependency]
     FactoryFunc = T.Callable[

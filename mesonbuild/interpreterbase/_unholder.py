@@ -11,10 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
-from .baseobjects import InterpreterObject, MesonInterpreterObject, ObjectHolder, TYPE_var, HoldableTypes
+import typing as T
+
+from .baseobjects import InterpreterObject, MesonInterpreterObject, ObjectHolder, HoldableTypes
 from .exceptions import InvalidArguments
 from ..mesonlib import HoldableObject, MesonBugException
+
+if T.TYPE_CHECKING:
+    from .baseobjects import TYPE_var
 
 def _unholder(obj: InterpreterObject) -> TYPE_var:
     if isinstance(obj, ObjectHolder):

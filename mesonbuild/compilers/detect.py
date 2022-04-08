@@ -11,9 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
 from ..mesonlib import (
-    MachineChoice, MesonException, EnvironmentException,
+    MesonException, EnvironmentException,
     search_version, is_windows, Popen_safe, windows_proof_rm,
 )
 from ..envconfig import BinaryTable
@@ -40,7 +41,6 @@ from ..linkers import (
     NvidiaHPC_DynamicLinker,
     PGIDynamicLinker,
     PGIStaticLinker,
-    StaticLinker,
     Xc16Linker,
     Xc16DynamicLinker,
     XilinkDynamicLinker,
@@ -50,9 +50,7 @@ from ..linkers import (
     VisualStudioLikeLinkerMixin,
     WASMDynamicLinker,
 )
-from .compilers import Compiler
 from .c import (
-    CCompiler,
     AppleClangCCompiler,
     ArmCCompiler,
     ArmclangCCompiler,
@@ -74,7 +72,6 @@ from .c import (
     VisualStudioCCompiler,
 )
 from .cpp import (
-    CPPCompiler,
     AppleClangCPPCompiler,
     ArmCPPCompiler,
     ArmclangCPPCompiler,
@@ -102,7 +99,6 @@ from .d import (
 )
 from .cuda import CudaCompiler
 from .fortran import (
-    FortranCompiler,
     ArmLtdFlangFortranCompiler,
     G95FortranCompiler,
     GnuFortranCompiler,
@@ -119,13 +115,11 @@ from .fortran import (
 )
 from .java import JavaCompiler
 from .objc import (
-    ObjCCompiler,
     AppleClangObjCCompiler,
     ClangObjCCompiler,
     GnuObjCCompiler,
 )
 from .objcpp import (
-    ObjCPPCompiler,
     AppleClangObjCPPCompiler,
     ClangObjCPPCompiler,
     GnuObjCPPCompiler,
@@ -147,7 +141,15 @@ import os
 import typing as T
 
 if T.TYPE_CHECKING:
+    from .compilers import Compiler
+    from .c import CCompiler
+    from .cpp import CPPCompiler
+    from .fortran import FortranCompiler
+    from .objc import ObjCCompiler
+    from .objcpp import ObjCPPCompiler
+    from ..linkers import StaticLinker
     from ..environment import Environment
+    from ..mesonlib import MachineChoice
     from ..programs import ExternalProgram
 
 

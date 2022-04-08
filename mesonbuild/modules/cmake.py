@@ -21,7 +21,7 @@ import typing as T
 from . import ExtensionModule, ModuleReturnValue, ModuleObject
 
 from .. import build, mesonlib, mlog, dependencies
-from ..cmake import SingleTargetOptions, TargetOptions, cmake_defines_to_args
+from ..cmake import TargetOptions, cmake_defines_to_args
 from ..interpreter import SubprojectHolder
 from ..interpreter.type_checking import REQUIRED_KW, NoneType, in_set_validator
 from ..interpreterbase import (
@@ -46,6 +46,7 @@ if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
 
     from . import ModuleState
+    from ..cmake import SingleTargetOptions
     from ..interpreter import kwargs
 
     class WriteBasicPackageVersionFile(TypedDict):

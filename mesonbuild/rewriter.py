@@ -22,14 +22,18 @@
 # - remove files from a target
 # - move targets
 # - reindent?
+from __future__ import annotations
 
 from .ast import IntrospectionInterpreter, build_target_functions, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstPrinter
 from mesonbuild.mesonlib import MesonException
 from . import mlog, environment
 from functools import wraps
-from .mparser import Token, ArrayNode, ArgumentNode, AssignmentNode, BaseNode, BooleanNode, ElementaryNode, IdNode, FunctionNode, StringNode
+from .mparser import Token, ArrayNode, ArgumentNode, AssignmentNode, BooleanNode, ElementaryNode, IdNode, FunctionNode, StringNode
 import json, os, re, sys
 import typing as T
+
+if T.TYPE_CHECKING:
+    from .mparser import BaseNode
 
 class RewriterException(MesonException):
     pass
