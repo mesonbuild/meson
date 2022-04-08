@@ -404,7 +404,18 @@ class LLVMDependencyCMake(CMakeDependency):
     def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
         self.llvm_modules = stringlistify(extract_as_list(kwargs, 'modules'))
         self.llvm_opt_modules = stringlistify(extract_as_list(kwargs, 'optional_modules'))
-        super().__init__(name, env, kwargs, language='cpp')
+
+        compilers = None
+        if kwargs.get('native', False):
+            compilers = env.coredata.compilers.build
+        else:
+            compilers = env.coredata.compilers.host
+        if not compilers or not all(x in compilers for x in ('c', 'cpp')):
+            self.is_found = False
+            mlog.warning('The LLVM dependency was not found via CMake since both a C and C++ compiler are required.')
+            return
+
+        super().__init__(name, env, kwargs, language='cpp', force_use_global_compilers=True)
 
         # Cmake will always create a statically linked binary, so don't use
         # cmake if dynamic is required
