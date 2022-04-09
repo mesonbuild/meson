@@ -415,6 +415,8 @@ class PythonExternalProgram(ExternalProgram):
         cmd = self.get_command() + [tmpfilename]
         p, stdout, stderr = mesonlib.Popen_safe(cmd)
         os.unlink(tmpfilename)
+        if p.returncode != 0:
+            raise mesonlib.MesonException('Trying to introspect Python configuration failed.\n\n'  + stdout + stderr)
         try:
             info = json.loads(stdout)
         except json.JSONDecodeError:
