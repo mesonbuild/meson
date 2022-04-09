@@ -215,6 +215,8 @@ class QtPkgConfigDependency(_QtBase, PkgConfigDependency, metaclass=abc.ABCMeta)
             if prefix:
                 self.bindir = os.path.join(prefix, 'bin')
 
+        self.libexecdir = self.get_pkgconfig_variable('libexec_prefix', [], None)
+
     @staticmethod
     @abc.abstractmethod
     def get_pkgconfig_host_bins(core: PkgConfigDependency) -> T.Optional[str]:
@@ -277,6 +279,10 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=abc.ABCMeta):
         libdir = qvars['QT_INSTALL_LIBS']
         # Used by qt.compilers_detect()
         self.bindir = get_qmake_host_bins(qvars)
+        if 'QT_HOST_LIBEXECS' in qvars:
+            self.libexecdir = qvars['QT_HOST_LIBEXECS']
+        else:
+            self.libexecdir = qvars['QT_INSTALL_LIBEXECS']
 
         # Use the buildtype by default, but look at the b_vscrt option if the
         # compiler supports it.
