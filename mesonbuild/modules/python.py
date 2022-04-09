@@ -380,8 +380,13 @@ class PythonExternalProgram(ExternalProgram):
 
     def sanity(self, state: T.Optional['ModuleState'] = None) -> bool:
         # Sanity check, we expect to have something that at least quacks in tune
-        cmd = self.get_command() + ['-c', INTROSPECT_COMMAND]
+        from tempfile import NamedTemporaryFile
+        with NamedTemporaryFile(suffix='.py', delete=False, mode='w', encoding='utf-8') as tf:
+            tmpfilename = tf.name
+            tf.write(INTROSPECT_COMMAND)
+        cmd = self.get_command() + [tmpfilename]
         p, stdout, stderr = mesonlib.Popen_safe(cmd)
+        os.unlink(tmpfilename)
         try:
             info = json.loads(stdout)
         except json.JSONDecodeError:
