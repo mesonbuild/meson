@@ -643,7 +643,7 @@ class PythonModule(ExtensionModule):
         else:
             return None
 
-    def _find_installation_impl(self, state: 'ModuleState', display_name: str, name_or_path: str) -> ExternalProgram:
+    def _find_installation_impl(self, state: 'ModuleState', display_name: str, name_or_path: str, required: bool) -> ExternalProgram:
         if not name_or_path:
             python = PythonExternalProgram('python3', mesonlib.python_command)
         else:
@@ -663,10 +663,17 @@ class PythonModule(ExtensionModule):
             if not python.found() and name_or_path in ['python2', 'python3']:
                 python = PythonExternalProgram('python')
 
-        if python.found() and not python.sanity(state):
-            python = NonExistingExternalProgram()
+        if python.found():
+            if python.sanity(state):
+                return python
+            else:
+                sanitymsg = f'{python} is not a valid python or it is missing distutils'
+                if required:
+                    raise mesonlib.MesonException(sanitymsg)
+                else:
+                    mlog.warning(sanitymsg, location=state.current_node)
 
-        return python
+        return NonExistingExternalProgram()
 
     @disablerIfNotFound
     @typed_pos_args('python.find_installation', optargs=[str])
@@ -700,7 +707,7 @@ class PythonModule(ExtensionModule):
 
         python = self.installations.get(name_or_path)
         if not python:
-            python = self._find_installation_impl(state, display_name, name_or_path)
+            python = self._find_installation_impl(state, display_name, name_or_path, required)
             self.installations[name_or_path] = python
 
         want_modules = kwargs['modules']
