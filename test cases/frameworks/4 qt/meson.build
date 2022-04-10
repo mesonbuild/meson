@@ -1,6 +1,6 @@
-project('qt4 and 5 build test', 'cpp',
-  # Qt5 now requires C++ 11 support
-  default_options : ['cpp_std=c++11'])
+project('qt4, qt5, and qt6 build test', 'cpp',
+  # Qt6 requires C++ 17 support
+  default_options : ['cpp_std=c++17'])
 
 qt5_modules = ['Widgets']
 qt6_modules = ['Widgets']
