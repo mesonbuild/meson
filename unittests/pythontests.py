@@ -14,12 +14,17 @@
 
 import os
 import unittest
+import pathlib
+import subprocess
 
 from run_tests import (
     Backend
 )
 
+from .allplatformstests import git_init
+
 from .baseplatformtests import BasePlatformTests
+from mesonbuild.mesonlib import TemporaryDirectoryWinProof
 
 class PythonTests(BasePlatformTests):
     '''
@@ -43,3 +48,15 @@ class PythonTests(BasePlatformTests):
         with self.assertRaises(unittest.SkipTest):
             self.init(testdir, extra_args=['-Dpython=dir'])
         self.wipe()
+
+    def test_dist(self):
+        with TemporaryDirectoryWinProof() as dirstr:
+            dirobj = pathlib.Path(dirstr)
+            mesonfile = dirobj / 'meson.build'
+            mesonfile.write_text('''project('test', 'c', version: '1')
+pymod = import('python')
+python = pymod.find_installation('python3', required: true)
+''', encoding='utf-8')
+            git_init(dirstr)
+            self.init(dirstr)
+            subprocess.check_call(self.meson_command + ['dist', '-C', self.builddir], stdout=subprocess.DEVNULL)
