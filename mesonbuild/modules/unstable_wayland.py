@@ -45,7 +45,12 @@ class WaylandModule(ExtensionModule):
     )
     def scan_xml(self, state, args, kwargs):
         if self.scanner_bin is None:
-            self.scanner_bin = state.find_program('wayland-scanner', for_machine=MachineChoice.BUILD)
+            # wayland-scanner from BUILD machine must have same version as wayland
+            # libraries from HOST machine.
+            dep = self.interpreter.func_dependency(state.current_node, ['wayland-client'], {})
+            self.scanner_bin = state.find_program('wayland-scanner',
+                                                  for_machine=MachineChoice.BUILD,
+                                                  wanted=dep.version)
 
         scope = 'public' if kwargs['public'] else 'private'
         sides = [i for i in ['client', 'server'] if kwargs[i]]
