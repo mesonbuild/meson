@@ -130,6 +130,10 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
             self.machine = target
         if mesonlib.version_compare(self.version, '>=19.28.29910'): # VS 16.9.0 includes cl 19.28.29910
             self.base_options.add(mesonlib.OptionKey('b_sanitize'))
+        # Exclude /utf-8 in self.always_args in VS2013 and earlier
+        if not isinstance(self, ClangClCompiler):
+            if mesonlib.version_compare(self.version, '<19.00'):
+                self.always_args.remove('/utf-8')
         assert self.linker is not None
         self.linker.machine = self.machine
 
