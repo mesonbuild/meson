@@ -13,9 +13,11 @@
 # limitations under the License.
 
 
+import argparse
 import gzip
 import os
 import sys
+import shlex
 import shutil
 import subprocess
 import tarfile
@@ -27,8 +29,9 @@ from pathlib import Path
 from mesonbuild.environment import detect_ninja
 from mesonbuild.mesonlib import (MesonException, RealPathAction, quiet_git,
                                  windows_proof_rmtree, setup_vsenv)
+from mesonbuild.msetup import add_arguments as msetup_argparse
 from mesonbuild.wrap import wrap
-from mesonbuild import mlog, build
+from mesonbuild import mlog, build, coredata
 from .scripts.meson_exe import run_exe
 
 archive_choices = ['gztar', 'xztar', 'zip']
@@ -48,6 +51,17 @@ def add_arguments(parser):
                         help='Include source code of subprojects that have been used for the build.')
     parser.add_argument('--no-tests', action='store_true',
                         help='Do not build and test generated packages.')
+
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--reuse-setup-args', action='store_true',
+                        help='Look up and reuse the original configured arguments when configuring the tests.'
+                             ' (The default when additional arguments are not passed explicitly.)')
+    group.add_argument('--no-reuse-setup-args', action='store_true',
+                        help='Do not look up and reuse the original configured arguments when configuring the tests.'
+                             ' (The default when additional arguments are passed explicitly.)')
+
+    parser.add_argument('SETUP_ARGS', nargs='*',
+                        help='Additional options passed after -- which will be forwarded to configure the tests.')
 
 
 def create_hash(fname):
@@ -249,7 +263,7 @@ def run_dist_steps(meson_command, unpacked_src_dir, builddir, installdir, ninja_
         return 1
     return 0
 
-def check_dist(packagename, meson_command, extra_meson_args, bld_root, privdir):
+def check_dist(packagename, meson_command, bld_root, privdir):
     print(f'Testing distribution package {packagename}')
     unpackdir = os.path.join(privdir, 'dist-unpack')
     builddir = os.path.join(privdir, 'dist-build')
@@ -263,10 +277,6 @@ def check_dist(packagename, meson_command, extra_meson_args, bld_root, privdir):
     unpacked_files = glob(os.path.join(unpackdir, '*'))
     assert len(unpacked_files) == 1
     unpacked_src_dir = unpacked_files[0]
-    with open(os.path.join(bld_root, 'meson-info', 'intro-buildoptions.json'), encoding='utf-8') as boptions:
-        meson_command += ['-D{name}={value}'.format(**o) for o in json.load(boptions)
-                          if o['name'] not in ['backend', 'install_umask', 'buildtype']]
-    meson_command += extra_meson_args
 
     ret = run_dist_steps(meson_command, unpacked_src_dir, builddir, installdir, ninja_args)
     if ret > 0:
@@ -277,6 +287,15 @@ def check_dist(packagename, meson_command, extra_meson_args, bld_root, privdir):
         windows_proof_rmtree(installdir)
         print(f'Distribution package {packagename} tested')
     return ret
+
+def create_cmdline_args(bld_root):
+    parser = argparse.ArgumentParser()
+    msetup_argparse(parser)
+    args = parser.parse_args([])
+    coredata.parse_cmd_line_options(args)
+    coredata.read_cmd_line_file(bld_root, args)
+    args.cmd_line_options.pop(coredata.OptionKey('backend'), '')
+    return shlex.split(coredata.format_cmd_line_options(args))
 
 def determine_archives_to_generate(options):
     result = []
@@ -307,7 +326,12 @@ def run(options):
     archives = determine_archives_to_generate(options)
 
     subprojects = {}
-    extra_meson_args = []
+    extra_meson_args = ['setup']
+
+    if options.reuse_setup_args or not options.SETUP_ARGS:
+        extra_meson_args += create_cmdline_args(bld_root)
+    extra_meson_args += options.SETUP_ARGS
+
     if options.include_subprojects:
         subproject_dir = os.path.join(src_root, b.subproject_dir)
         for sub in b.subprojects:
@@ -330,7 +354,7 @@ def run(options):
     rc = 0
     if not options.no_tests:
         # Check only one.
-        rc = check_dist(names[0], get_meson_command(), extra_meson_args, bld_root, priv_dir)
+        rc = check_dist(names[0], get_meson_command() + extra_meson_args, bld_root, priv_dir)
     if rc == 0:
         for name in names:
             create_hash(name)

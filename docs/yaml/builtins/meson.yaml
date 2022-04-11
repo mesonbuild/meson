@@ -5,6 +5,18 @@ description: |
   system. This object is always mapped in the `meson` variable.
 
 methods:
+  - name: add_dist_args
+    returns: void
+    since: 0.63.0
+    description: |
+      Passes additional arguments to `meson dist` to be used when building and
+      testing the generated tarball.
+
+    varargs:
+      name: arg
+      type: str
+      description: the args to pass
+
   - name: add_dist_script
     returns: void
     since: 0.48.0
