@@ -27,7 +27,7 @@ jobs:
       HAS_SSH_KEY: ${{ secrets.WEBSITE_PRIV_KEY != '' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Install package
         run: |
           sudo apt-get -y install python3-pip ninja-build libjson-glib-dev

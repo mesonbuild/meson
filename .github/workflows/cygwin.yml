@@ -43,7 +43,7 @@ jobs:
 
       - run: git config --global core.autocrlf input
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - uses: cygwin/cygwin-install-action@master
         with:
