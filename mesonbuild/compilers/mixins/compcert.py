@@ -32,7 +32,7 @@ ccomp_buildtype_args = {
     'plain': [''],
     'debug': ['-O0', '-g'],
     'debugoptimized': ['-O0', '-g'],
-    'release': ['-03'],
+    'release': ['-O3'],
     'minsize': ['-Os'],
     'custom': ['-Obranchless'],
 }  # type: T.Dict[str, T.List[str]]
