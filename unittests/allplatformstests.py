@@ -83,7 +83,7 @@ def temp_filename():
         except OSError:
             pass
 
-def _git_init(project_dir):
+def git_init(project_dir):
     # If a user has git configuration init.defaultBranch set we want to override that
     with tempfile.TemporaryDirectory() as d:
         out = git(['--version'], str(d))[1]
@@ -1158,7 +1158,7 @@ class AllPlatformTests(BasePlatformTests):
             raise SkipTest('Dist is only supported with Ninja')
 
         try:
-            self.dist_impl(_git_init, _git_add_all)
+            self.dist_impl(git_init, _git_add_all)
         except PermissionError:
             # When run under Windows CI, something (virus scanner?)
             # holds on to the git files so cleaning up the dir
@@ -1213,7 +1213,7 @@ class AllPlatformTests(BasePlatformTests):
                 project_dir = os.path.join(tmpdir, 'a')
                 shutil.copytree(os.path.join(self.unit_test_dir, '35 dist script'),
                                 project_dir)
-                _git_init(project_dir)
+                git_init(project_dir)
                 self.init(project_dir)
                 self.build('dist')
 
@@ -2571,7 +2571,7 @@ class AllPlatformTests(BasePlatformTests):
         # Ensure that test project is in git even when running meson from tarball.
         srcdir = os.path.join(self.builddir, 'src')
         shutil.copytree(testdir, srcdir)
-        _git_init(srcdir)
+        git_init(srcdir)
         testdir = srcdir
         self.new_builddir()
 
@@ -3563,7 +3563,7 @@ class AllPlatformTests(BasePlatformTests):
             shutil.copytree(os.path.join(self.unit_test_dir, '81 wrap-git'), srcdir)
             upstream = os.path.join(srcdir, 'subprojects', 'wrap_git_upstream')
             upstream_uri = Path(upstream).as_uri()
-            _git_init(upstream)
+            git_init(upstream)
             with open(os.path.join(srcdir, 'subprojects', 'wrap_git.wrap'), 'w', encoding='utf-8') as f:
                 f.write(textwrap.dedent('''
                   [wrap-git]
