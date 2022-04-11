@@ -65,6 +65,8 @@ jobs:
             git
             mercurial
             lcov
+            wget
+            unzip
             mingw-w64-${{ matrix.MSYS2_ARCH }}-cmake
             mingw-w64-${{ matrix.MSYS2_ARCH }}-glib2
             mingw-w64-${{ matrix.MSYS2_ARCH }}-libxml2
@@ -81,8 +83,26 @@ jobs:
         run: |
           python3 -m pip --disable-pip-version-check install gcovr jsonschema pefile pytest pytest-subtests pytest-xdist coverage codecov
 
+      - name: Install pypy3 on x86_64
+        run: |
+          mkdir pypy3local
+          pushd pypy3local
+          wget -nv https://downloads.python.org/pypy/pypy3.8-v7.3.9-win64.zip
+          unzip pypy3.8-v7.3.9-win64.zip
+          mv pypy3.8-v7.3.9-win64/* ./
+          popd
+        if: ${{ matrix.MSYS2_ARCH == 'x86_64' }}
+
       - name: Run Tests
         run: |
+          if [[ "${{ matrix.MSYS2_ARCH }}" == "x86_64" ]]; then
+            # There apparently is no clean way to add to the PATH in the 
+            # previous step?
+            # See for instance https://github.com/msys2/setup-msys2/issues/171
+            export PATH=$PATH:$PWD/pypy3local
+            # Make sure it is on the PATH
+            pypy3 -c "import sys; print(sys.version)"
+          fi
           export BOOST_ROOT=
           export PATHEXT="$PATHEXT;.py"
 
