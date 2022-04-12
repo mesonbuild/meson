@@ -661,6 +661,9 @@ class CoreData:
             newvalue = [replace(v) for v in opt.listify(value)]
             value = ','.join(newvalue)
 
+        if opt.yielding and key.subproject and key.as_root() in self.options:
+            raise MesonException(f'Option {str(key)} is yielding, please set value on parent project instead.')
+
         opt.set_value(value)
 
         if key.name == 'buildtype':
@@ -822,12 +825,15 @@ class CoreData:
         # can only set default options on themself.
         # Preserve order: if env.options has 'buildtype' it must come after
         # 'optimization' if it is in default_options.
-        options: T.MutableMapping[OptionKey, T.Any] = OrderedDict()
+        filtered_default_options: T.MutableMapping[OptionKey, T.Any] = OrderedDict()
         for k, v in default_options.items():
+            if k in env.options:
+                # Ignore this default option as it has been overriden by user,
+                # by command line, machine file, env, etc.
+                continue
             if not subproject or k.subproject == subproject:
-                options[k] = v
-        options.update(env.options)
-        env.options = options
+                filtered_default_options[k] = v
+        env.options.update(filtered_default_options)
 
         # Create a subset of options, keeping only project and builtin
         # options for this subproject.
@@ -845,7 +851,14 @@ class CoreData:
             # Always test this using the HOST machine, as many builtin options
             # are not valid for the BUILD machine, but the yielding value does
             # not differ between them even when they are valid for both.
-            if subproject and k.is_builtin() and self.options[k.evolve(subproject='', machine=MachineChoice.HOST)].yielding:
+            root = k.as_root()
+            host_root = root.as_host()
+            if subproject and k.is_builtin() and self.options[host_root].yielding:
+                continue
+            # If the option is yielding then it's not allowed per subproject.
+            # Silently ignore if the value comes from default options.
+            if subproject and k in self.options and self.options[k].yielding and \
+               root in self.options and k in filtered_default_options:
                 continue
             # Skip base, compiler, and backend options, they are handled when
             # adding languages and setting backend.
