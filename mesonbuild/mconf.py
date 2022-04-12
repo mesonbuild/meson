@@ -65,7 +65,6 @@ class Conf:
         # XXX: is there a case where this can actually remain false?
         self.has_choices = False
         self.all_subprojects: T.Set[str] = set()
-        self.yielding_options: T.Set[OptionKey] = set()
 
         if os.path.isdir(os.path.join(self.build_dir, 'meson-private')):
             self.build = build.load(self.build_dir)
@@ -150,16 +149,12 @@ class Conf:
                 for l in itertools.zip_longest(name, val, desc, fillvalue=''):
                     print('{:{widths[0]}} {:{widths[1]}} {}'.format(*l, widths=three_column))
 
-    def split_options_per_subproject(self, options: 'coredata.KeyedOptionDictType') -> T.Dict[str, T.Dict[str, 'UserOption']]:
-        result: T.Dict[str, T.Dict[str, 'UserOption']] = {}
+    def split_options_per_subproject(self, options: 'coredata.KeyedOptionDictType') -> T.Dict[str, 'coredata.KeyedOptionDictType']:
+        result: T.Dict[str, 'coredata.KeyedOptionDictType'] = {}
         for k, o in options.items():
-            subproject = k.subproject
             if k.subproject:
-                k = k.as_root()
-                if o.yielding and k in options:
-                    self.yielding_options.add(k)
-                self.all_subprojects.add(subproject)
-            result.setdefault(subproject, {})[str(k)] = o
+                self.all_subprojects.add(k.subproject)
+            result.setdefault(k.subproject, {})[k] = o
         return result
 
     def _add_line(self, name: OptionKey, value, choices, descr) -> None:
@@ -219,9 +214,10 @@ class Conf:
             self.add_title(title)
         for k, o in sorted(options.items()):
             printable_value = o.printable_value()
-            if k in self.yielding_options:
+            root = k.as_root()
+            if o.yielding and k.subproject and root in self.coredata.options:
                 printable_value = '<inherited from main project>'
-            self.add_option(k, o.description, printable_value, o.choices)
+            self.add_option(str(root), o.description, printable_value, o.choices)
 
     def print_conf(self):
         def print_default_values_warning():
@@ -270,8 +266,8 @@ class Conf:
         self.print_options('Core options', host_core_options[''])
         if show_build_options:
             self.print_options('', build_core_options[''])
-        self.print_options('Backend options', {str(k): v for k, v in self.coredata.options.items() if k.is_backend()})
-        self.print_options('Base options', {str(k): v for k, v in self.coredata.options.items() if k.is_base()})
+        self.print_options('Backend options', {k: v for k, v in self.coredata.options.items() if k.is_backend()})
+        self.print_options('Base options', {k: v for k, v in self.coredata.options.items() if k.is_base()})
         self.print_options('Compiler options', host_compiler_options.get('', {}))
         if show_build_options:
             self.print_options('', build_compiler_options.get('', {}))
