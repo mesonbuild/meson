@@ -1636,6 +1636,39 @@ class AllPlatformTests(BasePlatformTests):
         # pkg-config and pkgconf does not respect the same order
         self.assertEqual(sorted(foo_dep.get_compile_args()), sorted(cargs))
 
+    @skipIfNoPkgconfig
+    def test_pkgconfig_relocatable(self):
+        '''
+        Test that it generates relocatable pkgconfig when module
+        option pkgconfig.relocatable=true.
+        '''
+        testdir_rel = os.path.join(self.common_test_dir, '44 pkgconfig-gen')
+        self.init(testdir_rel, extra_args=['-Dpkgconfig.relocatable=true'])
+
+        def check_pcfile(name, *, relocatable, levels=2):
+            with open(os.path.join(self.privatedir, name), encoding='utf-8') as f:
+                pcfile = f.read()
+                # The pkgconfig module always uses posix path regardless of platform
+                prefix_rel = PurePath('${pcfiledir}', *(['..'] * levels)).as_posix()
+                (self.assertIn if relocatable else self.assertNotIn)(
+                    f'prefix={prefix_rel}\n',
+                    pcfile)
+
+        check_pcfile('libvartest.pc', relocatable=True)
+        check_pcfile('libvartest2.pc', relocatable=True)
+
+        self.wipe()
+        self.init(testdir_rel, extra_args=['-Dpkgconfig.relocatable=false'])
+
+        check_pcfile('libvartest.pc', relocatable=False)
+        check_pcfile('libvartest2.pc', relocatable=False)
+
+        self.wipe()
+        testdir_abs = os.path.join(self.unit_test_dir, '105 pkgconfig relocatable with absolute path')
+        self.init(testdir_abs)
+
+        check_pcfile('libsimple.pc', relocatable=True, levels=3)
+
     def test_array_option_change(self):
         def get_opt():
             opts = self.introspect('--buildoptions')
