@@ -275,6 +275,27 @@ Since 0.56.0 `warning_level` can also be defined per subproject.
 Some Meson modules have built-in options. They can be set by prefixing the option
 name with the module name: `-D<module>.<option>=<value>` (e.g. `-Dpython.platlibdir=/foo`).
 
+### Pkgconfig module
+
+| Option      | Default value | Possible values | Description                                                |
+|-------------|---------------|-----------------|------------------------------------------------------------|
+| relocatable | false         | true, false     | Generate the pkgconfig files as relocatable (Since 0.63.0) |
+
+*Since 0.63.0* The `pkgconfig.relocatable` option is used by the
+pkgconfig module, namely [`pkg.generate()`](Pkgconfig-module.md) and affect how the
+`prefix` in the generated pkgconfig file is set (not to be confused
+with the [install prefix](#directories)). When it is `true` the `prefix` will be
+relative to the `install_dir`. This allows the pkgconfig file to be
+moved around and still work, as long as the relative path is not
+broken. In general this allows for the whole installed package to be
+placed anywhere on the system and still work as a dependency. When it
+is set to `false` the `prefix` will be the same as the install prefix.
+
+An error will be raised if `pkgconfig.relocatable` is `true` and the
+`install_dir` for a generated pkgconfig file points outside the
+install prefix. For example if the install prefix is `/usr` and the
+`install_dir` for a pkgconfig file is `/var/lib/pkgconfig`.
+
 ### Python module
 
 | Option           | Default value | Possible values             | Description |

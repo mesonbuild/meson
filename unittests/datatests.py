@@ -128,7 +128,7 @@ class DataTests(unittest.TestCase):
         mod_subcontents = []
         content = self._get_section_content("Module options", sections, md)
         subsections = tee(re.finditer(r"^### (.+)$", content, re.MULTILINE))
-        for idx, mod in enumerate(['Python']):
+        for idx, mod in enumerate(['Pkgconfig', 'Python']):
             mod_subcontents.append(self._get_section_content(f'{mod} module', subsections[idx], content))
         for subcontent in u_subcontents + mod_subcontents:
             # Find the option names
