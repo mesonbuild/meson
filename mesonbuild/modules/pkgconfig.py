@@ -328,7 +328,8 @@ class PkgConfigModule(ExtensionModule):
 
     def _generate_pkgconfig_file(self, state, deps, subdirs, name, description,
                                  url, version, pcfile, conflicts, variables,
-                                 unescaped_variables, uninstalled=False, dataonly=False):
+                                 unescaped_variables, uninstalled=False, dataonly=False,
+                                 pkgroot=None):
         coredata = state.environment.get_coredata()
         referenced_vars = set()
         optnames = [x.name for x in BUILTIN_DIR_OPTIONS.keys()]
@@ -374,6 +375,15 @@ class PkgConfigModule(ExtensionModule):
         else:
             outdir = state.environment.scratch_dir
             prefix = PurePath(coredata.get_option(mesonlib.OptionKey('prefix')))
+            if pkgroot:
+                pkgroot = PurePath(pkgroot)
+                if not pkgroot.is_absolute():
+                    pkgroot = prefix / pkgroot
+                elif prefix not in pkgroot.parents:
+                    raise mesonlib.MesonException('Pkgconfig prefix cannot be outside of the prefix '
+                                                  'when pkgconfig.relocatable=true. '
+                                                  f'Pkgconfig prefix is {pkgroot.as_posix()}.')
+                prefix = PurePath('${pcfiledir}', os.path.relpath(prefix, pkgroot))
         fname = os.path.join(outdir, pcfile)
         with open(fname, 'w', encoding='utf-8') as ofile:
             for optname in optnames:
@@ -591,9 +601,11 @@ class PkgConfigModule(ExtensionModule):
                 pkgroot_name = os.path.join('{libdir}', 'pkgconfig')
         if not isinstance(pkgroot, str):
             raise mesonlib.MesonException('Install_dir must be a string.')
+        relocatable = state.get_option('relocatable', module='pkgconfig')
         self._generate_pkgconfig_file(state, deps, subdirs, name, description, url,
                                       version, pcfile, conflicts, variables,
-                                      unescaped_variables, False, dataonly)
+                                      unescaped_variables, False, dataonly,
+                                      pkgroot=pkgroot if relocatable else None)
         res = build.Data([mesonlib.File(True, state.environment.get_scratch_dir(), pcfile)], pkgroot, pkgroot_name, None, state.subproject, install_tag='devel')
         variables = self.interpreter.extract_variables(kwargs, argname='uninstalled_variables', dict_new=True)
         variables = parse_variable_list(variables)

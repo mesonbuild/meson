@@ -1225,6 +1225,10 @@ BUILTIN_CORE_OPTIONS: 'MutableKeyedOptionDictType' = OrderedDict([
     (OptionKey('wrap_mode'),       BuiltinOption(UserComboOption, 'Wrap mode', 'default', choices=['default', 'nofallback', 'nodownload', 'forcefallback', 'nopromote'])),
     (OptionKey('force_fallback_for'), BuiltinOption(UserArrayOption, 'Force fallback for those subprojects', [])),
 
+    # Pkgconfig module
+    (OptionKey('relocatable', module='pkgconfig'),
+     BuiltinOption(UserBooleanOption, 'Generate pkgconfig files as relocatable', False)),
+
     # Python module
     (OptionKey('install_env', module='python'),
      BuiltinOption(UserComboOption, 'Which python environment to install to', 'prefix', choices=['auto', 'prefix', 'system', 'venv'])),
