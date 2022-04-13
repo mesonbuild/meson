@@ -550,7 +550,7 @@ class EnvironmentVariables(HoldableObject):
         curr = env.get(name)
         return separator.join(values if curr is None else values + [curr])
 
-    def get_env(self, full_env: T.Dict[str, str]) -> T.Dict[str, str]:
+    def get_env(self, full_env: T.MutableMapping[str, str]) -> T.Dict[str, str]:
         env = full_env.copy()
         for method, name, values, separator in self.envvars:
             env[name] = method(env, name, values, separator)

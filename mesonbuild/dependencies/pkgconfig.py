@@ -13,6 +13,8 @@
 # limitations under the License.
 from __future__ import annotations
 
+from pathlib import Path
+
 from .base import ExternalDependency, DependencyException, sort_libpaths, DependencyTypeName
 from ..mesonlib import OptionKey, OrderedSet, PerMachine, Popen_safe
 from ..programs import find_external_program, ExternalProgram
@@ -27,6 +29,7 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..mesonlib import MachineChoice
     from .._typing import ImmutableListProtocol
+    from ..build import EnvironmentVariables
 
 class PkgConfigDependency(ExternalDependency):
     # The class's copy of the pkg-config path. Avoids having to search for it
@@ -122,36 +125,40 @@ class PkgConfigDependency(ExternalDependency):
         return rc, out, err
 
     @staticmethod
-    def setup_env(env: T.MutableMapping[str, str], environment: 'Environment', for_machine: MachineChoice,
-                  extra_path: T.Optional[str] = None) -> None:
-        extra_paths: T.List[str] = environment.coredata.options[OptionKey('pkg_config_path', machine=for_machine)].value[:]
-        if extra_path and extra_path not in extra_paths:
-            extra_paths.append(extra_path)
+    def get_env(environment: 'Environment', for_machine: MachineChoice,
+                uninstalled: bool = False) -> 'EnvironmentVariables':
+        from ..build import EnvironmentVariables
+        env = EnvironmentVariables()
+        key = OptionKey('pkg_config_path', machine=for_machine)
+        extra_paths: T.List[str] = environment.coredata.options[key].value[:]
+        if uninstalled:
+            uninstalled_path = Path(environment.get_build_dir(), 'meson-uninstalled').as_posix()
+            if uninstalled_path not in extra_paths:
+                extra_paths.append(uninstalled_path)
+        env.set('PKG_CONFIG_PATH', extra_paths)
         sysroot = environment.properties[for_machine].get_sys_root()
         if sysroot:
-            env['PKG_CONFIG_SYSROOT_DIR'] = sysroot
-        new_pkg_config_path = ':'.join([p for p in extra_paths])
-        env['PKG_CONFIG_PATH'] = new_pkg_config_path
-
+            env.set('PKG_CONFIG_SYSROOT_DIR', [sysroot])
         pkg_config_libdir_prop = environment.properties[for_machine].get_pkg_config_libdir()
         if pkg_config_libdir_prop:
-            new_pkg_config_libdir = ':'.join([p for p in pkg_config_libdir_prop])
-            env['PKG_CONFIG_LIBDIR'] = new_pkg_config_libdir
+            env.set('PKG_CONFIG_LIBDIR', pkg_config_libdir_prop)
+        return env
+
+    @staticmethod
+    def setup_env(env: T.MutableMapping[str, str], environment: 'Environment', for_machine: MachineChoice,
+                  uninstalled: bool = False) -> T.Dict[str, str]:
+        envvars = PkgConfigDependency.get_env(environment, for_machine, uninstalled)
+        env = envvars.get_env(env)
         # Dump all PKG_CONFIG environment variables
         for key, value in env.items():
             if key.startswith('PKG_'):
                 mlog.debug(f'env[{key}]: {value}')
+        return env
 
-    def _call_pkgbin(self, args: T.List[str], env: T.Optional[T.Dict[str, str]] = None) -> T.Tuple[int, str, str]:
-        # Always copy the environment since we're going to modify it
-        # with pkg-config variables
-        if env is None:
-            env = os.environ.copy()
-        else:
-            env = env.copy()
-
+    def _call_pkgbin(self, args: T.List[str], env: T.Optional[T.MutableMapping[str, str]] = None) -> T.Tuple[int, str, str]:
         assert isinstance(self.pkgbin, ExternalProgram)
-        PkgConfigDependency.setup_env(env, self.env, self.for_machine)
+        env = env or os.environ
+        env = PkgConfigDependency.setup_env(env, self.env, self.for_machine)
 
         fenv = frozenset(env.items())
         targs = tuple(args)

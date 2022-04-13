@@ -1152,9 +1152,12 @@ class LinuxlikeTests(BasePlatformTests):
         env = get_fake_env(testdir, self.builddir, self.prefix)
         env.coredata.set_options({OptionKey('pkg_config_path'): pkg_dir}, subproject='')
 
-        PkgConfigDependency.setup_env({}, env, MachineChoice.HOST, pkg_dir)
+        # Regression test: This used to modify the value of `pkg_config_path`
+        # option, adding the meson-uninstalled directory to it.
+        PkgConfigDependency.setup_env({}, env, MachineChoice.HOST, uninstalled=True)
+
         pkg_config_path = env.coredata.options[OptionKey('pkg_config_path')].value
-        self.assertEqual(len(pkg_config_path), 1)
+        self.assertEqual(pkg_config_path, [pkg_dir])
 
     @skipIfNoPkgconfig
     def test_pkgconfig_internal_libraries(self):

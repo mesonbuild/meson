@@ -155,9 +155,8 @@ class ExternalProject(NewExtensionModule):
         self.run_env['LDFLAGS'] = self._quote_and_join(link_args)
 
         self.run_env = self.user_env.get_env(self.run_env)
-
-        PkgConfigDependency.setup_env(self.run_env, self.env, MachineChoice.HOST,
-                                      Path(self.env.get_build_dir(), 'meson-uninstalled').as_posix())
+        self.run_env = PkgConfigDependency.setup_env(self.run_env, self.env, MachineChoice.HOST,
+                                                     uninstalled=True)
 
         self.build_dir.mkdir(parents=True, exist_ok=True)
         self._run('configure', configure_cmd, workdir)
