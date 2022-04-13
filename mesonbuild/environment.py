@@ -654,7 +654,7 @@ class Environment:
                         _p_env = re.split(r':|;', p_env)
                     p_list = list(mesonlib.OrderedSet(_p_env))
                 elif keyname == 'pkg_config_path':
-                    p_list = list(mesonlib.OrderedSet(p_env.split(':')))
+                    p_list = list(mesonlib.OrderedSet(p_env.split(os.pathsep)))
                 else:
                     p_list = split_args(p_env)
                 p_list = [e for e in p_list if e]  # filter out any empty elements
