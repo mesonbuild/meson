@@ -967,6 +967,13 @@ class GnomeModule(ExtensionModule):
         elif install_dir is False:
             install = False
 
+        # g-ir-scanner uses pkg-config to find libraries such as glib. They could
+        # be built as subproject in which case we need to trick it to use
+        # -uninstalled.pc files Meson generated. It also must respect pkgconfig
+        # settings user could have set in machine file, like PKG_CONFIG_LIBDIR,
+        # SYSROOT, etc.
+        run_env = PkgConfigDependency.get_env(state.environment, MachineChoice.HOST, uninstalled=True)
+
         return GirTarget(
             girfile,
             state.subdir,
@@ -980,6 +987,7 @@ class GnomeModule(ExtensionModule):
             install=install,
             install_dir=[install_dir],
             install_tag=['devel'],
+            env=run_env,
         )
 
     @staticmethod
