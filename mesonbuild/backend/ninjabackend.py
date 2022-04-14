@@ -1698,7 +1698,7 @@ class NinjaBackend(backends.Backend):
         args += compilers.get_base_compile_args(base_proxy, rustc)
         self.generate_generator_list_rules(target)
 
-        # dependencies need to cause a relink, they're not just for odering
+        # dependencies need to cause a relink, they're not just for ordering
         deps = [
             os.path.join(t.subdir, t.get_filename())
             for t in itertools.chain(target.link_targets, target.link_whole_targets)
