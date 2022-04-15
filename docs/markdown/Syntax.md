@@ -176,7 +176,9 @@ int main (int argc, char ** argv) {
 
 These are raw strings that do not support the escape sequences listed
 above.  These strings can also be combined with the string formatting
-functionality described below.
+functionality via `.format()` described below.
+
+Note that multiline f-strings are not supported.
 
 ### String index
 
@@ -209,7 +211,8 @@ As can be seen, the formatting works by replacing placeholders of type
 *(Added 0.58)*
 
 Format strings can be used as a non-positional alternative to the
-string formatting functionality described above.
+string formatting functionality described above. Note that multiline f-strings
+are not supported.
 
 ```meson
 n = 10
