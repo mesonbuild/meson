@@ -114,6 +114,7 @@ class Lexer:
         self.token_specification = [
             # Need to be sorted longest to shortest.
             ('ignore', re.compile(r'[ \t]')),
+            ('multiline_fstring', re.compile(r"f'''(.|\n)*?'''", re.M)),
             ('fstring', re.compile(r"f'([^'\\]|(\\.))*'")),
             ('id', re.compile('[_a-zA-Z][_0-9a-zA-Z]*')),
             ('number', re.compile(r'0[bB][01]+|0[oO][0-7]+|0[xX][0-9a-fA-F]+|0|[1-9]\d*')),
@@ -203,9 +204,17 @@ class Lexer:
                             value = ESCAPE_SEQUENCE_SINGLE_RE.sub(decode_match, value)
                         except MesonUnicodeDecodeError as err:
                             raise MesonException(f"Failed to parse escape sequence: '{err.match}' in string:\n  {match_text}")
-                    elif tid == 'multiline_string':
-                        tid = 'string'
-                        value = match_text[3:-3]
+                    elif tid in {'multiline_string', 'multiline_fstring'}:
+                        # For multiline strings, parse out the value and pass
+                        # through the normal string logic.
+                        # For multiline format strings, we have to emit a
+                        # different AST node so we can add a feature check,
+                        # but otherwise, it follows the normal fstring logic.
+                        if tid == 'multiline_string':
+                            value = match_text[3:-3]
+                            tid = 'string'
+                        else:
+                            value = match_text[4:-3]
                         lines = match_text.split('\n')
                         if len(lines) > 1:
                             lineno += len(lines) - 1
@@ -298,7 +307,11 @@ class FormatStringNode(ElementaryNode[str]):
         assert isinstance(self.value, str)
 
     def __str__(self) -> str:
-        return "Format string node: '{self.value}' ({self.lineno}, {self.colno})."
+        return f"Format string node: '{self.value}' ({self.lineno}, {self.colno})."
+
+class MultilineFormatStringNode(FormatStringNode):
+    def __str__(self) -> str:
+        return f"Multiline Format string node: '{self.value}' ({self.lineno}, {self.colno})."
 
 class ContinueNode(ElementaryNode):
     pass
@@ -685,6 +698,8 @@ class Parser:
             return StringNode(t)
         if self.accept('fstring'):
             return FormatStringNode(t)
+        if self.accept('multiline_fstring'):
+            return MultilineFormatStringNode(t)
         return EmptyNode(self.current.lineno, self.current.colno, self.current.filename)
 
     def key_values(self) -> ArgumentNode:
