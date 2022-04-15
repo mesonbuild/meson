@@ -217,7 +217,10 @@ class InterpreterBase:
         elif isinstance(cur, mparser.TernaryNode):
             return self.evaluate_ternary(cur)
         elif isinstance(cur, mparser.FormatStringNode):
-            return self.evaluate_fstring(cur)
+            if isinstance(cur, mparser.MultilineFormatStringNode):
+                return self.evaluate_multiline_fstring(cur)
+            else:
+                return self.evaluate_fstring(cur)
         elif isinstance(cur, mparser.ContinueNode):
             raise ContinueRequest()
         elif isinstance(cur, mparser.BreakNode):
@@ -366,6 +369,10 @@ class InterpreterBase:
             return self.evaluate_statement(node.trueblock)
         else:
             return self.evaluate_statement(node.falseblock)
+
+    @FeatureNew('multiline format strings', '0.63.0')
+    def evaluate_multiline_fstring(self, node: mparser.MultilineFormatStringNode) -> InterpreterObject:
+        return self.evaluate_fstring(node)
 
     @FeatureNew('format strings', '0.58.0')
     def evaluate_fstring(self, node: mparser.FormatStringNode) -> InterpreterObject:
