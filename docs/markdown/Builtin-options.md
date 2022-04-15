@@ -74,7 +74,7 @@ machine](#specifying-options-per-machine) section for details.
 | auto_features {enabled, disabled, auto} | auto       | Override value of all 'auto' features                          | no             | no                |
 | backend {ninja, vs,<br>vs2010, vs2012, vs2013, vs2015, vs2017, vs2019, vs2022, xcode} | ninja | Backend to use        | no             | no                |
 | buildtype {plain, debug,<br>debugoptimized, release, minsize, custom} | debug |  Build type to use                    | no             | no                |
-| debug                                | true          | Debug                                                          | no             | no                |
+| debug                                | true          | Enable debug symbols and other information                     | no             | no                |
 | default_library {shared, static, both} | shared      | Default library type                                           | no             | yes               |
 | errorlogs                            | true          | Whether to print the logs from failing tests.                  | no             | no                |
 | install_umask {preserve, 0000-0777}  | 022           | Default umask to apply on permissions of installed files       | no             | no                |
