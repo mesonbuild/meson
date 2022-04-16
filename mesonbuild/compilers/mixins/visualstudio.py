@@ -449,7 +449,7 @@ class ClangClCompiler(VisualStudioLikeCompiler):
 
     def has_arguments(self, args: T.List[str], env: 'Environment', code: str, mode: str) -> T.Tuple[bool, bool]:
         if mode != 'link':
-            args = args + ['-Werror=unknown-argument']
+            args = args + ['-Werror=unknown-argument', '-Werror=unknown-warning-option']
         return super().has_arguments(args, env, code, mode)
 
     def get_toolset_version(self) -> T.Optional[str]:
