@@ -544,7 +544,7 @@ class ConsoleLogger(TestLogger):
                     tests_total,
                     self.get_spinner())]
         if harness.options.verbose or self.should_print_closing_line:
-            lines = [dashes(None, '-', harness.get_formatted_line_length())] + lines
+            lines = [dashes(None, '-', harness.get_formatted_line_length(self.cols))] + lines
         self.print_progress(lines, right=True)
 
     def emit_progress(self, harness: 'TestHarness') -> None:
@@ -577,14 +577,18 @@ class ConsoleLogger(TestLogger):
             lines = [harness.format(test,
                                     colorize=mlog.colorize_console(),
                                     left=left,
-                                    right=right)] + lines
+                                    right=right,
+                                    max_total_width=self.cols)] + lines
         if harness.options.verbose or self.should_print_closing_line:
             if direct_output:
                 div = '- '
-                width = int(harness.get_formatted_line_length() / 2)
+                width = harness.get_formatted_line_length(self.cols) / 2
+                # since len(div) == 2 and div[-1] == ' ' we can include
+                # div[0] when width % 2 != 0
+                width = int(width + 0.6)
             else:
                 div = '-'
-                width = harness.get_formatted_line_length()
+                width = harness.get_formatted_line_length(self.cols)
             lines = [dashes(None, div, width)] + lines
         elif remainder > 0:
             msg = f'[omitting {remainder} running test(s) from above]'
@@ -651,7 +655,9 @@ class ConsoleLogger(TestLogger):
                           harness: 'TestHarness',
                           test: 'TestRun',
                           update: bool = True) -> None:
-        self.safe_print(harness.format(test, mlog.colorize_console()))
+        self.safe_print(harness.format(test,
+                                       mlog.colorize_console(),
+                                       max_total_width=self.cols))
 
         if update:
             self.request_update()
@@ -687,7 +693,12 @@ class ConsoleLogger(TestLogger):
                              prefix: str,
                              name: str,
                              result: 'TestResult') -> None:
-        self.print_line(prefix, harness.format_subtest(None, name, result))
+        max_width = self.cols - len(prefix) - 2
+        self.print_line(prefix,
+                        harness.format_subtest(None,
+                                               name,
+                                               result,
+                                               max_total_width=max_width))
 
     def print_subtests_section(self,
                                harness: 'TestHarness',
@@ -695,6 +706,7 @@ class ConsoleLogger(TestLogger):
                                result: 'TestRun') -> None:
         if result.results:
             self.print_header(prefix, 'subtest results', update=False)
+        max_width = self.cols - len(prefix) - 2
         name_max_len = max(len(subtest.name or str(subtest.number)) for subtest in result.results)
         for subtest in result.results:
             name = subtest.name or str(subtest.number)
@@ -702,10 +714,11 @@ class ConsoleLogger(TestLogger):
                             harness.format_subtest(None,
                                                    name,
                                                    subtest.result,
-                                                   name_max_len=name_max_len))
+                                                   name_max_len=name_max_len,
+                                                   max_total_width=max_width))
 
     def print_horizontal_line(self, harness: 'TestHarness') -> None:
-        self.safe_print(dashes(None, '-', harness.get_formatted_line_length()))
+        self.safe_print(dashes(None, '-', harness.get_formatted_line_length(self.cols)))
 
     def print_log(self,
                   harness: 'TestHarness',
@@ -1810,7 +1823,8 @@ class TestHarness:
                left: T.Optional[str] = None,
                middle: T.Optional[str] = None,
                right: T.Optional[str] = None,
-               extra_mid_width: T.Optional[int] = None) -> str:
+               extra_mid_width: T.Optional[int] = None,
+               max_total_width: T.Optional[int] = None) -> str:
         if left is None:
             left = self.get_test_num_prefix(result.num)
 
@@ -1848,24 +1862,35 @@ class TestHarness:
                 details = result.get_details()
                 if details:
                     right += '   ' + details
+
+        if max_total_width:
+            trim = len(left + middle + right) - max_total_width - (10 if colorize else 0)
+            if trim > 0:
+                middlebase = middle.rstrip()
+                if len(middlebase) < len(middle) - trim:
+                    middle = middlebase + (len(middle) - len(middlebase) - trim) * ' '
+                else:
+                    middle = middle[:-(trim + 4)] + '... '
         return left + middle + right
 
-    def get_formatted_line_length(self) -> int:
+    def get_formatted_line_length(self, maxval: T.Optional[int] = None) -> int:
         # This aims to return the number of (visible) characters a string
         # returned by the above format() function will have. We are
         # choosing to ignore the fact that some individual lines from
         # format() could be a bit longer.
-        return (self.max_left_width
-                + self.name_max_len
-                + TestResult.maxlen()
-                + self.duration_max_len
-                + 6)
+        rv = (self.max_left_width
+              + self.name_max_len
+              + TestResult.maxlen()
+              + self.duration_max_len
+              + 6)
+        return rv if maxval is None else min(rv, maxval)
 
     def format_subtest(self,
                        test: 'TestRun',
                        name: str,
                        result: TestResult,
-                       name_max_len: T.Optional[int] = None) -> str:
+                       name_max_len: T.Optional[int] = None,
+                       max_total_width: T.Optional[int] = None) -> str:
         extra_middle = 0
         if name_max_len:
             extra_middle = 1 + name_max_len - len(name)
@@ -1874,7 +1899,8 @@ class TestHarness:
                            extra_mid_width=extra_middle,
                            left='',
                            middle=name,
-                           right=result.get_text(mlog.colorize_console()))
+                           right=result.get_text(mlog.colorize_console()),
+                           max_total_width=max_total_width)
 
     def summary(self) -> str:
         return textwrap.dedent('''

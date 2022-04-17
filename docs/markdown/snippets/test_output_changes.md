@@ -23,3 +23,6 @@ The status line in quiet mode was simplified.
 The main status line was updated to a multi line one. The status line is
 also replaced with the quiet version if the size of the terminal is not at
 least 80 characters wide and 24 rows tall.
+
+Individual status lines longer than the width of the terminal are
+shortened to fit on a single line.
