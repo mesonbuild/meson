@@ -89,6 +89,7 @@ class CMakeGeneratorTarget(CMakeTarget):
     def __init__(self, name: str) -> None:
         super().__init__(name, 'CUSTOM', {})
         self.outputs = []        # type: T.List[Path]
+        self._outputs_str = []   # type: T.List[str]
         self.command = []        # type: T.List[T.List[str]]
         self.working_dir = None  # type: T.Optional[Path]
 
@@ -202,8 +203,8 @@ class CMakeTraceParser:
                 fn(l)
 
         # Evaluate generator expressions
-        strlist_gen:  T.Callable[[T.List[str]],  T.List[str]]  = lambda strlist: [parse_generator_expressions(x, self) for x in strlist]
-        pathlist_gen: T.Callable[[T.List[Path]], T.List[Path]] = lambda plist:   [Path(parse_generator_expressions(str(x), self)) for x in plist]
+        strlist_gen:  T.Callable[[T.List[str]], T.List[str]]  = lambda strlist: parse_generator_expressions(';'.join(strlist), self).split(';') if strlist else []
+        pathlist_gen: T.Callable[[T.List[str]], T.List[Path]] = lambda strlist: [Path(x) for x in parse_generator_expressions(';'.join(strlist), self).split(';')] if strlist else []
 
         self.vars = {k: strlist_gen(v) for k, v in self.vars.items()}
         self.vars_by_file = {
@@ -220,7 +221,7 @@ class CMakeTraceParser:
         }
 
         for tgt in self.targets.values():
-            tgtlist_gen: T.Callable[[T.List[str], CMakeTarget],  T.List[str]] = lambda strlist, t: [parse_generator_expressions(x, self, context_tgt=t) for x in strlist]
+            tgtlist_gen: T.Callable[[T.List[str], CMakeTarget], T.List[str]] = lambda strlist, t: parse_generator_expressions(';'.join(strlist), self, context_tgt=t).split(';') if strlist else []
             tgt.name = parse_generator_expressions(tgt.name, self, context_tgt=tgt)
             tgt.type = parse_generator_expressions(tgt.type, self, context_tgt=tgt)
             tgt.properties = {
@@ -229,7 +230,7 @@ class CMakeTraceParser:
             tgt.depends = tgtlist_gen(tgt.depends, tgt)
 
         for ctgt in self.custom_targets:
-            ctgt.outputs = pathlist_gen(ctgt.outputs)
+            ctgt.outputs = pathlist_gen(ctgt._outputs_str)
             ctgt.command = [strlist_gen(x) for x in ctgt.command]
             ctgt.working_dir = Path(parse_generator_expressions(str(ctgt.working_dir), self)) if ctgt.working_dir is not None else None
 
@@ -416,7 +417,7 @@ class CMakeTraceParser:
         target = CMakeGeneratorTarget(name)
 
         def handle_output(key: str, target: CMakeGeneratorTarget) -> None:
-            target.outputs += [Path(key)]
+            target._outputs_str += [key]
 
         def handle_command(key: str, target: CMakeGeneratorTarget) -> None:
             if key == 'ARGS':
@@ -462,7 +463,7 @@ class CMakeTraceParser:
         target.working_dir     = Path(working_dir) if working_dir else None
         target.current_bin_dir = Path(cbinary_dir) if cbinary_dir else None
         target.current_src_dir = Path(csource_dir) if csource_dir else None
-        target.outputs = [Path(x) for x in self._guess_files([str(y) for y in target.outputs])]
+        target._outputs_str = self._guess_files(target._outputs_str)
         target.depends = self._guess_files(target.depends)
         target.command = [self._guess_files(x) for x in target.command]
 
