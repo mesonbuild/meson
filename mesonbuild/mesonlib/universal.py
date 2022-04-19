@@ -711,6 +711,7 @@ def darwin_get_object_archs(objpath: str) -> 'ImmutableListProtocol[str]':
     stdo = stdo.replace('i386', 'x86')
     stdo = stdo.replace('arm64', 'aarch64')
     stdo = stdo.replace('ppc7400', 'ppc')
+    stdo = stdo.replace('ppc970', 'ppc')
     # Add generic name for armv7 and armv7s
     if 'armv7' in stdo:
         stdo += ' arm'
