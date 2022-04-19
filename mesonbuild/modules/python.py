@@ -533,6 +533,10 @@ class PythonInstallation(ExternalProgramHolder):
         kwargs['name_prefix'] = ''
         kwargs['name_suffix'] = suffix
 
+        if 'gnu_symbol_visibility' not in kwargs and \
+                (self.is_pypy or mesonlib.version_compare(self.version, '>=3.9')):
+            kwargs['gnu_symbol_visibility'] = 'inlineshidden'
+
         return self.interpreter.func_shared_module(None, args, kwargs)
 
     @disablerIfNotFound

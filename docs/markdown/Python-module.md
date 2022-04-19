@@ -93,6 +93,12 @@ the addition of the following:
   it will be appended to that location. This keyword argument is
   mutually exclusive with `install_dir`
 
+Additionally, the following diverge from [[shared_module]]'s default behavior:
+
+- `gnu_symbol_visibility`: if unset, it will default to `'hidden'` on versions
+  of Python that support this (the python headers define `PyMODINIT_FUNC` has
+  default visibility).
+
 `extension_module` does not add any dependencies to the library so
 user may need to add `dependencies : py_installation.dependency()`,
 see [[dependency]].
