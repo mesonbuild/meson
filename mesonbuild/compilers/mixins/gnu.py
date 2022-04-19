@@ -190,6 +190,8 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         pass
 
     def gnu_symbol_visibility_args(self, vistype: str) -> T.List[str]:
+        if vistype == 'inlineshidden' and self.language not in {'cpp', 'objcpp'}:
+            vistype = 'hidden'
         return gnu_symbol_visibility_args[vistype]
 
     def gen_vs_module_defs_args(self, defsfile: str) -> T.List[str]:
