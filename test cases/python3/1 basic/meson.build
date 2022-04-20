@@ -9,13 +9,15 @@ if py3_version.version_compare('< 3.2')
 endif
 
 py3_purelib = py3_mod.sysconfig_path('purelib')
-if not py3_purelib.to_lower().startswith('lib') or not (py3_purelib.endswith('site-packages') or py3_purelib.endswith('dist-packages'))
+message('Python purelib:', py3_purelib)
+if not (py3_purelib.endswith('site-packages') or py3_purelib.endswith('dist-packages'))
   error('Python3 purelib path seems invalid?')
 endif
 
 # could be 'lib64' or 'Lib' on some systems
 py3_platlib = py3_mod.sysconfig_path('platlib')
-if not py3_platlib.to_lower().startswith('lib') or not (py3_platlib.endswith('site-packages') or py3_platlib.endswith('dist-packages'))
+message('Python platlib:', py3_platlib)
+if not (py3_platlib.endswith('site-packages') or py3_platlib.endswith('dist-packages'))
   error('Python3 platlib path seems invalid?')
 endif
 
