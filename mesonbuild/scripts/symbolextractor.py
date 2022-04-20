@@ -288,6 +288,8 @@ def gen_symbols(libfilename: str, impfilename: str, outfilename: str, cross_host
         openbsd_syms(libfilename, outfilename)
     elif mesonlib.is_freebsd():
         freebsd_syms(libfilename, outfilename)
+    elif mesonlib.is_netbsd():
+        freebsd_syms(libfilename, outfilename)
     elif mesonlib.is_windows():
         if os.path.isfile(impfilename):
             windows_syms(impfilename, outfilename)
