@@ -1752,6 +1752,8 @@ external dependencies (including libraries) must go to "dependencies".''')
         vcs_cmd = kwargs['command']
         source_dir = os.path.normpath(os.path.join(self.environment.get_source_dir(), self.subdir))
         if vcs_cmd:
+            if isinstance(vcs_cmd[0], mesonlib.File):
+                FeatureNew.single_use('vcs_tag with file as the first argument', '0.62.0', self.subproject, location=node)
             maincmd = self.find_program_impl(vcs_cmd[0], required=False)
             if maincmd.found():
                 vcs_cmd[0] = maincmd
