@@ -351,4 +351,10 @@ top build directory, that file is loaded by gdb automatically. In the case of
 python scripts that needs to load other python modules, `PYTHONPATH` may need
 to be modified using `meson.add_devenv()`.
 
+Since *Since 0.63.0* when cross compiling for Windows `WINEPATH` is used instead
+of `PATH` which allows running Windows executables using wine. Note that since
+`WINEPATH` size is currently limited to 1024 characters, paths relative to the
+root of build directory are used. That means current workdir must be the root of
+build directory when running wine.
+
 {{ devenv_arguments.inc }}
