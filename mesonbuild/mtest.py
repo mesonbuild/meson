@@ -566,21 +566,9 @@ class ConsoleLogger(TestLogger):
             elif len(lines) > max_lines:
                 remainder += 1
                 continue
-            right = '{status} {dur:{durlen}}'.format(
-                status=test.res.get_text(mlog.colorize_console(), right_align=True),
-                dur=runtime,
-                durlen=harness.duration_max_len)
-            if test.timeout:
-                right += '/{timeout}'.format(
-                    timeout=test.timeout)
-            right += 's'
-            details = test.get_details()
-            if details:
-                right += '   ' + details
             lines = [harness.format(test,
                                     colorize=mlog.colorize_console(),
                                     left=left,
-                                    right=right,
                                     max_total_width=self.cols)] + lines
         if harness.options.verbose or self.should_print_closing_line:
             if direct_output:
@@ -1842,11 +1830,15 @@ class TestHarness:
         middle += ' ' * max(1, extra_mid_width)
 
         if right is None:
+            res = result.res.get_text(colorize, right_align=True)
+            durlen = max(self.duration_max_len + 3, 2*self.duration_max_len + 1)
             if result.duration:
-                right = '{res} {dur:{durlen}.2f}s'.format(
-                    res=result.res.get_text(colorize, right_align=True),
-                    dur=result.duration,
-                    durlen=self.duration_max_len + 3)
+                right = f'{res} {result.duration:>{durlen}.2f}s'
+            elif result.res == TestResult.RUNNING:
+                dur = str(int(time.time() - result.starttime))
+                if result.timeout:
+                    dur = f'{dur}/{result.timeout}'
+                right = f'{res} {dur:>{durlen}}s'
             else:
                 right = result.res.get_text(colorize)
 
@@ -1863,7 +1855,8 @@ class TestHarness:
                     and not result.verbose \
                     and not (result.res.is_bad() and self.options.print_errorlogs):
                 details = result.get_details()
-                if details:
+                if details and (not max_total_width
+                                or len(left + middle + right + details) + 3 <= max_total_width):
                     right += '   ' + details
 
         if max_total_width:
