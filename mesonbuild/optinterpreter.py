@@ -32,7 +32,7 @@ if T.TYPE_CHECKING:
         'value': object,
         'min': T.Optional[int],
         'max': T.Optional[int],
-        'deprecated': T.Union[bool, T.Dict[str, str], T.List[str]],
+        'deprecated': T.Union[bool, str, T.Dict[str, str], T.List[str]],
         })
     ParserArgs = TypedDict('ParserArgs', {
         'yield': bool,
@@ -153,7 +153,7 @@ class OptionInterpreter:
                   KwargInfo('value', object),
                   KwargInfo('min', (int, type(None))),
                   KwargInfo('max', (int, type(None))),
-                  KwargInfo('deprecated', (bool, ContainerTypeInfo(dict, str), ContainerTypeInfo(list, str)),
+                  KwargInfo('deprecated', (bool, str, ContainerTypeInfo(dict, str), ContainerTypeInfo(list, str)),
                             default=False, since='0.60.0')
                   )
     @typed_pos_args('option', str)
@@ -177,7 +177,8 @@ class OptionInterpreter:
         parser_kwargs = {k: v for k, v in kwargs.items() if k in known_parser_kwargs and v is not None}
         opt = parser(description, T.cast('ParserArgs', parser_kwargs))
         opt.deprecated = kwargs['deprecated']
-
+        if isinstance(opt.deprecated, str):
+            FeatureNew.single_use('String value to "deprecated" keyword argument', '0.63.0', self.subproject)
         if key in self.options:
             mlog.deprecation(f'Option {opt_name} already exists.')
         self.options[key] = opt

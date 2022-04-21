@@ -149,6 +149,21 @@ option('o4', type: 'feature', deprecated: {'true': 'enabled', 'false': 'disabled
 option('o5', type: 'boolean', deprecated: {'enabled': 'true', 'disabled': 'false', 'auto': 'false'})
 ```
 
+Since *0.63.0* the `deprecated` keyword argument can take the name of a new option
+that replace this option. In that case, setting a value on the deprecated option
+will set the value on both the old and new names, assuming they accept the same
+values.
+
+```meson
+# A boolean option has been replaced by a feature with another name, old true/false values
+# are accepted by the new option for backward compatibility.
+option('o6', type: 'boolean', value: 'true', deprecated: 'o7')
+option('o7', type: 'feature', value: 'enabled', deprecated: {'true': 'enabled', 'false': 'disabled'})
+
+# A project option is replaced by a module option
+option('o8', type: 'string', value: '', deprecated: 'python.platlibdir')
+```
+
 ## Using build options
 
 ```meson
