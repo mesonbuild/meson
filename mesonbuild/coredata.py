@@ -81,7 +81,7 @@ class UserOption(T.Generic[_T], HoldableObject):
         if not isinstance(yielding, bool):
             raise MesonException('Value of "yielding" must be a boolean.')
         self.yielding = yielding
-        self.deprecated: T.Union[bool, T.Dict[str, str], T.List[str]] = False
+        self.deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False
 
     def listify(self, value: T.Any) -> T.List[T.Any]:
         return [value]
@@ -660,6 +660,19 @@ class CoreData:
                 return v
             newvalue = [replace(v) for v in opt.listify(value)]
             value = ','.join(newvalue)
+        elif isinstance(opt.deprecated, str):
+            # Option is deprecated and replaced by another. Note that a project
+            # option could be replaced by a built-in or module option, which is
+            # why we use OptionKey.from_string(newname) instead of
+            # key.evolve(newname). We set the value on both the old and new names,
+            # assuming they accept the same value. That could for example be
+            # achieved by adding the values from old option as deprecated on the
+            # new option, for example in the case of boolean option is replaced
+            # by a feature option with a different name.
+            newname = opt.deprecated
+            newkey = OptionKey.from_string(newname).evolve(subproject=key.subproject)
+            mlog.deprecation(f'Option {key.name!r} is replaced by {newname!r}')
+            self.set_option(newkey, value)
 
         opt.set_value(value)
 
