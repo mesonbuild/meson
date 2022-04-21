@@ -248,9 +248,12 @@ class TestResult(enum.Enum):
             decorator = mlog.blue
         return decorator(s)
 
-    def get_text(self, colorize: bool) -> str:
-        result_str = '{res:{reslen}}'.format(res=self.value, reslen=self.maxlen())
-        return self.colorize(result_str).get_text(colorize)
+    def get_text(self, colorize: bool, right_align: bool = False) -> str:
+        fmt = '{res:>{reslen}}' if right_align else '{res:{reslen}}'
+        colorized_value = self.colorize(self.value).get_text(colorize)
+        return fmt.format(
+                res=colorized_value,
+                reslen=self.maxlen() + (len(colorized_value) - len(self.value)))
 
 
 TYPE_TAPResult = T.Union['TAPParser.Test',
@@ -564,7 +567,7 @@ class ConsoleLogger(TestLogger):
                 remainder += 1
                 continue
             right = '{status} {dur:{durlen}}'.format(
-                status=test.res.get_text(mlog.colorize_console()),
+                status=test.res.get_text(mlog.colorize_console(), right_align=True),
                 dur=runtime,
                 durlen=harness.duration_max_len)
             if test.timeout:
@@ -1841,7 +1844,7 @@ class TestHarness:
         if right is None:
             if result.duration:
                 right = '{res} {dur:{durlen}.2f}s'.format(
-                    res=result.res.get_text(colorize),
+                    res=result.res.get_text(colorize, right_align=True),
                     dur=result.duration,
                     durlen=self.duration_max_len + 3)
             else:
@@ -1866,6 +1869,9 @@ class TestHarness:
         if max_total_width:
             trim = len(left + middle + right) - max_total_width - (10 if colorize else 0)
             if trim > 0:
+                while right[0].isspace():
+                    middle += ' '
+                    right = right[1:]
                 middlebase = middle.rstrip()
                 if len(middlebase) < len(middle) - trim:
                     middle = middlebase + (len(middle) - len(middlebase) - trim) * ' '
@@ -1899,7 +1905,7 @@ class TestHarness:
                            extra_mid_width=extra_middle,
                            left='',
                            middle=name,
-                           right=result.get_text(mlog.colorize_console()),
+                           right=result.get_text(mlog.colorize_console()).strip(),
                            max_total_width=max_total_width)
 
     def summary(self) -> str:
