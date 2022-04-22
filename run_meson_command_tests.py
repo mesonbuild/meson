@@ -24,17 +24,24 @@ from pathlib import Path
 from mesonbuild.mesonlib import windows_proof_rmtree, python_command, is_windows
 from mesonbuild.coredata import version as meson_version
 
+# Handle the scheme that Debian patches in the as default
+import sysconfig
+# This function was renamed and made public in Python 3.10
+if hasattr(sysconfig, 'get_default_scheme'):
+    scheme = sysconfig.get_default_scheme()
+else:
+    scheme = sysconfig._get_default_scheme()
+if scheme == 'posix_local':
+    scheme = 'posix_prefix'
 
 def get_pypath():
-    import sysconfig
-    pypath = sysconfig.get_path('purelib', vars={'base': ''})
+    pypath = sysconfig.get_path('purelib', scheme=scheme, vars={'base': ''})
     # Ensure that / is the path separator and not \, then strip /
     return Path(pypath).as_posix().strip('/')
 
 def get_pybindir():
-    import sysconfig
     # 'Scripts' on Windows and 'bin' on other platforms including MSYS
-    return sysconfig.get_path('scripts', vars={'base': ''}).strip('\\/')
+    return sysconfig.get_path('scripts', scheme=scheme, vars={'base': ''}).strip('\\/')
 
 class CommandTests(unittest.TestCase):
     '''
