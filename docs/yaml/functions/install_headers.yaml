@@ -29,6 +29,13 @@ example: |
   install_headers('common.h', 'proj/kola.h', install_dir : 'cust', subdir : 'myproj')
   ```
 
+  This will install `common.h` into `/{prefix}/include` and `kola.h`
+  into `/{prefix}/include/proj/`:
+
+  ```meson
+  install_headers('common.h, 'proj/kola.h', preserve_path : true)
+  ```
+
 varargs:
   name: file
   type: file | str
@@ -54,3 +61,12 @@ kwargs:
       and optionally the owner/uid and group/gid for the installed files.
 
       See the `install_mode` kwarg of [[install_data]] for more information.
+
+  preserve_path:
+    type: bool
+    since: 0.63.0
+    default: false
+    description: |
+      Disable stripping child-direcories from header files when installing.
+
+      This is equivalent to GNU Automake's `nobase` option.
