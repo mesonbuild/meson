@@ -2065,6 +2065,7 @@ external dependencies (including libraries) must go to "dependencies".''')
     @typed_kwargs(
         'install_headers',
         KwargInfo('install_dir', (str, NoneType)),
+        KwargInfo('preserve_path', bool, default=False, since='0.63.0'),
         KwargInfo('subdir', (str, NoneType)),
         INSTALL_MODE_KW.evolve(since='0.47.0'),
     )
@@ -2078,12 +2079,25 @@ external dependencies (including libraries) must go to "dependencies".''')
                 raise InterpreterException('install_headers: cannot specify both "install_dir" and "subdir". Use only "install_dir".')
             if os.path.isabs(install_subdir):
                 mlog.deprecation('Subdir keyword must not be an absolute path. This will be a hard error in the next release.')
+        else:
+            install_subdir = ''
 
-        h = build.Headers(source_files, install_subdir, kwargs['install_dir'],
-                          kwargs['install_mode'], self.subproject)
-        self.build.headers.append(h)
+        dirs = collections.defaultdict(list)
+        ret_headers = []
+        if kwargs['preserve_path']:
+            for file in source_files:
+                dirname = os.path.dirname(file.fname)
+                dirs[dirname].append(file)
+        else:
+            dirs[''].extend(source_files)
 
-        return h
+        for childdir in dirs:
+            h = build.Headers(dirs[childdir], os.path.join(install_subdir, childdir), kwargs['install_dir'],
+                              kwargs['install_mode'], self.subproject)
+            ret_headers.append(h)
+            self.build.headers.append(h)
+
+        return ret_headers
 
     @typed_pos_args('install_man', varargs=(str, mesonlib.File))
     @typed_kwargs(
