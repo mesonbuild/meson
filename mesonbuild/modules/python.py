@@ -284,7 +284,9 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
         else:
             dep = self._dependency_method_impl(nkwargs)
             if required and not dep.found():
-                raise mesonlib.MesonException('Python dependency not found')
+                raise mesonlib.MesonException(
+                    'Python dependency not found, have you installed python$VER-dev?'
+                )
             return dep
 
     @typed_pos_args('install_data', varargs=(str, mesonlib.File))
