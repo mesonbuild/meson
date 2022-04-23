@@ -168,6 +168,7 @@ time, please help extending the list of well known categories.
   * `install_man()`.
 - `doc`:
   * `gnome.gtkdoc()`,
+  * `gnome.yelp()`,
   * `hotdoc.generate_doc()`.
 - `i18n`:
   * `i18n.gettext()`,

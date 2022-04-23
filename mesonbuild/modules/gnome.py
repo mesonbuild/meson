@@ -1281,7 +1281,7 @@ class GnomeModule(ExtensionModule):
         install_dir = os.path.join(state.environment.get_datadir(), 'help')
         c_install_dir = os.path.join(install_dir, 'C', project_id)
         c_data = build.Data(sources_files, c_install_dir, c_install_dir,
-                            mesonlib.FileMode(), state.subproject)
+                            mesonlib.FileMode(), state.subproject, install_tag='doc')
         targets.append(c_data)
 
         media_files: T.List[mesonlib.File] = []
@@ -1291,7 +1291,7 @@ class GnomeModule(ExtensionModule):
             media_files.append(f)
             m_install_dir = os.path.join(c_install_dir, os.path.dirname(m))
             m_data = build.Data([f], m_install_dir, m_install_dir,
-                                mesonlib.FileMode(), state.subproject)
+                                mesonlib.FileMode(), state.subproject, install_tag='doc')
             targets.append(m_data)
 
         pot_file = os.path.join('@SOURCE_ROOT@', state.subdir, 'C', project_id + '.pot')
@@ -1314,14 +1314,14 @@ class GnomeModule(ExtensionModule):
                 if symlinks:
                     link_target = os.path.join(os.path.relpath(c_install_dir, start=m_install_dir), m)
                     l_data = build.SymlinkData(link_target, os.path.basename(m),
-                                               m_install_dir, state.subproject)
+                                               m_install_dir, state.subproject, install_tag='doc')
                 else:
                     try:
                         m_file = mesonlib.File.from_source_file(state.environment.source_dir, l_subdir, m)
                     except MesonException:
                         m_file = media_files[i]
                     l_data = build.Data([m_file], m_install_dir, m_install_dir,
-                                        mesonlib.FileMode(), state.subproject)
+                                        mesonlib.FileMode(), state.subproject, install_tag='doc')
                 targets.append(l_data)
 
             po_file = l + '.po'
@@ -1344,6 +1344,7 @@ class GnomeModule(ExtensionModule):
                 [msgfmt, '@INPUT@', '-o', '@OUTPUT@'],
                 [po_file],
                 [gmo_file],
+                install_tag=['doc'],
             )
             targets.append(gmotarget)
 
@@ -1358,6 +1359,7 @@ class GnomeModule(ExtensionModule):
                 extra_depends=[gmotarget],
                 install=True,
                 install_dir=[l_install_dir],
+                install_tag=['doc'],
             )
             targets.append(mergetarget)
 
