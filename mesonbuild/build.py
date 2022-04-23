@@ -2450,13 +2450,9 @@ class CustomTarget(Target, CommandBase):
         self.install = install
         self.install_dir = list(install_dir or [])
         self.install_mode = install_mode
-        _install_tag: T.List[T.Optional[str]]
-        if not install_tag:
-            _install_tag = [None] * len(self.outputs)
-        elif len(install_tag) == 1:
-            _install_tag = list(install_tag) * len(self.outputs)
-        else:
-            _install_tag = list(install_tag)
+        _install_tag: T.List[T.Optional[str]] = [None] if not install_tag else stringlistify(install_tag)
+        if len(_install_tag) == 1:
+            _install_tag = list(_install_tag) * len(self.outputs)
         self.install_tag = _install_tag
         self.name = name if name else self.outputs[0]
 
