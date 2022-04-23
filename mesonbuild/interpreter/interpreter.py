@@ -992,7 +992,7 @@ external dependencies (including libraries) must go to "dependencies".''')
 
                 # Debug print the generated meson file
                 from ..ast import AstIndentationGenerator, AstPrinter
-                printer = AstPrinter()
+                printer = AstPrinter(update_ast_line_nos=True)
                 ast.accept(AstIndentationGenerator())
                 ast.accept(printer)
                 printer.post_process()
