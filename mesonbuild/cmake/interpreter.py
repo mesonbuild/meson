@@ -714,7 +714,7 @@ class ConverterCustomTarget:
             # targets, etc. This reduces the chance of misdetecting input files
             # as outputs from other targets.
             # See https://github.com/mesonbuild/meson/issues/6632
-            if not raw.is_absolute() and (self.current_src_dir / raw).exists():
+            if not raw.is_absolute() and (self.current_src_dir / raw).is_file():
                 self.inputs += [(self.current_src_dir / raw).relative_to(root_src_dir).as_posix()]
             elif raw.is_absolute() and raw.exists() and rel_to_root is not None:
                 self.inputs += [rel_to_root.as_posix()]
