@@ -197,7 +197,7 @@ def detect_cross_debianlike(options: Any) -> MachineInfo:
     host_endian = data['DEB_HOST_ARCH_ENDIAN']
 
     compilerstems = [('c', 'gcc'),
-                     ('cpp', 'h++'),
+                     ('cpp', 'g++'),
                      ('objc', 'gobjc'),
                      ('objcpp', 'gobjc++')]
     infos = MachineInfo()
