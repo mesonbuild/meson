@@ -157,3 +157,7 @@ add_custom_target(clang-format COMMAND clang-format -i cmMod.cpp)
 
 add_dependencies(cmModLib args_test_cmd tgtCpyTest4)
 add_dependencies(args_test_cmd macro_name_cmd;gen;mycpy)
+
+# Reproduce https://github.com/mesonbuild/meson/issues/10244
+add_custom_target(mycpy.all)
+add_dependencies(mycpy.all mycpy)
