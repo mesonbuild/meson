@@ -541,7 +541,6 @@ class QtBaseModule(ExtensionModule):
         if any(isinstance(s, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)) for s in ts_files):
             FeatureNew.single_use('qt.compile_translations: custom_target or generator for "ts_files" keyword argument',
                                   '0.60.0', state.subproject, location=state.current_node)
-        install_dir = kwargs['install_dir']
         qresource = kwargs['qresource']
         if qresource:
             if ts_files:
@@ -587,7 +586,7 @@ class QtBaseModule(ExtensionModule):
                 [ts],
                 ['@BASENAME@.qm'],
                 install=kwargs['install'],
-                install_dir=install_dir,
+                install_dir=[kwargs['install_dir']],
                 install_tag=['i18n'],
                 build_by_default=kwargs['build_by_default'],
             )
