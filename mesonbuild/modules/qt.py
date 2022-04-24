@@ -546,6 +546,8 @@ class QtBaseModule(ExtensionModule):
         if any(isinstance(s, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)) for s in ts_files):
             FeatureNew.single_use('qt.compile_translations: custom_target or generator for "ts_files" keyword argument',
                                   '0.60.0', state.subproject, location=state.current_node)
+        if kwargs['install'] and not kwargs['install_dir']:
+            raise MesonException('qt.compile_translations: "install_dir" keyword argument must be set when "install" is true.')
         qresource = kwargs['qresource']
         if qresource:
             if ts_files:
