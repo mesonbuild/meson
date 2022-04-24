@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-prog_python = import('python3').find_python()
+prog_python = import('python').find_installation()
 
 target = custom_target(
   'target',

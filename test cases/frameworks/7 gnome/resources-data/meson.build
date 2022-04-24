@@ -1,6 +1,6 @@
 subdir('subdir')
 
-python3 = import('python3').find_python()
+python3 = import('python').find_installation()
 
 fake_generator_script = '''
 import os, sys

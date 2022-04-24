@@ -3,7 +3,7 @@ configure_file(input : 'someinput.in',
   install : false,
   copy: true)
 
-py3 = import('python3').find_python()
+py3 = import('python').find_installation()
 
 cfile1 = configure_file(input : 'foo.txt',
                         output : 'foo.h.in',

@@ -5,8 +5,8 @@ if not gir.found()
   error('MESON_SKIP_TEST g-ir-scanner not found.')
 endif
 
-python3 = import('python3')
-py3 = python3.find_python()
+python3 = import('python')
+py3 = python3.find_installation()
 if run_command(py3, '-c', 'import gi;', check: false).returncode() != 0
     error('MESON_SKIP_TEST python3-gi not found')
 endif

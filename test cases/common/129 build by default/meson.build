@@ -1,7 +1,7 @@
 project('build on all', 'c')
 
-py3_mod = import('python3')
-py3 = py3_mod.find_python()
+py_mod = import('python')
+py3 = py_mod.find_installation()
 
 executable('fooprog', 'foo.c',
     build_by_default : false,

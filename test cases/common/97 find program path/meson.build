@@ -1,6 +1,6 @@
 project('find program', 'c')
 
-python = import('python3').find_python()
+python = import('python').find_installation()
 
 # Source file via string
 prog = find_program('program.py')

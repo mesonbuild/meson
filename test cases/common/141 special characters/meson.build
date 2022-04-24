@@ -1,6 +1,6 @@
 project('ninja special characters' ,'c')
 
-python = import('python3').find_python()
+python = import('python').find_installation()
 
 # Without newlines, this should appear directly in build.ninja.
 gen = custom_target('gen',

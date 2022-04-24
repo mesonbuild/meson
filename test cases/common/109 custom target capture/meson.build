@@ -1,6 +1,6 @@
 project('custom target', 'c')
 
-python3 = import('python3').find_python()
+python3 = import('python').find_installation()
 
 # Note that this will not add a dependency to the compiler executable.
 # Code will not be rebuilt if it changes.
