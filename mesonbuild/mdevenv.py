@@ -165,3 +165,5 @@ def run(options: argparse.Namespace) -> int:
                                cwd=options.wd)
     except subprocess.CalledProcessError as e:
         return e.returncode
+    except FileNotFoundError:
+        raise MesonException(f'Command not found: {args[0]}')
