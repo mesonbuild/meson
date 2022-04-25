@@ -163,5 +163,7 @@ def run(options: argparse.Namespace) -> int:
         return subprocess.call(args, close_fds=False,
                                env=devenv,
                                cwd=options.wd)
+    except FileNotFoundError as e:
+        raise MesonException(f'Executable "{args[0]}" could not be found.')
     except subprocess.CalledProcessError as e:
         return e.returncode
