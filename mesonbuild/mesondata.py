@@ -1,4 +1,4 @@
-# Copyright 2021 The Meson development team
+# Copyright 2022 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -217,7 +217,6 @@ endif()
 '''
 
 file_2_data_CMakeListsLLVM_txt = '''\
-cmake_minimum_required(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION} )
 
 set(PACKAGE_FOUND FALSE)
 
@@ -383,7 +382,7 @@ mesondata = {
     ),
     'dependencies/data/CMakeListsLLVM.txt': DataFile(
         Path('dependencies/data/CMakeListsLLVM.txt'),
-        '412cec3315597041a978d018cdaca282dcd47693793540da88ae2f80d0cbd7cd',
+        'a824db0251c77482993534230f33c521275047a37189ae0ac80d9078e4d7006e',
         file_2_data_CMakeListsLLVM_txt,
     ),
     'dependencies/data/CMakePathInfo.txt': DataFile(
