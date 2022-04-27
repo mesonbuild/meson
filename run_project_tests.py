@@ -82,20 +82,6 @@ if T.TYPE_CHECKING:
         no_unittests: bool
         only: T.List[str]
 
-    # In previous python versions the global variables are lost in ProcessPoolExecutor.
-    # So, we use this tuple to restore some of them
-    class GlobalState(T.NamedTuple):
-        compile_commands:   T.List[str]
-        clean_commands:     T.List[str]
-        test_commands:      T.List[str]
-        install_commands:   T.List[str]
-        uninstall_commands: T.List[str]
-
-        backend:      'Backend'
-        backend_flags: T.List[str]
-
-        host_c_compiler: T.Optional[str]
-
 ALL_TESTS = ['cmake', 'common', 'native', 'warning-meson', 'failing-meson', 'failing-build', 'failing-test',
              'keyval', 'platform-osx', 'platform-windows', 'platform-linux',
              'java', 'C#', 'vala', 'cython', 'rust', 'd', 'objective c', 'objective c++',
@@ -601,6 +587,20 @@ def detect_parameter_files(test: TestDef, test_build_dir: str) -> T.Tuple[Path, 
         crossfile = format_parameter_file('crossfile.ini', test, test_build_dir)
 
     return nativefile, crossfile
+
+# In previous python versions the global variables are lost in ProcessPoolExecutor.
+# So, we use this tuple to restore some of them
+class GlobalState(T.NamedTuple):
+    compile_commands:   T.List[str]
+    clean_commands:     T.List[str]
+    test_commands:      T.List[str]
+    install_commands:   T.List[str]
+    uninstall_commands: T.List[str]
+
+    backend:      'Backend'
+    backend_flags: T.List[str]
+
+    host_c_compiler: T.Optional[str]
 
 def run_test(test: TestDef,
              extra_args: T.List[str],
@@ -1200,7 +1200,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
     print(f'\nRunning tests with {num_workers} workers')
 
     # Pack the global state
-    state = (compile_commands, clean_commands, test_commands, install_commands, uninstall_commands, backend, backend_flags, host_c_compiler)
+    state = GlobalState(compile_commands, clean_commands, test_commands, install_commands, uninstall_commands, backend, backend_flags, host_c_compiler)
     executor = ProcessPoolExecutor(max_workers=num_workers)
 
     futures: T.List[RunFutureUnion] = []
