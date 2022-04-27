@@ -734,6 +734,16 @@ class VisualStudioCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixi
             del args[i]
         return args
 
+    def get_always_args(self) -> T.List[str]:
+        args = super().get_always_args()
+
+        # By default, MSVC has a broken __cplusplus define that pretends to be c++98:
+        # https://docs.microsoft.com/en-us/cpp/build/reference/zc-cplusplus?view=msvc-160
+        # Pass the flag to enable a truthful define, if possible.
+        if version_compare(self.version, '>= 15.7') and '/Zc:__cplusplus' not in args:
+            return args + ['/Zc:__cplusplus']
+        return args
+
 class ClangClCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixin, ClangClCompiler, CPPCompiler):
 
     id = 'clang-cl'
