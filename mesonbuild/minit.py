@@ -23,6 +23,7 @@ import os
 import re
 from glob import glob
 from mesonbuild import mesonlib
+from mesonbuild.coredata import FORBIDDEN_TARGET_NAMES
 from mesonbuild.environment import detect_ninja
 from mesonbuild.templates.samplefactory import sameple_generator
 import typing as T
@@ -81,6 +82,9 @@ def autodetect_options(options: 'argparse.Namespace', sample: bool = False) -> N
     if not options.executable:
         options.executable = options.name
         print(f'Using "{options.executable}" (project name) as name of executable to build.')
+    if options.executable in FORBIDDEN_TARGET_NAMES:
+        raise mesonlib.MesonException(f'Executable name {options.executable!r} is reserved for Meson internal use. '
+                                      'Refusing to init an invalid project.')
     if sample:
         # The rest of the autodetection is not applicable to generating sample projects.
         return
