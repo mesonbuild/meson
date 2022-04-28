@@ -268,7 +268,7 @@ class OptionInterpreter:
         value = kwargs['value'] if kwargs['value'] is not None else choices
         if isinstance(value, str):
             if value.startswith('['):
-                FeatureDeprecated('String value for array option', '1.2.0').use(self.subproject)
+                FeatureDeprecated('String value for array option', '1.3.0').use(self.subproject)
             else:
                 raise mesonlib.MesonException('Value does not define an array: ' + value)
         return coredata.UserArrayOption(description, value,
