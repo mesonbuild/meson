@@ -5,8 +5,8 @@ index.md
 		SimpleStart.md
 			Getting-meson_zh.md
 			Getting-meson_ptbr.md
-		Tutorial.md
-		GuiTutorial.md
+		Learn-Meson-GTK.md
+		Learn-Meson-SDL2.md
 	Manual.md
 		Overview.md
 		Running-Meson.md
