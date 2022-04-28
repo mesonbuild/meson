@@ -1,11 +1,13 @@
 index.md
-	SimpleStart.md
 	Getting-meson.md
-		Getting-meson_zh.md
-		Getting-meson_ptbr.md
-	Quick-guide.md
-	Tutorial.md
-	GuiTutorial.md
+	Learning-Modules.md
+		Learn-Meson-Beginners.md
+			Getting-meson_zh.md
+			Getting-meson_ptbr.md
+		Learn-Meson-usage.md
+		Learn-Meson-Indepth.md
+		Learn-Meson-GTK.md
+		Learn-Meson-SDL2.md
 	Manual.md
 		Overview.md
 		Running-Meson.md
@@ -124,7 +126,6 @@ index.md
 		Contact-information.md
 		Continuous-Integration.md
 		Design-rationale.md
-		IndepthTutorial.md
 		In-the-press.md
 		Mixing-build-systems.md
 		Pkg-config-files.md
