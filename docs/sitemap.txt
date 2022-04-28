@@ -5,6 +5,7 @@ index.md
 			Getting-meson_zh.md
 			Getting-meson_ptbr.md
 		Learn-Meson-usage.md
+		Learn-Meson-Indepth.md
 		Learn-Meson-GTK.md
 		Learn-Meson-SDL2.md
 	Manual.md
@@ -125,7 +126,6 @@ index.md
 		Contact-information.md
 		Continuous-Integration.md
 		Design-rationale.md
-		IndepthTutorial.md
 		In-the-press.md
 		Mixing-build-systems.md
 		Pkg-config-files.md
