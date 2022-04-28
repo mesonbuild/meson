@@ -12,12 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import shlex
+
 from mesonbuild import environment, mesonlib
 
 import argparse, re, sys, os, subprocess, pathlib, stat
 import typing as T
 
 def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build_root: str, log_dir: str, use_llvm_cov: bool) -> int:
+    extra_gcov_args = shlex.split(os.environ.get("GCOV_ARGS", str()))
+
     outfiles = []
     exitcode = 0
 
@@ -40,7 +44,7 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
                                   ['-x',
                                    '-e', re.escape(subproject_root),
                                    '-o', os.path.join(log_dir, 'coverage.xml')
-                                   ] + gcov_exe_args)
+                                   ] + gcov_exe_args + extra_gcov_args)
             outfiles.append(('Xml', pathlib.Path(log_dir, 'coverage.xml')))
         elif outputs:
             print('gcovr >= 3.3 needed to generate Xml coverage report')
@@ -52,7 +56,7 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
                                   ['--sonarqube',
                                    '-o', os.path.join(log_dir, 'sonarqube.xml'),
                                    '-e', re.escape(subproject_root)
-                                   ] + gcov_exe_args)
+                                   ] + gcov_exe_args + extra_gcov_args)
             outfiles.append(('Sonarqube', pathlib.Path(log_dir, 'sonarqube.xml')))
         elif outputs:
             print('gcovr >= 4.2 needed to generate Xml coverage report')
@@ -63,7 +67,7 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
             subprocess.check_call(gcovr_base_cmd +
                                   ['-e', re.escape(subproject_root),
                                    '-o', os.path.join(log_dir, 'coverage.txt')
-                                   ] + gcov_exe_args)
+                                   ] + gcov_exe_args + extra_gcov_args)
             outfiles.append(('Text', pathlib.Path(log_dir, 'coverage.txt')))
         elif outputs:
             print('gcovr >= 3.3 needed to generate text coverage report')
