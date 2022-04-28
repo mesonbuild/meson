@@ -30,7 +30,7 @@ from .. import mesonlib, mlog
 from ..compilers import AppleClangCCompiler, AppleClangCPPCompiler, detect_compiler_for
 from ..environment import get_llvm_tool_names
 from ..mesonlib import version_compare, stringlistify, extract_as_list
-from .base import DependencyException, DependencyMethods, strip_system_libdirs, SystemDependency
+from .base import DependencyException, DependencyMethods, strip_system_libdirs, SystemDependency, ExternalDependency, DependencyTypeName
 from .cmake import CMakeDependency
 from .configtool import ConfigToolDependency
 from .factory import DependencyFactory
@@ -411,7 +411,14 @@ class LLVMDependencyCMake(CMakeDependency):
         else:
             compilers = env.coredata.compilers.host
         if not compilers or not all(x in compilers for x in ('c', 'cpp')):
-            self.is_found = False
+            # Initialize basic variables
+            ExternalDependency.__init__(self, DependencyTypeName('cmake'), env, kwargs)
+
+            # Initialize CMake specific variables
+            self.found_modules: T.List[str] = []
+            self.name = name
+
+            # Warn and return
             mlog.warning('The LLVM dependency was not found via CMake since both a C and C++ compiler are required.')
             return
 
