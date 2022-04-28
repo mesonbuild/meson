@@ -1,11 +1,12 @@
 index.md
-	SimpleStart.md
 	Getting-meson.md
-		Getting-meson_zh.md
-		Getting-meson_ptbr.md
-	Quick-guide.md
-	Tutorial.md
-	GuiTutorial.md
+	Learning-Modules.md
+		Quick-guide.md
+		SimpleStart.md
+			Getting-meson_zh.md
+			Getting-meson_ptbr.md
+		Tutorial.md
+		GuiTutorial.md
 	Manual.md
 		Overview.md
 		Running-Meson.md
