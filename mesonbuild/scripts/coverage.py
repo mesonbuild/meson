@@ -23,9 +23,26 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
 
     (gcovr_exe, gcovr_version, lcov_exe, genhtml_exe, llvm_cov_exe) = environment.find_coverage_tools()
 
+    # load config files for tools if available in the source tree
+    # - lcov requires manually specifying a per-project config
+    # - gcovr picks up the per-project config, and also supports filtering files
+    #   so don't exclude subprojects ourselves, if the project has a config,
+    #   because they either don't want that, or should set it themselves
+    lcovrc = os.path.join(source_root, '.lcovrc')
+    if os.path.exists(lcovrc):
+        lcov_config = ['--config-file', lcovrc]
+    else:
+        lcov_config = []
+
+    gcovr_config = ['-e', re.escape(subproject_root)]
+
+
     # gcovr >= 4.2 requires a different syntax for out of source builds
     if gcovr_exe and mesonlib.version_compare(gcovr_version, '>=4.2'):
         gcovr_base_cmd = [gcovr_exe, '-r', source_root, build_root]
+        # it also started supporting the config file
+        if os.path.exists(os.path.join(source_root, 'gcovr.cfg')):
+            gcovr_config = []
     else:
         gcovr_base_cmd = [gcovr_exe, '-r', build_root]
 
@@ -36,9 +53,8 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
 
     if not outputs or 'xml' in outputs:
         if gcovr_exe and mesonlib.version_compare(gcovr_version, '>=3.3'):
-            subprocess.check_call(gcovr_base_cmd +
+            subprocess.check_call(gcovr_base_cmd + gcovr_config +
                                   ['-x',
-                                   '-e', re.escape(subproject_root),
                                    '-o', os.path.join(log_dir, 'coverage.xml')
                                    ] + gcov_exe_args)
             outfiles.append(('Xml', pathlib.Path(log_dir, 'coverage.xml')))
@@ -48,10 +64,9 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
 
     if not outputs or 'sonarqube' in outputs:
         if gcovr_exe and mesonlib.version_compare(gcovr_version, '>=4.2'):
-            subprocess.check_call(gcovr_base_cmd +
+            subprocess.check_call(gcovr_base_cmd + gcovr_config +
                                   ['--sonarqube',
                                    '-o', os.path.join(log_dir, 'sonarqube.xml'),
-                                   '-e', re.escape(subproject_root)
                                    ] + gcov_exe_args)
             outfiles.append(('Sonarqube', pathlib.Path(log_dir, 'sonarqube.xml')))
         elif outputs:
@@ -60,10 +75,9 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
 
     if not outputs or 'text' in outputs:
         if gcovr_exe and mesonlib.version_compare(gcovr_version, '>=3.3'):
-            subprocess.check_call(gcovr_base_cmd +
-                                  ['-e', re.escape(subproject_root),
-                                   '-o', os.path.join(log_dir, 'coverage.txt')
-                                   ] + gcov_exe_args)
+            subprocess.check_call(gcovr_base_cmd + gcovr_config +
+                                  ['-o', os.path.join(log_dir, 'coverage.txt')] +
+                                  gcov_exe_args)
             outfiles.append(('Text', pathlib.Path(log_dir, 'coverage.txt')))
         elif outputs:
             print('gcovr >= 3.3 needed to generate text coverage report')
@@ -96,6 +110,7 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
                                    '--initial',
                                    '--output-file',
                                    initial_tracefile] +
+                                  lcov_config +
                                   gcov_tool_args)
             subprocess.check_call([lcov_exe,
                                    '--directory', build_root,
@@ -103,25 +118,26 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
                                    '--output-file', run_tracefile,
                                    '--no-checksum',
                                    '--rc', 'lcov_branch_coverage=1'] +
+                                  lcov_config +
                                   gcov_tool_args)
             # Join initial and test results.
             subprocess.check_call([lcov_exe,
                                    '-a', initial_tracefile,
                                    '-a', run_tracefile,
                                    '--rc', 'lcov_branch_coverage=1',
-                                   '-o', raw_tracefile])
+                                   '-o', raw_tracefile] + lcov_config)
             # Remove all directories outside the source_root from the covinfo
             subprocess.check_call([lcov_exe,
                                    '--extract', raw_tracefile,
                                    os.path.join(source_root, '*'),
                                    '--rc', 'lcov_branch_coverage=1',
-                                   '--output-file', covinfo])
+                                   '--output-file', covinfo] + lcov_config)
             # Remove all directories inside subproject dir
             subprocess.check_call([lcov_exe,
                                    '--remove', covinfo,
                                    os.path.join(subproject_root, '*'),
                                    '--rc', 'lcov_branch_coverage=1',
-                                   '--output-file', covinfo])
+                                   '--output-file', covinfo] + lcov_config)
             subprocess.check_call([genhtml_exe,
                                    '--prefix', build_root,
                                    '--prefix', source_root,
@@ -136,11 +152,10 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
             htmloutdir = os.path.join(log_dir, 'coveragereport')
             if not os.path.isdir(htmloutdir):
                 os.mkdir(htmloutdir)
-            subprocess.check_call(gcovr_base_cmd +
+            subprocess.check_call(gcovr_base_cmd + gcovr_config +
                                   ['--html',
                                    '--html-details',
                                    '--print-summary',
-                                   '-e', re.escape(subproject_root),
                                    '-o', os.path.join(htmloutdir, 'index.html'),
                                    ])
             outfiles.append(('Html', pathlib.Path(htmloutdir, 'index.html')))
