@@ -627,17 +627,23 @@ class CMakeDependency(ExternalDependency):
     def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
                      configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
                      default_value: T.Optional[str] = None,
-                     pkgconfig_define: T.Optional[T.List[str]] = None) -> T.Union[str, T.List[str]]:
+                     pkgconfig_define: T.Optional[T.List[str]] = None) -> str:
         if cmake and self.traceparser is not None:
             try:
                 v = self.traceparser.vars[cmake]
             except KeyError:
                 pass
             else:
-                if len(v) == 1:
-                    return v[0]
-                elif v:
-                    return v
+                # CMake does NOT have a list datatype. We have no idea whether
+                # anything is a string or a string-separated-by-; Internally,
+                # we treat them as the latter and represent everything as a
+                # list, because it is convenient when we are mostly handling
+                # imported targets, which have various properties that are
+                # actually lists.
+                #
+                # As a result we need to convert them back to strings when grabbing
+                # raw variables the user requested.
+                return ';'.join(v)
         if default_value is not None:
             return default_value
         raise DependencyException(f'Could not get cmake variable and no default provided for {self!r}')

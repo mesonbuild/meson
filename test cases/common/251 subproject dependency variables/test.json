@@ -1,0 +1,7 @@
+{
+  "installed": [
+    { "type": "file",  "file": "usr/share/pkgconfig/depvar_resource.pc" },
+    { "type": "file",  "file": "usr/share/subdir/foo.c" },
+    { "type": "file",  "file": "usr/share/subdir2/foo.c" }
+  ]
+}

@@ -420,6 +420,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             bool: P_OBJ.BooleanHolder,
             str: P_OBJ.StringHolder,
             P_OBJ.MesonVersionString: P_OBJ.MesonVersionStringHolder,
+            P_OBJ.DependencyVariableString: P_OBJ.DependencyVariableStringHolder,
 
             # Meson types
             mesonlib.File: OBJ.FileHolder,
@@ -669,6 +670,18 @@ class Interpreter(InterpreterBase, HoldableObject):
         d_module_versions = extract_as_list(kwargs, 'd_module_versions')
         d_import_dirs = self.extract_incdirs(kwargs, 'd_import_dirs')
         final_deps = []
+        srcdir = Path(self.environment.source_dir)
+        # convert variables which refer to an -uninstalled.pc style datadir
+        for k, v in variables.items():
+            try:
+                p = Path(v)
+            except ValueError:
+                continue
+            else:
+                if not self.is_subproject() and srcdir / self.subproject_dir in p.parents:
+                    continue
+                if p.is_absolute() and p.is_dir() and srcdir / self.root_subdir in p.resolve().parents:
+                    variables[k] = P_OBJ.DependencyVariableString(v)
         for d in deps:
             if not isinstance(d, (dependencies.Dependency, dependencies.ExternalLibrary, dependencies.InternalDependency)):
                 raise InterpreterException('Dependencies must be external deps')
@@ -2721,7 +2734,13 @@ external dependencies (including libraries) must go to "dependencies".''')
     @typed_pos_args('join_paths', varargs=str, min_varargs=1)
     @noKwargs
     def func_join_paths(self, node: mparser.BaseNode, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> str:
-        return os.path.join(*args[0]).replace('\\', '/')
+        parts = args[0]
+        other = os.path.join('', *parts[1:]).replace('\\', '/')
+        ret = os.path.join(*parts).replace('\\', '/')
+        if isinstance(parts[0], P_OBJ.DependencyVariableString) and '..' not in other:
+            return P_OBJ.DependencyVariableString(ret)
+        else:
+            return ret
 
     def run(self) -> None:
         super().run()
@@ -2763,6 +2782,26 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
     # declare_dependency).
     def validate_within_subproject(self, subdir, fname):
         srcdir = Path(self.environment.source_dir)
+        builddir = Path(self.environment.build_dir)
+        if isinstance(fname, P_OBJ.DependencyVariableString):
+            def validate_installable_file(fpath: Path) -> bool:
+                installablefiles: T.Set[Path] = set()
+                for d in self.build.data:
+                    for s in d.sources:
+                        installablefiles.add(Path(s.absolute_path(srcdir, builddir)))
+                installabledirs = [str(Path(srcdir, s.source_subdir)) for s in self.build.install_dirs]
+                if fpath in installablefiles:
+                    return True
+                for d in installabledirs:
+                    if str(fpath).startswith(d):
+                        return True
+                return False
+
+            norm = Path(fname)
+            # variables built from a dep.get_variable are allowed to refer to
+            # subproject files, as long as they are scheduled to be installed.
+            if validate_installable_file(norm):
+                return
         norm = Path(srcdir, subdir, fname).resolve()
         if os.path.isdir(norm):
             inputtype = 'directory'

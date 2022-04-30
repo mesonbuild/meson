@@ -479,7 +479,7 @@ class DependencyHolder(ObjectHolder[Dependency]):
         KwargInfo('default_value', (str, NoneType)),
         KwargInfo('pkgconfig_define', ContainerTypeInfo(list, str, pairs=True), default=[], listify=True),
     )
-    def variable_method(self, args: T.Tuple[T.Optional[str]], kwargs: 'kwargs.DependencyGetVariable') -> T.Union[str, T.List[str]]:
+    def variable_method(self, args: T.Tuple[T.Optional[str]], kwargs: 'kwargs.DependencyGetVariable') -> str:
         default_varname = args[0]
         if default_varname is not None:
             FeatureNew('Positional argument to dependency.get_variable()', '0.58.0').use(self.subproject, self.current_node)

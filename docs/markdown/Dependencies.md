@@ -90,6 +90,28 @@ following will happen: If 'default_value' was provided that value will
 be returned, if 'default_value' was not provided then an error will be
 raised.
 
+## Dependencies that provide resource files
+
+Sometimes a dependency provides installable files which other projects then
+need to use. For example, wayland-protocols XML files.
+
+```meson
+foo_dep = dependency('foo')
+foo_datadir = foo_dep.get_variable('pkgdatadir')
+custom_target(
+    'foo-generated.c',
+    input: foo_datadir / 'prototype.xml',
+    output: 'foo-generated.c',
+    command: [generator, '@INPUT@', '@OUTPUT@']
+)
+```
+
+*Since 0.63.0* these actually work as expected, even when they come from a
+(well-formed) internal dependency. This only works when treating the files to
+be obtained as interchangeable with a system dependency -- e.g. only public
+files may be used, and leaving the directory pointed to by the dependency is
+not allowed.
+
 # Declaring your own
 
 You can declare your own dependency objects that can be used
