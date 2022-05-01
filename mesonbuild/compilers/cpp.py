@@ -190,7 +190,7 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
         CPPCompiler.__init__(self, ccache, exelist, version, for_machine, is_cross,
                              info, exe_wrapper, linker=linker, full_version=full_version)
         ClangCompiler.__init__(self, defines)
-        default_warn_args = ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor']
+        default_warn_args = ['-Wall', '-Winvalid-pch']
         self.warn_args = {'0': [],
                           '1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
@@ -310,7 +310,7 @@ class ArmclangCPPCompiler(ArmclangCompiler, CPPCompiler):
         CPPCompiler.__init__(self, ccache, exelist, version, for_machine, is_cross,
                              info, exe_wrapper, linker=linker, full_version=full_version)
         ArmclangCompiler.__init__(self)
-        default_warn_args = ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor']
+        default_warn_args = ['-Wall', '-Winvalid-pch']
         self.warn_args = {'0': [],
                           '1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
@@ -356,7 +356,7 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
         CPPCompiler.__init__(self, ccache, exelist, version, for_machine, is_cross,
                              info, exe_wrapper, linker=linker, full_version=full_version)
         GnuCompiler.__init__(self, defines)
-        default_warn_args = ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor']
+        default_warn_args = ['-Wall', '-Winvalid-pch']
         self.warn_args = {'0': [],
                           '1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
@@ -536,7 +536,7 @@ class IntelCPPCompiler(IntelGnuLikeCompiler, CPPCompiler):
         IntelGnuLikeCompiler.__init__(self)
         self.lang_header = 'c++-header'
         default_warn_args = ['-Wall', '-w3', '-diag-disable:remark',
-                             '-Wpch-messages', '-Wnon-virtual-dtor']
+                             '-Wpch-messages']
         self.warn_args = {'0': [],
                           '1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],

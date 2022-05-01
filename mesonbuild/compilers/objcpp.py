@@ -63,7 +63,7 @@ class GnuObjCPPCompiler(GnuCompiler, ObjCPPCompiler):
         ObjCPPCompiler.__init__(self, ccache, exelist, version, for_machine, is_cross,
                                 info, exe_wrapper, linker=linker, full_version=full_version)
         GnuCompiler.__init__(self, defines)
-        default_warn_args = ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor']
+        default_warn_args = ['-Wall', '-Winvalid-pch']
         self.warn_args = {'0': [],
                           '1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
@@ -81,7 +81,7 @@ class ClangObjCPPCompiler(ClangCompiler, ObjCPPCompiler):
         ObjCPPCompiler.__init__(self, ccache, exelist, version, for_machine, is_cross,
                                 info, exe_wrapper, linker=linker, full_version=full_version)
         ClangCompiler.__init__(self, defines)
-        default_warn_args = ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor']
+        default_warn_args = ['-Wall', '-Winvalid-pch']
         self.warn_args = {'0': [],
                           '1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
