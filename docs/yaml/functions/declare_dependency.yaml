@@ -57,3 +57,17 @@ kwargs:
       this is meant to be used
       in subprojects where special variables would be provided via cmake or
       pkg-config. *since 0.56.0* it can also be a list of `'key=value'` strings.
+
+  d_module_versions:
+    type: str | list[str]
+    since: 0.62.0
+    description: |
+      a string or a list of strings,
+      the D versions to add during the compilation of D source files
+
+  d_import_dirs:
+    type: list[inc | str]
+    since: 0.62.0
+    description: |
+      the directories to add to the string search path (i.e. `-J` switch for DMD).
+      Must be [[@inc]] objects or plain strings.

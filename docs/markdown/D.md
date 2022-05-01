@@ -49,7 +49,8 @@ my_dep = declare_dependency(
 )
 ```
 
-Accepted D specific parameters are `d_module_versions` and `d_import_dirs`.
+Accepted D specific parameters are `d_module_versions` and `d_import_dirs`
+(DMD `-J` switch).
 
 ## Using embedded unittests
 
