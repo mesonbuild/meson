@@ -33,10 +33,6 @@ def get_env(b: build.Build, build_dir: str) -> T.Tuple[T.Dict[str, str], T.Set[s
     extra_env.set('MESON_DEVENV', ['1'])
     extra_env.set('MESON_PROJECT_NAME', [b.project_name])
 
-    meson_uninstalled = Path(build_dir) / 'meson-uninstalled'
-    if meson_uninstalled.is_dir():
-        extra_env.prepend('PKG_CONFIG_PATH', [str(meson_uninstalled)])
-
     env = os.environ.copy()
     varnames = set()
     for i in itertools.chain(b.devenv, {extra_env}):
