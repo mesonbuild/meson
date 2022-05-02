@@ -39,7 +39,7 @@ warnings:
 
 kwargs:
   <lang>_pch:
-    type: str | file
+    type: str
     description: precompiled header file to use for the given language
 
   <lang>_args:
