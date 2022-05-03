@@ -325,36 +325,6 @@ class GnomeModule(ExtensionModule):
                      mlog.bold('https://github.com/mesonbuild/meson/issues/1387'),
                      once=True)
 
-    def _get_dep(self, state: 'ModuleState', depname: str, native: bool = False,
-                 required: bool = True) -> Dependency:
-        kwargs = {'native': native, 'required': required}
-        # FIXME: Even if we fix the function, mypy still can't figure out what's
-        # going on here. And we really dont want to call interpreter
-        # implementations of meson functions anyway.
-        return self.interpreter.func_dependency(state.current_node, [depname], kwargs)  # type: ignore
-
-    def _get_native_binary(self, state: 'ModuleState', name: str, depname: str,
-                           varname: str, required: bool = True) -> T.Union[ExternalProgram, OverrideProgram, 'build.Executable']:
-        # Look in overrides in case glib/gtk/etc are built as subproject
-        prog = self.interpreter.program_from_overrides([name], [])
-        if prog is not None:
-            return prog
-
-        # Look in machine file
-        prog_list = state.environment.lookup_binary_entry(MachineChoice.HOST, name)
-        if prog_list is not None:
-            return ExternalProgram.from_entry(name, prog_list)
-
-        # Check if pkgconfig has a variable
-        dep = self._get_dep(state, depname, native=True, required=False)
-        if dep.found() and dep.type_name == 'pkgconfig':
-            value = dep.get_pkgconfig_variable(varname, [], None)
-            if value:
-                return ExternalProgram(name, [value])
-
-        # Normal program lookup
-        return state.find_program(name, required=required)
-
     @typed_kwargs(
         'gnome.post_install',
         KwargInfo('glib_compile_schemas', bool, default=False),
@@ -369,7 +339,7 @@ class GnomeModule(ExtensionModule):
         datadir_abs = os.path.join(state.environment.get_prefix(), state.environment.get_datadir())
         if kwargs['glib_compile_schemas'] and not self.install_glib_compile_schemas:
             self.install_glib_compile_schemas = True
-            prog = self._get_native_binary(state, 'glib-compile-schemas', 'gio-2.0', 'glib_compile_schemas')
+            prog = state.find_tool('glib-compile-schemas', 'gio-2.0', 'glib_compile_schemas')
             schemasdir = os.path.join(datadir_abs, 'glib-2.0', 'schemas')
             script = state.backend.get_executable_serialisation([prog, schemasdir])
             script.skip_if_destdir = True
@@ -377,7 +347,7 @@ class GnomeModule(ExtensionModule):
         for d in kwargs['gio_querymodules']:
             if d not in self.install_gio_querymodules:
                 self.install_gio_querymodules.append(d)
-                prog = self._get_native_binary(state, 'gio-querymodules', 'gio-2.0', 'gio_querymodules')
+                prog = state.find_tool('gio-querymodules', 'gio-2.0', 'gio_querymodules')
                 moduledir = os.path.join(state.environment.get_prefix(), d)
                 script = state.backend.get_executable_serialisation([prog, moduledir])
                 script.skip_if_destdir = True
@@ -798,9 +768,9 @@ class GnomeModule(ExtensionModule):
     def _get_gir_dep(self, state: 'ModuleState') -> T.Tuple[Dependency, T.Union[build.Executable, 'ExternalProgram', 'OverrideProgram'],
                                                             T.Union[build.Executable, 'ExternalProgram', 'OverrideProgram']]:
         if not self.gir_dep:
-            self.gir_dep = self._get_dep(state, 'gobject-introspection-1.0')
-            self.giscanner = self._get_native_binary(state, 'g-ir-scanner', 'gobject-introspection-1.0', 'g_ir_scanner')
-            self.gicompiler = self._get_native_binary(state, 'g-ir-compiler', 'gobject-introspection-1.0', 'g_ir_compiler')
+            self.gir_dep = state.dependency('gobject-introspection-1.0')
+            self.giscanner = state.find_tool('g-ir-scanner', 'gobject-introspection-1.0', 'g_ir_scanner')
+            self.gicompiler = state.find_tool('g-ir-compiler', 'gobject-introspection-1.0', 'g_ir_compiler')
         return self.gir_dep, self.giscanner, self.gicompiler
 
     @functools.lru_cache(maxsize=None)
