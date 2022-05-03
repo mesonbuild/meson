@@ -11,3 +11,8 @@ executable(
     'foo2',
     subfiles_dep.get_variable('pkgdatadir2') / 'foo.c'
 )
+
+executable(
+    'foor32',
+    subfiles_dep.get_variable('pkgdatadir3') / 'foo.c'
+)
