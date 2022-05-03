@@ -20,14 +20,16 @@ import typing as T
 from .. import mesonlib
 from ..mesonlib import relpath, HoldableObject, MachineChoice
 from ..interpreterbase.decorators import noKwargs, noPosargs
+from ..programs import ExternalProgram
 
 if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
     from ..interpreter.interpreterobjects import MachineHolder
     from ..interpreterbase import TYPE_var, TYPE_kwargs
-    from ..programs import ExternalProgram
+    from ..programs import OverrideProgram
     from ..wrap import WrapMode
-    from ..build import EnvironmentVariables
+    from ..build import EnvironmentVariables, Executable
+    from ..dependencies import Dependency
 
 class ModuleState:
     """Object passed to all module methods.
@@ -86,6 +88,38 @@ class ModuleState:
                      for_machine: MachineChoice = MachineChoice.HOST) -> 'ExternalProgram':
         return self._interpreter.find_program_impl(prog, required=required, version_func=version_func,
                                                    wanted=wanted, silent=silent, for_machine=for_machine)
+
+    def find_tool(self, name: str, depname: str, varname: str, required: bool = True,
+                  wanted: T.Optional[str] = None) -> T.Union['Executable', ExternalProgram, 'OverrideProgram']:
+        # Look in overrides in case it's built as subproject
+        progobj = self._interpreter.program_from_overrides([name], [])
+        if progobj is not None:
+            return progobj
+
+        # Look in machine file
+        prog_list = self.environment.lookup_binary_entry(MachineChoice.HOST, name)
+        if prog_list is not None:
+            return ExternalProgram.from_entry(name, prog_list)
+
+        # Check if pkgconfig has a variable
+        dep = self.dependency(depname, native=True, required=False, wanted=wanted)
+        if dep.found() and dep.type_name == 'pkgconfig':
+            value = dep.get_variable(pkgconfig=varname)
+            if value:
+                return ExternalProgram(name, [value])
+
+        # Normal program lookup
+        return self.find_program(name, required=required, wanted=wanted)
+
+    def dependency(self, depname: str, native: bool = False, required: bool = True,
+                   wanted: T.Optional[str] = None) -> 'Dependency':
+        kwargs = {'native': native, 'required': required}
+        if wanted:
+            kwargs['version'] = wanted
+        # FIXME: Even if we fix the function, mypy still can't figure out what's
+        # going on here. And we really dont want to call interpreter
+        # implementations of meson functions anyway.
+        return self._interpreter.func_dependency(self.current_node, [depname], kwargs) # type: ignore
 
     def test(self, args: T.Tuple[str, T.Union[build.Executable, build.Jar, 'ExternalProgram', mesonlib.File]],
              workdir: T.Optional[str] = None,
