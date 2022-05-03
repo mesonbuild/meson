@@ -913,6 +913,8 @@ class NinjaBackend(backends.Backend):
             return True
         if 'cpp' not in target.compilers:
             return False
+        if '-fmodules-ts' in target.extra_args.get('cpp', []):
+            return True
         # Currently only the preview version of Visual Studio is supported.
         cpp = target.compilers['cpp']
         if cpp.get_id() != 'msvc':
