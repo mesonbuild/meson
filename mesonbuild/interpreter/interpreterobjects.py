@@ -46,6 +46,10 @@ if T.TYPE_CHECKING:
         strict: bool
         error_message: T.Optional[str]
 
+    class FeatureForceKW(TypedDict):
+
+        error_message: T.Optional[str]
+
 
 def extract_required_kwarg(kwargs: 'kwargs.ExtractRequired',
                            subproject: 'SubProject',
@@ -102,6 +106,7 @@ class FeatureOptionHolder(ObjectHolder[coredata.UserFeatureOption]):
                              'require': self.require_method,
                              'disable_auto_if': self.disable_auto_if_method,
                              'enable_auto_if': self.enable_auto_if_method,
+                             'force': self.force_method,
                              })
 
     @property
@@ -189,6 +194,21 @@ class FeatureOptionHolder(ObjectHolder[coredata.UserFeatureOption]):
                 raise InterpreterException(m)
 
         return copy.deepcopy(self.held_object)
+
+    @FeatureNew('feature_option.force', '0.63.0')
+    @typed_pos_args('feature_option.force', bool)
+    @typed_kwargs(
+        'feature_option.force',
+        KwargInfo('error_message', (str, NoneType)),
+    )
+    def force_method(self, args: T.Tuple[bool], kwargs: FeatureForceKW) -> coredata.UserFeatureOption:
+        if args[0] and self.value != 'disabled':
+            return self.as_enabled()
+        if not args[0] and self.value != 'enabled':
+            return self.as_disabled()
+
+        m = kwargs['error_message'] or f'{self.held_object.name} is {self.held_object.value} and thus cannot be {"en" if args[0] else "dis"}abled.'
+        raise InterpreterException(m)
 
 
 class RunProcess(MesonInterpreterObject):

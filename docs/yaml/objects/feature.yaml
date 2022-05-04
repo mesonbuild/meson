@@ -152,3 +152,21 @@ methods:
       type: str
       default: "''"
       description: The error Message to print if the check fails
+
+- name: force
+  since: 0.63.0
+  returns: feature
+  description: |
+    Returns the feature as `enabled` if the positional value is `true`, `disabled`
+    if it is `false`, or raises an error.
+
+  posargs:
+    value:
+      type: bool
+      description: Wehther to enable (`true`) or disable (`false`) the feature
+
+  kwargs:
+    error_message:
+      type: str
+      default: "''"
+      description: The error message to print if the check fails
