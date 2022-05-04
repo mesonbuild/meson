@@ -1536,6 +1536,7 @@ def clear_transitive_files() -> None:
 if __name__ == '__main__':
     if under_ci and not raw_ci_jobname:
         raise SystemExit('Running under CI but $MESON_CI_JOBNAME is not set (set to "thirdparty" if you are running outside of the github org)')
+    os.environ['MESON_IS_PROJECT_TEST'] = '1'
 
     setup_vsenv()
 

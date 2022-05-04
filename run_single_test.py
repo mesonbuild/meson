@@ -9,6 +9,7 @@ test, with all of the rules from the test.json file loaded.
 """
 
 import argparse
+import os
 import pathlib
 import typing as T
 
@@ -99,4 +100,5 @@ def main() -> None:
     exit(1 if failed else 0)
 
 if __name__ == "__main__":
+    os.environ['MESON_IS_PROJECT_TEST'] = '1'
     main()

@@ -152,6 +152,7 @@ def main():
 
 if __name__ == '__main__':
     setup_vsenv()
+    os.environ['MESON_IS_PROJECT_TEST'] = '1'
     print('Meson build system', mesonbuild.coredata.version, 'Unit Tests')
     start = time.monotonic()
     try:

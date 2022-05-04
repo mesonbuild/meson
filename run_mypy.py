@@ -42,6 +42,7 @@ modules = [
     'mesonbuild/msubprojects.py',
     'mesonbuild/modules/fs.py',
     'mesonbuild/modules/gnome.py',
+    'mesonbuild/modules/internal_test.py',
     'mesonbuild/modules/i18n.py',
     'mesonbuild/modules/java.py',
     'mesonbuild/modules/keyval.py',
