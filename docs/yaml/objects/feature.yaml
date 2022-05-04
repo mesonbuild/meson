@@ -27,16 +27,35 @@ methods:
   description: |
     Returns the feature, with `'auto'` converted to `'disabled'` if value is true.
 
+    If the optional `strict` keyword argument is `true`, then it is an error if
+    the returned option is not set to disabled.
+
     | Feature / Condition | `value = true` | `value = false` |
     | ------------------- | -------------- | --------------- |
-    | Enabled             | Enabled        | Enabled         |
+    | Enabled             | Enabled/error* | Enabled/error*  |
     | Disabled            | Disabled       | Disabled        |
     | Auto                | Disabled       | Auto            |
+
+    \* If strict is `false` then Enabled is returned, if it is `true` then an
+    error is raised
 
   posargs:
     value:
       type: bool
       description: See the table above
+
+  kwargs:
+    strict:
+      type: bool
+      since: '0.63.0'
+      default: false
+      description: The error message to print if the check fails
+
+    error_message:
+      type: str
+      since: '0.63.0'
+      default: "''"
+      description: The error message to print if the check fails
 
 - name: require
   returns: feature

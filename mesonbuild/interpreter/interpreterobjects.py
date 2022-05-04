@@ -41,6 +41,11 @@ if T.TYPE_CHECKING:
 
         separator: str
 
+    class AbleIfKw(TypedDict):
+
+        strict: bool
+        error_message: T.Optional[str]
+
 
 def extract_required_kwarg(kwargs: 'kwargs.ExtractRequired',
                            subproject: 'SubProject',
@@ -107,6 +112,11 @@ class FeatureOptionHolder(ObjectHolder[coredata.UserFeatureOption]):
         disabled.value = 'disabled'
         return disabled
 
+    def as_enabled(self) -> coredata.UserFeatureOption:
+        disabled = copy.deepcopy(self.held_object)
+        disabled.value = 'enabled'
+        return disabled
+
     @noPosargs
     @noKwargs
     def enabled_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
@@ -146,10 +156,21 @@ class FeatureOptionHolder(ObjectHolder[coredata.UserFeatureOption]):
         return self.as_disabled()
 
     @FeatureNew('feature_option.disable_auto_if()', '0.59.0')
-    @noKwargs
     @typed_pos_args('feature_option.disable_auto_if', bool)
-    def disable_auto_if_method(self, args: T.Tuple[bool], kwargs: TYPE_kwargs) -> coredata.UserFeatureOption:
-        return copy.deepcopy(self.held_object) if self.value != 'auto' or not args[0] else self.as_disabled()
+    @typed_kwargs(
+        'feature_option.disable_auto_if',
+        KwargInfo('strict', bool, default=False, since='0.63.0'),
+        KwargInfo('error_message', (str, NoneType), since='0.63.0'),
+    )
+    def disable_auto_if_method(self, args: T.Tuple[bool], kwargs: AbleIfKw) -> coredata.UserFeatureOption:
+        if args[0]:
+            if self.value != 'enabled':
+                return self.as_disabled()
+            if kwargs['strict']:
+                m = kwargs['error_message'] or f'{self.held_object.name} is enabled, and thus cannot be disabled'
+                raise InterpreterException(m)
+
+        return copy.deepcopy(self.held_object)
 
 
 class RunProcess(MesonInterpreterObject):

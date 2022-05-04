@@ -1,9 +1,13 @@
 project('feature user option', 'c')
 
+mt = import('internal_test')
+
 feature_opts = get_option('auto_features')
 required_opt = get_option('required')
 optional_opt = get_option('optional')
 disabled_opt = get_option('disabled')
+
+msg = 'sentinal'
 
 assert(not feature_opts.enabled(), 'Should be auto option')
 assert(not feature_opts.disabled(), 'Should be auto option')
@@ -17,6 +21,8 @@ assert(required_opt.allowed(), 'Should be enabled option')
 assert(required_opt.require(true, error_message: 'xyz').enabled(), 'Should be enabled option')
 assert(required_opt.disable_auto_if(true).enabled(), 'Should be enabled option')
 assert(required_opt.disable_auto_if(false).enabled(), 'Should be enabled option')
+assert(mt.catch(required_opt, 'disable_auto_if', msg, true, strict : true, error_message : msg), 'Should have raised an error')
+assert(not mt.catch(required_opt, 'disable_auto_if', msg, true, strict : false, error_message : msg), 'Should not have raised an error')
 
 assert(not optional_opt.enabled(), 'Should be auto option')
 assert(not optional_opt.disabled(), 'Should be auto option')
