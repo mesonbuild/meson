@@ -101,6 +101,7 @@ class FeatureOptionHolder(ObjectHolder[coredata.UserFeatureOption]):
                              'auto': self.auto_method,
                              'require': self.require_method,
                              'disable_auto_if': self.disable_auto_if_method,
+                             'enable_auto_if': self.enable_auto_if_method,
                              })
 
     @property
@@ -168,6 +169,23 @@ class FeatureOptionHolder(ObjectHolder[coredata.UserFeatureOption]):
                 return self.as_disabled()
             if kwargs['strict']:
                 m = kwargs['error_message'] or f'{self.held_object.name} is enabled, and thus cannot be disabled'
+                raise InterpreterException(m)
+
+        return copy.deepcopy(self.held_object)
+
+    @FeatureNew('feature_option.enable_auto_if()', '0.63.0')
+    @typed_pos_args('feature_option.enable_auto_if', bool)
+    @typed_kwargs(
+        'feature_option.enable_auto_if',
+        KwargInfo('strict', bool, default=False),
+        KwargInfo('error_message', (str, NoneType)),
+    )
+    def enable_auto_if_method(self, args: T.Tuple[bool], kwargs: AbleIfKw) -> coredata.UserFeatureOption:
+        if args[0]:
+            if self.value != 'disabled':
+                return self.as_enabled()
+            if kwargs['strict']:
+                m = kwargs['error_message'] or f'{self.held_object.name} is disabled, and thus cannot be enabled'
                 raise InterpreterException(m)
 
         return copy.deepcopy(self.held_object)

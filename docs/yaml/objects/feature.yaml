@@ -87,3 +87,68 @@ methods:
       type: str
       default: "''"
       description: The error Message to print if the check fails
+
+- name: enable_auto_if
+  since: 0.63.0
+  returns: feature
+  description: |
+    Returns the feature, with `'auto'` converted to `'enabled'` if value is true.
+
+    If the optional `strict` keyword argument is `true`, then it is an error if
+    the returned option is not set to enabled.
+
+    | Feature / Condition | `value = true`  | `value = false` |
+    | ------------------- | --------------- | --------------- |
+    | Enabled             | Enabled         | Enabled         |
+    | Disabled            | Disabled/error* | Disabled/error* |
+    | Auto                | Enabled         | Auto            |
+
+    \* If strict is `false` then Disabled is returned, if it is `true` then an
+    error is raised
+
+  posargs:
+    value:
+      type: bool
+      description: See the table above
+
+  kwargs:
+    strict:
+      type: bool
+      default: false
+      description: The error message to print if the check fails
+
+    error_message:
+      type: str
+      default: "''"
+      description: The error message to print if the check fails
+
+- name: require
+  returns: feature
+  since: 0.59.0
+  description: |
+    Returns the object itself if the value is true; an error if the object is
+    `'enabled'` and the value is false; a disabled feature if the object
+    is `'auto'` or `'disabled'` and the value is false.
+
+  example: |
+    `require` is useful to restrict the applicability of `'auto'` features,
+    for example based on other features or on properties of the host machine:
+
+    ```
+    if get_option('directx').require(host_machine.system() == 'windows',
+          error_message: 'DirectX only available on Windows').allowed() then
+      src += ['directx.c']
+      config.set10('HAVE_DIRECTX', true)
+    endif
+    ```
+
+  posargs:
+    value:
+      type: bool
+      description: The value to check
+
+  kwargs:
+    error_message:
+      type: str
+      default: "''"
+      description: The error Message to print if the check fails
