@@ -311,7 +311,7 @@ later.
 ```meson
 # Not needed on Windows!
 my_dep = dependency('', required : false)
-if host_machine.system() in ['freebsd', 'netbsd', 'openbsd', 'dragonfly']
+if host_machine.system() in ['freebsd', 'netbsd', 'openbsd', 'dragonflybsd']
   my_dep = dependency('some dep', required : false)
 elif host_machine.system() == 'linux'
   my_dep = dependency('some other dep', required : false)

@@ -664,7 +664,7 @@ def is_debianlike() -> bool:
 
 
 def is_dragonflybsd() -> bool:
-    return platform.system().lower() == 'dragonfly'
+    return platform.system().lower() == 'dragonflybsd'
 
 
 def is_netbsd() -> bool:

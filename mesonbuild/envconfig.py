@@ -318,7 +318,7 @@ class MachineInfo(HoldableObject):
 
     def is_dragonflybsd(self) -> bool:
         """Machine is DragonflyBSD?"""
-        return self.system == 'dragonfly'
+        return self.system == 'dragonflybsd'
 
     def is_freebsd(self) -> bool:
         """Machine is FreeBSD?"""

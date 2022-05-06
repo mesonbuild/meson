@@ -136,7 +136,7 @@ These are provided by the `.system()` method call.
 | android             | By convention only, subject to change |
 | cygwin              | The Cygwin environment for Windows |
 | darwin              | Either OSX or iOS |
-| dragonfly           | DragonFly BSD |
+| dragonflybsd        | DragonFly BSD |
 | emscripten          | Emscripten's Javascript environment |
 | freebsd             | FreeBSD and its derivatives |
 | gnu                 | GNU Hurd |

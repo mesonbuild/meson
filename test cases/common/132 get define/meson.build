@@ -26,7 +26,7 @@ foreach lang : ['c', 'cpp']
     # set.
     d = cc.get_define('__FreeBSD__')
     assert(d != '', '__FreeBSD__ value is unset')
-  elif host_system == 'dragonfly'
+  elif host_system == 'dragonflybsd'
     d = cc.get_define('__DragonFly__')
     assert(d == '1', '__DragonFly__ value is @0@ instead of 1'.format(d))
   elif host_system == 'netbsd'
