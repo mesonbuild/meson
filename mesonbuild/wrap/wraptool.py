@@ -22,7 +22,7 @@ from .wrap import (open_wrapdburl, WrapException, get_releases, get_releases_dat
                    update_wrap_file, parse_patch_url)
 from pathlib import Path
 
-from .. import mesonlib
+from .. import mesonlib, msubprojects
 
 if T.TYPE_CHECKING:
     import argparse
@@ -48,11 +48,8 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     p.add_argument('name')
     p.set_defaults(wrap_func=install)
 
-    p = subparsers.add_parser('update', help='update the project to its newest available release')
-    p.add_argument('--allow-insecure', default=False, action='store_true',
-                   help='Allow insecure server connections.')
-    p.add_argument('name')
-    p.set_defaults(wrap_func=update)
+    p = msubprojects.add_wrap_update_parser(subparsers)
+    p.set_defaults(wrap_func=msubprojects.run)
 
     p = subparsers.add_parser('info', help='show available versions of a project')
     p.add_argument('--allow-insecure', default=False, action='store_true',
