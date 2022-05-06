@@ -1061,6 +1061,10 @@ def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List
                        shutil.which('nagfor') or
                        shutil.which('ifort'))
 
+    skip_cmake = ((os.environ.get('compiler') == 'msvc2015' and under_ci) or
+                  'cmake' not in tool_vers_map or
+                  not mesonlib.version_compare(tool_vers_map['cmake'], '>=3.14'))
+
     class TestCategory:
         def __init__(self, category: str, subdir: str, skip: bool = False, stdout_mandatory: bool = False):
             self.category = category                  # category name
@@ -1069,7 +1073,7 @@ def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List
             self.stdout_mandatory = stdout_mandatory  # expected stdout is mandatory for tests in this category
 
     all_tests = [
-        TestCategory('cmake', 'cmake', not shutil.which('cmake') or (os.environ.get('compiler') == 'msvc2015' and under_ci) or (os.environ.get('MESON_CI_JOBNAME') == 'linux-bionic-gcc')),
+        TestCategory('cmake', 'cmake', skip_cmake),
         TestCategory('common', 'common'),
         TestCategory('native', 'native'),
         TestCategory('warning-meson', 'warning', stdout_mandatory=True),

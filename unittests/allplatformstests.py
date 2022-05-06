@@ -3740,8 +3740,6 @@ class AllPlatformTests(BasePlatformTests):
         # This checks a bug where if a non-meson project is used as a third
         # level (or deeper) subproject it doesn't cause a rebuild if the build
         # files for that project are changed
-        if os.environ.get('MESON_CI_JOBNAME') == 'linux-bionic-gcc':
-            raise SkipTest('Unsupported CMake version')
         testdir = os.path.join(self.unit_test_dir, '84 nested subproject regenerate depends')
         cmakefile = Path(testdir) / 'subprojects' / 'sub2' / 'CMakeLists.txt'
         self.init(testdir)
