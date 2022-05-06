@@ -1543,9 +1543,14 @@ if __name__ == '__main__':
         # This fails in some CI environments for unknown reasons.
         num_workers = multiprocessing.cpu_count()
     except Exception as e:
-        print('Could not determine number of CPUs due to the following reason:' + str(e))
+        print('Could not determine number of CPUs due to the following reason:', str(e))
         print('Defaulting to using only two processes')
         num_workers = 2
+
+    if num_workers > 64:
+        # Too much parallelism seems to trigger a potential Python bug:
+        # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1004107
+        num_workers = 64
 
     parser = argparse.ArgumentParser(description="Run the test suite of Meson.")
     parser.add_argument('extra_args', nargs='*',
