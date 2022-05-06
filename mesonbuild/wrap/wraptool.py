@@ -12,15 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
 import sys, os
 import configparser
 import shutil
 import typing as T
 
 from glob import glob
-from urllib.parse import urlparse
-from .wrap import open_wrapdburl, WrapException
+from .wrap import (open_wrapdburl, WrapException, get_releases, get_releases_data,
+                   update_wrap_file, parse_patch_url)
 from pathlib import Path
 
 from .. import mesonlib
@@ -75,14 +74,6 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
                    help='Allow insecure server connections.')
     p.set_defaults(wrap_func=update_db)
 
-def get_releases_data(allow_insecure: bool) -> bytes:
-    url = open_wrapdburl('https://wrapdb.mesonbuild.com/v2/releases.json', allow_insecure, True)
-    return url.read()
-
-def get_releases(allow_insecure: bool) -> T.Dict[str, T.Any]:
-    data = get_releases_data(allow_insecure)
-    return T.cast('T.Dict[str, T.Any]', json.loads(data.decode()))
-
 def list_projects(options: 'argparse.Namespace') -> None:
     releases = get_releases(options.allow_insecure)
     for p in releases.keys():
@@ -123,23 +114,6 @@ def install(options: 'argparse.Namespace') -> None:
         f.write(url.read())
     print(f'Installed {name} version {version} revision {revision}')
 
-def parse_patch_url(patch_url: str) -> T.Tuple[str, str]:
-    u = urlparse(patch_url)
-    if u.netloc != 'wrapdb.mesonbuild.com':
-        raise WrapException(f'URL {patch_url} does not seems to be a wrapdb patch')
-    arr = u.path.strip('/').split('/')
-    if arr[0] == 'v1':
-        # e.g. https://wrapdb.mesonbuild.com/v1/projects/zlib/1.2.11/5/get_zip
-        return arr[-3], arr[-2]
-    elif arr[0] == 'v2':
-        # e.g. https://wrapdb.mesonbuild.com/v2/zlib_1.2.11-5/get_patch
-        tag = arr[-2]
-        _, version = tag.rsplit('_', 1)
-        version, revision = version.rsplit('-', 1)
-        return version, revision
-    else:
-        raise WrapException(f'Invalid wrapdb URL {patch_url}')
-
 def get_current_version(wrapfile: str) -> T.Tuple[str, str, str, str, T.Optional[str]]:
     cp = configparser.ConfigParser(interpolation=None)
     cp.read(wrapfile)
@@ -159,12 +133,6 @@ def get_current_version(wrapfile: str) -> T.Tuple[str, str, str, str, T.Optional
         branch, revision = parse_patch_url(patch_url)
         patch_filename = wrap_data['patch_filename']
     return branch, revision, wrap_data['directory'], wrap_data['source_filename'], patch_filename
-
-def update_wrap_file(wrapfile: str, name: str, new_version: str, new_revision: str, allow_insecure: bool) -> None:
-    url = open_wrapdburl(f'https://wrapdb.mesonbuild.com/v2/{name}_{new_version}-{new_revision}/{name}.wrap',
-                         allow_insecure, True)
-    with open(wrapfile, 'wb') as f:
-        f.write(url.read())
 
 def update(options: 'argparse.Namespace') -> None:
     name = options.name
