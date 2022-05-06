@@ -283,17 +283,17 @@ class Resolver:
         if not os.path.isdir(self.subdir_root):
             return
         root, dirs, files = next(os.walk(self.subdir_root))
+        ignore_dirs = {'packagecache', 'packagefiles'}
         for i in files:
             if not i.endswith('.wrap'):
                 continue
             fname = os.path.join(self.subdir_root, i)
             wrap = PackageDefinition(fname, self.subproject)
             self.wraps[wrap.name] = wrap
-            if wrap.directory in dirs:
-                dirs.remove(wrap.directory)
+            ignore_dirs |= {wrap.directory, wrap.name}
         # Add dummy package definition for directories not associated with a wrap file.
         for i in dirs:
-            if i in ['packagecache', 'packagefiles']:
+            if i in ignore_dirs:
                 continue
             fname = os.path.join(self.subdir_root, i)
             wrap = PackageDefinition(fname, self.subproject)
