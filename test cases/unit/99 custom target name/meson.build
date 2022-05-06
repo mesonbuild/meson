@@ -1,6 +1,6 @@
 project('custom target name', 'c')
 
-python = import('python').find_installation()
+python = find_program('python3')
 
 # Name argument is optional and should default to 'file.txt'
 custom_target(

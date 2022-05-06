@@ -1,7 +1,7 @@
 project('trivial test', 'c')
 
-py_inst = import('python').find_installation()
+python = find_program('python3')
 
 exe = executable('trivialprog', 'trivial.c')
-runt = run_target('invalid', command: [py_inst, '--version'])
+runt = run_target('invalid', command: [python, '--version'])
 meson.add_install_script(exe, runt)

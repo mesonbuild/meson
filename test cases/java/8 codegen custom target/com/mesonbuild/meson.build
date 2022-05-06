@@ -1,4 +1,4 @@
-python = import('python').find_installation('python3')
+python = find_program('python3')
 
 config_file = custom_target('confgen',
                             input : 'Config.java.in',

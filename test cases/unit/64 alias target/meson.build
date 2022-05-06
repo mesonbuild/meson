@@ -1,6 +1,6 @@
 project('alias target', 'c')
 
-python3 = import('python').find_installation()
+python3 = find_program('python3')
 
 exe_target = executable('prog', 'main.c',
   build_by_default : false)
