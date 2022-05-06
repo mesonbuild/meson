@@ -11,7 +11,7 @@ summary({'Some boolean': false,
          'enabled_opt': get_option('enabled_opt'),
         }, section: 'Configuration')
 summary({'missing prog': find_program('xyzzy', required: false),
-         'existing prog': import('python').find_installation(),
+         'existing prog': find_program(get_option('python')).full_path(),
          'missing dep': dependency('', required: false),
          'external dep': dependency('zlib', required: false),
          'internal dep': declare_dependency(),

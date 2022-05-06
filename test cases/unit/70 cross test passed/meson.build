@@ -6,7 +6,7 @@ project(
 
 e = executable('exec', 'src/main.c')
 
-py = import('python').find_installation()
+py = find_program('python3')
 
 test('root', e)
 test('main', py, args : [meson.current_source_dir() / 'script.py', e])
