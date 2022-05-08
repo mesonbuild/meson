@@ -166,7 +166,7 @@ class I18nModule(ExtensionModule):
         KwargInfo('type', str, default='xml', validator=in_set_validator({'xml', 'desktop'})),
     )
     def merge_file(self, state: 'ModuleState', args: T.List['TYPE_var'], kwargs: 'MergeFile') -> ModuleReturnValue:
-        if self.tools['msgfmt'] is None:
+        if self.tools['msgfmt'] is None or not self.tools['msgfmt'].found():
             self.tools['msgfmt'] = state.find_program('msgfmt', for_machine=mesonlib.MachineChoice.BUILD)
         podir = path.join(state.build_to_src, state.subdir, kwargs['po_dir'])
 
