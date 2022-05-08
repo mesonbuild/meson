@@ -141,10 +141,6 @@ class I18nModule(ExtensionModule):
         }
 
     @staticmethod
-    def nogettext_warning(location: BaseNode) -> None:
-        mlog.warning('Gettext not found, all translation targets will be ignored.', once=True, location=location)
-
-    @staticmethod
     def _get_data_dirs(state: 'ModuleState', dirs: T.Iterable[str]) -> T.List[str]:
         """Returns source directories of relative paths"""
         src_dir = path.join(state.environment.get_source_dir(), state.subdir)
@@ -222,13 +218,18 @@ class I18nModule(ExtensionModule):
         ),
     )
     def gettext(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'Gettext') -> ModuleReturnValue:
-        for tool in ['msgfmt', 'msginit', 'msgmerge', 'xgettext']:
+        for tool, strict in [('msgfmt', True), ('msginit', False), ('msgmerge', False), ('xgettext', False)]:
             if self.tools[tool] is None:
                 self.tools[tool] = state.find_program(tool, required=False, for_machine=mesonlib.MachineChoice.BUILD)
             # still not found?
             if not self.tools[tool].found():
-                self.nogettext_warning(state.current_node)
-                return ModuleReturnValue(None, [])
+                if strict:
+                    mlog.warning('Gettext not found, all translation (po) targets will be ignored.',
+                                 once=True, location=state.current_node)
+                    return ModuleReturnValue(None, [])
+                else:
+                    mlog.warning(f'{tool!r} not found, maintainer targets will not work',
+                                 once=True, fatal=False, location=state.current_node)
         packagename = args[0]
         pkg_arg = f'--pkgname={packagename}'
 
@@ -254,7 +255,8 @@ class I18nModule(ExtensionModule):
             potargs.append(datadirs)
         if extra_arg:
             potargs.append(extra_arg)
-        potargs.append('--xgettext=' + self.tools['xgettext'].get_path())
+        if self.tools['xgettext'].found():
+            potargs.append('--xgettext=' + self.tools['xgettext'].get_path())
         pottarget = build.RunTarget(packagename + '-pot', potargs, [], state.subdir, state.subproject)
         targets.append(pottarget)
 
@@ -295,7 +297,8 @@ class I18nModule(ExtensionModule):
         if extra_arg:
             updatepoargs.append(extra_arg)
         for tool in ['msginit', 'msgmerge']:
-            updatepoargs.append(f'--{tool}=' + self.tools[tool].get_path())
+            if self.tools[tool].found():
+                updatepoargs.append(f'--{tool}=' + self.tools[tool].get_path())
         updatepotarget = build.RunTarget(packagename + '-update-po', updatepoargs, [], state.subdir, state.subproject)
         targets.append(updatepotarget)
 
