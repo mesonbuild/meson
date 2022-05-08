@@ -1255,7 +1255,7 @@ class BuildTarget(Target):
         if self.gnu_symbol_visibility != '':
             permitted = ['default', 'internal', 'hidden', 'protected', 'inlineshidden']
             if self.gnu_symbol_visibility not in permitted:
-                raise InvalidArguments('GNU symbol visibility arg {} not one of: {}'.format(self.symbol_visibility, ', '.join(permitted)))
+                raise InvalidArguments('GNU symbol visibility arg {} not one of: {}'.format(self.gnu_symbol_visibility, ', '.join(permitted)))
 
     def validate_win_subsystem(self, value: str) -> str:
         value = value.lower()
