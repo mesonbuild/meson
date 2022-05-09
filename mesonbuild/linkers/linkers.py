@@ -700,14 +700,32 @@ class GnuLikeDynamicLinkerMixin:
         return (args, rpath_dirs_to_remove)
 
     def get_win_subsystem_args(self, value: str) -> T.List[str]:
-        if 'windows' in value:
-            args = ['--subsystem,windows']
-        elif 'console' in value:
-            args = ['--subsystem,console']
-        else:
-            raise MesonException(f'Only "windows" and "console" are supported for win_subsystem with MinGW, not "{value}".')
+        # MinGW only directly supports a couple of the possible
+        # PE application types. The raw integer works as an argument
+        # as well, and is always accepted, so we manually map the
+        # other types here. List of all types:
+        # https://github.com/wine-mirror/wine/blob/3ded60bd1654dc689d24a23305f4a93acce3a6f2/include/winnt.h#L2492-L2507
+        subsystems = {
+            "native": "1",
+            "windows": "windows",
+            "console": "console",
+            "posix": "7",
+            "efi_application": "10",
+            "efi_boot_service_driver": "11",
+            "efi_runtime_driver": "12",
+            "efi_rom": "13",
+            "boot_application": "16",
+        }
+        versionsuffix = None
         if ',' in value:
-            args[-1] = args[-1] + ':' + value.split(',')[1]
+            value, versionsuffix = value.split(',', 1)
+        newvalue = subsystems.get(value)
+        if newvalue is not None:
+            if versionsuffix is not None:
+                newvalue += f':{versionsuffix}'
+            args = [f'--subsystem,{newvalue}']
+        else:
+            raise mesonlib.MesonBugException(f'win_subsystem: {value!r} not handled in MinGW linker. This should not be possible.')
 
         return self._apply_prefix(args)
 
