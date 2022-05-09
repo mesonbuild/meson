@@ -28,7 +28,7 @@ All Linux distributions provide easy access to development tools.
 Typically you need to open a terminal and execute one command, which
 depends on your distro.
 
- - Debian, Ubuntu and derivatives: `sudo apt install build-essential`
+ - Debian, Ubuntu and derivatives: `sudo apt install g++`
  - Fedora, Centos, RHEL and derivatives: `sudo dnf install gcc-c++`
  - Arch: `sudo pacman -S gcc`
 
@@ -66,7 +66,7 @@ install more files that are needed for compilation.
 
 Installing Meson is just as simple as installing the compiler toolchain.
 
- - Debian, Ubuntu and derivatives: `sudo apt install meson ninja-build`
+ - Debian, Ubuntu and derivatives: `sudo apt install meson`
  - Fedora, Centos, RHEL and derivatives: `sudo dnf install meson ninja-build`
  - Arch: `sudo pacman -S meson`
 
