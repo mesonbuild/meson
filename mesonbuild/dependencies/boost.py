@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import re
+import dataclasses
 import functools
 import typing as T
 from pathlib import Path
@@ -83,6 +84,10 @@ if T.TYPE_CHECKING:
 #     2.4 Ensure that all libraries have the same boost tag (and are thus compatible)
 #   3. Select the libraries matching the requested modules
 
+@dataclasses.dataclass(eq=False, order=False)
+class UnknownFileException(Exception):
+    path: Path
+
 @functools.total_ordering
 class BoostIncludeDir():
     def __init__(self, path: Path, version_int: int):
@@ -152,7 +157,7 @@ class BoostLibraryFile():
         elif self.nvsuffix in ['a', 'lib']:
             self.static = True
         else:
-            raise DependencyException(f'Unable to process library extension "{self.nvsuffix}" ({self.path})')
+            raise UnknownFileException(self.path)
 
         # boost_.lib is the dll import library
         if self.basename.startswith('boost_') and self.nvsuffix == 'lib':
@@ -623,8 +628,15 @@ class BoostDependency(SystemDependency):
                 continue
             if not any([i.name.startswith(x) for x in ['libboost_', 'boost_']]):
                 continue
+            # Windows binaries from SourceForge ship with PDB files alongside
+            # DLLs (#8325).  Ignore them.
+            if i.name.endswith('.pdb'):
+                continue
 
-            libs.add(BoostLibraryFile(i.resolve()))
+            try:
+                libs.add(BoostLibraryFile(i.resolve()))
+            except UnknownFileException as e:
+                mlog.warning('Boost: ignoring unknown file {} under lib directory'.format(e.path.name))
 
         return [x for x in libs if x.is_boost()]  # Filter out no boost libraries
 
