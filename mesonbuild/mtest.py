@@ -1806,7 +1806,7 @@ class TestHarness:
     def get_wrapper(options: argparse.Namespace) -> T.List[str]:
         wrap = []  # type: T.List[str]
         if options.gdb:
-            wrap = [options.gdb_path, '--quiet', '--nh']
+            wrap = [options.gdb_path, '--quiet']
             if options.repeat > 1:
                 wrap += ['-ex', 'run', '-ex', 'quit']
             # Signal the end of arguments to gdb
