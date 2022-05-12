@@ -45,20 +45,20 @@ if T.TYPE_CHECKING:
         args: T.List[str]
         dependencies: T.List[dependencies.Dependency]
 
-    class CompileKW(TypedDict):
+    class BaseCompileKW(TypedDict):
+        no_builtin_args: bool
+        include_directories: T.List[build.IncludeDirs]
+        args: T.List[str]
+
+    class CompileKW(BaseCompileKW):
 
         name: str
-        no_builtin_args: bool
-        include_directories: T.List[build.IncludeDirs]
-        args: T.List[str]
         dependencies: T.List[dependencies.Dependency]
+        werror: bool
 
-    class CommonKW(TypedDict):
+    class CommonKW(BaseCompileKW):
 
         prefix: str
-        no_builtin_args: bool
-        include_directories: T.List[build.IncludeDirs]
-        args: T.List[str]
         dependencies: T.List[dependencies.Dependency]
 
     class ComputeIntKW(CommonKW):
@@ -163,13 +163,15 @@ _PREFIX_KW: KwargInfo[str] = KwargInfo(
 
 _NO_BUILTIN_ARGS_KW = KwargInfo('no_builtin_args', bool, default=False)
 _NAME_KW = KwargInfo('name', str, default='')
+_WERROR_KW = KwargInfo('werror', bool, default=False, since='1.3.0')
 
 # Many of the compiler methods take this kwarg signature exactly, this allows
 # simplifying the `typed_kwargs` calls
 _COMMON_KWS: T.List[KwargInfo] = [_ARGS_KW, _DEPENDENCIES_KW, _INCLUDE_DIRS_KW, _PREFIX_KW, _NO_BUILTIN_ARGS_KW]
 
 # Common methods of compiles, links, runs, and similar
-_COMPILES_KWS: T.List[KwargInfo] = [_NAME_KW, _ARGS_KW, _DEPENDENCIES_KW, _INCLUDE_DIRS_KW, _NO_BUILTIN_ARGS_KW]
+_COMPILES_KWS: T.List[KwargInfo] = [_NAME_KW, _ARGS_KW, _DEPENDENCIES_KW, _INCLUDE_DIRS_KW, _NO_BUILTIN_ARGS_KW,
+                                    _WERROR_KW]
 
 _HEADER_KWS: T.List[KwargInfo] = [REQUIRED_KW.evolve(since='0.50.0', default=False), *_COMMON_KWS]
 _HAS_REQUIRED_KW = REQUIRED_KW.evolve(since='1.3.0', default=False)
@@ -251,20 +253,20 @@ class CompilerHolder(ObjectHolder['Compiler']):
     def cmd_array_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> T.List[str]:
         return self.compiler.exelist
 
-    def _determine_args(self, nobuiltins: bool,
-                        incdirs: T.List[build.IncludeDirs],
-                        extra_args: T.List[str],
+    def _determine_args(self, kwargs: BaseCompileKW,
                         mode: CompileCheckMode = CompileCheckMode.LINK) -> T.List[str]:
         args: T.List[str] = []
-        for i in incdirs:
+        for i in kwargs['include_directories']:
             for idir in i.to_string_list(self.environment.get_source_dir()):
                 args.extend(self.compiler.get_include_args(idir, False))
-        if not nobuiltins:
+        if not kwargs['no_builtin_args']:
             opts = self.environment.coredata.options
             args += self.compiler.get_option_compile_args(opts)
             if mode is CompileCheckMode.LINK:
                 args.extend(self.compiler.get_option_link_args(opts))
-        args.extend(extra_args)
+        if kwargs.get('werror', False):
+            args.extend(self.compiler.get_werror_args())
+        args.extend(kwargs['args'])
         return args
 
     def _determine_dependencies(self, deps: T.List['dependencies.Dependency'], compile_only: bool = False, endl: str = ':') -> T.Tuple[T.List['dependencies.Dependency'], str]:
@@ -298,7 +300,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             code = mesonlib.File.from_absolute_file(
                 code.rel_to_builddir(self.environment.source_dir))
         testname = kwargs['name']
-        extra_args = functools.partial(self._determine_args, kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
+        extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=False, endl=None)
         result = self.compiler.run(code, self.environment, extra_args=extra_args,
                                    dependencies=deps)
@@ -340,7 +342,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         if disabled:
             mlog.log('Type', mlog.bold(typename, True), 'has member', mlog.bold(membername, True), 'skipped: feature', mlog.bold(feature), 'disabled')
             return False
-        extra_args = functools.partial(self._determine_args, kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
+        extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
         had, cached = self.compiler.has_members(typename, [membername], kwargs['prefix'],
                                                 self.environment,
@@ -366,7 +368,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         if disabled:
             mlog.log('Type', mlog.bold(typename, True), 'has members', members, 'skipped: feature', mlog.bold(feature), 'disabled')
             return False
-        extra_args = functools.partial(self._determine_args, kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
+        extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
         had, cached = self.compiler.has_members(typename, membernames, kwargs['prefix'],
                                                 self.environment,
@@ -392,7 +394,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         if disabled:
             mlog.log('Has function', mlog.bold(funcname, True), 'skipped: feature', mlog.bold(feature), 'disabled')
             return False
-        extra_args = self._determine_args(kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
+        extra_args = self._determine_args(kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=False)
         had, cached = self.compiler.has_function(funcname, kwargs['prefix'], self.environment,
                                                  extra_args=extra_args,
@@ -415,7 +417,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         if disabled:
             mlog.log('Has type', mlog.bold(typename, True), 'skipped: feature', mlog.bold(feature), 'disabled')
             return False
-        extra_args = functools.partial(self._determine_args, kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
+        extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
         had, cached = self.compiler.has_type(typename, kwargs['prefix'], self.environment,
                                              extra_args=extra_args, dependencies=deps)
@@ -440,7 +442,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
     )
     def compute_int_method(self, args: T.Tuple[str], kwargs: 'ComputeIntKW') -> int:
         expression = args[0]
-        extra_args = functools.partial(self._determine_args, kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
+        extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=self.compiler.is_cross)
         res = self.compiler.compute_int(expression, kwargs['low'], kwargs['high'],
                                         kwargs['guess'], kwargs['prefix'],
@@ -453,7 +455,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
     @typed_kwargs('compiler.sizeof', *_COMMON_KWS)
     def sizeof_method(self, args: T.Tuple[str], kwargs: 'CommonKW') -> int:
         element = args[0]
-        extra_args = functools.partial(self._determine_args, kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
+        extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=self.compiler.is_cross)
         esize, cached = self.compiler.sizeof(element, kwargs['prefix'], self.environment,
                                              extra_args=extra_args, dependencies=deps)
@@ -467,7 +469,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
     @typed_kwargs('compiler.get_define', *_COMMON_KWS)
     def get_define_method(self, args: T.Tuple[str], kwargs: 'CommonKW') -> str:
         element = args[0]
-        extra_args = functools.partial(self._determine_args, kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
+        extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
         value, cached = self.compiler.get_define(element, kwargs['prefix'], self.environment,
                                                  extra_args=extra_args,
@@ -488,7 +490,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             code = mesonlib.File.from_absolute_file(
                 code.absolute_path(self.environment.source_dir, self.environment.build_dir))
         testname = kwargs['name']
-        extra_args = functools.partial(self._determine_args, kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
+        extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'], endl=None)
         result, cached = self.compiler.compiles(code, self.environment,
                                                 extra_args=extra_args,
@@ -527,7 +529,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
                     compiler = clist[SUFFIX_TO_LANG[suffix]]
 
         testname = kwargs['name']
-        extra_args = functools.partial(self._determine_args, kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
+        extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=False)
         result, cached = self.compiler.links(code, self.environment,
                                              compiler=compiler,
@@ -551,7 +553,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         if disabled:
             mlog.log('Check usable header', mlog.bold(hname, True), 'skipped: feature', mlog.bold(feature), 'disabled')
             return False
-        extra_args = functools.partial(self._determine_args, kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
+        extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
         haz, cached = self.compiler.check_header(hname, kwargs['prefix'], self.environment,
                                                  extra_args=extra_args,
@@ -571,7 +573,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         if disabled:
             mlog.log('Has header', mlog.bold(hname, True), 'skipped: feature', mlog.bold(feature), 'disabled')
             return False
-        extra_args = functools.partial(self._determine_args, kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
+        extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
         haz, cached = self.compiler.has_header(hname, kwargs['prefix'], self.environment,
                                                extra_args=extra_args, dependencies=deps)
@@ -598,7 +600,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         if disabled:
             mlog.log('Header', mlog.bold(hname, True), 'has symbol', mlog.bold(symbol, True), 'skipped: feature', mlog.bold(feature), 'disabled')
             return False
-        extra_args = functools.partial(self._determine_args, kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
+        extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
         haz, cached = self.compiler.has_header_symbol(hname, symbol, kwargs['prefix'], self.environment,
                                                       extra_args=extra_args,

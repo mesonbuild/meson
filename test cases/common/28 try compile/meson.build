@@ -8,6 +8,10 @@ breakcode = '''#include<nonexisting.h>
 void func(void) { printf("This won't work.\n"); }
 '''
 
+warncode = '''#warning This is a warning
+int main(void) { return 0; }
+'''
+
 foreach lang : ['c', 'cpp']
   compiler = meson.get_compiler(lang)
 
@@ -30,5 +34,24 @@ foreach lang : ['c', 'cpp']
 
   if compiler.compiles(files('invalid.c'), name : 'file should fail')
     error('Compiler ' + compiler.get_id() + ' returned true on broken code.')
+  endif
+
+  # MSVC does not support #warning instruction
+  if compiler.get_id() != 'msvc'
+    # First check that all tests pass without werror, then check they fail with it.
+    foreach with_werror : [false, true]
+      expect_success = not with_werror
+      assert(compiler.compiles(warncode,
+        name: f'code with warning compiles with werror=@with_werror@',
+        werror: with_werror) == expect_success)
+      assert(compiler.links(warncode,
+        name: f'code with warning links with werror=@with_werror@',
+        werror: with_werror) == expect_success)
+      if meson.can_run_host_binaries()
+        assert((compiler.run(warncode,
+          name: f'code with warning runs with werror=@with_werror@',
+          werror: with_werror).returncode() == 0) == expect_success)
+      endif
+    endforeach
   endif
 endforeach

@@ -127,6 +127,7 @@ methods:
     - compiler._dependencies
     - compiler._no_builtin_args
     - compiler._name
+    - compiler._werror
 
 - name: _header
   returns: void
@@ -156,6 +157,16 @@ methods:
 
         When set to a [`feature`](Build-options.md#features) option, the feature
         will control if it is searched and whether to fail if not found.
+
+- name: _werror
+  returns: void
+  description: You have found a bug if you can see this!
+  kwargs:
+    werror:
+      type: bool
+      default: false
+      description: When set to `true`, compiler warnings are treated as error.
+      since: 1.3.0
 
 # Star of the actual functions
 - name: version
