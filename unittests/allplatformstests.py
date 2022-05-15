@@ -4263,3 +4263,7 @@ class AllPlatformTests(BasePlatformTests):
         if self.backend is Backend.ninja:
             self.assertIn('Generating file.txt with a custom command', out)
             self.assertIn('Generating subdir/file.txt with a custom command', out)
+
+    def test_normalize_option_name(self) -> None:
+        testdir = os.path.join(self.unit_test_dir, '99 normalize option name')
+        self.init(testdir, extra_args=['-Dfoo_bar=true', '-Dwarning-level=3'])

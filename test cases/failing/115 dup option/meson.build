@@ -1,0 +1,1 @@
+project('dup object')

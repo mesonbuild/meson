@@ -2052,6 +2052,8 @@ def _classify_argument(key: 'OptionKey') -> OptionType:
         assert key.machine is MachineChoice.HOST, str(key)
         return OptionType.PROJECT
 
+def _normalize_option_name(name: str) -> str:
+    return name.replace('-', '_').lower()
 
 @total_ordering
 class OptionKey:
@@ -2079,9 +2081,10 @@ class OptionKey:
                  module: T.Optional[str] = None,
                  _type: T.Optional[OptionType] = None):
         # the _type option to the constructor is kinda private. We want to be
-        # able tos ave the state and avoid the lookup function when
+        # able to save the state and avoid the lookup function when
         # pickling/unpickling, but we need to be able to calculate it when
         # constructing a new OptionKey
+        name = _normalize_option_name(name)
         object.__setattr__(self, 'name', name)
         object.__setattr__(self, 'subproject', subproject)
         object.__setattr__(self, 'machine', machine)
@@ -2194,7 +2197,7 @@ class OptionKey:
         # We have to be a little clever with lang here, because lang is valid
         # as None, for non-compiler options
         return OptionKey(
-            name if name is not None else self.name,
+            _normalize_option_name(name) if name is not None else self.name,
             subproject if subproject is not None else self.subproject,
             machine if machine is not None else self.machine,
             lang if lang != '' else self.lang,
