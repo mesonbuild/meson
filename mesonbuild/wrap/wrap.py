@@ -28,13 +28,12 @@ import sys
 import configparser
 import time
 import typing as T
-import textwrap
 
 from pathlib import Path
 from . import WrapMode
 from .. import coredata
 from ..mesonlib import quiet_git, GIT, ProgressBar, MesonException, windows_proof_rmtree
-from ..interpreterbase import FeatureNew
+from ..interpreterbase import FeatureNew, FeatureDeprecated
 from ..interpreterbase import SubProject
 from .. import mesonlib
 
@@ -141,6 +140,8 @@ class PackageDefinition:
             raise WrapException(f'Failed to parse {self.basename}: {e!s}')
         self.parse_wrap_section(config)
         if self.type == 'redirect':
+            m = 'wrap-redirect files are not created by Meson any more and should be deleted'
+            FeatureDeprecated(m, '0.62.0').use(self.subproject)
             # [wrap-redirect] have a `filename` value pointing to the real wrap
             # file we should parse instead. It must be relative to the current
             # wrap file location and must be in the form foo/subprojects/bar.wrap.
@@ -320,13 +321,6 @@ class Resolver:
             if self.wrap.filename != main_fname:
                 rel = os.path.relpath(self.wrap.filename, self.source_dir)
                 mlog.log('Using', mlog.bold(rel))
-                # Write a dummy wrap file in main project that redirect to the
-                # wrap we picked.
-                with open(main_fname, 'w', encoding='utf-8') as f:
-                    f.write(textwrap.dedent('''\
-                        [wrap-redirect]
-                        filename = {}
-                        '''.format(os.path.relpath(self.wrap.filename, self.subdir_root))))
         else:
             # No wrap file, it's a dummy package definition for an existing
             # directory. Use the source code in place.
