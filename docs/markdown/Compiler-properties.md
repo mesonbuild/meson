@@ -2,8 +2,9 @@
 
 Not all compilers and platforms are alike. Therefore Meson provides
 the tools to detect properties of the system during configure time. To
-get most of this information, you first need to extract the *compiler
-object* from the main *meson* variable.
+get most of this information, you first need to extract the *[compiler
+object](Reference-manual_returned_compiler.html)* from the main
+*meson* variable.
 
 ```meson
 compiler = meson.get_compiler('c')
