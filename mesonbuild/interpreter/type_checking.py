@@ -336,4 +336,4 @@ DEFAULT_OPTIONS: KwargInfo[T.List[str]] = KwargInfo(
 ENV_METHOD_KW = KwargInfo('method', str, default='set', since='0.62.0',
     validator=in_set_validator({'set', 'prepend', 'append'}))
 
-ENV_SEPARATOR_KW = KwargInfo('separator', str, default=os.pathsep, since='0.62.0')
+ENV_SEPARATOR_KW = KwargInfo('separator', str, default=os.pathsep)
