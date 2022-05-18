@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
 from collections import OrderedDict
 from dataclasses import dataclass, InitVar
@@ -1244,10 +1245,12 @@ class Backend:
         for name, b in self.build.get_targets().items():
             if b.build_by_default:
                 result[name] = b
-        # Get all targets used as test executables and arguments. These must
-        # also be built by default. XXX: Sometime in the future these should be
-        # built only before running tests.
-        for t in self.build.get_tests():
+        return result
+
+    def get_testlike_targets(self, benchmark: bool = False) -> T.OrderedDict[str, T.Union[build.BuildTarget, build.CustomTarget]]:
+        result: T.OrderedDict[str, T.Union[build.BuildTarget, build.CustomTarget]] = OrderedDict()
+        targets = self.build.get_benchmarks() if benchmark else self.build.get_tests()
+        for t in targets:
             exe = t.exe
             if isinstance(exe, (build.CustomTarget, build.BuildTarget)):
                 result[exe.get_id()] = exe

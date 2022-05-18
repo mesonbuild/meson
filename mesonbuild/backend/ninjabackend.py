@@ -3272,14 +3272,22 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.add_build(elem)
 
     def generate_ending(self):
-        targetlist = []
-        for t in self.get_build_by_default_targets().values():
-            # Add the first output of each target to the 'all' target so that
-            # they are all built
-            targetlist.append(os.path.join(self.get_target_dir(t), t.get_outputs()[0]))
+        for targ, deps in [
+                ('all', self.get_build_by_default_targets()),
+                ('meson-test-prereq', self.get_testlike_targets()),
+                ('meson-benchmark-prereq', self.get_testlike_targets(True))]:
+            targetlist = []
+            # These must also be built by default.
+            # XXX: Sometime in the future these should be built only before running tests.
+            if targ == 'all':
+                targetlist.extend(['meson-test-prereq', 'meson-benchmark-prereq'])
+            for t in deps.values():
+                # Add the first output of each target to the 'all' target so that
+                # they are all built
+                targetlist.append(os.path.join(self.get_target_dir(t), t.get_outputs()[0]))
 
-        elem = NinjaBuildElement(self.all_outputs, 'all', 'phony', targetlist)
-        self.add_build(elem)
+            elem = NinjaBuildElement(self.all_outputs, targ, 'phony', targetlist)
+            self.add_build(elem)
 
         elem = self.create_phony_target(self.all_outputs, 'clean', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', self.ninja_command + ['-t', 'clean'])

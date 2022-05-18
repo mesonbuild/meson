@@ -358,6 +358,7 @@ class Vs2010Backend(backends.Backend):
 
     def generate_solution(self, sln_filename, projlist):
         default_projlist = self.get_build_by_default_targets()
+        default_projlist.update(self.get_testlike_targets())
         sln_filename_tmp = sln_filename + '~'
         # Note using the utf-8 BOM requires the blank line, otherwise Visual Studio Version Selector fails.
         # Without the BOM, VSVS fails if there is a blank line.
