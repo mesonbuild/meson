@@ -533,7 +533,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         hname, symbol = args
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
         if disabled:
-            mlog.log(f'Header <{hname}> has symbol', mlog.bold(symbol, True), 'skipped: feature', mlog.bold(feature), 'disabled')
+            mlog.log('Header', mlog.bold(hname, True), 'has symbol', mlog.bold(symbol, True), 'skipped: feature', mlog.bold(feature), 'disabled')
             return False
         extra_args = functools.partial(self._determine_args, kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
@@ -547,7 +547,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         else:
             h = mlog.red('NO')
         cached_msg = mlog.blue('(cached)') if cached else ''
-        mlog.log(f'Header <{hname}> has symbol', mlog.bold(symbol, True), msg, h, cached_msg)
+        mlog.log('Header', mlog.bold(hname, True), 'has symbol', mlog.bold(symbol, True), msg, h, cached_msg)
         return haz
 
     def notfound_library(self, libname: str) -> 'dependencies.ExternalLibrary':
