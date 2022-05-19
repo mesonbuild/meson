@@ -2094,7 +2094,7 @@ class TestHarness:
     async def _run_tests(self, runners: T.List[SingleTestRunner]) -> None:
         semaphore = asyncio.Semaphore(self.options.num_processes)
         futures = deque()  # type: T.Deque[asyncio.Future]
-        running_tests = {}  # type: T.Dict[asyncio.Future, str]
+        future_names = {}  # type: T.Dict[asyncio.Future, str]
         interrupted = False
         ctrlc_times = deque(maxlen=MAX_CTRLC)  # type: T.Deque[float]
 
@@ -2113,7 +2113,7 @@ class TestHarness:
                 f.result()
             futures.remove(f)
             try:
-                del running_tests[f]
+                del future_names[f]
             except KeyError:
                 pass
 
@@ -2122,14 +2122,14 @@ class TestHarness:
             futures.append(future)
             if warn:
                 self.flush_logfiles()
-                mlog.warning('CTRL-C detected, interrupting {}'.format(running_tests[future]))
-            del running_tests[future]
+                mlog.warning('CTRL-C detected, interrupting {}'.format(future_names[future]))
+            del future_names[future]
             future.cancel()
 
         def cancel_all_tests() -> None:
             nonlocal interrupted
             interrupted = True
-            while running_tests:
+            while future_names:
                 cancel_one_test(False)
 
         def sigterm_handler() -> None:
@@ -2150,7 +2150,7 @@ class TestHarness:
                 self.flush_logfiles()
                 mlog.warning('CTRL-C detected, exiting')
                 cancel_all_tests()
-            elif running_tests:
+            elif future_names:
                 cancel_one_test(True)
             else:
                 self.flush_logfiles()
@@ -2172,7 +2172,7 @@ class TestHarness:
                     await complete_all(futures)
                 future = asyncio.ensure_future(run_test(runner))
                 futures.append(future)
-                running_tests[future] = runner.visible_name
+                future_names[future] = runner.visible_name
                 future.add_done_callback(test_done)
                 if not runner.is_parallel:
                     await complete(future)
