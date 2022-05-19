@@ -695,7 +695,7 @@ class FeatureNew(FeatureCheckBase):
 
     def log_usage_warning(self, tv: str, location: T.Optional['mparser.BaseNode']) -> None:
         args = [
-            'Project targeting', f"'{tv}'",
+            'Project targets', f"'{tv}'",
             'but uses feature introduced in',
             f"'{self.feature_version}':",
             f'{self.feature_name}.',
@@ -728,7 +728,7 @@ class FeatureDeprecated(FeatureCheckBase):
 
     def log_usage_warning(self, tv: str, location: T.Optional['mparser.BaseNode']) -> None:
         args = [
-            'Project targeting', f"'{tv}'",
+            'Project targets', f"'{tv}'",
             'but uses feature deprecated since',
             f"'{self.feature_version}':",
             f'{self.feature_name}.',
