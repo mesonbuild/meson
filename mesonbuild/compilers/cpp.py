@@ -60,9 +60,7 @@ def non_msvc_eh_options(eh: str, args: T.List[str]) -> None:
                      'You may want to set eh to \'default\'.')
 
 class CPPCompiler(CLikeCompiler, Compiler):
-
-    @classmethod
-    def attribute_check_func(cls, name: str) -> str:
+    def attribute_check_func(self, name: str) -> str:
         try:
             return CXX_FUNC_ATTRIBUTES.get(name, C_FUNC_ATTRIBUTES[name])
         except KeyError:
