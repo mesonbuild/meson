@@ -2340,12 +2340,12 @@ class AllPlatformTests(BasePlatformTests):
         testdir = os.path.join(self.unit_test_dir, '40 featurenew subprojects')
         out = self.init(testdir)
         # Parent project warns correctly
-        self.assertRegex(out, "WARNING: Project targeting '>=0.45'.*'0.47.0': dict")
+        self.assertRegex(out, "WARNING: Project targets '>=0.45'.*'0.47.0': dict")
         # Subprojects warn correctly
-        self.assertRegex(out, r"foo\| .*WARNING: Project targeting '>=0.40'.*'0.44.0': disabler")
-        self.assertRegex(out, r"baz\| .*WARNING: Project targeting '!=0.40'.*'0.44.0': disabler")
+        self.assertRegex(out, r"foo\| .*WARNING: Project targets '>=0.40'.*'0.44.0': disabler")
+        self.assertRegex(out, r"baz\| .*WARNING: Project targets '!=0.40'.*'0.44.0': disabler")
         # Subproject has a new-enough meson_version, no warning
-        self.assertNotRegex(out, "WARNING: Project targeting.*Python")
+        self.assertNotRegex(out, "WARNING: Project targets.*Python")
         # Ensure a summary is printed in the subproject and the outer project
         self.assertRegex(out, r"\| WARNING: Project specifies a minimum meson_version '>=0.40'")
         self.assertRegex(out, r"\| \* 0.44.0: {'disabler'}")
