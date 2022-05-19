@@ -49,6 +49,7 @@ attributes = [
   'noreturn',
   'nothrow',
   'pure',
+  'section',
   'unused',
   'used',
   'warn_unused_result',
