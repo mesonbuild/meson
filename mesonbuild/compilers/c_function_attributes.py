@@ -88,6 +88,12 @@ C_FUNC_ATTRIBUTES = {
         'int foo(void) __attribute__((pure));',
     'returns_nonnull':
         'int *foo(void) __attribute__((returns_nonnull));',
+    'section': '''
+        #if defined(__APPLE__) && defined(__MACH__)
+            extern int foo __attribute__((section("__BAR,__bar")));
+        #else
+            extern int foo __attribute__((section(".bar")));
+        #endif''',
     'unused':
         'int foo(void) __attribute__((unused));',
     'used':
