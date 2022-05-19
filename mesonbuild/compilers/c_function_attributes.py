@@ -94,6 +94,8 @@ C_FUNC_ATTRIBUTES = {
         #else
             extern int foo __attribute__((section(".bar")));
         #endif''',
+    'sentinel':
+        'int foo(const char *bar, ...) __attribute__((sentinel));',
     'unused':
         'int foo(void) __attribute__((unused));',
     'used':
