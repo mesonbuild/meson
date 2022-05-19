@@ -247,6 +247,7 @@ which are supported by GCC, Clang, and other compilers.
 | retain⁴                  |
 | returns_nonnull          |
 | section⁵                 |
+| sentinel⁵                |
 | unused                   |
 | used                     |
 | visibility*              |
