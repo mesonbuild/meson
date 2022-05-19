@@ -1972,6 +1972,11 @@ def rebuild_deps(wd: str, tests: T.List[TestSerialisation]) -> bool:
             depends.update(d)
             targets.update(intro_targets[d])
 
+    if tests and not targets:
+        # We want to build minimal deps, but if the subset of targets have no
+        # deps then ninja falls back to 'all'.
+        return True
+
     ret = subprocess.run(ninja + ['-C', wd] + sorted(targets)).returncode
     if ret != 0:
         print(f'Could not rebuild {wd}')

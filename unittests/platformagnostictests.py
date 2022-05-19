@@ -92,4 +92,8 @@ class PlatformAgnosticTests(BasePlatformTests):
         self._run(self.mtest_command)
         self.clean()
 
+        with self.assertRaises(subprocess.CalledProcessError):
+            self._run(self.mtest_command + ['runner-without-dep'])
+        self.clean()
+
         self._run(self.mtest_command + ['runner-with-exedep'])
