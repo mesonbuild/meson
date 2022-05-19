@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import os
 import pickle
+import subprocess
 import tempfile
 import subprocess
 import textwrap
@@ -508,3 +509,17 @@ class PlatformAgnosticTests(BasePlatformTests):
             f.write("option('new_option', type : 'boolean', value : false)")
         self.setconf('-Dsubproject:new_option=true')
         self.assertEqual(self.getconf('subproject:new_option'), True)
+
+    def test_mtest_rebuild_deps(self):
+        testdir = os.path.join(self.unit_test_dir, '106 underspecified mtest')
+        self.init(testdir)
+
+        with self.assertRaises(subprocess.CalledProcessError):
+            self._run(self.mtest_command)
+        self.clean()
+
+        with self.assertRaises(subprocess.CalledProcessError):
+            self._run(self.mtest_command + ['runner-without-dep'])
+        self.clean()
+
+        self._run(self.mtest_command + ['runner-with-exedep'])
