@@ -1893,6 +1893,11 @@ def get_wine_shortpath(winecmd: T.List[str], wine_paths: T.Sequence[str]) -> str
 
     wine_paths = list(OrderedSet(wine_paths))
 
+    # do we even need to bother shortening the path?
+    wine_path = ';'.join(wine_paths)
+    if len(wine_path) < 2048:
+        return wine_path
+
     getShortPathScript = '%s.bat' % str(uuid.uuid4()).lower()[:5]
     with open(getShortPathScript, mode='w', encoding='utf-8') as f:
         f.write("@ECHO OFF\nfor %%x in (%*) do (\n echo|set /p=;%~sx\n)\n")
