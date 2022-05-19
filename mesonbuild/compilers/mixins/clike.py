@@ -187,8 +187,8 @@ class CLikeCompiler(Compiler):
     def get_no_optimization_args(self) -> T.List[str]:
         return ['-O0']
 
-    def get_output_args(self, target: str) -> T.List[str]:
-        return ['-o', target]
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        return ['-o', outputname]
 
     def get_werror_args(self) -> T.List[str]:
         return ['-Werror']
@@ -270,8 +270,8 @@ class CLikeCompiler(Compiler):
     def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
         return ['-include', os.path.basename(header)]
 
-    def get_pch_name(self, header_name: str) -> str:
-        return os.path.basename(header_name) + '.' + self.get_pch_suffix()
+    def get_pch_name(self, name: str) -> str:
+        return os.path.basename(name) + '.' + self.get_pch_suffix()
 
     def get_default_include_dirs(self) -> T.List[str]:
         return []

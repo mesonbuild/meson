@@ -53,9 +53,7 @@ else:
 
 
 class CCompiler(CLikeCompiler, Compiler):
-
-    @staticmethod
-    def attribute_check_func(name: str) -> str:
+    def attribute_check_func(self, name: str) -> str:
         try:
             return C_FUNC_ATTRIBUTES[name]
         except KeyError:
