@@ -622,7 +622,7 @@ class Target(HoldableObject):
         else:
             custom_install_dir = False
             # if outdirs is empty we need to set to something, otherwise we set
-            # only the first value to the default
+            # only the first value to the default.
             if outdirs:
                 outdirs[0] = default_install_dir
             else:
@@ -2149,7 +2149,9 @@ class SharedLibrary(BuildTarget):
         if self.suffix is None:
             self.suffix = suffix
         self.filename = self.filename_tpl.format(self)
-        self.outputs = [self.filename]
+        # There may have been more outputs added by the time we get here, so
+        # only replace the first entry
+        self.outputs[0] = self.filename
         if create_debug_file:
             self.debug_filename = os.path.splitext(self.filename)[0] + '.pdb'
 
