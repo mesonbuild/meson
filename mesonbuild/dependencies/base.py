@@ -239,7 +239,7 @@ class InternalDependency(Dependency):
                  whole_libraries: T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]],
                  sources: T.Sequence[T.Union[FileOrString, CustomTarget, StructuredSources]],
                  ext_deps: T.List[Dependency], variables: T.Dict[str, str],
-                 d_module_versions: T.List[str], d_import_dirs: T.List['IncludeDirs']):
+                 d_module_versions: T.List[T.Union[str, int]], d_import_dirs: T.List['IncludeDirs']):
         super().__init__(DependencyTypeName('internal'), {})
         self.version = version
         self.is_found = True
