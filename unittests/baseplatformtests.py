@@ -32,7 +32,7 @@ import mesonbuild.environment
 import mesonbuild.coredata
 import mesonbuild.modules.gnome
 from mesonbuild.mesonlib import (
-    is_cygwin, windows_proof_rmtree, python_command
+    is_cygwin, join_args, windows_proof_rmtree, python_command
 )
 import mesonbuild.modules.pkgconfig
 
@@ -143,7 +143,7 @@ class BasePlatformTests(TestCase):
         os.environ.update(self.orig_env)
         super().tearDown()
 
-    def _run(self, command, *, workdir=None, override_envvars: T.Optional[T.Mapping[str, str]] = None):
+    def _run(self, command, *, workdir=None, override_envvars: T.Optional[T.Mapping[str, str]] = None, stderr=True):
         '''
         Run a command while printing the stdout and stderr to stdout,
         and also return a copy of it
@@ -158,10 +158,16 @@ class BasePlatformTests(TestCase):
             env.update(override_envvars)
 
         p = subprocess.run(command, stdout=subprocess.PIPE,
-                           stderr=subprocess.STDOUT, env=env,
+                           stderr=subprocess.STDOUT if stderr else subprocess.PIPE,
+                           env=env,
                            encoding='utf-8',
                            text=True, cwd=workdir, timeout=60 * 5)
+        print('$', join_args(command))
+        print('stdout:')
         print(p.stdout)
+        if not stderr:
+            print('stderr:')
+            print(p.stderr)
         if p.returncode != 0:
             if 'MESON_SKIP_TEST' in p.stdout:
                 raise SkipTest('Project requested skipping.')
@@ -235,13 +241,13 @@ class BasePlatformTests(TestCase):
                 out = self._get_meson_log()  # best we can do here
         return out
 
-    def build(self, target=None, *, extra_args=None, override_envvars=None):
+    def build(self, target=None, *, extra_args=None, override_envvars=None, stderr=True):
         if extra_args is None:
             extra_args = []
         # Add arguments for building the target (if specified),
         # and using the build dir (if required, with VS)
         args = get_builddir_target_args(self.backend, self.builddir, target)
-        return self._run(self.build_command + args + extra_args, workdir=self.builddir, override_envvars=override_envvars)
+        return self._run(self.build_command + args + extra_args, workdir=self.builddir, override_envvars=override_envvars, stderr=stderr)
 
     def clean(self, *, override_envvars=None):
         dir_args = get_builddir_target_args(self.backend, self.builddir, None)
