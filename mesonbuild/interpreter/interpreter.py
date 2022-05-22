@@ -756,7 +756,12 @@ external dependencies (including libraries) must go to "dependencies".''')
                           'configuration')
         expanded_args: T.List[str] = []
         if isinstance(cmd, build.Executable):
-            progname = node.args.arguments[0].value
+            for name, exe in self.build.find_overrides.items():
+                if cmd == exe:
+                    progname = name
+                    break
+            else:
+                raise MesonBugException('cmd was a built executable but not found in overrides table')
             raise InterpreterException(overridden_msg.format(progname, cmd.description()))
         if isinstance(cmd, ExternalProgram):
             if not cmd.found():
