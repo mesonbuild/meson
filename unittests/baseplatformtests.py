@@ -385,7 +385,7 @@ class BasePlatformTests(TestCase):
 
     def assertReconfiguredBuildIsNoop(self):
         'Assert that we reconfigured and then there was nothing to do'
-        ret = self.build()
+        ret = self.build(stderr=False)
         self.assertIn('The Meson build system', ret)
         if self.backend is Backend.ninja:
             for line in ret.split('\n'):
@@ -407,7 +407,7 @@ class BasePlatformTests(TestCase):
             raise RuntimeError(f'Invalid backend: {self.backend.name!r}')
 
     def assertBuildIsNoop(self):
-        ret = self.build()
+        ret = self.build(stderr=False)
         if self.backend is Backend.ninja:
             self.assertIn(ret.split('\n')[-2], self.no_rebuild_stdout)
         elif self.backend is Backend.vs:
