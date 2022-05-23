@@ -753,8 +753,6 @@ class BuildTarget(Target):
                  sources: T.List['SourceOutputs'], structured_sources: T.Optional[StructuredSources],
                  objects, environment: environment.Environment, compilers: T.Dict[str, 'Compiler'], kwargs):
         super().__init__(name, subdir, subproject, True, for_machine, environment)
-        unity_opt = environment.coredata.get_option(OptionKey('unity'))
-        self.is_unity = unity_opt == 'on' or (unity_opt == 'subprojects' and subproject != '')
         self.all_compilers = compilers
         self.compilers = OrderedDict() # type: OrderedDict[str, Compiler]
         self.objects: T.List[T.Union[str, 'File', 'ExtractedObjects']] = []
@@ -809,6 +807,11 @@ class BuildTarget(Target):
 
     def __str__(self):
         return f"{self.name}"
+
+    @property
+    def is_unity(self) -> bool:
+        unity_opt = self.get_option(OptionKey('unity'))
+        return unity_opt == 'on' or (unity_opt == 'subprojects' and self.subproject != '')
 
     def validate_install(self):
         if self.for_machine is MachineChoice.BUILD and self.need_install:
