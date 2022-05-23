@@ -254,7 +254,7 @@ def annotations_validator(annotations: T.List[T.Union[str, T.List[str]]]) -> T.O
 # https://bugzilla.gnome.org/show_bug.cgi?id=774368
 gresource_dep_needed_version = '>= 2.51.1'
 
-native_glib_version = None
+native_glib_version: T.Optional[str] = None
 
 class GnomeModule(ExtensionModule):
     def __init__(self, interpreter: 'Interpreter') -> None:
