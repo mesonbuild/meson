@@ -456,6 +456,10 @@ class Backend:
         obj_list = self._flatten_object_list(target, target.get_objects(), proj_dir_to_build_root)
         return list(dict.fromkeys(obj_list))
 
+    def determine_ext_objs(self, objects: build.ExtractedObjects, proj_dir_to_build_root: str = '') -> T.List[str]:
+        obj_list = self._flatten_object_list(objects.target, [objects], proj_dir_to_build_root)
+        return list(dict.fromkeys(obj_list))
+
     def _flatten_object_list(self, target: build.BuildTarget,
                              objects: T.Sequence[T.Union[str, 'File', build.ExtractedObjects]],
                              proj_dir_to_build_root: str) -> T.List[str]:
@@ -477,7 +481,7 @@ class Backend:
             elif isinstance(obj, build.ExtractedObjects):
                 if obj.recursive:
                     obj_list += self._flatten_object_list(obj.target, obj.objlist, proj_dir_to_build_root)
-                obj_list += self.determine_ext_objs(obj, proj_dir_to_build_root)
+                obj_list += self._determine_ext_objs(obj, proj_dir_to_build_root)
             else:
                 raise MesonException('Unknown data type in object list.')
         return obj_list
@@ -808,7 +812,7 @@ class Backend:
         machine = self.environment.machines[target.for_machine]
         return self.canonicalize_filename(gen_source) + '.' + machine.get_object_suffix()
 
-    def determine_ext_objs(self, extobj: 'build.ExtractedObjects', proj_dir_to_build_root: str) -> T.List[str]:
+    def _determine_ext_objs(self, extobj: 'build.ExtractedObjects', proj_dir_to_build_root: str) -> T.List[str]:
         result: T.List[str] = []
 
         # Merge sources and generated sources
@@ -1297,8 +1301,7 @@ class Backend:
             elif isinstance(i, build.GeneratedList):
                 fname = [os.path.join(self.get_target_private_dir(target), p) for p in i.get_outputs()]
             elif isinstance(i, build.ExtractedObjects):
-                outputs = i.get_outputs(self)
-                fname = self.get_extracted_obj_paths(i.target, outputs)
+                fname = self.determine_ext_objs(i)
             elif isinstance(i, programs.ExternalProgram):
                 assert i.found(), "This shouldn't be possible"
                 assert i.path is not None, 'for mypy'
@@ -1309,9 +1312,6 @@ class Backend:
                 fname = [os.path.join(self.environment.get_build_dir(), f) for f in fname]
             srcs += fname
         return srcs
-
-    def get_extracted_obj_paths(self, target: build.BuildTarget, outputs: T.List[str]) -> T.List[str]:
-        return [os.path.join(self.get_target_private_dir(target), p) for p in outputs]
 
     def get_custom_target_depend_files(self, target: build.CustomTarget, absolute_paths: bool = False) -> T.List[str]:
         deps: T.List[str] = []
