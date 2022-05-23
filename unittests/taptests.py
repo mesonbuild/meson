@@ -255,7 +255,6 @@ class TAPParserTests(unittest.TestCase):
     def test_unexpected(self):
         events = self.parse_tap('1..1\ninvalid\nok 1')
         self.assert_plan(events, num_tests=1, late=False)
-        self.assert_error(events)
         self.assert_test(events, number=1, name='', result=TestResult.OK)
         self.assert_last(events)
 

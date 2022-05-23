@@ -426,11 +426,6 @@ class TAPParser:
                 else:
                     yield self.Version(version=self.version)
                 return
-
-            if not line:
-                return
-
-            yield self.Error(f'unexpected input at line {self.lineno}')
         else:
             # end of file
             if self.state == self._YAML:
