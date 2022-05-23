@@ -836,7 +836,7 @@ class Backend:
         # With unity builds, sources don't map directly to objects,
         # we only support extracting all the objects in this mode,
         # so just return all object files.
-        if self.is_unity(extobj.target):
+        if extobj.target.is_unity:
             compsrcs = classify_unity_sources(extobj.target.compilers.values(), sources)
             sources = []
             unity_size = extobj.target.get_option(OptionKey('unity_size'))
@@ -1279,10 +1279,6 @@ class Backend:
                 continue
             libs.extend(self.get_custom_target_provided_by_generated_source(t))
         return libs
-
-    def is_unity(self, target: build.BuildTarget) -> bool:
-        optval = target.get_option(OptionKey('unity'))
-        return optval == 'on' or (optval == 'subprojects' and target.subproject != '')
 
     def get_custom_target_sources(self, target: build.CustomTarget) -> T.List[str]:
         '''
