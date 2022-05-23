@@ -447,12 +447,6 @@ class ExtractedObjects(HoldableObject):
                                      'in Unity builds. You can only extract all '
                                      'the object files for each compiler at once.')
 
-    def get_outputs(self, backend: 'Backend') -> T.List[str]:
-        return [
-            backend.object_filename_from_source(self.target, source)
-            for source in self.get_sources(self.srclist, self.genlist)
-        ]
-
 
 @dataclass(eq=False, order=False)
 class StructuredSources(HoldableObject):
@@ -2878,7 +2872,7 @@ def get_sources_string_names(sources, backend):
         elif isinstance(s, (BuildTarget, CustomTarget, CustomTargetIndex, GeneratedList)):
             names += s.get_outputs()
         elif isinstance(s, ExtractedObjects):
-            names += s.get_outputs(backend)
+            names += backend.determine_ext_objs(s)
         elif isinstance(s, File):
             names.append(s.fname)
         else:

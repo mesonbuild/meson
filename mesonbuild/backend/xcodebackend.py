@@ -259,9 +259,6 @@ class XCodeBackend(backends.Backend):
         obj_path = f'{project}.build/{buildtype}/{tname}.build/Objects-normal/{arch}/{stem}.o'
         return obj_path
 
-    def get_extracted_obj_paths(self, target: build.BuildTarget, outputs: T.List[str]) -> T.List[str]:
-        return outputs
-
     def generate(self):
         self.serialize_tests()
         # Cache the result as the method rebuilds the array every time it is called.
@@ -1469,7 +1466,7 @@ class XCodeBackend(backends.Backend):
                 # Add extracted objects to the link line by hand.
                 if isinstance(o, build.ExtractedObjects):
                     added_objs = set()
-                    for objname_rel in o.get_outputs(self):
+                    for objname_rel in self.determine_ext_objs(o):
                         objname_abs = os.path.join(self.environment.get_build_dir(), o.target.subdir, objname_rel)
                         if objname_abs not in added_objs:
                             added_objs.add(objname_abs)
