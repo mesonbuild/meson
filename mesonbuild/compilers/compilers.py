@@ -1270,6 +1270,9 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         """Arguments to completely disable warnings."""
         return []
 
+    def needs_static_linker(self) -> bool:
+        raise NotImplementedError(f'There is no static linker for {self.language}')
+
 
 def get_global_options(lang: str,
                        comp: T.Type[Compiler],
