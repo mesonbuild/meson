@@ -44,7 +44,7 @@ ti_optimization_args = {
     '1': ['-O1'],
     '2': ['-O2'],
     '3': ['-O3'],
-    's': ['-04']
+    's': ['-O4']
 }  # type: T.Dict[str, T.List[str]]
 
 ti_debug_args = {
