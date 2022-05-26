@@ -325,6 +325,8 @@ CT_BUILD_ALWAYS_STALE: KwargInfo[T.Optional[bool]] = KwargInfo(
     since='0.47.0',
 )
 
+INSTALL_DIR_KW: KwargInfo[T.Optional[str]] = KwargInfo('install_dir', (str, NoneType))
+
 INCLUDE_DIRECTORIES: KwargInfo[T.List[T.Union[str, IncludeDirs]]] = KwargInfo(
     'include_dirs',
     ContainerTypeInfo(list, (str, IncludeDirs)),

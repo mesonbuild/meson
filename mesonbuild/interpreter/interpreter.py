@@ -68,6 +68,7 @@ from .type_checking import (
     ENV_METHOD_KW,
     ENV_SEPARATOR_KW,
     INSTALL_KW,
+    INSTALL_DIR_KW,
     INSTALL_MODE_KW,
     CT_INSTALL_TAG_KW,
     INSTALL_TAG_KW,
@@ -2093,10 +2094,10 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_pos_args('install_headers', varargs=(str, mesonlib.File))
     @typed_kwargs(
         'install_headers',
-        KwargInfo('install_dir', (str, NoneType)),
         KwargInfo('preserve_path', bool, default=False, since='0.63.0'),
         KwargInfo('subdir', (str, NoneType)),
         INSTALL_MODE_KW.evolve(since='0.47.0'),
+        INSTALL_DIR_KW,
     )
     def func_install_headers(self, node: mparser.BaseNode,
                              args: T.Tuple[T.List['mesonlib.FileOrString']],
@@ -2131,9 +2132,9 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_pos_args('install_man', varargs=(str, mesonlib.File))
     @typed_kwargs(
         'install_man',
-        KwargInfo('install_dir', (str, NoneType)),
         KwargInfo('locale', (str, NoneType), since='0.58.0'),
-        INSTALL_MODE_KW.evolve(since='0.47.0')
+        INSTALL_MODE_KW.evolve(since='0.47.0'),
+        INSTALL_DIR_KW,
     )
     def func_install_man(self, node: mparser.BaseNode,
                          args: T.Tuple[T.List['mesonlib.FileOrString']],
@@ -2296,11 +2297,11 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_pos_args('install_data', varargs=(str, mesonlib.File))
     @typed_kwargs(
         'install_data',
-        KwargInfo('install_dir', (str, NoneType)),
         KwargInfo('sources', ContainerTypeInfo(list, (str, mesonlib.File)), listify=True, default=[]),
         KwargInfo('rename', ContainerTypeInfo(list, str), default=[], listify=True, since='0.46.0'),
         INSTALL_MODE_KW.evolve(since='0.38.0'),
         INSTALL_TAG_KW.evolve(since='0.60.0'),
+        INSTALL_DIR_KW,
     )
     def func_install_data(self, node: mparser.BaseNode,
                           args: T.Tuple[T.List['mesonlib.FileOrString']],

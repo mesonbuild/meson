@@ -20,7 +20,7 @@ from . import ExtensionModule, ModuleReturnValue
 from .. import build
 from .. import mesonlib
 from .. import mlog
-from ..interpreter.type_checking import CT_BUILD_BY_DEFAULT, CT_INPUT_KW, INSTALL_TAG_KW, OUTPUT_KW, INSTALL_KW, NoneType, in_set_validator
+from ..interpreter.type_checking import CT_BUILD_BY_DEFAULT, CT_INPUT_KW, INSTALL_TAG_KW, OUTPUT_KW, INSTALL_DIR_KW, INSTALL_KW, NoneType, in_set_validator
 from ..interpreterbase import FeatureNew
 from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, noPosargs, typed_kwargs, typed_pos_args
 from ..scripts.gettext import read_linguas
@@ -212,7 +212,7 @@ class I18nModule(ExtensionModule):
         _ARGS,
         _DATA_DIRS.evolve(since='0.36.0'),
         INSTALL_KW.evolve(default=True),
-        KwargInfo('install_dir', (str, NoneType), since='0.50.0'),
+        INSTALL_DIR_KW.evolve(since='0.50.0'),
         KwargInfo('languages', ContainerTypeInfo(list, str), default=[], listify=True),
         KwargInfo(
             'preset',

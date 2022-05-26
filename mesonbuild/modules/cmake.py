@@ -23,7 +23,7 @@ from . import ExtensionModule, ModuleReturnValue, ModuleObject
 from .. import build, mesonlib, mlog, dependencies
 from ..cmake import TargetOptions, cmake_defines_to_args
 from ..interpreter import SubprojectHolder
-from ..interpreter.type_checking import REQUIRED_KW, NoneType, in_set_validator
+from ..interpreter.type_checking import REQUIRED_KW, INSTALL_DIR_KW, NoneType, in_set_validator
 from ..interpreterbase import (
     FeatureNew,
     FeatureNewKwargs,
@@ -296,9 +296,9 @@ class CmakeModule(ExtensionModule):
         'cmake.write_basic_package_version_file',
         KwargInfo('arch_independent', bool, default=False, since='0.62.0'),
         KwargInfo('compatibility', str, default='AnyNewerVersion', validator=in_set_validator(set(COMPATIBILITIES))),
-        KwargInfo('install_dir', (str, NoneType), default=None),
         KwargInfo('name', str, required=True),
         KwargInfo('version', str, required=True),
+        INSTALL_DIR_KW,
     )
     def write_basic_package_version_file(self, state, args, kwargs: 'WriteBasicPackageVersionFile'):
         arch_independent = kwargs['arch_independent']
@@ -365,8 +365,8 @@ class CmakeModule(ExtensionModule):
                   (str, mesonlib.File, ContainerTypeInfo(list, mesonlib.File)), required=True,
                   validator=lambda x: 'requires exactly one file' if isinstance(x, list) and len(x) != 1 else None,
                   convertor=lambda x: x[0] if isinstance(x, list) else x),
-        KwargInfo('install_dir', (str, NoneType), default=None),
         KwargInfo('name', str, required=True),
+        INSTALL_DIR_KW,
     )
     def configure_package_config_file(self, state, args, kwargs: 'ConfigurePackageConfigFile'):
         inputfile = kwargs['input']

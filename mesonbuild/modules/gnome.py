@@ -32,7 +32,7 @@ from .. import mesonlib
 from .. import mlog
 from ..build import CustomTarget, CustomTargetIndex, Executable, GeneratedList, InvalidArguments
 from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
-from ..interpreter.type_checking import DEPENDS_KW, DEPEND_FILES_KW, INSTALL_KW, NoneType, in_set_validator
+from ..interpreter.type_checking import DEPENDS_KW, DEPEND_FILES_KW, INSTALL_DIR_KW, INSTALL_KW, NoneType, in_set_validator
 from ..interpreterbase import noPosargs, noKwargs, FeatureNew, FeatureDeprecated
 from ..interpreterbase import typed_kwargs, KwargInfo, ContainerTypeInfo
 from ..interpreterbase.decorators import typed_pos_args
@@ -213,13 +213,13 @@ _EXTRA_ARGS_KW: KwargInfo[T.List[str]] = KwargInfo(
 
 _MK_ENUMS_COMMON_KWS: T.List[KwargInfo] = [
     INSTALL_KW.evolve(name='install_header'),
+    INSTALL_DIR_KW,
     KwargInfo(
         'sources',
         ContainerTypeInfo(list, (str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)),
         listify=True,
         required=True,
     ),
-    KwargInfo('install_dir', (str, NoneType)),
     KwargInfo('identifier_prefix', (str, NoneType)),
     KwargInfo('symbol_prefix', (str, NoneType)),
 ]
@@ -408,11 +408,11 @@ class GnomeModule(ExtensionModule):
         _EXTRA_ARGS_KW,
         INSTALL_KW,
         INSTALL_KW.evolve(name='install_header', since='0.37.0'),
+        INSTALL_DIR_KW,
         KwargInfo('c_name', (str, NoneType)),
         KwargInfo('dependencies', ContainerTypeInfo(list, (mesonlib.File, build.CustomTarget, build.CustomTargetIndex)), default=[], listify=True),
         KwargInfo('export', bool, default=False, since='0.37.0'),
         KwargInfo('gresource_bundle', bool, default=False, since='0.37.0'),
-        KwargInfo('install_dir', (str, NoneType)),
         KwargInfo('source_dir', ContainerTypeInfo(list, str), default=[], listify=True),
     )
     def compile_resources(self, state: 'ModuleState', args: T.Tuple[str, 'FileOrString'],
@@ -1594,11 +1594,11 @@ class GnomeModule(ExtensionModule):
             convertor=lambda x: [x] if x and isinstance(x[0], str) else x,
         ),
         KwargInfo('install_header', bool, default=False, since='0.46.0'),
-        KwargInfo('install_dir', (str, NoneType), since='0.46.0'),
         KwargInfo('docbook', (str, NoneType)),
         KwargInfo(
             'autocleanup', str, default='default', since='0.47.0',
             validator=in_set_validator({'all', 'none', 'objects'})),
+        INSTALL_DIR_KW.evolve(since='0.46.0')
     )
     def gdbus_codegen(self, state: 'ModuleState', args: T.Tuple[str, T.Optional['FileOrString']],
                       kwargs: 'GdbusCodegen') -> ModuleReturnValue:
@@ -1948,8 +1948,8 @@ class GnomeModule(ExtensionModule):
         DEPEND_FILES_KW.evolve(since='0.61.0'),
         DEPENDS_KW.evolve(since='0.61.0'),
         INSTALL_KW.evolve(name='install_header'),
+        INSTALL_DIR_KW,
         KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
-        KwargInfo('install_dir', (str, NoneType)),
         KwargInfo('internal', bool, default=False),
         KwargInfo('nostdinc', bool, default=False),
         KwargInfo('prefix', (str, NoneType)),
@@ -2089,13 +2089,13 @@ class GnomeModule(ExtensionModule):
     @typed_kwargs(
         'gnome.generate_vapi',
         INSTALL_KW,
+        INSTALL_DIR_KW,
         KwargInfo(
             'sources',
             ContainerTypeInfo(list, (str, GirTarget), allow_empty=False),
             listify=True,
             required=True,
         ),
-        KwargInfo('install_dir', (str, NoneType)),
         KwargInfo('vapi_dirs', ContainerTypeInfo(list, str), listify=True, default=[]),
         KwargInfo('metadata_dirs', ContainerTypeInfo(list, str), listify=True, default=[]),
         KwargInfo('gir_dirs', ContainerTypeInfo(list, str), listify=True, default=[]),

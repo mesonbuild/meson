@@ -26,7 +26,7 @@ from .. import mlog
 from ..dependencies import find_external_dependency, Dependency, ExternalLibrary
 from ..mesonlib import MesonException, File, version_compare, Popen_safe
 from ..interpreter import extract_required_kwarg
-from ..interpreter.type_checking import NoneType
+from ..interpreter.type_checking import INSTALL_DIR_KW, INSTALL_KW, NoneType
 from ..interpreterbase import ContainerTypeInfo, FeatureDeprecated, KwargInfo, noPosargs, FeatureNew, typed_kwargs
 from ..programs import NonExistingExternalProgram
 
@@ -534,8 +534,8 @@ class QtBaseModule(ExtensionModule):
     @typed_kwargs(
         'qt.compile_translations',
         KwargInfo('build_by_default', bool, default=False),
-        KwargInfo('install', bool, default=False),
-        KwargInfo('install_dir', (str, NoneType)),
+        INSTALL_KW,
+        INSTALL_DIR_KW,
         KwargInfo('method', str, default='auto'),
         KwargInfo('qresource', (str, NoneType), since='0.56.0'),
         KwargInfo('rcc_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[], since='0.56.0'),
