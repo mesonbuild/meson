@@ -183,7 +183,7 @@ class CustomTarget(TypedDict):
     input: T.List[T.Union[str, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex,
                           build.ExtractedObjects, build.GeneratedList, ExternalProgram, File]]
     install: bool
-    install_dir: T.List[T.Union[str, bool]]
+    install_dir: T.List[T.Union[str, T.Literal[False]]]
     install_mode: FileMode
     install_tag: T.List[T.Optional[str]]
     output: T.List[str]
