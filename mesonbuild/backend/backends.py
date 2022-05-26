@@ -1540,6 +1540,8 @@ class Backend:
                 raise MesonException(m.format(t.name, num_out, t.get_outputs(), num_outdirs))
             assert len(t.install_tag) == num_out
             install_mode = t.get_custom_install_mode()
+            first_outdir = outdirs[0]  # because mypy get's confused type narrowing in lists
+
             # Install the target output(s)
             if isinstance(t, build.BuildTarget):
                 # In general, stripping static archives is tricky and full of pitfalls.
@@ -1560,10 +1562,10 @@ class Backend:
                 assert isinstance(should_strip, bool), 'for mypy'
                 # Install primary build output (library/executable/jar, etc)
                 # Done separately because of strip/aliases/rpath
-                if outdirs[0] is not False:
+                if first_outdir is not False:
                     tag = t.install_tag[0] or ('devel' if isinstance(t, build.StaticLibrary) else 'runtime')
                     mappings = t.get_link_deps_mapping(d.prefix)
-                    i = TargetInstallData(self.get_target_filename(t), outdirs[0],
+                    i = TargetInstallData(self.get_target_filename(t), first_outdir,
                                           install_dir_name,
                                           should_strip, mappings, t.rpath_dirs_to_remove,
                                           t.install_rpath, install_mode, t.subproject,
@@ -1571,8 +1573,8 @@ class Backend:
                     d.targets.append(i)
 
                     for alias, to, tag in t.get_aliases():
-                        alias = os.path.join(outdirs[0], alias)
-                        s = InstallSymlinkData(to, alias, outdirs[0], t.subproject, tag, allow_missing=True)
+                        alias = os.path.join(first_outdir, alias)
+                        s = InstallSymlinkData(to, alias, first_outdir, t.subproject, tag, allow_missing=True)
                         d.symlinks.append(s)
 
                     if isinstance(t, (build.SharedLibrary, build.SharedModule, build.Executable)):
@@ -1584,7 +1586,7 @@ class Backend:
                                 # If the DLL is installed into a custom directory,
                                 # install the import library into the same place so
                                 # it doesn't go into a surprising place
-                                implib_install_dir = outdirs[0]
+                                implib_install_dir = first_outdir
                             else:
                                 implib_install_dir = self.environment.get_import_lib_dir()
                             # Install the import library; may not exist for shared modules
@@ -1597,7 +1599,7 @@ class Backend:
 
                         if not should_strip and t.get_debug_filename():
                             debug_file = os.path.join(self.get_target_dir(t), t.get_debug_filename())
-                            i = TargetInstallData(debug_file, outdirs[0],
+                            i = TargetInstallData(debug_file, first_outdir,
                                                   install_dir_name,
                                                   False, {}, set(), '',
                                                   install_mode, t.subproject,
@@ -1622,16 +1624,20 @@ class Backend:
                 #
                 # To selectively install only some outputs, pass `false` as
                 # the install_dir for the corresponding output by index
+                #
+                # XXX: this wouldn't be needed if we just always matches outdirs
+                # to the length of outputs…
                 if num_outdirs == 1 and num_out > 1:
-                    for output, tag in zip(t.get_outputs(), t.install_tag):
-                        f = os.path.join(self.get_target_dir(t), output)
-                        if not install_dir_name:
-                            dir_name = os.path.join('{prefix}', outdirs[0])
-                        i = TargetInstallData(f, outdirs[0], dir_name,
-                                              False, {}, set(), None, install_mode,
-                                              t.subproject, optional=not t.build_by_default,
-                                              tag=tag)
-                        d.targets.append(i)
+                    if first_outdir is not False:
+                        for output, tag in zip(t.get_outputs(), t.install_tag):
+                            f = os.path.join(self.get_target_dir(t), output)
+                            if not install_dir_name:
+                                dir_name = os.path.join('{prefix}', first_outdir)
+                            i = TargetInstallData(f, first_outdir, dir_name,
+                                                False, {}, set(), None, install_mode,
+                                                t.subproject, optional=not t.build_by_default,
+                                                tag=tag)
+                            d.targets.append(i)
                 else:
                     for output, outdir, tag in zip(t.get_outputs(), outdirs, t.install_tag):
                         # User requested that we not install this output
