@@ -15,19 +15,20 @@
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool
 
-from .interpreter import AstInterpreter
-from .visitor import AstVisitor
-from .. import compilers, environment, mesonlib, optinterpreter
-from .. import coredata as cdata
-from ..mesonlib import MachineChoice, OptionKey
-from ..interpreterbase import InvalidArguments, TYPE_nvar
-from ..build import BuildTarget, Executable, Jar, SharedLibrary, SharedModule, StaticLibrary
-from ..mparser import BaseNode, ArithmeticNode, ArrayNode, ElementaryNode, IdNode, FunctionNode, StringNode
-from ..compilers import detect_compiler_for
-import typing as T
-import os
 import argparse
 import copy
+import os
+import typing as T
+
+from .. import compilers, environment, mesonlib, optinterpreter
+from .. import coredata as cdata
+from ..build import BuildTarget, Executable, Jar, SharedLibrary, SharedModule, StaticLibrary
+from ..compilers import detect_compiler_for
+from ..interpreterbase import InvalidArguments, TYPE_nvar
+from ..mesonlib import MachineChoice, OptionKey
+from ..mparser import BaseNode, ArithmeticNode, ArrayNode, ElementaryNode, IdNode, FunctionNode, StringNode
+from .interpreter import AstInterpreter
+from .visitor import AstVisitor
 
 build_target_functions = ['executable', 'jar', 'library', 'shared_library', 'shared_module', 'static_library', 'both_libraries']
 
