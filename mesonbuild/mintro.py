@@ -23,7 +23,7 @@ import collections
 import json
 from . import build, coredata as cdata
 from . import mesonlib
-from .ast import IntrospectionInterpreter, build_target_functions, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstJSONPrinter
+from .ast import IntrospectionInterpreter, BUILD_TARGET_FUNCTIONS, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstJSONPrinter
 from . import mlog
 from .backend import backends
 from .mparser import BaseNode, FunctionNode, ArrayNode, ArgumentNode, StringNode
@@ -166,7 +166,7 @@ def list_targets_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[st
             args = []  # type: T.List[BaseNode]
             if isinstance(n, FunctionNode):
                 args = list(n.args.arguments)
-                if n.func_name in build_target_functions:
+                if n.func_name in BUILD_TARGET_FUNCTIONS:
                     args.pop(0)
             elif isinstance(n, ArrayNode):
                 args = n.args.arguments

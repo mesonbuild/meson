@@ -35,7 +35,12 @@ if T.TYPE_CHECKING:
     from ..interpreterbase import TYPE_nvar
     from .visitor import AstVisitor
 
-build_target_functions = ['executable', 'jar', 'library', 'shared_library', 'shared_module', 'static_library', 'both_libraries']
+
+# TODO: it would be nice to not have to duplicate this
+BUILD_TARGET_FUNCTIONS = [
+    'executable', 'jar', 'library', 'shared_library', 'shared_module',
+    'static_library', 'both_libraries'
+]
 
 class IntrospectionHelper(argparse.Namespace):
     # mimic an argparse namespace
@@ -245,7 +250,7 @@ class IntrospectionInterpreter(AstInterpreter):
                     continue
                 arg_nodes = arg_node.arguments.copy()
                 # Pop the first element if the function is a build target function
-                if isinstance(curr, FunctionNode) and curr.func_name in build_target_functions:
+                if isinstance(curr, FunctionNode) and curr.func_name in BUILD_TARGET_FUNCTIONS:
                     arg_nodes.pop(0)
                 elemetary_nodes = [x for x in arg_nodes if isinstance(x, (str, StringNode))]
                 inqueue += [x for x in arg_nodes if isinstance(x, (FunctionNode, ArrayNode, IdNode, ArithmeticNode))]
