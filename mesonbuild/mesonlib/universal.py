@@ -1913,9 +1913,9 @@ def get_wine_shortpath(winecmd: T.List[str], wine_paths: T.Sequence[str]) -> str
         wine_path = ';'.join(wine_paths)
     finally:
         os.remove(getShortPathScript)
-    if len(wine_path) > 2048:
+    if len(wine_path) >= 2048:
         raise MesonException(
-            'WINEPATH size {} > 2048'
+            'WINEPATH size {} >= 2048'
             ' this will cause random failure.'.format(
                 len(wine_path)))
 
