@@ -45,8 +45,7 @@ keyword arguments.
   would be `foobar-1`
 - `requires` list of strings, pkgconfig-dependencies or libraries that
    `pkgconfig.generate()` was used on to put in the `Requires` field
-- `requires_private` same as `requires` but for `Requires.private` field
-  field
+- `requires_private` the same as `requires` but for the `Requires.private` field
 - `url` a string with a url for the library
 - `variables` a list of strings with custom variables to add to the
   generated file. The strings must be in the form `name=value` and may
