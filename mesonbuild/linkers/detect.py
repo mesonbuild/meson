@@ -194,9 +194,11 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
         linker = AppleDynamicLinker(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
     elif 'GNU' in o or 'GNU' in e:
         cls: T.Type[GnuDynamicLinker]
-        if 'gold' in o or 'gold' in e:
+        # this is always the only thing on stdout, except for swift
+        # which may or may not redirect the linker stdout to stderr
+        if o.startswith('GNU gold') or e.startswith('GNU gold'):
             cls = GnuGoldDynamicLinker
-        elif 'mold' in o or 'mold' in e:
+        elif o.startswith('mold') or e.startswith('mold'):
             cls = MoldDynamicLinker
         else:
             cls = GnuBFDDynamicLinker
