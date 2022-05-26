@@ -607,10 +607,10 @@ class Target(HoldableObject):
     def get_default_install_dir(self) -> T.Tuple[str, str]:
         raise NotImplementedError
 
-    def get_custom_install_dir(self) -> T.List[T.Union[str, bool]]:
+    def get_custom_install_dir(self) -> T.List[T.Union[str, Literal[False]]]:
         raise NotImplementedError
 
-    def get_install_dir(self) -> T.Tuple[T.Any, str, bool]:
+    def get_install_dir(self) -> T.Tuple[T.List[T.Union[str, Literal[False]]], str, Literal[False]]:
         # Find the installation directory.
         default_install_dir, install_dir_name = self.get_default_install_dir()
         outdirs = self.get_custom_install_dir()
@@ -734,7 +734,7 @@ class Target(HoldableObject):
 class BuildTarget(Target):
     known_kwargs = known_build_target_kwargs
 
-    install_dir: T.List[T.Union[str, bool]]
+    install_dir: T.List[T.Union[str, Literal[False]]]
 
     def __init__(self, name: str, subdir: str, subproject: SubProject, for_machine: MachineChoice,
                  sources: T.List['SourceOutputs'], structured_sources: T.Optional[StructuredSources],
@@ -1085,7 +1085,7 @@ class BuildTarget(Target):
     def get_default_install_dir(self) -> T.Tuple[str, str]:
         return self.environment.get_libdir(), '{libdir}'
 
-    def get_custom_install_dir(self) -> T.List[T.Union[str, bool]]:
+    def get_custom_install_dir(self) -> T.List[T.Union[str, Literal[False]]]:
         return self.install_dir
 
     def get_custom_install_mode(self) -> T.Optional['FileMode']:
@@ -2421,7 +2421,7 @@ class CustomTarget(Target, CommandBase):
                  env: T.Optional[EnvironmentVariables] = None,
                  feed: bool = False,
                  install: bool = False,
-                 install_dir: T.Optional[T.Sequence[T.Union[str, bool]]] = None,
+                 install_dir: T.Optional[T.Sequence[T.Union[str, Literal[False]]]] = None,
                  install_mode: T.Optional[FileMode] = None,
                  install_tag: T.Optional[T.Sequence[T.Optional[str]]] = None,
                  absolute_paths: bool = False,
@@ -2499,7 +2499,7 @@ class CustomTarget(Target, CommandBase):
     def should_install(self) -> bool:
         return self.install
 
-    def get_custom_install_dir(self) -> T.List[T.Union[str, bool]]:
+    def get_custom_install_dir(self) -> T.List[T.Union[str, Literal[False]]]:
         return self.install_dir
 
     def get_custom_install_mode(self) -> T.Optional['FileMode']:
@@ -2774,7 +2774,7 @@ class CustomTargetIndex(HoldableObject):
     def extract_all_objects_recurse(self) -> T.List[T.Union[str, 'ExtractedObjects']]:
         return self.target.extract_all_objects_recurse()
 
-    def get_custom_install_dir(self) -> T.List[T.Union[str, bool]]:
+    def get_custom_install_dir(self) -> T.List[T.Union[str, Literal[False]]]:
         return self.target.get_custom_install_dir()
 
 class ConfigurationData(HoldableObject):
