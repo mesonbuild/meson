@@ -149,7 +149,7 @@ if T.TYPE_CHECKING:
         build_by_default: T.Optional[bool]
         depend_files: T.List[mesonlib.File]
         extra_args: T.List[str]
-        install_dir: T.Union[str, bool]
+        install_dir: T.Optional[str]
         install_header: bool
         internal: bool
         nostdinc: bool
