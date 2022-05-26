@@ -297,11 +297,12 @@ INSTALL_TAG_KW: KwargInfo[T.Optional[str]] = KwargInfo('install_tag', (str, None
 
 INSTALL_KW = KwargInfo('install', bool, default=False)
 
-CT_INSTALL_DIR_KW: KwargInfo[T.List[T.Union[str, bool]]] = KwargInfo(
+CT_INSTALL_DIR_KW: KwargInfo[T.List[T.Union[str, Literal[False]]]] = KwargInfo(
     'install_dir',
     ContainerTypeInfo(list, (str, bool)),
     listify=True,
     default=[],
+    validator=lambda x: 'must be `false` if boolean' if True in x else None,
 )
 
 CT_BUILD_BY_DEFAULT: KwargInfo[T.Optional[bool]] = KwargInfo('build_by_default', (bool, type(None)), since='0.40.0')
