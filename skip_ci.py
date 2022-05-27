@@ -61,8 +61,7 @@ def main():
         if args.base_branch_origin:
             base = 'origin/' + base
         if all(is_documentation(f) for f in get_git_files(base)):
-            print("Don't run CI for documentation-only changes, add '[skip ci]' to commit title.")
-            print('See http://mesonbuild.com/Contributing.html#skipping-integration-tests')
+            print("Documentation change, CI skipped.")
             sys.exit(1)
     except Exception:
         # If this script fails we want build to proceed.

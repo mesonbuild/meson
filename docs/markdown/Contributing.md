@@ -462,11 +462,6 @@ notes. These features should be written in standalone files in the
 `docs/markdown/snippets` directory. The release manager will combine
 them into one page when doing the release.
 
-[Integration tests should be disabled](#skipping-integration-tests) for
-documentation-only commits by putting `[skip ci]` into commit title.
-Reviewers should ask contributors to put `[skip ci]` into the title because
-tests are run again after merge for `master`.
-
 ## Python Coding style
 
 Meson follows the basic Python coding style. Additional rules are the
