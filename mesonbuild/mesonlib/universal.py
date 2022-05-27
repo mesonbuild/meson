@@ -1764,7 +1764,7 @@ class OrderedSet(T.MutableSet[_T]):
         for item in iterable:
             self.__container[item] = None
 
-    def difference(self, set_: T.Union[T.Set[_T], 'OrderedSet[_T]']) -> 'OrderedSet[_T]':
+    def difference(self, set_: T.Iterable[_T]) -> 'OrderedSet[_T]':
         return type(self)(e for e in self if e not in set_)
 
     def difference_update(self, iterable: T.Iterable[_T]) -> None:
