@@ -14,6 +14,7 @@
 
 import os
 import tempfile
+import subprocess
 from unittest import skipIf
 
 from .baseplatformtests import BasePlatformTests
@@ -83,3 +84,28 @@ class PlatformAgnosticTests(BasePlatformTests):
         mesonlog = os.path.join(self.builddir, 'meson-logs/meson-log.txt')
         with open(mesonlog, mode='r', encoding='utf-8') as file:
             self.assertIn(log_msg, file.read())
+
+    def test_yielding_project_option(self):
+        testdir = os.path.join(self.unit_test_dir, '105 set yielding option')
+
+        # Should pass with default values
+        self.init(testdir)
+
+        # Changing value on main project is allowed
+        self.setconf('-Dopt=uservalue')
+
+        # Changing value on subproject is not allowed
+        with self.assertRaises(subprocess.CalledProcessError) as cm:
+            self.setconf('-Dsub:opt=uservalue')
+        error_msg = 'ERROR: Option sub:opt is yielding, please set value on parent project instead'
+        self.assertIn(error_msg, cm.exception.stdout)
+
+        # Should fail when setting option on main project because subproject
+        # asserts a different value.
+        self.new_builddir()
+        out = self.init(testdir, extra_args=['-Dopt=uservalue'], allow_fail=True)
+        self.assertIn('ERROR: Assert failed: value is uservalue', out)
+
+        self.new_builddir()
+        out = self.init(testdir, extra_args=['-Dsub:opt=uservalue'], allow_fail=True)
+        self.assertIn(error_msg, out)
