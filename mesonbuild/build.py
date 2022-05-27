@@ -47,7 +47,7 @@ from .interpreterbase import FeatureNew, FeatureDeprecated
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal
-    from ._typing import ImmutableListProtocol, ImmutableSetProtocol
+    from ._typing import ImmutableListProtocol
     from .backend.backends import Backend, ExecutableSerialisation
     from .interpreter.interpreter import Test, SourceOutputs, Interpreter
     from .interpreterbase import SubProject
@@ -1086,7 +1086,7 @@ class BuildTarget(Target):
         return result
 
     @lru_cache(maxsize=None)
-    def get_link_dep_subdirs(self) -> 'ImmutableSetProtocol[str]':
+    def get_link_dep_subdirs(self) -> T.AbstractSet[str]:
         result: OrderedSet[str] = OrderedSet()
         for i in self.link_targets:
             if not isinstance(i, StaticLibrary):
@@ -2573,7 +2573,7 @@ class CustomTarget(Target, CommandBase):
     def get_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:
         return {}
 
-    def get_link_dep_subdirs(self):
+    def get_link_dep_subdirs(self) -> T.AbstractSet[str]:
         return OrderedSet()
 
     def get_all_link_deps(self):
@@ -2765,7 +2765,7 @@ class CustomTargetIndex(HoldableObject):
     def get_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:
         return self.target.get_link_deps_mapping(prefix)
 
-    def get_link_dep_subdirs(self):
+    def get_link_dep_subdirs(self) -> T.AbstractSet[str]:
         return self.target.get_link_dep_subdirs()
 
     def is_linkable_target(self) -> bool:
