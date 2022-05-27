@@ -332,6 +332,9 @@ class _BuildTargetBase(TypedDict):
     install_mode: FileMode
     install_rpath: str
     install_tag: T.Optional[str]
+    install_vala_header: T.Union[None, bool, str]
+    install_vala_gir: T.Union[None, bool, str]
+    install_vala_vapi: T.Union[None, bool, str]
     link_depends: T.List[T.Union[str, File, build.CustomTarget, build.CustomTargetIndex]]
     link_language: LINK_LANGUAGE
     link_whole: T.List[T.Union[build.BothLibraries, build.SharedLibrary, build.StaticLibrary, build.SharedModule, build.CustomTarget, build.CustomTargetIndex]]

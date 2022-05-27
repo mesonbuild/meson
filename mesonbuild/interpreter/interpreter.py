@@ -3078,7 +3078,18 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
             static_kwargs['objects'] = [shared_lib.extract_all_objects()]
         else:
             static_args = args
-            static_kwargs = kwargs
+            static_kwargs = kwargs.copy()
+            # We only want one copy of the various vala outputs, use the ones
+            # from the shared library. `False` is a special value to force
+            # no generation
+            static_kwargs.update({
+                'install_vala_header': False,
+                'install_vala_gir': False,
+                'install_vala_vapi': False,
+                'vala_header': False,
+                'vala_gir': False,
+                'vala_vapi': False,
+            })
 
         static_lib = self.build_target(node, static_args, static_kwargs, build.StaticLibrary)
 
@@ -3137,6 +3148,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
             install_mode=kwargs['install_mode'],
             install_rpath=kwargs['install_rpath'],
             install_tag=[kwargs['install_tag']],
+            install_vala_targets=(kwargs['install_vala_header'], kwargs['install_vala_vapi'], kwargs['install_vala_gir']),
             language_args={k: kwargs[f'{k}_args'] for k in compilers.all_languages},
             link_args=kwargs['link_args'],
             link_depends=self.source_strings_to_files(kwargs['link_depends']),
@@ -3187,6 +3199,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
             install_mode=kwargs['install_mode'],
             install_rpath=kwargs['install_rpath'],
             install_tag=[kwargs['install_tag']],
+            install_vala_targets=(kwargs['install_vala_header'], kwargs['install_vala_vapi'], kwargs['install_vala_gir']),
             language_args={k: kwargs[f'{k}_args'] for k in compilers.all_languages},
             link_args=kwargs['link_args'],
             link_depends=self.source_strings_to_files(kwargs['link_depends']),
@@ -3242,6 +3255,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
             install_mode=kwargs['install_mode'],
             install_rpath=kwargs['install_rpath'],
             install_tag=[kwargs['install_tag']],
+            install_vala_targets=(kwargs['install_vala_header'], kwargs['install_vala_vapi'], kwargs['install_vala_gir']),
             language_args={k: kwargs[f'{k}_args'] for k in compilers.all_languages},
             link_args=kwargs['link_args'],
             link_depends=self.source_strings_to_files(kwargs['link_depends']),
@@ -3290,6 +3304,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
             install_mode=kwargs['install_mode'],
             install_rpath=kwargs['install_rpath'],
             install_tag=[kwargs['install_tag']],
+            install_vala_targets=(kwargs['install_vala_header'], kwargs['install_vala_vapi'], kwargs['install_vala_gir']),
             language_args={k: kwargs[f'{k}_args'] for k in compilers.all_languages},
             link_args=kwargs['link_args'],
             link_depends=self.source_strings_to_files(kwargs['link_depends']),
@@ -3336,6 +3351,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
             install_mode=kwargs['install_mode'],
             install_rpath=kwargs['install_rpath'],
             install_tag=[kwargs['install_tag']],
+            install_vala_targets=(kwargs['install_vala_header'], kwargs['install_vala_vapi'], kwargs['install_vala_gir']),
             language_args={k: kwargs[f'{k}_args'] for k in compilers.all_languages},
             link_args=kwargs['link_args'],
             link_depends=self.source_strings_to_files(kwargs['link_depends']),
@@ -3354,7 +3370,8 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
             kwargs: kwargs.BuildTarget,
             targetclass: T.Type[_BuildClassType]) -> _BuildClassType:
         name, _sources = args
-        _sources += listify(kwargs['sources'])
+        # Shadow, don't mutate
+        _sources = _sources + listify(kwargs['sources'])
         sources = self.source_strings_to_files(_sources)
         if 'extra_files' in kwargs:
             ef = extract_as_list(kwargs, 'extra_files')
@@ -3393,8 +3410,38 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
                             node=node)
                     outputs.update(o)
 
-        if not isinstance(kwargs['install_dir'], list):
-            kwargs['install_dir'] = [kwargs['install_dir']]
+        if isinstance(kwargs['install_dir'], list):
+            FeatureDeprecated.single_use(
+                f'{targetclass.__name__} as an array', '0.63.0', self.subproject,
+                'for vala targets use the `install_vala_*` keyword arguments, otherwise use a single element.',
+                node)
+            id_ = kwargs['install_dir']
+            if id_:
+                l = len(id_)
+                if l > 1:
+                    if kwargs['install_vala_header'] is not None:
+                        raise InvalidArguments('trying to set install_vala_header via keyword and as an array to install_dir')
+                    kwargs['install_vala_header'] = id_[1]
+                if l > 2:
+                    if kwargs['install_vala_vapi'] is not None:
+                        raise InvalidArguments('trying to set install_vala_vapi via keyword and as an array to install_dir')
+                    kwargs['install_vala_vapi'] = id_[2]
+                if l > 3:
+                    if kwargs['install_vala_gir'] is not None:
+                        raise InvalidArguments('trying to set install_vala_gir via keyword and as an array to install_dir')
+                    kwargs['install_vala_gir'] = id_[3]
+
+                kwargs['install_dir'] = id_[0] if id_[0] is not True else None
+            else:
+                kwargs['install_dir'] = None
+
+        # We need None as a sentinal value for the legacy behavior, but we don't want to pass it through
+        if kwargs['install_vala_header'] is None:
+            kwargs['install_vala_header'] = False
+        if kwargs['install_vala_vapi'] is None:
+            kwargs['install_vala_vapi'] = False
+        if kwargs['install_vala_gir'] is None:
+            kwargs['install_vala_gir'] = False
 
         # Filter out kwargs from other target types. For example 'soversion'
         # passed to library() when default_library == 'static'.

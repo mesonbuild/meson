@@ -526,6 +526,9 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
     ),
     KwargInfo('install_rpath', str, default=''),
     INSTALL_TAG_KW.evolve(since='0.60.0'),
+    KwargInfo('install_vala_gir', (str, bool, NoneType), since='0.64.0'),
+    KwargInfo('install_vala_header', (str, bool, NoneType), since='0.64.0'),
+    KwargInfo('install_vala_vapi', (str, bool, NoneType), since='0.64.0'),
     KwargInfo('link_args', ContainerTypeInfo(list, str), default=[], listify=True),
     KwargInfo(
         'link_depends',

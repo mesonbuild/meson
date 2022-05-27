@@ -1539,8 +1539,7 @@ class Backend:
             num_outdirs, num_out = len(outdirs), len(t.get_outputs())
             if num_outdirs != 1 and num_outdirs != num_out:
                 m = 'Target {!r} has {} outputs: {!r}, but only {} "install_dir"s were found.\n' \
-                    "Pass 'false' for outputs that should not be installed and 'true' for\n" \
-                    'using the default installation directory for an output.'
+                    "Pass 'false' for outputs that should not be installed."
                 raise MesonException(m.format(t.name, num_out, t.get_outputs(), num_outdirs))
             assert len(t.install_tag) == num_out
             install_mode = t.get_custom_install_mode()

@@ -617,7 +617,7 @@ class NinjaBackend(backends.Backend):
 
     # Get all generated headers. Any source file might need them so
     # we need to add an order dependency to them.
-    def get_generated_headers(self, target):
+    def get_generated_headers(self, target: build.BuildTarget):
         if hasattr(target, 'cached_generated_headers'):
             return target.cached_generated_headers
         header_deps = []
@@ -628,7 +628,7 @@ class NinjaBackend(backends.Backend):
             for src in genlist.get_outputs():
                 if self.environment.is_header(src):
                     header_deps.append(self.get_target_generated_dir(target, genlist, src))
-        if 'vala' in target.compilers and not isinstance(target, build.Executable):
+        if 'vala' in target.compilers and target.vala_header:
             vala_header = File.from_built_file(self.get_target_dir(target), target.vala_header)
             header_deps.append(vala_header)
         # Recurse and find generated headers
@@ -1534,21 +1534,23 @@ class NinjaBackend(backends.Backend):
             # Library name
             args += ['--library', target.name]
             # Outputted header
-            hname = os.path.join(self.get_target_dir(target), target.vala_header)
-            args += ['--header', hname]
-            if target.is_unity:
-                # Without this the declarations will get duplicated in the .c
-                # files and cause a build failure when all of them are
-                # #include-d in one .c file.
-                # https://github.com/mesonbuild/meson/issues/1969
-                args += ['--use-header']
-            valac_outputs.append(hname)
+            if target.vala_header:
+                hname = os.path.join(self.get_target_dir(target), target.vala_header)
+                args += ['--header', hname]
+                if target.is_unity:
+                    # Without this the declarations will get duplicated in the .c
+                    # files and cause a build failure when all of them are
+                    # #include-d in one .c file.
+                    # https://github.com/mesonbuild/meson/issues/1969
+                    args += ['--use-header']
+                valac_outputs.append(hname)
             # Outputted vapi file
-            vapiname = os.path.join(self.get_target_dir(target), target.vala_vapi)
-            # Force valac to write the vapi and gir files in the target build dir.
-            # Without this, it will write it inside c_out_dir
-            args += ['--vapi', os.path.join('..', target.vala_vapi)]
-            valac_outputs.append(vapiname)
+            if target.vala_vapi:
+                vapiname = os.path.join(self.get_target_dir(target), target.vala_vapi)
+                # Force valac to write the vapi and gir files in the target build dir.
+                # Without this, it will write it inside c_out_dir
+                args += ['--vapi', os.path.join('..', target.vala_vapi)]
+                valac_outputs.append(vapiname)
             # Generate GIR if requested
             if isinstance(target.vala_gir, str):
                 girname = os.path.join(self.get_target_dir(target), target.vala_gir)

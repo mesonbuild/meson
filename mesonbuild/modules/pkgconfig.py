@@ -534,16 +534,18 @@ class PkgConfigModule(NewExtensionModule):
                             install_dir = _i[0] if _i else None
                         if install_dir is False:
                             continue
+
+                        default_install_dir = (l.target if isinstance(l, build.CustomTargetIndex) else l).get_default_install_dir()
                         if isinstance(l, build.BuildTarget) and 'cs' in l.compilers:
-                            if isinstance(install_dir, str):
-                                Lflag = '-r{}/{}'.format(self._escape(self._make_relative(prefix, install_dir)), l.filename)
-                            else:  # install_dir is True
+                            if install_dir == default_install_dir[0]:
                                 Lflag = '-r${libdir}/%s' % l.filename
+                            else:
+                                Lflag = '-r{}/{}'.format(self._escape(self._make_relative(prefix, install_dir)), l.filename)
                         else:
-                            if isinstance(install_dir, str):
-                                Lflag = '-L{}'.format(self._escape(self._make_relative(prefix, install_dir)))
-                            else:  # install_dir is True
+                            if install_dir == default_install_dir[0]:
                                 Lflag = '-L${libdir}'
+                            else:
+                                Lflag = '-L{}'.format(self._escape(self._make_relative(prefix, install_dir)))
                         if Lflag not in Lflags:
                             Lflags.append(Lflag)
                             yield Lflag
@@ -632,7 +634,7 @@ class PkgConfigModule(NewExtensionModule):
             default_name = mainlib.name
             default_description = state.project_name + ': ' + mainlib.name
             install_dir = mainlib.get_custom_install_dir()
-            if install_dir and isinstance(install_dir[0], str):
+            if install_dir and install_dir[0] and install_dir[0] != mainlib.get_default_install_dir()[0]:
                 default_install_dir = os.path.join(install_dir[0], 'pkgconfig')
         else:
             if kwargs['version'] is None:

@@ -590,7 +590,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
         # Find the installation directory.
         default_install_dir, default_install_dir_name = self.get_default_install_dir()
         outdirs: T.List[T.Union[str, Literal[False]]] = self.get_custom_install_dir()
-        if outdirs and outdirs[0] != default_install_dir and outdirs[0] is not True:
+        if outdirs and outdirs[0] != default_install_dir:
             # Either the value is set to a non-default value, or is set to
             # False (which means we want this specific output out of many
             # outputs to not be installed).
@@ -598,12 +598,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
             default_install_dir_name = None
         else:
             custom_install_dir = False
-            # if outdirs is empty we need to set to something, otherwise we set
-            # only the first value to the default.
-            if outdirs:
-                outdirs[0] = default_install_dir
-            else:
-                outdirs = [default_install_dir]
+            assert outdirs, 'We should always have something in the outdirs'
 
         return outdirs, default_install_dir_name, custom_install_dir
 
@@ -710,10 +705,11 @@ class BuildTarget(Target):
             gnu_symbol_visibility: GNU_SYMBOL_VISIBILITY = 'default',
             implicit_include_directories: bool = True,
             include_directories: T.Optional[T.List[IncludeDirs]] = None,
-            install_dir: T.Optional[T.List[T.Union[str, bool]]] = None,
+            install_dir: T.Optional[str] = None,
             install_mode: T.Optional[FileMode] = None,
             install_rpath: str = '',
             install_tag: T.Optional[T.List[T.Optional[str]]] = None,
+            install_vala_targets: T.Optional[T.Tuple[T.Union[str, bool], T.Union[str, bool], T.Union[str, bool]]] = None,
             language_args: T.Optional[T.Dict[str, T.List[str]]] = None,
             link_args: T.Optional[T.List[str]] = None,
             link_depends: T.Optional[T.List[T.Union[File, CustomTarget, CustomTargetIndex]]] = None,
@@ -724,9 +720,13 @@ class BuildTarget(Target):
             name_suffix: T.Optional[str] = None,
             pch_args: T.Optional[T.Dict[str, T.List[str]]] = None,
             rust_crate_type: str = 'bin',
-            vala_gir: T.Optional[str] = None,
-            vala_header: T.Optional[str] = None,
-            vala_vapi: T.Optional[str] = None,
+            # None means "use default", False means "Don't generate".
+            # False is only used for both_library where the target must be
+            # compiled twice, to avoid having two targets producing the same
+            # header
+            vala_gir: T.Optional[T.Union[Literal[False], str]] = None,
+            vala_header: T.Optional[T.Union[Literal[False], str]] = None,
+            vala_vapi: T.Optional[T.Union[Literal[False], str]] = None,
             ) -> None:
         super().__init__(name, subdir, subproject, build_by_default, for_machine, environment,
                          install, build_always_stale, extra_files, option_overrides)
@@ -747,7 +747,7 @@ class BuildTarget(Target):
         self.gnu_symbol_visibility = gnu_symbol_visibility
         self.implicit_include_directories = implicit_include_directories
         self.include_dirs = include_directories or []
-        self.install_dir: T.List[T.Union[str, bool]] = install_dir or []
+        self.install_dir: T.List[T.Union[str, Literal[False]]] = [install_dir if install_dir is not None else self.get_default_install_dir()[0]]
         self.install_mode = install_mode if install_mode is not None else FileMode()
         self.install_rpath = install_rpath
         self.link_args = link_args or []
@@ -758,6 +758,7 @@ class BuildTarget(Target):
         self.dot_net_resources = dot_net_resources or []
         # Track build_rpath entries so we can remove them at install time
         self.rpath_dirs_to_remove: T.Set[bytes] = set()
+        self.__install_vala = install_vala_targets or (False, False, False)
 
         self.compilers = OrderedDict() # type: OrderedDict[str, Compiler]
 
@@ -787,9 +788,14 @@ class BuildTarget(Target):
         self.filename = 'no_name'
         self.outputs = [self.filename]
 
-        self.vala_header: T.Optional[str] = vala_header or f'{self.name}.h'
-        self.vala_vapi: T.Optional[str] = vala_vapi or f'{self.name}.vapi'
-        self.vala_gir = vala_gir
+        def get_vala(val: T.Union[str, None, Literal[False]], ext: str) -> T.Optional[str]:
+            if val is False:
+                return None
+            return val or f'{self.name}.{ext}'
+
+        self.vala_header: T.Optional[str] = get_vala(vala_header, 'h')
+        self.vala_vapi: T.Optional[str] = get_vala(vala_vapi, 'vapi')
+        self.vala_gir = vala_gir or None
 
         self.rust_crate_type = rust_crate_type
 
@@ -866,22 +872,24 @@ class BuildTarget(Target):
             if self.vala_header is not None:
                 self.outputs.append(self.vala_header)
                 self.install_tag.append('devel')
+                if self.__install_vala[0] is True:
+                    self.install_dir.append(self.environment.get_includedir())
+                else:
+                    self.install_dir.append(self.__install_vala[0])
             if self.vala_vapi is not None:
                 self.outputs.append(self.vala_vapi)
                 self.install_tag.append('devel')
+                if self.__install_vala[1] is True:
+                    self.install_dir.append(os.path.join(self.environment.get_datadir(), 'vala', 'vapi'))
+                else:
+                    self.install_dir.append(self.__install_vala[1])
             if self.vala_gir is not None:
                 self.outputs.append(self.vala_gir)
                 self.install_tag.append('devel')
-
-            l = len(self.install_dir)
-            if l > 1 and self.install_dir[1] is True:
-                self.install_dir[1] = self.environment.get_includedir()
-            if l > 2 and self.install_dir[2] is True:
-                self.install_dir[2] = os.path.join(
-                    self.environment.get_datadir(), 'vala', 'vapi')
-            if l > 3 and self.install_dir[3] is True:
-                self.install_dir[3] = os.path.join(
-                    self.environment.get_datadir(), 'gir-1.0')
+                if self.__install_vala[2] is True:
+                    self.install_dir.append(os.path.join(self.environment.get_datadir(), 'gir-1.0'))
+                else:
+                    self.install_dir.append(self.__install_vala[2])
 
         if self.structured_sources and any([self.sources, self.generated]):
             raise MesonException('cannot mix structured sources and unstructured sources')
@@ -1707,10 +1715,11 @@ class Executable(BuildTarget):
             gnu_symbol_visibility: GNU_SYMBOL_VISIBILITY = 'default',
             implicit_include_directories: bool = True,
             include_directories: T.Optional[T.List[IncludeDirs]] = None,
-            install_dir: T.List[T.Union[str, bool]] = None,
+            install_dir: T.Optional[str] = None,
             install_mode: T.Optional[FileMode] = None,
             install_rpath: str = '',
             install_tag: T.Optional[T.List[T.Optional[str]]] = None,
+            install_vala_targets: T.Optional[T.Tuple[T.Union[str, bool], T.Union[str, bool], T.Union[str, bool]]] = None,
             language_args: T.Optional[T.Dict[str, T.List[str]]] = None,
             link_args: T.Optional[T.List[str]] = None,
             link_depends: T.Optional[T.List[T.Union[File, CustomTarget, CustomTargetIndex]]] = None,
@@ -1720,9 +1729,9 @@ class Executable(BuildTarget):
             name_prefix: T.Optional[str] = None,
             name_suffix: T.Optional[str] = None,
             pch_args: T.Optional[T.Dict[str, T.List[str]]] = None,
-            vala_gir: T.Optional[str] = None,
-            vala_header: T.Optional[str] = None,
-            vala_vapi: T.Optional[str] = None,
+            vala_gir: T.Optional[T.Union[Literal[False], str]] = None,
+            vala_header: T.Optional[T.Union[Literal[False], str]] = None,
+            vala_vapi: T.Optional[T.Union[Literal[False], str]] = None,
 
             pie: T.Optional[bool] = None,
             export_dynamic: bool = False,
@@ -1744,7 +1753,8 @@ class Executable(BuildTarget):
             implicit_include_directories=implicit_include_directories,
             include_directories=include_directories, install_dir=install_dir,
             install_mode=install_mode, install_rpath=install_rpath,
-            install_tag=install_tag, language_args=language_args,
+            install_tag=install_tag, install_vala_targets=install_vala_targets,
+            language_args=language_args,
             link_args=link_args, link_depends=link_depends,
             link_language=link_language, link_whole=link_whole,
             link_with=link_with, name_prefix=name_prefix,
@@ -1905,10 +1915,11 @@ class StaticLibrary(BuildTarget):
             gnu_symbol_visibility: GNU_SYMBOL_VISIBILITY = 'default',
             implicit_include_directories: bool = True,
             include_directories: T.Optional[T.List[IncludeDirs]] = None,
-            install_dir: T.List[T.Union[str, bool]] = None,
+            install_dir: T.Optional[str] = None,
             install_mode: T.Optional[FileMode] = None,
             install_rpath: str = '',
             install_tag: T.Optional[T.List[T.Optional[str]]] = None,
+            install_vala_targets: T.Optional[T.Tuple[T.Union[str, bool], T.Union[str, bool], T.Union[str, bool]]] = None,
             language_args: T.Optional[T.Dict[str, T.List[str]]] = None,
             link_args: T.Optional[T.List[str]] = None,
             link_depends: T.Optional[T.List[T.Union[File, CustomTarget, CustomTargetIndex]]] = None,
@@ -1918,9 +1929,9 @@ class StaticLibrary(BuildTarget):
             name_prefix: T.Optional[str] = None,
             name_suffix: T.Optional[str] = None,
             pch_args: T.Optional[T.Dict[str, T.List[str]]] = None,
-            vala_gir: T.Optional[str] = None,
-            vala_header: T.Optional[str] = None,
-            vala_vapi: T.Optional[str] = None,
+            vala_gir: T.Optional[T.Union[Literal[False], str]] = None,
+            vala_header: T.Optional[T.Union[Literal[False], str]] = None,
+            vala_vapi: T.Optional[T.Union[Literal[False], str]] = None,
 
             prelink: bool = False,
             pic: T.Optional[bool] = None,
@@ -1941,7 +1952,8 @@ class StaticLibrary(BuildTarget):
             implicit_include_directories=implicit_include_directories,
             include_directories=include_directories, install_dir=install_dir,
             install_mode=install_mode, install_rpath=install_rpath,
-            install_tag=install_tag, language_args=language_args,
+            install_tag=install_tag, install_vala_targets=install_vala_targets,
+            language_args=language_args,
             link_args=link_args, link_depends=link_depends,
             link_language=link_language, link_whole=link_whole,
             link_with=link_with, name_prefix=name_prefix,
@@ -2026,10 +2038,11 @@ class SharedLibrary(BuildTarget):
             gnu_symbol_visibility: GNU_SYMBOL_VISIBILITY = 'default',
             implicit_include_directories: bool = True,
             include_directories: T.Optional[T.List[IncludeDirs]] = None,
-            install_dir: T.List[T.Union[str, bool]] = None,
+            install_dir: T.Optional[str] = None,
             install_mode: T.Optional[FileMode] = None,
             install_rpath: str = '',
             install_tag: T.Optional[T.List[T.Optional[str]]] = None,
+            install_vala_targets: T.Optional[T.Tuple[T.Union[str, bool], T.Union[str, bool], T.Union[str, bool]]] = None,
             language_args: T.Optional[T.Dict[str, T.List[str]]] = None,
             link_args: T.Optional[T.List[str]] = None,
             link_depends: T.Optional[T.List[T.Union[File, CustomTarget, CustomTargetIndex]]] = None,
@@ -2039,9 +2052,9 @@ class SharedLibrary(BuildTarget):
             name_prefix: T.Optional[str] = None,
             name_suffix: T.Optional[str] = None,
             pch_args: T.Optional[T.Dict[str, T.List[str]]] = None,
-            vala_gir: T.Optional[str] = None,
-            vala_header: T.Optional[str] = None,
-            vala_vapi: T.Optional[str] = None,
+            vala_gir: T.Optional[T.Union[Literal[False], str]] = None,
+            vala_header: T.Optional[T.Union[Literal[False], str]] = None,
+            vala_vapi: T.Optional[T.Union[Literal[False], str]] = None,
 
             version: T.Optional[str] = None,
             soversion: T.Optional[str] = None,
@@ -2063,7 +2076,8 @@ class SharedLibrary(BuildTarget):
             implicit_include_directories=implicit_include_directories,
             include_directories=include_directories, install_dir=install_dir,
             install_mode=install_mode, install_rpath=install_rpath,
-            install_tag=install_tag, language_args=language_args,
+            install_tag=install_tag, install_vala_targets=install_vala_targets,
+            language_args=language_args,
             link_args=link_args, link_depends=link_depends,
             link_language=link_language, link_whole=link_whole,
             link_with=link_with, name_prefix=name_prefix,
@@ -2334,10 +2348,11 @@ class SharedModule(SharedLibrary):
             gnu_symbol_visibility: GNU_SYMBOL_VISIBILITY = 'default',
             implicit_include_directories: bool = True,
             include_directories: T.Optional[T.List[IncludeDirs]] = None,
-            install_dir: T.List[T.Union[str, bool]] = None,
+            install_dir: T.Optional[str] = None,
             install_mode: T.Optional[FileMode] = None,
             install_rpath: str = '',
             install_tag: T.Optional[T.List[T.Optional[str]]] = None,
+            install_vala_targets: T.Optional[T.Tuple[T.Union[str, bool], T.Union[str, bool], T.Union[str, bool]]] = None,
             language_args: T.Optional[T.Dict[str, T.List[str]]] = None,
             link_args: T.Optional[T.List[str]] = None,
             link_depends: T.Optional[T.List[T.Union[File, CustomTarget, CustomTargetIndex]]] = None,
@@ -2347,9 +2362,9 @@ class SharedModule(SharedLibrary):
             name_prefix: T.Optional[str] = None,
             name_suffix: T.Optional[str] = None,
             pch_args: T.Optional[T.Dict[str, T.List[str]]] = None,
-            vala_gir: T.Optional[str] = None,
-            vala_header: T.Optional[str] = None,
-            vala_vapi: T.Optional[str] = None,
+            vala_gir: T.Optional[T.Union[Literal[False], str]] = None,
+            vala_header: T.Optional[T.Union[Literal[False], str]] = None,
+            vala_vapi: T.Optional[T.Union[Literal[False], str]] = None,
 
             vs_module_defs: T.Optional[T.Union[File, CustomTarget, CustomTargetIndex]] = None,
             ) -> None:
@@ -2367,7 +2382,8 @@ class SharedModule(SharedLibrary):
             implicit_include_directories=implicit_include_directories,
             include_directories=include_directories, install_dir=install_dir,
             install_mode=install_mode, install_rpath=install_rpath,
-            install_tag=install_tag, language_args=language_args,
+            install_tag=install_tag, install_vala_targets=install_vala_targets,
+            language_args=language_args,
             link_args=link_args, link_depends=link_depends,
             link_language=link_language, link_whole=link_whole,
             link_with=link_with, name_prefix=name_prefix,
@@ -2730,10 +2746,11 @@ class Jar(BuildTarget):
             gnu_symbol_visibility: GNU_SYMBOL_VISIBILITY = 'default',
             implicit_include_directories: bool = True,
             include_directories: T.Optional[T.List[IncludeDirs]] = None,
-            install_dir: T.List[T.Union[str, bool]] = None,
+            install_dir: T.Optional[str] = None,
             install_mode: T.Optional[FileMode] = None,
             install_rpath: str = '',
             install_tag: T.Optional[T.List[T.Optional[str]]] = None,
+            install_vala_targets: T.Optional[T.Tuple[T.Union[str, bool], T.Union[str, bool], T.Union[str, bool]]] = None,
             language_args: T.Optional[T.Dict[str, T.List[str]]] = None,
             link_args: T.Optional[T.List[str]] = None,
             link_depends: T.Optional[T.List[T.Union[File, CustomTarget, CustomTargetIndex]]] = None,
@@ -2743,9 +2760,9 @@ class Jar(BuildTarget):
             name_prefix: T.Optional[str] = None,
             name_suffix: T.Optional[str] = None,
             pch_args: T.Optional[T.Dict[str, T.List[str]]] = None,
-            vala_gir: T.Optional[str] = None,
-            vala_header: T.Optional[str] = None,
-            vala_vapi: T.Optional[str] = None,
+            vala_gir: T.Optional[T.Union[Literal[False], str]] = None,
+            vala_header: T.Optional[T.Union[Literal[False], str]] = None,
+            vala_vapi: T.Optional[T.Union[Literal[False], str]] = None,
             main_class: str = '',
             java_resources: T.Optional[StructuredSources] = None,
             ) -> None:
@@ -2763,7 +2780,7 @@ class Jar(BuildTarget):
             implicit_include_directories=implicit_include_directories,
             include_directories=include_directories, install=install,
             install_dir=install_dir, install_mode=install_mode,
-            install_rpath=install_rpath, install_tag=install_tag,
+            install_tag=install_tag, install_vala_targets=install_vala_targets,
             language_args=language_args, link_args=link_args,
             link_depends=link_depends, link_language=link_language,
             link_whole=link_whole, link_with=link_with, name_prefix=name_prefix,
