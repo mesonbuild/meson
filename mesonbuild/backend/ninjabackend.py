@@ -2258,7 +2258,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         args = [x.replace('\\', '/') for x in args]
         return args
 
-    def generate_genlist_for_target(self, genlist, target):
+    def generate_genlist_for_target(self, genlist: build.GeneratedList, target: build.BuildTarget) -> None:
         generator = genlist.get_generator()
         subdir = genlist.subdir
         exe = generator.get_exe()
