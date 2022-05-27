@@ -43,11 +43,12 @@ from .compilers import (
 from .interpreterbase import FeatureNew, FeatureDeprecated
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, TypedDict
+    from typing_extensions import Literal, Protocol, TypedDict
 
     from ._typing import ImmutableListProtocol
     from .backend.backends import Backend, ExecutableSerialisation
     from .compilers import Compiler
+    from .dependencies.base import Dependency
     from .interpreter.interpreter import Test, SourceOutputs, Interpreter
     from .interpreter.kwargs import GNU_SYMBOL_VISIBILITY, LINK_LANGUAGE
     from .interpreterbase import SubProject
@@ -55,6 +56,12 @@ if T.TYPE_CHECKING:
     from .mesonlib import FileOrString
     from .modules import ModuleState
     from .mparser import BaseNode
+    from .wrap import WrapMode
+
+    class HashFunctionProto(Protocol):
+
+        def update(self, data: bytes) -> None: ...
+
 
     GeneratedTypes = T.Union['CustomTarget', 'CustomTargetIndex', 'GeneratedList']
     LibTypes = T.Union['SharedLibrary', 'StaticLibrary', 'CustomTarget', 'CustomTargetIndex']
@@ -82,7 +89,7 @@ def _process_install_tag(install_tag: T.Optional[T.Sequence[T.Optional[str]]],
 
 
 @lru_cache(maxsize=None)
-def get_target_macos_dylib_install_name(ld) -> str:
+def get_target_macos_dylib_install_name(ld: SharedLibrary) -> str:
     name = ['@rpath/', ld.prefix, ld.name]
     if ld.soversion is not None:
         name.append('.' + ld.soversion)
@@ -183,9 +190,9 @@ class Build:
 
     def __init__(self, environment: environment.Environment):
         self.project_name = 'name of master project'
-        self.project_version = None
+        self.project_version: T.Optional[str] = None
         self.environment = environment
-        self.projects = {}
+        self.projects: T.Dict[SubProject, T.Optional[str]] = {}
         self.targets: 'T.OrderedDict[str, T.Union[CustomTarget, BuildTarget]]' = OrderedDict()
         self.run_target_names: T.Set[T.Tuple[str, str]] = set()
         self.global_args: PerMachine[T.Dict[str, T.List[str]]] = PerMachine({}, {})
@@ -200,7 +207,7 @@ class Build:
         self.data: T.List[Data] = []
         self.symlinks: T.List[SymlinkData] = []
         self.static_linker: PerMachine[StaticLinker] = PerMachine(None, None)
-        self.subprojects = {}
+        self.subprojects: T.Dict[SubProject, T.Optional[str]] = {}
         self.subproject_dir = ''
         self.install_scripts: T.List['ExecutableSerialisation'] = []
         self.postconf_scripts: T.List['ExecutableSerialisation'] = []
@@ -208,7 +215,7 @@ class Build:
         self.install_dirs: T.List[InstallDir] = []
         self.dep_manifest_name: T.Optional[str] = None
         self.dep_manifest: T.Dict[str, DepManifest] = {}
-        self.stdlibs = PerMachine({}, {})
+        self.stdlibs: PerMachine[T.Dict] = PerMachine({}, {})
         self.test_setups: T.Dict[str, TestSetup] = {}
         self.test_setup_default_name = None
         self.find_overrides: T.Dict[str, T.Union['Executable', programs.ExternalProgram, programs.OverrideProgram]] = {}
@@ -222,14 +229,15 @@ class Build:
         self.modules: T.List[str] = []
         self.need_vsenv = False
 
-    def get_build_targets(self):
+    def get_build_targets(self) -> T.Mapping[str, BuildTarget]:
         build_targets = OrderedDict()
         for name, t in self.targets.items():
             if isinstance(t, BuildTarget):
                 build_targets[name] = t
         return build_targets
 
-    def get_custom_targets(self):
+    def get_custom_targets(self) -> T.Mapping[str, CustomTarget]:
+        # XXX: should this also be returning CustomTargetIndex?
         custom_targets = OrderedDict()
         for name, t in self.targets.items():
             if isinstance(t, CustomTarget):
@@ -253,10 +261,10 @@ class Build:
         if self.static_linker[compiler.for_machine] is None and compiler.needs_static_linker():
             self.static_linker[compiler.for_machine] = detect_static_linker(self.environment, compiler)
 
-    def get_project(self):
-        return self.projects['']
+    def get_project(self) -> T.Optional[str]:
+        return self.projects[T.cast('SubProject', '')]
 
-    def get_subproject_dir(self):
+    def get_subproject_dir(self) -> str:
         return self.subproject_dir
 
     def get_targets(self) -> 'T.OrderedDict[str, T.Union[CustomTarget, BuildTarget]]':
@@ -383,7 +391,7 @@ class ExtractedObjects(HoldableObject):
         # Filter out headers and all non-source files
         return [s for s in sources if environment.is_source(s) and not environment.is_header(s)]
 
-    def classify_all_sources(self, sources: T.List[FileOrString], generated_sources: T.Sequence['GeneratedTypes']) -> T.Dict['Compiler', T.List['FileOrString']]:
+    def classify_all_sources(self, sources: T.Sequence[FileOrString], generated_sources: T.Sequence['GeneratedTypes']) -> T.Dict['Compiler', T.List['FileOrString']]:
         sources_ = self.get_sources(sources, generated_sources)
         return classify_unity_sources(self.target.compilers.values(), sources_)
 
@@ -414,7 +422,7 @@ class StructuredSources(HoldableObject):
     represent the required filesystem layout.
     """
 
-    sources: T.DefaultDict[str, T.List[T.Union[File, CustomTarget, CustomTargetIndex, GeneratedList]]] = field(
+    sources: T.DefaultDict[str, T.List[T.Union[File, GeneratedTypes]]] = field(
         default_factory=lambda: defaultdict(list))
 
     def __add__(self, other: StructuredSources) -> StructuredSources:
@@ -426,14 +434,14 @@ class StructuredSources(HoldableObject):
     def __bool__(self) -> bool:
         return bool(self.sources)
 
-    def first_file(self) -> T.Union[File, CustomTarget, CustomTargetIndex, GeneratedList]:
+    def first_file(self) -> T.Union[File, GeneratedTypes]:
         """Get the first source in the root
 
         :return: The first source in the root
         """
         return self.sources[''][0]
 
-    def as_list(self) -> T.List[T.Union[File, CustomTarget, CustomTargetIndex, GeneratedList]]:
+    def as_list(self) -> T.List[T.Union[File, GeneratedTypes]]:
         return list(itertools.chain.from_iterable(self.sources.values()))
 
     def needs_copy(self) -> bool:
@@ -472,7 +480,7 @@ class EnvironmentVariables(HoldableObject):
         repr_str = "<{0}: {1}>"
         return repr_str.format(self.__class__.__name__, self.envvars)
 
-    def hash(self, hasher: T.Any):
+    def hash(self, hasher: HashFunctionProto) -> None:
         myenv = self.get_env({})
         for key in sorted(myenv.keys()):
             hasher.update(bytes(key, encoding='utf-8'))
@@ -513,17 +521,18 @@ class EnvironmentVariables(HoldableObject):
         return separator.join(values if curr is None else values + [curr])
 
     def get_env(self, full_env: T.MutableMapping[str, str]) -> T.Dict[str, str]:
-        env = full_env.copy()
+        env: T.Dict[str, str] = {}
+        env.update(full_env)
         for method, name, values, separator in self.envvars:
             env[name] = method(env, name, values, separator)
         return env
 
-@dataclass(eq=False)
+@dataclass(eq=False)  # type: ignore
 class Target(HoldableObject, metaclass=abc.ABCMeta):
 
     name: str
     subdir: str
-    subproject: 'SubProject'
+    subproject: SubProject
     build_by_default: bool
     for_machine: MachineChoice
     environment: environment.Environment
@@ -577,10 +586,10 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
     def get_custom_install_dir(self) -> T.List[T.Union[str, Literal[False]]]:
         raise NotImplementedError
 
-    def get_install_dir(self) -> T.Tuple[T.List[T.Union[str, Literal[False]]], str, Literal[False]]:
+    def get_install_dir(self) -> T.Tuple[T.List[T.Union[str, Literal[False]]], T.Optional[str], bool]:
         # Find the installation directory.
         default_install_dir, default_install_dir_name = self.get_default_install_dir()
-        outdirs = self.get_custom_install_dir()
+        outdirs: T.List[T.Union[str, Literal[False]]] = self.get_custom_install_dir()
         if outdirs and outdirs[0] != default_install_dir and outdirs[0] is not True:
             # Either the value is set to a non-default value, or is set to
             # False (which means we want this specific output out of many
@@ -722,13 +731,13 @@ class BuildTarget(Target):
         super().__init__(name, subdir, subproject, build_by_default, for_machine, environment,
                          install, build_always_stale, extra_files, option_overrides)
         self.extra_args: T.DefaultDict[str, T.List['FileOrString']] = defaultdict(list)
-        self.external_deps: T.List[dependencies.Dependency] = []
-        self.link_with: T.List[T.Union[SharedLibrary, StaticLibrary, SharedModule, CustomTarget, CustomTargetIndex]] = []
+        self.external_deps: T.List[Dependency] = []
+        self.link_with: T.List[BuildTargetTypes] = []
         self.link_whole: T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]] = []
         self.pch: T.Dict[str, T.List[str]] = {}
         self.sources: T.List[File] = []
         self.generated: T.List[GeneratedTypes] = []
-        self._added_deps: T.Set[dependencies.Dependency] = set()
+        self._added_deps: T.Set[Dependency] = set()
 
         self.structured_sources = structured_sources
         self.all_compilers = all_compilers or {}
@@ -879,11 +888,11 @@ class BuildTarget(Target):
         if self.structured_sources and 'rust' not in self.compilers:
             raise MesonException('structured sources are only supported in Rust targets')
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.filename)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.name}"
 
     @property
@@ -891,7 +900,7 @@ class BuildTarget(Target):
         unity_opt = self.get_option(OptionKey('unity'))
         return unity_opt == 'on' or (unity_opt == 'subprojects' and self.subproject != '')
 
-    def validate_install(self):
+    def validate_install(self) -> None:
         if self.for_machine is MachineChoice.BUILD and self.need_install:
             if self.environment.is_cross_build():
                 raise InvalidArguments('Tried to install a target for the build machine in a cross build.')
@@ -899,7 +908,7 @@ class BuildTarget(Target):
                 mlog.warning('Installing target build for the build machine. This will fail in a cross build.')
 
 
-    def process_sourcelist(self, sources: T.List['SourceOutputs']) -> None:
+    def process_sourcelist(self, sources: T.Sequence[SourceOutputs]) -> None:
         """Split sources into generated and static sources.
 
         Sources can be:
@@ -926,7 +935,7 @@ class BuildTarget(Target):
                 removed = True
         return removed
 
-    def process_compilers_late(self, extra_languages: T.List[str]):
+    def process_compilers_late(self, extra_languages: T.List[str]) -> None:
         """Processes additional compilers after kwargs have been evaluated.
 
         This can add extra compilers that might be required by keyword
@@ -998,9 +1007,9 @@ class BuildTarget(Target):
                 if not is_object(s):
                     sources.append(s)
         for d in self.external_deps:
-            for s in d.sources:
-                if isinstance(s, (str, File)):
-                    sources.append(s)
+            for t in d.sources:
+                if isinstance(t, (str, File)):
+                    sources.append(t)
 
         # Sources that were used to create our extracted objects
         for o in self.objects:
@@ -1024,15 +1033,15 @@ class BuildTarget(Target):
             # Otherwise, it's ok if no compilers can compile it, because users
             # are expected to be able to add arbitrary non-source files to the
             # sources list
-            for s in sources:
+            for w in sources:
                 for lang, compiler in self.all_compilers.items():
-                    if compiler.can_compile(s):
+                    if compiler.can_compile(w):
                         if lang not in self.compilers:
                             self.compilers[lang] = compiler
                         break
                 else:
-                    if is_known_suffix(s):
-                        path = pathlib.Path(str(s)).as_posix()
+                    if is_known_suffix(w):
+                        path = pathlib.Path(str(w)).as_posix()
                         m = f'No {self.for_machine.get_lower_case_name()} machine compiler for {path!r}'
                         raise MesonException(m)
 
@@ -1043,6 +1052,7 @@ class BuildTarget(Target):
         if 'cython' in self.compilers:
             key = OptionKey('language', machine=self.for_machine, lang='cython')
             value = self.get_option(key)
+            assert isinstance(value, str), 'for mypy'
 
             try:
                 self.compilers[value] = self.all_compilers[value]
@@ -1051,7 +1061,7 @@ class BuildTarget(Target):
 
         return missing_languages
 
-    def validate_sources(self):
+    def validate_sources(self) -> None:
         if len(self.compilers) > 1 and any(lang in self.compilers for lang in {'cs', 'java'}):
             langs = ', '.join(self.compilers.keys())
             raise InvalidArguments(f'Cannot mix those languages into a target: {langs}')
@@ -1090,7 +1100,7 @@ class BuildTarget(Target):
 
     @lru_cache(maxsize=None)
     def get_transitive_link_deps(self) -> ImmutableListProtocol[BuildTargetTypes]:
-        result: T.List[Target] = []
+        result: T.List[BuildTargetTypes] = []
         for i in self.link_with:
             result += i.get_all_link_deps()
         return result
@@ -1104,7 +1114,7 @@ class BuildTarget(Target):
         for i in self.link_with:
             mapping = i.get_link_deps_mapping(prefix)
             #we are merging two dictionaries, while keeping the earlier one dominant
-            result_tmp = mapping.copy()
+            result_tmp = dict(mapping)
             result_tmp.update(result)
             result = result_tmp
         return result
@@ -1165,11 +1175,13 @@ class BuildTarget(Target):
     def get_outputs(self) -> T.List[str]:
         return self.outputs
 
-    def get_extra_args(self, language):
+    def get_extra_args(self, language: str) -> T.List[FileOrString]:
+        # TODO: use a Literal to further constrain this
         return self.extra_args.get(language, [])
 
-    def get_dependencies(self, exclude=None):
-        transitive_deps = []
+    def get_dependencies(self, exclude: T.Optional[T.List[BuildTargetTypes]] = None
+                         ) -> T.List[BuildTargetTypes]:
+        transitive_deps: T.List[BuildTargetTypes] = []
         if exclude is None:
             exclude = []
         for t in itertools.chain(self.link_with, self.link_whole):
@@ -1180,10 +1192,10 @@ class BuildTarget(Target):
                 transitive_deps += t.get_dependencies(transitive_deps + exclude)
         return transitive_deps
 
-    def get_source_subdir(self):
+    def get_source_subdir(self) -> str:
         return self.subdir
 
-    def get_sources(self):
+    def get_sources(self) -> T.List[File]:
         return self.sources
 
     def get_objects(self) -> T.List[T.Union[str, 'File', 'ExtractedObjects']]:
@@ -1214,10 +1226,8 @@ class BuildTarget(Target):
                 # Those parts that are internal.
                 self.process_sourcelist(dep.sources)
                 self.add_include_dirs(dep.include_directories, dep.get_include_type())
-                for l in dep.libraries:
-                    self.add_link(l)
-                for l in dep.whole_libraries:
-                    self.add_link_whole(l)
+                self.add_link(dep.libraries)
+                self.add_link_whole(dep.whole_libraries)
                 if dep.get_compile_args() or dep.get_link_args():
                     # Those parts that are external.
                     extpart = dependencies.InternalDependency('undefined',
@@ -1237,12 +1247,6 @@ class BuildTarget(Target):
                 raise InvalidArguments('''Tried to use a build target as a dependency.
 You probably should put it in link_with instead.''')
             else:
-                # This is a bit of a hack. We do not want Build to know anything
-                # about the interpreter so we can't import it and use isinstance.
-                # This should be reliable enough.
-                if hasattr(dep, 'held_object'):
-                    # FIXME: subproject is not a real ObjectHolder so we have to do this by hand
-                    dep = dep.held_object
                 if hasattr(dep, 'project_args_frozen') or hasattr(dep, 'global_args_frozen'):
                     raise InvalidArguments('Tried to use subproject object as a dependency.\n'
                                            'You probably wanted to use a dependency declared in it instead.\n'
@@ -1251,11 +1255,10 @@ You probably should put it in link_with instead.''')
                                        'either an external dependency (returned by find_library() or '
                                        'dependency()) or an internal dependency (returned by '
                                        'declare_dependency()).')
-            dep_d_features = dep.d_features
-
-            for feature in ('versions', 'import_dirs'):
-                if feature in dep_d_features:
-                    self.d_features[feature].extend(dep_d_features[feature])
+            if 'versions' in dep.d_features:
+                self.d_features['versions'].extend(dep.d_features['versions'])
+            if 'import_dirs' in dep.d_features:
+                self.d_features['import_dirs'].extend(dep.d_features['import_dirs'])
 
             self._added_deps.add(dep)
 
@@ -1265,8 +1268,8 @@ You probably should put it in link_with instead.''')
     def is_internal(self) -> bool:
         return False
 
-    def add_link(self, target):
-        for t in listify(target):
+    def add_link(self, target: T.Sequence[BuildTargetTypes]) -> None:
+        for t in target:
             if isinstance(self, StaticLibrary) and self.need_install:
                 if isinstance(t, (CustomTarget, CustomTargetIndex)):
                     if not t.should_install():
@@ -1276,7 +1279,7 @@ You probably should put it in link_with instead.''')
                 elif t.is_internal():
                     # When we're a static library and we link_with to an
                     # internal/convenience library, promote to link_whole.
-                    return self.add_link_whole(t)
+                    return self.add_link_whole([t])
             if not isinstance(t, (Target, CustomTargetIndex)):
                 raise InvalidArguments(f'{t!r} is not a target.')
             if not t.is_linkable_target():
@@ -1293,8 +1296,8 @@ You probably should put it in link_with instead.''')
                     mlog.warning(msg + ' This will fail in cross build.')
             self.link_with.append(t)
 
-    def add_link_whole(self, target):
-        for t in listify(target):
+    def add_link_whole(self, target: T.Sequence[BuildTargetTypes]) -> None:
+        for t in target:
             if isinstance(t, (CustomTarget, CustomTargetIndex)):
                 if not t.is_linkable_target():
                     raise InvalidArguments(f'Custom target {t!r} is not linkable.')
@@ -1322,7 +1325,7 @@ You probably should put it in link_with instead.''')
             self.link_whole.append(t)
 
     def extract_all_objects_recurse(self) -> T.List[T.Union[str, 'ExtractedObjects']]:
-        objs = [self.extract_all_objects()]
+        objs: T.List[T.Union[str, ExtractedObjects]] = [self.extract_all_objects()]
         for t in self.link_with:
             if t.is_internal():
                 objs += t.extract_all_objects_recurse()
@@ -1406,7 +1409,7 @@ You probably should put it in link_with instead.''')
 
         return langs
 
-    def get_prelinker(self):
+    def get_prelinker(self) -> Compiler:
         if self.link_language:
             comp = self.all_compilers[self.link_language]
             return comp
@@ -1500,9 +1503,9 @@ You probably should put it in link_with instead.''')
         else:
             compiler, _ = self.get_clink_dynamic_linker_and_stdlibs()
         # Mixing many languages with MSVC is not supported yet so ignore stdlibs.
-        return compiler and compiler.get_linker_id() in {'link', 'lld-link', 'xilink', 'optlink'}
+        return compiler.get_linker_id() in {'link', 'lld-link', 'xilink', 'optlink'}
 
-    def check_module_linking(self):
+    def check_module_linking(self) -> None:
         '''
         Warn if shared modules are linked with target: (link_with) #2865
         '''
@@ -1557,7 +1560,7 @@ class Generator(HoldableObject):
         bases = [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.outputs]
         return bases
 
-    def get_dep_outname(self, inname: str) -> T.List[str]:
+    def get_dep_outname(self, inname: str) -> str:
         if self.depfile is None:
             raise InvalidArguments('Tried to get dep name for rule that does not have dependency file defined.')
         plainname = os.path.basename(inname)
@@ -1574,7 +1577,7 @@ class Generator(HoldableObject):
         relpath = pathlib.PurePath(trial).relative_to(parent)
         return relpath.parts[0] != '..' # For subdirs we can only go "down".
 
-    def process_files(self, files: T.Iterable[T.Union[str, File, 'CustomTarget', 'CustomTargetIndex', 'GeneratedList']],
+    def process_files(self, files: T.Iterable[T.Union[str, File, GeneratedTypes]],
                       state: T.Union['Interpreter', 'ModuleState'],
                       preserve_path_from: T.Optional[str] = None,
                       extra_args: T.Optional[T.List[str]] = None) -> 'GeneratedList':
@@ -1619,7 +1622,6 @@ class GeneratedList(HoldableObject):
         self.infilelist: T.List['File'] = []
         self.outfilelist: T.List[str] = []
         self.outmap: T.Dict[File, T.List[str]] = {}
-        self.extra_depends = []  # XXX: Doesn't seem to be used?
         self.depend_files: T.List[File] = []
 
         if self.extra_args is None:
@@ -1633,6 +1635,9 @@ class GeneratedList(HoldableObject):
                 # Can only add a dependency on an external program which we
                 # know the absolute path of
                 self.depend_files.append(File.from_absolute_file(path))
+
+    def get_basename(self) -> str:
+        return f'Generator: {self.name.name}'
 
     def add_preserved_path_segment(self, infile: File, outfiles: T.List[str], state: T.Union['Interpreter', 'ModuleState']) -> T.List[str]:
         result: T.List[str] = []
@@ -1831,11 +1836,11 @@ class Executable(BuildTarget):
     def get_default_install_dir(self) -> T.Tuple[str, str]:
         return self.environment.get_bindir(), '{bindir}'
 
-    def description(self):
+    def description(self) -> str:
         '''Human friendly description of the executable'''
         return self.name
 
-    def type_suffix(self):
+    def type_suffix(self) -> str:
         return "@exe"
 
     def get_import_filename(self) -> T.Optional[str]:
@@ -1846,7 +1851,7 @@ class Executable(BuildTarget):
         """
         return self.import_filename
 
-    def get_import_filenameslist(self):
+    def get_import_filenameslist(self) -> T.List[T.Optional[str]]:
         if self.import_filename:
             return [self.vs_import_filename, self.gcc_import_filename]
         return []
@@ -1859,7 +1864,7 @@ class Executable(BuildTarget):
         """
         return self.debug_filename
 
-    def is_linkable_target(self):
+    def is_linkable_target(self) -> bool:
         return self.is_linkwithable
 
     def get_command(self) -> 'ImmutableListProtocol[str]':
@@ -1981,10 +1986,10 @@ class StaticLibrary(BuildTarget):
     def get_default_install_dir(self) -> T.Tuple[str, str]:
         return self.environment.get_static_lib_dir(), '{libdir_static}'
 
-    def type_suffix(self):
+    def type_suffix(self) -> str:
         return "@sta"
 
-    def is_linkable_target(self):
+    def is_linkable_target(self) -> bool:
         return True
 
     def is_internal(self) -> bool:
@@ -2098,15 +2103,15 @@ class SharedLibrary(BuildTarget):
         self.determine_filenames()
 
     def get_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:
-        result: T.Dict[str, str] = {}
-        mappings = self.get_transitive_link_deps_mapping(prefix)
+        mappings = dict(self.get_transitive_link_deps_mapping(prefix))
         old = get_target_macos_dylib_install_name(self)
         if old not in mappings:
             fname = self.get_filename()
             outdirs, _, _ = self.get_install_dir()
-            new = os.path.join(prefix, outdirs[0], fname)
-            result.update({old: new})
-        mappings.update(result)
+            # I'm not entirely convinced this is correct, but joining False is obviously wrong so…
+            od = outdirs[0] if outdirs[0] is not False else self.get_default_install_dir()[0]
+            new = os.path.join(prefix, od, fname)
+            mappings[old] = new
         return mappings
 
     def get_default_install_dir(self) -> T.Tuple[str, str]:
@@ -2245,13 +2250,15 @@ class SharedLibrary(BuildTarget):
         """
         return self.debug_filename
 
-    def get_import_filenameslist(self):
+    def get_import_filenameslist(self) -> T.List[T.Optional[str]]:
         if self.import_filename:
             return [self.vs_import_filename, self.gcc_import_filename]
         return []
 
-    def get_all_link_deps(self):
-        return [self] + self.get_transitive_link_deps()
+    def get_all_link_deps(self) -> T.List[BuildTargetTypes]:
+        l: T.List[BuildTargetTypes] = [self]
+        l.extend(self.get_transitive_link_deps())
+        return l
 
     def get_aliases(self) -> T.List[T.Tuple[str, str, str]]:
         """
@@ -2285,10 +2292,10 @@ class SharedLibrary(BuildTarget):
         aliases.append((self.basic_filename_tpl.format(self), ltversion_filename, tag))
         return aliases
 
-    def type_suffix(self):
+    def type_suffix(self) -> str:
         return "@sha"
 
-    def is_linkable_target(self):
+    def is_linkable_target(self) -> bool:
         return True
 
 
@@ -2440,7 +2447,7 @@ class CustomTarget(Target):
     def __init__(self,
                  name: T.Optional[str],
                  subdir: str,
-                 subproject: str,
+                 subproject: SubProject,
                  environment: environment.Environment,
                  command: T.Sequence[T.Union[
                      str, BuildTargetTypes, GeneratedList,
@@ -2472,7 +2479,7 @@ class CustomTarget(Target):
         self.sources = list(sources)
         self.outputs = substitute_values(
             outputs, get_filenames_templates_dict(
-                get_sources_string_names(sources, backend),
+                get_sources_string_names([s for s in sources if not isinstance(s, (programs.ExternalProgram, ExtractedObjects))], backend),
                 []))
         self.build_by_default = build_by_default if build_by_default is not None else install
         self.capture = capture
@@ -2489,7 +2496,7 @@ class CustomTarget(Target):
         self.feed = feed
         self.install_dir = list(install_dir or [])
         self.install_mode = install_mode
-        self.install_tag = _process_install_tag(install_tag, len(self.outputs))
+        self.install_tag = _process_install_tag(install_tag or [], len(self.outputs))
         self.name = name if name else self.outputs[0]
 
         # Whether to use absolute paths for all files on the commandline
@@ -2498,7 +2505,7 @@ class CustomTarget(Target):
     def get_default_install_dir(self) -> T.Tuple[str, str]:
         return None, None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.command)
 
@@ -2531,7 +2538,7 @@ class CustomTarget(Target):
                 bdeps.update(d.get_transitive_build_target_deps())
         return bdeps
 
-    def get_dependencies(self):
+    def get_dependencies(self) -> T.List[T.Union[BuildTarget, CustomTarget]]:
         return self.dependencies
 
     def should_install(self) -> bool:
@@ -2562,7 +2569,7 @@ class CustomTarget(Target):
     def get_generated_sources(self) -> T.List[GeneratedList]:
         return self.get_generated_lists()
 
-    def get_dep_outname(self, infilenames):
+    def get_dep_outname(self, infilenames: T.List[str]) -> str:
         if self.depfile is None:
             raise InvalidArguments('Tried to get depfile name for custom_target that does not have depfile defined.')
         if infilenames:
@@ -2596,7 +2603,7 @@ class CustomTarget(Target):
     def get_link_dep_subdirs(self) -> T.AbstractSet[str]:
         return OrderedSet()
 
-    def get_all_link_deps(self):
+    def get_all_link_deps(self) -> ImmutableListProtocol[BuildTargetTypes]:
         return []
 
     def is_internal(self) -> bool:
@@ -2608,21 +2615,22 @@ class CustomTarget(Target):
         return CustomTargetIndex(self, self.outputs[0]).is_internal()
 
     def extract_all_objects_recurse(self) -> T.List[T.Union[str, 'ExtractedObjects']]:
-        return self.get_outputs()
+        # The easiest solution to widening the type here is to just cast
+        return T.cast('T.List[T.Union[str, ExtractedObjects]]', self.get_outputs())
 
-    def type_suffix(self):
+    def type_suffix(self) -> str:
         return "@cus"
 
     def __getitem__(self, index: int) -> 'CustomTargetIndex':
         return CustomTargetIndex(self, self.outputs[index])
 
-    def __setitem__(self, index, value):
+    def __setitem__(self, index: T.Any, value: T.Any) -> None:
         raise NotImplementedError
 
-    def __delitem__(self, index):
+    def __delitem__(self, index: int) -> None:
         raise NotImplementedError
 
-    def __iter__(self):
+    def __iter__(self) -> T.Iterator[CustomTargetIndex]:
         for i in self.outputs:
             yield CustomTargetIndex(self, i)
 
@@ -2637,7 +2645,7 @@ class RunTarget(Target):
                  command: T.Sequence[T.Union[str, File, BuildTargetTypes, programs.ExternalProgram]],
                  dependencies: T.Sequence[Target],
                  subdir: str,
-                 subproject: str,
+                 subproject: SubProject,
                  environment: environment.Environment,
                  env: T.Optional['EnvironmentVariables'] = None,
                  default_env: bool = True):
@@ -2656,7 +2664,7 @@ class RunTarget(Target):
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.command[0])
 
-    def get_dependencies(self) -> T.List[T.Union[BuildTarget, 'CustomTarget']]:
+    def get_dependencies(self) -> T.List[Target]:
         return self.dependencies
 
     def get_generated_sources(self) -> T.List['GeneratedTypes']:
@@ -2684,10 +2692,10 @@ class RunTarget(Target):
 
 class AliasTarget(RunTarget):
     def __init__(self, name: str, dependencies: T.Sequence['Target'],
-                 subdir: str, subproject: str, environment: environment.Environment):
+                 subdir: str, subproject: SubProject, environment: environment.Environment):
         super().__init__(name, [], dependencies, subdir, subproject, environment)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         repr_str = "<{0} {1}>"
         return repr_str.format(self.__class__.__name__, self.get_id())
 
@@ -2781,26 +2789,26 @@ class Jar(BuildTarget):
     def _default_suffix(self) -> str:
         return 'jar'
 
-    def get_main_class(self):
+    def get_main_class(self) -> str:
         return self.main_class
 
-    def type_suffix(self):
+    def type_suffix(self) -> str:
         return "@jar"
 
-    def get_java_args(self):
+    def get_java_args(self) -> T.List[FileOrString]:
         return self.extra_args['java']
 
     def get_java_resources(self) -> T.Optional[StructuredSources]:
         return self.java_resources
 
-    def validate_install(self):
+    def validate_install(self) -> None:
         # All jar targets are installable.
         pass
 
-    def is_linkable_target(self):
+    def is_linkable_target(self) -> bool:
         return True
 
-    def get_classpath_args(self):
+    def get_classpath_args(self) -> T.List[str]:
         cp_paths = [os.path.join(l.get_subdir(), l.get_filename()) for l in self.link_with]
         cp_string = os.pathsep.join(cp_paths)
         if cp_string:
@@ -2831,7 +2839,7 @@ class CustomTargetIndex(HoldableObject):
     def name(self) -> str:
         return f'{self.target.name}[{self.output}]'
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '<CustomTargetIndex: {!r}[{}]>'.format(
             self.target, self.target.get_outputs().index(self.output))
 
@@ -2847,7 +2855,7 @@ class CustomTargetIndex(HoldableObject):
     def get_id(self) -> str:
         return self.target.get_id()
 
-    def get_all_link_deps(self):
+    def get_all_link_deps(self) -> ImmutableListProtocol[BuildTargetTypes]:
         return self.target.get_all_link_deps()
 
     def get_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:
@@ -2908,7 +2916,7 @@ class ConfigurationData(HoldableObject):
     def get(self, name: str) -> T.Tuple[T.Union[str, int, bool], T.Optional[str]]:
         return self.values[name] # (val, desc)
 
-    def keys(self) -> T.Iterator[str]:
+    def keys(self) -> T.Iterable[str]:
         return self.values.keys()
 
 # A bit poorly named, but this represents plain data files to copy
@@ -2949,12 +2957,13 @@ class TestSetup:
     env: EnvironmentVariables
     exclude_suites: T.List[str]
 
-def get_sources_string_names(sources, backend):
+
+def get_sources_string_names(sources: T.Sequence[T.Union[FileOrString, BuildTarget, GeneratedTypes]], backend: Backend) -> T.List[str]:
     '''
     For the specified list of @sources which can be strings, Files, or targets,
     get all the output basenames.
     '''
-    names = []
+    names: T.List[str] = []
     for s in sources:
         if isinstance(s, str):
             names.append(s)
