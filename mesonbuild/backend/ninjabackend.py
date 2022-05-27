@@ -442,10 +442,10 @@ class NinjaBackend(backends.Backend):
         'benchmark', etc, and also for RunTargets.
         https://github.com/mesonbuild/meson/issues/1644
         '''
-        if dummy_outfile.startswith('meson-'):
+        if dummy_outfile.startswith('meson-internal__'):
             raise AssertionError(f'Invalid usage of create_phony_target with {dummy_outfile!r}')
 
-        to_name = f'meson-{dummy_outfile}'
+        to_name = f'meson-internal__{dummy_outfile}'
         elem = NinjaBuildElement(all_outputs, dummy_outfile, 'phony', to_name)
         self.add_build(elem)
 

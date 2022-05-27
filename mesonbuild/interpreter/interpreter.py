@@ -2927,9 +2927,12 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
                     To define a target that builds in that directory you must define it
                     in the meson.build file in that directory.
             '''))
-        if name.startswith('meson-'):
-            raise InvalidArguments("Target names starting with 'meson-' are reserved "
+        if name.startswith('meson-internal__'):
+            raise InvalidArguments("Target names starting with 'meson-internal__' are reserved "
                                    "for Meson's internal use. Please rename.")
+        if name.startswith('meson-') and '.' not in name:
+            raise InvalidArguments("Target names starting with 'meson-' and without a file extension "
+                                   "are reserved for Meson's internal use. Please rename.")
         if name in coredata.FORBIDDEN_TARGET_NAMES:
             raise InvalidArguments(f"Target name '{name}' is reserved for Meson's "
                                    "internal use. Please rename.")
