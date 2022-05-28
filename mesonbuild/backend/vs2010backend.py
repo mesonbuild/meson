@@ -651,7 +651,8 @@ class Vs2010Backend(backends.Backend):
                                                    capture=ofilenames[0] if target.capture else None,
                                                    feed=srcs[0] if target.feed else None,
                                                    force_serialize=True,
-                                                   env=target.env)
+                                                   env=target.env,
+                                                   verbose=target.console)
         if target.build_always_stale:
             # Use a nonexistent file to always consider the target out-of-date.
             ofilenames += [self.nonexistent_file(os.path.join(self.environment.get_scratch_dir(),
