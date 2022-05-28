@@ -423,6 +423,7 @@ def detect_machine_info(compilers: T.Optional[CompilersDict] = None) -> MachineI
 
 # TODO make this compare two `MachineInfo`s purely. How important is the
 # `detect_cpu_family({})` distinction? It is the one impediment to that.
+# The ppc case is for MacOS: Power Macintosh is identified as ppc, but 10.5 supports ppc64
 def machine_info_can_run(machine_info: MachineInfo):
     """Whether we can run binaries for this machine on the current machine.
 
@@ -437,7 +438,8 @@ def machine_info_can_run(machine_info: MachineInfo):
     return \
         (machine_info.cpu_family == true_build_cpu_family) or \
         ((true_build_cpu_family == 'x86_64') and (machine_info.cpu_family == 'x86')) or \
-        ((true_build_cpu_family == 'aarch64') and (machine_info.cpu_family == 'arm'))
+        ((true_build_cpu_family == 'aarch64') and (machine_info.cpu_family == 'arm')) or \
+        (mesonlib.is_osx() and (true_build_cpu_family == 'ppc') and (machine_info.cpu_family == 'ppc64'))
 
 class Environment:
     private_dir = 'meson-private'
