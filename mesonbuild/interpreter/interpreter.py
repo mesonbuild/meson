@@ -2583,8 +2583,9 @@ class Interpreter(InterpreterBase, HoldableObject):
         for a in incdir_strings:
             if a.startswith(src_root):
                 raise InvalidArguments(textwrap.dedent('''\
-                    Tried to form an absolute path to a source dir.
-                    You should not do that but use relative paths instead.
+                    Tried to form an absolute path to a dir in the source tree.
+                    You should not do that but use relative paths instead, for
+                    directories that are part of your project.
 
                     To get include path to any directory relative to the current dir do
 
@@ -2599,6 +2600,10 @@ class Interpreter(InterpreterBase, HoldableObject):
                     put in the include directories by default so you only need to do
                     include_directories('.') if you intend to use the result in a
                     different subdirectory.
+
+                    Note that this error message can also be triggered by
+                    external dependencies being installed within your source
+                    tree - it's not recommended to do this.
                     '''))
             else:
                 try:
