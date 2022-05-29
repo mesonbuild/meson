@@ -328,7 +328,7 @@ INCLUDE_DIRECTORIES: KwargInfo[T.List[T.Union[str, IncludeDirs]]] = KwargInfo(
 # for cases like default_options and override_options
 DEFAULT_OPTIONS: KwargInfo[T.List[str]] = KwargInfo(
     'default_options',
-    ContainerTypeInfo(list, (str, IncludeDirs)),
+    ContainerTypeInfo(list, str),
     listify=True,
     default=[],
     validator=_options_validator,
