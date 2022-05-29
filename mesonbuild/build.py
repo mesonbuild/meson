@@ -2424,7 +2424,6 @@ class CustomTarget(Target, CommandBase):
                  install_dir: T.Optional[T.Sequence[T.Union[str, bool]]] = None,
                  install_mode: T.Optional[FileMode] = None,
                  install_tag: T.Optional[T.Sequence[T.Optional[str]]] = None,
-                 override_options: T.Optional[T.Dict[OptionKey, str]] = None,
                  absolute_paths: bool = False,
                  backend: T.Optional['Backend'] = None,
                  ):
@@ -2455,8 +2454,6 @@ class CustomTarget(Target, CommandBase):
             _install_tag = list(_install_tag) * len(self.outputs)
         self.install_tag = _install_tag
         self.name = name if name else self.outputs[0]
-
-        self.set_option_overrides(override_options or {})
 
         # Whether to use absolute paths for all files on the commandline
         self.absolute_paths = absolute_paths

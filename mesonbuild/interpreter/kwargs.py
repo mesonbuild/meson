@@ -11,7 +11,7 @@ from typing_extensions import TypedDict, Literal, Protocol
 from .. import build
 from .. import coredata
 from ..compilers import Compiler
-from ..mesonlib import MachineChoice, File, FileMode, FileOrString, OptionKey
+from ..mesonlib import MachineChoice, File, FileMode, FileOrString
 from ..modules.cmake import CMakeSubprojectOptions
 from ..programs import ExternalProgram
 
@@ -187,7 +187,6 @@ class CustomTarget(TypedDict):
     install_mode: FileMode
     install_tag: T.List[T.Optional[str]]
     output: T.List[str]
-    override_options: T.Dict[OptionKey, str]
 
 class AddTestSetup(TypedDict):
 

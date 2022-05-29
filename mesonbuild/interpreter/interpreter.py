@@ -71,7 +71,7 @@ from .type_checking import (
     CT_INSTALL_TAG_KW,
     INSTALL_TAG_KW,
     LANGUAGE_KW,
-    NATIVE_KW, OVERRIDE_OPTIONS_KW,
+    NATIVE_KW,
     REQUIRED_KW,
     NoneType,
     in_set_validator,
@@ -1857,7 +1857,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         ENV_KW.evolve(since='0.57.0'),
         INSTALL_KW,
         INSTALL_MODE_KW.evolve(since='0.47.0'),
-        OVERRIDE_OPTIONS_KW,
         KwargInfo('feed', bool, default=False, since='0.59.0'),
         KwargInfo('capture', bool, default=False),
         KwargInfo('console', bool, default=False, since='0.48.0'),
@@ -1948,7 +1947,6 @@ class Interpreter(InterpreterBase, HoldableObject):
             install_dir=kwargs['install_dir'],
             install_mode=kwargs['install_mode'],
             install_tag=kwargs['install_tag'],
-            override_options=kwargs['override_options'],
             backend=self.backend)
         self.add_target(tg.name, tg)
         return tg
