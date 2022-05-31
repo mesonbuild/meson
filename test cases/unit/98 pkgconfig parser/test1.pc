@@ -1,0 +1,49 @@
+# Comment
+
+prefix = /usr
+libname = foo
+
+# Double $ should not do replacement, but \$ does. \# is not a comment.
+var1 = $${libname} \${libname} \# not a comment # this is a comment
+
+# Not quoted value, the \ char must be included in value, it's not escape char.
+var2 = hello\ world
+
+# Broken single quotes, should be used verbatim.
+var3 = 'hello' world'
+
+# In shell single quote does not allow escaping, so that's a broken quote,
+# should be used verbatim.
+var4 = 'hello\' world'
+
+# Double quotes allow escaping, this should be unquoted.
+var5 = "hello\" world"
+
+# var5 should be unquoted before replacement.
+var6 = foo ${var5}
+
+# Verify number of spaces are preserved on newline.
+var7 = hello \
+       world
+
+# The value contains only spaces, it should be stripped to have empty value.
+var8 =   
+
+extra_req = test1-req3
+
+tool_path = ${prefix}/bin/tool
+relative_path = ${pcfiledir}/tool
+
+Name: Test1
+Description: This is test 1
+Version: 1.0.0
+URL: https://${libname}/
+
+# They can be separated by space and/or comma, with or without a version.
+Requires: test1-req1 test1-req2 >= 1.0, ${extra_req}
+
+# Shell-like quoting for splitting args.
+Cflags: foo '-I /foo' -I\ /bar -I /baz -I${var8}     \
+        -isystem /plop -I${prefix}/include
+Libs: -L${pc_sysrootdir}/${libname}
+Libs.private: -l${libname}

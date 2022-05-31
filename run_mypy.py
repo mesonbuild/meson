@@ -35,6 +35,7 @@ modules = [
     'mesonbuild/mdevenv.py',
     'mesonbuild/mesonlib/platform.py',
     'mesonbuild/mesonlib/universal.py',
+    'mesonbuild/mesonlib/pkgconfig.py',
     'mesonbuild/minit.py',
     'mesonbuild/minstall.py',
     'mesonbuild/mintro.py',

@@ -16,13 +16,14 @@ import itertools
 import os, platform, re, sys, shutil
 import typing as T
 import collections
+from pathlib import Path
 
 from . import coredata
 from . import mesonlib
 from .mesonlib import (
     MesonException, EnvironmentException, MachineChoice, Popen_safe, PerMachine,
     PerMachineDefaultable, PerThreeMachineDefaultable, split_args, quote_arg, OptionKey,
-    search_version, MesonBugException
+    search_version, MesonBugException, pkgconfig
 )
 from . import mlog
 from .programs import (
@@ -577,6 +578,106 @@ class Environment:
         self.default_cmake = ['cmake']
         self.default_pkgconfig = ['pkg-config']
         self.wrap_resolver: T.Optional['Resolver'] = None
+        self.pkgconfig_repo: T.Optional[PerMachineDefaultable[pkgconfig.Repository]] = None
+
+    @staticmethod
+    def create_pkgconfig_repo(for_machine: MachineChoice = MachineChoice.BUILD,
+                              is_cross: bool = False,
+                              system_paths: T.Optional[T.List[str]] = None,
+                              extra_paths: T.Optional[T.List[str]] = None,
+                              sysroot_dir: T.Optional[str] = None)  -> pkgconfig.Repository:
+        # Get some default paths. This is normally defined by pkg-config packager,
+        # it could need per distro/platform tweaking in the future.
+        default_prefixes = [Path('/usr/local'), Path('/usr')]
+        default_libdir = mesonlib.default_libdir()
+        if default_libdir in {'lib', 'lib64'}:
+            default_libdirs = [default_libdir, 'share']
+        else:
+            default_libdirs = [default_libdir, 'lib', 'share']
+        default_system_paths = []
+        for p in default_prefixes:
+            for l in default_libdirs:
+                default_system_paths.append(p / l / 'pkgconfig')
+        default_library_paths = [Path('/usr') / l for l in default_libdirs]
+        default_include_paths = [Path('/usr/include')]
+
+        def _paths_from_env(varname: str) -> T.Optional[T.List[Path]]:
+            value = _get_env_var(for_machine, is_cross, varname)
+            if value is None:
+                return None
+            return [Path(p) for p in value.split(os.pathsep)] if value else []
+
+        # Paths where to lookup for system pc files
+        if system_paths is None:
+            system_paths = _paths_from_env('PKG_CONFIG_LIBDIR')
+            if system_paths is None:
+                system_paths = default_system_paths
+        else:
+            system_paths = [Path(p) for p in system_paths]
+
+        # Extra paths where to lookup for pc files
+        if extra_paths is None:
+            extra_paths = _paths_from_env('PKG_CONFIG_PATH')
+            if extra_paths is None:
+                extra_paths = []
+        else:
+            extra_paths = [Path(p) for p in extra_paths]
+
+        # Paths where compiler lookup for headers by default. Used to strip
+        # useless -I cflags
+        system_include_paths = _paths_from_env('PKG_CONFIG_SYSTEM_INCLUDE_PATH')
+        if system_include_paths is None:
+            system_include_paths = default_include_paths
+        for var in {'CPATH', 'C_INCLUDE_PATH', 'CPLUS_INCLUDE_PATH', 'OBJC_INCLUDE_PATH'}:
+            system_include_paths += _paths_from_env(var) or []
+
+        # Paths where compiler lookup for libraries by default. Used to strip
+        # useless -L cflags
+        system_library_paths = _paths_from_env('PKG_CONFIG_SYSTEM_LIBRARY_PATH')
+        if system_library_paths is None:
+            system_library_paths = default_library_paths
+        for var in {'LIBRARY_PATH'}:
+            system_library_paths += _paths_from_env(var) or []
+
+        # Path prepended to the ${prefix} variable to make the pc file relocatable.
+        if sysroot_dir is None:
+            sysroot_dir = _get_env_var(for_machine, is_cross, 'PKG_CONFIG_SYSROOT_DIR')
+        sysroot_dir = Path(sysroot_dir) if sysroot_dir else None
+
+        # Map the location of a pc file to a sysroot. This is supported by pkgconf
+        # but not pkg-config and is used to have multiple sysroots.
+        sysroot_map = _get_env_var(for_machine, is_cross, 'PKG_CONFIG_SYSROOT_MAP')
+        if sysroot_map is not None:
+            # 'a:b:c:d' -> {'a': 'b', 'c': 'd'}
+            sysroot_map = [Path(p) for p in sysroot_map.split(os.pathsep)]
+            sysroot_map = dict(zip(sysroot_map[::2], sysroot_map[1::2]))
+        else:
+            sysroot_map = {}
+
+        # By default -uninstalled.pc files takes priority, but they can be disabled.
+        disable_uninstalled = _get_env_var(for_machine, is_cross, 'PKG_CONFIG_DISABLE_UNINSTALLED') is not None
+
+        return pkgconfig.Repository(extra_paths + system_paths,
+                                    system_include_paths,
+                                    system_library_paths,
+                                    sysroot_dir,
+                                    sysroot_map,
+                                    disable_uninstalled)
+
+    def _create_pkgconfig_repo(self, for_machine: MachineChoice) -> pkgconfig.Repository:
+        return Environment.create_pkgconfig_repo(for_machine, self.is_cross_build(),
+            self.properties[for_machine].get_pkg_config_libdir(),
+            self.coredata.options[OptionKey('pkg_config_path', machine=for_machine)].value,
+            self.properties[for_machine].get_sys_root())
+
+    def get_pkgconfig_repo(self, for_machine: MachineChoice) -> pkgconfig.Repository:
+        if self.pkgconfig_repo is None:
+            pkgconfig_repo = PerMachineDefaultable()
+            pkgconfig_repo.build = self._create_pkgconfig_repo(MachineChoice.BUILD)
+            if self.is_cross_build():
+                pkgconfig_repo.host = self._create_pkgconfig_repo(MachineChoice.HOST)
+            self.pkgconfig_repo = pkgconfig_repo.default_missing()
+        return self.pkgconfig_repo[for_machine]
 
     def _load_machine_file_options(self, config: 'ConfigParser', properties: Properties, machine: MachineChoice) -> None:
         """Read the contents of a Machine file and put it in the options store."""

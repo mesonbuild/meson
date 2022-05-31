@@ -42,6 +42,7 @@ from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, typed_k
 from mesonbuild.mesonlib import (
     LibType, MachineChoice, PerMachine, Version, is_windows, is_osx,
     is_cygwin, is_openbsd, search_version, MesonException, OptionKey,
+    pkgconfig,
 )
 from mesonbuild.interpreter.type_checking import in_set_validator, NoneType
 from mesonbuild.dependencies import PkgConfigDependency
@@ -53,9 +54,10 @@ from run_tests import (
     FakeCompilerOptions, get_fake_env, get_fake_options
 )
 
+from .baseplatformtests import BasePlatformTests
 from .helpers import *
 
-class InternalTests(unittest.TestCase):
+class InternalTests(BasePlatformTests):
 
     def test_version_number(self):
         self.assertEqual(search_version('foobar 1.2.3'), '1.2.3')
@@ -1606,3 +1608,93 @@ class InternalTests(unittest.TestCase):
         for raw, expected in cases:
             with self.subTest(raw):
                 self.assertEqual(OptionKey.from_string(raw), expected)
+
+    def _create_pkgconfig_repo(self, testdir: str, sysroot_dir: T.Optional[str] = None) -> pkgconfig.Repository:
+        return pkgconfig.Repository([Path(testdir)],
+                                    system_include_paths=[Path('/usr/include')],
+                                    system_library_paths=[Path('/usr/lib')],
+                                    sysroot_dir=Path(sysroot_dir) if sysroot_dir else None,
+                                    sysroot_map={},
+                                    disable_uninstalled=False)
+
+    def test_pkgconfig_parser(self) -> None:
+        testdir = os.path.join(self.unit_test_dir, '98 pkgconfig parser')
+        repo = self._create_pkgconfig_repo(testdir)
+        pkg = repo.lookup('test1')
+        all_cflags = ['foo', '-I/foo', '-I/bar', '-I', '/baz', '-I', '-isystem', '/plop',
+                      '-I/usr/include', '-Dtest1req1', '-Dtest1req2', '-Dtest1req3']
+        no_system_cflags = all_cflags.copy()
+        no_system_cflags.remove('-I/usr/include')
+        self.assertEqual(pkg.get_cflags(), no_system_cflags)
+        self.assertEqual(pkg.get_cflags(allow_system_cflags=True), all_cflags)
+        self.assertEqual(pkg.get_libs(static=False), ['-L//foo'])
+        self.assertEqual(pkg.get_libs(static=True), ['-L//foo', '-lfoo'])
+        self.assertEqual(pkg.name, 'Test1')
+        self.assertEqual(pkg.description, 'This is test 1')
+        self.assertEqual(pkg.url, 'https://foo/')
+        self.assertEqual(pkg.get_variable('var1'), '${libname} \\foo # not a comment')
+        self.assertEqual(pkg.get_variable('var2'), 'hello\\ world')
+        self.assertEqual(pkg.get_variable('var3'), '\'hello\' world\'')
+        self.assertEqual(pkg.get_variable('var4'), '\'hello\\\' world\'')
+        self.assertEqual(pkg.get_variable('var5'), 'hello" world')
+        self.assertEqual(pkg.get_variable('var6'), 'foo hello" world')
+        self.assertEqual(pkg.get_variable('var7'), 'hello        world')
+        self.assertEqual(pkg.get_variable('var8'), '')
+        self.assertEqual(pkg.get_variable('tool_path'), '/usr/bin/tool')
+        self.assertEqual(pkg.get_variable('relative_path'), Path(testdir, 'tool').as_posix())
+
+    def test_pkgconfig_parser_sysroot(self) -> None:
+        testdir = os.path.join(self.unit_test_dir, '98 pkgconfig parser')
+        repo = self._create_pkgconfig_repo(testdir, sysroot_dir='/opt')
+        pkg = repo.lookup('test1')
+        self.assertEqual(pkg.get_cflags(),
+                         ['foo', '-I/foo', '-I/bar', '-I', '/baz', '-I', '-isystem', '/plop',
+                          '-I/opt/usr/include', '-Dtest1req1', '-Dtest1req2', '-Dtest1req3'])
+        self.assertEqual(pkg.get_variable('tool_path'), '/opt/usr/bin/tool')
+
+    def test_pkgconfig_parser_var_override(self) -> None:
+        testdir = os.path.join(self.unit_test_dir, '98 pkgconfig parser')
+        repo = self._create_pkgconfig_repo(testdir)
+        pkg = repo.lookup('test1')
+        self.assertEqual(pkg.get_variable('notfound', default='def'), 'def')
+        self.assertEqual(pkg.get_variable('notfound', overrides={'notfound': 'def'}), 'def')
+        self.assertEqual(pkg.get_variable('tool_path', overrides={'prefix': '/opt'}), '/opt/bin/tool')
+
+    def test_pkgconfig_parser_conflicts(self) -> None:
+        testdir = os.path.join(self.unit_test_dir, '98 pkgconfig parser')
+        repo = self._create_pkgconfig_repo(testdir)
+        with self.assertRaises(pkgconfig.PkgConfigException) as cm:
+            repo.lookup('test-conflict1')
+        self.assertIn('conflicts', str(cm.exception))
+
+        with self.assertRaises(pkgconfig.PkgConfigException) as cm:
+            repo.lookup('test-conflict2')
+        self.assertIn('conflicts', str(cm.exception))
+
+    def test_pkgconfig_parser_require(self) -> None:
+        testdir = os.path.join(self.unit_test_dir, '98 pkgconfig parser')
+        repo = self._create_pkgconfig_repo(testdir)
+        with self.assertRaises(pkgconfig.PkgConfigException) as cm:
+            repo.lookup('test-require1')
+        self.assertEqual('Package not found: notfound', str(cm.exception))
+
+        with self.assertRaises(pkgconfig.PkgConfigException) as cm:
+            repo.lookup('test-require2')
+        self.assertIn("Version mismatch: wanted '>2.0' but got '2.0'", str(cm.exception))
+
+    def test_pkgconfig_parser_var_undefined(self) -> None:
+        testdir = os.path.join(self.unit_test_dir, '98 pkgconfig parser')
+        repo = self._create_pkgconfig_repo(testdir)
+        with self.assertRaises(pkgconfig.PkgConfigException) as cm:
+            repo.lookup('test-var-undefined')
+        self.assertEqual("Variable 'var1' not defined in 'test-var-undefined'", str(cm.exception))
+
+    def test_pkgconfig_parser_loop(self) -> None:
+        testdir = os.path.join(self.unit_test_dir, '98 pkgconfig parser')
+        repo = self._create_pkgconfig_repo(testdir)
+        with self.assertRaises(pkgconfig.PkgConfigException) as cm:
+            repo.lookup('test-loop1')
+        self.assertEqual("Pkg-config recursion detected: test-loop1 -> test-loop1", str(cm.exception))
+        with self.assertRaises(pkgconfig.PkgConfigException) as cm:
+            repo.lookup('test-loop2')
+        self.assertEqual("Pkg-config recursion detected: test-loop2 -> test-loop-req1 -> test-loop2", str(cm.exception))

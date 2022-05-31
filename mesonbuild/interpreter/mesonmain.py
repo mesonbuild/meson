@@ -380,7 +380,7 @@ class MesonMain(MesonInterpreterObject):
         identifier = dependencies.get_dep_identifier(name, nkwargs)
         for_machine = kwargs['native']
         override = self.build.dependency_overrides[for_machine].get(identifier)
-        if override:
+        if override and (override.dep or override.type_name != dep.type_name):
             if permissive:
                 return
             m = 'Tried to override dependency {!r} which has already been resolved or overridden at {}'
