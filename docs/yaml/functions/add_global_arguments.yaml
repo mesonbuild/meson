@@ -11,7 +11,7 @@ notes:
 varargs:
   type: str
   name: Compiler argument
-  description: The commpiler arguments to add
+  description: The compiler arguments to add
 
 kwargs:
   language:
