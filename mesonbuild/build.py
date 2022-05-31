@@ -2393,45 +2393,47 @@ class BothLibraries(SecondLevelHolder):
             return self.static
         raise MesonBugException(f'self._preferred_library == "{self._preferred_library}" is neither "shared" nor "static".')
 
-class CommandBase:
+def flatten_command(
+        cmd: T.Sequence[T.Union[str, File, programs.ExternalProgram, BuildTarget, GeneratedTypes]],
+        subproject: SubProject) ->  T.Tuple[
+            T.List[T.Union[str, File, BuildTarget, CustomTarget]],
+            T.Sequence[File],
+            T.Sequence[T.Union[BuildTarget, CustomTarget]]]:
+    cmd = listify(cmd)
+    final_cmd: T.List[T.Union[str, File, BuildTarget, 'CustomTarget']] = []
+    depend_files: T.List[File] = []
+    dependencies: T.List[T.Union[CustomTarget, BuildTarget]] = []
+    for c in cmd:
+        if isinstance(c, str):
+            final_cmd.append(c)
+        elif isinstance(c, File):
+            depend_files.append(c)
+            final_cmd.append(c)
+        elif isinstance(c, programs.ExternalProgram):
+            if not c.found():
+                raise InvalidArguments('Tried to use not-found external program in "command"')
+            path = c.get_path()
+            if os.path.isabs(path):
+                # Can only add a dependency on an external program which we
+                # know the absolute path of
+                depend_files.append(File.from_absolute_file(path))
+            final_cmd += c.get_command()
+        elif isinstance(c, (BuildTarget, CustomTarget)):
+            dependencies.append(c)
+            final_cmd.append(c)
+        elif isinstance(c, CustomTargetIndex):
+            FeatureNew.single_use('CustomTargetIndex for command argument', '0.60', subproject)
+            dependencies.append(c.target)
+            c, df, d = flatten_command([File.from_built_file(c.get_subdir(), c.get_filename())], subproject)
+            cmd.extend(c)
+            depend_files.extend(df)
+            dependencies.extend(d)
+        else:
+            raise InvalidArguments(f'Argument {c!r} in "command" is invalid')
+    return final_cmd, depend_files, dependencies
 
-    depend_files: T.List[File]
-    dependencies: T.List[T.Union[BuildTarget, 'CustomTarget']]
-    subproject: str
 
-    def flatten_command(self, cmd: T.Sequence[T.Union[str, File, programs.ExternalProgram, BuildTargetTypes]]) -> \
-            T.List[T.Union[str, File, BuildTarget, 'CustomTarget']]:
-        cmd = listify(cmd)
-        final_cmd: T.List[T.Union[str, File, BuildTarget, 'CustomTarget']] = []
-        for c in cmd:
-            if isinstance(c, str):
-                final_cmd.append(c)
-            elif isinstance(c, File):
-                self.depend_files.append(c)
-                final_cmd.append(c)
-            elif isinstance(c, programs.ExternalProgram):
-                if not c.found():
-                    raise InvalidArguments('Tried to use not-found external program in "command"')
-                path = c.get_path()
-                if os.path.isabs(path):
-                    # Can only add a dependency on an external program which we
-                    # know the absolute path of
-                    self.depend_files.append(File.from_absolute_file(path))
-                final_cmd += c.get_command()
-            elif isinstance(c, (BuildTarget, CustomTarget)):
-                self.dependencies.append(c)
-                final_cmd.append(c)
-            elif isinstance(c, CustomTargetIndex):
-                FeatureNew.single_use('CustomTargetIndex for command argument', '0.60', self.subproject)
-                self.dependencies.append(c.target)
-                final_cmd += self.flatten_command(File.from_built_file(c.get_subdir(), c.get_filename()))
-            elif isinstance(c, list):
-                final_cmd += self.flatten_command(c)
-            else:
-                raise InvalidArguments(f'Argument {c!r} in "command" is invalid')
-        return final_cmd
-
-class CustomTarget(Target, CommandBase):
+class CustomTarget(Target):
 
     typename = 'custom'
 
@@ -2478,7 +2480,9 @@ class CustomTarget(Target, CommandBase):
         self.depend_files = list(depend_files or [])
         self.dependencies: T.List[T.Union[CustomTarget, BuildTarget]] = []
         # must be after depend_files and dependencies
-        self.command = self.flatten_command(command)
+        self.command, df, d = flatten_command(command, self.subproject)
+        self.depend_files.extend(df)
+        self.dependencies.extend(d)
         self.depfile = depfile
         self.env = env or EnvironmentVariables()
         self.extra_depends = list(extra_depends or [])
@@ -2625,7 +2629,7 @@ class CustomTarget(Target, CommandBase):
     def __len__(self) -> int:
         return len(self.outputs)
 
-class RunTarget(Target, CommandBase):
+class RunTarget(Target):
 
     typename = 'run'
 
@@ -2639,9 +2643,11 @@ class RunTarget(Target, CommandBase):
                  default_env: bool = True):
         # These don't produce output artifacts
         super().__init__(name, subdir, subproject, False, MachineChoice.BUILD, environment)
-        self.dependencies = dependencies
-        self.depend_files = []
-        self.command = self.flatten_command(command)
+        self.dependencies = list(dependencies)
+        self.depend_files: T.List[File] = []
+        self.command, df, d = flatten_command(command, self.subproject)
+        self.depend_files.extend(df)
+        self.dependencies.extend(d)
         self.absolute_paths = False
         self.env = env
         self.default_env = default_env
