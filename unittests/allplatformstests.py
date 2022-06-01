@@ -4263,3 +4263,16 @@ class AllPlatformTests(BasePlatformTests):
         if self.backend is Backend.ninja:
             self.assertIn('Generating file.txt with a custom command', out)
             self.assertIn('Generating subdir/file.txt with a custom command', out)
+
+    def test_symlinked_subproject(self):
+        testdir = os.path.join(self.unit_test_dir, '106 subproject symlink')
+        subproject_dir = os.path.join(testdir, 'subprojects')
+        subproject = os.path.join(testdir, 'symlinked_subproject')
+        symlinked_subproject = os.path.join(testdir, 'subprojects', 'symlinked_subproject')
+        if not os.path.exists(subproject_dir):
+            os.mkdir(subproject_dir)
+        os.symlink(subproject, symlinked_subproject)
+        self.addCleanup(os.remove, symlinked_subproject)
+
+        self.init(testdir)
+        self.build()

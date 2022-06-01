@@ -2851,7 +2851,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
             # subproject files, as long as they are scheduled to be installed.
             if validate_installable_file(norm):
                 return
-        norm = Path(srcdir, subdir, fname).resolve()
+        norm = Path(os.path.abspath(Path(srcdir, subdir, fname)))
         if os.path.isdir(norm):
             inputtype = 'directory'
         else:
