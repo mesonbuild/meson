@@ -27,7 +27,7 @@ title: Release {}
 short-description: Release notes for {}
 ...
 
-# New features
+# New features{}
 
 '''
 
@@ -64,11 +64,12 @@ def generate(relnotes, to_version, source_dir, output_dir):
     '''
        Generate notes for Meson build next release.
     '''
-    release = f'{to_version} (in development)' if output_dir else to_version
+    title_suffix = ' (in development)' if output_dir else ''
+    title = f'{to_version}{title_suffix}'
     output = Path(output_dir, relnotes) if output_dir else Path('markdown', relnotes)
     output.parent.mkdir(exist_ok=True, parents=True)
     with output.open('w', encoding='utf-8') as ofile:
-        ofile.write(RELNOTE_TEMPLATE.format(release, to_version))
+        ofile.write(RELNOTE_TEMPLATE.format(title, to_version, title_suffix))
         for snippetfile in Path(source_dir, 'markdown/snippets').glob('*.md'):
             snippet = snippetfile.read_text(encoding='utf-8')
             ofile.write(snippet)
