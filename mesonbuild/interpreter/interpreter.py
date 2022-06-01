@@ -2591,7 +2591,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
     # declare_dependency).
     def validate_within_subproject(self, subdir, fname):
         srcdir = Path(self.environment.source_dir)
-        norm = Path(srcdir, subdir, fname).resolve()
+        norm = Path(os.path.abspath(Path(srcdir, subdir, fname)))
         if os.path.isdir(norm):
             inputtype = 'directory'
         else:
