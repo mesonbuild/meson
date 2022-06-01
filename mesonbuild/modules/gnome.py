@@ -25,7 +25,7 @@ import textwrap
 import typing as T
 
 from . import ExtensionModule
-from . import GResourceTarget, GResourceHeaderTarget, GirTarget, TypelibTarget, VapiTarget
+from . import GResourceTarget, GResourceHeaderTarget, GirTarget, TypelibTarget, VapiTarget, ValadocTarget
 from . import ModuleReturnValue
 from .. import build
 from .. import interpreter
@@ -170,6 +170,19 @@ if T.TYPE_CHECKING:
         gir_dirs: T.List[str]
         packages: T.List[T.Union[str, InternalDependency]]
 
+    class Valadoc(TypedDict):
+
+        doclet: T.Optional[str]
+        doclet_args: T.List[str]
+        install: bool
+        install_dir: T.Optional[str]
+        package_name: str
+        package_version: T.Optional[str]
+        packages: T.List[T.Union[str, InternalDependency]]
+        sources: T.List[T.Union[str, mesonlib.File]]
+        vapi_dirs: T.List[str]
+        wiki_dir: T.Optional[str]
+
     class _MkEnumsCommon(TypedDict):
 
         sources: T.List[T.Union[FileOrString, build.GeneratedTypes]]
@@ -280,6 +293,7 @@ class GnomeModule(ExtensionModule):
             'mkenums_simple': self.mkenums_simple,
             'genmarshal': self.genmarshal,
             'generate_vapi': self.generate_vapi,
+            'valadoc': self.valadoc,
         })
 
     @staticmethod
@@ -2146,6 +2160,98 @@ class GnomeModule(ExtensionModule):
         created_values.append(rv)
         return ModuleReturnValue(rv, created_values)
 
+    @FeatureNew('gnome.valadoc', '0.63.0')
+    @noPosargs
+    @typed_kwargs(
+        'gnome.valadoc',
+        INSTALL_KW,
+        KwargInfo('doclet', str, default='html'),
+        KwargInfo('doclet_args', ContainerTypeInfo(list, str), listify=True, default=[]),
+        KwargInfo('install_dir', (str, NoneType), default=None),
+        KwargInfo('package_name', str, required=True),
+        KwargInfo('package_version', (str, NoneType), default=None),
+        KwargInfo('packages', ContainerTypeInfo(list, (str, InternalDependency)), listify=True, default=[]),
+        KwargInfo(
+            'sources',
+            ContainerTypeInfo(list, (str, mesonlib.File), allow_empty=False),
+            listify=True,
+            required=True,
+        ),
+        KwargInfo('vapi_dirs', ContainerTypeInfo(list, str), listify=True, default=[]),
+        KwargInfo('wiki_dir', (str, NoneType), default=None),
+    )
+    def valadoc(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'Valadoc') -> ModuleReturnValue:
+        build_dir = os.path.join(state.environment.get_build_dir(), state.subdir)
+        source_dir = os.path.join(state.environment.get_source_dir(), state.subdir)
+
+        # Build the command line
+        cmd: T.List[T.Union['ExternalProgram', str]] = [state.find_program('valadoc')]
+
+        # Always force, or it will complain that "File already exists" when
+        # doing an incremental update
+        cmd.extend(['--force'])
+
+        # Package flags
+        cmd.extend(['--package-name=' + kwargs['package_name']])
+
+        if kwargs['package_version'] is not None:
+            cmd.extend(['--package-version=' + kwargs['package_version']])
+            package = f"{kwargs['package_name']}-{kwargs['package_version']}"
+        else:
+            package = kwargs['package_name']
+
+        # VAPI packages
+        pkg_cmd, vapi_depends, _, _, _ = self._extract_vapi_packages(state, kwargs['packages'])
+        cmd.extend(pkg_cmd)
+
+        # Wiki
+        if kwargs['wiki_dir'] is not None:
+            if isinstance(kwargs['wiki_dir'], mesonlib.File):
+                cmd.extend(['--wiki=' + kwargs['wiki_dir'].absolute_path(source_dir, build_dir)])
+            elif isinstance(kwargs['wiki_dir'], str):
+                cmd.extend(['--wiki=' + os.path.join(source_dir, kwargs['wiki_dir'])])
+
+        # Doclet
+        cmd.extend(['--doclet=' + kwargs['doclet']])
+        cmd.extend(kwargs['doclet_args'])
+
+        # Install directory
+        install_dir = kwargs['install_dir']
+        if install_dir is None:
+            # By default, install into ${datadir}/doc/${package}
+            datadir = state.environment.get_datadir()
+            install_dir = os.path.join(datadir, 'doc')
+
+            # For some doclet types, we can do better
+            if kwargs['doclet'] == 'gtkdoc':
+                install_dir = os.path.join(datadir, 'gtk-doc', 'html')
+            elif kwargs['doclet'] == 'devhelp':
+                install_dir = os.path.join(datadir, 'devhelp', 'books')
+
+        # Output directory
+        cmd.extend(['--directory=@OUTPUT@'])
+
+        # Inputs
+        inputs = self.interpreter.source_strings_to_files(kwargs['sources'])
+        cmd.extend(['@INPUT@'])
+
+        # Combine into a custom target
+        valadoc_target = ValadocTarget(
+            package + '-valadoc',
+            state.subdir,
+            state.subproject,
+            state.environment,
+            command=cmd,
+            sources=inputs,
+            outputs=[package],
+            extra_depends=vapi_depends,
+            install=kwargs['install'],
+            install_dir=[install_dir],
+        )
+
+        rv = [ valadoc_target ]
+        return ModuleReturnValue(rv, rv)
+
 def initialize(interp: 'Interpreter') -> GnomeModule:
     mod = GnomeModule(interp)
     mod.interpreter.append_holder_map(GResourceTarget, interpreter.CustomTargetHolder)
@@ -2153,4 +2259,5 @@ def initialize(interp: 'Interpreter') -> GnomeModule:
     mod.interpreter.append_holder_map(GirTarget, interpreter.CustomTargetHolder)
     mod.interpreter.append_holder_map(TypelibTarget, interpreter.CustomTargetHolder)
     mod.interpreter.append_holder_map(VapiTarget, interpreter.CustomTargetHolder)
+    mod.interpreter.append_holder_map(ValadocTarget, interpreter.CustomTargetHolder)
     return mod

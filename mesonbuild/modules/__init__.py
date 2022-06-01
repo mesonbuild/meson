@@ -204,3 +204,6 @@ class TypelibTarget(build.CustomTarget):
 
 class VapiTarget(build.CustomTarget):
     pass
+
+class ValadocTarget(build.CustomTarget):
+    pass
