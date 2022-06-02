@@ -99,6 +99,7 @@ class DependenciesHelper:
     def __init__(self, state: ModuleState, name: str, metadata: T.Dict[str, MetaData]) -> None:
         self.state = state
         self.name = name
+        self.metadata = metadata
         self.pub_libs: T.List[LIBS] = []
         self.pub_reqs: T.List[str] = []
         self.priv_libs: T.List[LIBS] = []
@@ -106,7 +107,7 @@ class DependenciesHelper:
         self.cflags: T.List[str] = []
         self.version_reqs: T.DefaultDict[str, T.Set[str]] = defaultdict(set)
         self.link_whole_targets: T.List[T.Union[build.CustomTarget, build.CustomTargetIndex, build.StaticLibrary]] = []
-        self.metadata = metadata
+        self.uninstalled_incdirs: mesonlib.OrderedSet[str] = mesonlib.OrderedSet()
 
     def add_pub_libs(self, libs: T.List[ANY_DEP]) -> None:
         p_libs, reqs, cflags = self._process_libs(libs, True)
@@ -173,6 +174,15 @@ class DependenciesHelper:
     def add_cflags(self, cflags: T.List[str]) -> None:
         self.cflags += mesonlib.stringlistify(cflags)
 
+    def _add_uninstalled_incdirs(self, incdirs: T.List[build.IncludeDirs], subdir: T.Optional[str] = None) -> None:
+        for i in incdirs:
+            curdir = i.get_curdir()
+            for d in i.get_incdirs():
+                path = os.path.join(curdir, d)
+                self.uninstalled_incdirs.add(path)
+        if subdir is not None:
+            self.uninstalled_incdirs.add(subdir)
+
     def _process_libs(
             self, libs: T.List[ANY_DEP], public: bool
             ) -> T.Tuple[T.List[T.Union[str, build.SharedLibrary, build.StaticLibrary, build.CustomTarget, build.CustomTargetIndex]], T.List[str], T.List[str]]:
@@ -198,6 +208,7 @@ class DependenciesHelper:
                     processed_libs += obj.get_link_args()
                     processed_cflags += obj.get_compile_args()
                     self._add_lib_dependencies(obj.libraries, obj.whole_libraries, obj.ext_deps, public, private_external_deps=True)
+                    self._add_uninstalled_incdirs(obj.get_include_dirs())
             elif isinstance(obj, dependencies.Dependency):
                 if obj.found():
                     processed_libs += obj.get_link_args()
@@ -210,8 +221,10 @@ class DependenciesHelper:
                 # than needed build deps.
                 # See https://bugs.freedesktop.org/show_bug.cgi?id=105572
                 processed_libs.append(obj)
+                self._add_uninstalled_incdirs(obj.get_include_dirs(), obj.get_subdir())
             elif isinstance(obj, (build.SharedLibrary, build.StaticLibrary)):
                 processed_libs.append(obj)
+                self._add_uninstalled_incdirs(obj.get_include_dirs(), obj.get_subdir())
                 # If there is a static library in `Libs:` all its deps must be
                 # public too, otherwise the generated pc file will never be
                 # usable without --static.
@@ -556,27 +569,6 @@ class PkgConfigModule(NewExtensionModule):
                         if isinstance(l, (build.CustomTarget, build.CustomTargetIndex)) or 'cs' not in l.compilers:
                             yield f'-l{lname}'
 
-            def get_uninstalled_include_dirs(libs: T.List[LIBS]) -> T.List[str]:
-                result: T.List[str] = []
-                for l in libs:
-                    if isinstance(l, (str, build.CustomTarget, build.CustomTargetIndex)):
-                        continue
-                    if l.get_subdir() not in result:
-                        result.append(l.get_subdir())
-                    for i in l.get_include_dirs():
-                        curdir = i.get_curdir()
-                        for d in i.get_incdirs():
-                            path = os.path.join(curdir, d)
-                            if path not in result:
-                                result.append(path)
-                return result
-
-            def generate_uninstalled_cflags(libs: T.List[LIBS]) -> T.Iterable[str]:
-                for d in get_uninstalled_include_dirs(libs):
-                    for basedir in ['${prefix}', '${srcdir}']:
-                        path = PurePath(basedir, d)
-                        yield '-I%s' % self._escape(path.as_posix())
-
             if len(deps.pub_libs) > 0:
                 ofile.write('Libs: {}\n'.format(' '.join(generate_libs_flags(deps.pub_libs))))
             if len(deps.priv_libs) > 0:
@@ -584,7 +576,10 @@ class PkgConfigModule(NewExtensionModule):
 
             cflags: T.List[str] = []
             if uninstalled:
-                cflags += generate_uninstalled_cflags(deps.pub_libs + deps.priv_libs)
+                for d in deps.uninstalled_incdirs:
+                    for basedir in ['${prefix}', '${srcdir}']:
+                        path = self._escape(PurePath(basedir, d).as_posix())
+                        cflags.append(f'-I{path}')
             else:
                 for d in subdirs:
                     if d == '.':

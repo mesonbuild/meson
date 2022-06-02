@@ -185,3 +185,11 @@ endtestcase
 testcase expect_error('pkgconfig.generate: if a library is not passed as a positional argument, the \'description\' keyword argument is required.')
   pkgg.generate(name: 'foobar')
 endtestcase
+
+# Make sure the -uninstalled.pc file contains both include directories.
+# See dependencies/test2.c that gets built against both simple7.pc and
+# simple7-uninstalled.pc.
+simple7 = library('simple7', include_directories: 'inc1')
+dep = declare_dependency(include_directories: 'inc2')
+install_headers('inc1/inc1.h', 'inc2/inc2.h')
+pkgg.generate(simple7, libraries: dep)

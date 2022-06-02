@@ -60,3 +60,11 @@ pkgg.generate(main_lib2,
   libraries : internal_lib,
   filebase : 'pub-lib-order',
 )
+
+# This will be built against both simple7.pc and simple7-uninstalled.pc, check
+# that include directories works in both cases.
+simple7 = dependency('simple7')
+exe = executable('test2', 'test2.c',
+  dependencies: simple7,
+)
+test('Test2', exe)
