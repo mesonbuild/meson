@@ -1720,7 +1720,7 @@ class Generator(HoldableObject):
                 output.depends.add(e.target)
 
             if isinstance(e, (CustomTarget, CustomTargetIndex, GeneratedList)):
-                self.depends.append(e) # BUG: this should go in the GeneratedList object, not this object.
+                output.depends.add(e)
                 fs = [File.from_built_file(state.subdir, f) for f in e.get_outputs()]
             elif isinstance(e, str):
                 fs = [File.from_source_file(state.environment.source_dir, state.subdir, e)]
@@ -1748,7 +1748,7 @@ class GeneratedList(HoldableObject):
 
     def __post_init__(self) -> None:
         self.name = self.generator.exe
-        self.depends: T.Set['CustomTarget'] = set() # Things this target depends on (because e.g. a custom target was used as input)
+        self.depends: T.Set[GeneratedTypes] = set()
         self.infilelist: T.List['File'] = []
         self.outfilelist: T.List[str] = []
         self.outmap: T.Dict[File, T.List[str]] = {}

@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
 import copy
+import itertools
 import os
 import xml.dom.minidom
 import xml.etree.ElementTree as ET
@@ -318,11 +320,13 @@ class Vs2010Backend(backends.Backend):
                     gen_exe = generator.get_exe()
                     if isinstance(gen_exe, build.Executable):
                         all_deps[gen_exe.get_id()] = gen_exe
-                    for d in generator.depends:
+                    for d in itertools.chain(generator.depends, gendep.depends):
                         if isinstance(d, build.CustomTargetIndex):
                             all_deps[d.get_id()] = d.target
-                        else:
+                        elif isinstance(d, build.Target):
                             all_deps[d.get_id()] = d
+                        # FIXME: we don't handle other kinds of deps correctly here, such
+                        # as GeneratedLists, StructuredSources, and generated File.
 
         if not t or not recursive:
             return all_deps
