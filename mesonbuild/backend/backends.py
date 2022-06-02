@@ -1299,6 +1299,10 @@ class Backend:
             elif isinstance(i, build.ExtractedObjects):
                 outputs = i.get_outputs(self)
                 fname = self.get_extracted_obj_paths(i.target, outputs)
+            elif isinstance(i, programs.ExternalProgram):
+                assert i.found(), "This shouldn't be possible"
+                assert i.path is not None, 'for mypy'
+                fname = [i.path]
             else:
                 fname = [i.rel_to_builddir(self.build_to_src)]
             if target.absolute_paths:
