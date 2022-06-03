@@ -2486,13 +2486,14 @@ class CustomTarget(Target, CommandBase):
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.command)
 
-    def get_target_dependencies(self) -> T.List[T.Union['BuildTarget', 'CustomTarget']]:
-        deps = self.dependencies[:]
-        deps += self.extra_depends
+    def get_target_dependencies(self) -> T.List[T.Union[SourceOutputs, str]]:
+        deps: T.List[T.Union[SourceOutputs, str]] = []
+        deps.extend(self.dependencies)
+        deps.extend(self.extra_depends)
         for c in self.sources:
             if isinstance(c, (BuildTarget, CustomTarget)):
                 deps.append(c)
-            if isinstance(c, CustomTargetIndex):
+            elif isinstance(c, CustomTargetIndex):
                 deps.append(c.target)
         return deps
 
