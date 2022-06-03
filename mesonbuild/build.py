@@ -1398,7 +1398,7 @@ You probably should put it in link_with instead.''')
         return self.external_deps
 
     def is_internal(self) -> bool:
-        return isinstance(self, StaticLibrary) and not self.need_install
+        return False
 
     def link(self, target):
         for t in listify(target):
@@ -2001,6 +2001,9 @@ class StaticLibrary(BuildTarget):
 
     def is_linkable_target(self):
         return True
+
+    def is_internal(self) -> bool:
+        return not self.need_install
 
 class SharedLibrary(BuildTarget):
     known_kwargs = known_shlib_kwargs
