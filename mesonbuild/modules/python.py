@@ -755,13 +755,18 @@ class PythonModule(ExtensionModule):
         msg: T.List['mlog.TV_Loggable'] = ['Program', python.name]
         if want_modules:
             msg.append('({})'.format(', '.join(want_modules)))
-        msg.append('found:')
+        msg.append('required:')
+        if required:
+            msg.append(mlog.green('YES'))
+        else:
+            msg.append(mlog.red('NO'))
+        msg.append('configured:')
         if python.found() and not missing_modules:
             msg.extend([mlog.green('YES'), '({})'.format(' '.join(python.command))])
         else:
-            msg.append(mlog.red('NO'))
+            msg.extend([mlog.red('NO'), 'missing: {}'.format(', '.join(missing_modules))])
         if found_modules:
-            msg.append('modules:')
+            msg.append('found:')
             msg.append(', '.join(found_modules))
 
         mlog.log(*msg)
