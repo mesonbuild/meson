@@ -100,16 +100,25 @@ class ExternalProgram(mesonlib.HoldableObject):
         '''Human friendly description of the command'''
         return ' '.join(self.command)
 
-    def get_version(self, interpreter: 'Interpreter') -> str:
+    def get_version(self, interpreter: T.Optional['Interpreter'] = None) -> str:
         if not self.cached_version:
             from . import build
             raw_cmd = self.get_command() + ['--version']
-            res = interpreter.run_command_impl(interpreter.current_node, (self, ['--version']),
-                                               {'capture': True, 'check': True, 'env': build.EnvironmentVariables()},
-                                               True)
-            output = res.stdout.strip()
+            if interpreter:
+                res = interpreter.run_command_impl(interpreter.current_node, (self, ['--version']),
+                                                   {'capture': True,
+                                                    'check': True,
+                                                    'env': build.EnvironmentVariables()},
+                                                   True)
+                o, e = res.stdout, res.stderr
+            else:
+                p, o, e = mesonlib.Popen_safe(raw_cmd)
+                if p.returncode != 0:
+                    cmd_str = mesonlib.join_args(raw_cmd)
+                    raise mesonlib.MesonException(f'Command {cmd_str!r} failed with status {p.returncode}.')
+            output = o.strip()
             if not output:
-                output = res.stderr.strip()
+                output = e.strip()
             match = re.search(r'([0-9][0-9\.]+)', output)
             if not match:
                 raise mesonlib.MesonException(f'Could not find a version number in output of {raw_cmd!r}')
