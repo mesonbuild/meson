@@ -2491,10 +2491,10 @@ class CustomTarget(Target, CommandBase):
         deps.extend(self.dependencies)
         deps.extend(self.extra_depends)
         for c in self.sources:
-            if isinstance(c, (BuildTarget, CustomTarget)):
-                deps.append(c)
-            elif isinstance(c, CustomTargetIndex):
+            if isinstance(c, CustomTargetIndex):
                 deps.append(c.target)
+            elif not isinstance(c, programs.ExternalProgram):
+                deps.append(c)
         return deps
 
     def get_transitive_build_target_deps(self) -> T.Set[T.Union[BuildTarget, 'CustomTarget']]:
