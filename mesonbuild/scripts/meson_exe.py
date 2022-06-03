@@ -51,7 +51,8 @@ def run_exe(exe: ExecutableSerialisation, extra_env: T.Optional[T.Dict[str, str]
         if exe.exe_wrapper and mesonlib.substring_is_in_list('wine', exe.exe_wrapper.get_command()):
             child_env['WINEPATH'] = mesonlib.get_wine_shortpath(
                 exe.exe_wrapper.get_command(),
-                ['Z:' + p for p in exe.extra_paths] + child_env.get('WINEPATH', '').split(';')
+                ['Z:' + p for p in exe.extra_paths] + child_env.get('WINEPATH', '').split(';'),
+                exe.workdir
             )
 
     stdin = None
