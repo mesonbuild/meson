@@ -26,9 +26,8 @@ import platform, subprocess, operator, os, shlex, shutil, re
 import collections
 from functools import lru_cache, wraps, total_ordering
 from itertools import tee, filterfalse
-from tempfile import TemporaryDirectory
+from tempfile import TemporaryDirectory, NamedTemporaryFile
 import typing as T
-import uuid
 import textwrap
 import copy
 import pickle
@@ -1888,35 +1887,71 @@ class RealPathAction(argparse.Action):
         setattr(namespace, self.dest, os.path.abspath(os.path.realpath(values)))
 
 
-def get_wine_shortpath(winecmd: T.List[str], wine_paths: T.Sequence[str]) -> str:
-    """Get A short version of @wine_paths to avoid reaching WINEPATH number
-    of char limit.
-    """
+def get_wine_shortpath(winecmd: T.List[str], wine_paths: T.Sequence[str],
+                       workdir: T.Optional[str] = None) -> str:
+    '''
+    WINEPATH size is limited to 1024 bytes which can easily be exceeded when
+    adding the path to every dll inside build directory. See
+    https://bugs.winehq.org/show_bug.cgi?id=45810.
 
+    To shorten it as much as possible we use path relative to `workdir`
+    where possible and convert absolute paths to Windows shortpath (e.g.
+    "/usr/x86_64-w64-mingw32/lib" to "Z:\\usr\\X86_~FWL\\lib").
+
+    This limitation reportedly has been fixed with wine >= 6.4
+    '''
+
+    # Remove duplicates
     wine_paths = list(OrderedSet(wine_paths))
 
-    getShortPathScript = '%s.bat' % str(uuid.uuid4()).lower()[:5]
-    with open(getShortPathScript, mode='w', encoding='utf-8') as f:
-        f.write("@ECHO OFF\nfor %%x in (%*) do (\n echo|set /p=;%~sx\n)\n")
-        f.flush()
-    try:
-        with open(os.devnull, 'w', encoding='utf-8') as stderr:
-            wine_path = subprocess.check_output(
-                winecmd +
-                ['cmd', '/C', getShortPathScript] + wine_paths,
-                stderr=stderr).decode('utf-8')
-    except subprocess.CalledProcessError as e:
-        print("Could not get short paths: %s" % e)
-        wine_path = ';'.join(wine_paths)
-    finally:
-        os.remove(getShortPathScript)
-    if len(wine_path) > 2048:
-        raise MesonException(
-            'WINEPATH size {} > 2048'
-            ' this will cause random failure.'.format(
-                len(wine_path)))
+    # Check if it's already short enough
+    wine_path = ';'.join(wine_paths)
+    if len(wine_path) <= 1024:
+        return wine_path
 
-    return wine_path.strip(';')
+    # Check if we have wine >= 6.4
+    from ..programs import ExternalProgram
+    wine = ExternalProgram('wine', winecmd, silent=True)
+    if version_compare(wine.get_version(), '>=6.4'):
+        return wine_path
+
+    # Check paths that can be reduced by making them relative to workdir.
+    rel_paths = []
+    if workdir:
+        abs_paths = []
+        for p in wine_paths:
+            try:
+                rel = Path(p).relative_to(workdir)
+                rel_paths.append(str(rel))
+            except ValueError:
+                abs_paths.append(p)
+        wine_paths = abs_paths
+
+    if wine_paths:
+        # BAT script that takes a list of paths in argv and prints semi-colon separated shortpaths
+        with NamedTemporaryFile('w', suffix='.bat', encoding='utf-8', delete=False) as bat_file:
+            bat_file.write('''
+            @ECHO OFF
+            for %%x in (%*) do (
+                echo|set /p=;%~sx
+            )
+            ''')
+        try:
+            stdout = subprocess.check_output(winecmd + ['cmd', '/C', bat_file.name] + wine_paths,
+                                             encoding='utf-8', stderr=subprocess.DEVNULL)
+            stdout = stdout.strip(';')
+            if stdout:
+                wine_paths = stdout.split(';')
+            else:
+                mlog.warning('Could not shorten WINEPATH: empty stdout')
+        except subprocess.CalledProcessError as e:
+            mlog.warning(f'Could not shorten WINEPATH: {str(e)}')
+        finally:
+            os.unlink(bat_file.name)
+    wine_path = ';'.join(rel_paths + wine_paths)
+    if len(wine_path) > 1024:
+        mlog.warning('WINEPATH exceeds 1024 characters which could cause issues')
+    return wine_path
 
 
 def run_once(func: T.Callable[..., _T]) -> T.Callable[..., _T]:
