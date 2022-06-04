@@ -35,7 +35,7 @@ kwargs:
       *(since 0.63.0)* [[@custom_tgt]], [[@exe]], and [[@external_program]] are accepted.
 
   input:
-    type: str
+    type: list[build_tgt | custom_idx | custom_tgt | external_program | extracted_obj | file | generated_list | str]
     required: true
     description: File to modify (e.g. `version.c.in`).
 
