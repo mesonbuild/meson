@@ -88,7 +88,7 @@ methods:
 
     posargs:
       script_name:
-        type: str | file | external_program | exe | custom_tgt | custom_idx
+        type: str | file | external_program | exe
         description: |
           The script to execute.
 
