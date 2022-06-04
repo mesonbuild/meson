@@ -1,5 +1,5 @@
 name: find_program
-returns: external_program
+returns: external_program | exe
 description: |
   `program_name` here is a string that can be an executable or script
   to be searched for in `PATH` or other places inside the project.
@@ -95,7 +95,7 @@ kwargs:
       instead of a not-found object.
 
   version:
-    type: str
+    type: list[str]
     since: 0.52.0
     description: |
       specifies the required version, see
