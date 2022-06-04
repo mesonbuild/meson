@@ -17,7 +17,7 @@ methods:
     line of a [[custom_target]].
   varargs:
     name: source
-    type: str | file
+    type: str | file | custom_tgt | custom_idx | generated_list
     description: |
       Source filenames for which the built objects should be extracted.
     min_varargs: 1
