@@ -113,7 +113,7 @@ kwargs:
       serializing all targets in this pool.
 
   command:
-    type: list[str | file | exe | external_program]
+    type: list[str | file | exe | external_program | custom_tgt | build_tgt | custom_idx]
     description: |
       Command to run to create outputs from inputs. The command
       may be strings or the return value of functions that return file-like
@@ -156,7 +156,7 @@ kwargs:
       are also accepted.
 
   input:
-    type: list[str | file]
+    type: list[str | file | build_tgt | custom_idx | custom_tgt | external_program | extracted_obj | generatedlist]
     description: List of source files. *(since 0.41.0)* the list is flattened.
 
   install:
