@@ -31,7 +31,7 @@ kwargs:
       file specified as `output`.
 
   command:
-    type: list[str | file]
+    type: list[str | file | compiler | external_program | exe]
     description: |
       As explained above, if specified, Meson does not create
       the file itself but rather runs the specified command, which allows
