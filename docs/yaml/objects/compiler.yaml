@@ -388,6 +388,13 @@ methods:
         passed here prefixed with `header_`, and will have the same effect on
         the header check.
 
+    header_required:
+      type: bool | feature
+      since: 0.50.0
+      description: |
+        When used in conjunction with the has_headers keyword, set the
+        requirement of the headers.
+
     static:
       type: bool
       default: false
