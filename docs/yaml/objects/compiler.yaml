@@ -582,6 +582,10 @@ methods:
       description: The attribute name to check.
 
 - name: get_supported_function_attributes
+  varargs:
+    name:
+      type: str
+      description: The attribute name to check.
   returns: list[str]
   since: 0.48.0
   description: |
