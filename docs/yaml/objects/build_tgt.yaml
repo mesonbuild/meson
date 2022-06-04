@@ -69,6 +69,17 @@ methods:
   since: 0.54.0
   description: Returns the name of the target.
 
+- name: get_id
+  returns: str
+  since: 0.26.0
+  description: Returns a unique id for the target
+
+- name: outdir
+  returns: str
+  since: 0.26.0
+  description: Returns the output directory relative to the build root of the
+    target
+
 - name: found
   returns: bool
   since: 0.59.0
