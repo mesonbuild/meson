@@ -52,7 +52,7 @@ kwargs:
       built-in option can also be overridden.
 
   version:
-    type: str
+    type: str | list[str]
     description: |
       Works just like the same as in [[dependency]].
       It specifies what version the subproject should be, as an example `>=1.0.1`.
