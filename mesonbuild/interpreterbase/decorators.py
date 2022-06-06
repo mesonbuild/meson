@@ -600,8 +600,21 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
     def check_version(target_version: str, feature_version: str) -> bool:
         pass
 
-    def use(self, subproject: 'SubProject', location: T.Optional['mparser.BaseNode'] = None) -> None:
+    def use(self, subproject: 'SubProject', location: T.Optional['mparser.BaseNode'] = None,
+            always_warn: bool = False) -> None:
+        """Generate a warning if necessary.
+
+        :param subproject: The subproject this warning is for
+        :param location: The location node that generated the warning, defaults to None
+        :param always_warn: If set to True a warning is always generated.
+            This is useful for cases where the deprecated behavior has always
+            had a replacement, but we still wish to signal the version in which
+            the behavior was deprecated. Defaults to False
+        """
         tv = self.get_target_version(subproject)
+        if always_warn:
+            self.log_usage_warning(tv, location, always=always_warn)
+            return
         # No target version
         if tv == '':
             return
@@ -645,7 +658,8 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
         if '\n' in warning_str:
             mlog.warning(warning_str)
 
-    def log_usage_warning(self, tv: str, location: T.Optional['mparser.BaseNode']) -> None:
+    def log_usage_warning(self, tv: str, location: T.Optional['mparser.BaseNode'],
+                          always: bool = False) -> None:
         raise InterpreterException('log_usage_warning not implemented')
 
     @staticmethod
@@ -668,9 +682,10 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
 
     @classmethod
     def single_use(cls, feature_name: str, version: str, subproject: 'SubProject',
-                   extra_message: str = '', location: T.Optional['mparser.BaseNode'] = None) -> None:
+                   extra_message: str = '', location: T.Optional['mparser.BaseNode'] = None,
+                   always_warn: bool = False) -> None:
         """Oneline version that instantiates and calls use()."""
-        cls(feature_name, version, extra_message).use(subproject, location)
+        cls(feature_name, version, extra_message).use(subproject, location, always_warn)
 
 
 class FeatureNew(FeatureCheckBase):
@@ -693,7 +708,9 @@ class FeatureNew(FeatureCheckBase):
     def get_notice_str_prefix(tv: str) -> str:
         return ''
 
-    def log_usage_warning(self, tv: str, location: T.Optional['mparser.BaseNode']) -> None:
+    def log_usage_warning(self, tv: str, location: T.Optional['mparser.BaseNode'],
+                          always: bool = False) -> None:
+        assert not always, "Shouldn't be used with FeatureNew, only FeatureDeprecated"
         args = [
             'Project targets', f"'{tv}'",
             'but uses feature introduced in',
@@ -702,7 +719,7 @@ class FeatureNew(FeatureCheckBase):
         ]
         if self.extra_message:
             args.append(self.extra_message)
-        mlog.warning(*args, location=location)
+        mlog.warning(*args, location=location, fatal=not always)
 
 class FeatureDeprecated(FeatureCheckBase):
     """Checks for deprecated features"""
@@ -726,16 +743,26 @@ class FeatureDeprecated(FeatureCheckBase):
     def get_notice_str_prefix(tv: str) -> str:
         return 'Future-deprecated features used:'
 
-    def log_usage_warning(self, tv: str, location: T.Optional['mparser.BaseNode']) -> None:
-        args = [
-            'Project targets', f"'{tv}'",
-            'but uses feature deprecated since',
-            f"'{self.feature_version}':",
-            f'{self.feature_name}.',
-        ]
+    def log_usage_warning(self, tv: str, location: T.Optional['mparser.BaseNode'],
+                          always: bool = False) -> None:
+        if always:
+            args = [
+                'Project uses feature',
+                self.feature_name,
+                'which was deprecated in',
+                f"'{self.feature_version}',",
+                'and can safely be replaced without causing a regression.'
+            ]
+        else:
+            args = [
+                'Project targets', f"'{tv}'",
+                'but uses feature deprecated since',
+                f"'{self.feature_version}':",
+                f'{self.feature_name}.',
+            ]
         if self.extra_message:
             args.append(self.extra_message)
-        mlog.warning(*args, location=location)
+        mlog.warning(*args, location=location, fatal=not always)
 
 
 # This cannot be a dataclass due to https://github.com/python/mypy/issues/5374
