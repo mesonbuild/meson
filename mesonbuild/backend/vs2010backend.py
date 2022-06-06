@@ -270,12 +270,15 @@ class Vs2010Backend(backends.Backend):
                 result[o.target.get_id()] = o.target
         return result.items()
 
-    def get_target_deps(self, t, recursive=False):
-        all_deps = {}
+    def get_target_deps(self, t: T.Dict[T.Any, build.Target], recursive=False):
+        all_deps: T.Dict[str, build.Target] = {}
         for target in t.values():
             if isinstance(target, build.CustomTarget):
                 for d in target.get_target_dependencies():
-                    all_deps[d.get_id()] = d
+                    # FIXME: this isn't strictly correct, as the target doesn't
+                    # Get dependencies on non-targets, such as Files
+                    if isinstance(d, build.Target):
+                        all_deps[d.get_id()] = d
             elif isinstance(target, build.RunTarget):
                 for d in target.get_dependencies():
                     all_deps[d.get_id()] = d
