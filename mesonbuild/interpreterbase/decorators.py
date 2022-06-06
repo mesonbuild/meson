@@ -631,8 +631,6 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
         feature_key = (self.feature_name, location)
         if feature_key in register[self.feature_version]:
             # Don't warn about the same feature multiple times
-            # FIXME: This is needed to prevent duplicate warnings, but also
-            # means we won't warn about a feature used in multiple places.
             return
         register[self.feature_version].add(feature_key)
         # Target version is new enough, don't warn even if it is registered for notice
