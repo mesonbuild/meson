@@ -1247,6 +1247,9 @@ def do_conf_file(src: str, dst: str, confdata: 'ConfigurationData',
     try:
         with open(dst_tmp, 'w', encoding=encoding, newline='') as f:
             f.writelines(result)
+            # Raw data are outputted as-is at the end.
+            for v in confdata.footer_data:
+                f.write(f'{v}\n')
     except Exception as e:
         raise MesonException(f'Could not write output file {dst}: {e!s}')
     shutil.copymode(src, dst_tmp)
