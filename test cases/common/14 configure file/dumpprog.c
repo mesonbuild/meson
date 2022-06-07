@@ -12,6 +12,14 @@
 #error Token did not get defined
 #endif
 
+#ifdef SHOULD_BE_UNDEFINED2
+#error Token did not get undefined.
+#endif
+
+#ifndef SHOULD_BE_DEFINED2
+#error Token did not get defined
+#endif
+
 #define stringify(s) str(s)
 #define str(s) #s
 
