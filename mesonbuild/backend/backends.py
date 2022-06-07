@@ -952,15 +952,15 @@ class Backend:
         # Add compile args added using add_global_arguments()
         # These override per-project arguments
         commands += self.build.get_global_args(compiler, target.for_machine)
-        # Using both /ZI and /Zi at the same times produces a compiler warning.
-        # We do not add /ZI by default. If it is being used it is because the user has explicitly enabled it.
-        # /ZI needs to be removed in that case to avoid cl's warning to that effect (D9025 : overriding '/ZI' with '/Zi')
-        if ('/ZI' in commands) and ('/Zi' in commands):
-            commands.remove('/Zi')
         # Compile args added from the env: CFLAGS/CXXFLAGS, etc, or the cross
         # file. We want these to override all the defaults, but not the
         # per-target compile args.
         commands += self.environment.coredata.get_external_args(target.for_machine, compiler.get_language())
+        # Using both /Z7 or /ZI and /Zi at the same times produces a compiler warning.
+        # We do not add /Z7 or /ZI by default. If it is being used it is because the user has explicitly enabled it.
+        # /Zi needs to be removed in that case to avoid cl's warning to that effect (D9025 : overriding '/Zi' with '/ZI')
+        if ('/Zi' in commands) and (('/ZI' in commands) or ('/Z7' in commands)):
+            commands.remove('/Zi')
         # Always set -fPIC for shared libraries
         if isinstance(target, build.SharedLibrary):
             commands += compiler.get_pic_args()
