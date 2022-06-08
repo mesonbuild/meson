@@ -51,6 +51,7 @@ modules = [
     'mesonbuild/modules/unstable_external_project.py',
     'mesonbuild/modules/unstable_icestorm.py',
     'mesonbuild/modules/unstable_rust.py',
+    'mesonbuild/modules/unstable_wayland.py',
     'mesonbuild/modules/windows.py',
     'mesonbuild/mparser.py',
     'mesonbuild/msetup.py',
