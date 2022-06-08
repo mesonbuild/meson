@@ -174,7 +174,7 @@ class CustomTarget(TypedDict):
     capture: bool
     command: T.List[T.Union[str, build.BuildTarget, build.CustomTarget,
                             build.CustomTargetIndex, ExternalProgram, File]]
-    consonle: bool
+    console: bool
     depend_files: T.List[FileOrString]
     depends: T.List[T.Union[build.BuildTarget, build.CustomTarget]]
     depfile: T.Optional[str]
