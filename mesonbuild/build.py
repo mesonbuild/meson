@@ -113,7 +113,7 @@ known_shmod_kwargs = known_build_target_kwargs | {'vs_module_defs'}
 known_stlib_kwargs = known_build_target_kwargs | {'pic', 'prelink'}
 known_jar_kwargs = known_exe_kwargs | {'main_class', 'java_resources'}
 
-def _process_install_tag(install_tag: T.List[T.Optional[str]],
+def _process_install_tag(install_tag: T.Optional[T.Sequence[T.Optional[str]]],
                          num_outputs: int) -> T.List[T.Optional[str]]:
     _install_tag: T.List[T.Optional[str]]
     if not install_tag:
