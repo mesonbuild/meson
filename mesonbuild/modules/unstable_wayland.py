@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
 import os
+import typing as T
 
 from . import ExtensionModule, ModuleReturnValue
 from ..build import CustomTarget
@@ -20,16 +22,36 @@ from ..interpreter.type_checking import NoneType, in_set_validator
 from ..interpreterbase import FeatureNew, typed_pos_args, typed_kwargs, KwargInfo
 from ..mesonlib import File, MesonException
 
+if T.TYPE_CHECKING:
+    from typing_extensions import Literal,TypedDict
+
+    from . import ModuleState
+    from ..build import Executable
+    from ..dependencies import Dependency
+    from ..interpreter import Interpreter
+    from ..programs import ExternalProgram
+    from ..mesonlib import FileOrString
+
+    class ScanXML(TypedDict):
+
+        public: bool
+        client: bool
+        server: bool
+
+    class FindProtocol(TypedDict):
+
+        state: Literal['stable', 'staging', 'unstable']
+        version: T.Optional[int]
 
 class WaylandModule(ExtensionModule):
 
     @FeatureNew('wayland module', '0.62.0')
-    def __init__(self, interpreter):
+    def __init__(self, interpreter: Interpreter) -> None:
         super().__init__(interpreter)
 
-        self.protocols_dep = None
-        self.pkgdatadir = None
-        self.scanner_bin = None
+        self.protocols_dep: T.Optional[Dependency] = None
+        self.pkgdatadir: T.Optional[str] = None
+        self.scanner_bin: T.Optional[T.Union[ExternalProgram, Executable]] = None
 
         self.methods.update({
             'scan_xml': self.scan_xml,
@@ -43,7 +65,7 @@ class WaylandModule(ExtensionModule):
         KwargInfo('client', bool, default=True),
         KwargInfo('server', bool, default=False),
     )
-    def scan_xml(self, state, args, kwargs):
+    def scan_xml(self, state: ModuleState, args: T.Tuple[T.List[FileOrString]], kwargs: ScanXML) -> ModuleReturnValue:
         if self.scanner_bin is None:
             # wayland-scanner from BUILD machine must have same version as wayland
             # libraries from HOST machine.
@@ -52,12 +74,13 @@ class WaylandModule(ExtensionModule):
                                                wanted=dep.version)
 
         scope = 'public' if kwargs['public'] else 'private'
-        sides = [i for i in ['client', 'server'] if kwargs[i]]
+        # We have to cast because mypy can't deduce these are literals
+        sides = [i for i in T.cast("T.List[Literal['client', 'server']]", ['client', 'server']) if kwargs[i]]
         if not sides:
             raise MesonException('At least one of client or server keyword argument must be set to true.')
 
         xml_files = self.interpreter.source_strings_to_files(args[0])
-        targets = []
+        targets: T.List[CustomTarget] = []
         for xml_file in xml_files:
             name = os.path.splitext(os.path.basename(xml_file.fname))[0]
 
@@ -94,7 +117,7 @@ class WaylandModule(ExtensionModule):
         KwargInfo('state', str, default='stable', validator=in_set_validator({'stable', 'staging', 'unstable'})),
         KwargInfo('version', (int, NoneType)),
     )
-    def find_protocol(self, state, args, kwargs):
+    def find_protocol(self, state: ModuleState, args: T.Tuple[str], kwargs: FindProtocol) -> File:
         base_name = args[0]
         xml_state = kwargs['state']
         version = kwargs['version']
@@ -126,5 +149,5 @@ class WaylandModule(ExtensionModule):
         return File.from_absolute_file(path)
 
 
-def initialize(interpreter):
+def initialize(interpreter: Interpreter) -> WaylandModule:
     return WaylandModule(interpreter)
