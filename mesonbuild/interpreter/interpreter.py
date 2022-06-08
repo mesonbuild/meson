@@ -1652,7 +1652,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @disablerIfNotFound
     @permittedKwargs(permitted_dependency_kwargs)
     @typed_pos_args('dependency', varargs=str, min_varargs=1)
-    def func_dependency(self, node, args, kwargs):
+    def func_dependency(self, node, args, kwargs) -> Dependency:
         # Replace '' by empty list of names
         names = [n for n in args[0] if n]
         if len(names) > 1:
