@@ -676,11 +676,12 @@ class PkgConfigModule(NewExtensionModule):
         deps.add_priv_reqs(kwargs['requires_private'])
         deps.add_cflags(kwargs['extra_cflags'])
 
-        dversions = kwargs['d_module_versions']
-        if dversions:
+        if kwargs['d_module_versions']:
             compiler = state.environment.coredata.compilers.host.get('d')
             if compiler:
-                deps.add_cflags(compiler.get_feature_args({'versions': dversions}, None))
+                deps.add_cflags(compiler.get_feature_args(
+                    {'versions': kwargs['d_module_versions'], 'unittest': False, 'debug': [], 'import_dirs': []},
+                    None))
 
         deps.remove_dups()
 
