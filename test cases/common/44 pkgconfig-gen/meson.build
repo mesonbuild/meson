@@ -153,7 +153,7 @@ ct = custom_target('stat3',
   output: fs.name(outfile),
   command: [python, '-c', script],
 )
-simple6 = library('simple6', link_with: ct)
+simple6 = library('simple6', 'dependencies/dummy.c', link_with: ct)
 pkgg.generate(simple6)
 
 # implicit variables

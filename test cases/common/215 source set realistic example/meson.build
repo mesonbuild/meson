@@ -30,6 +30,7 @@ subdir('devices')
 if meson.is_unity()
   specific.add_all(common)
   common = ss.source_set()
+  common.add(files('dummy.cpp'))
 endif
 
 common_lib = static_library('common', common.all_sources(),
