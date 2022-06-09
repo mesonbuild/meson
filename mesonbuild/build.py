@@ -530,6 +530,8 @@ class EnvironmentVariables(HoldableObject):
 @dataclass(eq=False)  # type: ignore
 class Target(HoldableObject, metaclass=abc.ABCMeta):
 
+    TYPE_SUFFIX: T.ClassVar[str]
+
     name: str
     subdir: str
     subproject: SubProject
@@ -541,12 +543,9 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
     extra_files: T.List[File] = field(default_factory=list)
     override_options: InitVar[T.Optional[T.Dict[OptionKey, str]]] = None
 
+    @classmethod
     @abc.abstractproperty
     def typename(self) -> str:
-        pass
-
-    @abc.abstractmethod
-    def type_suffix(self) -> str:
         pass
 
     def __post_init__(self, overrides: T.Optional[T.Dict[OptionKey, str]]) -> None:
@@ -642,7 +641,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
 
     def get_id(self) -> str:
         return self.construct_id_from_path(
-            self.subdir, self.name, self.type_suffix())
+            self.subdir, self.name, self.TYPE_SUFFIX)
 
     def set_option_overrides(self, option_overrides: T.Dict[OptionKey, str]) -> None:
         self.options.overrides = {}
@@ -1687,6 +1686,7 @@ class GeneratedList(HoldableObject):
 class Executable(BuildTarget):
 
     typename: T.ClassVar[str] = 'executable'
+    TYPE_SUFFIX = '@exe'
 
     def __init__(
             self,
@@ -1850,9 +1850,6 @@ class Executable(BuildTarget):
         '''Human friendly description of the executable'''
         return self.name
 
-    def type_suffix(self) -> str:
-        return "@exe"
-
     def get_import_filename(self) -> T.Optional[str]:
         """
         The name of the import library that will be outputted by the compiler
@@ -1887,6 +1884,7 @@ class Executable(BuildTarget):
 class StaticLibrary(BuildTarget):
 
     typename: T.ClassVar[str] = 'static library'
+    TYPE_SUFFIX = '@sta'
 
     def __init__(
             self,
@@ -1998,9 +1996,6 @@ class StaticLibrary(BuildTarget):
     def get_default_install_dir(self) -> T.Tuple[str, str]:
         return self.environment.get_static_lib_dir(), '{libdir_static}'
 
-    def type_suffix(self) -> str:
-        return "@sta"
-
     def is_linkable_target(self) -> bool:
         return True
 
@@ -2010,6 +2005,7 @@ class StaticLibrary(BuildTarget):
 class SharedLibrary(BuildTarget):
 
     typename: T.ClassVar[str] = 'shared library'
+    TYPE_SUFFIX = '@sha'
 
     def __init__(
             self,
@@ -2306,9 +2302,6 @@ class SharedLibrary(BuildTarget):
         aliases.append((self.basic_filename_tpl.format(self), ltversion_filename, tag))
         return aliases
 
-    def type_suffix(self) -> str:
-        return "@sha"
-
     def is_linkable_target(self) -> bool:
         return True
 
@@ -2459,6 +2452,7 @@ def flatten_command(
 class CustomTarget(Target):
 
     typename = 'custom'
+    TYPE_SUFFIX = '@cus'
 
     def __init__(self,
                  name: T.Optional[str],
@@ -2634,9 +2628,6 @@ class CustomTarget(Target):
         # The easiest solution to widening the type here is to just cast
         return T.cast('T.List[T.Union[str, ExtractedObjects]]', self.get_outputs())
 
-    def type_suffix(self) -> str:
-        return "@cus"
-
     def __getitem__(self, index: int) -> 'CustomTargetIndex':
         return CustomTargetIndex(self, self.outputs[index])
 
@@ -2656,6 +2647,7 @@ class CustomTarget(Target):
 class RunTarget(Target):
 
     typename = 'run'
+    TYPE_SUFFIX = '@run'
 
     def __init__(self, name: str,
                  command: T.Sequence[T.Union[str, File, BuildTargetTypes, programs.ExternalProgram]],
@@ -2703,9 +2695,6 @@ class RunTarget(Target):
         else:
             raise RuntimeError('RunTarget: self.name is neither a list nor a string. This is a bug')
 
-    def type_suffix(self) -> str:
-        return "@run"
-
 class AliasTarget(RunTarget):
     def __init__(self, name: str, dependencies: T.Sequence['Target'],
                  subdir: str, subproject: SubProject, environment: environment.Environment):
@@ -2718,6 +2707,7 @@ class AliasTarget(RunTarget):
 class Jar(BuildTarget):
 
     typename: T.ClassVar[str] = 'jar'
+    TYPE_SUFFIX = '@jar'
 
     def __init__(
             self,
@@ -2808,9 +2798,6 @@ class Jar(BuildTarget):
 
     def get_main_class(self) -> str:
         return self.main_class
-
-    def type_suffix(self) -> str:
-        return "@jar"
 
     def get_java_args(self) -> T.List[FileOrString]:
         return self.extra_args['java']
