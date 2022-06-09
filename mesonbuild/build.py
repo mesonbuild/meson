@@ -531,6 +531,7 @@ class EnvironmentVariables(HoldableObject):
 class Target(HoldableObject, metaclass=abc.ABCMeta):
 
     TYPE_SUFFIX: T.ClassVar[str]
+    TYPENAME: T.ClassVar[str]
 
     name: str
     subdir: str
@@ -542,11 +543,6 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
     build_always_stale: bool = False
     extra_files: T.List[File] = field(default_factory=list)
     override_options: InitVar[T.Optional[T.Dict[OptionKey, str]]] = None
-
-    @classmethod
-    @abc.abstractproperty
-    def typename(self) -> str:
-        pass
 
     def __post_init__(self, overrides: T.Optional[T.Dict[OptionKey, str]]) -> None:
         self.options = OptionOverrideProxy(overrides or {}, self.environment.coredata.options, self.subproject)
@@ -608,7 +604,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
         return self.subdir
 
     def get_typename(self) -> str:
-        return self.typename
+        return self.TYPENAME
 
     @staticmethod
     def _get_id_hash(target_id: str) -> str:
@@ -1685,7 +1681,7 @@ class GeneratedList(HoldableObject):
 
 class Executable(BuildTarget):
 
-    typename: T.ClassVar[str] = 'executable'
+    TYPENAME = 'executable'
     TYPE_SUFFIX = '@exe'
 
     def __init__(
@@ -1883,7 +1879,7 @@ class Executable(BuildTarget):
 
 class StaticLibrary(BuildTarget):
 
-    typename: T.ClassVar[str] = 'static library'
+    TYPENAME = 'static library'
     TYPE_SUFFIX = '@sta'
 
     def __init__(
@@ -2004,7 +2000,7 @@ class StaticLibrary(BuildTarget):
 
 class SharedLibrary(BuildTarget):
 
-    typename: T.ClassVar[str] = 'shared library'
+    TYPENAME = 'shared library'
     TYPE_SUFFIX = '@sha'
 
     def __init__(
@@ -2312,7 +2308,7 @@ class SharedModule(SharedLibrary):
     into something else.
     """
 
-    typename: T.ClassVar[str] = 'shared module'
+    TYPENAME = 'shared module'
 
     def __init__(
             self,
@@ -2451,7 +2447,7 @@ def flatten_command(
 
 class CustomTarget(Target):
 
-    typename = 'custom'
+    TYPENAME = 'custom'
     TYPE_SUFFIX = '@cus'
 
     def __init__(self,
@@ -2646,7 +2642,7 @@ class CustomTarget(Target):
 
 class RunTarget(Target):
 
-    typename = 'run'
+    TYPENAME = 'run'
     TYPE_SUFFIX = '@run'
 
     def __init__(self, name: str,
@@ -2706,7 +2702,7 @@ class AliasTarget(RunTarget):
 
 class Jar(BuildTarget):
 
-    typename: T.ClassVar[str] = 'jar'
+    TYPENAME = 'jar'
     TYPE_SUFFIX = '@jar'
 
     def __init__(
@@ -2831,7 +2827,7 @@ class CustomTargetIndex(HoldableObject):
     the sources.
     """
 
-    typename: T.ClassVar[str] = 'custom'
+    TYPENAME = 'custom'
 
     target: CustomTarget
     output: str
