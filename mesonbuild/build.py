@@ -527,8 +527,8 @@ class EnvironmentVariables(HoldableObject):
             env[name] = method(env, name, values, separator)
         return env
 
-@dataclass(eq=False)  # type: ignore
-class Target(HoldableObject, metaclass=abc.ABCMeta):
+@dataclass(eq=False)
+class Target(HoldableObject):
 
     TYPE_SUFFIX: T.ClassVar[str]
     TYPENAME: T.ClassVar[str]
@@ -666,7 +666,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
     def should_install(self) -> bool:
         return False
 
-class BuildTarget(Target):
+class BuildTarget(Target, metaclass=abc.ABCMeta):
 
     # There are dangerous defaults below, but onlya s InitVars, which are then
     # prsented to the `__post_init__` dunder ad `ImmutableListProtocol` instances,
