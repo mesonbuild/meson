@@ -477,11 +477,20 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
                 exe_wrap, linker=linker, full_version=full_version)
 
         if 'Arm C/C++/Fortran Compiler' in out:
+            version = ''
             arm_ver_match = re.search(r'version (\d+)\.(\d+) \(build number (\d+)\)', out)
-            arm_ver_major = arm_ver_match.group(1)
-            arm_ver_minor = arm_ver_match.group(2)
-            arm_ver_build = arm_ver_match.group(3)
-            version = '.'.join([arm_ver_major, arm_ver_minor, arm_ver_build])
+            if arm_ver_match:
+                arm_ver_major = arm_ver_match.group(1)
+                arm_ver_minor = arm_ver_match.group(2)
+                arm_ver_build = arm_ver_match.group(3)
+                version = '.'.join([arm_ver_major, arm_ver_minor, arm_ver_build])
+            else:
+                arm_ver_match = re.search(r'version (\d+)\.(\d+)\.(\d+) \(build number (\d+)\)', out)
+                arm_ver_major = arm_ver_match.group(1)
+                arm_ver_minor = arm_ver_match.group(2)
+                arm_ver_patch = arm_ver_match.group(3)
+                arm_ver_build = arm_ver_match.group(4)
+                version = '.'.join([arm_ver_major, arm_ver_minor, arm_ver_patch, arm_ver_build])
             if lang == 'c':
                 cls = ArmLtdClangCCompiler
             elif lang == 'cpp':
@@ -747,11 +756,20 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
 
             if 'Arm C/C++/Fortran Compiler' in out:
                 cls = ArmLtdFlangFortranCompiler
+                version = ''
                 arm_ver_match = re.search(r'version (\d+)\.(\d+) \(build number (\d+)\)', out)
-                arm_ver_major = arm_ver_match.group(1)
-                arm_ver_minor = arm_ver_match.group(2)
-                arm_ver_build = arm_ver_match.group(3)
-                version = '.'.join([arm_ver_major, arm_ver_minor, arm_ver_build])
+                if arm_ver_match:
+                    arm_ver_major = arm_ver_match.group(1)
+                    arm_ver_minor = arm_ver_match.group(2)
+                    arm_ver_build = arm_ver_match.group(3)
+                    version = '.'.join([arm_ver_major, arm_ver_minor, arm_ver_build])
+                else:
+                    arm_ver_match = re.search(r'version (\d+)\.(\d+)\.(\d+) \(build number (\d+)\)', out)
+                    arm_ver_major = arm_ver_match.group(1)
+                    arm_ver_minor = arm_ver_match.group(2)
+                    arm_ver_patch = arm_ver_match.group(3)
+                    arm_ver_build = arm_ver_match.group(4)
+                    version = '.'.join([arm_ver_major, arm_ver_minor, arm_ver_patch, arm_ver_build])
                 linker = guess_nix_linker(env, compiler, cls, version, for_machine)
                 return cls(
                     ccache + compiler, version, for_machine, is_cross, info,
