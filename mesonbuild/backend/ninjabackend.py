@@ -850,7 +850,7 @@ class NinjaBackend(backends.Backend):
             compiled_sources.append(s)
             source2object[s] = o
             obj_list.append(o)
-            if s.endswith('.d'):
+            if s.split('.')[-1] in compilers.lang_suffixes['d']:
                 d_generated_deps.append(o)
 
         use_pch = self.environment.coredata.options.get(OptionKey('b_pch'))
