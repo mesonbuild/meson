@@ -1,5 +1,5 @@
 samelibname = shared_library(
   'sample',
-  sources : [],
+  sources : 'dummy.c',
   install : false,
 )
