@@ -3477,8 +3477,6 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
             target = self.__build_target_jar(
                 node, name, sources, struct, T.cast('kwargs.Jar', kwargs))
 
-        target.project_version = self.project_version
-
         self.add_target(name, target)
         self.project_args_frozen = True
         return target
