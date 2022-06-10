@@ -304,7 +304,7 @@ class FSModule(ExtensionModule):
             install=kwargs['install'],
             install_dir=kwargs['install_dir'],
             install_mode=kwargs['install_mode'],
-            install_tag=kwargs['install_tag'],
+            install_tag=[kwargs['install_tag']],
             backend=state.backend,
         )
 
