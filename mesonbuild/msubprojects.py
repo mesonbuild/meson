@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, InitVar
 import os, subprocess
 import argparse
@@ -13,11 +15,13 @@ import zipfile
 
 from . import mlog
 from .mesonlib import quiet_git, GitException, Popen_safe, MesonException, windows_proof_rmtree
-from .wrap.wrap import PackageDefinition, Resolver, WrapException, ALL_TYPES
+from .wrap.wrap import Resolver, WrapException, ALL_TYPES
 from .wrap import wraptool
 
 if T.TYPE_CHECKING:
     from typing_extensions import Protocol
+
+    from .wrap.wrap import PackageDefinition
 
     class Arguments(Protocol):
         sourcedir: str

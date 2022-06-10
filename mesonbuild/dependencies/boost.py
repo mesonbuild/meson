@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
 import re
 import dataclasses
@@ -20,14 +21,13 @@ from pathlib import Path
 
 from .. import mlog
 from .. import mesonlib
-from ..environment import Environment
 
 from .base import DependencyException, SystemDependency
 from .pkgconfig import PkgConfigDependency
 from .misc import threads_factory
 
 if T.TYPE_CHECKING:
-    from ..environment import Properties
+    from ..environment import Environment, Properties
 
 # On windows 3 directory layouts are supported:
 # * The default layout (versioned) installed:

@@ -11,12 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
 import typing as T
 import re
 
 from ..mesonlib import version_compare
-from ..compilers import CudaCompiler, Compiler
+from ..compilers import CudaCompiler
 
 from . import NewExtensionModule
 
@@ -27,6 +28,7 @@ from ..interpreterbase import (
 
 if T.TYPE_CHECKING:
     from . import ModuleState
+    from ..compilers import Compiler
 
 class CudaModule(NewExtensionModule):
 

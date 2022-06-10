@@ -11,14 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
 import sys, os, subprocess, shutil
 import shlex
-
-import argparse
-from typing import TextIO, Dict, List, Union, Tuple, Any, Optional
+import typing as T
 
 from .. import mlog
+
+if T.TYPE_CHECKING:
+    import argparse
 
 UNIXY_ENVVARS_COMPILER = {'c': 'CC',
                           'cpp': 'CXX',
@@ -86,16 +88,16 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
 
 class MachineInfo:
     def __init__(self) -> None:
-        self.compilers: Dict[str, List[str]] = {}
-        self.binaries: Dict[str, List[str]] = {}
-        self.properties: Dict[str, Union[str, List[str]]] = {}
-        self.compile_args: Dict[str, List[str]] = {}
-        self.link_args: Dict[str, List[str]] = {}
+        self.compilers: T.Dict[str, T.List[str]] = {}
+        self.binaries: T.Dict[str, T.List[str]] = {}
+        self.properties: T.Dict[str, T.Union[str, T.List[str]]] = {}
+        self.compile_args: T.Dict[str, T.List[str]] = {}
+        self.link_args: T.Dict[str, T.List[str]] = {}
 
-        self.system: Optional[str] = None
-        self.cpu: Optional[str] = None
-        self.cpu_family: Optional[str] = None
-        self.endian: Optional[str] = None
+        self.system: T.Optional[str] = None
+        self.cpu: T.Optional[str] = None
+        self.cpu_family: T.Optional[str] = None
+        self.endian: T.Optional[str] = None
 
 #parser = argparse.ArgumentParser(description='''Generate cross compilation definition file for the Meson build system.
 #
@@ -108,7 +110,7 @@ class MachineInfo:
 #'''
 #)
 
-def locate_path(program: str) -> List[str]:
+def locate_path(program: str) -> T.List[str]:
     if os.path.isabs(program):
         return [program]
     for d in os.get_exec_path():
@@ -117,7 +119,7 @@ def locate_path(program: str) -> List[str]:
             return [f]
     raise ValueError("%s not found on $PATH" % program)
 
-def write_args_line(ofile: TextIO, name: str, args: List[str]) -> None:
+def write_args_line(ofile: T.TextIO, name: str, args: T.List[str]) -> None:
     if len(args) == 0:
         return
     ostr = name + ' = ['
@@ -165,7 +167,7 @@ cpu_family_map = dict(mips64el="mips64",
 cpu_map = dict(armhf="arm7hlf",
                mips64el="mips64",)
 
-def deb_compiler_lookup(infos: MachineInfo, compilerstems: List[Tuple[str, str]], host_arch: str, gccsuffix: str) -> None:
+def deb_compiler_lookup(infos: MachineInfo, compilerstems: T.List[T.Tuple[str, str]], host_arch: str, gccsuffix: str) -> None:
     for langname, stem in compilerstems:
         compilername = f'{host_arch}-{stem}{gccsuffix}'
         try:
@@ -174,7 +176,7 @@ def deb_compiler_lookup(infos: MachineInfo, compilerstems: List[Tuple[str, str]]
         except ValueError:
             pass
 
-def detect_cross_debianlike(options: Any) -> MachineInfo:
+def detect_cross_debianlike(options: T.Any) -> MachineInfo:
     if options.debarch is None:
         cmd = ['dpkg-architecture']
     else:
@@ -258,7 +260,7 @@ def write_machine_file(infos: MachineInfo, ofilename: str, write_system_info: bo
             ofile.write(f"system = '{infos.system}'\n")
     os.replace(tmpfilename, ofilename)
 
-def detect_language_args_from_envvars(langname: str, envvar_suffix: str ='') -> Tuple[List[str], List[str]]:
+def detect_language_args_from_envvars(langname: str, envvar_suffix: str ='') -> T.Tuple[T.List[str], T.List[str]]:
     ldflags = tuple(shlex.split(os.environ.get('LDFLAGS' + envvar_suffix, '')))
     compile_args = shlex.split(os.environ.get(UNIXY_ENVVARS_FLAGS[langname] + envvar_suffix, ''))
     if langname in LANGS_USING_CPPFLAGS:
@@ -291,7 +293,7 @@ def detect_binaries_from_envvars(infos: MachineInfo, envvar_suffix:str ='') -> N
         if binstr:
             infos.binaries[binname] = shlex.split(binstr)
 
-def detect_cross_system(infos: MachineInfo, options: Any) -> None:
+def detect_cross_system(infos: MachineInfo, options: T.Any) -> None:
     for optname in ('system', 'cpu', 'cpu_family', 'endian'):
         v = getattr(options, optname)
         if not v:
@@ -299,7 +301,7 @@ def detect_cross_system(infos: MachineInfo, options: Any) -> None:
             sys.exit(1)
         setattr(infos, optname, v)
 
-def detect_cross_env(options: Any) -> MachineInfo:
+def detect_cross_env(options: T.Any) -> MachineInfo:
     if options.debarch:
         print('Detecting cross environment via dpkg-reconfigure.')
         infos = detect_cross_debianlike(options)
@@ -309,7 +311,7 @@ def detect_cross_env(options: Any) -> MachineInfo:
         detect_cross_system(infos, options)
     return infos
 
-def add_compiler_if_missing(infos: MachineInfo, langname: str, exe_names: List[str]) -> None:
+def add_compiler_if_missing(infos: MachineInfo, langname: str, exe_names: T.List[str]) -> None:
     if langname in infos.compilers:
         return
     for exe_name in exe_names:
@@ -325,12 +327,12 @@ def add_compiler_if_missing(infos: MachineInfo, langname: str, exe_names: List[s
         return
 
 def detect_missing_native_compilers(infos: MachineInfo) -> None:
-    # Any per-platform special detection should go here.
+    # T.Any per-platform special detection should go here.
     for langname, exes in TYPICAL_UNIXY_COMPILER_NAMES.items():
         add_compiler_if_missing(infos, langname, exes)
 
 def detect_missing_native_binaries(infos: MachineInfo) -> None:
-    # Any per-platform special detection should go here.
+    # T.Any per-platform special detection should go here.
     for toolname in sorted(UNIXY_ENVVARS_TOOLS.keys()):
         if toolname in infos.binaries:
             continue
@@ -338,7 +340,7 @@ def detect_missing_native_binaries(infos: MachineInfo) -> None:
         if exe:
             infos.binaries[toolname] = [exe]
 
-def detect_native_env(options: Any) -> MachineInfo:
+def detect_native_env(options: T.Any) -> MachineInfo:
     use_for_build = has_for_build()
     if use_for_build:
         mlog.log('Using FOR_BUILD envvars for detection')
@@ -352,7 +354,7 @@ def detect_native_env(options: Any) -> MachineInfo:
     detect_missing_native_binaries(infos)
     return infos
 
-def run(options: Any) -> None:
+def run(options: T.Any) -> None:
     if options.cross and options.native:
         sys.exit('You can only specify either --cross or --native, not both.')
     if not options.cross and not options.native:

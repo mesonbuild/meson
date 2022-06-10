@@ -11,17 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
+import uuid, os, operator
+import typing as T
 
 from . import backends
 from .. import build
 from .. import dependencies
 from .. import mesonlib
 from .. import mlog
-import uuid, os, operator
-import typing as T
-
 from ..mesonlib import MesonException, OptionKey
-from ..interpreter import Interpreter
+
+if T.TYPE_CHECKING:
+    from ..interpreter import Interpreter
 
 INDENT = '\t'
 XCODETYPEMAP = {'c': 'sourcecode.c.c',
