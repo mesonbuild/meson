@@ -56,7 +56,6 @@ if T.TYPE_CHECKING:
     from .._typing import ImmutableListProtocol
     from ..linkers import DynamicLinker, StaticLinker
     from ..compilers.cs import CsCompiler
-    from ..interpreter.interpreter import SourceOutputs
 
 
 FORTRAN_INCLUDE_PAT = r"^\s*#?include\s*['\"](\w+\.\w+)['\"]"
