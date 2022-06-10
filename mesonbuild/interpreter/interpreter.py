@@ -2353,6 +2353,13 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_install_subdir(self, node: mparser.BaseNode, args: T.Tuple[str],
                             kwargs: 'kwargs.FuncInstallSubdir') -> build.InstallDir:
         exclude = (set(kwargs['exclude_files']), set(kwargs['exclude_directories']))
+
+        srcdir = os.path.join(self.environment.source_dir, self.subdir, args[0])
+        if not os.path.isdir(srcdir) or not any(os.scandir(srcdir)):
+            FeatureNew.single_use('install_subdir with empty directory', '0.47.0', self.subproject, location=node)
+            FeatureDeprecated.single_use('install_subdir with empty directory', '0.60.0', self.subproject,
+                                         'It worked by accident and is buggy. Use install_emptydir instead.', node)
+
         idir = build.InstallDir(
             self.subdir,
             args[0],
