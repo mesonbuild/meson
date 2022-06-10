@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
 from glob import glob
 from pathlib import Path
@@ -26,10 +27,7 @@ import typing as T
 
 from . import build
 from . import environment
-from .backend.backends import (
-    InstallData, InstallDataBase, InstallEmptyDir, InstallSymlinkData,
-    TargetInstallData, ExecutableSerialisation
-)
+from .backend.backends import InstallData
 from .coredata import major_versions_differ, MesonVersionMismatchException
 from .coredata import version as coredata_version
 from .mesonlib import MesonException, Popen_safe, RealPathAction, is_windows, setup_vsenv
@@ -43,6 +41,10 @@ except ImportError:
     main_file = None
 
 if T.TYPE_CHECKING:
+    from .backend.backends import (
+            ExecutableSerialisation, InstallDataBase, InstallEmptyDir,
+            InstallSymlinkData, TargetInstallData
+    )
     from .mesonlib import FileMode
 
     try:

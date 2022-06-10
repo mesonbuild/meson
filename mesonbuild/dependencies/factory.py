@@ -18,7 +18,6 @@ import functools
 import typing as T
 
 from .base import DependencyException, DependencyMethods
-from .base import ExternalDependency
 from .base import process_method_kw
 from .base import BuiltinDependency, SystemDependency
 from .cmake import CMakeDependency
@@ -26,6 +25,7 @@ from .framework import ExtraFrameworkDependency
 from .pkgconfig import PkgConfigDependency
 
 if T.TYPE_CHECKING:
+    from .base import ExternalDependency
     from .configtool import ConfigToolDependency
     from ..environment import Environment
     from ..mesonlib import MachineChoice

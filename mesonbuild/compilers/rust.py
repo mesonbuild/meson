@@ -11,16 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
 import subprocess, os.path
 import textwrap
 import typing as T
 
 from .. import coredata
-from ..mesonlib import (
-    EnvironmentException, MachineChoice, MesonException, Popen_safe,
-    OptionKey,
-)
+from ..mesonlib import EnvironmentException, MesonException, Popen_safe, OptionKey
 from .compilers import Compiler, rust_buildtype_args, clike_debug_args
 
 if T.TYPE_CHECKING:
@@ -28,6 +26,7 @@ if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
     from ..environment import Environment  # noqa: F401
     from ..linkers import DynamicLinker
+    from ..mesonlib import MachineChoice
     from ..programs import ExternalProgram
 
 

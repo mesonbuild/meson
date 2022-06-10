@@ -27,11 +27,13 @@ from .. import build
 from .. import dependencies
 from .. import mlog
 from .. import compilers
-from ..interpreter import Interpreter
 from ..mesonlib import (
     File, MesonException, replace_if_different, OptionKey, version_compare, MachineChoice
 )
 from ..environment import Environment, build_filename
+
+if T.TYPE_CHECKING:
+    from ..interpreter import Interpreter
 
 
 def autodetect_vs_version(build: T.Optional[build.Build], interpreter: T.Optional[Interpreter]) -> backends.Backend:
