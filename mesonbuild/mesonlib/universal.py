@@ -1967,7 +1967,7 @@ class OptionOverrideProxy(collections.abc.Mapping):
             if opt.yielding:
                 opt = self.options.get(key.as_root(), opt)
         override_value = self.overrides.get(key.as_root())
-        if override_value is not None :
+        if override_value is not None:
             opt = copy.copy(opt)
             opt.set_value(override_value)
         return opt

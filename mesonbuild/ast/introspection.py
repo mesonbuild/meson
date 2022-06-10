@@ -184,7 +184,6 @@ class IntrospectionInterpreter(AstInterpreter):
                         options[k] = v
                     self.coredata.add_compiler_options(options, lang, for_machine, self.environment)
 
-
     def func_dependency(self, node: BaseNode, args: T.List[TYPE_nvar], kwargs: T.Dict[str, TYPE_nvar]) -> None:
         args = self.flatten_args(args)
         kwargs = self.flatten_kwargs(kwargs)

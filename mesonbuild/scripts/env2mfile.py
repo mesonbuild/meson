@@ -211,7 +211,7 @@ def detect_cross_debianlike(options: T.Any) -> MachineInfo:
     infos.binaries['objcopy'] = locate_path("%s-objcopy" % host_arch)
     infos.binaries['ld'] = locate_path("%s-ld" % host_arch)
     try:
-        infos.binaries['pkgconfig'] =  locate_path("%s-pkg-config" % host_arch)
+        infos.binaries['pkgconfig'] = locate_path("%s-pkg-config" % host_arch)
     except ValueError:
         pass # pkg-config is optional
     try:
@@ -260,7 +260,7 @@ def write_machine_file(infos: MachineInfo, ofilename: str, write_system_info: bo
             ofile.write(f"system = '{infos.system}'\n")
     os.replace(tmpfilename, ofilename)
 
-def detect_language_args_from_envvars(langname: str, envvar_suffix: str ='') -> T.Tuple[T.List[str], T.List[str]]:
+def detect_language_args_from_envvars(langname: str, envvar_suffix: str = '') -> T.Tuple[T.List[str], T.List[str]]:
     ldflags = tuple(shlex.split(os.environ.get('LDFLAGS' + envvar_suffix, '')))
     compile_args = shlex.split(os.environ.get(UNIXY_ENVVARS_FLAGS[langname] + envvar_suffix, ''))
     if langname in LANGS_USING_CPPFLAGS:
@@ -271,7 +271,7 @@ def detect_language_args_from_envvars(langname: str, envvar_suffix: str ='') -> 
     lang_link_args = list(ldflags) + compile_args
     return (lang_compile_args, lang_link_args)
 
-def detect_compilers_from_envvars(envvar_suffix:str ='') -> MachineInfo:
+def detect_compilers_from_envvars(envvar_suffix: str = '') -> MachineInfo:
     infos = MachineInfo()
     for langname, envvarname in UNIXY_ENVVARS_COMPILER.items():
         compilerstr = os.environ.get(envvarname + envvar_suffix)
@@ -286,7 +286,7 @@ def detect_compilers_from_envvars(envvar_suffix:str ='') -> MachineInfo:
             infos.link_args[langname] = lang_link_args
     return infos
 
-def detect_binaries_from_envvars(infos: MachineInfo, envvar_suffix:str ='') -> None:
+def detect_binaries_from_envvars(infos: MachineInfo, envvar_suffix: str = '') -> None:
     for binname, envvar_base in UNIXY_ENVVARS_TOOLS.items():
         envvar = envvar_base + envvar_suffix
         binstr = os.environ.get(envvar)

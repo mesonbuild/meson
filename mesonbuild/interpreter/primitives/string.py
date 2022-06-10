@@ -126,7 +126,7 @@ class StringHolder(ObjectHolder[str]):
     @typed_pos_args('str.substring', optargs=[int, int])
     def substring_method(self, args: T.Tuple[T.Optional[int], T.Optional[int]], kwargs: TYPE_kwargs) -> str:
         start = args[0] if args[0] is not None else 0
-        end   = args[1] if args[1] is not None else len(self.held_object)
+        end = args[1] if args[1] is not None else len(self.held_object)
         return self.held_object[start:end]
 
     @noKwargs

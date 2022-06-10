@@ -1637,9 +1637,9 @@ class Backend:
                         for output, tag in zip(t.get_outputs(), t.install_tag):
                             f = os.path.join(self.get_target_dir(t), output)
                             i = TargetInstallData(f, first_outdir, default_install_dir_name,
-                                                False, {}, set(), None, install_mode,
-                                                t.subproject, optional=not t.build_by_default,
-                                                tag=tag)
+                                                  False, {}, set(), None, install_mode,
+                                                  t.subproject, optional=not t.build_by_default,
+                                                  tag=tag)
                             d.targets.append(i)
                 else:
                     for output, outdir, tag in zip(t.get_outputs(), outdirs, t.install_tag):
