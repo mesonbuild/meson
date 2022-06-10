@@ -32,7 +32,6 @@ if T.TYPE_CHECKING:
     from ..build import Target
     from ..interpreter import Interpreter
     from ..interpreterbase import TYPE_var
-    from ..mparser import BaseNode
     from ..programs import ExternalProgram
 
     class MergeFile(TypedDict):
