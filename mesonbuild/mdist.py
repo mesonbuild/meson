@@ -23,7 +23,6 @@ import subprocess
 import tarfile
 import tempfile
 import hashlib
-import json
 from glob import glob
 from pathlib import Path
 from mesonbuild.environment import detect_ninja
