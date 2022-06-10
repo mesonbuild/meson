@@ -456,6 +456,9 @@ class DynamicLinker(metaclass=abc.ABCMeta):
     def get_lto_args(self) -> T.List[str]:
         return []
 
+    def get_thinlto_cache_args(self, path: str) -> T.List[str]:
+        return []
+
     def sanitizer_args(self, value: str) -> T.List[str]:
         return []
 
@@ -813,6 +816,9 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
         return (args, set())
 
+    def get_thinlto_cache_args(self, path: str) -> T.List[str]:
+        return ["-Wl,-cache_path_lto," + path]
+
 
 class GnuDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, DynamicLinker):
 
@@ -826,6 +832,9 @@ class GnuGoldDynamicLinker(GnuDynamicLinker):
 
     id = 'ld.gold'
 
+    def get_thinlto_cache_args(self, path: str) -> T.List[str]:
+        return ['-Wl,-plugin-opt,cache-dir=' + path]
+
 
 class GnuBFDDynamicLinker(GnuDynamicLinker):
 
@@ -835,6 +844,9 @@ class GnuBFDDynamicLinker(GnuDynamicLinker):
 class MoldDynamicLinker(GnuDynamicLinker):
 
     id = 'ld.mold'
+
+    def get_thinlto_cache_args(self, path: str) -> T.List[str]:
+        return ['-Wl,--thinlto-cache-dir=' + path]
 
 
 class LLVMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, DynamicLinker):
@@ -861,6 +873,9 @@ class LLVMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dyna
         if self.has_allow_shlib_undefined:
             return self._apply_prefix('--allow-shlib-undefined')
         return []
+
+    def get_thinlto_cache_args(self, path: str) -> T.List[str]:
+        return ['-Wl,--thinlto-cache-dir=' + path]
 
 
 class WASMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, DynamicLinker):
@@ -1303,6 +1318,9 @@ class ClangClDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
 
     def get_win_subsystem_args(self, value: str) -> T.List[str]:
         return self._apply_prefix([f'/SUBSYSTEM:{value.upper()}'])
+
+    def get_thinlto_cache_args(self, path: str) -> T.List[str]:
+        return ["/lldltocache:" + path]
 
 
 class XilinkDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):

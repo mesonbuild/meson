@@ -52,7 +52,8 @@ class ClangCompiler(GnuLikeCompiler):
         super().__init__()
         self.defines = defines or {}
         self.base_options.update(
-            {OptionKey('b_colorout'), OptionKey('b_lto_threads'), OptionKey('b_lto_mode')})
+            {OptionKey('b_colorout'), OptionKey('b_lto_threads'), OptionKey('b_lto_mode'), OptionKey('b_thinlto_cache'),
+             OptionKey('b_thinlto_cache_dir')})
 
         # TODO: this really should be part of the linker base_options, but
         # linkers don't have base_options.
@@ -162,8 +163,13 @@ class ClangCompiler(GnuLikeCompiler):
             args.extend(super().get_lto_compile_args(threads=threads))
         return args
 
-    def get_lto_link_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
+    def get_lto_link_args(self, *, threads: int = 0, mode: str = 'default',
+                          thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:
         args = self.get_lto_compile_args(threads=threads, mode=mode)
+        if mode == 'thin' and thinlto_cache_dir is not None:
+            # We check for ThinLTO linker support above in get_lto_compile_args, and all of them support
+            # get_thinlto_cache_args as well
+            args.extend(self.linker.get_thinlto_cache_args(thinlto_cache_dir))
         # In clang -flto-jobs=0 means auto, and is the default if unspecified, just like in meson
         if threads > 0:
             if not mesonlib.version_compare(self.version, '>=4.0.0'):
