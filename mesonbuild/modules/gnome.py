@@ -654,7 +654,7 @@ class GnomeModule(ExtensionModule):
                         _ld, depends = self._get_link_args(state, lib, depends, include_rpath)
                         internal_ldflags.update(_ld)
                         libdepflags = self._get_dependencies_flags_raw(lib.get_external_deps(), state, depends, include_rpath,
-                                                                   use_gir_args)
+                                                                       use_gir_args)
                         cflags.update(libdepflags[0])
                         internal_ldflags.update(libdepflags[1])
                         external_ldflags.update(libdepflags[2])
@@ -742,6 +742,7 @@ class GnomeModule(ExtensionModule):
                 external_ldflags.extend(ldflag)
 
         return cflags, internal_ldflags, external_ldflags, gi_includes, depends
+
     def _unwrap_gir_target(self, girtarget: T.Union[build.Executable, build.StaticLibrary, build.SharedLibrary], state: 'ModuleState'
                            ) -> T.Union[build.Executable, build.StaticLibrary, build.SharedLibrary]:
         if not isinstance(girtarget, (build.Executable, build.SharedLibrary,

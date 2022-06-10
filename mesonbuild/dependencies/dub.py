@@ -97,7 +97,8 @@ class DubDependency(ExternalDependency):
 
         # A command that might be useful in case of missing DUB package
         def dub_build_deep_command() -> str:
-            cmd = ['dub', 'run', 'dub-build-deep', '--yes', '--', main_pack_spec,
+            cmd = [
+                'dub', 'run', 'dub-build-deep', '--yes', '--', main_pack_spec,
                 '--arch=' + dub_arch, '--compiler=' + self.compiler.get_exelist()[-1],
                 '--build=' + dub_buildtype
             ]
@@ -260,7 +261,7 @@ class DubDependency(ExternalDependency):
         is_windows = self.env.machines.host.is_windows()
         if is_windows:
             winlibs = ['kernel32', 'user32', 'gdi32', 'winspool', 'shell32', 'ole32',
-                'oleaut32', 'uuid', 'comdlg32', 'advapi32', 'ws2_32']
+                       'oleaut32', 'uuid', 'comdlg32', 'advapi32', 'ws2_32']
 
         for lib in bs['libs']:
             if os.name != 'nt':
@@ -370,7 +371,6 @@ class DubDependency(ExternalDependency):
                 compatibilities = set.union(compatibilities, comps)
 
         return (None, compatibilities)
-
 
     def _call_dubbin(self, args: T.List[str], env: T.Optional[T.Dict[str, str]] = None) -> T.Tuple[int, str, str]:
         assert isinstance(self.dubbin, ExternalProgram)

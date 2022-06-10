@@ -127,7 +127,7 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     __failed_to_detect_linker(compiler, check_args, o, e)
 
 def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Type['Compiler'],
-                     comp_version:str, for_machine: MachineChoice, *,
+                     comp_version: str, for_machine: MachineChoice, *,
                      extra_args: T.Optional[T.List[str]] = None) -> 'DynamicLinker':
     """Helper for guessing what linker to use on Unix-Like OSes.
 
