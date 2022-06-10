@@ -2772,7 +2772,7 @@ class CustomTargetIndex(HoldableObject):
 
     def is_linkable_target(self) -> bool:
         suf = os.path.splitext(self.output)[-1]
-        return suf in {'.a', '.dll', '.lib', '.so'}
+        return suf in {'.a', '.dll', '.lib', '.so', '.dylib'}
 
     def links_dynamically(self) -> bool:
         """Whether this target links dynamically or statically
