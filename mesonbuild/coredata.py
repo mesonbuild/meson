@@ -22,7 +22,9 @@ from .mesonlib import (
     HoldableObject,
     MesonException, EnvironmentException, MachineChoice, PerMachine,
     PerMachineDefaultable, default_libdir, default_libexecdir,
-    default_prefix, split_args, OptionKey, OptionType, stringlistify,
+    default_prefix, default_datadir, default_includedir, default_infodir,
+    default_localedir, default_mandir, default_sbindir, default_sysconfdir,
+    split_args, OptionKey, OptionType, stringlistify,
     pickle_load, replace_if_different
 )
 from .wrap import WrapMode
@@ -1193,17 +1195,17 @@ class BuiltinOption(T.Generic[_T, _U]):
 BUILTIN_DIR_OPTIONS: 'MutableKeyedOptionDictType' = OrderedDict([
     (OptionKey('prefix'),          BuiltinOption(UserStringOption, 'Installation prefix', default_prefix())),
     (OptionKey('bindir'),          BuiltinOption(UserStringOption, 'Executable directory', 'bin')),
-    (OptionKey('datadir'),         BuiltinOption(UserStringOption, 'Data file directory', 'share')),
-    (OptionKey('includedir'),      BuiltinOption(UserStringOption, 'Header file directory', 'include')),
-    (OptionKey('infodir'),         BuiltinOption(UserStringOption, 'Info page directory', 'share/info')),
+    (OptionKey('datadir'),         BuiltinOption(UserStringOption, 'Data file directory', default_datadir())),
+    (OptionKey('includedir'),      BuiltinOption(UserStringOption, 'Header file directory', default_includedir())),
+    (OptionKey('infodir'),         BuiltinOption(UserStringOption, 'Info page directory', default_infodir())),
     (OptionKey('libdir'),          BuiltinOption(UserStringOption, 'Library directory', default_libdir())),
     (OptionKey('libexecdir'),      BuiltinOption(UserStringOption, 'Library executable directory', default_libexecdir())),
-    (OptionKey('localedir'),       BuiltinOption(UserStringOption, 'Locale data directory', 'share/locale')),
+    (OptionKey('localedir'),       BuiltinOption(UserStringOption, 'Locale data directory', default_localedir())),
     (OptionKey('localstatedir'),   BuiltinOption(UserStringOption, 'Localstate data directory', 'var')),
-    (OptionKey('mandir'),          BuiltinOption(UserStringOption, 'Manual page directory', 'share/man')),
-    (OptionKey('sbindir'),         BuiltinOption(UserStringOption, 'System executable directory', 'sbin')),
+    (OptionKey('mandir'),          BuiltinOption(UserStringOption, 'Manual page directory', default_mandir())),
+    (OptionKey('sbindir'),         BuiltinOption(UserStringOption, 'System executable directory', default_sbindir())),
     (OptionKey('sharedstatedir'),  BuiltinOption(UserStringOption, 'Architecture-independent data directory', 'com')),
-    (OptionKey('sysconfdir'),      BuiltinOption(UserStringOption, 'Sysconf data directory', 'etc')),
+    (OptionKey('sysconfdir'),      BuiltinOption(UserStringOption, 'Sysconf data directory', default_sysconfdir())),
 ])
 
 BUILTIN_CORE_OPTIONS: 'MutableKeyedOptionDictType' = OrderedDict([
