@@ -186,7 +186,7 @@ class DubDependency(ExternalDependency):
         for tgt in description['targets']:
             targets[tgt['rootPackage']] = tgt
 
-        if not name in targets:
+        if name not in targets:
             self.is_found = False
             if self.pkg['targetType'] == 'sourceLibrary':
                 # source libraries have no associated targets,
@@ -231,13 +231,13 @@ class DubDependency(ExternalDependency):
             self.compile_args.append('-I' + path)
 
         for path in bs['stringImportPaths']:
-            if not 'import_dir' in d_feature_args[self.compiler.id]:
+            if 'import_dir' not in d_feature_args[self.compiler.id]:
                 break
             flag = d_feature_args[self.compiler.id]['import_dir']
             self.compile_args.append(f'{flag}={path}')
 
         for ver in bs['versions']:
-            if not 'version' in d_feature_args[self.compiler.id]:
+            if 'version' not in d_feature_args[self.compiler.id]:
                 break
             flag = d_feature_args[self.compiler.id]['version']
             self.compile_args.append(f'{flag}={ver}')
