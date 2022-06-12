@@ -195,7 +195,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
                 if comp.id == "gcc":
                     if imp_lower == 'pypy' and verdot == '3.8':
                         # The naming changed between 3.8 and 3.9
-                        libpath = Path(f'libpypy3-c.dll')
+                        libpath = Path('libpypy3-c.dll')
                     elif imp_lower == 'pypy':
                         libpath = Path(f'libpypy{verdot}-c.dll')
                     else:
