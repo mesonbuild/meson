@@ -136,7 +136,7 @@ def get_current_version(wrapfile: str) -> T.Tuple[str, str, str, str, T.Optional
     try:
         wrap_data = cp['wrap-file']
     except KeyError:
-        raise WrapException(f'Not a wrap-file, cannot have come from the wrapdb')
+        raise WrapException('Not a wrap-file, cannot have come from the wrapdb')
     try:
         patch_url = wrap_data['patch_url']
     except KeyError:

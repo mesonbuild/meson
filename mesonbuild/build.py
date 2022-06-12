@@ -2689,7 +2689,7 @@ class Jar(BuildTarget):
             if not isinstance(t, Jar):
                 raise InvalidArguments(f'Link target {t} is not a jar target.')
         if self.structured_sources:
-            raise InvalidArguments(f'structured sources are not supported in Java targets.')
+            raise InvalidArguments('structured sources are not supported in Java targets.')
         self.filename = self.name + '.jar'
         self.outputs = [self.filename]
         self.java_args = kwargs.get('java_args', [])
