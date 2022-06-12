@@ -60,7 +60,7 @@ def get_wine_shortpath(build_dir: str, winecmd: str, wine_paths: T.List[str]) ->
         stdout = subprocess.check_output([winecmd, 'cmd', '/C', bat_file.name] + abs_paths,
                                          encoding='utf-8', stderr=subprocess.DEVNULL)
         return rel_paths + [p for p in set(stdout.split(';')) if p]
-    except subprocess.CalledProcessError as e:
+    except subprocess.CalledProcessError:
         return rel_paths + abs_paths
     finally:
         os.unlink(bat_file.name)
