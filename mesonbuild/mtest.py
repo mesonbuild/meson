@@ -618,7 +618,7 @@ class ConsoleLogger(TestLogger):
             self.progress_task = asyncio.ensure_future(report_progress())
 
     def start_test(self, harness: 'TestHarness', test: 'TestRun') -> None:
-        if test.verbose > 1 and test.cmdline:
+        if test.verbose >= 2 and test.cmdline:
             if self.should_print_closing_line:
                 self.print_horizontal_line(harness)
                 self.should_print_closing_line = False
@@ -690,13 +690,37 @@ class ConsoleLogger(TestLogger):
                              prefix: str,
                              name: str,
                              result: 'TestResult') -> None:
-        max_width = self.cols - len(prefix) - 2
+        max_width = self.cols - len(prefix)
+
+        if self.should_print_closing_line:
+            self.print_horizontal_line(harness)
+            self.should_print_closing_line = False
+
+        self.safe_print(prefix + harness.format_subtest(None,
+                                                        name,
+                                                        result,
+                                                        max_total_width=max_width,
+                                                        italic=True))
+        self.request_update()
+
+    def print_subtests_section_line(self,
+                                    harness: 'TestHarness',
+                                    prefix: str,
+                                    name: str,
+                                    result: 'TestResult',
+                                    max_total_width: T.Optional[int] = None,
+                                    max_name_length: T.Optional[int] = None) -> None:
+        if not max_total_width:
+            max_total_width = self.cols - len(prefix) - 2
+
         self.print_line(prefix,
                         harness.format_subtest(None,
                                                name,
                                                result,
-                                               max_total_width=max_width,
-                                               True))
+                                               name_max_len=max_name_length,
+                                               max_total_width=max_total_width))
+
+        self.should_print_closing_line = True
 
     def print_subtests_section(self,
                                harness: 'TestHarness',
@@ -704,16 +728,17 @@ class ConsoleLogger(TestLogger):
                                result: 'TestRun') -> None:
         if result.results:
             self.print_header(prefix, 'subtest results', update=False)
+
         max_width = self.cols - len(prefix) - 2
         name_max_len = max(len(subtest.name or str(subtest.number)) for subtest in result.results)
+
         for subtest in result.results:
-            name = subtest.name or str(subtest.number)
-            self.print_line(prefix,
-                            harness.format_subtest(None,
-                                                   name,
-                                                   subtest.result,
-                                                   name_max_len=name_max_len,
-                                                   max_total_width=max_width))
+            self.print_subtests_section_line(harness,
+                                             prefix,
+                                             subtest.name or str(subtest.number),
+                                             subtest.result,
+                                             max_name_length=name_max_len,
+                                             max_total_width=max_width)
 
     def print_horizontal_line(self, harness: 'TestHarness') -> None:
         self.safe_print(dashes(None, '-', harness.get_formatted_line_length(self.cols)))
@@ -728,7 +753,7 @@ class ConsoleLogger(TestLogger):
                 self.print_horizontal_line(harness)
             if not result.direct_output:
                 self.print_command_details(prefix, result)
-            if result.stdo and (result.verbose > 1
+            if result.stdo and (result.verbose >= 2
                                 or (not result.needs_parsing
                                     and not result.direct_output)):
                 if harness.options.split or result.stde:
@@ -1554,6 +1579,7 @@ class SingleTestRunner:
     async def _run_cmd(self, harness: 'TestHarness', cmd: T.List[str]) -> None:
         console_log = harness.get_console_logger()
         prefix = None  # type: T.Optional[str]
+        subtest_num = 0
         printer_header = None
 
         # The test numbers get enumerated when self.runobj.num is accessed
@@ -1566,6 +1592,12 @@ class SingleTestRunner:
                 prefix = harness.get_test_num_prefix(self.runobj.num)
             return prefix
 
+        def get_subtest_prefix() -> str:
+            nonlocal subtest_num
+            subtest_num += 1
+            cur, total = get_prefix().rstrip().split('/')
+            return f'{cur}/{total}:{subtest_num} '
+
         def printer(line: str, result: T.Optional[TestResult]) -> None:
             nonlocal printer_header
             if self.runobj.direct_output:
@@ -1573,12 +1605,17 @@ class SingleTestRunner:
                     console_log.print_header(get_prefix(), printer_header)
                     printer_header = None
                 if result:
-                    console_log.print_subtest_result(harness,
-                                                     get_prefix(),
-                                                     line,
-                                                     result)
+                    console_log.print_subtests_section_line(harness,
+                                                            get_prefix(),
+                                                            line,
+                                                            result)
                 else:
                     console_log.print_line(get_prefix(), line)
+            elif result and self.runobj.verbose >= 1:
+                console_log.print_subtest_result(harness,
+                                                 get_subtest_prefix(),
+                                                 line,
+                                                 result)
 
         if self.console_mode is ConsoleUser.GDB:
             stdout = None

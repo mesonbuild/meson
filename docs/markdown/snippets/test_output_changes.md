@@ -7,10 +7,9 @@ test) get printed was updated. Most notable changes are:
 * "headers" and indentation is used to group relevant lines together
 * the style in which subtest results are listed changed
 
-Results of individual subtests are displayed only in verbose mode or when
-printing details of a failed test. Specifying the verbose option twice
-will now produce even more output including the unparsed full output of
-the tests.
+Specifying verbose option once will make test details be printed after a
+test has completed. Specifying the verbose option twice will produce even
+more output such as the raw output of a parsed test in test details.
 
 The "live" output (when being verbose and using only one process) now
 follows the (new) style of the normal verbose output more closely.
