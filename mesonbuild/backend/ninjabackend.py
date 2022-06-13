@@ -2824,8 +2824,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def get_import_filename(self, target):
         return os.path.join(self.get_target_dir(target), target.import_filename)
 
-    def get_target_type_link_args(self, target, linker):
-        commands = []
+    def get_target_type_link_args(self, target: build.BuildTarget, linker: Compiler) -> T.List[str]:
+        commands: T.List[str] = []
         if isinstance(target, build.Executable):
             # Currently only used with the Swift compiler to add '-emit-executable'
             commands += linker.get_std_exe_link_args()
