@@ -248,9 +248,13 @@ class TestResult(enum.Enum):
             decorator = mlog.blue
         return decorator(s)
 
-    def get_text(self, colorize: bool, right_align: bool = False) -> str:
+    def get_text(self,
+                 colorize: bool,
+                 right_align: bool = False,
+                 lower: bool = False) -> str:
         fmt = '{res:>{reslen}}' if right_align else '{res:{reslen}}'
-        colorized_value = self.colorize(self.value).get_text(colorize)
+        value = self.value.lower() if lower else self.value
+        colorized_value = self.colorize(value).get_text(colorize)
         return fmt.format(
                 res=colorized_value,
                 reslen=self.maxlen() + (len(colorized_value) - len(self.value)))
@@ -615,7 +619,9 @@ class ConsoleLogger(TestLogger):
 
     def start_test(self, harness: 'TestHarness', test: 'TestRun') -> None:
         if test.verbose > 1 and test.cmdline:
-            self.print_horizontal_line(harness)
+            if self.should_print_closing_line:
+                self.print_horizontal_line(harness)
+                self.should_print_closing_line = False
             self.print_test_status(harness, test)
         self.started_tests += 1
         self.running_tests.add(test)
@@ -689,7 +695,8 @@ class ConsoleLogger(TestLogger):
                         harness.format_subtest(None,
                                                name,
                                                result,
-                                               max_total_width=max_width))
+                                               max_total_width=max_width,
+                                               True))
 
     def print_subtests_section(self,
                                harness: 'TestHarness',
@@ -1815,7 +1822,8 @@ class TestHarness:
                middle: T.Optional[str] = None,
                right: T.Optional[str] = None,
                extra_mid_width: T.Optional[int] = None,
-               max_total_width: T.Optional[int] = None) -> str:
+               max_total_width: T.Optional[int] = None,
+               lower: T.Optional[bool] = False) -> str:
         if left is None:
             left = self.get_test_num_prefix(result.num)
 
@@ -1830,7 +1838,7 @@ class TestHarness:
         middle += ' ' * max(1, extra_mid_width)
 
         if right is None:
-            res = result.res.get_text(colorize, right_align=True)
+            res = result.res.get_text(colorize, right_align=True, lower=lower)
             durlen = max(self.duration_max_len + 3, 2*self.duration_max_len + 1)
             if result.duration:
                 right = f'{res} {result.duration:>{durlen}.2f}s'
@@ -1889,17 +1897,21 @@ class TestHarness:
                        name: str,
                        result: TestResult,
                        name_max_len: T.Optional[int] = None,
-                       max_total_width: T.Optional[int] = None) -> str:
+                       max_total_width: T.Optional[int] = None,
+                       italic: bool = False) -> str:
         extra_middle = 0
         if name_max_len:
             extra_middle = 1 + name_max_len - len(name)
+        if italic:
+            name = mlog.italic(name).get_text(mlog.colorize_console())
         return self.format(test,
                            colorize=mlog.colorize_console(),
                            extra_mid_width=extra_middle,
                            left='',
                            middle=name,
-                           right=result.get_text(mlog.colorize_console()).strip(),
-                           max_total_width=max_total_width)
+                           right=result.get_text(mlog.colorize_console(), lower=True).strip(),
+                           max_total_width=max_total_width,
+                           lower=True)
 
     def summary(self) -> str:
         return textwrap.dedent('''
