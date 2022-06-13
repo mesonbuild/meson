@@ -15,6 +15,10 @@
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool.
 
+import os
+import sys
+import typing as T
+
 from .visitor import AstVisitor
 from .. import mparser, mesonlib
 from .. import environment
@@ -59,9 +63,6 @@ from ..mparser import (
     TernaryNode,
     UMinusNode,
 )
-
-import os, sys
-import typing as T
 
 if T.TYPE_CHECKING:
     from ..interpreter import Interpreter

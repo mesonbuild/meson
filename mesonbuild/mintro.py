@@ -19,21 +19,19 @@ tests and so on. All output is in JSON for simple parsing.
 Currently only works for the Ninja backend. Others use generated
 project files and don't need this info."""
 
+import argparse
 import collections
 import json
-from . import build, coredata as cdata
-from . import mesonlib
-from .ast import IntrospectionInterpreter, BUILD_TARGET_FUNCTIONS, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstJSONPrinter
-from . import mlog
-from .backend import backends
-from .mparser import BaseNode, FunctionNode, ArrayNode, ArgumentNode, StringNode
-from .interpreter import Interpreter
+import os
 from pathlib import Path, PurePath
 import typing as T
-import os
-import argparse
 
+from . import build, mesonlib, mlog, coredata as cdata
+from .ast import IntrospectionInterpreter, BUILD_TARGET_FUNCTIONS, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstJSONPrinter
+from .backend import backends
+from .interpreter import Interpreter
 from .mesonlib import OptionKey
+from .mparser import BaseNode, FunctionNode, ArrayNode, ArgumentNode, StringNode
 
 def get_meson_info_file(info_dir: str) -> str:
     return os.path.join(info_dir, 'meson-info.json')
