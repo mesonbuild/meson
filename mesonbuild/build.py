@@ -40,7 +40,7 @@ from .compilers import (
     is_object, clink_langs, sort_clink,
     is_known_suffix, detect_static_linker
 )
-from .interpreterbase import FeatureNew, FeatureDeprecated
+from .interpreterbase import FeatureNew
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, Protocol, TypedDict
@@ -776,7 +776,8 @@ class BuildTarget(Target, metaclass=abc.ABCMeta):
             self.extra_args.update(T.cast('T.Mapping[str, T.List[FileOrString]]', language_args))
         if pch_args is not None:
             for k, v in pch_args.items():
-                self.add_pch(k, v)
+                if v:
+                    self.pch[k] = v
 
         # Yes, forcing 1 here is intended
         self.install_tag = _process_install_tag(install_tag, 1)
@@ -1333,37 +1334,6 @@ You probably should put it in link_with instead.''')
             if t.is_internal():
                 objs += t.extract_all_objects_recurse()
         return objs
-
-    def add_pch(self, language: str, pchlist: T.List[str]) -> None:
-        if not pchlist:
-            return
-        elif len(pchlist) == 1:
-            if not environment.is_header(pchlist[0]):
-                raise InvalidArguments(f'PCH argument {pchlist[0]} is not a header.')
-        elif len(pchlist) == 2:
-            if environment.is_header(pchlist[0]):
-                if not environment.is_source(pchlist[1]):
-                    raise InvalidArguments('PCH definition must contain one header and at most one source.')
-            elif environment.is_source(pchlist[0]):
-                if not environment.is_header(pchlist[1]):
-                    raise InvalidArguments('PCH definition must contain one header and at most one source.')
-                pchlist = [pchlist[1], pchlist[0]]
-            else:
-                raise InvalidArguments(f'PCH argument {pchlist[0]} is of unknown type.')
-
-            if os.path.dirname(pchlist[0]) != os.path.dirname(pchlist[1]):
-                raise InvalidArguments('PCH files must be stored in the same folder.')
-
-            FeatureDeprecated.single_use('PCH source files', '0.50.0', self.subproject,
-                                         'Only a single header file should be used.')
-        elif len(pchlist) > 2:
-            raise InvalidArguments('PCH definition may have a maximum of 2 files.')
-        for f in pchlist:
-            if not isinstance(f, str):
-                raise MesonException('PCH arguments must be strings.')
-            if not os.path.isfile(os.path.join(self.environment.source_dir, self.subdir, f)):
-                raise MesonException(f'File {f} does not exist.')
-        self.pch[language] = pchlist
 
     def add_include_dirs(self, args: T.Sequence['IncludeDirs'], set_is_system: T.Optional[str] = None) -> None:
         ids: T.List['IncludeDirs'] = []

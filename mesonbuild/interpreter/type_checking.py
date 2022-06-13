@@ -28,6 +28,7 @@ from ..build import (
 )
 from ..coredata import UserFeatureOption
 from ..dependencies import Dependency, InternalDependency
+from .. import environment
 from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo
 from ..mesonlib import File, FileMode, MachineChoice, listify, has_path_sep, OptionKey
 from ..programs import ExternalProgram
@@ -456,12 +457,35 @@ VARIABLES_KW: KwargInfo[T.Dict[str, str]] = KwargInfo(
 
 PRESERVE_PATH_KW: KwargInfo[bool] = KwargInfo('preserve_path', bool, default=False, since='0.63.0')
 
+def _pch_validator(val: T.List[str]) -> T.Optional[str]:
+    if len(val) > 2:
+        return 'must be of length 1 or 2 if provided'
+
+    if len(val) == 1:
+        if not environment.is_header(val[0]):
+            return f'PCH argument {val[0]} is not a header'
+    else:
+        err = 'PCH definition must contain one header and at most one source.'
+        if len(val) == 0:
+            return err
+        if environment.is_header(val[0]):
+            if not environment.is_source(val[1]):
+                return err
+        elif environment.is_source(val[0]):
+            if not environment.is_header(val[1]):
+                return err
+            val = [val[1], val[0]]
+
+        if os.path.dirname(val[0]) != os.path.dirname(val[1]):
+            return 'PCH files must be stored in the same folder.'
+    return None
+
 _PCH_KW: KwargInfo[T.List[str]] = KwargInfo(
     'c_pch',
     ContainerTypeInfo(list, str),
     default=[],
     listify=True,
-    validator=lambda x: 'must be of length 1 or 2 if provided' if len(x) > 2 else None,
+    validator=_pch_validator,
 )
 
 _VS_MODULE_DEF_KW: KwargInfo[T.Union[str, File, CustomTarget, CustomTargetIndex]] = KwargInfo(

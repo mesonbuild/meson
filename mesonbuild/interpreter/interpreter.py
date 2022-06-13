@@ -3443,6 +3443,15 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
         if kwargs['install_vala_gir'] is None:
             kwargs['install_vala_gir'] = False
 
+        for pchlist in [kwargs['c_pch'], kwargs['cpp_pch']]:
+            if len(pchlist) == 2:
+                FeatureDeprecated.single_use(
+                    'PCH source files', '0.50.0', self.subproject,
+                    'Only a single header file should be used.', location=node)
+            for f in pchlist:
+                if not os.path.isfile(os.path.join(self.environment.source_dir, self.subdir, f)):
+                    raise InterpreterException(f'File "{os.path.join(self.subdir, f)}" does not exist.')
+
         # Filter out kwargs from other target types. For example 'soversion'
         # passed to library() when default_library == 'static'.
         if targetclass is build.Executable:
