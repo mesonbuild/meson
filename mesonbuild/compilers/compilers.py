@@ -1271,6 +1271,9 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def needs_static_linker(self) -> bool:
         raise NotImplementedError(f'There is no static linker for {self.language}')
 
+    def gen_vs_module_defs_args(self, defsfile: str) -> T.List[str]:
+        return []
+
 
 def get_global_options(lang: str,
                        comp: T.Type[Compiler],
