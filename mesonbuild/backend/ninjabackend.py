@@ -499,7 +499,7 @@ class NinjaBackend(backends.Backend):
         # use backslashes, but without the leading drive name, so
         # allow the path to start with any path separator, i.e.
         # \MyDir\include\stdio.h.
-        matchre = re.compile(rb"^(.*\s)([a-zA-Z]:\\|[\\\/]).*stdio.h$")
+        matchre = re.compile(rb"^(.*\s)([a-zA-Z]:[\\/]|[\\\/]).*stdio.h$")
 
         def detect_prefix(out):
             for line in re.split(rb'\r?\n', out):
@@ -516,7 +516,7 @@ class NinjaBackend(backends.Backend):
         if result:
             return result
 
-        raise MesonException('Could not determine vs dep dependency prefix string.')
+        raise MesonException(f'Could not determine vs dep dependency prefix string. output: {stderr} {stdout}')
 
     def generate(self):
         ninja = environment.detect_ninja_command_and_version(log=True)
