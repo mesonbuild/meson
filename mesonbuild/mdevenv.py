@@ -185,9 +185,8 @@ def run(options: argparse.Namespace) -> int:
             args = [shell_env]
         elif is_windows():
             shell = get_windows_shell()
-            if shell == 'powershell.exe':
-                args = ['powershell.exe']
-                args += ['-NoLogo', '-NoExit']
+            if shell in ['powershell.exe', 'pwsh.exe']:
+                args = [shell, '-NoLogo', '-NoExit']
                 prompt = f'function global:prompt {{  "{prompt_prefix} PS " + $PWD + "> "}}'
                 args += ['-Command', prompt]
             else:
