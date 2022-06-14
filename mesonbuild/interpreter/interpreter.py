@@ -60,21 +60,28 @@ from .type_checking import (
     MULTI_OUTPUT_KW,
     OUTPUT_KW,
     DEFAULT_OPTIONS,
+    DEPENDENCIES_KW,
     DEPENDS_KW,
     DEPEND_FILES_KW,
     DEPFILE_KW,
     DISABLER_KW,
+    D_MODULE_VERSIONS_KW,
     ENV_KW,
     ENV_METHOD_KW,
     ENV_SEPARATOR_KW,
+    INCLUDE_DIRECTORIES,
     INSTALL_KW,
     INSTALL_DIR_KW,
     INSTALL_MODE_KW,
+    LINK_WITH_KW,
+    LINK_WHOLE_KW,
     CT_INSTALL_TAG_KW,
     INSTALL_TAG_KW,
     LANGUAGE_KW,
     NATIVE_KW,
     REQUIRED_KW,
+    SOURCES_KW,
+    VARIABLES_KW,
     NoneType,
     in_set_validator,
     variables_validator,
@@ -626,7 +633,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_files(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> T.List[mesonlib.File]:
         return self.source_strings_to_files(args[0])
 
-    # Used by declare_dependency() and pkgconfig.generate()
+    # Used by pkgconfig.generate()
     def extract_variables(self, kwargs: T.Dict[str, T.Union[T.Dict[str, str], T.List[str], str]],
                           argname: str = 'variables', list_new: bool = False,
                           dict_new: bool = False) -> T.Dict[str, str]:
@@ -650,27 +657,34 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         return variables
 
-    @FeatureNewKwargs('declare_dependency', '0.46.0', ['link_whole'])
-    @FeatureNewKwargs('declare_dependency', '0.54.0', ['variables'])
-    @FeatureNewKwargs('declare_dependency', '0.62.0', ['d_module_versions', 'd_import_dirs'])
-    @permittedKwargs({'include_directories', 'link_with', 'sources', 'dependencies',
-                      'compile_args', 'link_args', 'link_whole', 'version',
-                      'variables', 'd_module_versions', 'd_import_dirs'})
     @noPosargs
+    @typed_kwargs(
+        'declare_dependency',
+        KwargInfo('compile_args', ContainerTypeInfo(list, str), listify=True, default=[]),
+        INCLUDE_DIRECTORIES.evolve(name='d_import_dirs', since='0.62.0'),
+        D_MODULE_VERSIONS_KW.evolve(since='0.62.0'),
+        KwargInfo('link_args', ContainerTypeInfo(list, str), listify=True, default=[]),
+        DEPENDENCIES_KW,
+        INCLUDE_DIRECTORIES,
+        LINK_WITH_KW,
+        LINK_WHOLE_KW.evolve(since='0.46.0'),
+        SOURCES_KW,
+        VARIABLES_KW.evolve(since='0.54.0', since_values={list: '0.56.0'}),
+        KwargInfo('version', (str, NoneType)),
+    )
     def func_declare_dependency(self, node, args, kwargs):
-        version = kwargs.get('version', self.project_version)
-        if not isinstance(version, str):
-            raise InterpreterException('Version must be a string.')
+        deps = kwargs['dependencies']
         incs = self.extract_incdirs(kwargs)
-        libs = extract_as_list(kwargs, 'link_with')
-        libs_whole = extract_as_list(kwargs, 'link_whole')
-        sources = extract_as_list(kwargs, 'sources')
-        sources = listify(self.source_strings_to_files(sources))
-        deps = extract_as_list(kwargs, 'dependencies')
-        compile_args = mesonlib.stringlistify(kwargs.get('compile_args', []))
-        link_args = mesonlib.stringlistify(kwargs.get('link_args', []))
-        variables = self.extract_variables(kwargs, list_new=True)
-        d_module_versions = extract_as_list(kwargs, 'd_module_versions')
+        libs = kwargs['link_with']
+        libs_whole = kwargs['link_whole']
+        sources = self.source_strings_to_files(kwargs['sources'])
+        compile_args = kwargs['compile_args']
+        link_args = kwargs['link_args']
+        variables = kwargs['variables']
+        version = kwargs['version']
+        if version is None:
+            version = self.project_version
+        d_module_versions = kwargs['d_module_versions']
         d_import_dirs = self.extract_incdirs(kwargs, 'd_import_dirs')
         srcdir = Path(self.environment.source_dir)
         # convert variables which refer to an -uninstalled.pc style datadir
@@ -688,18 +702,6 @@ class Interpreter(InterpreterBase, HoldableObject):
             if not isinstance(d, dependencies.Dependency):
                 raise InterpreterException('Invalid dependency')
 
-        dep_err = 'declare_dependency: Entries in "{}" may only be self-built targets, external dependencies (including libraries) must go to "dependencies".'
-
-        for l in libs:
-            if isinstance(l, dependencies.Dependency):
-                raise InvalidArguments(dep_err.format('link_with'))
-        for l in libs_whole:
-            if isinstance(l, dependencies.Dependency):
-                raise InvalidArguments(dep_err.format('link_whole'))
-            if isinstance(l, build.SharedLibrary):
-                raise InvalidArguments('declare_dependency: SharedLibrary objects are not allowed in "link_whole"')
-            if isinstance(l, (build.CustomTarget, build.CustomTargetIndex)) and l.links_dynamically():
-                raise InvalidArguments('declare_dependency: CustomTarget and CustomTargetIndex returning shared libaries are not allowed in "link_whole"')
         dep = dependencies.InternalDependency(version, incs, compile_args,
                                               link_args, libs, libs_whole, sources, deps,
                                               variables, d_module_versions, d_import_dirs)
