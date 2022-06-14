@@ -48,16 +48,15 @@ class ExternalProject:
         with open(self.stampfile, 'w', encoding='utf-8'):
             pass
 
-    def gnu_make(self) -> bool:
+    def supports_jobs_flag(self) -> bool:
         p, o, e = Popen_safe(self.make + ['--version'])
-        if p.returncode == 0 and 'GNU Make' in o:
+        if p.returncode == 0 and ('GNU Make' in o or 'waf' in o):
             return True
         return False
 
     def build(self) -> int:
-        is_make = self.make[0] == 'make'
         make_cmd = self.make.copy()
-        if is_make and self.gnu_make():
+        if self.supports_jobs_flag():
             make_cmd.append(f'-j{multiprocessing.cpu_count()}')
         rc = self._run('build', make_cmd)
         if rc != 0:
