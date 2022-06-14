@@ -14,8 +14,12 @@
 
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool
+from __future__ import annotations
 
-from .. import mparser
+import typing as T
+
+if T.TYPE_CHECKING:
+    from .. import mparser
 
 class AstVisitor:
     def __init__(self) -> None:

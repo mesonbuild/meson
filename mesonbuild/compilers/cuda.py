@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
 import enum
 import os.path
@@ -20,19 +21,21 @@ import typing as T
 from .. import coredata
 from .. import mlog
 from ..mesonlib import (
-    EnvironmentException, MachineChoice, Popen_safe, OptionOverrideProxy,
+    EnvironmentException, Popen_safe, OptionOverrideProxy,
     is_windows, LibType, OptionKey,
 )
 from .compilers import (Compiler, cuda_buildtype_args, cuda_optimization_args,
-                        cuda_debug_args, CompileCheckMode)
+                        cuda_debug_args)
 
 if T.TYPE_CHECKING:
+    from .compilers import CompileCheckMode
     from ..build import BuildTarget
     from ..coredata import MutableKeyedOptionDictType, KeyedOptionDictType
     from ..dependencies import Dependency
     from ..environment import Environment  # noqa: F401
     from ..envconfig import MachineInfo
     from ..linkers import DynamicLinker
+    from ..mesonlib import MachineChoice
     from ..programs import ExternalProgram
 
 

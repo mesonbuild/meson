@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
 import copy
 import functools
@@ -19,13 +20,12 @@ import typing as T
 
 from .. import coredata
 from .. import mlog
-from ..mesonlib import MesonException, MachineChoice, version_compare, OptionKey
+from ..mesonlib import MesonException, version_compare, OptionKey
 
 from .compilers import (
     gnu_winlibs,
     msvc_winlibs,
     Compiler,
-    CompileCheckMode,
 )
 from .c_function_attributes import CXX_FUNC_ATTRIBUTES, C_FUNC_ATTRIBUTES
 from .mixins.clike import CLikeCompiler
@@ -41,11 +41,13 @@ from .mixins.pgi import PGICompiler
 from .mixins.emscripten import EmscriptenMixin
 
 if T.TYPE_CHECKING:
+    from .compilers import CompileCheckMode
     from ..coredata import MutableKeyedOptionDictType, KeyedOptionDictType
     from ..dependencies import Dependency
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..linkers import DynamicLinker
+    from ..mesonlib import MachineChoice
     from ..programs import ExternalProgram
     CompilerMixinBase = CLikeCompiler
 else:

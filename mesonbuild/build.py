@@ -39,18 +39,19 @@ from .mesonlib import (
     MesonBugException
 )
 from .compilers import (
-    Compiler, is_object, clink_langs, sort_clink, lang_suffixes, all_languages,
+    is_object, clink_langs, sort_clink, lang_suffixes, all_languages,
     is_known_suffix, detect_static_linker
 )
-from .linkers import StaticLinker
 from .interpreterbase import FeatureNew, FeatureDeprecated
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal
     from ._typing import ImmutableListProtocol
     from .backend.backends import Backend, ExecutableSerialisation
+    from .compilers import Compiler
     from .interpreter.interpreter import Test, SourceOutputs, Interpreter
     from .interpreterbase import SubProject
+    from .linkers import StaticLinker
     from .mesonlib import FileMode, FileOrString
     from .modules import ModuleState
     from .mparser import BaseNode

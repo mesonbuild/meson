@@ -39,7 +39,7 @@ from ..interpreterbase.decorators import typed_pos_args
 from ..mesonlib import (
     MachineChoice, MesonException, OrderedSet, Popen_safe, join_args,
 )
-from ..programs import ExternalProgram, OverrideProgram, EmptyExternalProgram
+from ..programs import OverrideProgram, EmptyExternalProgram
 from ..scripts.gettext import read_linguas
 
 if T.TYPE_CHECKING:
@@ -51,6 +51,7 @@ if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
     from ..interpreterbase import TYPE_var, TYPE_kwargs
     from ..mesonlib import FileOrString
+    from ..programs import ExternalProgram
 
     class PostInstall(TypedDict):
         glib_compile_schemas: bool

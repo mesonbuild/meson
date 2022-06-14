@@ -14,12 +14,12 @@
 
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool.
+from __future__ import annotations
 
 import os
 import sys
 import typing as T
 
-from .visitor import AstVisitor
 from .. import mparser, mesonlib
 from .. import environment
 
@@ -30,8 +30,6 @@ from ..interpreterbase import (
     BreakRequest,
     ContinueRequest,
     default_resolve_key,
-    TYPE_nvar,
-    TYPE_nkwargs,
 )
 
 from ..interpreter import (
@@ -43,29 +41,33 @@ from ..interpreter import (
 )
 
 from ..mparser import (
-    AndNode,
     ArgumentNode,
     ArithmeticNode,
     ArrayNode,
     AssignmentNode,
     BaseNode,
-    ComparisonNode,
     ElementaryNode,
     EmptyNode,
-    ForeachClauseNode,
     IdNode,
-    IfClauseNode,
-    IndexNode,
     MethodNode,
     NotNode,
-    OrNode,
     PlusAssignmentNode,
     TernaryNode,
-    UMinusNode,
 )
 
 if T.TYPE_CHECKING:
+    from .visitor import AstVisitor
     from ..interpreter import Interpreter
+    from ..interpreterbase import TYPE_nkwargs, TYPE_nvar
+    from ..mparser import (
+        AndNode,
+        ComparisonNode,
+        ForeachClauseNode,
+        IfClauseNode,
+        IndexNode,
+        OrNode,
+        UMinusNode,
+    )
 
 class DontCareObject(MesonInterpreterObject):
     pass

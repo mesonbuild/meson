@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
 from pathlib import Path
 import typing as T
@@ -31,7 +32,7 @@ from .mixins.elbrus import ElbrusCompiler
 from .mixins.pgi import PGICompiler
 
 from mesonbuild.mesonlib import (
-    version_compare, EnvironmentException, MesonException, MachineChoice,
+    version_compare, EnvironmentException, MesonException,
     LibType, OptionKey,
 )
 
@@ -41,6 +42,7 @@ if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..linkers import DynamicLinker
+    from ..mesonlib import MachineChoice
     from ..programs import ExternalProgram
     from .compilers import CompileCheckMode
 

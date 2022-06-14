@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
 """This is a helper script for IDE developers. It allows you to
 extract information such as list of targets, files, compiler flags,
@@ -19,7 +20,6 @@ tests and so on. All output is in JSON for simple parsing.
 Currently only works for the Ninja backend. Others use generated
 project files and don't need this info."""
 
-import argparse
 import collections
 import json
 import os
@@ -29,9 +29,14 @@ import typing as T
 from . import build, mesonlib, mlog, coredata as cdata
 from .ast import IntrospectionInterpreter, BUILD_TARGET_FUNCTIONS, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstJSONPrinter
 from .backend import backends
-from .interpreter import Interpreter
 from .mesonlib import OptionKey
-from .mparser import BaseNode, FunctionNode, ArrayNode, ArgumentNode, StringNode
+from .mparser import FunctionNode, ArrayNode, ArgumentNode, StringNode
+
+if T.TYPE_CHECKING:
+    import argparse
+
+    from .interpreter import Interpreter
+    from .mparser import BaseNode
 
 def get_meson_info_file(info_dir: str) -> str:
     return os.path.join(info_dir, 'meson-info.json')

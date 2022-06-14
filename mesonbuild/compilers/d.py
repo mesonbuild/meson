@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
 import os.path
 import re
@@ -22,7 +23,7 @@ from .. import mlog
 from ..arglist import CompilerArgs
 from ..linkers import RSPFileSyntax
 from ..mesonlib import (
-    EnvironmentException, MachineChoice, version_compare, OptionKey, is_windows
+    EnvironmentException, version_compare, OptionKey, is_windows
 )
 
 from . import compilers
@@ -42,6 +43,7 @@ if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..linkers import DynamicLinker
+    from ..mesonlib import MachineChoice
 
     CompilerMixinBase = Compiler
 else:

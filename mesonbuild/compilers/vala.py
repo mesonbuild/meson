@@ -11,18 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
 import os.path
 import typing as T
 
 from .. import mlog
-from ..mesonlib import EnvironmentException, MachineChoice, version_compare, OptionKey
+from ..mesonlib import EnvironmentException, version_compare, OptionKey
 
 from .compilers import Compiler, LibType
 
 if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
     from ..environment import Environment
+    from ..mesonlib import MachineChoice
 
 class ValaCompiler(Compiler):
 

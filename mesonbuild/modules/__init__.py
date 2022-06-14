@@ -23,6 +23,7 @@ from ..interpreterbase.decorators import noKwargs, noPosargs
 from ..programs import ExternalProgram
 
 if T.TYPE_CHECKING:
+    from .. import build
     from ..interpreter import Interpreter
     from ..interpreter.interpreterobjects import MachineHolder
     from ..interpreterbase import TYPE_var, TYPE_kwargs

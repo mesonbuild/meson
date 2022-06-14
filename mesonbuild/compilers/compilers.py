@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
 import abc
 import contextlib, os.path, re
@@ -24,7 +25,7 @@ from .. import mlog
 from .. import mesonlib
 from ..mesonlib import (
     HoldableObject,
-    EnvironmentException, MachineChoice, MesonException,
+    EnvironmentException, MesonException,
     Popen_safe, LibType, TemporaryDirectoryWinProof, OptionKey,
 )
 
@@ -36,6 +37,7 @@ if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..linkers import DynamicLinker, RSPFileSyntax
+    from ..mesonlib import MachineChoice
     from ..dependencies import Dependency
 
     CompilerType = T.TypeVar('CompilerType', bound='Compiler')
