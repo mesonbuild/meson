@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
 import os.path, subprocess
 import textwrap
@@ -19,12 +20,13 @@ import typing as T
 from ..mesonlib import EnvironmentException
 from ..linkers import RSPFileSyntax
 
-from .compilers import Compiler, MachineChoice, mono_buildtype_args
+from .compilers import Compiler, mono_buildtype_args
 from .mixins.islinker import BasicLinkerIsCompilerMixin
 
 if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
     from ..environment import Environment
+    from ..mesonlib import MachineChoice
 
 cs_optimization_args = {'0': [],
                         'g': [],
