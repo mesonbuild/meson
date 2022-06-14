@@ -855,7 +855,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         sub = SubprojectHolder(NullSubprojectInterpreter(), os.path.join(self.subproject_dir, subp_name),
                                disabled_feature=disabled_feature, exception=exception)
         self.subprojects[subp_name] = sub
-        self.coredata.initialized_subprojects.add(subp_name)
         return sub
 
     def do_subproject(self, subp_name: str, method: Literal['meson', 'cmake'], kwargs: kwargs.DoSubproject) -> SubprojectHolder:
@@ -979,7 +978,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.build_def_files.update(subi.build_def_files)
         self.build.merge(subi.build)
         self.build.subprojects[subp_name] = subi.project_version
-        self.coredata.initialized_subprojects.add(subp_name)
         return self.subprojects[subp_name]
 
     def _do_subproject_cmake(self, subp_name: str, subdir: str, subdir_abs: str,
@@ -1160,6 +1158,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             default_options = self.project_default_options.copy()
             default_options.update(self.default_project_options)
             self.coredata.init_builtins(self.subproject)
+            self.coredata.initialized_subprojects.add(self.subproject)
         else:
             default_options = {}
         self.coredata.set_default_options(default_options, self.subproject, self.environment)

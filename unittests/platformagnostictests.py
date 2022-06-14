@@ -83,3 +83,14 @@ class PlatformAgnosticTests(BasePlatformTests):
         mesonlog = os.path.join(self.builddir, 'meson-logs/meson-log.txt')
         with open(mesonlog, mode='r', encoding='utf-8') as file:
             self.assertIn(log_msg, file.read())
+
+    def test_new_subproject_reconfigure(self):
+        testdir = os.path.join(self.unit_test_dir, '107 new subproject on reconfigure')
+        self.init(testdir)
+        self.build()
+
+        # Enable the subproject "foo" and reconfigure, this is used to fail
+        # because per-subproject builtin options were not initialized:
+        # https://github.com/mesonbuild/meson/issues/10225.
+        self.setconf('-Dfoo=enabled')
+        self.build('reconfigure')
