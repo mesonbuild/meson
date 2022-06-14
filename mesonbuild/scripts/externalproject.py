@@ -65,10 +65,7 @@ class ExternalProject:
 
         install_cmd = self.make.copy()
         install_env = {}
-        if is_make:
-            install_cmd.append(f'DESTDIR={self.install_dir}')
-        else:
-            install_env['DESTDIR'] = self.install_dir
+        install_env['DESTDIR'] = self.install_dir
         install_cmd.append('install')
         rc = self._run('install', install_cmd, install_env)
         if rc != 0:
