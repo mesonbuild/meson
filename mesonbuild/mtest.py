@@ -1695,9 +1695,10 @@ class TestHarness:
             raise RuntimeError('Test harness object can only be used once.')
         self.is_run = True
         tests = self.get_tests()
+        rebuild_only_tests = tests if self.options.args else []
         if not tests:
             return 0
-        if not self.options.no_rebuild and not rebuild_deps(self.options.wd, tests):
+        if not self.options.no_rebuild and not rebuild_deps(self.options.wd, rebuild_only_tests):
             # We return 125 here in case the build failed.
             # The reason is that exit code 125 tells `git bisect run` that the current
             # commit should be skipped.  Thus users can directly use `meson test` to
@@ -2001,6 +2002,11 @@ def rebuild_deps(wd: str, tests: T.List[TestSerialisation]) -> bool:
                 continue
             depends.update(d)
             targets.update(intro_targets[d])
+
+    if tests and not targets:
+        # We want to build minimal deps, but if the subset of targets have no
+        # deps then ninja falls back to 'all'.
+        return True
 
     ret = subprocess.run(ninja + ['-C', wd] + sorted(targets)).returncode
     if ret != 0:

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+import subprocess
 import tempfile
 from unittest import skipIf
 
@@ -83,3 +84,16 @@ class PlatformAgnosticTests(BasePlatformTests):
         mesonlog = os.path.join(self.builddir, 'meson-logs/meson-log.txt')
         with open(mesonlog, mode='r', encoding='utf-8') as file:
             self.assertIn(log_msg, file.read())
+
+    def test_mtest_rebuild_deps(self):
+        testdir = os.path.join(self.unit_test_dir, '106 underspecified mtest')
+        self.init(testdir)
+
+        self._run(self.mtest_command)
+        self.clean()
+
+        with self.assertRaises(subprocess.CalledProcessError):
+            self._run(self.mtest_command + ['runner-without-dep'])
+        self.clean()
+
+        self._run(self.mtest_command + ['runner-with-exedep'])
