@@ -37,7 +37,7 @@ kwargs:
     description: Libraries to link fully, same as [[executable]].
 
   sources:
-    type: list[str | file]
+    type: list[str | file | custom_tgt | custom_idx | generated_list]
     description: |
       sources to add to targets
       (or generated header files
