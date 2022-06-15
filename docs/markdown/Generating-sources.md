@@ -106,6 +106,22 @@ executable('myexe', ['main.c', foo_ch[1]], link_with : libfoo)
 In this case `libfoo` depends on both `foo.c` and `foo.h` but `myexe`
 only depends on `foo.h`, the second output.
 
+Since 0.63, if a generate creates multiple files using a `@BASENAME@` or
+`@PLAINNAME@` scheme, the `@BASENAMES@` and `@PLAINNAMES@` value may be used:
+
+```meson
+
+procd = custom_target(
+    'processed sources',
+    output : @BASENAMES@,
+    input : ['foo.c.in', 'bar.c.in']
+    command : [find_program('processor'), '@INPUT@', '@OUTPUT@'],
+)
+
+executable('myexe', ['main.c', procd])
+```
+Which has an `output` field equivalent to: `['foo.c', 'bar.c']`
+
 ### Using dependencies to manage generated resources
 
 In some cases it might be easier to use `declare_dependency` to
