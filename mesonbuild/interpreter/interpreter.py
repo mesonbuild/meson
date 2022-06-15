@@ -77,6 +77,8 @@ from .type_checking import (
     REQUIRED_KW,
     NoneType,
     in_set_validator,
+    variables_validator,
+    variables_convertor,
     env_convertor_with_method
 )
 from . import primitives as P_OBJ
@@ -633,23 +635,19 @@ class Interpreter(InterpreterBase, HoldableObject):
             if dict_new and variables:
                 FeatureNew.single_use(f'{argname} as dictionary', '0.56.0', self.subproject, location=self.current_node)
         else:
-            varlist = mesonlib.stringlistify(variables)
+            variables = mesonlib.stringlistify(variables)
             if list_new:
                 FeatureNew.single_use(f'{argname} as list of strings', '0.56.0', self.subproject, location=self.current_node)
-            variables = {}
-            for v in varlist:
-                try:
-                    (key, value) = v.split('=', 1)
-                except ValueError:
-                    raise InterpreterException(f'Variable {v!r} must have a value separated by equals sign.')
-                variables[key.strip()] = value.strip()
+
+        invalid_msg = variables_validator(variables)
+        if invalid_msg is not None:
+            raise InterpreterException(invalid_msg)
+
+        variables = variables_convertor(variables)
         for k, v in variables.items():
-            if not k or not v:
-                raise InterpreterException('Empty variable name or value')
-            if any(c.isspace() for c in k):
-                raise InterpreterException(f'Invalid whitespace in variable name "{k}"')
             if not isinstance(v, str):
                 raise InterpreterException('variables values must be strings.')
+
         return variables
 
     @FeatureNewKwargs('declare_dependency', '0.46.0', ['link_whole'])

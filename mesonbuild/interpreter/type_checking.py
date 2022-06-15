@@ -107,6 +107,37 @@ def _lower_strlist(input: T.List[str]) -> T.List[str]:
     return [i.lower() for i in input]
 
 
+def variables_validator(contents: T.Union[T.List[str], T.Dict[str, str]]) -> T.Optional[str]:
+    if isinstance(contents, dict):
+        variables = contents
+    else:
+        variables = {}
+        for v in contents:
+            try:
+                key, val = v.split('=', 1)
+            except ValueError:
+                return f'variable {v!r} must have a value separated by equals sign.'
+            variables[key.strip()] = val.strip()
+    for k, v in variables.items():
+        if not k:
+            return 'empty variable name'
+        if not v:
+            return 'empty variable value'
+        if any(c.isspace() for c in k):
+            return f'invalid whitespace in variable name {k!r}'
+    return None
+
+
+def variables_convertor(contents: T.Union[T.List[str], T.Dict[str, str]]) -> T.Dict[str, str]:
+    if isinstance(contents, dict):
+        return contents
+    variables = {}
+    for v in contents:
+        key, val = v.split('=', 1)
+        variables[key.strip()] = val.strip()
+    return variables
+
+
 NATIVE_KW = KwargInfo(
     'native', bool,
     default=False,
