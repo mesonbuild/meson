@@ -1522,9 +1522,9 @@ def substitute_values(command: T.List[str], values: T.Dict[str, T.Union[str, T.L
 
     # Substitution
     outcmd = []  # type: T.List[str]
-    rx_keys = [re.escape(key) for key in values if key not in ('@INPUT@', '@OUTPUT@')]
+    rx_keys = [re.escape(key) for key in values if key not in {'@INPUT@', '@OUTPUT@', '@PLAINNAMES@', '@BASENAMES@'}]
     value_rx = re.compile('|'.join(rx_keys)) if rx_keys else None
-    for vv in command:
+    for i, vv in enumerate(command):
         more: T.Optional[str] = None
         if not isinstance(vv, str):
             outcmd.append(vv)
@@ -1546,6 +1546,18 @@ def substitute_values(command: T.List[str], values: T.Dict[str, T.Union[str, T.L
             else:
                 raise MesonException("Command has '@OUTPUT@' as part of a "
                                      "string and more than one output file")
+
+        elif '@BASENAMES@' in vv:
+            if vv == '@BASENAMES@':
+                outcmd.extend(values['@BASENAMES@'])
+            else:
+                outcmd.append(vv.replace('@BASENAMES@', values['@BASENAMES@'][i]))
+
+        elif '@PLAINNAMES@' in vv:
+            if vv == '@PLAINNAMES@':
+                outcmd.extend(values['@PLAINNAMES@'])
+            else:
+                outcmd.append(vv.replace('@PLAINNAMES@', values['@PLAINNAMES@'][i]))
 
         # Append values that are exactly a template string.
         # This is faster than a string replace.
