@@ -1570,9 +1570,11 @@ def get_filenames_templates_dict(inputs: T.List[str], outputs: T.List[str]) -> T
     Create a dictionary with template strings as keys and values as values for
     the following templates:
 
-    @INPUT@  - the full path to one or more input files, from @inputs
-    @OUTPUT@ - the full path to one or more output files, from @outputs
-    @OUTDIR@ - the full path to the directory containing the output files
+    @INPUT@      - the full path to one or more input files, from @inputs
+    @OUTPUT@     - the full path to one or more output files, from @outputs
+    @OUTDIR@     - the full path to the directory containing the output files
+    @PLAINNAMES@ - the filename of each input file
+    @BASENAMES@  - the filename of each input file, with the extension removed
 
     If there is only one input file, the following keys are also created:
 
@@ -1595,10 +1597,12 @@ def get_filenames_templates_dict(inputs: T.List[str], outputs: T.List[str]) -> T
         for (ii, vv) in enumerate(inputs):
             # Write out @INPUT0@, @INPUT1@, ...
             values[f'@INPUT{ii}@'] = vv
+        values['@PLAINNAMES@'] = [os.path.basename(i) for i in inputs]
+        values['@BASENAMES@'] = [os.path.splitext(i)[0] for i in values['@PLAINNAMES@']]
         if len(inputs) == 1:
             # Just one value, substitute @PLAINNAME@ and @BASENAME@
-            values['@PLAINNAME@'] = plain = os.path.basename(inputs[0])
-            values['@BASENAME@'] = os.path.splitext(plain)[0]
+            values['@PLAINNAME@'] = values['@PLAINNAMES@'][0]
+            values['@BASENAME@'] = values['@BASENAMES@'][0]
     if outputs:
         # Gather values derived from the outputs, similar to above.
         values['@OUTPUT@'] = outputs
