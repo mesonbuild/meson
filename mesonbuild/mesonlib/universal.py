@@ -1581,11 +1581,11 @@ def get_filenames_templates_dict(inputs: T.List[str], outputs: T.List[str]) -> T
     @PLAINNAME@ - the filename of the input file
     @BASENAME@ - the filename of the input file with the extension removed
 
-    If there is more than one input file, the following keys are also created:
+    If there input files, the following keys are also created:
 
     @INPUT0@, @INPUT1@, ... one for each input file
 
-    If there is more than one output file, the following keys are also created:
+    If there are output files, the following keys are also created:
 
     @OUTPUT0@, @OUTPUT1@, ... one for each output file
     '''
