@@ -141,7 +141,13 @@ def generate_wrapdb_table(output_dir: Path) -> None:
         f.write('| Project | Versions | Provided dependencies | Provided programs |\n')
         f.write('| ------- | -------- | --------------------- | ----------------- |\n')
         for name, info in releases.items():
-            versions = [f'[{v}](https://wrapdb.mesonbuild.com/v2/{name}_{v}/{name}.wrap)' for v in info['versions']]
+            versions = []
+            added_tags = set()
+            for v in info['versions']:
+                tag, build = v.rsplit('-', 1)
+                if tag not in added_tags:
+                    added_tags.add(tag)
+                    versions.append(f'[{v}](https://wrapdb.mesonbuild.com/v2/{name}_{v}/{name}.wrap)')
             # Highlight latest version.
             versions_str = f'<big>**{versions[0]}**</big><br/>' + ', '.join(versions[1:])
             dependency_names = info.get('dependency_names', [])
