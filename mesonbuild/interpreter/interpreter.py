@@ -684,7 +684,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             else:
                 if not self.is_subproject() and srcdir / self.subproject_dir in p.parents:
                     continue
-                if p.is_absolute() and p.is_dir() and srcdir / self.root_subdir in [p] + list(p.resolve().parents):
+                if p.is_absolute() and p.is_dir() and srcdir / self.root_subdir in [p] + list(Path(os.path.abspath(p)).parents):
                     variables[k] = P_OBJ.DependencyVariableString(v)
         for d in deps:
             if not isinstance(d, dependencies.Dependency):
