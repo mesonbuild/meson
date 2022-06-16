@@ -24,7 +24,7 @@ from ..compilers.compilers import CFLAGS_MAPPING
 from ..envconfig import ENV_VAR_PROG_MAP
 from ..dependencies import InternalDependency, PkgConfigDependency
 from ..interpreterbase import FeatureNew
-from ..interpreter.type_checking import ENV_KW
+from ..interpreter.type_checking import ENV_KW, DEPENDS_KW
 from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, typed_kwargs, typed_pos_args
 from ..mesonlib import (EnvironmentException, MesonException, Popen_safe, MachineChoice,
                         get_variable_regex, do_replacement, join_args, OptionKey)
@@ -35,6 +35,7 @@ if T.TYPE_CHECKING:
     from . import ModuleState
     from ..interpreter import Interpreter
     from ..interpreterbase import TYPE_var
+    from ..build import BuildTarget, CustomTarget
 
     class Dependency(TypedDict):
 
@@ -46,6 +47,7 @@ if T.TYPE_CHECKING:
         cross_configure_options: T.List[str]
         verbose: bool
         env: build.EnvironmentVariables
+        depends: T.List[T.Union[BuildTarget, CustomTarget]]
 
 
 class ExternalProject(NewExtensionModule):
@@ -55,7 +57,8 @@ class ExternalProject(NewExtensionModule):
                  configure_options: T.List[str],
                  cross_configure_options: T.List[str],
                  env: build.EnvironmentVariables,
-                 verbose: bool):
+                 verbose: bool,
+                 extra_depends: T.List[T.Union['BuildTarget', 'CustomTarget']]):
         super().__init__()
         self.methods.update({'dependency': self.dependency_method,
                              })
@@ -97,7 +100,7 @@ class ExternalProject(NewExtensionModule):
 
         self._configure(state)
 
-        self.targets = self._create_targets()
+        self.targets = self._create_targets(extra_depends)
 
     def _configure(self, state: 'ModuleState') -> None:
         if self.configure_command == 'waf':
@@ -213,7 +216,7 @@ class ExternalProject(NewExtensionModule):
                 m += '\nSee logs: ' + str(log_filename)
             raise MesonException(m)
 
-    def _create_targets(self) -> T.List['TYPE_var']:
+    def _create_targets(self, extra_depends: T.List[T.Union['BuildTarget', 'CustomTarget']]) -> T.List['TYPE_var']:
         cmd = self.env.get_build_command()
         cmd += ['--internal', 'externalproject',
                 '--name', self.name,
@@ -236,6 +239,7 @@ class ExternalProject(NewExtensionModule):
             [f'{self.name}.stamp'],
             depfile=f'{self.name}.d',
             console=True,
+            extra_depends=extra_depends,
         )
 
         idir = build.InstallDir(self.subdir.as_posix(),
@@ -282,6 +286,7 @@ class ExternalProjectModule(ExtensionModule):
         KwargInfo('cross_configure_options', ContainerTypeInfo(list, str), default=['--host=@HOST@'], listify=True),
         KwargInfo('verbose', bool, default=False),
         ENV_KW,
+        DEPENDS_KW.evolve(since='0.63.0'),
     )
     def add_project(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'AddProject') -> ModuleReturnValue:
         configure_command = args[0]
@@ -290,7 +295,8 @@ class ExternalProjectModule(ExtensionModule):
                                   kwargs['configure_options'],
                                   kwargs['cross_configure_options'],
                                   kwargs['env'],
-                                  kwargs['verbose'])
+                                  kwargs['verbose'],
+                                  kwargs['depends'])
         return ModuleReturnValue(project, project.targets)
 
 
