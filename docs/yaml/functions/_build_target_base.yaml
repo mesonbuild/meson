@@ -253,12 +253,14 @@ kwargs:
     description: When set to true, the D modules are compiled in debug mode.
 
   d_module_versions:
-    type: list[str]
+    type: list[str | int]
     description: List of module version identifiers set when compiling D sources.
 
   d_debug:
     type: list[str]
-    description: List of module debug identifiers set when compiling D sources.
+    description: |
+      The [D version identifiers](https://dlang.org/spec/version.html#version) to add
+      during the compilation of D source files.
 
   native:
     type: bool
