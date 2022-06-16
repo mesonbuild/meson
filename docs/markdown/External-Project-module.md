@@ -120,6 +120,7 @@ p = mod.add_project('configure',
 )
 
 mylib_dep = p.dependency('mylib')
+meson.override_dependency('mylib', mylib_dep)
 ```
 
 ## Using wrap file
