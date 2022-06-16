@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/failing/127 subproject object as a dependency/meson.build:3:0: ERROR: Argument is of an unacceptable type 'SubprojectHolder'."
+    }
+  ]
+}
