@@ -1343,12 +1343,6 @@ class BuildTarget(Target):
             if dep in self.added_deps:
                 continue
 
-            dep_d_features = dep.d_features
-
-            for feature in ('versions', 'import_dirs'):
-                if feature in dep_d_features:
-                    self.d_features[feature].extend(dep_d_features[feature])
-
             if isinstance(dep, dependencies.InternalDependency):
                 # Those parts that are internal.
                 self.process_sourcelist(dep.sources)
@@ -1387,6 +1381,13 @@ You probably should put it in link_with instead.''')
                                        'either an external dependency (returned by find_library() or '
                                        'dependency()) or an internal dependency (returned by '
                                        'declare_dependency()).')
+
+            dep_d_features = dep.d_features
+
+            for feature in ('versions', 'import_dirs'):
+                if feature in dep_d_features:
+                    self.d_features[feature].extend(dep_d_features[feature])
+
             self.added_deps.add(dep)
 
     def get_external_deps(self) -> T.List[dependencies.Dependency]:
