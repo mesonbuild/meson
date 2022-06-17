@@ -41,7 +41,7 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
                 raise InvalidArguments('Characters <, > and = are forbidden in dependency names. To specify'
                                        'version\n requirements use the \'version\' keyword argument instead.')
             if name in self.names:
-                raise InterpreterException('dependency_fallbacks name {name!r} is duplicated')
+                raise InterpreterException(f'dependency_fallbacks name {name!r} is duplicated')
             self.names.append(name)
         self._display_name = self.names[0] if self.names else '(anonymous)'
 

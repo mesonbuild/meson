@@ -2354,7 +2354,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                         if modname in module_files:
                             raise InvalidArguments(
                                 f'Namespace collision: module {modname} defined in '
-                                'two files {module_files[modname]} and {s}.')
+                                f'two files {module_files[modname]} and {s}.')
                         module_files[modname] = s
                     else:
                         submodmatch = submodre.match(line)
@@ -2365,8 +2365,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
                             if submodname in submodule_files:
                                 raise InvalidArguments(
-                                    'Namespace collision: submodule {submodname} defined in '
-                                    'two files {submodule_files[submodname]} and {s}.')
+                                    f'Namespace collision: submodule {submodname} defined in '
+                                    f'two files {submodule_files[submodname]} and {s}.')
                             submodule_files[submodname] = s
 
         self.fortran_deps[target.get_basename()] = {**module_files, **submodule_files}
