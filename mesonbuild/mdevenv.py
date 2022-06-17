@@ -28,17 +28,17 @@ def get_windows_shell() -> str:
     result = subprocess.check_output(command)
     return result.decode().strip()
 
-def reduce_winepath(build_dir: str, env: T.Dict[str, str]) -> None:
+def reduce_winepath(env: T.Dict[str, str]) -> None:
     winepath = env.get('WINEPATH')
     if not winepath:
         return
     winecmd = shutil.which('wine64') or shutil.which('wine')
     if not winecmd:
         return
-    env['WINEPATH'] = get_wine_shortpath([winecmd], winepath.split(';'), build_dir)
+    env['WINEPATH'] = get_wine_shortpath([winecmd], winepath.split(';'))
     mlog.log('Meson detected wine and has set WINEPATH accordingly')
 
-def get_env(b: build.Build, build_dir: str) -> T.Tuple[T.Dict[str, str], T.Set[str]]:
+def get_env(b: build.Build) -> T.Tuple[T.Dict[str, str], T.Set[str]]:
     extra_env = build.EnvironmentVariables()
     extra_env.set('MESON_DEVENV', ['1'])
     extra_env.set('MESON_PROJECT_NAME', [b.project_name])
@@ -49,7 +49,7 @@ def get_env(b: build.Build, build_dir: str) -> T.Tuple[T.Dict[str, str], T.Set[s
         env = i.get_env(env)
         varnames |= i.get_names()
 
-    reduce_winepath(build_dir, env)
+    reduce_winepath(env)
 
     return env, varnames
 
@@ -122,7 +122,7 @@ def run(options: argparse.Namespace) -> int:
         raise MesonException(f'Directory {options.wd!r} does not seem to be a Meson build directory.')
     b = build.load(options.wd)
 
-    devenv, varnames = get_env(b, options.wd)
+    devenv, varnames = get_env(b)
     if options.dump:
         if options.command:
             raise MesonException('--dump option does not allow running other command.')
