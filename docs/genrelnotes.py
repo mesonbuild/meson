@@ -70,7 +70,7 @@ def generate(relnotes, to_version, source_dir, output_dir):
     output.parent.mkdir(exist_ok=True, parents=True)
     with output.open('w', encoding='utf-8') as ofile:
         ofile.write(RELNOTE_TEMPLATE.format(title, to_version, title_suffix))
-        for snippetfile in Path(source_dir, 'markdown/snippets').glob('*.md'):
+        for snippetfile in sorted(Path(source_dir, 'markdown/snippets').glob('*.md')):
             snippet = snippetfile.read_text(encoding='utf-8')
             ofile.write(snippet)
             if not snippet.endswith('\n'):
