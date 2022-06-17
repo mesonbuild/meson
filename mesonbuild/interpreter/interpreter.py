@@ -720,9 +720,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                     continue
                 if p.is_absolute() and p.is_dir() and srcdir / self.root_subdir in [p] + list(Path(os.path.abspath(p)).parents):
                     variables[k] = P_OBJ.DependencyVariableString(v)
-        for d in deps:
-            if not isinstance(d, dependencies.Dependency):
-                raise InterpreterException('Invalid dependency')
 
         dep = dependencies.InternalDependency(version, incs, compile_args,
                                               link_args, libs, libs_whole, sources, extra_files,
