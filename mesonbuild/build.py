@@ -1373,6 +1373,9 @@ You probably should put it in link_with instead.''')
                 # This is a bit of a hack. We do not want Build to know anything
                 # about the interpreter so we can't import it and use isinstance.
                 # This should be reliable enough.
+                if hasattr(dep, 'held_object'):
+                    # FIXME: subproject is not a real ObjectHolder so we have to do this by hand
+                    dep = dep.held_object
                 if hasattr(dep, 'project_args_frozen') or hasattr(dep, 'global_args_frozen'):
                     raise InvalidArguments('Tried to use subproject object as a dependency.\n'
                                            'You probably wanted to use a dependency declared in it instead.\n'
