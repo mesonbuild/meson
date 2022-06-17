@@ -691,7 +691,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         KwargInfo('version', (str, NoneType)),
         KwargInfo('objects', ContainerTypeInfo(list, build.ExtractedObjects), listify=True, default=[], since='1.1.0'),
     )
-    def func_declare_dependency(self, node, args, kwargs):
+    def func_declare_dependency(self, node: mparser.BaseNode, args: T.List[TYPE_var],
+                                kwargs: kwtypes.FuncDeclareDependency) -> dependencies.Dependency:
         deps = kwargs['dependencies']
         incs = self.extract_incdirs(kwargs)
         libs = kwargs['link_with']
@@ -2738,7 +2739,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                                               install_tag=install_tag, data_type='configure'))
         return mesonlib.File.from_built_file(self.subdir, output)
 
-    def extract_incdirs(self, kwargs, key: str = 'include_directories'):
+    def extract_incdirs(self, kwargs, key: str = 'include_directories') -> T.List[build.IncludeDirs]:
         prospectives = extract_as_list(kwargs, key)
         if key == 'include_directories':
             for i in prospectives:
@@ -2747,7 +2748,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                                           f'Use include_directories({i!r}) instead', location=self.current_node)
                     break
 
-        result = []
+        result: T.List[build.IncludeDirs] = []
         for p in prospectives:
             if isinstance(p, build.IncludeDirs):
                 result.append(p)
