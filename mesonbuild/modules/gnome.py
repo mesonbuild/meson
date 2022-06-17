@@ -371,7 +371,7 @@ class GnomeModule(ExtensionModule):
             rv.append(script)
         return ModuleReturnValue(None, rv)
 
-    @typed_pos_args('gnome.compile_resources', str, (str, mesonlib.File))
+    @typed_pos_args('gnome.compile_resources', str, (str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList))
     @typed_kwargs(
         'gnome.compile_resources',
         _BUILD_BY_DEFAULT,
@@ -426,6 +426,13 @@ class GnomeModule(ExtensionModule):
                     ifile = os.path.join(state.environment.get_build_dir(), input_file.subdir, input_file.fname)
                 else:
                     ifile = os.path.join(input_file.subdir, input_file.fname)
+
+            elif isinstance(input_file, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)):
+                raise MesonException('Resource xml files generated at build-time cannot be used with '
+                                     'gnome.compile_resources() in the current version of glib-compile-resources '
+                                     'because we need to scan the xml for dependencies due to '
+                                     '<https://bugzilla.gnome.org/show_bug.cgi?id=774368>\nUse '
+                                     'configure_file() instead to generate it at configure-time.')
             else:
                 ifile = os.path.join(state.subdir, input_file)
 
