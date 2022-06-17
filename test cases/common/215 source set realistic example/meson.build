@@ -13,7 +13,7 @@ keyval = import('keyval')
 
 zlib = declare_dependency(compile_args: '-DZLIB=1')
 another = declare_dependency(compile_args: '-DANOTHER=1')
-not_found = dependency('not-found', required: false)
+not_found = dependency('not-found', required: false, method : 'pkg-config')
 
 common = ss.source_set()
 specific = ss.source_set()
