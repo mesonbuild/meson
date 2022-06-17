@@ -19,7 +19,7 @@ from pathlib import PurePath
 import os
 import typing as T
 
-from . import ExtensionModule, ModuleInfo
+from . import NewExtensionModule, ModuleInfo
 from . import ModuleReturnValue
 from .. import build
 from .. import dependencies
@@ -361,7 +361,7 @@ class DependenciesHelper:
         exclude = set()
         self.cflags = _fn(self.cflags)
 
-class PkgConfigModule(ExtensionModule):
+class PkgConfigModule(NewExtensionModule):
 
     INFO = ModuleInfo('pkgconfig')
 
@@ -369,8 +369,8 @@ class PkgConfigModule(ExtensionModule):
     # variable so that multiple `import()`s share metadata
     _metadata: T.ClassVar[T.Dict[str, MetaData]] = {}
 
-    def __init__(self, interpreter: Interpreter):
-        super().__init__(interpreter)
+    def __init__(self) -> None:
+        super().__init__()
         self.methods.update({
             'generate': self.generate,
         })
@@ -737,4 +737,4 @@ class PkgConfigModule(ExtensionModule):
 
 
 def initialize(interp: Interpreter) -> PkgConfigModule:
-    return PkgConfigModule(interp)
+    return PkgConfigModule()
