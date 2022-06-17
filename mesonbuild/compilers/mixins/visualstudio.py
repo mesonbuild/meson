@@ -96,7 +96,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     # if `/source-charset` is set too.
     # It is also dropped if Visual Studio 2013 or earlier is used, since it would
     # not be supported in that case.
-    always_args = ['/nologo', '/showIncludes', '/utf-8']
+    always_args = ['/nologo', '/showIncludes']
     warn_args: T.Dict[str, T.List[str]] = {
         '0': [],
         '1': ['/W2'],
