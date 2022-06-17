@@ -36,9 +36,8 @@ if T.TYPE_CHECKING:
     from ..interpreterbase import FeatureCheckBase
     from ..build import (
         CustomTarget, IncludeDirs, CustomTargetIndex, LibTypes,
-        StaticLibrary, StructuredSources, ExtractedObjects
+        StaticLibrary, StructuredSources, ExtractedObjects, GeneratedTypes
     )
-    from ..mesonlib import FileOrString
 
 
 class DependencyException(MesonException):
@@ -109,7 +108,7 @@ class Dependency(HoldableObject):
         # Raw -L and -l arguments without manual library searching
         # If None, self.link_args will be used
         self.raw_link_args: T.Optional[T.List[str]] = None
-        self.sources: T.List[T.Union['FileOrString', 'CustomTarget', 'StructuredSources']] = []
+        self.sources: T.List[T.Union[mesonlib.File, GeneratedTypes, 'StructuredSources']] = []
         self.extra_files: T.List[mesonlib.File] = []
         self.include_type = self._process_include_type_kw(kwargs)
         self.ext_deps: T.List[Dependency] = []
@@ -167,7 +166,7 @@ class Dependency(HoldableObject):
     def found(self) -> bool:
         return self.is_found
 
-    def get_sources(self) -> T.List[T.Union['FileOrString', 'CustomTarget', 'StructuredSources']]:
+    def get_sources(self) -> T.List[T.Union[mesonlib.File, GeneratedTypes, 'StructuredSources']]:
         """Source files that need to be added to the target.
         As an example, gtest-all.cc when using GTest."""
         return self.sources
@@ -254,7 +253,7 @@ class InternalDependency(Dependency):
                  link_args: T.List[str],
                  libraries: T.List[LibTypes],
                  whole_libraries: T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]],
-                 sources: T.Sequence[T.Union[FileOrString, CustomTarget, StructuredSources]],
+                 sources: T.Sequence[T.Union[mesonlib.File, GeneratedTypes, StructuredSources]],
                  extra_files: T.Sequence[mesonlib.File],
                  ext_deps: T.List[Dependency], variables: T.Dict[str, str],
                  d_module_versions: T.List[T.Union[str, int]], d_import_dirs: T.List['IncludeDirs'],
