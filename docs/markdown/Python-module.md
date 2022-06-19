@@ -99,9 +99,9 @@ Additionally, the following diverge from [[shared_module]]'s default behavior:
   of Python that support this (the python headers define `PyMODINIT_FUNC` has
   default visibility).
 
-`extension_module` does not add any dependencies to the library so
-user may need to add `dependencies : py_installation.dependency()`,
-see [[dependency]].
+*since 0.63.0* `extension_module` automatically adds a dependency to the library
+if one is not explicitly provided. To support older versions, the user may need to
+add `dependencies : py_installation.dependency()`, see [[dependency]].
 
 **Returns**: a [[@build_tgt]] object
 
