@@ -59,6 +59,18 @@ def parse_introspect_data(builddir: Path) -> T.Dict[str, T.List[dict]]:
         parsed_data[target['name']] += [target]
     return parsed_data
 
+def get_buildtype_from_introspect_data(builddir: Path) -> T.Any:
+    path_to_intro = builddir / 'meson-info' / 'intro-buildoptions.json'
+    if not path_to_intro.exists():
+        raise MesonException(f'`{path_to_intro.name}` is missing! Directory is not configured yet?')
+    with path_to_intro.open(encoding='utf-8') as f:
+        schema = json.load(f)
+
+    for target in schema:
+        if target['name'] == 'buildtype':
+            return target['value']
+    raise MesonException(f'Buildtype not found from `{path_to_intro.name}`! Data has been modified?')
+
 class ParsedTargetName:
     full_name = ''
     name = ''
@@ -187,7 +199,9 @@ def get_parsed_args_vs(options: 'argparse.Namespace', builddir: Path) -> T.Tuple
     sln = slns[0]
 
     cmd = ['msbuild']
-
+    # Configuration has to be added because otherwise when invoking a single project, msbuild defaults to
+    # configuration=debug and running fails for any other buildtype
+    cmd.extend([f'-property:Configuration={get_buildtype_from_introspect_data(builddir)}'])
     if options.targets:
         intro_data = parse_introspect_data(builddir)
         has_run_target = any(map(

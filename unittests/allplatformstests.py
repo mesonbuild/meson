@@ -3271,7 +3271,7 @@ class AllPlatformTests(BasePlatformTests):
 
     def test_alias_target(self):
         testdir = os.path.join(self.unit_test_dir, '64 alias target')
-        self.init(testdir)
+        self.init(testdir, extra_args=['-Dbuildtype=release'])
         self.build()
         self.assertPathDoesNotExist(os.path.join(self.builddir, 'prog' + exe_suffix))
         self.assertPathDoesNotExist(os.path.join(self.builddir, 'hello.txt'))
