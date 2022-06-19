@@ -396,8 +396,8 @@ class BasePlatformTests(TestCase):
         elif self.backend is Backend.vs:
             # Ensure that some target said that no rebuild was done
             # XXX: Note CustomBuild did indeed rebuild, because of the regen checker!
-            self.assertIn('ClCompile:\n  All outputs are up-to-date.', ret)
-            self.assertIn('Link:\n  All outputs are up-to-date.', ret)
+            self.assertRegex(ret, re.compile('ClCompile:\s*All outputs are up-to-date\.', flags=re.IGNORECASE))
+            self.assertRegex(ret, re.compile('Link:\s*All outputs are up-to-date\.', flags=re.IGNORECASE))
             # Ensure that no targets were built
             self.assertNotRegex(ret, re.compile('ClCompile:\n [^\n]*cl', flags=re.IGNORECASE))
             self.assertNotRegex(ret, re.compile('Link:\n [^\n]*link', flags=re.IGNORECASE))
@@ -413,9 +413,9 @@ class BasePlatformTests(TestCase):
         elif self.backend is Backend.vs:
             # Ensure that some target of each type said that no rebuild was done
             # We always have at least one CustomBuild target for the regen checker
-            self.assertIn('CustomBuild:\n  All outputs are up-to-date.', ret)
-            self.assertIn('ClCompile:\n  All outputs are up-to-date.', ret)
-            self.assertIn('Link:\n  All outputs are up-to-date.', ret)
+            self.assertRegex(ret, re.compile('CustomBuild:\s*All outputs are up-to-date\.', flags=re.IGNORECASE), )
+            self.assertRegex(ret, re.compile('ClCompile:\s*All outputs are up-to-date\.', flags=re.IGNORECASE))
+            self.assertRegex(ret, re.compile('Link:\s*All outputs are up-to-date\.', flags=re.IGNORECASE))
             # Ensure that no targets were built
             self.assertNotRegex(ret, re.compile('CustomBuild:\n [^\n]*cl', flags=re.IGNORECASE))
             self.assertNotRegex(ret, re.compile('ClCompile:\n [^\n]*cl', flags=re.IGNORECASE))

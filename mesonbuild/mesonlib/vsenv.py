@@ -26,7 +26,13 @@ def _setup_vsenv(force: bool) -> bool:
         return False
     if os.environ.get('OSTYPE') == 'cygwin':
         return False
-    if 'MESON_FORCE_VSENV_FOR_UNITTEST' not in os.environ:
+    if 'MESON_FORCE_VSENV_FOR_UNITTEST' in os.environ:
+        # Calling vcvars.bat too many times can cause error
+        # "The input line is too long."
+        # so remove it after first forced activation so that any subprocess
+        # does not activate it again
+        del os.environ['MESON_FORCE_VSENV_FOR_UNITTEST']
+    else:
         # VSINSTALL is set when running setvars from a Visual Studio installation
         # Tested with Visual Studio 2012 and 2017
         if 'VSINSTALLDIR' in os.environ:

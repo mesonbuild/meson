@@ -54,7 +54,7 @@ from mesonbuild.mlog import blue, bold, cyan, green, red, yellow, normal_green
 from mesonbuild.coredata import backendlist, version as meson_version
 from mesonbuild.modules.python import PythonExternalProgram
 from run_tests import get_fake_options, run_configure, get_meson_script
-from run_tests import get_backend_commands, get_backend_args_for_dir, Backend
+from run_tests import get_backend_commands, Backend
 from run_tests import ensure_backend_detects_changes
 from run_tests import guess_backend
 
@@ -676,12 +676,11 @@ def _run_test(test: TestDef,
         testresult.fail('Generating the build system failed.')
         return testresult
     builddata = build.load(test_build_dir)
-    dir_args = get_backend_args_for_dir(backend, test_build_dir)
 
     # Build with subprocess
     def build_step() -> None:
         build_start = time.time()
-        pc, o, e = Popen_safe(compile_commands + dir_args, cwd=test_build_dir)
+        pc, o, e = Popen_safe(compile_commands, cwd=test_build_dir)
         testresult.add_step(BuildStep.build, o, e, '', time.time() - build_start)
         if should_fail == 'build':
             if pc.returncode != 0:
@@ -734,7 +733,7 @@ def _run_test(test: TestDef,
 
     # Clean with subprocess
     env = test.env.copy()
-    pi, o, e = Popen_safe(clean_commands + dir_args, cwd=test_build_dir, env=env)
+    pi, o, e = Popen_safe(clean_commands, cwd=test_build_dir, env=env)
     testresult.add_step(BuildStep.clean, o, e)
     if pi.returncode != 0:
         testresult.fail('Running clean failed.')
@@ -1416,8 +1415,7 @@ def check_meson_commands_work(use_tmpdir: bool, extra_args: T.List[str]) -> None
         if pc.returncode != 0:
             raise RuntimeError(f'Failed to introspect --targets {testdir!r}:\n{e}\n{o}')
         print('Checking that building works...')
-        dir_args = get_backend_args_for_dir(backend, build_dir)
-        pc, o, e = Popen_safe(compile_commands + dir_args, cwd=build_dir)
+        pc, o, e = Popen_safe(compile_commands, cwd=build_dir)
         if pc.returncode != 0:
             raise RuntimeError(f'Failed to build {testdir!r}:\n{e}\n{o}')
         print('Checking that testing works...')

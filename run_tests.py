@@ -27,9 +27,9 @@ import subprocess
 import platform
 import argparse
 import traceback
-from io import StringIO
+from tempfile import NamedTemporaryFile
+from io import StringIO, TextIOWrapper
 from enum import Enum
-from glob import glob
 from pathlib import Path
 from unittest import mock
 import typing as T
@@ -199,39 +199,13 @@ def get_meson_script() -> str:
         return meson_cmd
     raise RuntimeError(f'Could not find {meson_script!r} or a meson in PATH')
 
-def get_backend_args_for_dir(backend: Backend, builddir: str) -> T.List[str]:
-    '''
-    Visual Studio backend needs to be given the solution to build
-    '''
-    if backend is Backend.vs:
-        sln_name = glob(os.path.join(builddir, '*.sln'))[0]
-        return [os.path.split(sln_name)[-1]]
-    return []
-
-def find_vcxproj_with_target(builddir, target):
-    import re, fnmatch
-    t, ext = os.path.splitext(target)
-    if ext:
-        p = fr'<TargetName>{t}</TargetName>\s*<TargetExt>\{ext}</TargetExt>'
-    else:
-        p = fr'<TargetName>{t}</TargetName>'
-    for _, _, files in os.walk(builddir):
-        for f in fnmatch.filter(files, '*.vcxproj'):
-            f = os.path.join(builddir, f)
-            with open(f, encoding='utf-8') as o:
-                if re.search(p, o.read(), flags=re.MULTILINE):
-                    return f
-    raise RuntimeError(f'No vcxproj matching {p!r} in {builddir!r}')
 
 def get_builddir_target_args(backend: Backend, builddir, target):
     dir_args = []
-    if not target:
-        dir_args = get_backend_args_for_dir(backend, builddir)
     if target is None:
         return dir_args
     if backend is Backend.vs:
-        vcxproj = find_vcxproj_with_target(builddir, target)
-        target_args = [vcxproj]
+        target_args = [target]
     elif backend is Backend.xcode:
         target_args = ['-target', target]
     elif backend is Backend.ninja:
@@ -247,10 +221,12 @@ def get_backend_commands(backend: Backend, debug: bool = False) -> \
     clean_cmd: T.List[str]
     cmd: T.List[str]
     test_cmd: T.List[str]
+    
     if backend is Backend.vs:
-        cmd = ['msbuild']
-        clean_cmd = cmd + ['/target:Clean']
-        test_cmd = cmd + ['RUN_TESTS.vcxproj']
+        meson_cmd = mesonlib.python_command + [get_meson_script()]
+        cmd = meson_cmd + ['compile', '--vs-args=-verbosity:normal']
+        clean_cmd = meson_cmd + ['compile', '--clean']
+        test_cmd = meson_cmd + ['test']
     elif backend is Backend.xcode:
         cmd = ['xcodebuild']
         clean_cmd = cmd + ['-alltargets', 'clean']
@@ -283,11 +259,15 @@ def ensure_backend_detects_changes(backend: Backend) -> None:
     if need_workaround:
         time.sleep(1)
 
-def run_mtest_inprocess(commandlist: T.List[str]) -> T.Tuple[int, str, str]:
-    out = StringIO()
-    with mock.patch.object(sys, 'stdout', out), mock.patch.object(sys, 'stderr', out):
-        returncode = mtest.run_with_args(commandlist)
-    return returncode, stdout.getvalue()
+def run_mtest_inprocess(commandlist: T.List[str]) -> T.Tuple[int, str]:
+    # mcompile within mtest uses buffered stdout so TextIOWrapper is needed instead of StringIO
+    with NamedTemporaryFile(mode='wb', delete=False) as buf:
+        out = TextIOWrapper(buf, encoding='utf-8')
+        with mock.patch.object(sys, 'stdout', out), mock.patch.object(sys, 'stderr', out):
+            returncode = mtest.run_with_args(commandlist)
+    stdout = open(buf.name, encoding='utf-8').read()
+    os.unlink(buf.name)
+    return returncode, stdout
 
 def clear_meson_configure_class_caches() -> None:
     compilers.CCompiler.find_library_cache = {}

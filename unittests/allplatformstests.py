@@ -825,9 +825,13 @@ class AllPlatformTests(BasePlatformTests):
         self.assertPathExists(genfile2)
         self.assertPathDoesNotExist(exe1)
         self.assertPathDoesNotExist(exe2)
-        self.build(target=('fooprog' + exe_suffix))
+        if self.backend == Backend.ninja:
+            target_suffix = exe_suffix
+        else:
+            target_suffix = ''
+        self.build(target=('fooprog' + target_suffix))
         self.assertPathExists(exe1)
-        self.build(target=('barprog' + exe_suffix))
+        self.build(target=('barprog' + target_suffix))
         self.assertPathExists(exe2)
 
     def test_internal_include_order(self):
