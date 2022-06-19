@@ -112,7 +112,8 @@ class Conf:
         """
         total_width = shutil.get_terminal_size(fallback=(160, 0))[0]
         _col = max(total_width // 5, 20)
-        four_column = (_col, _col, _col, total_width - (3 * _col))
+        last_column = total_width - (3 * _col)
+        four_column = (_col, _col, _col, last_column if last_column > 1 else _col)
         # In this case we don't have the choices field, so we can redistribute
         # the extra 40 characters to val and desc
         three_column = (_col, _col * 2, total_width // 2)
