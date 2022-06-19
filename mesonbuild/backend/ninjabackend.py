@@ -833,6 +833,11 @@ class NinjaBackend(backends.Backend):
                 # people generate files with weird suffixes (.inc, .fh) that they then include
                 # in their source files.
                 header_deps.append(raw_src)
+
+        # For D language, the object of generated source files are added
+        # as order only deps because other files may depend on them
+        d_generated_deps = []
+
         # These are the generated source files that need to be built for use by
         # this target. We create the Ninja build file elements for this here
         # because we need `header_deps` to be fully generated in the above loop.
@@ -845,6 +850,8 @@ class NinjaBackend(backends.Backend):
             compiled_sources.append(s)
             source2object[s] = o
             obj_list.append(o)
+            if s.split('.')[-1] in compilers.lang_suffixes['d']:
+                d_generated_deps.append(o)
 
         use_pch = self.environment.coredata.options.get(OptionKey('b_pch'))
         if use_pch and target.has_pch():
@@ -891,7 +898,7 @@ class NinjaBackend(backends.Backend):
                                            src.rel_to_builddir(self.build_to_src))
                     unity_src.append(abs_src)
                 else:
-                    o, s = self.generate_single_compile(target, src, False, [], header_deps)
+                    o, s = self.generate_single_compile(target, src, False, [], header_deps + d_generated_deps)
                     obj_list.append(o)
                     compiled_sources.append(s)
                     source2object[s] = o
@@ -899,7 +906,7 @@ class NinjaBackend(backends.Backend):
         obj_list += self.flatten_object_list(target)
         if is_unity:
             for src in self.generate_unity_files(target, unity_src):
-                o, s = self.generate_single_compile(target, src, True, unity_deps + header_deps)
+                o, s = self.generate_single_compile(target, src, True, unity_deps + header_deps + d_generated_deps)
                 obj_list.append(o)
                 compiled_sources.append(s)
                 source2object[s] = o
