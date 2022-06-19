@@ -283,6 +283,9 @@ class Vs2010Backend(backends.Backend):
                     # Get dependencies on non-targets, such as Files
                     if isinstance(d, build.Target):
                         all_deps[d.get_id()] = d
+                for d in target.sources:
+                    if isinstance(d, build.ExtractedObjects):
+                        all_deps[d.target.get_id()] = d.target
             elif isinstance(target, build.RunTarget):
                 for d in target.get_dependencies():
                     all_deps[d.get_id()] = d

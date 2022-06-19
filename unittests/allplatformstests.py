@@ -3427,6 +3427,11 @@ class AllPlatformTests(BasePlatformTests):
             self._run([*self.meson_command, 'compile', '-C', self.builddir, '--vs-args=-t:{}:Clean'.format(re.sub(r'[\%\$\@\;\.\(\)\']', '_', get_exe_name('trivialprog')))])
             self.assertPathDoesNotExist(os.path.join(self.builddir, get_exe_name('trivialprog')))
 
+        # Custom target with extracted objects
+        testdir = os.path.join(self.common_test_dir, '22 object extraction')
+        self.init(testdir, extra_args=['--wipe'])
+        self._run([*self.meson_command, 'compile', '-C', self.builddir, 'custom_target with object inputs'])
+
     def test_spurious_reconfigure_built_dep_file(self):
         testdir = os.path.join(self.unit_test_dir, '73 dep files')
 
