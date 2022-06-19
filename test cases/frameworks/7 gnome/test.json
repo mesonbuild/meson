@@ -1,5 +1,7 @@
 {
   "installed": [
+    {"type": "file", "file": "usr/include/ct-resources.h"},
+    {"type": "file", "file": "usr/include/cti-resources.h"},
     {"type": "file", "file": "usr/include/enums.h"},
     {"type": "file", "file": "usr/include/enums2.h"},
     {"type": "file", "file": "usr/include/enums3.h"},

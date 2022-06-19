@@ -30,10 +30,10 @@ gnome.compile_resources('simple-resources',
 test('simple resource test (gresource)', find_program('resources.py'))
 
 if not pretend_glib_old and glib.version() >= '2.52.0'
-  # This test cannot pass if GLib version is older than 9.99.9.
-  # Meson will raise an error if the user tries to use the 'dependencies'
-  # argument and the version of GLib is too old for generated resource
-  # dependencies to work correctly.
+  # This test cannot pass if GLib version is too old. Generated resource
+  # dependencies do not work correctly and Meson will raise an error if the
+  # user tries to use either the 'dependencies' kwarg or a gresource file that
+  # is itself generated.
   generated_resources = gnome.compile_resources('generated-resources',
     'generated.gresource.xml',
     source_dir : '../resources-data',
@@ -44,6 +44,25 @@ if not pretend_glib_old and glib.version() >= '2.52.0'
     'generated-main.c', generated_resources,
     dependencies: gio)
   test('generated resource test', generated_res_exe)
+
+  # Test with a CustomTarget
+  subdir('generated')
+
+  ct_resources = gnome.compile_resources(
+    'ct-resources',
+    ct_simple_gresource,
+    install_header : true,
+    export : true,
+    source_dir : '../resources-data',
+    c_name : 'simple_resources')
+
+  cti_resources = gnome.compile_resources(
+    'cti-resources',
+    ct_simple_gresource[0],
+    install_header : true,
+    export : true,
+    source_dir : '../resources-data',
+    c_name : 'simple_resources')
 endif
 
 # Test build_by_default
