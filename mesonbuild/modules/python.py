@@ -516,16 +516,26 @@ class PythonInstallation(ExternalProgramHolder):
 
             kwargs['install_dir'] = os.path.join(self.platlib_install_path, subdir)
 
-        # On macOS and some Linux distros (Debian) distutils doesn't link
-        # extensions against libpython. We call into distutils and mirror its
-        # behavior. See https://github.com/mesonbuild/meson/issues/4117
-        if not self.link_libpython:
-            new_deps = []
-            for dep in mesonlib.extract_as_list(kwargs, 'dependencies'):
-                if isinstance(dep, _PythonDependencyBase):
+        new_deps = []
+        has_pydep = False
+        for dep in mesonlib.extract_as_list(kwargs, 'dependencies'):
+            if isinstance(dep, _PythonDependencyBase):
+                has_pydep = True
+                # On macOS and some Linux distros (Debian) distutils doesn't link
+                # extensions against libpython. We call into distutils and mirror its
+                # behavior. See https://github.com/mesonbuild/meson/issues/4117
+                if not self.link_libpython:
                     dep = dep.get_partial_dependency(compile_args=True)
-                new_deps.append(dep)
-            kwargs['dependencies'] = new_deps
+            new_deps.append(dep)
+        if not has_pydep:
+            pydep = self._dependency_method_impl({})
+            if not pydep.found():
+                raise mesonlib.MesonException('Python dependency not found')
+            new_deps.append(pydep)
+            FeatureNew.single_use('python_installation.extension_module with implicit dependency on python',
+                                  '0.63.0', self.subproject, 'use python_installation.dependency()',
+                                  self.current_node)
+        kwargs['dependencies'] = new_deps
 
         # msys2's python3 has "-cpython-36m.dll", we have to be clever
         # FIXME: explain what the specific cleverness is here
