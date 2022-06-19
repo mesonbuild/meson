@@ -120,9 +120,9 @@ def get_target_from_intro_data(target: ParsedTargetName, builddir: Path, introsp
     elif len(found_targets) > 1:
         suggestions: T.List[str] = []
         for i in found_targets:
-            p = Path(i['filename'][0]).relative_to(resolved_bdir)
-            t = i['type'].replace(' ', '_')
-            suggestions.append(f'- ./{p}:{t}')
+            target_path = str(Path(i['filename'][0]).relative_to(resolved_bdir).parent)
+            target_type = i['type'].replace(' ', '_')
+            suggestions.append(f'- {target_path}/{i["name"]}:{target_type}')
         suggestions_str = '\n'.join(suggestions)
         raise MesonException(f'Can\'t invoke target `{target.full_name}`: ambiguous name.'
                              f'Add target type and/or path:\n{suggestions_str}')
