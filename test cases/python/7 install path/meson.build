@@ -8,3 +8,5 @@ project('install path',
 py = import('python').find_installation()
 py.install_sources('test.py')
 py.install_sources('test.py', pure: false)
+
+subdir('structured')

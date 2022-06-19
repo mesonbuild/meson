@@ -79,6 +79,7 @@ from .type_checking import (
     INSTALL_TAG_KW,
     LANGUAGE_KW,
     NATIVE_KW,
+    PRESERVE_PATH_KW,
     REQUIRED_KW,
     SOURCES_KW,
     VARIABLES_KW,
@@ -2094,7 +2095,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_pos_args('install_headers', varargs=(str, mesonlib.File))
     @typed_kwargs(
         'install_headers',
-        KwargInfo('preserve_path', bool, default=False, since='0.63.0'),
+        PRESERVE_PATH_KW,
         KwargInfo('subdir', (str, NoneType)),
         INSTALL_MODE_KW.evolve(since='0.47.0'),
         INSTALL_DIR_KW,
@@ -2302,6 +2303,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         INSTALL_MODE_KW.evolve(since='0.38.0'),
         INSTALL_TAG_KW.evolve(since='0.60.0'),
         INSTALL_DIR_KW,
+        PRESERVE_PATH_KW.evolve(since='0.64.0'),
     )
     def func_install_data(self, node: mparser.BaseNode,
                           args: T.Tuple[T.List['mesonlib.FileOrString']],
@@ -2321,19 +2323,35 @@ class Interpreter(InterpreterBase, HoldableObject):
         else:
             install_dir_name = '{datadir}'
         return self.install_data_impl(sources, kwargs['install_dir'], kwargs['install_mode'],
-                                      rename, kwargs['install_tag'], install_dir_name)
+                                      rename, kwargs['install_tag'], install_dir_name,
+                                      preserve_path=kwargs['preserve_path'])
 
     def install_data_impl(self, sources: T.List[mesonlib.File], install_dir: T.Optional[str],
                           install_mode: FileMode, rename: T.Optional[str],
                           tag: T.Optional[str],
                           install_dir_name: T.Optional[str] = None,
-                          install_data_type: T.Optional[str] = None) -> build.Data:
+                          install_data_type: T.Optional[str] = None,
+                          preserve_path: bool = False) -> build.Data:
 
         """Just the implementation with no validation."""
-        data = build.Data(sources, install_dir, install_dir_name or install_dir, install_mode,
-                          self.subproject, rename, tag, install_data_type)
-        self.build.data.append(data)
-        return data
+        idir = install_dir or ''
+        idir_name = install_dir_name or idir
+        dirs = collections.defaultdict(list)
+        ret_data = []
+        if preserve_path:
+            for file in sources:
+                dirname = os.path.dirname(file.fname)
+                dirs[dirname].append(file)
+        else:
+            dirs[''].extend(sources)
+
+        for childdir, files in dirs.items():
+            d = build.Data(files, os.path.join(idir, childdir), os.path.join(idir_name, childdir),
+                           install_mode, self.subproject, rename, tag, install_data_type)
+            ret_data.append(d)
+
+        self.build.data.extend(ret_data)
+        return ret_data
 
     @typed_pos_args('install_subdir', str)
     @typed_kwargs(

@@ -43,6 +43,15 @@ kwargs:
       to install only a subset of the files. By default these files have no install
       tag which means they are not being installed when `--tags` argument is specified.
 
+  preserve_path:
+    type: bool
+    since: 0.64.0
+    default: false
+    description: |
+      Disable stripping child-directories from data files when installing.
+
+      This is equivalent to GNU Automake's `nobase` option.
+
   rename:
     type: list[str]
     since: 0.46.0

@@ -30,7 +30,7 @@ from ..dependencies.base import process_method_kw
 from ..dependencies.detect import get_dep_identifier
 from ..environment import detect_cpu_family
 from ..interpreter import ExternalProgramHolder, extract_required_kwarg, permitted_dependency_kwargs
-from ..interpreter.type_checking import NoneType
+from ..interpreter.type_checking import NoneType, PRESERVE_PATH_KW
 from ..interpreterbase import (
     noPosargs, noKwargs, permittedKwargs, ContainerTypeInfo,
     InvalidArguments, typed_pos_args, typed_kwargs, KwargInfo,
@@ -588,8 +588,13 @@ class PythonInstallation(ExternalProgramHolder):
             return dep
 
     @typed_pos_args('install_data', varargs=(str, mesonlib.File))
-    @typed_kwargs('python_installation.install_sources', _PURE_KW, _SUBDIR_KW,
-                  KwargInfo('install_tag', (str, NoneType), since='0.60.0'))
+    @typed_kwargs(
+        'python_installation.install_sources',
+        _PURE_KW,
+        _SUBDIR_KW,
+        PRESERVE_PATH_KW,
+        KwargInfo('install_tag', (str, NoneType), since='0.60.0')
+    )
     def install_sources_method(self, args: T.Tuple[T.List[T.Union[str, mesonlib.File]]],
                                kwargs: 'PyInstallKw') -> 'Data':
         tag = kwargs['install_tag'] or 'runtime'
@@ -597,7 +602,8 @@ class PythonInstallation(ExternalProgramHolder):
             self.interpreter.source_strings_to_files(args[0]),
             self._get_install_dir_impl(kwargs['pure'], kwargs['subdir']),
             mesonlib.FileMode(), rename=None, tag=tag, install_data_type='python',
-            install_dir_name=self._get_install_dir_name_impl(kwargs['pure'], kwargs['subdir']))
+            install_dir_name=self._get_install_dir_name_impl(kwargs['pure'], kwargs['subdir']),
+            preserve_path=kwargs['preserve_path'])
 
     @noPosargs
     @typed_kwargs('python_installation.install_dir', _PURE_KW, _SUBDIR_KW)

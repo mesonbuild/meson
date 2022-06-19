@@ -438,3 +438,5 @@ VARIABLES_KW: KwargInfo[T.Dict[str, str]] = KwargInfo(
     convertor=variables_convertor,
     default={},
 )
+
+PRESERVE_PATH_KW: KwargInfo[bool] = KwargInfo('preserve_path', bool, default=False, since='0.63.0')
