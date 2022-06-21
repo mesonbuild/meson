@@ -16,5 +16,10 @@ endif
 
 dl = meson.get_compiler('c').find_library('dl', required: false)
 e = executable('prog', 'prog.c', dependencies: dl, export_dynamic: true)
+e_dep = declare_dependency(link_with: e)
+
 m = shared_module('module', 'module.c', link_with: e)
+m2 = shared_module('module2', 'module.c', dependencies: e_dep)
+
 test('test', e, args: m.full_path())
+test('test2', e, args: m2.full_path())

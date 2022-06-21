@@ -10,7 +10,7 @@ import typing as T
 from .. import compilers
 from ..build import (EnvironmentVariables, EnvInitValueType, CustomTarget, BuildTarget,
                      CustomTargetIndex, ExtractedObjects, GeneratedList, IncludeDirs,
-                     BothLibraries, SharedLibrary, StaticLibrary, Jar)
+                     BothLibraries, SharedLibrary, StaticLibrary, Jar, Executable)
 from ..coredata import UserFeatureOption
 from ..dependencies import Dependency, InternalDependency
 from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo
@@ -400,9 +400,9 @@ D_MODULE_VERSIONS_KW: KwargInfo[T.List[T.Union[str, int]]] = KwargInfo(
 _link_with_error = '''can only be self-built targets, external dependencies (including libraries) must go in "dependencies".'''
 
 # Allow Dependency for the better error message? But then in other cases it will list this as one of the allowed types!
-LINK_WITH_KW: KwargInfo[T.List[T.Union[BothLibraries, SharedLibrary, StaticLibrary, CustomTarget, CustomTargetIndex, Jar]]] = KwargInfo(
+LINK_WITH_KW: KwargInfo[T.List[T.Union[BothLibraries, SharedLibrary, StaticLibrary, CustomTarget, CustomTargetIndex, Jar, Executable]]] = KwargInfo(
     'link_with',
-    ContainerTypeInfo(list, (BothLibraries, SharedLibrary, StaticLibrary, CustomTarget, CustomTargetIndex, Jar, Dependency)),
+    ContainerTypeInfo(list, (BothLibraries, SharedLibrary, StaticLibrary, CustomTarget, CustomTargetIndex, Jar, Executable, Dependency)),
     listify=True,
     default=[],
     validator=lambda x: _link_with_error if isinstance(x, Dependency) else None,
