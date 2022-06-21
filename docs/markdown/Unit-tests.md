@@ -238,9 +238,15 @@ the like.
 
 In the test case options, the `timeout` option is specified in a number of seconds.
 
-To disable timeout in test cases, add `timeout: 0` or negative value to allow infinite duration for test case to completes.
+To disable timeout in test cases, add `timeout: 0` or a negative value to allow
+infinite duration for the test case to complete.
 
-For running test, you can specify command line argument for overriding timeout as well by supplying `--timeout-multiplier 0` command line argument.
+For running tests, you can specify a command line argument for overriding the
+timeout as well:
+
+```console
+$ meson test --timeout-multiplier 0
+```
 
 For further information see the command line help of Meson by running
 `meson test -h`.
