@@ -234,6 +234,14 @@ other useful information as the environmental variables. This is
 useful, for example, when you run the tests on Travis-CI, Jenkins and
 the like.
 
+**Timeout**
+
+In the test case options, the `timeout` option is specified in a number of seconds.
+
+To disable timeout in test cases, add `timeout: 0` or negative value to allow infinite duration for test case to completes. Alternatively, `timeout_multiplier: 0` accomplish the same functionality as `timeout: 0`.
+
+For running test, you can specify command line argument for overriding timeout as well by supplying `--timeout-multiplier 0` command line argument. 
+
 For further information see the command line help of Meson by running
 `meson test -h`.
 
