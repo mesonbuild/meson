@@ -2323,7 +2323,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         return self.install_data_impl(sources, kwargs['install_dir'], kwargs['install_mode'],
                                       rename, kwargs['install_tag'], install_dir_name)
 
-    def install_data_impl(self, sources: T.List[mesonlib.File], install_dir: str,
+    def install_data_impl(self, sources: T.List[mesonlib.File], install_dir: T.Optional[str],
                           install_mode: FileMode, rename: T.Optional[str],
                           tag: T.Optional[str],
                           install_dir_name: T.Optional[str] = None,
