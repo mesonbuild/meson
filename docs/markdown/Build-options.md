@@ -85,7 +85,7 @@ argument of most functions. Currently supported in
 - `auto` is the same as passing `required : false`.
 - `disabled` do not look for the dependency and always return 'not-found'.
 
-When getting the value of this type of option using `get_option()`, a
+When getting the value of this type of option using [[get_option]], a
 special [[@feature]] object is returned instead
 of the string representation of the option's value. This object can be
 passed to `required`:

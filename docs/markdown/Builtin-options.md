@@ -12,7 +12,7 @@ universal options, base options, compiler options.
 
 A list of these options can be found by running `meson --help`. All
 these can be set by passing `-Doption=value` to `meson` (aka `meson
-setup`), or by setting them inside `default_options` of `project()` in
+setup`), or by setting them inside `default_options` of [[project]] in
 your `meson.build`. Some options can also be set by `--option=value`,
 or `--option value`--- a list is shown by running `meson setup
 --help`.
@@ -114,7 +114,7 @@ All other combinations of `debug` and `optimization` set `buildtype` to `'custom
 
 These are set in the same way as universal options, either by
 `-Doption=value`, or by setting them inside `default_options` of
-`project()` in your `meson.build`. However, they cannot be shown in
+[[project]] in your `meson.build`. However, they cannot be shown in
 the output of `meson --help` because they depend on both the current
 platform and the compiler that will be selected. The only way to see
 them is to setup a builddir and then run `meson configure` on it with
