@@ -52,9 +52,9 @@ class RefmanLinksExtension(Extension):
         with valid links to the correct URL. To reference objects / types use the
         [[@object]] syntax.
         '''
-        link_regex = re.compile(r'\[\[#?@?([ \n\t]*[a-zA-Z0-9_]+[ \n\t]*\.)*[ \n\t]*[a-zA-Z0-9_]+[ \n\t]*\]\]', re.MULTILINE)
+        link_regex = re.compile(r'(\[\[#?@?([ \n\t]*[a-zA-Z0-9_]+[ \n\t]*\.)*[ \n\t]*[a-zA-Z0-9_]+[ \n\t]*\]\])(.)?', re.MULTILINE)
         for m in link_regex.finditer(page.formatted_contents):
-            i = m.group()
+            i = m.group(1)
             obj_id: str = i[2:-2]
             obj_id = re.sub(r'[ \n\t]', '', obj_id)  # Remove whitespaces
 
@@ -77,12 +77,15 @@ class RefmanLinksExtension(Extension):
             text = obj_id
             if text.startswith('@'):
                 text = text[1:]
+            elif in_code_block:
+                if m.group(3) != '(':
+                    text = text + '()'
             else:
                 text = text + '()'
             if not in_code_block:
                 text = f'<code>{text}</code>'
             link = f'<a href="{self._data[obj_id]}"><ins>{text}</ins></a>'
-            page.formatted_contents = page.formatted_contents.replace(i, link)
+            page.formatted_contents = page.formatted_contents.replace(i, link, 1)
 
     def setup(self) -> None:
         super().setup()
