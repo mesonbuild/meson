@@ -10,12 +10,10 @@ universal options, base options, compiler options.
 
 ## Universal options
 
-A list of these options can be found by running `meson --help`. All
-these can be set by passing `-Doption=value` to `meson` (aka `meson
-setup`), or by setting them inside `default_options` of [[project]] in
-your `meson.build`. Some options can also be set by `--option=value`,
-or `--option value`--- a list is shown by running `meson setup
---help`.
+All these can be set by passing `-Doption=value` to `meson` (aka `meson
+setup`), or by setting them inside `default_options` of [[project]] in your
+`meson.build`. Some options can also be set by `--option=value`, or `--option
+value` -- a list is shown by running `meson setup --help`.
 
 For legacy reasons `--warnlevel` is the cli argument for the
 `warning_level` option.
