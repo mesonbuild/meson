@@ -209,12 +209,6 @@ def ensure_stdout_accepts_unicode():
         sys.stdout.reconfigure(errors='surrogateescape')
 
 def run(original_args, mainfile):
-    if sys.version_info < (3, 7):
-        print('Meson works correctly only with python 3.7+.')
-        print(f'You have python {sys.version}.')
-        print('Please update your environment')
-        return 1
-
     if sys.version_info >= (3, 10) and os.environ.get('MESON_RUNNING_IN_PROJECT_TESTS'):
         # workaround for https://bugs.python.org/issue34624
         import warnings
