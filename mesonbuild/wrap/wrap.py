@@ -363,25 +363,25 @@ class Resolver:
         if os.path.exists(self.dirname):
             if not os.path.isdir(self.dirname):
                 raise WrapException('Path already exists but is not a directory')
-        else:
-            if self.wrap.type == 'file':
-                self.get_file()
             else:
-                self.check_can_download()
-                if self.wrap.type == 'git':
-                    self.get_git()
-                elif self.wrap.type == "hg":
-                    self.get_hg()
-                elif self.wrap.type == "svn":
-                    self.get_svn()
+                if self.wrap.type == 'file':
+                    self.get_file()
                 else:
-                    raise WrapException(f'Unknown wrap type {self.wrap.type!r}')
-            try:
-                self.apply_patch()
-                self.apply_diff_files()
-            except Exception:
-                windows_proof_rmtree(self.dirname)
-                raise
+                    self.check_can_download()
+                    if self.wrap.type == 'git':
+                        self.get_git()
+                    elif self.wrap.type == "hg":
+                        self.get_hg()
+                    elif self.wrap.type == "svn":
+                        self.get_svn()
+                    else:
+                        raise WrapException(f'Unknown wrap type {self.wrap.type!r}')
+                try:
+                    self.apply_patch()
+                    self.apply_diff_files()
+                except Exception:
+                    windows_proof_rmtree(self.dirname)
+                    raise
 
         # A meson.build or CMakeLists.txt file is required in the directory
         if method == 'meson' and not os.path.exists(meson_file):
