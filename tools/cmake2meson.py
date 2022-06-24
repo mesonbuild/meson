@@ -38,7 +38,7 @@ class Lexer:
         self.token_specification = [
             # Need to be sorted longest to shortest.
             ('ignore', re.compile(r'[ \t]')),
-            ('string', re.compile(r'"([^\\]|(\\.))*?"', re.M)),
+            ('string', re.compile(r'"([^\\]|(\\.))*?"', re.M | re.S)),
             ('varexp', re.compile(r'\${[-_0-9a-z/A-Z.]+}')),
             ('id', re.compile('''[,-><${}=+_0-9a-z/A-Z|@.*]+''')),
             ('eol', re.compile(r'\n')),
@@ -70,7 +70,7 @@ class Lexer:
                     elif tid == 'rparen':
                         yield(Token('rparen', ')'))
                     elif tid == 'string':
-                        yield(Token('string', match_text[1:-1]))
+                        yield(Token('string', match_text[1:-1].replace('\\\n', '')))
                     elif tid == 'id':
                         yield(Token('id', match_text))
                     elif tid == 'eol':
