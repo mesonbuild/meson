@@ -22,6 +22,9 @@ on:
       - ".github/workflows/nonative.yml"
       - "run*tests.py"
 
+permissions:
+  contents: read
+
 jobs:
   cross-only-armhf:
     runs-on: ubuntu-latest

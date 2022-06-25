@@ -36,6 +36,9 @@ on:
     - "test cases/objcpp/**"
     - "test caes/windows/**"
 
+permissions:
+  contents: read
+
 jobs:
 
   linux:
