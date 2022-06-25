@@ -70,7 +70,10 @@ class Lexer:
                     elif tid == 'rparen':
                         yield(Token('rparen', ')'))
                     elif tid == 'string':
-                        yield(Token('string', match_text[1:-1].replace('\\\n', '')))
+                        yield(Token('string',
+                            match_text[1:-1]
+                                .replace('\\\n', '')
+                                .replace('\'', '\\\'')))
                     elif tid == 'id':
                         yield(Token('id', match_text))
                     elif tid == 'eol':
