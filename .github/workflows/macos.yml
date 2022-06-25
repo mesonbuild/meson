@@ -20,6 +20,9 @@ on:
       - ".github/workflows/macos.yml"
       - "run_unittests.py"
 
+permissions:
+  contents: read
+
 jobs:
   unittests-appleclang:
     runs-on: macos-latest

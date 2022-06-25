@@ -20,6 +20,9 @@ on:
       - ".github/workflows/msys2.yml"
       - "run_unittests.py"
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: windows-2019

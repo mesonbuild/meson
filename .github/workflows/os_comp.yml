@@ -26,6 +26,9 @@ on:
       - ".github/workflows/os_comp.yml"
       - "run_unittests.py"
 
+permissions:
+  contents: read
+
 jobs:
   arch:
     name: ${{ matrix.cfg.name }}
