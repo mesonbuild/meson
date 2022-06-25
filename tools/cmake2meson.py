@@ -47,7 +47,7 @@ class Lexer:
             ('rparen', re.compile(r'\)')),
         ]
 
-    def lex(self, code: str) -> T.Iterator[Token]:
+    def lex(self, code: str, debuginfo_path: Path) -> T.Iterator[Token]:
         lineno = 1
         line_start = 0
         loc = 0
@@ -87,11 +87,12 @@ class Lexer:
                         raise ValueError(f'lex: unknown element {tid}')
                     break
             if not matched:
-                raise ValueError('Lexer got confused line %d column %d' % (lineno, col))
+                raise ValueError('Lexer got confused path %s line %d column %d'
+                    % (debuginfo_path, lineno, col))
 
 class Parser:
-    def __init__(self, code: str) -> None:
-        self.stream = Lexer().lex(code)
+    def __init__(self, code: str, debuginfo_path: Path) -> None:
+        self.stream = Lexer().lex(code, debuginfo_path)
         self.getsym()
 
     def getsym(self) -> None:
@@ -288,7 +289,7 @@ class Converter:
         except FileNotFoundError:
             print('\nWarning: No CMakeLists.txt in', subdir, '\n', file=sys.stderr)
             return
-        p = Parser(cmakecode)
+        p = Parser(cmakecode, cfile)
         with (subdir / 'meson.build').open('w', encoding='utf-8') as outfile:
             for t in p.parse():
                 if t.name == 'add_subdirectory':
