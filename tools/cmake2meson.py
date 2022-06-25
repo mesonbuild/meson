@@ -40,7 +40,7 @@ class Lexer:
             ('ignore', re.compile(r'[ \t]')),
             ('string', re.compile(r'"([^\\]|(\\.))*?"', re.M | re.S)),
             ('varexp', re.compile(r'\${[-_0-9a-z/A-Z.]+}')),
-            ('id', re.compile('''[,-><${}=+_0-9a-z/A-Z|@.*']+''')),
+            ('id', re.compile('''[,-><%${}=+_0-9a-z/A-Z|@.*']+''')),
             ('eol', re.compile(r'\n')),
             ('comment', re.compile(r'#.*')),
             ('lparen', re.compile(r'\(')),
