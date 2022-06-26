@@ -159,6 +159,8 @@ class Converter:
                      'enable_testing': True,
                      'include': True}
 
+    known_programs = ['bison']
+
     def __init__(self, cmake_root: str):
         self.cmake_root = Path(cmake_root).expanduser()
         self.indent_unit = '  '
@@ -205,7 +207,11 @@ class Converter:
             else:
                 line = '{} = [{}]'.format(varname, ', '.join(["'%s'" % i for i in mods]))
         elif t.name == 'find_package':
-            line = "{}_dep = dependency('{}')".format(t.args[0].value, t.args[0].value)
+            value = t.args[0].value
+            if value.lower() in self.known_programs:
+                line = "{}_dep = find_program('{}')".format(value, value.lower())
+            else:
+                line = "{}_dep = dependency('{}')".format(value, value)
         elif t.name == 'find_library':
             line = "{} = find_library('{}')".format(t.args[0].value.lower(), t.args[0].value)
         elif t.name == 'add_executable':
