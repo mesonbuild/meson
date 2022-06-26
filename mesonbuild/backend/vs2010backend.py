@@ -1312,7 +1312,7 @@ class Vs2010Backend(backends.Backend):
             pdb.text = f'$(OutDir){target_name}.pdb'
         targetmachine = ET.SubElement(link, 'TargetMachine')
         if target.for_machine is MachineChoice.BUILD:
-            targetplatform = platform
+            targetplatform = platform.lower()
         else:
             targetplatform = self.platform.lower()
         if targetplatform == 'win32':
