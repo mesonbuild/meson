@@ -352,7 +352,7 @@ class Converter:
             line = 'project(' + ', '.join(args) + ", default_options : ['default_library=static'])"
         elif t.name == 'set':
             varname = t.args[0].value.lower()
-            line = '{} = {}\n'.format(varname, self.convert_args(t.args[1:]))
+            line = '{} = {}\n'.format(varname, self.convert_args(t.args[1:2]))
         elif t.name == 'if':
             postincrement = 1
             line = 'if %s' % self.convert_condition(t.args)
