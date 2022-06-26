@@ -48,7 +48,7 @@ Examples:
 Now the same in a code block:
 
 ```meson
-[[#@str]] [[executable]]('main', [
+[[#@str]] [[#executable]]('main', [
     'file_@0@.cpp'.format([[#meson.version]])
 ])
 ```
