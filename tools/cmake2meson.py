@@ -202,6 +202,8 @@ class Converter:
             return '%s_dep.found()' % pkgname
         elif arg.tid == 'string':
             return "'%s'" % arg.value
+        elif arg.value in [el[0] for el in self.options]:
+            return "get_option('%s')" % arg.value
         else:
             return arg.value.lower()
 
