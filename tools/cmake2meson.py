@@ -161,11 +161,113 @@ class Converter:
 
     known_programs = ['bison']
 
+    comp_op = {
+        'EQUAL': '==',
+        'LESS': '<',
+        'LESS_EQUAL': '<=',
+        'GREATER': '>',
+        'GREATER_EQUAL': '>=',
+        'STREQUAL': '==',
+        'STRLESS': '<',
+        'STRLESS_EQUAL': '<=',
+        'STRGREATER': '>',
+        'STRGREATER_EQUAL': '>=',
+        'VERSION_EQUAL': 'todo',
+        'VERSION_LESS': 'todo',
+        'VERSION_LESS_EQUAL': 'todo',
+        'VERSION_GREATER': 'todo',
+        'VERSION_GREATER_EQUAL': 'todo',
+        'PATH_EQUAL': '=='
+    }
+
     def __init__(self, cmake_root: str):
         self.cmake_root = Path(cmake_root).expanduser()
         self.indent_unit = '  '
         self.indent_level = 0
         self.options = []  # type: T.List[tuple]
+
+    def convert_condition_part(self, arg: Token) -> str:
+        mapping = {
+            'APPLE': '(build_machine.system() == \'darwin\')',
+            'WIN32': '(build_machine.system() == \'windows\')',
+        }
+        if arg.value in mapping:
+            return mapping[arg.value]
+        elif arg.value in self.comp_op:
+            return self.comp_op[arg.value]
+        elif arg.value.endswith('_FOUND'):
+            # find_package(SomePackage) will set the variable SomePackage_FOUND Source:
+            # https://cmake.org/cmake/help/latest/command/find_package.html
+            pkgname = arg.value[:-len('_FOUND')]
+            return '%s_dep.found()' % pkgname
+        elif arg.tid == 'string':
+            return "'%s'" % arg.value
+        else:
+            return arg.value.lower()
+
+    def convert_condition(self, args: T.List[Token]) -> str:
+        ar = list(map(self.convert_condition_part, args))
+
+        # return ' '.join(ar) would be simple, but cmake has another operator
+        # precedence than meson so we need to fix some brakets.
+
+        # For everyone wondering how cmake's grammar works, here are some examples:
+        # (Assume that `set(tv true)` and `set(fv false)` has been run)
+        # NOT tv -> false
+        # NOT NOT tv -> error
+        # NOT (NOT tv) -> true
+        # NOT tv AND fv -> (NOT tv) AND fv -> false
+        # NOT tv OR tv -> (NOT tv) OR tv -> true
+        # tv OR tv AND fv -> (tv OR tv) AND fv -> false
+        # fv AND tv OR tv -> (fv AND tv) OR tv -> true
+        # NOT 3 EQUAL 3 -> NOT (3 EQUAL 3) -> false
+
+        # In contrast, Meson has the following operator precedence:
+        # not
+        # comparison operators
+        # and
+        # or
+        # Examples:
+        # not a == b -> (not a) == b
+        # not true and false -> (not true) and false -> false
+        # true or true and false -> true or (true and false) -> true
+
+        def find_braket_end(pos, direction):
+            assert direction in [+1, -1]
+            if ar[pos] != '(':
+                return pos
+            else:
+                depth = 1
+                while depth > 0:
+                    pos += direction
+                    if ar[pos] == '(':
+                        depth += 1
+                    elif ar[pos] == ')':
+                        depth -= 1
+                return pos
+
+        def find_comp_end(pos, direction):
+            assert direction in [+1, -1]
+            pos = find_braket_end(pos, direction)
+            if pos + direction < len(ar) and ar[pos + direction] in self.comp_op.values():
+                return find_braket_end(pos + 2 * direction, direction)
+            else:
+                return pos
+
+        # I'm not sure how correct this while loop is. It's tricky and I'm currently really, really stupid.
+        i = 0
+        while i < len(ar):
+            if ar[i] == 'not':
+                ar.insert(i+1, '(')
+                i = find_comp_end(i+2, +1)+1
+                ar.insert(i, ')')
+            elif ar[i] == 'or':
+                ar.insert(0, '(')
+                i = find_comp_end(i+2, +1)+1
+                ar.insert(i, ')')
+            else:
+                i += 1
+        return ' '.join(ar)
 
     def convert_args(self, args: T.List[Token], as_array: bool = True) -> str:
         res = []
@@ -253,21 +355,11 @@ class Converter:
             line = '{} = {}\n'.format(varname, self.convert_args(t.args[1:]))
         elif t.name == 'if':
             postincrement = 1
-            try:
-                line = 'if %s' % self.convert_args(t.args, False)
-            except AttributeError:  # complex if statements
-                line = t.name
-                for arg in t.args:
-                    line += token_or_group(arg)
+            line = 'if %s' % self.convert_condition(t.args)
         elif t.name == 'elseif':
             preincrement = -1
             postincrement = 1
-            try:
-                line = 'elif %s' % self.convert_args(t.args, False)
-            except AttributeError:  # complex if statements
-                line = t.name
-                for arg in t.args:
-                    line += token_or_group(arg)
+            line = 'elif %s' % self.convert_condition(t.args)
         elif t.name == 'else':
             preincrement = -1
             postincrement = 1
