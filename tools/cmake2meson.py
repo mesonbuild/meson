@@ -156,8 +156,7 @@ def token_or_group(arg: T.Union[Token, T.List[Token]]) -> str:
 
 class Converter:
     ignored_funcs = {'cmake_minimum_required': True,
-                     'enable_testing': True,
-                     'include': True}
+                     'enable_testing': True}
 
     known_programs = ['bison']
 
@@ -303,6 +302,18 @@ class Converter:
             line = t.args[0]
         elif t.name == 'add_subdirectory':
             line = "subdir('" + t.args[0].value + "')"
+        elif t.name == 'include':
+            assert(len(t.args) == 1)
+            assert(t.args[0].tid == 'id')
+            # Design Choice: Maybe the 'include' commands should be done by some sort of preprocessor?
+            fp = self.cmake_root / Path('cmake') / Path('Modules') / Path('%s.cmake' % t.args[0].value)
+            if fp.exists(): # Otherwise, we assume that it is a build-in-module https://cmake.org/cmake/help/latest/manual/cmake-modules.7.html
+                with fp.open(encoding='utf-8') as f:
+                    cmakecode = f.read()
+                p = Parser(cmakecode, fp)
+                for t_inner in p.parse():
+                    self.write_entry(outfile, t_inner)
+            return
         elif t.name == 'pkg_search_module' or t.name == 'pkg_search_modules':
             varname = t.args[0].value.lower()
             mods = ["dependency('%s')" % i.value for i in t.args[1:]]
