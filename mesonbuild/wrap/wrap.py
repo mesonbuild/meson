@@ -130,7 +130,9 @@ class PackageDefinition:
         self.redirected = False
         if self.has_wrap:
             self.parse_wrap()
-        self.directory = self.values.get('directory', self.name)
+            self.directory = self.values.get('directory', self.name)
+            with open(fname, 'r', encoding='utf-8') as file:
+                self.wrapfile_hash = hashlib.sha256(file.read().encode('utf-8')).hexdigest()
         if os.path.dirname(self.directory):
             raise WrapException('Directory key must be a name and not a path')
         if self.type and self.type not in ALL_TYPES:
@@ -218,6 +220,14 @@ class PackageDefinition:
             return self.values[key]
         except KeyError:
             raise WrapException(f'Missing key {key!r} in {self.basename}')
+
+    def get_hashfile(self, subproject_directory: str) -> str:
+        return os.path.join(subproject_directory, '.meson-subproject-wrap-hash.txt')
+
+    def update_hash_cache(self, subproject_directory: str) -> None:
+        if self.has_wrap:
+            with open(self.get_hashfile(subproject_directory), 'w', encoding='utf-8') as file:
+                file.write(self.wrapfile_hash + '\n')
 
 def get_directory(subdir_root: str, packagename: str) -> str:
     fname = os.path.join(subdir_root, packagename + '.wrap')
@@ -355,6 +365,7 @@ class Resolver:
 
         # The directory is there and has meson.build? Great, use it.
         if method == 'meson' and os.path.exists(meson_file):
+            self.validate()
             return rel_path
         if method == 'cmake' and os.path.exists(cmake_file):
             return rel_path
@@ -390,6 +401,11 @@ class Resolver:
             raise WrapException('Subproject exists but has no meson.build file')
         if method == 'cmake' and not os.path.exists(cmake_file):
             raise WrapException('Subproject exists but has no CMakeLists.txt file')
+
+        # At this point, the subproject has been successfully resolved for the
+        # first time so save off the hash of the entire wrap file for future
+        # reference.
+        self.wrap.update_hash_cache(self.dirname)
 
         return rel_path
 
@@ -491,6 +507,26 @@ class Resolver:
             push_url = self.wrap.values.get('push-url')
             if push_url:
                 verbose_git(['remote', 'set-url', '--push', 'origin', push_url], self.dirname, check=True)
+
+    def validate(self) -> None:
+        # This check is only for subprojects with wraps.
+        if not self.wrap.has_wrap:
+            return
+
+        # Retrieve original hash, if it exists.
+        hashfile = self.wrap.get_hashfile(self.dirname)
+        if os.path.isfile(hashfile):
+            with open(hashfile, 'r', encoding='utf-8') as file:
+                expected_hash = file.read().strip()
+        else:
+            # If stored hash doesn't exist then don't warn.
+            return
+
+        actual_hash = self.wrap.wrapfile_hash
+
+        # Compare hashes and warn the user if they don't match.
+        if expected_hash != actual_hash:
+            mlog.warning(f'Subproject {self.wrap.name}\'s revision may be out of date; its wrap file has changed since it was first configured')
 
     def is_git_full_commit_id(self, revno: str) -> bool:
         result = False
