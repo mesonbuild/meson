@@ -30,7 +30,7 @@ This is an implementation detail of Meson, and is subject to change in the futur
 
 *Note* This feature was added in 0.62
 
-You can use a [[structured_source]] for this. Structured sources are a dictionary
+You can use a [[@structured_src]] for this. Structured sources are a dictionary
 mapping a string of the directory, to a source or list of sources.
 When using a structured source all inputs *must* be listed, as Meson may copy
 the sources from the source tree to the build tree.
@@ -44,7 +44,7 @@ build time (when necessary), to avoid reconfiguring when sources change.
 ```meson
 executable(
     'rust_exe',
-    structured_sources(
+    [[#structured_sources]](
         'main.rs',
         {
             'foo' : ['bar.rs', 'foo/lib.rs', generated_rs],
