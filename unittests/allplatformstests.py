@@ -3711,9 +3711,25 @@ class AllPlatformTests(BasePlatformTests):
                   patch_directory = wrap_git_builddef
                   revision = master
                 '''.format(upstream_uri)))
-            self.init(srcdir)
+            out = self.init(srcdir)
             self.build()
             self.run_tests()
+
+            # Make sure the warning does not occur on the first init.
+            out_of_date_warning = 'revision may be out of date'
+            self.assertNotIn(out_of_date_warning, out)
+
+            # Change the wrap's revisions, reconfigure, and make sure it does
+            # warn on the reconfigure.
+            with open(os.path.join(srcdir, 'subprojects', 'wrap_git.wrap'), 'w', encoding='utf-8') as f:
+                f.write(textwrap.dedent('''
+                  [wrap-git]
+                  url = {}
+                  patch_directory = wrap_git_builddef
+                  revision = not-master
+                '''.format(upstream_uri)))
+            out = self.init(srcdir, extra_args='--reconfigure')
+            self.assertIn(out_of_date_warning, out)
 
     def test_extract_objects_custom_target_no_warning(self):
         testdir = os.path.join(self.common_test_dir, '22 object extraction')
