@@ -127,6 +127,7 @@ class PackageDefinition:
         self.directory = self.name
         # must be lowercase for consistency with dep=variable assignment
         self.provided_deps[self.name.lower()] = None
+        # What the original file name was before redirection
         self.original_filename = fname
         self.redirected = False
         if self.has_wrap:
@@ -137,7 +138,6 @@ class PackageDefinition:
         if self.type and self.type not in ALL_TYPES:
             raise WrapException(f'Unknown wrap type {self.type!r}')
         self.filesdir = os.path.join(os.path.dirname(self.filename), 'packagefiles')
-        # What the original file name was before redirection
 
     def parse_wrap(self) -> None:
         try:
