@@ -116,6 +116,8 @@ class DependenciesHelper:
             if hasattr(obj, 'generated_pc'):
                 self._check_generated_pc_deprecation(obj)
                 processed_reqs.append(obj.generated_pc)
+            elif isinstance(obj, dependencies.ValgrindDependency):
+                pass
             elif isinstance(obj, dependencies.PkgConfigDependency):
                 if obj.found():
                     processed_reqs.append(obj.name)
