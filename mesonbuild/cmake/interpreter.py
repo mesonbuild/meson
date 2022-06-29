@@ -667,6 +667,7 @@ class ConverterCustomTarget:
         commands = []  # type: T.List[T.List[T.Union[str, ConverterTarget]]]
         for curr_cmd in self._raw_target.command:
             assert isinstance(curr_cmd, list)
+            assert curr_cmd[0] != '', "An empty string is not a valid executable"
             cmd = []  # type: T.List[T.Union[str, ConverterTarget]]
 
             for j in curr_cmd:
