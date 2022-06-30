@@ -9,4 +9,5 @@ int main(int argc, char **argv) {
   if (s[0] != argv[1][0])
     fprintf(stderr, "Expected %x, got %x\n", (unsigned int) s[0], (unsigned int) argv[1][0]);
   assert(s[0] == argv[1][0]);
+  return 0;
 }

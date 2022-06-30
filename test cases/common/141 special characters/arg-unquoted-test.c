@@ -14,4 +14,5 @@ int main(int argc, char **argv) {
   assert(s[0] == argv[1][0]);
   // There is no way to convert a macro argument into a character constant.
   // Otherwise we'd test that as well
+  return 0;
 }
