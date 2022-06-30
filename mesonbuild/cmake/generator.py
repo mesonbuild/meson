@@ -67,7 +67,7 @@ def parse_generator_expressions(
 
     def target_file(arg: str) -> str:
         if arg not in trace.targets:
-            mlog.warning(f"Somewhere in your CMakeLists.txt you have '$<TARGET_FILE:{arg}>'. In cmake, this evaluates to the path to '{arg}'. If '{arg}' does not exist, cmake errors out. We think that '{arg}' does not exist, so we do not know its path and just return an empty string.")
+            mlog.warning(f"Unable to evaluate the cmake variable '$<TARGET_FILE:{arg}>'.")
             return ''
         tgt = trace.targets[arg]
 
