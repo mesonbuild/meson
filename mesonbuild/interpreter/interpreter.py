@@ -543,6 +543,9 @@ class Interpreter(InterpreterBase, HoldableObject):
                 # mypy does not understand "and isinstance"
                 if isinstance(val, mparser.StringNode):
                     self.handle_meson_version(val.value, val)
+                break
+        else:
+            self.handle_meson_version(coredata.default_version_req, project)
 
     def get_build_def_files(self) -> mesonlib.OrderedSet[str]:
         return self.build_def_files
@@ -1152,7 +1155,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_kwargs(
         'project',
         DEFAULT_OPTIONS,
-        KwargInfo('meson_version', (str, NoneType)),
+        KwargInfo('meson_version', str, default=coredata.default_version_req),
         KwargInfo(
             'version',
             (str, mesonlib.File, NoneType, list),
@@ -1171,8 +1174,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         # This needs to be evaluated as early as possible, as meson uses this
         # for things like deprecation testing.
-        if kwargs['meson_version']:
-            self.handle_meson_version(kwargs['meson_version'], node)
+        self.handle_meson_version(kwargs['meson_version'], node)
 
         if os.path.exists(self.option_file):
             oi = optinterpreter.OptionInterpreter(self.subproject)

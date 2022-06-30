@@ -61,6 +61,9 @@ if T.TYPE_CHECKING:
 # But the corresponding Git tag needs to be '0.1.0rc1'
 version = '1.0.99'
 
+# Minimum Meson version required if meson_version is missing from project()
+default_version_req = '>= 0.37.0'
+
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2012', 'vs2013', 'vs2015', 'vs2017', 'vs2019', 'vs2022', 'xcode', 'none']
 
 DEFAULT_YIELDING = False

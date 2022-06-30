@@ -3455,7 +3455,7 @@ class AllPlatformTests(BasePlatformTests):
                                  autodetect, avi
 
               Subprojects
-                sub            : YES
+                sub            : YES 4 warnings
                 sub2           : NO Problem encountered: This subproject failed
                 subsub         : YES
 

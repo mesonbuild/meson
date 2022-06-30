@@ -1,5 +1,6 @@
 project('command line test', 'c',
-  default_options : ['default_library=static', 'set_sub_opt=true']
+  default_options : ['default_library=static', 'set_sub_opt=true'],
+  meson_version : '>= 0.38',
 )
 
 if get_option('set_sub_opt')
