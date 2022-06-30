@@ -1150,6 +1150,7 @@ class GnomeModule(ExtensionModule):
         gir_inc_dirs: T.List[str] = []
 
         scan_command: T.List[T.Union[str, build.Executable, 'ExternalProgram', 'OverrideProgram']] = [giscanner]
+        scan_command += ['--quiet']
         scan_command += ['--no-libtool']
         scan_command += ['--namespace=' + ns, '--nsversion=' + nsversion]
         scan_command += ['--warn-all']
