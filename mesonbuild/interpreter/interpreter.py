@@ -2935,7 +2935,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
             raise InvalidArguments(f"Target name '{name}' is reserved for Meson's "
                                    "internal use. Please rename.")
 
-    def add_target(self, name: str, tobj: build.Target) -> None:
+    def add_target(self, name: str, tobj: build.Target, is_internal: bool = False) -> None:
         if name == '':
             raise InterpreterException('Target name must not be empty.')
         if name.strip() == '':
@@ -2948,7 +2948,8 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
                     To define a target that builds in that directory you must define it
                     in the meson.build file in that directory.
             '''))
-        self.validate_forbidden_targets(name)
+        if not is_internal:
+            self.validate_forbidden_targets(name)
         # To permit an executable and a shared library to have the
         # same name, such as "foo.exe" and "libfoo.a".
         idname = tobj.get_id()
@@ -2995,10 +2996,12 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
             static_kwargs['sources'] = []
             static_kwargs['objects'] = shared_lib.extract_all_objects()
         else:
-            static_args = args
-            static_kwargs = kwargs
+            # Rename the target so that if there are generators, in the sources
+            # we don't end up with two rules producing the same source
+            static_args = [f'meson-both-{args[0]}'] + args[1:]
+            static_kwargs = kwargs.copy()
 
-        static_lib = self.build_target(node, static_args, static_kwargs, build.StaticLibrary)
+        static_lib = self.build_target(node, static_args, static_kwargs, build.StaticLibrary, is_internal=True)
 
         return build.BothLibraries(shared_lib, static_lib)
 
@@ -3013,7 +3016,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
         else:
             raise InterpreterException(f'Unknown default_library value: {default_library}.')
 
-    def build_target(self, node: mparser.BaseNode, args, kwargs, targetclass):
+    def build_target(self, node: mparser.BaseNode, args, kwargs, targetclass, is_internal=True):
         @FeatureNewKwargs('build target', '0.42.0', ['rust_crate_type', 'build_rpath', 'implicit_include_directories'])
         @FeatureNewKwargs('build target', '0.41.0', ['rust_args'])
         @FeatureNewKwargs('build target', '0.40.0', ['build_by_default'])
@@ -3082,7 +3085,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
                              self.environment, self.compilers[for_machine], kwargs)
         target.project_version = self.project_version
 
-        self.add_target(name, target)
+        self.add_target(name, target, is_internal)
         self.project_args_frozen = True
         return target
 

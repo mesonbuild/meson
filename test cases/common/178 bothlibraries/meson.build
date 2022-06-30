@@ -1,6 +1,10 @@
 project('both libraries linking test', 'c')
 
 both_libs = both_libraries('mylib', 'libfile.c')
+
+gen = generator(find_program('gen.py'), arguments : ['@INPUT@', '@OUTPUT@'], output : '@BASENAME@.out.c')
+# Pic should be false to force soures to be compiled twice
+both_libraries('lib-with-generator', gen.process('libfile.c'), pic : false)
 dep = declare_dependency(link_with: both_libs)
 exe_shared = executable('prog-shared', 'main.c', link_with : both_libs.get_shared_lib())
 exe_static = executable('prog-static', 'main.c',
