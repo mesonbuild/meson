@@ -1245,7 +1245,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
     # one LogRunFuture and one TestRunFuture
     global safe_print
     futures_iter: T.Iterable[RunFutureUnion] = futures
-    if len(futures) > 2:
+    if len(futures) > 2 and sys.stdout.isatty():
         try:
             from tqdm import tqdm
             futures_iter = tqdm(futures, desc='Running tests', unit='test')
