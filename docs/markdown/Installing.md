@@ -149,23 +149,23 @@ it can be maintained in a single place, directly in upstream `meson.build` files
 Meson sets predefined tags on some files. More tags are likely to be added over
 time, please help extending the list of well known categories.
 - `devel`:
-  * `static_library()`,
-  * `install_headers()`,
+  * [[static_library]],
+  * [[install_headers]],
   * `pkgconfig.generate()`,
   * `gnome.generate_gir()` - `.gir` file,
   * Files installed into `libdir` and with `.a` or `.pc` extension,
   * File installed into `includedir`.
 - `runtime`:
-  * `executable()`,
-  * `shared_library()`,
-  * `shared_module()`,
-  * `jar()`,
+  * [[executable]],
+  * [[shared_library]],
+  * [[shared_module]],
+  * [[jar]],
   * Files installed into `bindir`.
   * Files installed into `libdir` and with `.so` or `.dll` extension.
 - `python-runtime`:
   * `python.install_sources()`.
 - `man`:
-  * `install_man()`.
+  * [[install_man]].
 - `doc`:
   * `gnome.gtkdoc()`,
   * `gnome.yelp()`,
@@ -178,8 +178,8 @@ time, please help extending the list of well known categories.
   * `gnome.generate_gir()` - `.typelib` file.
 
 Custom installation tag can be set using the `install_tag` keyword argument
-on various functions such as `custom_target()`, `configure_file()`,
-`install_subdir()` and `install_data()`. See their respective documentation
+on various functions such as [[custom_target]], [[configure_file]],
+[[install_subdir]] and [[install_data]]. See their respective documentation
 in the reference manual for details. It is recommended to use one of the
 predefined tags above when possible.
 

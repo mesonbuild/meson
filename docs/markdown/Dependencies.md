@@ -45,7 +45,7 @@ non-found dependencies.
 
 Meson also allows to get variables that are defined in the
 `pkg-config` file. This can be done by using the
-`get_pkgconfig_variable` function.
+[[dep.get_pkgconfig_variable]] function.
 
 ```meson
 zdep_prefix = zdep.get_pkgconfig_variable('prefix')
@@ -188,7 +188,7 @@ no pkg-config on macOS and Windows.
 In these cases Meson provides convenience wrappers in the form of `system`
 dependencies. Internally these dependencies do exactly what a user would do
 in the build system DSL or with a script, likely calling
-`compiler.find_library()`, setting `link_with` and `include_directories`. By
+[[compiler.find_library]], setting `link_with` and `include_directories`. By
 putting these in Meson upstream the barrier of using them is lowered, as
 projects using Meson don't have to re-implement the logic.
 
@@ -344,7 +344,7 @@ boost_dep = dependency('boost', modules : ['thread', 'utility'])
 exe = executable('myprog', 'file.cc', dependencies : boost_dep)
 ```
 
-You can call `dependency` multiple times with different modules and
+You can call [[dependency]] multiple times with different modules and
 use those to link against your targets.
 
 If your boost headers or libraries are in non-standard locations you

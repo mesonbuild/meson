@@ -321,7 +321,7 @@ fi
 ...
 ```
 
-These variables are set in environment in addition to those set using `meson.add_devenv()`:
+These variables are set in environment in addition to those set using [[meson.add_devenv]]:
 - `MESON_DEVENV` is defined to `'1'`.
 - `MESON_PROJECT_NAME` is defined to the main project's name.
 - `PKG_CONFIG_PATH` includes the directory where Meson generates `-uninstalled.pc`

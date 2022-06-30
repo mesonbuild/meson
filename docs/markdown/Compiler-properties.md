@@ -28,19 +28,19 @@ host_machine.system()
 
 ## Compiler id
 
-The compiler object method `get_id` returns a
+The compiler object method [[compiler.get_id]] returns a
 lower case string describing the "family" of the compiler. Since 0.53.0
-`get_linker_id` returns a lower case string with the linker name. Since
+[[compiler.get_linker_id]] returns a lower case string with the linker name. Since
 compilers can often choose from multiple linkers depending on operating
 system, `get_linker_id` can be useful for handling or mitigating effects
 of particular linkers.
 
-The compiler object also has a method `get_argument_syntax` which
+The compiler object also has a method [[compiler.get_argument_syntax]] which
 returns a lower case string of `gcc`, `msvc`, or another undefined string
 value; identifying whether the compiler arguments use the same syntax as
 either `gcc` or `msvc`, or that its arguments are not like either. This should
 only be used to select the syntax of the arguments, such as those to test
-with `has_argument`.
+with [[compiler.has_argument]].
 
 See [reference tables](Reference-tables.md#compiler-ids) for a list of
 supported compiler ids and their argument type.
@@ -77,7 +77,7 @@ result of the check to its log.
 Sometimes it is necessary to check whether a certain code fragment not
 only compiles, but also links successfully, e.g. to check if a symbol
 is actually present in a library. This can be done using the
-'''.links()''' method on a compiler object like this:
+[[compiler.links]] method like this:
 
 ```meson
 code = '''#include<stdio.h>
@@ -184,7 +184,7 @@ versions than the one that the program is compiled on. It can't be
 assumed that the OS version that is compiled on matches the OS version
 that the binary will run on.
 
-Therefore when detecting function availability with `has_function`, it
+Therefore when detecting function availability with [[compiler.has_function]], it
 is important to specify the correct header in the prefix argument.
 
 In the example above, the function `open_memstream` is detected, which

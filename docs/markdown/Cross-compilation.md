@@ -19,8 +19,8 @@ we are going to call these the *build machine*, *host machine* and
   machine-specific output.
 
 The `tl/dr` summary is the following: if you are doing regular cross
-compilation, you only care about `build_machine` and
-`host_machine`. Just ignore `target_machine` altogether and you will
+compilation, you only care about [[@build_machine]] and
+[[@host_machine]]. Just ignore [[@target_machine]] altogether and you will
 be correct 99% of the time. Only compilers and similar tools care
 about the target machine. In fact, for so-called "multi-target" tools
 the target machine need not be fixed at build-time like the others but
@@ -194,7 +194,7 @@ These values define the machines sufficiently for cross compilation
 purposes. The corresponding target definition would look the same but
 have `target_machine` in the header. These values are available in
 your Meson scripts. There are three predefined variables called,
-surprisingly, `build_machine`, `host_machine` and `target_machine`.
+surprisingly, [[@build_machine]], [[@host_machine]] and [[@target_machine]].
 Determining the operating system of your host machine is simply a
 matter of calling `host_machine.system()`.
 

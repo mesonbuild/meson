@@ -45,7 +45,7 @@ executable(exe1, ['sources'], dependencies: [cm_lib])
 ```
 
 The `subproject` method is almost identical to the normal Meson
-`subproject` function. The only difference is that a CMake project
+[[subproject]] function. The only difference is that a CMake project
 instead of a Meson project is configured.
 
 The returned `sub_proj` supports the same options as a "normal"
@@ -54,7 +54,7 @@ be accessed with the methods listed [below](#subproject-object).
 
 It is usually enough to just use the dependency object returned by the
 `dependency()` method in the build targets. This is almost identical
-to using the `declare_dependency()` object from a normal Meson subproject.
+to using the [[declare_dependency]] object from a normal Meson subproject.
 
 It is also possible to use executables defined in the CMake project as code
 generators with the `target()` method:
