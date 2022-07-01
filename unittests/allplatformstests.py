@@ -2279,6 +2279,9 @@ class AllPlatformTests(BasePlatformTests):
         self.setconf('--warnlevel=3')
         obj = mesonbuild.coredata.load(self.builddir)
         self.assertEqual(obj.options[OptionKey('warning_level')].value, '3')
+        self.setconf('--warnlevel=everything')
+        obj = mesonbuild.coredata.load(self.builddir)
+        self.assertEqual(obj.options[OptionKey('warning_level')].value, 'everything')
         self.wipe()
 
         # But when using -D syntax, it should be 'warning_level'
@@ -2288,6 +2291,9 @@ class AllPlatformTests(BasePlatformTests):
         self.setconf('-Dwarning_level=3')
         obj = mesonbuild.coredata.load(self.builddir)
         self.assertEqual(obj.options[OptionKey('warning_level')].value, '3')
+        self.setconf('-Dwarning_level=everything')
+        obj = mesonbuild.coredata.load(self.builddir)
+        self.assertEqual(obj.options[OptionKey('warning_level')].value, 'everything')
         self.wipe()
 
         # Mixing --option and -Doption is forbidden

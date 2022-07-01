@@ -20,7 +20,7 @@ from ..mesonlib import OptionKey
 
 from .mixins.clike import CLikeCompiler
 from .compilers import Compiler
-from .mixins.gnu import GnuCompiler
+from .mixins.gnu import GnuCompiler, gnu_common_warning_args, gnu_objc_warning_args
 from .mixins.clang import ClangCompiler
 
 if T.TYPE_CHECKING:
@@ -67,7 +67,10 @@ class GnuObjCPPCompiler(GnuCompiler, ObjCPPCompiler):
         self.warn_args = {'0': [],
                           '1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
-                          '3': default_warn_args + ['-Wextra', '-Wpedantic']}
+                          '3': default_warn_args + ['-Wextra', '-Wpedantic'],
+                          'everything': (default_warn_args + ['-Wextra', '-Wpedantic'] +
+                                         self.supported_warn_args(gnu_common_warning_args) +
+                                         self.supported_warn_args(gnu_objc_warning_args))}
 
 
 class ClangObjCPPCompiler(ClangCompiler, ObjCPPCompiler):
@@ -85,7 +88,8 @@ class ClangObjCPPCompiler(ClangCompiler, ObjCPPCompiler):
         self.warn_args = {'0': [],
                           '1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
-                          '3': default_warn_args + ['-Wextra', '-Wpedantic']}
+                          '3': default_warn_args + ['-Wextra', '-Wpedantic'],
+                          'everything': ['-Weverything']}
 
     def get_options(self) -> 'coredata.MutableKeyedOptionDictType':
         opts = super().get_options()

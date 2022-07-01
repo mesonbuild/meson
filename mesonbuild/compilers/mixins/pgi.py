@@ -53,7 +53,8 @@ class PGICompiler(Compiler):
             '0': [],
             '1': default_warn_args,
             '2': default_warn_args,
-            '3': default_warn_args
+            '3': default_warn_args,
+            'everything': default_warn_args
         }
 
     def get_module_incdir_args(self) -> T.Tuple[str]:

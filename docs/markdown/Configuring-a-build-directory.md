@@ -34,7 +34,7 @@ a sample output for a simple project.
       prefer_static   false         [true, false]                                              Whether to try static linking before shared linking
       strip           false         [true, false]                                              Strip targets on install
       unity           off           [on, off, subprojects]                                     Unity build
-      warning_level   1             [0, 1, 2, 3]                                               Compiler warning level to use
+      warning_level   1             [0, 1, 2, 3, everything]                                   Compiler warning level to use
       werror          false         [true, false]                                              Treat warnings as errors
 
     Backend options:

@@ -33,7 +33,7 @@ from .mixins.ccrx import CcrxCompiler
 from .mixins.ti import TICompiler
 from .mixins.arm import ArmCompiler, ArmclangCompiler
 from .mixins.visualstudio import MSVCCompiler, ClangClCompiler
-from .mixins.gnu import GnuCompiler
+from .mixins.gnu import GnuCompiler, gnu_common_warning_args, gnu_cpp_warning_args
 from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
 from .mixins.clang import ClangCompiler
 from .mixins.elbrus import ElbrusCompiler
@@ -194,7 +194,8 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
         self.warn_args = {'0': [],
                           '1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
-                          '3': default_warn_args + ['-Wextra', '-Wpedantic']}
+                          '3': default_warn_args + ['-Wextra', '-Wpedantic'],
+                          'everything': ['-Weverything']}
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = CPPCompiler.get_options(self)
@@ -314,7 +315,8 @@ class ArmclangCPPCompiler(ArmclangCompiler, CPPCompiler):
         self.warn_args = {'0': [],
                           '1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
-                          '3': default_warn_args + ['-Wextra', '-Wpedantic']}
+                          '3': default_warn_args + ['-Wextra', '-Wpedantic'],
+                          'everything': ['-Weverything']}
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = CPPCompiler.get_options(self)
@@ -360,7 +362,10 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
         self.warn_args = {'0': [],
                           '1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
-                          '3': default_warn_args + ['-Wextra', '-Wpedantic']}
+                          '3': default_warn_args + ['-Wextra', '-Wpedantic'],
+                          'everything': (default_warn_args + ['-Wextra', '-Wpedantic'] +
+                                         self.supported_warn_args(gnu_common_warning_args) +
+                                         self.supported_warn_args(gnu_cpp_warning_args))}
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
@@ -535,12 +540,12 @@ class IntelCPPCompiler(IntelGnuLikeCompiler, CPPCompiler):
                              info, exe_wrapper, linker=linker, full_version=full_version)
         IntelGnuLikeCompiler.__init__(self)
         self.lang_header = 'c++-header'
-        default_warn_args = ['-Wall', '-w3', '-diag-disable:remark',
-                             '-Wpch-messages']
+        default_warn_args = ['-Wall', '-w3', '-Wpch-messages']
         self.warn_args = {'0': [],
-                          '1': default_warn_args,
-                          '2': default_warn_args + ['-Wextra'],
-                          '3': default_warn_args + ['-Wextra']}
+                          '1': default_warn_args + ['-diag-disable:remark'],
+                          '2': default_warn_args + ['-Wextra', '-diag-disable:remark'],
+                          '3': default_warn_args + ['-Wextra', '-diag-disable:remark'],
+                          'everything': default_warn_args + ['-Wextra']}
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = CPPCompiler.get_options(self)
