@@ -26,11 +26,14 @@ if T.TYPE_CHECKING:
         case: pathlib.Path
         subtests: T.List[int]
         backend: str
+        extra_args: T.List[str]
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument('case', type=pathlib.Path, help='The test case to run')
+    parser.add_argument('extra_args', nargs='*',
+                        help='arguments that are passed directly to Meson (remember to have -- before these).')
     parser.add_argument('--subtest', type=int, action='append', dest='subtests', help='which subtests to run')
     parser.add_argument('--backend', action='store', help="Which backend to use")
     parser.add_argument('--cross-file', action='store', help='File describing cross compilation environment.')
@@ -56,7 +59,7 @@ def main() -> None:
             return 'meson'
         return ''
 
-    results = [run_test(t, t.args, should_fail(t.path), args.use_tmpdir) for t in tests]
+    results = [run_test(t, t.args + args.extra_args, should_fail(t.path), args.use_tmpdir) for t in tests]
     failed = False
     for test, result in zip(tests, results):
         if result is None:
