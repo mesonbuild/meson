@@ -41,7 +41,8 @@ class ElbrusCompiler(GnuLikeCompiler):
         self.warn_args = {'0': [],
                           '1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
-                          '3': default_warn_args + ['-Wextra', '-Wpedantic']}
+                          '3': default_warn_args + ['-Wextra', '-Wpedantic'],
+                          'everything': default_warn_args + ['-Wextra', '-Wpedantic']}
 
     # FIXME: use _build_wrapper to call this so that linker flags from the env
     # get applied

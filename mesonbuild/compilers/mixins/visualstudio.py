@@ -110,6 +110,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         '1': ['/W2'],
         '2': ['/W3'],
         '3': ['/W4'],
+        'everything': ['/Wall'],
     }  # type: T.Dict[str, T.List[str]]
 
     INVOKES_LINKER = False

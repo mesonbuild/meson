@@ -36,6 +36,7 @@ from .compilers import (
     CompileCheckMode,
 )
 from .mixins.gnu import GnuCompiler
+from .mixins.gnu import gnu_common_warning_args
 
 if T.TYPE_CHECKING:
     from ..dependencies import Dependency
@@ -805,7 +806,10 @@ class GnuDCompiler(GnuCompiler, DCompiler):
         self.warn_args = {'0': [],
                           '1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
-                          '3': default_warn_args + ['-Wextra', '-Wpedantic']}
+                          '3': default_warn_args + ['-Wextra', '-Wpedantic'],
+                          'everything': (default_warn_args + ['-Wextra', '-Wpedantic'] +
+                                         self.supported_warn_args(gnu_common_warning_args))}
+
         self.base_options = {
             OptionKey(o) for o in [
              'b_colorout', 'b_sanitize', 'b_staticpic', 'b_vscrt',

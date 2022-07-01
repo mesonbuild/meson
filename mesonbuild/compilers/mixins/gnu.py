@@ -92,6 +92,238 @@ gnu_color_args = {
     'never': ['-fdiagnostics-color=never'],
 }  # type: T.Dict[str, T.List[str]]
 
+# Warnings collected from the GCC source and documentation.  This is an
+# objective set of all the warnings flags that apply to general projects: the
+# only ones omitted are those that require a project-specific value, or are
+# related to non-standard or legacy language support.  This behaves roughly
+# like -Weverything in clang.  Warnings implied by -Wall, -Wextra, or
+# higher-level warnings already enabled here are not included in these lists to
+# keep them as short as possible.  History goes back to GCC 3.0.0, everything
+# earlier is considered historical and listed under version 0.0.0.
+
+# GCC warnings for all C-family languages
+# Omitted non-general warnings:
+#   -Wabi=
+#   -Waggregate-return
+#   -Walloc-size-larger-than=BYTES
+#   -Walloca-larger-than=BYTES
+#   -Wframe-larger-than=BYTES
+#   -Wlarger-than=BYTES
+#   -Wstack-usage=BYTES
+#   -Wsystem-headers
+#   -Wtrampolines
+#   -Wvla-larger-than=BYTES
+#
+# Omitted warnings enabled elsewhere in meson:
+#   -Winvalid-pch (GCC 3.4.0)
+gnu_common_warning_args = {
+    "0.0.0": [
+        "-Wcast-qual",
+        "-Wconversion",
+        "-Wfloat-equal",
+        "-Wformat=2",
+        "-Winline",
+        "-Wmissing-declarations",
+        "-Wredundant-decls",
+        "-Wshadow",
+        "-Wundef",
+        "-Wuninitialized",
+        "-Wwrite-strings",
+    ],
+    "3.0.0": [
+        "-Wdisabled-optimization",
+        "-Wpacked",
+        "-Wpadded",
+    ],
+    "3.3.0": [
+        "-Wmultichar",
+        "-Wswitch-default",
+        "-Wswitch-enum",
+        "-Wunused-macros",
+    ],
+    "4.0.0": [
+        "-Wmissing-include-dirs",
+    ],
+    "4.1.0": [
+        "-Wunsafe-loop-optimizations",
+        "-Wstack-protector",
+    ],
+    "4.2.0": [
+        "-Wstrict-overflow=5",
+    ],
+    "4.3.0": [
+        "-Warray-bounds=2",
+        "-Wlogical-op",
+        "-Wstrict-aliasing=3",
+        "-Wvla",
+    ],
+    "4.6.0": [
+        "-Wdouble-promotion",
+        "-Wsuggest-attribute=const",
+        "-Wsuggest-attribute=noreturn",
+        "-Wsuggest-attribute=pure",
+        "-Wtrampolines",
+    ],
+    "4.7.0": [
+        "-Wvector-operation-performance",
+    ],
+    "4.8.0": [
+        "-Wsuggest-attribute=format",
+    ],
+    "4.9.0": [
+        "-Wdate-time",
+    ],
+    "5.1.0": [
+        "-Wformat-signedness",
+        "-Wnormalized=nfc",
+    ],
+    "6.1.0": [
+        "-Wduplicated-cond",
+        "-Wnull-dereference",
+        "-Wshift-negative-value",
+        "-Wshift-overflow=2",
+        "-Wunused-const-variable=2",
+    ],
+    "7.1.0": [
+        "-Walloca",
+        "-Walloc-zero",
+        "-Wformat-overflow=2",
+        "-Wformat-truncation=2",
+        "-Wstringop-overflow=3",
+    ],
+    "7.2.0": [
+        "-Wduplicated-branches",
+    ],
+    "8.1.0": [
+        "-Wattribute-alias=2",
+        "-Wcast-align=strict",
+        "-Wsuggest-attribute=cold",
+        "-Wsuggest-attribute=malloc",
+    ],
+    "10.1.0": [
+        "-Wanalyzer-too-complex",
+        "-Warith-conversion",
+    ],
+    "12.1.0": [
+        "-Wbidi-chars=ucn",
+        "-Wopenacc-parallelism",
+        "-Wtrivial-auto-var-init",
+    ],
+}  # type: T.Dict[str, T.List[str]]
+
+# GCC warnings for C
+# Omitted non-general or legacy warnings:
+#   -Wc11-c2x-compat
+#   -Wc90-c99-compat
+#   -Wc99-c11-compat
+#   -Wdeclaration-after-statement
+#   -Wtraditional
+#   -Wtraditional-conversion
+gnu_c_warning_args = {
+    "0.0.0": [
+        "-Wbad-function-cast",
+        "-Wmissing-prototypes",
+        "-Wnested-externs",
+        "-Wstrict-prototypes",
+    ],
+    "3.4.0": [
+        "-Wold-style-definition",
+        "-Winit-self",
+    ],
+    "4.1.0": [
+        "-Wc++-compat",
+    ],
+    "4.5.0": [
+        "-Wunsuffixed-float-constants",
+    ],
+}  # type: T.Dict[str, T.List[str]]
+
+# GCC warnings for C++
+# Omitted non-general or legacy warnings:
+#   -Wc++0x-compat
+#   -Wc++1z-compat
+#   -Wc++2a-compat
+#   -Wctad-maybe-unsupported
+#   -Wnamespaces
+#   -Wtemplates
+gnu_cpp_warning_args = {
+    "0.0.0": [
+        "-Wctor-dtor-privacy",
+        "-Weffc++",
+        "-Wnon-virtual-dtor",
+        "-Wold-style-cast",
+        "-Woverloaded-virtual",
+        "-Wsign-promo",
+    ],
+    "4.0.1": [
+        "-Wstrict-null-sentinel",
+    ],
+    "4.6.0": [
+        "-Wnoexcept",
+    ],
+    "4.7.0": [
+        "-Wzero-as-null-pointer-constant",
+    ],
+    "4.8.0": [
+        "-Wabi-tag",
+        "-Wuseless-cast",
+    ],
+    "4.9.0": [
+        "-Wconditionally-supported",
+    ],
+    "5.1.0": [
+        "-Wsuggest-final-methods",
+        "-Wsuggest-final-types",
+        "-Wsuggest-override",
+    ],
+    "6.1.0": [
+        "-Wmultiple-inheritance",
+        "-Wplacement-new=2",
+        "-Wvirtual-inheritance",
+    ],
+    "7.1.0": [
+        "-Waligned-new=all",
+        "-Wnoexcept-type",
+        "-Wregister",
+    ],
+    "8.1.0": [
+        "-Wcatch-value=3",
+        "-Wextra-semi",
+    ],
+    "9.1.0": [
+        "-Wdeprecated-copy-dtor",
+        "-Wredundant-move",
+    ],
+    "10.1.0": [
+        "-Wcomma-subscript",
+        "-Wmismatched-tags",
+        "-Wredundant-tags",
+        "-Wvolatile",
+    ],
+    "11.1.0": [
+        "-Wdeprecated-enum-enum-conversion",
+        "-Wdeprecated-enum-float-conversion",
+        "-Winvalid-imported-macros",
+    ],
+}  # type: T.Dict[str, T.List[str]]
+
+# GCC warnings for Objective C and Objective C++
+# Omitted non-general or legacy warnings:
+#   -Wtraditional
+#   -Wtraditional-conversion
+gnu_objc_warning_args = {
+    "0.0.0": [
+        "-Wselector",
+    ],
+    "3.3": [
+        "-Wundeclared-selector",
+    ],
+    "4.1.0": [
+        "-Wassign-intercept",
+        "-Wstrict-selector-match",
+    ],
+}  # type: T.Dict[str, T.List[str]]
+
 
 @functools.lru_cache(maxsize=None)
 def gnulike_default_include_dirs(compiler: T.Tuple[str, ...], lang: str) -> 'ImmutableListProtocol[str]':
@@ -350,6 +582,13 @@ class GnuCompiler(GnuLikeCompiler):
             # https://gcc.gnu.org/gcc-4.8/changes.html
             args[args.index('-Wpedantic')] = '-pedantic'
         return args
+
+    def supported_warn_args(self, warn_args_by_version: T.Dict[str, T.List[str]]) -> T.List[str]:
+        result = []
+        for version, warn_args in warn_args_by_version.items():
+            if mesonlib.version_compare(self.version, '>=' + version):
+                result += warn_args
+        return result
 
     def has_builtin_define(self, define: str) -> bool:
         return define in self.defines
