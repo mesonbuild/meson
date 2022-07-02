@@ -93,19 +93,19 @@ def determine_worker_count() -> int:
     return num_workers
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument('--repeat', default=1, dest='repeat', type=int,
+    parser.add_argument('--repeat', default=1, dest='repeat', type=int,  metavar='COUNT',
                         help='Number of times to run the tests.')
     parser.add_argument('--no-rebuild', default=False, action='store_true',
                         help='Do not rebuild before running tests.')
     parser.add_argument('--gdb', default=False, dest='gdb', action='store_true',
                         help='Run test under gdb.')
-    parser.add_argument('--gdb-path', default='gdb', dest='gdb_path',
+    parser.add_argument('--gdb-path', default='gdb', dest='gdb_path', metavar='PATH',
                         help='Path to the gdb binary (default: gdb).')
     parser.add_argument('--list', default=False, dest='list', action='store_true',
                         help='List available tests.')
     parser.add_argument('--wrapper', default=None, dest='wrapper', type=split_args,
                         help='wrapper to run tests with (e.g. Valgrind)')
-    parser.add_argument('-C', dest='wd', action=RealPathAction,
+    parser.add_argument('-C', dest='wd', action=RealPathAction, metavar='DIRECTORY',
                         # https://github.com/python/typeshed/issues/3107
                         # https://github.com/python/mypy/issues/7177
                         type=os.path.abspath,  # type: ignore
@@ -120,21 +120,21 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
                         help="Whether to print failing tests' logs.")
     parser.add_argument('--benchmark', default=False, action='store_true',
                         help="Run benchmarks instead of tests.")
-    parser.add_argument('--logbase', default='testlog',
+    parser.add_argument('--logbase', default='testlog', metavar='PREFIX',
                         help="Base name for log file.")
-    parser.add_argument('--num-processes', default=determine_worker_count(), type=int,
+    parser.add_argument('--num-processes', default=determine_worker_count(), type=int, metavar='N',
                         help='How many parallel processes to use.')
     parser.add_argument('-v', '--verbose', default=False, action='store_true',
                         help='Do not redirect stdout and stderr')
     parser.add_argument('-q', '--quiet', default=False, action='store_true',
                         help='Produce less output to the terminal.')
-    parser.add_argument('-t', '--timeout-multiplier', type=float, default=None,
+    parser.add_argument('-t', '--timeout-multiplier', type=float, default=None, metavar='N',
                         help='Define a multiplier for test timeout, for example '
                         ' when running tests in particular conditions they might take'
                         ' more time to execute. (<= 0 to disable timeout)')
     parser.add_argument('--setup', default=None, dest='setup',
                         help='Which test setup to use.')
-    parser.add_argument('--test-args', default=[], type=split_args,
+    parser.add_argument('--test-args', default=[], type=split_args, metavar='ARGS',
                         help='Arguments to pass to the specified test(s) or all tests')
     parser.add_argument('args', nargs='*',
                         help='Optional list of test names to run. "testname" to run all tests with that name, '
