@@ -748,10 +748,20 @@ to obtain the shaderc version using this method.
 
 ## Threads
 
-This dependency selects the appropriate compiler flags and/or
-libraries to use for thread support.
+Meson has a very simple notational shorthand for enabling thread
+support on your build targets. First you obtain the thread dependency
+object like this:
 
-See [threads](Threads.md).
+```meson
+thread_dep = dependency('threads')
+```
+
+And then you just use it in a target like this:
+
+```meson
+executable('threaded-program', ...
+  dependencies : thread_dep)
+```
 
 ## Valgrind
 
