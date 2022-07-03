@@ -20,6 +20,6 @@ A clear and concise description of what you expected to happen.
 **system parameters**
 * Is this a [cross build](https://mesonbuild.com/Cross-compilation.html) or just a plain native build (for the same computer)?
 * what operating system (e.g. MacOS Catalina, Windows 10, CentOS 8.0, Ubuntu 18.04, etc.)
-* what Python version are you using e.g. 3.8.0
-* what `meson --version`
-* what `ninja --version` if it's a Ninja build
+* what version of `python` are you using `--version`
+* what version of `meson` are you using `--version`
+* what version of `ninja` are you using `--version` if it's a Ninja build
