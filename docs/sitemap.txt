@@ -23,7 +23,6 @@ index.md
 		Configuration.md
 		Compiler-properties.md
 		Dependencies.md
-		Threads.md
 		External-commands.md
 		Precompiled-headers.md
 		Unity-builds.md
