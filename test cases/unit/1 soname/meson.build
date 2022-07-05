@@ -21,6 +21,15 @@ shared_library('settosame', 'versioned.c',
   soversion : '7.8.9',
   version : '7.8.9')
 
+shared_library('vermeta', 'versioned.c',
+  install : true,
+  version : '0.1.0+master.20220705111300.6e4b184')
+
+shared_library('bothmeta', 'versioned.c',
+  install : true,
+  soversion : '7.8.9',
+  version : '0.1.0+master.20220705111300.6e4b184')
+
 shared_module('some_module', 'versioned.c',
   install: true)
 

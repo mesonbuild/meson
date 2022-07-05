@@ -452,6 +452,21 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertEqual(get_soname(bothset), 'libbothset.so.1.2.3')
         self.assertEqual(len(self.glob_sofiles_without_privdir(bothset[:-3] + '*')), 3)
 
+        # File with version with meta
+        vermeta = os.path.join(libpath, 'libvermeta.so')
+        self.assertPathExists(vermeta + '.0.1.0+master.20220705111300.6e4b184')
+        self.assertEqual(os.readlink(vermeta), 'libvermeta.so.0')
+        self.assertEqual(get_soname(vermeta), 'libvermeta.so.0')
+        self.assertEqual(len(self.glob_sofiles_without_privdir(vermeta[:-3] + '*')), 3)
+
+        # File with version with meta and soversion
+        bothmeta = os.path.join(libpath, 'libbothmeta.so')
+        self.assertPathExists(bothmeta + '.0.1.0+master.20220705111300.6e4b184')
+        self.assertEqual(os.readlink(bothmeta), 'libbothmeta.so.7.8.9')
+        self.assertEqual(os.readlink(bothmeta + '.7.8.9'), 'libbothmeta.so.0.1.0+master.20220705111300.6e4b184')
+        self.assertEqual(get_soname(bothmeta), 'libbothmeta.so.7.8.9')
+        self.assertEqual(len(self.glob_sofiles_without_privdir(bothmeta[:-3] + '*')), 3)
+
         # A shared_module that is not linked to anything
         module = os.path.join(libpath, 'libsome_module.so')
         self.assertPathExists(module)

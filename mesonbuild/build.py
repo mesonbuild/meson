@@ -2157,7 +2157,7 @@ class SharedLibrary(BuildTarget):
             prefix = 'lib'
             suffix = 'so'
             if self.ltversion:
-                # libfoo.so.X[.Y[.Z]] (.Y and .Z are optional)
+                # libfoo.so.X[.Y[.Z]][+META] (.Y, .Z and +META are optional)
                 self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}.{0.ltversion}'
             elif self.soversion:
                 # libfoo.so.X
@@ -2228,8 +2228,11 @@ class SharedLibrary(BuildTarget):
                 self.ltversion = kwargs['version']
                 if not isinstance(self.ltversion, str):
                     raise InvalidArguments('Shared library version needs to be a string, not ' + type(self.ltversion).__name__)
-                if not re.fullmatch(r'[0-9]+(\.[0-9]+){0,2}', self.ltversion):
-                    raise InvalidArguments(f'Invalid Shared library version "{self.ltversion}". Must be of the form X.Y.Z where all three are numbers. Y and Z are optional.')
+                if not re.fullmatch(r'[0-9]+(\.[0-9]+){0,2}(\+[A-Za-z0-9-.]+)?', self.ltversion):
+                    raise InvalidArguments(f'Invalid Shared library version "{self.ltversion}". Must be of the form X[.Y[.Z]][+META] where X, Y, Z are numbers\n'
+                                            'and META is a string starting with \'+\' and containing only [A-Za-z0-9-.] characters. Y, Z and META are optional.')
+                if "+" in self.ltversion:
+                    FeatureNew.single_use('Metadata in shared library version', '0.64.0', self.subproject)
             # Try to extract/deduce the soversion
             if 'soversion' in kwargs:
                 self.soversion = kwargs['soversion']
