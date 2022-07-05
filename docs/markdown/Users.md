@@ -91,10 +91,13 @@ lookup based on OpenStreetMap data
  - [libratbag](https://github.com/libratbag/libratbag), provides a DBus daemon to configure input devices, mainly gaming mice.
  - [libspng](https://github.com/randy408/libspng), a C library for reading and writing Portable Network Graphics (PNG)
 format files
+ - [libSRTP](https://github.com/cisco/libsrtp) (from Cisco Systems), a library for SRTP (Secure Realtime Transport Protocol)
  - [libui](https://github.com/andlabs/libui), a simple and portable (but not inflexible) GUI library in C that uses the native GUI technologies of each platform it supports
  - [Libva](https://github.com/intel/libva), an implementation for the VA (VIdeo Acceleration) API
+ - [libvips](https://github.com/libvips/libvips), a fast image processing library with low memory needs
  - [Libvirt](https://libvirt.org), a toolkit to manage virtualization platforms
  - [Libzim](https://github.com/openzim/libzim), the reference implementation for the ZIM file format
+ - [LXC](https://github.com/lxc/lxc), Linux container runtime
  - [Marker](https://github.com/fabiocolacio/Marker), a GTK-3 markdown editor
  - [Mesa](https://mesa3d.org/), an open source graphics driver project
  - [Miniz](https://github.com/richgel999/miniz), a zlib replacement library
