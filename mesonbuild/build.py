@@ -1586,6 +1586,15 @@ You probably should put it in link_with instead.''')
 
         # Languages used by dependencies
         dep_langs = self.get_langs_used_by_deps()
+
+        # This set contains all the languages a linker can link natively
+        # without extra flags. For instance, nvcc (cuda) can link C++
+        # without injecting -lc++/-lstdc++, see
+        #   https://github.com/mesonbuild/meson/issues/10570
+        MASK_LANGS = frozenset([
+            # (language, linker)
+            ('cpp', 'cuda'),
+        ])
         # Pick a compiler based on the language priority-order
         for l in clink_langs:
             if l in self.compilers or l in dep_langs:
@@ -1598,7 +1607,7 @@ You probably should put it in link_with instead.''')
                         'a project language.')
                 stdlib_args: T.List[str] = []
                 for dl in itertools.chain(self.compilers, dep_langs):
-                    if dl != linker.language:
+                    if dl != linker.language and (dl, linker.language) not in MASK_LANGS:
                         stdlib_args += all_compilers[dl].language_stdlib_only_link_flags(self.environment)
                 # Type of var 'linker' is Compiler.
                 # Pretty hard to fix because the return value is passed everywhere
