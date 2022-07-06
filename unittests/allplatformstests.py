@@ -539,7 +539,7 @@ class AllPlatformTests(BasePlatformTests):
         self.run_tests()
 
     def test_implicit_forcefallback(self):
-        testdir = os.path.join(self.unit_test_dir, '95 implicit force fallback')
+        testdir = os.path.join(self.unit_test_dir, '96 implicit force fallback')
         with self.assertRaises(subprocess.CalledProcessError):
             self.init(testdir)
         self.init(testdir, extra_args=['--wrap-mode=forcefallback'])
@@ -1664,7 +1664,7 @@ class AllPlatformTests(BasePlatformTests):
         check_pcfile('libvartest2.pc', relocatable=False)
 
         self.wipe()
-        testdir_abs = os.path.join(self.unit_test_dir, '105 pkgconfig relocatable with absolute path')
+        testdir_abs = os.path.join(self.unit_test_dir, '106 pkgconfig relocatable with absolute path')
         self.init(testdir_abs)
 
         check_pcfile('libsimple.pc', relocatable=True, levels=3)
@@ -2019,7 +2019,7 @@ class AllPlatformTests(BasePlatformTests):
         self.assertIn(msg, out)
 
     def test_mixed_language_linker_check(self):
-        testdir = os.path.join(self.unit_test_dir, '96 compiler.links file arg')
+        testdir = os.path.join(self.unit_test_dir, '97 compiler.links file arg')
         self.init(testdir)
         cmds = self.get_meson_log_compiler_checks()
         self.assertEqual(len(cmds), 5)
@@ -3768,7 +3768,7 @@ class AllPlatformTests(BasePlatformTests):
         self.init(srcdir, extra_args=['-Dbuild.b_lto=true'])
 
     def test_install_skip_subprojects(self):
-        testdir = os.path.join(self.unit_test_dir, '91 install skip subprojects')
+        testdir = os.path.join(self.unit_test_dir, '92 install skip subprojects')
         self.init(testdir)
         self.build()
 
@@ -3814,7 +3814,7 @@ class AllPlatformTests(BasePlatformTests):
         check_installed_files(['--skip-subprojects', 'another'], all_expected)
 
     def test_adding_subproject_to_configure_project(self) -> None:
-        srcdir = os.path.join(self.unit_test_dir, '92 new subproject in configured project')
+        srcdir = os.path.join(self.unit_test_dir, '93 new subproject in configured project')
         self.init(srcdir)
         self.build()
         self.setconf('-Duse-sub=true')
@@ -3837,7 +3837,7 @@ class AllPlatformTests(BasePlatformTests):
         if not shutil.which('clang-format'):
             raise SkipTest('clang-format not found')
 
-        testdir = os.path.join(self.unit_test_dir, '93 clangformat')
+        testdir = os.path.join(self.unit_test_dir, '94 clangformat')
         newdir = os.path.join(self.builddir, 'testdir')
         shutil.copytree(testdir, newdir)
         self.new_builddir()
@@ -3862,7 +3862,7 @@ class AllPlatformTests(BasePlatformTests):
         self.build('clang-format-check')
 
     def test_custom_target_implicit_include(self):
-        testdir = os.path.join(self.unit_test_dir, '94 custominc')
+        testdir = os.path.join(self.unit_test_dir, '95 custominc')
         self.init(testdir)
         self.build()
         compdb = self.get_compdb()
@@ -3902,7 +3902,7 @@ class AllPlatformTests(BasePlatformTests):
                 self.assertEqual(sorted(link_args), sorted(['-flto']))
 
     def test_install_tag(self) -> None:
-        testdir = os.path.join(self.unit_test_dir, '98 install all targets')
+        testdir = os.path.join(self.unit_test_dir, '99 install all targets')
         self.init(testdir)
         self.build()
 
@@ -4049,7 +4049,7 @@ class AllPlatformTests(BasePlatformTests):
         do_install(None, expected_all, 2)
 
     def test_introspect_install_plan(self):
-        testdir = os.path.join(self.unit_test_dir, '98 install all targets')
+        testdir = os.path.join(self.unit_test_dir, '99 install all targets')
         introfile = os.path.join(self.builddir, 'meson-info', 'intro-install_plan.json')
         self.init(testdir)
         self.assertPathExists(introfile)
@@ -4245,7 +4245,7 @@ class AllPlatformTests(BasePlatformTests):
                 }}
             ''')
 
-        testdir = os.path.join(self.unit_test_dir, '101 rlib linkage')
+        testdir = os.path.join(self.unit_test_dir, '102 rlib linkage')
         gen_file = os.path.join(testdir, 'lib.rs')
         with open(gen_file, 'w') as f:
             f.write(template.format(0))
@@ -4265,7 +4265,7 @@ class AllPlatformTests(BasePlatformTests):
         self.assertIn('exit status 39', cm.exception.stdout)
 
     def test_custom_target_name(self):
-        testdir = os.path.join(self.unit_test_dir, '99 custom target name')
+        testdir = os.path.join(self.unit_test_dir, '100 custom target name')
         self.init(testdir)
         out = self.build()
         if self.backend is Backend.ninja:
@@ -4273,7 +4273,7 @@ class AllPlatformTests(BasePlatformTests):
             self.assertIn('Generating subdir/file.txt with a custom command', out)
 
     def test_symlinked_subproject(self):
-        testdir = os.path.join(self.unit_test_dir, '106 subproject symlink')
+        testdir = os.path.join(self.unit_test_dir, '107 subproject symlink')
         subproject_dir = os.path.join(testdir, 'subprojects')
         subproject = os.path.join(testdir, 'symlinked_subproject')
         symlinked_subproject = os.path.join(testdir, 'subprojects', 'symlinked_subproject')
