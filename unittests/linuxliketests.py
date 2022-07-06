@@ -1351,7 +1351,7 @@ class LinuxlikeTests(BasePlatformTests):
         see: https://github.com/mesonbuild/meson/issues/9000
              https://stackoverflow.com/questions/48532868/gcc-library-option-with-a-colon-llibevent-a
         '''
-        testdir = os.path.join(self.unit_test_dir, '97 link full name','libtestprovider')
+        testdir = os.path.join(self.unit_test_dir, '98 link full name','libtestprovider')
         oldprefix = self.prefix
         # install into installdir without using DESTDIR
         installdir = self.installdir
@@ -1364,7 +1364,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.new_builddir()
         env = {'LIBRARY_PATH': os.path.join(installdir, self.libdir),
                'PKG_CONFIG_PATH': _prepend_pkg_config_path(os.path.join(installdir, self.libdir, 'pkgconfig'))}
-        testdir = os.path.join(self.unit_test_dir, '97 link full name','proguser')
+        testdir = os.path.join(self.unit_test_dir, '98 link full name','proguser')
         self.init(testdir,override_envvars=env)
 
         # test for link with full path
@@ -1776,7 +1776,7 @@ class LinuxlikeTests(BasePlatformTests):
 
     @skipUnless(is_linux(), 'Test only applicable to Linux')
     def test_install_strip(self):
-        testdir = os.path.join(self.unit_test_dir, '103 strip')
+        testdir = os.path.join(self.unit_test_dir, '104 strip')
         self.init(testdir)
         self.build()
 
