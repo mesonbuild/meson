@@ -136,6 +136,7 @@ format files
  - [Rizin](https://rizin.re), Free and Open Source Reverse Engineering Framework
  - [QEMU](https://qemu.org), a processor emulator and virtualizer
  - [RxDock](https://gitlab.com/rxdock/rxdock), a protein-ligand docking software designed for high throughput virtual screening (fork of rDock)
+ - [SciPy](https://scipy.org/), an open-source software for mathematics, science, and engineering
  - [scrcpy](https://github.com/Genymobile/scrcpy), a cross platform application that provides display and control of Android devices connected on USB or over TCP/IP
  - [Sequeler](https://github.com/Alecaddd/sequeler), a friendly SQL client for Linux, built with Vala and Gtk
  - [Siril](https://gitlab.com/free-astro/siril), an image processing software for amateur astronomy
