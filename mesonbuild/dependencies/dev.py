@@ -534,8 +534,11 @@ class JNISystemDependency(SystemDependency):
         modules: T.List[str] = mesonlib.listify(kwargs.get('modules', []))
         for module in modules:
             if module not in {'jvm', 'awt'}:
-                log = mlog.error if self.required else mlog.debug
-                log(f'Unknown JNI module ({module})')
+                msg = f'Unknown JNI module ({module})'
+                if self.required:
+                    mlog.error(msg)
+                else:
+                    mlog.debug(msg)
                 self.is_found = False
                 return
 
@@ -553,8 +556,11 @@ class JNISystemDependency(SystemDependency):
                     res = subprocess.run(['/usr/libexec/java_home', '--failfast', '--arch', m.cpu_family],
                                          stdout=subprocess.PIPE)
                     if res.returncode != 0:
-                        log = mlog.error if self.required else mlog.debug
-                        log('JAVA_HOME could not be discovered on the system. Please set it explicitly.')
+                        msg = 'JAVA_HOME could not be discovered on the system. Please set it explicitly.'
+                        if self.required:
+                            mlog.error(msg)
+                        else:
+                            mlog.debug(msg)
                         self.is_found = False
                         return
                     self.java_home = pathlib.Path(res.stdout.decode().strip())
