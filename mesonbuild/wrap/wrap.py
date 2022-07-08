@@ -54,7 +54,6 @@ except ImportError:
     has_ssl = False
 
 REQ_TIMEOUT = 600.0
-SSL_WARNING_PRINTED = False
 WHITELIST_SUBDOMAIN = 'wrapdb.mesonbuild.com'
 
 ALL_TYPES = ['file', 'git', 'hg', 'svn']
@@ -95,10 +94,7 @@ def open_wrapdburl(urlstring: str, allow_insecure: bool = False, have_opt: bool 
         raise WrapException(f'SSL module not available in {sys.executable}: Cannot contact the WrapDB.{insecure_msg}')
     else:
         # following code is only for those without Python SSL
-        global SSL_WARNING_PRINTED  # pylint: disable=global-statement
-        if not SSL_WARNING_PRINTED:
-            mlog.warning(f'SSL module not available in {sys.executable}: WrapDB traffic not authenticated.')
-            SSL_WARNING_PRINTED = True
+        mlog.warning(f'SSL module not available in {sys.executable}: WrapDB traffic not authenticated.', once=True)
 
     # If we got this far, allow_insecure was manually passed
     nossl_url = url._replace(scheme='http')
