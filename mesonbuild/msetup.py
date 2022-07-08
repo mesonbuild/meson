@@ -206,10 +206,11 @@ class MesonApp:
         b = build.Build(env)
 
         intr = interpreter.Interpreter(b, user_defined_options=user_defined_options)
-        if env.is_cross_build():
-            logger_fun = mlog.log
-        else:
-            logger_fun = mlog.debug
+        # Super hack because mlog.log and mlog.debug have different signatures,
+        # and there is currently no way to annotate them correctly, unionize them, or
+        # even to write `T.Callable[[*mlog.TV_Loggable], None]`
+        logger_fun = T.cast('T.Callable[[mlog.TV_Loggable, mlog.TV_Loggable], None]',
+                            (mlog.log if env.is_cross_build() else mlog.debug))
         build_machine = intr.builtin['build_machine']
         host_machine = intr.builtin['host_machine']
         target_machine = intr.builtin['target_machine']
