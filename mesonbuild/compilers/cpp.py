@@ -58,7 +58,7 @@ def non_msvc_eh_options(eh: str, args: T.List[str]) -> None:
     if eh == 'none':
         args.append('-fno-exceptions')
     elif eh in {'s', 'c'}:
-        mlog.warning('non-MSVC compilers do not support ' + eh + ' exception handling.' +
+        mlog.warning(f'non-MSVC compilers do not support {eh} exception handling. '
                      'You may want to set eh to \'default\'.')
 
 class CPPCompiler(CLikeCompiler, Compiler):
