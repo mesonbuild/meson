@@ -193,11 +193,10 @@ class Lexer:
                     elif tid in {'string', 'fstring'}:
                         # Handle here and not on the regexp to give a better error message.
                         if match_text.find("\n") != -1:
-                            msg = ParseException("Newline character in a string detected, use ''' (three single quotes) "
-                                                 "for multiline strings instead.\n"
-                                                 "This will become a hard error in a future Meson release.",
-                                                 self.getline(line_start), lineno, col)
-                            mlog.warning(msg, location=BaseNode(lineno, col, filename))
+                            msg = ("Newline character in a string detected, use ''' (three single quotes) "
+                                   "for multiline strings instead.\n"
+                                   "This will become a hard error in a future Meson release.")
+                            mlog.warning(mlog.code_line(msg, self.getline(line_start), col), location=BaseNode(lineno, col, filename))
                         value = match_text[2 if tid == 'fstring' else 1:-1]
                         try:
                             value = ESCAPE_SEQUENCE_SINGLE_RE.sub(decode_match, value)
