@@ -422,7 +422,7 @@ class LLVMDependencyCMake(CMakeDependency):
         # cmake if dynamic is required
         if not self.static:
             self.is_found = False
-            mlog.warning('Ignoring LLVM CMake dependency because dynamic was requested')
+            mlog.warning('Ignoring LLVM CMake dependency because dynamic was requested', fatal=False)
             return
 
         if self.traceparser is None:
@@ -455,7 +455,7 @@ class LLVMDependencyCMake(CMakeDependency):
                 if required:
                     raise self._gen_exception(f'LLVM module {mod} was not found')
                 else:
-                    mlog.warning('Optional LLVM module', mlog.bold(mod), 'was not found')
+                    mlog.warning('Optional LLVM module', mlog.bold(mod), 'was not found', fatal=False)
                     continue
             for i in cm_targets:
                 res += [(i, required)]

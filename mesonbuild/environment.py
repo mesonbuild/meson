@@ -455,7 +455,7 @@ class Environment:
                 # If we stored previous command line options, we can recover from
                 # a broken/outdated coredata.
                 if os.path.isfile(coredata.get_cmd_line_file(self.build_dir)):
-                    mlog.warning('Regenerating configuration from scratch.')
+                    mlog.warning('Regenerating configuration from scratch.', fatal=False)
                     mlog.log('Reason:', mlog.red(str(e)))
                     coredata.read_cmd_line_file(self.build_dir, options)
                     self.create_new_coredata(options)
@@ -551,7 +551,8 @@ class Environment:
         if bt in self.options and (db in self.options or op in self.options):
             mlog.warning('Recommend using either -Dbuildtype or -Doptimization + -Ddebug. '
                          'Using both is redundant since they override each other. '
-                         'See: https://mesonbuild.com/Builtin-options.html#build-type-options')
+                         'See: https://mesonbuild.com/Builtin-options.html#build-type-options',
+                         fatal=False)
 
         exe_wrapper = self.lookup_binary_entry(MachineChoice.HOST, 'exe_wrapper')
         if exe_wrapper is not None:
