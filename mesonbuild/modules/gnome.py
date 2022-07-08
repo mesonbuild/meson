@@ -320,7 +320,7 @@ class GnomeModule(ExtensionModule):
             mlog.warning('GLib compiled dependencies do not work reliably with \n'
                          'the current version of GLib. See the following upstream issue:',
                          mlog.bold('https://bugzilla.gnome.org/show_bug.cgi?id=774368'),
-                         fatal=False)
+                         once=True, fatal=False)
 
     @staticmethod
     def _print_gdbus_warning() -> None:
@@ -1968,7 +1968,7 @@ class GnomeModule(ExtensionModule):
                 mlog.warning('The current version of GLib does not support extra arguments \n'
                              'for glib-genmarshal. You need at least GLib 2.53.3. See ',
                              mlog.bold('https://github.com/mesonbuild/meson/pull/2049'),
-                             fatal=False)
+                             once=True, fatal=False)
         for k in ['internal', 'nostdinc', 'skip_source', 'stdinc', 'valist_marshallers']:
             # Mypy can't figure out that this is correct
             if kwargs[k]:                                            # type: ignore
