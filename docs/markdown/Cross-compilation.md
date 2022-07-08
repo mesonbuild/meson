@@ -4,7 +4,34 @@ short-description: Setting up cross-compilation
 
 # Cross compilation
 
-Meson has full support for cross compilation. Since cross compiling is
+Meson has full support for cross compilation through the use of
+a cross build definition file.  An minimal example of one such
+file `x86_64-w64-mingw32.txt` for a GCC/MinGW cross compiler
+targeting 64-bit Windows could be:
+
+```ini
+[binaries]
+c = 'x86_64-w64-mingw32-gcc'
+cpp = 'x86_64-w64-mingw32-g++'
+ar = 'x86_64-w64-mingw32-ar'
+strip = 'x86_64-w64-mingw32-strip'
+exe_wrapper = 'wine64'
+
+[host_machine]
+system = 'windows'
+cpu_family = 'x86_64'
+cpu = 'x86_64'
+endian = 'little'
+```
+
+Which is then used during the `setup` phase.
+
+```sh
+meson setup --cross-file x86_64-w64-mingw32.txt build-mingw
+meson compile -C build-mingw
+```
+
+Since cross compiling is
 more complicated than native building, let's first go over some
 nomenclature. The three most important definitions are traditionally
 called *build*, *host* and *target*. This is confusing because those
