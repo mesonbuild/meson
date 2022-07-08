@@ -284,7 +284,7 @@ class Backend:
         if isinstance(t, build.CustomTarget):
             if warn_multi_output and len(t.get_outputs()) != 1:
                 mlog.warning(f'custom_target {t.name!r} has more than one output! '
-                             'Using the first one.')
+                             f'Using the first one. Consider using `{t.name}[0]`.')
             filename = t.get_outputs()[0]
         elif isinstance(t, build.CustomTargetIndex):
             filename = t.get_outputs()[0]
