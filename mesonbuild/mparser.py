@@ -15,7 +15,6 @@
 from dataclasses import dataclass
 import re
 import codecs
-import types
 import typing as T
 from .mesonlib import MesonException
 from . import mlog
@@ -236,7 +235,7 @@ class Lexer:
                         else:
                             if match_text in self.future_keywords:
                                 mlog.warning(f"Identifier '{match_text}' will become a reserved keyword in a future release. Please rename it.",
-                                             location=types.SimpleNamespace(filename=filename, lineno=lineno))
+                                             location=BaseNode(lineno, col, filename))
                             value = match_text
                     yield Token(tid, filename, curline_start, curline, col, bytespan, value)
                     break
