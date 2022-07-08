@@ -2905,10 +2905,12 @@ class Interpreter(InterpreterBase, HoldableObject):
             return
         if (self.coredata.options[OptionKey('b_lundef')].value and
                 self.coredata.options[OptionKey('b_sanitize')].value != 'none'):
-            mlog.warning('''Trying to use {} sanitizer on Clang with b_lundef.
-This will probably not work.
-Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey('b_sanitize')].value),
-                         location=self.current_node)
+            value = self.coredata.options[OptionKey('b_sanitize')].value
+            mlog.warning(textwrap.dedent(f'''\
+                    Trying to use {value} sanitizer on Clang with b_lundef.
+                    This will probably not work.
+                    Try setting b_lundef to false instead.'''),
+                location=self.current_node)  # noqa: E128
 
     # Check that the indicated file is within the same subproject
     # as we currently are. This is to stop people doing
