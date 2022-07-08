@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from __future__ import annotations
+import enum
 import os
 import io
 import sys
@@ -315,7 +316,16 @@ def log_once(*args: TV_Loggable, is_error: bool = False,
 def get_error_location_string(fname: str, lineno: int) -> str:
     return f'{fname}:{lineno}:'
 
-def _log_error(severity: str, *rargs: TV_Loggable,
+
+class _Severity(enum.Enum):
+
+    NOTICE = enum.auto()
+    WARNING = enum.auto()
+    ERROR = enum.auto()
+    DEPRECATION = enum.auto()
+
+
+def _log_error(severity: _Severity, *rargs: TV_Loggable,
                once: bool = False, fatal: bool = True,
                location: T.Optional[BaseNode] = None,
                nested: bool = True, sep: T.Optional[str] = None,
@@ -325,16 +335,14 @@ def _log_error(severity: str, *rargs: TV_Loggable,
 
     # The typing requirements here are non-obvious. Lists are invariant,
     # therefore T.List[A] and T.List[T.Union[A, B]] are not able to be joined
-    if severity == 'notice':
+    if severity is _Severity.NOTICE:
         label = [bold('NOTICE:')]  # type: TV_LoggableList
-    elif severity == 'warning':
+    elif severity is _Severity.WARNING:
         label = [yellow('WARNING:')]
-    elif severity == 'error':
+    elif severity is _Severity.ERROR:
         label = [red('ERROR:')]
-    elif severity == 'deprecation':
+    elif severity is _Severity.DEPRECATION:
         label = [red('DEPRECATION:')]
-    else:
-        raise MesonException('Invalid severity ' + severity)
     # rargs is a tuple, not a list
     args = label + list(rargs)
 
@@ -359,7 +367,7 @@ def error(*args: TV_Loggable,
           location: T.Optional[BaseNode] = None,
           nested: bool = True, sep: T.Optional[str] = None,
           end: T.Optional[str] = None) -> None:
-    return _log_error('error', *args, once=once, fatal=fatal, location=location,
+    return _log_error(_Severity.ERROR, *args, once=once, fatal=fatal, location=location,
                       nested=nested, sep=sep, end=end, is_error=True)
 
 def warning(*args: TV_Loggable,
@@ -367,7 +375,7 @@ def warning(*args: TV_Loggable,
             location: T.Optional[BaseNode] = None,
             nested: bool = True, sep: T.Optional[str] = None,
             end: T.Optional[str] = None) -> None:
-    return _log_error('warning', *args, once=once, fatal=fatal, location=location,
+    return _log_error(_Severity.WARNING, *args, once=once, fatal=fatal, location=location,
                       nested=nested, sep=sep, end=end, is_error=True)
 
 def deprecation(*args: TV_Loggable,
@@ -375,7 +383,7 @@ def deprecation(*args: TV_Loggable,
                 location: T.Optional[BaseNode] = None,
                 nested: bool = True, sep: T.Optional[str] = None,
                 end: T.Optional[str] = None) -> None:
-    return _log_error('deprecation', *args, once=once, fatal=fatal, location=location,
+    return _log_error(_Severity.DEPRECATION, *args, once=once, fatal=fatal, location=location,
                       nested=nested, sep=sep, end=end, is_error=True)
 
 def notice(*args: TV_Loggable,
@@ -383,7 +391,7 @@ def notice(*args: TV_Loggable,
            location: T.Optional[BaseNode] = None,
            nested: bool = True, sep: T.Optional[str] = None,
            end: T.Optional[str] = None) -> None:
-    return _log_error('notice', *args, once=once, fatal=fatal, location=location,
+    return _log_error(_Severity.NOTICE, *args, once=once, fatal=fatal, location=location,
                       nested=nested, sep=sep, end=end, is_error=False)
 
 def get_relative_path(target: Path, current: Path) -> Path:
