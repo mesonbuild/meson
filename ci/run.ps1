@@ -67,7 +67,7 @@ echo ($env:Path).Replace(';',"`n")
 echo "=== PATH END ==="
 echo ""
 
-$progs = @("python","ninja","pkg-config","cl","rc","link","pypy3")
+$progs = @("python","ninja","pkg-config","cl","rc","link","pypy3","ifort")
 foreach ($prog in $progs) {
   echo ""
   echo "Locating ${prog}:"

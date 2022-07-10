@@ -1,6 +1,7 @@
 [binaries]
 c = 'cl'
 cpp = 'cl'
+fc = 'false'
 ar = 'lib'
 windres = 'rc'
 
