@@ -125,7 +125,8 @@ class PackageDefinition:
         self.has_wrap = self.basename.endswith('.wrap')
         self.name = self.basename[:-5] if self.has_wrap else self.basename
         self.directory = self.name
-        self.provided_deps[self.name] = None
+        # must be lowercase for consistency with dep=variable assignment
+        self.provided_deps[self.name.lower()] = None
         self.original_filename = fname
         self.redirected = False
         if self.has_wrap:
@@ -197,8 +198,9 @@ class PackageDefinition:
             for k, v in config['provide'].items():
                 if k == 'dependency_names':
                     # A comma separated list of dependency names that does not
-                    # need a variable name
-                    names_dict = {n.strip(): None for n in v.split(',')}
+                    # need a variable name; must be lowercase for consistency with
+                    # dep=variable assignment
+                    names_dict = {n.strip().lower(): None for n in v.split(',')}
                     self.provided_deps.update(names_dict)
                     continue
                 if k == 'program_names':
