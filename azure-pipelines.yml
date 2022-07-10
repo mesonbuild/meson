@@ -1,3 +1,17 @@
+# intel oneapi installation is based on the examples at
+# https://github.com/oneapi-src/oneapi-ci
+#
+# and are copyrighted:
+#
+# SPDX-FileCopyrightText: 2020 Intel Corporation
+# SPDX-License-Identifier: MIT
+#
+# The rest of this file contains the standard Meson project copyright:
+#
+# SPDX-License-Identifer: Apache-2.0
+# Copyright 2022 The Meson development team
+
+
 name: $(BuildID)
 
 trigger:
@@ -35,6 +49,8 @@ pr:
 variables:
   CI: 1
   SOURCE_VERSION: $(Build.SourceVersion)
+  WINDOWS_HPCKIT_URL: https://registrationcenter-download.intel.com/akdlm/IRC_NAS/18680/w_HPCKit_p_2022.2.0.173_offline.exe
+  WINDOWS_FORTRAN_COMPONENTS: intel.oneapi.win.ifort-compiler
 
 jobs:
 
@@ -50,21 +66,46 @@ jobs:
           compiler: msvc2017
           backend: ninja
           MESON_RSP_THRESHOLD: 0
+          # "Compiler ifort can not compile programs"
+          ifort: false
         vc2017x64vs:
           arch: x64
           compiler: msvc2017
           backend: vs2017
+          # this causes tons of C projects to error with:
+          # "The syntax of the command is incorrect"
+          ifort: false
         clangclx64ninja:
           arch: x64
           compiler: clang-cl
           backend: ninja
+          ifort: true
 
   steps:
+  - task: Cache@2
+    inputs:
+      path: C:\Program Files (x86)\Intel\oneAPI
+      key: '"install" | "$(WINDOWS_HPCKIT_URL)" | "$(WINDOWS_FORTRAN_COMPONENTS)" | "compiler" | ci/intel-scripts/cache_exclude_windows.sh'
+      cacheHitVar: CACHE_RESTORED
+    condition: eq(variables.ifort, 'true')
+  - script: ci/intel-scripts/install_windows.bat $(WINDOWS_HPCKIT_URL) $(WINDOWS_FORTRAN_COMPONENTS)
+    displayName: install ifort
+    condition: and(ne(variables.CACHE_RESTORED, 'true'), eq(variables.ifort, 'true'))
+  - bash: ci/intel-scripts/cache_exclude_windows.sh
+    displayName: exclude unused files from cache
+    condition: and(ne(variables.CACHE_RESTORED, 'true'), eq(variables.ifort, 'true'))
   - task: UsePythonVersion@0
     inputs:
       versionSpec: '3.7'
       addToPath: true
       architecture: 'x64'
+  - task: BatchScript@1
+    displayName: insert ifort into environment
+    inputs:
+      filename: ci/intel-scripts/activate_windows.bat
+      arguments: vs2019
+      modifyEnvironment: True
+    condition: eq(variables.ifort, 'true')
   - task: PowerShell@2
     inputs:
       targetType: 'filePath'
@@ -83,22 +124,47 @@ jobs:
           arch: x64
           compiler: msvc2019
           backend: ninja
+          ifort: true
         vc2019x64vs:
           arch: x64
           compiler: msvc2019
           backend: vs2019
+          # mysteriously, several tests fail because vs cannot find
+          # executables such as cmd.exe ???
+          ifort: false
         vc2019arm64ninjacross:
           arch: arm64
           compiler: msvc2019
           backend: ninja
           extraargs: --cross arm64cl.txt --cross-only
+          # ifort doesn't support arm64
+          ifort: false
 
   steps:
+  - task: Cache@2
+    inputs:
+      path: C:\Program Files (x86)\Intel\oneAPI
+      key: '"install" | "$(WINDOWS_HPCKIT_URL)" | "$(WINDOWS_FORTRAN_COMPONENTS)" | "compiler" | ci/intel-scripts/cache_exclude_windows.sh'
+      cacheHitVar: CACHE_RESTORED
+    condition: eq(variables.ifort, 'true')
+  - script: ci/intel-scripts/install_windows.bat $(WINDOWS_HPCKIT_URL) $(WINDOWS_FORTRAN_COMPONENTS)
+    displayName: install ifort
+    condition: and(ne(variables.CACHE_RESTORED, 'true'), eq(variables.ifort, 'true'))
+  - bash: ci/intel-scripts/cache_exclude_windows.sh
+    displayName: exclude unused files from cache
+    condition: and(ne(variables.CACHE_RESTORED, 'true'), eq(variables.ifort, 'true'))
   - task: UsePythonVersion@0
     inputs:
       versionSpec: '3.7'
       addToPath: true
       architecture: 'x64'
+  - task: BatchScript@1
+    displayName: insert ifort into environment
+    inputs:
+      filename: ci/intel-scripts/activate_windows.bat
+      arguments: vs2019
+      modifyEnvironment: True
+    condition: eq(variables.ifort, 'true')
   - task: PowerShell@2
     inputs:
       targetType: 'filePath'
