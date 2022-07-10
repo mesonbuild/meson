@@ -101,7 +101,9 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
 
     # /showIncludes is needed for build dependency tracking in Ninja
     # See: https://ninja-build.org/manual.html#_deps
-    always_args = ['/nologo', '/showIncludes']  # type: T.List[str]
+    # Assume UTF-8 sources by default, but self.unix_args_to_native() removes it
+    # if `/source-charset` is set too.
+    always_args = ['/nologo', '/showIncludes', '/utf-8']
     warn_args = {
         '0': [],
         '1': ['/W2'],
@@ -115,10 +117,6 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         self.base_options = {mesonlib.OptionKey(o) for o in ['b_pch', 'b_ndebug', 'b_vscrt']} # FIXME add lto, pgo and the like
         self.target = target
         self.is_64 = ('x64' in target) or ('x86_64' in target)
-        # Assume UTF-8 sources by default on Visual Studio 2015 or later, or clang,
-        # but self.unix_args_to_native() removes it if `/source-charset` is set too.
-        if isinstance(self, ClangClCompiler) or mesonlib.version_compare(self.version, '>=19.00'):
-            self.always_args = self.always_args + ['/utf-8']
         # do some canonicalization of target machine
         if 'x86_64' in target:
             self.machine = 'x64'
