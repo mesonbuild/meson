@@ -56,20 +56,26 @@ jobs:
       fail-fast: false
       matrix:
         include:
+        - NAME: macos-clang-no-llvm
+          unity: off
+          llvm: false
         - NAME: macos-clang
           unity: off
+          llvm: true
         - NAME: macos-clang-unity
           unity: on
+          llvm: true
 
     name: ${{ matrix.NAME }}
     env:
       MESON_CI_JOBNAME: ${{ matrix.NAME }}
+      WITH_LLVM: ${{ matrix.llvm }}
 
     steps:
     - uses: actions/checkout@v2
     # use python3 from homebrew because it is a valid framework, unlike the actions one:
     # https://github.com/actions/setup-python/issues/58
-    - run: brew install pkg-config ninja llvm qt@5 boost ldc hdf5 openmpi lapack scalapack sdl2 python3 boost-python3 gtk-doc
+    - run: brew install pkg-config ninja $($WITH_LLVM && echo llvm || :) qt@5 boost ldc hdf5 openmpi lapack scalapack sdl2 python3 boost-python3 gtk-doc
     - run: |
         python3 -m pip install --upgrade setuptools
         python3 -m pip install --upgrade pip
@@ -82,12 +88,12 @@ jobs:
         # These cannot evaluate anything, so we cannot set PATH or SDKROOT here
       run: |
         export SDKROOT="$(xcodebuild -version -sdk macosx Path)"
-        export PATH="$HOME/tools:/usr/local/opt/qt@5/bin:$PATH:$(brew --prefix llvm)/bin"
+        export PATH="$HOME/tools:/usr/local/opt/qt@5/bin:$PATH$($WITH_LLVM && echo :"$(brew --prefix llvm)/bin" || :)"
         export PKG_CONFIG_PATH="/usr/local/opt/qt@5/lib/pkgconfig:$PKG_CONFIG_PATH"
         export XML_CATALOG_FILES="/usr/local/etc/xml/catalog"
         ./tools/run_with_cov.py ./run_project_tests.py --backend=ninja
     - name: Upload coverage report
-      run: ./ci/upload_cov.sh "appleclang [project tests; unity=${{ matrix.unity }}]"
+      run: ./ci/upload_cov.sh "appleclang [project tests; unity=${{ matrix.unity }}; llvm=${{ matrix.llvm }}]"
 
   Qt4macos:
     runs-on: macos-latest
