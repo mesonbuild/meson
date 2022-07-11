@@ -1945,6 +1945,12 @@ class AllPlatformTests(BasePlatformTests):
 
         for lang in langs:
             for target_type in ('executable', 'library'):
+                if is_windows() and lang == 'fortran' and target_type == 'library':
+                    # non-Gfortran Windows Fortran compilers do not do shared libraries in a Fortran standard way
+                    # see "test cases/fortran/6 dynamic"
+                    fc = detect_compiler_for(env, 'fortran', MachineChoice.HOST)
+                    if fc.get_id() in {'intel-cl', 'pgi'}:
+                        continue
                 # test empty directory
                 with tempfile.TemporaryDirectory() as tmpdir:
                     self._run(self.meson_command + ['init', '--language', lang, '--type', target_type],
