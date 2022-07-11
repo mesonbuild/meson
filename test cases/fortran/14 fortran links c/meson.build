@@ -3,7 +3,9 @@ project('Fortran calling C', 'fortran', 'c',
   default_options : ['default_library=static'])
 
 ccid = meson.get_compiler('c').get_id()
-if ccid == 'msvc' or ccid == 'clang-cl'
+fcid = meson.get_compiler('fortran').get_id()
+
+if fcid == 'gcc' and ccid in ['msvc', 'clang-cl']
   error('MESON_SKIP_TEST: MSVC and GCC do not interoperate like this.')
 endif
 
