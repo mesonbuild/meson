@@ -67,28 +67,28 @@ Options that are labeled "per machine" in the table are set per
 machine. See the [specifying options per
 machine](#specifying-options-per-machine) section for details.
 
-| Option                               | Default value | Description                                                    | Is per machine | Is per subproject |
-| ------                               | ------------- | -----------                                                    | -------------- | ----------------- |
+| Option                                 | Default value | Description                                                    | Is per machine | Is per subproject |
+| -------------------------------------- | ------------- | -----------                                                    | -------------- | ----------------- |
 | auto_features {enabled, disabled, auto} | auto       | Override value of all 'auto' features                          | no             | no                |
 | backend {ninja, vs,<br>vs2010, vs2012, vs2013, vs2015, vs2017, vs2019, vs2022, xcode} | ninja | Backend to use        | no             | no                |
 | buildtype {plain, debug,<br>debugoptimized, release, minsize, custom} | debug |  Build type to use                    | no             | no                |
-| debug                                | true          | Enable debug symbols and other information                     | no             | no                |
+| debug                                  | true          | Enable debug symbols and other information                     | no             | no                |
 | default_library {shared, static, both} | shared      | Default library type                                           | no             | yes               |
-| errorlogs                            | true          | Whether to print the logs from failing tests.                  | no             | no                |
-| install_umask {preserve, 0000-0777}  | 022           | Default umask to apply on permissions of installed files       | no             | no                |
-| layout {mirror,flat}                 | mirror        | Build directory layout                                         | no             | no                |
-| optimization {0, g, 1, 2, 3, s}      | 0             | Optimization level                                             | no             | no                |
-| pkg_config_path {OS separated path}  | ''            | Additional paths for pkg-config to search before builtin paths | yes            | no                |
-| prefer_static                        | false         | Whether to try static linking before shared linking            | no             | no                |
-| cmake_prefix_path                    | []            | Additional prefixes for cmake to search before builtin paths   | yes            | no                |
-| stdsplit                             | true          | Split stdout and stderr in test logs                           | no             | no                |
-| strip                                | false         | Strip targets on install                                       | no             | no                |
-| unity {on, off, subprojects}         | off           | Unity build                                                    | no             | no                |
-| unity_size {>=2}                     | 4             | Unity file block size                                          | no             | no                |
-| warning_level {0, 1, 2, 3}           | 1             | Set the warning level. From 0 = none to 3 = highest            | no             | yes               |
-| werror                               | false         | Treat warnings as errors                                       | no             | yes               |
+| errorlogs                              | true          | Whether to print the logs from failing tests.                  | no             | no                |
+| install_umask {preserve, 0000-0777}    | 022           | Default umask to apply on permissions of installed files       | no             | no                |
+| layout {mirror,flat}                   | mirror        | Build directory layout                                         | no             | no                |
+| optimization {plain, 0, g, 1, 2, 3, s} | 0             | Optimization level                                             | no             | no                |
+| pkg_config_path {OS separated path}    | ''            | Additional paths for pkg-config to search before builtin paths | yes            | no                |
+| prefer_static                          | false         | Whether to try static linking before shared linking            | no             | no                |
+| cmake_prefix_path                      | []            | Additional prefixes for cmake to search before builtin paths   | yes            | no                |
+| stdsplit                               | true          | Split stdout and stderr in test logs                           | no             | no                |
+| strip                                  | false         | Strip targets on install                                       | no             | no                |
+| unity {on, off, subprojects}           | off           | Unity build                                                    | no             | no                |
+| unity_size {>=2}                       | 4             | Unity file block size                                          | no             | no                |
+| warning_level {0, 1, 2, 3}             | 1             | Set the warning level. From 0 = none to 3 = highest            | no             | yes               |
+| werror                                 | false         | Treat warnings as errors                                       | no             | yes               |
 | wrap_mode {default, nofallback,<br>nodownload, forcefallback, nopromote} | default | Wrap mode to use                 | no             | no                |
-| force_fallback_for                   | []            | Force fallback for those dependencies                          | no             | no                |
+| force_fallback_for                     | []            | Force fallback for those dependencies                          | no             | no                |
 
 <a name="build-type-options"></a> For setting optimization levels and
 toggling debug, you can either set the `buildtype` option, or you can
@@ -100,7 +100,7 @@ the two-way mapping:
 
 | buildtype      | debug | optimization |
 | ---------      | ----- | ------------ |
-| plain          | false | 0            |
+| plain          | false | plain        |
 | debug          | true  | 0            |
 | debugoptimized | true  | 2            |
 | release        | false | 3            |

@@ -52,7 +52,8 @@ LANGNAMEMAP = {'c': 'C',
                'objcpp': 'OBJCPLUSPLUS',
                'swift': 'SWIFT_'
                }
-OPT2XCODEOPT = {'0': '0',
+OPT2XCODEOPT = {'plain': None,
+                '0': '0',
                 'g': '0',
                 '1': '1',
                 '2': '2',
@@ -1561,7 +1562,9 @@ class XCodeBackend(backends.Backend):
                 settings_dict.add_item('EXECUTABLE_SUFFIX', suffix)
             settings_dict.add_item('GCC_GENERATE_DEBUGGING_SYMBOLS', BOOL2XCODEBOOL[target.get_option(OptionKey('debug'))])
             settings_dict.add_item('GCC_INLINES_ARE_PRIVATE_EXTERN', 'NO')
-            settings_dict.add_item('GCC_OPTIMIZATION_LEVEL', OPT2XCODEOPT[target.get_option(OptionKey('optimization'))])
+            opt_flag = OPT2XCODEOPT[target.get_option(OptionKey('optimization'))]
+            if opt_flag is not None:
+                settings_dict.add_item('GCC_OPTIMIZATION_LEVEL', opt_flag)
             if target.has_pch:
                 # Xcode uses GCC_PREFIX_HEADER which only allows one file per target/executable. Precompiling various header files and
                 # applying a particular pch to each source file will require custom scripts (as a build phase) and build flags per each

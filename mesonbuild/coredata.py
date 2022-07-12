@@ -693,7 +693,7 @@ class CoreData:
         result = []
         value = self.options[OptionKey('buildtype')].value
         if value == 'plain':
-            opt = '0'
+            opt = 'plain'
             debug = False
         elif value == 'debug':
             opt = '0'
@@ -720,7 +720,7 @@ class CoreData:
 
     def _set_others_from_buildtype(self, value: str) -> None:
         if value == 'plain':
-            opt = '0'
+            opt = 'plain'
             debug = False
         elif value == 'debug':
             opt = '0'
@@ -1217,7 +1217,7 @@ BUILTIN_CORE_OPTIONS: 'MutableKeyedOptionDictType' = OrderedDict([
     (OptionKey('errorlogs'),       BuiltinOption(UserBooleanOption, "Whether to print the logs from failing tests", True)),
     (OptionKey('install_umask'),   BuiltinOption(UserUmaskOption, 'Default umask to apply on permissions of installed files', '022')),
     (OptionKey('layout'),          BuiltinOption(UserComboOption, 'Build directory layout', 'mirror', choices=['mirror', 'flat'])),
-    (OptionKey('optimization'),    BuiltinOption(UserComboOption, 'Optimization level', '0', choices=['0', 'g', '1', '2', '3', 's'])),
+    (OptionKey('optimization'),    BuiltinOption(UserComboOption, 'Optimization level', '0', choices=['plain', '0', 'g', '1', '2', '3', 's'])),
     (OptionKey('prefer_static'),   BuiltinOption(UserBooleanOption, 'Whether to try static linking before shared linking', False)),
     (OptionKey('stdsplit'),        BuiltinOption(UserBooleanOption, 'Split stdout and stderr in test logs', True)),
     (OptionKey('strip'),           BuiltinOption(UserBooleanOption, 'Strip targets on install', False)),

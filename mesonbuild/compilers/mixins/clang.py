@@ -35,6 +35,7 @@ clang_color_args = {
 }  # type: T.Dict[str, T.List[str]]
 
 clang_optimization_args = {
+    'plain': [],
     '0': ['-O0'],
     'g': ['-Og'],
     '1': ['-O1'],

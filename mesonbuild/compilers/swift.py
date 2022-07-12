@@ -27,6 +27,7 @@ if T.TYPE_CHECKING:
     from ..mesonlib import MachineChoice
 
 swift_optimization_args = {
+    'plain': [],
     '0': [],
     'g': [],
     '1': ['-O'],

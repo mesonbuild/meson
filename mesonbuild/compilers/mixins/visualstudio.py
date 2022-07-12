@@ -62,6 +62,7 @@ vs64_instruction_set_args = {
 }  # T.Dicst[str, T.Optional[T.List[str]]]
 
 msvc_optimization_args = {
+    'plain': [],
     '0': ['/Od'],
     'g': [], # No specific flag to optimize debugging, /Zi or /ZI will create debug information
     '1': ['/O1'],

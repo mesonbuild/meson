@@ -58,7 +58,8 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
         'custom': [],
     }  # type: T.Dict[str, T.List[str]]
 
-    OPTIM_ARGS = {
+    OPTIM_ARGS: T.Dict[str, T.List[str]] = {
+        'plain': [],
         '0': ['-O0'],
         'g': ['-O0'],
         '1': ['-O1'],
@@ -136,7 +137,8 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
         'custom': [],
     }  # type: T.Dict[str, T.List[str]]
 
-    OPTIM_ARGS = {
+    OPTIM_ARGS: T.Dict[str, T.List[str]] = {
+        'plain': [],
         '0': ['/Od'],
         'g': ['/Od'],
         '1': ['/O1'],

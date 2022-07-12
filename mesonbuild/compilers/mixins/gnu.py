@@ -55,6 +55,7 @@ gnulike_buildtype_args = {
 }  # type: T.Dict[str, T.List[str]]
 
 gnu_optimization_args = {
+    'plain': [],
     '0': ['-O0'],
     'g': ['-Og'],
     '1': ['-O1'],

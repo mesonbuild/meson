@@ -66,7 +66,8 @@ d_feature_args = {'gcc':  {'unittest': '-funittest',
                            }
                   }  # type: T.Dict[str, T.Dict[str, str]]
 
-ldc_optimization_args = {'0': [],
+ldc_optimization_args = {'plain': [],
+                         '0': [],
                          'g': [],
                          '1': ['-O1'],
                          '2': ['-O2'],
@@ -74,7 +75,8 @@ ldc_optimization_args = {'0': [],
                          's': ['-Oz'],
                          }  # type: T.Dict[str, T.List[str]]
 
-dmd_optimization_args = {'0': [],
+dmd_optimization_args = {'plain': [],
+                         '0': [],
                          'g': [],
                          '1': ['-O'],
                          '2': ['-O'],

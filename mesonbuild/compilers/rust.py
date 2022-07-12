@@ -31,6 +31,7 @@ if T.TYPE_CHECKING:
 
 
 rust_optimization_args = {
+    'plain': [],
     '0': [],
     'g': ['-C', 'opt-level=0'],
     '1': ['-C', 'opt-level=1'],
