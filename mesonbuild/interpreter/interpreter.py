@@ -78,6 +78,7 @@ from .type_checking import (
     INSTALL_KW,
     INSTALL_DIR_KW,
     INSTALL_MODE_KW,
+    INSTALL_FOLLOW_SYMLINKS,
     LINK_WITH_KW,
     LINK_WHOLE_KW,
     CT_INSTALL_TAG_KW,
@@ -2238,6 +2239,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         KwargInfo('subdir', (str, NoneType)),
         INSTALL_MODE_KW.evolve(since='0.47.0'),
         INSTALL_DIR_KW,
+        INSTALL_FOLLOW_SYMLINKS,
     )
     def func_install_headers(self, node: mparser.BaseNode,
                              args: T.Tuple[T.List['mesonlib.FileOrString']],
@@ -2264,7 +2266,8 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         for childdir in dirs:
             h = build.Headers(dirs[childdir], os.path.join(install_subdir, childdir), kwargs['install_dir'],
-                              install_mode, self.subproject)
+                              install_mode, self.subproject,
+                              follow_symlinks=kwargs['follow_symlinks'])
             ret_headers.append(h)
             self.build.headers.append(h)
 
@@ -2459,6 +2462,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         INSTALL_TAG_KW.evolve(since='0.60.0'),
         INSTALL_DIR_KW,
         PRESERVE_PATH_KW.evolve(since='0.64.0'),
+        INSTALL_FOLLOW_SYMLINKS,
     )
     def func_install_data(self, node: mparser.BaseNode,
                           args: T.Tuple[T.List['mesonlib.FileOrString']],
@@ -2486,15 +2490,16 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         install_mode = self._warn_kwarg_install_mode_sticky(kwargs['install_mode'])
         return self.install_data_impl(sources, install_dir, install_mode, rename, kwargs['install_tag'],
-                                      preserve_path=kwargs['preserve_path'])
+                                      preserve_path=kwargs['preserve_path'],
+                                      follow_symlinks=kwargs['follow_symlinks'])
 
     def install_data_impl(self, sources: T.List[mesonlib.File], install_dir: str,
                           install_mode: FileMode, rename: T.Optional[str],
                           tag: T.Optional[str],
                           install_data_type: T.Optional[str] = None,
-                          preserve_path: bool = False) -> build.Data:
+                          preserve_path: bool = False,
+                          follow_symlinks: T.Optional[bool] = None) -> build.Data:
         install_dir_name = install_dir.optname if isinstance(install_dir, P_OBJ.OptionString) else install_dir
-
         dirs = collections.defaultdict(list)
         if preserve_path:
             for file in sources:
@@ -2506,7 +2511,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         ret_data = []
         for childdir, files in dirs.items():
             d = build.Data(files, os.path.join(install_dir, childdir), os.path.join(install_dir_name, childdir),
-                           install_mode, self.subproject, rename, tag, install_data_type)
+                           install_mode, self.subproject, rename, tag, install_data_type,
+                           follow_symlinks)
             ret_data.append(d)
 
         self.build.data.extend(ret_data)
@@ -2525,6 +2531,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                   validator=lambda x: 'cannot be absolute' if any(os.path.isabs(d) for d in x) else None),
         INSTALL_MODE_KW.evolve(since='0.38.0'),
         INSTALL_TAG_KW.evolve(since='0.60.0'),
+        INSTALL_FOLLOW_SYMLINKS,
     )
     def func_install_subdir(self, node: mparser.BaseNode, args: T.Tuple[str],
                             kwargs: 'kwtypes.FuncInstallSubdir') -> build.InstallDir:
@@ -2550,7 +2557,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             exclude,
             kwargs['strip_directory'],
             self.subproject,
-            install_tag=kwargs['install_tag'])
+            install_tag=kwargs['install_tag'],
+            follow_symlinks=kwargs['follow_symlinks'])
         self.build.install_dirs.append(idir)
         return idir
 

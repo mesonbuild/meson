@@ -368,6 +368,12 @@ CT_INSTALL_TAG_KW: KwargInfo[T.List[T.Union[str, bool]]] = KwargInfo(
 
 INSTALL_TAG_KW: KwargInfo[T.Optional[str]] = KwargInfo('install_tag', (str, NoneType))
 
+INSTALL_FOLLOW_SYMLINKS: KwargInfo[T.Optional[bool]] = KwargInfo(
+    'follow_symlinks',
+    (bool, NoneType),
+    since='1.3.0',
+)
+
 INSTALL_KW = KwargInfo('install', bool, default=False)
 
 CT_INSTALL_DIR_KW: KwargInfo[T.List[T.Union[str, Literal[False]]]] = KwargInfo(

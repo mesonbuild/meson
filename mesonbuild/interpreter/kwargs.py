@@ -124,6 +124,7 @@ class FuncInstallSubdir(TypedDict):
     exclude_files: T.List[str]
     exclude_directories: T.List[str]
     install_mode: FileMode
+    follow_symlinks: T.Optional[bool]
 
 
 class FuncInstallData(TypedDict):
@@ -132,6 +133,7 @@ class FuncInstallData(TypedDict):
     sources: T.List[FileOrString]
     rename: T.List[str]
     install_mode: FileMode
+    follow_symlinks: T.Optional[bool]
 
 
 class FuncInstallHeaders(TypedDict):
@@ -139,6 +141,7 @@ class FuncInstallHeaders(TypedDict):
     install_dir: T.Optional[str]
     install_mode: FileMode
     subdir: T.Optional[str]
+    follow_symlinks: T.Optional[bool]
 
 
 class FuncInstallMan(TypedDict):

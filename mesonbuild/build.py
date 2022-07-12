@@ -156,6 +156,7 @@ class Headers(HoldableObject):
     custom_install_dir: T.Optional[str]
     custom_install_mode: 'FileMode'
     subproject: str
+    follow_symlinks: T.Optional[bool] = None
 
     # TODO: we really don't need any of these methods, but they're preserved to
     # keep APIs relying on them working.
@@ -214,6 +215,7 @@ class InstallDir(HoldableObject):
     subproject: str
     from_source_dir: bool = True
     install_tag: T.Optional[str] = None
+    follow_symlinks: T.Optional[bool] = None
 
 @dataclass(eq=False)
 class DepManifest:
@@ -2973,6 +2975,7 @@ class Data(HoldableObject):
     rename: T.List[str] = None
     install_tag: T.Optional[str] = None
     data_type: str = None
+    follow_symlinks: T.Optional[bool] = None
 
     def __post_init__(self) -> None:
         if self.rename is None:
