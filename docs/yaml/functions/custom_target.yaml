@@ -156,7 +156,7 @@ kwargs:
       are also accepted.
 
   input:
-    type: list[str | file | build_tgt | custom_idx | custom_tgt | external_program | extracted_obj | generatedlist]
+    type: list[str | file | build_tgt | custom_idx | custom_tgt | external_program | extracted_obj | generated_list]
     description: List of source files. *(since 0.41.0)* the list is flattened.
 
   install:
