@@ -577,6 +577,68 @@ class AllPlatformTests(BasePlatformTests):
         out = self._run(self.mtest_command + ['--suite', 'verbose'])
         self.assertIn('1/1 subtest 1', out)
 
+    def test_long_output(self):
+        testdir = os.path.join(self.common_test_dir, '253 long output')
+        self.init(testdir)
+        self.build()
+        self.run_tests()
+
+        # Ensure lines are found from testlog.txt when not being verbose.
+
+        i = 1
+        with open(os.path.join(self.logdir, 'testlog.txt'), encoding='utf-8') as f:
+            line = f.readline()
+            while line and i < 100001:
+                if f'# Iteration {i} to stdout' in line:
+                    i += 1
+                line = f.readline()
+            self.assertEqual(i, 100001)
+
+            i = 1
+            while line:
+                if f'# Iteration {i} to stderr' in line:
+                    i += 1
+                line = f.readline()
+        self.assertEqual(i, 100001)
+
+        # Ensure lines are found from both testlog.txt and console when being verbose.
+
+        out = self._run(self.mtest_command + ['-v'])
+        i = 1
+        with open(os.path.join(self.logdir, 'testlog.txt'), encoding='utf-8') as f:
+            line = f.readline()
+            while line and i < 100001:
+                if f'# Iteration {i} to stdout' in line:
+                    i += 1
+                line = f.readline()
+            self.assertEqual(i, 100001)
+
+            i = 1
+            while line:
+                if f'# Iteration {i} to stderr' in line:
+                    i += 1
+                line = f.readline()
+        self.assertEqual(i, 100001)
+
+        lines = out.split('\n')
+        line_number = 0
+        i = 1
+        while line_number < len(lines) and i < 100001:
+            print('---> %s' % lines[line_number])
+            if f'# Iteration {i} to stdout' in lines[line_number]:
+                i += 1
+            line_number += 1
+        self.assertEqual(i, 100001)
+
+        line_number = 0
+        i = 1
+        while line_number < len(lines):
+            if f'# Iteration {i} to stderr' in lines[line_number]:
+                i += 1
+            line_number += 1
+        self.assertEqual(i, 100001)
+
+
     def test_testsetups(self):
         if not shutil.which('valgrind'):
             raise SkipTest('Valgrind not installed.')

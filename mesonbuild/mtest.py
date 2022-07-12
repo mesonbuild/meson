@@ -1108,7 +1108,9 @@ def decode(stream: T.Union[None, bytes]) -> str:
     except UnicodeDecodeError:
         return stream.decode('iso-8859-1', errors='ignore')
 
-async def read_decode(reader: asyncio.StreamReader, console_mode: ConsoleUser) -> str:
+async def read_decode(reader: asyncio.StreamReader,
+                      queue: T.Optional['asyncio.Queue[T.Optional[str]]'],
+                      console_mode: ConsoleUser) -> str:
     stdo_lines = []
     try:
         while not reader.at_eof():
@@ -1124,26 +1126,14 @@ async def read_decode(reader: asyncio.StreamReader, console_mode: ConsoleUser) -
                 stdo_lines.append(line)
                 if console_mode is ConsoleUser.STDOUT:
                     print(line, end='', flush=True)
-        return ''.join(stdo_lines)
-    except asyncio.CancelledError:
-        return ''.join(stdo_lines)
-
-# Extract lines out of the StreamReader.  Print them
-# along the way if requested, and at the end collect
-# them all into a future.
-async def read_decode_lines(reader: asyncio.StreamReader,
-                            q: 'asyncio.Queue[T.Optional[str]]') -> str:
-    stdo_lines = []
-    try:
-        while not reader.at_eof():
-            line = decode(await reader.readline())
-            stdo_lines.append(line)
-            await q.put(line)
+                if queue:
+                    await queue.put(line)
         return ''.join(stdo_lines)
     except asyncio.CancelledError:
         return ''.join(stdo_lines)
     finally:
-        await q.put(None)
+        if queue:
+            await queue.put(None)
 
 def run_with_mono(fname: str) -> bool:
     return fname.endswith('.exe') and not (is_windows() or is_cygwin())
@@ -1220,12 +1210,11 @@ class TestSubprocess:
         self.stde_task = None            # type: T.Optional[asyncio.Future[str]]
         self.postwait_fn = postwait_fn   # type: T.Callable[[], None]
         self.all_futures = []            # type: T.List[asyncio.Future]
+        self.queue = None                # type: T.Optional[asyncio.Queue[T.Optional[str]]]
 
     def stdout_lines(self) -> T.AsyncIterator[str]:
-        q = asyncio.Queue()              # type: asyncio.Queue[T.Optional[str]]
-        decode_coro = read_decode_lines(self._process.stdout, q)
-        self.stdo_task = asyncio.ensure_future(decode_coro)
-        return queue_iter(q)
+        self.queue = asyncio.Queue()
+        return queue_iter(self.queue)
 
     def communicate(self,
                     test: 'TestRun',
@@ -1234,12 +1223,12 @@ class TestSubprocess:
         async def collect_stdo(test: 'TestRun',
                                reader: asyncio.StreamReader,
                                console_mode: ConsoleUser) -> None:
-            test.stdo = await read_decode(reader, console_mode)
+            test.stdo = await read_decode(reader, self.queue, console_mode)
 
         async def collect_stde(test: 'TestRun',
                                reader: asyncio.StreamReader,
                                console_mode: ConsoleUser) -> None:
-            test.stde = await read_decode(reader, console_mode)
+            test.stde = await read_decode(reader, None, console_mode)
 
         # asyncio.ensure_future ensures that printing can
         # run in the background, even before it is awaited
@@ -1483,11 +1472,10 @@ class SingleTestRunner:
         if self.runobj.needs_parsing:
             parse_coro = self.runobj.parse(harness, p.stdout_lines())
             parse_task = asyncio.ensure_future(parse_coro)
-            stdo_task = stde_task = None
         else:
-            stdo_task, stde_task = p.communicate(self.runobj, self.console_mode)
             parse_task = None
 
+        stdo_task, stde_task = p.communicate(self.runobj, self.console_mode)
         await p.wait(self.runobj)
 
         if parse_task:
