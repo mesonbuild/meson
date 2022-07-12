@@ -41,6 +41,7 @@ ti_buildtype_args = {
 }  # type: T.Dict[str, T.List[str]]
 
 ti_optimization_args = {
+    'plain': [],
     '0': ['-O0'],
     'g': ['-Ooff'],
     '1': ['-O1'],

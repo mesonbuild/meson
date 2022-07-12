@@ -254,7 +254,8 @@ msvc_winlibs = ['kernel32.lib', 'user32.lib', 'gdi32.lib',
                 'winspool.lib', 'shell32.lib', 'ole32.lib', 'oleaut32.lib',
                 'uuid.lib', 'comdlg32.lib', 'advapi32.lib']  # type: T.List[str]
 
-clike_optimization_args = {'0': [],
+clike_optimization_args = {'plain': [],
+                           '0': [],
                            'g': [],
                            '1': ['-O1'],
                            '2': ['-O2'],
@@ -262,7 +263,8 @@ clike_optimization_args = {'0': [],
                            's': ['-Os'],
                            }  # type: T.Dict[str, T.List[str]]
 
-cuda_optimization_args = {'0': [],
+cuda_optimization_args = {'plain': [],
+                          '0': [],
                           'g': ['-O0'],
                           '1': ['-O1'],
                           '2': ['-O2'],

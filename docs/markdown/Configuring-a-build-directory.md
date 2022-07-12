@@ -30,7 +30,7 @@ a sample output for a simple project.
       default_library shared        [shared, static, both]                                     Default library type
       install_umask   0022          [preserve, 0000-0777]                                      Default umask to apply on permissions of installed files
       layout          mirror        [mirror, flat]                                             Build directory layout
-      optimization    3             [0, g, 1, 2, 3, s]                                         Optimization level
+      optimization    3             [plain, 0, g, 1, 2, 3, s]                                  Optimization level
       prefer_static   false         [true, false]                                              Whether to try static linking before shared linking
       strip           false         [true, false]                                              Strip targets on install
       unity           off           [on, off, subprojects]                                     Unity build

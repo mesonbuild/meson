@@ -43,6 +43,7 @@ arm_buildtype_args = {
 }  # type: T.Dict[str, T.List[str]]
 
 arm_optimization_args = {
+    'plain': [],
     '0': ['-O0'],
     'g': ['-g'],
     '1': ['-O1'],
@@ -61,6 +62,7 @@ armclang_buildtype_args = {
 }  # type: T.Dict[str, T.List[str]]
 
 armclang_optimization_args = {
+    'plain': [],
     '0': [], # Compiler defaults to -O0
     'g': ['-g'],
     '1': ['-O1'],

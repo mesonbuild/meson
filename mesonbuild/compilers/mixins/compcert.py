@@ -40,6 +40,7 @@ ccomp_buildtype_args = {
 }  # type: T.Dict[str, T.List[str]]
 
 ccomp_optimization_args = {
+    'plain': [],
     '0': ['-O0'],
     'g': ['-O0'],
     '1': ['-O1'],
