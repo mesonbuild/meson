@@ -379,4 +379,10 @@ class GeneratorMan(GeneratorBase):
             page.line(f"[{i + 1}] {link}")
             page.br()
 
+        page.section("COPYRIGHT")
+        page.par("Documentation comes from the meson project (https://mesonbuild.com) "
+        + "and is released under Attribution-ShareAlike 4.0 International (CC BY-SA 4.0). "
+        + "Code samples are released under CC0 1.0 Universal (CC0 1.0).")
+        page.par("Meson is a registered trademark of Jussi Pakkanen.")
+
         page.write()
