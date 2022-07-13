@@ -1230,9 +1230,12 @@ def _get_gnu_compiler_defines(compiler: T.List[str]) -> T.Dict[str, str]:
     # Arguments to output compiler pre-processor defines to stdout
     # gcc, g++, and gfortran all support these arguments
     args = compiler + ['-E', '-dM', '-']
+    mlog.debug(f'Running command: {join_args(args)}')
     p, output, error = Popen_safe(args, write='', stdin=subprocess.PIPE)
     if p.returncode != 0:
-        raise EnvironmentException('Unable to detect GNU compiler type:\n' + output + error)
+        raise EnvironmentException('Unable to detect GNU compiler type:\n'
+                                   f'Compiler stdout:\n{output}\n-----\n'
+                                   f'Compiler stderr:\n{error}\n-----\n')
     # Parse several lines of the type:
     # `#define ___SOME_DEF some_value`
     # and extract `___SOME_DEF`
@@ -1254,9 +1257,12 @@ def _get_clang_compiler_defines(compiler: T.List[str]) -> T.Dict[str, str]:
     Get the list of Clang pre-processor defines
     """
     args = compiler + ['-E', '-dM', '-']
+    mlog.debug(f'Running command: {join_args(args)}')
     p, output, error = Popen_safe(args, write='', stdin=subprocess.PIPE)
     if p.returncode != 0:
-        raise EnvironmentException('Unable to get clang pre-processor defines:\n' + output + error)
+        raise EnvironmentException('Unable to get clang pre-processor defines:\n'
+                                   f'Compiler stdout:\n{output}\n-----\n'
+                                   f'Compiler stderr:\n{error}\n-----\n')
     defines: T.Dict[str, str] = {}
     for line in output.split('\n'):
         if not line:
