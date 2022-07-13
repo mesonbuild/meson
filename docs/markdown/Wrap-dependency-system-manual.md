@@ -67,6 +67,7 @@ An example wrap-git will look like this:
 [wrap-git]
 url = https://github.com/libfoobar/libfoobar.git
 revision = head
+depth = 1
 ```
 
 ## Accepted configuration properties for wraps
@@ -115,7 +116,8 @@ of downloading the file, even if `--wrap-mode` option is set to
   (for git) `head` to track upstream's default branch. Required.
 
 ### Specific to wrap-git
-- `depth` - shallowly clone the repository to X number of commits. Note
+- `depth` - shallowly clone the repository to X number of commits. This saves bandwidth and disk
+  space, and should typically always be specified unless commit history is needed. Note
   that git always allow shallowly cloning branches, but in order to
   clone commit ids shallowly, the server must support
   `uploadpack.allowReachableSHA1InWant=true`.  *(since 0.52.0)*
@@ -249,6 +251,7 @@ and `gio-2.0`, a wrap file would look like:
 [wrap-git]
 url=https://gitlab.gnome.org/GNOME/glib.git
 revision=glib-2-62
+depth=1
 
 [provide]
 dependency_names = glib-2.0, gobject-2.0, gio-2.0
@@ -261,6 +264,7 @@ specified:
 [wrap-git]
 url=https://gitlab.gnome.org/GNOME/glib.git
 revision=glib-2-62
+depth=1
 
 [provide]
 glib-2.0=glib_dep
