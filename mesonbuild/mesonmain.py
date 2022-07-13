@@ -61,8 +61,6 @@ class CommandLineParser:
                          help_msg='Wrap tools')
         self.add_command('subprojects', msubprojects.add_arguments, msubprojects.run,
                          help_msg='Manage subprojects')
-        self.add_command('help', self.add_help_arguments, self.run_help_command,
-                         help_msg='Print help of a subcommand')
         self.add_command('rewrite', lambda parser: rewriter.add_arguments(parser, self.formatter), rewriter.run,
                          help_msg='Modify the project definition')
         self.add_command('compile', mcompile.add_arguments, mcompile.run,
@@ -71,6 +69,9 @@ class CommandLineParser:
                          help_msg='Run commands in developer environment')
         self.add_command('env2mfile', env2mfile.add_arguments, env2mfile.run,
                          help_msg='Convert current environment to a cross or native file')
+        # Add new commands above this line to list them in help command
+        self.add_command('help', self.add_help_arguments, self.run_help_command,
+                         help_msg='Print help of a subcommand')
 
         # Hidden commands
         self.add_command('runpython', self.add_runpython_arguments, self.run_runpython_command,
@@ -109,7 +110,7 @@ class CommandLineParser:
         return 0
 
     def add_help_arguments(self, parser):
-        parser.add_argument('command', nargs='?')
+        parser.add_argument('command', nargs='?', choices=list(self.commands.keys()))
 
     def run_help_command(self, options):
         if options.command:
