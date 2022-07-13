@@ -14,7 +14,7 @@
 from __future__ import annotations
 
 from ..mesonlib import (
-    MesonException, EnvironmentException,
+    MesonException, EnvironmentException, join_args,
     search_version, is_windows, Popen_safe, windows_proof_rm,
 )
 from ..envconfig import BinaryTable
@@ -263,7 +263,7 @@ def _handle_exceptions(
     if exceptions:
         errmsg += '\nThe following exception(s) were encountered:'
         for c, e in exceptions.items():
-            errmsg += f'\nRunning "{c}" gave "{e}"'
+            errmsg += f'\nRunning `{c}` gave "{e}"'
     raise EnvironmentException(errmsg)
 
 
@@ -312,7 +312,7 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
         try:
             p, out, err = Popen_safe(linker + [arg])
         except OSError as e:
-            popen_exceptions[' '.join(linker + [arg])] = e
+            popen_exceptions[join_args(linker + [arg])] = e
             continue
         if "xilib: executing 'lib'" in err:
             return IntelVisualStudioLinker(linker, getattr(compiler, 'machine', None))
@@ -417,10 +417,11 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
         else:
             arg = '--version'
 
+        cmd = compiler + [arg]
         try:
-            p, out, err = Popen_safe(compiler + [arg])
+            p, out, err = Popen_safe(cmd)
         except OSError as e:
-            popen_exceptions[' '.join(compiler + [arg])] = e
+            popen_exceptions[join_args(cmd)] = e
             continue
 
         if 'ccrx' in compiler_name:
@@ -441,7 +442,7 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
         if guess_gcc_or_lcc:
             defines = _get_gnu_compiler_defines(compiler)
             if not defines:
-                popen_exceptions[' '.join(compiler)] = 'no pre-processor defines'
+                popen_exceptions[join_args(compiler)] = 'no pre-processor defines'
                 continue
 
             if guess_gcc_or_lcc == 'lcc':
@@ -497,7 +498,7 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             # output format in future versions
             arm_ver_match = re.search('.*Component.*', out)
             if arm_ver_match is None:
-                popen_exceptions[' '.join(compiler)] = 'version string not found'
+                popen_exceptions[join_args(compiler)] = 'version string not found'
                 continue
             arm_ver_str = arm_ver_match.group(0)
             # Override previous values
@@ -516,7 +517,7 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             try:
                 p, out, err = Popen_safe(compiler + [arg])
             except OSError as e:
-                popen_exceptions[' '.join(compiler + [arg])] = e
+                popen_exceptions[join_args(compiler + [arg])] = e
             version = search_version(out)
             match = re.search('^Target: (.*?)-', out, re.MULTILINE)
             if match:
@@ -676,7 +677,7 @@ def detect_cuda_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
         try:
             p, out, err = Popen_safe(compiler + [arg])
         except OSError as e:
-            popen_exceptions[' '.join(compiler + [arg])] = e
+            popen_exceptions[join_args(compiler + [arg])] = e
             continue
         # Example nvcc printout:
         #
@@ -712,7 +713,7 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
             try:
                 p, out, err = Popen_safe(compiler + [arg])
             except OSError as e:
-                popen_exceptions[' '.join(compiler + [arg])] = e
+                popen_exceptions[join_args(compiler + [arg])] = e
                 continue
 
             version = search_version(out)
@@ -727,7 +728,7 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
             if guess_gcc_or_lcc:
                 defines = _get_gnu_compiler_defines(compiler)
                 if not defines:
-                    popen_exceptions[' '.join(compiler)] = 'no pre-processor defines'
+                    popen_exceptions[join_args(compiler)] = 'no pre-processor defines'
                     continue
                 if guess_gcc_or_lcc == 'lcc':
                     version = _get_lcc_version_from_defines(defines)
@@ -854,13 +855,13 @@ def _detect_objc_or_objcpp_compiler(env: 'Environment', for_machine: MachineChoi
         try:
             p, out, err = Popen_safe(compiler + arg)
         except OSError as e:
-            popen_exceptions[' '.join(compiler + arg)] = e
+            popen_exceptions[join_args(compiler + arg)] = e
             continue
         version = search_version(out)
         if 'Free Software Foundation' in out:
             defines = _get_gnu_compiler_defines(compiler)
             if not defines:
-                popen_exceptions[' '.join(compiler)] = 'no pre-processor defines'
+                popen_exceptions[join_args(compiler)] = 'no pre-processor defines'
                 continue
             version = _get_gnu_version_from_defines(defines)
             comp = GnuObjCCompiler if objc else GnuObjCPPCompiler
@@ -872,7 +873,7 @@ def _detect_objc_or_objcpp_compiler(env: 'Environment', for_machine: MachineChoi
             linker = None
             defines = _get_clang_compiler_defines(compiler)
             if not defines:
-                popen_exceptions[' '.join(compiler)] = 'no pre-processor defines'
+                popen_exceptions[join_args(compiler)] = 'no pre-processor defines'
                 continue
             if 'Apple' in out:
                 comp = AppleClangObjCCompiler if objc else AppleClangObjCPPCompiler
@@ -903,7 +904,7 @@ def detect_java_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
     try:
         p, out, err = Popen_safe(exelist + ['-version'])
     except OSError:
-        raise EnvironmentException('Could not execute Java compiler "{}"'.format(' '.join(exelist)))
+        raise EnvironmentException('Could not execute Java compiler: {}'.format(join_args(exelist)))
     if 'javac' in out or 'javac' in err:
         version = search_version(err if 'javac' in err else out)
         if not version or version == 'unknown version':
@@ -913,7 +914,7 @@ def detect_java_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
         comp_class = JavaCompiler
         env.coredata.add_lang_args(comp_class.language, comp_class, for_machine, env)
         return comp_class(exelist, version, for_machine, info)
-    raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
+    raise EnvironmentException('Unknown compiler: ' + join_args(exelist))
 
 def detect_cs_compiler(env: 'Environment', for_machine: MachineChoice) -> Compiler:
     compilers, ccache, exe_wrap = _get_compilers(env, 'cs', for_machine)
@@ -923,7 +924,7 @@ def detect_cs_compiler(env: 'Environment', for_machine: MachineChoice) -> Compil
         try:
             p, out, err = Popen_safe(comp + ['--version'])
         except OSError as e:
-            popen_exceptions[' '.join(comp + ['--version'])] = e
+            popen_exceptions[join_args(comp + ['--version'])] = e
             continue
 
         version = search_version(out)
@@ -951,7 +952,7 @@ def detect_cython_compiler(env: 'Environment', for_machine: MachineChoice) -> Co
         try:
             err = Popen_safe(comp + ['-V'])[2]
         except OSError as e:
-            popen_exceptions[' '.join(comp + ['-V'])] = e
+            popen_exceptions[join_args(comp + ['-V'])] = e
             continue
 
         version = search_version(err)
@@ -973,13 +974,13 @@ def detect_vala_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
     try:
         p, out = Popen_safe(exelist + ['--version'])[0:2]
     except OSError:
-        raise EnvironmentException('Could not execute Vala compiler "{}"'.format(' '.join(exelist)))
+        raise EnvironmentException('Could not execute Vala compiler: {}'.format(join_args(exelist)))
     version = search_version(out)
     if 'Vala' in out:
         comp_class = ValaCompiler
         env.coredata.add_lang_args(comp_class.language, comp_class, for_machine, env)
         return comp_class(exelist, version, for_machine, is_cross, info)
-    raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
+    raise EnvironmentException('Unknown compiler: ' + join_args(exelist))
 
 def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> RustCompiler:
     popen_exceptions = {}  # type: T.Dict[str, Exception]
@@ -996,7 +997,7 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
         try:
             out = Popen_safe(compiler + arg)[1]
         except OSError as e:
-            popen_exceptions[' '.join(compiler + arg)] = e
+            popen_exceptions[join_args(compiler + arg)] = e
             continue
 
         version = search_version(out)
@@ -1116,7 +1117,7 @@ def detect_d_compiler(env: 'Environment', for_machine: MachineChoice) -> Compile
         try:
             p, out = Popen_safe(exelist + ['--version'])[0:2]
         except OSError as e:
-            popen_exceptions[' '.join(exelist + ['--version'])] = e
+            popen_exceptions[join_args(exelist + ['--version'])] = e
             continue
         version = search_version(out)
         full_version = out.split('\n', 1)[0]
@@ -1186,7 +1187,7 @@ def detect_d_compiler(env: 'Environment', for_machine: MachineChoice) -> Compile
             return DmdDCompiler(
                 exelist, version, for_machine, info, arch,
                 full_version=full_version, linker=linker)
-        raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
+        raise EnvironmentException('Unknown compiler: ' + join_args(exelist))
 
     _handle_exceptions(popen_exceptions, compilers)
     raise EnvironmentException('Unreachable code (exception to make mypy happy)')
@@ -1202,7 +1203,7 @@ def detect_swift_compiler(env: 'Environment', for_machine: MachineChoice) -> Com
     try:
         p, _, err = Popen_safe(exelist + ['-v'])
     except OSError:
-        raise EnvironmentException('Could not execute Swift compiler "{}"'.format(' '.join(exelist)))
+        raise EnvironmentException('Could not execute Swift compiler: {}'.format(join_args(exelist)))
     version = search_version(err)
     if 'Swift' in err:
         # As for 5.0.1 swiftc *requires* a file to check the linker:
@@ -1213,7 +1214,7 @@ def detect_swift_compiler(env: 'Environment', for_machine: MachineChoice) -> Com
         return SwiftCompiler(
             exelist, version, for_machine, is_cross, info, linker=linker)
 
-    raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
+    raise EnvironmentException('Unknown compiler: ' + join_args(exelist))
 
 
 # GNU/Clang defines and version
