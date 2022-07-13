@@ -417,7 +417,12 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
 
         cmd = compiler + [arg]
         try:
+            mlog.debug('-----')
+            mlog.debug(f'Detecting compiler via: {join_args(cmd)}')
             p, out, err = Popen_safe(cmd)
+            mlog.debug(f'compiler returned {p}')
+            mlog.debug(f'compiler stdout:\n{out}')
+            mlog.debug(f'compiler stderr:\n{err}')
         except OSError as e:
             popen_exceptions[join_args(cmd)] = e
             continue
