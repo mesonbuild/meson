@@ -1,0 +1,10 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/common/253 module warnings/meson.build:3: WARNING: Project targets '>= 0.56' but uses feature deprecated since '0.48.0': module python3."
+    },
+    {
+      "line": "test cases/common/253 module warnings/meson.build:4: WARNING: Project targets '>= 0.56' but uses feature introduced in '0.60.0': module java."
+    }
+  ]
+}

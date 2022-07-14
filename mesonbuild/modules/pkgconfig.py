@@ -16,7 +16,7 @@ from pathlib import PurePath
 import os
 import typing as T
 
-from . import ExtensionModule
+from . import ExtensionModule, ModuleInfo
 from . import ModuleReturnValue
 from .. import build
 from .. import dependencies
@@ -276,6 +276,9 @@ class DependenciesHelper:
         self.cflags = _fn(self.cflags)
 
 class PkgConfigModule(ExtensionModule):
+
+    INFO = ModuleInfo('pkgconfig')
+
     def __init__(self, interpreter):
         super().__init__(interpreter)
         self.methods.update({

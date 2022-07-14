@@ -13,12 +13,13 @@
 # limitations under the License.
 
 from .qt import QtBaseModule
-from ..interpreterbase import FeatureNew
+from . import ModuleInfo
 
 
 class Qt6Module(QtBaseModule):
 
-    @FeatureNew('Qt6 Module', '0.57.0')
+    INFO = ModuleInfo('qt6', '0.57.0')
+
     def __init__(self, interpreter):
         QtBaseModule.__init__(self, interpreter, qt_version=6)
 

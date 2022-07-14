@@ -18,7 +18,7 @@ import os
 from pathlib import Path, PurePath, PureWindowsPath
 
 from .. import mlog
-from . import ExtensionModule
+from . import ExtensionModule, ModuleInfo
 from ..mesonlib import (
     File,
     MesonException,
@@ -41,7 +41,8 @@ if T.TYPE_CHECKING:
 
 class FSModule(ExtensionModule):
 
-    @FeatureNew('Fs Module', '0.53.0')
+    INFO = ModuleInfo('fs', '0.53.0')
+
     def __init__(self, interpreter: 'Interpreter') -> None:
         super().__init__(interpreter)
         self.methods.update({

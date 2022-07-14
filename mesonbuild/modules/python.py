@@ -20,7 +20,7 @@ import os
 import shutil
 import typing as T
 
-from . import ExtensionModule
+from . import ExtensionModule, ModuleInfo
 from .. import mesonlib
 from .. import mlog
 from ..coredata import UserFeatureOption
@@ -663,7 +663,8 @@ class PythonInstallation(ExternalProgramHolder):
 
 class PythonModule(ExtensionModule):
 
-    @FeatureNew('Python Module', '0.46.0')
+    INFO = ModuleInfo('python', '0.46.0')
+
     def __init__(self, interpreter: 'Interpreter') -> None:
         super().__init__(interpreter)
         self.installations: T.Dict[str, ExternalProgram] = {}

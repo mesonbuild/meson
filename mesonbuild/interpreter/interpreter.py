@@ -599,7 +599,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 dep = df.lookup(kwargs, force_fallback=True)
                 self.build.stdlibs[for_machine][l] = dep
 
-    def _import_module(self, modname: str, required: bool) -> NewExtensionModule:
+    def _import_module(self, modname: str, required: bool, node: mparser.BaseNode) -> NewExtensionModule:
         if modname in self.modules:
             return self.modules[modname]
         try:
@@ -607,11 +607,15 @@ class Interpreter(InterpreterBase, HoldableObject):
         except ImportError:
             if required:
                 raise InvalidArguments(f'Module "{modname}" does not exist')
-            ext_module = NotFoundExtensionModule()
+            ext_module = NotFoundExtensionModule(modname)
         else:
             ext_module = module.initialize(self)
             assert isinstance(ext_module, (ExtensionModule, NewExtensionModule))
             self.build.modules.append(modname)
+        if ext_module.INFO.added:
+            FeatureNew.single_use(f'module {ext_module.INFO.name}', ext_module.INFO.added, self.subproject, location=node)
+        if ext_module.INFO.deprecated:
+            FeatureDeprecated.single_use(f'module {ext_module.INFO.name}', ext_module.INFO.deprecated, self.subproject, location=node)
         self.modules[modname] = ext_module
         return ext_module
 
@@ -627,20 +631,19 @@ class Interpreter(InterpreterBase, HoldableObject):
         modname = args[0]
         disabled, required, _ = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
-            return NotFoundExtensionModule()
+            return NotFoundExtensionModule(modname)
 
         if modname.startswith('unstable-'):
             plainname = modname.split('-', 1)[1]
             try:
                 # check if stable module exists
-                mod = self._import_module(plainname, required)
-                # XXX: this is actually not helpful, since it doesn't do a version check
+                mod = self._import_module(plainname, required, node)
                 mlog.warning(f'Module {modname} is now stable, please use the {plainname} module instead.')
                 return mod
             except InvalidArguments:
                 mlog.warning(f'Module {modname} has no backwards or forwards compatibility and might not exist in future releases.', location=node)
                 modname = 'unstable_' + plainname
-        return self._import_module(modname, required)
+        return self._import_module(modname, required, node)
 
     @typed_pos_args('files', varargs=str)
     @noKwargs

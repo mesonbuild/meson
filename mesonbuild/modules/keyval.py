@@ -15,9 +15,9 @@
 import os
 import typing as T
 
-from . import ExtensionModule
+from . import ExtensionModule, ModuleInfo
 from .. import mesonlib
-from ..interpreterbase import FeatureNew, noKwargs, typed_pos_args
+from ..interpreterbase import noKwargs, typed_pos_args
 
 if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
@@ -25,7 +25,8 @@ if T.TYPE_CHECKING:
 
 class KeyvalModule(ExtensionModule):
 
-    @FeatureNew('Keyval Module', '0.55.0')
+    INFO = ModuleInfo('keyval', '0.55.0')
+
     def __init__(self, interp: 'Interpreter'):
         super().__init__(interp)
         self.methods.update({

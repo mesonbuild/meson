@@ -18,7 +18,7 @@ import os, os.path, pathlib
 import shutil
 import typing as T
 
-from . import ExtensionModule, ModuleReturnValue, ModuleObject
+from . import ExtensionModule, ModuleReturnValue, ModuleObject, ModuleInfo
 
 from .. import build, mesonlib, mlog, dependencies
 from ..cmake import TargetOptions, cmake_defines_to_args
@@ -247,7 +247,8 @@ class CmakeModule(ExtensionModule):
     cmake_detected = False
     cmake_root = None
 
-    @FeatureNew('CMake Module', '0.50.0')
+    INFO = ModuleInfo('cmake', '0.50.0')
+
     def __init__(self, interpreter):
         super().__init__(interpreter)
         self.methods.update({

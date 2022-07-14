@@ -19,11 +19,11 @@ import re
 from ..mesonlib import version_compare
 from ..compilers import CudaCompiler
 
-from . import NewExtensionModule
+from . import NewExtensionModule, ModuleInfo
 
 from ..interpreterbase import (
     flatten, permittedKwargs, noKwargs,
-    InvalidArguments, FeatureNew
+    InvalidArguments
 )
 
 if T.TYPE_CHECKING:
@@ -32,7 +32,8 @@ if T.TYPE_CHECKING:
 
 class CudaModule(NewExtensionModule):
 
-    @FeatureNew('CUDA module', '0.50.0')
+    INFO = ModuleInfo('CUDA', '0.50.0')
+
     def __init__(self, *args, **kwargs):
         super().__init__()
         self.methods.update({

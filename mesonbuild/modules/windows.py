@@ -18,7 +18,7 @@ import re
 import typing as T
 
 
-from . import ExtensionModule
+from . import ExtensionModule, ModuleInfo
 from . import ModuleReturnValue
 from .. import mesonlib, build
 from .. import mlog
@@ -55,6 +55,9 @@ class ResourceCompilerType(enum.Enum):
     wrc = 3
 
 class WindowsModule(ExtensionModule):
+
+    INFO = ModuleInfo('windows')
+
     def __init__(self, interpreter: 'Interpreter'):
         super().__init__(interpreter)
         self._rescomp: T.Optional[T.Tuple[ExternalProgram, ResourceCompilerType]] = None

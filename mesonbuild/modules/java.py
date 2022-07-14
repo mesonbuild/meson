@@ -22,7 +22,7 @@ from mesonbuild.build import CustomTarget, CustomTargetIndex, GeneratedList, Tar
 from mesonbuild.compilers import detect_compiler_for
 from mesonbuild.interpreterbase.decorators import ContainerTypeInfo, FeatureDeprecated, FeatureNew, KwargInfo, typed_pos_args, typed_kwargs
 from mesonbuild.mesonlib import version_compare, MachineChoice
-from . import NewExtensionModule, ModuleReturnValue
+from . import NewExtensionModule, ModuleReturnValue, ModuleInfo
 
 if T.TYPE_CHECKING:
     from . import ModuleState
@@ -30,7 +30,9 @@ if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
 
 class JavaModule(NewExtensionModule):
-    @FeatureNew('Java Module', '0.60.0')
+
+    INFO = ModuleInfo('java', '0.60.0')
+
     def __init__(self, interpreter: Interpreter):
         super().__init__()
         self.methods.update({

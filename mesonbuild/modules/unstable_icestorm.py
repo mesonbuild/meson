@@ -16,11 +16,10 @@ from __future__ import annotations
 import itertools
 import typing as T
 
-from . import ExtensionModule, ModuleReturnValue
+from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from .. import build
 from .. import mesonlib
 from ..interpreter.type_checking import CT_INPUT_KW
-from ..interpreterbase import FeatureNew
 from ..interpreterbase.decorators import KwargInfo, typed_kwargs, typed_pos_args
 
 if T.TYPE_CHECKING:
@@ -37,7 +36,8 @@ if T.TYPE_CHECKING:
 
 class IceStormModule(ExtensionModule):
 
-    @FeatureNew('FPGA/Icestorm Module', '0.45.0')
+    INFO = ModuleInfo('FPGA/Icestorm', '0.45.0')
+
     def __init__(self, interpreter: Interpreter) -> None:
         super().__init__(interpreter)
         self.tools: T.Dict[str, ExternalProgram] = {}
