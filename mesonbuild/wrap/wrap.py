@@ -647,14 +647,15 @@ class Resolver:
             path = Path(self.wrap.filesdir) / filename
             if not path.exists():
                 raise WrapException(f'Diff file "{path}" does not exist')
+            relpath = os.path.relpath(str(path), self.dirname)
             if PATCH:
-                cmd = [PATCH, '-f', '-p1', '-i', str(path)]
+                cmd = [PATCH, '-f', '-p1', '-i', relpath]
             elif GIT:
                 # If the `patch` command is not available, fall back to `git
                 # apply`. The `--work-tree` is necessary in case we're inside a
                 # Git repository: by default, Git will try to apply the patch to
                 # the repository root.
-                cmd = [GIT, '--work-tree', '.', 'apply', '-p1', str(path)]
+                cmd = [GIT, '--work-tree', '.', 'apply', '-p1', relpath]
             else:
                 raise WrapException('Missing "patch" or "git" commands to apply diff files')
 
