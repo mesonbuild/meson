@@ -25,7 +25,7 @@ if T.TYPE_CHECKING:
 
 class KeyvalModule(ExtensionModule):
 
-    INFO = ModuleInfo('keyval', '0.55.0')
+    INFO = ModuleInfo('keyval', '0.55.0', stabilized='0.56.0')
 
     def __init__(self, interp: 'Interpreter'):
         super().__init__(interp)

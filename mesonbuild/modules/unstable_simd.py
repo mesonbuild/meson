@@ -19,7 +19,7 @@ from . import ExtensionModule, ModuleInfo
 
 class SimdModule(ExtensionModule):
 
-    INFO = ModuleInfo('SIMD', '0.42.0')
+    INFO = ModuleInfo('SIMD', '0.42.0', unstable=True)
 
     def __init__(self, interpreter):
         super().__init__(interpreter)

@@ -274,7 +274,7 @@ class ExternalProject(NewExtensionModule):
 
 class ExternalProjectModule(ExtensionModule):
 
-    INFO = ModuleInfo('External build system', '0.56.0')
+    INFO = ModuleInfo('External build system', '0.56.0', unstable=True)
 
     def __init__(self, interpreter: 'Interpreter'):
         super().__init__(interpreter)

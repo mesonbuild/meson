@@ -36,7 +36,7 @@ if T.TYPE_CHECKING:
 
 class IceStormModule(ExtensionModule):
 
-    INFO = ModuleInfo('FPGA/Icestorm', '0.45.0')
+    INFO = ModuleInfo('FPGA/Icestorm', '0.45.0', unstable=True)
 
     def __init__(self, interpreter: Interpreter) -> None:
         super().__init__(interpreter)
