@@ -599,26 +599,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                 dep = df.lookup(kwargs, force_fallback=True)
                 self.build.stdlibs[for_machine][l] = dep
 
-    def _import_module(self, modname: str, required: bool, node: mparser.BaseNode) -> NewExtensionModule:
-        if modname in self.modules:
-            return self.modules[modname]
-        try:
-            module = importlib.import_module('mesonbuild.modules.' + modname)
-        except ImportError:
-            if required:
-                raise InvalidArguments(f'Module "{modname}" does not exist')
-            ext_module = NotFoundExtensionModule(modname)
-        else:
-            ext_module = module.initialize(self)
-            assert isinstance(ext_module, (ExtensionModule, NewExtensionModule))
-            self.build.modules.append(modname)
-        if ext_module.INFO.added:
-            FeatureNew.single_use(f'module {ext_module.INFO.name}', ext_module.INFO.added, self.subproject, location=node)
-        if ext_module.INFO.deprecated:
-            FeatureDeprecated.single_use(f'module {ext_module.INFO.name}', ext_module.INFO.deprecated, self.subproject, location=node)
-        self.modules[modname] = ext_module
-        return ext_module
-
     @typed_pos_args('import', str)
     @typed_kwargs(
         'import',
@@ -633,17 +613,56 @@ class Interpreter(InterpreterBase, HoldableObject):
         if disabled:
             return NotFoundExtensionModule(modname)
 
-        if modname.startswith('unstable-'):
-            plainname = modname.split('-', 1)[1]
-            try:
-                # check if stable module exists
-                mod = self._import_module(plainname, required, node)
-                mlog.warning(f'Module {modname} is now stable, please use the {plainname} module instead.')
-                return mod
-            except InvalidArguments:
-                mlog.warning(f'Module {modname} has no backwards or forwards compatibility and might not exist in future releases.', location=node)
-                modname = 'unstable_' + plainname
-        return self._import_module(modname, required, node)
+        expect_unstable = False
+        # Some tests use "unstable_" instead of "unstable-", and that happens to work because
+        # of implementation details
+        if modname.startswith(('unstable-', 'unstable_')):
+            real_modname = modname[len('unstable') + 1:]  # + 1 to handle the - or _
+            expect_unstable = True
+        else:
+            real_modname = modname
+
+        if real_modname in self.modules:
+            return self.modules[real_modname]
+        try:
+            module = importlib.import_module(f'mesonbuild.modules.{real_modname}')
+        except ImportError:
+            if required:
+                raise InvalidArguments(f'Module "{modname}" does not exist')
+            ext_module = NotFoundExtensionModule(real_modname)
+        else:
+            ext_module = module.initialize(self)
+            assert isinstance(ext_module, (ExtensionModule, NewExtensionModule))
+            self.build.modules.append(real_modname)
+        if ext_module.INFO.added:
+            FeatureNew.single_use(f'module {ext_module.INFO.name}', ext_module.INFO.added, self.subproject, location=node)
+        if ext_module.INFO.deprecated:
+            FeatureDeprecated.single_use(f'module {ext_module.INFO.name}', ext_module.INFO.deprecated, self.subproject, location=node)
+        if expect_unstable and not ext_module.INFO.unstable and ext_module.INFO.stabilized is None:
+            raise InvalidArguments(f'Module {ext_module.INFO.name} has never been unstable, remove "unstable-" prefix.')
+        if ext_module.INFO.stabilized is not None:
+            if expect_unstable:
+                FeatureDeprecated.single_use(
+                    f'module {ext_module.INFO.name} has been stabilized',
+                    ext_module.INFO.stabilized, self.subproject,
+                    'drop "unstable-" prefix from the module name',
+                    location=node)
+            else:
+                FeatureNew.single_use(
+                    f'module {ext_module.INFO.name} as stable module',
+                    ext_module.INFO.stabilized, self.subproject,
+                    f'Consider either adding "unstable-" to the module name, or updating the meson required version to ">= {ext_module.INFO.stabilized}"',
+                    location=node)
+        elif ext_module.INFO.unstable:
+            if not expect_unstable:
+                if required:
+                    raise InvalidArguments(f'Module "{ext_module.INFO.name}" has not been stabilized, and must be imported as unstable-{ext_module.INFO.name}')
+                ext_module = NotFoundExtensionModule(real_modname)
+            else:
+                mlog.warning(f'Module {ext_module.INFO.name} has no backwards or forwards compatibility and might not exist in future releases.', location=node)
+
+        self.modules[real_modname] = ext_module
+        return ext_module
 
     @typed_pos_args('files', varargs=str)
     @noKwargs

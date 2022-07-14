@@ -1929,7 +1929,7 @@ class AllPlatformTests(BasePlatformTests):
             r'sub' + os.path.sep + r'meson.build:3: WARNING: Keyword argument "link_with" defined multiple times.',
             r'meson.build:6: WARNING: a warning of some sort',
             r'sub' + os.path.sep + r'meson.build:4: WARNING: subdir warning',
-            r'meson.build:7: WARNING: Module unstable-simd has no backwards or forwards compatibility and might not exist in future releases.',
+            r'meson.build:7: WARNING: Module SIMD has no backwards or forwards compatibility and might not exist in future releases.',
             r"meson.build:11: WARNING: The variable(s) 'MISSING' in the input file 'conf.in' are not present in the given configuration data.",
         ]:
             with self.subTest(expected):
