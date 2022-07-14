@@ -15,6 +15,7 @@
 # This file contains the base representation for import('modname')
 
 from __future__ import annotations
+import dataclasses
 import typing as T
 
 from .. import mesonlib
@@ -163,12 +164,25 @@ class ModuleObject(HoldableObject):
 class MutableModuleObject(ModuleObject):
     pass
 
+
+@dataclasses.dataclass
+class ModuleInfo:
+
+    """Metadata about a Module."""
+
+    name: str
+    added: T.Optional[str] = None
+    deprecated: T.Optional[str] = None
+
+
 class NewExtensionModule(ModuleObject):
 
     """Class for modern modules
 
     provides the found method.
     """
+
+    INFO: ModuleInfo
 
     def __init__(self) -> None:
         super().__init__()
@@ -202,6 +216,10 @@ class NotFoundExtensionModule(NewExtensionModule):
 
     provides the found method.
     """
+
+    def __init__(self, name: str) -> None:
+        super().__init__()
+        self.INFO = ModuleInfo(name)
 
     @staticmethod
     def found() -> bool:

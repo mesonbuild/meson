@@ -24,7 +24,7 @@ import subprocess
 import textwrap
 import typing as T
 
-from . import ExtensionModule
+from . import ExtensionModule, ModuleInfo
 from . import ModuleReturnValue
 from .. import build
 from .. import interpreter
@@ -272,6 +272,9 @@ gresource_dep_needed_version = '>= 2.51.1'
 native_glib_version: T.Optional[str] = None
 
 class GnomeModule(ExtensionModule):
+
+    INFO = ModuleInfo('gnome')
+
     def __init__(self, interpreter: 'Interpreter') -> None:
         super().__init__(interpreter)
         self.gir_dep: T.Optional[Dependency] = None

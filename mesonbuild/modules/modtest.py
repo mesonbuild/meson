@@ -15,7 +15,7 @@
 from __future__ import annotations
 import typing as T
 
-from . import ExtensionModule
+from . import ExtensionModule, ModuleInfo
 from ..interpreterbase import noKwargs, noPosargs
 
 if T.TYPE_CHECKING:
@@ -25,6 +25,9 @@ if T.TYPE_CHECKING:
 
 
 class TestModule(ExtensionModule):
+
+    INFO = ModuleInfo('modtest')
+
     def __init__(self, interpreter: Interpreter) -> None:
         super().__init__(interpreter)
         self.methods.update({

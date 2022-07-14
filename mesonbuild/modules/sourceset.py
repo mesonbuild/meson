@@ -15,7 +15,7 @@
 from __future__ import annotations
 import typing as T
 
-from . import ExtensionModule, ModuleObject, MutableModuleObject
+from . import ExtensionModule, ModuleObject, MutableModuleObject, ModuleInfo
 from .. import build
 from .. import dependencies
 from .. import mesonlib
@@ -289,7 +289,9 @@ class SourceFilesObject(ModuleObject):
         return list(self.files.deps)
 
 class SourceSetModule(ExtensionModule):
-    @FeatureNew('SourceSet module', '0.51.0')
+
+    INFO = ModuleInfo('sourceset', '0.51.0')
+
     def __init__(self, interpreter: Interpreter):
         super().__init__(interpreter)
         self.methods.update({

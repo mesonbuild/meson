@@ -16,7 +16,7 @@ from __future__ import annotations
 from os import path
 import typing as T
 
-from . import ExtensionModule, ModuleReturnValue
+from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from .. import build
 from .. import mesonlib
 from .. import mlog
@@ -124,6 +124,9 @@ PRESET_ARGS = {
 
 
 class I18nModule(ExtensionModule):
+
+    INFO = ModuleInfo('i18n')
+
     def __init__(self, interpreter: 'Interpreter'):
         super().__init__(interpreter)
         self.methods.update({

@@ -15,13 +15,12 @@
 from .. import mesonlib, compilers, mlog
 from .. import build
 
-from . import ExtensionModule
-
-from ..interpreterbase import FeatureNew
+from . import ExtensionModule, ModuleInfo
 
 class SimdModule(ExtensionModule):
 
-    @FeatureNew('SIMD module', '0.42.0')
+    INFO = ModuleInfo('SIMD', '0.42.0')
+
     def __init__(self, interpreter):
         super().__init__(interpreter)
         # FIXME add Altivec and AVX512.

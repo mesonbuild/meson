@@ -18,7 +18,7 @@ import shlex
 import subprocess
 import typing as T
 
-from . import ExtensionModule, ModuleReturnValue, NewExtensionModule
+from . import ExtensionModule, ModuleReturnValue, NewExtensionModule, ModuleInfo
 from .. import mlog, build
 from ..compilers.compilers import CFLAGS_MAPPING
 from ..envconfig import ENV_VAR_PROG_MAP
@@ -273,7 +273,9 @@ class ExternalProject(NewExtensionModule):
 
 
 class ExternalProjectModule(ExtensionModule):
-    @FeatureNew('External build system Module', '0.56.0')
+
+    INFO = ModuleInfo('External build system', '0.56.0')
+
     def __init__(self, interpreter: 'Interpreter'):
         super().__init__(interpreter)
         self.methods.update({'add_project': self.add_project,

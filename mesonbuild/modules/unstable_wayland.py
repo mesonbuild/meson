@@ -16,10 +16,10 @@ from __future__ import annotations
 import os
 import typing as T
 
-from . import ExtensionModule, ModuleReturnValue
+from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from ..build import CustomTarget
 from ..interpreter.type_checking import NoneType, in_set_validator
-from ..interpreterbase import FeatureNew, typed_pos_args, typed_kwargs, KwargInfo
+from ..interpreterbase import typed_pos_args, typed_kwargs, KwargInfo
 from ..mesonlib import File, MesonException
 
 if T.TYPE_CHECKING:
@@ -45,7 +45,8 @@ if T.TYPE_CHECKING:
 
 class WaylandModule(ExtensionModule):
 
-    @FeatureNew('wayland module', '0.62.0')
+    INFO = ModuleInfo('wayland', '0.62.0')
+
     def __init__(self, interpreter: Interpreter) -> None:
         super().__init__(interpreter)
 

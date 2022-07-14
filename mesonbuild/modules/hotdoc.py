@@ -20,10 +20,10 @@ from collections import OrderedDict
 from mesonbuild import mesonlib
 from mesonbuild import mlog, build
 from mesonbuild.coredata import MesonException
-from . import ModuleReturnValue
+from . import ModuleReturnValue, ModuleInfo
 from . import ExtensionModule
 from ..dependencies import Dependency, InternalDependency
-from ..interpreterbase import FeatureNew, InvalidArguments, noPosargs, noKwargs, typed_pos_args
+from ..interpreterbase import InvalidArguments, noPosargs, noKwargs, typed_pos_args
 from ..interpreter import CustomTargetHolder
 from ..programs import ExternalProgram
 
@@ -38,6 +38,7 @@ MIN_HOTDOC_VERSION = '0.8.100'
 
 
 class HotdocTargetBuilder:
+
     def __init__(self, name, state, hotdoc, interpreter, kwargs):
         self.hotdoc = hotdoc
         self.build_by_default = kwargs.pop('build_by_default', False)
@@ -396,7 +397,9 @@ class HotdocTarget(build.CustomTarget):
 
 
 class HotDocModule(ExtensionModule):
-    @FeatureNew('Hotdoc Module', '0.48.0')
+
+    INFO = ModuleInfo('hotdoc', '0.48.0')
+
     def __init__(self, interpreter):
         super().__init__(interpreter)
         self.hotdoc = ExternalProgram('hotdoc')
