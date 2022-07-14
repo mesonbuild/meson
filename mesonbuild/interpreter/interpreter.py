@@ -617,6 +617,9 @@ class Interpreter(InterpreterBase, HoldableObject):
         # Some tests use "unstable_" instead of "unstable-", and that happens to work because
         # of implementation details
         if modname.startswith(('unstable-', 'unstable_')):
+            if modname.startswith('unstable_'):
+                mlog.deprecation(f'Importing unstable modules as "{modname}" instead of "{modname.replace("_", "-", 1)}"',
+                                 location=node)
             real_modname = modname[len('unstable') + 1:]  # + 1 to handle the - or _
             expect_unstable = True
         else:
