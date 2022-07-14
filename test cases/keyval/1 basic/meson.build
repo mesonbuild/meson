@@ -1,4 +1,4 @@
-project('keyval basic test')
+project('keyval basic test', meson_version : '>= 0.55')
 
 k = import('keyval')
 conf = k.load('.config')
