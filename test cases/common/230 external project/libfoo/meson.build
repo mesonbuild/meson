@@ -1,4 +1,4 @@
-mod = import('unstable_external_project')
+mod = import('unstable-external_project')
 
 target_system = target_machine.system()
 if target_system in ['windows', 'cygwin']
