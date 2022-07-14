@@ -173,6 +173,8 @@ class ModuleInfo:
     name: str
     added: T.Optional[str] = None
     deprecated: T.Optional[str] = None
+    unstable: bool = False
+    stabilized: T.Optional[str] = None
 
 
 class NewExtensionModule(ModuleObject):

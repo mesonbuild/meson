@@ -32,7 +32,7 @@ if T.TYPE_CHECKING:
 
 class CudaModule(NewExtensionModule):
 
-    INFO = ModuleInfo('CUDA', '0.50.0')
+    INFO = ModuleInfo('CUDA', '0.50.0', unstable=True)
 
     def __init__(self, *args, **kwargs):
         super().__init__()
