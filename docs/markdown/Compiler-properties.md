@@ -7,7 +7,7 @@ object](Reference-manual_returned_compiler.html)* from the main
 *meson* variable.
 
 ```meson
-compiler = meson.get_compiler('c')
+compiler = [[#meson.get_compiler]]('c')
 ```
 
 Here we extract the C compiler. We could also have given the argument
@@ -64,7 +64,7 @@ void func() { printf("Compile me.\n"); }
 Then we can run the test.
 
 ```meson
-result = compiler.compiles(code, name : 'basic check')
+result = [[#compiler.compiles]](code, name : 'basic check')
 ```
 
 The variable *result* will now contain either `true` or `false`
@@ -88,7 +88,7 @@ void func() { printf("Compile me.\n"); }
 Then we can run the test.
 
 ```meson
-result = compiler.links(code, args : '-lfoo', name : 'link check')
+result = [[#compiler.links]](code, args : '-lfoo', name : 'link check')
 ```
 
 The variable *result* will now contain either `true` or `false`
@@ -110,7 +110,7 @@ int main(int argc, char **argv) {
   return 0;
 }
 '''
-result = compiler.run(code, name : 'basic check')
+result = [[#compiler.run]](code, name : 'basic check')
 ```
 
 The `result` variable encapsulates the state of the test, which can be
@@ -141,7 +141,7 @@ program that includes the specified header. The following snippet
 describes how this feature can be used.
 
 ```meson
-if compiler.has_header('sys/fstat.h')
+if [[#compiler.has_header]]('sys/fstat.h')
   # header exists, do something
 endif
 ```
@@ -153,7 +153,7 @@ Often you need to determine the size of a particular element (such as
 above, the check can be done like this.
 
 ```meson
-wcharsize = compiler.sizeof('wchar_t', prefix : '#include<wchar.h>')
+wcharsize = [[#compiler.sizeof]]('wchar_t', prefix : '#include<wchar.h>')
 ```
 
 This will put the size of `wchar_t` as reported by sizeof into
@@ -174,7 +174,7 @@ is how we would check whether the function `open_memstream` exists in
 header `stdio.h`
 
 ```meson
-if compiler.has_function('open_memstream', prefix : '#include <stdio.h>')
+if [[#compiler.has_function]]('open_memstream', prefix : '#include <stdio.h>')
   # function exists, do whatever is required.
 endif
 ```
@@ -201,7 +201,7 @@ would check if a struct called `mystruct` from header `myheader.h`
 contains a member called `some_member`.
 
 ```meson
-if compiler.has_member('struct mystruct', 'some_member', prefix : '#include<myheader.h>')
+if [[#compiler.has_member]]('struct mystruct', 'some_member', prefix : '#include<myheader.h>')
   # member exists, do whatever is required
 endif
 ```
@@ -214,7 +214,7 @@ integer only at locations which are divisible by four. Determining the
 alignment of data types is simple.
 
 ```meson
-int_alignment = compiler.alignment('int') # Will most likely contain the value 4.
+int_alignment = [[#compiler.alignment]]('int') # Will most likely contain the value 4.
 ```
 
 ## Has argument
@@ -224,7 +224,7 @@ argument. This is implemented by compiling a small file with the given
 argument.
 
 ```meson
-has_special_flags = compiler.has_argument('-Wspecialthing')
+has_special_flags = [[#compiler.has_argument]]('-Wspecialthing')
 ```
 
 *Note*: some compilers silently swallow command line arguments they do

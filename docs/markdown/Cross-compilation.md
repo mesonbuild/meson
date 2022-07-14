@@ -262,16 +262,16 @@ The main *meson* object provides two functions to determine cross
 compilation status.
 
 ```meson
-meson.is_cross_build()        # returns true when cross compiling
-meson.can_run_host_binaries() # returns true if the host binaries can be run, either with a wrapper or natively
+[[#meson.is_cross_build]]        # returns true when cross compiling
+[[#meson.can_run_host_binaries]] # returns true if the host binaries can be run, either with a wrapper or natively
 ```
 
 You can run system checks on both the system compiler or the cross
 compiler. You just have to specify which one to use.
 
 ```meson
-build_compiler = meson.get_compiler('c', native : true)
-host_compiler = meson.get_compiler('c', native : false)
+build_compiler = [[#meson.get_compiler]]('c', native : true)
+host_compiler = [[#meson.get_compiler]]('c', native : false)
 
 build_int_size = build_compiler.sizeof('int')
 host_int_size  = host_compiler.sizeof('int')

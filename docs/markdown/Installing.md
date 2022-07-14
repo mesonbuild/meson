@@ -96,7 +96,7 @@ also sets the variables `MESON_SOURCE_ROOT` and `MESON_BUILD_ROOT`.
 Telling Meson to run this script at install time is a one-liner.
 
 ```meson
-meson.add_install_script('myscript.sh')
+[[#meson.add_install_script]]('myscript.sh')
 ```
 
 The argument is the name of the script file relative to the current

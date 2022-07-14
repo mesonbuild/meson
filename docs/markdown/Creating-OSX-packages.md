@@ -92,7 +92,7 @@ framework. In order to bundle it in our app, we first specify an
 installer script to run.
 
 ```meson
-meson.add_install_script('install_script.sh')
+[[#meson.add_install_script]]('install_script.sh')
 ```
 
 The install script does two things. First it copies the whole

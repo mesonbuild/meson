@@ -103,7 +103,7 @@ project](https://github.com/jpakkane/meson/tree/master/manual%20tests/4%20standa
 Make the script run during install with this:
 
 ```meson
-meson.add_install_script('linux_bundler.sh')
+[[#meson.add_install_script]]('linux_bundler.sh')
 ```
 
 ## Final steps
@@ -125,7 +125,7 @@ bin/myapp
 Install it with this Meson snippet:
 
 ```meson
-install_data('myapp.sh', install_dir : '.')
+[[#install_data]]('myapp.sh', install_dir : '.')
 ```
 
 And now you are done. Zip up your `/tmp/myapp` directory and you have

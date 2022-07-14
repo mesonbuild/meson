@@ -13,9 +13,9 @@ one found in other build systems such as CMake.
 Suppose we have the following Meson snippet:
 
 ```meson
-conf_data = configuration_data()
+conf_data = [[#configuration_data]]
 conf_data.set('version', '1.2.3')
-configure_file(input : 'config.h.in',
+[[#configure_file]](input : 'config.h.in',
                output : 'config.h',
                configuration : conf_data)
 ```

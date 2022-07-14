@@ -23,7 +23,7 @@ from Meson altogether.
 The module may be imported as follows:
 
 ``` meson
-cuda = import('unstable-cuda')
+cuda = [[#import]]('unstable-cuda')
 ```
 
 It offers several useful functions that are enumerated below.
