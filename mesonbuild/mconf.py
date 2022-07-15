@@ -90,8 +90,8 @@ class Conf:
     def clear_cache(self):
         self.coredata.clear_deps_cache()
 
-    def set_options(self, options):
-        self.coredata.set_options(options)
+    def set_options(self, options) -> bool:
+        return self.coredata.set_options(options)
 
     def save(self):
         # Do nothing when using introspection
@@ -308,9 +308,8 @@ def run(options):
 
         save = False
         if options.cmd_line_options:
-            c.set_options(options.cmd_line_options)
+            save = c.set_options(options.cmd_line_options)
             coredata.update_cmd_line_file(builddir, options)
-            save = True
         elif options.clearcache:
             c.clear_cache()
             save = True

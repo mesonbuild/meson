@@ -4584,13 +4584,40 @@ class AllPlatformTests(BasePlatformTests):
 
     def test_configure_same_noop(self):
         testdir = os.path.join(self.unit_test_dir, '108 configure same noop')
-        self.init(testdir, extra_args=['-Dopt=val'])
+        args = [
+            '-Dstring=val',
+            '-Dboolean=true',
+            '-Dcombo=two',
+            '-Dinteger=7',
+            '-Darray=[\'three\']',
+            '-Dfeature=disabled',
+            '--buildtype=plain',
+            '--prefix=/abc',
+        ]
+        self.init(testdir, extra_args=args)
 
-        filename = os.path.join(self.privatedir, 'coredata.dat')
+        filename = Path(self.privatedir) / 'coredata.dat'
+
+        olddata = filename.read_bytes()
         oldmtime = os.path.getmtime(filename)
-        self.setconf(["-Dopt=val"])
-        newmtime = os.path.getmtime(filename)
-        self.assertEqual(oldmtime, newmtime)
+
+        for opt in ('-Dstring=val', '--buildtype=plain', '-Dfeature=disabled'):
+            self.setconf([opt])
+            newdata = filename.read_bytes()
+            newmtime = os.path.getmtime(filename)
+            self.assertEqual(olddata, newdata)
+            self.assertEqual(oldmtime, newmtime)
+            olddata = newdata
+            oldmtime = newmtime
+
+        for opt in ('-Dstring=abc', '--buildtype=release', '-Dfeature=enabled'):
+            self.setconf([opt])
+            newdata = filename.read_bytes()
+            newmtime = os.path.getmtime(filename)
+            self.assertNotEqual(olddata, newdata)
+            self.assertGreater(newmtime, oldmtime)
+            olddata = newdata
+            oldmtime = newmtime
 
     def test_scripts_loaded_modules(self):
         '''
