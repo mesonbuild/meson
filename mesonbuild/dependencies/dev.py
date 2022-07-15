@@ -24,12 +24,13 @@ import pathlib
 import shutil
 import subprocess
 import typing as T
+import functools
 
 from mesonbuild.interpreterbase.decorators import FeatureDeprecated
 
 from .. import mesonlib, mlog
 from ..environment import get_llvm_tool_names
-from ..mesonlib import version_compare, stringlistify, extract_as_list
+from ..mesonlib import version_compare, version_compare_many, search_version, stringlistify, extract_as_list
 from .base import DependencyException, DependencyMethods, detect_compiler, strip_system_libdirs, SystemDependency, ExternalDependency, DependencyTypeName
 from .cmake import CMakeDependency
 from .configtool import ConfigToolDependency
@@ -418,14 +419,15 @@ class LLVMDependencyCMake(CMakeDependency):
 
         super().__init__(name, env, kwargs, language='cpp', force_use_global_compilers=True)
 
-        # Cmake will always create a statically linked binary, so don't use
-        # cmake if dynamic is required
-        if not self.static:
-            self.is_found = False
-            mlog.warning('Ignoring LLVM CMake dependency because dynamic was requested', fatal=False)
+        if self.traceparser is None:
             return
 
-        if self.traceparser is None:
+        if not self.is_found:
+            return
+
+        #CMake will return not found due to not defined LLVM_DYLIB_COMPONENTS
+        if not self.static and version_compare(self.version, '< 7.0') and self.llvm_modules:
+            mlog.warning('Before version 7.0 cmake does not export modules for dynamic linking, cannot check required modules')
             return
 
         # Extract extra include directories and definitions
@@ -444,8 +446,33 @@ class LLVMDependencyCMake(CMakeDependency):
         # Use a custom CMakeLists.txt for LLVM
         return 'CMakeListsLLVM.txt'
 
+    # Check version in CMake to return exact version as config tool (latest allowed)
+    # It is safe to add .0 to latest argument, it will discarded if we use search_version
+    def llvm_cmake_versions(self) -> T.List[str]:
+
+        def ver_from_suf(req: str) -> str:
+            return search_version(req.strip('-')+'.0')
+
+        def version_sorter(a: str, b: str) -> int:
+            if version_compare(a, "="+b):
+                return 0
+            if version_compare(a, "<"+b):
+                return 1
+            return -1
+
+        llvm_requested_versions = [ver_from_suf(x) for x in get_llvm_tool_names('') if version_compare(ver_from_suf(x), '>=0')]
+        if self.version_reqs:
+            llvm_requested_versions = [ver_from_suf(x) for x in get_llvm_tool_names('') if version_compare_many(ver_from_suf(x), self.version_reqs)]
+        # CMake sorting before 3.18 is incorrect, sort it here instead
+        return sorted(llvm_requested_versions, key=functools.cmp_to_key(version_sorter))
+
+    # Split required and optional modules to distinguish it in CMake
     def _extra_cmake_opts(self) -> T.List[str]:
-        return ['-DLLVM_MESON_MODULES={}'.format(';'.join(self.llvm_modules + self.llvm_opt_modules))]
+        return ['-DLLVM_MESON_REQUIRED_MODULES={}'.format(';'.join(self.llvm_modules)),
+                '-DLLVM_MESON_OPTIONAL_MODULES={}'.format(';'.join(self.llvm_opt_modules)),
+                '-DLLVM_MESON_PACKAGE_NAMES={}'.format(';'.join(get_llvm_tool_names(self.name))),
+                '-DLLVM_MESON_VERSIONS={}'.format(';'.join(self.llvm_cmake_versions())),
+                '-DLLVM_MESON_DYLIB={}'.format('OFF' if self.static else 'ON')]
 
     def _map_module_list(self, modules: T.List[T.Tuple[str, bool]], components: T.List[T.Tuple[str, bool]]) -> T.List[T.Tuple[str, bool]]:
         res = []
