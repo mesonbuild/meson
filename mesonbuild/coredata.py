@@ -27,7 +27,7 @@ from .mesonlib import (
     default_prefix, default_datadir, default_includedir, default_infodir,
     default_localedir, default_mandir, default_sbindir, default_sysconfdir,
     split_args, OptionKey, OptionType, stringlistify,
-    pickle_load, replace_if_different
+    pickle_load
 )
 from .wrap import WrapMode
 import ast
@@ -103,8 +103,10 @@ class UserOption(T.Generic[_T], HoldableObject):
     def validate_value(self, value: T.Any) -> _T:
         raise RuntimeError('Derived option class did not override validate_value.')
 
-    def set_value(self, newvalue: T.Any) -> None:
+    def set_value(self, newvalue: T.Any) -> bool:
+        oldvalue = getattr(self, 'value', None)
         self.value = self.validate_value(newvalue)
+        return self.value != oldvalue
 
 class UserStringOption(UserOption[str]):
     def __init__(self, description: str, value: T.Any, yielding: bool = DEFAULT_YIELDING,
@@ -651,7 +653,8 @@ class CoreData:
 
         raise MesonException(f'Tried to get unknown builtin option {str(key)}')
 
-    def set_option(self, key: OptionKey, value) -> None:
+    def set_option(self, key: OptionKey, value) -> bool:
+        dirty = False
         if key.is_builtin():
             if key.name == 'prefix':
                 value = self.sanitize_prefix(value)
@@ -691,17 +694,20 @@ class CoreData:
             newname = opt.deprecated
             newkey = OptionKey.from_string(newname).evolve(subproject=key.subproject)
             mlog.deprecation(f'Option {key.name!r} is replaced by {newname!r}')
-            self.set_option(newkey, value)
+            dirty |= self.set_option(newkey, value)
 
-        opt.set_value(value)
+        dirty |= opt.set_value(value)
 
         if key.name == 'buildtype':
-            self._set_others_from_buildtype(value)
+            dirty |= self._set_others_from_buildtype(value)
         elif key.name in {'wrap_mode', 'force_fallback_for'}:
             # We could have the system dependency cached for a dependency that
             # is now forced to use subproject fallback. We probably could have
             # more fine grained cache invalidation, but better be safe.
             self.clear_deps_cache()
+            dirty = True
+
+        return dirty
 
     def clear_deps_cache(self):
         self.deps.host.clear()
@@ -736,7 +742,9 @@ class CoreData:
             result.append(('debug', actual_debug, debug))
         return result
 
-    def _set_others_from_buildtype(self, value: str) -> None:
+    def _set_others_from_buildtype(self, value: str) -> bool:
+        dirty = False
+
         if value == 'plain':
             opt = 'plain'
             debug = False
@@ -754,9 +762,12 @@ class CoreData:
             debug = True
         else:
             assert value == 'custom'
-            return
-        self.options[OptionKey('optimization')].set_value(opt)
-        self.options[OptionKey('debug')].set_value(debug)
+            return False
+
+        dirty |= self.options[OptionKey('optimization')].set_value(opt)
+        dirty |= self.options[OptionKey('debug')].set_value(debug)
+
+        return dirty
 
     @staticmethod
     def is_per_machine_option(optname: OptionKey) -> bool:
@@ -797,21 +808,25 @@ class CoreData:
             return False
         return len(self.cross_files) > 0
 
-    def copy_build_options_from_regular_ones(self) -> None:
+    def copy_build_options_from_regular_ones(self) -> bool:
+        dirty = False
         assert not self.is_cross_build()
         for k in BUILTIN_OPTIONS_PER_MACHINE:
             o = self.options[k]
-            self.options[k.as_build()].set_value(o.value)
+            dirty |= self.options[k.as_build()].set_value(o.value)
         for bk, bv in self.options.items():
             if bk.machine is MachineChoice.BUILD:
                 hk = bk.as_host()
                 try:
                     hv = self.options[hk]
-                    bv.set_value(hv.value)
+                    dirty |= bv.set_value(hv.value)
                 except KeyError:
                     continue
 
-    def set_options(self, options: T.Dict[OptionKey, T.Any], subproject: str = '') -> None:
+        return dirty
+
+    def set_options(self, options: T.Dict[OptionKey, T.Any], subproject: str = '') -> bool:
+        dirty = False
         if not self.is_cross_build():
             options = {k: v for k, v in options.items() if k.machine is not MachineChoice.BUILD}
         # Set prefix first because it's needed to sanitize other options
@@ -828,7 +843,7 @@ class CoreData:
             if k == pfk:
                 continue
             elif k in self.options:
-                self.set_option(k, v)
+                dirty |= self.set_option(k, v)
             elif k.machine != MachineChoice.BUILD and k.type != OptionType.COMPILER:
                 unknown_options.append(k)
         if unknown_options:
@@ -837,7 +852,9 @@ class CoreData:
             raise MesonException(f'{sub}Unknown options: "{unknown_options_str}"')
 
         if not self.is_cross_build():
-            self.copy_build_options_from_regular_ones()
+            dirty |= self.copy_build_options_from_regular_ones()
+
+        return dirty
 
     def set_default_options(self, default_options: T.MutableMapping[OptionKey, str], subproject: str, env: 'Environment') -> None:
         # Main project can set default options on subprojects, but subprojects
@@ -1072,7 +1089,7 @@ def save(obj: CoreData, build_dir: str) -> str:
         pickle.dump(obj, f)
         f.flush()
         os.fsync(f.fileno())
-    replace_if_different(filename, tempfilename)
+    os.replace(tempfilename, filename)
     return filename
 
 
