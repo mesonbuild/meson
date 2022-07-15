@@ -1,7 +1,7 @@
 option(
   'method',
   type : 'combo',
-  choices : ['config-tool', 'cmake']
+  choices : ['config-tool', 'cmake', 'combination']
 )
 option(
   'link-static',
