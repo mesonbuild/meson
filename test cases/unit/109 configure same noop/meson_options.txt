@@ -1,0 +1,5 @@
+option(
+  'opt',
+  type : 'string',
+  value: '',
+)

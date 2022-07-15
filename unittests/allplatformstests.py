@@ -4290,3 +4290,13 @@ class AllPlatformTests(BasePlatformTests):
 
         self.init(testdir)
         self.build()
+
+    def test_configure_same_noop(self):
+        testdir = os.path.join(self.unit_test_dir, '109 configure same noop')
+        self.init(testdir, extra_args=['-Dopt=val'])
+
+        filename = os.path.join(self.privatedir, 'coredata.dat')
+        oldmtime = os.path.getmtime(filename)
+        self.setconf(["-Dopt=val"])
+        newmtime = os.path.getmtime(filename)
+        self.assertEqual(oldmtime, newmtime)

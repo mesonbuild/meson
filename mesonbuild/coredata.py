@@ -23,7 +23,7 @@ from .mesonlib import (
     MesonException, EnvironmentException, MachineChoice, PerMachine,
     PerMachineDefaultable, default_libdir, default_libexecdir,
     default_prefix, split_args, OptionKey, OptionType, stringlistify,
-    pickle_load
+    pickle_load, replace_if_different
 )
 from .wrap import WrapMode
 import ast
@@ -1066,7 +1066,7 @@ def save(obj: CoreData, build_dir: str) -> str:
         pickle.dump(obj, f)
         f.flush()
         os.fsync(f.fileno())
-    os.replace(tempfilename, filename)
+    replace_if_different(filename, tempfilename)
     return filename
 
 
