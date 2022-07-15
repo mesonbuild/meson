@@ -93,7 +93,6 @@ class Conf:
         # Do nothing when using introspection
         if self.default_values_only:
             return
-        # Only called if something has changed so overwrite unconditionally.
         coredata.save(self.coredata, self.build_dir)
         # We don't write the build file because any changes to it
         # are erased when Meson is executed the next time, i.e. when
