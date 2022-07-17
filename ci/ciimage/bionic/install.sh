@@ -17,6 +17,7 @@ pkgs=(
   qt4-linguist-tools qt5-default qtbase5-private-dev
   python-dev
   libomp-dev
+  llvm-7
   llvm lcov
   ldc
   libclang-dev
