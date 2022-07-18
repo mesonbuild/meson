@@ -222,6 +222,11 @@ class QtPkgConfigDependency(_QtBase, PkgConfigDependency, metaclass=abc.ABCMeta)
             prefix = self.get_pkgconfig_variable('exec_prefix', [], None)
             if prefix:
                 self.bindir = os.path.join(prefix, 'bin')
+        
+        # On ArchLinux, some binaries for Qt6 (moc, uic and rcc) is not placed into
+        # standard bindir, but placed into level above. Use libexec dir to fixup this
+        if self.bindir:
+            self.libexecdir = os.path.split(self.bindir)[0]
 
     @staticmethod
     @abc.abstractmethod
