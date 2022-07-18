@@ -13,8 +13,8 @@ pkgs=(
   wget unzip
   qt5-qmake qtbase5-dev qtchooser qtbase5-dev-tools clang
   libomp-dev
-  llvm-11
-  llvm lcov
+  llvm-11-dev
+  llvm-dev lcov
   dub ldc
   mingw-w64 mingw-w64-tools
   libclang-dev
