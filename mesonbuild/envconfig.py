@@ -439,7 +439,8 @@ class CMakeVariables:
         for key, value in variables.items():
             value = mesonlib.listify(value)
             for i in value:
-                assert isinstance(i, str)
+                if not isinstance(i, str):
+                    raise EnvironmentException(f"Value '{i}' of CMake variable '{key}' defined in a machine file is a {type(i).__name__} and not a str")
             self.variables[key] = value
 
     def get_variables(self) -> T.Dict[str, T.List[str]]:
