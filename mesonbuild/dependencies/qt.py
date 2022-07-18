@@ -420,7 +420,11 @@ class Qt6PkgConfigDependency(QtPkgConfigDependency):
 
     @staticmethod
     def get_pkgconfig_host_bins(core: PkgConfigDependency) -> str:
-        return core.get_pkgconfig_variable('host_bins', [], None)
+        #ArchLinux pkg-config for Qt defines bindir, and not host_bins
+        tmp_bindir = core.get_pkgconfig_variable('host_bins', [], None)
+        if not tmp_bindir:
+            tmp_bindir = core.get_pkgconfig_variable('bindir', [], None)
+        return tmp_bindir
 
     def get_private_includes(self, mod_inc_dir: str, module: str) -> T.List[str]:
         return _qt_get_private_includes(mod_inc_dir, module, self.version)
