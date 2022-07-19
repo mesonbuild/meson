@@ -21,6 +21,7 @@ import xml.etree.ElementTree as ET
 import uuid
 import typing as T
 from pathlib import Path, PurePath
+import re
 
 from . import backends
 from .. import build
@@ -96,6 +97,8 @@ def split_o_flags_args(args):
 def generate_guid_from_path(path, path_type):
     return str(uuid.uuid5(uuid.NAMESPACE_URL, 'meson-vs-' + path_type + ':' + str(path))).upper()
 
+def detect_microsoft_gdk(platform: str) -> bool:
+    return re.match(r'Gaming\.(Desktop|Xbox.XboxOne|Xbox.Scarlett)\.x64', platform, re.IGNORECASE)
 
 class Vs2010Backend(backends.Backend):
     def __init__(self, build: T.Optional[build.Build], interpreter: T.Optional[Interpreter]):
@@ -182,7 +185,11 @@ class Vs2010Backend(backends.Backend):
         target_machine = self.interpreter.builtin['target_machine'].cpu_family_method(None, None)
         if target_machine in {'64', 'x86_64'}:
             # amd64 or x86_64
-            self.platform = 'x64'
+            target_system = self.interpreter.builtin['target_machine'].system_method(None, None)
+            if detect_microsoft_gdk(target_system):
+                self.platform = target_system
+            else:
+                self.platform = 'x64'
         elif target_machine == 'x86':
             # x86
             self.platform = 'Win32'
@@ -1321,7 +1328,7 @@ class Vs2010Backend(backends.Backend):
             targetplatform = self.platform.lower()
         if targetplatform == 'win32':
             targetmachine.text = 'MachineX86'
-        elif targetplatform == 'x64':
+        elif targetplatform == 'x64' or detect_microsoft_gdk(targetplatform):
             targetmachine.text = 'MachineX64'
         elif targetplatform == 'arm':
             targetmachine.text = 'MachineARM'
