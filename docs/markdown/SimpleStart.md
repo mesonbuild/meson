@@ -22,7 +22,8 @@ There are three phases to getting a development environment running.
 
 ## Installing a compiler toolchain
 
-### Linux
+<details>
+ <summary>Linux</summary>
 
 All Linux distributions provide easy access to development tools.
 Typically you need to open a terminal and execute one command, which
@@ -32,7 +33,10 @@ depends on your distro.
  - Fedora, Centos, RHEL and derivatives: `sudo dnf install gcc-c++`
  - Arch: `sudo pacman -S gcc`
 
-### Windows
+</details>
+
+<details>
+ <summary>Windows</summary>
 
 The most common development toolchain on Windows is Visual Studio,
 which can be downloaded from [the Visual Studio web
@@ -48,8 +52,11 @@ a C and a C++ compiler.
 ![Installing the Visual Studio compilers](images/win_installvs.png)
 
 Once the installer finishes the compiler toolchain is ready to use.
+ 
+</details>
 
-### macOS
+<details>
+ <summary>macOS</summary>
 
 On macOS the development toolchain must be installed via the Mac app
 store. Search for an app called XCode and install it.
@@ -59,18 +66,24 @@ store. Search for an app called XCode and install it.
 *Note:* Installing XCode is not sufficient by itself. You also need to
 start XCode' GUI application once. This will make XCode download and
 install more files that are needed for compilation.
+ 
+ </details>
 
 ## Installing Meson
 
-### Linux
+<details>
+ <summary>Linux</summary>
 
 Installing Meson is just as simple as installing the compiler toolchain.
 
  - Debian, Ubuntu and derivatives: `sudo apt install meson ninja-build`
  - Fedora, Centos, RHEL and derivatives: `sudo dnf install meson ninja-build`
  - Arch: `sudo pacman -S meson`
+ 
+</details>
 
-### Windows
+<details>
+ <summary>Windows</summary>
 
 Meson provides a standard Windows `.msi` installer that can be
 downloaded from [the Releases
@@ -88,8 +101,11 @@ You should be able to run both `meson` and `ninja` and query their
 versions.
 
 ![A working Windows install](images/win_working.png)
+ 
+</details>
 
-### macOS
+<details>
+ <summary>macOS</summary>
 
 #### With Homebrew
 `brew install meson ninja`
@@ -120,6 +136,8 @@ installer file again.
 Once the installation is finished you can verify that the system is working via the terminal app.
 
 ![A successful install](images/meson_mac5.png)
+ 
+</details>
 
 ## Running Meson
 
