@@ -59,7 +59,7 @@ class StaticLinker:
     def get_exelist(self) -> T.List[str]:
         return self.exelist.copy()
 
-    def get_std_link_args(self, is_thin: bool) -> T.List[str]:
+    def get_std_link_args(self, env: 'Environment', is_thin: bool) -> T.List[str]:
         return []
 
     def get_buildtype_linker_args(self, buildtype: str) -> T.List[str]:
@@ -176,7 +176,7 @@ class ArLikeLinker(StaticLinker):
         # in fact, only the 'ar' id can
         return False
 
-    def get_std_link_args(self, is_thin: bool) -> T.List[str]:
+    def get_std_link_args(self, env: 'Environment', is_thin: bool) -> T.List[str]:
         return self.std_args
 
     def get_output_args(self, target: str) -> T.List[str]:
@@ -189,7 +189,7 @@ class ArLikeLinker(StaticLinker):
 class ArLinker(ArLikeLinker):
     id = 'ar'
 
-    def __init__(self, exelist: T.List[str]):
+    def __init__(self, for_machine: mesonlib.MachineChoice, exelist: T.List[str]):
         super().__init__(exelist)
         stdo = mesonlib.Popen_safe(self.exelist + ['-h'])[1]
         # Enable deterministic builds if they are available.
@@ -202,13 +202,14 @@ class ArLinker(ArLikeLinker):
         self.std_args = [stdargs]
         self.std_thin_args = [stdargs + thinargs]
         self.can_rsp = '@<' in stdo
+        self.for_machine = for_machine
 
     def can_linker_accept_rsp(self) -> bool:
         return self.can_rsp
 
-    def get_std_link_args(self, is_thin: bool) -> T.List[str]:
+    def get_std_link_args(self, env: 'Environment', is_thin: bool) -> T.List[str]:
         # FIXME: osx ld rejects this: "file built for unknown-unsupported file format"
-        if is_thin and not mesonlib.is_osx():
+        if is_thin and not env.machines[self.for_machine].is_darwin():
             return self.std_thin_args
         else:
             return self.std_args
@@ -225,7 +226,7 @@ class DLinker(StaticLinker):
         self.arch = arch
         self.__rsp_syntax = rsp_syntax
 
-    def get_std_link_args(self, is_thin: bool) -> T.List[str]:
+    def get_std_link_args(self, env: 'Environment', is_thin: bool) -> T.List[str]:
         return ['-lib']
 
     def get_output_args(self, target: str) -> T.List[str]:
@@ -1159,7 +1160,7 @@ class PGIStaticLinker(StaticLinker):
         self.id = 'ar'
         self.std_args = ['-r']
 
-    def get_std_link_args(self, is_thin: bool) -> T.List[str]:
+    def get_std_link_args(self, env: 'Environment', is_thin: bool) -> T.List[str]:
         return self.std_args
 
     def get_output_args(self, target: str) -> T.List[str]:
