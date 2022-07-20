@@ -17,7 +17,7 @@ import tempfile
 import os
 import shutil
 import unittest
-from contextlib import contextmanager
+from unittest import mock
 
 from mesonbuild.mesonlib import (
     MachineChoice, is_windows, is_osx, windows_proof_rmtree, windows_proof_rm
@@ -26,7 +26,6 @@ from mesonbuild.compilers import (
     detect_objc_compiler, detect_objcpp_compiler
 )
 from mesonbuild.mesonlib import EnvironmentException, MesonException
-from mesonbuild.programs import ExternalProgram
 
 
 from run_tests import (
@@ -35,33 +34,6 @@ from run_tests import (
 
 from .baseplatformtests import BasePlatformTests
 from .helpers import *
-
-@contextmanager
-def no_pkgconfig():
-    '''
-    A context manager that overrides shutil.which and ExternalProgram to force
-    them to return None for pkg-config to simulate it not existing.
-    '''
-    old_which = shutil.which
-    old_search = ExternalProgram._search
-
-    def new_search(self, name, search_dir):
-        if name == 'pkg-config':
-            return [None]
-        return old_search(self, name, search_dir)
-
-    def new_which(cmd, *kwargs):
-        if cmd == 'pkg-config':
-            return None
-        return old_which(cmd, *kwargs)
-
-    shutil.which = new_which
-    ExternalProgram._search = new_search
-    try:
-        yield
-    finally:
-        shutil.which = old_which
-        ExternalProgram._search = old_search
 
 class FailureTests(BasePlatformTests):
     '''
@@ -183,7 +155,7 @@ class FailureTests(BasePlatformTests):
         self.assertMesonRaises("dependency('sdl2', method : 'sdlconfig')", self.dnf)
         if shutil.which('pkg-config'):
             self.assertMesonRaises("dependency('sdl2', method : 'pkg-config')", self.dnf)
-        with no_pkgconfig():
+        with mock.patch('mesonbuild.programs.ExternalProgram.found', mock.Mock(return_value=False)):
             # Look for pkg-config, cache it, then
             # Use cached pkg-config without erroring out, then
             # Use cached pkg-config to error out
