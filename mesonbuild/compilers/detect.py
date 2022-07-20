@@ -342,13 +342,13 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
         if out.startswith('The CompCert'):
             return CompCertLinker(linker)
         if p.returncode == 0:
-            return ArLinker(linker)
+            return ArLinker(compiler.for_machine, linker)
         if p.returncode == 1 and err.startswith('usage'): # OSX
-            return ArLinker(linker)
+            return ArLinker(compiler.for_machine, linker)
         if p.returncode == 1 and err.startswith('Usage'): # AIX
             return AIXArLinker(linker)
         if p.returncode == 1 and err.startswith('ar: bad option: --'): # Solaris
-            return ArLinker(linker)
+            return ArLinker(compiler.for_machine, linker)
     _handle_exceptions(popen_exceptions, linkers, 'linker')
 
 
