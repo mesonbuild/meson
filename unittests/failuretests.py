@@ -150,10 +150,9 @@ class FailureTests(BasePlatformTests):
 
     def test_sdl2_notfound_dependency(self):
         # Want to test failure, so skip if available
-        if shutil.which('sdl2-config'):
-            raise unittest.SkipTest('sdl2-config found')
-        self.assertMesonRaises("dependency('sdl2', method : 'sdlconfig')", self.dnf)
-        if shutil.which('pkg-config'):
+        if not shutil.which('sdl2-config'):
+            self.assertMesonRaises("dependency('sdl2', method : 'sdlconfig')", self.dnf)
+        if not shutil.which('pkg-config'):
             self.assertMesonRaises("dependency('sdl2', method : 'pkg-config')", self.dnf)
         with mock.patch('mesonbuild.programs.ExternalProgram.found', mock.Mock(return_value=False)):
             # Look for pkg-config, cache it, then
