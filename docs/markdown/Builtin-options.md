@@ -121,23 +121,24 @@ no options.
 The following options are available. Note that they may not be
 available on all platforms or with all compilers:
 
-| Option        | Default value  | Possible values                                                  | Description                                                                   |
-|---------------|----------------|------------------------------------------------------------------|-------------------------------------------------------------------------------|
-| b_asneeded    | true           | true, false                                                      | Use -Wl,--as-needed when linking                                              |
-| b_bitcode     | false          | true, false                                                      | Embed Apple bitcode, see below                                                |
-| b_colorout    | always         | auto, always, never                                              | Use colored output                                                            |
-| b_coverage    | false          | true, false                                                      | Enable coverage tracking                                                      |
-| b_lundef      | true           | true, false                                                      | Don't allow undefined symbols when linking                                    |
-| b_lto         | false          | true, false                                                      | Use link time optimization                                                    |
-| b_lto_threads | 0              | Any integer*                                                     | Use multiple threads for lto. *(Added in 0.57.0)*                             |
-| b_lto_mode    | default        | default, thin                                                    | Select between lto modes, thin and default. *(Added in 0.57.0)*               |
-| b_ndebug      | false          | true, false, if-release                                          | Disable asserts                                                               |
-| b_pch         | true           | true, false                                                      | Use precompiled headers                                                       |
-| b_pgo         | off            | off, generate, use                                               | Use profile guided optimization                                               |
-| b_sanitize    | none           | see below                                                        | Code sanitizer to use                                                         |
-| b_staticpic   | true           | true, false                                                      | Build static libraries as position independent                                |
-| b_pie         | false          | true, false                                                      | Build position-independent executables (since 0.49.0)                         |
-| b_vscrt       | from_buildtype | none, md, mdd, mt, mtd, from_buildtype, static_from_buildtype    | VS runtime library to use (since 0.48.0) (static_from_buildtype since 0.56.0) |
+| Option            | Default value  | Possible values                                               | Description                                                                   |
+|-------------------|----------------|---------------------------------------------------------------|-------------------------------------------------------------------------------|
+| b_asneeded        | true           | true, false                                                   | Use -Wl,--as-needed when linking                                              |
+| b_bitcode         | false          | true, false                                                   | Embed Apple bitcode, see below                                                |
+| b_colorout        | always         | auto, always, never                                           | Use colored output                                                            |
+| b_coverage        | false          | true, false                                                   | Enable coverage tracking                                                      |
+| b_lundef          | true           | true, false                                                   | Don't allow undefined symbols when linking                                    |
+| b_lto             | false          | true, false                                                   | Use link time optimization                                                    |
+| b_lto_threads     | 0              | Any integer*                                                  | Use multiple threads for lto. *(Added in 0.57.0)*                             |
+| b_lto_mode        | default        | default, thin                                                 | Select between lto modes, thin and default. *(Added in 0.57.0)*               |
+| b_ndebug          | false          | true, false, if-release                                       | Disable asserts                                                               |
+| b_pch             | true           | true, false                                                   | Use precompiled headers                                                       |
+| b_pgo             | off            | off, generate, use                                            | Use profile guided optimization                                               |
+| b_sanitize        | none           | see below                                                     | Code sanitizer to use                                                         |
+| b_staticpic       | true           | true, false                                                   | Build static libraries as position independent                                |
+| b_pie             | false          | true, false                                                   | Build position-independent executables (since 0.49.0)                         |
+| b_vscrt           | from_buildtype | none, md, mdd, mt, mtd, from_buildtype, static_from_buildtype | VS runtime library to use (since 0.48.0) (static_from_buildtype since 0.56.0) |
+| b_static_analyzer | false          | true, false                                                   | Build time static code analyzer                                               |
 
 The value of `b_sanitize` can be one of: `none`, `address`, `thread`,
 `undefined`, `memory`, `leak`, `address,undefined`, but note that some

@@ -1793,3 +1793,25 @@ class LinuxlikeTests(BasePlatformTests):
         self._run(install_cmd + ['--strip'], workdir=self.builddir)
         stdout = self._run(['file', '-b', lib])
         self.assertNotIn('not stripped', stdout)
+
+    @skip_if_not_base_option('b_static_analyzer')
+    def test_static_analyzer(self):
+        if not is_linux():
+            raise SkipTest('Static analyzer unittest supported only for linux.')
+
+        env = get_fake_env()
+        cc = detect_c_compiler(env, MachineChoice.HOST)
+        if cc.get_id() == 'gcc' and version_compare(cc.version, '<10.0.0'):
+            raise SkipTest('Static analyzer not supported with gcc version prior to 10')
+        elif cc.get_id() == 'clang' and version_compare(cc.version, '<9.0.1'):
+            raise SkipTest('Static analyzer not supported with clang version prior to 9.0.1')
+
+        testdir = os.path.join(self.common_test_dir, '253 static analyzer')
+        self.init(testdir, extra_args=['-Db_static_analyzer=true'])
+        self.build()
+        compdb = self.get_compdb()
+        for i in compdb:
+            if cc.get_id() == 'gcc':
+                self.assertIn("-fanalyzer", i["command"])
+            elif cc.get_id() == 'clang':
+                self.assertIn("--analyze", i["command"])

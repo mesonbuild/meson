@@ -165,3 +165,6 @@ class ClangCompiler(GnuLikeCompiler):
                 raise mesonlib.MesonException('clang support for LTO threads requires clang >=4.0')
             args.append(f'-flto-jobs={threads}')
         return args
+
+    def analyzer_compile_args(self) -> T.List[str]:
+        return ['--analyze']
