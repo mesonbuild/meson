@@ -154,7 +154,7 @@ class QtBaseModule(ExtensionModule):
             # Ensure that the version of qt and each tool are the same
             def get_version(p: ExternalProgram) -> str:
                 _, out, err = Popen_safe(p.get_command() + arg)
-                if b.startswith('lrelease') or not qt_dep.version.startswith('4'):
+                if name == 'lrelease' or not qt_dep.version.startswith('4'):
                     care = out
                 else:
                     care = err
