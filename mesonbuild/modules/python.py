@@ -91,13 +91,14 @@ mod_kwargs -= {'name_prefix', 'name_suffix'}
 
 class _PythonDependencyBase(_Base):
 
-    def __init__(self, python_holder: 'PythonInstallation', embed: bool):
+    def __init__(self, python_holder: 'PythonExternalProgram', embed: bool):
         self.embed = embed
-        self.version: str = python_holder.version
-        self.platform = python_holder.platform
-        self.variables = python_holder.variables
-        self.paths = python_holder.paths
-        self.link_libpython = python_holder.link_libpython
+        self.version: str = python_holder.info['version']
+        self.platform = python_holder.info['platform']
+        self.variables = python_holder.info['variables']
+        self.paths = python_holder.info['paths']
+        self.is_pypy = python_holder.info['is_pypy']
+        self.link_libpython = python_holder.info['link_libpython']
         self.info: T.Optional[T.Dict[str, str]] = None
         if mesonlib.version_compare(self.version, '>= 3.0'):
             self.major_version = 3
@@ -108,7 +109,7 @@ class _PythonDependencyBase(_Base):
 class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
 
     def __init__(self, name: str, environment: 'Environment',
-                 kwargs: T.Dict[str, T.Any], installation: 'PythonInstallation',
+                 kwargs: T.Dict[str, T.Any], installation: 'PythonExternalProgram',
                  libpc: bool = False):
         if libpc:
             mlog.debug(f'Searching for {name!r} via pkgconfig lookup in LIBPC')
@@ -136,7 +137,7 @@ class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
 class PythonFrameworkDependency(ExtraFrameworkDependency, _PythonDependencyBase):
 
     def __init__(self, name: str, environment: 'Environment',
-                 kwargs: T.Dict[str, T.Any], installation: 'PythonInstallation'):
+                 kwargs: T.Dict[str, T.Any], installation: 'PythonExternalProgram'):
         ExtraFrameworkDependency.__init__(self, name, environment, kwargs)
         _PythonDependencyBase.__init__(self, installation, kwargs.get('embed', False))
 
@@ -144,17 +145,17 @@ class PythonFrameworkDependency(ExtraFrameworkDependency, _PythonDependencyBase)
 class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
 
     def __init__(self, name: str, environment: 'Environment',
-                 kwargs: T.Dict[str, T.Any], installation: 'PythonInstallation'):
+                 kwargs: T.Dict[str, T.Any], installation: 'PythonExternalProgram'):
         SystemDependency.__init__(self, name, environment, kwargs)
         _PythonDependencyBase.__init__(self, installation, kwargs.get('embed', False))
 
         if mesonlib.is_windows():
             self._find_libpy_windows(environment)
         else:
-            self._find_libpy(installation, environment)
+            self._find_libpy(environment)
 
-    def _find_libpy(self, python_holder: 'PythonInstallation', environment: 'Environment') -> None:
-        if python_holder.is_pypy:
+    def _find_libpy(self, environment: 'Environment') -> None:
+        if self.is_pypy:
             if self.major_version == 3:
                 libname = 'pypy3-c'
             else:
@@ -282,21 +283,21 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
 
 def python_factory(env: 'Environment', for_machine: 'MachineChoice',
                    kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods],
-                   installation: 'PythonInstallation') -> T.List['DependencyGenerator']:
+                   installation: 'PythonExternalProgram') -> T.List['DependencyGenerator']:
     # We can't use the factory_methods decorator here, as we need to pass the
     # extra installation argument
     embed = kwargs.get('embed', False)
     candidates: T.List['DependencyGenerator'] = []
-    pkg_version = installation.variables.get('LDVERSION') or installation.version
+    pkg_version = installation.info['variables'].get('LDVERSION') or installation.info['version']
 
     if DependencyMethods.PKGCONFIG in methods:
-        pkg_libdir = installation.variables.get('LIBPC')
-        pkg_embed = '-embed' if embed and mesonlib.version_compare(installation.version, '>=3.8') else ''
+        pkg_libdir = installation.info['variables'].get('LIBPC')
+        pkg_embed = '-embed' if embed and mesonlib.version_compare(installation.info['version'], '>=3.8') else ''
         pkg_name = f'python-{pkg_version}{pkg_embed}'
 
         # If python-X.Y.pc exists in LIBPC, we will try to use it
         def wrap_in_pythons_pc_dir(name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
-                                   installation: 'PythonInstallation') -> 'ExternalDependency':
+                                   installation: 'PythonExternalProgram') -> 'ExternalDependency':
             if not pkg_libdir:
                 # there is no LIBPC, so we can't search in it
                 empty = ExternalDependency(DependencyTypeName('pkgconfig'), env, {})
@@ -582,7 +583,7 @@ class PythonInstallation(ExternalProgramHolder):
         methods = process_method_kw({DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM}, kwargs)
         # it's theoretically (though not practically) possible to not bind dep, let's ensure it is.
         dep: Dependency = NotFoundDependency('python', self.interpreter.environment)
-        for d in python_factory(self.interpreter.environment, for_machine, new_kwargs, methods, self):
+        for d in python_factory(self.interpreter.environment, for_machine, new_kwargs, methods, self.held_object):
             dep = d()
             if dep.found():
                 break
