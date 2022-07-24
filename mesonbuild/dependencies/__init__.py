@@ -34,11 +34,12 @@ from .mpi import mpi_factory
 from .scalapack import scalapack_factory
 from .misc import (
     BlocksDependency, OpenMPDependency, cups_factory, curses_factory, gpgme_factory,
-    libgcrypt_factory, libwmf_factory, netcdf_factory, pcap_factory, python3_factory,
+    libgcrypt_factory, libwmf_factory, netcdf_factory, pcap_factory,
     shaderc_factory, threads_factory, ThreadDependency, iconv_factory, intl_factory,
     dl_factory, openssl_factory, libcrypto_factory, libssl_factory,
 )
 from .platform import AppleFrameworks
+from .python import python3_factory
 from .qt import qt4_factory, qt5_factory, qt6_factory
 from .ui import GnuStepDependency, WxDependency, gl_factory, sdl2_factory, vulkan_factory
 
@@ -250,7 +251,6 @@ packages.update({
     'curses': curses_factory,
     'netcdf': netcdf_factory,
     'openmp': OpenMPDependency,
-    'python3': python3_factory,
     'threads': threads_factory,
     'pcap': pcap_factory,
     'cups': cups_factory,
@@ -267,6 +267,9 @@ packages.update({
 
     # From platform:
     'appleframeworks': AppleFrameworks,
+
+    # from python:
+    'python3': python3_factory,
 
     # From ui:
     'gl': gl_factory,
