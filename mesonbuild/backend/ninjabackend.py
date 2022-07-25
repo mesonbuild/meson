@@ -975,7 +975,9 @@ class NinjaBackend(backends.Backend):
         all_suffixes = set(compilers.lang_suffixes['cpp']) | set(compilers.lang_suffixes['fortran'])
         selected_sources = []
         for source in compiled_sources:
-            ext = os.path.splitext(source)[1][1:].lower()
+            ext = os.path.splitext(source)[1][1:]
+            if ext != 'C':
+                ext = ext.lower()
             if ext in all_suffixes:
                 selected_sources.append(source)
         return selected_sources
@@ -2706,7 +2708,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         if not self.should_use_dyndeps_for_target(target):
             return
         extension = os.path.splitext(src.fname)[1][1:]
-        if not (extension.lower() in compilers.lang_suffixes['fortran'] or extension in compilers.lang_suffixes['cpp']):
+        if extension != 'C':
+            extension = extension.lower()
+        if not (extension in compilers.lang_suffixes['fortran'] or extension in compilers.lang_suffixes['cpp']):
             return
         dep_scan_file = self.get_dep_scan_file_for(target)
         element.add_item('dyndep', dep_scan_file)
