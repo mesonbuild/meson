@@ -538,7 +538,7 @@ class PkgConfigModule(ExtensionModule):
             raise mesonlib.MesonException('dataonly must be boolean.')
         if dataonly:
             default_subdirs = []
-            blocked_vars = ['libraries', 'libraries_private', 'require_private', 'extra_cflags', 'subdirs']
+            blocked_vars = ['libraries', 'libraries_private', 'requires_private', 'extra_cflags', 'subdirs']
             if any(k in kwargs for k in blocked_vars):
                 raise mesonlib.MesonException(f'Cannot combine dataonly with any of {blocked_vars}')
             default_install_dir = os.path.join(state.environment.get_datadir(), 'pkgconfig')
