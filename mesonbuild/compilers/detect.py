@@ -24,6 +24,7 @@ from ..linkers import (
     guess_win_linker,
     guess_nix_linker,
     AIXArLinker,
+    AppleArLinker,
     ArLinker,
     ArmarLinker,
     ArmClangDynamicLinker,
@@ -343,7 +344,7 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
         if p.returncode == 0:
             return ArLinker(compiler.for_machine, linker)
         if p.returncode == 1 and err.startswith('usage'): # OSX
-            return ArLinker(compiler.for_machine, linker)
+            return AppleArLinker(compiler.for_machine, linker)
         if p.returncode == 1 and err.startswith('Usage'): # AIX
             return AIXArLinker(linker)
         if p.returncode == 1 and err.startswith('ar: bad option: --'): # Solaris
