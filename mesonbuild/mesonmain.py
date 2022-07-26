@@ -13,6 +13,7 @@
 # limitations under the License.
 
 # Work around some pathlib bugs...
+
 from . import _pathlib
 import sys
 sys.modules['pathlib'] = _pathlib
@@ -158,6 +159,18 @@ class CommandLineParser:
             if os.environ.get('MESON_FORCE_BACKTRACE'):
                 raise
             return 1
+        except OSError as e:
+            if os.environ.get('MESON_FORCE_BACKTRACE'):
+                raise
+            traceback.print_exc()
+            error_msg = os.linesep.join([
+                "Unhandled python exception",
+                f"{e.strerror} - {e.args}",
+                "this is probably not a Meson bug."])
+
+            mlog.exception(error_msg)
+            return e.errno
+
         except Exception as e:
             if os.environ.get('MESON_FORCE_BACKTRACE'):
                 raise
@@ -168,7 +181,7 @@ class CommandLineParser:
             # - PermissionError is always a problem in the user environment
             # - runpython doesn't run Meson's own code, even though it is
             #   dispatched by our run()
-            if command != 'runpython' and not isinstance(e, PermissionError):
+            if command != 'runpython':
                 msg = 'Unhandled python exception'
                 if all(getattr(e, a, None) is not None for a in ['file', 'lineno', 'colno']):
                     e = MesonBugException(msg, e.file, e.lineno, e.colno) # type: ignore
