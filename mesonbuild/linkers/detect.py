@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from ..mesonlib import (
     EnvironmentException, OptionKey,
-    Popen_safe, search_version
+    Popen_safe, join_args, search_version
 )
 from .linkers import (
     AppleDynamicLinker,
@@ -51,8 +51,8 @@ defaults['gcc_static_linker'] = ['gcc-ar']
 defaults['clang_static_linker'] = ['llvm-ar']
 
 def __failed_to_detect_linker(compiler: T.List[str], args: T.List[str], stdout: str, stderr: str) -> 'T.NoReturn':
-    msg = 'Unable to detect linker for compiler "{} {}"\nstdout: {}\nstderr: {}'.format(
-        ' '.join(compiler), ' '.join(args), stdout, stderr)
+    msg = 'Unable to detect linker for compiler `{}`\nstdout: {}\nstderr: {}'.format(
+        join_args(compiler + args), stdout, stderr)
     raise EnvironmentException(msg)
 
 
