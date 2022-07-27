@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+from .. import mlog
 from ..mesonlib import (
     EnvironmentException, OptionKey,
     Popen_safe, join_args, search_version
@@ -152,7 +153,13 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
         override = comp_class.use_linker_args(value[0], comp_version)
         check_args += override
 
-    _, o, e = Popen_safe(compiler + check_args)
+    mlog.debug('-----')
+    mlog.debug(f'Detecting linker via: {join_args(compiler + check_args)}')
+    p, o, e = Popen_safe(compiler + check_args)
+    mlog.debug(f'linker returned {p}')
+    mlog.debug(f'linker stdout:\n{o}')
+    mlog.debug(f'linker stderr:\n{e}')
+
     v = search_version(o + e)
     linker: DynamicLinker
     if 'LLD' in o.split('\n')[0]:
