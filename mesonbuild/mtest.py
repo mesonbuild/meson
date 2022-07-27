@@ -16,6 +16,7 @@
 
 from pathlib import Path
 from collections import deque
+from contextlib import suppress
 from copy import deepcopy
 import argparse
 import asyncio
@@ -1161,11 +1162,6 @@ def check_testdata(objs: T.List[TestSerialisation]) -> T.List[TestSerialisation]
 
 # Custom waiting primitives for asyncio
 
-async def try_wait_one(*awaitables: T.Any, timeout: T.Optional[T.Union[int, float]]) -> None:
-    """Wait for completion of one of the given futures, ignoring timeouts."""
-    await asyncio.wait(awaitables,
-                       timeout=timeout, return_when=asyncio.FIRST_COMPLETED)
-
 async def queue_iter(q: 'asyncio.Queue[T.Optional[str]]') -> T.AsyncIterator[str]:
     while True:
         item = await q.get()
@@ -1273,13 +1269,15 @@ class TestSubprocess:
 
                 # Make sure the termination signal actually kills the process
                 # group, otherwise retry with a SIGKILL.
-                await try_wait_one(p.wait(), timeout=0.5)
+                with suppress(TimeoutError):
+                    await asyncio.wait_for(p.wait(), timeout=0.5)
                 if p.returncode is not None:
                     return None
 
                 os.killpg(p.pid, signal.SIGKILL)
 
-            await try_wait_one(p.wait(), timeout=1)
+            with suppress(TimeoutError):
+                await asyncio.wait_for(p.wait(), timeout=1)
             if p.returncode is not None:
                 return None
 
@@ -1287,7 +1285,8 @@ class TestSubprocess:
             # Try to kill it one last time with a direct call.
             # If the process has spawned children, they will remain around.
             p.kill()
-            await try_wait_one(p.wait(), timeout=1)
+            with suppress(TimeoutError):
+                await asyncio.wait_for(p.wait(), timeout=1)
             if p.returncode is not None:
                 return None
             return 'Test process could not be killed.'
