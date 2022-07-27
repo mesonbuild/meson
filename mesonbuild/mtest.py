@@ -775,6 +775,10 @@ class JunitBuilder(TestLogger):
                     del case.attrib['result']
                 for case in suite.findall('.//testcase[@timestamp]'):
                     del case.attrib['timestamp']
+                for case in suite.findall('.//testcase[@file]'):
+                    del case.attrib['file']
+                for case in suite.findall('.//testcase[@line]'):
+                    del case.attrib['line']
                 self.root.append(suite)
             return
 
