@@ -96,8 +96,13 @@ def _setup_vsenv(force: bool) -> bool:
             continue
         if not bat_line:
             continue
-        k, v = bat_line.split('=', 1)
-        os.environ[k] = v
+        try:
+            k, v = bat_line.split('=', 1)
+        except ValueError:
+            # there is no "=", ignore junk data
+            pass
+        else:
+            os.environ[k] = v
     return True
 
 def setup_vsenv(force: bool = False) -> bool:
