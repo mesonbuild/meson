@@ -112,8 +112,17 @@ ENV_VAR_PROG_MAP: T.Mapping[str, str] = {
     'rust_ld': 'RUSTC_LD',
 
     # Binutils
-    'strip': 'STRIP',
     'ar': 'AR',
+    'as': 'AS',
+    'ld': 'LD',
+    'nm': 'NM',
+    'objcopy': 'OBJCOPY',
+    'objdump': 'OBJDUMP',
+    'ranlib': 'RANLIB',
+    'readelf': 'READELF',
+    'size': 'SIZE',
+    'strings': 'STRINGS',
+    'strip': 'STRIP',
     'windres': 'WINDRES',
 
     # Other tools
