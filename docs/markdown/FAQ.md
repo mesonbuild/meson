@@ -683,3 +683,23 @@ executable(
   link_language : 'c',
 )
 ```
+
+## How do I use `include-what-you-use` with Meson?
+
+Following the steps from
+[Using with a compilation database](https://github.com/include-what-you-use/include-what-you-use#using-with-a-compilation-database),
+configure the build directory (e.g., with `meson setup build`), and run:
+
+```console
+$ iwyu_tool.py -p build
+```
+
+See `iwyu_tool.py --help` for more options.
+
+A run target can also be added with the following meson code:
+```meson
+if not meson.is_subproject()
+    iwyu_tool = find_program('iwyu_tool.py', 'iwyu_tool', 'iwyu-tool')
+    run_target('iwyu', command: [iwyu_tool, '-p', meson.global_build_root()])
+endif
+```
