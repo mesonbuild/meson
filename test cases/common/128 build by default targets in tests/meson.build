@@ -19,5 +19,5 @@ if not os.path.exists(sys.argv[1]) or not os.path.exists(sys.argv[2]):
         "".format(sys.argv[1], sys.argv[2], os.getcwd()))
   sys.exit(1)'''
 
-python = import('python3').find_python()
+python = import('python').find_installation()
 test('output-check', python, args : ['-c', py_file_exists, foo_out, exe_out])

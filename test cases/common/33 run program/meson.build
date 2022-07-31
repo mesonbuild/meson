@@ -55,7 +55,7 @@ if c.returncode() != 0
   error('Using files() in argument failed.')
 endif
 
-py3 = import('python3').find_python()
+py3 = import('python').find_installation()
 
 ret = run_command(py3, '-c', 'print("some output")', check: false)
 assert(ret.returncode() == 0, 'failed to run python3: ' + ret.stderr())

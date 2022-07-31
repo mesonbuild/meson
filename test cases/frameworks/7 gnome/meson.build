@@ -10,8 +10,8 @@ if not gir.found()
   error('MESON_SKIP_TEST gobject-introspection not found.')
 endif
 
-python3 = import('python3')
-py3 = python3.find_python()
+python3 = import('python')
+py3 = python3.find_installation()
 if run_command(py3, '-c', 'import gi;', check: false).returncode() != 0
     error('MESON_SKIP_TEST python3-gi not found')
 endif
@@ -25,7 +25,7 @@ if cc.get_id() == 'intel'
   add_global_arguments('-wd2282', language : 'c')
 endif
 
-py3 = import('python3').find_python()
+py3 = import('python').find_installation()
 pycode = '''import os, sys
 if "MESON_UNIT_TEST_PRETEND_GLIB_OLD" in os.environ:
   sys.exit(0)

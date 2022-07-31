@@ -1,7 +1,7 @@
 project('test', 'c')
 
-mod_py = import('python3')
-python = mod_py.find_python()
+mod_py = import('python')
+python = mod_py.find_installation()
 
 test_target = custom_target(
   'test_target',

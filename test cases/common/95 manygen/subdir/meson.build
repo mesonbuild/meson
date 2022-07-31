@@ -1,5 +1,5 @@
 gen = files('manygen.py')
-py3_bin = import('python3').find_python()
+py3_bin = import('python').find_installation()
 
 buildtype = get_option('buildtype')
 buildtype_args = '-Dfooxxx' # a useless compiler argument

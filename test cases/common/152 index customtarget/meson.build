@@ -14,8 +14,8 @@
 
 project('custom_target_index', 'c', default_options : 'c_std=c89')
 
-py_mod = import('python3')
-prog_python = py_mod.find_python()
+py_mod = import('python')
+prog_python = py_mod.find_installation()
 
 gen = custom_target(
   'gen.[ch]',

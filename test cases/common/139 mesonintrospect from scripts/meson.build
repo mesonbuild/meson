@@ -1,6 +1,6 @@
 project('mesonintrospect from scripts', 'c')
 
-python = import('python3').find_python()
+python = import('python').find_installation()
 
 ret = run_command(python, ['check_env.py', '1'], check: false)
 if ret.returncode() == 0

@@ -29,7 +29,7 @@ configure_file(input : files('config.h.in'),
   configuration : conf)
 
 # Now generate a header file with an external script.
-genprog = import('python3').find_python()
+genprog = import('python').find_installation()
 scriptfile = '@0@/generator.py'.format(meson.current_source_dir())
 ifile = '@0@/dummy.dat'.format(meson.current_source_dir())
 ofile = '@0@/config2.h'.format(meson.current_build_dir())

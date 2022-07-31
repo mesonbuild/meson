@@ -207,9 +207,6 @@ class NativeFileTests(BasePlatformTests):
             raise SkipTest('No llvm-installed, cannot test')
         self._simple_test('config_dep', 'llvm-config')
 
-    def test_python3_module(self):
-        self._simple_test('python3', 'python3')
-
     def test_python_module(self):
         if is_windows():
             # Bat adds extra crap to stdout, so the version check logic in the
