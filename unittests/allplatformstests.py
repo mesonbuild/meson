@@ -4145,11 +4145,11 @@ class AllPlatformTests(BasePlatformTests):
         expected = {
             'targets': {
                 f'{self.builddir}/out1-notag.txt': {
-                    'destination': '{prefix}/share/out1-notag.txt',
+                    'destination': '{datadir}/out1-notag.txt',
                     'tag': None,
                 },
                 f'{self.builddir}/out2-notag.txt': {
-                    'destination': '{prefix}/share/out2-notag.txt',
+                    'destination': '{datadir}/out2-notag.txt',
                     'tag': None,
                 },
                 f'{self.builddir}/libstatic.a': {
@@ -4197,67 +4197,67 @@ class AllPlatformTests(BasePlatformTests):
                     'tag': 'devel',
                 },
                 f'{self.builddir}/out1-custom.txt': {
-                    'destination': '{prefix}/share/out1-custom.txt',
+                    'destination': '{datadir}/out1-custom.txt',
                     'tag': 'custom',
                 },
                 f'{self.builddir}/out2-custom.txt': {
-                    'destination': '{prefix}/share/out2-custom.txt',
+                    'destination': '{datadir}/out2-custom.txt',
                     'tag': 'custom',
                 },
                 f'{self.builddir}/out3-custom.txt': {
-                    'destination': '{prefix}/share/out3-custom.txt',
+                    'destination': '{datadir}/out3-custom.txt',
                     'tag': 'custom',
                 },
                 f'{self.builddir}/subdir/out1.txt': {
-                    'destination': '{prefix}/share/out1.txt',
+                    'destination': '{datadir}/out1.txt',
                     'tag': None,
                 },
                 f'{self.builddir}/subdir/out2.txt': {
-                    'destination': '{prefix}/share/out2.txt',
+                    'destination': '{datadir}/out2.txt',
                     'tag': None,
                 },
                 f'{self.builddir}/out-devel.h': {
-                    'destination': '{prefix}/include/out-devel.h',
+                    'destination': '{includedir}/out-devel.h',
                     'tag': 'devel',
                 },
                 f'{self.builddir}/out3-notag.txt': {
-                    'destination': '{prefix}/share/out3-notag.txt',
+                    'destination': '{datadir}/out3-notag.txt',
                     'tag': None,
                 },
             },
             'configure': {
                 f'{self.builddir}/foo-notag.h': {
-                    'destination': '{prefix}/share/foo-notag.h',
+                    'destination': '{datadir}/foo-notag.h',
                     'tag': None,
                 },
                 f'{self.builddir}/foo2-devel.h': {
-                    'destination': '{prefix}/include/foo2-devel.h',
+                    'destination': '{includedir}/foo2-devel.h',
                     'tag': 'devel',
                 },
                 f'{self.builddir}/foo-custom.h': {
-                    'destination': '{prefix}/share/foo-custom.h',
+                    'destination': '{datadir}/foo-custom.h',
                     'tag': 'custom',
                 },
                 f'{self.builddir}/subdir/foo2.h': {
-                    'destination': '{prefix}/share/foo2.h',
+                    'destination': '{datadir}/foo2.h',
                     'tag': None,
                 },
             },
             'data': {
                 f'{testdir}/bar-notag.txt': {
-                    'destination': '{datadir}/share/bar-notag.txt',
+                    'destination': '{datadir}/bar-notag.txt',
                     'tag': None,
                 },
                 f'{testdir}/bar-devel.h': {
-                    'destination': '{datadir}/include/bar-devel.h',
+                    'destination': '{includedir}/bar-devel.h',
                     'tag': 'devel',
                 },
                 f'{testdir}/bar-custom.txt': {
-                    'destination': '{datadir}/share/bar-custom.txt',
+                    'destination': '{datadir}/bar-custom.txt',
                     'tag': 'custom',
                 },
                 f'{testdir}/subdir/bar2-devel.h': {
-                    'destination': '{datadir}/include/bar2-devel.h',
+                    'destination': '{includedir}/bar2-devel.h',
                     'tag': 'devel',
                 },
             },

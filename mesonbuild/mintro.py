@@ -143,8 +143,6 @@ def list_install_plan(installdata: backends.InstallData) -> T.Dict[str, T.Dict[s
             install_path_name = data.install_path_name
             if key == 'headers':  # in the headers, install_path_name is the directory
                 install_path_name = os.path.join(install_path_name, os.path.basename(data.path))
-            elif data_type == 'configure':
-                install_path_name = os.path.join('{prefix}', install_path_name)
 
             plan[data_type] = plan.get(data_type, {})
             plan[data_type][data.path] = {

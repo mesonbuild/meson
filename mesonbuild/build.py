@@ -628,7 +628,7 @@ class Target(HoldableObject):
             # False (which means we want this specific output out of many
             # outputs to not be installed).
             custom_install_dir = True
-            default_install_dir_name = None
+            install_dir_names = [getattr(i, 'optname', None) for i in outdirs]
         else:
             custom_install_dir = False
             # if outdirs is empty we need to set to something, otherwise we set
@@ -637,8 +637,9 @@ class Target(HoldableObject):
                 outdirs[0] = default_install_dir
             else:
                 outdirs = [default_install_dir]
+            install_dir_names = [default_install_dir_name] * len(outdirs)
 
-        return outdirs, default_install_dir_name, custom_install_dir
+        return outdirs, install_dir_names, custom_install_dir
 
     def get_basename(self) -> str:
         return self.name
