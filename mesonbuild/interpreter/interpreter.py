@@ -446,6 +446,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             str: P_OBJ.StringHolder,
             P_OBJ.MesonVersionString: P_OBJ.MesonVersionStringHolder,
             P_OBJ.DependencyVariableString: P_OBJ.DependencyVariableStringHolder,
+            P_OBJ.OptionString: P_OBJ.OptionStringHolder,
 
             # Meson types
             mesonlib.File: OBJ.FileHolder,
@@ -1093,6 +1094,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             opt.name = optname
             return opt
         elif isinstance(opt, coredata.UserOption):
+            if isinstance(opt.value, str):
+                return P_OBJ.OptionString(opt.value, f'{{{optname}}}')
             return opt.value
         return opt
 
@@ -2819,6 +2822,9 @@ class Interpreter(InterpreterBase, HoldableObject):
         ret = os.path.join(*parts).replace('\\', '/')
         if isinstance(parts[0], P_OBJ.DependencyVariableString) and '..' not in other:
             return P_OBJ.DependencyVariableString(ret)
+        elif isinstance(parts[0], P_OBJ.OptionString):
+            name = os.path.join(parts[0].optname, other)
+            return P_OBJ.OptionString(ret, name)
         else:
             return ret
 

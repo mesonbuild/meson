@@ -22,5 +22,6 @@ from .range import RangeHolder
 from .string import (
     StringHolder,
     MesonVersionString, MesonVersionStringHolder,
-    DependencyVariableString, DependencyVariableStringHolder
+    DependencyVariableString, DependencyVariableStringHolder,
+    OptionString, OptionStringHolder,
 )
