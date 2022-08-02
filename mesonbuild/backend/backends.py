@@ -1547,7 +1547,7 @@ class Backend:
         for t in self.build.get_targets().values():
             if not t.should_install():
                 continue
-            outdirs, default_install_dir_name, custom_install_dir = t.get_install_dir()
+            outdirs, install_dir_names, custom_install_dir = t.get_install_dir()
             # Sanity-check the outputs and install_dirs
             num_outdirs, num_out = len(outdirs), len(t.get_outputs())
             if num_outdirs != 1 and num_outdirs != num_out:
@@ -1557,7 +1557,9 @@ class Backend:
                 raise MesonException(m.format(t.name, num_out, t.get_outputs(), num_outdirs))
             assert len(t.install_tag) == num_out
             install_mode = t.get_custom_install_mode()
-            first_outdir = outdirs[0]  # because mypy get's confused type narrowing in lists
+            # because mypy get's confused type narrowing in lists
+            first_outdir = outdirs[0]
+            first_outdir_name = install_dir_names[0]
 
             # Install the target output(s)
             if isinstance(t, build.BuildTarget):
@@ -1583,7 +1585,7 @@ class Backend:
                     tag = t.install_tag[0] or ('devel' if isinstance(t, build.StaticLibrary) else 'runtime')
                     mappings = t.get_link_deps_mapping(d.prefix)
                     i = TargetInstallData(self.get_target_filename(t), first_outdir,
-                                          default_install_dir_name,
+                                          first_outdir_name,
                                           should_strip, mappings, t.rpath_dirs_to_remove,
                                           t.install_rpath, install_mode, t.subproject,
                                           tag=tag, can_strip=can_strip)
@@ -1608,7 +1610,7 @@ class Backend:
                                 implib_install_dir = self.environment.get_import_lib_dir()
                             # Install the import library; may not exist for shared modules
                             i = TargetInstallData(self.get_target_filename_for_linking(t),
-                                                  implib_install_dir, default_install_dir_name,
+                                                  implib_install_dir, first_outdir_name,
                                                   False, {}, set(), '', install_mode,
                                                   t.subproject, optional=isinstance(t, build.SharedModule),
                                                   tag='devel')
@@ -1617,19 +1619,19 @@ class Backend:
                         if not should_strip and t.get_debug_filename():
                             debug_file = os.path.join(self.get_target_dir(t), t.get_debug_filename())
                             i = TargetInstallData(debug_file, first_outdir,
-                                                  default_install_dir_name,
+                                                  first_outdir_name,
                                                   False, {}, set(), '',
                                                   install_mode, t.subproject,
                                                   optional=True, tag='devel')
                             d.targets.append(i)
                 # Install secondary outputs. Only used for Vala right now.
                 if num_outdirs > 1:
-                    for output, outdir, tag in zip(t.get_outputs()[1:], outdirs[1:], t.install_tag[1:]):
+                    for output, outdir, outdir_name, tag in zip(t.get_outputs()[1:], outdirs[1:], install_dir_names[1:], t.install_tag[1:]):
                         # User requested that we not install this output
                         if outdir is False:
                             continue
                         f = os.path.join(self.get_target_dir(t), output)
-                        i = TargetInstallData(f, outdir, default_install_dir_name, False, {}, set(), None,
+                        i = TargetInstallData(f, outdir, outdir_name, False, {}, set(), None,
                                               install_mode, t.subproject,
                                               tag=tag)
                         d.targets.append(i)
@@ -1648,18 +1650,18 @@ class Backend:
                     if first_outdir is not False:
                         for output, tag in zip(t.get_outputs(), t.install_tag):
                             f = os.path.join(self.get_target_dir(t), output)
-                            i = TargetInstallData(f, first_outdir, default_install_dir_name,
+                            i = TargetInstallData(f, first_outdir, first_outdir_name,
                                                   False, {}, set(), None, install_mode,
                                                   t.subproject, optional=not t.build_by_default,
                                                   tag=tag)
                             d.targets.append(i)
                 else:
-                    for output, outdir, tag in zip(t.get_outputs(), outdirs, t.install_tag):
+                    for output, outdir, outdir_name, tag in zip(t.get_outputs(), outdirs, install_dir_names, t.install_tag):
                         # User requested that we not install this output
                         if outdir is False:
                             continue
                         f = os.path.join(self.get_target_dir(t), output)
-                        i = TargetInstallData(f, outdir, default_install_dir_name,
+                        i = TargetInstallData(f, outdir, outdir_name,
                                               False, {}, set(), None, install_mode,
                                               t.subproject, optional=not t.build_by_default,
                                               tag=tag)
