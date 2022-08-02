@@ -31,6 +31,7 @@ from ..dependencies.detect import get_dep_identifier
 from ..environment import detect_cpu_family
 from ..interpreter import ExternalProgramHolder, extract_required_kwarg, permitted_dependency_kwargs
 from ..interpreter.type_checking import NoneType
+from ..interpreter import primitives as P_OBJ
 from ..interpreterbase import (
     noPosargs, noKwargs, permittedKwargs, ContainerTypeInfo,
     InvalidArguments, typed_pos_args, typed_kwargs, KwargInfo,
@@ -514,7 +515,7 @@ class PythonInstallation(ExternalProgramHolder):
             if not isinstance(subdir, str):
                 raise InvalidArguments('"subdir" argument must be a string.')
 
-            kwargs['install_dir'] = os.path.join(self.platlib_install_path, subdir)
+            kwargs['install_dir'] = self._get_install_dir_impl(False, subdir)
 
         new_deps = []
         has_pydep = False
@@ -593,23 +594,27 @@ class PythonInstallation(ExternalProgramHolder):
     def install_sources_method(self, args: T.Tuple[T.List[T.Union[str, mesonlib.File]]],
                                kwargs: 'PyInstallKw') -> 'Data':
         tag = kwargs['install_tag'] or 'runtime'
+        install_dir = self._get_install_dir_impl(kwargs['pure'], kwargs['subdir'])
         return self.interpreter.install_data_impl(
             self.interpreter.source_strings_to_files(args[0]),
-            self._get_install_dir_impl(kwargs['pure'], kwargs['subdir']),
+            install_dir,
             mesonlib.FileMode(), rename=None, tag=tag, install_data_type='python',
-            install_dir_name=self._get_install_dir_name_impl(kwargs['pure'], kwargs['subdir']))
+            install_dir_name=install_dir.optname)
 
     @noPosargs
     @typed_kwargs('python_installation.install_dir', _PURE_KW, _SUBDIR_KW)
     def get_install_dir_method(self, args: T.List['TYPE_var'], kwargs: 'PyInstallKw') -> str:
         return self._get_install_dir_impl(kwargs['pure'], kwargs['subdir'])
 
-    def _get_install_dir_impl(self, pure: bool, subdir: str) -> str:
-        return os.path.join(
-            self.purelib_install_path if pure else self.platlib_install_path, subdir)
+    def _get_install_dir_impl(self, pure: bool, subdir: str) -> P_OBJ.OptionString:
+        if pure:
+            base = self.purelib_install_path
+            name = '{py_purelib}'
+        else:
+            base = self.platlib_install_path
+            name = '{py_platlib}'
 
-    def _get_install_dir_name_impl(self, pure: bool, subdir: str) -> str:
-        return os.path.join('{py_purelib}' if pure else '{py_platlib}', subdir)
+        return P_OBJ.OptionString(os.path.join(base, subdir), os.path.join(name, subdir))
 
     @noPosargs
     @noKwargs
