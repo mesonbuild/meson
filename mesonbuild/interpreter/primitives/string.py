@@ -157,10 +157,14 @@ class StringHolder(ObjectHolder[str]):
     def version_compare_method(self, args: T.Tuple[str], kwargs: TYPE_kwargs) -> bool:
         return version_compare(self.held_object, args[0])
 
+    @staticmethod
+    def _op_div(this: str, other: str) -> str:
+        return os.path.join(this, other).replace('\\', '/')
+
     @FeatureNew('/ with string arguments', '0.49.0')
     @typed_operator(MesonOperator.DIV, str)
     def op_div(self, other: str) -> str:
-        return os.path.join(self.held_object, other).replace('\\', '/')
+        return self._op_div(self.held_object, other)
 
     @typed_operator(MesonOperator.INDEX, int)
     def op_index(self, other: int) -> str:
@@ -194,3 +198,24 @@ class DependencyVariableStringHolder(StringHolder):
         if '..' in other:
             return ret
         return DependencyVariableString(ret)
+
+
+class OptionString(str):
+    optname: str
+
+    def __new__(cls, value: str, name: str) -> 'OptionString':
+        obj = str.__new__(cls, value)
+        obj.optname = name
+        return obj
+
+    def __getnewargs__(self) -> T.Tuple[str, str]: # type: ignore # because the entire point of this is to diverge
+        return (str(self), self.optname)
+
+
+class OptionStringHolder(StringHolder):
+    held_object: OptionString
+
+    def op_div(self, other: str) -> T.Union[str, OptionString]:
+        ret = super().op_div(other)
+        name = self._op_div(self.held_object.optname, other)
+        return OptionString(ret, name)
