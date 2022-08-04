@@ -17,7 +17,7 @@ generate_export_header(cmModLib)
 
 set_target_properties(cmModLib PROPERTIES VERSION 1.0.1)
 
-add_executable(testEXE main.cpp)
+add_executable(testEXE main.cpp "${CMAKE_CURRENT_BINARY_DIR}/config.h")
 
 target_link_libraries(cmModLib       ZLIB::ZLIB)
 target_link_libraries(cmModLibStatic ;ZLIB::ZLIB;)
