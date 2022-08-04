@@ -92,6 +92,7 @@ from .type_checking import (
 from . import primitives as P_OBJ
 
 from pathlib import Path
+from enum import Enum
 import os
 import shutil
 import uuid
@@ -240,6 +241,16 @@ TEST_KWARGS: T.List[KwargInfo] = [
     KwargInfo('verbose', bool, default=False, since='0.62.0'),
 ]
 
+class InterpreterRuleRelaxation(Enum):
+    ''' Defines specific relaxations of the Meson rules.
+
+    This is intended to be used for automatically converted
+    projects (CMake subprojects, build system mixing) that
+    generate a Meson AST via introspection, etc.
+    '''
+
+    ALLOW_BUILD_DIR_FILE_REFFERENCES = 1
+
 permitted_dependency_kwargs = {
     'allow_fallback',
     'cmake_args',
@@ -279,6 +290,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 mock: bool = False,
                 ast: T.Optional[mparser.CodeBlockNode] = None,
                 is_translated: bool = False,
+                relaxations: T.Optional[T.Set[InterpreterRuleRelaxation]] = None,
                 user_defined_options: T.Optional['argparse.Namespace'] = None,
             ) -> None:
         super().__init__(_build.environment.get_source_dir(), subdir, subproject)
@@ -294,6 +306,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.subproject_directory_name = subdir.split(os.path.sep)[-1]
         self.subproject_dir = subproject_dir
         self.option_file = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
+        self.relaxations = relaxations or set()
         if not mock and ast is None:
             self.load_root_meson_file()
             self.sanity_check_ast()
@@ -937,11 +950,13 @@ class Interpreter(InterpreterBase, HoldableObject):
                              kwargs: kwargs.DoSubproject,
                              ast: T.Optional[mparser.CodeBlockNode] = None,
                              build_def_files: T.Optional[T.List[str]] = None,
-                             is_translated: bool = False) -> SubprojectHolder:
+                             is_translated: bool = False,
+                             relaxations: T.Optional[T.Set[InterpreterRuleRelaxation]] = None) -> SubprojectHolder:
         with mlog.nested(subp_name):
             new_build = self.build.copy()
             subi = Interpreter(new_build, self.backend, subp_name, subdir, self.subproject_dir,
                                default_options, ast=ast, is_translated=is_translated,
+                               relaxations=relaxations,
                                user_defined_options=self.user_defined_options)
             # Those lists are shared by all interpreters. That means that
             # even if the subproject fails, any modification that the subproject
@@ -1016,7 +1031,15 @@ class Interpreter(InterpreterBase, HoldableObject):
                 mlog.cmd_ci_include(meson_filename)
                 mlog.log()
 
-            result = self._do_subproject_meson(subp_name, subdir, default_options, kwargs, ast, [str(f) for f in cm_int.bs_files], is_translated=True)
+            result = self._do_subproject_meson(
+                    subp_name, subdir, default_options,
+                    kwargs, ast,
+                    [str(f) for f in cm_int.bs_files],
+                    is_translated=True,
+                    relaxations={
+                        InterpreterRuleRelaxation.ALLOW_BUILD_DIR_FILE_REFFERENCES,
+                    }
+            )
             result.cm_interpreter = cm_int
 
         mlog.log()
@@ -2887,6 +2910,8 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
             inputtype = 'directory'
         else:
             inputtype = 'file'
+        if InterpreterRuleRelaxation.ALLOW_BUILD_DIR_FILE_REFFERENCES in self.relaxations and builddir in norm.parents:
+            return
         if srcdir not in norm.parents:
             # Grabbing files outside the source tree is ok.
             # This is for vendor stuff like:
