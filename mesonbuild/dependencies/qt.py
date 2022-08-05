@@ -222,6 +222,11 @@ class QtPkgConfigDependency(_QtBase, PkgConfigDependency, metaclass=abc.ABCMeta)
             prefix = self.get_pkgconfig_variable('exec_prefix', [], None)
             if prefix:
                 self.bindir = os.path.join(prefix, 'bin')
+        
+        # On ArchLinux, some binaries for Qt6 (moc, uic and rcc) is not placed into
+        # standard bindir, but placed into level above. Use libexec dir to fixup this
+        if self.bindir:
+            self.libexecdir = os.path.split(self.bindir)[0]
 
     @staticmethod
     @abc.abstractmethod
@@ -420,7 +425,11 @@ class Qt6PkgConfigDependency(QtPkgConfigDependency):
 
     @staticmethod
     def get_pkgconfig_host_bins(core: PkgConfigDependency) -> str:
-        return core.get_pkgconfig_variable('host_bins', [], None)
+        #ArchLinux pkg-config for Qt defines bindir, and not host_bins
+        tmp_bindir = core.get_pkgconfig_variable('host_bins', [], None)
+        if not tmp_bindir:
+            tmp_bindir = core.get_pkgconfig_variable('bindir', [], None)
+        return tmp_bindir
 
     def get_private_includes(self, mod_inc_dir: str, module: str) -> T.List[str]:
         return _qt_get_private_includes(mod_inc_dir, module, self.version)
