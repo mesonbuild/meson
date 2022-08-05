@@ -57,6 +57,7 @@ if T.TYPE_CHECKING:
 
     GeneratedTypes = T.Union['CustomTarget', 'CustomTargetIndex', 'GeneratedList']
     LibTypes = T.Union['SharedLibrary', 'StaticLibrary', 'CustomTarget', 'CustomTargetIndex']
+    BuildTargetTypes = T.Union['BuildTarget', 'CustomTarget', 'CustomTargetIndex']
 
 pch_kwargs = {'c_pch', 'cpp_pch'}
 
@@ -1063,11 +1064,11 @@ class BuildTarget(Target):
         return ExtractedObjects(self, self.sources, self.generated, self.objects,
                                 recursive)
 
-    def get_all_link_deps(self) -> 'ImmutableListProtocol[T.Union[BuildTarget, CustomTarget, CustomTargetIndex]]':
+    def get_all_link_deps(self) -> ImmutableListProtocol[BuildTargetTypes]:
         return self.get_transitive_link_deps()
 
     @lru_cache(maxsize=None)
-    def get_transitive_link_deps(self) -> 'ImmutableListProtocol[T.Union[BuildTarget, CustomTarget, CustomTargetIndex]]':
+    def get_transitive_link_deps(self) -> ImmutableListProtocol[BuildTargetTypes]:
         result: T.List[Target] = []
         for i in self.link_targets:
             result += i.get_all_link_deps()
@@ -2399,7 +2400,7 @@ class CommandBase:
     dependencies: T.List[T.Union[BuildTarget, 'CustomTarget']]
     subproject: str
 
-    def flatten_command(self, cmd: T.Sequence[T.Union[str, File, programs.ExternalProgram, 'BuildTarget', 'CustomTarget', 'CustomTargetIndex']]) -> \
+    def flatten_command(self, cmd: T.Sequence[T.Union[str, File, programs.ExternalProgram, BuildTargetTypes]]) -> \
             T.List[T.Union[str, File, BuildTarget, 'CustomTarget']]:
         cmd = listify(cmd)
         final_cmd: T.List[T.Union[str, File, BuildTarget, 'CustomTarget']] = []
@@ -2441,10 +2442,11 @@ class CustomTarget(Target, CommandBase):
                  subproject: str,
                  environment: environment.Environment,
                  command: T.Sequence[T.Union[
-                     str, BuildTarget, CustomTarget, CustomTargetIndex, GeneratedList, programs.ExternalProgram, File]],
+                     str, BuildTargetTypes, GeneratedList,
+                     programs.ExternalProgram, File]],
                  sources: T.Sequence[T.Union[
-                     str, File, BuildTarget, CustomTarget, CustomTargetIndex,
-                     ExtractedObjects, GeneratedList, programs.ExternalProgram]],
+                     str, File, BuildTargetTypes, ExtractedObjects,
+                     GeneratedList, programs.ExternalProgram]],
                  outputs: T.List[str],
                  *,
                  build_always_stale: bool = False,
@@ -2630,7 +2632,7 @@ class RunTarget(Target, CommandBase):
     typename = 'run'
 
     def __init__(self, name: str,
-                 command: T.Sequence[T.Union[str, File, BuildTarget, 'CustomTarget', 'CustomTargetIndex', programs.ExternalProgram]],
+                 command: T.Sequence[T.Union[str, File, BuildTargetTypes, programs.ExternalProgram]],
                  dependencies: T.Sequence[Target],
                  subdir: str,
                  subproject: str,
