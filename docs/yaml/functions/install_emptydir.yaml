@@ -13,7 +13,7 @@ varargs:
 
 kwargs:
   install_mode:
-    type: list[str | int]
+    type: list[str | int | bool]
     description: |
       Specify the file mode in symbolic format and optionally the owner/uid and
       group/gid for the created directory.

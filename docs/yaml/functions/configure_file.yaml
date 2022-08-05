@@ -93,14 +93,14 @@ kwargs:
       false otherwise.
 
   install_dir:
-    type: str
+    type: str | bool
     description: |
       The subdirectory to install the generated file to
       (e.g. `share/myproject`), if omitted or given the value of empty
       string, the file is not installed.
 
   install_mode:
-    type: list[str | int]
+    type: list[str | int | bool]
     since: 0.47.0
     description: |
       Specify the file mode in symbolic format

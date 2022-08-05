@@ -165,7 +165,7 @@ kwargs:
       the install step (see `install_dir` for details).
 
   install_dir:
-    type: str | list[str | bool]
+    type: bool | str | list[bool | str]
     description: |
       If only one install_dir is provided, all outputs are installed there.
       *Since 0.40.0* Allows you to specify the installation directory for each
@@ -189,14 +189,14 @@ kwargs:
       This would install `second.file` to `otherdir` and not install `first.file`.
 
   install_mode:
-    type: list[str | int]
+    type: list[str | int | bool]
     since: 0.47.0
     description: |
       The file mode and optionally the owner/uid and group/gid.
       See the `install_mode` kwarg of [[install_data]] for more information.
 
   install_tag:
-    type: list[str]
+    type: list[str | bool]
     since: 0.60.0
     description: |
       A list of strings, one per output, used by the `meson install --tags` command

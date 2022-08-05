@@ -54,7 +54,7 @@ kwargs:
       Incompatible with the `install_dir` kwarg.
 
   install_mode:
-    type: list[str | int]
+    type: list[str | int | bool]
     since: 0.47.0
     description: |
       Specify the file mode in symbolic format
