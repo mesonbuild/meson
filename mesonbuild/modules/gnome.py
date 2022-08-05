@@ -2056,8 +2056,8 @@ class GnomeModule(ExtensionModule):
                 ofile.write(package + '\n')
         return build.Data([mesonlib.File(True, outdir, fname)], install_dir, install_dir, mesonlib.FileMode(), state.subproject)
 
-    def _get_vapi_link_with(self, target: build.CustomTarget) -> T.List[T.Union[build.CustomTarget, build.CustomTargetIndex, build.SharedLibrary, build.StaticLibrary]]:
-        link_with: T.List[T.Union[build.StaticLibrary, build.SharedLibrary, build.CustomTarget, build.CustomTargetIndex]] = []
+    def _get_vapi_link_with(self, target: build.CustomTarget) -> T.List[build.LibTypes]:
+        link_with: T.List[build.LibTypes] = []
         for dep in target.get_target_dependencies():
             if isinstance(dep, build.SharedLibrary):
                 link_with.append(dep)
@@ -2097,7 +2097,7 @@ class GnomeModule(ExtensionModule):
 
         inputs = kwargs['sources']
 
-        link_with: T.List[T.Union[build.SharedLibrary, build.StaticLibrary, build.CustomTarget, build.CustomTargetIndex]] = []
+        link_with: T.List[build.LibTypes] = []
         for i in inputs:
             if isinstance(i, str):
                 cmd.append(os.path.join(source_dir, i))

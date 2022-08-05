@@ -57,6 +57,7 @@ if T.TYPE_CHECKING:
     from .mparser import BaseNode
 
     GeneratedTypes = T.Union['CustomTarget', 'CustomTargetIndex', 'GeneratedList']
+    LibTypes = T.Union['SharedLibrary', 'StaticLibrary', 'CustomTarget', 'CustomTargetIndex']
 
 pch_kwargs = {'c_pch', 'cpp_pch'}
 
@@ -755,7 +756,7 @@ class BuildTarget(Target):
         self.external_deps: T.List[dependencies.Dependency] = []
         self.include_dirs: T.List['IncludeDirs'] = []
         self.link_language = kwargs.get('link_language')
-        self.link_targets: T.List[T.Union[SharedLibrary, StaticLibrary, 'CustomTarget', 'CustomTargetIndex']] = []
+        self.link_targets: T.List[LibTypes] = []
         self.link_whole_targets: T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]] = []
         self.link_depends = []
         self.added_deps = set()
