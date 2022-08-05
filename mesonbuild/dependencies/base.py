@@ -36,7 +36,7 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..interpreterbase import FeatureCheckBase
     from ..build import (
-        CustomTarget, IncludeDirs, CustomTargetIndex, SharedLibrary,
+        CustomTarget, IncludeDirs, CustomTargetIndex, LibTypes,
         StaticLibrary
     )
     from ..mesonlib import FileOrString
@@ -235,7 +235,7 @@ class Dependency(HoldableObject):
 class InternalDependency(Dependency):
     def __init__(self, version: str, incdirs: T.List['IncludeDirs'], compile_args: T.List[str],
                  link_args: T.List[str],
-                 libraries: T.List[T.Union[SharedLibrary, StaticLibrary, CustomTarget, CustomTargetIndex]],
+                 libraries: T.List[LibTypes],
                  whole_libraries: T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]],
                  sources: T.Sequence[T.Union[FileOrString, CustomTarget, StructuredSources]],
                  ext_deps: T.List[Dependency], variables: T.Dict[str, str],
