@@ -1932,21 +1932,23 @@ class AllPlatformTests(BasePlatformTests):
             r'meson.build:7: WARNING: Module unstable-simd has no backwards or forwards compatibility and might not exist in future releases.',
             r"meson.build:11: WARNING: The variable(s) 'MISSING' in the input file 'conf.in' are not present in the given configuration data.",
         ]:
-            self.assertRegex(out, re.escape(expected))
+            with self.subTest(expected):
+                self.assertRegex(out, re.escape(expected))
 
         for wd in [
             self.src_root,
             self.builddir,
             os.getcwd(),
         ]:
-            self.new_builddir()
-            out = self.init(tdir, workdir=wd)
-            expected = os.path.join(relpath(tdir, self.src_root), 'meson.build')
-            relwd = relpath(self.src_root, wd)
-            if relwd != '.':
-                expected = os.path.join(relwd, expected)
-                expected = '\n' + expected + ':'
-            self.assertIn(expected, out)
+            with self.subTest(wd):
+                self.new_builddir()
+                out = self.init(tdir, workdir=wd)
+                expected = os.path.join(relpath(tdir, self.src_root), 'meson.build')
+                relwd = relpath(self.src_root, wd)
+                if relwd != '.':
+                    expected = os.path.join(relwd, expected)
+                    expected = '\n' + expected + ':'
+                self.assertIn(expected, out)
 
     def test_error_location_path(self):
         '''Test locations in meson errors contain correct paths'''
