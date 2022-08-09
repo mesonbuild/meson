@@ -448,10 +448,11 @@ class DependencyHolder(ObjectHolder[Dependency]):
             ContainerTypeInfo(list, str, pairs=True),
             default=[],
             listify=True,
-            validator=lambda x: 'must be of length 2 or empty' if len(x) not in {0, 2} else None,
         ),
     )
     def pkgconfig_method(self, args: T.Tuple[str], kwargs: 'kwargs.DependencyPkgConfigVar') -> str:
+        if len(kwargs['define_variable']) > 2:
+            FeatureNew.single_use('multiple pkg-config define overrides', '0.64', self.subproject, location=self.current_node)
         return self.held_object.get_pkgconfig_variable(args[0], **kwargs)
 
     @FeatureNew('dependency.get_configtool_variable', '0.44.0')
@@ -484,6 +485,8 @@ class DependencyHolder(ObjectHolder[Dependency]):
         default_varname = args[0]
         if default_varname is not None:
             FeatureNew('Positional argument to dependency.get_variable()', '0.58.0').use(self.subproject, self.current_node)
+        if len(kwargs['pkgconfig_define']) > 2:
+            FeatureNew.single_use('multiple pkg-config define overrides', '0.64', self.subproject, location=self.current_node)
         return self.held_object.get_variable(
             cmake=kwargs['cmake'] or default_varname,
             pkgconfig=kwargs['pkgconfig'] or default_varname,

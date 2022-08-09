@@ -22,6 +22,8 @@ assert(dep.get_pkgconfig_variable('nonexisting') == '', 'Value of unknown variab
 assert(dep.get_pkgconfig_variable('nonexisting', default: 'foo') == 'foo', 'Value of unknown variable is not defaulted.')
 # pkg-config is able to replace variables
 assert(dep.get_pkgconfig_variable('prefix', define_variable: ['prefix', '/tmp']) == '/tmp', 'prefix variable has not been replaced.')
+assert(dep.get_pkgconfig_variable('prefix', define_variable: ['prefix', '/tmp', 'datadir', '/usr']) == '/tmp', 'prefix variable has not been replaced.')
+assert(dep.get_pkgconfig_variable('prefix', define_variable: ['datadir', '/usr', 'prefix', '/tmp']) == '/tmp', 'prefix variable has not been replaced.')
 
 # Test that dependencies of dependencies work.
 dep2 = declare_dependency(dependencies : dep)
