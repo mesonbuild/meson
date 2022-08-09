@@ -39,7 +39,7 @@ from .mesonlib import (
     MesonBugException
 )
 from .compilers import (
-    is_object, clink_langs, sort_clink, lang_suffixes, all_languages,
+    is_object, clink_langs, sort_clink, all_languages,
     is_known_suffix, detect_static_linker
 )
 from .interpreterbase import FeatureNew, FeatureDeprecated
@@ -950,12 +950,15 @@ class BuildTarget(Target):
         for o in self.objects:
             if not isinstance(o, ExtractedObjects):
                 continue
-            for s in o.srclist:
+            compsrcs = o.classify_all_sources(o.srclist, [])
+            for comp in compsrcs:
                 # Don't add Vala sources since that will pull in the Vala
                 # compiler even though we will never use it since we are
                 # dealing with compiled C code.
-                if not s.endswith(lang_suffixes['vala']):
-                    sources.append(s)
+                if comp.language == 'vala':
+                    continue
+                if comp.language not in self.compilers:
+                    self.compilers[comp.language] = comp
         if sources:
             # For each source, try to add one compiler that can compile it.
             #
