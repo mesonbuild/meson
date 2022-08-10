@@ -433,6 +433,13 @@ class Qt5PkgConfigDependency(QtPkgConfigDependency):
 
 class Qt6PkgConfigDependency(QtPkgConfigDependency):
 
+    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]):
+        super().__init__(name, env, kwargs)
+        if not self.libexecdir:
+            mlog.debug(f'detected Qt6 {self.version} pkg-config dependency does not '
+                       'have proper tools support, ignoring')
+            self.is_found = False
+
     @staticmethod
     def get_pkgconfig_host_bins(core: PkgConfigDependency) -> str:
         return core.get_pkgconfig_variable('bindir', [], None)
