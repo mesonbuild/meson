@@ -1829,20 +1829,22 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         self._validate_custom_target_outputs(len(kwargs['input']) > 1, kwargs['output'], "vcs_tag")
 
+        cmd = self.environment.get_build_command() + \
+            ['--internal',
+             'vcstagger',
+             '@INPUT0@',
+             '@OUTPUT0@',
+             fallback,
+             source_dir,
+             replace_string,
+             regex_selector] + vcs_cmd
+
         tg = build.CustomTarget(
             kwargs['output'][0],
             self.subdir,
             self.subproject,
             self.environment,
-            self.environment.get_build_command() +
-                ['--internal',
-                'vcstagger',
-                '@INPUT0@',
-                '@OUTPUT0@',
-                fallback,
-                source_dir,
-                replace_string,
-                regex_selector] + vcs_cmd,
+            cmd,
             self.source_strings_to_files(kwargs['input']),
             kwargs['output'],
             build_by_default=True,
