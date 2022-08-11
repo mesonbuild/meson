@@ -2,6 +2,13 @@ project('testsetups', 'c')
 
 vg = find_program('valgrind')
 
+cc = meson.get_compiler('c')
+# clang 14 uses dwarf 5, and valgrind 3.19 GIT does not support this
+if cc.get_id() == 'clang' and cc.version().version_compare('>=14') and \
+    vg.version().version_compare('<3.20')
+  add_project_arguments('-gdwarf-4', language: 'c')
+endif
+
 # This is only set when running under Valgrind test setup.
 env = environment()
 env.set('TEST_ENV', '1')
