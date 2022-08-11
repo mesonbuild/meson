@@ -125,7 +125,7 @@ def get_target_from_intro_data(target: ParsedTargetName, builddir: Path, introsp
             t = i['type'].replace(' ', '_')
             suggestions.append(f'- ./{p}:{t}')
         suggestions_str = '\n'.join(suggestions)
-        raise MesonException(f'Can\'t invoke target `{target.full_name}`: ambiguous name.' \
+        raise MesonException(f'Can\'t invoke target `{target.full_name}`: ambiguous name.'
                              f'Add target type and/or path:\n{suggestions_str}')
 
     return found_targets[0]
