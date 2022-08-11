@@ -23,13 +23,13 @@ STRIP_KEYS = ['cmake', 'reply', 'backtrace', 'backtraceGraph', 'version']
 
 class CMakeFileAPI:
     def __init__(self, build_dir: Path):
-        self.build_dir            = build_dir
-        self.api_base_dir         = self.build_dir / '.cmake' / 'api' / 'v1'
-        self.request_dir          = self.api_base_dir / 'query' / 'client-meson'
-        self.reply_dir            = self.api_base_dir / 'reply'
-        self.cmake_sources        = []   # type: T.List[CMakeBuildFile]
+        self.build_dir = build_dir
+        self.api_base_dir = self.build_dir / '.cmake' / 'api' / 'v1'
+        self.request_dir = self.api_base_dir / 'query' / 'client-meson'
+        self.reply_dir = self.api_base_dir / 'reply'
+        self.cmake_sources = []   # type: T.List[CMakeBuildFile]
         self.cmake_configurations = []   # type: T.List[CMakeConfiguration]
-        self.kind_resolver_map    = {
+        self.kind_resolver_map = {
             'codemodel': self._parse_codemodel,
             'cmakeFiles': self._parse_cmakeFiles,
         }
@@ -103,7 +103,7 @@ class CMakeFileAPI:
             src_dir = Path(dir_entry.get('source', '.'))
             bld_dir = Path(dir_entry.get('build', '.'))
             src_dir = src_dir if src_dir.is_absolute() else source_dir / src_dir
-            bld_dir = bld_dir if bld_dir.is_absolute() else build_dir  / bld_dir
+            bld_dir = bld_dir if bld_dir.is_absolute() else build_dir / bld_dir
             src_dir = src_dir.resolve()
             bld_dir = bld_dir.resolve()
 

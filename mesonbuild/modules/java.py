@@ -89,14 +89,15 @@ class JavaModule(NewExtensionModule):
         return ModuleReturnValue(target, [target])
 
     @FeatureNew('java.generate_native_headers', '0.62.0')
-    @typed_pos_args('java.generate_native_headers',
+    @typed_pos_args(
+        'java.generate_native_headers',
         varargs=(str, mesonlib.File, Target, CustomTargetIndex, GeneratedList))
-    @typed_kwargs('java.generate_native_headers',
-        KwargInfo('classes', ContainerTypeInfo(list, str), default=[], listify=True,
-            required=True),
+    @typed_kwargs(
+        'java.generate_native_headers',
+        KwargInfo('classes', ContainerTypeInfo(list, str), default=[], listify=True, required=True),
         KwargInfo('package', str, default=None))
     def generate_native_headers(self, state: ModuleState, args: T.Tuple[T.List[mesonlib.FileOrString]],
-                               kwargs: T.Dict[str, T.Optional[str]]) -> ModuleReturnValue:
+                                kwargs: T.Dict[str, T.Optional[str]]) -> ModuleReturnValue:
         classes = T.cast('T.List[str]', kwargs.get('classes'))
         package = kwargs.get('package')
 

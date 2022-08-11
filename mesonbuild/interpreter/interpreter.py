@@ -1343,7 +1343,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             self.summary_impl('Subprojects', all_subprojects,
                               {'bool_yn': True,
                                'list_sep': ' ',
-                              })
+                               })
         # Add automatic section with all user defined options
         if self.user_defined_options:
             values = collections.OrderedDict()

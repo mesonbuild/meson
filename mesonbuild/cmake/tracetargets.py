@@ -110,8 +110,8 @@ def resolve_cmake_trace_targets(target_name: str,
         processed_targets += [curr]
 
     res.include_directories = sorted(set(res.include_directories))
-    res.link_flags          = sorted(set(res.link_flags))
+    res.link_flags = sorted(set(res.link_flags))
     res.public_compile_opts = sorted(set(res.public_compile_opts))
-    res.libraries           = sorted(set(res.libraries))
+    res.libraries = sorted(set(res.libraries))
 
     return res

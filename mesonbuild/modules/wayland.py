@@ -23,7 +23,7 @@ from ..interpreterbase import typed_pos_args, typed_kwargs, KwargInfo
 from ..mesonlib import File, MesonException
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal,TypedDict
+    from typing_extensions import Literal, TypedDict
 
     from . import ModuleState
     from ..build import Executable

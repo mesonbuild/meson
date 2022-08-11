@@ -44,8 +44,8 @@ class CudaModule(NewExtensionModule):
 
     @noKwargs
     def min_driver_version(self, state: 'ModuleState',
-                                 args: T.Tuple[str],
-                                 kwargs: T.Dict[str, T.Any]) -> str:
+                           args: T.Tuple[str],
+                           kwargs: T.Dict[str, T.Any]) -> str:
         argerror = InvalidArguments('min_driver_version must have exactly one positional argument: ' +
                                     'a CUDA Toolkit version string. Beware that, since CUDA 11.0, ' +
                                     'the CUDA Toolkit\'s components (including NVCC) are versioned ' +
@@ -96,16 +96,16 @@ class CudaModule(NewExtensionModule):
 
     @permittedKwargs(['detected'])
     def nvcc_arch_flags(self, state: 'ModuleState',
-                              args: T.Tuple[T.Union[Compiler, CudaCompiler, str]],
-                              kwargs: T.Dict[str, T.Any]) -> T.List[str]:
+                        args: T.Tuple[T.Union[Compiler, CudaCompiler, str]],
+                        kwargs: T.Dict[str, T.Any]) -> T.List[str]:
         nvcc_arch_args = self._validate_nvcc_arch_args(args, kwargs)
         ret = self._nvcc_arch_flags(*nvcc_arch_args)[0]
         return ret
 
     @permittedKwargs(['detected'])
     def nvcc_arch_readable(self, state: 'ModuleState',
-                                 args: T.Tuple[T.Union[Compiler, CudaCompiler, str]],
-                                 kwargs: T.Dict[str, T.Any]) -> T.List[str]:
+                           args: T.Tuple[T.Union[Compiler, CudaCompiler, str]],
+                           kwargs: T.Dict[str, T.Any]) -> T.List[str]:
         nvcc_arch_args = self._validate_nvcc_arch_args(args, kwargs)
         ret = self._nvcc_arch_flags(*nvcc_arch_args)[1]
         return ret

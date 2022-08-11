@@ -230,7 +230,7 @@ class CudaCompiler(Compiler):
             instring = False
             argit = iter(arg)
             for c in argit:
-                if   c == CM and not instring:
+                if c == CM and not instring:
                     l.append('')
                 elif c == DQ:
                     l[-1] += c
@@ -364,7 +364,7 @@ class CudaCompiler(Compiler):
                 continue
 
             # Handle breakup of flag-values into a flag-part and value-part.
-            if   flag[:1] not in '-/':
+            if flag[:1] not in '-/':
                 # This is not a flag. It's probably a file input. Pass it through.
                 xflags.append(flag)
                 continue
@@ -379,7 +379,7 @@ class CudaCompiler(Compiler):
                 # This is a single-letter short option. These options (with the
                 # exception of -o) are allowed to receive their argument with neither
                 # space nor = sign before them. Detect and separate them in that event.
-                if   flag[2:3] == '':            # -I something
+                if flag[2:3] == '':            # -I something
                     try:
                         val = next(flagit)
                     except StopIteration:
@@ -390,7 +390,7 @@ class CudaCompiler(Compiler):
                     val = flag[2:]
                 flag = flag[:2]                  # -I
             elif flag in self._FLAG_LONG2SHORT_WITHARGS or \
-                 flag in self._FLAG_SHORT2LONG_WITHARGS:
+                    flag in self._FLAG_SHORT2LONG_WITHARGS:
                 # This is either -o or a multi-letter flag, and it is receiving its
                 # value isolated.
                 try:
@@ -398,7 +398,7 @@ class CudaCompiler(Compiler):
                 except StopIteration:
                     pass
             elif flag.split('=', 1)[0] in self._FLAG_LONG2SHORT_WITHARGS or \
-                 flag.split('=', 1)[0] in self._FLAG_SHORT2LONG_WITHARGS:
+                    flag.split('=', 1)[0] in self._FLAG_SHORT2LONG_WITHARGS:
                 # This is either -o or a multi-letter flag, and it is receiving its
                 # value after an = sign.
                 flag, val = flag.split('=', 1)    # -o=something
@@ -412,7 +412,7 @@ class CudaCompiler(Compiler):
                 # We do not know whether this GCC-speak flag takes an isolated
                 # argument. Assuming it does not (the vast majority indeed don't),
                 # wrap this argument in an -Xcompiler flag and send it down to NVCC.
-                if   flag == '-ffast-math':
+                if flag == '-ffast-math':
                     xflags.append('-use_fast_math')
                     xflags.append('-Xcompiler='+flag)
                 elif flag == '-fno-fast-math':
@@ -436,7 +436,7 @@ class CudaCompiler(Compiler):
             # Take care of the various NVCC-supported flags that need special handling.
             flag = self._FLAG_LONG2SHORT_WITHARGS.get(flag, flag)
 
-            if   flag in {'-include', '-isystem', '-I', '-L', '-l'}:
+            if flag in {'-include', '-isystem', '-I', '-L', '-l'}:
                 # These flags are known to GCC, but list-valued in NVCC. They potentially
                 # require double-quoting to prevent NVCC interpreting the flags as lists
                 # when GCC would not have done so.
@@ -456,7 +456,7 @@ class CudaCompiler(Compiler):
                     xflags.append(self._shield_nvcc_list_arg(val))
             elif flag == '-O':
                 # Handle optimization levels GCC knows about that NVCC does not.
-                if   val == 'fast':
+                if val == 'fast':
                     xflags.append('-O3')
                     xflags.append('-use_fast_math')
                     xflags.append('-Xcompiler')
@@ -617,7 +617,7 @@ class CudaCompiler(Compiler):
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = super().get_options()
-        std_key      = OptionKey('std',      machine=self.for_machine, lang=self.language)
+        std_key = OptionKey('std', machine=self.for_machine, lang=self.language)
         ccbindir_key = OptionKey('ccbindir', machine=self.for_machine, lang=self.language)
         opts.update({
             std_key:      coredata.UserComboOption('C++ language standard to use with CUDA',

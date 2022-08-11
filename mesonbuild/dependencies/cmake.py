@@ -106,7 +106,7 @@ class CMakeDependency(ExternalDependency):
         # Store a copy of the CMake path on the object itself so it is
         # stored in the pickled coredata and recovered.
         self.cmakebin:  T.Optional[CMakeExecutor] = None
-        self.cmakeinfo: T.Optional[CMakeInfo]     = None
+        self.cmakeinfo: T.Optional[CMakeInfo] = None
 
         # Where all CMake "build dirs" are located
         self.cmake_root_dir = environment.scratch_dir
@@ -553,7 +553,7 @@ class CMakeDependency(ExternalDependency):
             )
             incDirs        += rtgt.include_directories
             compileOptions += rtgt.public_compile_opts
-            libraries      += rtgt.libraries + rtgt.link_flags
+            libraries += rtgt.libraries + rtgt.link_flags
 
         # Make sure all elements in the lists are unique and sorted
         incDirs = sorted(set(incDirs))
