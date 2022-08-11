@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 from collections import OrderedDict
+from dataclasses import dataclass
 from enum import Enum, unique
 from functools import lru_cache
 from pathlib import PurePath, Path
@@ -52,11 +53,15 @@ from .backends import CleanTrees
 from ..build import GeneratedList, InvalidArguments
 
 if T.TYPE_CHECKING:
+    from typing_extensions import Literal
+
     from .._typing import ImmutableListProtocol
     from ..build import ExtractedObjects
     from ..interpreter import Interpreter
     from ..linkers import DynamicLinker, StaticLinker
     from ..compilers.cs import CsCompiler
+
+    RUST_EDITIONS = Literal['2015', '2018', '2021']
 
 
 FORTRAN_INCLUDE_PAT = r"^\s*#?include\s*['\"](\w+\.\w+)['\"]"
@@ -424,6 +429,56 @@ class NinjaBuildElement:
                 raise MesonException(f'Multiple producers for Ninja target "{n}". Please rename your targets.')
             self.all_outputs[n] = True
 
+@dataclass
+class RustDep:
+
+    name: str
+
+    # equal to the order value of the `RustCrate`
+    crate: int
+
+    def to_json(self) -> T.Dict[str, object]:
+        return {
+            "crate": self.crate,
+            "name": self.name,
+        }
+
+@dataclass
+class RustCrate:
+
+    # When the json file is written, the list of Crates will be sorted by this
+    # value
+    order: int
+
+    display_name: str
+    root_module: str
+    edition: RUST_EDITIONS
+    deps: T.List[RustDep]
+    cfg: T.List[str]
+    is_proc_macro: bool
+
+    # This is set to True for members of this project, and False for all
+    # subprojects
+    is_workspace_member: bool
+    proc_macro_dylib_path: T.Optional[str] = None
+
+    def to_json(self) -> T.Dict[str, object]:
+        ret: T.Dict[str, object] = {
+            "display_name": self.display_name,
+            "root_module": self.root_module,
+            "edition": self.edition,
+            "cfg": self.cfg,
+            "is_proc_macro": self.is_proc_macro,
+            "deps": [d.to_json() for d in self.deps],
+        }
+
+        if self.is_proc_macro:
+            assert self.proc_macro_dylib_path is not None, "This shouldn't happen"
+            ret["proc_macro_dylib_path"] = self.proc_macro_dylib_path
+
+        return ret
+
+
 class NinjaBackend(backends.Backend):
 
     def __init__(self, build: T.Optional[build.Build], interpreter: T.Optional[Interpreter]):
@@ -434,6 +489,7 @@ class NinjaBackend(backends.Backend):
         self.all_outputs = {}
         self.introspection_data = {}
         self.created_llvm_ir_rule = PerMachine(False, False)
+        self.rust_crates: T.Dict[str, RustCrate] = {}
 
     def create_phony_target(self, all_outputs, dummy_outfile, rulename, phony_infilename, implicit_outs=None):
         '''
@@ -593,6 +649,21 @@ class NinjaBackend(backends.Backend):
             subprocess.call(self.ninja_command + ['-t', 'restat'])
             subprocess.call(self.ninja_command + ['-t', 'cleandead'])
         self.generate_compdb()
+        self.generate_rust_project_json()
+
+    def generate_rust_project_json(self) -> None:
+        """Generate a rust-analyzer compatible rust-project.json file."""
+        if not self.rust_crates:
+            return
+        with open(os.path.join(self.environment.get_build_dir(), 'rust-project.json'),
+                  'w', encoding='utf-8') as f:
+            json.dump(
+                {
+                    "sysroot_src": os.path.join(self.environment.coredata.compilers.host['rust'].get_sysroot(),
+                                                'lib/rustlib/src/rust/library/'),
+                    "crates": [c.to_json() for c in self.rust_crates.values()],
+                },
+                f, indent=4)
 
     # http://clang.llvm.org/docs/JSONCompilationDatabase.html
     def generate_compdb(self):
@@ -1697,6 +1768,34 @@ class NinjaBackend(backends.Backend):
                             first_file = str(out)
         return orderdeps, first_file
 
+    def _add_rust_project_entry(self, name: str, main_rust_file: str, args: CompilerArgs,
+                                from_subproject: bool, is_proc_macro: bool,
+                                output: str, deps: T.List[RustDep]) -> None:
+        raw_edition: T.Optional[str] = mesonlib.first(reversed(args), lambda x: x.startswith('--edition'))
+        edition: RUST_EDITIONS = '2015' if not raw_edition else raw_edition.split('=')[-1]
+
+        cfg: T.List[str] = []
+        arg_itr: T.Iterator[str] = iter(args)
+        for arg in arg_itr:
+            if arg == '--cfg':
+                cfg.append(next(arg))
+            elif arg.startswith('--cfg'):
+                cfg.append(arg[len('--cfg'):])
+
+        crate = RustCrate(
+            len(self.rust_crates),
+            name,
+            main_rust_file,
+            edition,
+            deps,
+            cfg,
+            is_workspace_member=not from_subproject,
+            is_proc_macro=is_proc_macro,
+            proc_macro_dylib_path=output if is_proc_macro else None,
+        )
+
+        self.rust_crates[name] = crate
+
     def generate_rust_target(self, target: build.BuildTarget) -> None:
         rustc = target.compilers['rust']
         # Rust compiler takes only the main file as input and
@@ -1713,6 +1812,9 @@ class NinjaBackend(backends.Backend):
             os.path.join(t.subdir, t.get_filename())
             for t in itertools.chain(target.link_targets, target.link_whole_targets)
         ]
+
+        # Dependencies for rust-project.json
+        project_deps: T.List[RustDep] = []
 
         orderdeps: T.List[str] = []
 
@@ -1786,7 +1888,8 @@ class NinjaBackend(backends.Backend):
         depfile = os.path.join(target.subdir, target.name + '.d')
         args += ['--emit', f'dep-info={depfile}', '--emit', 'link']
         args += target.get_extra_args('rust')
-        args += rustc.get_output_args(os.path.join(target.subdir, target.get_filename()))
+        output = rustc.get_output_args(os.path.join(target.subdir, target.get_filename()))
+        args += output
         linkdirs = mesonlib.OrderedSet()
         external_deps = target.external_deps.copy()
         for d in itertools.chain(target.link_targets, target.link_whole_targets):
@@ -1796,6 +1899,7 @@ class NinjaBackend(backends.Backend):
                 # dependency, so that collisions with libraries in rustc's
                 # sysroot don't cause ambiguity
                 args += ['--extern', '{}={}'.format(d.name, os.path.join(d.subdir, d.filename))]
+                project_deps.append(RustDep(d.name, self.rust_crates[d.name].order))
             elif d.typename == 'static library':
                 # Rustc doesn't follow Meson's convention that static libraries
                 # are called .a, and import libraries are .lib, so we have to
@@ -1857,6 +1961,12 @@ class NinjaBackend(backends.Backend):
             # installations
             for rpath_arg in rpath_args:
                 args += ['-C', 'link-arg=' + rpath_arg + ':' + os.path.join(rustc.get_sysroot(), 'lib')]
+
+        self._add_rust_project_entry(target.name, main_rust_file, args, bool(target.subproject),
+                                     #XXX: There is a fix for this pending
+                                     getattr(target, 'rust_crate_type', '') == 'procmacro',
+                                     output, project_deps)
+
         compiler_name = self.get_compiler_rule_name('rust', target.for_machine)
         element = NinjaBuildElement(self.all_outputs, target_name, compiler_name, main_rust_file)
         if orderdeps:
