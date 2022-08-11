@@ -210,16 +210,20 @@ class RustModule(ExtensionModule):
         else:
             name = header.get_outputs()[0]
 
+        cmd = self._bindgen_bin.get_command() + \
+            [
+                '@INPUT@', '--output',
+                os.path.join(state.environment.build_dir, '@OUTPUT@')
+            ] + \
+            kwargs['args'] + ['--'] + kwargs['c_args'] + inc_strs + \
+            ['-MD', '-MQ', '@INPUT@', '-MF', '@DEPFILE@']
+
         target = CustomTarget(
             f'rustmod-bindgen-{name}'.replace('/', '_'),
             state.subdir,
             state.subproject,
             state.environment,
-            self._bindgen_bin.get_command() + [
-                '@INPUT@', '--output',
-                os.path.join(state.environment.build_dir, '@OUTPUT@')] +
-                kwargs['args'] + ['--'] + kwargs['c_args'] + inc_strs +
-                ['-MD', '-MQ', '@INPUT@', '-MF', '@DEPFILE@'],
+            cmd,
             [header],
             [kwargs['output']],
             depfile='@PLAINNAME@.d',
