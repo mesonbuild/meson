@@ -36,7 +36,6 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
 
     gcovr_config = ['-e', re.escape(subproject_root)]
 
-
     # gcovr >= 4.2 requires a different syntax for out of source builds
     if gcovr_exe and mesonlib.version_compare(gcovr_version, '>=4.2'):
         gcovr_base_cmd = [gcovr_exe, '-r', source_root, build_root]

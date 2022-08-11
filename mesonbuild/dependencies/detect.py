@@ -103,7 +103,7 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: T.Dict[str, 
     candidates = _build_external_dependency_list(name, env, for_machine, kwargs)
 
     pkg_exc: T.List[DependencyException] = []
-    pkgdep:  T.List[ExternalDependency]  = []
+    pkgdep:  T.List[ExternalDependency] = []
     details = ''
 
     for c in candidates:

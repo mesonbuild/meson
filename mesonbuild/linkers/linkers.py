@@ -66,7 +66,7 @@ class StaticLinker:
         return []
 
     def get_output_args(self, target: str) -> T.List[str]:
-        return[]
+        return []
 
     def get_coverage_link_args(self) -> T.List[str]:
         return []

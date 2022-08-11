@@ -60,7 +60,7 @@ def run_tool(name: str, srcdir: Path, builddir: Path, fn: T.Callable[..., subpro
         for f in itertools.chain(*globs):
             strf = str(f)
             if f.is_dir() or f.suffix not in suffixes or \
-                any(fnmatch.fnmatch(strf, i) for i in ignore):
+                    any(fnmatch.fnmatch(strf, i) for i in ignore):
                 continue
             futures.append(e.submit(fn, f, *args))
         if futures:

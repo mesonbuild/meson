@@ -979,7 +979,6 @@ class CLikeCompiler(Compiler):
             return m.cpu_family == 'x86'
         return None
 
-
     def symbols_have_underscore_prefix(self, env: 'Environment') -> bool:
         '''
         Check if the compiler prefixes an underscore to global C symbols
@@ -998,7 +997,6 @@ class CLikeCompiler(Compiler):
         # As a last resort, try search in a compiled binary, which is the
         # most unreliable way of checking this, see #5482
         return self._symbols_have_underscore_prefix_searchbin(env)
-
 
     def _get_patterns(self, env: 'Environment', prefixes: T.List[str], suffixes: T.List[str], shared: bool = False) -> T.List[str]:
         patterns = []  # type: T.List[str]

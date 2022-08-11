@@ -101,11 +101,11 @@ class DependencyFactory:
             # Just attach the correct name right now, either the generic name
             # or the method specific name.
             DependencyMethods.EXTRAFRAMEWORK: lambda env, kwargs: framework_class(framework_name or name, env, kwargs),
-            DependencyMethods.PKGCONFIG:      lambda env, kwargs: pkgconfig_class(pkgconfig_name or name, env, kwargs),
-            DependencyMethods.CMAKE:          lambda env, kwargs: cmake_class(cmake_name or name, env, kwargs),
-            DependencyMethods.SYSTEM:         lambda env, kwargs: system_class(name, env, kwargs),
-            DependencyMethods.BUILTIN:        lambda env, kwargs: builtin_class(name, env, kwargs),
-            DependencyMethods.CONFIG_TOOL:    None,
+            DependencyMethods.PKGCONFIG: lambda env, kwargs: pkgconfig_class(pkgconfig_name or name, env, kwargs),
+            DependencyMethods.CMAKE: lambda env, kwargs: cmake_class(cmake_name or name, env, kwargs),
+            DependencyMethods.SYSTEM: lambda env, kwargs: system_class(name, env, kwargs),
+            DependencyMethods.BUILTIN: lambda env, kwargs: builtin_class(name, env, kwargs),
+            DependencyMethods.CONFIG_TOOL: None,
         }
         if configtool_class is not None:
             self.classes[DependencyMethods.CONFIG_TOOL] = lambda env, kwargs: configtool_class(name, env, kwargs)
