@@ -786,6 +786,8 @@ class CLikeCompiler(Compiler):
         if extra_args is None:
             extra_args = []
 
+        this_cached = True
+
         # Short-circuit if the check is already provided by the cross-info file
         varname = 'has function ' + funcname
         varname = varname.replace(' ', '_')
@@ -829,8 +831,12 @@ class CLikeCompiler(Compiler):
 
         res, cached = self.links(templ.format(**fargs), env, extra_args=extra_args,
                                  dependencies=dependencies)
+
+        if not cached:
+            this_cached = False
+
         if res:
-            return True, cached
+            return True, this_cached
 
         # MSVC does not have compiler __builtin_-s.
         if self.get_id() in {'msvc', 'intel-cl'}:
@@ -874,8 +880,77 @@ class CLikeCompiler(Compiler):
         #endif
         return 0;
         }}'''
-        return self.links(t.format(**fargs), env, extra_args=extra_args,
-                          dependencies=dependencies)
+
+        res, cached =  self.links(t.format(**fargs), env, extra_args=extra_args,
+                                  dependencies=dependencies)
+
+        if not cached:
+            this_cached = False
+
+        if not res:
+            return False, this_cached
+
+        # Detect conditionally-inlined built-in
+        #
+        # If a built-in is conditionally-inlined then we also require having an
+        # implementation as a regular function (so the first check should have
+        # passed).
+
+        # alloca was introduced as a library function but can only be implemented
+        # as a compiler built-in. It's special in that regard.
+        whitelist = {'alloca'}
+        if fargs['f'] in whitelist:
+            return True, this_cached
+
+        if self.get_id() == 'clang':
+            # We take the address of the built-in function. If that compiles,
+            # then it's a conditionally-inlined built-in.
+            t = '''{prefix}
+            
+            int main(void) {{
+                void *p = (void*) &{func};
+                return 0;
+            }}'''
+
+            conditionally_inlined, cached = self.compiles(t.format(**fargs), env,
+                                                          extra_args=extra_args,
+                                                          dependencies=dependencies)
+
+            if not cached:
+                this_cached = False
+
+            return (not conditionally_inlined), this_cached
+
+        else:
+            # In GCC we cannot declare or prototype a builtin function, otherwise
+            # GCC stops treating it as a built-in and instead considers that just
+            # like a ordinary identifier.
+            # Here we use another method: if both f and __builtin_f are valid,
+            # then the built-in is conditionally-inlined.
+            t = '''{prefix}
+
+            int main(void) {{
+                #ifdef __has_builtin
+                    #if __has_builtin({__builtin_f}) && __has_builtin({f})
+                        /* Built-in detected as conditionally-inlined */
+                    #else
+                        #error "Builtin detected as always-inlined"
+                    #endif
+                #else
+                    {__builtin_f};
+                    {f};
+                #endif
+                return 0;
+            }}'''
+
+            conditionally_inlined, cached = self.links(t.format(**fargs), env,
+                                                       extra_args=extra_args,
+                                                       dependencies=dependencies)
+
+            if not cached:
+                this_cached = False
+
+            return (not conditionally_inlined), this_cached
 
     def has_members(self, typename: str, membernames: T.List[str],
                     prefix: str, env: 'Environment', *,
