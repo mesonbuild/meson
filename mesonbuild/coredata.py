@@ -1239,6 +1239,16 @@ BUILTIN_CORE_OPTIONS: 'MutableKeyedOptionDictType' = OrderedDict([
      BuiltinOption(UserStringOption, 'Directory for site-specific, platform-specific files.', '')),
     (OptionKey('purelibdir', module='python'),
      BuiltinOption(UserStringOption, 'Directory for site-specific, non-platform-specific files.', '')),
+
+    # Xorg module
+    (OptionKey('man-sections', module='xorg'),
+     BuiltinOption(UserComboOption, 'Which man sections to use', 'auto', choices=['auto', 'traditional', 'sysv'])),
+    (OptionKey('xtrans-unix-transport', module='xorg'),
+     BuiltinOption(UserFeatureOption, 'Enable xtrans over Unix domain sockets', 'auto')),
+    (OptionKey('xtrans-tcp-transport', module='xorg'),
+     BuiltinOption(UserBooleanOption, 'Enable xtrans over TCP sockets', True)),
+    (OptionKey('xtrans-local-transport', module='xorg'),
+     BuiltinOption(UserFeatureOption, 'Enable xtrans to use os-specific tranport mechanism', 'auto')),
 ])
 
 BUILTIN_OPTIONS = OrderedDict(chain(BUILTIN_DIR_OPTIONS.items(), BUILTIN_CORE_OPTIONS.items()))
