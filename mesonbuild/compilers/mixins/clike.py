@@ -843,9 +843,14 @@ class CLikeCompiler(Compiler):
         # need to look for them differently. On nice compilers like clang, we
         # can just directly use the __has_builtin() macro.
         fargs['no_includes'] = '#include' not in prefix
-        is_builtin = funcname.startswith('__builtin_')
-        fargs['is_builtin'] = is_builtin
-        fargs['__builtin_'] = '' if is_builtin else '__builtin_'
+        if funcname.startswith('__builtin_'):
+            fargs['f'] = funcname[len('__builtin_'):]
+            fargs['__builtin_f'] = funcname
+            fargs['requested_builtin'] = 1
+        else:
+            fargs['f'] = funcname
+            fargs['__builtin_f'] = '__builtin_' + funcname
+            fargs['requested_builtin'] = 0
         t = '''{prefix}
         int main(void) {{
 
@@ -856,16 +861,16 @@ class CLikeCompiler(Compiler):
          * the header didn't lead to the function being defined, and the
          * function we are checking isn't a builtin itself we assume the
          * builtin is not functional and we just error out. */
-        #if !{no_includes:d} && !defined({func}) && !{is_builtin:d}
-            #error "No definition for {__builtin_}{func} found in the prefix"
+        #if !{no_includes:d} && !defined({func}) && !{requested_builtin:d}
+            #error "No definition for {__builtin_f} found in the prefix"
         #endif
 
         #ifdef __has_builtin
-            #if !__has_builtin({__builtin_}{func})
-                #error "{__builtin_}{func} not found"
+            #if !__has_builtin({__builtin_f})
+                #error "{__builtin_f} not found"
             #endif
         #elif ! defined({func})
-            {__builtin_}{func};
+            {__builtin_f};
         #endif
         return 0;
         }}'''
