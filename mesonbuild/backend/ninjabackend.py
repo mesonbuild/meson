@@ -1197,9 +1197,7 @@ class NinjaBackend(backends.Backend):
             ['--internal',
              'regenerate',
              self.environment.get_source_dir(),
-             self.environment.get_build_dir(),
-             '--backend',
-             'ninja']
+             self.environment.get_build_dir()]
         self.add_rule(NinjaRule('REGENERATE_BUILD',
                                 c, [],
                                 'Regenerating build files.',
