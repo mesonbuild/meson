@@ -65,6 +65,7 @@ from .type_checking import (
     DEPEND_FILES_KW,
     DEPFILE_KW,
     DISABLER_KW,
+    WARN_BUILTIN_KW,
     D_MODULE_VERSIONS_KW,
     ENV_KW,
     ENV_METHOD_KW,
@@ -2719,7 +2720,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                                                              kwargs['exclude_suites'])
 
     @typed_pos_args('add_global_arguments', varargs=str)
-    @typed_kwargs('add_global_arguments', NATIVE_KW, LANGUAGE_KW)
+    @typed_kwargs('add_global_arguments', NATIVE_KW, LANGUAGE_KW, WARN_BUILTIN_KW)
     def func_add_global_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwargs.FuncAddProjectArgs') -> None:
         self._add_global_arguments(node, self.build.global_args[kwargs['native']], args[0], kwargs)
 
@@ -2729,7 +2730,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         self._add_global_arguments(node, self.build.global_link_args[kwargs['native']], args[0], kwargs)
 
     @typed_pos_args('add_project_arguments', varargs=str)
-    @typed_kwargs('add_project_arguments', NATIVE_KW, LANGUAGE_KW)
+    @typed_kwargs('add_project_arguments', NATIVE_KW, LANGUAGE_KW, WARN_BUILTIN_KW)
     def func_add_project_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwargs.FuncAddProjectArgs') -> None:
         self._add_project_arguments(node, self.build.projects_args[kwargs['native']], args[0], kwargs)
 
@@ -2813,7 +2814,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                   'This is not permitted. Please declare all arguments before your targets.'
             raise InvalidCode(msg)
 
-        self._warn_about_builtin_args(args)
+        if kwargs[WARN_BUILTIN_KW.name] is True:
+            self._warn_about_builtin_args(args)
 
         for lang in kwargs['language']:
             argsdict[lang] = argsdict.get(lang, []) + args

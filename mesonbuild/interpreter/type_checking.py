@@ -170,6 +170,8 @@ REQUIRED_KW: KwargInfo[T.Union[bool, UserFeatureOption]] = KwargInfo(
 
 DISABLER_KW: KwargInfo[bool] = KwargInfo('disabler', bool, default=False)
 
+WARN_BUILTIN_KW: KwargInfo[bool] = KwargInfo('warn_builtin', bool, default=True)
+
 def _env_validator(value: T.Union[EnvironmentVariables, T.List['TYPE_var'], T.Dict[str, 'TYPE_var'], str, None],
                    allow_dict_list: bool = True) -> T.Optional[str]:
     def _splitter(v: str) -> T.Optional[str]:
