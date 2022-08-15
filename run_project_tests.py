@@ -471,7 +471,7 @@ def _compare_output(expected: T.List[T.Dict[str, str]], output: str, desc: str) 
                     sub = r'\\'
                 else:
                     sub = r'\\\\'
-                expected_line = re.sub(r'/(?=.*(WARNING|ERROR))', sub, expected_line)
+                expected_line = re.sub(r'/(?=.*(WARNING|ERROR|DEPRECATION))', sub, expected_line)
 
             m = OutputMatch(how, expected_line, count)
             if count == 0:
