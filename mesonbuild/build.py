@@ -1630,6 +1630,9 @@ You probably should put it in link_with instead.''')
     def uses_rust(self) -> bool:
         return 'rust' in self.compilers
 
+    def uses_fortran(self) -> bool:
+        return 'fortran' in self.compilers
+
     def get_using_msvc(self) -> bool:
         '''
         Check if the dynamic linker is MSVC. Used by Executable, StaticLibrary,
