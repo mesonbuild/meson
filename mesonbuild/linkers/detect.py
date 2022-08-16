@@ -140,7 +140,9 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     """
     env.coredata.add_lang_args(comp_class.language, comp_class, for_machine, env)
     extra_args = extra_args or []
-    extra_args += env.coredata.get_external_link_args(for_machine, comp_class.language)
+
+    ldflags = env.coredata.get_external_link_args(for_machine, comp_class.language)
+    extra_args += comp_class._unix_args_to_native(ldflags, env.machines[for_machine])
 
     if isinstance(comp_class.LINKER_PREFIX, str):
         check_args = [comp_class.LINKER_PREFIX + '--version'] + extra_args

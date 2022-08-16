@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
 """Representations specific to the CompCert C compiler family."""
 
@@ -19,6 +20,7 @@ import re
 import typing as T
 
 if T.TYPE_CHECKING:
+    from envconfig import MachineInfo
     from ...environment import Environment
     from ...compilers.compilers import Compiler
 else:
@@ -87,7 +89,8 @@ class CompCertCompiler(Compiler):
     def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
         return []
 
-    def unix_args_to_native(self, args: T.List[str]) -> T.List[str]:
+    @classmethod
+    def _unix_args_to_native(cls, args: T.List[str], info: MachineInfo) -> T.List[str]:
         "Always returns a copy that can be independently mutated"
         patched_args = []  # type: T.List[str]
         for arg in args:

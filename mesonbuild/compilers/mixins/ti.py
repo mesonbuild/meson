@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
 """Representations specific to the Texas Instruments compiler family."""
 
@@ -20,6 +21,7 @@ import typing as T
 from ...mesonlib import EnvironmentException
 
 if T.TYPE_CHECKING:
+    from ...envconfig import MachineInfo
     from ...environment import Environment
     from ...compilers.compilers import Compiler
 else:
@@ -120,7 +122,7 @@ class TICompiler(Compiler):
         return ['-I=' + path]
 
     @classmethod
-    def unix_args_to_native(cls, args: T.List[str]) -> T.List[str]:
+    def _unix_args_to_native(cls, args: T.List[str], info: MachineInfo) -> T.List[str]:
         result = []
         for i in args:
             if i.startswith('-D'):
