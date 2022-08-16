@@ -75,7 +75,7 @@ Troubleshooting:
 --
 Common Issues:
 ```console
-$ meson builddir
+$ meson setup builddir
 $ bash: /usr/bin/meson: No such file or directory
 ```
 
@@ -102,7 +102,7 @@ are working on. The steps to take are very simple.
 
 ```console
 $ cd /path/to/source/root
-$ meson builddir && cd builddir
+$ meson setup builddir && cd builddir
 $ meson compile
 $ meson test
 ```

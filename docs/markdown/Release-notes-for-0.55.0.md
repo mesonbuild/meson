@@ -245,7 +245,7 @@ used to force fallback for specific subprojects.
 Example:
 
 ```
-meson builddir/ --force-fallback-for=foo,bar
+meson setup builddir/ --force-fallback-for=foo,bar
 ```
 
 ## Implicit dependency fallback

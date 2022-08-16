@@ -20,7 +20,7 @@ that the source resides in an Eclipse-like directory called
 `workspace/project/build`. First, we initialize Meson by running the
 following command in the source directory.
 
-    meson builddir
+    meson setup builddir
 
 With this command Meson will configure the project and also generate
 introspection information that is stored in `intro-*.json` files in

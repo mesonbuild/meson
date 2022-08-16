@@ -187,7 +187,7 @@ For example:
 ```sh
 git clone https://github.com/myproject
 cd myproject/subprojects/mysubproject
-meson builddir
+meson setup builddir
 meson dist -C builddir
 ```
 

@@ -371,5 +371,5 @@ file called x86-linux, then the following command would start a cross
 build using that cross files:
 
 ```sh
-meson builddir/ --cross-file x86-linux
+meson setup builddir/ --cross-file x86-linux
 ```

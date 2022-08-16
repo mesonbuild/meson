@@ -138,7 +138,7 @@ test suite, we just need to execute the following commands (starting
 at source tree root directory).
 
 ```console
-$ meson builddir && cd builddir
+$ meson setup builddir && cd builddir
 $ meson compile
 $ meson test
 ```

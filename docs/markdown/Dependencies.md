@@ -261,7 +261,7 @@ to be using the same compiler. This can be achieved using Dub's
 variable when running Meson.
 ```
 dub build urld --compiler=dmd
-DC="dmd" meson builddir
+DC="dmd" meson setup builddir
 ```
 
 ## Config tool

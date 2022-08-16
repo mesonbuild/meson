@@ -136,7 +136,7 @@ If you have installed something to `/tmp/dep`, which has a layout like:
 /tmp/dep/bin
 ```
 
-then invoke Meson as `meson builddir/ -Dcmake_prefix_path=/tmp/dep`
+then invoke Meson as `meson setup builddir/ -Dcmake_prefix_path=/tmp/dep`
 
 ## Tests that should fail but did not are now errors
 

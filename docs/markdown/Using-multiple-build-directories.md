@@ -39,7 +39,7 @@ builds as fast as possible. This is the default project type for
 Meson, so setting it up is simple.
 
     mkdir builddir
-    meson builddir
+    meson setup builddir
 
 Another common setup is to build with debug and optimizations to, for
 example, run performance tests. Setting this up is just as simple.
@@ -51,7 +51,7 @@ For systems where the default compiler is GCC, we would like to
 compile with Clang, too. So let's do that.
 
     mkdir buildclang
-    CC=clang CXX=clang++ meson buildclang
+    CC=clang CXX=clang++ meson setup buildclang
 
 You can add cross builds, too. As an example, let's set up a Linux ->
 Windows cross compilation build using MinGW.
@@ -84,7 +84,7 @@ The steps to run it with Meson are very simple.
 
     rm -rf buildscan
     mkdir buildscan
-    scan-build meson buildscan
+    scan-build meson setup buildscan
     cd buildscan
     scan-build ninja
 

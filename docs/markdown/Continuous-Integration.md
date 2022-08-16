@@ -36,8 +36,8 @@ script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then echo FROM YOUR/REPO:eoan > Dockerfile; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then echo ADD . /root >> Dockerfile; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker build -t withgit .; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker run withgit /bin/sh -c "cd /root && TRAVIS=true CC=$CC CXX=$CXX meson builddir && meson test -C builddir"; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then SDKROOT=$(xcodebuild -version -sdk macosx Path) meson builddir && meson test -C builddir; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker run withgit /bin/sh -c "cd /root && TRAVIS=true CC=$CC CXX=$CXX meson setup builddir && meson test -C builddir"; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then SDKROOT=$(xcodebuild -version -sdk macosx Path) meson setup builddir && meson test -C builddir; fi
 ```
 
 ## CircleCi for Linux (with Docker)
@@ -192,7 +192,7 @@ install:
   - pip install meson ninja
 
 script:
-  - meson builddir
+  - meson setup builddir
   - meson compile -C builddir
   - meson test -C builddir
 ```

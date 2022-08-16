@@ -64,7 +64,7 @@ executable('sdlprog', 'sdlprog.c')
 
 With this done we can start the build with the following command:
 
-    meson builddir
+    meson setup builddir
 
 Here `builddir` is the _build directory_, everything that is generated
 during the build is put in that directory. When run, it should look

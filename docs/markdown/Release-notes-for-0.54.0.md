@@ -120,12 +120,12 @@ value < 1 lets the backend decide how many threads to use. For msbuild
 this means `-m`, for ninja it means passing no arguments.
 
 ```console
-meson builddir --backend vs
+meson setup builddir --backend vs
 meson compile -C builddir -j0  # this is the same as `msbuild builddir/my.sln -m`
 ```
 
 ```console
-meson builddir
+meson setup builddir
 meson compile -C builddir -j3  # this is the same as `ninja -C builddir -j3`
 ```
 
