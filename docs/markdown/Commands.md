@@ -240,7 +240,9 @@ See [the Meson file rewriter documentation](Rewriter.md) for more info.
 
 Configures a build directory for the Meson project.
 
-This is the default Meson command (invoked if there was no COMMAND supplied).
+*Deprecated since 0.64.0*: This is the default Meson command (invoked if there
+was no COMMAND supplied). However, supplying the command is necessary to avoid
+clashes with future added commands, so "setup" should be used explicitly.
 
 {{ setup_arguments.inc }}
 

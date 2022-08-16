@@ -59,7 +59,7 @@ class BasePlatformTests(TestCase):
         self.meson_native_files = []
         self.meson_cross_files = []
         self.meson_command = python_command + [get_meson_script()]
-        self.setup_command = self.meson_command + self.meson_args
+        self.setup_command = self.meson_command + ['setup'] + self.meson_args
         self.mconf_command = self.meson_command + ['configure']
         self.mintro_command = self.meson_command + ['introspect']
         self.wrap_command = self.meson_command + ['wrap']
@@ -205,7 +205,7 @@ class BasePlatformTests(TestCase):
         self.privatedir = os.path.join(self.builddir, 'meson-private')
         if inprocess:
             try:
-                returncode, out, err = run_configure_inprocess(self.meson_args + args + extra_args, override_envvars)
+                returncode, out, err = run_configure_inprocess(['setup'] + self.meson_args + args + extra_args, override_envvars)
             except Exception as e:
                 if not allow_fail:
                     self._print_meson_log()
