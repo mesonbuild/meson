@@ -30,6 +30,8 @@ import time
 import typing as T
 import textwrap
 
+from base64 import b64encode
+from netrc import netrc
 from pathlib import Path
 from . import WrapMode
 from .. import coredata
@@ -246,9 +248,19 @@ class Resolver:
         self.subdir_root = os.path.join(self.source_dir, self.subdir)
         self.cachedir = os.path.join(self.subdir_root, 'packagecache')
         self.wraps = {} # type: T.Dict[str, PackageDefinition]
+        self.netrc: T.Optional[netrc] = None
         self.provided_deps = {} # type: T.Dict[str, PackageDefinition]
         self.provided_programs = {} # type: T.Dict[str, PackageDefinition]
         self.load_wraps()
+        self.load_netrc()
+
+    def load_netrc(self) -> None:
+        try:
+            self.netrc = netrc()
+        except FileNotFoundError:
+            return
+        except Exception as e:
+            mlog.warning(f'failed to process netrc file: {e}.', fatal=False)
 
     def load_wraps(self) -> None:
         if not os.path.isdir(self.subdir_root):
@@ -515,6 +527,16 @@ class Resolver:
         subprocess.check_call([svn, 'checkout', '-r', revno, self.wrap.get('url'),
                                self.directory], cwd=self.subdir_root)
 
+    def get_netrc_credentials(self, netloc: str) -> T.Optional[T.Tuple[str, str]]:
+        if self.netrc is None or netloc not in self.netrc.hosts:
+            return None
+
+        login, account, password = self.netrc.authenticators(netloc)
+        if account is not None:
+            login = account
+
+        return login, password
+
     def get_data(self, urlstring: str) -> T.Tuple[str, str]:
         blocksize = 10 * 1024
         h = hashlib.sha256()
@@ -525,8 +547,22 @@ class Resolver:
         elif WHITELIST_SUBDOMAIN in urlstring:
             raise WrapException(f'{urlstring} may be a WrapDB-impersonating URL')
         else:
+            headers = {'User-Agent': f'mesonbuild/{coredata.version}'}
+            creds = self.get_netrc_credentials(url.netloc)
+
+            if creds is not None and '@' not in url.netloc:
+                login, password = creds
+                if url.scheme == 'https':
+                    enc_creds = b64encode(f'{login}:{password}'.encode()).decode()
+                    headers.update({'Authorization': f'Basic {enc_creds}'})
+                elif url.scheme == 'ftp':
+                    urlstring = urllib.parse.urlunparse(url._replace(netloc=f'{login}:{password}@{url.netloc}'))
+                else:
+                    mlog.warning(f'Meson is not going to use netrc credentials for protocols other than https/ftp',
+                                  fatal=False)
+
             try:
-                req = urllib.request.Request(urlstring, headers={'User-Agent': f'mesonbuild/{coredata.version}'})
+                req = urllib.request.Request(urlstring, headers=headers)
                 resp = urllib.request.urlopen(req, timeout=REQ_TIMEOUT)
             except urllib.error.URLError as e:
                 mlog.log(str(e))
