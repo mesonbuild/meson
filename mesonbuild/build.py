@@ -783,8 +783,10 @@ class BuildTarget(Target):
         self.process_objectlist(objects)
         self.process_kwargs(kwargs)
         self.check_unknown_kwargs(kwargs)
-        if not any([self.sources, self.generated, self.objects, self.link_whole, self.structured_sources]):
-            raise InvalidArguments(f'Build target {name} has no sources.')
+        if not any([self.sources, self.generated, self.objects, self.link_whole_targets, self.structured_sources]):
+            mlog.warning(f'Build target {name} has no sources. '
+                         'This was never supposed to be allowed but did because of a bug, '
+                         'support will be removed in a future release of Meson')
         self.validate_install()
         self.check_module_linking()
 
