@@ -255,7 +255,7 @@ def run(original_args, mainfile):
         if args[1] == 'regenerate':
             # Rewrite "meson --internal regenerate" command line to
             # "meson --reconfigure"
-            args = ['--reconfigure'] + args[2:]
+            args = ['setup', '--reconfigure'] + args[2:]
         else:
             return run_script_command(args[1], args[2:])
 
