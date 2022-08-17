@@ -2214,7 +2214,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                                 deps=deps, depfile=depfile))
 
     def generate_pch_rule_for(self, langname, compiler):
-        if langname != 'c' and langname != 'cpp':
+        if langname != 'c' and langname != 'cpp' and langname != 'cuda':
             return
         rule = self.compiler_to_pch_rule_name(compiler)
         depargs = compiler.get_dependency_gen_args('$out', '$DEPFILE')
@@ -2784,7 +2784,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
     def generate_gcc_pch_command(self, target, compiler, pch):
         commands = self._generate_single_compile(target, compiler)
-        if pch.split('.')[-1] == 'h' and compiler.language == 'cpp':
+        if pch.split('.')[-1] == 'h' and (compiler.language == 'cpp' or compiler.language == 'cuda'):
             # Explicitly compile pch headers as C++. If Clang is invoked in C++ mode, it actually warns if
             # this option is not set, and for gcc it also makes sense to use it.
             commands += ['-x', 'c++-header']
@@ -2796,7 +2796,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def generate_pch(self, target, header_deps=None):
         header_deps = header_deps if header_deps is not None else []
         pch_objects = []
-        for lang in ['c', 'cpp']:
+        for lang in ['c', 'cpp', 'cuda']:
             pch = target.get_pch(lang)
             if not pch:
                 continue

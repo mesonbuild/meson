@@ -59,7 +59,7 @@ if T.TYPE_CHECKING:
     GeneratedTypes = T.Union['CustomTarget', 'CustomTargetIndex', 'GeneratedList']
     LibTypes = T.Union['SharedLibrary', 'StaticLibrary', 'CustomTarget', 'CustomTargetIndex']
 
-pch_kwargs = {'c_pch', 'cpp_pch'}
+pch_kwargs = {'c_pch', 'cpp_pch', 'cuda_pch'}
 
 lang_arg_kwargs = {f'{lang}_args' for lang in all_languages}
 lang_arg_kwargs |= {
@@ -1132,6 +1132,7 @@ class BuildTarget(Target):
 
         self.add_pch('c', extract_as_list(kwargs, 'c_pch'))
         self.add_pch('cpp', extract_as_list(kwargs, 'cpp_pch'))
+        self.add_pch('cuda', extract_as_list(kwargs, 'cuda_pch'))
 
         if not isinstance(self, Executable) or 'export_dynamic' in kwargs:
             self.vala_header = kwargs.get('vala_header', self.name + '.h')
