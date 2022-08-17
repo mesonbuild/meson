@@ -102,7 +102,7 @@ def mpi_factory(env: 'Environment',
 
 class _MPIConfigToolDependency(ConfigToolDependency):
 
-    def _filter_compile_args(self, args: T.Sequence[str]) -> T.List[str]:
+    def _filter_compile_args(self, args: T.List[str]) -> T.List[str]:
         """
         MPI wrappers return a bunch of garbage args.
         Drop -O2 and everything that is not needed.
@@ -126,7 +126,7 @@ class _MPIConfigToolDependency(ConfigToolDependency):
                 result.append(f)
         return result
 
-    def _filter_link_args(self, args: T.Sequence[str]) -> T.List[str]:
+    def _filter_link_args(self, args: T.List[str]) -> T.List[str]:
         """
         MPI wrappers return a bunch of garbage args.
         Drop -O2 and everything that is not needed.

@@ -1066,7 +1066,7 @@ class GnomeModule(ExtensionModule):
         return typelib_includes, new_depends
 
     @staticmethod
-    def _get_external_args_for_langs(state: 'ModuleState', langs: T.Sequence[str]) -> T.List[str]:
+    def _get_external_args_for_langs(state: 'ModuleState', langs: T.List[str]) -> T.List[str]:
         ret: T.List[str] = []
         for lang in langs:
             ret += mesonlib.listify(state.environment.coredata.get_external_args(MachineChoice.HOST, lang))

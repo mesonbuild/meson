@@ -525,7 +525,7 @@ class Parser:
             return True
         return False
 
-    def accept_any(self, tids: T.Sequence[str]) -> str:
+    def accept_any(self, tids: T.Tuple[str, ...]) -> str:
         tid = self.current.tid
         if tid in tids:
             self.getsym()

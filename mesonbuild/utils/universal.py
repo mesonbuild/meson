@@ -1906,7 +1906,7 @@ class RealPathAction(argparse.Action):
         setattr(namespace, self.dest, os.path.abspath(os.path.realpath(values)))
 
 
-def get_wine_shortpath(winecmd: T.List[str], wine_paths: T.Sequence[str],
+def get_wine_shortpath(winecmd: T.List[str], wine_paths: T.List[str],
                        workdir: T.Optional[str] = None) -> str:
     '''
     WINEPATH size is limited to 1024 bytes which can easily be exceeded when

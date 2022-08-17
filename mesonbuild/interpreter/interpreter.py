@@ -1377,7 +1377,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_exception(self, node, args, kwargs):
         raise Exception()
 
-    def add_languages(self, args: T.Sequence[str], required: bool, for_machine: MachineChoice) -> bool:
+    def add_languages(self, args: T.List[str], required: bool, for_machine: MachineChoice) -> bool:
         success = self.add_languages_for(args, required, for_machine)
         if not self.coredata.is_cross_build():
             self.coredata.copy_build_options_from_regular_ones()
