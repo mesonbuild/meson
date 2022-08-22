@@ -1412,9 +1412,17 @@ You probably should put it in link_with instead.''')
                         mlog.warning(f'Try to link an installed static library target {self.name} with a'
                                      'custom target that is not installed, this might cause problems'
                                      'when you try to use this static library')
-                elif t.is_internal():
+                elif t.is_internal() and not t.uses_rust():
                     # When we're a static library and we link_with to an
                     # internal/convenience library, promote to link_whole.
+                    #
+                    # There are cases we cannot do this, however. In Rust, for
+                    # example, this can't be done with Rust ABI libraries, though
+                    # it could be done with C ABI libraries, though there are
+                    # several meson issues that need to be fixed:
+                    # https://github.com/mesonbuild/meson/issues/10722
+                    # https://github.com/mesonbuild/meson/issues/10723
+                    # https://github.com/mesonbuild/meson/issues/10724
                     return self.link_whole(t)
             if not isinstance(t, (Target, CustomTargetIndex)):
                 raise InvalidArguments(f'{t!r} is not a target.')
