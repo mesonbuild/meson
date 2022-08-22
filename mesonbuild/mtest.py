@@ -1509,6 +1509,7 @@ class TestHarness:
         self.console_logger = ConsoleLogger()
         self.loggers.append(self.console_logger)
         self.need_console = False
+        self.ninja = None # type: T.List[str]
 
         self.logfile_base = None  # type: T.Optional[str]
         if self.options.logbase and not self.options.gdb:
@@ -1523,6 +1524,7 @@ class TestHarness:
             if namebase:
                 self.logfile_base += '-' + namebase.replace(' ', '_')
 
+        self.prepare_build()
         self.load_metadata()
 
         ss = set()
@@ -1534,6 +1536,25 @@ class TestHarness:
     def get_console_logger(self) -> 'ConsoleLogger':
         assert self.console_logger
         return self.console_logger
+
+    def prepare_build(self) -> None:
+        if self.options.no_rebuild:
+            return
+
+        if not (Path(self.options.wd) / 'build.ninja').is_file():
+            print('Only ninja backend is supported to rebuild tests before running them.')
+            # Disable, no point in trying to build anything later
+            self.options.no_rebuild = True
+            return
+
+        self.ninja = environment.detect_ninja()
+        if not self.ninja:
+            print("Can't find ninja, can't rebuild test.")
+            # If ninja can't be found return exit code 127, indicating command
+            # not found for shell, which seems appropriate here. This works
+            # nicely for `git bisect run`, telling it to abort - no point in
+            # continuing if there's no ninja.
+            sys.exit(127)
 
     def load_metadata(self) -> None:
         startdir = os.getcwd()
@@ -1692,7 +1713,7 @@ class TestHarness:
         tests = self.get_tests()
         if not tests:
             return 0
-        if not self.options.no_rebuild and not rebuild_deps(self.options.wd, tests):
+        if not self.options.no_rebuild and not rebuild_deps(self.ninja, self.options.wd, tests):
             # We return 125 here in case the build failed.
             # The reason is that exit code 125 tells `git bisect run` that the current
             # commit should be skipped.  Thus users can directly use `meson test` to
@@ -1967,21 +1988,14 @@ def list_tests(th: TestHarness) -> bool:
         print(th.get_pretty_suite(t))
     return not tests
 
-def rebuild_deps(wd: str, tests: T.List[TestSerialisation]) -> bool:
+def rebuild_deps(ninja: T.List[str], wd: str, tests: T.List[TestSerialisation]) -> bool:
     def convert_path_to_target(path: str) -> str:
         path = os.path.relpath(path, wd)
         if os.sep != '/':
             path = path.replace(os.sep, '/')
         return path
 
-    if not (Path(wd) / 'build.ninja').is_file():
-        print('Only ninja backend is supported to rebuild tests before running them.')
-        return True
-
-    ninja = environment.detect_ninja()
-    if not ninja:
-        print("Can't find ninja, can't rebuild test.")
-        return False
+    assert len(ninja) > 0
 
     depends = set()            # type: T.Set[str]
     targets = set()            # type: T.Set[str]
