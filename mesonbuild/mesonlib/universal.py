@@ -708,16 +708,25 @@ def darwin_get_object_archs(objpath: str) -> 'ImmutableListProtocol[str]':
         mlog.debug(f'lipo {objpath}: {stderr}')
         return None
     stdo = stdo.rsplit(': ', 1)[1]
+
     # Convert from lipo-style archs to meson-style CPUs
-    stdo = stdo.replace('i386', 'x86')
-    stdo = stdo.replace('arm64', 'aarch64')
-    stdo = stdo.replace('ppc7400', 'ppc')
-    stdo = stdo.replace('ppc970', 'ppc')
+    map_arch = {
+        'i386' : 'x86',
+        'arm64' : 'aarch64',
+        'arm64e' : 'aarch64',
+        'ppc7400' : 'ppc',
+        'ppc970' : 'ppc',
+    }
+    lipo_archs = stdo.split()
+    meson_archs = []
+    for lipo_arch in lipo_archs:
+        meson_archs.append(map_arch.get(lipo_arch, lipo_arch))
+
     # Add generic name for armv7 and armv7s
     if 'armv7' in stdo:
-        stdo += ' arm'
-    return stdo.split()
+        meson_archs.append('arm')
 
+    return meson_archs
 
 def detect_vcs(source_dir: T.Union[str, Path]) -> T.Optional[T.Dict[str, str]]:
     vcs_systems = [
