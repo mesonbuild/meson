@@ -1523,6 +1523,19 @@ class TestHarness:
             if namebase:
                 self.logfile_base += '-' + namebase.replace(' ', '_')
 
+        self.load_metadata()
+
+        ss = set()
+        for t in self.tests:
+            for s in t.suite:
+                ss.add(s)
+        self.suites = list(ss)
+
+    def get_console_logger(self) -> 'ConsoleLogger':
+        assert self.console_logger
+        return self.console_logger
+
+    def load_metadata(self) -> None:
         startdir = os.getcwd()
         try:
             os.chdir(self.options.wd)
@@ -1535,16 +1548,6 @@ class TestHarness:
                 self.tests = self.load_tests('meson_test_setup.dat')
         finally:
             os.chdir(startdir)
-
-        ss = set()
-        for t in self.tests:
-            for s in t.suite:
-                ss.add(s)
-        self.suites = list(ss)
-
-    def get_console_logger(self) -> 'ConsoleLogger':
-        assert self.console_logger
-        return self.console_logger
 
     def load_tests(self, file_name: str) -> T.List[TestSerialisation]:
         datafile = Path('meson-private') / file_name
