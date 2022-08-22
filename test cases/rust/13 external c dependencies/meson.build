@@ -2,6 +2,8 @@ project('rust linking to c using dependency', 'c', 'rust')
 
 if host_machine.system() == 'darwin'
   error('MESON_SKIP_TEST: does not work right on macos, please fix!')
+elif host_machine.system() == 'freebsd'
+  error('MESON_SKIP_TEST: does not work right on FreeBSD, please fix!')
 endif
 
 dep_zlib = dependency('zlib', static : get_option('static'), method : get_option('method'), required : false)
