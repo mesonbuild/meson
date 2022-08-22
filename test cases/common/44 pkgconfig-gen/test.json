@@ -8,6 +8,7 @@
     {"type": "file", "file": "usr/lib/pkgconfig/libhello.pc"},
     {"type": "file", "file": "usr/lib/pkgconfig/libvartest.pc"},
     {"type": "file", "file": "usr/lib/pkgconfig/libvartest2.pc"},
+    {"type": "file", "file": "usr/lib/pkgconfig/libvartest3.pc"},
     {"type": "file", "file": "usr/lib/pkgconfig/simple2.pc"},
     {"type": "file", "file": "usr/lib/pkgconfig/simple3.pc"},
     {"type": "file", "file": "usr/lib/pkgconfig/simple5.pc"},
