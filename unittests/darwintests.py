@@ -148,3 +148,8 @@ class DarwinTests(BasePlatformTests):
         testdir = os.path.join(self.objcpp_test_dir, '1 simple')
         self.init(testdir)
         self.assertIn('-std=c++14', self.get_compdb()[0]['command'])
+
+    def test_darwin_get_object_archs(self):
+        from mesonbuild.mesonlib import darwin_get_object_archs
+        archs = darwin_get_object_archs('/System/Library/CoreServices/Encodings/libSymbolConverter.dylib')
+        self.assertEqual(archs, ['x86_64', 'aarch64'])
