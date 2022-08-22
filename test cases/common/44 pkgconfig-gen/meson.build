@@ -169,3 +169,10 @@ pkgg.generate(
   version : libver,
   variables: ['bar=${libdir}/bar']
 )
+
+# Regression test: variables kwarg should listify single string value
+pkgg.generate(
+  name : 'libvartest3',
+  description : 'Check that variables can be single string',
+  variables: 'foo=bar',
+)
