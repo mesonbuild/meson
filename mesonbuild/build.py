@@ -2917,7 +2917,7 @@ def load(build_dir: str) -> Build:
             f"Build data file {filename!r} references functions or classes that don't "
             "exist. This probably means that it was generated with an old "
             "version of meson. Try running from the source directory "
-            f"meson {build_dir} --wipe")
+            f"meson setup {build_dir} --wipe")
     if not isinstance(obj, Build):
         raise MesonException(load_fail_msg)
     return obj
