@@ -1,5 +1,3 @@
-#define _XOPEN_SOURCE 500
-
 #include<boost/thread.hpp>
 
 boost::recursive_mutex m;
