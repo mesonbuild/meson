@@ -1560,6 +1560,16 @@ class TestHarness:
         startdir = os.getcwd()
         try:
             os.chdir(self.options.wd)
+
+            # Before loading build / test data, make sure that the build
+            # configuration does not need to be regenerated. This needs to
+            # happen before rebuild_deps(), because we need the correct list of
+            # tests and their dependencies to compute
+            if not self.options.no_rebuild:
+                ret = subprocess.run(self.ninja + ['build.ninja']).returncode
+                if ret != 0:
+                    raise TestException(f'Could not configure {self.options.wd!r}')
+
             self.build_data = build.load(os.getcwd())
             if not self.options.setup:
                 self.options.setup = self.build_data.test_setup_default_name
