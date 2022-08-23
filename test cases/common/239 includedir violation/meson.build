@@ -1,4 +1,4 @@
-project('foo', 'c')
+project('foo')
 
 # It is fine to include the root source dir
 include_directories('.')

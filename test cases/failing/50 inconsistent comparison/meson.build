@@ -1,4 +1,4 @@
-project('kwarg before arg', 'c')
+project('kwarg before arg')
 
 # All of these should fail, though only the first one will error out if
 # everything's working correctly.

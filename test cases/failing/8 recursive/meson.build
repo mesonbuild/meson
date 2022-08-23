@@ -1,3 +1,3 @@
-project('recursive', 'c')
+project('recursive')
 
 a = subproject('a')

@@ -1,4 +1,4 @@
-project('overridde an already found exe', 'c')
+project('overridde an already found exe')
 
 old = find_program('something.py')
 replacement = find_program('other.py')

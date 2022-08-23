@@ -1,4 +1,4 @@
-project('plusassign', 'c')
+project('plusassign')
 
 x = []
 

@@ -1,3 +1,3 @@
-project('non-root subproject', 'c')
+project('non-root subproject')
 
 subdir('some')

@@ -1,4 +1,4 @@
-project('foo', 'c', 'cpp')
+project('foo')
 
 baz_dep = dependency('baz',
     fallback: ['baz', 'baz_dep'],

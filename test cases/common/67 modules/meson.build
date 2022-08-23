@@ -1,4 +1,4 @@
-project('module test', 'c')
+project('module test')
 
 modtest = import('modtest')
 modtest.print_hello()

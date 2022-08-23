@@ -1,3 +1,3 @@
-project('misplaced option', 'c')
+project('misplaced option')
 
 option('dummy', type : 'string')

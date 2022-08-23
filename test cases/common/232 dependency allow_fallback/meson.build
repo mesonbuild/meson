@@ -1,4 +1,4 @@
-project('subproject fallback', 'c')
+project('subproject fallback')
 
 foob_dep = dependency('foob', allow_fallback: true, required: false)
 assert(foob_dep.found())

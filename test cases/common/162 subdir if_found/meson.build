@@ -1,4 +1,4 @@
-project('subdir if found', 'c')
+project('subdir if found')
 
 found_dep = declare_dependency()
 not_found_dep = dependency('nonexisting', required : false)

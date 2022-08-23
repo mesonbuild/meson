@@ -1,4 +1,4 @@
-project('dependency fallbacks', 'c')
+project('dependency fallbacks')
 
 # pkg-config has 'libpng' but cmake has 'png' and we have a 'png' subproject
 # for platforms that have neither.

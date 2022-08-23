@@ -1,4 +1,4 @@
-project('yield_options', 'c')
+project('yield_options')
 
 subproject('sub')
 

@@ -1,3 +1,3 @@
-project('invalid-fstring', 'c')
+project('invalid-fstring')
 
 z = f'invalid fstring: @foo@'

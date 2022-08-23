@@ -1,4 +1,4 @@
-project('string arithmetic', 'c', meson_version: '>=0.62.0')
+project('string arithmetic', meson_version: '>=0.62.0')
 
 assert('foo' + 'bar' == 'foobar')
 assert('foo' + 'bar' + 'baz' == 'foobarbaz')

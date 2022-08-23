@@ -1,4 +1,4 @@
-project('multiple outputs install', 'c')
+project('multiple outputs install')
 
 gen = find_program('generator.py')
 

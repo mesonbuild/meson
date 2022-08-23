@@ -1,3 +1,3 @@
-project('subproj', 'c')
+project('subproj')
 
 include_directories('.')

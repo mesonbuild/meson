@@ -1,4 +1,4 @@
-project('outputs not matching install_dirs', 'c')
+project('outputs not matching install_dirs')
 
 gen = find_program('generator.py')
 

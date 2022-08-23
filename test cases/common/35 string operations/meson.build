@@ -1,4 +1,4 @@
-project('string formatting', 'c')
+project('string formatting')
 
 templ = '@0@bar@1@'
 
