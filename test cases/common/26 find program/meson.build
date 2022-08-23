@@ -1,4 +1,4 @@
-project('find program', 'c')
+project('find program')
 
 if build_machine.system() == 'windows'
   # Things Windows does not provide:
@@ -15,6 +15,7 @@ else
    arguments : ['@INPUT@', '@OUTPUT@'])
 
   generated = gen.process('source.in')
+  add_languages('c', required: true)
   e = executable('prog', generated)
   test('external exe', e)
 endif

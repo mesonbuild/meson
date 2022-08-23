@@ -1,4 +1,4 @@
-project('find program', 'c')
+project('find program')
 
 python = import('python3').find_python()
 

@@ -1,4 +1,4 @@
-project('data install test', 'c',
+project('data install test',
   default_options : ['install_umask=preserve'])
 install_data(sources : 'datafile.dat', install_dir : 'share/progname')
 # Some file in /etc that is only read-write by root; add a sticky bit for testing

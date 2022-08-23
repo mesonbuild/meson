@@ -1,4 +1,4 @@
-project('logicopts', 'c')
+project('logicopts')
 
 t = true
 f = false

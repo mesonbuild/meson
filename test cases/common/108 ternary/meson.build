@@ -1,4 +1,4 @@
-project('ternary operator', 'c')
+project('ternary operator')
 
 x = true
 one = true ? 1 : error('False branch should not be evaluated')

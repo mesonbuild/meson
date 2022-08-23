@@ -1,3 +1,3 @@
-projecT('b', 'c')
+projecT('b')
 
 message('I do nothing.')

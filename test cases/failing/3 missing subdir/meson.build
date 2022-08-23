@@ -1,3 +1,3 @@
-project('subdir', 'c')
+project('subdir')
 
 subdir('missing')

@@ -1,3 +1,3 @@
-project('missing meson.build', 'c')
+project('missing meson.build')
 
 subdir('subdir')

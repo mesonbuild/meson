@@ -1,2 +1,2 @@
-project('prefix-abs', 'c',
+project('prefix-abs',
   default_options : ['prefix=some/path/notabs'])

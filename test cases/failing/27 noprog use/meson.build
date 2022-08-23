@@ -1,4 +1,4 @@
-project('using not found exe', 'c')
+project('using not found exe')
 
 nope = find_program('nonexisting', required : false)
 

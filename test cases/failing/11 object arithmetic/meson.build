@@ -1,3 +1,3 @@
-project('object arithmetic', 'c')
+project('object arithmetic')
 
 foo = '5' + meson

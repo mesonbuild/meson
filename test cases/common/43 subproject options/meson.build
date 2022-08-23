@@ -1,4 +1,4 @@
-project('suboptions', 'c')
+project('suboptions')
 
 subproject('subproject')
 

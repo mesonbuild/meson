@@ -1,4 +1,4 @@
-project('gtest dependency with version', ['c', 'cpp'])
+project('gtest dependency with version', 'cpp')
 
 if not dependency('gtest', method: 'system', required: false).found()
    error('MESON_SKIP_TEST test requires gtest')

@@ -1,4 +1,4 @@
-project('multiple dir configure file', 'c')
+project('multiple dir configure file')
 
 subdir('subdir')
 

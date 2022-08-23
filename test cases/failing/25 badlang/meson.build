@@ -1,3 +1,3 @@
-project('badlang', 'c')
+project('badlang')
 
 add_languages('nonexisting')

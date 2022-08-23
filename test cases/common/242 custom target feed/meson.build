@@ -1,4 +1,4 @@
-project('custom target feed', 'c')
+project('custom target feed')
 
 python3 = import('python3').find_python()
 

@@ -1,4 +1,4 @@
-project('custom target', 'c')
+project('custom target')
 
 python3 = import('python3').find_python()
 

@@ -1,4 +1,4 @@
-project('custom-target-dir-install', 'c')
+project('custom-target-dir-install')
 
 docgen = find_program('docgen.py')
 

@@ -1,4 +1,4 @@
-project('arithmetic bidmas', 'c')
+project('arithmetic bidmas')
 
 if 5 * 3 - 6 / 2 + 1 != 13
   error('Arithmetic bidmas broken')

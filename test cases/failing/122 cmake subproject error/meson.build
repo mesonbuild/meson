@@ -1,4 +1,4 @@
-project('cmake-executable-dependency', ['c', 'cpp'])
+project('cmake-executable-dependency')
 
 if not find_program('cmake', required: false).found()
   error('MESON_SKIP_TEST CMake is not installed')

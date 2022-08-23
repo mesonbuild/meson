@@ -1,1 +1,1 @@
-project('foo', 'c', version : '1.0.0')
+project('foo', version : '1.0.0')

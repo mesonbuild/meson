@@ -1,4 +1,4 @@
-project('non acsii to ascii encoding', 'c')
+project('non acsii to ascii encoding')
 # Writing a non ASCII character with a ASCII encoding should fail
 conf9 = configuration_data()
 conf9.set('var', 'д')

@@ -1,4 +1,4 @@
-project('test priorities', 'c')
+project('test priorities')
 
 test_prog = find_program('testprog.py')
 

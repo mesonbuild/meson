@@ -1,3 +1,3 @@
-project('fff', 'c')
+project('fff')
 
 subdir('subprojects')
