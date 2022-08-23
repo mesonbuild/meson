@@ -90,6 +90,10 @@ if ['gcc', 'intel'].contains(c.get_id())
   endif
 endif
 
+if c.get_id() == 'clang'
+  attributes += 'annotate'
+endif
+
 if get_option('mode') == 'single'
   foreach a : attributes
     x = c.has_function_attribute(a)

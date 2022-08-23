@@ -20,6 +20,8 @@ C_FUNC_ATTRIBUTES = {
         'void *foo(int a) __attribute__((alloc_size(1)));',
     'always_inline':
         'inline __attribute__((always_inline)) int foo(void) { return 0; }',
+    'annotate':
+        'void foo(void) __attribute__((annotate("bar")));',
     'artificial':
         'inline __attribute__((artificial)) int foo(void) { return 0; }',
     'cold':

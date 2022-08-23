@@ -218,6 +218,7 @@ which are supported by GCC, Clang, and other compilers.
 | aligned                  |
 | alloc_size               |
 | always_inline            |
+| annotate⁶                |
 | artificial               |
 | cold                     |
 | const                    |
@@ -271,6 +272,8 @@ which are supported by GCC, Clang, and other compilers.
 ⁴ *New in 0.62.0*
 
 ⁵ *New in 0.63.0*
+
+⁶ *New in 0.64.0*
 
 ### MSVC __declspec
 
