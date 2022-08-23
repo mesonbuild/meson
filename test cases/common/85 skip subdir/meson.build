@@ -1,3 +1,3 @@
-project('foo', 'c')
+project('foo')
 
 subdir('subdir1/subdir2')

@@ -1,3 +1,3 @@
-project('master', 'c')
+project('master')
 
 subproject('a')

@@ -1,4 +1,4 @@
-project('silent_or', 'c')
+project('silent_or')
 
 if get_option('foo') == 'true'
         or get_option('foo') == 'auto'

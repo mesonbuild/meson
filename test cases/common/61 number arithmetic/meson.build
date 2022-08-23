@@ -1,4 +1,4 @@
-project('number arithmetic', 'c')
+project('number arithmetic')
 
 if 6 + 4 != 10
   error('Number addition is broken')

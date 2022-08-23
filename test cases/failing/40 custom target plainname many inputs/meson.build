@@ -1,4 +1,4 @@
-project('plain name many inputs', 'c')
+project('plain name many inputs')
 
 catfiles = find_program('catfiles.py')
 

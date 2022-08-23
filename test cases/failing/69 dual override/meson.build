@@ -1,4 +1,4 @@
-project('yo dawg', 'c')
+project('yo dawg')
 
 p = find_program('overrides.py')
 meson.override_find_program('override', p)

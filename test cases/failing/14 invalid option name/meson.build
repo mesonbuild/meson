@@ -1,1 +1,1 @@
-project('foo', 'c')
+project('foo')

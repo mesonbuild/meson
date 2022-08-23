@@ -1,4 +1,4 @@
-project('test', 'c')
+project('test')
 
 mod_py = import('python3')
 python = mod_py.find_python()

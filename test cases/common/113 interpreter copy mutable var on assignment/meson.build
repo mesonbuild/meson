@@ -1,4 +1,4 @@
-project('foo', 'c')
+project('foo')
 
 a = configuration_data()
 a.set('HELLO', 1)

@@ -1,2 +1,2 @@
-project('subdir false plusassign', 'c')
+project('subdir false plusassign')
 subdir('subdir')

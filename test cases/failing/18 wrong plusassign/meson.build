@@ -1,3 +1,3 @@
-project('false plusassign', 'c')
+project('false plusassign')
 
 3 += 4

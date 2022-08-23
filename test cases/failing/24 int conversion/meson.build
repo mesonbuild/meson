@@ -1,3 +1,3 @@
-project('int conversion', 'c')
+project('int conversion')
 
 'notanumber'.to_int()

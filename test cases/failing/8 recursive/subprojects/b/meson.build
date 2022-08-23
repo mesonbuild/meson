@@ -1,3 +1,3 @@
-project('b', 'c')
+project('b')
 
 a = subproject('a')

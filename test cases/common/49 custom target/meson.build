@@ -1,4 +1,4 @@
-project('custom target', 'c')
+project('custom target')
 
 python = find_program('python3', required : false)
 if not python.found()

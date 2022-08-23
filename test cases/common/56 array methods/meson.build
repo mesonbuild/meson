@@ -1,4 +1,4 @@
-project('array methods', 'c')
+project('array methods')
 
 empty = []
 one = ['abc']

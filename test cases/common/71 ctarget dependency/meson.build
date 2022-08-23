@@ -1,4 +1,4 @@
-project('custom target dependency', 'c')
+project('custom target dependency')
 
 # Sometimes custom targets do not take input files
 # but instead do globbing or some similar wackiness.

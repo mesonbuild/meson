@@ -1,4 +1,4 @@
-project('meson-test', 'c')
+project('meson-test')
 
 n = 10
 m = 'bar'

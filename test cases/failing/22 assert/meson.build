@@ -1,3 +1,3 @@
-project('failing assert', 'c')
+project('failing assert')
 
 assert(false, 'I am fail.')

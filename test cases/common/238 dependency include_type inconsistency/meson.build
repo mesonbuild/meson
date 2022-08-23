@@ -1,4 +1,4 @@
-project('test', 'c', 'cpp')
+project('test')
 
 foo_dep = subproject('foo').get_variable('foo_dep')
 

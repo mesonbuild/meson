@@ -1,4 +1,4 @@
-project('mesonintrospect from scripts', 'c')
+project('mesonintrospect from scripts')
 
 python = import('python3').find_python()
 

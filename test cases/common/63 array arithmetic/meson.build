@@ -1,4 +1,4 @@
-project('array arithmetic', 'c')
+project('array arithmetic')
 
 array1 = ['foo', 'bar']
 array2 = ['qux', 'baz']

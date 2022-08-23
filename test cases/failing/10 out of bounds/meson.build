@@ -1,4 +1,4 @@
-project('out of bounds', 'c')
+project('out of bounds')
 
 x = []
 y = x[0]

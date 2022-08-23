@@ -1,1 +1,1 @@
-project('default options prefix dependent defaults ', 'c', default_options : ['sharedstatedir=/sharedstate', 'prefix=/usr'])
+project('default options prefix dependent defaults ', default_options : ['sharedstatedir=/sharedstate', 'prefix=/usr'])

@@ -1,4 +1,4 @@
-project('pathjoin', 'c')
+project('pathjoin')
 
 # Test string-args form since that is the canonical way
 assert(join_paths('foo')               == 'foo', 'Single argument join is broken')
