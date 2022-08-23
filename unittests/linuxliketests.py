@@ -610,7 +610,8 @@ class LinuxlikeTests(BasePlatformTests):
         Test that files installed by these tests have the correct permissions.
         Can't be an ordinary test because our installed_files.txt is very basic.
         '''
-        if is_cygwin():
+        # For the gid tests specifically, FreeBSD needs to be run in a tempdir
+        if is_cygwin() or (os.getuid() == 0 and is_freebsd()):
             self.new_builddir_in_tempdir()
         # Test file modes
         testdir = os.path.join(self.common_test_dir, '12 data')
