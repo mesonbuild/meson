@@ -859,6 +859,16 @@ class NinjaBackend(backends.Backend):
         else:
             pch_objects = []
 
+        o, od = self.flatten_object_list(target)
+        obj_targets = [t for t in od if t.uses_fortran()]
+        obj_list.extend(o)
+
+        fortran_order_deps = [self.get_target_filename(t) for t in obj_targets]
+        fortran_inc_args: T.List[str] = []
+        if target.uses_fortran():
+            fortran_inc_args = mesonlib.listify([target.compilers['fortran'].get_include_args(
+                self.get_target_private_dir(t), is_system=False) for t in obj_targets])
+
         # Generate compilation targets for C sources generated from Vala
         # sources. This can be extended to other $LANG->C compilers later if
         # necessary. This needs to be separate for at least Vala
@@ -898,15 +908,17 @@ class NinjaBackend(backends.Backend):
                                            src.rel_to_builddir(self.build_to_src))
                     unity_src.append(abs_src)
                 else:
-                    o, s = self.generate_single_compile(target, src, False, [], header_deps + d_generated_deps)
+                    o, s = self.generate_single_compile(target, src, False, [],
+                                                        header_deps + d_generated_deps + fortran_order_deps,
+                                                        fortran_inc_args)
                     obj_list.append(o)
                     compiled_sources.append(s)
                     source2object[s] = o
 
-        obj_list += self.flatten_object_list(target)
         if is_unity:
             for src in self.generate_unity_files(target, unity_src):
-                o, s = self.generate_single_compile(target, src, True, unity_deps + header_deps + d_generated_deps)
+                o, s = self.generate_single_compile(target, src, True, unity_deps + header_deps + d_generated_deps,
+                                                    fortran_order_deps, fortran_inc_args)
                 obj_list.append(o)
                 compiled_sources.append(s)
                 source2object[s] = o
@@ -916,7 +928,7 @@ class NinjaBackend(backends.Backend):
         else:
             final_obj_list = obj_list
         elem = self.generate_link(target, outname, final_obj_list, linker, pch_objects, stdlib_args=stdlib_args)
-        self.generate_dependency_scan_target(target, compiled_sources, source2object, generated_source_files)
+        self.generate_dependency_scan_target(target, compiled_sources, source2object, generated_source_files, fortran_order_deps)
         self.add_build(elem)
 
     def should_use_dyndeps_for_target(self, target: 'build.BuildTarget') -> bool:
@@ -941,7 +953,8 @@ class NinjaBackend(backends.Backend):
             return False
         return True
 
-    def generate_dependency_scan_target(self, target, compiled_sources, source2object, generated_source_files: T.List[mesonlib.File]):
+    def generate_dependency_scan_target(self, target, compiled_sources, source2object, generated_source_files: T.List[mesonlib.File],
+                                        object_deps: T.List[str]) -> None:
         if not self.should_use_dyndeps_for_target(target):
             return
         depscan_file = self.get_dep_scan_file_for(target)
@@ -963,6 +976,7 @@ class NinjaBackend(backends.Backend):
         # that those sources are present
         for g in generated_source_files:
             elem.orderdeps.add(g.relative_name())
+        elem.orderdeps.update(object_deps)
         scaninfo = TargetDependencyScannerInfo(self.get_target_private_dir(target), source2object)
         with open(pickle_abs, 'wb') as p:
             pickle.dump(scaninfo, p)
@@ -2594,7 +2608,10 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         commands += compiler.get_include_args(self.get_target_private_dir(target), False)
         return commands
 
-    def generate_single_compile(self, target, src, is_generated=False, header_deps=None, order_deps=None):
+    def generate_single_compile(self, target: build.BuildTarget, src,
+                                is_generated=False, header_deps=None,
+                                order_deps: T.Optional[T.List[str]] = None,
+                                extra_args: T.Optional[T.List[str]] = None) -> None:
         """
         Compiles C/C++, ObjC/ObjC++, Fortran, and D sources
         """
@@ -2681,6 +2698,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                                                     rel_obj)
                         self.add_build(depelem)
             commands += compiler.get_module_outdir_args(self.get_target_private_dir(target))
+        if extra_args is not None:
+            commands.extend(extra_args)
 
         element = NinjaBuildElement(self.all_outputs, rel_obj, compiler_name, rel_src)
         self.add_header_deps(target, element, header_deps)
@@ -2899,7 +2918,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             for dep in target.link_whole_targets:
                 l = dep.extract_all_objects(False)
                 objects_from_static_libs += self.determine_ext_objs(l, '')
-                objects_from_static_libs.extend(self.flatten_object_list(dep))
+                objects_from_static_libs.extend(self.flatten_object_list(dep)[0])
 
             return objects_from_static_libs
         else:

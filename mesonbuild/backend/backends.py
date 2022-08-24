@@ -305,7 +305,7 @@ class Backend:
         elif isinstance(t, build.CustomTargetIndex):
             filename = t.get_outputs()[0]
         else:
-            assert isinstance(t, build.BuildTarget)
+            assert isinstance(t, build.BuildTarget), t
             filename = t.get_filename()
         return os.path.join(self.get_target_dir(t), filename)
 
@@ -452,18 +452,20 @@ class Backend:
         return os.path.relpath(os.path.join('dummyprefixdir', todir),
                                os.path.join('dummyprefixdir', fromdir))
 
-    def flatten_object_list(self, target: build.BuildTarget, proj_dir_to_build_root: str = '') -> T.List[str]:
-        obj_list = self._flatten_object_list(target, target.get_objects(), proj_dir_to_build_root)
-        return list(dict.fromkeys(obj_list))
+    def flatten_object_list(self, target: build.BuildTarget, proj_dir_to_build_root: str = ''
+                            ) -> T.Tuple[T.List[str], T.List[build.BuildTargetTypes]]:
+        obj_list, deps = self._flatten_object_list(target, target.get_objects(), proj_dir_to_build_root)
+        return list(dict.fromkeys(obj_list)), deps
 
     def determine_ext_objs(self, objects: build.ExtractedObjects, proj_dir_to_build_root: str = '') -> T.List[str]:
-        obj_list = self._flatten_object_list(objects.target, [objects], proj_dir_to_build_root)
+        obj_list, _ = self._flatten_object_list(objects.target, [objects], proj_dir_to_build_root)
         return list(dict.fromkeys(obj_list))
 
     def _flatten_object_list(self, target: build.BuildTarget,
                              objects: T.Sequence[T.Union[str, 'File', build.ExtractedObjects]],
-                             proj_dir_to_build_root: str) -> T.List[str]:
+                             proj_dir_to_build_root: str) -> T.Tuple[T.List[str], T.List[build.BuildTargetTypes]]:
         obj_list: T.List[str] = []
+        deps: T.List[build.BuildTargetTypes] = []
         for obj in objects:
             if isinstance(obj, str):
                 o = os.path.join(proj_dir_to_build_root,
@@ -480,11 +482,14 @@ class Backend:
                     obj_list.append(obj.rel_to_builddir(o))
             elif isinstance(obj, build.ExtractedObjects):
                 if obj.recursive:
-                    obj_list += self._flatten_object_list(obj.target, obj.objlist, proj_dir_to_build_root)
-                obj_list += self._determine_ext_objs(obj, proj_dir_to_build_root)
+                    objs, d = self._flatten_object_list(obj.target, obj.objlist, proj_dir_to_build_root)
+                    obj_list.extend(objs)
+                    deps.extend(d)
+                obj_list.extend(self._determine_ext_objs(obj, proj_dir_to_build_root))
+                deps.append(obj.target)
             else:
                 raise MesonException('Unknown data type in object list.')
-        return obj_list
+        return obj_list, deps
 
     @staticmethod
     def is_swift_target(target: build.BuildTarget) -> bool:

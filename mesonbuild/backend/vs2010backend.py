@@ -1279,7 +1279,7 @@ class Vs2010Backend(backends.Backend):
         for lib in self.get_custom_target_provided_libraries(target):
             additional_links.append(self.relpath(lib, self.get_target_dir(target)))
         additional_objects = []
-        for o in self.flatten_object_list(target, down):
+        for o in self.flatten_object_list(target, down)[0]:
             assert isinstance(o, str)
             additional_objects.append(o)
         for o in custom_objs:
