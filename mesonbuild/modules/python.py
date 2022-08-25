@@ -753,22 +753,10 @@ class PythonModule(ExtensionModule):
         found_modules: T.List[str] = []
         missing_modules: T.List[str] = []
         if python.found() and want_modules:
-            # Python 3.8.x or later require add_dll_directory() to be called on Windows if
-            # the needed modules require external DLLs that are not bundled with the modules.
-            # Simplify things by calling add_dll_directory() on the paths in %PATH%
-            add_paths_cmd = ''
-            if hasattr(os, 'add_dll_directory'):
-                add_paths_cmds = []
-                paths = os.environ['PATH'].split(os.pathsep)
-                for path in paths:
-                    if path != '' and os.path.isdir(path):
-                        add_paths_cmds.append(f'os.add_dll_directory({path!r})')
-                add_paths_cmd = 'import os;' + ';'.join(reversed(add_paths_cmds)) + ';'
-
             for mod in want_modules:
                 p, *_ = mesonlib.Popen_safe(
                     python.command +
-                    ['-c', f'{add_paths_cmd}import {mod}'])
+                    ['-c', f'import {mod}'])
                 if p.returncode != 0:
                     missing_modules.append(mod)
                 else:
