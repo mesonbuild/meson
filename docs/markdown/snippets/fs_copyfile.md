@@ -15,3 +15,6 @@ Will create a file in the current build directory called `file.txt`
 fs.copyfile('file.txt', 'outfile.txt')
 ```
 Will create a copy renamed to `outfile.txt`
+
+Additionally, `fs.copyfile` allows setting the mode of the file in the build directory,
+which may be useful when copying scripts.

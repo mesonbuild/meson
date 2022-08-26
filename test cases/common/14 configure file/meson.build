@@ -210,8 +210,8 @@ endif
 # Test the fs replacement
 # Test copying of an empty configuration data object
 inf = 'invalid-utf8.bin.in'
-outf = fs.copyfile(inf, 'invalid-utf8-1.bin')
-test('fs.copyfile string', check_file, args: [files(inf), outf])
+outf = fs.copyfile(inf, 'invalid-utf8-1.bin', build_mode : 'r--rw--wx')
+test('fs.copyfile string', check_file, args: [files(inf), outf, '--build-mode', '463'])
 
 # Test with default outname of string
 outf = fs.copyfile(inf)

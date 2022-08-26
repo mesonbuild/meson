@@ -235,6 +235,7 @@ Has the following keyword arguments:
    - install_dir `str`: Where to install the file to
    - install_tag: `str`: the install tag to assign to this target
    - install_mode `array[str | int]`: the mode to install the file with
+   - build_mode `array[str | int]`: the mode of the file in the build directory
 
 returns:
    - a [[custom_target]] object
