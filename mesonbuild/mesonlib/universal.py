@@ -1219,7 +1219,7 @@ def do_conf_str(src: str, data: list, confdata: 'ConfigurationData',
     # during substitution so we can warn the user to use the `copy:` kwarg.
     confdata_useless = not confdata.keys()
     for line in data:
-        if line.startswith(search_token):
+        if line.startswith(search_tokens.strip()):
             confdata_useless = False
             line = do_define(regex, line, confdata, variable_format)
         else:
