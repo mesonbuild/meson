@@ -1,5 +1,9 @@
 project('pch test', 'c', 'cpp',
-  meson_version: '>= 0.46.0')
+  meson_version: '>= 0.46.0',
+  default_options: [
+    'buildtype=debug',
+  ]
+)
 
 cc = meson.get_compiler('c')
 cc_id = cc.get_id()
