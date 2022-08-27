@@ -18,6 +18,7 @@ topic](https://github.com/topics/meson).
  - [Akira](https://github.com/akiraux/Akira), a native Linux app for UI and UX design built in Vala and Gtk
  - [AQEMU](https://github.com/tobimensch/aqemu), a Qt GUI for QEMU virtual machines, since version 0.9.3
  - [Arduino sample project](https://github.com/jpakkane/mesonarduino)
+ - [Audacious](https://github.com/audacious-media-player), a lightweight and versatile audio player
  - [bolt](https://gitlab.freedesktop.org/bolt/bolt), userspace daemon to enable security levels for Thunderbolt™ 3 on Linux
  - [Bubblewrap](https://github.com/containers/bubblewrap), unprivileged sandboxing tool
  - [Budgie Desktop](https://github.com/budgie-desktop/budgie-desktop), a desktop environment built on GNOME technologies
