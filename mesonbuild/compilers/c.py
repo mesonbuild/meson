@@ -11,13 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
 import os.path
 import typing as T
 
 from .. import coredata
 from .. import mlog
-from ..mesonlib import MachineChoice, MesonException, version_compare, OptionKey
+from ..mesonlib import MesonException, version_compare, OptionKey
 from .c_function_attributes import C_FUNC_ATTRIBUTES
 from .mixins.clike import CLikeCompiler
 from .mixins.ccrx import CcrxCompiler
@@ -44,6 +45,7 @@ if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..linkers import DynamicLinker
+    from ..mesonlib import MachineChoice
     from ..programs import ExternalProgram
     from .compilers import CompileCheckMode
 
