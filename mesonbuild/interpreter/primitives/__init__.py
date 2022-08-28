@@ -12,6 +12,8 @@ __all__ = [
     'MesonVersionStringHolder',
     'DependencyVariableString',
     'DependencyVariableStringHolder',
+    'OptionString',
+    'OptionStringHolder',
 ]
 
 from .array import ArrayHolder
