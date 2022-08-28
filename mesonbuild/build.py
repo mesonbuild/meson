@@ -55,6 +55,7 @@ if T.TYPE_CHECKING:
     from .mesonlib import FileMode, FileOrString
     from .modules import ModuleState
     from .mparser import BaseNode
+    from .wrap import WrapMode
 
     GeneratedTypes = T.Union['CustomTarget', 'CustomTargetIndex', 'GeneratedList']
     LibTypes = T.Union['SharedLibrary', 'StaticLibrary', 'CustomTarget', 'CustomTargetIndex']
