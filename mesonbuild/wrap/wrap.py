@@ -558,8 +558,8 @@ class Resolver:
                 elif url.scheme == 'ftp':
                     urlstring = urllib.parse.urlunparse(url._replace(netloc=f'{login}:{password}@{url.netloc}'))
                 else:
-                    mlog.warning(f'Meson is not going to use netrc credentials for protocols other than https/ftp',
-                                  fatal=False)
+                    mlog.warning('Meson is not going to use netrc credentials for protocols other than https/ftp',
+                                 fatal=False)
 
             try:
                 req = urllib.request.Request(urlstring, headers=headers)
