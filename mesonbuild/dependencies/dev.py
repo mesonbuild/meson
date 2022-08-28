@@ -529,7 +529,7 @@ class ZlibSystemDependency(SystemDependency):
 
 class JNISystemDependency(SystemDependency):
     def __init__(self, environment: 'Environment', kwargs: JNISystemDependencyKW):
-        super().__init__('jni', environment, T.cast(T.Dict[str, T.Any], kwargs))
+        super().__init__('jni', environment, T.cast('T.Dict[str, T.Any]', kwargs))
 
         self.feature_since = ('0.62.0', '')
 
