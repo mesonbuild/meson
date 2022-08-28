@@ -671,7 +671,6 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_files(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> T.List[mesonlib.File]:
         return self.source_strings_to_files(args[0])
 
-
     @noPosargs
     @typed_kwargs(
         'declare_dependency',
@@ -2325,7 +2324,6 @@ class Interpreter(InterpreterBase, HoldableObject):
             raise InvalidArguments('Keyword argument install_mode requires the '
                                    'permissions arg to be a string or false')
         return FileMode(*install_mode)
-
 
     # This is either ignored on basically any OS nowadays, or silently gets
     # ignored (Solaris) or triggers an "illegal operation" error (FreeBSD).
