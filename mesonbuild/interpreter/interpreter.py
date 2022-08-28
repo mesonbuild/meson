@@ -2333,7 +2333,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def _warn_kwarg_install_mode_sticky(self, mode: FileMode) -> None:
         if mode.perms > 0 and mode.perms & stat.S_ISVTX:
             mlog.deprecation('install_mode with the sticky bit on a file does not do anything and will '
-                             f'be ignored since Meson 0.64.0', location=self.current_node)
+                             'be ignored since Meson 0.64.0', location=self.current_node)
             perms = stat.filemode(mode.perms - stat.S_ISVTX)[1:]
             return FileMode(perms, mode.owner, mode.group)
         else:
