@@ -29,6 +29,16 @@ jobs:
     - run: python -m pip install pylint
     - run: pylint mesonbuild
 
+  flake8:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+      - run: python -m pip install flake8
+      - run: flake8 mesonbuild/
+
   mypy:
     runs-on: ubuntu-latest
     steps:
