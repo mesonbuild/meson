@@ -50,9 +50,6 @@ class GLDependencySystem(SystemDependency):
             # FIXME: Detect version using self.clib_compiler
             return
 
-    def log_tried(self) -> str:
-        return 'system'
-
 class GnuStepDependency(ConfigToolDependency):
 
     tools = ['gnustep-config']
@@ -236,9 +233,6 @@ class VulkanDependencySystem(SystemDependency):
                 for lib in libs:
                     self.link_args.append(lib)
                 return
-
-    def log_tried(self) -> str:
-        return 'system'
 
 gl_factory = DependencyFactory(
     'gl',

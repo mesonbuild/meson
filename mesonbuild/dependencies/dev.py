@@ -115,9 +115,6 @@ class GTestDependencySystem(SystemDependency):
         else:
             return 'building self'
 
-    def log_tried(self) -> str:
-        return 'system'
-
 
 class GTestDependencyPC(PkgConfigDependency):
 
@@ -185,9 +182,6 @@ class GMockDependencySystem(SystemDependency):
             return 'prebuilt'
         else:
             return 'building self'
-
-    def log_tried(self) -> str:
-        return 'system'
 
 
 class GMockDependencyPC(PkgConfigDependency):

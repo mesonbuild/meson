@@ -393,9 +393,6 @@ class ShadercDependency(SystemDependency):
 
                 break
 
-    def log_tried(self) -> str:
-        return 'system'
-
 
 class CursesConfigToolDependency(ConfigToolDependency):
 
