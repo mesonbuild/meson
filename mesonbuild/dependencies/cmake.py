@@ -617,8 +617,9 @@ class CMakeDependency(ExternalDependency):
         build_dir = self._setup_cmake_dir(cmake_file)
         return self.cmakebin.call(args, build_dir, env=env)
 
-    def log_tried(self) -> str:
-        return self.type_name
+    @staticmethod
+    def log_tried() -> str:
+        return 'cmake'
 
     def log_details(self) -> str:
         modules = [self._original_module_name(x) for x in self.found_modules]

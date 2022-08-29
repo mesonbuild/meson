@@ -149,8 +149,9 @@ class ConfigToolDependency(ExternalDependency):
         mlog.debug(f'Got config-tool variable {variable_name} : {variable}')
         return variable
 
-    def log_tried(self) -> str:
-        return self.type_name
+    @staticmethod
+    def log_tried() -> str:
+        return 'config-tool'
 
     def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
                      configtool: T.Optional[str] = None, internal: T.Optional[str] = None,

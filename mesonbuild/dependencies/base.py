@@ -387,7 +387,8 @@ class ExternalDependency(Dependency, HasNativeKwarg):
     def log_info(self) -> str:
         return ''
 
-    def log_tried(self) -> str:
+    @staticmethod
+    def log_tried() -> str:
         return ''
 
     # Check if dependency version meets the requirements
@@ -602,7 +603,8 @@ class SystemDependency(ExternalDependency):
         super().__init__(DependencyTypeName('system'), env, kwargs, language=language)
         self.name = name
 
-    def log_tried(self) -> str:
+    @staticmethod
+    def log_tried() -> str:
         return 'system'
 
 
@@ -615,5 +617,6 @@ class BuiltinDependency(ExternalDependency):
         super().__init__(DependencyTypeName('builtin'), env, kwargs, language=language)
         self.name = name
 
-    def log_tried(self) -> str:
+    @staticmethod
+    def log_tried() -> str:
         return 'builtin'

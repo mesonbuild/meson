@@ -54,5 +54,6 @@ class AppleFrameworks(ExternalDependency):
     def log_info(self) -> str:
         return ', '.join(self.frameworks)
 
-    def log_tried(self) -> str:
+    @staticmethod
+    def log_tried() -> str:
         return 'framework'
