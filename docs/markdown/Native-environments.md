@@ -20,6 +20,13 @@ keep a persistent environment:
 * To build with a non-default native tool chain (such as clang instead of gcc)
 * To use a non-default version of another binary, such as yacc, or llvm-config
 
+## Using a native file
+
+During the `setup` phase, use the native file as such:
+```sh
+meson setup --native-file my-native-file.ini builddir/
+```
+
 ## Changing native file settings
 
 All of the rules about cross files and changed settings apply to native files
