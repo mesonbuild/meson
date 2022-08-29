@@ -14,7 +14,10 @@ description: |
 posargs:
   dir_name:
     type: str
-    description: Directory relative to the current `meson.build` to enter.
+    description: |
+      Directory relative to the current `meson.build` to enter.
+
+      Cannot contain `..`
 
 kwargs:
   if_found:
