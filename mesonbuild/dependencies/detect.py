@@ -113,8 +113,11 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: T.Dict[str, 
             d._check_version()
             pkgdep.append(d)
         except DependencyException as e:
+            assert isinstance(c, functools.partial), 'for mypy'
+            bettermsg = f'Dependency lookup for {name} with method {c.func.log_tried()!r} failed: {e}'
+            mlog.debug(bettermsg)
+            e.args = (bettermsg,)
             pkg_exc.append(e)
-            mlog.debug(str(e))
         else:
             pkg_exc.append(None)
             details = d.log_details()

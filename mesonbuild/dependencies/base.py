@@ -406,7 +406,7 @@ class ExternalDependency(Dependency, HasNativeKwarg):
                 mlog.log(*found_msg)
 
                 if self.required:
-                    m = f'Unknown version of dependency {self.name!r}, but need {self.version_reqs!r}.'
+                    m = f'Unknown version, but need {self.version_reqs!r}.'
                     raise DependencyException(m)
 
             else:
@@ -423,7 +423,7 @@ class ExternalDependency(Dependency, HasNativeKwarg):
                     mlog.log(*found_msg)
 
                     if self.required:
-                        m = 'Invalid version of dependency, need {!r} {!r} found {!r}.'
+                        m = 'Invalid version, need {!r} {!r} found {!r}.'
                         raise DependencyException(m.format(self.name, not_found, self.version))
                     return
 
