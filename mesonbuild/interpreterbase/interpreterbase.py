@@ -469,9 +469,10 @@ class InterpreterBase:
         invokable = node.source_object
         obj: T.Optional[InterpreterObject]
         if isinstance(invokable, mparser.IdNode):
-            object_name = invokable.value
-            obj = self.get_variable(object_name)
+            object_display_name = f'variable "{invokable.value}"'
+            obj = self.get_variable(invokable.value)
         else:
+            object_display_name = invokable.__class__.__name__
             obj = self.evaluate_statement(invokable)
         method_name = node.name
         (h_args, h_kwargs) = self.reduce_arguments(node.args)
@@ -479,13 +480,13 @@ class InterpreterBase:
         if is_disabled(args, kwargs):
             return Disabler()
         if not isinstance(obj, InterpreterObject):
-            raise InvalidArguments(f'Variable "{object_name}" is not callable.')
+            raise InvalidArguments(f'{object_display_name} is not callable.')
         # TODO: InterpreterBase **really** shouldn't be in charge of checking this
         if method_name == 'extract_objects':
             if isinstance(obj, ObjectHolder):
                 self.validate_extraction(obj.held_object)
             elif not isinstance(obj, Disabler):
-                raise InvalidArguments(f'Invalid operation "extract_objects" on variable "{object_name}" of type {type(obj).__name__}')
+                raise InvalidArguments(f'Invalid operation "extract_objects" on {object_display_name} of type {type(obj).__name__}')
         obj.current_node = node
         res = obj.method_call(method_name, args, kwargs)
         return self._holderify(res) if res is not None else None
