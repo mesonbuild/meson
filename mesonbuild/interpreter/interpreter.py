@@ -10,8 +10,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from __future__ import annotations
+
 from .. import mparser
 from .. import environment
 from .. import coredata
@@ -1290,7 +1290,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     @noArgsFlattening
     @noKwargs
-    def func_message(self, node, args, kwargs):
+    def func_message(self, node: mparser.BaseNode, args, kwargs):
         if len(args) > 1:
             FeatureNew.single_use('message with more than one argument', '0.54.0', self.subproject, location=node)
         args_str = [stringifyUserArguments(i) for i in args]
@@ -1677,7 +1677,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @disablerIfNotFound
     @permittedKwargs(permitted_dependency_kwargs)
     @typed_pos_args('dependency', varargs=str, min_varargs=1)
-    def func_dependency(self, node, args, kwargs) -> Dependency:
+    def func_dependency(self, node: mparser.BaseNode, args: T.Tuple[T.List[str]], kwargs) -> Dependency:
         # Replace '' by empty list of names
         names = [n for n in args[0] if n]
         if len(names) > 1:
@@ -1855,7 +1855,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @FeatureNew('subdir_done', '0.46.0')
     @noPosargs
     @noKwargs
-    def func_subdir_done(self, node, args, kwargs):
+    def func_subdir_done(self, node: mparser.BaseNode, args: TYPE_var, kwargs: TYPE_kwargs) -> T.NoReturn:
         raise SubdirDoneRequest()
 
     @staticmethod
