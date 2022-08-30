@@ -132,7 +132,6 @@ ENV_VAR_PROG_MAP: T.Mapping[str, str] = {
     'pkg-config': 'PKG_CONFIG',
     'make': 'MAKE',
     'vapigen': 'VAPIGEN',
-    'llvm-config': 'LLVM_CONFIG',
 }
 
 # Deprecated environment variables mapped from the new variable to the old one
