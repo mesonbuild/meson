@@ -107,6 +107,7 @@ CFLAGS_MAPPING: T.Mapping[str, str] = {
     'vala': 'VALAFLAGS',
     'rust': 'RUSTFLAGS',
     'cython': 'CYTHONFLAGS',
+    'cs': 'CSFLAGS', # This one might not be standard.
 }
 
 # All these are only for C-linkable languages; see `clink_langs` above.

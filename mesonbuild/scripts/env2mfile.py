@@ -17,51 +17,16 @@ import sys, os, subprocess, shutil
 import shlex
 import typing as T
 
+from .. import envconfig
 from .. import mlog
+from ..compilers import compilers
+from ..compilers.detect import defaults as compiler_names
 
 if T.TYPE_CHECKING:
     import argparse
 
-UNIXY_ENVVARS_COMPILER = {'c': 'CC',
-                          'cpp': 'CXX',
-                          'objc': 'OBJCC',
-                          'objcpp': 'OBJCXX',
-                          'fortran': 'FC',
-                          'rust': 'RUSTC',
-                          'vala': 'VALAC',
-                          'cs': 'CSC',
-                          }
-
-UNIXY_ENVVARS_TOOLS = {'ar': 'AR',
-                       'strip': 'STRIP',
-                       'windres': 'WINDRES',
-                       'pkgconfig': 'PKG_CONFIG',
-                       'vapigen': 'VAPIGEN',
-                       'cmake': 'CMAKE',
-                       'qmake': 'QMAKE',
-                       }
-
-UNIXY_ENVVARS_FLAGS = {'c': 'CFLAGS',
-                       'cpp': 'CXXFLAGS',
-                       'objc': 'OBJCFLAGS',
-                       'objcpp': 'OBJCXXFLAGS',
-                       'fortran': 'FFLAGS',
-                       'rust': 'RUSTFLAGS',
-                       'vala': 'VALAFLAGS',
-                       'cs': 'CSFLAGS', # This one might not be standard.
-                       }
-
-TYPICAL_UNIXY_COMPILER_NAMES = {'c': ['cc', 'gcc', 'clang'],
-                                'cpp': ['c++', 'g++', 'clang++'],
-                                'objc': ['objc', 'clang'],
-                                'objcpp': ['objcpp', 'clang++'],
-                                'fortran': ['gfortran'],
-                                }
-
-LANGS_USING_CPPFLAGS = {'c', 'cpp', 'objc', 'objcxx'}
-
 def has_for_build() -> bool:
-    for cenv in UNIXY_ENVVARS_COMPILER.values():
+    for cenv in envconfig.ENV_VAR_COMPILER_MAP.values():
         if os.environ.get(cenv + '_FOR_BUILD'):
             return True
     return False
@@ -262,8 +227,8 @@ def write_machine_file(infos: MachineInfo, ofilename: str, write_system_info: bo
 
 def detect_language_args_from_envvars(langname: str, envvar_suffix: str = '') -> T.Tuple[T.List[str], T.List[str]]:
     ldflags = tuple(shlex.split(os.environ.get('LDFLAGS' + envvar_suffix, '')))
-    compile_args = shlex.split(os.environ.get(UNIXY_ENVVARS_FLAGS[langname] + envvar_suffix, ''))
-    if langname in LANGS_USING_CPPFLAGS:
+    compile_args = shlex.split(os.environ.get(compilers.CFLAGS_MAPPING[langname] + envvar_suffix, ''))
+    if langname in compilers.LANGUAGES_USING_CPPFLAGS:
         cppflags = tuple(shlex.split(os.environ.get('CPPFLAGS' + envvar_suffix, '')))
         lang_compile_args = list(cppflags) + compile_args
     else:
@@ -273,7 +238,7 @@ def detect_language_args_from_envvars(langname: str, envvar_suffix: str = '') ->
 
 def detect_compilers_from_envvars(envvar_suffix: str = '') -> MachineInfo:
     infos = MachineInfo()
-    for langname, envvarname in UNIXY_ENVVARS_COMPILER.items():
+    for langname, envvarname in envconfig.ENV_VAR_COMPILER_MAP.items():
         compilerstr = os.environ.get(envvarname + envvar_suffix)
         if not compilerstr:
             continue
@@ -287,7 +252,7 @@ def detect_compilers_from_envvars(envvar_suffix: str = '') -> MachineInfo:
     return infos
 
 def detect_binaries_from_envvars(infos: MachineInfo, envvar_suffix: str = '') -> None:
-    for binname, envvar_base in UNIXY_ENVVARS_TOOLS.items():
+    for binname, envvar_base in envconfig.ENV_VAR_TOOL_MAP.items():
         envvar = envvar_base + envvar_suffix
         binstr = os.environ.get(envvar)
         if binstr:
@@ -328,12 +293,14 @@ def add_compiler_if_missing(infos: MachineInfo, langname: str, exe_names: T.List
 
 def detect_missing_native_compilers(infos: MachineInfo) -> None:
     # T.Any per-platform special detection should go here.
-    for langname, exes in TYPICAL_UNIXY_COMPILER_NAMES.items():
+    for langname, exes in compiler_names.items():
+        if langname not in envconfig.ENV_VAR_COMPILER_MAP:
+            continue
         add_compiler_if_missing(infos, langname, exes)
 
 def detect_missing_native_binaries(infos: MachineInfo) -> None:
     # T.Any per-platform special detection should go here.
-    for toolname in sorted(UNIXY_ENVVARS_TOOLS.keys()):
+    for toolname in sorted(envconfig.ENV_VAR_TOOL_MAP.keys()):
         if toolname in infos.binaries:
             continue
         exe = shutil.which(toolname)
