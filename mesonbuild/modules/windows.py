@@ -111,7 +111,7 @@ class WindowsModule(ExtensionModule):
 
     @typed_pos_args('windows.compile_resources', varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex), min_varargs=1)
     @typed_kwargs(
-        'winddows.compile_resoures',
+        'windows.compile_resources',
         DEPEND_FILES_KW.evolve(since='0.47.0'),
         DEPENDS_KW.evolve(since='0.47.0'),
         INCLUDE_DIRECTORIES,
