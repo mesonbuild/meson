@@ -265,6 +265,7 @@ def check_dist(packagename, meson_command, extra_meson_args, bld_root, privdir):
     unpacked_files = glob(os.path.join(unpackdir, '*'))
     assert len(unpacked_files) == 1
     unpacked_src_dir = unpacked_files[0]
+    meson_command += ['setup']
     meson_command += create_cmdline_args(bld_root)
     meson_command += extra_meson_args
 
