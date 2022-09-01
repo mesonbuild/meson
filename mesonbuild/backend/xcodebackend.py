@@ -191,9 +191,11 @@ class PbxDict:
             ofile.write(';\n')
 
 class XCodeBackend(backends.Backend):
+
+    name = 'xcode'
+
     def __init__(self, build: T.Optional[build.Build], interpreter: T.Optional[Interpreter]):
         super().__init__(build, interpreter)
-        self.name = 'xcode'
         self.project_uid = self.environment.coredata.lang_guids['default'].replace('-', '')[:24]
         self.buildtype = self.environment.coredata.get_option(OptionKey('buildtype'))
         self.project_conflist = self.gen_id()

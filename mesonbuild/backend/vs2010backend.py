@@ -101,9 +101,11 @@ def detect_microsoft_gdk(platform: str) -> bool:
     return re.match(r'Gaming\.(Desktop|Xbox.XboxOne|Xbox.Scarlett)\.x64', platform, re.IGNORECASE)
 
 class Vs2010Backend(backends.Backend):
+
+    name = 'vs2010'
+
     def __init__(self, build: T.Optional[build.Build], interpreter: T.Optional[Interpreter]):
         super().__init__(build, interpreter)
-        self.name = 'vs2010'
         self.project_file_version = '10.0.30319.1'
         self.sln_file_version = '11.00'
         self.sln_version_comment = '2010'

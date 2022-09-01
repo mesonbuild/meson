@@ -258,6 +258,7 @@ def get_backend_from_name(backend: str, build: T.Optional[build.Build] = None, i
 class Backend:
 
     environment: T.Optional['Environment']
+    name = '<UNKNOWN>'
 
     def __init__(self, build: T.Optional[build.Build], interpreter: T.Optional['Interpreter']):
         # Make it possible to construct a dummy backend
@@ -269,7 +270,6 @@ class Backend:
         self.interpreter = interpreter
         self.environment = build.environment
         self.processed_targets: T.Set[str] = set()
-        self.name = '<UNKNOWN>'
         self.build_dir = self.environment.get_build_dir()
         self.source_dir = self.environment.get_source_dir()
         self.build_to_src = mesonlib.relpath(self.environment.get_source_dir(),
