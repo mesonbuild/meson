@@ -3090,6 +3090,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                                    "internal use. Please rename.")
 
     def add_target(self, name: str, tobj: build.Target) -> None:
+        if self.backend.name == 'none':
+            raise InterpreterException('Install-only backend cannot generate target rules, try using `--backend=ninja`.')
         if name == '':
             raise InterpreterException('Target name must not be empty.')
         if name.strip() == '':

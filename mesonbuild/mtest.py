@@ -43,7 +43,7 @@ import xml.etree.ElementTree as et
 from . import build
 from . import environment
 from . import mlog
-from .coredata import major_versions_differ, MesonVersionMismatchException
+from .coredata import MesonVersionMismatchException, OptionKey, major_versions_differ
 from .coredata import version as coredata_version
 from .mesonlib import (MesonException, OrderedSet, RealPathAction,
                        get_wine_shortpath, join_args, split_args, setup_vsenv)
@@ -2099,7 +2099,11 @@ def run(options: argparse.Namespace) -> int:
     setup_vsenv(b.need_vsenv)
 
     if not options.no_rebuild:
-        if not (Path(options.wd) / 'build.ninja').is_file():
+        backend = b.environment.coredata.get_option(OptionKey('backend'))
+        if backend == 'none':
+            # nothing to build...
+            options.no_rebuild = True
+        elif backend != 'ninja':
             print('Only ninja backend is supported to rebuild tests before running them.')
             # Disable, no point in trying to build anything later
             options.no_rebuild = True

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import os
 import tempfile
 import subprocess
@@ -121,3 +122,19 @@ class PlatformAgnosticTests(BasePlatformTests):
                     '''))
             subprocess.check_call(self.wrap_command + ['update-db'], cwd=testdir)
             self.init(testdir, workdir=testdir)
+
+    def test_none_backend(self):
+        testdir = os.path.join(self.python_test_dir, '7 install path')
+
+        self.init(testdir, extra_args=['--backend=none'], override_envvars={'NINJA': 'absolutely false command'})
+        self.assertPathDoesNotExist(os.path.join(self.builddir, 'build.ninja'))
+
+        self.run_tests(inprocess=True, override_envvars={})
+
+        out = self._run(self.meson_command + ['install', f'--destdir={self.installdir}'], workdir=self.builddir)
+        self.assertNotIn('Only ninja backend is supported to rebuild the project before installation.', out)
+
+        with open(os.path.join(testdir, 'test.json'), 'rb') as f:
+            dat = json.load(f)
+        for i in dat['installed']:
+            self.assertPathExists(os.path.join(self.installdir, i['file']))

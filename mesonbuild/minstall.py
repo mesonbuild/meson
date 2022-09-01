@@ -14,7 +14,6 @@
 from __future__ import annotations
 
 from glob import glob
-from pathlib import Path
 import argparse
 import errno
 import os
@@ -25,8 +24,7 @@ import subprocess
 import sys
 import typing as T
 
-from . import build
-from . import environment
+from . import build, coredata, environment
 from .backend.backends import InstallData
 from .mesonlib import MesonException, Popen_safe, RealPathAction, is_windows, setup_vsenv, pickle_load, is_osx
 from .scripts import depfixer, destdir_join
@@ -755,8 +753,11 @@ class Installer:
                 # file mode needs to be set last, after strip/depfixer editing
                 self.set_mode(outname, install_mode, d.install_umask)
 
-def rebuild_all(wd: str) -> bool:
-    if not (Path(wd) / 'build.ninja').is_file():
+def rebuild_all(wd: str, backend: str) -> bool:
+    if backend == 'none':
+        # nothing to build...
+        return True
+    if backend != 'ninja':
         print('Only ninja backend is supported to rebuild the project before installation.')
         return True
 
@@ -816,7 +817,8 @@ def run(opts: 'ArgumentType') -> int:
     if not opts.no_rebuild:
         b = build.load(opts.wd)
         setup_vsenv(b.need_vsenv)
-        if not rebuild_all(opts.wd):
+        backend = T.cast('str', b.environment.coredata.get_option(coredata.OptionKey('backend')))
+        if not rebuild_all(opts.wd, backend):
             sys.exit(-1)
     os.chdir(opts.wd)
     with open(os.path.join(log_dir, 'install-log.txt'), 'w', encoding='utf-8') as lf:

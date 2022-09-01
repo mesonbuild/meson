@@ -75,7 +75,7 @@ machine](#specifying-options-per-machine) section for details.
 | Option                                 | Default value | Description                                                    | Is per machine | Is per subproject |
 | -------------------------------------- | ------------- | -----------                                                    | -------------- | ----------------- |
 | auto_features {enabled, disabled, auto} | auto       | Override value of all 'auto' features                          | no             | no                |
-| backend {ninja, vs,<br>vs2010, vs2012, vs2013, vs2015, vs2017, vs2019, vs2022, xcode} | ninja | Backend to use        | no             | no                |
+| backend {ninja, vs,<br>vs2010, vs2012, vs2013, vs2015, vs2017, vs2019, vs2022, xcode, none} | ninja | Backend to use  | no             | no                |
 | buildtype {plain, debug,<br>debugoptimized, release, minsize, custom} | debug |  Build type to use                    | no             | no                |
 | debug                                  | true          | Enable debug symbols and other information                     | no             | no                |
 | default_library {shared, static, both} | shared      | Default library type                                           | no             | yes               |
@@ -94,6 +94,16 @@ machine](#specifying-options-per-machine) section for details.
 | werror                                 | false         | Treat warnings as errors                                       | no             | yes               |
 | wrap_mode {default, nofallback,<br>nodownload, forcefallback, nopromote} | default | Wrap mode to use                 | no             | no                |
 | force_fallback_for                     | []            | Force fallback for those dependencies                          | no             | no                |
+
+#### Details for `backend`
+
+Several build file formats are supported as command runners to build the
+configured project. Meson prefers ninja by default, but platform-specific
+backends are also available for better IDE integration with native tooling:
+Visual Studio for Windows, and xcode for macOS. It is also possible to
+configure with no backend at all, which is an error if you have targets to
+build, but for projects that need configuration + testing + installation allows
+for a lighter automated build pipeline.
 
 #### Details for `buildtype`
 

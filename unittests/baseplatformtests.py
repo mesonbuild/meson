@@ -70,6 +70,7 @@ class BasePlatformTests(TestCase):
             self.uninstall_command = get_backend_commands(self.backend)
         # Test directories
         self.common_test_dir = os.path.join(src_root, 'test cases/common')
+        self.python_test_dir = os.path.join(src_root, 'test cases/python')
         self.rust_test_dir = os.path.join(src_root, 'test cases/rust')
         self.vala_test_dir = os.path.join(src_root, 'test cases/vala')
         self.framework_test_dir = os.path.join(src_root, 'test cases/frameworks')

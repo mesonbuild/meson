@@ -251,6 +251,9 @@ def get_backend_from_name(backend: str, build: T.Optional[build.Build] = None, i
     elif backend == 'xcode':
         from . import xcodebackend
         return xcodebackend.XCodeBackend(build, interpreter)
+    elif backend == 'none':
+        from . import nonebackend
+        return nonebackend.NoneBackend(build, interpreter)
     return None
 
 # This class contains the basic functionality that is needed by all backends.
