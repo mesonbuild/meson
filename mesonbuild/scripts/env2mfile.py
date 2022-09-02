@@ -193,7 +193,7 @@ def detect_cross_debianlike(options: T.Any) -> MachineInfo:
 
 def write_machine_file(infos: MachineInfo, ofilename: str, write_system_info: bool) -> None:
     tmpfilename = ofilename + '~'
-    with open(tmpfilename, 'w') as ofile:
+    with open(tmpfilename, 'w', encoding='utf-8') as ofile:
         ofile.write('[binaries]\n')
         ofile.write('# Compilers\n')
         for langname in sorted(infos.compilers.keys()):
