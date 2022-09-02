@@ -22,7 +22,13 @@ import sys
 import stat
 import time
 import abc
-import platform, subprocess, operator, os, shlex, shutil, re
+import platform
+import subprocess
+import operator
+import os
+import shlex
+import shutil
+import re
 import collections
 from functools import lru_cache, wraps, total_ordering
 from itertools import tee

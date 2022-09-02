@@ -14,7 +14,11 @@
 from __future__ import annotations
 
 import itertools
-import os, platform, re, sys, shutil
+import os
+import platform
+import re
+import sys
+import shutil
 import typing as T
 import collections
 

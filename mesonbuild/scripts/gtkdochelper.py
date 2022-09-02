@@ -13,7 +13,8 @@
 # limitations under the License.
 from __future__ import annotations
 
-import sys, os
+import sys
+import os
 import subprocess
 import shutil
 import argparse

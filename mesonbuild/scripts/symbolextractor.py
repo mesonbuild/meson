@@ -22,7 +22,8 @@
 from __future__ import annotations
 
 import typing as T
-import os, sys
+import os
+import sys
 from .. import mesonlib
 from .. import mlog
 from ..mesonlib import Popen_safe

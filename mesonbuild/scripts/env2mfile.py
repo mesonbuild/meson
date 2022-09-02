@@ -13,7 +13,10 @@
 # limitations under the License.
 from __future__ import annotations
 
-import sys, os, subprocess, shutil
+import sys
+import os
+import subprocess
+import shutil
 import shlex
 import typing as T
 

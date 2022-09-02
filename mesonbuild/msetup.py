@@ -15,7 +15,8 @@ from __future__ import annotations
 
 import typing as T
 import time
-import sys, stat
+import sys
+import stat
 import datetime
 import os.path
 import platform
