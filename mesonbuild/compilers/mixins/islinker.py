@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import annotations
 
 """Mixins for compilers that *are* linkers.
 
@@ -21,6 +20,7 @@ are both the linker and compiler in one binary. This module provides mixin
 classes for those cases.
 """
 
+from __future__ import annotations
 import typing as T
 
 from ...mesonlib import EnvironmentException, MesonException, is_windows
