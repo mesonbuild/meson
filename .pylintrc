@@ -13,7 +13,6 @@ disable=
     broad-except,
     cell-var-from-loop,
     consider-merging-isinstance,
-    consider-using-dict-items,
     consider-using-f-string,
     consider-using-in,
     consider-using-max-builtin,
