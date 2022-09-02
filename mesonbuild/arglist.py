@@ -324,10 +324,10 @@ class CompilerArgs(T.MutableSequence[str]):
         return NotImplemented
 
     def append(self, arg: str) -> None:
-        self.__iadd__([arg])
+        self += [arg]
 
     def extend(self, args: T.Iterable[str]) -> None:
-        self.__iadd__(args)
+        self += args
 
     def __repr__(self) -> str:
         self.flush_pre_post()
