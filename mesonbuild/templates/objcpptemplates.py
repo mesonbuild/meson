@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from __future__ import annotations
-
-from mesonbuild.templates.sampleimpl import SampleImpl
 import re
+
+from ..templates.sampleimpl import SampleImpl
 
 
 lib_h_template = '''#pragma once

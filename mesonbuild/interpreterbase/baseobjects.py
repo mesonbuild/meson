@@ -13,15 +13,15 @@
 # limitations under the License.
 from __future__ import annotations
 
+from abc import ABCMeta
+import textwrap
+import typing as T
+
 from .. import mparser
 from .exceptions import InvalidCode, InvalidArguments
 from .helpers import flatten, resolve_second_level_holders
 from .operator import MesonOperator
 from ..mesonlib import HoldableObject, MesonBugException
-import textwrap
-
-import typing as T
-from abc import ABCMeta
 
 if T.TYPE_CHECKING:
     from typing_extensions import Protocol

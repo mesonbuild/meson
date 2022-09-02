@@ -4,6 +4,7 @@ import shlex
 import subprocess
 import copy
 import textwrap
+import typing as T
 
 from pathlib import Path, PurePath
 
@@ -25,8 +26,6 @@ from ..interpreter.type_checking import NoneType, ENV_SEPARATOR_KW
 from ..dependencies import Dependency, ExternalLibrary, InternalDependency
 from ..programs import ExternalProgram
 from ..mesonlib import HoldableObject, OptionKey, listify, Popen_safe
-
-import typing as T
 
 if T.TYPE_CHECKING:
     from . import kwargs

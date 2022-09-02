@@ -15,7 +15,7 @@ from __future__ import annotations
 
 # Work around some pathlib bugs...
 
-from . import _pathlib
+from . import _pathlib  # pylint: disable=wrong-import-order
 import sys
 sys.modules['pathlib'] = _pathlib
 

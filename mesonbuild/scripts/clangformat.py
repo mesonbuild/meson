@@ -13,15 +13,15 @@
 # limitations under the License.
 from __future__ import annotations
 
+from pathlib import Path
 import argparse
 import subprocess
-from pathlib import Path
+import typing as T
 
-from .run_tool import run_tool
 from ..environment import detect_clangformat
 from ..mesonlib import version_compare
 from ..programs import ExternalProgram
-import typing as T
+from .run_tool import run_tool
 
 def run_clang_format(fname: Path, exelist: T.List[str], check: bool) -> subprocess.CompletedProcess:
     clangformat_10 = False

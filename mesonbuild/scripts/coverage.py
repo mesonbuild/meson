@@ -13,8 +13,6 @@
 # limitations under the License.
 from __future__ import annotations
 
-from mesonbuild import environment, mesonlib
-
 import argparse
 import re
 import sys
@@ -23,6 +21,8 @@ import subprocess
 import pathlib
 import stat
 import typing as T
+
+from .. import environment, mesonlib
 
 def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build_root: str, log_dir: str, use_llvm_cov: bool) -> int:
     outfiles = []

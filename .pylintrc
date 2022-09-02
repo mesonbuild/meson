@@ -75,5 +75,4 @@ disable=
     unused-argument,
     unused-variable,
     useless-super-delegation,
-    wrong-import-order,
     wrong-import-position,

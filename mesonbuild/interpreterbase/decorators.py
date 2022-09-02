@@ -12,18 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from __future__ import annotations
-
-from .. import mesonlib, mlog
-from .disabler import Disabler
-from .exceptions import InterpreterException, InvalidArguments
-from ._unholder import _unholder
-
 from dataclasses import dataclass
 from functools import wraps
 import abc
 import itertools
 import copy
 import typing as T
+
+from .. import mesonlib, mlog
+from .disabler import Disabler
+from .exceptions import InterpreterException, InvalidArguments
+from ._unholder import _unholder
 
 if T.TYPE_CHECKING:
     from typing_extensions import Protocol

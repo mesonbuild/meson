@@ -13,6 +13,7 @@
 # limitations under the License.
 from __future__ import annotations
 
+from functools import lru_cache
 import itertools
 import os
 import platform
@@ -23,6 +24,7 @@ import typing as T
 import collections
 
 from . import coredata
+from . import envconfig
 from . import mesonlib
 from .mesonlib import (
     MesonException, MachineChoice, Popen_safe, PerMachine,
@@ -45,9 +47,6 @@ from .compilers import (
     is_object,
     is_source,
 )
-
-from functools import lru_cache
-from mesonbuild import envconfig
 
 if T.TYPE_CHECKING:
     import argparse

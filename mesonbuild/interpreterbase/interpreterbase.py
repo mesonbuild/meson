@@ -15,6 +15,12 @@
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool.
 from __future__ import annotations
+import os
+import copy
+import re
+import pathlib
+import typing as T
+import textwrap
 
 from .. import mparser, mesonlib
 from .. import environment
@@ -44,13 +50,6 @@ from .disabler import Disabler, is_disabled
 from .helpers import default_resolve_key, flatten, resolve_second_level_holders
 from .operator import MesonOperator
 from ._unholder import _unholder
-
-import os
-import copy
-import re
-import pathlib
-import typing as T
-import textwrap
 
 if T.TYPE_CHECKING:
     from .baseobjects import SubProject, TYPE_kwargs, TYPE_var

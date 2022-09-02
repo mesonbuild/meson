@@ -20,6 +20,7 @@ import os
 import re
 import subprocess
 from pathlib import Path
+import typing as T
 
 from ..mesonlib import Popen_safe, OrderedSet, join_args
 from ..programs import ExternalProgram
@@ -27,7 +28,6 @@ from .base import DependencyException, DependencyMethods
 from .configtool import ConfigToolDependency
 from .pkgconfig import PkgConfigDependency
 from .factory import factory_methods
-import typing as T
 
 if T.TYPE_CHECKING:
     from .factory import DependencyGenerator

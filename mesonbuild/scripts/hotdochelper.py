@@ -3,11 +3,10 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
-
-from . import destdir_join
-
 import argparse
 import typing as T
+
+from . import destdir_join
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--install')

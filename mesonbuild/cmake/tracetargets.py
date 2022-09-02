@@ -2,12 +2,13 @@
 # Copyright 2021 The Meson development team
 from __future__ import annotations
 
-from .common import cmake_is_debug
-from .. import mlog
 
 from pathlib import Path
 import re
 import typing as T
+
+from .common import cmake_is_debug
+from .. import mlog
 
 if T.TYPE_CHECKING:
     from .traceparser import CMakeTraceParser

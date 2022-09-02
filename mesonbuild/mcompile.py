@@ -28,9 +28,9 @@ from . import mlog
 from . import mesonlib
 from . import coredata
 from .mesonlib import MesonException, RealPathAction, join_args, setup_vsenv
-from mesonbuild.environment import detect_ninja
-from mesonbuild.coredata import UserArrayOption
-from mesonbuild import build
+from .environment import detect_ninja
+from .coredata import UserArrayOption
+from . import build
 
 if T.TYPE_CHECKING:
     import argparse

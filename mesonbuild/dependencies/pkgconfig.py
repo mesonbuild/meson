@@ -12,18 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from __future__ import annotations
-
-from pathlib import Path
+from pathlib import Path, PurePath
+import re
+import os
+import shlex
+import typing as T
 
 from .base import ExternalDependency, DependencyException, sort_libpaths, DependencyTypeName
 from ..mesonlib import OptionKey, OrderedSet, PerMachine, Popen_safe
 from ..programs import find_external_program, ExternalProgram
 from .. import mlog
-from pathlib import PurePath
-import re
-import os
-import shlex
-import typing as T
 
 if T.TYPE_CHECKING:
     from ..environment import Environment

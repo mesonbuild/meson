@@ -13,7 +13,6 @@
 # limitations under the License.
 from __future__ import annotations
 
-from .. import mlog
 import contextlib
 from dataclasses import dataclass
 import urllib.request
@@ -38,6 +37,7 @@ from pathlib import Path
 
 from . import WrapMode
 from .. import coredata
+from .. import mlog
 from ..mesonlib import quiet_git, GIT, ProgressBar, MesonException, windows_proof_rmtree, Popen_safe
 from ..interpreterbase import FeatureNew
 from ..interpreterbase import SubProject

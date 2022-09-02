@@ -5,6 +5,7 @@ import argparse
 import tempfile
 import shutil
 import itertools
+import typing as T
 
 from pathlib import Path
 from . import build, minstall, dependencies
@@ -12,7 +13,6 @@ from .mesonlib import (MesonException, is_windows, setup_vsenv, OptionKey,
                        get_wine_shortpath, MachineChoice)
 from . import mlog
 
-import typing as T
 if T.TYPE_CHECKING:
     from .backends import InstallData
 
