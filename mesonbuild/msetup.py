@@ -231,6 +231,8 @@ class MesonApp:
         except Exception as e:
             mintro.write_meson_info_file(b, [e])
             raise
+
+        cdf: T.Optional[str] = None
         try:
             dumpfile = os.path.join(env.get_scratch_dir(), 'build.dat')
             # We would like to write coredata as late as possible since we use the existence of
@@ -281,7 +283,7 @@ class MesonApp:
 
         except Exception as e:
             mintro.write_meson_info_file(b, [e])
-            if 'cdf' in locals():
+            if cdf is not None:
                 old_cdf = cdf + '.prev'
                 if os.path.exists(old_cdf):
                     os.replace(old_cdf, cdf)

@@ -74,7 +74,6 @@ disable=
     unused-argument,
     unused-variable,
     use-implicit-booleaness-not-comparison,
-    used-before-assignment,
     useless-return,
     useless-super-delegation,
     wrong-import-order,
