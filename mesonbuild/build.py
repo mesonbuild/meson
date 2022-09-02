@@ -1002,7 +1002,7 @@ class BuildTarget(Target):
         return missing_languages
 
     def validate_sources(self):
-        if len(self.compilers) > 1 and any(lang in self.compilers for lang in {'cs', 'java'}):
+        if len(self.compilers) > 1 and any(lang in self.compilers for lang in ['cs', 'java']):
             langs = ', '.join(self.compilers.keys())
             raise InvalidArguments(f'Cannot mix those languages into a target: {langs}')
 

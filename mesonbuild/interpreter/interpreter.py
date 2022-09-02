@@ -2475,7 +2475,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     )
     def func_configure_file(self, node: mparser.BaseNode, args: T.List[TYPE_var],
                             kwargs: kwtypes.ConfigureFile):
-        actions = sorted(x for x in {'configuration', 'command', 'copy'}
+        actions = sorted(x for x in ['configuration', 'command', 'copy']
                          if kwargs[x] not in [None, False])
         num_actions = len(actions)
         if num_actions == 0:

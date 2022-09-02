@@ -88,7 +88,6 @@ disable=
     use-dict-literal,
     use-implicit-booleaness-not-comparison,
     use-list-literal,
-    use-sequence-for-iteration,
     used-before-assignment,
     useless-return,
     useless-super-delegation,
