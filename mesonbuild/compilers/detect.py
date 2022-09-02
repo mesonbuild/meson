@@ -580,7 +580,7 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
                     break
             else:
                 raise EnvironmentException(f'Failed to detect MSVC compiler version: stderr was\n{err!r}')
-            cl_signature = lookat.split('\n')[0]
+            cl_signature = lookat.split('\n', maxsplit=1)[0]
             match = re.search(r'.*(x86|x64|ARM|ARM64)([^_A-Za-z0-9]|$)', cl_signature)
             if match:
                 target = match.group(1)
@@ -698,7 +698,7 @@ def detect_cuda_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
         #    - CUDA Toolkit 8.0.61 requires NVIDIA Driver 375.26
         # Luckily, the "V" also makes it very simple to extract
         # the full version:
-        version = out.strip().split('V')[-1]
+        version = out.strip().rsplit('V', maxsplit=1)[-1]
         cpp_compiler = detect_cpp_compiler(env, for_machine)
         cls = CudaCompiler
         env.coredata.add_lang_args(cls.language, cls, for_machine, env)
