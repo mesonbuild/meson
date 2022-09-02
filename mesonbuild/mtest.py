@@ -1902,7 +1902,7 @@ class TestHarness:
     async def _run_tests(self, runners: T.List[SingleTestRunner]) -> None:
         semaphore = asyncio.Semaphore(self.options.num_processes)
         futures = deque()  # type: T.Deque[asyncio.Future]
-        running_tests = dict()  # type: T.Dict[asyncio.Future, str]
+        running_tests = {}  # type: T.Dict[asyncio.Future, str]
         interrupted = False
         ctrlc_times = deque(maxlen=MAX_CTRLC)  # type: T.Deque[float]
 
@@ -2007,9 +2007,9 @@ def rebuild_deps(ninja: T.List[str], wd: str, tests: T.List[TestSerialisation]) 
 
     assert len(ninja) > 0
 
-    depends = set()            # type: T.Set[str]
-    targets = set()            # type: T.Set[str]
-    intro_targets = dict()     # type: T.Dict[str, T.List[str]]
+    depends = set()        # type: T.Set[str]
+    targets = set()        # type: T.Set[str]
+    intro_targets = {}     # type: T.Dict[str, T.List[str]]
     for target in load_info_file(get_infodir(wd), kind='targets'):
         intro_targets[target['id']] = [
             convert_path_to_target(f)
