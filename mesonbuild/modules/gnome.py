@@ -269,8 +269,6 @@ class VapiTarget(build.CustomTarget):
 # https://bugzilla.gnome.org/show_bug.cgi?id=774368
 gresource_dep_needed_version = '>= 2.51.1'
 
-native_glib_version: T.Optional[str] = None
-
 class GnomeModule(ExtensionModule):
 
     INFO = ModuleInfo('gnome')
@@ -285,6 +283,7 @@ class GnomeModule(ExtensionModule):
         self.install_gtk_update_icon_cache = False
         self.install_update_desktop_database = False
         self.devenv: T.Optional[build.EnvironmentVariables] = None
+        self.native_glib_version: T.Optional[str] = None
         self.methods.update({
             'post_install': self.post_install,
             'compile_resources': self.compile_resources,
@@ -300,19 +299,17 @@ class GnomeModule(ExtensionModule):
             'generate_vapi': self.generate_vapi,
         })
 
-    @staticmethod
-    def _get_native_glib_version(state: 'ModuleState') -> str:
-        global native_glib_version
-        if native_glib_version is None:
+    def _get_native_glib_version(self, state: 'ModuleState') -> str:
+        if self.native_glib_version is None:
             glib_dep = PkgConfigDependency('glib-2.0', state.environment,
                                            {'native': True, 'required': False})
             if glib_dep.found():
-                native_glib_version = glib_dep.get_version()
+                self.native_glib_version = glib_dep.get_version()
             else:
                 mlog.warning('Could not detect glib version, assuming 2.54. '
                              'You may get build errors if your glib is older.')
-                native_glib_version = '2.54'
-        return native_glib_version
+                self.native_glib_version = '2.54'
+        return self.native_glib_version
 
     @mesonlib.run_once
     def __print_gresources_warning(self, state: 'ModuleState') -> None:
