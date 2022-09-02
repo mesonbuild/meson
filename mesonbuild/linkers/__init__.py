@@ -24,7 +24,6 @@ from .linkers import (
     VisualStudioLikeLinker,
     VisualStudioLinker,
     IntelVisualStudioLinker,
-    AppleArLinker,
     ArLinker,
     ArmarLinker,
     DLinker,
@@ -94,7 +93,6 @@ __all__ = [
     'C2000Linker',
     'TILinker',
     'AIXArLinker',
-    'AppleArLinker',
     'PGIStaticLinker',
     'NvidiaHPC_StaticLinker',
 

@@ -215,13 +215,6 @@ class ArLinker(ArLikeLinker):
             return self.std_args
 
 
-class AppleArLinker(ArLinker):
-
-    # mostly this is used to determine that we need to call ranlib
-
-    id = 'applear'
-
-
 class ArmarLinker(ArLikeLinker):
     id = 'armar'
 
