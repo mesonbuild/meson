@@ -86,7 +86,6 @@ disable=
     use-a-generator,
     use-dict-literal,
     use-implicit-booleaness-not-comparison,
-    use-list-literal,
     used-before-assignment,
     useless-return,
     useless-super-delegation,
