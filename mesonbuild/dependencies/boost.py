@@ -427,7 +427,8 @@ class BoostDependency(SystemDependency):
             mlog.debug(f'  - boost_includedir = {inc_dir}')
             mlog.debug(f'  - boost_librarydir = {lib_dir}')
 
-            return self.detect_split_root(inc_dir, lib_dir)
+            self.detect_split_root(inc_dir, lib_dir)
+            return
 
         elif incdir or libdir:
             raise DependencyException('Both boost_includedir *and* boost_librarydir have to be set in your machine file (one is not enough)')

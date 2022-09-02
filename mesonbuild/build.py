@@ -1367,7 +1367,8 @@ You probably should put it in link_with instead.''')
                     # https://github.com/mesonbuild/meson/issues/10722
                     # https://github.com/mesonbuild/meson/issues/10723
                     # https://github.com/mesonbuild/meson/issues/10724
-                    return self.link_whole(t)
+                    self.link_whole(t)
+                    return
             if not isinstance(t, (Target, CustomTargetIndex)):
                 raise InvalidArguments(f'{t!r} is not a target.')
             if not t.is_linkable_target():

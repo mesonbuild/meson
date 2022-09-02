@@ -112,3 +112,5 @@ def run(options):
         else:
             print(k + ':')
             print(textwrap.indent(pprint.pformat(v), '  '))
+
+    return 0

@@ -501,7 +501,8 @@ class Rewriter:
         mlog.log('Processing function type', mlog.bold(cmd['function']), 'with id', mlog.cyan("'" + cmd['id'] + "'"))
         if cmd['function'] not in rewriter_func_kwargs:
             mlog.error('Unknown function type', cmd['function'], *self.on_error())
-            return self.handle_error()
+            self.handle_error()
+            return
         kwargs_def = rewriter_func_kwargs[cmd['function']]
 
         # Find the function node to modify
@@ -514,7 +515,8 @@ class Rewriter:
             # other shells.
             if {'/', '//'}.isdisjoint({cmd['id']}):
                 mlog.error('The ID for the function type project must be "/" or "//" not "' + cmd['id'] + '"', *self.on_error())
-                return self.handle_error()
+                self.handle_error()
+                return
             node = self.interpreter.project_node
             arg_node = node.args
         elif cmd['function'] == 'target':
