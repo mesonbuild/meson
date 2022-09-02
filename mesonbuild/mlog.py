@@ -82,33 +82,33 @@ _logged_once = set()         # type: T.Set[T.Tuple[str, ...]]
 log_warnings_counter = 0     # type: int
 
 def disable() -> None:
-    global log_disable_stdout
+    global log_disable_stdout  # pylint: disable=global-statement
     log_disable_stdout = True
 
 def enable() -> None:
-    global log_disable_stdout
+    global log_disable_stdout  # pylint: disable=global-statement
     log_disable_stdout = False
 
 def set_quiet() -> None:
-    global log_errors_only
+    global log_errors_only  # pylint: disable=global-statement
     log_errors_only = True
 
 def set_verbose() -> None:
-    global log_errors_only
+    global log_errors_only  # pylint: disable=global-statement
     log_errors_only = False
 
 def initialize(logdir: str, fatal_warnings: bool = False) -> None:
-    global log_dir, log_file, log_fatal_warnings
+    global log_dir, log_file, log_fatal_warnings  # pylint: disable=global-statement
     log_dir = logdir
     log_file = open(os.path.join(logdir, log_fname), 'w', encoding='utf-8')
     log_fatal_warnings = fatal_warnings
 
 def set_timestamp_start(start: float) -> None:
-    global log_timestamp_start
+    global log_timestamp_start  # pylint: disable=global-statement
     log_timestamp_start = start
 
 def shutdown() -> T.Optional[str]:
-    global log_file
+    global log_file  # pylint: disable=global-statement
     if log_file is not None:
         path = log_file.name
         exception_around_goer = log_file
@@ -328,7 +328,7 @@ def _log_error(severity: str, *rargs: TV_Loggable,
 
     log(*args, once=once, **kwargs)
 
-    global log_warnings_counter
+    global log_warnings_counter  # pylint: disable=global-statement
     log_warnings_counter += 1
 
     if log_fatal_warnings and fatal:

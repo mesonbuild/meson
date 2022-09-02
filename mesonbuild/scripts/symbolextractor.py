@@ -315,7 +315,7 @@ def gen_symbols(libfilename: str, impfilename: str, outfilename: str, cross_host
         dummy_syms(outfilename)
 
 def run(args: T.List[str]) -> int:
-    global TOOL_WARNING_FILE
+    global TOOL_WARNING_FILE  # pylint: disable=global-statement
     options = parser.parse_args(args)
     if len(options.args) != 4:
         print('symbolextractor.py <shared library file> <import library> <output file>')
