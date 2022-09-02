@@ -245,6 +245,7 @@ class ExternalProject(NewExtensionModule):
         idir = build.InstallDir(self.subdir.as_posix(),
                                 Path('dist', self.rel_prefix).as_posix(),
                                 install_dir='.',
+                                install_dir_name='.',
                                 install_mode=None,
                                 exclude=None,
                                 strip_directory=True,

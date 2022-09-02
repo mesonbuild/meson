@@ -202,6 +202,7 @@ class InstallDir(HoldableObject):
     source_subdir: str
     installable_subdir: str
     install_dir: str
+    install_dir_name: str
     install_mode: 'FileMode'
     exclude: T.Tuple[T.Set[str], T.Set[str]]
     strip_directory: bool

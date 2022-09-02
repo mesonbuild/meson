@@ -2382,10 +2382,15 @@ class Interpreter(InterpreterBase, HoldableObject):
             FeatureDeprecated.single_use('install_subdir with empty directory', '0.60.0', self.subproject,
                                          'It worked by accident and is buggy. Use install_emptydir instead.', node)
 
+        idir_name = kwargs['install_dir']
+        if isinstance(idir_name, P_OBJ.OptionString):
+            idir_name = idir_name.optname
+
         idir = build.InstallDir(
             self.subdir,
             args[0],
             kwargs['install_dir'],
+            idir_name,
             kwargs['install_mode'],
             exclude,
             kwargs['strip_directory'],

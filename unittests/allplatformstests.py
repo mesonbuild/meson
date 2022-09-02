@@ -4284,6 +4284,12 @@ class AllPlatformTests(BasePlatformTests):
                     'destination': '{includedir}/foo3-devel.h',
                     'tag': 'devel',
                 },
+            },
+            'install_subdirs': {
+                f'{testdir}/custom_files': {
+                    'destination': '{datadir}/custom_files',
+                    'tag': 'custom'
+                }
             }
         }
 
