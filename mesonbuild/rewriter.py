@@ -399,7 +399,7 @@ class Rewriter:
         def check_list(name: str) -> T.List[BaseNode]:
             result = []
             for i in self.interpreter.targets:
-                if name == i['name'] or name == i['id']:
+                if name in {i['name'], i['id']}:
                     result += [i]
             return result
 

@@ -2331,7 +2331,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                                 deps=deps, depfile=depfile))
 
     def generate_pch_rule_for(self, langname, compiler):
-        if langname != 'c' and langname != 'cpp':
+        if langname not in {'c', 'cpp'}:
             return
         rule = self.compiler_to_pch_rule_name(compiler)
         depargs = compiler.get_dependency_gen_args('$out', '$DEPFILE')
