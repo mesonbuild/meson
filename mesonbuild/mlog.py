@@ -391,7 +391,6 @@ def format_list(input_list: T.List[str]) -> str:
 
 @contextmanager
 def nested(name: str = '') -> T.Generator[None, None, None]:
-    global log_depth
     log_depth.append(name)
     try:
         yield

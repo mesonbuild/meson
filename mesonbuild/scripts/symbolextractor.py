@@ -53,7 +53,6 @@ def write_if_changed(text: str, outfilename: str) -> None:
         f.write(text)
 
 def print_tool_warning(tools: T.List[str], msg: str, stderr: T.Optional[str] = None) -> None:
-    global TOOL_WARNING_FILE
     if os.path.exists(TOOL_WARNING_FILE):
         return
     m = f'{tools!r} {msg}. {RELINKING_WARNING}'
