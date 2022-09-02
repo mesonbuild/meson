@@ -1360,9 +1360,8 @@ class Vs2010Backend(backends.Backend):
                 relpath = os.path.join(down, h.rel_to_builddir(self.build_to_src))
                 if path_normalize_add(relpath, previous_includes):
                     ET.SubElement(inc_hdrs, 'CLInclude', Include=relpath)
-            for lang in pch_sources:
-                h = pch_sources[lang][0]
-                path = os.path.join(proj_to_src_dir, h)
+            for headers in pch_sources.values():
+                path = os.path.join(proj_to_src_dir, headers[0])
                 if path_normalize_add(path, previous_includes):
                     ET.SubElement(inc_hdrs, 'CLInclude', Include=path)
 
@@ -1391,8 +1390,8 @@ class Vs2010Backend(backends.Backend):
                     s = File.from_built_file(target.get_subdir(), s)
                     ET.SubElement(inc_cl, 'ObjectFileName').text = "$(IntDir)" + \
                         self.object_filename_from_source(target, s)
-            for lang in pch_sources:
-                impl = pch_sources[lang][1]
+            for lang, headers in pch_sources.items():
+                impl = headers[1]
                 if impl and path_normalize_add(impl, previous_sources):
                     inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=impl)
                     self.create_pch(pch_sources, lang, inc_cl)

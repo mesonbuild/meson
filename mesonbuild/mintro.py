@@ -488,8 +488,8 @@ def run(options: argparse.Namespace) -> int:
             return 1
 
     # Extract introspection information from JSON
-    for i in intro_types.keys():
-        if not intro_types[i].func:
+    for i, v in intro_types.items():
+        if not v.func:
             continue
         if not options.all and not getattr(options, i, False):
             continue
@@ -549,8 +549,8 @@ def write_meson_info_file(builddata: build.Build, errors: list, build_files_upda
     intro_types = get_meson_introspection_types()
     intro_info = {}
 
-    for i in intro_types.keys():
-        if not intro_types[i].func:
+    for i, v in intro_types.items():
+        if not v.func:
             continue
         intro_info[i] = {
             'file': f'intro-{i}.json',
