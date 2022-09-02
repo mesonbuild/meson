@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import functools
+import typing as T
+
 from .base import ExternalDependency, DependencyException, DependencyMethods, NotFoundDependency
 from .cmake import CMakeDependency
 from .dub import DubDependency
@@ -20,8 +23,6 @@ from .pkgconfig import PkgConfigDependency
 
 from ..mesonlib import listify, MachineChoice, PerMachine
 from .. import mlog
-import functools
-import typing as T
 
 if T.TYPE_CHECKING:
     from ..environment import Environment

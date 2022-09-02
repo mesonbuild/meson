@@ -87,5 +87,4 @@ disable=
     used-before-assignment,
     useless-return,
     useless-super-delegation,
-    wrong-import-order,
     wrong-import-position,

@@ -12,6 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from __future__ import annotations
+import subprocess
+import platform
+import re
+import shutil
+import tempfile
+import os
+import typing as T
 
 from ..mesonlib import (
     MesonException, EnvironmentException, MachineChoice, join_args,
@@ -21,14 +28,6 @@ from ..envconfig import BinaryTable
 from .. import mlog
 
 from ..linkers import guess_win_linker, guess_nix_linker
-
-import subprocess
-import platform
-import re
-import shutil
-import tempfile
-import os
-import typing as T
 
 if T.TYPE_CHECKING:
     from .compilers import Compiler

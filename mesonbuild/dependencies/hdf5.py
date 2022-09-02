@@ -20,13 +20,13 @@ import re
 import shutil
 import subprocess
 from pathlib import Path
+import typing as T
 
 from ..mesonlib import OrderedSet, join_args
 from .base import DependencyException, DependencyMethods
 from .configtool import ConfigToolDependency
 from .pkgconfig import PkgConfigDependency
 from .factory import factory_methods
-import typing as T
 
 if T.TYPE_CHECKING:
     from .factory import DependencyGenerator

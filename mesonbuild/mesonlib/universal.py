@@ -15,6 +15,7 @@
 """A library of random helper functionality."""
 
 from __future__ import annotations
+from glob import glob
 from pathlib import Path
 import argparse
 import enum
@@ -159,9 +160,6 @@ __all__ = [
 # interpreter
 # {subproject: project_meson_version}
 project_meson_versions = collections.defaultdict(str)  # type: T.DefaultDict[str, str]
-
-
-from glob import glob
 
 if os.path.basename(sys.executable) == 'meson.exe':
     # In Windows and using the MSI installed executable.

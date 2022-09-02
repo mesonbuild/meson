@@ -32,7 +32,7 @@ from .mixins.clang import ClangCompiler
 from .mixins.elbrus import ElbrusCompiler
 from .mixins.pgi import PGICompiler
 
-from mesonbuild.mesonlib import (
+from ..mesonlib import (
     version_compare, EnvironmentException, MesonException,
     LibType, OptionKey,
 )

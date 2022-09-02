@@ -4,13 +4,13 @@ import argparse
 import tempfile
 import shutil
 import itertools
+import typing as T
 
 from pathlib import Path
 from . import build, minstall, dependencies
 from .mesonlib import MesonException, RealPathAction, is_windows, setup_vsenv, OptionKey, quote_arg, get_wine_shortpath
 from . import mlog
 
-import typing as T
 if T.TYPE_CHECKING:
     from .backends import InstallData
 

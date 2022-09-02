@@ -15,9 +15,10 @@
 # This file contains the detection logic for external dependencies that are
 # platform-specific (generally speaking).
 
+import typing as T
+
 from .base import DependencyTypeName, ExternalDependency, DependencyException
 from ..mesonlib import MesonException
-import typing as T
 
 if T.TYPE_CHECKING:
     from ..environment import Environment

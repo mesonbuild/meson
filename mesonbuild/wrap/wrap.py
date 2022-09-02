@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .. import mlog
 import contextlib
 from dataclasses import dataclass
 import urllib.request
@@ -35,6 +34,7 @@ from netrc import netrc
 from pathlib import Path
 from . import WrapMode
 from .. import coredata
+from .. import mlog
 from ..mesonlib import quiet_git, GIT, ProgressBar, MesonException, windows_proof_rmtree, Popen_safe
 from ..interpreterbase import FeatureNew
 from ..interpreterbase import SubProject

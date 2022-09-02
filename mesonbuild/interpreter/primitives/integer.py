@@ -1,6 +1,7 @@
 # Copyright 2021 The Meson development team
 # SPDX-license-identifier: Apache-2.0
 from __future__ import annotations
+import typing as T
 
 from ...interpreterbase import (
     ObjectHolder,
@@ -11,8 +12,6 @@ from ...interpreterbase import (
 
     InvalidArguments
 )
-
-import typing as T
 
 if T.TYPE_CHECKING:
     # Object holders need the actual interpreter
