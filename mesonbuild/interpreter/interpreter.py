@@ -2419,10 +2419,15 @@ class Interpreter(InterpreterBase, HoldableObject):
                                          'It worked by accident and is buggy. Use install_emptydir instead.', node)
         install_mode = self._warn_kwarg_install_mode_sticky(kwargs['install_mode'])
 
+        idir_name = kwargs['install_dir']
+        if isinstance(idir_name, P_OBJ.OptionString):
+            idir_name = idir_name.optname
+
         idir = build.InstallDir(
             self.subdir,
             args[0],
             kwargs['install_dir'],
+            idir_name,
             install_mode,
             exclude,
             kwargs['strip_directory'],

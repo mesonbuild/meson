@@ -137,8 +137,10 @@ def list_install_plan(installdata: backends.InstallData) -> T.Dict[str, T.Dict[s
         'data': installdata.data,
         'man': installdata.man,
         'headers': installdata.headers,
+        'install_subdirs': installdata.install_subdirs
     }.items():
-        for data in data_list:
+        # Mypy doesn't recognize SubdirInstallData as a subclass of InstallDataBase
+        for data in data_list: # type: ignore[attr-defined]
             data_type = data.data_type or key
             install_path_name = data.install_path_name
             if key == 'headers':  # in the headers, install_path_name is the directory
