@@ -1,4 +1,5 @@
-import os, subprocess
+import os
+import subprocess
 import argparse
 import tempfile
 import shutil

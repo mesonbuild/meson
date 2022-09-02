@@ -15,7 +15,8 @@ from __future__ import annotations
 
 from pathlib import Path
 import typing as T
-import subprocess, os
+import subprocess
+import os
 
 from .. import coredata
 from .compilers import (

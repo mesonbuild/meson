@@ -29,7 +29,10 @@ from mesonbuild.mesonlib import MesonException
 from . import mlog, environment
 from functools import wraps
 from .mparser import Token, ArrayNode, ArgumentNode, AssignmentNode, BooleanNode, ElementaryNode, IdNode, FunctionNode, StringNode
-import json, os, re, sys
+import json
+import os
+import re
+import sys
 import typing as T
 
 if T.TYPE_CHECKING:

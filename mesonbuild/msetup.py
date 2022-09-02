@@ -14,7 +14,8 @@
 
 import typing as T
 import time
-import sys, stat
+import sys
+import stat
 import datetime
 import os.path
 import platform

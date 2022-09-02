@@ -21,7 +21,8 @@
 # http://cgit.freedesktop.org/libreoffice/core/commit/?id=3213cd54b76bc80a6f0516aac75a48ff3b2ad67c
 
 import typing as T
-import os, sys
+import os
+import sys
 from .. import mesonlib
 from .. import mlog
 from ..mesonlib import Popen_safe

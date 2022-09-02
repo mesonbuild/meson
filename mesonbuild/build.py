@@ -18,7 +18,8 @@ from dataclasses import dataclass, field
 from functools import lru_cache
 import copy
 import hashlib
-import itertools, pathlib
+import itertools
+import pathlib
 import os
 import pickle
 import re

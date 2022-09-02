@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, InitVar
-import os, subprocess
+import os
+import subprocess
 import argparse
 import asyncio
 import threading

@@ -13,7 +13,9 @@
 # limitations under the License.
 
 from . import mlog, mparser
-import pickle, os, uuid
+import pickle
+import os
+import uuid
 import sys
 from itertools import chain
 from pathlib import PurePath

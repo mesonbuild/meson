@@ -13,7 +13,8 @@
 # limitations under the License.
 from __future__ import annotations
 
-import subprocess, os.path
+import subprocess
+import os.path
 import typing as T
 
 from ..mesonlib import EnvironmentException

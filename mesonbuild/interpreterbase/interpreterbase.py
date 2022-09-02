@@ -47,7 +47,10 @@ from .helpers import default_resolve_key, flatten, resolve_second_level_holders
 from .operator import MesonOperator
 from ._unholder import _unholder
 
-import os, copy, re, pathlib
+import os
+import copy
+import re
+import pathlib
 import typing as T
 import textwrap
 
