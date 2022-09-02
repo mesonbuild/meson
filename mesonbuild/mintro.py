@@ -323,7 +323,7 @@ def find_buildsystem_files_list(src_dir: str) -> T.List[str]:
     filelist = []  # type: T.List[str]
     for root, _, files in os.walk(src_dir):
         for f in files:
-            if f == 'meson.build' or f == 'meson_options.txt':
+            if f in {'meson.build', 'meson_options.txt'}:
                 filelist.append(os.path.relpath(os.path.join(root, f), src_dir))
     return filelist
 
