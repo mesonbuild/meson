@@ -24,7 +24,6 @@ disable=
     exec-used,
     fixme,
     global-statement,
-    global-variable-not-assigned,
     implicit-str-concat,
     import-error,
     import-outside-toplevel,

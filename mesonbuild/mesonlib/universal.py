@@ -229,7 +229,6 @@ def verbose_git(cmd: T.List[str], workingdir: T.Union[str, bytes, os.PathLike], 
     return p.returncode == 0
 
 def set_meson_command(mainfile: str) -> None:
-    global python_command
     global _meson_command
     # On UNIX-like systems `meson` is a Python script
     # On Windows `meson` and `meson.exe` are wrapper exes
