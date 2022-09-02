@@ -882,7 +882,7 @@ class TestRun:
         self._num = None       # type: T.Optional[int]
         self.name = name
         self.timeout = timeout
-        self.results = list()  # type: T.List[TAPParser.Test]
+        self.results = []      # type: T.List[TAPParser.Test]
         self.returncode = None  # type: T.Optional[int]
         self.starttime = None  # type: T.Optional[float]
         self.duration = None   # type: T.Optional[float]
