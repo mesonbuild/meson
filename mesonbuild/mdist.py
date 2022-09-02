@@ -82,7 +82,6 @@ def handle_dirty_opt(msg, allow_dirty: bool):
     else:
         mlog.error(msg + '\n' + 'Use --allow-dirty to ignore the warning and proceed anyway')
         sys.exit(1)
-    return
 
 def process_submodules(src, distdir, options):
     module_file = os.path.join(src, '.gitmodules')

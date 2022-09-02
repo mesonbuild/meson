@@ -577,7 +577,6 @@ class InterpreterBase:
         if isinstance(value, MutableInterpreterObject):
             value = copy.deepcopy(value)
         self.set_variable(var_name, value)
-        return None
 
     def set_variable(self, varname: str, variable: T.Union[TYPE_var, InterpreterObject], *, holderify: bool = False) -> None:
         if variable is None:
