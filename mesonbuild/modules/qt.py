@@ -158,7 +158,7 @@ class QtBaseModule(ExtensionModule):
                     care = out
                 else:
                     care = err
-                return care.split(' ')[-1].replace(')', '').strip()
+                return care.rsplit(' ', maxsplit=1)[-1].replace(')', '').strip()
 
             p = state.find_program(b, required=False,
                                    version_func=get_version,

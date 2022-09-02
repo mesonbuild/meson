@@ -1475,7 +1475,7 @@ class CudaLinker(PosixDynamicLinkerMixin, DynamicLinker):
         # Built on Sun_Sep_30_21:09:22_CDT_2018
         # Cuda compilation tools, release 10.0, V10.0.166
         # we need the most verbose version output. Luckily starting with V
-        return out.strip().split('V')[-1]
+        return out.strip().rsplit('V', maxsplit=1)[-1]
 
     def get_accepts_rsp(self) -> bool:
         # nvcc does not support response files

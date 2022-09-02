@@ -3554,7 +3554,7 @@ def _scan_fortran_file_deps(src: Path, srcdir: Path, dirname: Path, tdeps, compi
 
                     ancestor_child = '_'.join(parents)
                     if ancestor_child not in tdeps:
-                        raise MesonException("submodule {} relies on ancestor module {} that was not found.".format(submodmatch.group(2).lower(), ancestor_child.split('_')[0]))
+                        raise MesonException("submodule {} relies on ancestor module {} that was not found.".format(submodmatch.group(2).lower(), ancestor_child.split('_', maxsplit=1)[0]))
                     submodsrcfile = srcdir / tdeps[ancestor_child].fname  # type: Path
                     if not submodsrcfile.is_file():
                         if submodsrcfile.name != src.name:  # generated source file

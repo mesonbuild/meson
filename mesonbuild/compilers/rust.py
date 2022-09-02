@@ -111,7 +111,7 @@ class RustCompiler(Compiler):
     def get_sysroot(self) -> str:
         cmd = self.exelist + ['--print', 'sysroot']
         p, stdo, stde = Popen_safe(cmd)
-        return stdo.split('\n')[0]
+        return stdo.split('\n', maxsplit=1)[0]
 
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
         return clike_debug_args[is_debug]

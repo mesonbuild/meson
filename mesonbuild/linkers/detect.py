@@ -83,7 +83,7 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
         check_args.extend(extra_args)
 
     p, o, _ = Popen_safe(compiler + check_args)
-    if 'LLD' in o.split('\n')[0]:
+    if 'LLD' in o.split('\n', maxsplit=1)[0]:
         if '(compatible with GNU linkers)' in o:
             return LLVMDynamicLinker(
                 compiler, for_machine, comp_class.LINKER_PREFIX,
@@ -98,7 +98,7 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
         # We've already hanedled the non-direct case above
 
     p, o, e = Popen_safe(compiler + check_args)
-    if 'LLD' in o.split('\n')[0]:
+    if 'LLD' in o.split('\n', maxsplit=1)[0]:
         return ClangClDynamicLinker(
             for_machine, [],
             prefix=comp_class.LINKER_PREFIX if use_linker_prefix else [],
@@ -164,7 +164,7 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
 
     v = search_version(o + e)
     linker: DynamicLinker
-    if 'LLD' in o.split('\n')[0]:
+    if 'LLD' in o.split('\n', maxsplit=1)[0]:
         linker = LLVMDynamicLinker(
             compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
     elif 'Snapdragon' in e and 'LLVM' in e:

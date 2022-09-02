@@ -306,7 +306,7 @@ class Elf(DataSizes):
             self.bf.seek(offset)
             name = self.read_str()
             if name.startswith(prefix):
-                basename = name.split(b'/')[-1]
+                basename = name.rsplit(b'/', maxsplit=1)[-1]
                 padding = b'\0' * (len(name) - len(basename))
                 newname = basename + padding
                 assert len(newname) == len(name)
