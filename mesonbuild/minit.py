@@ -36,10 +36,6 @@ from .templates.mesontemplates import create_meson_build
 if T.TYPE_CHECKING:
     import argparse
 
-'''
-we currently have one meson template at this time.
-'''
-
 FORTRAN_SUFFIXES = {'.f', '.for', '.F', '.f90', '.F90'}
 LANG_SUFFIXES = {'.c', '.cc', '.cpp', '.cs', '.cu', '.d', '.m', '.mm', '.rs', '.java', '.vala'} | FORTRAN_SUFFIXES
 LANG_SUPPORTED = {'c', 'cpp', 'cs', 'cuda', 'd', 'fortran', 'java', 'rust', 'objc', 'objcpp', 'vala'}

@@ -11,17 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Write logging information while Meson runs.
+
+Some output goes to screen, some to logging dir and some goes to both.
+"""
+
 from __future__ import annotations
 
 import enum
-import os
 import io
-import sys
-import time
+import os
 import platform
 import shlex
-import subprocess
 import shutil
+import subprocess
+import sys
+import time
 import typing as T
 from contextlib import contextmanager
 from pathlib import Path
@@ -34,9 +39,6 @@ if T.TYPE_CHECKING:
     TV_Loggable = T.Union[str, 'AnsiDecorator', StringProtocol]
     TV_LoggableList = T.List[TV_Loggable]
 
-"""This is (mostly) a standalone module used to write logging
-information about Meson runs. Some output goes to screen,
-some to logging dir and some goes to both."""
 
 def is_windows() -> bool:
     platname = platform.system().lower()

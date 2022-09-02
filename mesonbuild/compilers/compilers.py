@@ -11,6 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+"""Base class and helpers for Meson compiler abstractions."""
+
 from __future__ import annotations
 
 import abc
@@ -45,9 +48,6 @@ if T.TYPE_CHECKING:
     CompilerType = T.TypeVar('CompilerType', bound='Compiler')
     _T = T.TypeVar('_T')
 
-"""This file contains the data files of all compilers Meson knows
-about. To support a new compiler, add its information below.
-Also add corresponding autodetection code in environment.py."""
 
 header_suffixes = {'h', 'hh', 'hpp', 'hxx', 'H', 'ipp', 'moc', 'vapi', 'di'}
 obj_suffixes = {'o', 'obj', 'res'}

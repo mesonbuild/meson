@@ -464,15 +464,13 @@ class Interpreter(InterpreterBase, HoldableObject):
             build.ConfigurationData: OBJ.ConfigurationDataHolder,
         })
 
-        '''
-            Build a mapping of `HoldableObject` base classes to their
-            corresponding `ObjectHolder`s. The difference to `self.holder_map`
-            is that the keys here define an upper bound instead of requiring an
-            exact match.
+        # Build a mapping of `HoldableObject` base classes to their
+        # corresponding `ObjectHolder`s. The difference to `self.holder_map`
+        # is that the keys here define an upper bound instead of requiring an
+        # exact match.
 
-            The mappings defined here are only used when there was no direct hit
-            found in `self.holder_map`.
-        '''
+        # The mappings defined here are only used when there was no direct hit
+        # found in `self.holder_map`.
         self.bound_holder_map.update({
             dependencies.Dependency: OBJ.DependencyHolder,
             ExternalProgram: OBJ.ExternalProgramHolder,

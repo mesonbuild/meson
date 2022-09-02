@@ -45,7 +45,6 @@ disable=
     non-parent-init-called,
     not-an-iterable,
     not-callable,
-    pointless-string-statement,
     protected-access,
     raise-missing-from,
     redeclared-assigned-name,
