@@ -93,7 +93,7 @@ def open_wrapdburl(urlstring: str, allow_insecure: bool = False, have_opt: bool 
         raise WrapException(f'SSL module not available in {sys.executable}: Cannot contact the WrapDB.{insecure_msg}')
     else:
         # following code is only for those without Python SSL
-        global SSL_WARNING_PRINTED
+        global SSL_WARNING_PRINTED  # pylint: disable=global-statement
         if not SSL_WARNING_PRINTED:
             mlog.warning(f'SSL module not available in {sys.executable}: WrapDB traffic not authenticated.')
             SSL_WARNING_PRINTED = True

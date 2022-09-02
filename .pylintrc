@@ -23,7 +23,6 @@ disable=
     duplicate-value,
     exec-used,
     fixme,
-    global-statement,
     implicit-str-concat,
     import-error,
     import-outside-toplevel,

@@ -23,8 +23,6 @@ import locale
 from .. import mesonlib
 from ..backend.backends import ExecutableSerialisation
 
-options = None
-
 def buildparser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description='Custom executable wrapper for Meson. Do not run on your own, mmm\'kay?')
     parser.add_argument('--unpickle')
@@ -102,7 +100,6 @@ def run_exe(exe: ExecutableSerialisation, extra_env: T.Optional[T.Dict[str, str]
     return 0
 
 def run(args: T.List[str]) -> int:
-    global options
     parser = buildparser()
     options, cmd_args = parser.parse_known_args(args)
     # argparse supports double dash to separate options and positional arguments,

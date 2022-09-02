@@ -504,7 +504,6 @@ def run(options: argparse.Namespace) -> int:
 updated_introspection_files = []  # type: T.List[str]
 
 def write_intro_info(intro_info: T.Sequence[T.Tuple[str, T.Union[dict, T.List[T.Any]]]], info_dir: str) -> None:
-    global updated_introspection_files
     for kind, data in intro_info:
         out_file = os.path.join(info_dir, f'intro-{kind}.json')
         tmp_file = os.path.join(info_dir, 'tmp_dump.json')
@@ -512,7 +511,7 @@ def write_intro_info(intro_info: T.Sequence[T.Tuple[str, T.Union[dict, T.List[T.
             json.dump(data, fp)
             fp.flush() # Not sure if this is needed
         os.replace(tmp_file, out_file)
-        updated_introspection_files += [kind]
+        updated_introspection_files.append(kind)
 
 def generate_introspection_file(builddata: build.Build, backend: backends.Backend) -> None:
     coredata = builddata.environment.get_coredata()
@@ -543,7 +542,6 @@ def split_version_string(version: str) -> T.Dict[str, T.Union[str, int]]:
     }
 
 def write_meson_info_file(builddata: build.Build, errors: list, build_files_updated: bool = False) -> None:
-    global updated_introspection_files
     info_dir = builddata.environment.info_dir
     info_file = get_meson_info_file(info_dir)
     intro_types = get_meson_introspection_types()
