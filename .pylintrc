@@ -14,8 +14,6 @@ disable=
     cell-var-from-loop,
     consider-merging-isinstance,
     consider-using-f-string,
-    consider-using-max-builtin,
-    consider-using-min-builtin,
     consider-using-with,
     cyclic-import,
     deprecated-decorator,

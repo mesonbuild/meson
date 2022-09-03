@@ -517,9 +517,7 @@ class CLikeCompiler(Compiler):
                     low = cur + 1
                     if low > maxint:
                         raise mesonlib.EnvironmentException('Cross-compile check overflowed')
-                    cur = cur * 2 + 1
-                    if cur > maxint:
-                        cur = maxint
+                    cur = min(cur * 2 + 1, maxint)
                 high = cur
             else:
                 high = cur = -1
@@ -527,9 +525,7 @@ class CLikeCompiler(Compiler):
                     high = cur - 1
                     if high < minint:
                         raise mesonlib.EnvironmentException('Cross-compile check overflowed')
-                    cur = cur * 2
-                    if cur < minint:
-                        cur = minint
+                    cur = max(cur * 2, minint)
                 low = cur
         else:
             # Sanity check limits given by user
