@@ -100,6 +100,9 @@ jobs:
     - run: brew install pkg-config ninja gcc
     - run: brew tap cartr/qt4
     - run: brew install qt@4
+    - run: brew link qt@4
+      # qt4 tap seems to be broken
+    - run: ln -sfn /usr/local/Cellar/qt@4/4.8.7_6.reinstall /usr/local/Cellar/qt@4/4.8.7_6
     - run: meson setup "test cases/frameworks/4 qt" build -Drequired=qt4
     - run: meson compile -C build
     - uses: actions/upload-artifact@v1
