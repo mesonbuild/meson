@@ -310,6 +310,7 @@ class Conf:
 def run(options):
     coredata.parse_cmd_line_options(options)
     builddir = os.path.abspath(os.path.realpath(options.builddir))
+    mlog.start_pager()
     c = None
     try:
         c = Conf(builddir)
@@ -336,4 +337,7 @@ def run(options):
         if c is not None and c.build is not None:
             mintro.write_meson_info_file(c.build, [e])
         raise e
+    except BrokenPipeError:
+        # Pager quit before we wrote everything.
+        pass
     return 0
