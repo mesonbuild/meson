@@ -17,6 +17,8 @@ import io
 import sys
 import time
 import platform
+import shlex
+import subprocess
 import typing as T
 from contextlib import contextmanager
 from pathlib import Path
@@ -80,6 +82,7 @@ log_errors_only = False      # type: bool
 _in_ci = 'CI' in os.environ  # type: bool
 _logged_once = set()         # type: T.Set[T.Tuple[str, ...]]
 log_warnings_counter = 0     # type: int
+log_pager: T.Optional['subprocess.Popen'] = None
 
 def disable() -> None:
     global log_disable_stdout
@@ -115,6 +118,7 @@ def shutdown() -> T.Optional[str]:
         log_file = None
         exception_around_goer.close()
         return path
+    stop_pager()
     return None
 
 class AnsiDecorator:
@@ -227,7 +231,8 @@ def force_print(*args: str, nested: bool, **kwargs: T.Any) -> None:
 
     # _Something_ is going to get printed.
     try:
-        print(raw, end='')
+        output = log_pager.stdin if log_pager else None
+        print(raw, end='', file=output)
     except UnicodeEncodeError:
         cleaned = raw.encode('ascii', 'replace').decode('ascii')
         print(cleaned, end='')
@@ -397,3 +402,35 @@ def nested(name: str = '') -> T.Generator[None, None, None]:
         yield
     finally:
         log_depth.pop()
+
+def start_pager() -> None:
+    if not colorize_console():
+        return
+    if 'PAGER' in os.environ:
+        pager_cmd = shlex.split(os.environ['PAGER'])
+    else:
+        # "R" : support color
+        # "X" : do not clear the screen when leaving the pager
+        # "F" : skip the pager if content fit into the screen
+        pager_cmd = ['less', '-RXF']
+    global log_pager
+    assert log_pager is None
+    try:
+        log_pager = subprocess.Popen(pager_cmd, stdin=subprocess.PIPE,
+                                     text=True, encoding='utf-8')
+    except Exception as e:
+        # Ignore errors, unless it is a user defined pager.
+        if 'PAGER' in os.environ:
+            from .mesonlib import MesonException
+            raise MesonException(f'Failed to start pager: {str(e)}')
+
+def stop_pager() -> None:
+    global log_pager
+    if log_pager:
+        try:
+            log_pager.stdin.flush()
+            log_pager.stdin.close()
+        except BrokenPipeError:
+            pass
+        log_pager.wait()
+        log_pager = None
