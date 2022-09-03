@@ -119,13 +119,13 @@ class Conf:
 
         for line in zip(self.name_col, self.value_col, self.choices_col, self.descr_col):
             if not any(line):
-                print('')
+                mlog.log('')
                 continue
 
             # This is a header, like `Subproject foo:`,
             # We just want to print that and get on with it
             if line[0] and not any(line[1:]):
-                print(line[0])
+                mlog.log(line[0])
                 continue
 
             # wrap will take a long string, and create a list of strings no
@@ -140,13 +140,13 @@ class Conf:
                 for l in itertools.zip_longest(name, val, choice, desc, fillvalue=''):
                     # We must use the length modifier here to get even rows, as
                     # `textwrap.wrap` will only shorten, not lengthen each item
-                    print('{:{widths[0]}} {:{widths[1]}} {:{widths[2]}} {}'.format(*l, widths=four_column))
+                    mlog.log('{:{widths[0]}} {:{widths[1]}} {:{widths[2]}} {}'.format(*l, widths=four_column))
             else:
                 name = textwrap.wrap(line[0], three_column[0])
                 val = textwrap.wrap(line[1], three_column[1])
                 desc = textwrap.wrap(line[3], three_column[2])
                 for l in itertools.zip_longest(name, val, desc, fillvalue=''):
-                    print('{:{widths[0]}} {:{widths[1]}} {}'.format(*l, widths=three_column))
+                    mlog.log('{:{widths[0]}} {:{widths[1]}} {}'.format(*l, widths=three_column))
 
     def split_options_per_subproject(self, options: 'coredata.KeyedOptionDictType') -> T.Dict[str, 'coredata.KeyedOptionDictType']:
         result: T.Dict[str, 'coredata.KeyedOptionDictType'] = {}
@@ -225,12 +225,12 @@ class Conf:
 
         if self.default_values_only:
             print_default_values_warning()
-            print('')
+            mlog.log('')
 
-        print('Core properties:')
-        print('  Source dir', self.source_dir)
+        mlog.log('Core properties:')
+        mlog.log('  Source dir', self.source_dir)
         if not self.default_values_only:
-            print('  Build dir ', self.build_dir)
+            mlog.log('  Build dir ', self.build_dir)
 
         dir_option_names = set(coredata.BUILTIN_DIR_OPTIONS)
         test_option_names = {OptionKey('errorlogs'),
@@ -293,7 +293,7 @@ class Conf:
 
         # Print the warning twice so that the user shouldn't be able to miss it
         if self.default_values_only:
-            print('')
+            mlog.log('')
             print_default_values_warning()
 
         self.print_nondefault_buildtype_options()
@@ -302,10 +302,10 @@ class Conf:
         mismatching = self.coredata.get_nondefault_buildtype_args()
         if not mismatching:
             return
-        print("\nThe following option(s) have a different value than the build type default\n")
-        print('               current   default')
+        mlog.log("\nThe following option(s) have a different value than the build type default\n")
+        mlog.log('               current   default')
         for m in mismatching:
-            print(f'{m[0]:21}{m[1]:10}{m[2]:10}')
+            mlog.log(f'{m[0]:21}{m[1]:10}{m[2]:10}')
 
 def run(options):
     coredata.parse_cmd_line_options(options)
@@ -332,7 +332,7 @@ def run(options):
             mintro.update_build_options(c.coredata, c.build.environment.info_dir)
             mintro.write_meson_info_file(c.build, [])
     except ConfException as e:
-        print('Meson configurator encountered an error:')
+        mlog.log('Meson configurator encountered an error:')
         if c is not None and c.build is not None:
             mintro.write_meson_info_file(c.build, [e])
         raise e
