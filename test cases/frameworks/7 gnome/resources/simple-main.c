@@ -6,7 +6,8 @@
 #define EXPECTED "This is a resource.\n"
 
 int main(int argc, char **argv) {
-    GResource *res = simple_resources_get_resource();
+    simple_resources_get_resource();
+
     GError *err = NULL;
     GBytes *data = g_resources_lookup_data("/com/example/myprog/res1.txt",
             G_RESOURCE_LOOKUP_FLAGS_NONE, &err);
@@ -22,6 +23,5 @@ int main(int argc, char **argv) {
     }
     fprintf(stdout, "All ok.\n");
     g_bytes_unref(data);
-    g_resource_unref(res);
     return 0;
 }
