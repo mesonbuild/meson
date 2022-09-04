@@ -256,10 +256,13 @@ class I18nModule(ExtensionModule):
 
         extra_arg = '--extra-args=' + '@@'.join(extra_args) if extra_args else None
 
+        source_root = path.join(state.source_root, state.root_subdir)
+        subdir = path.relpath(state.subdir, start=state.root_subdir) if state.subdir else None
+
         potargs = state.environment.get_build_command() + ['--internal', 'gettext', 'pot', pkg_arg]
-        potargs.append(f'--source-root={state.source_root}')
-        if state.subdir:
-            potargs.append(f'--subdir={state.subdir}')
+        potargs.append(f'--source-root={source_root}')
+        if subdir:
+            potargs.append(f'--subdir={subdir}')
         if datadirs:
             potargs.append(datadirs)
         if extra_arg:
@@ -302,9 +305,9 @@ class I18nModule(ExtensionModule):
         targets.append(allgmotarget)
 
         updatepoargs = state.environment.get_build_command() + ['--internal', 'gettext', 'update_po', pkg_arg]
-        updatepoargs.append(f'--source-root={state.source_root}')
-        if state.subdir:
-            updatepoargs.append(f'--subdir={state.subdir}')
+        updatepoargs.append(f'--source-root={source_root}')
+        if subdir:
+            updatepoargs.append(f'--subdir={subdir}')
         if lang_arg:
             updatepoargs.append(lang_arg)
         if datadirs:
