@@ -49,6 +49,7 @@ class ModuleState:
                                     interpreter.environment.get_build_dir())
         self.subproject = interpreter.subproject
         self.subdir = interpreter.subdir
+        self.root_subdir = interpreter.root_subdir
         self.current_lineno = interpreter.current_lineno
         self.environment = interpreter.environment
         self.project_name = interpreter.build.project_name
