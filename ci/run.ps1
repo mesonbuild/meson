@@ -91,6 +91,9 @@ python --version
 echo ""
 python -m pip --disable-pip-version-check install --upgrade pefile pytest-xdist pytest-subtests jsonschema coverage
 
+# Needed for running the Cython tests
+python -m pip --disable-pip-version-check install cython
+
 echo ""
 echo "=== Start running tests ==="
 # Starting from VS2019 Powershell(?) will fail the test run
