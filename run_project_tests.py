@@ -654,16 +654,19 @@ def _run_test(test: TestDef,
         gen_args.extend(['--native-file', nativefile.as_posix()])
     if crossfile.exists():
         gen_args.extend(['--cross-file', crossfile.as_posix()])
-    (returncode, stdo, stde) = run_configure(gen_args, env=test.env, catch_exception=True)
+    inprocess, res = run_configure(gen_args, env=test.env, catch_exception=True)
+    returncode, stdo, stde = res
+    cmd = '(inprocess) $ ' if inprocess else '$ '
+    cmd += mesonlib.join_args(gen_args)
     try:
         logfile = Path(test_build_dir, 'meson-logs', 'meson-log.txt')
         with logfile.open(errors='ignore', encoding='utf-8') as fid:
-            mesonlog = fid.read()
+            mesonlog = '\n'.join((cmd, fid.read()))
     except Exception:
         mesonlog = no_meson_log_msg
     cicmds = run_ci_commands(mesonlog)
     testresult = TestResult(cicmds)
-    testresult.add_step(BuildStep.configure, stdo, stde, mesonlog, time.time() - gen_start)
+    testresult.add_step(BuildStep.configure, '\n'.join((cmd, stdo)), stde, mesonlog, time.time() - gen_start)
     output_msg = validate_output(test, stdo, stde)
     testresult.mlog += output_msg
     if output_msg:

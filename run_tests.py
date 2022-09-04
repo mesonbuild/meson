@@ -327,11 +327,11 @@ def run_configure_external(full_command: T.List[str], env: T.Optional[T.Dict[str
     pc, o, e = mesonlib.Popen_safe(full_command, env=env)
     return pc.returncode, o, e
 
-def run_configure(commandlist: T.List[str], env: T.Optional[T.Dict[str, str]] = None, catch_exception: bool = False) -> T.Tuple[int, str, str]:
+def run_configure(commandlist: T.List[str], env: T.Optional[T.Dict[str, str]] = None, catch_exception: bool = False) -> T.Tuple[bool, T.Tuple[int, str, str]]:
     global meson_exe
     if meson_exe:
-        return run_configure_external(meson_exe + commandlist, env=env)
-    return run_configure_inprocess(commandlist, env=env, catch_exception=catch_exception)
+        return (False, run_configure_external(meson_exe + commandlist, env=env))
+    return (True, run_configure_inprocess(commandlist, env=env, catch_exception=catch_exception))
 
 def print_system_info():
     print(mlog.bold('System information.'))
