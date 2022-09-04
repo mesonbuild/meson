@@ -1185,8 +1185,8 @@ class GnomeModule(ExtensionModule):
         scan_command += list(scan_external_ldflags)
 
         if self._gir_has_option('--sources-top-dirs'):
-            scan_command += ['--sources-top-dirs', os.path.join(state.environment.get_source_dir(), self.interpreter.subproject_dir, state.subproject)]
-            scan_command += ['--sources-top-dirs', os.path.join(state.environment.get_build_dir(), self.interpreter.subproject_dir, state.subproject)]
+            scan_command += ['--sources-top-dirs', os.path.join(state.environment.get_source_dir(), state.root_subdir)]
+            scan_command += ['--sources-top-dirs', os.path.join(state.environment.get_build_dir(), state.root_subdir)]
 
         if '--warn-error' in scan_command:
             FeatureDeprecated.single_use('gnome.generate_gir argument --warn-error', '0.55.0',
