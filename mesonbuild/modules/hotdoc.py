@@ -177,9 +177,8 @@ class HotdocTargetBuilder:
 
         value, _ = self.get_value([list, str], 'gi_c_source_roots', default=[], force_list=True)
         value.extend([
-            os.path.join(self.state.environment.get_source_dir(),
-                         self.interpreter.subproject_dir, self.state.subproject),
-            os.path.join(self.state.environment.get_build_dir(), self.interpreter.subproject_dir, self.state.subproject)
+            os.path.join(self.sourcedir, self.state.root_subdir),
+            os.path.join(self.builddir, self.state.root_subdir)
         ])
 
         self.cmd += ['--gi-c-source-roots'] + value
