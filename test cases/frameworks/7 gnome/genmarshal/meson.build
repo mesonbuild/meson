@@ -39,6 +39,9 @@ foreach mlist : mlists
   marshaller_c = marshallers[0]
   marshaller_h = marshallers[1]
 
+  cdata = configuration_data()
+  cdata.set_quoted('MARSHALLER_HEADER', 'marshaller-@0@.h'.format(idx))
+
   main_c = configure_file(input: 'main.c.in',
     output: 'main-@0@.c'.format(idx),
     configuration: cdata)
