@@ -242,6 +242,10 @@ _meson-configure() {
   fi
 }
 
+_meson-install() {
+  : TODO
+}
+
 _meson-introspect() {
   shortopts=(
     h
@@ -284,6 +288,10 @@ _meson-introspect() {
       COMPREPLY+=($(compgen -P '-' -W '${shortopts[*]}'))
     fi
   fi
+}
+
+_meson-init() {
+  : TODO
 }
 
 _meson-test() {
@@ -413,4 +421,12 @@ for test in json.load(sys.stdin):
 
 _meson-wrap() {
   : TODO
+}
+
+_meson-subprojects() {
+  : TODO
+}
+
+_meson-help() {
+  : # Nothing to do
 }
