@@ -242,6 +242,50 @@ _meson-configure() {
   fi
 }
 
+_meson-introspect() {
+  shortopts=(
+    h
+  )
+
+  longopts=(
+    targets
+    installed
+    buildsystem-files
+    buildoptions
+    tests
+    benchmarks
+    dependencies
+    projectinfo
+  )
+
+  local cur prev
+  if ! _get_comp_words_by_ref cur prev &>/dev/null; then
+    cur="${COMP_WORDS[COMP_CWORD]}"
+  fi
+
+  if [[ "$cur" == "--"* ]]; then
+    COMPREPLY+=($(compgen -P '--' -W '${longopts[*]}' -- "${cur:2}"))
+  elif [[ "$cur" == "-"* ]]; then
+    COMPREPLY+=($(compgen -P '--' -W '${longopts[*]}' -- "${cur:2}"))
+    COMPREPLY+=($(compgen -P '-' -W '${shortopts[*]}' -- "${cur:1}"))
+  else
+    for dir in "${COMP_WORDS[@]}"; do
+      if [ -d "$dir" ]; then
+        break
+      fi
+      dir=.
+    done
+    if [ ! -d "$dir/meson-private" ]; then
+      _filedir -d
+    fi
+
+    if [ -z "$cur" ]; then
+      COMPREPLY+=($(compgen -P '--' -W '${longopts[*]}'))
+      COMPREPLY+=($(compgen -P '-' -W '${shortopts[*]}'))
+    fi
+  fi
+}
+
 _meson-test() {
   shortopts=(
     q
@@ -363,50 +407,6 @@ for test in json.load(sys.stdin):
     if [ -z "$cur" ]; then
       COMPREPLY+=($(compgen -P '--' -W '${longopts[*]}' -- "${cur:2}"))
       COMPREPLY+=($(compgen -P '-' -W '${shortopts[*]}' -- "${cur:1}"))
-    fi
-  fi
-}
-
-_meson-introspect() {
-  shortopts=(
-    h
-  )
-
-  longopts=(
-    targets
-    installed
-    buildsystem-files
-    buildoptions
-    tests
-    benchmarks
-    dependencies
-    projectinfo
-  )
-
-  local cur prev
-  if ! _get_comp_words_by_ref cur prev &>/dev/null; then
-    cur="${COMP_WORDS[COMP_CWORD]}"
-  fi
-
-  if [[ "$cur" == "--"* ]]; then
-    COMPREPLY+=($(compgen -P '--' -W '${longopts[*]}' -- "${cur:2}"))
-  elif [[ "$cur" == "-"* ]]; then
-    COMPREPLY+=($(compgen -P '--' -W '${longopts[*]}' -- "${cur:2}"))
-    COMPREPLY+=($(compgen -P '-' -W '${shortopts[*]}' -- "${cur:1}"))
-  else
-    for dir in "${COMP_WORDS[@]}"; do
-      if [ -d "$dir" ]; then
-        break
-      fi
-      dir=.
-    done
-    if [ ! -d "$dir/meson-private" ]; then
-      _filedir -d
-    fi
-
-    if [ -z "$cur" ]; then
-      COMPREPLY+=($(compgen -P '--' -W '${longopts[*]}'))
-      COMPREPLY+=($(compgen -P '-' -W '${shortopts[*]}'))
     fi
   fi
 }
