@@ -453,18 +453,17 @@ class CompileResult(HoldableObject):
     """The result of Compiler.compiles (and friends)."""
 
     def __init__(self, stdo: T.Optional[str] = None, stde: T.Optional[str] = None,
-                 args: T.Optional[T.List[str]] = None,
+                 command: T.Optional[T.List[str]] = None,
                  returncode: int = 999, pid: int = -1,
                  text_mode: bool = True,
                  input_name: T.Optional[str] = None,
                  output_name: T.Optional[str] = None,
-                 command: T.Optional[T.List[str]] = None, cached: bool = False):
+                 cached: bool = False):
         self.stdout = stdo
         self.stderr = stde
         self.input_name = input_name
         self.output_name = output_name
         self.command = command or []
-        self.args = args or []
         self.cached = cached
         self.returncode = returncode
         self.pid = pid
@@ -812,7 +811,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             mlog.debug('Compiler stdout:\n', stdo)
             mlog.debug('Compiler stderr:\n', stde)
 
-            result = CompileResult(stdo, stde, list(commands), p.returncode, p.pid, input_name=srcname)
+            result = CompileResult(stdo, stde, command_list, p.returncode, p.pid, input_name=srcname)
             if want_output:
                 result.output_name = output
             yield result
