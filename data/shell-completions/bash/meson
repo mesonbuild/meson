@@ -3,13 +3,18 @@ _meson() {
   case "$command" in
     setup |\
     configure |\
+    dist | \
     install |\
     introspect |\
     init |\
     test |\
     wrap |\
     subprojects |\
-    help)
+    help |\
+    rewrite |\
+    compile |\
+    devenv |\
+    env2mfile)
       _meson-$command "${COMP_WORDS[@]:1}"
       ;;
     *)
@@ -242,6 +247,10 @@ _meson-configure() {
   fi
 }
 
+_meson-dist() {
+  : TODO
+}
+
 _meson-install() {
   : TODO
 }
@@ -429,4 +438,20 @@ _meson-subprojects() {
 
 _meson-help() {
   : # Nothing to do
+}
+
+_meson-rewrite() {
+  : TODO
+}
+
+_meson-compile() {
+  : TODO
+}
+
+_meson-devenv() {
+  : TODO
+}
+
+_meson-env2mfile() {
+  : TODO
 }
