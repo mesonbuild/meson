@@ -37,6 +37,7 @@ if T.TYPE_CHECKING:
         public: bool
         client: bool
         server: bool
+        core_only: bool
 
     class FindProtocol(TypedDict):
 
@@ -65,6 +66,7 @@ class WaylandModule(ExtensionModule):
         KwargInfo('public', bool, default=False),
         KwargInfo('client', bool, default=True),
         KwargInfo('server', bool, default=False),
+        KwargInfo('core_only', bool, default=False, since='0.64.0'),
     )
     def scan_xml(self, state: ModuleState, args: T.Tuple[T.List[FileOrString]], kwargs: ScanXML) -> ModuleReturnValue:
         if self.scanner_bin is None:
@@ -98,12 +100,16 @@ class WaylandModule(ExtensionModule):
             targets.append(code)
 
             for side in sides:
+                command = [self.scanner_bin, f'{side}-header', '@INPUT@', '@OUTPUT@']
+                if kwargs['core_only']:
+                    command.append('--include-core-only')
+
                 header = CustomTarget(
                     f'{name}-{side}-protocol',
                     state.subdir,
                     state.subproject,
                     state.environment,
-                    [self.scanner_bin, f'{side}-header', '@INPUT@', '@OUTPUT@'],
+                    command,
                     [xml_file],
                     [f'{name}-{side}-protocol.h'],
                     backend=state.backend,
