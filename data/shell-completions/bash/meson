@@ -1,26 +1,27 @@
 _meson() {
   command="${COMP_WORDS[1]}"
-  case "$command" in
-    setup |\
-    configure |\
-    dist | \
-    install |\
-    introspect |\
-    init |\
-    test |\
-    wrap |\
-    subprojects |\
-    help |\
-    rewrite |\
-    compile |\
-    devenv |\
-    env2mfile)
+  meson_subcommands=(
+      setup
+      configure
+      dist
+      install
+      introspect
+      init
+      test
+      wrap
+      subprojects
+      help
+      rewrite
+      compile
+      devenv
+      env2mfile
+  )
+
+  if [[ " ${meson_subcommands[*]} " =~ " ${command} " ]]; then
       _meson-$command "${COMP_WORDS[@]:1}"
-      ;;
-    *)
+  else
       _meson-setup "${COMP_WORDS[@]}"
-      ;;
-  esac
+  fi
 } &&
 complete -F _meson meson
 
@@ -197,7 +198,7 @@ _meson-setup() {
     fi
 
     if [ $COMP_CWORD -eq 1 ]; then
-      COMPREPLY+=($(compgen -W 'setup configure test introspect' -- "$cur"))
+      COMPREPLY+=($(compgen -W "${meson_subcommands[*]}" -- "$cur"))
     fi
   fi
 }
