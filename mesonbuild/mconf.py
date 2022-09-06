@@ -36,6 +36,8 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     parser.add_argument('builddir', nargs='?', default='.')
     parser.add_argument('--clearcache', action='store_true', default=False,
                         help='Clear cached state (e.g. found dependencies)')
+    parser.add_argument('--no-pager', action='store_true', default=False,
+                        help='Do not redirect output to a pager')
 
 def make_lower_case(val: T.Any) -> T.Union[str, T.List[T.Any]]:  # T.Any because of recursion...
     if isinstance(val, bool):
@@ -295,7 +297,8 @@ class Conf:
 def run(options):
     coredata.parse_cmd_line_options(options)
     builddir = os.path.abspath(os.path.realpath(options.builddir))
-    mlog.start_pager()
+    if not options.no_pager:
+        mlog.start_pager()
     c = None
     try:
         c = Conf(builddir)
