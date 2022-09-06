@@ -156,26 +156,10 @@ class Conf:
         else:
             value = make_lower_case(value)
 
-        if choices:
-            if isinstance(choices, list):
-                choices_list = make_lower_case(choices)
-                current = '['
-                while choices_list:
-                    i = choices_list.pop(0)
-                    if len(current) + len(i) >= self.max_choices_line_length:
-                        self._add_line(name, value, current + ',', descr)
-                        name = ''
-                        value = ''
-                        descr = ''
-                        current = ' '
-                    if len(current) > 1:
-                        current += ', '
-                    current += i
-                choices = current + ']'
-            else:
-                choices = make_lower_case(choices)
+        if isinstance(choices, list):
+            choices = '[{}]'.format(', '.join(make_lower_case(choices)))
         else:
-            choices = ''
+            choices = make_lower_case(choices)
 
         self._add_line(name, value, choices, descr)
 
