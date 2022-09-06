@@ -351,6 +351,7 @@ install prefix. For example: if the install prefix is `/usr` and the
 
 | Option           | Default value | Possible values             | Description |
 | ------           | ------------- | -----------------           | ----------- |
+| bytecompile      | 0             | integer from -1 to 2        | What bytecode optimization level to use (Since 1.2.0) |
 | install_env      | prefix        | {auto,prefix,system,venv}   | Which python environment to install to (Since 0.62.0) |
 | platlibdir       |               | Directory path              | Directory for site-specific, platform-specific files (Since 0.60.0) |
 | purelibdir       |               | Directory path              | Directory for site-specific, non-platform-specific files  (Since 0.60.0) |
@@ -373,3 +374,13 @@ installation is a virtualenv, and use `venv` or `system` as appropriate (but
 never `prefix`). This option is mutually exclusive with the `platlibdir`/`purelibdir`.
 
 For backwards compatibility purposes, the default `install_env` is `prefix`.
+
+*Since 1.2.0* The `python.bytecompile` option can be used to enable compiling
+python bytecode. Bytecode has 3 optimization levels:
+
+- 0, bytecode without optimizations
+- 1, bytecode with some optimizations
+- 2, bytecode with some more optimizations
+
+To this, Meson adds level `-1`, which is to not attempt to compile bytecode at
+all.

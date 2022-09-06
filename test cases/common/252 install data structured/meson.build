@@ -1,4 +1,4 @@
-project('install structured data')
+project('install structured data', default_options: ['python.bytecompile=-1'])
 
 install_data(
     'dir1/file1',

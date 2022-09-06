@@ -1,7 +1,8 @@
 project('install path',
   default_options: [
+    'python.bytecompile=-1',
     'python.purelibdir=/pure',
-    'python.platlibdir=/plat'
+    'python.platlibdir=/plat',
   ]
 )
 

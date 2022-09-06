@@ -13,9 +13,7 @@
 # limitations under the License.
 from __future__ import annotations
 
-import copy
-import os
-import shutil
+import copy, json, os, shutil
 import typing as T
 
 from . import ExtensionModule, ModuleInfo
@@ -41,7 +39,7 @@ if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
 
     from . import ModuleState
-    from ..build import SharedModule, Data
+    from ..build import Build, SharedModule, Data
     from ..dependencies import Dependency
     from ..interpreter import Interpreter
     from ..interpreter.kwargs import ExtractRequired
@@ -66,6 +64,12 @@ mod_kwargs -= {'name_prefix', 'name_suffix'}
 
 
 class PythonExternalProgram(BasicPythonExternalProgram):
+
+    # This is a ClassVar instead of an instance bool, because although an
+    # installation is cached, we actually copy it, modify attributes such as pure,
+    # and return a temporary one rather than the cached object.
+    run_bytecompile: T.ClassVar[T.Dict[str, bool]] = {}
+
     def sanity(self, state: T.Optional['ModuleState'] = None) -> bool:
         ret = super().sanity()
         if ret:
@@ -216,6 +220,7 @@ class PythonInstallation(ExternalProgramHolder):
     )
     def install_sources_method(self, args: T.Tuple[T.List[T.Union[str, mesonlib.File]]],
                                kwargs: 'PyInstallKw') -> 'Data':
+        self.held_object.run_bytecompile[self.version] = True
         tag = kwargs['install_tag'] or 'python-runtime'
         pure = kwargs['pure'] if kwargs['pure'] is not None else self.pure
         install_dir = self._get_install_dir_impl(pure, kwargs['subdir'])
@@ -229,6 +234,7 @@ class PythonInstallation(ExternalProgramHolder):
     @noPosargs
     @typed_kwargs('python_installation.install_dir', _PURE_KW, _SUBDIR_KW)
     def get_install_dir_method(self, args: T.List['TYPE_var'], kwargs: 'PyInstallKw') -> str:
+        self.held_object.run_bytecompile[self.version] = True
         pure = kwargs['pure'] if kwargs['pure'] is not None else self.pure
         return self._get_install_dir_impl(pure, kwargs['subdir'])
 
@@ -296,6 +302,56 @@ class PythonModule(ExtensionModule):
         self.methods.update({
             'find_installation': self.find_installation,
         })
+
+    def _get_install_scripts(self) -> T.List[mesonlib.ExecutableSerialisation]:
+        backend = self.interpreter.backend
+        ret = []
+        optlevel = self.interpreter.environment.coredata.get_option(mesonlib.OptionKey('bytecompile', module='python'))
+        if optlevel == -1:
+            return ret
+        if not any(PythonExternalProgram.run_bytecompile.values()):
+            return ret
+
+        installdata = backend.create_install_data()
+        py_files = []
+
+        def should_append(f, isdir: bool = False):
+            # This uses the install_plan decorated names to see if the original source was propagated via
+            # install_sources() or get_install_dir().
+            return f.startswith(('{py_platlib}', '{py_purelib}')) and (f.endswith('.py') or isdir)
+
+        for t in installdata.targets:
+            if should_append(t.out_name):
+                py_files.append(os.path.join(installdata.prefix, t.outdir, os.path.basename(t.fname)))
+        for d in installdata.data:
+            if should_append(d.install_path_name):
+                py_files.append(os.path.join(installdata.prefix, d.install_path))
+        for d in installdata.install_subdirs:
+            if should_append(d.install_path_name, True):
+                py_files.append(os.path.join(installdata.prefix, d.install_path))
+
+        import importlib.resources
+        pycompile = os.path.join(self.interpreter.environment.get_scratch_dir(), 'pycompile.py')
+        with open(pycompile, 'wb') as f:
+            f.write(importlib.resources.read_binary('mesonbuild.scripts', 'pycompile.py'))
+
+        for i in self.installations.values():
+            if isinstance(i, PythonExternalProgram) and i.run_bytecompile[i.info['version']]:
+                i = T.cast(PythonExternalProgram, i)
+                manifest = f'python-{i.info["version"]}-installed.json'
+                manifest_json = []
+                for f in py_files:
+                    if f.startswith((os.path.join(installdata.prefix, i.platlib), os.path.join(installdata.prefix, i.purelib))):
+                        manifest_json.append(f)
+                with open(os.path.join(self.interpreter.environment.get_scratch_dir(), manifest), 'w', encoding='utf-8') as f:
+                    json.dump(manifest_json, f)
+                cmd = i.command + [pycompile, manifest, str(optlevel)]
+                script = backend.get_executable_serialisation(cmd, verbose=True)
+                ret.append(script)
+        return ret
+
+    def postconf_hook(self, b: Build) -> None:
+        b.install_scripts.extend(self._get_install_scripts())
 
     # https://www.python.org/dev/peps/pep-0397/
     @staticmethod
@@ -421,6 +477,7 @@ class PythonModule(ExtensionModule):
         else:
             python = copy.copy(python)
             python.pure = kwargs['pure']
+            python.run_bytecompile.setdefault(python.info['version'], False)
             return python
 
         raise mesonlib.MesonBugException('Unreachable code was reached (PythonModule.find_installation).')

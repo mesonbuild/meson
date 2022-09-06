@@ -1,5 +1,5 @@
 project('Python extension module', 'c',
-  default_options : ['buildtype=release', 'werror=true'])
+  default_options : ['buildtype=release', 'werror=true', 'python.bytecompile=-1'])
 # Because Windows Python ships only with optimized libs,
 # we must build this project the same way.
 

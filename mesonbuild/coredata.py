@@ -1266,6 +1266,8 @@ BUILTIN_CORE_OPTIONS: 'MutableKeyedOptionDictType' = OrderedDict([
      BuiltinOption(UserBooleanOption, 'Generate pkgconfig files as relocatable', False)),
 
     # Python module
+    (OptionKey('bytecompile', module='python'),
+     BuiltinOption(UserIntegerOption, 'Whether to compile bytecode', (-1, 2, 0))),
     (OptionKey('install_env', module='python'),
      BuiltinOption(UserComboOption, 'Which python environment to install to', 'prefix', choices=['auto', 'prefix', 'system', 'venv'])),
     (OptionKey('platlibdir', module='python'),
