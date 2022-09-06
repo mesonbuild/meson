@@ -123,18 +123,27 @@ class Conf:
                 mlog.log(line[0])
                 continue
 
+            def wrap_text(text, width):
+                raw = text.text if isinstance(text, mlog.AnsiDecorator) else text
+                indent = ' ' if raw.startswith('[') else ''
+                wrapped = textwrap.wrap(raw, width, subsequent_indent=indent)
+                if isinstance(text, mlog.AnsiDecorator):
+                    wrapped = [mlog.AnsiDecorator(i, text.code) for i in wrapped]
+                # Add padding here to get even rows, as `textwrap.wrap()` will
+                # only shorten, not lengthen each item
+                return [str(i) + ' ' * (width - len(i)) for i in wrapped]
+
             # wrap will take a long string, and create a list of strings no
             # longer than the size given. Then that list can be zipped into, to
             # print each line of the output, such the that columns are printed
             # to the right width, row by row.
-            name = textwrap.wrap(line[0], four_column[0])
-            val = textwrap.wrap(line[1], four_column[1])
-            choice = textwrap.wrap(line[2], four_column[2])
-            desc = textwrap.wrap(line[3], four_column[3])
+            name = wrap_text(line[0], four_column[0])
+            val = wrap_text(line[1], four_column[1])
+            choice = wrap_text(line[2], four_column[2])
+            desc = wrap_text(line[3], four_column[3])
             for l in itertools.zip_longest(name, val, choice, desc, fillvalue=''):
-                # We must use the length modifier here to get even rows, as
-                # `textwrap.wrap` will only shorten, not lengthen each item
-                mlog.log('{:{widths[0]}} {:{widths[1]}} {:{widths[2]}} {}'.format(*l, widths=four_column))
+                items = [l[i] if l[i] else ' ' * four_column[i] for i in range(4)]
+                mlog.log(*items)
 
     def split_options_per_subproject(self, options: 'coredata.KeyedOptionDictType') -> T.Dict[str, 'coredata.KeyedOptionDictType']:
         result: T.Dict[str, 'coredata.KeyedOptionDictType'] = {}
@@ -144,8 +153,12 @@ class Conf:
             result.setdefault(k.subproject, {})[k] = o
         return result
 
-    def _add_line(self, name: OptionKey, value, choices, descr) -> None:
-        self.name_col.append(' ' * self.print_margin + str(name))
+    def _add_line(self, name, value, choices, descr) -> None:
+        if isinstance(name, mlog.AnsiDecorator):
+            name.text = ' ' * self.print_margin + name.text
+        else:
+            name = ' ' * self.print_margin + name
+        self.name_col.append(name)
         self.value_col.append(value)
         self.choices_col.append(choices)
         self.descr_col.append(descr)
@@ -161,20 +174,21 @@ class Conf:
         else:
             choices = make_lower_case(choices)
 
-        self._add_line(name, value, choices, descr)
+        self._add_line(mlog.green(name), mlog.yellow(value), mlog.blue(choices), descr)
 
     def add_title(self, title):
-        titles = {'descr': 'Description', 'value': 'Current Value', 'choices': 'Possible Values'}
-        if self.default_values_only:
-            titles['value'] = 'Default Value'
+        title = mlog.cyan(title)
+        descr = mlog.cyan('Description')
+        value = mlog.cyan('Default Value' if self.default_values_only else 'Current Value')
+        choices = mlog.cyan('Possible Values')
         self._add_line('', '', '', '')
-        self._add_line(title, titles['value'], titles['choices'], titles['descr'])
-        self._add_line('-' * len(title), '-' * len(titles['value']), '-' * len(titles['choices']), '-' * len(titles['descr']))
+        self._add_line(title, value, choices, descr)
+        self._add_line('-' * len(title), '-' * len(value), '-' * len(choices), '-' * len(descr))
 
     def add_section(self, section):
         self.print_margin = 0
         self._add_line('', '', '', '')
-        self._add_line(section + ':', '', '', '')
+        self._add_line(mlog.normal_yellow(section + ':'), '', '', '')
         self.print_margin = 2
 
     def print_options(self, title: str, options: 'coredata.KeyedOptionDictType') -> None:
