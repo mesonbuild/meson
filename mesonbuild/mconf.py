@@ -109,7 +109,7 @@ class Conf:
         """
         total_width = shutil.get_terminal_size(fallback=(160, 0))[0]
         _col = max(total_width // 5, 20)
-        last_column = total_width - (3 * _col)
+        last_column = total_width - (3 * _col) - 3
         four_column = (_col, _col, _col, last_column if last_column > 1 else _col)
 
         for line in zip(self.name_col, self.value_col, self.choices_col, self.descr_col):
