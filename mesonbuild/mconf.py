@@ -61,8 +61,6 @@ class Conf:
         self.value_col = []
         self.choices_col = []
         self.descr_col = []
-        # XXX: is there a case where this can actually remain false?
-        self.has_choices = False
         self.all_subprojects: T.Set[str] = set()
 
         if os.path.isdir(os.path.join(self.build_dir, 'meson-private')):
@@ -113,9 +111,6 @@ class Conf:
         _col = max(total_width // 5, 20)
         last_column = total_width - (3 * _col)
         four_column = (_col, _col, _col, last_column if last_column > 1 else _col)
-        # In this case we don't have the choices field, so we can redistribute
-        # the extra 40 characters to val and desc
-        three_column = (_col, _col * 2, total_width // 2)
 
         for line in zip(self.name_col, self.value_col, self.choices_col, self.descr_col):
             if not any(line):
@@ -132,21 +127,14 @@ class Conf:
             # longer than the size given. Then that list can be zipped into, to
             # print each line of the output, such the that columns are printed
             # to the right width, row by row.
-            if self.has_choices:
-                name = textwrap.wrap(line[0], four_column[0])
-                val = textwrap.wrap(line[1], four_column[1])
-                choice = textwrap.wrap(line[2], four_column[2])
-                desc = textwrap.wrap(line[3], four_column[3])
-                for l in itertools.zip_longest(name, val, choice, desc, fillvalue=''):
-                    # We must use the length modifier here to get even rows, as
-                    # `textwrap.wrap` will only shorten, not lengthen each item
-                    mlog.log('{:{widths[0]}} {:{widths[1]}} {:{widths[2]}} {}'.format(*l, widths=four_column))
-            else:
-                name = textwrap.wrap(line[0], three_column[0])
-                val = textwrap.wrap(line[1], three_column[1])
-                desc = textwrap.wrap(line[3], three_column[2])
-                for l in itertools.zip_longest(name, val, desc, fillvalue=''):
-                    mlog.log('{:{widths[0]}} {:{widths[1]}} {}'.format(*l, widths=three_column))
+            name = textwrap.wrap(line[0], four_column[0])
+            val = textwrap.wrap(line[1], four_column[1])
+            choice = textwrap.wrap(line[2], four_column[2])
+            desc = textwrap.wrap(line[3], four_column[3])
+            for l in itertools.zip_longest(name, val, choice, desc, fillvalue=''):
+                # We must use the length modifier here to get even rows, as
+                # `textwrap.wrap` will only shorten, not lengthen each item
+                mlog.log('{:{widths[0]}} {:{widths[1]}} {:{widths[2]}} {}'.format(*l, widths=four_column))
 
     def split_options_per_subproject(self, options: 'coredata.KeyedOptionDictType') -> T.Dict[str, 'coredata.KeyedOptionDictType']:
         result: T.Dict[str, 'coredata.KeyedOptionDictType'] = {}
@@ -169,7 +157,6 @@ class Conf:
             value = make_lower_case(value)
 
         if choices:
-            self.has_choices = True
             if isinstance(choices, list):
                 choices_list = make_lower_case(choices)
                 current = '['
