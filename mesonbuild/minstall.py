@@ -235,7 +235,7 @@ def restore_selinux_contexts() -> None:
     '''
     try:
         subprocess.check_call(['selinuxenabled'])
-    except (FileNotFoundError, NotADirectoryError, PermissionError, subprocess.CalledProcessError):
+    except (FileNotFoundError, NotADirectoryError, OSError, PermissionError, subprocess.CalledProcessError):
         # If we don't have selinux or selinuxenabled returned 1, failure
         # is ignored quietly.
         return
