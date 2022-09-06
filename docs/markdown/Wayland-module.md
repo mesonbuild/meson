@@ -50,7 +50,7 @@ generated = wl_mod.scan_xml(
   client : true,
   server : true,
   public : false,
-  core_only : false,
+  include_core_only : false,
 )
 ```
 This function accepts one or more arguments of either string or file type.
@@ -62,8 +62,9 @@ It takes the following keyword arguments:
   generated. The default is true.
 - `server` Optional arg that specifies if server side header file is
   generated. The default is false.
-- `core_only` Optional arg that specifies that generated headers only include
-  wayland-client-core.h instead of wayland-client.h. Since *0.64.0*
+- `include_core_only` Optional arg that specifies that generated headers only include
+  `wayland-<client|server>-core.h` instead of `wayland-<client|server>.h`. 
+  The default is true. Since *0.64.0*
 
 **Returns**: a list of [[@custom_tgt]] in the order source, client side header,
 server side header. Generated header files have the name
