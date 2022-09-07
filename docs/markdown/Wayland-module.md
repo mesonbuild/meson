@@ -50,7 +50,7 @@ generated = wl_mod.scan_xml(
   client : true,
   server : true,
   public : false,
-  include_core_only : false,
+  include_core_only : true,
 )
 ```
 This function accepts one or more arguments of either string or file type.

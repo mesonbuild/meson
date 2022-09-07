@@ -66,7 +66,7 @@ class WaylandModule(ExtensionModule):
         KwargInfo('public', bool, default=False),
         KwargInfo('client', bool, default=True),
         KwargInfo('server', bool, default=False),
-        KwargInfo('include_core_only', bool, default=False, since='0.64.0'),
+        KwargInfo('include_core_only', bool, default=True, since='0.64.0'),
     )
     def scan_xml(self, state: ModuleState, args: T.Tuple[T.List[FileOrString]], kwargs: ScanXML) -> ModuleReturnValue:
         if self.scanner_bin is None:
