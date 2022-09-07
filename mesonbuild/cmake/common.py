@@ -151,7 +151,7 @@ def check_cmake_args(args: T.List[str]) -> T.List[str]:
     dis = ['-D' + x for x in blacklist_cmake_defs]
     assert dis  # Ensure that dis is not empty.
     for i in args:
-        if any([i.startswith(x) for x in dis]):
+        if any(i.startswith(x) for x in dis):
             mlog.warning('Setting', mlog.bold(i), 'is not supported. See the meson docs for cross compilation support:')
             mlog.warning('  - URL: https://mesonbuild.com/CMake-module.html#cross-compilation')
             mlog.warning('  --> Ignoring this option')

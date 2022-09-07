@@ -237,10 +237,10 @@ class BoostLibraryFile():
         return abitag
 
     def is_boost(self) -> bool:
-        return any([self.name.startswith(x) for x in ['libboost_', 'boost_']])
+        return any(self.name.startswith(x) for x in ['libboost_', 'boost_'])
 
     def is_python_lib(self) -> bool:
-        return any([self.mod_name.startswith(x) for x in BoostLibraryFile.boost_python_libs])
+        return any(self.mod_name.startswith(x) for x in BoostLibraryFile.boost_python_libs)
 
     def fix_python_name(self, tags: T.List[str]) -> T.List[str]:
         # Handle the boost_python naming madeness.
@@ -438,7 +438,7 @@ class BoostDependency(SystemDependency):
 
         raw_paths = mesonlib.stringlistify(rootdir)
         paths = [Path(x) for x in raw_paths]
-        if paths and any([not x.is_absolute() for x in paths]):
+        if paths and any(not x.is_absolute() for x in paths):
             raise DependencyException('boost_root path given in machine file must be absolute')
 
         self.check_and_set_roots(paths, use_system=False)
@@ -574,13 +574,13 @@ class BoostDependency(SystemDependency):
         arch_list_64 = ['64']
 
         raw_list = dirs + subdirs
-        no_arch = [x for x in raw_list if not any([y in x.name for y in arch_list_32 + arch_list_64])]
+        no_arch = [x for x in raw_list if not any(y in x.name for y in arch_list_32 + arch_list_64)]
 
         matching_arch = []  # type: T.List[Path]
         if '32' in self.arch:
-            matching_arch = [x for x in raw_list if any([y in x.name for y in arch_list_32])]
+            matching_arch = [x for x in raw_list if any(y in x.name for y in arch_list_32)]
         elif '64' in self.arch:
-            matching_arch = [x for x in raw_list if any([y in x.name for y in arch_list_64])]
+            matching_arch = [x for x in raw_list if any(y in x.name for y in arch_list_64)]
 
         return sorted(matching_arch) + sorted(no_arch)
 
@@ -626,7 +626,7 @@ class BoostDependency(SystemDependency):
         for i in libdir.iterdir():
             if not i.is_file():
                 continue
-            if not any([i.name.startswith(x) for x in ['libboost_', 'boost_']]):
+            if not any(i.name.startswith(x) for x in ['libboost_', 'boost_']):
                 continue
             # Windows binaries from SourceForge ship with PDB files alongside
             # DLLs (#8325).  Ignore them.

@@ -372,8 +372,8 @@ class ConverterTarget:
         for i in self.languages:
             supported += list(lang_suffixes[i])
         supported = [f'.{x}' for x in supported]
-        self.sources = [x for x in self.sources if any([x.name.endswith(y) for y in supported])]
-        self.generated_raw = [x for x in self.generated_raw if any([x.name.endswith(y) for y in supported])]
+        self.sources = [x for x in self.sources if any(x.name.endswith(y) for y in supported)]
+        self.generated_raw = [x for x in self.generated_raw if any(x.name.endswith(y) for y in supported)]
 
         # Make paths relative
         def rel_path(x: Path, is_header: bool, is_generated: bool) -> T.Optional[Path]:
@@ -381,7 +381,7 @@ class ConverterTarget:
                 x = self.src_dir / x
             x = x.resolve()
             assert x.is_absolute()
-            if not x.exists() and not any([x.name.endswith(y) for y in obj_suffixes]) and not is_generated:
+            if not x.exists() and not any(x.name.endswith(y) for y in obj_suffixes) and not is_generated:
                 if path_is_in_root(x, Path(self.env.get_build_dir()), resolve=True):
                     x.mkdir(parents=True, exist_ok=True)
                     return x.relative_to(Path(self.env.get_build_dir()) / subdir)
@@ -471,7 +471,7 @@ class ConverterTarget:
 
     def process_object_libs(self, obj_target_list: T.List['ConverterTarget'], linker_workaround: bool) -> None:
         # Try to detect the object library(s) from the generated input sources
-        temp = [x for x in self.generated if any([x.name.endswith('.' + y) for y in obj_suffixes])]
+        temp = [x for x in self.generated if any(x.name.endswith('.' + y) for y in obj_suffixes)]
         stem = [x.stem for x in temp]
         exts = self._all_source_suffixes()
         # Temp now stores the source filenames of the object files
@@ -484,10 +484,10 @@ class ConverterTarget:
                 # undo this step and guess the correct language suffix of the object file. This is done
                 # by trying all language suffixes meson knows and checking if one of them fits.
                 candidates = [j]  # type: T.List[str]
-                if not any([j.endswith('.' + x) for x in exts]):
+                if not any(j.endswith('.' + x) for x in exts):
                     mlog.warning('Object files do not contain source file extensions, thus falling back to guessing them.', once=True)
                     candidates += [f'{j}.{x}' for x in exts]
-                if any([x in source_files for x in candidates]):
+                if any(x in source_files for x in candidates):
                     if linker_workaround:
                         self._append_objlib_sources(i)
                     else:
@@ -497,7 +497,7 @@ class ConverterTarget:
                     break
 
         # Filter out object files from the sources
-        self.generated = [x for x in self.generated if not any([x.name.endswith('.' + y) for y in obj_suffixes])]
+        self.generated = [x for x in self.generated if not any(x.name.endswith('.' + y) for y in obj_suffixes)]
 
     def _append_objlib_sources(self, tgt: 'ConverterTarget') -> None:
         self.includes += tgt.includes

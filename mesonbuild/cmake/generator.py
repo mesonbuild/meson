@@ -100,8 +100,8 @@ def parse_generator_expressions(
     supported = {
         # Boolean functions
         'BOOL': lambda x: '0' if x.upper() in ['0', 'FALSE', 'OFF', 'N', 'NO', 'IGNORE', 'NOTFOUND'] or x.endswith('-NOTFOUND') else '1',
-        'AND': lambda x: '1' if all([y == '1' for y in x.split(',')]) else '0',
-        'OR': lambda x: '1' if any([y == '1' for y in x.split(',')]) else '0',
+        'AND': lambda x: '1' if all(y == '1' for y in x.split(',')) else '0',
+        'OR': lambda x: '1' if any(y == '1' for y in x.split(',')) else '0',
         'NOT': lambda x: '0' if x == '1' else '1',
 
         'IF': lambda x: x.split(',')[1] if x.split(',')[0] == '1' else x.split(',')[2],

@@ -75,7 +75,6 @@ disable=
     unsubscriptable-object,
     unused-argument,
     unused-variable,
-    use-a-generator,
     use-implicit-booleaness-not-comparison,
     used-before-assignment,
     useless-return,

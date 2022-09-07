@@ -272,7 +272,7 @@ class CMakeDependency(ExternalDependency):
                 content = self._cached_listdir(i)
                 candidates = ['Find{}.cmake', '{}Config.cmake', '{}-config.cmake']
                 candidates = [x.format(name).lower() for x in candidates]
-                if any([x[1] in candidates for x in content]):
+                if any(x[1] in candidates for x in content):
                     return True
             return False
 

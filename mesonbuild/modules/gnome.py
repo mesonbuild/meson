@@ -1118,7 +1118,7 @@ class GnomeModule(ExtensionModule):
     def generate_gir(self, state: 'ModuleState', args: T.Tuple[T.List[T.Union[build.Executable, build.SharedLibrary, build.StaticLibrary]]],
                      kwargs: 'GenerateGir') -> ModuleReturnValue:
         girtargets = [self._unwrap_gir_target(arg, state) for arg in args[0]]
-        if len(girtargets) > 1 and any([isinstance(el, build.Executable) for el in girtargets]):
+        if len(girtargets) > 1 and any(isinstance(el, build.Executable) for el in girtargets):
             raise MesonException('generate_gir only accepts a single argument when one of the arguments is an executable')
 
         gir_dep, giscanner, gicompiler = self._get_gir_dep(state)
