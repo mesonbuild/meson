@@ -70,7 +70,6 @@ disable=
     typevar-name-incorrect-variance,
     undefined-loop-variable,
     unidiomatic-typecheck,
-    unnecessary-comprehension,
     unnecessary-dict-index-lookup,
     unnecessary-lambda,
     unnecessary-lambda-assignment,

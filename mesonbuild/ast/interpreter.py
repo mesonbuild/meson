@@ -365,10 +365,10 @@ class AstInterpreter(InterpreterBase):
                 result = not result
 
         elif isinstance(node, ArrayNode):
-            result = [x for x in node.args.arguments]
+            result = node.args.arguments.copy()
 
         elif isinstance(node, ArgumentNode):
-            result = [x for x in node.arguments]
+            result = node.arguments.copy()
 
         elif isinstance(node, ArithmeticNode):
             if node.operation != 'add':

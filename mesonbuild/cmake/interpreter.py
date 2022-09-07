@@ -519,7 +519,7 @@ class ConverterTarget:
     def _all_source_suffixes(self) -> 'ImmutableListProtocol[str]':
         suffixes = []  # type: T.List[str]
         for exts in lang_suffixes.values():
-            suffixes += [x for x in exts]
+            suffixes.extend(exts)
         return suffixes
 
     @lru_cache(maxsize=None)

@@ -271,8 +271,7 @@ class DependenciesHelper:
             # Note that pkg-config is picky about whitespace.
             # 'foo > 1.2' is ok but 'foo>1.2' is not.
             # foo, bar' is ok, but 'foo,bar' is not.
-            new_vreqs = [s for s in mesonlib.stringlistify(version_reqs)]
-            self.version_reqs[name].update(new_vreqs)
+            self.version_reqs[name].update(version_reqs)
 
     def split_version_req(self, s: str) -> T.Tuple[str, T.Optional[str]]:
         for op in ['>=', '<=', '!=', '==', '=', '>', '<']:

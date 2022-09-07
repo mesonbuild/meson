@@ -173,9 +173,8 @@ class AstPrinter(AstVisitor):
 
     def visit_ForeachClauseNode(self, node: mparser.ForeachClauseNode) -> None:
         node.lineno = self.curr_line or node.lineno
-        varnames = [x for x in node.varnames]
         self.append_padded('foreach', node)
-        self.append_padded(', '.join(varnames), node)
+        self.append_padded(', '.join(node.varnames), node)
         self.append_padded(':', node)
         node.items.accept(self)
         self.newline()
