@@ -71,7 +71,6 @@ disable=
     undefined-loop-variable,
     unidiomatic-typecheck,
     unnecessary-dict-index-lookup,
-    unnecessary-lambda,
     unnecessary-lambda-assignment,
     unsubscriptable-object,
     unused-argument,

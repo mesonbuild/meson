@@ -1779,7 +1779,7 @@ class Backend:
                     source_list += [os.path.join(self.source_dir, j)]
                 elif isinstance(j, (build.CustomTarget, build.BuildTarget)):
                     source_list += [os.path.join(self.build_dir, j.get_subdir(), o) for o in j.get_outputs()]
-            source_list = list(map(lambda x: os.path.normpath(x), source_list))
+            source_list = [os.path.normpath(s) for s in source_list]
 
             compiler: T.List[str] = []
             if isinstance(target, build.CustomTarget):
