@@ -242,18 +242,12 @@ class MTypeList(MTypeBase):
             self.node.args.arguments += [self._new_element_node(i)]
 
     def _remove_helper(self, value, equal_func):
-        def check_remove_node(node):
-            for j in value:
-                if equal_func(i, j):
-                    return True
-            return False
-
         if not isinstance(value, list):
             value = [value]
         self._ensure_array_node()
         removed_list = []
         for i in self.node.args.arguments:
-            if not check_remove_node(i):
+            if not any(equal_func(i, j) for j in value):
                 removed_list += [i]
         self.node.args.arguments = removed_list
 

@@ -477,10 +477,7 @@ class Backend:
 
     @staticmethod
     def is_swift_target(target: build.BuildTarget) -> bool:
-        for s in target.sources:
-            if s.endswith('swift'):
-                return True
-        return False
+        return any(s.endswith('swift') for s in target.sources)
 
     def determine_swift_dep_dirs(self, target: build.BuildTarget) -> T.List[str]:
         result: T.List[str] = []
@@ -678,10 +675,7 @@ class Backend:
     @staticmethod
     def _libdir_is_system(libdir: str, compilers: T.Mapping[str, 'Compiler'], env: 'Environment') -> bool:
         libdir = os.path.normpath(libdir)
-        for cc in compilers.values():
-            if libdir in cc.get_library_dirs(env):
-                return True
-        return False
+        return any(libdir in cc.get_library_dirs(env) for cc in compilers.values())
 
     def get_external_rpath_dirs(self, target: build.BuildTarget) -> T.Set[str]:
         args: T.List[str] = []

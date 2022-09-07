@@ -148,7 +148,6 @@ __all__ = [
     'split_args',
     'stringlistify',
     'substitute_values',
-    'substring_is_in_list',
     'typeslistify',
     'verbose_git',
     'version_compare',
@@ -1075,10 +1074,7 @@ def default_sysconfdir() -> str:
 
 def has_path_sep(name: str, sep: str = '/\\') -> bool:
     'Checks if any of the specified @sep path separators are in @name'
-    for each in sep:
-        if each in name:
-            return True
-    return False
+    return any(each in name for each in sep)
 
 
 if is_windows():
@@ -1770,13 +1766,6 @@ def detect_subprojects(spdir_name: str, current_dir: str = '',
             else:
                 result[basename] = [trial]
     return result
-
-
-def substring_is_in_list(substr: str, strlist: T.List[str]) -> bool:
-    for s in strlist:
-        if substr in s:
-            return True
-    return False
 
 
 class OrderedSet(T.MutableSet[_T]):

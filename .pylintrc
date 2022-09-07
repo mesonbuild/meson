@@ -2,6 +2,7 @@
 jobs=0
 load-plugins=
     pylint.extensions.bad_builtin,
+    pylint.extensions.for_any_all,
     pylint.extensions.set_membership,
 
 [REPORTS]

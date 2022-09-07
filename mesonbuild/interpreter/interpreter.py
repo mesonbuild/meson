@@ -2961,10 +2961,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 installabledirs = [str(Path(srcdir, s.source_subdir)) for s in self.build.install_dirs]
                 if fpath in installablefiles:
                     return True
-                for d in installabledirs:
-                    if str(fpath).startswith(d):
-                        return True
-                return False
+                return any(str(fpath).startswith(d) for d in installabledirs)
 
             norm = Path(fname)
             # variables built from a dep.get_variable are allowed to refer to

@@ -36,10 +36,5 @@ def _is_arg_disabled(arg: T.Any) -> bool:
     return False
 
 def is_disabled(args: T.Sequence[T.Any], kwargs: T.Dict[str, T.Any]) -> bool:
-    for i in args:
-        if _is_arg_disabled(i):
-            return True
-    for i in kwargs.values():
-        if _is_arg_disabled(i):
-            return True
-    return False
+    return (any(_is_arg_disabled(i) for i in args) or
+            any(_is_arg_disabled(i) for i in kwargs.values()))
