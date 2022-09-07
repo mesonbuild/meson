@@ -12,7 +12,6 @@ disable=
     attribute-defined-outside-init,
     broad-except,
     cell-var-from-loop,
-    consider-merging-isinstance,
     consider-using-f-string,
     consider-using-with,
     cyclic-import,

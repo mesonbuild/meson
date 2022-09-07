@@ -828,7 +828,7 @@ class BuildTarget(Target):
         # the languages of those libraries as well.
         if self.link_targets or self.link_whole_targets:
             for t in itertools.chain(self.link_targets, self.link_whole_targets):
-                if isinstance(t, CustomTarget) or isinstance(t, CustomTargetIndex):
+                if isinstance(t, (CustomTarget, CustomTargetIndex)):
                     continue # We can't know anything about these.
                 for name, compiler in t.compilers.items():
                     if name in link_langs and name not in self.compilers:

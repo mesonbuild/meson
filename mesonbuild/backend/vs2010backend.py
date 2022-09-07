@@ -1309,7 +1309,7 @@ class Vs2010Backend(backends.Backend):
         ofile.text = f'$(OutDir){target.get_filename()}'
         subsys = ET.SubElement(link, 'SubSystem')
         subsys.text = subsystem
-        if (isinstance(target, build.SharedLibrary) or isinstance(target, build.Executable)) and target.get_import_filename():
+        if isinstance(target, (build.SharedLibrary, build.Executable)) and target.get_import_filename():
             # DLLs built with MSVC always have an import library except when
             # they're data-only DLLs, but we don't support those yet.
             ET.SubElement(link, 'ImportLibrary').text = target.get_import_filename()

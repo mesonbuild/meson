@@ -207,7 +207,7 @@ class HotdocTargetBuilder:
                 self.add_include_path(os.path.join(self.builddir, dep.hotdoc_conf.subdir))
                 self.cmd += ['--extra-assets=' + p for p in dep.extra_assets]
                 self.add_extension_paths(dep.extra_extension_paths)
-            elif isinstance(dep, build.CustomTarget) or isinstance(dep, build.BuildTarget):
+            elif isinstance(dep, (build.CustomTarget, build.BuildTarget)):
                 self._dependencies.append(dep)
             elif isinstance(dep, build.CustomTargetIndex):
                 self._dependencies.append(dep.target)
