@@ -52,7 +52,6 @@ disable=
     redefined-argument-from-local,
     redefined-builtin,
     redefined-outer-name,
-    simplifiable-if-statement,
     subprocess-run-check,
     super-init-not-called,
     too-few-public-methods,

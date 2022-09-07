@@ -2194,11 +2194,6 @@ class SharedLibrary(BuildTarget):
         super().process_kwargs(kwargs)
 
         if not self.environment.machines[self.for_machine].is_android():
-            supports_versioning = True
-        else:
-            supports_versioning = False
-
-        if supports_versioning:
             # Shared library version
             if 'version' in kwargs:
                 self.ltversion = kwargs['version']

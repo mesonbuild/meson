@@ -83,10 +83,8 @@ class DynamicEntry(DataSizes):
 class SectionHeader(DataSizes):
     def __init__(self, ifile: T.BinaryIO, ptrsize: int, is_le: bool) -> None:
         super().__init__(ptrsize, is_le)
-        if ptrsize == 64:
-            is_64 = True
-        else:
-            is_64 = False
+        is_64 = ptrsize == 64
+
 # Elf64_Word
         self.sh_name = struct.unpack(self.Word, ifile.read(self.WordSize))[0]
 # Elf64_Word
