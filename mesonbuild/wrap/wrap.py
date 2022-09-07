@@ -613,7 +613,7 @@ class Resolver:
 
     def is_git_full_commit_id(self, revno: str) -> bool:
         result = False
-        if len(revno) in (40, 64): # 40 for sha1, 64 for upcoming sha256
+        if len(revno) in {40, 64}: # 40 for sha1, 64 for upcoming sha256
             result = all(ch in '0123456789AaBbCcDdEeFf' for ch in revno)
         return result
 

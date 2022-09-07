@@ -36,7 +36,7 @@ def parse(lines: T.Iterable[str]) -> T.List[T.Tuple[T.List[str], T.List[str]]]:
             if c in {'\\', '$'}:
                 escape = c
                 continue
-            elif c in (' ', '\n'):
+            elif c in {' ', '\n'}:
                 if out != '':
                     if in_deps:
                         deps.append(out)

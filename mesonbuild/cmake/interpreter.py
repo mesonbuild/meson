@@ -320,7 +320,7 @@ class ConverterTarget:
                         )
                         continue
                     self.override_options += [f'{i}_std={std}']
-                elif j in ['-fPIC', '-fpic', '-fPIE', '-fpie']:
+                elif j in {'-fPIC', '-fpic', '-fPIE', '-fpie'}:
                     self.pie = True
                 elif isinstance(ctgt, ConverterCustomTarget):
                     # Sometimes projects pass generated source files as compiler
@@ -1173,10 +1173,10 @@ class CMakeInterpreter:
                 src_node = assign(src_var, function('files', sources))
                 tgt_node = assign(tgt_var, function(tgt_func, [tgt_var, id_node(src_var), *generated], tgt_kwargs))
                 node_list += [src_node, tgt_node]
-                if tgt_func in ['static_library', 'shared_library']:
+                if tgt_func in {'static_library', 'shared_library'}:
                     dep_node = assign(dep_var, function('declare_dependency', kwargs=dep_kwargs))
                     node_list += [dep_node]
-                elif tgt_func in ['shared_module']:
+                elif tgt_func == 'shared_module':
                     del dep_kwargs['link_with']
                     dep_node = assign(dep_var, function('declare_dependency', kwargs=dep_kwargs))
                     node_list += [dep_node]

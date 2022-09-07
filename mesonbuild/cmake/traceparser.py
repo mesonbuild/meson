@@ -682,14 +682,14 @@ class CMakeTraceParser:
             if i in ignore:
                 continue
 
-            if i in ['INTERFACE', 'LINK_INTERFACE_LIBRARIES', 'PUBLIC', 'PRIVATE', 'LINK_PUBLIC', 'LINK_PRIVATE']:
+            if i in {'INTERFACE', 'LINK_INTERFACE_LIBRARIES', 'PUBLIC', 'PRIVATE', 'LINK_PUBLIC', 'LINK_PRIVATE'}:
                 mode = i
                 continue
 
-            if mode in ['INTERFACE', 'LINK_INTERFACE_LIBRARIES', 'PUBLIC', 'LINK_PUBLIC']:
+            if mode in {'INTERFACE', 'LINK_INTERFACE_LIBRARIES', 'PUBLIC', 'LINK_PUBLIC'}:
                 interface += i.split(';')
 
-            if mode in ['PUBLIC', 'PRIVATE', 'LINK_PRIVATE']:
+            if mode in {'PUBLIC', 'PRIVATE', 'LINK_PRIVATE'}:
                 private += i.split(';')
 
         if paths:

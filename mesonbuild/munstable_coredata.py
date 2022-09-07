@@ -61,17 +61,17 @@ def run(options):
     coredata = cdata.load(options.builddir)
     backend = coredata.get_option(OptionKey('backend'))
     for k, v in sorted(coredata.__dict__.items()):
-        if k in ('backend_options', 'base_options', 'builtins', 'compiler_options', 'user_options'):
+        if k in {'backend_options', 'base_options', 'builtins', 'compiler_options', 'user_options'}:
             # use `meson configure` to view these
             pass
-        elif k in ['install_guid', 'test_guid', 'regen_guid']:
+        elif k in {'install_guid', 'test_guid', 'regen_guid'}:
             if all_backends or backend.startswith('vs'):
                 print(k + ': ' + v)
         elif k == 'target_guids':
             if all_backends or backend.startswith('vs'):
                 print(k + ':')
                 dump_guids(v)
-        elif k in ['lang_guids']:
+        elif k == 'lang_guids':
             if all_backends or backend.startswith('vs') or backend == 'xcode':
                 print(k + ':')
                 dump_guids(v)

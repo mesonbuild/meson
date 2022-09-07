@@ -52,8 +52,8 @@ def get_dep_identifier(name: str, kwargs: T.Dict[str, T.Any]) -> 'TV_DepID':
         # 'default_options' is only used in fallback case
         # 'not_found_message' has no impact on the dependency lookup
         # 'include_type' is handled after the dependency lookup
-        if key in ('version', 'native', 'required', 'fallback', 'allow_fallback', 'default_options',
-                   'not_found_message', 'include_type'):
+        if key in {'version', 'native', 'required', 'fallback', 'allow_fallback', 'default_options',
+                   'not_found_message', 'include_type'}:
             continue
         # All keyword arguments are strings, ints, or lists (or lists of lists)
         if isinstance(value, list):

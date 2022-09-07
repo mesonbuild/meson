@@ -420,7 +420,7 @@ class Rewriter:
         if target in self.interpreter.assignments:
             node = self.interpreter.assignments[target]
             if isinstance(node, FunctionNode):
-                if node.func_name in ['executable', 'jar', 'library', 'shared_library', 'shared_module', 'static_library', 'both_libraries']:
+                if node.func_name in {'executable', 'jar', 'library', 'shared_library', 'shared_module', 'static_library', 'both_libraries'}:
                     tgt = self.interpreter.assign_vals[target]
 
         return tgt
@@ -440,7 +440,7 @@ class Rewriter:
         if dependency in self.interpreter.assignments:
             node = self.interpreter.assignments[dependency]
             if isinstance(node, FunctionNode):
-                if node.func_name in ['dependency']:
+                if node.func_name == 'dependency':
                     name = self.interpreter.flatten_args(node.args)[0]
                     dep = check_list(name)
 
@@ -952,15 +952,15 @@ class Rewriter:
                 while raw[end] != '=':
                     end += 1
                 end += 1 # Handle the '='
-                while raw[end] in [' ', '\n', '\t']:
+                while raw[end] in {' ', '\n', '\t'}:
                     end += 1
 
             files[i['file']]['raw'] = raw[:start] + i['str'] + raw[end:]
 
         for i in str_list:
-            if i['action'] in ['modify', 'rm']:
+            if i['action'] in {'modify', 'rm'}:
                 remove_node(i)
-            elif i['action'] in ['add']:
+            elif i['action'] == 'add':
                 files[i['file']]['raw'] += i['str'] + '\n'
 
         # Write the files back

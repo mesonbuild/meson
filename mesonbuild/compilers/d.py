@@ -463,7 +463,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
 
         if crt_val in self.mscrt_args:
             return self.mscrt_args[crt_val]
-        assert crt_val in ['from_buildtype', 'static_from_buildtype']
+        assert crt_val in {'from_buildtype', 'static_from_buildtype'}
 
         dbg = 'mdd'
         rel = 'md'

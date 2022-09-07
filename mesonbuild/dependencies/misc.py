@@ -214,7 +214,7 @@ class Python3DependencySystem(SystemDependency):
                 return None
         elif pyplat == 'win32':
             return '32'
-        elif pyplat in ('win64', 'win-amd64'):
+        elif pyplat in {'win64', 'win-amd64'}:
             return '64'
         mlog.log(f'Unknown Windows Python platform {pyplat!r}')
         return None

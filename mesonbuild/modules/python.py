@@ -194,7 +194,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
                 return None
         elif self.platform == 'win32':
             return '32'
-        elif self.platform in ('win64', 'win-amd64'):
+        elif self.platform in {'win64', 'win-amd64'}:
             return '64'
         mlog.log(f'Unknown Windows Python platform {self.platform!r}')
         return None
@@ -727,7 +727,7 @@ class PythonModule(ExtensionModule):
             # on various platforms, let's not give up just yet, if an executable
             # named python is available and has a compatible version, let's use
             # it
-            if not python.found() and name_or_path in ['python2', 'python3']:
+            if not python.found() and name_or_path in {'python2', 'python3'}:
                 python = PythonExternalProgram('python')
 
         if python.found():

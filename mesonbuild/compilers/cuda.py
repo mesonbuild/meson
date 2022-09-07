@@ -747,7 +747,7 @@ class CudaCompiler(Compiler):
         # native option to override it; override it with /NODEFAULTLIB
         host_link_arg_overrides = []
         host_crt_compile_args = self.host_compiler.get_crt_compile_args(crt_val, buildtype)
-        if any(arg in ['/MDd', '/MD', '/MTd'] for arg in host_crt_compile_args):
+        if any(arg in {'/MDd', '/MD', '/MTd'} for arg in host_crt_compile_args):
             host_link_arg_overrides += ['/NODEFAULTLIB:LIBCMT.lib']
         return self._to_host_flags(host_link_arg_overrides + self.host_compiler.get_crt_link_args(crt_val, buildtype), _Phase.LINKER)
 

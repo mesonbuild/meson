@@ -306,7 +306,7 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
         trial = 'ppc64'
     elif trial.startswith(('powerpc', 'ppc')) or trial in {'macppc', 'power macintosh'}:
         trial = 'ppc'
-    elif trial in ('amd64', 'x64', 'i86pc'):
+    elif trial in {'amd64', 'x64', 'i86pc'}:
         trial = 'x86_64'
     elif trial in {'sun4u', 'sun4v'}:
         trial = 'sparc64'
@@ -353,7 +353,7 @@ def detect_cpu(compilers: CompilersDict) -> str:
     else:
         trial = platform.machine().lower()
 
-    if trial in ('amd64', 'x64', 'i86pc'):
+    if trial in {'amd64', 'x64', 'i86pc'}:
         trial = 'x86_64'
     if trial == 'x86_64':
         # Same check as above for cpu_family

@@ -228,7 +228,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         for i in args:
             # -mms-bitfields is specific to MinGW-GCC
             # -pthread is only valid for GCC
-            if i in ('-mms-bitfields', '-pthread'):
+            if i in {'-mms-bitfields', '-pthread'}:
                 continue
             if i.startswith('-LIBPATH:'):
                 i = '/LIBPATH:' + i[9:]
@@ -361,7 +361,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
         if crt_val in self.crt_args:
             return self.crt_args[crt_val]
-        assert crt_val in ['from_buildtype', 'static_from_buildtype']
+        assert crt_val in {'from_buildtype', 'static_from_buildtype'}
         dbg = 'mdd'
         rel = 'md'
         if crt_val == 'static_from_buildtype':
@@ -385,7 +385,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     def has_func_attribute(self, name: str, env: 'Environment') -> T.Tuple[bool, bool]:
         # MSVC doesn't have __attribute__ like Clang and GCC do, so just return
         # false without compiling anything
-        return name in ['dllimport', 'dllexport'], False
+        return name in {'dllimport', 'dllexport'}, False
 
     def get_argument_syntax(self) -> str:
         return 'msvc'

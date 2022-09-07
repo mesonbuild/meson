@@ -136,7 +136,7 @@ class _MPIConfigToolDependency(ConfigToolDependency):
         for f in args:
             if self._is_link_arg(f):
                 result.append(f)
-                if f in ('-L', '-Xlinker'):
+                if f in {'-L', '-Xlinker'}:
                     include_next = True
             elif include_next:
                 include_next = False

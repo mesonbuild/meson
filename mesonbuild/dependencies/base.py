@@ -274,7 +274,7 @@ class InternalDependency(Dependency):
         assert isinstance(result, InternalDependency)
         memo[id(self)] = result
         for k, v in self.__dict__.items():
-            if k in ['libraries', 'whole_libraries']:
+            if k in {'libraries', 'whole_libraries'}:
                 setattr(result, k, copy.copy(v))
             else:
                 setattr(result, k, copy.deepcopy(v, memo))

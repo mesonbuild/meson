@@ -75,7 +75,7 @@ class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
     def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
                                                build_dir: str) -> T.List[str]:
         for idx, i in enumerate(parameter_list):
-            if i in ['-cp', '-classpath', '-sourcepath'] and idx + 1 < len(parameter_list):
+            if i in {'-cp', '-classpath', '-sourcepath'} and idx + 1 < len(parameter_list):
                 path_list = parameter_list[idx + 1].split(os.pathsep)
                 path_list = [os.path.normpath(os.path.join(build_dir, x)) for x in path_list]
                 parameter_list[idx + 1] = os.pathsep.join(path_list)

@@ -874,7 +874,7 @@ class GnomeModule(ExtensionModule):
         for girtarget in girtargets:
             for lang, compiler in girtarget.compilers.items():
                 # XXX: Can you use g-i with any other language?
-                if lang in ('c', 'cpp', 'objc', 'objcpp', 'd'):
+                if lang in {'c', 'cpp', 'objc', 'objcpp', 'd'}:
                     ret.append((lang, compiler))
                     break
 

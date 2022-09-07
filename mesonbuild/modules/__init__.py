@@ -237,7 +237,7 @@ def is_module_library(fname):
     if hasattr(fname, 'fname'):
         fname = fname.fname
     suffix = fname.split('.')[-1]
-    return suffix in ('gir', 'typelib')
+    return suffix in {'gir', 'typelib'}
 
 
 class ModuleReturnValue:

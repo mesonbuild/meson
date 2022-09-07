@@ -1829,8 +1829,8 @@ class Executable(BuildTarget):
                 self.suffix = 'abs'
             elif ('c' in self.compilers and self.compilers['c'].get_id().startswith('xc16')):
                 self.suffix = 'elf'
-            elif ('c' in self.compilers and self.compilers['c'].get_id() in ('ti', 'c2000') or
-                  'cpp' in self.compilers and self.compilers['cpp'].get_id() in ('ti', 'c2000')):
+            elif ('c' in self.compilers and self.compilers['c'].get_id() in {'ti', 'c2000'} or
+                  'cpp' in self.compilers and self.compilers['cpp'].get_id() in {'ti', 'c2000'}):
                 self.suffix = 'out'
             else:
                 self.suffix = machine.get_exe_suffix()
@@ -2176,10 +2176,10 @@ class SharedLibrary(BuildTarget):
                     raise InvalidArguments('Shared library darwin_versions: must be X.Y.Z where '
                                            'X, Y, Z are numbers, and Y and Z are optional')
                 parts = v.split('.')
-                if len(parts) in (1, 2, 3) and int(parts[0]) > 65535:
+                if len(parts) in {1, 2, 3} and int(parts[0]) > 65535:
                     raise InvalidArguments('Shared library darwin_versions: must be X.Y.Z '
                                            'where X is [0, 65535] and Y, Z are optional')
-                if len(parts) in (2, 3) and int(parts[1]) > 255:
+                if len(parts) in {2, 3} and int(parts[1]) > 255:
                     raise InvalidArguments('Shared library darwin_versions: must be X.Y.Z '
                                            'where Y is [0, 255] and Y, Z are optional')
                 if len(parts) == 3 and int(parts[2]) > 255:

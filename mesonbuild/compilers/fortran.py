@@ -105,9 +105,9 @@ class FortranCompiler(CLikeCompiler, Compiler):
     def module_name_to_filename(self, module_name: str) -> str:
         if '_' in module_name:  # submodule
             s = module_name.lower()
-            if self.id in ('gcc', 'intel', 'intel-cl'):
+            if self.id in {'gcc', 'intel', 'intel-cl'}:
                 filename = s.replace('_', '@') + '.smod'
-            elif self.id in ('pgi', 'flang'):
+            elif self.id in {'pgi', 'flang'}:
                 filename = s.replace('_', '-') + '.mod'
             else:
                 filename = s + '.mod'

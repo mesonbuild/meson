@@ -152,9 +152,9 @@ class BoostLibraryFile():
             self.version_lib = '{}_{}'.format(self.vers_raw[0], self.vers_raw[1])
 
         # Detecting library type
-        if self.nvsuffix in ['so', 'dll', 'dll.a', 'dll.lib', 'dylib']:
+        if self.nvsuffix in {'so', 'dll', 'dll.a', 'dll.lib', 'dylib'}:
             self.static = False
-        elif self.nvsuffix in ['a', 'lib']:
+        elif self.nvsuffix in {'a', 'lib'}:
             self.static = True
         else:
             raise UnknownFileException(self.path)
@@ -177,7 +177,7 @@ class BoostLibraryFile():
         for i in tags:
             if i == 'mt':
                 self.mt = True
-            elif len(i) == 3 and i[1:] in ['32', '64']:
+            elif len(i) == 3 and i[1:] in {'32', '64'}:
                 self.arch = i
             elif BoostLibraryFile.reg_abi_tag.match(i):
                 self.runtime_static = 's' in i
@@ -316,13 +316,13 @@ class BoostLibraryFile():
         # If no vscrt tag present, assume that it fits  ['/MD', '/MDd', '/MT', '/MTd']
         if not vscrt:
             return True
-        if vscrt in ['/MD', '-MD']:
+        if vscrt in {'/MD', '-MD'}:
             return not self.runtime_static and not self.runtime_debug
-        elif vscrt in ['/MDd', '-MDd']:
+        elif vscrt in {'/MDd', '-MDd'}:
             return not self.runtime_static and self.runtime_debug
-        elif vscrt in ['/MT', '-MT']:
+        elif vscrt in {'/MT', '-MT'}:
             return (self.runtime_static or not self.static) and not self.runtime_debug
-        elif vscrt in ['/MTd', '-MTd']:
+        elif vscrt in {'/MTd', '-MTd'}:
             return (self.runtime_static or not self.static) and self.runtime_debug
 
         mlog.warning(f'Boost: unknown vscrt tag {vscrt}. This may cause the compilation to fail. Please consider reporting this as a bug.', once=True)

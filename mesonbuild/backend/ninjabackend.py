@@ -3535,7 +3535,7 @@ def _scan_fortran_file_deps(src: Path, srcdir: Path, dirname: Path, tdeps, compi
                 submodmatch = submodre.match(line)
                 if submodmatch is not None:
                     parents = submodmatch.group(1).lower().split(':')
-                    assert len(parents) in (1, 2), (
+                    assert len(parents) in {1, 2}, (
                         'submodule ancestry must be specified as'
                         f' ancestor:parent but Meson found {parents}')
 

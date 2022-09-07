@@ -1320,7 +1320,7 @@ class CLikeCompiler(Compiler):
         # don't work
         m = env.machines[self.for_machine]
         if not (m.is_windows() or m.is_cygwin()):
-            if name in ['dllimport', 'dllexport']:
+            if name in {'dllimport', 'dllexport'}:
                 return False, False
 
         return self.compiles(self.attribute_check_func(name), env,
