@@ -871,7 +871,7 @@ def version_compare_many(vstr1: str, conditions: T.Union[str, T.Iterable[str]]) 
             not_found.append(req)
         else:
             found.append(req)
-    return not_found == [], not_found, found
+    return not not_found, not_found, found
 
 
 # determine if the minimum version satisfying the condition |condition| exceeds

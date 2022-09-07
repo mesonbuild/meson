@@ -75,7 +75,6 @@ disable=
     unsubscriptable-object,
     unused-argument,
     unused-variable,
-    use-implicit-booleaness-not-comparison,
     useless-super-delegation,
     wrong-import-order,
     wrong-import-position,
