@@ -16,6 +16,10 @@ from ..mesonlib import MachineChoice, File, FileMode, FileOrString
 from ..modules.cmake import CMakeSubprojectOptions
 from ..programs import ExternalProgram
 
+# Turn of this pylint warning, otherwise some versions of pylint get grumpy
+# about `def foo() -> None: ...`
+# pylint: disable=multiple-statements
+
 
 class FuncAddProjectArgs(TypedDict):
 

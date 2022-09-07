@@ -577,7 +577,9 @@ class GnuLikeDynamicLinkerMixin:
 
     if T.TYPE_CHECKING:
         for_machine = MachineChoice.HOST
-        def _apply_prefix(self, arg: T.Union[str, T.List[str]]) -> T.List[str]: ...
+
+        def _apply_prefix(self, arg: T.Union[str, T.List[str]]) -> T.List[str]:
+            pass
 
     _BUILDTYPE_ARGS = {
         'plain': [],
@@ -1220,7 +1222,9 @@ class VisualStudioLikeLinkerMixin:
 
     if T.TYPE_CHECKING:
         for_machine = MachineChoice.HOST
-        def _apply_prefix(self, arg: T.Union[str, T.List[str]]) -> T.List[str]: ...
+
+        def _apply_prefix(self, arg: T.Union[str, T.List[str]]) -> T.List[str]:
+            pass
 
     _BUILDTYPE_ARGS = {
         'plain': [],

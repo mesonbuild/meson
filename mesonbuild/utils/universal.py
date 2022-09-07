@@ -267,7 +267,8 @@ class SecondLevelHolder(HoldableObject, metaclass=abc.ABCMeta):
         default option. '''
 
     @abc.abstractmethod
-    def get_default_object(self) -> HoldableObject: ...
+    def get_default_object(self) -> HoldableObject:
+        pass
 
 class FileMode:
     # The first triad is for owner permissions, the second for group permissions,
