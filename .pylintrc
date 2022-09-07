@@ -67,7 +67,6 @@ disable=
     typevar-name-incorrect-variance,
     undefined-loop-variable,
     unidiomatic-typecheck,
-    unnecessary-dict-index-lookup,
     unnecessary-lambda-assignment,
     unsubscriptable-object,
     unused-argument,

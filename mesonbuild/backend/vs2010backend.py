@@ -1426,7 +1426,7 @@ class Vs2010Backend(backends.Backend):
                     self.create_pch(pch_sources, lang, inc_cl)
                     self.add_additional_options(lang, inc_cl, file_args)
                     self.add_preprocessor_defines(lang, inc_cl, file_defines)
-                    pch_header_dir = pch_sources[lang][3]
+                    pch_header_dir = headers[3]
                     if pch_header_dir:
                         inc_dirs = copy.deepcopy(file_inc_dirs)
                         inc_dirs[lang] = [pch_header_dir] + inc_dirs[lang]
