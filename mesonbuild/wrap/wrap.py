@@ -141,6 +141,8 @@ class PackageDefinition:
     def parse_wrap(self) -> None:
         try:
             config = configparser.ConfigParser(interpolation=None)
+            # Don't call str.lower() on keys
+            config.optionxform = str
             config.read(self.filename, encoding='utf-8')
         except configparser.Error as e:
             raise WrapException(f'Failed to parse {self.basename}: {e!s}')
