@@ -369,7 +369,8 @@ class DynamicLinker(metaclass=abc.ABCMeta):
         'custom': [],
     }  # type: T.Dict[str, T.List[str]]
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def id(self) -> str:
         pass
 

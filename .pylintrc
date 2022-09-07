@@ -19,7 +19,6 @@ disable=
     consider-using-f-string,
     consider-using-with,
     cyclic-import,
-    deprecated-decorator,
     duplicate-code,
     duplicate-value,
     exec-used,
