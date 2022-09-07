@@ -1,5 +1,7 @@
 [MASTER]
 jobs=0
+load-plugins=
+    pylint.extensions.bad_builtin,
 
 [REPORTS]
 score=no

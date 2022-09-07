@@ -2555,7 +2555,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                     mesonlib.do_conf_file(inputs_abs[0], ofile_abs, conf,
                                           fmt, file_encoding)
                 if missing_variables:
-                    var_list = ", ".join(map(repr, sorted(missing_variables)))
+                    var_list = ", ".join(repr(m) for m in sorted(missing_variables))
                     mlog.warning(
                         f"The variable(s) {var_list} in the input file '{inputs[0]}' are not "
                         "present in the given configuration data.", location=node)

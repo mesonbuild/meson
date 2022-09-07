@@ -747,7 +747,7 @@ class CMakeTraceParser:
             func = mo_file_line.group(4)
             args = mo_file_line.group(5)
             argl = args.split(' ')
-            argl = list(map(lambda x: x.strip(), argl))
+            argl = [a.strip() for a in argl]
 
             yield CMakeTraceLine(file, int(line), func, argl)
 

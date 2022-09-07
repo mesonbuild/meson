@@ -191,7 +191,7 @@ class ExternalProject(NewExtensionModule):
             missing.update(missing_vars)
             out.append(arg)
         if missing:
-            var_list = ", ".join(map(repr, sorted(missing)))
+            var_list = ", ".join(repr(m) for m in sorted(missing))
             raise EnvironmentException(
                 f"Variables {var_list} in configure options are missing.")
         return out

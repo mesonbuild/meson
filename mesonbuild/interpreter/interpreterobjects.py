@@ -81,7 +81,7 @@ def extract_search_dirs(kwargs: 'kwargs.ExtractSearchDirs') -> T.List[str]:
             continue
         if not d.is_absolute():
             raise InvalidCode(f'Search directory {d} is not an absolute path.')
-    return list(map(str, search_dirs))
+    return [str(s) for s in search_dirs]
 
 class FeatureOptionHolder(ObjectHolder[coredata.UserFeatureOption]):
     def __init__(self, option: coredata.UserFeatureOption, interpreter: 'Interpreter'):

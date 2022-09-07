@@ -111,7 +111,7 @@ def _flags_to_list(raw: str) -> T.List[str]:
         else:
             curr += i
     res += [curr]
-    res = list(filter(lambda x: len(x) > 0, res))
+    res = [r for r in res if len(r) > 0]
     return res
 
 def cmake_get_generator_args(env: 'Environment') -> T.List[str]:

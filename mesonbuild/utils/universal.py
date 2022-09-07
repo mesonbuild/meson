@@ -26,7 +26,7 @@ import abc
 import platform, subprocess, operator, os, shlex, shutil, re
 import collections
 from functools import lru_cache, wraps, total_ordering
-from itertools import tee, filterfalse
+from itertools import tee
 from tempfile import TemporaryDirectory, NamedTemporaryFile
 import typing as T
 import textwrap
@@ -1399,7 +1399,7 @@ def partition(pred: T.Callable[[_T], object], iterable: T.Iterable[_T]) -> T.Tup
     ([0, 2, 4, 6, 8], [1, 3, 5, 7, 9])
     """
     t1, t2 = tee(iterable)
-    return filterfalse(pred, t1), filter(pred, t2)
+    return (t for t in t1 if not pred(t)), (t for t in t2 if pred(t))
 
 
 def Popen_safe(args: T.List[str], write: T.Optional[str] = None,

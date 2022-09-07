@@ -209,8 +209,8 @@ class NinjaRule:
             return NinjaCommandArg(c)
 
         self.name = rule
-        self.command = list(map(strToCommandArg, command))  # includes args which never go into a rspfile
-        self.args = list(map(strToCommandArg, args))  # args which will go into a rspfile, if used
+        self.command = [strToCommandArg(c) for c in command]  # includes args which never go into a rspfile
+        self.args = [strToCommandArg(a) for a in args]  # args which will go into a rspfile, if used
         self.description = description
         self.deps = deps  # depstyle 'gcc' or 'msvc'
         self.depfile = depfile

@@ -97,7 +97,7 @@ def autodetect_options(options: 'argparse.Namespace', sample: bool = False) -> N
             raise SystemExit('No recognizable source files found.\n'
                              'Run meson init in an empty directory to create a sample project.')
         options.srcfiles = srcfiles
-        print("Detected source files: " + ' '.join(map(str, srcfiles)))
+        print("Detected source files: " + ' '.join(str(s) for s in srcfiles))
     options.srcfiles = [Path(f) for f in options.srcfiles]
     if not options.language:
         for f in options.srcfiles:

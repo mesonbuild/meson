@@ -510,7 +510,7 @@ class CMakeDependency(ExternalDependency):
 
             # Try to use old style variables if no module is specified
             if len(libs) > 0:
-                self.compile_args = list(map(lambda x: f'-I{x}', incDirs)) + defs
+                self.compile_args = [f'-I{x}' for x in incDirs] + defs
                 self.link_args = []
                 for j in libs:
                     rtgt = resolve_cmake_trace_targets(j, self.traceparser, self.env, clib_compiler=self.clib_compiler)
