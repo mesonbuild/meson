@@ -1793,3 +1793,15 @@ class LinuxlikeTests(BasePlatformTests):
         self._run(install_cmd + ['--strip'], workdir=self.builddir)
         stdout = self._run(['file', '-b', lib])
         self.assertNotIn('not stripped', stdout)
+
+    def test_isystem_default_removal_with_symlink(self):
+        env = get_fake_env()
+        cpp = detect_cpp_compiler(env, MachineChoice.HOST)
+        default_dirs = cpp.get_default_include_dirs()
+        default_symlinks = []
+        with tempfile.TemporaryDirectory() as tmpdir:
+            for i in range(len(default_dirs)):
+                symlink = f'{tmpdir}/default_dir{i}'
+                default_symlinks.append(symlink)
+                os.symlink(default_dirs[i], symlink)
+            self.assertFalse(cpp.compiler_args([f'-isystem{symlink}' for symlink in default_symlinks]).to_native())
