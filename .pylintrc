@@ -39,7 +39,6 @@ disable=
     no-else-return,
     no-member,
     no-name-in-module,
-    no-self-argument,
     non-parent-init-called,
     not-an-iterable,
     not-callable,
