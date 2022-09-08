@@ -540,8 +540,7 @@ class CoreData:
         if missing:
             if found_invalid:
                 mlog.log('Found invalid candidates for', ftype, 'file:', *found_invalid)
-            mlog.log('Could not find any valid candidate for', ftype, 'files:', *missing)
-            raise MesonException(f'Cannot find specified {ftype} file: {f}')
+            mlog.error('Could not find any valid candidate for', ftype, 'files:', *missing)
         return real
 
     def builtin_options_libdir_cross_fixup(self):

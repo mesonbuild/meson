@@ -367,6 +367,7 @@ class Elf(DataSizes):
         sec = self.find_section(b'.dynamic')
         if sec is None:
             return None
+        i: T.Optional[int] = None
         for (i, entry) in enumerate(self.dynamic):
             if entry.d_tag == entrynum:
                 rpentry = self.dynamic[i]
@@ -374,10 +375,11 @@ class Elf(DataSizes):
                 self.dynamic = self.dynamic[:i] + self.dynamic[i + 1:] + [rpentry]
                 break
         # DT_MIPS_RLD_MAP_REL is relative to the offset of the tag. Adjust it consequently.
-        for entry in self.dynamic[i:]:
-            if entry.d_tag == DT_MIPS_RLD_MAP_REL:
-                entry.val += 2 * (self.ptrsize // 8)
-                break
+        if i is not None:
+            for entry in self.dynamic[i:]:
+                if entry.d_tag == DT_MIPS_RLD_MAP_REL:
+                    entry.val += 2 * (self.ptrsize // 8)
+                    break
         self.bf.seek(sec.sh_offset)
         for entry in self.dynamic:
             entry.write(self.bf)

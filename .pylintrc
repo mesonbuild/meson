@@ -65,7 +65,6 @@ disable=
     too-many-return-statements,
     too-many-statements,
     typevar-name-incorrect-variance,
-    undefined-loop-variable,
     unidiomatic-typecheck,
     unnecessary-lambda-assignment,
     unsubscriptable-object,
