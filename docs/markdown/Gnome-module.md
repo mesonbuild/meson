@@ -413,5 +413,7 @@ It takes the following keyword arguments:
   `giomodule.cache` file will be updated.
 - `gtk_update_icon_cache`: If set to `true`, update `icon-theme.cache` file in
   `<prefix>/<datadir>/icons/hicolor`.
+  *Since 0.64.0* can be a list of directories relative to `prefix` where
+  `icon-theme.cache` file will be updated.
 - `update_desktop_database`: *Since 0.59.0* If set to `true`, update cache of
   MIME types handled by desktop files in `<prefix>/<datadir>/applications`.

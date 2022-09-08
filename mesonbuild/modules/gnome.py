@@ -282,7 +282,7 @@ class GnomeModule(ExtensionModule):
         self.gicompiler: T.Optional[T.Union[ExternalProgram, build.Executable, OverrideProgram]] = None
         self.install_glib_compile_schemas = False
         self.install_gio_querymodules: T.List[str] = []
-        self.install_gtk_update_icon_cache = False
+        self.install_gtk_update_icon_cache: T.List[str] = []
         self.install_update_desktop_database = False
         self.devenv: T.Optional[build.EnvironmentVariables] = None
         self.methods.update({
@@ -333,7 +333,7 @@ class GnomeModule(ExtensionModule):
         'gnome.post_install',
         KwargInfo('glib_compile_schemas', bool, default=False),
         KwargInfo('gio_querymodules', ContainerTypeInfo(list, str), default=[], listify=True),
-        KwargInfo('gtk_update_icon_cache', bool, default=False),
+        KwargInfo('gtk_update_icon_cache', (bool, str, ContainerTypeInfo(list, str)), default=False),
         KwargInfo('update_desktop_database', bool, default=False, since='0.59.0'),
     )
     @noPosargs
@@ -356,16 +356,25 @@ class GnomeModule(ExtensionModule):
                 script = state.backend.get_executable_serialisation([prog, moduledir])
                 script.skip_if_destdir = True
                 rv.append(script)
-        if kwargs['gtk_update_icon_cache'] and not self.install_gtk_update_icon_cache:
-            self.install_gtk_update_icon_cache = True
-            prog = state.find_program('gtk4-update-icon-cache', required=False)
-            found = isinstance(prog, build.Executable) or prog.found()
-            if not found:
-                prog = state.find_program('gtk-update-icon-cache')
-            icondir = os.path.join(datadir_abs, 'icons', 'hicolor')
-            script = state.backend.get_executable_serialisation([prog, '-q', '-t', '-f', icondir])
-            script.skip_if_destdir = True
-            rv.append(script)
+        if kwargs['gtk_update_icon_cache'] is False:
+            gtk_update_icon_cache_dirs = []
+        elif kwargs['gtk_update_icon_cache'] is True:
+            gtk_update_icon_cache_dirs = [os.path.join(state.environment.get_datadir(), 'icons', 'hicolor')]
+        else:
+            FeatureNew.single_use('gnome.post_install gtk_update_icon_cache with directories', '0.64.0',
+                                  state.subproject)
+            gtk_update_icon_cache_dirs = mesonlib.listify(kwargs['gtk_update_icon_cache'])
+        for d in gtk_update_icon_cache_dirs:
+            if d not in self.install_gtk_update_icon_cache:
+                self.install_gtk_update_icon_cache.append(d)
+                prog = state.find_program('gtk4-update-icon-cache', required=False)
+                found = isinstance(prog, build.Executable) or prog.found()
+                if not found:
+                    prog = state.find_program('gtk-update-icon-cache')
+                icondir = os.path.join(state.environment.get_prefix(), d)
+                script = state.backend.get_executable_serialisation([prog, '-q', '-t', '-f', icondir])
+                script.skip_if_destdir = True
+                rv.append(script)
         if kwargs['update_desktop_database'] and not self.install_update_desktop_database:
             self.install_update_desktop_database = True
             prog = state.find_program('update-desktop-database')
