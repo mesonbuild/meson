@@ -100,6 +100,7 @@ class CLikeCompilerArgs(arglist.CompilerArgs):
         # Remove system/default include paths added with -isystem
         default_dirs = self.compiler.get_default_include_dirs()
         if default_dirs:
+            real_default_dirs = [os.path.realpath(i) for i in default_dirs]
             bad_idx_list = []  # type: T.List[int]
             for i, each in enumerate(new):
                 if not each.startswith('-isystem'):
@@ -108,11 +109,11 @@ class CLikeCompilerArgs(arglist.CompilerArgs):
                 # Remove the -isystem and the path if the path is a default path
                 if (each == '-isystem' and
                         i < (len(new) - 1) and
-                        new[i + 1] in default_dirs):
+                        os.path.realpath(new[i + 1]) in real_default_dirs):
                     bad_idx_list += [i, i + 1]
-                elif each.startswith('-isystem=') and each[9:] in default_dirs:
+                elif each.startswith('-isystem=') and os.path.realpath(each[9:]) in real_default_dirs:
                     bad_idx_list += [i]
-                elif each[8:] in default_dirs:
+                elif os.path.realpath(each[8:]) in real_default_dirs:
                     bad_idx_list += [i]
             for i in reversed(bad_idx_list):
                 new.pop(i)
