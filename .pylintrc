@@ -15,7 +15,6 @@ disable=
     arguments-renamed,
     attribute-defined-outside-init,
     broad-except,
-    cell-var-from-loop,
     consider-using-f-string,
     consider-using-with,
     cyclic-import,

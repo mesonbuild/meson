@@ -206,7 +206,7 @@ class QtPkgConfigDependency(_QtBase, PkgConfigDependency, metaclass=abc.ABCMeta)
                 mod_private_inc = _qt_get_private_includes(mod_private_dir, m, mod.version)
                 for directory in mod_private_inc:
                     mod.compile_args.append('-I' + directory)
-            self._add_sub_dependency([lambda: mod])
+            self._add_sub_dependency([mod])
 
         if self.env.machines[self.for_machine].is_windows() and self.qtmain:
             # Check if we link with debug binaries
