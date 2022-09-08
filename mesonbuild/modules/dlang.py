@@ -84,7 +84,7 @@ class DlangModule(ExtensionModule):
                     for dep in value:
                         if isinstance(dep, dependencies.Dependency):
                             name = dep.get_name()
-                            ret, res = self._call_dubbin(['describe', name])
+                            ret, _ = self._call_dubbin(['describe', name])
                             if ret == 0:
                                 version = dep.get_version()
                                 if version is None:
@@ -93,7 +93,7 @@ class DlangModule(ExtensionModule):
                                     config[key][name] = version
                 elif isinstance(value, dependencies.Dependency):
                     name = value.get_name()
-                    ret, res = self._call_dubbin(['describe', name])
+                    ret, _ = self._call_dubbin(['describe', name])
                     if ret == 0:
                         version = value.get_version()
                         if version is None:

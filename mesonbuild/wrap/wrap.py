@@ -309,7 +309,7 @@ class Resolver:
     def load_wraps(self) -> None:
         if not os.path.isdir(self.subdir_root):
             return
-        root, dirs, files = next(os.walk(self.subdir_root))
+        _, dirs, files = next(os.walk(self.subdir_root))
         ignore_dirs = {'packagecache', 'packagefiles'}
         for i in files:
             if not i.endswith('.wrap'):

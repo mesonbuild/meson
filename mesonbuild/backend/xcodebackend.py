@@ -409,7 +409,7 @@ class XCodeBackend(backends.Backend):
             self.shell_targets[tname] = self.gen_id()
             if not isinstance(t, build.CustomTarget):
                 continue
-            (srcs, ofilenames, cmd) = self.eval_custom_target_command(t)
+            ofilenames = self.eval_custom_target_command(t)[1]
             for o in ofilenames:
                 self.custom_target_output_buildfile[o] = self.gen_id()
                 self.custom_target_output_fileref[o] = self.gen_id()
@@ -664,7 +664,7 @@ class XCodeBackend(backends.Backend):
         for tname, t in self.custom_targets.items():
             if not isinstance(t, build.CustomTarget):
                 continue
-            (srcs, ofilenames, cmd) = self.eval_custom_target_command(t)
+            _, ofilenames, _ = self.eval_custom_target_command(t)
             for o in ofilenames:
                 custom_dict = PbxDict()
                 objects_dict.add_item(self.custom_target_output_buildfile[o], custom_dict, f'/* {o} */')
@@ -822,7 +822,7 @@ class XCodeBackend(backends.Backend):
         for tname, t in self.custom_targets.items():
             if not isinstance(t, build.CustomTarget):
                 continue
-            (srcs, ofilenames, cmd) = self.eval_custom_target_command(t)
+            _, ofilenames, _ = self.eval_custom_target_command(t)
             for s in t.sources:
                 if isinstance(s, mesonlib.File):
                     s = os.path.join(s.subdir, s.fname)
@@ -1033,7 +1033,7 @@ class XCodeBackend(backends.Backend):
 
     def generate_project_tree(self):
         tree_info = FileTreeEntry()
-        for tname, t in self.build_targets.items():
+        for t in self.build_targets.values():
             self.add_target_to_tree(tree_info, t)
         return tree_info
 
@@ -1297,7 +1297,7 @@ class XCodeBackend(backends.Backend):
             generator_id = 0
             for gt in t.generated:
                 if isinstance(gt, build.CustomTarget):
-                    (srcs, ofilenames, cmd) = self.eval_custom_target_command(gt)
+                    _, ofilenames, _ = self.eval_custom_target_command(gt)
                     for o in ofilenames:
                         file_arr.add_item(self.custom_target_output_buildfile[o],
                                           os.path.join(self.environment.get_build_dir(), o))
@@ -1457,9 +1457,9 @@ class XCodeBackend(backends.Backend):
             # Swift is special. Again. You can't mix Swift with other languages
             # in the same target. Thus for Swift we only use
             if self.is_swift_target(target):
-                linker, stdlib_args = target.compilers['swift'], []
+                linker = target.compilers['swift']
             else:
-                linker, stdlib_args = self.determine_linker_and_stdlib_args(target)
+                linker, _ = self.determine_linker_and_stdlib_args(target)
             if not isinstance(target, build.StaticLibrary):
                 ldargs += self.build.get_project_link_args(linker, target.subproject, target.for_machine)
                 ldargs += self.build.get_global_link_args(linker, target.for_machine)
@@ -1486,7 +1486,7 @@ class XCodeBackend(backends.Backend):
                             ldargs += [r'\"' + o_abs + r'\"']
                 else:
                     if isinstance(o, build.CustomTarget):
-                        (srcs, ofilenames, cmd) = self.eval_custom_target_command(o)
+                        _, ofilenames, _ = self.eval_custom_target_command(o)
                         for ofname in ofilenames:
                             if os.path.splitext(ofname)[-1] in LINKABLE_EXTENSIONS:
                                 ldargs += [r'\"' + os.path.join(self.environment.get_build_dir(), ofname) + r'\"']

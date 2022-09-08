@@ -50,7 +50,7 @@ class ExternalProject:
             pass
 
     def supports_jobs_flag(self) -> bool:
-        p, o, e = Popen_safe(self.make + ['--version'])
+        p, o, _ = Popen_safe(self.make + ['--version'])
         if p.returncode == 0 and ('GNU Make' in o or 'waf' in o):
             return True
         return False
@@ -89,9 +89,9 @@ class ExternalProject:
         run_env = os.environ.copy()
         if env:
             run_env.update(env)
-        p, o, e = Popen_safe(command, stderr=subprocess.STDOUT, stdout=output,
-                             cwd=self.build_dir,
-                             env=run_env)
+        p = Popen_safe(command, stderr=subprocess.STDOUT, stdout=output,
+                       cwd=self.build_dir,
+                       env=run_env)[0]
         if p.returncode != 0:
             m = f'{step} step returned error code {p.returncode}.'
             if not self.verbose:

@@ -1384,7 +1384,7 @@ class SolarisDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
     def get_pie_args(self) -> T.List[str]:
         # Available in Solaris 11.2 and later
-        pc, stdo, stde = mesonlib.Popen_safe(self.exelist + self._apply_prefix('-zhelp'))
+        _, stdo, stde = mesonlib.Popen_safe(self.exelist + self._apply_prefix('-zhelp'))
         for line in (stdo + stde).split('\n'):
             if '-z type' in line:
                 if 'pie' in line:

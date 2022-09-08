@@ -247,7 +247,7 @@ class AstInterpreter(InterpreterBase):
         arguments, kwargs = self.reduce_arguments(node.args, key_resolver=resolve_key)
         assert not arguments
         self.argument_depth += 1
-        for key, value in kwargs.items():
+        for key in kwargs:
             if isinstance(key, BaseNode):
                 self.evaluate_statement(key)
         self.argument_depth -= 1

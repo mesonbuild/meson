@@ -71,7 +71,7 @@ class GnuStepDependency(ConfigToolDependency):
     def find_config(self, versions: T.Optional[T.List[str]] = None, returncode: int = 0) -> T.Tuple[T.Optional[T.List[str]], T.Optional[str]]:
         tool = [self.tools[0]]
         try:
-            p, out = Popen_safe(tool + ['--help'])[:2]
+            p = Popen_safe(tool + ['--help'])[0]
         except (FileNotFoundError, PermissionError):
             return (None, None)
         if p.returncode != returncode:
@@ -118,9 +118,9 @@ class GnuStepDependency(ConfigToolDependency):
         env = os.environ.copy()
         # See base.make to understand why this is set
         env['FOUNDATION_LIB'] = 'gnu'
-        p, o, e = Popen_safe([gmake, '-f', '-', '-f', base_make,
-                              'print-GNUSTEP_BASE_VERSION'],
-                             env=env, write=printver, stdin=subprocess.PIPE)
+        o = Popen_safe([gmake, '-f', '-', '-f', base_make,
+                       'print-GNUSTEP_BASE_VERSION'],
+                       env=env, write=printver, stdin=subprocess.PIPE)[1]
         version = o.strip()
         if not version:
             mlog.debug("Couldn't detect GNUStep version, falling back to '1'")

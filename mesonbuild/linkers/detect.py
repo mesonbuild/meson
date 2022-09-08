@@ -82,7 +82,7 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     if extra_args is not None:
         check_args.extend(extra_args)
 
-    p, o, _ = Popen_safe(compiler + check_args)
+    o = Popen_safe(compiler + check_args)[1]
     if 'LLD' in o.split('\n', maxsplit=1)[0]:
         if '(compatible with GNU linkers)' in o:
             return LLVMDynamicLinker(
@@ -97,7 +97,7 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
         compiler = value
         # We've already hanedled the non-direct case above
 
-    p, o, e = Popen_safe(compiler + check_args)
+    _, o, e = Popen_safe(compiler + check_args)
     if 'LLD' in o.split('\n', maxsplit=1)[0]:
         return ClangClDynamicLinker(
             for_machine, [],

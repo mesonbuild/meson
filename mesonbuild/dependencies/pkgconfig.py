@@ -391,7 +391,7 @@ class PkgConfigDependency(ExternalDependency):
         # Also get the 'raw' output without -Lfoo system paths for adding -L
         # args with -lfoo when a library can't be found, and also in
         # gnome.generate_gir + gnome.gtkdoc which need -L -l arguments.
-        ret, out_raw, err_raw = self._call_pkgbin(libcmd)
+        ret, out_raw, _ = self._call_pkgbin(libcmd)
         if ret != 0:
             raise DependencyException(f'Could not generate libs for {self.name}:\n\n{out_raw}')
         self.link_args, self.raw_link_args = self._search_libs(out, out_raw)

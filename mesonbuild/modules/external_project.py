@@ -175,7 +175,7 @@ class ExternalProject(NewExtensionModule):
     def _validate_configure_options(self, variables: T.List[T.Tuple[str, str, str]], state: 'ModuleState') -> None:
         # Ensure the user at least try to pass basic info to the build system,
         # like the prefix, libdir, etc.
-        for key, default, val in variables:
+        for key, default, _ in variables:
             if default is None:
                 continue
             key_format = f'@{key}@'

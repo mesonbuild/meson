@@ -2103,7 +2103,7 @@ class GnomeModule(ExtensionModule):
         library = args[0]
         build_dir = os.path.join(state.environment.get_build_dir(), state.subdir)
         source_dir = os.path.join(state.environment.get_source_dir(), state.subdir)
-        pkg_cmd, vapi_depends, vapi_packages, vapi_includes, packages = self._extract_vapi_packages(state, kwargs['packages'])
+        pkg_cmd, vapi_depends, vapi_packages, vapi_includes, _ = self._extract_vapi_packages(state, kwargs['packages'])
         cmd: T.List[T.Union[ExternalProgram, Executable, OverrideProgram, str]]
         cmd = [state.find_program('vapigen'), '--quiet', f'--library={library}', f'--directory={build_dir}']
         cmd.extend([f'--vapidir={d}' for d in kwargs['vapi_dirs']])

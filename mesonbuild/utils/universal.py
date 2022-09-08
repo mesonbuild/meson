@@ -1199,7 +1199,7 @@ def do_define(regex: T.Pattern[str], line: str, confdata: 'ConfigurationData',
         define_value = []
         for token in arr[2:]:
             try:
-                (v, desc) = confdata.get(token)
+                v, _ = confdata.get(token)
                 define_value += [str(v)]
             except KeyError:
                 define_value += [token]
@@ -1211,7 +1211,7 @@ def do_define(regex: T.Pattern[str], line: str, confdata: 'ConfigurationData',
 
     varname = arr[1]
     try:
-        (v, desc) = confdata.get(varname)
+        v, _ = confdata.get(varname)
     except KeyError:
         return '/* #undef %s */\n' % varname
     if isinstance(v, bool):
@@ -1227,7 +1227,7 @@ def do_define(regex: T.Pattern[str], line: str, confdata: 'ConfigurationData',
         else:
             result = get_cmake_define(line, confdata)
         result = f'#define {varname} {result}\n'
-        (result, missing_variable) = do_replacement(regex, result, variable_format, confdata)
+        result, _ = do_replacement(regex, result, variable_format, confdata)
         return result
     else:
         raise MesonException('#mesondefine argument "%s" is of unknown type.' % varname)

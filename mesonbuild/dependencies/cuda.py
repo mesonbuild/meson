@@ -86,7 +86,7 @@ class CudaDependency(SystemDependency):
             mlog.debug('nvcc version:', mlog.bold(nvcc_version))
             if version_reqs:
                 # make sure nvcc version satisfies specified version requirements
-                (found_some, not_found, found) = mesonlib.version_compare_many(nvcc_version, version_reqs)
+                _, not_found, _ = mesonlib.version_compare_many(nvcc_version, version_reqs)
                 if not_found:
                     msg = f'The current nvcc version {nvcc_version} does not satisfy the specified CUDA Toolkit version requirements {version_reqs}.'
                     return self._report_dependency_error(msg, (None, None, False))
@@ -125,7 +125,7 @@ class CudaDependency(SystemDependency):
             nvcc_warning = None
 
         for (path, version, default) in paths:
-            (found_some, not_found, found) = mesonlib.version_compare_many(version, version_reqs)
+            _, not_found, _ = mesonlib.version_compare_many(version, version_reqs)
             if not not_found:
                 if not default and nvcc_warning:
                     mlog.warning(nvcc_warning)

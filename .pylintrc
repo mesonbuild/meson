@@ -70,5 +70,4 @@ disable=
     unnecessary-lambda-assignment,
     unsubscriptable-object,
     unused-argument,
-    unused-variable,
     useless-super-delegation,
