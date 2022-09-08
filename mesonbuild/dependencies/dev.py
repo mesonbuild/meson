@@ -500,7 +500,7 @@ class ZlibSystemDependency(SystemDependency):
             self.link_args = ['-lz']
         else:
             if self.clib_compiler.get_argument_syntax() == 'msvc':
-                libs = ['zlib1' 'zlib']
+                libs = ['zlib1', 'zlib']
             else:
                 libs = ['z']
             for lib in libs:

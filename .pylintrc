@@ -20,7 +20,6 @@ disable=
     duplicate-value,
     exec-used,
     fixme,
-    implicit-str-concat,
     import-error,
     import-outside-toplevel,
     inconsistent-mro,
