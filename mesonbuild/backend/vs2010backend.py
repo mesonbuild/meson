@@ -1510,15 +1510,15 @@ class Vs2010Backend(backends.Backend):
             message.text = msg
         if not verify_files:
             ET.SubElement(custombuild, 'VerifyInputsAndOutputsExist').text = 'false'
-        ET.SubElement(custombuild, 'Command').text = f'''setlocal
-{command}
-if %%errorlevel%% neq 0 goto :cmEnd
-:cmEnd
-endlocal & call :cmErrorLevel %%errorlevel%% & goto :cmDone
-:cmErrorLevel
-exit /b %%1
-:cmDone
-if %%errorlevel%% neq 0 goto :VCEnd'''
+
+        # If a command ever were to change the current directory or set local
+        # variables this would need to be more complicated, as msbuild by
+        # default executes all CustomBuilds in a project using the same
+        # shell. Right now such tasks are all done inside the meson_exe
+        # wrapper. The trailing newline appears to be necessary to allow
+        # parallel custom builds to work.
+        ET.SubElement(custombuild, 'Command').text = f"{command}\n"
+
         if not outputs:
             # Use a nonexistent file to always consider the target out-of-date.
             outputs = [self.nonexistent_file(os.path.join(self.environment.get_scratch_dir(),
