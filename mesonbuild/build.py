@@ -2075,13 +2075,15 @@ class SharedLibrary(BuildTarget):
                 prefix = ''
                 # Import library is called foo.dll.lib
                 self.import_filename = f'{self.name}.dll.lib'
-                create_debug_file = True
+                # Debug files(.pdb) is only created with debug buildtype
+                create_debug_file = self.environment.coredata.get_option(OptionKey("debug"))
             elif self.get_using_msvc():
                 # Shared library is of the form foo.dll
                 prefix = ''
                 # Import library is called foo.lib
                 self.import_filename = self.vs_import_filename
-                create_debug_file = True
+                # Debug files(.pdb) is only created with debug buildtype
+                create_debug_file = self.environment.coredata.get_option(OptionKey("debug"))
             # Assume GCC-compatible naming
             else:
                 # Shared library is of the form libfoo.dll
