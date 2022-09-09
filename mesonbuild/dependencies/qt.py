@@ -145,14 +145,17 @@ class _QtBase:
         if not isinstance(self.qtmain, bool):
             raise DependencyException('"main" argument must be a boolean')
 
-    def _link_with_qtmain(self, is_debug: bool, libdir: T.Union[str, T.List[str]]) -> bool:
+    def _link_with_qt_winmain(self, is_debug: bool, libdir: T.Union[str, T.List[str]]) -> bool:
         libdir = mesonlib.listify(libdir)  # TODO: shouldn't be necessary
-        base_name = 'qtmaind' if is_debug else 'qtmain'
-        qtmain = self.clib_compiler.find_library(base_name, self.env, libdir)
-        if qtmain:
-            self.link_args.append(qtmain[0])
+        base_name = self.get_qt_winmain_base_name(is_debug)
+        qt_winmain = self.clib_compiler.find_library(base_name, self.env, libdir)
+        if qt_winmain:
+            self.link_args.append(qt_winmain[0])
             return True
         return False
+
+    def get_qt_winmain_base_name(self, is_debug: bool) -> str:
+        return 'qtmaind' if is_debug else 'qtmain'
 
     def get_exe_args(self, compiler: 'Compiler') -> T.List[str]:
         # Originally this was -fPIE but nowadays the default
@@ -212,7 +215,7 @@ class QtPkgConfigDependency(_QtBase, PkgConfigDependency, metaclass=abc.ABCMeta)
                     is_debug = True
                     break
             libdir = self.get_pkgconfig_variable('libdir', [], None)
-            if not self._link_with_qtmain(is_debug, libdir):
+            if not self._link_with_qt_winmain(is_debug, libdir):
                 self.is_found = False
                 return
 
@@ -332,7 +335,7 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=abc.ABCMeta):
             self.link_args.append(libfile)
 
         if self.env.machines[self.for_machine].is_windows() and self.qtmain:
-            if not self._link_with_qtmain(is_debug, libdir):
+            if not self._link_with_qt_winmain(is_debug, libdir):
                 self.is_found = False
 
     def _sanitize_version(self, version: str) -> str:
@@ -375,6 +378,12 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=abc.ABCMeta):
         return 'qmake'
 
 
+class Qt6WinMainMixin:
+
+    def get_qt_winmain_base_name(self, is_debug: bool) -> str:
+        return 'Qt6EntryPointd' if is_debug else 'Qt6EntryPoint'
+
+
 class Qt4ConfigToolDependency(QmakeQtDependency):
 
     def get_private_includes(self, mod_inc_dir: str, module: str) -> T.List[str]:
@@ -387,7 +396,7 @@ class Qt5ConfigToolDependency(QmakeQtDependency):
         return _qt_get_private_includes(mod_inc_dir, module, self.version)
 
 
-class Qt6ConfigToolDependency(QmakeQtDependency):
+class Qt6ConfigToolDependency(Qt6WinMainMixin, QmakeQtDependency):
 
     def get_private_includes(self, mod_inc_dir: str, module: str) -> T.List[str]:
         return _qt_get_private_includes(mod_inc_dir, module, self.version)
@@ -431,7 +440,7 @@ class Qt5PkgConfigDependency(QtPkgConfigDependency):
         return _qt_get_private_includes(mod_inc_dir, module, self.version)
 
 
-class Qt6PkgConfigDependency(QtPkgConfigDependency):
+class Qt6PkgConfigDependency(Qt6WinMainMixin, QtPkgConfigDependency):
 
     def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]):
         super().__init__(name, env, kwargs)
