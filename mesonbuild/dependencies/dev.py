@@ -27,7 +27,9 @@ import typing as T
 from mesonbuild.interpreterbase.decorators import FeatureDeprecated
 
 from .. import mesonlib, mlog
-from ..compilers import AppleClangCCompiler, AppleClangCPPCompiler, detect_compiler_for
+from ..compilers.c import AppleClangCCompiler
+from ..compilers.cpp import AppleClangCPPCompiler
+from ..compilers.detect import detect_compiler_for
 from ..environment import get_llvm_tool_names
 from ..mesonlib import version_compare, stringlistify, extract_as_list
 from .base import DependencyException, DependencyMethods, strip_system_libdirs, SystemDependency, ExternalDependency, DependencyTypeName

@@ -17,7 +17,7 @@ import typing as T
 import re
 
 from ..mesonlib import version_compare
-from ..compilers import CudaCompiler
+from ..compilers.cuda import CudaCompiler
 
 from . import NewExtensionModule, ModuleInfo
 

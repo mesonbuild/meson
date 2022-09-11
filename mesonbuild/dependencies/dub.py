@@ -17,8 +17,7 @@ from .pkgconfig import PkgConfigDependency
 from ..mesonlib import (Popen_safe, OptionKey)
 from ..mesonlib.universal import join_args
 from ..programs import ExternalProgram
-from ..compilers import DCompiler
-from ..compilers.d import d_feature_args
+from ..compilers.d import DCompiler, d_feature_args
 from .. import mlog
 import re
 import os

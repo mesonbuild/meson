@@ -137,12 +137,12 @@ class VisualStudioLikeLinker:
 
     @classmethod
     def unix_args_to_native(cls, args: T.List[str]) -> T.List[str]:
-        from ..compilers import VisualStudioCCompiler
+        from ..compilers.c import VisualStudioCCompiler
         return VisualStudioCCompiler.unix_args_to_native(args)
 
     @classmethod
     def native_args_to_unix(cls, args: T.List[str]) -> T.List[str]:
-        from ..compilers import VisualStudioCCompiler
+        from ..compilers.c import VisualStudioCCompiler
         return VisualStudioCCompiler.native_args_to_unix(args)
 
     def rsp_file_syntax(self) -> RSPFileSyntax:
@@ -1126,7 +1126,7 @@ class NAGDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         return []
 
     def get_std_shared_lib_args(self) -> T.List[str]:
-        from ..compilers import NAGFortranCompiler
+        from ..compilers.fortran import NAGFortranCompiler
         return NAGFortranCompiler.get_nagfor_quiet(self.version) + ['-Wl,-shared']
 
 
@@ -1495,7 +1495,7 @@ class CudaLinker(PosixDynamicLinkerMixin, DynamicLinker):
         #
         #   nvcc fatal : Don't know what to do with 'subprojects/foo/libbar.so.0.1.2'
         #
-        from ..compilers import CudaCompiler
+        from ..compilers.cuda import CudaCompiler
         return CudaCompiler.LINKER_PREFIX
 
     def fatal_warnings(self) -> T.List[str]:
