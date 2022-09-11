@@ -36,13 +36,8 @@ from .. import build
 from .. import mlog
 from .. import compilers
 from ..arglist import CompilerArgs
-from ..compilers import (
-    Compiler, CCompiler,
-    FortranCompiler,
-    mixins,
-    PGICCompiler,
-    VisualStudioLikeCompiler,
-)
+from ..compilers import Compiler
+from ..compilers.c import CCompiler
 from ..linkers import ArLinker, AppleArLinker, RSPFileSyntax
 from ..mesonlib import (
     File, LibType, MachineChoice, MesonException, OrderedSet, PerMachine,
@@ -60,6 +55,7 @@ if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
     from ..linkers import DynamicLinker, StaticLinker
     from ..compilers.cs import CsCompiler
+    from ..compilers.fortran import FortranCompiler
 
     RUST_EDITIONS = Literal['2015', '2018', '2021']
 
@@ -516,12 +512,12 @@ class NinjaBackend(backends.Backend):
             # Have to detect the dependency format
 
             # IFort on windows is MSVC like, but doesn't have /showincludes
-            if isinstance(compiler, FortranCompiler):
+            if compiler.language == 'fortran':
                 continue
-            if isinstance(compiler, PGICCompiler) and mesonlib.is_windows():
+            if compiler.id == 'pgi' and mesonlib.is_windows():
                 # for the purpose of this function, PGI doesn't act enough like MSVC
                 return open(tempfilename, 'a', encoding='utf-8')
-            if isinstance(compiler, VisualStudioLikeCompiler):
+            if compiler.get_argument_syntax() == 'msvc':
                 break
         else:
             # None of our compilers are MSVC, we're done.
@@ -2325,7 +2321,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         command = compiler.get_exelist()
         args = ['$ARGS'] + depargs + NinjaCommandArg.list(compiler.get_output_args('$out'), Quoting.none) + compiler.get_compile_only_args() + ['$in']
         description = f'Compiling {compiler.get_display_language()} object $out'
-        if isinstance(compiler, VisualStudioLikeCompiler):
+        if compiler.get_argument_syntax() == 'msvc':
             deps = 'msvc'
             depfile = None
         else:
@@ -2341,13 +2337,13 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         rule = self.compiler_to_pch_rule_name(compiler)
         depargs = compiler.get_dependency_gen_args('$out', '$DEPFILE')
 
-        if isinstance(compiler, VisualStudioLikeCompiler):
+        if compiler.get_argument_syntax() == 'msvc':
             output = []
         else:
             output = NinjaCommandArg.list(compiler.get_output_args('$out'), Quoting.none)
         command = compiler.get_exelist() + ['$ARGS'] + depargs + output + compiler.get_compile_only_args() + ['$in']
         description = 'Precompiling header $in'
-        if isinstance(compiler, VisualStudioLikeCompiler):
+        if compiler.get_argument_syntax() == 'msvc':
             deps = 'msvc'
             depfile = None
         else:
@@ -2931,8 +2927,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 msg = f'Precompiled header of {target.get_basename()!r} must not be in the same ' \
                       'directory as source, please put it in a subdirectory.'
                 raise InvalidArguments(msg)
-            compiler = target.compilers[lang]
-            if isinstance(compiler, VisualStudioLikeCompiler):
+            compiler: Compiler = target.compilers[lang]
+            if compiler.get_argument_syntax() == 'msvc':
                 (commands, dep, dst, objs, src) = self.generate_msvc_pch_command(target, compiler, pch)
                 extradep = os.path.join(self.build_to_src, target.get_source_subdir(), pch[0])
             elif compiler.id == 'intel':
@@ -3026,7 +3022,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
     def get_link_whole_args(self, linker, target):
         use_custom = False
-        if isinstance(linker, mixins.visualstudio.MSVCCompiler):
+        if linker.id == 'msvc':
             # Expand our object lists manually if we are on pre-Visual Studio 2015 Update 2
             # (incidentally, the "linker" here actually refers to cl.exe)
             if mesonlib.version_compare(linker.version, '<19.00.23918'):

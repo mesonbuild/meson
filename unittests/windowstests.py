@@ -32,7 +32,6 @@ from mesonbuild.mesonlib import (
 )
 from mesonbuild.compilers import (
     detect_c_compiler, detect_d_compiler, compiler_from_language,
-    GnuLikeCompiler
 )
 from mesonbuild.programs import ExternalProgram
 import mesonbuild.dependencies.base
@@ -222,21 +221,21 @@ class WindowsTests(BasePlatformTests):
     def test_link_environment_variable_lld_link(self):
         env = get_fake_env()
         comp = detect_c_compiler(env, MachineChoice.HOST)
-        if isinstance(comp, GnuLikeCompiler):
+        if comp.get_argument_syntax() == 'gcc':
             raise SkipTest('GCC cannot be used with link compatible linkers.')
         self._check_ld('lld-link', 'c', 'lld-link')
 
     def test_link_environment_variable_link(self):
         env = get_fake_env()
         comp = detect_c_compiler(env, MachineChoice.HOST)
-        if isinstance(comp, GnuLikeCompiler):
+        if comp.get_argument_syntax() == 'gcc':
             raise SkipTest('GCC cannot be used with link compatible linkers.')
         self._check_ld('link', 'c', 'link')
 
     def test_link_environment_variable_optlink(self):
         env = get_fake_env()
         comp = detect_c_compiler(env, MachineChoice.HOST)
-        if isinstance(comp, GnuLikeCompiler):
+        if comp.get_argument_syntax() == 'gcc':
             raise SkipTest('GCC cannot be used with link compatible linkers.')
         self._check_ld('optlink', 'c', 'optlink')
 

@@ -845,10 +845,10 @@ class Environment:
 
     def get_compiler_system_dirs(self, for_machine: MachineChoice):
         for comp in self.coredata.compilers[for_machine].values():
-            if isinstance(comp, compilers.ClangCompiler):
+            if comp.id == 'clang':
                 index = 1
                 break
-            elif isinstance(comp, compilers.GnuCompiler):
+            elif comp.id == 'gcc':
                 index = 2
                 break
         else:
