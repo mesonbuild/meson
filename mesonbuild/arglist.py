@@ -53,7 +53,7 @@ class Dedup(enum.Enum):
     OVERRIDDEN = 2
 
 
-class CompilerArgs(collections.abc.MutableSequence):
+class CompilerArgs(T.MutableSequence[str]):
     '''
     List-like class that manages a list of compiler arguments. Should be used
     while constructing compiler arguments from various sources. Can be
