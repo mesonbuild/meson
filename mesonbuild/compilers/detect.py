@@ -647,7 +647,7 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
                 exe_wrap, full_version=full_version, linker=linker)
 
         if 'Microchip Technology' in out:
-            cls = Xc16CCompiler if lang == 'c' else Xc16CCompiler
+            cls = Xc16CCompiler
             env.coredata.add_lang_args(cls.language, cls, for_machine, env)
             linker = Xc16DynamicLinker(for_machine, version=version)
             return cls(
