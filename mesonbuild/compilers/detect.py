@@ -761,7 +761,7 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
             if 'G95' in out:
                 cls = G95FortranCompiler
                 linker = guess_nix_linker(env, compiler, cls, version, for_machine)
-                return G95FortranCompiler(
+                return cls(
                     compiler, version, for_machine, is_cross, info,
                     exe_wrap, full_version=full_version, linker=linker)
 
@@ -769,7 +769,7 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
                 version = search_version(err)
                 cls = SunFortranCompiler
                 linker = guess_nix_linker(env, compiler, cls, version, for_machine)
-                return SunFortranCompiler(
+                return cls(
                     compiler, version, for_machine, is_cross, info,
                     exe_wrap, full_version=full_version, linker=linker)
 
@@ -784,8 +784,9 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
                     target, exe_wrap, linker=linker)
 
             if 'ifort (IFORT)' in out:
-                linker = guess_nix_linker(env, compiler, IntelFortranCompiler, version, for_machine)
-                return IntelFortranCompiler(
+                cls = IntelFortranCompiler
+                linker = guess_nix_linker(env, compiler, cls, version, for_machine)
+                return cls(
                     compiler, version, for_machine, is_cross, info,
                     exe_wrap, full_version=full_version, linker=linker)
 
@@ -813,16 +814,18 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
                     full_version=full_version, linker=linker)
 
             if 'flang' in out or 'clang' in out:
+                cls = FlangFortranCompiler
                 linker = guess_nix_linker(env,
-                                          compiler, FlangFortranCompiler, version, for_machine)
-                return FlangFortranCompiler(
+                                          compiler, cls, version, for_machine)
+                return cls(
                     compiler, version, for_machine, is_cross, info,
                     exe_wrap, full_version=full_version, linker=linker)
 
             if 'Open64 Compiler Suite' in err:
+                cls = Open64FortranCompiler
                 linker = guess_nix_linker(env,
-                                          compiler, Open64FortranCompiler, version, for_machine)
-                return Open64FortranCompiler(
+                                          compiler, cls, version, for_machine)
+                return cls(
                     compiler, version, for_machine, is_cross, info,
                     exe_wrap, full_version=full_version, linker=linker)
 
@@ -1109,6 +1112,7 @@ def detect_d_compiler(env: 'Environment', for_machine: MachineChoice) -> Compile
     popen_exceptions = {}
     is_cross = env.is_cross_build(for_machine)
     compilers, ccache, exe_wrap = _get_compilers(env, 'd', for_machine)
+    cls: T.Type[DCompiler]
     for exelist in compilers:
         # Search for a D compiler.
         # We prefer LDC over GDC unless overridden with the DC
@@ -1127,6 +1131,7 @@ def detect_d_compiler(env: 'Environment', for_machine: MachineChoice) -> Compile
         full_version = out.split('\n', 1)[0]
 
         if 'LLVM D compiler' in out:
+            cls = LLVMDCompiler
             # LDC seems to require a file
             # We cannot use NamedTemproraryFile on windows, its documented
             # to not work for our uses. So, just use mkstemp and only have
@@ -1139,7 +1144,7 @@ def detect_d_compiler(env: 'Environment', for_machine: MachineChoice) -> Compile
                     objfile = os.path.basename(f)[:-1] + 'obj'
                     linker = guess_win_linker(env,
                                               exelist,
-                                              LLVMDCompiler, full_version, for_machine,
+                                              cls, full_version, for_machine,
                                               use_linker_prefix=True, invoked_directly=False,
                                               extra_args=[f])
                 else:
@@ -1147,22 +1152,24 @@ def detect_d_compiler(env: 'Environment', for_machine: MachineChoice) -> Compile
                     # Clean it up.
                     objfile = os.path.basename(f)[:-1] + 'o'
                     linker = guess_nix_linker(env,
-                                              exelist, LLVMDCompiler, full_version, for_machine,
+                                              exelist, cls, full_version, for_machine,
                                               extra_args=[f])
             finally:
                 windows_proof_rm(f)
                 windows_proof_rm(objfile)
 
-            return LLVMDCompiler(
+            return cls(
                 exelist, version, for_machine, info, arch,
                 full_version=full_version, linker=linker, version_output=out)
         elif 'gdc' in out:
-            linker = guess_nix_linker(env, exelist, GnuDCompiler, version, for_machine)
-            return GnuDCompiler(
+            cls = GnuDCompiler
+            linker = guess_nix_linker(env, exelist, cls, version, for_machine)
+            return cls(
                 exelist, version, for_machine, info, arch,
                 exe_wrapper=exe_wrap, is_cross=is_cross,
                 full_version=full_version, linker=linker)
         elif 'The D Language Foundation' in out or 'Digital Mars' in out:
+            cls = DmdDCompiler
             # DMD seems to require a file
             # We cannot use NamedTemproraryFile on windows, its documented
             # to not work for our uses. So, just use mkstemp and only have
@@ -1177,18 +1184,18 @@ def detect_d_compiler(env: 'Environment', for_machine: MachineChoice) -> Compile
                 if info.is_windows() or info.is_cygwin():
                     objfile = os.path.basename(f)[:-1] + 'obj'
                     linker = guess_win_linker(env,
-                                              exelist, DmdDCompiler, full_version, for_machine,
+                                              exelist, cls, full_version, for_machine,
                                               invoked_directly=False, extra_args=[f, arch_arg])
                 else:
                     objfile = os.path.basename(f)[:-1] + 'o'
                     linker = guess_nix_linker(env,
-                                              exelist, DmdDCompiler, full_version, for_machine,
+                                              exelist, cls, full_version, for_machine,
                                               extra_args=[f, arch_arg])
             finally:
                 windows_proof_rm(f)
                 windows_proof_rm(objfile)
 
-            return DmdDCompiler(
+            return cls(
                 exelist, version, for_machine, info, arch,
                 full_version=full_version, linker=linker)
         raise EnvironmentException('Unknown compiler: ' + join_args(exelist))
@@ -1212,10 +1219,11 @@ def detect_swift_compiler(env: 'Environment', for_machine: MachineChoice) -> Com
     if 'Swift' in err:
         # As for 5.0.1 swiftc *requires* a file to check the linker:
         with tempfile.NamedTemporaryFile(suffix='.swift') as f:
+            cls = SwiftCompiler
             linker = guess_nix_linker(env,
-                                      exelist, SwiftCompiler, version, for_machine,
+                                      exelist, cls, version, for_machine,
                                       extra_args=[f.name])
-        return SwiftCompiler(
+        return cls(
             exelist, version, for_machine, is_cross, info, linker=linker)
 
     raise EnvironmentException('Unknown compiler: ' + join_args(exelist))
