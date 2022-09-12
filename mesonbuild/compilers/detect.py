@@ -834,7 +834,7 @@ def detect_cs_compiler(env: 'Environment', for_machine: MachineChoice) -> Compil
             continue
 
         version = search_version(out)
-        cls: T.Union[T.Type[cs.MonoCompiler], T.Type[cs.VisualStudioCsCompiler]]
+        cls: T.Type[cs.CsCompiler]
         if 'Mono' in out:
             cls = cs.MonoCompiler
         elif "Visual C#" in out:
