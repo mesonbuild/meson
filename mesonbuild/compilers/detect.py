@@ -845,14 +845,14 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
     raise EnvironmentException('Unreachable code (exception to make mypy happy)')
 
 def detect_objc_compiler(env: 'Environment', for_machine: MachineChoice) -> 'Compiler':
-    return _detect_objc_or_objcpp_compiler(env, for_machine, True)
+    return _detect_objc_or_objcpp_compiler(env, 'objc', for_machine)
 
 def detect_objcpp_compiler(env: 'Environment', for_machine: MachineChoice) -> 'Compiler':
-    return _detect_objc_or_objcpp_compiler(env, for_machine, False)
+    return _detect_objc_or_objcpp_compiler(env, 'objcpp', for_machine)
 
-def _detect_objc_or_objcpp_compiler(env: 'Environment', for_machine: MachineChoice, objc: bool) -> 'Compiler':
+def _detect_objc_or_objcpp_compiler(env: 'Environment', lang: str, for_machine: MachineChoice) -> 'Compiler':
     popen_exceptions: T.Dict[str, T.Union[Exception, str]] = {}
-    compilers, ccache, exe_wrap = _get_compilers(env, 'objc' if objc else 'objcpp', for_machine)
+    compilers, ccache, exe_wrap = _get_compilers(env, lang, for_machine)
     is_cross = env.is_cross_build(for_machine)
     info = env.machines[for_machine]
     comp: T.Union[T.Type[ObjCCompiler], T.Type[ObjCPPCompiler]]
@@ -871,7 +871,7 @@ def _detect_objc_or_objcpp_compiler(env: 'Environment', for_machine: MachineChoi
                 popen_exceptions[join_args(compiler)] = 'no pre-processor defines'
                 continue
             version = _get_gnu_version_from_defines(defines)
-            comp = GnuObjCCompiler if objc else GnuObjCPPCompiler
+            comp = GnuObjCCompiler if lang == 'objc' else GnuObjCPPCompiler
             linker = guess_nix_linker(env, compiler, comp, version, for_machine)
             return comp(
                 ccache + compiler, version, for_machine, is_cross, info,
@@ -883,9 +883,9 @@ def _detect_objc_or_objcpp_compiler(env: 'Environment', for_machine: MachineChoi
                 popen_exceptions[join_args(compiler)] = 'no pre-processor defines'
                 continue
             if 'Apple' in out:
-                comp = AppleClangObjCCompiler if objc else AppleClangObjCPPCompiler
+                comp = AppleClangObjCCompiler if lang == 'objc' else AppleClangObjCPPCompiler
             else:
-                comp = ClangObjCCompiler if objc else ClangObjCPPCompiler
+                comp = ClangObjCCompiler if lang == 'objc' else ClangObjCPPCompiler
             if 'windows' in out or env.machines[for_machine].is_windows():
                 # If we're in a MINGW context this actually will use a gnu style ld
                 try:
