@@ -299,6 +299,7 @@ base_options: 'KeyedOptionDictType' = {
     OptionKey('b_vscrt'): coredata.UserComboOption('VS run-time library type to use.',
                                                    ['none', 'md', 'mdd', 'mt', 'mtd', 'from_buildtype', 'static_from_buildtype'],
                                                    'from_buildtype'),
+    OptionKey('b_static_analyzer'): coredata.UserBooleanOption('Compile time static code analyzer', False),
 }
 
 def option_enabled(boptions: T.Set[OptionKey], options: 'KeyedOptionDictType',
@@ -372,6 +373,11 @@ def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler') 
             args += compiler.get_crt_compile_args(crt_val, buildtype)
         except AttributeError:
             pass
+    except KeyError:
+        pass
+    try:
+        if options[OptionKey('b_static_analyzer')].value:
+            args += compiler.analyzer_compile_args()
     except KeyError:
         pass
     return args
@@ -1275,6 +1281,9 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
 
     def needs_static_linker(self) -> bool:
         raise NotImplementedError(f'There is no static linker for {self.language}')
+
+    def analyzer_compile_args(self) -> T.List[str]:
+        return []
 
 
 def get_global_options(lang: str,
