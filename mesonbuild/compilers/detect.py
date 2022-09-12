@@ -20,118 +20,7 @@ from ..mesonlib import (
 from ..envconfig import BinaryTable
 from .. import mlog
 
-from ..linkers import (
-    guess_win_linker,
-    guess_nix_linker,
-    AIXArLinker,
-    AppleArLinker,
-    ArLinker,
-    ArmarLinker,
-    ArmClangDynamicLinker,
-    ArmDynamicLinker,
-    CcrxLinker,
-    CcrxDynamicLinker,
-    CompCertLinker,
-    CompCertDynamicLinker,
-    C2000Linker,
-    C2000DynamicLinker,
-    TILinker,
-    TIDynamicLinker,
-    DLinker,
-    NAGDynamicLinker,
-    NvidiaHPC_DynamicLinker,
-    PGIDynamicLinker,
-    PGIStaticLinker,
-    Xc16Linker,
-    Xc16DynamicLinker,
-    XilinkDynamicLinker,
-    CudaLinker,
-    IntelVisualStudioLinker,
-    VisualStudioLinker,
-    VisualStudioLikeLinkerMixin,
-    WASMDynamicLinker,
-)
-from .c import (
-    AppleClangCCompiler,
-    ArmCCompiler,
-    ArmclangCCompiler,
-    ArmLtdClangCCompiler,
-    ClangCCompiler,
-    ClangClCCompiler,
-    GnuCCompiler,
-    ElbrusCCompiler,
-    EmscriptenCCompiler,
-    IntelCCompiler,
-    IntelClCCompiler,
-    NvidiaHPC_CCompiler,
-    PGICCompiler,
-    CcrxCCompiler,
-    Xc16CCompiler,
-    CompCertCCompiler,
-    C2000CCompiler,
-    TICCompiler,
-    VisualStudioCCompiler,
-)
-from .cpp import (
-    AppleClangCPPCompiler,
-    ArmCPPCompiler,
-    ArmclangCPPCompiler,
-    ArmLtdClangCPPCompiler,
-    ClangCPPCompiler,
-    ClangClCPPCompiler,
-    GnuCPPCompiler,
-    ElbrusCPPCompiler,
-    EmscriptenCPPCompiler,
-    IntelCPPCompiler,
-    IntelClCPPCompiler,
-    NvidiaHPC_CPPCompiler,
-    PGICPPCompiler,
-    CcrxCPPCompiler,
-    C2000CPPCompiler,
-    TICPPCompiler,
-    VisualStudioCPPCompiler,
-)
-from .cs import MonoCompiler, VisualStudioCsCompiler
-from .d import (
-    DCompiler,
-    DmdDCompiler,
-    GnuDCompiler,
-    LLVMDCompiler,
-)
-from .cuda import CudaCompiler
-from .fortran import (
-    ArmLtdFlangFortranCompiler,
-    G95FortranCompiler,
-    GnuFortranCompiler,
-    ElbrusFortranCompiler,
-    FlangFortranCompiler,
-    IntelFortranCompiler,
-    IntelClFortranCompiler,
-    NAGFortranCompiler,
-    Open64FortranCompiler,
-    PathScaleFortranCompiler,
-    NvidiaHPC_FortranCompiler,
-    PGIFortranCompiler,
-    SunFortranCompiler,
-)
-from .java import JavaCompiler
-from .objc import (
-    AppleClangObjCCompiler,
-    ClangObjCCompiler,
-    GnuObjCCompiler,
-)
-from .objcpp import (
-    AppleClangObjCPPCompiler,
-    ClangObjCPPCompiler,
-    GnuObjCPPCompiler,
-)
-from .cython import CythonCompiler
-from .rust import RustCompiler, ClippyRustCompiler
-from .swift import SwiftCompiler
-from .vala import ValaCompiler
-from .mixins.visualstudio import VisualStudioLikeCompiler
-from .mixins.gnu import GnuCompiler
-from .mixins.clang import ClangCompiler
+from ..linkers import guess_win_linker, guess_nix_linker
 
 import subprocess
 import platform
@@ -146,8 +35,7 @@ if T.TYPE_CHECKING:
     from .c import CCompiler
     from .cpp import CPPCompiler
     from .fortran import FortranCompiler
-    from .objc import ObjCCompiler
-    from .objcpp import ObjCPPCompiler
+    from .rust import RustCompiler
     from ..linkers import StaticLinker
     from ..environment import Environment
     from ..programs import ExternalProgram
