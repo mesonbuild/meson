@@ -125,7 +125,7 @@ endif
 one may simply use:
 
 ```
-intl_dep = dependency('intl')
+intl_dep = dependency('intl', required: false)
 
 if intl_dep.found()
   # build options that need gettext
