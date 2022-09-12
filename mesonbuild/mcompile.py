@@ -22,7 +22,6 @@ import shutil
 import typing as T
 from collections import defaultdict
 from pathlib import Path
-from time import sleep
 
 from . import mlog
 from . import mesonlib
@@ -358,7 +357,6 @@ def run(options: 'argparse.Namespace') -> int:
             f'Backend `{backend}` is not yet supported by `compile`. Use generated project files directly instead.')
 
     mlog.log(mlog.green('INFO:'), 'calculating backend command to run:', join_args(cmd))
-    sleep(2)
     p, *_ = mesonlib.Popen_safe(cmd, stdout=sys.stdout.buffer, stderr=sys.stderr.buffer, env=env)
 
     return p.returncode
