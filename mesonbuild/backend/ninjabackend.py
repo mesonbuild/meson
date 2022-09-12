@@ -37,7 +37,6 @@ from .. import mlog
 from .. import compilers
 from ..arglist import CompilerArgs
 from ..compilers import Compiler
-from ..compilers.c import CCompiler
 from ..linkers import ArLinker, AppleArLinker, RSPFileSyntax
 from ..mesonlib import (
     File, LibType, MachineChoice, MesonException, OrderedSet, PerMachine,
@@ -3042,6 +3041,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
     @lru_cache(maxsize=None)
     def guess_library_absolute_path(self, linker, libname, search_dirs, patterns) -> Path:
+        from ..compilers.c import CCompiler
         for d in search_dirs:
             for p in patterns:
                 trial = CCompiler._get_trials_from_pattern(p, d, libname)

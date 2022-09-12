@@ -27,8 +27,6 @@ import typing as T
 from mesonbuild.interpreterbase.decorators import FeatureDeprecated
 
 from .. import mesonlib, mlog
-from ..compilers.c import AppleClangCCompiler
-from ..compilers.cpp import AppleClangCPPCompiler
 from ..compilers.detect import detect_compiler_for
 from ..environment import get_llvm_tool_names
 from ..mesonlib import version_compare, stringlistify, extract_as_list
@@ -486,6 +484,8 @@ class ZlibSystemDependency(SystemDependency):
 
     def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
         super().__init__(name, environment, kwargs)
+        from ..compilers.c import AppleClangCCompiler
+        from ..compilers.cpp import AppleClangCPPCompiler
 
         m = self.env.machines[self.for_machine]
 
