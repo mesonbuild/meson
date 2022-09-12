@@ -45,9 +45,12 @@ from mesonbuild.mesonlib import (
     MesonException, EnvironmentException, OptionKey
 )
 
+from mesonbuild.compilers.mixins.clang import ClangCompiler
+from mesonbuild.compilers.mixins.gnu import GnuCompiler
+from mesonbuild.compilers.mixins.intel import IntelGnuLikeCompiler
+from mesonbuild.compilers.c import VisualStudioCCompiler, ClangClCCompiler
+from mesonbuild.compilers.cpp import VisualStudioCPPCompiler, ClangClCPPCompiler
 from mesonbuild.compilers import (
-    GnuCompiler, ClangCompiler, IntelGnuLikeCompiler, VisualStudioCCompiler,
-    VisualStudioCPPCompiler, ClangClCCompiler, ClangClCPPCompiler,
     detect_static_linker, detect_c_compiler, compiler_from_language,
     detect_compiler_for
 )

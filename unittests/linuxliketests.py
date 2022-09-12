@@ -40,9 +40,11 @@ from mesonbuild.mesonlib import (
 )
 from mesonbuild.compilers import (
     detect_c_compiler, detect_cpp_compiler, compiler_from_language,
-    AppleClangCCompiler, AppleClangCPPCompiler, AppleClangObjCCompiler,
-    AppleClangObjCPPCompiler
 )
+from mesonbuild.compilers.c import AppleClangCCompiler
+from mesonbuild.compilers.cpp import AppleClangCPPCompiler
+from mesonbuild.compilers.objc import AppleClangObjCCompiler
+from mesonbuild.compilers.objcpp import AppleClangObjCPPCompiler
 from mesonbuild.dependencies import PkgConfigDependency
 import mesonbuild.modules.pkgconfig
 
