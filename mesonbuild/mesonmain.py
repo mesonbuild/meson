@@ -27,15 +27,17 @@ import shutil
 
 from . import mesonlib
 from . import mlog
-from . import mconf, mdist, minit, minstall, mintro, msetup, mtest, rewriter, msubprojects, munstable_coredata, mcompile, mdevenv
 from .mesonlib import MesonException, MesonBugException
-from .wrap import wraptool
-from .scripts import env2mfile
 
 # Note: when adding arguments, please also add them to the completion
 # scripts in $MESONSRC/data/shell-completions/
 class CommandLineParser:
     def __init__(self):
+        # only import these once we do full argparse processing
+        from . import mconf, mdist, minit, minstall, mintro, msetup, mtest, rewriter, msubprojects, munstable_coredata, mcompile, mdevenv
+        from .scripts import env2mfile
+        from .wrap import wraptool
+
         self.term_width = shutil.get_terminal_size().columns
         self.formatter = lambda prog: argparse.HelpFormatter(prog, max_help_position=int(self.term_width / 2), width=self.term_width)
 
@@ -253,9 +255,8 @@ def run(original_args, mainfile):
     # need to go through argparse.
     if len(args) >= 2 and args[0] == '--internal':
         if args[1] == 'regenerate':
-            # Rewrite "meson --internal regenerate" command line to
-            # "meson --reconfigure"
-            args = ['setup', '--reconfigure'] + args[2:]
+            from . import msetup
+            return msetup.run(['--reconfigure'] + args[2:])
         else:
             return run_script_command(args[1], args[2:])
 

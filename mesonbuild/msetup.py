@@ -297,7 +297,11 @@ class MesonApp:
             if devenv:
                 b.devenv.append(devenv)
 
-def run(options: argparse.Namespace) -> int:
+def run(options: T.Union[argparse.Namespace, T.List[str]]) -> int:
+    if not isinstance(options, argparse.Namespace):
+        parser = argparse.ArgumentParser()
+        add_arguments(parser)
+        options = parser.parse_args(options)
     coredata.parse_cmd_line_options(options)
     app = MesonApp(options)
     app.generate()
