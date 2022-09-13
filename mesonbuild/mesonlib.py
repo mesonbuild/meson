@@ -14,19 +14,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# pylint: skip-file
 
 """Helper functions and classes."""
 
 import os
 
-from .universal import *
-from .vsenv import setup_vsenv
+from .utils.core import *
+from .utils.vsenv import *
+
+from .utils.universal import *
 
 # Here we import either the posix implementations, the windows implementations,
 # or a generic no-op implementation
 if os.name == 'posix':
-    from .posix import *
+    from .utils.posix import *
 elif os.name == 'nt':
-    from .win32 import *
+    from .utils.win32 import *
 else:
-    from .platform import *
+    from .utils.platform import *

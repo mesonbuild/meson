@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from configparser import ConfigParser
-from mesonbuild.mesonlib.universal import OptionType
 from pathlib import Path
 from unittest import mock
 import contextlib
@@ -43,6 +42,7 @@ from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, typed_k
 from mesonbuild.mesonlib import (
     LibType, MachineChoice, PerMachine, Version, is_windows, is_osx,
     is_cygwin, is_openbsd, search_version, MesonException, OptionKey,
+    OptionType
 )
 from mesonbuild.interpreter.type_checking import in_set_validator, NoneType
 from mesonbuild.dependencies import PkgConfigDependency

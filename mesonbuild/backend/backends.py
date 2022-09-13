@@ -34,7 +34,8 @@ from .. import mlog
 from ..compilers import LANGUAGES_USING_LDFLAGS, detect
 from ..mesonlib import (
     File, MachineChoice, MesonException, OrderedSet,
-    classify_unity_sources, OptionKey, join_args
+    classify_unity_sources, OptionKey, join_args,
+    ExecutableSerialisation
 )
 
 if T.TYPE_CHECKING:
@@ -185,27 +186,6 @@ class SubdirInstallData(InstallDataBase):
         super().__init__(path, install_path, install_path_name, install_mode, subproject, tag, data_type)
         self.exclude = exclude
 
-@dataclass(eq=False)
-class ExecutableSerialisation:
-
-    # XXX: should capture and feed default to False, instead of None?
-
-    cmd_args: T.List[str]
-    env: T.Optional[build.EnvironmentVariables] = None
-    exe_wrapper: T.Optional['programs.ExternalProgram'] = None
-    workdir: T.Optional[str] = None
-    extra_paths: T.Optional[T.List] = None
-    capture: T.Optional[bool] = None
-    feed: T.Optional[bool] = None
-    tag: T.Optional[str] = None
-    verbose: bool = False
-
-    def __post_init__(self) -> None:
-        if self.exe_wrapper is not None:
-            assert isinstance(self.exe_wrapper, programs.ExternalProgram)
-        self.pickled = False
-        self.skip_if_destdir = False
-        self.subproject = ''
 
 @dataclass(eq=False)
 class TestSerialisation:

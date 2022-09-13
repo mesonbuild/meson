@@ -14,8 +14,7 @@
 
 from .base import ExternalDependency, DependencyException, DependencyTypeName
 from .pkgconfig import PkgConfigDependency
-from ..mesonlib import (Popen_safe, OptionKey)
-from ..mesonlib.universal import join_args
+from ..mesonlib import (Popen_safe, OptionKey, join_args)
 from ..programs import ExternalProgram
 from .. import mlog
 import re

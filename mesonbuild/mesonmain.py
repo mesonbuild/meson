@@ -18,18 +18,18 @@ from . import _pathlib
 import sys
 sys.modules['pathlib'] = _pathlib
 
+# This file is an entry point for all commands, including scripts. Include the
+# strict minimum python modules for performance reasons.
 import os.path
 import platform
 import importlib
-import traceback
 import argparse
-import shutil
 
-from . import mesonlib
+from .utils.core import MesonException, MesonBugException
 from . import mlog
-from .mesonlib import MesonException, MesonBugException
 
 def errorhandler(e, command):
+    import traceback
     if isinstance(e, MesonException):
         mlog.exception(e)
         logfile = mlog.shutdown()
@@ -72,6 +72,7 @@ class CommandLineParser:
         from . import mconf, mdist, minit, minstall, mintro, msetup, mtest, rewriter, msubprojects, munstable_coredata, mcompile, mdevenv
         from .scripts import env2mfile
         from .wrap import wraptool
+        import shutil
 
         self.term_width = shutil.get_terminal_size().columns
         self.formatter = lambda prog: argparse.HelpFormatter(prog, max_help_position=int(self.term_width / 2), width=self.term_width)
@@ -176,6 +177,7 @@ class CommandLineParser:
             parser = self.parser
             command = None
 
+        from . import mesonlib
         args = mesonlib.expand_arguments(args)
         options = parser.parse_args(args)
 
@@ -228,6 +230,11 @@ def ensure_stdout_accepts_unicode():
     if sys.stdout.encoding and not sys.stdout.encoding.upper().startswith('UTF-'):
         sys.stdout.reconfigure(errors='surrogateescape')
 
+def set_meson_command(mainfile):
+    # Set the meson command that will be used to run scripts and so on
+    from . import mesonlib
+    mesonlib.set_meson_command(mainfile)
+
 def run(original_args, mainfile):
     if sys.version_info >= (3, 10) and os.environ.get('MESON_RUNNING_IN_PROJECT_TESTS'):
         # workaround for https://bugs.python.org/issue34624
@@ -245,15 +252,13 @@ def run(original_args, mainfile):
         mlog.error('Please install and use mingw-w64-x86_64-python3 and/or mingw-w64-x86_64-meson with Pacman')
         return 2
 
-    # Set the meson command that will be used to run scripts and so on
-    mesonlib.set_meson_command(mainfile)
-
     args = original_args[:]
 
     # Special handling of internal commands called from backends, they don't
     # need to go through argparse.
     if len(args) >= 2 and args[0] == '--internal':
         if args[1] == 'regenerate':
+            set_meson_command(mainfile)
             from . import msetup
             try:
                 return msetup.run(['--reconfigure'] + args[2:])
@@ -262,6 +267,7 @@ def run(original_args, mainfile):
         else:
             return run_script_command(args[1], args[2:])
 
+    set_meson_command(mainfile)
     return CommandLineParser().run(args)
 
 def main():

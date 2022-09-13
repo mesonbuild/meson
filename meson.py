@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# This file is an entry point for all commands, including scripts. Include the
+# strict minimum python modules for performance reasons.
 import sys
 
 # Check python version before importing anything else, we might have an older

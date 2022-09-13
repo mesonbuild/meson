@@ -33,6 +33,7 @@ import copy
 import pickle
 
 from mesonbuild import mlog
+from .core import MesonException, HoldableObject
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal
@@ -41,7 +42,6 @@ if T.TYPE_CHECKING:
     from ..build import ConfigurationData
     from ..coredata import KeyedOptionDictType, UserOption
     from ..compilers.compilers import Compiler
-    from ..mparser import BaseNode
 
 FileOrString = T.Union['File', str]
 
@@ -52,15 +52,12 @@ __all__ = [
     'GIT',
     'python_command',
     'project_meson_versions',
-    'HoldableObject',
     'SecondLevelHolder',
     'File',
     'FileMode',
     'GitException',
     'LibType',
     'MachineChoice',
-    'MesonException',
-    'MesonBugException',
     'EnvironmentException',
     'FileOrString',
     'GitException',
@@ -164,33 +161,6 @@ else:
     python_command = [sys.executable]
 _meson_command: T.Optional['ImmutableListProtocol[str]'] = None
 
-class MesonException(Exception):
-    '''Exceptions thrown by Meson'''
-
-    def __init__(self, *args: object, file: T.Optional[str] = None,
-                 lineno: T.Optional[int] = None, colno: T.Optional[int] = None):
-        super().__init__(*args)
-        self.file = file
-        self.lineno = lineno
-        self.colno = colno
-
-    @classmethod
-    def from_node(cls, *args: object, node: BaseNode) -> MesonException:
-        """Create a MesonException with location data from a BaseNode
-
-        :param node: A BaseNode to set location data from
-        :return: A Meson Exception instance
-        """
-        return cls(*args, file=node.filename, lineno=node.lineno, colno=node.colno)
-
-
-class MesonBugException(MesonException):
-    '''Exceptions thrown when there is a clear Meson bug that should be reported'''
-
-    def __init__(self, msg: str, file: T.Optional[str] = None,
-                 lineno: T.Optional[int] = None, colno: T.Optional[int] = None):
-        super().__init__(msg + '\n\n    This is a Meson bug and should be reported!',
-                         file=file, lineno=lineno, colno=colno)
 
 class EnvironmentException(MesonException):
     '''Exceptions thrown while processing and creating the build environment'''
@@ -278,10 +248,6 @@ def check_direntry_issues(direntry_array: T.Union[T.Iterable[T.Union[str, bytes]
                 locale but you are trying to access a file system entry called {de!r} which is
                 not pure ASCII. This may cause problems.
                 '''), file=sys.stderr)
-
-class HoldableObject(metaclass=abc.ABCMeta):
-    ''' Dummy base class for all objects that can be
-        held by an interpreter.baseobjects.ObjectHolder '''
 
 class SecondLevelHolder(HoldableObject, metaclass=abc.ABCMeta):
     ''' A second level object holder. The primary purpose
