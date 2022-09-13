@@ -29,5 +29,5 @@ extend-ignore =
     # A003: builtin class attribute
     A003
 per-file-ignores =
-    mesonbuild/mesonlib/__init__.py:F401,F403
+    mesonbuild/mesonlib.py:F401,F403
 max-line-length = 120

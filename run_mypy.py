@@ -33,8 +33,8 @@ modules = [
     'mesonbuild/interpreter/type_checking.py',
     'mesonbuild/mcompile.py',
     'mesonbuild/mdevenv.py',
-    'mesonbuild/mesonlib/platform.py',
-    'mesonbuild/mesonlib/universal.py',
+    'mesonbuild/utils/platform.py',
+    'mesonbuild/utils/universal.py',
     'mesonbuild/minit.py',
     'mesonbuild/minstall.py',
     'mesonbuild/mintro.py',
@@ -69,9 +69,9 @@ modules = [
 ]
 
 if os.name == 'posix':
-    modules.append('mesonbuild/mesonlib/posix.py')
+    modules.append('mesonbuild/utils/posix.py')
 elif os.name == 'nt':
-    modules.append('mesonbuild/mesonlib/win32.py')
+    modules.append('mesonbuild/utils/win32.py')
 
 def check_mypy() -> None:
     try:

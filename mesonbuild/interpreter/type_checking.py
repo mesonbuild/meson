@@ -8,13 +8,15 @@ import os
 import typing as T
 
 from .. import compilers
-from ..build import (EnvironmentVariables, EnvInitValueType, CustomTarget, BuildTarget,
+from ..build import (CustomTarget, BuildTarget,
                      CustomTargetIndex, ExtractedObjects, GeneratedList, IncludeDirs,
                      BothLibraries, SharedLibrary, StaticLibrary, Jar, Executable)
 from ..coredata import UserFeatureOption
 from ..dependencies import Dependency, InternalDependency
 from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo
-from ..mesonlib import File, FileMode, MachineChoice, listify, has_path_sep, OptionKey
+from ..mesonlib import (
+    File, FileMode, MachineChoice, listify, has_path_sep, OptionKey,
+    EnvInitValueType, EnvironmentVariables)
 from ..programs import ExternalProgram
 
 # Helper definition for type checks that are `Optional[T]`

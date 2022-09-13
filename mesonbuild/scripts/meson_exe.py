@@ -20,8 +20,7 @@ import subprocess
 import typing as T
 import locale
 
-from .. import mesonlib
-from ..backend.backends import ExecutableSerialisation
+from ..utils.core import ExecutableSerialisation
 
 def buildparser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description='Custom executable wrapper for Meson. Do not run on your own, mmm\'kay?')
@@ -46,7 +45,8 @@ def run_exe(exe: ExecutableSerialisation, extra_env: T.Optional[T.Dict[str, str]
     if exe.extra_paths:
         child_env['PATH'] = (os.pathsep.join(exe.extra_paths + ['']) +
                              child_env['PATH'])
-        if exe.exe_wrapper and mesonlib.substring_is_in_list('wine', exe.exe_wrapper.get_command()):
+        if exe.exe_wrapper and any('wine' in i for i in exe.exe_wrapper.get_command()):
+            from .. import mesonlib
             child_env['WINEPATH'] = mesonlib.get_wine_shortpath(
                 exe.exe_wrapper.get_command(),
                 ['Z:' + p for p in exe.extra_paths] + child_env.get('WINEPATH', '').split(';'),

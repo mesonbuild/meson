@@ -36,7 +36,7 @@ from .mesonlib import (
     extract_as_list, typeslistify, stringlistify, classify_unity_sources,
     get_filenames_templates_dict, substitute_values, has_path_sep,
     OptionKey, PerMachineDefaultable, OptionOverrideProxy,
-    MesonBugException
+    MesonBugException, EnvironmentVariables
 )
 from .compilers import (
     is_object, clink_langs, sort_clink, all_languages,
@@ -501,71 +501,6 @@ class StructuredSources(HoldableObject):
                     return True
         return False
 
-
-EnvInitValueType = T.Dict[str, T.Union[str, T.List[str]]]
-
-
-class EnvironmentVariables(HoldableObject):
-    def __init__(self, values: T.Optional[EnvInitValueType] = None,
-                 init_method: Literal['set', 'prepend', 'append'] = 'set', separator: str = os.pathsep) -> None:
-        self.envvars: T.List[T.Tuple[T.Callable[[T.Dict[str, str], str, T.List[str], str], str], str, T.List[str], str]] = []
-        # The set of all env vars we have operations for. Only used for self.has_name()
-        self.varnames: T.Set[str] = set()
-
-        if values:
-            init_func = getattr(self, init_method)
-            for name, value in values.items():
-                init_func(name, listify(value), separator)
-
-    def __repr__(self) -> str:
-        repr_str = "<{0}: {1}>"
-        return repr_str.format(self.__class__.__name__, self.envvars)
-
-    def hash(self, hasher: T.Any):
-        myenv = self.get_env({})
-        for key in sorted(myenv.keys()):
-            hasher.update(bytes(key, encoding='utf-8'))
-            hasher.update(b',')
-            hasher.update(bytes(myenv[key], encoding='utf-8'))
-            hasher.update(b';')
-
-    def has_name(self, name: str) -> bool:
-        return name in self.varnames
-
-    def get_names(self) -> T.Set[str]:
-        return self.varnames
-
-    def set(self, name: str, values: T.List[str], separator: str = os.pathsep) -> None:
-        self.varnames.add(name)
-        self.envvars.append((self._set, name, values, separator))
-
-    def append(self, name: str, values: T.List[str], separator: str = os.pathsep) -> None:
-        self.varnames.add(name)
-        self.envvars.append((self._append, name, values, separator))
-
-    def prepend(self, name: str, values: T.List[str], separator: str = os.pathsep) -> None:
-        self.varnames.add(name)
-        self.envvars.append((self._prepend, name, values, separator))
-
-    @staticmethod
-    def _set(env: T.Dict[str, str], name: str, values: T.List[str], separator: str) -> str:
-        return separator.join(values)
-
-    @staticmethod
-    def _append(env: T.Dict[str, str], name: str, values: T.List[str], separator: str) -> str:
-        curr = env.get(name)
-        return separator.join(values if curr is None else [curr] + values)
-
-    @staticmethod
-    def _prepend(env: T.Dict[str, str], name: str, values: T.List[str], separator: str) -> str:
-        curr = env.get(name)
-        return separator.join(values if curr is None else values + [curr])
-
-    def get_env(self, full_env: T.MutableMapping[str, str]) -> T.Dict[str, str]:
-        env = full_env.copy()
-        for method, name, values, separator in self.envvars:
-            env[name] = method(env, name, values, separator)
-        return env
 
 @dataclass(eq=False)
 class Target(HoldableObject):

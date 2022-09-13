@@ -10,6 +10,11 @@ from .. import mlog
 from .universal import MesonException, is_windows
 
 
+__all__ = [
+    'setup_vsenv',
+]
+
+
 bat_template = '''@ECHO OFF
 
 call "{}"
