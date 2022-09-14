@@ -2,12 +2,11 @@ import os
 import subprocess
 import json
 import pathlib
-import platform
 import shutil
 import tempfile
 
 from .. import mlog
-from .universal import MesonException, is_windows
+from .universal import MesonException, is_windows, windows_detect_native_arch
 
 
 __all__ = [
@@ -72,8 +71,10 @@ def _setup_vsenv(force: bool) -> bool:
         # VS installer instelled but not VS itself maybe?
         raise MesonException('Could not parse vswhere.exe output')
     bat_root = pathlib.Path(bat_info[0]['installationPath'])
-    if platform.machine() == 'ARM64':
-        bat_path = bat_root / 'VC/Auxiliary/Build/vcvarsx86_arm64.bat'
+    if windows_detect_native_arch() == 'arm64':
+        bat_path = bat_root / 'VC/Auxiliary/Build/vcvarsarm64.bat'
+        if not bat_path.exists():
+            bat_path = bat_root / 'VC/Auxiliary/Build/vcvarsx86_arm64.bat'
     else:
         bat_path = bat_root / 'VC/Auxiliary/Build/vcvars64.bat'
         # if VS is not found try VS Express

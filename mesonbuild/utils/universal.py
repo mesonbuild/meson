@@ -17,6 +17,7 @@
 from __future__ import annotations
 from pathlib import Path
 import argparse
+import ctypes
 import enum
 import sys
 import stat
@@ -141,6 +142,7 @@ __all__ = [
     'version_compare_condition_with_min',
     'version_compare_many',
     'search_version',
+    'windows_detect_native_arch',
     'windows_proof_rm',
     'windows_proof_rmtree',
 ]
@@ -689,6 +691,41 @@ def darwin_get_object_archs(objpath: str) -> 'ImmutableListProtocol[str]':
         stdo += ' arm'
     return stdo.split()
 
+def windows_detect_native_arch() -> str:
+    """
+    The architecture of Windows itself: x86, amd64 or arm64
+    """
+    if sys.platform != 'win32':
+        return ''
+    try:
+        process_arch = ctypes.c_ushort()
+        native_arch = ctypes.c_ushort()
+        kernel32 = ctypes.windll.kernel32
+        process = ctypes.c_void_p(kernel32.GetCurrentProcess())
+        # This is the only reliable way to detect an arm system if we are an x86/x64 process being emulated
+        if kernel32.IsWow64Process2(process, ctypes.byref(process_arch), ctypes.byref(native_arch)):
+            # https://docs.microsoft.com/en-us/windows/win32/sysinfo/image-file-machine-constants
+            if native_arch.value == 0x8664:
+                return 'amd64'
+            elif native_arch.value == 0x014C:
+                return 'x86'
+            elif native_arch.value == 0xAA64:
+                return 'arm64'
+            elif native_arch.value == 0x01C4:
+                return 'arm'
+    except (OSError, AttributeError):
+        pass
+    # These env variables are always available. See:
+    # https://msdn.microsoft.com/en-us/library/aa384274(VS.85).aspx
+    # https://blogs.msdn.microsoft.com/david.wang/2006/03/27/howto-detect-process-bitness/
+    arch = os.environ.get('PROCESSOR_ARCHITEW6432', '').lower()
+    if not arch:
+        try:
+            # If this doesn't exist, something is messing with the environment
+            arch = os.environ['PROCESSOR_ARCHITECTURE'].lower()
+        except KeyError:
+            raise EnvironmentException('Unable to detect native OS architecture')
+    return arch
 
 def detect_vcs(source_dir: T.Union[str, Path]) -> T.Optional[T.Dict[str, str]]:
     vcs_systems = [
