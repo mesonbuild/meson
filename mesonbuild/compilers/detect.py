@@ -275,26 +275,26 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
         trials = [linker]
     else:
         default_linkers = [[l] for l in defaults['static_linker']]
-        if isinstance(compiler, CudaCompiler):
+        if compiler.language == 'cuda':
             trials = [defaults['cuda_static_linker']] + default_linkers
-        elif isinstance(compiler, VisualStudioLikeCompiler):
+        elif compiler.get_argument_syntax() == 'msvc':
             trials = [defaults['vs_static_linker'], defaults['clang_cl_static_linker']]
-        elif isinstance(compiler, GnuCompiler):
+        elif compiler.id == 'gcc':
             # Use gcc-ar if available; needed for LTO
             trials = [defaults['gcc_static_linker']] + default_linkers
-        elif isinstance(compiler, ClangCompiler):
+        elif compiler.id == 'clang':
             # Use llvm-ar if available; needed for LTO
             trials = [defaults['clang_static_linker']] + default_linkers
-        elif isinstance(compiler, DCompiler):
+        elif compiler.language == 'd':
             # Prefer static linkers over linkers used by D compilers
             if is_windows():
                 trials = [defaults['vs_static_linker'], defaults['clang_cl_static_linker'], compiler.get_linker_exelist()]
             else:
                 trials = default_linkers
-        elif isinstance(compiler, IntelClCCompiler):
+        elif compiler.id == 'intel-cl' and compiler.language == 'c': # why not cpp? Is this a bug?
             # Intel has it's own linker that acts like microsoft's lib
             trials = [['xilib']]
-        elif isinstance(compiler, (PGICCompiler, PGIFortranCompiler)) and is_windows():
+        elif is_windows() and compiler.id == 'pgi': # this handles cpp / nvidia HPC, in addition to just c/fortran
             trials = [['ar']]  # For PGI on Windows, "ar" is just a wrapper calling link/lib.
         else:
             trials = default_linkers
