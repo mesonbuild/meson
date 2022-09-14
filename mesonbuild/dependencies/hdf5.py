@@ -13,6 +13,7 @@
 # limitations under the License.
 
 # This file contains the detection logic for miscellaneous external dependencies.
+from __future__ import annotations
 
 import functools
 import os
