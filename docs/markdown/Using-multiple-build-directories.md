@@ -6,12 +6,14 @@ are placed in a separate subdirectory. This goes against common Unix
 tradition where you build your projects in-source. Building out of
 source gives two major advantages.
 
-First of all this makes for very simple `.gitignore` files. In
+First of all this makes for very simple VCS "ignore" files. In
 classical build systems you may need to have tens of lines of
 definitions, most of which contain wildcards. When doing out of source
 builds all of this busywork goes away. A common ignore file for a
 Meson project only contains a few lines that are the build directory
-and IDE project files.
+and IDE project files. (Note that since Meson 0.57.0, build directories
+are automatically ignored for git and mercurial by generating an ignore
+file inside the build directory.)
 
 Secondly this makes it very easy to clean your projects: just delete
 the build subdirectory and you are done. There is no need to guess

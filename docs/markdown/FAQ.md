@@ -683,3 +683,12 @@ executable(
   link_language : 'c',
 )
 ```
+
+## How do I ignore the build directory in my VCS?
+
+You don't need to, assuming you use git or mercurial! Meson >=0.57.0 will
+create a `.gitignore` and `.hgignore` file for you, inside each build
+directory. It glob ignores ```"*"```, since all generated files should not be
+checked into git.
+
+Users of older versions of Meson may need to set up ignore files themselves.
