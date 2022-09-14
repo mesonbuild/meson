@@ -20,7 +20,7 @@ import collections
 from . import coredata
 from . import mesonlib
 from .mesonlib import (
-    MesonException, EnvironmentException, MachineChoice, Popen_safe, PerMachine,
+    MesonException, MachineChoice, Popen_safe, PerMachine,
     PerMachineDefaultable, PerThreeMachineDefaultable, split_args, quote_arg, OptionKey,
     search_version, MesonBugException
 )
@@ -228,22 +228,6 @@ def detect_clangformat() -> T.List[str]:
             return [path]
     return []
 
-def detect_native_windows_arch():
-    """
-    The architecture of Windows itself: x86, amd64 or arm64
-    """
-    # These env variables are always available. See:
-    # https://msdn.microsoft.com/en-us/library/aa384274(VS.85).aspx
-    # https://blogs.msdn.microsoft.com/david.wang/2006/03/27/howto-detect-process-bitness/
-    arch = os.environ.get('PROCESSOR_ARCHITEW6432', '').lower()
-    if not arch:
-        try:
-            # If this doesn't exist, something is messing with the environment
-            arch = os.environ['PROCESSOR_ARCHITECTURE'].lower()
-        except KeyError:
-            raise EnvironmentException('Unable to detect native OS architecture')
-    return arch
-
 def detect_windows_arch(compilers: CompilersDict) -> str:
     """
     Detecting the 'native' architecture of Windows is not a trivial task. We
@@ -268,7 +252,7 @@ def detect_windows_arch(compilers: CompilersDict) -> str:
     3. Otherwise, use the actual Windows architecture
 
     """
-    os_arch = detect_native_windows_arch()
+    os_arch = mesonlib.windows_detect_native_arch()
     if os_arch == 'x86':
         return os_arch
     # If we're on 64-bit Windows, 32-bit apps can be compiled without
@@ -375,7 +359,7 @@ def detect_cpu(compilers: CompilersDict) -> str:
         # Same check as above for cpu_family
         if any_compiler_has_define(compilers, '__i386__'):
             trial = 'i686' # All 64 bit cpus have at least this level of x86 support.
-    elif trial.startswith('aarch64'):
+    elif trial.startswith('aarch64') or trial.startswith('arm64'):
         # Same check as above for cpu_family
         if any_compiler_has_define(compilers, '__arm__'):
             trial = 'arm'
