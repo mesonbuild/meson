@@ -272,34 +272,34 @@ def _handle_exceptions(
 def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker:
     linker = env.lookup_binary_entry(compiler.for_machine, 'ar')
     if linker is not None:
-        linkers = [linker]
+        trials = [linker]
     else:
         default_linkers = [[l] for l in defaults['static_linker']]
         if isinstance(compiler, CudaCompiler):
-            linkers = [defaults['cuda_static_linker']] + default_linkers
+            trials = [defaults['cuda_static_linker']] + default_linkers
         elif isinstance(compiler, VisualStudioLikeCompiler):
-            linkers = [defaults['vs_static_linker'], defaults['clang_cl_static_linker']]
+            trials = [defaults['vs_static_linker'], defaults['clang_cl_static_linker']]
         elif isinstance(compiler, GnuCompiler):
             # Use gcc-ar if available; needed for LTO
-            linkers = [defaults['gcc_static_linker']] + default_linkers
+            trials = [defaults['gcc_static_linker']] + default_linkers
         elif isinstance(compiler, ClangCompiler):
             # Use llvm-ar if available; needed for LTO
-            linkers = [defaults['clang_static_linker']] + default_linkers
+            trials = [defaults['clang_static_linker']] + default_linkers
         elif isinstance(compiler, DCompiler):
             # Prefer static linkers over linkers used by D compilers
             if is_windows():
-                linkers = [defaults['vs_static_linker'], defaults['clang_cl_static_linker'], compiler.get_linker_exelist()]
+                trials = [defaults['vs_static_linker'], defaults['clang_cl_static_linker'], compiler.get_linker_exelist()]
             else:
-                linkers = default_linkers
+                trials = default_linkers
         elif isinstance(compiler, IntelClCCompiler):
             # Intel has it's own linker that acts like microsoft's lib
-            linkers = [['xilib']]
+            trials = [['xilib']]
         elif isinstance(compiler, (PGICCompiler, PGIFortranCompiler)) and is_windows():
-            linkers = [['ar']]  # For PGI on Windows, "ar" is just a wrapper calling link/lib.
+            trials = [['ar']]  # For PGI on Windows, "ar" is just a wrapper calling link/lib.
         else:
-            linkers = default_linkers
+            trials = default_linkers
     popen_exceptions = {}
-    for linker in linkers:
+    for linker in trials:
         linker_name = os.path.basename(linker[0])
 
         if any(os.path.basename(x) in {'lib', 'lib.exe', 'llvm-lib', 'llvm-lib.exe', 'xilib', 'xilib.exe'} for x in linker):
@@ -349,7 +349,7 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
             return AIXArLinker(linker)
         if p.returncode == 1 and err.startswith('ar: bad option: --'): # Solaris
             return ArLinker(compiler.for_machine, linker)
-    _handle_exceptions(popen_exceptions, linkers, 'linker')
+    _handle_exceptions(popen_exceptions, trials, 'linker')
 
 
 # Compilers
