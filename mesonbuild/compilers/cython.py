@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright © 2021 Intel Corporation
+from __future__ import annotations
 
 """Abstraction for Cython language compilers."""
 

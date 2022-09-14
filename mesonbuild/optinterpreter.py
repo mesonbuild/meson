@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from __future__ import annotations
+
 import re
 import typing as T
 
@@ -22,6 +22,7 @@ from . import mparser
 from . import mlog
 from .interpreterbase import FeatureNew, typed_pos_args, typed_kwargs, ContainerTypeInfo, KwargInfo, FeatureDeprecated
 from .interpreter.type_checking import NoneType, in_set_validator
+
 if T.TYPE_CHECKING:
     from .interpreterbase import TYPE_var, TYPE_kwargs
     from .interpreterbase import SubProject

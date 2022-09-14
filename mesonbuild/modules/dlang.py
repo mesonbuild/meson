@@ -14,6 +14,7 @@
 
 # This file contains the detection logic for external dependencies that
 # are UI-related.
+from __future__ import annotations
 
 import json
 import os

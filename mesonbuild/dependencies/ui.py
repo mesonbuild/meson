@@ -14,6 +14,8 @@
 
 # This file contains the detection logic for external dependencies that
 # are UI-related.
+from __future__ import annotations
+
 import os
 import subprocess
 import typing as T

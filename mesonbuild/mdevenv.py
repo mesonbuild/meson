@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os, subprocess
 import argparse
 import tempfile

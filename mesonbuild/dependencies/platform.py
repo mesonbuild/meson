@@ -14,6 +14,7 @@
 
 # This file contains the detection logic for external dependencies that are
 # platform-specific (generally speaking).
+from __future__ import annotations
 
 from .base import DependencyTypeName, ExternalDependency, DependencyException
 from ..mesonlib import MesonException

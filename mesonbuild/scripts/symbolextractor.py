@@ -19,6 +19,7 @@
 
 # This file is basically a reimplementation of
 # http://cgit.freedesktop.org/libreoffice/core/commit/?id=3213cd54b76bc80a6f0516aac75a48ff3b2ad67c
+from __future__ import annotations
 
 import typing as T
 import os, sys

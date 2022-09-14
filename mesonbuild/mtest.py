@@ -13,6 +13,7 @@
 # limitations under the License.
 
 # A tool to run tests in many different ways.
+from __future__ import annotations
 
 from pathlib import Path
 from collections import deque
