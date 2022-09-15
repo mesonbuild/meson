@@ -165,6 +165,10 @@ def run(options: argparse.Namespace) -> int:
             tmprc.flush()
             args.append("--rcfile")
             args.append(tmprc.name)
+    else:
+        # Try to resolve executable using devenv's PATH
+        abs_path = shutil.which(args[0], path=devenv.get('PATH', None))
+        args[0] = abs_path or args[0]
 
     try:
         return subprocess.call(args, close_fds=False,
