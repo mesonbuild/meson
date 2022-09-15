@@ -409,7 +409,7 @@ LINK_WITH_KW: KwargInfo[T.List[T.Union[BothLibraries, SharedLibrary, StaticLibra
     ContainerTypeInfo(list, (BothLibraries, SharedLibrary, StaticLibrary, CustomTarget, CustomTargetIndex, Jar, Executable, Dependency)),
     listify=True,
     default=[],
-    validator=lambda x: _link_with_error if isinstance(x, Dependency) else None,
+    validator=lambda x: _link_with_error if any(isinstance(i, Dependency) for i in x) else None,
 )
 
 def link_whole_validator(values: T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex, Dependency]]) -> T.Optional[str]:
