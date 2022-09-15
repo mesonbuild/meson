@@ -1527,9 +1527,9 @@ def substitute_values(command: T.List[str], values: T.Dict[str, T.Union[str, T.L
 
     # Substitution
     outcmd = []  # type: T.List[str]
-    rx_keys = [re.escape(key) for key in values if key not in ('@INPUT@', '@OUTPUT@')]
+    rx_keys = [re.escape(key) for key in values if key not in {'@INPUT@', '@OUTPUT@', '@PLAINNAMES@', '@BASENAMES@'}]
     value_rx = re.compile('|'.join(rx_keys)) if rx_keys else None
-    for vv in command:
+    for i, vv in enumerate(command):
         more: T.Optional[str] = None
         if not isinstance(vv, str):
             outcmd.append(vv)
@@ -1551,6 +1551,18 @@ def substitute_values(command: T.List[str], values: T.Dict[str, T.Union[str, T.L
             else:
                 raise MesonException("Command has '@OUTPUT@' as part of a "
                                      "string and more than one output file")
+
+        elif '@BASENAMES@' in vv:
+            if vv == '@BASENAMES@':
+                outcmd.extend(values['@BASENAMES@'])
+            else:
+                outcmd.append(vv.replace('@BASENAMES@', values['@BASENAMES@'][i]))
+
+        elif '@PLAINNAMES@' in vv:
+            if vv == '@PLAINNAMES@':
+                outcmd.extend(values['@PLAINNAMES@'])
+            else:
+                outcmd.append(vv.replace('@PLAINNAMES@', values['@PLAINNAMES@'][i]))
 
         # Append values that are exactly a template string.
         # This is faster than a string replace.
@@ -1575,20 +1587,22 @@ def get_filenames_templates_dict(inputs: T.List[str], outputs: T.List[str]) -> T
     Create a dictionary with template strings as keys and values as values for
     the following templates:
 
-    @INPUT@  - the full path to one or more input files, from @inputs
-    @OUTPUT@ - the full path to one or more output files, from @outputs
-    @OUTDIR@ - the full path to the directory containing the output files
+    @INPUT@      - the full path to one or more input files, from @inputs
+    @OUTPUT@     - the full path to one or more output files, from @outputs
+    @OUTDIR@     - the full path to the directory containing the output files
+    @PLAINNAMES@ - the filename of each input file
+    @BASENAMES@  - the filename of each input file, with the extension removed
 
     If there is only one input file, the following keys are also created:
 
     @PLAINNAME@ - the filename of the input file
     @BASENAME@ - the filename of the input file with the extension removed
 
-    If there is more than one input file, the following keys are also created:
+    If there input files, the following keys are also created:
 
     @INPUT0@, @INPUT1@, ... one for each input file
 
-    If there is more than one output file, the following keys are also created:
+    If there are output files, the following keys are also created:
 
     @OUTPUT0@, @OUTPUT1@, ... one for each output file
     '''
@@ -1600,10 +1614,12 @@ def get_filenames_templates_dict(inputs: T.List[str], outputs: T.List[str]) -> T
         for (ii, vv) in enumerate(inputs):
             # Write out @INPUT0@, @INPUT1@, ...
             values[f'@INPUT{ii}@'] = vv
+        values['@PLAINNAMES@'] = [os.path.basename(i) for i in inputs]
+        values['@BASENAMES@'] = [os.path.splitext(i)[0] for i in values['@PLAINNAMES@']]
         if len(inputs) == 1:
             # Just one value, substitute @PLAINNAME@ and @BASENAME@
-            values['@PLAINNAME@'] = plain = os.path.basename(inputs[0])
-            values['@BASENAME@'] = os.path.splitext(plain)[0]
+            values['@PLAINNAME@'] = values['@PLAINNAMES@'][0]
+            values['@BASENAME@'] = values['@BASENAMES@'][0]
     if outputs:
         # Gather values derived from the outputs, similar to above.
         values['@OUTPUT@'] = outputs

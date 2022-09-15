@@ -109,7 +109,7 @@ if T.TYPE_CHECKING:
 
     from . import kwargs as kwtypes
     from ..backend.backends import Backend
-    from ..interpreterbase.baseobjects import InterpreterObject, TYPE_var, TYPE_kwargs
+    from ..interpreterbase.baseobjects import InterpreterObject, TYPE_var, TYPE_kwargs, SubProject
     from ..programs import OverrideProgram
 
     # Input source types passed to Targets
@@ -1826,7 +1826,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 vcs_cmd = [' '] # executing this cmd will fail in vcstagger.py and force to use the fallback string
         # vcstagger.py parameters: infile, outfile, fallback, source_dir, replace_string, regex_selector, command...
 
-        self._validate_custom_target_outputs(len(kwargs['input']) > 1, kwargs['output'], "vcs_tag")
+        self._validate_custom_target_outputs(len(kwargs['input']) > 1, kwargs['output'], "vcs_tag", self.subproject, node)
 
         cmd = self.environment.get_build_command() + \
             ['--internal',
@@ -1859,16 +1859,33 @@ class Interpreter(InterpreterBase, HoldableObject):
         raise SubdirDoneRequest()
 
     @staticmethod
-    def _validate_custom_target_outputs(has_multi_in: bool, outputs: T.Iterable[str], name: str) -> None:
+    def _validate_custom_target_outputs(has_multi_in: bool, outputs: T.Iterable[str], name: str,
+                                        subproject: SubProject, node: mparser.BaseNode) -> None:
         """Checks for additional invalid values in a custom_target output.
 
         This cannot be done with typed_kwargs because it requires the number of
         inputs.
         """
+        outputs = list(outputs)
         for out in outputs:
             if has_multi_in and ('@PLAINNAME@' in out or '@BASENAME@' in out):
                 raise InvalidArguments(f'{name}: output cannot containe "@PLAINNAME@" or "@BASENAME@" '
-                                       'when there is more than one input (we can\'t know which to use)')
+                                       'when there is more than one input (we can\'t know which to use) '
+                                       'Did you mean @PLAINNAMES@ or @BASENAMES@')
+            elif '@BASENAMES@' in out or '@PLAINNAMES@' in out:
+                FeatureNew.single_use(
+                    f'custom_target output {out}', '0.63.0',
+                    subproject,
+                    'This is unreliable, list each output, or use @PLAINNAMES@ or @BASENAMES@',
+                    node)
+                if len(outputs) != 1:
+                    raise InvalidArguments(f'{name}: @BASENAMES@ and @PLAINAMES@ must be the only output when used')
+            if out == '.':
+                FeatureDeprecated.single_use(
+                    'using "." as an output for custom_target', '0.63.0',
+                    subproject,
+                    'This is unreliable, list each output, or use @PLAINNAMES@ or @BASENAMES@',
+                    node)
 
     @typed_pos_args('custom_target', optargs=[str])
     @typed_kwargs(
@@ -1957,7 +1974,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         for t in kwargs['output']:
             self.validate_forbidden_targets(t)
-        self._validate_custom_target_outputs(len(inputs) > 1, kwargs['output'], "custom_target")
+        self._validate_custom_target_outputs(len(inputs) > 1, kwargs['output'], "custom_target", self.subproject, node)
 
         tg = build.CustomTarget(
             name,
