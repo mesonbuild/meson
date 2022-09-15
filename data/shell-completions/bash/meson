@@ -301,7 +301,41 @@ _meson-introspect() {
 }
 
 _meson-init() {
-  : TODO
+  shortopts=(
+    h
+    C
+    n
+    e
+    e
+    d
+    l
+    b
+    f
+  )
+
+  longopts=(
+    help
+	name
+	executable
+	deps
+	language
+	builddir
+	force
+	type
+	version
+  )
+
+  if [[ "$cur" == "--"* ]]; then
+    COMPREPLY+=($(compgen -P '--' -W '${longopts[*]}' -- "${cur:2}"))
+  elif [[ "$cur" == "-"* && ${#cur} -gt 1 ]]; then
+    COMPREPLY+=($(compgen -P '-' -W '${shortopts[*]}' -- "${cur:1}"))
+  else
+    if [ -z "$cur" ]; then
+      COMPREPLY+=($(compgen -P '--' -W '${longopts[*]}'))
+      COMPREPLY+=($(compgen -P '-' -W '${shortopts[*]}'))
+    fi
+  fi
+
 }
 
 _meson-test() {
