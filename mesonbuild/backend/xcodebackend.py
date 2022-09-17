@@ -1566,7 +1566,7 @@ class XCodeBackend(backends.Backend):
                 # Xcode uses GCC_PREFIX_HEADER which only allows one file per target/executable. Precompiling various header files and
                 # applying a particular pch to each source file will require custom scripts (as a build phase) and build flags per each
                 # file. Since Xcode itself already discourages precompiled headers in favor of modules we don't try much harder here.
-                pchs = target.get_pch('c') + target.get_pch('cpp') + target.get_pch('objc') + target.get_pch('objcpp')
+                pchs = target.get_pch('c') + target.get_pch('cpp') + tar.get_pch('cuda') + target.get_pch('objc') + target.get_pch('objcpp')
                 # Make sure to use headers (other backends require implementation files like *.c *.cpp, etc; these should not be used here)
                 pchs = [pch for pch in pchs if pch.endswith('.h') or pch.endswith('.hh') or pch.endswith('hpp')]
                 if pchs:

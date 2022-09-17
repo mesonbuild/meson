@@ -1154,7 +1154,7 @@ class Vs2010Backend(backends.Backend):
         self.generate_lang_standard_info(file_args, clconf)
         pch_sources = {}
         if self.environment.coredata.options.get(OptionKey('b_pch')):
-            for lang in ['c', 'cpp']:
+            for lang in ['c', 'cpp', 'cuda']:
                 pch = target.get_pch(lang)
                 if not pch:
                     continue
