@@ -1043,8 +1043,12 @@ class Vs2010Backend(backends.Backend):
                 # reversed is used to keep order of includes
                 for i in reversed(d.get_incdirs()):
                     curdir = os.path.join(d.get_curdir(), i)
-                    args.append('-I' + self.relpath(curdir, target.subdir))  # build dir
-                    args.append('-I' + os.path.join(proj_to_src_root, curdir))  # src dir
+                    try:
+                        args.append('-I' + self.relpath(curdir, target.subdir)) # build dir
+                        args.append('-I' + os.path.join(proj_to_src_root, curdir))  # src dir
+                    except ValueError:
+                        # Include is on different drive
+                        args.append('-I' + os.path.normpath(curdir))
                 for i in d.get_extra_build_dirs():
                     curdir = os.path.join(d.get_curdir(), i)
                     args.append('-I' + self.relpath(curdir, target.subdir))  # build dir
