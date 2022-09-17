@@ -196,15 +196,19 @@ def generate_target_name_vs(intro_target: T.Dict[str, T.Any], builddir: Path) ->
         target_name = str(rel_path / target_name)
     return target_name
 
-def get_parsed_args_vs(options: 'argparse.Namespace', builddir: Path) -> T.Tuple[T.List[str], T.Optional[T.Dict[str, str]]]:
+def get_parsed_args_vs(options: 'argparse.Namespace', builddir: Path) -> T.Tuple[T.List[str], T.List[str], T.Optional[T.Dict[str, str]]]:
     slns = list(builddir.glob('*.sln'))
     assert len(slns) == 1, 'More than one solution in a project?'
     sln = slns[0]
 
-    cmd = ['msbuild']
     # Configuration has to be added because otherwise when invoking a single project, msbuild defaults to
     # configuration=debug and running fails for any other buildtype
-    cmd.extend([f'-property:Configuration={get_buildtype_from_introspect_data(builddir)}'])
+    configuration = f'-property:Configuration={get_buildtype_from_introspect_data(builddir)}'
+    cmd = ['msbuild', configuration]
+    # REGEN target has to be called first to regenerate the VS solution before building
+    # because otherwise changes to meson files are not included into build
+    regen_cmd = cmd + [str(sln.resolve()), '-target:REGEN', '-verbosity:minimal']
+
     if options.targets:
         intro_data = parse_introspect_data(builddir)
         if len(options.targets) == 1:
@@ -255,7 +259,7 @@ def get_parsed_args_vs(options: 'argparse.Namespace', builddir: Path) -> T.Tuple
     env = os.environ.copy()
     env.pop('PLATFORM', None)
 
-    return cmd, env
+    return cmd, regen_cmd, env
 
 def get_parsed_args_xcode(options: 'argparse.Namespace', builddir: Path) -> T.Tuple[T.List[str], T.Optional[T.Dict[str, str]]]:
     runner = 'xcodebuild'
@@ -368,7 +372,11 @@ def run(options: 'argparse.Namespace') -> int:
     if backend == 'ninja':
         cmd, env = get_parsed_args_ninja(options, bdir)
     elif backend.startswith('vs'):
-        cmd, env = get_parsed_args_vs(options, bdir)
+        cmd, regen_cmd, env = get_parsed_args_vs(options, bdir)
+        mlog.log(mlog.green('INFO:'), 'regenerating backend with command:', join_args(regen_cmd))
+        p, *_ = mesonlib.Popen_safe(regen_cmd, cwd=bdir, stdout=sys.stdout.buffer, stderr=sys.stderr.buffer, env=env)
+        if p.returncode != 0:
+            return p.returncode
     elif backend == 'xcode':
         cmd, env = get_parsed_args_xcode(options, bdir)
     else:
