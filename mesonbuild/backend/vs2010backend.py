@@ -1468,7 +1468,7 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(midl, 'InterfaceIdentifierFilename').text = '%(Filename)_i.c'
         ET.SubElement(midl, 'ProxyFileName').text = '%(Filename)_p.c'
         # FIXME: No benchmarks?
-        test_command = self.environment.get_build_command() + ['test', '--no-rebuild']
+        test_command = self.environment.get_build_command() + ['test']
         if not self.environment.coredata.get_option(OptionKey('stdsplit')):
             test_command += ['--no-stdsplit']
         if self.environment.coredata.get_option(OptionKey('errorlogs')):
@@ -1495,7 +1495,7 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(midl, 'TypeLibraryName').text = '%(Filename).tlb'
         ET.SubElement(midl, 'InterfaceIdentifierFilename').text = '%(Filename)_i.c'
         ET.SubElement(midl, 'ProxyFileName').text = '%(Filename)_p.c'
-        install_command = self.environment.get_build_command() + ['install', '--no-rebuild']
+        install_command = self.environment.get_build_command() + ['install']
         self.add_custom_build(root, 'run_install', '"%s"' % ('" "'.join(install_command)))
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
         self.add_regen_dependency(root)

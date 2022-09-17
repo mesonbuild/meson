@@ -40,7 +40,7 @@ import unicodedata
 import xml.etree.ElementTree as et
 
 from . import build
-from . import environment
+from . import environment, mcompile
 from . import mlog
 from .coredata import major_versions_differ, MesonVersionMismatchException
 from .coredata import version as coredata_version
@@ -1542,10 +1542,7 @@ class TestHarness:
             return
 
         if not (Path(self.options.wd) / 'build.ninja').is_file():
-            print('Only ninja backend is supported to rebuild tests before running them.')
-            # Disable, no point in trying to build anything later
-            self.options.no_rebuild = True
-            return
+            return # Use mcompile for building if not using ninja backend
 
         self.ninja = environment.detect_ninja()
         if not self.ninja:
@@ -1565,7 +1562,7 @@ class TestHarness:
             # configuration does not need to be regenerated. This needs to
             # happen before rebuild_deps(), because we need the correct list of
             # tests and their dependencies to compute
-            if not self.options.no_rebuild:
+            if not self.options.no_rebuild and self.ninja is not None:
                 ret = subprocess.run(self.ninja + ['build.ninja']).returncode
                 if ret != 0:
                     raise TestException(f'Could not configure {self.options.wd!r}')
@@ -1723,13 +1720,18 @@ class TestHarness:
         tests = self.get_tests()
         if not tests:
             return 0
-        if not self.options.no_rebuild and not rebuild_deps(self.ninja, self.options.wd, tests):
-            # We return 125 here in case the build failed.
-            # The reason is that exit code 125 tells `git bisect run` that the current
-            # commit should be skipped.  Thus users can directly use `meson test` to
-            # bisect without needing to handle the does-not-build case separately in a
-            # wrapper script.
-            sys.exit(125)
+        if not self.options.no_rebuild:
+            if self.ninja is not None:
+                build_ok = rebuild_deps_ninja(self.ninja, self.options.wd, tests)
+            else:
+                build_ok = rebuild_deps_mcompile(self.options.wd, tests)
+            if not build_ok:
+                # We return 125 here in case the build failed.
+                # The reason is that exit code 125 tells `git bisect run` that the current
+                # commit should be skipped.  Thus users can directly use `meson test` to
+                # bisect without needing to handle the does-not-build case separately in a
+                # wrapper script.
+                sys.exit(125)
 
         self.name_max_len = max(uniwidth(self.get_pretty_suite(test)) for test in tests)
         self.options.num_processes = min(self.options.num_processes,
@@ -1998,13 +2000,13 @@ def list_tests(th: TestHarness) -> bool:
         print(th.get_pretty_suite(t))
     return not tests
 
-def rebuild_deps(ninja: T.List[str], wd: str, tests: T.List[TestSerialisation]) -> bool:
-    def convert_path_to_target(path: str) -> str:
-        path = os.path.relpath(path, wd)
-        if os.sep != '/':
-            path = path.replace(os.sep, '/')
-        return path
+def convert_path_to_target(path: str, wd: str) -> str:
+    path = os.path.relpath(path, wd)
+    if os.sep != '/':
+        path = path.replace(os.sep, '/')
+    return path
 
+def rebuild_deps_ninja(ninja: T.List[str], wd: str, tests: T.List[TestSerialisation]) -> bool:
     assert len(ninja) > 0
 
     depends = set()            # type: T.Set[str]
@@ -2012,7 +2014,7 @@ def rebuild_deps(ninja: T.List[str], wd: str, tests: T.List[TestSerialisation]) 
     intro_targets = dict()     # type: T.Dict[str, T.List[str]]
     for target in load_info_file(get_infodir(wd), kind='targets'):
         intro_targets[target['id']] = [
-            convert_path_to_target(f)
+            convert_path_to_target(f, wd)
             for f in target['filename']]
     for t in tests:
         for d in t.depends:
@@ -2023,6 +2025,29 @@ def rebuild_deps(ninja: T.List[str], wd: str, tests: T.List[TestSerialisation]) 
 
     ret = subprocess.run(ninja + ['-C', wd] + sorted(targets)).returncode
     if ret != 0:
+        print(f'Could not rebuild {wd}')
+        return False
+
+    return True
+
+def rebuild_deps_mcompile(wd: str, tests: T.List[TestSerialisation]) -> bool:
+    depends = set()            # type: T.Set[str]
+    targets = set()            # type: T.Set[str]
+    intro_targets = dict()     # type: T.Dict[str, str]
+    for target in load_info_file(get_infodir(wd), kind='targets'):
+        target_dir = convert_path_to_target(str(Path(target['filename'][0]).parent), wd)
+        target_type = target['type'].replace(' ', '_')
+        intro_targets[target['id']] = f'{target_dir}/{target["name"]}:{target_type}'
+    for t in tests:
+        for d in t.depends:
+            if d in depends:
+                continue
+            depends.update([d])
+            targets.update([intro_targets[d]])
+    parser = argparse.ArgumentParser()
+    mcompile.add_arguments(parser)
+    options = parser.parse_args(['-C', wd] + sorted(targets))
+    if mcompile.run(options) != 0:
         print(f'Could not rebuild {wd}')
         return False
 

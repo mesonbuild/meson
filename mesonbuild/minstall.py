@@ -25,7 +25,7 @@ import sys
 import typing as T
 
 from . import build
-from . import environment
+from . import environment, mcompile
 from .backend.backends import InstallData
 from .mesonlib import MesonException, Popen_safe, RealPathAction, is_windows, setup_vsenv, pickle_load
 from .scripts import depfixer, destdir_join
@@ -727,15 +727,17 @@ class Installer:
 
 def rebuild_all(wd: str) -> bool:
     if not (Path(wd) / 'build.ninja').is_file():
-        print('Only ninja backend is supported to rebuild the project before installation.')
-        return True
+        parser = argparse.ArgumentParser()
+        mcompile.add_arguments(parser)
+        options = parser.parse_args(['-C', wd])
+        ret = mcompile.run(options)
+    else:
+        ninja = environment.detect_ninja()
+        if not ninja:
+            print("Can't find ninja, can't rebuild test.")
+            return False
+        ret = subprocess.run(ninja + ['-C', wd]).returncode
 
-    ninja = environment.detect_ninja()
-    if not ninja:
-        print("Can't find ninja, can't rebuild test.")
-        return False
-
-    ret = subprocess.run(ninja + ['-C', wd]).returncode
     if ret != 0:
         print(f'Could not rebuild {wd}')
         return False
