@@ -180,14 +180,17 @@ def get_parsed_args_ninja(options: 'argparse.Namespace', builddir: Path) -> T.Tu
 
     return cmd, None
 
-def generate_target_name_vs(target: ParsedTargetName, builddir: Path, introspect_data: dict) -> str:
-    intro_target = get_target_from_intro_data(target, builddir, introspect_data)
-
+def generate_target_name_vs(intro_target: T.Dict[str, T.Any], builddir: Path) -> str:
     assert intro_target['type'] != 'run', 'Should not reach here: `run` targets must be handle above'
 
-    # Normalize project name
-    # Source: https://docs.microsoft.com/en-us/visualstudio/msbuild/how-to-build-specific-targets-in-solutions-by-using-msbuild-exe
-    target_name = re.sub(r"[\%\$\@\;\.\(\)']", '_', intro_target['id'])  # type: str
+    if intro_target['build_by_default']:
+        # Normalize project name
+        # Source: https://docs.microsoft.com/en-us/visualstudio/msbuild/how-to-build-specific-targets-in-solutions-by-using-msbuild-exe
+        target_name = re.sub(r"[\%\$\@\;\.\(\)']", '_', intro_target['id'])  # type: str
+    else:
+        # If target is not build by default, it cannot be built through the solution but instead the
+        # correct vcxproj has to be called directly
+        target_name = f'{intro_target["id"]}.vcxproj'
     rel_path = Path(intro_target['filename'][0]).relative_to(builddir.resolve()).parent
     if rel_path != Path('.'):
         target_name = str(rel_path / target_name)
@@ -204,30 +207,32 @@ def get_parsed_args_vs(options: 'argparse.Namespace', builddir: Path) -> T.Tuple
     cmd.extend([f'-property:Configuration={get_buildtype_from_introspect_data(builddir)}'])
     if options.targets:
         intro_data = parse_introspect_data(builddir)
-        has_run_target = any(map(
-            lambda t:
-                get_target_from_intro_data(ParsedTargetName(t), builddir, intro_data)['type'] == 'run',
-            options.targets
-        ))
-
-        if has_run_target:
-            # `run` target can't be used the same way as other targets on `vs` backend.
-            # They are defined as disabled projects, which can't be invoked as `.sln`
-            # target and have to be invoked directly as project instead.
-            # Issue: https://github.com/microsoft/msbuild/issues/4772
-
-            if len(options.targets) > 1:
-                raise MesonException('Only one target may be specified when `run` target type is used on this backend.')
+        if len(options.targets) == 1:
             intro_target = get_target_from_intro_data(ParsedTargetName(options.targets[0]), builddir, intro_data)
-            proj_dir = Path(intro_target['filename'][0]).parent
-            proj = proj_dir/'{}.vcxproj'.format(intro_target['id'])
-            cmd += [str(proj.resolve())]
+            if intro_target['type'] == 'run':
+                # Run targets are always at the root
+                cmd += [f'{intro_target["id"]}.vcxproj']
+            elif not intro_target['build_by_default']:
+                # Targets not built by default can be within subdirs but they have to be invoked directly as a project
+                cmd += [f'{generate_target_name_vs(intro_target, builddir)}']
+            else:
+                cmd += [str(sln.resolve())]
+                cmd += [f'-target:{generate_target_name_vs(intro_target, builddir)}']
         else:
             cmd += [str(sln.resolve())]
-            cmd.extend(['-target:{}'.format(generate_target_name_vs(ParsedTargetName(t), builddir, intro_data)) for t in options.targets])
+            for target in options.targets:
+                intro_target = get_target_from_intro_data(ParsedTargetName(target), builddir, intro_data)
+                # `run` targets and targets not built by default can't be used the same way
+                # as other targets on `vs` backend. They are defined as disabled projects,
+                # which can't be invoked as `.sln` target and have to be invoked directly
+                # as project instead. Issue: https://github.com/microsoft/msbuild/issues/4772
+                if not intro_target['build_by_default']:
+                    raise MesonException(f'Target `{intro_target["name"]}` has to be specified alone to build on this backend because it is not built by default.')
+                elif intro_target['type'] == 'run':
+                    raise MesonException(f'Target `{intro_target["name"]}` has to be specified alone to build on this backend because it is a `run` target.')
+                cmd.extend([f'-target:{generate_target_name_vs(intro_target, builddir)}'])
     else:
         cmd += [str(sln.resolve())]
-
     if options.clean:
         cmd.extend(['-target:Clean'])
 
