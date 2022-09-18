@@ -361,6 +361,8 @@ class GnomeModule(ExtensionModule):
             prog = state.find_program('gtk4-update-icon-cache', required=False)
             found = isinstance(prog, build.Executable) or prog.found()
             if not found:
+                prog = state.find_program('gtk3-update-icon-cache')
+            if not prog.found:
                 prog = state.find_program('gtk-update-icon-cache')
             icondir = os.path.join(datadir_abs, 'icons', 'hicolor')
             script = state.backend.get_executable_serialisation([prog, '-q', '-t', '-f', icondir])
