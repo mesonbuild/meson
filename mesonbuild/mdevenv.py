@@ -13,6 +13,8 @@ import typing as T
 if T.TYPE_CHECKING:
     from .backends import InstallData
 
+POWERSHELL_EXES = {'pwsh.exe', 'powershell.exe'}
+
 def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('-C', dest='wd', action=RealPathAction,
                         help='Directory to cd into before running')
@@ -21,12 +23,17 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('command', nargs=argparse.REMAINDER,
                         help='Command to run in developer environment (default: interactive shell)')
 
-def get_windows_shell() -> str:
+def get_windows_shell() -> T.Optional[str]:
     mesonbuild = Path(__file__).parent
     script = mesonbuild / 'scripts' / 'cmd_or_ps.ps1'
-    command = ['powershell.exe', '-noprofile', '-executionpolicy', 'bypass', '-file', str(script)]
-    result = subprocess.check_output(command)
-    return result.decode().strip()
+    for shell in POWERSHELL_EXES:
+        try:
+            command = [shell, '-noprofile', '-executionpolicy', 'bypass', '-file', str(script)]
+            result = subprocess.check_output(command)
+            return result.decode().strip()
+        except (subprocess.CalledProcessError, OSError):
+            pass
+    return None
 
 def reduce_winepath(env: T.Dict[str, str]) -> None:
     winepath = env.get('WINEPATH')
@@ -145,7 +152,9 @@ def run(options: argparse.Namespace) -> int:
             args = [shell_env]
         elif is_windows():
             shell = get_windows_shell()
-            if shell in ['powershell.exe', 'pwsh.exe']:
+            if not shell:
+                mlog.warning('Failed to determine Windows shell, fallback to cmd.exe')
+            if shell in POWERSHELL_EXES:
                 args = [shell, '-NoLogo', '-NoExit']
                 prompt = f'function global:prompt {{  "{prompt_prefix} PS " + $PWD + "> "}}'
                 args += ['-Command', prompt]
