@@ -507,6 +507,7 @@ class GnomeModule(ExtensionModule):
             extra_depends=depends,
             install=kwargs['install'],
             install_dir=[kwargs['install_dir']] if kwargs['install_dir'] else [],
+            install_tag=['runtime'],
         )
 
         if gresource: # Only one target for .gresource files
@@ -526,6 +527,7 @@ class GnomeModule(ExtensionModule):
             extra_depends=depends,
             install=install_header,
             install_dir=[install_dir],
+            install_tag=['devel'],
         )
         rv = [target_c, target_h]
         return ModuleReturnValue(rv, rv)
@@ -1674,6 +1676,7 @@ class GnomeModule(ExtensionModule):
             extra_depends=depends,
             install=install_header,
             install_dir=[install_dir],
+            install_tag=['devel'],
         )
         targets.append(hfile_custom_target)
 
@@ -1920,6 +1923,7 @@ class GnomeModule(ExtensionModule):
             capture=True,
             install=install,
             install_dir=[_install_dir],
+            install_tag=['devel'],
             extra_depends=depends,
             # https://github.com/mesonbuild/meson/issues/973
             absolute_paths=True,
@@ -1985,6 +1989,7 @@ class GnomeModule(ExtensionModule):
             [header_file],
             install=install_header,
             install_dir=[kwargs['install_dir']] if kwargs['install_dir'] else [],
+            install_tag=['devel'],
             capture=capture,
             depend_files=kwargs['depend_files'],
         )
@@ -2131,6 +2136,7 @@ class GnomeModule(ExtensionModule):
             extra_depends=vapi_depends,
             install=kwargs['install'],
             install_dir=[install_dir],
+            install_tag=['devel'],
         )
 
         # So to try our best to get this to just work we need:
