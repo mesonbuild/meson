@@ -63,7 +63,6 @@ disable=
     too-many-return-statements,
     too-many-statements,
     typevar-name-incorrect-variance,
-    unidiomatic-typecheck,
     unsubscriptable-object,
     unused-argument,
     useless-super-delegation,

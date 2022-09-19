@@ -778,7 +778,10 @@ class CoreData:
                 continue
 
             oldval = self.options[key]
-            if type(oldval) != type(value):
+            # We cannot use isinstance here, because the relation between val
+            # and oldval may be that of a parent and child, which will make the
+            # check not work.
+            if type(oldval) != type(value):  # pylint: disable=unidiomatic-typecheck
                 self.options[key] = value
             elif oldval.choices != value.choices:
                 # If the choices have changed, use the new value, but attempt
