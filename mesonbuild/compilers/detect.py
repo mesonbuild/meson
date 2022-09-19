@@ -240,6 +240,7 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
         if p.returncode == 1 and err.startswith('ar: bad option: --'): # Solaris
             return linkers.ArLinker(compiler.for_machine, linker)
     _handle_exceptions(popen_exceptions, trials, 'linker')
+    raise EnvironmentException('Unreachable code (exception to make mypy happy)')
 
 
 # Compilers
