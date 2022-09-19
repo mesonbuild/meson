@@ -334,10 +334,13 @@ class Resolver:
         self.directory = self.wrap.directory
 
         if self.wrap.has_wrap:
-            # We have a .wrap file, source code will be placed into main
-            # project's subproject_dir even if the wrap file comes from another
-            # subproject.
-            self.dirname = os.path.join(self.subdir_root, self.directory)
+            # We have a .wrap file, use directory relative to the location of
+            # the wrap file if it exists, otherwise source code will be placed
+            # into main project's subproject_dir even if the wrap file comes
+            # from another subproject.
+            self.dirname = os.path.join(os.path.dirname(self.wrap.filename), self.wrap.directory)
+            if not os.path.exists(self.dirname):
+                self.dirname = os.path.join(self.subdir_root, self.directory)
             # Check if the wrap comes from the main project.
             main_fname = os.path.join(self.subdir_root, self.wrap.basename)
             if self.wrap.filename != main_fname:
