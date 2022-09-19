@@ -1542,6 +1542,8 @@ class Backend:
             return 'i18n'
         elif 'installed-tests' in dest_path.parts:
             return 'tests'
+        elif 'systemtap' in dest_path.parts:
+            return 'systemtap'
         mlog.debug('Failed to guess install tag for', dest_path)
         return None
 
