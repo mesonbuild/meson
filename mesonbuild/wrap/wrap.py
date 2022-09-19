@@ -124,7 +124,6 @@ class PackageDefinition:
         self.basename = os.path.basename(fname)
         self.has_wrap = self.basename.endswith('.wrap')
         self.name = self.basename[:-5] if self.has_wrap else self.basename
-        self.directory = self.name
         # must be lowercase for consistency with dep=variable assignment
         self.provided_deps[self.name.lower()] = None
         # What the original file name was before redirection
@@ -132,9 +131,9 @@ class PackageDefinition:
         self.redirected = False
         if self.has_wrap:
             self.parse_wrap()
-            self.directory = self.values.get('directory', self.name)
             with open(fname, 'r', encoding='utf-8') as file:
                 self.wrapfile_hash = hashlib.sha256(file.read().encode('utf-8')).hexdigest()
+        self.directory = self.values.get('directory', self.name)
         if os.path.dirname(self.directory):
             raise WrapException('Directory key must be a name and not a path')
         if self.type and self.type not in ALL_TYPES:
