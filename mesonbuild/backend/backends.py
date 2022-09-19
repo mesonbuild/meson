@@ -1540,6 +1540,8 @@ class Backend:
             return 'devel'
         elif localedir in dest_path.parents:
             return 'i18n'
+        elif 'installed-tests' in dest_path.parts:
+            return 'tests'
         mlog.debug('Failed to guess install tag for', dest_path)
         return None
 
