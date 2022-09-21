@@ -94,6 +94,9 @@ def determine_worker_count() -> int:
     return num_workers
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument('--maxfail', default=0, type=int,
+                        help='Number of failing tests before aborting the '
+                        'test run. (default: 0, to disable aborting on failure)')
     parser.add_argument('--repeat', default=1, dest='repeat', type=int,
                         help='Number of times to run the tests.')
     parser.add_argument('--no-rebuild', default=False, action='store_true',
@@ -1912,6 +1915,9 @@ class TestHarness:
                     return
                 res = await test.run(self)
                 self.process_test_result(res)
+                maxfail = self.options.maxfail
+                if maxfail and self.fail_count >= maxfail and res.res.is_bad():
+                    cancel_all_tests()
 
         def test_done(f: asyncio.Future) -> None:
             if not f.cancelled():
