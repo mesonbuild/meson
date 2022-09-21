@@ -355,7 +355,7 @@ methods:
   posargs:
     libname:
       type: str
-      description: The library to find.
+      description: The library to find, without “lib” prefix.
   kwargs:
     required:
       type: bool | feature
