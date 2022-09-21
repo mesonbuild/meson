@@ -285,7 +285,7 @@ class CLikeCompiler(Compiler):
 
     def _sanity_check_impl(self, work_dir: str, environment: 'Environment',
                            sname: str, code: str) -> None:
-        mlog.debug('Sanity testing ' + self.get_display_language() + ' compiler:', ' '.join(self.exelist))
+        mlog.debug('Sanity testing ' + self.get_display_language() + ' compiler:', mesonlib.join_args(self.exelist))
         mlog.debug(f'Is cross compiler: {self.is_cross!s}.')
 
         source_name = os.path.join(work_dir, sname)
@@ -314,7 +314,7 @@ class CLikeCompiler(Compiler):
         # after which all further arguments will be passed directly to the linker
         cmdlist = self.exelist + [sname] + self.get_output_args(binname) + extra_flags
         pc, stdo, stde = mesonlib.Popen_safe(cmdlist, cwd=work_dir)
-        mlog.debug('Sanity check compiler command line:', ' '.join(cmdlist))
+        mlog.debug('Sanity check compiler command line:', mesonlib.join_args(cmdlist))
         mlog.debug('Sanity check compile stdout:')
         mlog.debug(stdo)
         mlog.debug('-----\nSanity check compile stderr:')
@@ -330,7 +330,7 @@ class CLikeCompiler(Compiler):
             cmdlist = self.exe_wrapper.get_command() + [binary_name]
         else:
             cmdlist = [binary_name]
-        mlog.debug('Running test binary command: ' + ' '.join(cmdlist))
+        mlog.debug('Running test binary command: ', mesonlib.join_args(cmdlist))
         try:
             pe = subprocess.Popen(cmdlist)
         except Exception as e:
