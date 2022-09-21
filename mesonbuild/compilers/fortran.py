@@ -13,9 +13,8 @@
 # limitations under the License.
 from __future__ import annotations
 
-from pathlib import Path
 import typing as T
-import subprocess, os
+import os
 
 from .. import coredata
 from .compilers import (
@@ -32,7 +31,7 @@ from .mixins.elbrus import ElbrusCompiler
 from .mixins.pgi import PGICompiler
 
 from mesonbuild.mesonlib import (
-    version_compare, EnvironmentException, MesonException,
+    version_compare, MesonException,
     LibType, OptionKey,
 )
 
@@ -67,41 +66,15 @@ class FortranCompiler(CLikeCompiler, Compiler):
                              "meson.get_compiler('fortran').links('block; end block; end program')\n\n"
                              'that example is to see if the compiler has Fortran 2008 Block element.')
 
-    def sanity_check(self, work_dir_: str, environment: 'Environment') -> None:
-        work_dir = Path(work_dir_)
-        source_name = work_dir / 'sanitycheckf.f90'
-        binary_name = work_dir / 'sanitycheckf'
-        if binary_name.is_file():
-            binary_name.unlink()
+    def _get_basic_compiler_args(self, env: 'Environment', mode: CompileCheckMode) -> T.Tuple[T.List[str], T.List[str]]:
+        cargs = env.coredata.get_external_args(self.for_machine, self.language)
+        largs = env.coredata.get_external_link_args(self.for_machine, self.language)
+        return cargs, largs
 
-        source_name.write_text('program main; print *, "Fortran compilation is working."; end program', encoding='utf-8')
-
-        extra_flags: T.List[str] = []
-        extra_flags += environment.coredata.get_external_args(self.for_machine, self.language)
-        extra_flags += environment.coredata.get_external_link_args(self.for_machine, self.language)
-        extra_flags += self.get_always_args()
-        # %% build the test executable "sanitycheckf"
-        # cwd=work_dir is necessary on Windows especially for Intel compilers to avoid error: cannot write on sanitycheckf.obj
-        # this is a defect with how Windows handles files and ifort's object file-writing behavior vis concurrent ProcessPoolExecutor.
-        # This simple workaround solves the issue.
-        returncode = subprocess.run(self.exelist + extra_flags + [str(source_name), '-o', str(binary_name)],
-                                    cwd=work_dir).returncode
-        if returncode != 0:
-            raise EnvironmentException('Compiler %s can not compile programs.' % self.name_string())
-        if self.is_cross:
-            if self.exe_wrapper is None:
-                # Can't check if the binaries run so we have to assume they do
-                return
-            cmdlist = self.exe_wrapper.get_command() + [str(binary_name)]
-        else:
-            cmdlist = [str(binary_name)]
-        # %% Run the test executable
-        try:
-            returncode = subprocess.run(cmdlist, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode
-            if returncode != 0:
-                raise EnvironmentException('Executables created by Fortran compiler %s are not runnable.' % self.name_string())
-        except OSError:
-            raise EnvironmentException('Executables created by Fortran compiler %s are not runnable.' % self.name_string())
+    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
+        source_name = 'sanitycheckf.f90'
+        code = 'program main; print *, "Fortran compilation is working."; end program\n'
+        return self._sanity_check_impl(work_dir, environment, source_name, code)
 
     def get_buildtype_args(self, buildtype: str) -> T.List[str]:
         return gnulike_buildtype_args[buildtype]

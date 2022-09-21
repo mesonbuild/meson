@@ -294,7 +294,7 @@ class CLikeCompiler(Compiler):
         if self.is_cross:
             binname += '_cross'
             if self.exe_wrapper is None:
-                # Linking cross built apps is painful. You can't really
+                # Linking cross built C/C++ apps is painful. You can't really
                 # tell if you should use -nostdlib or not and for example
                 # on OSX the compiler binary is the same but you need
                 # a ton of compiler flags to differentiate between
@@ -332,7 +332,8 @@ class CLikeCompiler(Compiler):
             cmdlist = [binary_name]
         mlog.debug('Running test binary command: ', mesonlib.join_args(cmdlist))
         try:
-            pe = subprocess.run(cmdlist)
+            # fortran code writes to stdout
+            pe = subprocess.run(cmdlist, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except Exception as e:
             raise mesonlib.EnvironmentException(f'Could not invoke sanity test executable: {e!s}.')
         if pe.returncode != 0:
