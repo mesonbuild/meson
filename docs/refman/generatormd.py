@@ -123,7 +123,7 @@ class GeneratorMD(GeneratorBase):
 
         self.generated_files[file_id] = self._gen_filename(file_id)
         out_file = self.out_dir / self.generated_files[file_id]
-        out_file.write_text(data, encoding='ascii')
+        out_file.write_text(data, encoding='utf-8')
         mlog.log('Generated', mlog.bold(out_file.name))
 
     def _write_template(self, data: T.Dict[str, T.Any], file_id: str, template_name: T.Optional[str] = None) -> None:
