@@ -332,10 +332,9 @@ class CLikeCompiler(Compiler):
             cmdlist = [binary_name]
         mlog.debug('Running test binary command: ', mesonlib.join_args(cmdlist))
         try:
-            pe = subprocess.Popen(cmdlist)
+            pe = subprocess.run(cmdlist)
         except Exception as e:
             raise mesonlib.EnvironmentException(f'Could not invoke sanity test executable: {e!s}.')
-        pe.wait()
         if pe.returncode != 0:
             raise mesonlib.EnvironmentException(f'Executables created by {self.language} compiler {self.name_string()} are not runnable.')
 
