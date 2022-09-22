@@ -49,7 +49,9 @@ def errorhandler(e, command):
             raise e
         traceback.print_exc()
 
-        if isinstance(e, OSError):
+        if command == 'runpython':
+            return 2
+        elif isinstance(e, OSError):
             error_msg = os.linesep.join([
                 "Unhandled python exception",
                 f"{e.strerror} - {e.args}",
@@ -58,13 +60,12 @@ def errorhandler(e, command):
             mlog.exception(error_msg)
             return e.errno
         else: # Exception
-            if command != 'runpython':
-                msg = 'Unhandled python exception'
-                if all(getattr(e, a, None) is not None for a in ['file', 'lineno', 'colno']):
-                    e = MesonBugException(msg, e.file, e.lineno, e.colno) # type: ignore
-                else:
-                    e = MesonBugException(msg)
-                mlog.exception(e)
+            msg = 'Unhandled python exception'
+            if all(getattr(e, a, None) is not None for a in ['file', 'lineno', 'colno']):
+                e = MesonBugException(msg, e.file, e.lineno, e.colno) # type: ignore
+            else:
+                e = MesonBugException(msg)
+            mlog.exception(e)
         return 2
 
 # Note: when adding arguments, please also add them to the completion
