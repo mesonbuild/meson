@@ -12,12 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import mlog, mparser
-import pickle, os, uuid
+import pickle
+import os
+import uuid
 import sys
 from itertools import chain
 from pathlib import PurePath
 from collections import OrderedDict
+import ast
+import argparse
+import configparser
+import enum
+import shlex
+import typing as T
+
+from . import mlog, mparser
 from .mesonlib import (
     HoldableObject,
     MesonException, EnvironmentException, MachineChoice, PerMachine,
@@ -26,12 +35,6 @@ from .mesonlib import (
     pickle_load, replace_if_different
 )
 from .wrap import WrapMode
-import ast
-import argparse
-import configparser
-import enum
-import shlex
-import typing as T
 
 if T.TYPE_CHECKING:
     from . import dependencies

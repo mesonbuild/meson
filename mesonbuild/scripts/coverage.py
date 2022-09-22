@@ -12,10 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from mesonbuild import environment, mesonlib
-
-import argparse, re, sys, os, subprocess, pathlib, stat
+import argparse
+import re
+import sys
+import os
+import subprocess
+import pathlib
+import stat
 import typing as T
+
+from .. import environment, mesonlib
 
 def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build_root: str, log_dir: str, use_llvm_cov: bool) -> int:
     outfiles = []

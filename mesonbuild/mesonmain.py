@@ -14,7 +14,8 @@
 
 # Work around some pathlib bugs...
 
-from . import _pathlib
+# pylint: disable=wrong-import-position
+from . import _pathlib  # pylint: disable=wrong-import-order
 import sys
 sys.modules['pathlib'] = _pathlib
 
@@ -28,6 +29,7 @@ import shutil
 from . import mesonlib
 from . import mlog
 from .mesonlib import MesonException, MesonBugException
+# pylint: enable=wrong-import-position
 
 # Note: when adding arguments, please also add them to the completion
 # scripts in $MESONSRC/data/shell-completions/

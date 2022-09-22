@@ -1,4 +1,5 @@
 from __future__ import annotations
+import typing as T
 
 from .interpreterobjects import extract_required_kwarg
 from .. import mlog
@@ -10,7 +11,6 @@ from ..dependencies import Dependency, DependencyException, NotFoundDependency
 from ..interpreterbase import (MesonInterpreterObject, FeatureNew,
                                InterpreterException, InvalidArguments)
 
-import typing as T
 if T.TYPE_CHECKING:
     from .interpreter import Interpreter
     from ..interpreterbase import TYPE_nkwargs, TYPE_nvar

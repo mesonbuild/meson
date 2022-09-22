@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
+import typing as T
+
 from .base import ExternalDependency, DependencyException, DependencyTypeName
 from ..mesonlib import listify, Popen_safe, split_args, version_compare, version_compare_many
 from ..programs import find_external_program
 from .. import mlog
-import re
-import typing as T
-
-from mesonbuild import mesonlib
+from .. import mesonlib
 
 if T.TYPE_CHECKING:
     from ..environment import Environment

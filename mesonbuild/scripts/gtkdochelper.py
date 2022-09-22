@@ -12,13 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, os
+import sys
+import os
 import subprocess
 import shutil
 import argparse
+import typing as T
+
 from ..mesonlib import MesonException, Popen_safe, is_windows, is_cygwin, split_args
 from . import destdir_join
-import typing as T
 
 parser = argparse.ArgumentParser()
 

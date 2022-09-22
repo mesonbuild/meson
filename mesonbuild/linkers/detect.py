@@ -13,6 +13,9 @@
 # limitations under the License.
 
 from __future__ import annotations
+import re
+import shlex
+import typing as T
 
 from .. import mlog
 from ..mesonlib import (
@@ -32,10 +35,6 @@ from .linkers import (
     AIXDynamicLinker,
     OptlinkDynamicLinker,
 )
-
-import re
-import shlex
-import typing as T
 
 if T.TYPE_CHECKING:
     from .linkers import DynamicLinker, GnuDynamicLinker

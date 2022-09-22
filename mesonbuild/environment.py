@@ -12,12 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from functools import lru_cache
 import itertools
-import os, platform, re, sys, shutil
+import os
+import platform
+import re
+import sys
+import shutil
 import typing as T
 import collections
 
 from . import coredata
+from . import envconfig
 from . import mesonlib
 from .mesonlib import (
     MesonException, EnvironmentException, MachineChoice, Popen_safe, PerMachine,
@@ -42,9 +48,6 @@ from .compilers import (
     is_object,
     is_source,
 )
-
-from functools import lru_cache
-from mesonbuild import envconfig
 
 if T.TYPE_CHECKING:
     import argparse

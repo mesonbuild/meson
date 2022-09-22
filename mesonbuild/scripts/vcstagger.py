@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, os, subprocess, re
+import sys
+import os
+import subprocess
+import re
 import typing as T
 
 def config_vcs_tag(infile: str, outfile: str, fallback: str, source_dir: str, replace_string: str, regex_selector: str, cmd: T.List[str]) -> None:

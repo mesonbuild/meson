@@ -15,10 +15,11 @@
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool
 
-from .. import mparser
-from . import AstVisitor
 import re
 import typing as T
+
+from .. import mparser
+from . import AstVisitor
 
 arithmic_map = {
     'add': '+',

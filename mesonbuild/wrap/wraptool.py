@@ -13,7 +13,8 @@
 # limitations under the License.
 
 import json
-import sys, os
+import sys
+import os
 import configparser
 import shutil
 import typing as T

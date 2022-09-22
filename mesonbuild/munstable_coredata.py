@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-from . import coredata as cdata
-from .mesonlib import MachineChoice, OptionKey
-
 import os.path
 import pprint
 import textwrap
+
+from . import coredata as cdata
+from .mesonlib import MachineChoice, OptionKey
 
 def add_arguments(parser):
     parser.add_argument('--all', action='store_true', dest='all', default=False,

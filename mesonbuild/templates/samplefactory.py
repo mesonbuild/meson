@@ -11,20 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from mesonbuild.templates.valatemplates import ValaProject
-from mesonbuild.templates.fortrantemplates import FortranProject
-from mesonbuild.templates.objcpptemplates import ObjCppProject
-from mesonbuild.templates.dlangtemplates import DlangProject
-from mesonbuild.templates.rusttemplates import RustProject
-from mesonbuild.templates.javatemplates import JavaProject
-from mesonbuild.templates.cudatemplates import CudaProject
-from mesonbuild.templates.objctemplates import ObjCProject
-from mesonbuild.templates.cpptemplates import CppProject
-from mesonbuild.templates.cstemplates import CSharpProject
-from mesonbuild.templates.ctemplates import CProject
-from mesonbuild.templates.sampleimpl import SampleImpl
 
 import argparse
+
+from ..templates.valatemplates import ValaProject
+from ..templates.fortrantemplates import FortranProject
+from ..templates.objcpptemplates import ObjCppProject
+from ..templates.dlangtemplates import DlangProject
+from ..templates.rusttemplates import RustProject
+from ..templates.javatemplates import JavaProject
+from ..templates.cudatemplates import CudaProject
+from ..templates.objctemplates import ObjCProject
+from ..templates.cpptemplates import CppProject
+from ..templates.cstemplates import CSharpProject
+from ..templates.ctemplates import CProject
+from ..templates.sampleimpl import SampleImpl
 
 def sameple_generator(options: argparse.Namespace) -> SampleImpl:
     return {

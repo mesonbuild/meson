@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, os
-import pickle, subprocess
+import sys
+import os
+import pickle
+import subprocess
 import typing as T
 from ..coredata import CoreData
 from ..backend.backends import RegenInfo

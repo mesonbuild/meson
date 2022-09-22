@@ -37,7 +37,6 @@ disable=
     missing-class-docstring,
     missing-function-docstring,
     missing-module-docstring,
-    multiple-imports,
     multiple-statements,
     no-else-break,
     no-else-continue,
@@ -88,5 +87,3 @@ disable=
     used-before-assignment,
     useless-return,
     useless-super-delegation,
-    wrong-import-order,
-    wrong-import-position,

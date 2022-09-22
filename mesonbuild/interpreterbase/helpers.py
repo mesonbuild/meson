@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .. import mesonlib, mparser
-from .exceptions import InterpreterException
-
 import collections.abc
 import typing as T
+
+from .. import mesonlib, mparser
+from .exceptions import InterpreterException
 
 if T.TYPE_CHECKING:
     from .baseobjects import TYPE_var, TYPE_kwargs

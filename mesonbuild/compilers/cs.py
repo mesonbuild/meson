@@ -13,7 +13,8 @@
 # limitations under the License.
 from __future__ import annotations
 
-import os.path, subprocess
+import os.path
+import subprocess
 import textwrap
 import typing as T
 
