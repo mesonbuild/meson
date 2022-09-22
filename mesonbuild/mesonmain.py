@@ -29,6 +29,46 @@ from . import mesonlib
 from . import mlog
 from .mesonlib import MesonException, MesonBugException
 
+def errorhandler(e, command):
+    if isinstance(e, MesonException):
+        mlog.exception(e)
+        logfile = mlog.shutdown()
+        if logfile is not None:
+            mlog.log("\nA full log can be found at", mlog.bold(logfile))
+        if os.environ.get('MESON_FORCE_BACKTRACE'):
+            raise e
+        return 1
+    elif isinstance(e, OSError):
+        if os.environ.get('MESON_FORCE_BACKTRACE'):
+            raise e
+        traceback.print_exc()
+        error_msg = os.linesep.join([
+            "Unhandled python exception",
+            f"{e.strerror} - {e.args}",
+            "this is probably not a Meson bug."])
+
+        mlog.exception(error_msg)
+        return e.errno
+
+    else: # Exception
+        if os.environ.get('MESON_FORCE_BACKTRACE'):
+            raise e
+        traceback.print_exc()
+        # We assume many types of traceback are Meson logic bugs, but most
+        # particularly anything coming from the interpreter during `setup`.
+        # Some things definitely aren't:
+        # - PermissionError is always a problem in the user environment
+        # - runpython doesn't run Meson's own code, even though it is
+        #   dispatched by our run()
+        if command != 'runpython':
+            msg = 'Unhandled python exception'
+            if all(getattr(e, a, None) is not None for a in ['file', 'lineno', 'colno']):
+                e = MesonBugException(msg, e.file, e.lineno, e.colno) # type: ignore
+            else:
+                e = MesonBugException(msg)
+            mlog.exception(e)
+        return 2
+
 # Note: when adding arguments, please also add them to the completion
 # scripts in $MESONSRC/data/shell-completions/
 class CommandLineParser:
@@ -155,44 +195,8 @@ class CommandLineParser:
 
         try:
             return options.run_func(options)
-        except MesonException as e:
-            mlog.exception(e)
-            logfile = mlog.shutdown()
-            if logfile is not None:
-                mlog.log("\nA full log can be found at", mlog.bold(logfile))
-            if os.environ.get('MESON_FORCE_BACKTRACE'):
-                raise
-            return 1
-        except OSError as e:
-            if os.environ.get('MESON_FORCE_BACKTRACE'):
-                raise
-            traceback.print_exc()
-            error_msg = os.linesep.join([
-                "Unhandled python exception",
-                f"{e.strerror} - {e.args}",
-                "this is probably not a Meson bug."])
-
-            mlog.exception(error_msg)
-            return e.errno
-
         except Exception as e:
-            if os.environ.get('MESON_FORCE_BACKTRACE'):
-                raise
-            traceback.print_exc()
-            # We assume many types of traceback are Meson logic bugs, but most
-            # particularly anything coming from the interpreter during `setup`.
-            # Some things definitely aren't:
-            # - PermissionError is always a problem in the user environment
-            # - runpython doesn't run Meson's own code, even though it is
-            #   dispatched by our run()
-            if command != 'runpython':
-                msg = 'Unhandled python exception'
-                if all(getattr(e, a, None) is not None for a in ['file', 'lineno', 'colno']):
-                    e = MesonBugException(msg, e.file, e.lineno, e.colno) # type: ignore
-                else:
-                    e = MesonBugException(msg)
-                mlog.exception(e)
-            return 2
+            return errorhandler(e, command)
         finally:
             if implicit_setup_command_notice:
                 mlog.warning('Running the setup command as `meson [options]` instead of '
@@ -256,7 +260,10 @@ def run(original_args, mainfile):
     if len(args) >= 2 and args[0] == '--internal':
         if args[1] == 'regenerate':
             from . import msetup
-            return msetup.run(['--reconfigure'] + args[2:])
+            try:
+                return msetup.run(['--reconfigure'] + args[2:])
+            except Exception as e:
+                return errorhandler(e, 'setup')
         else:
             return run_script_command(args[1], args[2:])
 
