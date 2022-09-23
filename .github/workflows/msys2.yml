@@ -106,7 +106,6 @@ jobs:
             # Make sure it is on the PATH
             pypy3 -c "import sys; print(sys.version)"
           fi
-          export BOOST_ROOT=
           export PATHEXT="$PATHEXT;.py"
 
           if [[ '${{ matrix.COMPILER }}' == 'clang' ]]; then
