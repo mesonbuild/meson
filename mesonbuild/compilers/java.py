@@ -39,6 +39,9 @@ class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
         super().__init__(exelist, version, for_machine, info, full_version=full_version)
         self.javarunner = 'java'
 
+    def get_warn_args(self, level: str) -> T.List[str]:
+        return ['-Xlint:all', '-Xdoclint:all']
+
     def get_werror_args(self) -> T.List[str]:
         return ['-Werror']
 
@@ -61,6 +64,9 @@ class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
 
     def get_buildtype_args(self, buildtype: str) -> T.List[str]:
         return java_buildtype_args[buildtype]
+
+    def get_depfile_suffix(self) -> str:
+        return 'd'
 
     def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
                                                build_dir: str) -> T.List[str]:
