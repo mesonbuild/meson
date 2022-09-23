@@ -412,7 +412,7 @@ def start_pager() -> None:
         # "X" : do not clear the screen when leaving the pager
         # "F" : skip the pager if content fit into the screen
         pager_cmd = ['less', '-RXF']
-    global log_pager
+    global log_pager # pylint: disable=global-statement
     assert log_pager is None
     try:
         log_pager = subprocess.Popen(pager_cmd, stdin=subprocess.PIPE,
@@ -424,7 +424,7 @@ def start_pager() -> None:
             raise MesonException(f'Failed to start pager: {str(e)}')
 
 def stop_pager() -> None:
-    global log_pager
+    global log_pager # pylint: disable=global-statement
     if log_pager:
         try:
             log_pager.stdin.flush()
