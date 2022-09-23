@@ -101,6 +101,7 @@ import typing as T
 import textwrap
 import importlib
 import copy
+import itertools
 
 if T.TYPE_CHECKING:
     import argparse
@@ -3050,6 +3051,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
     @FeatureNew('both_libraries', '0.46.0')
     def build_both_libraries(self, node, args, kwargs):
         shared_lib = self.build_target(node, args, kwargs, build.SharedLibrary)
+        static_lib = self.build_target(node, args, kwargs, build.StaticLibrary)
 
         # Check if user forces non-PIC static library.
         pic = True
@@ -3071,16 +3073,16 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
             reuse_object_files = pic
 
         if reuse_object_files:
-            # Exclude sources from args and kwargs to avoid building them twice
-            static_args = [args[0]]
-            static_kwargs = kwargs.copy()
-            static_kwargs['sources'] = []
-            static_kwargs['objects'] = shared_lib.extract_all_objects()
-        else:
-            static_args = args
-            static_kwargs = kwargs
-
-        static_lib = self.build_target(node, static_args, static_kwargs, build.StaticLibrary)
+            # Replace sources with objects from the shared library to avoid
+            # building them twice. We post-process the static library instead of
+            # removing sources from args because sources could also come from
+            # any InternalDependency, see BuildTarget.add_deps().
+            static_lib.objects.append(build.ExtractedObjects(shared_lib, shared_lib.sources, shared_lib.generated, []))
+            static_lib.sources = []
+            static_lib.generated = []
+            # Compilers with no corresponding sources confuses the backend.
+            # Keep only the first compiler because it is the linker.
+            static_lib.compilers = dict(itertools.islice(static_lib.compilers.items(), 1))
 
         return build.BothLibraries(shared_lib, static_lib)
 
