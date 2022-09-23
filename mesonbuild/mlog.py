@@ -19,6 +19,7 @@ import time
 import platform
 import shlex
 import subprocess
+import shutil
 import typing as T
 from contextlib import contextmanager
 from pathlib import Path
@@ -29,6 +30,10 @@ if T.TYPE_CHECKING:
 """This is (mostly) a standalone module used to write logging
 information about Meson runs. Some output goes to screen,
 some to logging dir and some goes to both."""
+
+def is_windows() -> bool:
+    platname = platform.system().lower()
+    return platname == 'windows'
 
 def _windows_ansi() -> bool:
     # windll only exists on windows, so mypy will get mad
@@ -51,7 +56,7 @@ def colorize_console() -> bool:
         return _colorize_console
 
     try:
-        if platform.system().lower() == 'windows':
+        if is_windows():
             _colorize_console = os.isatty(sys.stdout.fileno()) and _windows_ansi()
         else:
             _colorize_console = os.isatty(sys.stdout.fileno()) and os.environ.get('TERM', 'dumb') != 'dumb'
@@ -65,7 +70,7 @@ def setup_console() -> None:
     # on Windows, a subprocess might call SetConsoleMode() on the console
     # connected to stdout and turn off ANSI escape processing. Call this after
     # running a subprocess to ensure we turn it on again.
-    if platform.system().lower() == 'windows':
+    if is_windows():
         try:
             delattr(sys.stdout, 'colorize_console')
         except AttributeError:
@@ -405,13 +410,23 @@ def nested(name: str = '') -> T.Generator[None, None, None]:
 def start_pager() -> None:
     if not colorize_console():
         return
+    pager_cmd = []
     if 'PAGER' in os.environ:
         pager_cmd = shlex.split(os.environ['PAGER'])
     else:
-        # "R" : support color
-        # "X" : do not clear the screen when leaving the pager
-        # "F" : skip the pager if content fit into the screen
-        pager_cmd = ['less', '-RXF']
+        less = shutil.which('less')
+        if not less and is_windows():
+            git = shutil.which('git')
+            if git:
+                path = Path(git).parents[1] / 'usr' / 'bin'
+                less = shutil.which('less', path=str(path))
+        if less:
+            # "R" : support color
+            # "X" : do not clear the screen when leaving the pager
+            # "F" : skip the pager if content fit into the screen
+            pager_cmd = [less, '-RXF']
+    if not pager_cmd:
+        return
     global log_pager # pylint: disable=global-statement
     assert log_pager is None
     try:
