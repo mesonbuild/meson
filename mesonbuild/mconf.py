@@ -39,11 +39,14 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     parser.add_argument('--no-pager', action='store_false', dest='pager',
                         help='Do not redirect output to a pager')
 
-def make_lower_case(val: T.Any) -> T.Union[str, T.List[T.Any]]:  # T.Any because of recursion...
+def stringify(val: T.Any) -> T.Union[str, T.List[T.Any]]:  # T.Any because of recursion...
     if isinstance(val, bool):
         return str(val).lower()
     elif isinstance(val, list):
-        return [make_lower_case(i) for i in val]
+        s = ', '.join(stringify(i) for i in val)
+        return f'[{s}]'
+    elif val is None:
+        return ''
     else:
         return str(val)
 
@@ -166,16 +169,8 @@ class Conf:
         self.descr_col.append(descr)
 
     def add_option(self, name, descr, value, choices):
-        if isinstance(value, list):
-            value = '[{}]'.format(', '.join(make_lower_case(value)))
-        else:
-            value = make_lower_case(value)
-
-        if isinstance(choices, list):
-            choices = '[{}]'.format(', '.join(make_lower_case(choices)))
-        else:
-            choices = make_lower_case(choices)
-
+        value = stringify(value)
+        choices = stringify(choices)
         self._add_line(mlog.green(name), mlog.yellow(value), mlog.blue(choices), descr)
 
     def add_title(self, title):
