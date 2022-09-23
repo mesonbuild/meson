@@ -36,7 +36,7 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     parser.add_argument('builddir', nargs='?', default='.')
     parser.add_argument('--clearcache', action='store_true', default=False,
                         help='Clear cached state (e.g. found dependencies)')
-    parser.add_argument('--no-pager', action='store_true', default=False,
+    parser.add_argument('--no-pager', action='store_false', dest='pager',
                         help='Do not redirect output to a pager')
 
 def make_lower_case(val: T.Any) -> T.Union[str, T.List[T.Any]]:  # T.Any because of recursion...
@@ -205,7 +205,10 @@ class Conf:
                 printable_value = '<inherited from main project>'
             self.add_option(str(root), o.description, printable_value, o.choices)
 
-    def print_conf(self):
+    def print_conf(self, pager: bool):
+        if pager:
+            mlog.start_pager()
+
         def print_default_values_warning():
             mlog.warning('The source directory instead of the build directory was specified.')
             mlog.warning('Only the default values for the project are printed, and all command line parameters are ignored.')
@@ -297,13 +300,11 @@ class Conf:
 def run(options):
     coredata.parse_cmd_line_options(options)
     builddir = os.path.abspath(os.path.realpath(options.builddir))
-    if not options.no_pager:
-        mlog.start_pager()
     c = None
     try:
         c = Conf(builddir)
         if c.default_values_only:
-            c.print_conf()
+            c.print_conf(options.pager)
             return 0
 
         save = False
@@ -315,7 +316,7 @@ def run(options):
             c.clear_cache()
             save = True
         else:
-            c.print_conf()
+            c.print_conf(options.pager)
         if save:
             c.save()
             mintro.update_build_options(c.coredata, c.build.environment.info_dir)
