@@ -56,3 +56,8 @@ m_src2 = configure_file(
 
 executable('gen-no-copy', structured_sources([m_src, m_src2]))
 
+# Make sure we can pass structured sources as dependency
+sources_dep = declare_dependency(
+  sources: structured_sources(['src/main.rs', ct]),
+)
+executable('sources-dep', dependencies: sources_dep)
