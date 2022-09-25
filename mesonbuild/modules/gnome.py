@@ -176,7 +176,6 @@ if T.TYPE_CHECKING:
 
     class _MkEnumsCommon(TypedDict):
 
-        sources: T.List[T.Union[FileOrString, build.GeneratedTypes]]
         install_header: bool
         install_dir: T.Optional[str]
         identifier_prefix: T.Optional[str]
@@ -184,6 +183,7 @@ if T.TYPE_CHECKING:
 
     class MkEnumsSimple(_MkEnumsCommon):
 
+        sources: T.List[FileOrString]
         header_prefix: str
         decorator: str
         function_prefix: str
@@ -191,6 +191,7 @@ if T.TYPE_CHECKING:
 
     class MkEnums(_MkEnumsCommon):
 
+        sources: T.List[T.Union[FileOrString, build.GeneratedTypes]]
         c_template: T.Optional[FileOrString]
         h_template: T.Optional[FileOrString]
         comments: T.Optional[str]
@@ -221,12 +222,6 @@ _EXTRA_ARGS_KW: KwargInfo[T.List[str]] = KwargInfo(
 _MK_ENUMS_COMMON_KWS: T.List[KwargInfo] = [
     INSTALL_KW.evolve(name='install_header'),
     INSTALL_DIR_KW,
-    KwargInfo(
-        'sources',
-        ContainerTypeInfo(list, (str, mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList)),
-        listify=True,
-        required=True,
-    ),
     KwargInfo('identifier_prefix', (str, NoneType)),
     KwargInfo('symbol_prefix', (str, NoneType)),
 ]
@@ -1749,6 +1744,13 @@ class GnomeModule(ExtensionModule):
         'gnome.mkenums',
         *_MK_ENUMS_COMMON_KWS,
         DEPENDS_KW,
+        KwargInfo(
+            'sources',
+            ContainerTypeInfo(list, (str, mesonlib.File, CustomTarget, CustomTargetIndex,
+                                     GeneratedList)),
+            listify=True,
+            required=True,
+        ),
         KwargInfo('c_template', (str, mesonlib.File, NoneType)),
         KwargInfo('h_template', (str, mesonlib.File, NoneType)),
         KwargInfo('comments', (str, NoneType)),
@@ -1824,6 +1826,12 @@ class GnomeModule(ExtensionModule):
     @typed_kwargs(
         'gnome.mkenums_simple',
         *_MK_ENUMS_COMMON_KWS,
+        KwargInfo(
+            'sources',
+            ContainerTypeInfo(list, (str, mesonlib.File)),
+            listify=True,
+            required=True,
+        ),
         KwargInfo('header_prefix', str, default=''),
         KwargInfo('function_prefix', str, default=''),
         KwargInfo('body_prefix', str, default=''),
@@ -1851,8 +1859,9 @@ class GnomeModule(ExtensionModule):
         if body_prefix != '':
             fhead += '%s\n' % body_prefix
         fhead += '#include "%s"\n' % hdr_filename
-        for hdr in kwargs['sources']:
-            fhead += '#include "{}"\n'.format(os.path.basename(str(hdr)))
+        for hdr in self.interpreter.source_strings_to_files(kwargs['sources']):
+            hdr_path = os.path.relpath(hdr.relative_name(), state.subdir)
+            fhead += f'#include "{hdr_path}"\n'
         fhead += textwrap.dedent(
             '''
             #define C_ENUM(v) ((gint) v)
