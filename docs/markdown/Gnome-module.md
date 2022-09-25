@@ -204,6 +204,13 @@ for a build target, you must add the generated header to the build
 target's list of sources to codify the dependency. This is true for
 all generated sources, not just `mkenums_simple`.
 
+The generated source file includes all headers passed to the sources keyword
+argument, using paths relative to current build or source directory. That means
+that targets that compile the generated source file must have the current
+directory in its `include_directories`. *Since 1.3.0* `sources` outside of
+current directory do not require adding those directories into
+`include_directories` anymore.
+
 * `body_prefix`: additional prefix at the top of the body file,
   e.g. for extra includes
 * `decorator`: optional decorator for the function declarations,
