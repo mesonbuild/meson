@@ -33,6 +33,7 @@ if T.TYPE_CHECKING:
     from ..compilers import Compiler
     from ..envconfig import MachineInfo
     from ..environment import Environment
+    from ..dependencies import MissingCompiler
 
 
 def _qt_get_private_includes(mod_inc_dir: str, module: str, mod_version: str) -> T.List[str]:
@@ -122,7 +123,7 @@ class _QtBase:
     """Mixin class for shared components between PkgConfig and Qmake."""
 
     link_args: T.List[str]
-    clib_compiler: 'Compiler'
+    clib_compiler: T.Union['MissingCompiler', 'Compiler']
     env: 'Environment'
     libexecdir: T.Optional[str] = None
 

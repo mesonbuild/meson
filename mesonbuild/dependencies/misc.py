@@ -145,7 +145,7 @@ class ThreadDependency(SystemDependency):
         self.is_found = True
         # Happens if you are using a language with threads
         # concept without C, such as plain Cuda.
-        if self.clib_compiler is None:
+        if not self.clib_compiler:
             self.compile_args = []
             self.link_args = []
         else:

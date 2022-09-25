@@ -499,11 +499,6 @@ class ZlibSystemDependency(SystemDependency):
             self.is_found = True
             self.link_args = ['-lz']
         else:
-            # Without a clib_compiler we can't find zlib, so just give up.
-            if self.clib_compiler is None:
-                self.is_found = False
-                return
-
             if self.clib_compiler.get_argument_syntax() == 'msvc':
                 libs = ['zlib1' 'zlib']
             else:

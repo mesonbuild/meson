@@ -46,6 +46,19 @@ class DependencyException(MesonException):
     '''Exceptions raised while trying to find dependencies'''
 
 
+class MissingCompiler:
+    """Represent a None Compiler - when no tool chain is found.
+    replacing AttributeError with DependencyException"""
+
+    def __getattr__(self, item: str) -> T.Any:
+        if item.startswith('__'):
+            raise AttributeError()
+        raise DependencyException('no toolchain found')
+
+    def __bool__(self) -> bool:
+        return False
+
+
 class DependencyMethods(Enum):
     # Auto means to use whatever dependency checking mechanisms in whatever order meson thinks is best.
     AUTO = 'auto'
@@ -361,7 +374,7 @@ class ExternalDependency(Dependency, HasNativeKwarg):
         HasNativeKwarg.__init__(self, kwargs)
         self.clib_compiler = detect_compiler(self.name, environment, self.for_machine, self.language)
 
-    def get_compiler(self) -> 'Compiler':
+    def get_compiler(self) -> T.Union['MissingCompiler', 'Compiler']:
         return self.clib_compiler
 
     def get_partial_dependency(self, *, compile_args: bool = False,
@@ -573,7 +586,7 @@ def process_method_kw(possible: T.Iterable[DependencyMethods], kwargs: T.Dict[st
     return methods
 
 def detect_compiler(name: str, env: 'Environment', for_machine: MachineChoice,
-                    language: T.Optional[str]) -> T.Optional['Compiler']:
+                    language: T.Optional[str]) -> T.Union['MissingCompiler', 'Compiler']:
     """Given a language and environment find the compiler used."""
     compilers = env.coredata.compilers[for_machine]
 
@@ -591,7 +604,7 @@ def detect_compiler(name: str, env: 'Environment', for_machine: MachineChoice,
                 return compilers[lang]
             except KeyError:
                 continue
-    return None
+    return MissingCompiler()
 
 
 class SystemDependency(ExternalDependency):

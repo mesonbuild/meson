@@ -283,7 +283,7 @@ class CudaDependency(SystemDependency):
         return candidates
 
     def get_link_args(self, language: T.Optional[str] = None, raw: bool = False) -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         if self.libdir:
             args += self.clib_compiler.get_linker_search_args(self.libdir)
         for lib in self.requested_modules:
