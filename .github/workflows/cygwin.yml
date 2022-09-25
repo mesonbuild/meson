@@ -18,6 +18,9 @@ on:
       - ".github/workflows/cygwin.yml"
       - "run*tests.py"
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: windows-latest

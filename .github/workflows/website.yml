@@ -19,6 +19,9 @@ on:
     types:
       - published
 
+permissions:
+  contents: write # for release creation (svenstaro/upload-release-action)
+
 # This job is copy/paster into wrapdb CI, please update it there when doing any
 # change here.
 jobs:
