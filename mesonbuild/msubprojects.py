@@ -114,7 +114,7 @@ class Runner:
         self.wrap_resolver = copy.copy(r)
         self.wrap_resolver.dirname = os.path.join(r.subdir_root, self.wrap.directory)
         self.wrap_resolver.wrap = self.wrap
-        self.run_method: T.Callable[[], bool] = self.options.subprojects_func.__get__(self) # type: ignore
+        self.run_method: T.Callable[[], bool] = self.options.subprojects_func.__get__(self)
         self.log_queue: T.List[T.Tuple[mlog.TV_LoggableList, T.Any]] = []
 
     def log(self, *args: mlog.TV_Loggable, **kwargs: T.Any) -> None:
