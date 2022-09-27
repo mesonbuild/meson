@@ -1357,7 +1357,7 @@ class GnomeModule(ExtensionModule):
                 l_subdir,
                 state.subproject,
                 state.environment,
-                [itstool, '-m', os.path.join(l_subdir, gmo_file), '-o', '@OUTDIR@', '@INPUT@'],
+                [itstool, '-m', os.path.join(l_subdir, gmo_file), '--lang', l, '-o', '@OUTDIR@', '@INPUT@'],
                 sources_files,
                 sources,
                 extra_depends=[gmotarget],
