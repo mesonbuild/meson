@@ -1252,6 +1252,9 @@ def do_conf_file(src: str, dst: str, confdata: 'ConfigurationData',
     try:
         with open(dst_tmp, 'w', encoding=encoding, newline='') as f:
             f.writelines(result)
+            # Raw data are outputted as-is at the end.
+            for v in confdata.footer_data:
+                f.write(f'{v}\n')
     except Exception as e:
         raise MesonException(f'Could not write output file {dst}: {e!s}')
     shutil.copymode(src, dst_tmp)
@@ -1297,9 +1300,23 @@ def dump_conf_header(ofilename: str, cdata: 'ConfigurationData', output_format: 
                 else:
                     ofile.write(f'{prefix}undef {k}\n\n')
             elif isinstance(v, (int, str)):
+                if isinstance(v, str):
+                    if re.match(r'^ *\n', v):
+                        mlog.warning('While generating header "%s", the macro "%s" has been set '
+                                     'to a value starting with a newline. If you did it on purpose '
+                                     'as a hack to inject code in a header file, this is deprecated. '
+                                     'Please use the `append_raw_text()` method allowing to append raw '
+                                     'data as-is at the end of the configuration file. '
+                                     'Code injection usage is accepted for backward compatibility but '
+                                     'this will be changed in the future.' %
+                                     (ofilename, k))
+                    else:
+                        v = '\\\n'.join(v.rstrip().split('\n'))
                 ofile.write(f'{prefix}define {k} {v}\n\n')
             else:
                 raise MesonException('Unknown data type in configuration file entry: ' + k)
+        for v in cdata.footer_data:
+            ofile.write(f'{v}\n')
     replace_if_different(ofilename, ofilename_tmp)
 
 

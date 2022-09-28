@@ -2,5 +2,5 @@
 #include <config4b.h>
 
 int main(void) {
-    return RESULTA + RESULTB;
+    return RESULTA + RESULTB + RESULTC + RESULTD;
 }

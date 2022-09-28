@@ -2843,6 +2843,7 @@ class ConfigurationData(HoldableObject):
         super().__init__()
         self.values: T.Dict[str, T.Tuple[T.Union[str, int, bool], T.Optional[str]]] = \
             {k: v if isinstance(v, tuple) else (v, None) for k, v in initial_values.items()} if initial_values else {}
+        self.footer_data: T.List[str] = []
         self.used: bool = False
 
     def __repr__(self) -> str:

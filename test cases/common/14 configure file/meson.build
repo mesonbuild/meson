@@ -91,10 +91,28 @@ dump.set('SHOULD_BE_ONE', 1)
 dump.set('SHOULD_BE_ZERO', 0, description : 'Absolutely zero')
 dump.set('SHOULD_BE_QUOTED_ONE', '"1"')
 
+dump.set('MULTILINE', '1\n+2')
+dump.set_quoted('MULTILINE_STRING', '''line1
+line2''')
+
 dump.set_quoted('INTEGER_AS_STRING', '12')
 if dump.get_unquoted('INTEGER_AS_STRING').to_int() == 12
   dump.set('SHOULD_BE_UNQUOTED_STRING', dump.get_unquoted('SHOULD_BE_STRING'))
 endif
+
+complicated_defines = '''
+#ifdef SHOULD_BE_DEFINED
+/* Complicated code
+ * or defines
+ * on several lines
+ */
+#define SHOULD_BE_DEFINED2
+#ifdef SHOULD_BE_UNDEFINED
+#define SHOULD_BE_UNDEFINED
+#endif
+#endif
+'''
+dump.append_raw_text(complicated_defines)
 
 configure_file(output : 'config3.h',
   configuration : dump)
@@ -105,6 +123,14 @@ test('Configless.', executable('dumpprog', 'dumpprog.c'))
 # Config file generation in a loop with @BASENAME@ substitution
 dump = configuration_data()
 dump.set('ZERO', 0)
+complicated_defines = '''
+#ifndef RESULTC
+#define RESULTC 0
+#else
+#define RESULTD 0
+#endif
+'''
+dump.append_raw_text(complicated_defines)
 config_templates = files(['config4a.h.in', 'config4b.h.in'])
 foreach config_template : config_templates
   configure_file(input : config_template, output : '@BASENAME@', configuration : dump)

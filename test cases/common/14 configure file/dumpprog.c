@@ -12,6 +12,14 @@
 #error Token did not get defined
 #endif
 
+#ifdef SHOULD_BE_UNDEFINED2
+#error Token did not get undefined.
+#endif
+
+#ifndef SHOULD_BE_DEFINED2
+#error Token did not get defined
+#endif
+
 #define stringify(s) str(s)
 #define str(s) #s
 
@@ -46,6 +54,14 @@ int main(void) {
     }
     if(strcmp(SHOULD_BE_QUOTED_ONE, "1") != 0) {
         printf("Quoted number defined incorrectly.\n");
+        return 1;
+    }
+    if(MULTILINE != 3) {
+        printf("Multiline macro defined incorrectly.\n");
+        return 1;
+    }
+    if(strcmp(MULTILINE_STRING, "line1\nline2") != 0) {
+        printf("Quoted multiline macro defined incorrectly.\n");
         return 1;
     }
     SHOULD_BE_RETURN 0;
