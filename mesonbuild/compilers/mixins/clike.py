@@ -1158,6 +1158,8 @@ class CLikeCompiler(Compiler):
                 trial = self._get_file_from_list(env, trials)
                 if not trial:
                     continue
+                if libname.startswith('lib') and trial.name.startswith(libname):
+                    mlog.warning(f'find_library({libname!r}) starting in "lib" only works by accident and is not portable')
                 return [trial.as_posix()]
         return None
 
