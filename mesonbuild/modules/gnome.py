@@ -58,6 +58,7 @@ if T.TYPE_CHECKING:
         gio_querymodules: T.List[str]
         gtk_update_icon_cache: bool
         update_desktop_database: bool
+        update_mime_database: bool
 
     class CompileSchemas(TypedDict):
 
@@ -282,6 +283,7 @@ class GnomeModule(ExtensionModule):
         self.install_gio_querymodules: T.List[str] = []
         self.install_gtk_update_icon_cache = False
         self.install_update_desktop_database = False
+        self.install_update_mime_database = False
         self.devenv: T.Optional[build.EnvironmentVariables] = None
         self.native_glib_version: T.Optional[str] = None
         self.methods.update({
@@ -332,6 +334,7 @@ class GnomeModule(ExtensionModule):
         KwargInfo('gio_querymodules', ContainerTypeInfo(list, str), default=[], listify=True),
         KwargInfo('gtk_update_icon_cache', bool, default=False),
         KwargInfo('update_desktop_database', bool, default=False, since='0.59.0'),
+        KwargInfo('update_mime_database', bool, default=False, since='0.64.0'),
     )
     @noPosargs
     @FeatureNew('gnome.post_install', '0.57.0')
@@ -368,6 +371,13 @@ class GnomeModule(ExtensionModule):
             prog = state.find_program('update-desktop-database')
             appdir = os.path.join(datadir_abs, 'applications')
             script = state.backend.get_executable_serialisation([prog, '-q', appdir])
+            script.skip_if_destdir = True
+            rv.append(script)
+        if kwargs['update_mime_database'] and not self.install_update_mime_database:
+            self.install_update_mime_database = True
+            prog = state.find_program('update-mime-database')
+            appdir = os.path.join(datadir_abs, 'mime')
+            script = state.backend.get_executable_serialisation([prog, appdir])
             script.skip_if_destdir = True
             rv.append(script)
         return ModuleReturnValue(None, rv)

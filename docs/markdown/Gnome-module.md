@@ -415,3 +415,5 @@ It takes the following keyword arguments:
   `<prefix>/<datadir>/icons/hicolor`.
 - `update_desktop_database`: *Since 0.59.0* If set to `true`, update cache of
   MIME types handled by desktop files in `<prefix>/<datadir>/applications`.
+- `update_mime_database`: *Since 0.64.0* If set to `true`, update cache of
+  MIME types in `<prefix>/<datadir>/mime`.
