@@ -1405,6 +1405,12 @@ class AIXDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
     def get_allow_undefined_args(self) -> T.List[str]:
         return self._apply_prefix(['-berok'])
 
+    def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
+        # AIX's linker always links the whole archive: "The ld command
+        # processes all input files in the same manner, whether they are
+        # archives or not."
+        return args
+
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: T.Tuple[str, ...], build_rpath: str,
                          install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
