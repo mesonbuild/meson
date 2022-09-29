@@ -104,6 +104,20 @@ class Token(T.Generic[TV_TokenTypes]):
             return self.tid == other.tid
         return NotImplemented
 
+# TODO: What type annotations?
+@dataclass(eq=False)
+class Comment:
+    line_start: int
+    lineno: int
+    colno: int
+    bytespan: T.Tuple[int, int]
+    text: str
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, Comment):
+            return self.line_start == other.line_start and self.colno == other.colno
+        return False
+
 class Lexer:
     def __init__(self, code: str):
         self.code = code
@@ -148,6 +162,7 @@ class Lexer:
             ('gt', re.compile(r'>')),
             ('questionmark', re.compile(r'\?')),
         ]
+        self.comments = [] # type: T.List[Comment]
 
     def getline(self, line_start: int) -> str:
         return self.code[line_start:self.code.find('\n', line_start)]
@@ -175,7 +190,10 @@ class Lexer:
                     span_end = loc
                     bytespan = (span_start, span_end)
                     match_text = mo.group()
-                    if tid in {'ignore', 'comment'}:
+                    if tid == 'ignore':
+                        break
+                    elif tid == 'comment':
+                        self.comments.append(Comment(curline_start, curline, col, bytespan, match_text))
                         break
                     elif tid == 'lparen':
                         par_count += 1
@@ -509,6 +527,9 @@ class Parser:
         self.current = Token('eof', '', 0, 0, 0, (0, 0), None)  # type: Token
         self.getsym()
         self.in_ternary = False
+
+    def comments(self) -> T.List[Comment]:
+        return self.lexer.comments
 
     def getsym(self) -> None:
         try:

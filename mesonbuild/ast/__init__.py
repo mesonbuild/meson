@@ -17,6 +17,7 @@
 
 __all__ = [
     'AstConditionLevel',
+    'AstFormatter'
     'AstInterpreter',
     'AstIDGenerator',
     'AstIndentationGenerator',
@@ -32,3 +33,4 @@ from .introspection import IntrospectionInterpreter, BUILD_TARGET_FUNCTIONS
 from .visitor import AstVisitor
 from .postprocess import AstConditionLevel, AstIDGenerator, AstIndentationGenerator
 from .printer import AstPrinter, AstJSONPrinter
+from .formatter import AstFormatter

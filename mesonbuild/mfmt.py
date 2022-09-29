@@ -1,6 +1,7 @@
 import argparse
-from . import coredata, mlog, mparser
+from . import coredata, mparser
 from . import mesonlib
+from .ast import AstFormatter
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
     coredata.register_builtin_arguments(parser)
@@ -13,8 +14,15 @@ def run(options: argparse.Namespace) -> int:
             code = f.read()
         assert isinstance(code, str)
         try:
-            codeblock = mparser.Parser(code, filename).parse()
+            parser = mparser.Parser(code, filename)
+            codeblock = parser.parse()
+            comments = parser.comments()
         except mesonlib.MesonException as me:
             me.file = filename
             raise me
-        print(codeblock)
+        formatter = AstFormatter(comments)
+        codeblock.accept(formatter)
+        formatter.end()
+        print('This will probably eat some of your comments', file=sys.stderr)
+        for line in formatter.lines:
+            print(line)

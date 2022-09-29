@@ -108,7 +108,7 @@ class CommandLineParser:
                          help_msg='Run commands in developer environment')
         self.add_command('env2mfile', env2mfile.add_arguments, env2mfile.run,
                          help_msg='Convert current environment to a cross or native file')
-        self.add_command('fmt', mfmt.add_arguments, mfmt.run,
+        self.add_command('fmt_unstable', mfmt.add_arguments, mfmt.run,
                          help_msg='Format the specified file')
         # Add new commands above this line to list them in help command
         self.add_command('help', self.add_help_arguments, self.run_help_command,
