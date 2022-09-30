@@ -33,7 +33,7 @@ class ValaCompiler(Compiler):
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo'):
-        super().__init__(exelist, version, for_machine, info, is_cross=is_cross)
+        super().__init__([], exelist, version, for_machine, info, is_cross=is_cross)
         self.version = version
         self.base_options = {OptionKey('b_colorout')}
 

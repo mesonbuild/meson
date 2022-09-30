@@ -79,9 +79,9 @@ class NasmCompiler(Compiler):
 class YasmCompiler(NasmCompiler):
     id = 'yasm'
 
-    def get_exelist(self) -> T.List[str]:
+    def get_exelist(self, ccache: bool = True) -> T.List[str]:
         # Wrap yasm executable with an internal script that will write depfile.
-        exelist = super().get_exelist()
+        exelist = super().get_exelist(ccache)
         return get_meson_command() + ['--internal', 'yasm'] + exelist
 
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
