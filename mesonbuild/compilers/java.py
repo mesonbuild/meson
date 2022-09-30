@@ -43,7 +43,7 @@ class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  info: 'MachineInfo', full_version: T.Optional[str] = None):
-        super().__init__(exelist, version, for_machine, info, full_version=full_version)
+        super().__init__([], exelist, version, for_machine, info, full_version=full_version)
         self.javarunner = 'java'
 
     def get_warn_args(self, level: str) -> T.List[str]:

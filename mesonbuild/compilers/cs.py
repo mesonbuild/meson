@@ -45,7 +45,7 @@ class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  info: 'MachineInfo', runner: T.Optional[str] = None):
-        super().__init__(exelist, version, for_machine, info)
+        super().__init__([], exelist, version, for_machine, info)
         self.runner = runner
 
     @classmethod

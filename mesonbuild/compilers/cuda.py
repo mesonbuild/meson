@@ -178,12 +178,12 @@ class CudaCompiler(Compiler):
 
     id = 'nvcc'
 
-    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
+    def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
                  is_cross: bool, exe_wrapper: T.Optional['ExternalProgram'],
                  host_compiler: Compiler, info: 'MachineInfo',
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
-        super().__init__(exelist, version, for_machine, info, linker=linker, full_version=full_version, is_cross=is_cross)
+        super().__init__(ccache, exelist, version, for_machine, info, linker=linker, full_version=full_version, is_cross=is_cross)
         self.exe_wrapper = exe_wrapper
         self.host_compiler = host_compiler
         self.base_options = host_compiler.base_options

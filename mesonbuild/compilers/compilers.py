@@ -498,11 +498,11 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     warn_args: T.Dict[str, T.List[str]]
     mode: str = 'COMPILER'
 
-    def __init__(self, exelist: T.List[str], version: str,
+    def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str,
                  for_machine: MachineChoice, info: 'MachineInfo',
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None, is_cross: bool = False):
-        self.exelist = exelist
+        self.exelist = ccache + exelist
         # In case it's been overridden by a child class already
         if not hasattr(self, 'file_suffixes'):
             self.file_suffixes = lang_suffixes[self.language]

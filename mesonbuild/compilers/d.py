@@ -543,7 +543,7 @@ class DCompiler(Compiler):
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None,
                  is_cross: bool = False):
-        super().__init__(exelist, version, for_machine, info, linker=linker,
+        super().__init__([], exelist, version, for_machine, info, linker=linker,
                          full_version=full_version, is_cross=is_cross)
         self.arch = arch
         self.exe_wrapper = exe_wrapper
