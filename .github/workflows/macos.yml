@@ -34,7 +34,9 @@ jobs:
     - run: |
         python -m pip install --upgrade pip
         python -m pip install pytest pytest-xdist pytest-subtests jsonschema coverage codecov
-    - run: brew install pkg-config ninja llvm qt@5
+    # Use llvm-14 for now to fix llvm framework static tests, see
+    # https://github.com/Homebrew/discussions/discussions/3666#discussioncomment-3681821
+    - run: brew install pkg-config ninja llvm@14 qt@5
     - env:
         CPPFLAGS: "-I/usr/local/include"
         LDFLAGS: "-L/usr/local/lib"
@@ -43,7 +45,7 @@ jobs:
         # These cannot evaluate anything, so we cannot set PATH or SDKROOT here
       run: |
         export SDKROOT="$(xcodebuild -version -sdk macosx Path)"
-        export PATH="$HOME/tools:/usr/local/opt/qt@5/bin:$PATH:$(brew --prefix llvm)/bin"
+        export PATH="$HOME/tools:/usr/local/opt/qt@5/bin:$PATH:$(brew --prefix llvm@14)/bin"
         export PKG_CONFIG_PATH="/usr/local/opt/qt@5/lib/pkgconfig:$PKG_CONFIG_PATH"
         ./tools/run_with_cov.py ./run_unittests.py
     - name: Upload coverage report
@@ -69,7 +71,9 @@ jobs:
     - uses: actions/checkout@v2
     # use python3 from homebrew because it is a valid framework, unlike the actions one:
     # https://github.com/actions/setup-python/issues/58
-    - run: brew install pkg-config ninja llvm qt@5 boost ldc hdf5 openmpi lapack scalapack sdl2 python3 boost-python3 gtk-doc
+    # Use llvm-14 for now to fix llvm framework static tests, see
+    # https://github.com/Homebrew/discussions/discussions/3666#discussioncomment-3681821
+    - run: brew install pkg-config ninja llvm@14 qt@5 boost ldc hdf5 openmpi lapack scalapack sdl2 python3 boost-python3 gtk-doc
     - run: |
         python3 -m pip install --upgrade setuptools
         python3 -m pip install --upgrade pip
@@ -82,14 +86,14 @@ jobs:
         # These cannot evaluate anything, so we cannot set PATH or SDKROOT here
       run: |
         export SDKROOT="$(xcodebuild -version -sdk macosx Path)"
-        export PATH="$HOME/tools:/usr/local/opt/qt@5/bin:$PATH:$(brew --prefix llvm)/bin"
+        export PATH="$HOME/tools:/usr/local/opt/qt@5/bin:$PATH:$(brew --prefix llvm@14)/bin"
         export PKG_CONFIG_PATH="/usr/local/opt/qt@5/lib/pkgconfig:$PKG_CONFIG_PATH"
         export XML_CATALOG_FILES="/usr/local/etc/xml/catalog"
         ./tools/run_with_cov.py ./run_project_tests.py --backend=ninja
     - name: Upload coverage report
       run: ./ci/upload_cov.sh "appleclang [project tests; unity=${{ matrix.unity }}]"
 
-  Qt4macos:
+  Qt4_LLVM15_macos:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v2
@@ -97,22 +101,33 @@ jobs:
       with:
         python-version: '3.x'
     - run: python -m pip install -e .
-    - run: brew install pkg-config ninja gcc
+    - run: brew install pkg-config ninja gcc llvm
     - run: brew tap cartr/qt4
     - run: brew install qt@4
     - run: brew link qt@4
-      # qt4 tap seems to be broken
+    # qt4 tap seems to be broken
     - run: ln -sfn /usr/local/Cellar/qt@4/4.8.7_6.reinstall /usr/local/Cellar/qt@4/4.8.7_6
-    - run: meson setup "test cases/frameworks/4 qt" build -Drequired=qt4
-    - run: meson compile -C build
+    - run: meson setup "test cases/frameworks/4 qt" build_qt -Drequired=qt4
+    - run: meson compile -C build_qt
     - uses: actions/upload-artifact@v1
       if: failure()
       with:
         name: Qt4_Mac_build
-        path: build/meson-logs/meson-log.txt
-    - run: meson test -C build -v
+        path: build_qt/meson-logs/meson-log.txt
+    - run: meson test -C build_qt -v
     - uses: actions/upload-artifact@v1
       if: failure()
       with:
         name: Qt4_Mac_test
-        path: build/meson-logs/testlog.txt
+        path: build_qt/meson-logs/testlog.txt
+    # llvm-15 is broken, due to which static linking doesn't work
+    # https://github.com/mesonbuild/meson/pull/10879#issuecomment-1264524936
+    - run: |
+        export PATH="$PATH:$(brew --prefix llvm)/bin"
+        meson setup "test cases/frameworks/15 llvm" build_llvm -Dlink-static=false -Dmethod=config-tool
+    - run: meson compile -C build_llvm
+    - uses: actions/upload-artifact@v1
+      if: failure()
+      with:
+        name: LLVM15_Mac_build
+        path: build_llvm/meson-logs/meson-log.txt
