@@ -164,7 +164,8 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
 
     v = search_version(o + e)
     linker: DynamicLinker
-    if 'LLD' in o.split('\n', maxsplit=1)[0]:
+    ofl = o.split('\n', maxsplit=1)[0]
+    if 'LLD' in ofl and ('Homebrew LLD' not in ofl or 'compatible with GNU linkers' in ofl):
         linker = LLVMDynamicLinker(
             compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
     elif 'Snapdragon' in e and 'LLVM' in e:
@@ -189,7 +190,7 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
 
         linker = LLVMDynamicLinker(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
     # first might be apple clang, second is for real gcc, the third is icc
-    elif e.endswith('(use -v to see invocation)\n') or 'macosx_version' in e or 'ld: unknown option:' in e:
+    elif e.endswith('(use -v to see invocation)\n') or 'macosx_version' in e or 'ld: unknown option:' in e or 'Homebrew LLD' in o:
         if isinstance(comp_class.LINKER_PREFIX, str):
             cmd = compiler + [comp_class.LINKER_PREFIX + '-v'] + extra_args
         else:
@@ -203,6 +204,9 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
         for line in newerr.split('\n'):
             if 'PROJECT:ld' in line:
                 v = line.split('-')[1]
+                break
+            if 'Homebrew LLD' in line:
+                v = line.split('Homebrew LLD')[1].strip()
                 break
         else:
             __failed_to_detect_linker(compiler, check_args, o, e)
