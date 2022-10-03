@@ -607,7 +607,7 @@ class JNISystemDependency(SystemDependency):
         """Translates the machine information to the platform-dependent include directory
 
         When inspecting a JDK release tarball or $JAVA_HOME, inside the `include/` directory is a
-        platform dependent folder that must be on the target's include path in addition to the
+        platform-dependent directory that must be on the target's include path in addition to the
         parent `include/` directory.
         """
         if m.is_linux():
