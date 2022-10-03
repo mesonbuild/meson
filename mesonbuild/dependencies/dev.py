@@ -618,6 +618,14 @@ class JNISystemDependency(SystemDependency):
             return 'darwin'
         elif m.is_sunos():
             return 'solaris'
+        elif m.is_freebsd():
+            return 'freebsd'
+        elif m.is_netbsd():
+            return 'netbsd'
+        elif m.is_openbsd():
+            return 'openbsd'
+        elif m.is_dragonflybsd():
+            return 'dragonfly'
 
         return None
 
