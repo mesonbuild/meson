@@ -303,6 +303,10 @@ base_options: 'KeyedOptionDictType' = {
     OptionKey('b_vscrt'): coredata.UserComboOption('VS run-time library type to use.',
                                                    ['none', 'md', 'mdd', 'mt', 'mtd', 'from_buildtype', 'static_from_buildtype'],
                                                    'from_buildtype'),
+    OptionKey('b_vstoolset'): coredata.UserComboOption('VS toolset to use.',
+                                                   ['none', 'v90', 'v100', 'v110', 'v110_xp', 'v120', 'v120_xp',
+                                                   'v140', 'v140_xp', 'v141', 'v141_xp', 'v142', 'v143'],
+                                                   'none'),
 }
 
 def option_enabled(boptions: T.Set[OptionKey], options: 'KeyedOptionDictType',

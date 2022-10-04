@@ -138,6 +138,7 @@ available on all platforms or with all compilers:
 | b_staticpic   | true           | true, false                                                      | Build static libraries as position independent                                |
 | b_pie         | false          | true, false                                                      | Build position-independent executables (since 0.49.0)                         |
 | b_vscrt       | from_buildtype | none, md, mdd, mt, mtd, from_buildtype, static_from_buildtype    | VS runtime library to use (since 0.48.0) (static_from_buildtype since 0.56.0) |
+| b_vstoolset   | none           | none,v140,v140_xp,v141,v141_xp,v142,v143                         | VS toolset to use                                                             |
 
 The value of `b_sanitize` can be one of: `none`, `address`, `thread`,
 `undefined`, `memory`, `leak`, `address,undefined`, but note that some
