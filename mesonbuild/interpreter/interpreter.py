@@ -3128,39 +3128,8 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
         # passed to library() when default_library == 'static'.
         kwargs = {k: v for k, v in kwargs.items() if k in targetclass.known_kwargs}
 
-        srcs: T.List['SourceInputs'] = []
-        struct: T.Optional[build.StructuredSources] = build.StructuredSources()
-        for s in sources:
-            if isinstance(s, build.StructuredSources):
-                struct = struct + s
-            else:
-                srcs.append(s)
-
-        if not struct:
-            struct = None
-        else:
-            # Validate that we won't end up with two outputs with the same name.
-            # i.e, don't allow:
-            # [structured_sources('foo/bar.rs'), structured_sources('bar/bar.rs')]
-            for v in struct.sources.values():
-                outputs: T.Set[str] = set()
-                for f in v:
-                    o: T.List[str]
-                    if isinstance(f, str):
-                        o = [os.path.basename(f)]
-                    elif isinstance(f, mesonlib.File):
-                        o = [f.fname]
-                    else:
-                        o = f.get_outputs()
-                    conflicts = outputs.intersection(o)
-                    if conflicts:
-                        raise InvalidArguments.from_node(
-                            f"Conflicting sources in structured sources: {', '.join(sorted(conflicts))}",
-                            node=node)
-                    outputs.update(o)
-
         kwargs['include_directories'] = self.extract_incdirs(kwargs)
-        target = targetclass(name, self.subdir, self.subproject, for_machine, srcs, struct, objs,
+        target = targetclass(name, self.subdir, self.subproject, for_machine, sources, objs,
                              self.environment, self.compilers[for_machine], kwargs)
         target.project_version = self.project_version
 

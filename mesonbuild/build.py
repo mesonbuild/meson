@@ -685,13 +685,13 @@ class BuildTarget(Target):
     install_dir: T.List[T.Union[str, Literal[False]]]
 
     def __init__(self, name: str, subdir: str, subproject: SubProject, for_machine: MachineChoice,
-                 sources: T.List['SourceOutputs'], structured_sources: T.Optional[StructuredSources],
-                 objects, environment: environment.Environment, compilers: T.Dict[str, 'Compiler'], kwargs):
+                 sources: T.List['SourceOutputs'], objects, environment: environment.Environment,
+                 compilers: T.Dict[str, 'Compiler'], kwargs):
         super().__init__(name, subdir, subproject, True, for_machine, environment)
         self.all_compilers = compilers
         self.compilers = OrderedDict() # type: OrderedDict[str, Compiler]
         self.objects: T.List[T.Union[str, 'File', 'ExtractedObjects']] = []
-        self.structured_sources = structured_sources
+        self.structured_sources: T.Optional[StructuredSources] = StructuredSources()
         self.external_deps: T.List[dependencies.Dependency] = []
         self.include_dirs: T.List['IncludeDirs'] = []
         self.link_language = kwargs.get('link_language')
@@ -733,6 +733,27 @@ class BuildTarget(Target):
         ''' Initialisations and checks requiring the final list of compilers to be known
         '''
         self.validate_sources()
+        if not self.structured_sources:
+            self.structured_sources = None
+        else:
+            # Validate that we won't end up with two outputs with the same name.
+            # i.e, don't allow:
+            # [structured_sources('foo/bar.rs'), structured_sources('bar/bar.rs')]
+            for v in self.structured_sources.sources.values():
+                outputs: T.Set[str] = set()
+                for f in v:
+                    o: T.List[str]
+                    if isinstance(f, str):
+                        o = [os.path.basename(f)]
+                    elif isinstance(f, File):
+                        o = [f.fname]
+                    else:
+                        o = f.get_outputs()
+                    conflicts = outputs.intersection(o)
+                    if conflicts:
+                        m = f"Conflicting sources in structured sources: {', '.join(sorted(conflicts))}"
+                        raise MesonException(m)
+                    outputs.update(o)
         if self.structured_sources and any([self.sources, self.generated]):
             raise MesonException('cannot mix structured sources and unstructured sources')
         if self.structured_sources and 'rust' not in self.compilers:
@@ -801,6 +822,8 @@ class BuildTarget(Target):
                     added_sources.add(s)
             elif isinstance(s, (CustomTarget, CustomTargetIndex, GeneratedList)):
                 self.generated.append(s)
+            elif isinstance(s, StructuredSources):
+                self.structured_sources += s
 
     @staticmethod
     def can_compile_remove_sources(compiler: 'Compiler', sources: T.List['FileOrString']) -> bool:
@@ -1777,13 +1800,12 @@ class Executable(BuildTarget):
     typename = 'executable'
 
     def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
-                 sources: T.List[File], structured_sources: T.Optional['StructuredSources'],
-                 objects, environment: environment.Environment, compilers: T.Dict[str, 'Compiler'],
-                 kwargs):
+                 sources: T.List[File], objects, environment: environment.Environment,
+                 compilers: T.Dict[str, 'Compiler'], kwargs):
         key = OptionKey('b_pie')
         if 'pie' not in kwargs and key in environment.coredata.options:
             kwargs['pie'] = environment.coredata.options[key].value
-        super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
+        super().__init__(name, subdir, subproject, for_machine, sources, objects,
                          environment, compilers, kwargs)
         # Check for export_dynamic
         self.export_dynamic = kwargs.get('export_dynamic', False)
@@ -1906,13 +1928,12 @@ class StaticLibrary(BuildTarget):
     typename = 'static library'
 
     def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
-                 sources: T.List[File], structured_sources: T.Optional['StructuredSources'],
-                 objects, environment: environment.Environment, compilers: T.Dict[str, 'Compiler'],
-                 kwargs):
+                 sources: T.List[File], objects, environment: environment.Environment,
+                 compilers: T.Dict[str, 'Compiler'], kwargs):
         self.prelink = kwargs.get('prelink', False)
         if not isinstance(self.prelink, bool):
             raise InvalidArguments('Prelink keyword argument must be a boolean.')
-        super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
+        super().__init__(name, subdir, subproject, for_machine, sources, objects,
                          environment, compilers, kwargs)
 
     def post_init(self) -> None:
@@ -1978,9 +1999,8 @@ class SharedLibrary(BuildTarget):
     typename = 'shared library'
 
     def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
-                 sources: T.List[File], structured_sources: T.Optional['StructuredSources'],
-                 objects, environment: environment.Environment, compilers: T.Dict[str, 'Compiler'],
-                 kwargs):
+                 sources: T.List[File], objects, environment: environment.Environment,
+                 compilers: T.Dict[str, 'Compiler'], kwargs):
         self.soversion = None
         self.ltversion = None
         # Max length 2, first element is compatibility_version, second is current_version
@@ -1996,7 +2016,7 @@ class SharedLibrary(BuildTarget):
         self.debug_filename = None
         # Use by the pkgconfig module
         self.shared_library_only = False
-        super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
+        super().__init__(name, subdir, subproject, for_machine, sources, objects,
                          environment, compilers, kwargs)
 
     def post_init(self) -> None:
@@ -2315,15 +2335,14 @@ class SharedModule(SharedLibrary):
     typename = 'shared module'
 
     def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
-                 sources: T.List[File], structured_sources: T.Optional['StructuredSources'],
-                 objects, environment: environment.Environment,
+                 sources: T.List[File], objects, environment: environment.Environment,
                  compilers: T.Dict[str, 'Compiler'], kwargs):
         if 'version' in kwargs:
             raise MesonException('Shared modules must not specify the version kwarg.')
         if 'soversion' in kwargs:
             raise MesonException('Shared modules must not specify the soversion kwarg.')
         super().__init__(name, subdir, subproject, for_machine, sources,
-                         structured_sources, objects, environment, compilers, kwargs)
+                         objects, environment, compilers, kwargs)
         # We need to set the soname in cases where build files link the module
         # to build targets, see: https://github.com/mesonbuild/meson/issues/9492
         self.force_soname = False
@@ -2647,10 +2666,9 @@ class Jar(BuildTarget):
     typename = 'jar'
 
     def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
-                 sources: T.List[File], structured_sources: T.Optional['StructuredSources'],
-                 objects, environment: environment.Environment, compilers: T.Dict[str, 'Compiler'],
-                 kwargs):
-        super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
+                 sources: T.List[File], objects, environment: environment.Environment,
+                 compilers: T.Dict[str, 'Compiler'], kwargs):
+        super().__init__(name, subdir, subproject, for_machine, sources, objects,
                          environment, compilers, kwargs)
         for s in self.sources:
             if not s.endswith('.java'):

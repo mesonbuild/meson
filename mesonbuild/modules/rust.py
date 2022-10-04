@@ -148,12 +148,14 @@ class RustModule(ExtensionModule):
         new_target_kwargs['rust_args'] = new_target_kwargs.get('rust_args', []) + ['--test']
         new_target_kwargs['install'] = False
         new_target_kwargs['dependencies'] = new_target_kwargs.get('dependencies', []) + dependencies
+        new_target_sources = base_target.sources + base_target.generated
+        if base_target.structured_sources:
+            new_target_sources.append(base_target.structured_sources)
 
         new_target = Executable(
             name, base_target.subdir, state.subproject, base_target.for_machine,
-            base_target.sources, base_target.structured_sources,
-            base_target.objects, base_target.environment, base_target.compilers,
-            new_target_kwargs
+            new_target_sources, base_target.objects, base_target.environment,
+            base_target.compilers, new_target_kwargs
         )
 
         test = self.interpreter.make_test(
