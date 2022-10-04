@@ -134,6 +134,7 @@ ENV_VAR_TOOL_MAP: T.Mapping[str, str] = {
     'pkgconfig': 'PKG_CONFIG',
     'pkg-config': 'PKG_CONFIG',
     'make': 'MAKE',
+    'valadoc': 'VALADOC',
     'vapigen': 'VAPIGEN',
     'llvm-config': 'LLVM_CONFIG',
 }
