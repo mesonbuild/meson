@@ -222,6 +222,10 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
             return linkers.DLinker(linker, compiler.arch)
         if err.startswith('Renesas') and 'rlink' in linker_name:
             return linkers.CcrxLinker(linker)
+        if out.startswith('IAR ELF') and 'ilinkrl78' in linker_name:
+            return linkers.Iccrl78Linker(linker)
+        if out.startswith('IAR Archive') and 'iarchive' in linker_name:
+            return linkers.Iccrl78Linker(linker)
         if out.startswith('GNU ar') and 'xc16-ar' in linker_name:
             return linkers.Xc16Linker(linker)
         if 'Texas Instruments Incorporated' in out:
@@ -296,6 +300,8 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             arg = '--vsn'
         elif 'ccrx' in compiler_name:
             arg = '-v'
+        elif 'iccrl78' in compiler_name:
+            arg = '--version'
         elif 'xc16' in compiler_name:
             arg = '--version'
         elif 'ccomp' in compiler_name:
@@ -535,6 +541,14 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             cls = c.CcrxCCompiler if lang == 'c' else cpp.CcrxCPPCompiler
             env.coredata.add_lang_args(cls.language, cls, for_machine, env)
             linker = linkers.CcrxDynamicLinker(for_machine, version=version)
+            return cls(
+                ccache + compiler, version, for_machine, is_cross, info,
+                exe_wrap, full_version=full_version, linker=linker)
+
+        if 'RL78' in out:
+            cls = c.Iccrl78CCompiler
+            env.coredata.add_lang_args(cls.language, cls, for_machine, env)
+            linker = linkers.Iccrl78DynamicLinker(for_machine, version=version)
             return cls(
                 ccache + compiler, version, for_machine, is_cross, info,
                 exe_wrap, full_version=full_version, linker=linker)

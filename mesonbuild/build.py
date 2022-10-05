@@ -1820,6 +1820,8 @@ class Executable(BuildTarget):
             elif ('c' in self.compilers and self.compilers['c'].get_id().startswith('ccrx') or
                   'cpp' in self.compilers and self.compilers['cpp'].get_id().startswith('ccrx')):
                 self.suffix = 'abs'
+            elif ('c' in self.compilers and self.compilers['c'].get_id().startswith('iccrl78')):
+                self.suffix = 'elf'
             elif ('c' in self.compilers and self.compilers['c'].get_id().startswith('xc16')):
                 self.suffix = 'elf'
             elif ('c' in self.compilers and self.compilers['c'].get_id() in ('ti', 'c2000') or

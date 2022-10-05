@@ -22,6 +22,7 @@ from ..mesonlib import MesonException, version_compare, OptionKey
 from .c_function_attributes import C_FUNC_ATTRIBUTES
 from .mixins.clike import CLikeCompiler
 from .mixins.ccrx import CcrxCompiler
+from .mixins.iccrl78 import Iccrl78Compiler
 from .mixins.xc16 import Xc16Compiler
 from .mixins.compcert import CompCertCompiler
 from .mixins.ti import TICompiler
@@ -606,6 +607,55 @@ class CcrxCCompiler(CcrxCompiler, CCompiler):
             path = '.'
         return ['-include=' + path]
 
+class Iccrl78CCompiler(Iccrl78Compiler, CCompiler):
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
+                 is_cross: bool, info: 'MachineInfo',
+                 exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 linker: T.Optional['DynamicLinker'] = None,
+                 full_version: T.Optional[str] = None):
+        CCompiler.__init__(self, exelist, version, for_machine, is_cross,
+                           info, exe_wrapper, linker=linker, full_version=full_version)
+        Iccrl78Compiler.__init__(self)
+
+    # Override CCompiler.get_always_args
+    def get_always_args(self) -> T.List[str]:
+        return []
+
+    def get_options(self) -> 'MutableKeyedOptionDictType':
+        opts = CCompiler.get_options(self)
+        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        opts[key].choices = ['none', 'c89', 'c99']
+        return opts
+
+    def get_no_stdinc_args(self) -> T.List[str]:
+        return []
+
+    def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
+        args = []
+        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        std = options[key]
+        if std.value == 'c89':
+            args.append('-lang=c')
+        elif std.value == 'c99':
+            args.append('-lang=c99')
+        return args
+
+    def get_compile_only_args(self) -> T.List[str]:
+        return []
+
+    def get_no_optimization_args(self) -> T.List[str]:
+        return ['-On']
+
+    def get_output_args(self, target: str) -> T.List[str]:
+        return [f'-o{target}']
+
+    def get_werror_args(self) -> T.List[str]:
+        return ['-change_message=error']
+
+    def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
+        if path == '':
+            path = '.'
+        return ['-I' + path]
 
 class Xc16CCompiler(Xc16Compiler, CCompiler):
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,

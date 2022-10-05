@@ -267,6 +267,20 @@ class CcrxLinker(StaticLinker):
     def get_linker_always_args(self) -> T.List[str]:
         return ['-nologo', '-form=library']
 
+class Iccrl78Linker(StaticLinker):
+
+    def __init__(self, exelist: T.List[str]):
+        super().__init__(exelist)
+        self.id = 'ilinkrl78'
+
+    def can_linker_accept_rsp(self) -> bool:
+        return False
+
+    def get_output_args(self, target: str) -> T.List[str]:
+        return [target]
+
+    def get_linker_always_args(self) -> T.List[str]:
+        return []
 
 class Xc16Linker(StaticLinker):
 
@@ -921,6 +935,38 @@ class CcrxDynamicLinker(DynamicLinker):
                         suffix: str, soversion: str, darwin_versions: T.Tuple[str, str]) -> T.List[str]:
         return []
 
+class Iccrl78DynamicLinker(DynamicLinker):
+
+    """Linker for IAR RL78 compiler."""
+
+    id = 'ilinkrl78'
+
+    def __init__(self, for_machine: mesonlib.MachineChoice,
+                 *, version: str = 'unknown version'):
+        super().__init__(['ilinkrl78.exe'], for_machine, '', [],
+                         version=version)
+
+    def get_accepts_rsp(self) -> bool:
+        return False
+
+    def get_lib_prefix(self) -> str:
+        return ''
+
+    def get_std_shared_lib_args(self) -> T.List[str]:
+        return []
+
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        return [f'-o {outputname}']
+
+    def get_search_args(self, dirname: str) -> 'T.NoReturn':
+        raise OSError('ilinkrl78.exe does not have a search dir argument')
+
+    def get_allow_undefined_args(self) -> T.List[str]:
+        return []
+
+    def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
+                        suffix: str, soversion: str, darwin_versions: T.Tuple[str, str]) -> T.List[str]:
+        return []
 
 class Xc16DynamicLinker(DynamicLinker):
 
