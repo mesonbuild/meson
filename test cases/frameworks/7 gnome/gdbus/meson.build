@@ -79,6 +79,14 @@ gdbus_src_cti = gnome.gdbus_codegen(
   annotations : [],
 )
 
+gdbus_src_gen = gnome.gdbus_codegen(
+  'generated-gdbus-generator-src',
+  copyfile_gen.process('data/com.example.Sample.xml'),
+  interface_prefix : 'com.example.',
+  namespace : 'Sample',
+  annotations : [],
+)
+
 gdbus_exe = executable('gdbus-test', 'gdbusprog.c',
   gdbus_src,
   include_directories : includes,
