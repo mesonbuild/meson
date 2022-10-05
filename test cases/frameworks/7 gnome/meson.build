@@ -1,6 +1,9 @@
 project('gobject-introspection', 'c')
 
 copyfile = find_program('copyfile.py')
+copyfile_gen = generator(copyfile,
+  output: '@BASENAME@Gen.xml',
+  arguments : ['@INPUT@', '@OUTPUT@'])
 
 glib = dependency('glib-2.0', required: false)
 if not glib.found()
