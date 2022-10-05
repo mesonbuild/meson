@@ -19,29 +19,44 @@ import tempfile
 import unittest
 import subprocess
 import zipapp
+import sysconfig
 from pathlib import Path
 
 from mesonbuild.mesonlib import windows_proof_rmtree, python_command, is_windows
 from mesonbuild.coredata import version as meson_version
 
-# Handle the scheme that Debian patches in the as default
-import sysconfig
-# This function was renamed and made public in Python 3.10
-if hasattr(sysconfig, 'get_default_scheme'):
-    scheme = sysconfig.get_default_scheme()
-else:
-    scheme = sysconfig._get_default_scheme()
-if scheme == 'posix_local':
-    scheme = 'posix_prefix'
+scheme = None
+
+def needs_debian_path_hack():
+    try:
+        import setuptools
+        return int(setuptools.__version__.split('.')[0]) < 65
+    except ModuleNotFoundError:
+        return False
+
+if needs_debian_path_hack():
+    # Handle the scheme that Debian patches in the as default
+    # This function was renamed and made public in Python 3.10
+    if hasattr(sysconfig, 'get_default_scheme'):
+        scheme = sysconfig.get_default_scheme()
+    else:
+        scheme = sysconfig._get_default_scheme()
+    if scheme == 'posix_local':
+        scheme = 'posix_prefix'
 
 def get_pypath():
-    pypath = sysconfig.get_path('purelib', scheme=scheme, vars={'base': ''})
+    if scheme:
+        pypath = sysconfig.get_path('purelib', scheme=scheme, vars={'base': ''})
+    else:
+        pypath = sysconfig.get_path('purelib', vars={'base': ''})
     # Ensure that / is the path separator and not \, then strip /
     return Path(pypath).as_posix().strip('/')
 
 def get_pybindir():
     # 'Scripts' on Windows and 'bin' on other platforms including MSYS
-    return sysconfig.get_path('scripts', scheme=scheme, vars={'base': ''}).strip('\\/')
+    if scheme:
+        return sysconfig.get_path('scripts', scheme=scheme, vars={'base': ''}).strip('\\/')
+    return sysconfig.get_path('scripts', vars={'base': ''}).strip('\\/')
 
 class CommandTests(unittest.TestCase):
     '''
