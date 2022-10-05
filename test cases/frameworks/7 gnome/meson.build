@@ -1,5 +1,7 @@
 project('gobject-introspection', 'c')
 
+copyfile = find_program('copyfile.py')
+
 glib = dependency('glib-2.0', required: false)
 if not glib.found()
   error('MESON_SKIP_TEST glib not found.')

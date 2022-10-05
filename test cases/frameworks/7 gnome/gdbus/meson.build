@@ -58,6 +58,27 @@ else
   includes = include_directories('..')
 endif
 
+# check that custom targets work
+gdbus_xml_ct = custom_target('built xml sources for gdbus',
+  output: 'com.example.SampleCustomTarget.xml',
+  input: 'data/com.example.Sample.xml',
+  command : [copyfile, '@INPUT@', '@OUTPUT@'])
+
+gdbus_src_ct = gnome.gdbus_codegen(
+  'generated-gdbus-customtarget-src',
+  gdbus_xml_ct,
+  interface_prefix : 'com.example.',
+  namespace : 'Sample',
+  annotations : [],
+)
+gdbus_src_cti = gnome.gdbus_codegen(
+  'generated-gdbus-customtargetindex-src',
+  gdbus_xml_ct[0],
+  interface_prefix : 'com.example.',
+  namespace : 'Sample',
+  annotations : [],
+)
+
 gdbus_exe = executable('gdbus-test', 'gdbusprog.c',
   gdbus_src,
   include_directories : includes,

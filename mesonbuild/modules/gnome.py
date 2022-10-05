@@ -1570,11 +1570,11 @@ class GnomeModule(ExtensionModule):
     def gtkdoc_html_dir(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> str:
         return os.path.join('share/gtk-doc/html', args[0])
 
-    @typed_pos_args('gnome.gdbus_codegen', str, optargs=[(str, mesonlib.File)])
+    @typed_pos_args('gnome.gdbus_codegen', str, optargs=[(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex)])
     @typed_kwargs(
         'gnome.gdbus_codegen',
         _BUILD_BY_DEFAULT.evolve(since='0.40.0'),
-        KwargInfo('sources', ContainerTypeInfo(list, (str, mesonlib.File)), since='0.46.0', default=[], listify=True),
+        KwargInfo('sources', ContainerTypeInfo(list, (str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex)), since='0.46.0', default=[], listify=True),
         KwargInfo('extra_args', ContainerTypeInfo(list, str), since='0.47.0', default=[], listify=True),
         KwargInfo('interface_prefix', (str, NoneType)),
         KwargInfo('namespace', (str, NoneType)),
@@ -1592,10 +1592,10 @@ class GnomeModule(ExtensionModule):
             validator=in_set_validator({'all', 'none', 'objects'})),
         INSTALL_DIR_KW.evolve(since='0.46.0')
     )
-    def gdbus_codegen(self, state: 'ModuleState', args: T.Tuple[str, T.Optional['FileOrString']],
+    def gdbus_codegen(self, state: 'ModuleState', args: T.Tuple[str, T.Optional[T.Union['FileOrString', build.GeneratedTypes]]],
                       kwargs: 'GdbusCodegen') -> ModuleReturnValue:
         namebase = args[0]
-        xml_files: T.List['FileOrString'] = [args[1]] if args[1] else []
+        xml_files: T.List[T.Union['FileOrString', build.GeneratedTypes]] = [args[1]] if args[1] else []
         cmd: T.List[T.Union['ExternalProgram', str]] = [state.find_program('gdbus-codegen')]
         cmd.extend(kwargs['extra_args'])
 

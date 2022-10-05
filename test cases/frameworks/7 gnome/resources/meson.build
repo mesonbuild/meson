@@ -1,8 +1,6 @@
 # There are two tests here, because the 2nd one depends on a version of
 # GLib (2.51.1) that is very recent at the time of writing.
 
-copyfile = find_program('copyfile.py')
-
 simple_gresource = configure_file(
   input : 'simple.gresource.xml',
   output : 'simple-gen.gresource.xml',
