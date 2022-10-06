@@ -28,6 +28,7 @@ import typing as T
 if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..mesonlib import MachineChoice
+    from ..utils.core import EnvironOrDict
     from .._typing import ImmutableListProtocol
     from ..build import EnvironmentVariables
 
@@ -152,7 +153,7 @@ class PkgConfigDependency(ExternalDependency):
         return env
 
     @staticmethod
-    def setup_env(env: T.MutableMapping[str, str], environment: 'Environment', for_machine: MachineChoice,
+    def setup_env(env: EnvironOrDict, environment: 'Environment', for_machine: MachineChoice,
                   uninstalled: bool = False) -> T.Dict[str, str]:
         envvars = PkgConfigDependency.get_env(environment, for_machine, uninstalled)
         env = envvars.get_env(env)
@@ -162,7 +163,7 @@ class PkgConfigDependency(ExternalDependency):
                 mlog.debug(f'env[{key}]: {value}')
         return env
 
-    def _call_pkgbin(self, args: T.List[str], env: T.Optional[T.MutableMapping[str, str]] = None) -> T.Tuple[int, str, str]:
+    def _call_pkgbin(self, args: T.List[str], env: T.Optional[EnvironOrDict] = None) -> T.Tuple[int, str, str]:
         assert isinstance(self.pkgbin, ExternalProgram)
         env = env or os.environ
         env = PkgConfigDependency.setup_env(env, self.env, self.for_machine)
