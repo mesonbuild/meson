@@ -872,3 +872,10 @@ class Environment:
         if not self.need_exe_wrapper():
             return EmptyExternalProgram()
         return self.exe_wrapper
+
+    def can_run_host_binaries(self) -> bool:
+        return not (
+            self.is_cross_build() and
+            self.need_exe_wrapper() and
+            self.exe_wrapper is None
+        )

@@ -278,11 +278,7 @@ class MesonMain(MesonInterpreterObject):
         return self._can_run_host_binaries_impl()
 
     def _can_run_host_binaries_impl(self) -> bool:
-        return not (
-            self.build.environment.is_cross_build() and
-            self.build.environment.need_exe_wrapper() and
-            self.build.environment.exe_wrapper is None
-        )
+        return self.build.environment.can_run_host_binaries()
 
     @noPosargs
     @noKwargs

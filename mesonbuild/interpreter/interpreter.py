@@ -1534,6 +1534,10 @@ class Interpreter(InterpreterBase, HoldableObject):
             raise InterpreterException(f'Tried to override finding of executable "{name}" which has already been found.')
         if name in self.build.find_overrides:
             raise InterpreterException(f'Tried to override executable "{name}" which has already been overridden.')
+        if isinstance(exe, build.Executable) and exe.for_machine == MachineChoice.HOST and \
+           not self.environment.can_run_host_binaries():
+            mlog.warning('Override program with an executable that cannot be run.',
+                         location=self.current_node)
         self.build.find_overrides[name] = exe
 
     def notfound_program(self, args: T.List[mesonlib.FileOrString]) -> ExternalProgram:
