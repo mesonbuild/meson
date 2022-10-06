@@ -200,7 +200,7 @@ class RunProcess(MesonInterpreterObject):
         child_env.update(menv)
         child_env = env.get_env(child_env)
         stdout = subprocess.PIPE if self.capture else subprocess.DEVNULL
-        mlog.debug('Running command:', ' '.join(command_array))
+        mlog.debug('Running command:', mesonlib.join_args(command_array))
         try:
             p, o, e = Popen_safe(command_array, stdout=stdout, env=child_env, cwd=cwd)
             if self.capture:
@@ -214,11 +214,11 @@ class RunProcess(MesonInterpreterObject):
             mlog.debug('')
 
             if check and p.returncode != 0:
-                raise InterpreterException('Command "{}" failed with status {}.'.format(' '.join(command_array), p.returncode))
+                raise InterpreterException('Command `{}` failed with status {}.'.format(mesonlib.join_args(command_array), p.returncode))
 
             return p.returncode, o, e
         except FileNotFoundError:
-            raise InterpreterException('Could not execute command "%s".' % ' '.join(command_array))
+            raise InterpreterException('Could not execute command `%s`.' % mesonlib.join_args(command_array))
 
     @noPosargs
     @noKwargs
