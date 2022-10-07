@@ -33,8 +33,8 @@ if T.TYPE_CHECKING:
     from ..mesonlib import MachineChoice
     from ..programs import ExternalProgram
 
-TYPE_result = T.Tuple[int, T.Optional[str], T.Optional[str]]
-TYPE_cache_key = T.Tuple[str, T.Tuple[str, ...], str, T.FrozenSet[T.Tuple[str, str]]]
+    TYPE_result = T.Tuple[int, T.Optional[str], T.Optional[str]]
+    TYPE_cache_key = T.Tuple[str, T.Tuple[str, ...], str, T.FrozenSet[T.Tuple[str, str]]]
 
 class CMakeExecutor:
     # The class's copy of the CMake path. Avoids having to search for it

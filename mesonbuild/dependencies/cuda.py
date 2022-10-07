@@ -29,7 +29,7 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..compilers import Compiler
 
-TV_ResultTuple = T.Tuple[T.Optional[str], T.Optional[str], bool]
+    TV_ResultTuple = T.Tuple[T.Optional[str], T.Optional[str], bool]
 
 class CudaDependency(SystemDependency):
 
