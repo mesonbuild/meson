@@ -15,9 +15,8 @@ from ..coredata import UserFeatureOption
 from ..dependencies import Dependency, InternalDependency
 from ..interpreterbase import FeatureNew
 from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo
-from ..mesonlib import (
-    File, FileMode, MachineChoice, listify, has_path_sep, OptionKey,
-    EnvInitValueType, EnvironmentVariables)
+from ..mesonlib import (File, FileMode, MachineChoice, listify, has_path_sep,
+                        OptionKey, EnvironmentVariables)
 from ..programs import ExternalProgram
 
 # Helper definition for type checks that are `Optional[T]`
@@ -28,6 +27,10 @@ if T.TYPE_CHECKING:
 
     from ..interpreterbase import TYPE_var
     from ..interpreterbase.decorators import FeatureCheckBase
+    from ..mesonlib import EnvInitValueType
+
+    _FullEnvInitValueType = T.Union[EnvironmentVariables, T.List[str], T.List[T.List[str]], EnvInitValueType, str, None]
+
 
 def in_set_validator(choices: T.Set[str]) -> T.Callable[[str], T.Optional[str]]:
     """Check that the choice given was one of the given set."""
@@ -220,8 +223,6 @@ def split_equal_string(input: str) -> T.Tuple[str, str]:
     """
     a, b = input.split('=', 1)
     return (a, b)
-
-_FullEnvInitValueType = T.Union[EnvironmentVariables, T.List[str], T.List[T.List[str]], EnvInitValueType, str, None]
 
 # Split _env_convertor() and env_convertor_with_method() to make mypy happy.
 # It does not want extra arguments in KwargInfo convertor callable.

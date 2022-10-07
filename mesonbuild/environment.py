@@ -51,9 +51,10 @@ if T.TYPE_CHECKING:
 
     from .wrap.wrap import Resolver
 
-build_filename = 'meson.build'
+    CompilersDict = T.Dict[str, Compiler]
 
-CompilersDict = T.Dict[str, Compiler]
+
+build_filename = 'meson.build'
 
 
 def _get_env_var(for_machine: MachineChoice, is_cross: bool, var_name: str) -> T.Optional[str]:

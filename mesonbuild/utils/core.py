@@ -34,15 +34,7 @@ if T.TYPE_CHECKING:
 
     EnvironOrDict = T.Union[T.Dict[str, str], os._Environ[str]]
 
-
-__all__ = [
-    'MesonException',
-    'MesonBugException',
-    'HoldableObject',
-    'EnvInitValueType',
-    'EnvironmentVariables',
-    'ExecutableSerialisation',
-]
+    EnvInitValueType = T.Dict[str, T.Union[str, T.List[str]]]
 
 
 class MesonException(Exception):
@@ -75,8 +67,6 @@ class MesonBugException(MesonException):
 class HoldableObject(metaclass=abc.ABCMeta):
     ''' Dummy base class for all objects that can be
         held by an interpreter.baseobjects.ObjectHolder '''
-
-EnvInitValueType = T.Dict[str, T.Union[str, T.List[str]]]
 
 class EnvironmentVariables(HoldableObject):
     def __init__(self, values: T.Optional[EnvInitValueType] = None,

@@ -27,8 +27,6 @@ from .baseobjects import (
     ObjectHolder,
     IterableObject,
 
-    TYPE_var,
-
     HoldableTypes,
 )
 
@@ -52,26 +50,26 @@ import typing as T
 import textwrap
 
 if T.TYPE_CHECKING:
-    from .baseobjects import SubProject, TYPE_kwargs
+    from .baseobjects import SubProject, TYPE_kwargs, TYPE_var
     from ..interpreter import Interpreter
 
-HolderMapType = T.Dict[
-    T.Union[
-        T.Type[mesonlib.HoldableObject],
-        T.Type[int],
-        T.Type[bool],
-        T.Type[str],
-        T.Type[list],
-        T.Type[dict],
-    ],
-    # For some reason, this has to be a callable and can't just be ObjectHolder[InterpreterObjectTypeVar]
-    T.Callable[[InterpreterObjectTypeVar, 'Interpreter'], ObjectHolder[InterpreterObjectTypeVar]]
-]
+    HolderMapType = T.Dict[
+        T.Union[
+            T.Type[mesonlib.HoldableObject],
+            T.Type[int],
+            T.Type[bool],
+            T.Type[str],
+            T.Type[list],
+            T.Type[dict],
+        ],
+        # For some reason, this has to be a callable and can't just be ObjectHolder[InterpreterObjectTypeVar]
+        T.Callable[[InterpreterObjectTypeVar, 'Interpreter'], ObjectHolder[InterpreterObjectTypeVar]]
+    ]
 
-FunctionType = T.Dict[
-    str,
-    T.Callable[[mparser.BaseNode, T.List[TYPE_var], T.Dict[str, TYPE_var]], TYPE_var]
-]
+    FunctionType = T.Dict[
+        str,
+        T.Callable[[mparser.BaseNode, T.List[TYPE_var], T.Dict[str, TYPE_var]], TYPE_var]
+    ]
 
 class InterpreterBase:
     def __init__(self, source_root: str, subdir: str, subproject: 'SubProject'):
