@@ -164,6 +164,21 @@ methods:
       - `vs2022`
       - `xcode`
 
+  - name: build_options
+    returns: str
+    since: 1.1.0
+    description: |
+      Returns a string with the configuration line used to set the current project up.
+    notes:
+      - |
+        **Do not try to parse this string!**
+
+        You should use [[cfg_data.set_quoted]] to safely escape any embedded
+        quotes prior to storing it into e.g. a C header macro.
+
+        The contents returned by this function are the same as the
+        "Build Options:" line reported in `<builddir>/meson-logs/meson-log.txt`.
+
   - name: build_root
     returns: str
     deprecated: 0.56.0

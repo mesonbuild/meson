@@ -9,7 +9,7 @@ import typing as T
 from .. import mesonlib
 from .. import dependencies
 from .. import build
-from .. import mlog
+from .. import mlog, coredata
 
 from ..mesonlib import MachineChoice, OptionKey
 from ..programs import OverrideProgram, ExternalProgram
@@ -84,6 +84,7 @@ class MesonMain(MesonInterpreterObject):
                              'has_external_property': self.has_external_property_method,
                              'backend': self.backend_method,
                              'add_devenv': self.add_devenv_method,
+                             'build_options': self.build_options_method,
                              })
 
     def _find_source_script(
@@ -465,3 +466,12 @@ class MesonMain(MesonInterpreterObject):
         converted = env_convertor_with_method(env, kwargs['method'], kwargs['separator'])
         assert isinstance(converted, build.EnvironmentVariables)
         self.build.devenv.append(converted)
+
+    @noPosargs
+    @noKwargs
+    @FeatureNew('meson.build_options', '1.1.0')
+    def build_options_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
+        options = self.interpreter.user_defined_options
+        if options is None:
+            return ''
+        return coredata.format_cmd_line_options(options)

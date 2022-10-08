@@ -1948,6 +1948,33 @@ class AllPlatformTests(BasePlatformTests):
                 self.assertEqual(item['value'], ['b', 'c'])
                 self.assertEqual(item['choices'], ['b', 'c', 'd'])
 
+    def test_options_listed_in_build_options(self) -> None:
+        """Detect when changed options become listed in build options."""
+        testdir = os.path.join(self.unit_test_dir, '110 list build options')
+
+        out = self.init(testdir)
+        for line in out.splitlines():
+            if line.startswith('Message: Build options:'):
+                self.assertNotIn('-Dauto_features=auto', line)
+                self.assertNotIn('-Doptional=auto', line)
+
+        self.wipe()
+        self.mac_ci_delay()
+
+        out = self.init(testdir, extra_args=['-Dauto_features=disabled', '-Doptional=enabled'])
+        for line in out.splitlines():
+            if line.startswith('Message: Build options:'):
+                self.assertIn('-Dauto_features=disabled', line)
+                self.assertIn('-Doptional=enabled', line)
+
+        self.setconf('-Doptional=disabled')
+        out = self.build()
+        for line in out.splitlines():
+            if line.startswith('Message: Build options:'):
+                self.assertIn('-Dauto_features=disabled', line)
+                self.assertNotIn('-Doptional=enabled', line)
+                self.assertIn('-Doptional=disabled', line)
+
     def test_subproject_promotion(self):
         testdir = os.path.join(self.unit_test_dir, '12 promote')
         workdir = os.path.join(self.builddir, 'work')
