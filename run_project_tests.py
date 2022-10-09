@@ -1059,7 +1059,8 @@ def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List
                        shutil.which('flang') or
                        shutil.which('pgfortran') or
                        shutil.which('nagfor') or
-                       shutil.which('ifort'))
+                       shutil.which('ifort') or
+                       shutil.which('ifx'))
 
     skip_cmake = ((os.environ.get('compiler') == 'msvc2015' and under_ci) or
                   'cmake' not in tool_vers_map or

@@ -408,6 +408,11 @@ class IntelCCompiler(IntelGnuLikeCompiler, CCompiler):
         return args
 
 
+class IntelLLVMCCompiler(ClangCCompiler):
+
+    id = 'intel-llvm'
+
+
 class VisualStudioLikeCCompilerMixin(CompilerMixinBase):
 
     """Shared methods that apply to MSVC-like C compilers."""
@@ -528,6 +533,11 @@ class IntelClCCompiler(IntelVisualStudioLikeCompiler, VisualStudioLikeCCompilerM
         elif std.value != 'none':
             args.append('/Qstd:' + std.value)
         return args
+
+
+class IntelLLVMClCCompiler(IntelClCCompiler):
+
+    id = 'intel-llvm-cl'
 
 
 class ArmCCompiler(ArmCompiler, CCompiler):
