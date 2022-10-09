@@ -20,6 +20,8 @@ These are return values of the `get_id` (Compiler family) and
 | gcc       | The GNU Compiler Collection      | gcc             |
 | intel     | Intel compiler (Linux and Mac)   | gcc             |
 | intel-cl  | Intel compiler (Windows)         | msvc            |
+| intel-llvm    | Intel oneAPI LLVM-based compiler            |                 |
+| intel-llvm-cl | Intel oneAPI LLVM-based compiler (Windows)  | msvc            |
 | lcc       | Elbrus C/C++/Fortran Compiler    |                 |
 | llvm      | LLVM-based compiler (Swift, D)   |                 |
 | mono      | Xamarin C# compiler              |                 |

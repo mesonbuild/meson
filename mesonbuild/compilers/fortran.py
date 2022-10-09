@@ -327,6 +327,11 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
         return ['-gen-dep=' + outtarget, '-gen-depformat=make']
 
 
+class IntelLLVMFortranCompiler(IntelFortranCompiler):
+
+    id = 'intel-llvm'
+
+
 class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
 
     file_suffixes = ('f90', 'f', 'for', 'ftn', 'fpp', )
@@ -366,6 +371,10 @@ class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
     def get_module_outdir_args(self, path: str) -> T.List[str]:
         return ['/module:' + path]
 
+
+class IntelLLVMClFortranCompiler(IntelClFortranCompiler):
+
+    id = 'intel-llvm-cl'
 
 class PathScaleFortranCompiler(FortranCompiler):
 

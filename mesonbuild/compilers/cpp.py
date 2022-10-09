@@ -155,7 +155,7 @@ class CPPCompiler(CLikeCompiler, Compiler):
         }
 
         # Currently, remapping is only supported for Clang, Elbrus and GCC
-        assert self.id in frozenset(['clang', 'lcc', 'gcc', 'emscripten', 'armltdclang'])
+        assert self.id in frozenset(['clang', 'lcc', 'gcc', 'emscripten', 'armltdclang', 'intel-llvm'])
 
         if cpp_std not in CPP_FALLBACKS:
             # 'c++03' and 'c++98' don't have fallback types
@@ -595,6 +595,11 @@ class IntelCPPCompiler(IntelGnuLikeCompiler, CPPCompiler):
         return []
 
 
+class IntelLLVMCPPCompiler(ClangCPPCompiler):
+
+    id = 'intel-llvm'
+
+
 class VisualStudioLikeCPPCompilerMixin(CompilerMixinBase):
 
     """Mixin for C++ specific method overrides in MSVC-like compilers."""
@@ -781,6 +786,11 @@ class IntelClCPPCompiler(VisualStudioLikeCPPCompilerMixin, IntelVisualStudioLike
     def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
         # XXX: this is a hack because so much GnuLike stuff is in the base CPPCompiler class.
         return IntelVisualStudioLikeCompiler.get_compiler_check_args(self, mode)
+
+
+class IntelLLVMClCPPCompiler(IntelClCPPCompiler):
+
+    id = 'intel-llvm-cl'
 
 
 class ArmCPPCompiler(ArmCompiler, CPPCompiler):
