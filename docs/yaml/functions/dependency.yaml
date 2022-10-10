@@ -15,6 +15,11 @@ description: |
   of those name will return the same value. This is useful in case a dependency
   could have different names, such as `png` and `libpng`.
 
+  * Since *0.64.0* a dependency fallback can be provided by WrapDB. Simply download
+  the database locally using `meson wrap update-db` command and Meson will
+  automatically fallback to subprojects provided by WrapDB if the dependency is
+  not found on the system and the project does not ship their own `.wrap` file.
+
   Dependencies can also be resolved in two other ways:
 
   * if the same name was used in a `meson.override_dependency` prior to

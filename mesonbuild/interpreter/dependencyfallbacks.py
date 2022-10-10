@@ -66,14 +66,6 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         self._subproject_impl(subp_name, varname)
 
     def _subproject_impl(self, subp_name: str, varname: str) -> None:
-        if not varname:
-            # If no variable name is specified, check if the wrap file has one.
-            # If the wrap file has a variable name, better use it because the
-            # subproject most probably is not using meson.override_dependency().
-            for name in self.names:
-                varname = self.wrap_resolver.get_varname(subp_name, name)
-                if varname:
-                    break
         assert self.subproject_name is None
         self.subproject_name = subp_name
         self.subproject_varname = varname
@@ -174,6 +166,14 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
 
         # Legacy: Use the variable name if provided instead of relying on the
         # subproject to override one of our dependency names
+        if not varname:
+            # If no variable name is specified, check if the wrap file has one.
+            # If the wrap file has a variable name, better use it because the
+            # subproject most probably is not using meson.override_dependency().
+            for name in self.names:
+                varname = self.wrap_resolver.get_varname(subp_name, name)
+                if varname:
+                    break
         if not varname:
             mlog.warning(f'Subproject {subp_name!r} did not override {self._display_name!r} dependency and no variable name specified')
             mlog.log('Dependency', mlog.bold(self._display_name), 'from subproject',
