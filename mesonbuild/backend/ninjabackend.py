@@ -575,7 +575,7 @@ class NinjaBackend(backends.Backend):
 
         raise MesonException(f'Could not determine vs dep dependency prefix string. output: {stderr} {stdout}')
 
-    def generate(self):
+    def generate(self, captured_compile_args_per_buildtype_and_target: dict = None):
         ninja = environment.detect_ninja_command_and_version(log=True)
         if self.environment.coredata.get_option(OptionKey('vsenv')):
             builddir = Path(self.environment.get_build_dir())
@@ -614,6 +614,14 @@ class NinjaBackend(backends.Backend):
             self.build_elements = []
             self.generate_phony()
             self.add_build_comment(NinjaComment('Build rules for targets'))
+
+            # Optionally capture compile args per buildtype and target, for later use (i.e. VisStudio project's NMake intellisense include dirs, defines, and compile options).
+            if captured_compile_args_per_buildtype_and_target is not None:
+                for target in self.build.get_targets().values():
+                    if isinstance(target, build.BuildTarget):
+                        buildtype = target.get_option(OptionKey('buildtype'))
+                        captured_compile_args_per_buildtype_and_target[buildtype][target.get_id()] = self.generate_common_compile_args_per_src_type(target)
+
             for t in ProgressBar(self.build.get_targets().values(), desc='Generating targets'):
                 self.generate_target(t)
             self.add_build_comment(NinjaComment('Test rules'))
@@ -2863,6 +2871,34 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # must override everything else and must be the final path added.
         commands += compiler.get_include_args(self.get_target_private_dir(target), False)
         return commands
+
+    # Returns a dictionary, mapping from each compiler src type (e.g. 'c', 'cpp', etc.) to a list of compiler arg strings
+    # used for that respective src type.
+    # Currently used for the purpose of populating VisualStudio intellisense fields but possibly useful in other scenarios.
+    def generate_common_compile_args_per_src_type(self, target: build.BuildTarget) -> dict[str, list[str]]:
+        src_type_to_args = {}
+
+        use_pch = self.environment.coredata.options.get(OptionKey('b_pch'))
+
+        for src_type_str in target.compilers.keys():
+            compiler = target.compilers[src_type_str]
+            commands = self._generate_single_compile_base_args(target, compiler)
+
+            # Include PCH header as first thing as it must be the first one or it will be
+            # ignored by gcc https://gcc.gnu.org/bugzilla/show_bug.cgi?id=100462
+            if use_pch and 'mw' not in compiler.id:
+                commands += self.get_pch_include_args(compiler, target)
+
+            commands += self._generate_single_compile_target_args(target, compiler, is_generated=False)
+
+            # Metrowerks compilers require PCH include args to come after intraprocedural analysis args
+            if use_pch and 'mw' in compiler.id:
+                commands += self.get_pch_include_args(compiler, target)
+
+            commands = commands.compiler.compiler_args(commands)
+
+            src_type_to_args[src_type_str] = commands.to_native()
+        return src_type_to_args
 
     def generate_single_compile(self, target: build.BuildTarget, src,
                                 is_generated=False, header_deps=None,

@@ -173,15 +173,15 @@ class MesonApp:
             raise MesonException(f'Directory is not empty and does not contain a previous build:\n{build_dir}')
         return src_dir, build_dir
 
-    def generate(self) -> None:
+    def generate(self, captured_compile_args_per_buildtype_and_target: dict = None) -> None:
         env = environment.Environment(self.source_dir, self.build_dir, self.options)
         mlog.initialize(env.get_log_dir(), self.options.fatal_warnings)
         if self.options.profile:
             mlog.set_timestamp_start(time.monotonic())
         with mesonlib.BuildDirLock(self.build_dir):
-            self._generate(env)
+            self._generate(env, captured_compile_args_per_buildtype_and_target = captured_compile_args_per_buildtype_and_target)
 
-    def _generate(self, env: environment.Environment) -> None:
+    def _generate(self, env: environment.Environment, captured_compile_args_per_buildtype_and_target: dict = None) -> None:
         # Get all user defined options, including options that have been defined
         # during a previous invocation or using meson configure.
         user_defined_options = argparse.Namespace(**vars(self.options))
@@ -246,7 +246,8 @@ class MesonApp:
                 fname = os.path.join(self.build_dir, 'meson-logs', fname)
                 profile.runctx('intr.backend.generate()', globals(), locals(), filename=fname)
             else:
-                intr.backend.generate()
+                intr.backend.generate(captured_compile_args_per_buildtype_and_target = captured_compile_args_per_buildtype_and_target)
+
             build.save(b, dumpfile)
             if env.first_invocation:
                 # Use path resolved by coredata because they could have been
@@ -309,6 +310,40 @@ def run(options: T.Union[argparse.Namespace, T.List[str]]) -> int:
         add_arguments(parser)
         options = parser.parse_args(options)
     coredata.parse_cmd_line_options(options)
-    app = MesonApp(options)
-    app.generate()
+
+    # With --genvslite, we essentially want to invoke multiple 'setup' iterations. I.e. -
+    #    meson setup ... builddirprefix_debug
+    #    meson setup ... builddirprefix_debugoptimized
+    #    meson setup ... builddirprefix_release
+    # along with also setting up a new, thin/lite visual studio solution and projects with the multiple debug/opt/release configurations that
+    # invoke the appropriate 'meson compile ...' build commands upon the normal visual studio build/rebuild/clean actions, instead of using
+    # the native VS/msbuild system.
+    if mesonlib.OptionKey('genvslite') in options.cmd_line_options.keys():
+        builddir_prefix = options.builddir
+        genvsliteval = options.cmd_line_options.pop(mesonlib.OptionKey('genvslite'))
+        # The command line may specify a '--backend' option, which doesn't make sense in conjunction with
+        # '--genvslite', where we always want to use a ninja back end -
+        k_backend = mesonlib.OptionKey('backend')
+        if k_backend in options.cmd_line_options.keys():
+            if options.cmd_line_options[k_backend] != 'ninja':
+                raise MesonException('Explicitly specifying a backend option with \'genvslite\' is not necessary (the ninja backend is always used) but specifying a non-ninja backend conflicts with a \'genvslite\' setup')
+        else:
+            options.cmd_line_options[k_backend] = 'ninja'
+        buildtypes_list = coredata.get_genvs_default_buildtype_list()
+        captured_compile_args_per_buildtype_and_target: dict = {key: {} for key in buildtypes_list}
+
+        for buildtypestr in buildtypes_list:
+            options.builddir = f'{builddir_prefix}_{buildtypestr}' # E.g. builddir_release
+            options.cmd_line_options[mesonlib.OptionKey('buildtype')] = buildtypestr
+            app = MesonApp(options)
+            app.generate(captured_compile_args_per_buildtype_and_target = captured_compile_args_per_buildtype_and_target)
+        #Now for generating the 'lite' solution and project files, which will use these builds we've just set up, above.
+        options.builddir = f'{builddir_prefix}_vs'
+        options.cmd_line_options[mesonlib.OptionKey('genvslite')] = genvsliteval
+        app = MesonApp(options)
+        app.generate(captured_compile_args_per_buildtype_and_target = captured_compile_args_per_buildtype_and_target)
+    else:
+        app = MesonApp(options)
+        app.generate()
+
     return 0

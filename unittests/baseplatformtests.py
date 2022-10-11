@@ -207,7 +207,8 @@ class BasePlatformTests(TestCase):
             extra_args = []
         if not isinstance(extra_args, list):
             extra_args = [extra_args]
-        args = [srcdir, self.builddir]
+        build_and_src_dir_args = [self.builddir, srcdir]
+        args = []
         if default_args:
             args += ['--prefix', self.prefix]
             if self.libdir:
@@ -219,7 +220,7 @@ class BasePlatformTests(TestCase):
         self.privatedir = os.path.join(self.builddir, 'meson-private')
         if inprocess:
             try:
-                returncode, out, err = run_configure_inprocess(['setup'] + self.meson_args + args + extra_args, override_envvars)
+                returncode, out, err = run_configure_inprocess(['setup'] + self.meson_args + args + extra_args + build_and_src_dir_args, override_envvars)
             except Exception as e:
                 if not allow_fail:
                     self._print_meson_log()
@@ -245,7 +246,7 @@ class BasePlatformTests(TestCase):
                     raise RuntimeError('Configure failed')
         else:
             try:
-                out = self._run(self.setup_command + args + extra_args, override_envvars=override_envvars, workdir=workdir)
+                out = self._run(self.setup_command + args + extra_args + build_and_src_dir_args, override_envvars=override_envvars, workdir=workdir)
             except SkipTest:
                 raise SkipTest('Project requested skipping: ' + srcdir)
             except Exception:

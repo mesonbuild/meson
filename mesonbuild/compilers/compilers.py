@@ -134,11 +134,14 @@ def is_header(fname: 'mesonlib.FileOrString') -> bool:
     suffix = fname.split('.')[-1]
     return suffix in header_suffixes
 
+def is_source_suffix(suffix: str) -> bool:
+    return suffix in source_suffixes
+
 def is_source(fname: 'mesonlib.FileOrString') -> bool:
     if isinstance(fname, mesonlib.File):
         fname = fname.fname
     suffix = fname.split('.')[-1].lower()
-    return suffix in source_suffixes
+    return is_source_suffix(suffix)
 
 def is_assembly(fname: 'mesonlib.FileOrString') -> bool:
     if isinstance(fname, mesonlib.File):

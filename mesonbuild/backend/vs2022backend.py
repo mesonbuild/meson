@@ -28,8 +28,8 @@ class Vs2022Backend(Vs2010Backend):
 
     name = 'vs2022'
 
-    def __init__(self, build: T.Optional[Build], interpreter: T.Optional[Interpreter]):
-        super().__init__(build, interpreter)
+    def __init__(self, build: T.Optional[Build], interpreter: T.Optional[Interpreter], gen_lite: bool = False):
+        super().__init__(build, interpreter, gen_lite=gen_lite)
         self.sln_file_version = '12.00'
         self.sln_version_comment = 'Version 17'
         if self.environment is not None:

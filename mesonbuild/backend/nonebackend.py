@@ -23,7 +23,8 @@ class NoneBackend(Backend):
 
     name = 'none'
 
-    def generate(self):
+    def generate(self, captured_compile_args_per_buildtype_and_target: dict = None):
+        del captured_compile_args_per_buildtype_and_target # Suppress unused arg warning while still allowing correct named arg binding.
         if self.build.get_targets():
             raise MesonBugException('None backend cannot generate target rules, but should have failed earlier.')
         mlog.log('Generating simple install-only backend')

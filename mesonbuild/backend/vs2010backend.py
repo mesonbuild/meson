@@ -22,15 +22,18 @@ import uuid
 import typing as T
 from pathlib import Path, PurePath
 import re
+from collections import Counter
 
 from . import backends
 from .. import build
 from .. import mlog
 from .. import compilers
+from .. import mesonlib
 from ..mesonlib import (
     File, MesonException, replace_if_different, OptionKey, version_compare, MachineChoice
 )
 from ..environment import Environment, build_filename
+from .. import coredata
 
 if T.TYPE_CHECKING:
     from ..arglist import CompilerArgs
@@ -94,18 +97,59 @@ def split_o_flags_args(args: T.List[str]) -> T.List[str]:
             o_flags += ['/O' + f for f in flags]
     return o_flags
 
-
 def generate_guid_from_path(path, path_type) -> str:
     return str(uuid.uuid5(uuid.NAMESPACE_URL, 'meson-vs-' + path_type + ':' + str(path))).upper()
 
 def detect_microsoft_gdk(platform: str) -> bool:
     return re.match(r'Gaming\.(Desktop|Xbox.XboxOne|Xbox.Scarlett)\.x64', platform, re.IGNORECASE)
 
+def filtered_src_langs_generator(sources: T.List[str]):
+    for src in sources:
+        ext = src.split('.')[-1]
+        if compilers.compilers.is_source_suffix(ext):
+            yield compilers.compilers.SUFFIX_TO_LANG[ext]
+
+# Returns the source language (i.e. a key from 'lang_suffixes') of the most frequent source language in the given
+# list of sources.
+# We choose the most frequent language as 'primary' because it means the most sources in a target/project can
+# simply refer to the project's shared intellisense define and include fields, rather than have to fill out their
+# own duplicate full set of defines/includes/opts intellisense fields.  All of which helps keep the vcxproj file
+# size down.
+def get_primary_source_lang(target_sources: T.List[File], custom_sources: T.List[str]) -> T.Optional[str]:
+    lang_counts = Counter([compilers.compilers.SUFFIX_TO_LANG[src.suffix] for src in target_sources if compilers.compilers.is_source_suffix(src.suffix)])
+    lang_counts += Counter(filtered_src_langs_generator(custom_sources))
+    most_common_lang_list = lang_counts.most_common(1)
+    # It may be possible that we have a target with no actual src files of interest (e.g. a generator target),
+    # leaving us with an empty list, which we should handle -
+    return most_common_lang_list[0][0] if most_common_lang_list else None
+
+# Returns a dictionary (by [src type][build type]) that contains a tuple of -
+# (pre-processor defines, include paths, additional compiler options)
+# fields to use to fill in the respective intellisense fields of sources that can't simply
+# reference and re-use the shared 'primary' language intellisense fields of the vcxproj.
+def get_non_primary_lang_intellisense_fields(
+    captured_compile_args_per_buildtype_and_target: dict,
+    target_id: str,
+    primary_src_lang: str
+) -> T.Dict[str, T.Dict[str, T.Tuple[str, str, str]]]:
+    defs_paths_opts_per_lang_and_buildtype = {}
+    for buildtype in coredata.get_genvs_default_buildtype_list():
+        captured_build_args = captured_compile_args_per_buildtype_and_target[buildtype][target_id] # Results in a 'Src types to compile args' dict
+        non_primary_build_args_per_src_lang = [(lang, build_args) for lang, build_args in captured_build_args.items() if lang != primary_src_lang] # Only need to individually populate intellisense fields for sources of non-primary types.
+        for src_lang, args_list in non_primary_build_args_per_src_lang:
+            if src_lang not in defs_paths_opts_per_lang_and_buildtype:
+                defs_paths_opts_per_lang_and_buildtype[src_lang] = {}
+            defs = Vs2010Backend.extract_nmake_preprocessor_defs(args_list)
+            paths = Vs2010Backend.extract_nmake_include_paths(args_list)
+            opts = Vs2010Backend.extract_intellisense_additional_compiler_options(args_list)
+            defs_paths_opts_per_lang_and_buildtype[src_lang][buildtype] = (defs, paths, opts)
+    return defs_paths_opts_per_lang_and_buildtype
+
 class Vs2010Backend(backends.Backend):
 
     name = 'vs2010'
 
-    def __init__(self, build: T.Optional[build.Build], interpreter: T.Optional[Interpreter]):
+    def __init__(self, build: T.Optional[build.Build], interpreter: T.Optional[Interpreter], gen_lite: bool = False):
         super().__init__(build, interpreter)
         self.project_file_version = '10.0.30319.1'
         self.sln_file_version = '11.00'
@@ -115,6 +159,7 @@ class Vs2010Backend(backends.Backend):
         self.windows_target_platform_version = None
         self.subdirs = {}
         self.handled_target_deps = {}
+        self.gen_lite = gen_lite  # Synonymous with generating the simpler makefile-style multi-config projects that invoke 'meson compile' builds, avoiding native MSBuild complications
 
     def get_target_private_dir(self, target):
         return os.path.join(self.get_target_dir(target), target.get_id())
@@ -189,7 +234,7 @@ class Vs2010Backend(backends.Backend):
             self.generate_genlist_for_target(genlist, target, parent_node, generator_output_files, custom_target_include_dirs, custom_target_output_files)
         return generator_output_files, custom_target_output_files, custom_target_include_dirs
 
-    def generate(self) -> None:
+    def generate(self, captured_compile_args_per_buildtype_and_target: dict = None) -> None:
         target_machine = self.interpreter.builtin['target_machine'].cpu_family_method(None, None)
         if target_machine in {'64', 'x86_64'}:
             # amd64 or x86_64
@@ -238,10 +283,10 @@ class Vs2010Backend(backends.Backend):
         except MesonException:
             self.sanitize = 'none'
         sln_filename = os.path.join(self.environment.get_build_dir(), self.build.project_name + '.sln')
-        projlist = self.generate_projects()
-        self.gen_testproj('RUN_TESTS', os.path.join(self.environment.get_build_dir(), 'RUN_TESTS.vcxproj'))
-        self.gen_installproj('RUN_INSTALL', os.path.join(self.environment.get_build_dir(), 'RUN_INSTALL.vcxproj'))
-        self.gen_regenproj('REGEN', os.path.join(self.environment.get_build_dir(), 'REGEN.vcxproj'))
+        projlist = self.generate_projects(captured_compile_args_per_buildtype_and_target)
+        self.gen_testproj()
+        self.gen_installproj()
+        self.gen_regenproj()
         self.generate_solution(sln_filename, projlist)
         self.generate_regen_info()
         Vs2010Backend.touch_regen_timestamp(self.environment.get_build_dir())
@@ -382,8 +427,7 @@ class Vs2010Backend(backends.Backend):
             ofile.write('# Visual Studio %s\n' % self.sln_version_comment)
             prj_templ = 'Project("{%s}") = "%s", "%s", "{%s}"\n'
             for prj in projlist:
-                coredata = self.environment.coredata
-                if coredata.get_option(OptionKey('layout')) == 'mirror':
+                if self.environment.coredata.get_option(OptionKey('layout')) == 'mirror':
                     self.generate_solution_dirs(ofile, prj[1].parents)
                 target = self.build.targets[prj[0]]
                 lang = 'default'
@@ -409,8 +453,14 @@ class Vs2010Backend(backends.Backend):
                                      self.environment.coredata.test_guid)
             ofile.write(test_line)
             ofile.write('EndProject\n')
+            if self.gen_lite: # REGEN is replaced by the lighter-weight RECONFIGURE utility, for now.  See comment in 'gen_regenproj'
+                regen_proj_name = 'RECONFIGURE'
+                regen_proj_fname = 'RECONFIGURE.vcxproj'
+            else:
+                regen_proj_name = 'REGEN'
+                regen_proj_fname = 'REGEN.vcxproj'
             regen_line = prj_templ % (self.environment.coredata.lang_guids['default'],
-                                      'REGEN', 'REGEN.vcxproj',
+                                      regen_proj_name, regen_proj_fname,
                                       self.environment.coredata.regen_guid)
             ofile.write(regen_line)
             ofile.write('EndProject\n')
@@ -422,18 +472,23 @@ class Vs2010Backend(backends.Backend):
             ofile.write('Global\n')
             ofile.write('\tGlobalSection(SolutionConfigurationPlatforms) = '
                         'preSolution\n')
-            ofile.write('\t\t%s|%s = %s|%s\n' %
-                        (self.buildtype, self.platform, self.buildtype,
-                         self.platform))
+            multi_config_buildtype_list = coredata.get_genvs_default_buildtype_list() if self.gen_lite else [self.buildtype]
+            for buildtype in multi_config_buildtype_list:
+                ofile.write('\t\t%s|%s = %s|%s\n' %
+                            (buildtype, self.platform, buildtype,
+                             self.platform))
             ofile.write('\tEndGlobalSection\n')
             ofile.write('\tGlobalSection(ProjectConfigurationPlatforms) = '
                         'postSolution\n')
-            ofile.write('\t\t{%s}.%s|%s.ActiveCfg = %s|%s\n' %
-                        (self.environment.coredata.regen_guid, self.buildtype,
-                         self.platform, self.buildtype, self.platform))
-            ofile.write('\t\t{%s}.%s|%s.Build.0 = %s|%s\n' %
-                        (self.environment.coredata.regen_guid, self.buildtype,
-                         self.platform, self.buildtype, self.platform))
+            # REGEN project (multi-)configurations
+            for buildtype in multi_config_buildtype_list:
+                ofile.write('\t\t{%s}.%s|%s.ActiveCfg = %s|%s\n' %
+                            (self.environment.coredata.regen_guid, buildtype,
+                                self.platform, buildtype, self.platform))
+                if not self.gen_lite: # With a 'genvslite'-generated solution, the regen (i.e. reconfigure) utility is only intended to run when the user explicitly builds this proj.
+                    ofile.write('\t\t{%s}.%s|%s.Build.0 = %s|%s\n' %
+                                (self.environment.coredata.regen_guid, buildtype,
+                                    self.platform, buildtype, self.platform))
             # Create the solution configuration
             for p in projlist:
                 if p[3] is MachineChoice.BUILD:
@@ -441,21 +496,31 @@ class Vs2010Backend(backends.Backend):
                 else:
                     config_platform = self.platform
                 # Add to the list of projects in this solution
+                for buildtype in multi_config_buildtype_list:
+                    ofile.write('\t\t{%s}.%s|%s.ActiveCfg = %s|%s\n' %
+                                (p[2], buildtype, self.platform,
+                                 buildtype, config_platform))
+                    # If we're building the solution with Visual Studio's build system, enable building of buildable
+                    # projects.  However, if we're building with meson (via --genvslite), then, since each project's
+                    # 'build' action just ends up doing the same 'meson compile ...' we don't want the 'solution build'
+                    # repeatedly going off and doing the same 'meson compile ...' multiple times over, so we just
+                    # leave it up to the user to select or build just one project.
+                    # FIXME:  Would be slightly nicer if we could enable building of just one top level target/project,
+                    # but not sure how to identify that.
+                    if not self.gen_lite and \
+                       p[0] in default_projlist and \
+                       not isinstance(self.build.targets[p[0]], build.RunTarget):
+                        ofile.write('\t\t{%s}.%s|%s.Build.0 = %s|%s\n' %
+                                    (p[2], buildtype, self.platform,
+                                     buildtype, config_platform))
+            # RUN_TESTS and RUN_INSTALL project (multi-)configurations
+            for buildtype in multi_config_buildtype_list:
                 ofile.write('\t\t{%s}.%s|%s.ActiveCfg = %s|%s\n' %
-                            (p[2], self.buildtype, self.platform,
-                             self.buildtype, config_platform))
-                if p[0] in default_projlist and \
-                   not isinstance(self.build.targets[p[0]], build.RunTarget):
-                    # Add to the list of projects to be built
-                    ofile.write('\t\t{%s}.%s|%s.Build.0 = %s|%s\n' %
-                                (p[2], self.buildtype, self.platform,
-                                 self.buildtype, config_platform))
-            ofile.write('\t\t{%s}.%s|%s.ActiveCfg = %s|%s\n' %
-                        (self.environment.coredata.test_guid, self.buildtype,
-                         self.platform, self.buildtype, self.platform))
-            ofile.write('\t\t{%s}.%s|%s.ActiveCfg = %s|%s\n' %
-                        (self.environment.coredata.install_guid, self.buildtype,
-                         self.platform, self.buildtype, self.platform))
+                            (self.environment.coredata.test_guid, buildtype,
+                             self.platform, buildtype, self.platform))
+                ofile.write('\t\t{%s}.%s|%s.ActiveCfg = %s|%s\n' %
+                            (self.environment.coredata.install_guid, buildtype,
+                             self.platform, buildtype, self.platform))
             ofile.write('\tEndGlobalSection\n')
             ofile.write('\tGlobalSection(SolutionProperties) = preSolution\n')
             ofile.write('\t\tHideSolutionNode = FALSE\n')
@@ -473,7 +538,7 @@ class Vs2010Backend(backends.Backend):
             ofile.write('EndGlobal\n')
         replace_if_different(sln_filename, sln_filename_tmp)
 
-    def generate_projects(self) -> T.List[Project]:
+    def generate_projects(self, captured_compile_args_per_buildtype_and_target: dict = None) -> T.List[Project]:
         startup_project = self.environment.coredata.options[OptionKey('backend_startup_project')].value
         projlist: T.List[Project] = []
         startup_idx = 0
@@ -490,8 +555,9 @@ class Vs2010Backend(backends.Backend):
             relname = target_dir / fname
             projfile_path = outdir / fname
             proj_uuid = self.environment.coredata.target_guids[name]
-            self.gen_vcxproj(target, str(projfile_path), proj_uuid)
-            projlist.append((name, relname, proj_uuid, target.for_machine))
+            generated = self.gen_vcxproj(target, str(projfile_path), proj_uuid, captured_compile_args_per_buildtype_and_target)
+            if generated:
+                projlist.append((name, relname, proj_uuid, target.for_machine))
 
         # Put the startup project first in the project list
         if startup_idx:
@@ -570,12 +636,13 @@ class Vs2010Backend(backends.Backend):
         confitems = ET.SubElement(root, 'ItemGroup', {'Label': 'ProjectConfigurations'})
         if not target_platform:
             target_platform = self.platform
-        prjconf = ET.SubElement(confitems, 'ProjectConfiguration',
-                                {'Include': self.buildtype + '|' + target_platform})
-        p = ET.SubElement(prjconf, 'Configuration')
-        p.text = self.buildtype
-        pl = ET.SubElement(prjconf, 'Platform')
-        pl.text = target_platform
+
+        multi_config_buildtype_list = coredata.get_genvs_default_buildtype_list() if self.gen_lite else [self.buildtype]
+        for buildtype in multi_config_buildtype_list:
+            prjconf = ET.SubElement(confitems, 'ProjectConfiguration',
+                                    {'Include': buildtype + '|' + target_platform})
+            ET.SubElement(prjconf, 'Configuration').text = buildtype
+            ET.SubElement(prjconf, 'Platform').text = target_platform
 
         # Globals
         globalgroup = ET.SubElement(root, 'PropertyGroup', Label='Globals')
@@ -583,46 +650,52 @@ class Vs2010Backend(backends.Backend):
         guidelem.text = '{%s}' % guid
         kw = ET.SubElement(globalgroup, 'Keyword')
         kw.text = self.platform + 'Proj'
-        # XXX Wasn't here before for anything but gen_vcxproj , but seems fine?
-        ns = ET.SubElement(globalgroup, 'RootNamespace')
-        ns.text = target_name
-
-        p = ET.SubElement(globalgroup, 'Platform')
-        p.text = target_platform
-        pname = ET.SubElement(globalgroup, 'ProjectName')
-        pname.text = target_name
-        if self.windows_target_platform_version:
-            ET.SubElement(globalgroup, 'WindowsTargetPlatformVersion').text = self.windows_target_platform_version
-        ET.SubElement(globalgroup, 'UseMultiToolTask').text = 'true'
 
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.Default.props')
 
-        # Start configuration
+        # Configuration
         type_config = ET.SubElement(root, 'PropertyGroup', Label='Configuration')
         ET.SubElement(type_config, 'ConfigurationType').text = conftype
-        ET.SubElement(type_config, 'CharacterSet').text = 'MultiByte'
-        # Fixme: wasn't here before for gen_vcxproj()
-        ET.SubElement(type_config, 'UseOfMfc').text = 'false'
         if self.platform_toolset:
             ET.SubElement(type_config, 'PlatformToolset').text = self.platform_toolset
 
-        # End configuration section (but it can be added to further via type_config)
+        # This must come AFTER the '<PropertyGroup Label="Configuration">' element;  importing before the 'PlatformToolset' elt
+        # gets set leads to msbuild failures reporting -
+        #   "The build tools for v142 (Platform Toolset = 'v142') cannot be found. ... please install v142 build tools."
+        # This is extremely unhelpful and misleading since the v14x build tools ARE installed.
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.props')
 
-        # Project information
-        direlem = ET.SubElement(root, 'PropertyGroup')
-        fver = ET.SubElement(direlem, '_ProjectFileVersion')
-        fver.text = self.project_file_version
-        outdir = ET.SubElement(direlem, 'OutDir')
-        outdir.text = '.\\'
-        intdir = ET.SubElement(direlem, 'IntDir')
-        intdir.text = temp_dir + '\\'
+        if not self.gen_lite: # Plenty of elements aren't necessary for 'makefile'-style project that just redirects to meson builds
+            # XXX Wasn't here before for anything but gen_vcxproj , but seems fine?
+            ns = ET.SubElement(globalgroup, 'RootNamespace')
+            ns.text = target_name
 
-        tname = ET.SubElement(direlem, 'TargetName')
-        tname.text = target_name
+            p = ET.SubElement(globalgroup, 'Platform')
+            p.text = target_platform
+            pname = ET.SubElement(globalgroup, 'ProjectName')
+            pname.text = target_name
+            if self.windows_target_platform_version:
+                ET.SubElement(globalgroup, 'WindowsTargetPlatformVersion').text = self.windows_target_platform_version
+            ET.SubElement(globalgroup, 'UseMultiToolTask').text = 'true'
 
-        if target_ext:
-            ET.SubElement(direlem, 'TargetExt').text = target_ext
+            ET.SubElement(type_config, 'CharacterSet').text = 'MultiByte'
+            # Fixme: wasn't here before for gen_vcxproj()
+            ET.SubElement(type_config, 'UseOfMfc').text = 'false'
+
+            # Project information
+            direlem = ET.SubElement(root, 'PropertyGroup')
+            fver = ET.SubElement(direlem, '_ProjectFileVersion')
+            fver.text = self.project_file_version
+            outdir = ET.SubElement(direlem, 'OutDir')
+            outdir.text = '.\\'
+            intdir = ET.SubElement(direlem, 'IntDir')
+            intdir.text = temp_dir + '\\'
+
+            tname = ET.SubElement(direlem, 'TargetName')
+            tname.text = target_name
+
+            if target_ext:
+                ET.SubElement(direlem, 'TargetExt').text = target_ext
 
         return (root, type_config)
 
@@ -780,6 +853,36 @@ class Vs2010Backend(backends.Backend):
                 args.append(self.escape_additional_option(arg))
         ET.SubElement(parent_node, "AdditionalOptions").text = ' '.join(args)
 
+    # Set up each project's source file ('CLCompile') element with appropriate preprocessor, include dir, and compile option values for correct intellisense.
+    def add_project_nmake_defs_incs_and_opts(self, parent_node, src: str, defs_paths_opts_per_lang_and_buildtype: dict, platform: str):
+        # For compactness, sources whose type matches the primary src type (i.e. most frequent in the set of source types used in the target/project,
+        # according to the 'captured_build_args' map), can simply reference the preprocessor definitions, include dirs, and compile option NMake fields of
+        # the project itself.
+        # However, if a src is of a non-primary type, it could have totally different defs/dirs/options so we're going to have to fill in the full, verbose
+        # set of values for these fields, which needs to be fully expanded per build type / configuration.
+        #
+        # FIXME:  Suppose a project contains .cpp and .c src files with different compile defs/dirs/options, while also having .h files, some of which
+        # are included by .cpp sources and others included by .c sources:  How do we know whether the .h source should be using the .cpp or .c src
+        # defs/dirs/options?  Might it also be possible for a .h header to be shared between .cpp and .c sources?  If so, I don't see how we can
+        # correctly configure these intellisense fields.
+        # For now, all sources/headers that fail to find their extension's language in the '...nmake_defs_paths_opts...' map will just adopt the project
+        # defs/dirs/opts that are set for the nominal 'primary' src type.
+        ext = src.split('.')[-1]
+        lang = compilers.compilers.SUFFIX_TO_LANG.get(ext, None)
+        if lang in defs_paths_opts_per_lang_and_buildtype.keys():
+            # This is a non-primary src type for which can't simply reference the project's nmake fields;
+            # we must laboriously fill in the fields for all buildtypes.
+            for buildtype in coredata.get_genvs_default_buildtype_list():
+                (defs, paths, opts) = defs_paths_opts_per_lang_and_buildtype[lang][buildtype]
+                condition = f'\'$(Configuration)|$(Platform)\'==\'{buildtype}|{platform}\''
+                ET.SubElement(parent_node, 'PreprocessorDefinitions', Condition=condition).text = defs
+                ET.SubElement(parent_node, 'AdditionalIncludeDirectories', Condition=condition).text = paths
+                ET.SubElement(parent_node, 'AdditionalOptions', Condition=condition).text = opts
+        else: # Can't find bespoke nmake defs/dirs/opts fields for this extention, so just reference the project's fields
+            ET.SubElement(parent_node, 'PreprocessorDefinitions').text = '$(NMakePreprocessorDefinitions)'
+            ET.SubElement(parent_node, 'AdditionalIncludeDirectories').text = '$(NMakeIncludeSearchPath)'
+            ET.SubElement(parent_node, 'AdditionalOptions').text = '$(AdditionalOptions)'
+
     def add_preprocessor_defines(self, lang, parent_node, file_defines):
         defines = []
         for define in file_defines[lang]:
@@ -918,147 +1021,8 @@ class Vs2010Backend(backends.Backend):
             of.write(doc.toprettyxml())
         replace_if_different(ofname, ofname_tmp)
 
-    def gen_vcxproj(self, target: build.BuildTarget, ofname: str, guid: str) -> None:
-        mlog.debug(f'Generating vcxproj {target.name}.')
-        subsystem = 'Windows'
-        self.handled_target_deps[target.get_id()] = []
-        if isinstance(target, build.Executable):
-            conftype = 'Application'
-            if target.gui_app is not None:
-                if not target.gui_app:
-                    subsystem = 'Console'
-            else:
-                # If someone knows how to set the version properly,
-                # please send a patch.
-                subsystem = target.win_subsystem.split(',')[0]
-        elif isinstance(target, build.StaticLibrary):
-            conftype = 'StaticLibrary'
-        elif isinstance(target, build.SharedLibrary):
-            conftype = 'DynamicLibrary'
-        elif isinstance(target, build.CustomTarget):
-            return self.gen_custom_target_vcxproj(target, ofname, guid)
-        elif isinstance(target, build.RunTarget):
-            return self.gen_run_target_vcxproj(target, ofname, guid)
-        elif isinstance(target, build.CompileTarget):
-            return self.gen_compile_target_vcxproj(target, ofname, guid)
-        else:
-            raise MesonException(f'Unknown target type for {target.get_basename()}')
-        assert isinstance(target, (build.Executable, build.SharedLibrary, build.StaticLibrary, build.SharedModule)), 'for mypy'
-        # Prefix to use to access the build root from the vcxproj dir
-        down = self.target_to_build_root(target)
-        # Prefix to use to access the source tree's root from the vcxproj dir
-        proj_to_src_root = os.path.join(down, self.build_to_src)
-        # Prefix to use to access the source tree's subdir from the vcxproj dir
-        proj_to_src_dir = os.path.join(proj_to_src_root, self.get_target_dir(target))
-        (sources, headers, objects, languages) = self.split_sources(target.sources)
-        if target.is_unity:
-            sources = self.generate_unity_files(target, sources)
-        compiler = self._get_cl_compiler(target)
-        build_args = compiler.get_buildtype_args(self.buildtype)
-        build_args += compiler.get_optimization_args(self.optimization)
-        build_args += compiler.get_debug_args(self.debug)
-        build_args += compiler.sanitizer_compile_args(self.sanitize)
-        buildtype_link_args = compiler.get_buildtype_linker_args(self.buildtype)
-        vscrt_type = self.environment.coredata.options[OptionKey('b_vscrt')]
-        target_name = target.name
-        if target.for_machine is MachineChoice.BUILD:
-            platform = self.build_platform
-        else:
-            platform = self.platform
-
-        tfilename = os.path.splitext(target.get_filename())
-
-        (root, type_config) = self.create_basic_project(tfilename[0],
-                                                        temp_dir=target.get_id(),
-                                                        guid=guid,
-                                                        conftype=conftype,
-                                                        target_ext=tfilename[1],
-                                                        target_platform=platform)
-        # vcxproj.filters file
-        root_filter = self.create_basic_project_filters()
-
-        # FIXME: Should these just be set in create_basic_project(), even if
-        # irrelevant for current target?
-
-        # FIXME: Meson's LTO support needs to be integrated here
-        ET.SubElement(type_config, 'WholeProgramOptimization').text = 'false'
-        # Let VS auto-set the RTC level
-        ET.SubElement(type_config, 'BasicRuntimeChecks').text = 'Default'
-        # Incremental linking increases code size
-        if '/INCREMENTAL:NO' in buildtype_link_args:
-            ET.SubElement(type_config, 'LinkIncremental').text = 'false'
-
-        # Build information
-        compiles = ET.SubElement(root, 'ItemDefinitionGroup')
-        clconf = ET.SubElement(compiles, 'ClCompile')
-        # CRT type; debug or release
-        if vscrt_type.value == 'from_buildtype':
-            if self.buildtype == 'debug':
-                ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
-                ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDebugDLL'
-            else:
-                ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
-                ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDLL'
-        elif vscrt_type.value == 'static_from_buildtype':
-            if self.buildtype == 'debug':
-                ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
-                ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDebug'
-            else:
-                ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
-                ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreaded'
-        elif vscrt_type.value == 'mdd':
-            ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
-            ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDebugDLL'
-        elif vscrt_type.value == 'mt':
-            # FIXME, wrong
-            ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
-            ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreaded'
-        elif vscrt_type.value == 'mtd':
-            # FIXME, wrong
-            ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
-            ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDebug'
-        else:
-            ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
-            ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDLL'
-        # Sanitizers
-        if '/fsanitize=address' in build_args:
-            ET.SubElement(type_config, 'EnableASAN').text = 'true'
-        # Debug format
-        if '/ZI' in build_args:
-            ET.SubElement(clconf, 'DebugInformationFormat').text = 'EditAndContinue'
-        elif '/Zi' in build_args:
-            ET.SubElement(clconf, 'DebugInformationFormat').text = 'ProgramDatabase'
-        elif '/Z7' in build_args:
-            ET.SubElement(clconf, 'DebugInformationFormat').text = 'OldStyle'
-        else:
-            ET.SubElement(clconf, 'DebugInformationFormat').text = 'None'
-        # Runtime checks
-        if '/RTC1' in build_args:
-            ET.SubElement(clconf, 'BasicRuntimeChecks').text = 'EnableFastChecks'
-        elif '/RTCu' in build_args:
-            ET.SubElement(clconf, 'BasicRuntimeChecks').text = 'UninitializedLocalUsageCheck'
-        elif '/RTCs' in build_args:
-            ET.SubElement(clconf, 'BasicRuntimeChecks').text = 'StackFrameRuntimeCheck'
-        # Exception handling has to be set in the xml in addition to the "AdditionalOptions" because otherwise
-        # cl will give warning D9025: overriding '/Ehs' with cpp_eh value
-        if 'cpp' in target.compilers:
-            eh = self.environment.coredata.options[OptionKey('eh', machine=target.for_machine, lang='cpp')]
-            if eh.value == 'a':
-                ET.SubElement(clconf, 'ExceptionHandling').text = 'Async'
-            elif eh.value == 's':
-                ET.SubElement(clconf, 'ExceptionHandling').text = 'SyncCThrow'
-            elif eh.value == 'none':
-                ET.SubElement(clconf, 'ExceptionHandling').text = 'false'
-            else:  # 'sc' or 'default'
-                ET.SubElement(clconf, 'ExceptionHandling').text = 'Sync'
-        generated_files, custom_target_output_files, generated_files_include_dirs = self.generate_custom_generator_commands(
-            target, root)
-        (gen_src, gen_hdrs, gen_objs, gen_langs) = self.split_sources(generated_files)
-        (custom_src, custom_hdrs, custom_objs, custom_langs) = self.split_sources(custom_target_output_files)
-        gen_src += custom_src
-        gen_hdrs += custom_hdrs
-        gen_langs += custom_langs
-
+    # Returns:  (target_args,file_args), (target_defines,file_defines), (target_inc_dirs,file_inc_dirs)
+    def get_args_defines_and_inc_dirs(self, target, compiler, generated_files_include_dirs, proj_to_src_root, proj_to_src_dir, build_args):
         # Arguments, include dirs, defines for all files in the current target
         target_args = []
         target_defines = []
@@ -1175,9 +1139,7 @@ class Vs2010Backend(backends.Backend):
         for d in reversed(target.get_external_deps()):
             # Cflags required by external deps might have UNIX-specific flags,
             # so filter them out if needed
-            if d.name == 'openmp':
-                ET.SubElement(clconf, 'OpenMPSupport').text = 'true'
-            else:
+            if d.name != 'openmp':
                 d_compile_args = compiler.unix_args_to_native(d.get_compile_args())
                 for arg in d_compile_args:
                     if arg.startswith(('-D', '/D')):
@@ -1194,9 +1156,265 @@ class Vs2010Backend(backends.Backend):
                     else:
                         target_args.append(arg)
 
-        languages += gen_langs
         if '/Gw' in build_args:
             target_args.append('/Gw')
+
+        return (target_args, file_args), (target_defines, file_defines), (target_inc_dirs, file_inc_dirs)
+
+    @staticmethod
+    def get_build_args(compiler, buildtype: str, optimization_level: str, debug: bool, sanitize: str) -> T.List[str]:
+        build_args = compiler.get_buildtype_args(buildtype)
+        build_args += compiler.get_optimization_args(optimization_level)
+        build_args += compiler.get_debug_args(debug)
+        build_args += compiler.sanitizer_compile_args(sanitize)
+
+        return build_args
+
+    #Convert a list of compile arguments from -
+    #   [ '-I..\\some\\dir\\include', '-I../../some/other/dir', '/MDd', '/W2', '/std:c++17', '/Od', '/Zi', '-DSOME_DEF=1', '-DANOTHER_DEF=someval', ...]
+    #to -
+    #   'SOME_DEF=1;ANOTHER_DEF=someval;'
+    #which is the format required by the visual studio project's NMakePreprocessorDefinitions field.
+    @staticmethod
+    def extract_nmake_preprocessor_defs(captured_build_args: list[str]) -> str:
+        defs = ''
+        for arg in captured_build_args:
+            if arg.startswith(('-D', '/D')):
+                defs += arg[2:] + ';'
+        return defs
+
+    #Convert a list of compile arguments from -
+    #   [ '-I..\\some\\dir\\include', '-I../../some/other/dir', '/MDd', '/W2', '/std:c++17', '/Od', '/Zi', '-DSOME_DEF=1', '-DANOTHER_DEF=someval', ...]
+    #to -
+    #   '..\\some\\dir\\include;../../some/other/dir;'
+    #which is the format required by the visual studio project's NMakePreprocessorDefinitions field.
+    @staticmethod
+    def extract_nmake_include_paths(captured_build_args: list[str]) -> str:
+        paths = ''
+        for arg in captured_build_args:
+            if arg.startswith(('-I', '/I')):
+                paths += arg[2:] + ';'
+        return paths
+
+    #Convert a list of compile arguments from -
+    #   [ '-I..\\some\\dir\\include', '-I../../some/other/dir', '/MDd', '/W2', '/std:c++17', '/Od', '/Zi', '-DSOME_DEF=1', '-DANOTHER_DEF=someval', ...]
+    #to -
+    #   '/MDd;/W2;/std:c++17;/Od/Zi'
+    #which is the format required by the visual studio project's NMakePreprocessorDefinitions field.
+    @staticmethod
+    def extract_intellisense_additional_compiler_options(captured_build_args: list[str]) -> str:
+        additional_opts = ''
+        for arg in captured_build_args:
+            if (not arg.startswith(('-D', '/D', '-I', '/I'))) and arg.startswith(('-', '/')):
+                additional_opts += arg + ';'
+        return additional_opts
+
+    @staticmethod
+    def get_nmake_base_meson_command_and_exe_search_paths() -> T.Tuple[str, str]:
+        meson_cmd_list = mesonlib.get_meson_command()
+        assert (len(meson_cmd_list) == 1) or (len(meson_cmd_list) == 2)
+        # We expect get_meson_command() to either be of the form -
+        #   1:  ['path/to/meson.exe']
+        # or -
+        #   2:  ['path/to/python.exe', 'and/path/to/meson.py']
+        # so we'd like to ensure our makefile-style project invokes the same meson executable or python src as this instance.
+        exe_search_paths = os.path.dirname(meson_cmd_list[0])
+        nmake_base_meson_command = os.path.basename(meson_cmd_list[0])
+        if len(meson_cmd_list) != 1:
+            # We expect to be dealing with case '2', shown above.
+            # With Windows, it's also possible that we get a path to the second element of meson_cmd_list that contains spaces
+            # (e.g. 'and/path to/meson.py').  So, because this will end up directly in the makefile/NMake command lines, we'd
+            # better always enclose it in quotes.  Only strictly necessary for paths with spaces but no harm for paths without -
+            nmake_base_meson_command += ' \"' + meson_cmd_list[1] + '\"'
+            exe_search_paths += ';' + os.path.dirname(meson_cmd_list[1])
+
+        # Additionally, in some cases, we appear to have to add 'C:\Windows\system32;C:\Windows' to the 'Path' environment (via the
+        # ExecutablePath element), without which, the 'meson compile ...' (NMakeBuildCommandLine) command can fail (failure to find
+        # stdio.h and similar), so something is quietly switching some critical build behaviour based on the presence of these in
+        # the 'Path'.
+        # Not sure if this ultimately comes down to some 'find and guess' hidden behaviours within meson or within MSVC tools, but
+        # I guess some projects may implicitly rely on this behaviour.
+        # Things would be cleaner, more robust, repeatable, and portable if meson (and msvc tools) replaced all this kind of
+        # find/guess behaviour with the requirement that things just be explicitly specified by the user.
+        # An example of this can be seen with -
+        #   1:  Download https://github.com/facebook/zstd source
+        #   2:  cd to the 'zstd-dev\build\meson' dir
+        #   3:  meson setup -Dbin_programs=true -Dbin_contrib=true --genvslite vs2022 builddir_vslite
+        #   4:  Open the generated 'builddir_vslite_vs\zstd.sln' and build through a project, which should explicitly add the above to
+        #       the project's 'Executable Directories' paths and build successfully.
+        #   5:  Remove 'C:\Windows\system32;C:\Windows;' from the same project's 'Executable Directories' paths and rebuild.
+        #       This should now fail.
+        # It feels uncomfortable to do this but what better alternative is there (and might this introduce new problems)? -
+        exe_search_paths += ';C:\\Windows\\system32;C:\\Windows'
+        # A meson project that explicitly specifies compiler/linker tools and sdk/include paths is not going to have any problems
+        # with this addition.
+
+        return (nmake_base_meson_command, exe_search_paths)
+
+    def add_gen_lite_makefile_vcxproj_elements(
+            self,
+            root: ET.Element,
+            platform: str,
+            target_ext: str,
+            captured_compile_args_per_buildtype_and_target: dict,
+            target,
+            proj_to_build_root: str,
+            primary_src_lang: T.Optional[str]
+            ) -> None:
+        ET.SubElement(root, 'ImportGroup', Label='ExtensionSettings')
+        ET.SubElement(root, 'ImportGroup', Label='Shared')
+        prop_sheets_grp = ET.SubElement(root, 'ImportGroup', Label='PropertySheets')
+        ET.SubElement(prop_sheets_grp, 'Import', {'Project': r'$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props',
+                                                  'Condition': r"exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')",
+                                                  'Label': 'LocalAppDataPlatform'
+                                                  })
+        ET.SubElement(root, 'PropertyGroup', Label='UserMacros')
+
+        (nmake_base_meson_command, exe_search_paths) = Vs2010Backend.get_nmake_base_meson_command_and_exe_search_paths()
+
+        # Relative path from this .vcxproj to the directory containing the set of '..._[debug/debugoptimized/release]' setup meson build dirs.
+        proj_to_multiconfigured_builds_parent_dir = os.path.join(proj_to_build_root, '..')
+
+        # Conditional property groups per configuration (buildtype). E.g. -
+        #   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='release|x64'">
+        multi_config_buildtype_list = coredata.get_genvs_default_buildtype_list()
+        for buildtype in multi_config_buildtype_list:
+            per_config_prop_group = ET.SubElement(root, 'PropertyGroup', Condition=f'\'$(Configuration)|$(Platform)\'==\'{buildtype}|{platform}\'')
+            (_, build_dir_tail) = os.path.split(self.src_to_build)
+            meson_build_dir_for_buildtype = build_dir_tail[:-2] + buildtype # Get the buildtype suffixed 'builddir_[debug/release/etc]' from 'builddir_vs', for example.
+            proj_to_build_dir_for_buildtype = str(os.path.join(proj_to_multiconfigured_builds_parent_dir, meson_build_dir_for_buildtype))
+            ET.SubElement(per_config_prop_group, 'OutDir').text = f'{proj_to_build_dir_for_buildtype}\\'
+            ET.SubElement(per_config_prop_group, 'IntDir').text = f'{proj_to_build_dir_for_buildtype}\\'
+            ET.SubElement(per_config_prop_group, 'NMakeBuildCommandLine').text = f'{nmake_base_meson_command} compile -C "{proj_to_build_dir_for_buildtype}"'
+            ET.SubElement(per_config_prop_group, 'NMakeOutput').text = f'$(OutDir){target.name}{target_ext}'
+            captured_build_args = captured_compile_args_per_buildtype_and_target[buildtype][target.get_id()]
+            # 'captured_build_args' is a dictionary, mapping from each src file type to a list of compile args to use for that type.
+            # Usually, there's just one but we could have multiple src types.  However, since there's only one field for the makefile
+            # project's NMake... preprocessor/include intellisense fields, we'll just use the first src type we have to fill in
+            # these fields.  Then, any src files in this VS project that aren't of this first src type will then need to override
+            # its intellisense fields instead of simply referencing the values in the project.
+            ET.SubElement(per_config_prop_group, 'NMakeReBuildCommandLine').text = f'{nmake_base_meson_command} compile -C "{proj_to_build_dir_for_buildtype}" --clean && {nmake_base_meson_command} compile -C "{proj_to_build_dir_for_buildtype}"'
+            ET.SubElement(per_config_prop_group, 'NMakeCleanCommandLine').text = f'{nmake_base_meson_command} compile -C "{proj_to_build_dir_for_buildtype}" --clean'
+            # Need to set the 'ExecutablePath' element for the above NMake... commands to be able to invoke the meson command.
+            ET.SubElement(per_config_prop_group, 'ExecutablePath').text = exe_search_paths
+            # We may not have any src files and so won't have a primary src language.  In which case, we've nothing to fill in for this target's intellisense fields -
+            if primary_src_lang:
+                primary_src_type_build_args = captured_build_args[primary_src_lang]
+                ET.SubElement(per_config_prop_group, 'NMakePreprocessorDefinitions').text = Vs2010Backend.extract_nmake_preprocessor_defs(primary_src_type_build_args)
+                ET.SubElement(per_config_prop_group, 'NMakeIncludeSearchPath').text = Vs2010Backend.extract_nmake_include_paths(primary_src_type_build_args)
+                ET.SubElement(per_config_prop_group, 'AdditionalOptions').text = Vs2010Backend.extract_intellisense_additional_compiler_options(primary_src_type_build_args)
+
+            # Unless we explicitly specify the following empty path elements, the project is assigned a load of nasty defaults that fill these
+            # with values like -
+            #    $(VC_IncludePath);$(WindowsSDK_IncludePath);
+            # which are all based on the current install environment (a recipe for non-reproducibility problems), not the paths that will be used by
+            # the actual meson compile jobs.  Although these elements look like they're only for MSBuild operations, they're not needed with our simple,
+            # lite/makefile-style projects so let's just remove them in case they do get used/confused by intellisense.
+            ET.SubElement(per_config_prop_group, 'IncludePath')
+            ET.SubElement(per_config_prop_group, 'ExternalIncludePath')
+            ET.SubElement(per_config_prop_group, 'ReferencePath')
+            ET.SubElement(per_config_prop_group, 'LibraryPath')
+            ET.SubElement(per_config_prop_group, 'LibraryWPath')
+            ET.SubElement(per_config_prop_group, 'SourcePath')
+            ET.SubElement(per_config_prop_group, 'ExcludePath')
+
+    def add_non_makefile_vcxproj_elements(
+            self,
+            root: ET.Element,
+            type_config: ET.Element,
+            target,
+            platform: str,
+            subsystem,
+            build_args,
+            target_args,
+            target_defines,
+            target_inc_dirs,
+            file_args
+            ) -> None:
+        compiler = self._get_cl_compiler(target)
+        buildtype_link_args = compiler.get_buildtype_linker_args(self.buildtype)
+
+        # Prefix to use to access the build root from the vcxproj dir
+        down = self.target_to_build_root(target)
+
+        # FIXME: Should the following just be set in create_basic_project(), even if
+        # irrelevant for current target?
+
+        # FIXME: Meson's LTO support needs to be integrated here
+        ET.SubElement(type_config, 'WholeProgramOptimization').text = 'false'
+        # Let VS auto-set the RTC level
+        ET.SubElement(type_config, 'BasicRuntimeChecks').text = 'Default'
+        # Incremental linking increases code size
+        if '/INCREMENTAL:NO' in buildtype_link_args:
+            ET.SubElement(type_config, 'LinkIncremental').text = 'false'
+
+        # Build information
+        compiles = ET.SubElement(root, 'ItemDefinitionGroup')
+        clconf = ET.SubElement(compiles, 'ClCompile')
+        if True in ((dep.name == 'openmp') for dep in target.get_external_deps()):
+            ET.SubElement(clconf, 'OpenMPSupport').text = 'true'
+        # CRT type; debug or release
+        vscrt_type = self.environment.coredata.options[OptionKey('b_vscrt')]
+        if vscrt_type.value == 'from_buildtype':
+            if self.buildtype == 'debug':
+                ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
+                ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDebugDLL'
+            else:
+                ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
+                ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDLL'
+        elif vscrt_type.value == 'static_from_buildtype':
+            if self.buildtype == 'debug':
+                ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
+                ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDebug'
+            else:
+                ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
+                ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreaded'
+        elif vscrt_type.value == 'mdd':
+            ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
+            ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDebugDLL'
+        elif vscrt_type.value == 'mt':
+            # FIXME, wrong
+            ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
+            ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreaded'
+        elif vscrt_type.value == 'mtd':
+            # FIXME, wrong
+            ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
+            ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDebug'
+        else:
+            ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
+            ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDLL'
+        # Sanitizers
+        if '/fsanitize=address' in build_args:
+            ET.SubElement(type_config, 'EnableASAN').text = 'true'
+        # Debug format
+        if '/ZI' in build_args:
+            ET.SubElement(clconf, 'DebugInformationFormat').text = 'EditAndContinue'
+        elif '/Zi' in build_args:
+            ET.SubElement(clconf, 'DebugInformationFormat').text = 'ProgramDatabase'
+        elif '/Z7' in build_args:
+            ET.SubElement(clconf, 'DebugInformationFormat').text = 'OldStyle'
+        else:
+            ET.SubElement(clconf, 'DebugInformationFormat').text = 'None'
+        # Runtime checks
+        if '/RTC1' in build_args:
+            ET.SubElement(clconf, 'BasicRuntimeChecks').text = 'EnableFastChecks'
+        elif '/RTCu' in build_args:
+            ET.SubElement(clconf, 'BasicRuntimeChecks').text = 'UninitializedLocalUsageCheck'
+        elif '/RTCs' in build_args:
+            ET.SubElement(clconf, 'BasicRuntimeChecks').text = 'StackFrameRuntimeCheck'
+        # Exception handling has to be set in the xml in addition to the "AdditionalOptions" because otherwise
+        # cl will give warning D9025: overriding '/Ehs' with cpp_eh value
+        if 'cpp' in target.compilers:
+            eh = self.environment.coredata.options[OptionKey('eh', machine=target.for_machine, lang='cpp')]
+            if eh.value == 'a':
+                ET.SubElement(clconf, 'ExceptionHandling').text = 'Async'
+            elif eh.value == 's':
+                ET.SubElement(clconf, 'ExceptionHandling').text = 'SyncCThrow'
+            elif eh.value == 'none':
+                ET.SubElement(clconf, 'ExceptionHandling').text = 'false'
+            else:  # 'sc' or 'default'
+                ET.SubElement(clconf, 'ExceptionHandling').text = 'Sync'
+
         if len(target_args) > 0:
             target_args.append('%(AdditionalOptions)')
             ET.SubElement(clconf, "AdditionalOptions").text = ' '.join(target_args)
@@ -1233,25 +1451,6 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(clconf, 'FavorSizeOrSpeed').text = 'Speed'
         # Note: SuppressStartupBanner is /NOLOGO and is 'true' by default
         self.generate_lang_standard_info(file_args, clconf)
-        pch_sources = {}
-        if self.environment.coredata.options.get(OptionKey('b_pch')):
-            for lang in ['c', 'cpp']:
-                pch = target.get_pch(lang)
-                if not pch:
-                    continue
-                if compiler.id == 'msvc':
-                    if len(pch) == 1:
-                        # Auto generate PCH.
-                        src = os.path.join(down, self.create_msvc_pch_implementation(target, lang, pch[0]))
-                        pch_header_dir = os.path.dirname(os.path.join(proj_to_src_dir, pch[0]))
-                    else:
-                        src = os.path.join(proj_to_src_dir, pch[1])
-                        pch_header_dir = None
-                    pch_sources[lang] = [pch[0], src, lang, pch_header_dir]
-                else:
-                    # I don't know whether its relevant but let's handle other compilers
-                    # used with a vs backend
-                    pch_sources[lang] = [pch[0], None, lang, None]
 
         resourcecompile = ET.SubElement(compiles, 'ResourceCompile')
         ET.SubElement(resourcecompile, 'PreprocessorDefinitions')
@@ -1359,12 +1558,6 @@ class Vs2010Backend(backends.Backend):
                     additional_links.append(linkname)
         for lib in self.get_custom_target_provided_libraries(target):
             additional_links.append(self.relpath(lib, self.get_target_dir(target)))
-        additional_objects = []
-        for o in self.flatten_object_list(target, down)[0]:
-            assert isinstance(o, str)
-            additional_objects.append(o)
-        for o in custom_objs:
-            additional_objects.append(o)
 
         if len(extra_link_args) > 0:
             extra_link_args.append('%(AdditionalOptions)')
@@ -1390,7 +1583,7 @@ class Vs2010Backend(backends.Backend):
                 ET.SubElement(link, 'ModuleDefinitionFile').text = relpath
         if self.debug:
             pdb = ET.SubElement(link, 'ProgramDataBaseFileName')
-            pdb.text = f'$(OutDir){target_name}.pdb'
+            pdb.text = f'$(OutDir){target.name}.pdb'
         targetmachine = ET.SubElement(link, 'TargetMachine')
         if target.for_machine is MachineChoice.BUILD:
             targetplatform = platform.lower()
@@ -1414,6 +1607,116 @@ class Vs2010Backend(backends.Backend):
         if not self.environment.coredata.get_option(OptionKey('debug')):
             ET.SubElement(link, 'SetChecksum').text = 'true'
 
+    # Visual studio doesn't simply allow the src files of a project to be added with the 'Condition=...' attribute,
+    # to allow us to point to the different debug/debugoptimized/release sets of generated src files for each of
+    # the solution's configurations.  Similarly, 'ItemGroup' also doesn't support 'Condition'.  So, without knowing
+    # a better (simple) alternative, for now, we'll repoint these generated sources (which will be incorrectly
+    # pointing to non-existent files under our '[builddir]_vs' directory) to the appropriate location under one of
+    # our buildtype build directores (e.g. '[builddir]_debug').
+    # This will at least allow the user to open the files of generated sources listed in the solution explorer,
+    # once a build/compile has generated these sources.
+    #
+    # This modifies the paths in 'gen_files' in place, as opposed to returning a new list of modified paths.
+    def relocate_generated_file_paths_to_concrete_build_dir(self, gen_files: T.List[str], target: T.Union[build.Target, build.CustomTargetIndex]) -> None:
+        (_, build_dir_tail) = os.path.split(self.src_to_build)
+        meson_build_dir_for_buildtype = build_dir_tail[:-2] + coredata.get_genvs_default_buildtype_list()[0] # Get the first buildtype suffixed dir (i.e. '[builddir]_debug') from '[builddir]_vs'
+        # Relative path from this .vcxproj to the directory containing the set of '..._[debug/debugoptimized/release]' setup meson build dirs.
+        proj_to_build_root = self.target_to_build_root(target)
+        proj_to_multiconfigured_builds_parent_dir = os.path.join(proj_to_build_root, '..')
+        proj_to_build_dir_for_buildtype = str(os.path.join(proj_to_multiconfigured_builds_parent_dir, meson_build_dir_for_buildtype))
+        relocate_to_concrete_builddir_target = os.path.normpath(os.path.join(proj_to_build_dir_for_buildtype, self.get_target_dir(target)))
+        for idx, file_path in enumerate(gen_files):
+            gen_files[idx] = os.path.normpath(os.path.join(relocate_to_concrete_builddir_target, file_path))
+
+    # Returns bool indicating whether the .vcxproj has been generated.
+    # Under some circumstances, it's unnecessary to create some .vcxprojs, so, when generating the .sln,
+    # we need to respect that not all targets will have generated a project.
+    def gen_vcxproj(self, target: build.BuildTarget, ofname: str, guid: str, captured_compile_args_per_buildtype_and_target: dict = None) -> bool:
+        mlog.debug(f'Generating vcxproj {target.name}.')
+        subsystem = 'Windows'
+        self.handled_target_deps[target.get_id()] = []
+
+        if self.gen_lite:
+            if not isinstance(target, build.BuildTarget):
+                # Since we're going to delegate all building to the one true meson build command, we don't need
+                # to generate .vcxprojs for targets that don't add any source files or just perform custom build
+                # commands.  These are targets of types CustomTarget or RunTarget.  So let's just skip generating
+                # these otherwise insubstantial non-BuildTarget targets.
+                return False
+            conftype = 'Makefile'
+        elif isinstance(target, build.Executable):
+            conftype = 'Application'
+            if target.gui_app is not None:
+                if not target.gui_app:
+                    subsystem = 'Console'
+            else:
+                # If someone knows how to set the version properly,
+                # please send a patch.
+                subsystem = target.win_subsystem.split(',')[0]
+        elif isinstance(target, build.StaticLibrary):
+            conftype = 'StaticLibrary'
+        elif isinstance(target, build.SharedLibrary):
+            conftype = 'DynamicLibrary'
+        elif isinstance(target, build.CustomTarget):
+            self.gen_custom_target_vcxproj(target, ofname, guid)
+            return True
+        elif isinstance(target, build.RunTarget):
+            self.gen_run_target_vcxproj(target, ofname, guid)
+            return True
+        elif isinstance(target, build.CompileTarget):
+            self.gen_compile_target_vcxproj(target, ofname, guid)
+            return True
+        else:
+            raise MesonException(f'Unknown target type for {target.get_basename()}')
+
+        (sources, headers, objects, _languages) = self.split_sources(target.sources)
+        if target.is_unity:
+            sources = self.generate_unity_files(target, sources)
+        if target.for_machine is MachineChoice.BUILD:
+            platform = self.build_platform
+        else:
+            platform = self.platform
+
+        tfilename = os.path.splitext(target.get_filename())
+
+        (root, type_config) = self.create_basic_project(tfilename[0],
+                                                        temp_dir=target.get_id(),
+                                                        guid=guid,
+                                                        conftype=conftype,
+                                                        target_ext=tfilename[1],
+                                                        target_platform=platform)
+
+        # vcxproj.filters file
+        root_filter = self.create_basic_project_filters()
+
+        generated_files, custom_target_output_files, generated_files_include_dirs = self.generate_custom_generator_commands(
+            target, root)
+        (gen_src, gen_hdrs, gen_objs, _gen_langs) = self.split_sources(generated_files)
+        (custom_src, custom_hdrs, custom_objs, _custom_langs) = self.split_sources(custom_target_output_files)
+        gen_src += custom_src
+        gen_hdrs += custom_hdrs
+
+        compiler = self._get_cl_compiler(target)
+        build_args = Vs2010Backend.get_build_args(compiler, self.buildtype, self.optimization, self.debug, self.sanitize)
+
+        assert isinstance(target, (build.Executable, build.SharedLibrary, build.StaticLibrary, build.SharedModule)), 'for mypy'
+        # Prefix to use to access the build root from the vcxproj dir
+        proj_to_build_root = self.target_to_build_root(target)
+        # Prefix to use to access the source tree's root from the vcxproj dir
+        proj_to_src_root = os.path.join(proj_to_build_root, self.build_to_src)
+        # Prefix to use to access the source tree's subdir from the vcxproj dir
+        proj_to_src_dir = os.path.join(proj_to_src_root, self.get_target_dir(target))
+
+        (target_args, file_args), (target_defines, file_defines), (target_inc_dirs, file_inc_dirs) = self.get_args_defines_and_inc_dirs(
+            target, compiler, generated_files_include_dirs, proj_to_src_root, proj_to_src_dir, build_args)
+
+        if self.gen_lite:
+            assert captured_compile_args_per_buildtype_and_target is not None
+            primary_src_lang = get_primary_source_lang(target.sources, custom_src)
+            self.add_gen_lite_makefile_vcxproj_elements(root, platform, tfilename[1], captured_compile_args_per_buildtype_and_target, target, proj_to_build_root, primary_src_lang)
+        else:
+            self.add_non_makefile_vcxproj_elements(root, type_config, target, platform, subsystem, build_args, target_args, target_defines, target_inc_dirs, file_args)
+
         meson_file_group = ET.SubElement(root, 'ItemGroup')
         ET.SubElement(meson_file_group, 'None', Include=os.path.join(proj_to_src_dir, build_filename))
 
@@ -1427,16 +1730,41 @@ class Vs2010Backend(backends.Backend):
             else:
                 return False
 
+        pch_sources = {}
+        if self.environment.coredata.options.get(OptionKey('b_pch')):
+            for lang in ['c', 'cpp']:
+                pch = target.get_pch(lang)
+                if not pch:
+                    continue
+                if compiler.id == 'msvc':
+                    if len(pch) == 1:
+                        # Auto generate PCH.
+                        src = os.path.join(proj_to_build_root, self.create_msvc_pch_implementation(target, lang, pch[0]))
+                        pch_header_dir = os.path.dirname(os.path.join(proj_to_src_dir, pch[0]))
+                    else:
+                        src = os.path.join(proj_to_src_dir, pch[1])
+                        pch_header_dir = None
+                    pch_sources[lang] = [pch[0], src, lang, pch_header_dir]
+                else:
+                    # I don't know whether its relevant but let's handle other compilers
+                    # used with a vs backend
+                    pch_sources[lang] = [pch[0], None, lang, None]
+
         list_filters_path = set()
 
         previous_includes = []
         if len(headers) + len(gen_hdrs) + len(target.extra_files) + len(pch_sources) > 0:
+            if self.gen_lite and gen_hdrs:
+                # Although we're constructing our .vcxproj under our '..._vs' directory, we want to reference generated files
+                # in our concrete build directories (e.g. '..._debug'), where generated files will exist after building.
+                self.relocate_generated_file_paths_to_concrete_build_dir(gen_hdrs, target)
+
             # Filter information
             filter_group_include = ET.SubElement(root_filter, 'ItemGroup')
 
             inc_hdrs = ET.SubElement(root, 'ItemGroup')
             for h in headers:
-                relpath = os.path.join(down, h.rel_to_builddir(self.build_to_src))
+                relpath = os.path.join(proj_to_build_root, h.rel_to_builddir(self.build_to_src))
                 if path_normalize_add(relpath, previous_includes):
                     self.add_filter_info(list_filters_path, filter_group_include, 'ClInclude', relpath, h.subdir)
                     ET.SubElement(inc_hdrs, 'CLInclude', Include=relpath)
@@ -1445,7 +1773,7 @@ class Vs2010Backend(backends.Backend):
                     self.add_filter_info(list_filters_path, filter_group_include, 'ClInclude', h)
                     ET.SubElement(inc_hdrs, 'CLInclude', Include=h)
             for h in target.extra_files:
-                relpath = os.path.join(down, h.rel_to_builddir(self.build_to_src))
+                relpath = os.path.join(proj_to_build_root, h.rel_to_builddir(self.build_to_src))
                 if path_normalize_add(relpath, previous_includes):
                     self.add_filter_info(list_filters_path, filter_group_include, 'ClInclude', relpath, h.subdir)
                     ET.SubElement(inc_hdrs, 'CLInclude', Include=relpath)
@@ -1457,50 +1785,70 @@ class Vs2010Backend(backends.Backend):
 
         previous_sources = []
         if len(sources) + len(gen_src) + len(pch_sources) > 0:
+            if self.gen_lite:
+                # Get data to fill in intellisense fields for sources that can't reference the project-wide values
+                defs_paths_opts_per_lang_and_buildtype = get_non_primary_lang_intellisense_fields(
+                    captured_compile_args_per_buildtype_and_target,
+                    target.get_id(),
+                    primary_src_lang)
+                if gen_src:
+                    # Although we're constructing our .vcxproj under our '..._vs' directory, we want to reference generated files
+                    # in our concrete build directories (e.g. '..._debug'), where generated files will exist after building.
+                    self.relocate_generated_file_paths_to_concrete_build_dir(gen_src, target)
+
             # Filter information
             filter_group_compile = ET.SubElement(root_filter, 'ItemGroup')
 
             inc_src = ET.SubElement(root, 'ItemGroup')
             for s in sources:
-                relpath = os.path.join(down, s.rel_to_builddir(self.build_to_src))
+                relpath = os.path.join(proj_to_build_root, s.rel_to_builddir(self.build_to_src))
                 if path_normalize_add(relpath, previous_sources):
                     self.add_filter_info(list_filters_path, filter_group_compile, 'CLCompile', relpath, s.subdir)
                     inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=relpath)
-                    lang = Vs2010Backend.lang_from_source_file(s)
-                    self.add_pch(pch_sources, lang, inc_cl)
-                    self.add_additional_options(lang, inc_cl, file_args)
-                    self.add_preprocessor_defines(lang, inc_cl, file_defines)
-                    self.add_include_dirs(lang, inc_cl, file_inc_dirs)
-                    ET.SubElement(inc_cl, 'ObjectFileName').text = "$(IntDir)" + \
-                        self.object_filename_from_source(target, s)
+                    if self.gen_lite:
+                        self.add_project_nmake_defs_incs_and_opts(inc_cl, relpath, defs_paths_opts_per_lang_and_buildtype, platform)
+                    else:
+                        lang = Vs2010Backend.lang_from_source_file(s)
+                        self.add_pch(pch_sources, lang, inc_cl)
+                        self.add_additional_options(lang, inc_cl, file_args)
+                        self.add_preprocessor_defines(lang, inc_cl, file_defines)
+                        self.add_include_dirs(lang, inc_cl, file_inc_dirs)
+                        ET.SubElement(inc_cl, 'ObjectFileName').text = "$(IntDir)" + \
+                            self.object_filename_from_source(target, s)
             for s in gen_src:
                 if path_normalize_add(s, previous_sources):
                     self.add_filter_info(list_filters_path, filter_group_compile, 'CLCompile', s)
                     inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=s)
-                    lang = Vs2010Backend.lang_from_source_file(s)
-                    self.add_pch(pch_sources, lang, inc_cl)
-                    self.add_additional_options(lang, inc_cl, file_args)
-                    self.add_preprocessor_defines(lang, inc_cl, file_defines)
-                    self.add_include_dirs(lang, inc_cl, file_inc_dirs)
-                    s = File.from_built_file(target.get_subdir(), s)
-                    ET.SubElement(inc_cl, 'ObjectFileName').text = "$(IntDir)" + \
-                        self.object_filename_from_source(target, s)
+                    if self.gen_lite:
+                        self.add_project_nmake_defs_incs_and_opts(inc_cl, s, defs_paths_opts_per_lang_and_buildtype, platform)
+                    else:
+                        lang = Vs2010Backend.lang_from_source_file(s)
+                        self.add_pch(pch_sources, lang, inc_cl)
+                        self.add_additional_options(lang, inc_cl, file_args)
+                        self.add_preprocessor_defines(lang, inc_cl, file_defines)
+                        self.add_include_dirs(lang, inc_cl, file_inc_dirs)
+                        s = File.from_built_file(target.get_subdir(), s)
+                        ET.SubElement(inc_cl, 'ObjectFileName').text = "$(IntDir)" + \
+                            self.object_filename_from_source(target, s)
             for lang, headers in pch_sources.items():
                 impl = headers[1]
                 if impl and path_normalize_add(impl, previous_sources):
                     self.add_filter_info(list_filters_path, filter_group_compile, 'CLCompile', impl, 'pch')
                     inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=impl)
                     self.create_pch(pch_sources, lang, inc_cl)
-                    self.add_additional_options(lang, inc_cl, file_args)
-                    self.add_preprocessor_defines(lang, inc_cl, file_defines)
-                    pch_header_dir = pch_sources[lang][3]
-                    if pch_header_dir:
-                        inc_dirs = copy.deepcopy(file_inc_dirs)
-                        inc_dirs[lang] = [pch_header_dir] + inc_dirs[lang]
+                    if self.gen_lite:
+                        self.add_project_nmake_defs_incs_and_opts(inc_cl, impl, defs_paths_opts_per_lang_and_buildtype, platform)
                     else:
-                        inc_dirs = file_inc_dirs
-                    self.add_include_dirs(lang, inc_cl, inc_dirs)
-                    # XXX: Do we need to set the object file name here too?
+                        self.add_additional_options(lang, inc_cl, file_args)
+                        self.add_preprocessor_defines(lang, inc_cl, file_defines)
+                        pch_header_dir = pch_sources[lang][3]
+                        if pch_header_dir:
+                            inc_dirs = copy.deepcopy(file_inc_dirs)
+                            inc_dirs[lang] = [pch_header_dir] + inc_dirs[lang]
+                        else:
+                            inc_dirs = file_inc_dirs
+                        self.add_include_dirs(lang, inc_cl, inc_dirs)
+                        # XXX: Do we need to set the object file name here too?
 
         # Filter information
         filter_group = ET.SubElement(root_filter, 'ItemGroup')
@@ -1508,11 +1856,18 @@ class Vs2010Backend(backends.Backend):
             filter = ET.SubElement(filter_group, 'Filter', Include=filter_dir)
             ET.SubElement(filter, 'UniqueIdentifier').text = '{' + str(uuid.uuid4()) + '}'
 
+        additional_objects = []
+        for o in self.flatten_object_list(target, proj_to_build_root)[0]:
+            assert isinstance(o, str)
+            additional_objects.append(o)
+        for o in custom_objs:
+            additional_objects.append(o)
+
         previous_objects = []
         if self.has_objects(objects, additional_objects, gen_objs):
             inc_objs = ET.SubElement(root, 'ItemGroup')
             for s in objects:
-                relpath = os.path.join(down, s.rel_to_builddir(self.build_to_src))
+                relpath = os.path.join(proj_to_build_root, s.rel_to_builddir(self.build_to_src))
                 if path_normalize_add(relpath, previous_objects):
                     ET.SubElement(inc_objs, 'Object', Include=relpath)
             for s in additional_objects:
@@ -1522,80 +1877,191 @@ class Vs2010Backend(backends.Backend):
 
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
         self.add_regen_dependency(root)
-        self.add_target_deps(root, target)
+        if not self.gen_lite:
+            # Injecting further target dependencies into this vcxproj implies and forces a Visual Studio BUILD dependency,
+            # which we don't want when using 'genvslite'.  A gen_lite build as little involvement with the visual studio's
+            # build system as possible.
+            self.add_target_deps(root, target)
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
         self._prettyprint_vcxproj_xml(ET.ElementTree(root_filter), ofname + '.filters')
+        return True
 
-    def gen_regenproj(self, project_name, ofname):
+    def gen_regenproj(self):
+        # To fully adapt the REGEN work for a 'genvslite' solution, to check timestamps, settings, and regenerate the
+        # '[builddir]_vs' solution/vcxprojs, as well as regenerating the accompanying buildtype-suffixed ninja build
+        # directories (from which we need to first collect correct, updated preprocessor defs and compiler options in
+        # order to fill in the regenerated solution's intellisense settings) would require some non-trivial intrusion
+        # into the 'meson --internal regencheck ./meson-private' execution path (and perhaps also the '--internal
+        # regenerate' and even 'meson setup --reconfigure' code).  So, for now, we'll instead give the user a simpler
+        # 'reconfigure' utility project that just runs 'meson setup --reconfigure [builddir]_[buildtype] [srcdir]' on
+        # each of the ninja build dirs.
+        #
+        # FIXME:  That will keep the building and compiling correctly configured but obviously won't update the
+        # solution and vcxprojs, which may allow solution src files and intellisense options to go out-of-date;  the
+        # user would still have to manually 'meson setup --genvslite [vsxxxx] [builddir] [srcdir]' to fully regenerate
+        # a complete and correct solution.
+        if self.gen_lite:
+            project_name = 'RECONFIGURE'
+            ofname = os.path.join(self.environment.get_build_dir(), 'RECONFIGURE.vcxproj')
+            conftype = 'Makefile'
+            # I find the REGEN project doesn't work; it fails to invoke the appropriate -
+            #    python meson.py --internal regencheck builddir\meson-private
+            # command, despite the fact that manually running such a command in a shell runs just fine.
+            # Running/building the regen project produces the error -
+            #    ...Microsoft.CppBuild.targets(460,5): error MSB8020: The build tools for ClangCL (Platform Toolset = 'ClangCL') cannot be found. To build using the ClangCL build tools, please install ...
+            # Not sure why but a simple makefile-style project that executes the full '...regencheck...' command actually works (and seems a little simpler).
+            # Although I've limited this change to only happen under '--genvslite', perhaps ...
+            # FIXME : Should all utility projects use the simpler and less problematic makefile-style project?
+        else:
+            project_name = 'REGEN'
+            ofname = os.path.join(self.environment.get_build_dir(), 'REGEN.vcxproj')
+            conftype = 'Utility'
+
         guid = self.environment.coredata.regen_guid
         (root, type_config) = self.create_basic_project(project_name,
                                                         temp_dir='regen-temp',
-                                                        guid=guid)
+                                                        guid=guid,
+                                                        conftype=conftype
+                                                        )
 
-        action = ET.SubElement(root, 'ItemDefinitionGroup')
-        midl = ET.SubElement(action, 'Midl')
-        ET.SubElement(midl, "AdditionalIncludeDirectories").text = '%(AdditionalIncludeDirectories)'
-        ET.SubElement(midl, "OutputDirectory").text = '$(IntDir)'
-        ET.SubElement(midl, 'HeaderFileName').text = '%(Filename).h'
-        ET.SubElement(midl, 'TypeLibraryName').text = '%(Filename).tlb'
-        ET.SubElement(midl, 'InterfaceIdentifierFilename').text = '%(Filename)_i.c'
-        ET.SubElement(midl, 'ProxyFileName').text = '%(Filename)_p.c'
-        regen_command = self.environment.get_build_command() + ['--internal', 'regencheck']
-        cmd_templ = '''call %s > NUL
+        if self.gen_lite:
+            (nmake_base_meson_command, exe_search_paths) = Vs2010Backend.get_nmake_base_meson_command_and_exe_search_paths()
+            all_configs_prop_group = ET.SubElement(root, 'PropertyGroup')
+
+            # Multi-line command to reconfigure all buildtype-suffixed build dirs
+            multi_config_buildtype_list = coredata.get_genvs_default_buildtype_list()
+            (_, build_dir_tail) = os.path.split(self.src_to_build)
+            proj_to_multiconfigured_builds_parent_dir = '..' # We know this RECONFIGURE.vcxproj will always be in the '[buildir]_vs' dir.
+            proj_to_src_dir = self.build_to_src
+            reconfigure_all_cmd = ''
+            for buildtype in multi_config_buildtype_list:
+                meson_build_dir_for_buildtype = build_dir_tail[:-2] + buildtype # Get the buildtype suffixed 'builddir_[debug/release/etc]' from 'builddir_vs', for example.
+                proj_to_build_dir_for_buildtype = str(os.path.join(proj_to_multiconfigured_builds_parent_dir, meson_build_dir_for_buildtype))
+                reconfigure_all_cmd += f'{nmake_base_meson_command} setup --reconfigure "{proj_to_build_dir_for_buildtype}" "{proj_to_src_dir}"\n'
+            ET.SubElement(all_configs_prop_group, 'NMakeBuildCommandLine').text = reconfigure_all_cmd
+            ET.SubElement(all_configs_prop_group, 'NMakeReBuildCommandLine').text = reconfigure_all_cmd
+            ET.SubElement(all_configs_prop_group, 'NMakeCleanCommandLine').text = ''
+
+            #Need to set the 'ExecutablePath' element for the above NMake... commands to be able to execute
+            ET.SubElement(all_configs_prop_group, 'ExecutablePath').text = exe_search_paths
+        else:
+            action = ET.SubElement(root, 'ItemDefinitionGroup')
+            midl = ET.SubElement(action, 'Midl')
+            ET.SubElement(midl, "AdditionalIncludeDirectories").text = '%(AdditionalIncludeDirectories)'
+            ET.SubElement(midl, "OutputDirectory").text = '$(IntDir)'
+            ET.SubElement(midl, 'HeaderFileName').text = '%(Filename).h'
+            ET.SubElement(midl, 'TypeLibraryName').text = '%(Filename).tlb'
+            ET.SubElement(midl, 'InterfaceIdentifierFilename').text = '%(Filename)_i.c'
+            ET.SubElement(midl, 'ProxyFileName').text = '%(Filename)_p.c'
+            regen_command = self.environment.get_build_command() + ['--internal', 'regencheck']
+            cmd_templ = '''call %s > NUL
 "%s" "%s"'''
-        regen_command = cmd_templ % \
-            (self.get_vcvars_command(), '" "'.join(regen_command), self.environment.get_scratch_dir())
-        self.add_custom_build(root, 'regen', regen_command, deps=self.get_regen_filelist(),
-                              outputs=[Vs2010Backend.get_regen_stampfile(self.environment.get_build_dir())],
-                              msg='Checking whether solution needs to be regenerated.')
+            regen_command = cmd_templ % \
+                (self.get_vcvars_command(), '" "'.join(regen_command), self.environment.get_scratch_dir())
+            self.add_custom_build(root, 'regen', regen_command, deps=self.get_regen_filelist(),
+                                  outputs=[Vs2010Backend.get_regen_stampfile(self.environment.get_build_dir())],
+                                  msg='Checking whether solution needs to be regenerated.')
+
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
         ET.SubElement(root, 'ImportGroup', Label='ExtensionTargets')
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
-    def gen_testproj(self, target_name, ofname):
+    def gen_testproj(self):
+        project_name = 'RUN_TESTS'
+        ofname = os.path.join(self.environment.get_build_dir(), f'{project_name}.vcxproj')
         guid = self.environment.coredata.test_guid
-        (root, type_config) = self.create_basic_project(target_name,
-                                                        temp_dir='test-temp',
-                                                        guid=guid)
+        if self.gen_lite:
+            (root, type_config) = self.create_basic_project(project_name,
+                                                            temp_dir='install-temp',
+                                                            guid=guid,
+                                                            conftype='Makefile'
+                                                            )
+            (nmake_base_meson_command, exe_search_paths) = Vs2010Backend.get_nmake_base_meson_command_and_exe_search_paths()
+            multi_config_buildtype_list = coredata.get_genvs_default_buildtype_list()
+            (_, build_dir_tail) = os.path.split(self.src_to_build)
+            proj_to_multiconfigured_builds_parent_dir = '..' # We know this .vcxproj will always be in the '[buildir]_vs' dir.
+            # Add appropriate 'test' commands for the 'build' action of this project, for all buildtypes
+            for buildtype in multi_config_buildtype_list:
+                meson_build_dir_for_buildtype = build_dir_tail[:-2] + buildtype # Get the buildtype suffixed 'builddir_[debug/release/etc]' from 'builddir_vs', for example.
+                proj_to_build_dir_for_buildtype = str(os.path.join(proj_to_multiconfigured_builds_parent_dir, meson_build_dir_for_buildtype))
+                test_cmd = f'{nmake_base_meson_command} test -C "{proj_to_build_dir_for_buildtype}" --no-rebuild'
+                if not self.environment.coredata.get_option(OptionKey('stdsplit')):
+                    test_cmd += ' --no-stdsplit'
+                if self.environment.coredata.get_option(OptionKey('errorlogs')):
+                    test_cmd += ' --print-errorlogs'
+                condition = f'\'$(Configuration)|$(Platform)\'==\'{buildtype}|{self.platform}\''
+                prop_group = ET.SubElement(root, 'PropertyGroup', Condition=condition)
+                ET.SubElement(prop_group, 'NMakeBuildCommandLine').text = test_cmd
+                #Need to set the 'ExecutablePath' element for the NMake... commands to be able to execute
+                ET.SubElement(prop_group, 'ExecutablePath').text = exe_search_paths
+        else:
+            (root, type_config) = self.create_basic_project(project_name,
+                                                            temp_dir='test-temp',
+                                                            guid=guid)
 
-        action = ET.SubElement(root, 'ItemDefinitionGroup')
-        midl = ET.SubElement(action, 'Midl')
-        ET.SubElement(midl, "AdditionalIncludeDirectories").text = '%(AdditionalIncludeDirectories)'
-        ET.SubElement(midl, "OutputDirectory").text = '$(IntDir)'
-        ET.SubElement(midl, 'HeaderFileName').text = '%(Filename).h'
-        ET.SubElement(midl, 'TypeLibraryName').text = '%(Filename).tlb'
-        ET.SubElement(midl, 'InterfaceIdentifierFilename').text = '%(Filename)_i.c'
-        ET.SubElement(midl, 'ProxyFileName').text = '%(Filename)_p.c'
-        # FIXME: No benchmarks?
-        test_command = self.environment.get_build_command() + ['test', '--no-rebuild']
-        if not self.environment.coredata.get_option(OptionKey('stdsplit')):
-            test_command += ['--no-stdsplit']
-        if self.environment.coredata.get_option(OptionKey('errorlogs')):
-            test_command += ['--print-errorlogs']
-        self.serialize_tests()
-        self.add_custom_build(root, 'run_tests', '"%s"' % ('" "'.join(test_command)))
+            action = ET.SubElement(root, 'ItemDefinitionGroup')
+            midl = ET.SubElement(action, 'Midl')
+            ET.SubElement(midl, "AdditionalIncludeDirectories").text = '%(AdditionalIncludeDirectories)'
+            ET.SubElement(midl, "OutputDirectory").text = '$(IntDir)'
+            ET.SubElement(midl, 'HeaderFileName').text = '%(Filename).h'
+            ET.SubElement(midl, 'TypeLibraryName').text = '%(Filename).tlb'
+            ET.SubElement(midl, 'InterfaceIdentifierFilename').text = '%(Filename)_i.c'
+            ET.SubElement(midl, 'ProxyFileName').text = '%(Filename)_p.c'
+            # FIXME: No benchmarks?
+            test_command = self.environment.get_build_command() + ['test', '--no-rebuild']
+            if not self.environment.coredata.get_option(OptionKey('stdsplit')):
+                test_command += ['--no-stdsplit']
+            if self.environment.coredata.get_option(OptionKey('errorlogs')):
+                test_command += ['--print-errorlogs']
+            self.serialize_tests()
+            self.add_custom_build(root, 'run_tests', '"%s"' % ('" "'.join(test_command)))
+
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
         self.add_regen_dependency(root)
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
-    def gen_installproj(self, target_name, ofname):
-        self.create_install_data_files()
-
+    def gen_installproj(self):
+        project_name = 'RUN_INSTALL'
+        ofname = os.path.join(self.environment.get_build_dir(), f'{project_name}.vcxproj')
         guid = self.environment.coredata.install_guid
-        (root, type_config) = self.create_basic_project(target_name,
-                                                        temp_dir='install-temp',
-                                                        guid=guid)
+        if self.gen_lite:
+            (root, type_config) = self.create_basic_project(project_name,
+                                                            temp_dir='install-temp',
+                                                            guid=guid,
+                                                            conftype='Makefile'
+                                                            )
+            (nmake_base_meson_command, exe_search_paths) = Vs2010Backend.get_nmake_base_meson_command_and_exe_search_paths()
+            multi_config_buildtype_list = coredata.get_genvs_default_buildtype_list()
+            (_, build_dir_tail) = os.path.split(self.src_to_build)
+            proj_to_multiconfigured_builds_parent_dir = '..' # We know this .vcxproj will always be in the '[buildir]_vs' dir.
+            # Add appropriate 'install' commands for the 'build' action of this project, for all buildtypes
+            for buildtype in multi_config_buildtype_list:
+                meson_build_dir_for_buildtype = build_dir_tail[:-2] + buildtype # Get the buildtype suffixed 'builddir_[debug/release/etc]' from 'builddir_vs', for example.
+                proj_to_build_dir_for_buildtype = str(os.path.join(proj_to_multiconfigured_builds_parent_dir, meson_build_dir_for_buildtype))
+                install_cmd = f'{nmake_base_meson_command} install -C "{proj_to_build_dir_for_buildtype}" --no-rebuild'
+                condition = f'\'$(Configuration)|$(Platform)\'==\'{buildtype}|{self.platform}\''
+                prop_group = ET.SubElement(root, 'PropertyGroup', Condition=condition)
+                ET.SubElement(prop_group, 'NMakeBuildCommandLine').text = install_cmd
+                #Need to set the 'ExecutablePath' element for the NMake... commands to be able to execute
+                ET.SubElement(prop_group, 'ExecutablePath').text = exe_search_paths
+        else:
+            self.create_install_data_files()
 
-        action = ET.SubElement(root, 'ItemDefinitionGroup')
-        midl = ET.SubElement(action, 'Midl')
-        ET.SubElement(midl, "AdditionalIncludeDirectories").text = '%(AdditionalIncludeDirectories)'
-        ET.SubElement(midl, "OutputDirectory").text = '$(IntDir)'
-        ET.SubElement(midl, 'HeaderFileName').text = '%(Filename).h'
-        ET.SubElement(midl, 'TypeLibraryName').text = '%(Filename).tlb'
-        ET.SubElement(midl, 'InterfaceIdentifierFilename').text = '%(Filename)_i.c'
-        ET.SubElement(midl, 'ProxyFileName').text = '%(Filename)_p.c'
-        install_command = self.environment.get_build_command() + ['install', '--no-rebuild']
-        self.add_custom_build(root, 'run_install', '"%s"' % ('" "'.join(install_command)))
+            (root, type_config) = self.create_basic_project(project_name,
+                                                            temp_dir='install-temp',
+                                                            guid=guid)
+
+            action = ET.SubElement(root, 'ItemDefinitionGroup')
+            midl = ET.SubElement(action, 'Midl')
+            ET.SubElement(midl, "AdditionalIncludeDirectories").text = '%(AdditionalIncludeDirectories)'
+            ET.SubElement(midl, "OutputDirectory").text = '$(IntDir)'
+            ET.SubElement(midl, 'HeaderFileName').text = '%(Filename).h'
+            ET.SubElement(midl, 'TypeLibraryName').text = '%(Filename).tlb'
+            ET.SubElement(midl, 'InterfaceIdentifierFilename').text = '%(Filename)_i.c'
+            ET.SubElement(midl, 'ProxyFileName').text = '%(Filename)_p.c'
+            install_command = self.environment.get_build_command() + ['install', '--no-rebuild']
+            self.add_custom_build(root, 'run_install', '"%s"' % ('" "'.join(install_command)))
+
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
         self.add_regen_dependency(root)
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
@@ -1643,8 +2109,11 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(link, 'GenerateDebugInformation').text = 'true'
 
     def add_regen_dependency(self, root: ET.Element) -> None:
-        regen_vcxproj = os.path.join(self.environment.get_build_dir(), 'REGEN.vcxproj')
-        self.add_project_reference(root, regen_vcxproj, self.environment.coredata.regen_guid)
+        # For now, with 'genvslite' solutions, REGEN is replaced by the lighter-weight RECONFIGURE utility that is
+        # no longer a forced build dependency.  See comment in 'gen_regenproj'
+        if not self.gen_lite:
+            regen_vcxproj = os.path.join(self.environment.get_build_dir(), 'REGEN.vcxproj')
+            self.add_project_reference(root, regen_vcxproj, self.environment.coredata.regen_guid)
 
     def generate_lang_standard_info(self, file_args: T.Dict[str, CompilerArgs], clconf: ET.Element) -> None:
         pass
