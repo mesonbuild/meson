@@ -15,13 +15,13 @@ import zipfile
 
 from . import mlog
 from .mesonlib import quiet_git, GitException, Popen_safe, MesonException, windows_proof_rmtree
-from .wrap.wrap import Resolver, WrapException, ALL_TYPES
-from .wrap import wraptool
+from .wrap.wrap import (Resolver, WrapException, ALL_TYPES, PackageDefinition,
+                        parse_patch_url, update_wrap_file, get_releases)
 
 if T.TYPE_CHECKING:
     from typing_extensions import Protocol
 
-    from .wrap.wrap import PackageDefinition
+    SubParsers = argparse._SubParsersAction[argparse.ArgumentParser]
 
     class Arguments(Protocol):
         sourcedir: str
@@ -34,6 +34,10 @@ if T.TYPE_CHECKING:
     class UpdateArguments(Arguments):
         rebase: bool
         reset: bool
+
+    class UpdateWrapDBArguments(Arguments):
+        force: bool
+        releases: T.Dict[str, T.Any]
 
     class CheckoutArguments(Arguments):
         b: bool
@@ -130,21 +134,53 @@ class Runner:
         self.logger.done(self.wrap.name, self.log_queue)
         return result
 
-    def update_wrapdb_file(self) -> None:
+    @staticmethod
+    def pre_update_wrapdb(options: 'UpdateWrapDBArguments') -> None:
+        options.releases = get_releases(options.allow_insecure)
+
+    def update_wrapdb(self) -> bool:
+        self.log(f'Checking latest WrapDB version for {self.wrap.name}...')
+        options = T.cast('UpdateWrapDBArguments', self.options)
+
+        # Check if this wrap is in WrapDB
+        info = options.releases.get(self.wrap.name)
+        if not info:
+            self.log('  -> Wrap not found in wrapdb')
+            return True
+
+        # Determine current version
         try:
-            patch_url = self.wrap.get('patch_url')
-            branch, revision = wraptool.parse_patch_url(patch_url)
+            wrapdb_version = self.wrap.get('wrapdb_version')
+            branch, revision = wrapdb_version.split('-', 1)
         except WrapException:
-            return
-        new_branch, new_revision = wraptool.get_latest_version(self.wrap.name, self.options.allow_insecure)
+            # Fallback to parsing the patch URL to determine current version.
+            # This won't work for projects that have upstream Meson support.
+            try:
+                patch_url = self.wrap.get('patch_url')
+                branch, revision = parse_patch_url(patch_url)
+            except WrapException:
+                if not options.force:
+                    self.log('  ->', mlog.red('Could not determine current version, use --force to update any way'))
+                    return False
+                branch = revision = None
+
+        # Download latest wrap if version differs
+        latest_version = info['versions'][0]
+        new_branch, new_revision = latest_version.rsplit('-', 1)
         if new_branch != branch or new_revision != revision:
-            wraptool.update_wrap_file(self.wrap.filename, self.wrap.name, new_branch, new_revision, self.options.allow_insecure)
-            self.log('  -> New wrap file downloaded.')
+            filename = self.wrap.filename if self.wrap.has_wrap else f'{self.wrap.filename}.wrap'
+            update_wrap_file(filename, self.wrap.name,
+                             new_branch, new_revision,
+                             options.allow_insecure)
+            self.log('  -> New version downloaded:', mlog.blue(latest_version))
+        else:
+            self.log('  -> Already at latest version:', mlog.blue(latest_version))
+
+        return True
 
     def update_file(self) -> bool:
         options = T.cast('UpdateArguments', self.options)
 
-        self.update_wrapdb_file()
         if not os.path.isdir(self.repo_dir):
             # The subproject is not needed, or it is a tarball extracted in
             # 'libfoo-1.0' directory and the version has been bumped and the new
@@ -591,6 +627,16 @@ def add_subprojects_argument(p: argparse.ArgumentParser) -> None:
     p.add_argument('subprojects', nargs='*',
                    help='List of subprojects (default: all)')
 
+def add_wrap_update_parser(subparsers: 'SubParsers') -> argparse.ArgumentParser:
+    p = subparsers.add_parser('update', help='Update wrap files from WrapDB (Since 0.63.0)')
+    p.add_argument('--force', default=False, action='store_true',
+                   help='Update wraps that does not seems to come from WrapDB')
+    add_common_arguments(p)
+    add_subprojects_argument(p)
+    p.set_defaults(subprojects_func=Runner.update_wrapdb)
+    p.set_defaults(pre_func=Runner.pre_update_wrapdb)
+    return p
+
 def add_arguments(parser: argparse.ArgumentParser) -> None:
     subparsers = parser.add_subparsers(title='Commands', dest='command')
     subparsers.required = True
@@ -669,6 +715,9 @@ def run(options: 'Arguments') -> int:
     executor = ThreadPoolExecutor(options.num_processes)
     if types:
         wraps = [wrap for wrap in wraps if wrap.type in types]
+    pre_func = getattr(options, 'pre_func', None)
+    if pre_func:
+        pre_func(options)
     logger = Logger(len(wraps))
     for wrap in wraps:
         dirname = Path(subprojects_dir, wrap.directory).as_posix()

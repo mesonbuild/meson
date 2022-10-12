@@ -107,6 +107,36 @@ def open_wrapdburl(urlstring: str, allow_insecure: bool = False, have_opt: bool 
     except urllib.error.URLError as excp:
         raise WrapException(f'WrapDB connection failed to {urlstring} with error {excp}')
 
+def get_releases_data(allow_insecure: bool) -> bytes:
+    url = open_wrapdburl('https://wrapdb.mesonbuild.com/v2/releases.json', allow_insecure, True)
+    return url.read()
+
+def get_releases(allow_insecure: bool) -> T.Dict[str, T.Any]:
+    data = get_releases_data(allow_insecure)
+    return T.cast('T.Dict[str, T.Any]', json.loads(data.decode()))
+
+def update_wrap_file(wrapfile: str, name: str, new_version: str, new_revision: str, allow_insecure: bool) -> None:
+    url = open_wrapdburl(f'https://wrapdb.mesonbuild.com/v2/{name}_{new_version}-{new_revision}/{name}.wrap',
+                         allow_insecure, True)
+    with open(wrapfile, 'wb') as f:
+        f.write(url.read())
+
+def parse_patch_url(patch_url: str) -> T.Tuple[str, str]:
+    u = urllib.parse.urlparse(patch_url)
+    if u.netloc != 'wrapdb.mesonbuild.com':
+        raise WrapException(f'URL {patch_url} does not seems to be a wrapdb patch')
+    arr = u.path.strip('/').split('/')
+    if arr[0] == 'v1':
+        # e.g. https://wrapdb.mesonbuild.com/v1/projects/zlib/1.2.11/5/get_zip
+        return arr[-3], arr[-2]
+    elif arr[0] == 'v2':
+        # e.g. https://wrapdb.mesonbuild.com/v2/zlib_1.2.11-5/get_patch
+        tag = arr[-2]
+        _, version = tag.rsplit('_', 1)
+        version, revision = version.rsplit('-', 1)
+        return version, revision
+    else:
+        raise WrapException(f'Invalid wrapdb URL {patch_url}')
 
 class WrapException(MesonException):
     pass
@@ -283,17 +313,17 @@ class Resolver:
         if not os.path.isdir(self.subdir_root):
             return
         root, dirs, files = next(os.walk(self.subdir_root))
+        ignore_dirs = {'packagecache', 'packagefiles'}
         for i in files:
             if not i.endswith('.wrap'):
                 continue
             fname = os.path.join(self.subdir_root, i)
             wrap = PackageDefinition(fname, self.subproject)
             self.wraps[wrap.name] = wrap
-            if wrap.directory in dirs:
-                dirs.remove(wrap.directory)
+            ignore_dirs |= {wrap.directory, wrap.name}
         # Add dummy package definition for directories not associated with a wrap file.
         for i in dirs:
-            if i in ['packagecache', 'packagefiles']:
+            if i in ignore_dirs:
                 continue
             fname = os.path.join(self.subdir_root, i)
             wrap = PackageDefinition(fname, self.subproject)
