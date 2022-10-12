@@ -193,10 +193,6 @@ class CompilerHolder(ObjectHolder['Compiler']):
     def _dep_msg(self, deps: T.List['dependencies.Dependency'], compile_only: bool, endl: str) -> str:
         msg_single = 'with dependency {}'
         msg_many = 'with dependencies {}'
-        if not deps:
-            return endl
-        if endl is None:
-            endl = ''
         names = []
         for d in deps:
             if isinstance(d, dependencies.InternalDependency):
@@ -211,8 +207,10 @@ class CompilerHolder(ObjectHolder['Compiler']):
                 name = d.name
             names.append(name)
         if not names:
-            return None
+            return endl
         tpl = msg_many if len(names) > 1 else msg_single
+        if endl is None:
+            endl = ''
         return tpl.format(', '.join(names)) + endl
 
     @noPosargs
