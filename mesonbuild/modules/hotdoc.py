@@ -328,7 +328,7 @@ class HotdocTargetBuilder:
             self.cmd.extend(['--include-path', path])
 
         if self.state.environment.coredata.get_option(mesonlib.OptionKey('werror', subproject=self.state.subproject)):
-            self.cmd.append('--fatal-warning')
+            self.cmd.append('--fatal-warnings')
         self.generate_hotdoc_config()
 
         target_cmd = self.build_command + ["--internal", "hotdoc"] + \
