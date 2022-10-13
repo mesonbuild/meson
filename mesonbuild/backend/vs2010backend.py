@@ -683,6 +683,23 @@ class Vs2010Backend(backends.Backend):
         self.add_target_deps(root, target)
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
+    def gen_compile_target_vcxproj(self, target, ofname, guid):
+        if target.for_machine is MachineChoice.BUILD:
+            platform = self.build_platform
+        else:
+            platform = self.platform
+        (root, type_config) = self.create_basic_project(target.name,
+                                                        temp_dir=target.get_id(),
+                                                        guid=guid,
+                                                        target_platform=platform)
+        ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
+        target.generated = [self.compile_target_to_generator(target)]
+        target.sources = []
+        self.generate_custom_generator_commands(target, root)
+        self.add_regen_dependency(root)
+        self.add_target_deps(root, target)
+        self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
+
     @classmethod
     def lang_from_source_file(cls, src):
         ext = src.split('.')[-1]
@@ -876,6 +893,8 @@ class Vs2010Backend(backends.Backend):
             return self.gen_custom_target_vcxproj(target, ofname, guid)
         elif isinstance(target, build.RunTarget):
             return self.gen_run_target_vcxproj(target, ofname, guid)
+        elif isinstance(target, build.CompileTarget):
+            return self.gen_compile_target_vcxproj(target, ofname, guid)
         else:
             raise MesonException(f'Unknown target type for {target.get_basename()}')
         # Prefix to use to access the build root from the vcxproj dir
