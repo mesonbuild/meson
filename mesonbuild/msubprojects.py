@@ -180,15 +180,7 @@ class Runner:
 
     def update_file(self) -> bool:
         options = T.cast('UpdateArguments', self.options)
-
-        if not os.path.isdir(self.repo_dir):
-            # The subproject is not needed, or it is a tarball extracted in
-            # 'libfoo-1.0' directory and the version has been bumped and the new
-            # directory is 'libfoo-2.0'. In that case forcing a meson
-            # reconfigure will download and use the new tarball.
-            self.log('  -> Not used.')
-            return True
-        elif options.reset:
+        if options.reset:
             # Delete existing directory and redownload. It is possible that nothing
             # changed but we have no way to know. Hopefully tarballs are still
             # cached.
@@ -287,10 +279,6 @@ class Runner:
 
     def update_git(self) -> bool:
         options = T.cast('UpdateArguments', self.options)
-
-        if not os.path.isdir(self.repo_dir):
-            self.log('  -> Not used.')
-            return True
         if not os.path.exists(os.path.join(self.repo_dir, '.git')):
             if options.reset:
                 # Delete existing directory and redownload
@@ -395,9 +383,6 @@ class Runner:
         self.git_show()
 
     def update_hg(self) -> bool:
-        if not os.path.isdir(self.repo_dir):
-            self.log('  -> Not used.')
-            return True
         revno = self.wrap.get('revision')
         if revno.lower() == 'tip':
             # Failure to do pull is not a fatal error,
@@ -411,9 +396,6 @@ class Runner:
         return True
 
     def update_svn(self) -> bool:
-        if not os.path.isdir(self.repo_dir):
-            self.log('  -> Not used.')
-            return True
         revno = self.wrap.get('revision')
         _, out, _ = Popen_safe(['svn', 'info', '--show-item', 'revision', self.repo_dir])
         current_revno = out
@@ -431,7 +413,11 @@ class Runner:
     def update(self) -> bool:
         self.log(f'Updating {self.wrap.name}...')
         success = False
-        if self.wrap.type == 'file':
+        if not os.path.isdir(self.repo_dir):
+            self.log('  -> Not used.')
+            # It is not an error if we are updating all subprojects.
+            success = not self.options.subprojects
+        elif self.wrap.type == 'file':
             success = self.update_file()
         elif self.wrap.type == 'git':
             success = self.update_git()
@@ -441,10 +427,12 @@ class Runner:
             success = self.update_svn()
         elif self.wrap.type is None:
             self.log('  -> Cannot update subproject with no wrap file')
+            # It is not an error if we are updating all subprojects.
+            success = not self.options.subprojects
         else:
             self.log('  -> Cannot update', self.wrap.type, 'subproject')
-        if success:
-            self.wrap.update_hash_cache(self.wrap_resolver.dirname)
+        if success and os.path.isdir(self.repo_dir):
+            self.wrap.update_hash_cache(self.repo_dir)
         return success
 
     def checkout(self) -> bool:
