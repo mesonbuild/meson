@@ -1983,7 +1983,7 @@ class NinjaBackend(backends.Backend):
 
     @classmethod
     def compiler_to_rule_name(cls, compiler: Compiler) -> str:
-        return cls.get_compiler_rule_name(compiler.get_language(), compiler.for_machine)
+        return cls.get_compiler_rule_name(compiler.get_language(), compiler.for_machine, compiler.mode)
 
     @classmethod
     def compiler_to_pch_rule_name(cls, compiler: Compiler) -> str:
@@ -2362,6 +2362,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                     self.generate_llvm_ir_compile_rule(compiler)
                 self.generate_compile_rule_for(langname, compiler)
                 self.generate_pch_rule_for(langname, compiler)
+                for mode in compiler.get_modes():
+                    self.generate_compile_rule_for(langname, mode)
 
     def generate_generator_list_rules(self, target):
         # CustomTargets have already written their rules and

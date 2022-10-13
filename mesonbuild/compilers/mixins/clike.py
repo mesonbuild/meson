@@ -27,6 +27,7 @@ import itertools
 import os
 import re
 import subprocess
+import copy
 import typing as T
 from pathlib import Path
 
@@ -145,6 +146,8 @@ class CLikeCompiler(Compiler):
             self.exe_wrapper = None
         else:
             self.exe_wrapper = exe_wrapper
+        # Lazy initialized in get_preprocessor()
+        self.preprocessor: T.Optional[Compiler] = None
 
     def compiler_args(self, args: T.Optional[T.Iterable[str]] = None) -> CLikeCompilerArgs:
         # This is correct, mypy just doesn't understand co-operative inheritance
@@ -1328,3 +1331,18 @@ class CLikeCompiler(Compiler):
 
     def get_disable_assert_args(self) -> T.List[str]:
         return ['-DNDEBUG']
+
+    @functools.lru_cache(maxsize=None)
+    def can_compile(self, src: 'mesonlib.FileOrString') -> bool:
+        # Files we preprocess can be anything, e.g. .in
+        if self.mode == 'PREPROCESSOR':
+            return True
+        return super().can_compile(src)
+
+    def get_preprocessor(self) -> Compiler:
+        if not self.preprocessor:
+            self.preprocessor = copy.copy(self)
+            self.preprocessor.exelist = self.exelist + self.get_preprocess_to_file_args()
+            self.preprocessor.mode = 'PREPROCESSOR'
+            self.modes.append(self.preprocessor)
+        return self.preprocessor

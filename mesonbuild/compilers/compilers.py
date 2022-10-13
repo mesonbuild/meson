@@ -494,6 +494,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     language: str
     id: str
     warn_args: T.Dict[str, T.List[str]]
+    mode: str = 'COMPILER'
 
     def __init__(self, exelist: T.List[str], version: str,
                  for_machine: MachineChoice, info: 'MachineInfo',
@@ -513,6 +514,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         self.linker = linker
         self.info = info
         self.is_cross = is_cross
+        self.modes: T.List[Compiler] = []
 
     def __repr__(self) -> str:
         repr_str = "<{0}: v{1} `{2}`>"
@@ -530,6 +532,9 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
 
     def get_id(self) -> str:
         return self.id
+
+    def get_modes(self) -> T.List[Compiler]:
+        return self.modes
 
     def get_linker_id(self) -> str:
         # There is not guarantee that we have a dynamic linker instance, as
@@ -1050,6 +1055,9 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def get_preprocess_only_args(self) -> T.List[str]:
         raise EnvironmentException('This compiler does not have a preprocessor')
 
+    def get_preprocess_to_file_args(self) -> T.List[str]:
+        return self.get_preprocess_only_args()
+
     def get_default_include_dirs(self) -> T.List[str]:
         # TODO: This is a candidate for returning an immutable list
         return []
@@ -1290,6 +1298,10 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def needs_static_linker(self) -> bool:
         raise NotImplementedError(f'There is no static linker for {self.language}')
 
+    def get_preprocessor(self) -> Compiler:
+        """Get compiler's preprocessor.
+        """
+        raise EnvironmentException(f'{self.get_id()} does not support preprocessor')
 
 def get_global_options(lang: str,
                        comp: T.Type[Compiler],
