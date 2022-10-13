@@ -792,6 +792,8 @@ class Backend:
 
     def object_filename_from_source(self, target: build.BuildTarget, source: 'FileOrString') -> str:
         assert isinstance(source, mesonlib.File)
+        if isinstance(target, build.CompileTarget):
+            return target.sources_map[source]
         build_dir = self.environment.get_build_dir()
         rel_src = source.rel_to_builddir(self.build_to_src)
 

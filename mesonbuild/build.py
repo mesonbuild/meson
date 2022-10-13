@@ -2581,6 +2581,44 @@ class CustomTarget(Target, CommandBase):
     def __len__(self) -> int:
         return len(self.outputs)
 
+class CompileTarget(BuildTarget):
+    '''
+    Target that only compile sources without linking them together.
+    It can be used as preprocessor, or transpiler.
+    '''
+
+    typename = 'compile'
+
+    def __init__(self,
+                 name: str,
+                 subdir: str,
+                 subproject: str,
+                 environment: environment.Environment,
+                 sources: T.List[File],
+                 output_templ: str,
+                 compiler: Compiler,
+                 kwargs):
+        compilers = {compiler.get_language(): compiler}
+        super().__init__(name, subdir, subproject, compiler.for_machine,
+                         sources, None, [], environment, compilers, kwargs)
+        self.filename = name
+        self.compiler = compiler
+        self.output_templ = output_templ
+        self.outputs = []
+        for f in sources:
+            plainname = os.path.basename(f.fname)
+            basename = os.path.splitext(plainname)[0]
+            self.outputs.append(output_templ.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname))
+        self.sources_map = dict(zip(sources, self.outputs))
+
+    def type_suffix(self) -> str:
+        return "@compile"
+
+    @property
+    def is_unity(self) -> bool:
+        return False
+
+
 class RunTarget(Target, CommandBase):
 
     typename = 'run'
@@ -2705,7 +2743,7 @@ class CustomTargetIndex(HoldableObject):
 
     typename: T.ClassVar[str] = 'custom'
 
-    target: CustomTarget
+    target: T.Union[CustomTarget, CompileTarget]
     output: str
 
     def __post_init__(self) -> None:
@@ -2716,8 +2754,7 @@ class CustomTargetIndex(HoldableObject):
         return f'{self.target.name}[{self.output}]'
 
     def __repr__(self):
-        return '<CustomTargetIndex: {!r}[{}]>'.format(
-            self.target, self.target.get_outputs().index(self.output))
+        return '<CustomTargetIndex: {!r}[{}]>'.format(self.target, self.output)
 
     def get_outputs(self) -> T.List[str]:
         return [self.output]

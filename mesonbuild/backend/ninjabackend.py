@@ -986,6 +986,9 @@ class NinjaBackend(backends.Backend):
                 obj_list.append(o)
                 compiled_sources.append(s)
                 source2object[s] = o
+        if isinstance(target, build.CompileTarget):
+            # Skip the link stage for this special type of target
+            return
         linker, stdlib_args = self.determine_linker_and_stdlib_args(target)
         if isinstance(target, build.StaticLibrary) and target.prelink:
             final_obj_list = self.generate_prelink(target, obj_list)
