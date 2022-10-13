@@ -666,10 +666,10 @@ class NinjaBackend(backends.Backend):
         # TODO: Rather than an explicit list here, rules could be marked in the
         # rule store as being wanted in compdb
         for for_machine in MachineChoice:
-            for lang in self.environment.coredata.compilers[for_machine]:
-                rules += [f"{rule}{ext}" for rule in [self.get_compiler_rule_name(lang, for_machine)]
+            for compiler in self.environment.coredata.compilers[for_machine].values():
+                rules += [f"{rule}{ext}" for rule in [self.compiler_to_rule_name(compiler)]
                           for ext in ['', '_RSP']]
-                rules += [f"{rule}{ext}" for rule in [self.get_pch_rule_name(lang, for_machine)]
+                rules += [f"{rule}{ext}" for rule in [self.compiler_to_pch_rule_name(compiler)]
                           for ext in ['', '_RSP']]
         compdb_options = ['-x'] if mesonlib.version_compare(self.ninja_version, '>=1.9') else []
         ninja_compdb = self.ninja_command + ['-t', 'compdb'] + compdb_options + rules
@@ -1426,7 +1426,7 @@ class NinjaBackend(backends.Backend):
         commands += self.build.get_project_args(compiler, target.subproject, target.for_machine)
         commands += self.build.get_global_args(compiler, target.for_machine)
 
-        elem = NinjaBuildElement(self.all_outputs, outputs, self.get_compiler_rule_name('cs', target.for_machine), rel_srcs + generated_rel_srcs)
+        elem = NinjaBuildElement(self.all_outputs, outputs, self.compiler_to_rule_name(compiler), rel_srcs + generated_rel_srcs)
         elem.add_dep(deps)
         elem.add_item('ARGS', commands)
         self.add_build(elem)
@@ -1959,7 +1959,7 @@ class NinjaBackend(backends.Backend):
                                      getattr(target, 'rust_crate_type', '') == 'procmacro',
                                      output, project_deps)
 
-        compiler_name = self.get_compiler_rule_name('rust', target.for_machine)
+        compiler_name = self.compiler_to_rule_name(rustc)
         element = NinjaBuildElement(self.all_outputs, target_name, compiler_name, main_rust_file)
         if orderdeps:
             element.add_orderdep(orderdeps)
@@ -1978,12 +1978,8 @@ class NinjaBackend(backends.Backend):
         return PerMachine('_FOR_BUILD', '')[for_machine]
 
     @classmethod
-    def get_compiler_rule_name(cls, lang: str, for_machine: MachineChoice) -> str:
-        return '{}_COMPILER{}'.format(lang, cls.get_rule_suffix(for_machine))
-
-    @classmethod
-    def get_pch_rule_name(cls, lang: str, for_machine: MachineChoice) -> str:
-        return '{}_PCH{}'.format(lang, cls.get_rule_suffix(for_machine))
+    def get_compiler_rule_name(cls, lang: str, for_machine: MachineChoice, mode: str = 'COMPILER') -> str:
+        return f'{lang}_{mode}{cls.get_rule_suffix(for_machine)}'
 
     @classmethod
     def compiler_to_rule_name(cls, compiler: Compiler) -> str:
@@ -1991,7 +1987,7 @@ class NinjaBackend(backends.Backend):
 
     @classmethod
     def compiler_to_pch_rule_name(cls, compiler: Compiler) -> str:
-        return cls.get_pch_rule_name(compiler.get_language(), compiler.for_machine)
+        return cls.get_compiler_rule_name(compiler.get_language(), compiler.for_machine, 'PCH')
 
     def swift_module_file_name(self, target):
         return os.path.join(self.get_target_private_dir(target),
@@ -2090,7 +2086,7 @@ class NinjaBackend(backends.Backend):
             objects.append(oname)
             rel_objects.append(os.path.join(self.get_target_private_dir(target), oname))
 
-        rulename = self.get_compiler_rule_name('swift', target.for_machine)
+        rulename = self.compiler_to_rule_name(swiftc)
 
         # Swiftc does not seem to be able to emit objects and module files in one go.
         elem = NinjaBuildElement(self.all_outputs, rel_objects, rulename, abssrc)
@@ -2099,9 +2095,7 @@ class NinjaBackend(backends.Backend):
         elem.add_item('ARGS', compile_args + header_imports + abs_generated + module_includes)
         elem.add_item('RUNDIR', rundir)
         self.add_build(elem)
-        elem = NinjaBuildElement(self.all_outputs, out_module_name,
-                                 self.get_compiler_rule_name('swift', target.for_machine),
-                                 abssrc)
+        elem = NinjaBuildElement(self.all_outputs, out_module_name, rulename, abssrc)
         elem.add_dep(in_module_files + rel_generated)
         elem.add_item('ARGS', compile_args + abs_generated + module_includes + swiftc.get_mod_gen_args())
         elem.add_item('RUNDIR', rundir)
@@ -2312,7 +2306,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         crstr = self.get_rule_suffix(compiler.for_machine)
         if langname == 'fortran':
             self.generate_fortran_dep_hack(crstr)
-        rule = self.get_compiler_rule_name(langname, compiler.for_machine)
+        rule = self.compiler_to_rule_name(compiler)
         depargs = NinjaCommandArg.list(compiler.get_dependency_gen_args('$out', '$DEPFILE'), Quoting.none)
         command = compiler.get_exelist()
         args = ['$ARGS'] + depargs + NinjaCommandArg.list(compiler.get_output_args('$out'), Quoting.none) + compiler.get_compile_only_args() + ['$in']
