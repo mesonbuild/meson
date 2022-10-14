@@ -1422,6 +1422,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         if 'vala' in langs and 'c' not in langs:
             FeatureNew.single_use('Adding Vala language without C', '0.59.0', self.subproject, location=self.current_node)
             args.append('c')
+        if 'nasm' in langs:
+            FeatureNew.single_use('Adding NASM language', '0.64.0', self.subproject, location=self.current_node)
 
         success = True
         for lang in sorted(args, key=compilers.sort_clink):
