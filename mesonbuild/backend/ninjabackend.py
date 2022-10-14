@@ -2824,7 +2824,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         element.add_dep(pch_dep)
         for i in self.get_fortran_orderdeps(target, compiler):
             element.add_orderdep(i)
-        element.add_item('DEPFILE', dep_file)
+        if dep_file:
+            element.add_item('DEPFILE', dep_file)
         element.add_item('ARGS', commands)
 
         self.add_dependency_scanner_entries_to_element(target, compiler, element, src)

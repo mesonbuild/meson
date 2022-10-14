@@ -1147,7 +1147,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
         return []
 
-    def depfile_for_object(self, objfile: str) -> str:
+    def depfile_for_object(self, objfile: str) -> T.Optional[str]:
         return objfile + '.' + self.get_depfile_suffix()
 
     def get_depfile_suffix(self) -> str:
