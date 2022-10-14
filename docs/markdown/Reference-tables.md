@@ -38,6 +38,8 @@ These are return values of the `get_id` (Compiler family) and
 | cython    | The Cython compiler              |                 |
 | nasm      | The NASM compiler (Since 0.64.0) |                 |
 | yasm      | The YASM compiler (Since 0.64.0) |                 |
+| ml        | Microsoft Macro Assembler for x86 and x86_64 (Since 0.64.0) | msvc |
+| armasm    | Microsoft Macro Assembler for ARM and AARCH64 (Since 0.64.0) | |
 
 ## Linker ids
 
@@ -169,7 +171,8 @@ These are the parameter names for passing language specific arguments to your bu
 | Rust          | rust_args     | rust_link_args    |
 | Vala          | vala_args     | vala_link_args    |
 | Cython        | cython_args   | cython_link_args  |
-| NASM          | nasm_args     |                   |
+| NASM          | nasm_args     | N/A               |
+| MASM          | masm_args     | N/A               |
 
 All these `<lang>_*` options are specified per machine. See in
 [specifying options per
