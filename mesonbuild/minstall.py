@@ -548,6 +548,7 @@ class Installer:
                 self.install_emptydir(d, dm, destdir, fullprefix)
                 self.install_data(d, dm, destdir, fullprefix)
                 self.install_symlinks(d, dm, destdir, fullprefix)
+                self.install_opaque(d, dm, destdir, fullprefix)
                 self.restore_selinux_contexts(destdir)
                 self.run_install_script(d, destdir, fullprefix)
                 if not self.did_install_something:
@@ -603,6 +604,19 @@ class Installer:
             dm.makedirs(full_dst_dir, exist_ok=True)
             if self.do_symlink(s.target, full_link_name, destdir, full_dst_dir, s.allow_missing):
                 self.did_install_something = True
+
+    def install_opaque(self, d: InstallData, dm: DirMaker, destdir: str, fullprefix: str) -> None:
+        for s in d.install_opaque:
+            from_dir, dst_dir = s
+            from_dir_abs = os.path.join(d.build_dir, from_dir)
+            full_dst_dir = get_destdir_path(destdir, fullprefix, dst_dir)
+            from_path = Path(from_dir_abs)
+            for f in from_path.glob('*'):
+                if f.is_file():
+                    self.do_copyfile(str(f), os.path.join(full_dst_dir, f.name), makedirs=(dm, full_dst_dir))
+                else:
+                    self.do_copydir(d, str(f), os.path.join(full_dst_dir, f.parts[-1]), None, None, dm)
+            self.did_install_something = True
 
     def install_man(self, d: InstallData, dm: DirMaker, destdir: str, fullprefix: str) -> None:
         for m in d.man:

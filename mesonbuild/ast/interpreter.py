@@ -162,6 +162,7 @@ class AstInterpreter(InterpreterBase):
                            'range': self.func_do_nothing,
                            'structured_sources': self.func_do_nothing,
                            'debug': self.func_do_nothing,
+                           'opaque_target': self.func_do_nothing,
                            })
 
     def _unholder_args(self, args: _T, kwargs: _V) -> T.Tuple[_T, _V]:

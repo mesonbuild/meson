@@ -2443,6 +2443,7 @@ class CustomTarget(Target, CommandBase):
         self.install_mode = install_mode
         self.install_tag = _process_install_tag(install_tag, len(self.outputs))
         self.name = name if name else self.outputs[0]
+        self.is_opaque = False
 
         # Whether to use absolute paths for all files on the commandline
         self.absolute_paths = absolute_paths

@@ -1,6 +1,8 @@
 cdata.set('TOP_SRCDIR', meson.source_root())
 cdata.set('TOP_BUILDDIR', meson.build_root())
 
+wrapper_script = find_program('doxyrunner.py')
+
 doxyfile = configure_file(input: 'Doxyfile.in',
                           output: 'Doxyfile',
                           configuration: cdata,
@@ -8,9 +10,8 @@ doxyfile = configure_file(input: 'Doxyfile.in',
 
 datadir = join_paths(get_option('datadir'), 'doc', 'spede')
 
-html_target = custom_target('spede-docs',
-                            input: doxyfile,
-                            output: 'html',
-                            command: [doxygen, doxyfile],
-                            install: true,
-                            install_dir: datadir)
+opaque_target('spede-docs',
+              command: wrapper_script,
+              args: [doxyfile],
+              install: true,
+              install_dir: datadir)

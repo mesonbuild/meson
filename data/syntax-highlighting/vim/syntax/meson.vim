@@ -109,6 +109,7 @@ syn keyword mesonBuiltin
   \ library
   \ meson
   \ message
+  \ opaque_target
   \ option
   \ project
   \ run_command

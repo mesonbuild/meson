@@ -131,6 +131,7 @@ class InstallData:
         self.symlinks: T.List[InstallSymlinkData] = []
         self.install_scripts: T.List[ExecutableSerialisation] = []
         self.install_subdirs: T.List[SubdirInstallData] = []
+        self.install_opaque: T.List[T.Tuple[str, str]] = []
 
 @dataclass(eq=False)
 class TargetInstallData:
@@ -1510,6 +1511,7 @@ class Backend:
         self.generate_symlink_install(d)
         self.generate_custom_install_script(d)
         self.generate_subdir_install(d)
+        self.generate_opaque_install(d)
         return d
 
     def create_install_data_files(self) -> None:
@@ -1637,6 +1639,11 @@ class Backend:
                                               tag=tag)
                         d.targets.append(i)
             elif isinstance(t, build.CustomTarget):
+                if t.is_opaque:
+                    # The contents of opaque dirs are installed in a separate function.
+                    # The "output" of this target is the stampfile and we do not want
+                    # to install that.
+                    continue
                 # If only one install_dir is specified, assume that all
                 # outputs will be installed into it. This is for
                 # backwards-compatibility and because it makes sense to
@@ -1770,6 +1777,22 @@ class Backend:
                 dst_name = os.path.join(dst_name, os.path.basename(src_dir))
             i = SubdirInstallData(src_dir, dst_dir, dst_name, sd.install_mode, sd.exclude, sd.subproject, sd.install_tag)
             d.install_subdirs.append(i)
+
+    def generate_opaque_dirs(self, opdata: mesonlib.OpaqueData) -> None:
+        bd = Path(self.environment.get_build_dir())
+        (bd / opdata.scratch).mkdir(parents=True, exist_ok=True)
+        (bd / opdata.out).mkdir(parents=True, exist_ok=True)
+
+    def generate_opaque_install(self, d: InstallData) -> None:
+        for ct in self.build.get_targets().values():
+            if isinstance(ct, build.CustomTarget) and ct.is_opaque:
+                opdata = mesonlib.get_opaque_data(ct.subproject, ct.name)
+                if len(ct.install_dir) != 1:
+                    raise RuntimeError('Internal error, install_dir must have only one string.')
+                self.generate_opaque_dirs(opdata)
+                installdir = ct.install_dir[0]
+                if isinstance(installdir, str):
+                    d.install_opaque.append((opdata.out, installdir))
 
     def get_introspection_data(self, target_id: str, target: build.Target) -> T.List['TargetIntrospectionData']:
         '''

@@ -3445,15 +3445,17 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # empty. https://github.com/mesonbuild/meson/issues/1220
         ctlist = []
         for t in self.build.get_targets().values():
-            if isinstance(t, build.CustomTarget):
+            if isinstance(t, build.CustomTarget) and not t.is_opaque:
                 # Create a list of all custom target outputs
                 for o in t.get_outputs():
                     ctlist.append(os.path.join(self.get_target_dir(t), o))
         # As above, but restore the top level directory after deletion.
+        gendir_list = []
         for t in self.build.get_targets().values():
-            if isinstance(t, build.CustomTarget):
-                if False:
-                    gendir_list.append('fake')
+            if isinstance(t, build.CustomTarget) and t.is_opaque:
+                opdata = mesonlib.get_opaque_data(t.subproject, t.name)
+                gendir_list.append(opdata.scratch)
+                gendir_list.append(opdata.out)
 
         if ctlist or gendir_list:
             elem.add_dep(self.generate_custom_target_clean(ctlist, gendir_list))

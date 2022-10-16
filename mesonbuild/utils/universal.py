@@ -1,4 +1,4 @@
-# Copyright 2012-2020 The Meson development team
+# Copyright 2012-2022 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -94,6 +94,7 @@ __all__ = [
     'get_compiler_for_source',
     'get_filenames_templates_dict',
     'get_library_dirs',
+    'get_opaque_data',
     'get_variable_regex',
     'get_wine_shortpath',
     'git',
@@ -141,6 +142,7 @@ __all__ = [
     'version_compare_condition_with_min',
     'version_compare_many',
     'search_version',
+    'OpaqueData',
     'windows_proof_rm',
     'windows_proof_rmtree',
 ]
@@ -2277,3 +2279,21 @@ def first(iter: T.Iterable[_T], predicate: T.Callable[[_T], bool]) -> T.Optional
         if predicate(i):
             return i
     return None
+
+class OpaqueData:
+    def __init__(self, scratch: str, out: str, stamp: str, dep: str):
+        self.scratch = scratch
+        self.out = out
+        self.stamp = stamp
+        self.dep = dep
+
+def get_opaque_data(subproject: str, target_name: str) -> OpaqueData:
+    if subproject:
+        sub_str = subproject + '_'
+    else:
+        sub_str = ''
+    gendir = 'meson-gen'
+    return OpaqueData(os.path.join(gendir, sub_str, target_name + '_s'),
+                      os.path.join(gendir, sub_str, target_name),
+                      target_name + '.stamp',
+                      target_name + '.d')
