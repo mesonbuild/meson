@@ -6,6 +6,6 @@
     {"type": "pdb", "file": "usr/bin/stuff", "language": "d"},
     {"type": "shared_lib", "platform": "gcc", "file": "usr/lib/stuff"},
     {"type": "file", "platform": "msvc", "file": "usr/lib/stuff.lib"},
-    {"type": "file", "file": "usr/lib/pkgconfig/test.pc"}
+    {"type": "pkgconfig", "file": "usr/test"}
   ]
 }

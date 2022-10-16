@@ -38,7 +38,7 @@ import mesonbuild.environment
 import mesonbuild.coredata
 import mesonbuild.modules.gnome
 from mesonbuild.mesonlib import (
-    BuildDirLock, MachineChoice, is_windows, is_osx, is_cygwin, is_dragonflybsd,
+    BuildDirLock, MachineChoice, is_windows, is_osx, is_cygwin, is_dragonflybsd, is_freebsd,
     is_sunos, windows_proof_rmtree, python_command, version_compare, split_args, quote_arg,
     relpath, is_linux, git, search_version, do_conf_file, do_conf_str, default_prefix,
     MesonException, EnvironmentException, OptionKey, ExecutableSerialisation, EnvironmentVariables,
@@ -363,7 +363,7 @@ class AllPlatformTests(BasePlatformTests):
         libname = targets[0]['filename'][0]
         # Build and get contents of static library
         self.build()
-        before = self._run(['ar', 't', os.path.join(self.builddir, libname)]).split()
+        before = self._run(static_linker.get_exelist() + ['t', os.path.join(self.builddir, libname)]).split()
         # Filter out non-object-file contents
         before = [f for f in before if f.endswith(('.o', '.obj'))]
         # Static library should contain only one object
@@ -371,7 +371,7 @@ class AllPlatformTests(BasePlatformTests):
         # Change the source to be built into the static library
         self.setconf('-Dsource=libfile2.c')
         self.build()
-        after = self._run(['ar', 't', os.path.join(self.builddir, libname)]).split()
+        after = self._run(static_linker.get_exelist() + ['t', os.path.join(self.builddir, libname)]).split()
         # Filter out non-object-file contents
         after = [f for f in after if f.endswith(('.o', '.obj'))]
         # Static library should contain only one object
@@ -2017,6 +2017,9 @@ class AllPlatformTests(BasePlatformTests):
         langs = ['c']
         env = get_fake_env()
         for l in ['cpp', 'cs', 'd', 'java', 'cuda', 'fortran', 'objc', 'objcpp', 'rust']:
+            if l == 'objcpp' and is_freebsd():
+                # FIXME: known broken
+                continue
             try:
                 comp = detect_compiler_for(env, l, MachineChoice.HOST)
                 with tempfile.TemporaryDirectory() as d:

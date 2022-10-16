@@ -156,7 +156,8 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
                 libname += self.variables['DEBUG_EXT']
             if 'ABIFLAGS' in self.variables:
                 libname += self.variables['ABIFLAGS']
-            libdirs = []
+            libdir = self.variables.get('LIBDIR')
+            libdirs = [libdir]
 
         largs = self.clib_compiler.find_library(libname, environment, libdirs)
         if largs is not None:

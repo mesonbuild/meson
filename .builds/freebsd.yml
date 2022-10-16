@@ -1,0 +1,45 @@
+image: freebsd/latest
+sources:
+- https://github.com/mesonbuild/meson
+environment:
+  CI: 1
+  MESON_CI_JOBNAME: thirdparty
+packages:
+- python
+- python
+- py39-setuptools
+- py39-pytest-xdist
+- ninja
+- pkgconf
+- cmake
+- gtk3
+# languages
+- vala
+- rust
+- mono
+- py39-cython
+# frameworks
+- sdl2
+- gpgme
+- gettext
+- ncurses
+- boost-all
+- qt5-buildtools
+- gobject-introspection
+tasks:
+- command-tests: |
+    cd meson
+    ./run_meson_command_tests.py -v || touch ~/.failed.marker
+- unittests: |
+    cd meson
+    ./run_unittests.py -ra || touch ~/.failed.marker
+- unittests-root: |
+    cd meson
+    sudo -E ./run_unittests.py -ra || touch ~/.failed.marker
+- project-tests: |
+    cd meson
+    ./run_project_tests.py || touch ~/.failed.marker
+- project-tests-root: |
+    cd meson
+    sudo -E ./run_project_tests.py --only common
+    ! test -f ~/.failed.marker

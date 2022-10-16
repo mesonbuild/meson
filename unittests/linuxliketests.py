@@ -34,7 +34,7 @@ import mesonbuild.environment
 import mesonbuild.coredata
 import mesonbuild.modules.gnome
 from mesonbuild.mesonlib import (
-    MachineChoice, is_windows, is_osx, is_cygwin, is_openbsd, is_haiku,
+    MachineChoice, is_windows, is_osx, is_cygwin, is_freebsd, is_openbsd, is_haiku,
     is_sunos, windows_proof_rmtree, version_compare, is_linux,
     OptionKey, EnvironmentException
 )
@@ -58,6 +58,11 @@ from run_tests import (
 from .baseplatformtests import BasePlatformTests
 from .helpers import *
 
+if is_freebsd():
+    _pkgconfig_dir = 'libdata/pkgconfig'
+else:
+    _pkgconfig_dir = 'lib/pkgconfig'
+
 def _prepend_pkg_config_path(path: str) -> str:
     """Prepend a string value to pkg_config_path
 
@@ -68,7 +73,6 @@ def _prepend_pkg_config_path(path: str) -> str:
     if pkgconf:
         return f'{path}{os.path.pathsep}{pkgconf}'
     return path
-
 
 def _clang_at_least(compiler: 'Compiler', minver: str, apple_minver: T.Optional[str]) -> bool:
     """
@@ -608,7 +612,8 @@ class LinuxlikeTests(BasePlatformTests):
         Test that files installed by these tests have the correct permissions.
         Can't be an ordinary test because our installed_files.txt is very basic.
         '''
-        if is_cygwin():
+        # For the gid tests specifically, FreeBSD needs to be run in a tempdir
+        if is_cygwin() or (os.getuid() == 0 and is_freebsd()):
             self.new_builddir_in_tempdir()
         # Test file modes
         testdir = os.path.join(self.common_test_dir, '12 data')
@@ -997,7 +1002,7 @@ class LinuxlikeTests(BasePlatformTests):
             # and verify install preserves that rpath.
             self.new_builddir()
             env = {'LDFLAGS': rpath_format + yonder_libdir,
-                   'PKG_CONFIG_PATH': os.path.join(yonder_libdir, 'pkgconfig')}
+                   'PKG_CONFIG_PATH': os.path.join(yonder_prefix, _pkgconfig_dir)}
             if exception:
                 with self.assertRaises(subprocess.CalledProcessError):
                     self.init(testdir, override_envvars=env)
@@ -1102,7 +1107,7 @@ class LinuxlikeTests(BasePlatformTests):
             self.install(use_destdir=False)
             shutil.rmtree(self.builddir)
             os.mkdir(self.builddir)
-            pkg_dir = os.path.join(tempdirname, 'lib/pkgconfig')
+            pkg_dir = os.path.join(tempdirname, _pkgconfig_dir)
             self.assertTrue(os.path.exists(os.path.join(pkg_dir, 'libpkgdep.pc')))
             lib_dir = os.path.join(tempdirname, 'lib')
             myenv = os.environ.copy()
@@ -1173,7 +1178,7 @@ class LinuxlikeTests(BasePlatformTests):
             self.install(use_destdir=False)
 
             # build user of library
-            pkg_dir = os.path.join(tempdirname, 'lib/pkgconfig')
+            pkg_dir = os.path.join(tempdirname, _pkgconfig_dir)
             self.new_builddir()
             self.init(os.path.join(testdirbase, 'app'),
                       override_envvars={'PKG_CONFIG_PATH': pkg_dir})
@@ -1200,7 +1205,7 @@ class LinuxlikeTests(BasePlatformTests):
             self.install(use_destdir=False)
 
             # build executable (uses lib, fails if static archive has been stripped incorrectly)
-            pkg_dir = os.path.join(testlibprefix, 'lib/pkgconfig')
+            pkg_dir = os.path.join(testlibprefix, _pkgconfig_dir)
             self.new_builddir()
             self.init(os.path.join(testdirbase, 'app'),
                       override_envvars={'PKG_CONFIG_PATH': pkg_dir})
@@ -1214,7 +1219,7 @@ class LinuxlikeTests(BasePlatformTests):
         myenv['PKG_CONFIG_PATH'] = _prepend_pkg_config_path(self.privatedir)
         stdo = subprocess.check_output([PKG_CONFIG, '--libs-only-l', 'libsomething'], env=myenv)
         deps = [b'-lgobject-2.0', b'-lgio-2.0', b'-lglib-2.0', b'-lsomething']
-        if is_windows() or is_cygwin() or is_osx() or is_openbsd():
+        if is_windows() or is_cygwin() or is_osx() or is_freebsd() or is_openbsd():
             # On Windows, libintl is a separate library
             deps.append(b'-lintl')
         self.assertEqual(set(deps), set(stdo.split()))
@@ -1309,7 +1314,7 @@ class LinuxlikeTests(BasePlatformTests):
         ## New builddir for the consumer
         self.new_builddir()
         env = {'LIBRARY_PATH': os.path.join(installdir, self.libdir),
-               'PKG_CONFIG_PATH': _prepend_pkg_config_path(os.path.join(installdir, self.libdir, 'pkgconfig'))}
+               'PKG_CONFIG_PATH': _prepend_pkg_config_path(os.path.join(installdir, _pkgconfig_dir))}
         testdir = os.path.join(self.unit_test_dir, '39 external, internal library rpath', 'built library')
         # install into installdir without using DESTDIR
         self.prefix = self.installdir
@@ -1362,7 +1367,7 @@ class LinuxlikeTests(BasePlatformTests):
 
         self.new_builddir()
         env = {'LIBRARY_PATH': os.path.join(installdir, self.libdir),
-               'PKG_CONFIG_PATH': _prepend_pkg_config_path(os.path.join(installdir, self.libdir, 'pkgconfig'))}
+               'PKG_CONFIG_PATH': _prepend_pkg_config_path(os.path.join(installdir, _pkgconfig_dir))}
         testdir = os.path.join(self.unit_test_dir, '98 link full name','proguser')
         self.init(testdir,override_envvars=env)
 
@@ -1406,7 +1411,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.new_builddir()
 
         env1 = {}
-        env1['PKG_CONFIG_PATH'] = os.path.join(val1prefix, self.libdir, 'pkgconfig')
+        env1['PKG_CONFIG_PATH'] = os.path.join(val1prefix, _pkgconfig_dir)
         val2dir = os.path.join(self.unit_test_dir, '74 pkgconfig prefixes', 'val2')
         val2prefix = os.path.join(oldinstalldir, 'val2')
         self.prefix = val2prefix
@@ -1418,7 +1423,7 @@ class LinuxlikeTests(BasePlatformTests):
 
         # Build, install, and run the client program
         env2 = {}
-        env2['PKG_CONFIG_PATH'] = os.path.join(val2prefix, self.libdir, 'pkgconfig')
+        env2['PKG_CONFIG_PATH'] = os.path.join(val2prefix, _pkgconfig_dir)
         testdir = os.path.join(self.unit_test_dir, '74 pkgconfig prefixes', 'client')
         testprefix = os.path.join(oldinstalldir, 'client')
         self.prefix = testprefix
@@ -1575,7 +1580,7 @@ class LinuxlikeTests(BasePlatformTests):
         meson_args = [f'-Dc_link_args=-L{libdir}',
                       '--fatal-meson-warnings']
         testdir = os.path.join(self.unit_test_dir, '66 static link')
-        env = {'PKG_CONFIG_LIBDIR': os.path.join(libdir, 'pkgconfig')}
+        env = {'PKG_CONFIG_LIBDIR': os.path.join(os.path.dirname(libdir), _pkgconfig_dir)}
         self.init(testdir, extra_args=meson_args, override_envvars=env)
         self.build()
         self.run_tests()
@@ -1720,11 +1725,11 @@ class LinuxlikeTests(BasePlatformTests):
         # remove limitations as necessary.
         if is_osx():
             raise SkipTest('Prelinking not supported on Darwin.')
-        if 'clang' in os.environ.get('CC', 'dummy'):
-            raise SkipTest('Prelinking not supported with Clang.')
         testdir = os.path.join(self.unit_test_dir, '86 prelinking')
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = detect_c_compiler(env, MachineChoice.HOST)
+        if cc.id == 'clang':
+            raise SkipTest('Prelinking not supported with Clang.')
         if cc.id == "gcc" and not version_compare(cc.version, '>=9'):
             raise SkipTest('Prelinking not supported with gcc 8 or older.')
         self.init(testdir)
