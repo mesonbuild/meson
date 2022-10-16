@@ -18,7 +18,7 @@ import shutil
 import pickle
 import typing as T
 
-def rmtrees(build_dir: str, trees: T.List[str]) -> None:
+def rmtrees(build_dir: str, trees: T.List[str], restore_dir: bool) -> None:
     for t in trees:
         # Never delete trees outside of the builddir
         if os.path.isabs(t):
@@ -28,6 +28,8 @@ def rmtrees(build_dir: str, trees: T.List[str]) -> None:
         # Skip if it doesn't exist, or if it is not a directory
         if os.path.isdir(bt):
             shutil.rmtree(bt, ignore_errors=True)
+        if restore_dir:
+            os.makedirs(bt)
 
 def run(args: T.List[str]) -> int:
     if len(args) != 1:
@@ -35,8 +37,9 @@ def run(args: T.List[str]) -> int:
         print('cleantrees.py <data-file>')
         return 1
     with open(args[0], 'rb') as f:
-        data = pickle.load(f)
-    rmtrees(data.build_dir, data.trees)
+        (del_trees, del_and_restore_trees) = pickle.load(f)
+    rmtrees(del_trees.build_dir, del_trees.trees, False)
+    rmtrees(del_and_restore_trees.build_dir, del_and_restore_trees.trees, True)
     # Never fail cleaning
     return 0
 

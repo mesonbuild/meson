@@ -3299,16 +3299,17 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             except OSError:
                 mlog.debug("Library versioning disabled because we do not have symlink creation privileges.")
 
-    def generate_custom_target_clean(self, trees: T.List[str]) -> str:
+    def generate_custom_target_clean(self, trees: T.List[str], gendir_trees: T.List[str]) -> str:
         e = self.create_phony_target(self.all_outputs, 'clean-ctlist', 'CUSTOM_COMMAND', 'PHONY')
         d = CleanTrees(self.environment.get_build_dir(), trees)
+        gd = CleanTrees(self.environment.get_build_dir(), gendir_trees)
         d_file = os.path.join(self.environment.get_scratch_dir(), 'cleantrees.dat')
         e.add_item('COMMAND', self.environment.get_build_command() + ['--internal', 'cleantrees', d_file])
         e.add_item('description', 'Cleaning custom target directories')
         self.add_build(e)
         # Write out the data file passed to the script
         with open(d_file, 'wb') as ofile:
-            pickle.dump(d, ofile)
+            pickle.dump((d, gd), ofile)
         return 'clean-ctlist'
 
     def generate_gcov_clean(self):
@@ -3448,8 +3449,14 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 # Create a list of all custom target outputs
                 for o in t.get_outputs():
                     ctlist.append(os.path.join(self.get_target_dir(t), o))
-        if ctlist:
-            elem.add_dep(self.generate_custom_target_clean(ctlist))
+        # As above, but restore the top level directory after deletion.
+        for t in self.build.get_targets().values():
+            if isinstance(t, build.CustomTarget):
+                if False:
+                    gendir_list.append('fake')
+
+        if ctlist or gendir_list:
+            elem.add_dep(self.generate_custom_target_clean(ctlist, gendir_list))
 
         if OptionKey('b_coverage') in self.environment.coredata.options and \
            self.environment.coredata.options[OptionKey('b_coverage')].value:
