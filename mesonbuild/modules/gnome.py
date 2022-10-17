@@ -1227,10 +1227,10 @@ class GnomeModule(ExtensionModule):
         scan_command += ['--cflags-end']
         scan_command += state.get_include_args(inc_dirs)
         scan_command += state.get_include_args(itertools.chain(gi_includes, gir_inc_dirs, inc_dirs), prefix='--add-include-path=')
-        scan_command += list(scan_internal_ldflags)
+        scan_command += list(scan_external_ldflags)
         scan_command += self._scan_gir_targets(state, girtargets)
         scan_command += self._scan_langs(state, [lc[0] for lc in langs_compilers])
-        scan_command += list(scan_external_ldflags)
+        scan_command += list(scan_internal_ldflags)
 
         if self._gir_has_option('--sources-top-dirs'):
             scan_command += ['--sources-top-dirs', os.path.join(state.environment.get_source_dir(), state.root_subdir)]
