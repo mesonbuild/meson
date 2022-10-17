@@ -3143,11 +3143,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                 name = os.path.basename(norm)
                 raise InterpreterException(f'Sandbox violation: Tried to grab {inputtype} {name} outside current (sub)project.')
 
-            subproject_dir = os.path.join(project_root, self.subproject_dir)
-            if is_parent_path(subproject_dir, norm):
-                name = os.path.basename(norm)
-                raise InterpreterException(f'Sandbox violation: Tried to grab {inputtype} {name} from a nested subproject.')
-
         fname = os.path.join(subdir, fname)
         if fname in self.validated_cache:
             return
