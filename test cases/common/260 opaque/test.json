@@ -1,0 +1,6 @@
+{
+  "installed": [
+    { "type": "file", "file": "usr/share/doc/out_top.txt" },
+    { "type": "file", "file": "usr/share/doc/subdir/out_subdir.txt"}
+  ]
+}

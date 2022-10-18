@@ -7,12 +7,12 @@ from argparse import ArgumentParser
 
 parser = ArgumentParser(description='Helper tool to integrate Doxygen with Meson')
 
-parser.add_argument('--out', 
+parser.add_argument('--out',
                     required=True, help='Directory where to write final output.')
-parser.add_argument('--scratch', 
-                    required=True, 
+parser.add_argument('--scratch',
+                    required=True,
                     help='Directory to use for temporary files.')
-parser.add_argument('--stamp', required=True, 
+parser.add_argument('--stamp', required=True,
                     help='Path to stamp file.')
 parser.add_argument('--dep', required=True,
                     help='Path to dependency file.')
@@ -39,8 +39,8 @@ def run_doxygen(meson_opts, extra_args):
     shutil.copytree(html, outdir / 'html')
     if doxyrc != 0:
         sys.exit(doxyrc)
-    with open(meson_opts.dep, 'w') as stampfile:
-        stampfile.write(f'"{meson_opts.stamp}": \n')
+    with open(meson_opts.dep, 'w') as depfile:
+        depfile.write(f'"{meson_opts.stamp}": \n')
     # Always touch the stamp file last after every other step has succeeded.
     with open(meson_opts.stamp, 'w'):
         pass
