@@ -1,0 +1,41 @@
+name: opaque_target
+returns: custom_tgt
+description: |
+  *Since 0.64.0* Create a custom build target that generates a bunch of files (possibly
+  in subdirectories) whose names and paths can't be known beforehand. This function
+  is typically used for generating documentation.
+  ```meson
+  opaque_target('foo',
+    command: some_exe,
+    install: true
+    install_dir: datadir)
+  ```
+
+  This function takes all the same keyword arguments as `custom_target` with the
+  exception that the `command` kwarg takes only the program to execute, all
+  arguments must be specified with the `args` kwargh.
+
+  The return value is a custom target object.
+
+notes:
+  - |
+    Meson adds extra integration flags to the process invocation. See the
+    [documentation](Custom-build-targets.md) for details.
+
+optargs:
+  name:
+    type: str
+    description: |
+      The *unique* id of the custom target
+
+      This posarg is optional and defaults to the basename of the stampfile.
+
+kwargs:
+  args:
+    type: list[str | file | build_tgt]
+    description: |
+      Additional command line arguments to pass to the script.
+
+  command:
+    type: external_program
+    description: The script to run.
