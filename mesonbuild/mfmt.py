@@ -1,4 +1,5 @@
 import argparse
+import sys
 from . import coredata, mparser
 from . import mesonlib
 from .ast import AstFormatter
@@ -20,9 +21,12 @@ def run(options: argparse.Namespace) -> int:
         except mesonlib.MesonException as me:
             me.file = filename
             raise me
-        formatter = AstFormatter(comments)
+        formatter = AstFormatter(comments, code.splitlines())
         codeblock.accept(formatter)
         formatter.end()
         print('This will probably eat some of your comments', file=sys.stderr)
         for line in formatter.lines:
-            print(line)
+            print(line, end='\n')
+        print('Unable to readd', len(formatter.comments), 'comments', file=sys.stderr)
+        for c in formatter.comments:
+            print(c.text, file=sys.stderr)

@@ -17,7 +17,7 @@
 
 __all__ = [
     'AstConditionLevel',
-    'AstFormatter'
+    'AstFormatter',
     'AstInterpreter',
     'AstIDGenerator',
     'AstIndentationGenerator',
