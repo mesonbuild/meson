@@ -370,3 +370,4 @@ build directory when running wine.
 
 *(since 0.65.0)*
 
+{{ fmt_unstable_usage.inc }}

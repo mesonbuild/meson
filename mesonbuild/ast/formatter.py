@@ -37,9 +37,8 @@ class AstFormatter(AstVisitor):
 
     def end(self):
         self.lines.append(self.currline)
-        for i in range(0, len(self.lines)):
-            s = self.lines[i]
-            if s.strip() == '':
+        for i, l in enumerate(self.lines):
+            if l.strip() == '':
                 self.lines[i] = ''
 
     def append(self, to_append):
@@ -66,7 +65,6 @@ class AstFormatter(AstVisitor):
             idx += 1
         if to_readd is None:
             return
-
 
     def check_comment(self, node: mparser.BaseNode):
         to_readd = None
