@@ -365,3 +365,8 @@ root of build directory are used. That means current workdir must be the root of
 build directory when running wine.
 
 {{ devenv_arguments.inc }}
+
+### fmt_unstable
+
+*(since 0.65.0)*
+
