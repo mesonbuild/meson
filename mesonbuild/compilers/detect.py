@@ -21,6 +21,7 @@ from ..envconfig import BinaryTable
 from .. import mlog
 
 from ..linkers import guess_win_linker, guess_nix_linker
+from ..programs import ExternalProgram
 
 import subprocess
 import platform
@@ -130,7 +131,14 @@ def _get_compilers(env: 'Environment', lang: str, for_machine: MachineChoice,
     The list of compilers is detected in the exact same way for
     C, C++, ObjC, ObjC++, Fortran, CS so consolidate it here.
     '''
-    value = env.lookup_binary_entry(for_machine, lang)
+    if interpreter:
+        prog = interpreter.find_program_impl([lang], for_machine, required=False, allow_system_lookup=False)
+        if not isinstance(prog, ExternalProgram):
+            raise EnvironmentException(f'{lang!r} compiler can only be overridden with an external program')
+        value = prog.get_command() if prog.found() else None
+    else:
+        # Happens only in some unit tests that does not have an Interpreter
+        value = env.lookup_binary_entry(for_machine, lang)
     if value is not None:
         comp, ccache = BinaryTable.parse_entry(value)
         # Return value has to be a list of compiler 'choices'

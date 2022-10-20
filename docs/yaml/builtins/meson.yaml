@@ -338,6 +338,11 @@ methods:
       check is passed to [[find_program]] for a program that has been overridden with
       an executable, the current project version is used.
 
+      *(since 0.64.0)* progname can be a language name (e.g. `vala`) in which
+      case it override that language's compiler. When cross compiling, the same
+      program will be used as native and cross compiler, that could cause issues
+      with languages that expects different toolchains.
+
     posargs:
       progname:
         type: str
