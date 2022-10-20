@@ -371,3 +371,7 @@ build directory when running wine.
 *(since 0.65.0)*
 
 {{ fmt_unstable_usage.inc }}
+
+Attempts to format your code.
+
+{{ fmt_unstable_arguments.inc }}
