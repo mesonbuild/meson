@@ -1151,6 +1151,10 @@ def detect_nasm_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
 
     popen_exceptions: T.Dict[str, Exception] = {}
     for comp in compilers:
+        if comp == ['nasm'] and is_windows() and not shutil.which(comp[0]):
+            # nasm is not in PATH on Windows by default
+            default_path = os.path.join(os.environ['ProgramFiles'], 'NASM')
+            comp[0] = shutil.which(comp[0], path=default_path) or comp[0]
         try:
             output = Popen_safe(comp + ['--version'])[1]
         except OSError as e:
