@@ -3105,7 +3105,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
     def build_target(self, node: mparser.BaseNode, args, kwargs, targetclass):
         @FeatureNewKwargs('build target', '0.42.0', ['rust_crate_type', 'build_rpath', 'implicit_include_directories'])
         @FeatureNewKwargs('build target', '0.41.0', ['rust_args'])
-        @FeatureNewKwargs('build target', '0.40.0', ['build_by_default'])
+        @FeatureNewKwargs('build target', '0.38.0', ['build_by_default'])
         @FeatureNewKwargs('build target', '0.48.0', ['gnu_symbol_visibility'])
         def build_target_decorator_caller(self, node, args, kwargs):
             return True

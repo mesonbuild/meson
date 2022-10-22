@@ -63,6 +63,7 @@ kwargs:
 
   build_rpath:
     type: str
+    since: 0.42.0
     description: |
       A string to add to target's rpath definition in the build dir,
       but which will be removed on install
@@ -281,7 +282,7 @@ kwargs:
 
   rust_crate_type:
     type: str
-    since: 0.41.0
+    since: 0.42.0
     description: |
       Set the specific type of rust crate to compile (when compiling rust).
 

@@ -403,6 +403,7 @@ methods:
 
   - name: project_license
     returns: list[str]
+    since: 0.45.0
     description: Returns the array of licenses specified in [[project]] function call.
 
   - name: project_name

@@ -1,5 +1,6 @@
 name: subdir_done
 returns: void
+since: 0.46.0
 description: |
   Stops further interpretation of the Meson script file from the point
   of the invocation. All steps executed up to this point are valid and

@@ -111,6 +111,8 @@ add `dependencies : py_installation.dependency()`, see [[dependency]].
 python_dependency py_installation.dependency(...)
 ```
 
+*since 0.53.0*
+
 This method accepts no positional arguments, and the same keyword
 arguments as the standard [[dependency]] function. It also supports the
 following keyword argument:
