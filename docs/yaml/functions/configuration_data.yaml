@@ -10,6 +10,6 @@ optargs:
     type: dict[str | bool | int]
     since: 0.49.0
     description: |
-      Optional dictionary to specifiy an inital data set. If
+      Optional dictionary to specify an initial data set. If
       provided, each key/value pair is added into the [[@cfg_data]] object
       as if the [[cfg_data.set]] method was called for each of them.

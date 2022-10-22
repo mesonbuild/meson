@@ -37,7 +37,7 @@ methods:
         The source code to check.
 
         If a string is passed, the code is used directly. If a [[@file]] object
-        is passed, it's content is used for the compiler check.
+        is passed, its content is used for the compiler check.
 
 # Helper methods to pre-define common kwargs
 - name: _args
@@ -105,7 +105,7 @@ methods:
         The name to use for printing a message about the compiler check.
         If this keyword argument is not passed, no message will be printed about the check.
 
-# Even more convinient
+# Even more convenient
 - name: _common
   returns: void
   description: You have found a bug if you can see this!
@@ -564,7 +564,7 @@ methods:
   posargs:
     name:
       type: str
-      description: The attribute nane to check.
+      description: The attribute name to check.
 
 - name: get_supported_function_attributes
   returns: list[str]

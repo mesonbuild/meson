@@ -75,7 +75,7 @@ executable('myexe', ['main.c', foo_h], link_with : libfoo)
 ```
 
 Each target that depends on a generated header should add that header
-to it's sources, as seen above with `libfoo` and `myexe`. This is
+to its sources, as seen above with `libfoo` and `myexe`. This is
 because there is no way for Meson or the backend to know that `myexe`
 depends on `foo.h` just because `libfoo` does, it could be a private
 header.

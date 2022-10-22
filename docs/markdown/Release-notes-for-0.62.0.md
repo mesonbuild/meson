@@ -176,7 +176,7 @@ Meson has a new command `env2mfile` that can be used to convert
 "environment variable based" cross and native compilation environments
 to Meson machine files. This is especially convenient for e.g. distro
 packagers so they can easily generate unambiguous configuration files
-for packge building.
+for package building.
 
 As an example here's how you would generate a cross file that takes
 its settings from the `CC`, `CXX`, `CFLAGS` etc environment variables.

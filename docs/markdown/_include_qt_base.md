@@ -7,7 +7,7 @@ Compiles Qt's resources collection files (.qrc) into c++ files for compilation.
 It takes no positional arguments, and the following keyword arguments:
   - `name` (string | empty): if provided a single .cpp file will be generated,
     and the output of all qrc files will be combined in this file, otherwise
-    each qrc file be written to it's own cpp file.
+    each qrc file be written to its own cpp file.
   - `sources` (File | string | custom_target | custom_target index | generator_output)[]:
     A list of sources to be transpiled. Required, must have at least one source
     *New in 0.60.0*: support for custom_target, custom_target_index, and generator_output.

@@ -181,7 +181,7 @@ the system downloads and configures SDL2:
 
 ![Running the sample application](images/sdltutorial_05.png)
 
-A bit later the compilation exits succesfully.
+A bit later the compilation exits successfully.
 
 ![Running the sample application](images/sdltutorial_06.png)
 

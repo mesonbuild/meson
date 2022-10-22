@@ -97,7 +97,7 @@ class RefmanLinksExtension(Extension):
         raw = Path(self._data_file).read_text(encoding='utf-8')
         self._data = loads(raw)
 
-        # Register formater
+        # Register formatter
         for ext in self.project.extensions.values():
             ext = T.cast(Extension, ext)
             ext.formatter.formatting_page_signal.connect(self._formatting_page_cb)

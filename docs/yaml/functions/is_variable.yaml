@@ -6,4 +6,4 @@ description: Returns true if a variable of the given name exists and false other
 posargs:
   var:
     type: str
-    description: The varaible to test
+    description: The variable to test

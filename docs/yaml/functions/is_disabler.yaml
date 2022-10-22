@@ -6,4 +6,4 @@ description: Returns true if a variable is a disabler and false otherwise.
 posargs:
   var:
     type: any
-    description: The varaible to test
+    description: The variable to test

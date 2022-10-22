@@ -12,7 +12,7 @@ optargs:
     description: |
       If provided, each key/value pair is added into the [[@env]] object
       as if [[env.set]] method was called for each of them.
-      Since *0.62.0* list of strings is allowed in dictionnary values. In that
+      Since *0.62.0* list of strings is allowed in dictionary values. In that
       case values are joined using the separator.
 
 kwargs:
@@ -31,5 +31,5 @@ kwargs:
     description: |
       Must be one of 'set', 'prepend', or 'append'
       (defaults to 'set'). Controls if initial values defined in the first
-      positional argument are prepended, appended or repace the current value
+      positional argument are prepended, appended or replace the current value
       of the environment variable.
