@@ -106,6 +106,8 @@ build target.
 
 ## has_tools
 
+*since 0.54.0*
+
 This method returns `true` if all tools used by this module are found,
 `false` otherwise.
 
@@ -123,8 +125,6 @@ This method takes the following keyword arguments:
   `true` or an enabled [`feature`](Build-options.md#features) and some tools are
   missing Meson will abort.
 - `method` string: method used to find the Qt dependency (`auto` by default).
-
-*Since: 0.54.0*
 
 ## Dependencies
 

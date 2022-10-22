@@ -79,7 +79,7 @@ varargs:
 kwargs:
   default_options:
     type: list[str]
-    since: 0.37.0
+    since: 0.38.0
     description: |
       An array of default option values
       that override those set in the subproject's `meson_options.txt`
@@ -131,6 +131,7 @@ kwargs:
 
   method:
     type: str
+    since: 0.40.0
     default: "'auto'"
     description: |
       Defines the way the dependency is detected, the default is
