@@ -7,7 +7,7 @@ description: |
   Note that the value returned for built-in options that end in `dir`
   such as `bindir` and `libdir` is usually a path relative to (and
   inside) the `prefix` but you should not rely on that, as it can also
-  be an absolute path [in some cases](Builtin-options.md#Universal options).
+  be an absolute path [in some cases](Builtin-options.md#universal-options).
   [`install_dir` arguments](Installing.md) handle that as expected
   but if you need an absolute path, e.g. to use in a define etc.,
   you should use the path concatenation operator like this:
