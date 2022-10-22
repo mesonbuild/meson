@@ -119,7 +119,7 @@ class GeneratorMD(GeneratorBase):
             raise RuntimeError(f'Invalid argument {obj}')
 
     def _write_file(self, data: str, file_id: str) -> None:#
-        ''' Write the data to disk ans store the id for the generated data '''
+        ''' Write the data to disk and store the id for the generated data '''
 
         self.generated_files[file_id] = self._gen_filename(file_id)
         out_file = self.out_dir / self.generated_files[file_id]

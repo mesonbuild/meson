@@ -145,7 +145,7 @@ kwargs:
     type: bool
     since: 0.42.0
     default: true
-    description: Controlls whether Meson adds the current source and build directories to the include path
+    description: Controls whether Meson adds the current source and build directories to the include path
 
   include_directories:
     type: list[inc | str]

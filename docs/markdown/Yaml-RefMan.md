@@ -115,7 +115,7 @@ warnings:
 - Warnings are also optional.
 
 
-# To avoid duplicating documentation / code, argument inheritence is supported with
+# To avoid duplicating documentation / code, argument inheritance is supported with
 # the following optional keys:
 
 posargs_inherit: _build_target_base  # Use the posargs definition of `_build_target_base` here

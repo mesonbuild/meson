@@ -6,7 +6,7 @@ description: |
   The name of custom target might not be used by every backends, for instance with
   the Ninja backend, `subdir/meson.build` containing the example below,
   `ninja -C builddir foo` or `ninja -C builddir subdir/foo` won't work,
-  it is instead `ninja -C builddir subdir/file.txt`. Howerver, `meson compile subdir/foo`
+  it is instead `ninja -C builddir subdir/file.txt`. However, `meson compile subdir/foo`
   is accepted.
   ```meson
   custom_target('foo', output: 'file.txt', ...)

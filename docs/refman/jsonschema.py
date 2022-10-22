@@ -30,10 +30,10 @@ class Type(T.TypedDict):
 
 class Argument(BaseObject):
     '''
-        Object that represents any type of a single function or method argumet.
+        Object that represents any type of a single function or method argument.
     '''
     type:        T.List[Type]  # A non-empty list of types that are supported.
-    type_str:    str           # Formated version of `type`. Is guranteed to not contain any whitespaces.
+    type_str:    str           # Formatted version of `type`. Is guaranteed to not contain any whitespaces.
     required:    bool
     default:     T.Optional[str]
     min_varargs: T.Optional[int]  # Only relevant for varargs, must be `null` for all other types of arguments

@@ -151,7 +151,7 @@ class _Resolver:
             self.type_map[obj.name] = obj
             for m in obj.methods:
                 mid = f'{obj.name}.{m.name}'
-                assert mid not in self.type_map, f'Duplicate metod {mid}'
+                assert mid not in self.type_map, f'Duplicate method {mid}'
                 self.func_map[mid] = m
 
         # Build func map for functions
@@ -169,7 +169,7 @@ class _Resolver:
             mlog.log(' -- validating', mlog.bold(obj.name))
             self._validate_named_object(obj)
             self._validate_feature_check(obj)
-            # Resolve and validate inheritence
+            # Resolve and validate inheritance
             if obj.extends:
                 assert obj.extends in self.type_map, f'Unknown extends object {obj.extends} in {obj.name}'
                 obj.extends_obj = self.type_map[obj.extends]

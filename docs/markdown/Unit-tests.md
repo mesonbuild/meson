@@ -279,7 +279,7 @@ When tests use the `tap` protocol each test will be recorded as a
 testsuite container, with each case named by the number of the result.
 
 When tests use the `gtest` protocol Meson will inject arguments to the
-test to generate it's own JUnit XML, which Meson will include as part
+test to generate its own JUnit XML, which Meson will include as part
 of this XML file.
 
 *New in 0.55.0*

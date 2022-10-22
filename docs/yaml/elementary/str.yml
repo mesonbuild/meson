@@ -39,7 +39,7 @@ methods:
 
 # str.replace(old, new)
 - name: replace
-  description: Search all occurences of `old` and and replace it with `new`
+  description: Search all occurrences of `old` and and replace it with `new`
   returns: str
   since: 0.58.0
   example: |

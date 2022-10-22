@@ -132,7 +132,7 @@ ready for distribution.
 #### Qt
 
 Qt offers a [deployment tool](https://doc.qt.io/qt-5/macos-deployment.html#macdeploy),
-called `macdeployqt`, that automatizes bundling Qt's libraries in your application folder and
+called `macdeployqt`, that automates bundling Qt's libraries in your application folder and
 optionally create the final `.dmg` installer
 
 ```console
@@ -140,7 +140,7 @@ optionally create the final `.dmg` installer
 macdeployqt myapp.app -executable=myapp.app/Contents/MacOS/myapp
 ```
 
-This copies the needed Qt libaries to the correct subfolders within `myapp.app`.
+This copies the needed Qt libraries to the correct subfolders within `myapp.app`.
 The `-executable=myapp.app/Contents/MacOS/myapp` argument is
 to automatically alter the search path of the executable 
 `myapp.app/Contents/MacOS/myapp` for the Qt libraries. One can also pass the `-dmg`

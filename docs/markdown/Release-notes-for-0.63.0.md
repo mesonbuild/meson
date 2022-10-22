@@ -247,7 +247,7 @@ set explicitly (in which case that will take precedence).
 ## Added support for multiline fstrings
 
 Added support for multiline f-strings which use the same syntax as f-strings
-for string substition.
+for string substitution.
 
 ```meson
 x = 'hello'

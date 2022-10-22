@@ -570,7 +570,7 @@ versions would statically link, due to a quirk in `llvm-config`.
 
 ### Modules, a.k.a. Components
 
-Meson wraps LLVM's concept of components in it's own modules concept.
+Meson wraps LLVM's concept of components in its own modules concept.
 When you need specific components you add them as modules as Meson
 will do the right thing:
 
@@ -756,7 +756,7 @@ See [threads](Threads.md).
 ## Valgrind
 
 Meson will find valgrind using `pkg-config`, but only uses the
-compilation flags and avoids trying to link with it's non-PIC static
+compilation flags and avoids trying to link with its non-PIC static
 libs.
 
 ## Vulkan
