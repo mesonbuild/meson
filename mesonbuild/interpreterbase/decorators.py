@@ -452,7 +452,7 @@ class KwargInfo(T.Generic[_T]):
         )
 
 
-def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
+def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T.Callable[..., T.Any]:
     """Decorator for type checking keyword arguments.
 
     Used to wrap a meson DSL implementation function, where it checks various
@@ -529,11 +529,12 @@ def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
             # Cast here, as the convertor function may place something other than a TYPE_var in the kwargs
             kwargs = T.cast('T.Dict[str, object]', _kwargs)
 
-            all_names = {t.name for t in types}
-            unknowns = set(kwargs).difference(all_names)
-            if unknowns:
-                ustr = ', '.join([f'"{u}"' for u in sorted(unknowns)])
-                raise InvalidArguments(f'{name} got unknown keyword arguments {ustr}')
+            if not allow_unknown:
+                all_names = {t.name for t in types}
+                unknowns = set(kwargs).difference(all_names)
+                if unknowns:
+                    ustr = ', '.join([f'"{u}"' for u in sorted(unknowns)])
+                    raise InvalidArguments(f'{name} got unknown keyword arguments {ustr}')
 
             for info in types:
                 types_tuple = info.types if isinstance(info.types, tuple) else (info.types,)
