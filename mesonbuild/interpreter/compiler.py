@@ -4,6 +4,7 @@
 
 import enum
 import functools
+import os
 import typing as T
 
 from .. import build
@@ -78,6 +79,11 @@ if T.TYPE_CHECKING:
         header_no_builtin_args: bool
         header_prefix: str
         header_required: T.Union[bool, coredata.UserFeatureOption]
+
+    class PreprocessKW(TypedDict):
+        output: str
+        compile_args: T.List[str]
+        include_directories: T.List[build.IncludeDirs]
 
 
 class _TestMode(enum.Enum):
@@ -184,6 +190,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
                              'first_supported_link_argument': self.first_supported_link_argument_method,
                              'symbols_have_underscore_prefix': self.symbols_have_underscore_prefix_method,
                              'get_argument_syntax': self.get_argument_syntax_method,
+                             'preprocess': self.preprocess_method,
                              })
 
     @property
@@ -734,3 +741,34 @@ class CompilerHolder(ObjectHolder['Compiler']):
     @noKwargs
     def get_argument_syntax_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         return self.compiler.get_argument_syntax()
+
+    @FeatureNew('compiler.preprocess', '0.64.0')
+    @typed_pos_args('compiler.preprocess', varargs=(mesonlib.File, str), min_varargs=1)
+    @typed_kwargs(
+        'compiler.preprocess',
+        KwargInfo('output', str, default='@PLAINNAME@.i'),
+        KwargInfo('compile_args', ContainerTypeInfo(list, str), listify=True, default=[]),
+        _INCLUDE_DIRS_KW,
+    )
+    def preprocess_method(self, args: T.Tuple[T.List['mesonlib.FileOrString']], kwargs: 'PreprocessKW') -> T.List[build.CustomTargetIndex]:
+        compiler = self.compiler.get_preprocessor()
+        sources = self.interpreter.source_strings_to_files(args[0])
+        tg_kwargs = {
+            f'{self.compiler.language}_args': kwargs['compile_args'],
+            'build_by_default': False,
+            'include_directories': kwargs['include_directories'],
+        }
+        tg = build.CompileTarget(
+            'preprocessor',
+            self.interpreter.subdir,
+            self.subproject,
+            self.environment,
+            sources,
+            kwargs['output'],
+            compiler,
+            tg_kwargs)
+        self.interpreter.add_target(tg.name, tg)
+        # Expose this target as list of its outputs, so user can pass them to
+        # other targets, list outputs, etc.
+        private_dir = os.path.relpath(self.interpreter.backend.get_target_private_dir(tg), self.interpreter.subdir)
+        return [build.CustomTargetIndex(tg, os.path.join(private_dir, o)) for o in tg.outputs]

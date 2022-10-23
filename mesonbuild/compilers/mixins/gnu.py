@@ -318,6 +318,12 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     def get_coverage_args(self) -> T.List[str]:
         return ['--coverage']
 
+    def get_preprocess_to_file_args(self) -> T.List[str]:
+        # We want to allow preprocessing files with any extension, such as
+        # foo.c.in. In that case we need to tell GCC/CLANG to treat them as
+        # assembly file.
+        return self.get_preprocess_only_args() + ['-x', 'assembler-with-cpp']
+
 
 class GnuCompiler(GnuLikeCompiler):
     """

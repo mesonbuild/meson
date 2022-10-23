@@ -50,6 +50,8 @@ if T.TYPE_CHECKING:
 
     from typing_extensions import TypedDict
 
+    _ALL_SOURCES_TYPE = T.List[T.Union[File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
+
     class TargetIntrospectionData(TypedDict):
 
         language: str
@@ -792,6 +794,8 @@ class Backend:
 
     def object_filename_from_source(self, target: build.BuildTarget, source: 'FileOrString') -> str:
         assert isinstance(source, mesonlib.File)
+        if isinstance(target, build.CompileTarget):
+            return target.sources_map[source]
         build_dir = self.environment.get_build_dir()
         rel_src = source.rel_to_builddir(self.build_to_src)
 
@@ -1862,3 +1866,28 @@ class Backend:
             else:
                 env.prepend('PATH', list(extra_paths))
         return env
+
+    def compiler_to_generator(self, target: build.BuildTarget,
+                              compiler: 'Compiler',
+                              sources: _ALL_SOURCES_TYPE,
+                              output_templ: str) -> build.GeneratedList:
+        '''
+        Some backends don't support custom compilers. This is a convenience
+        method to convert a Compiler to a Generator.
+        '''
+        exelist = compiler.get_exelist()
+        exe = programs.ExternalProgram(exelist[0])
+        args = exelist[1:]
+        # FIXME: There are many other args missing
+        commands = self.generate_basic_compiler_args(target, compiler)
+        commands += compiler.get_dependency_gen_args('@OUTPUT@', '@DEPFILE@')
+        commands += compiler.get_output_args('@OUTPUT@')
+        commands += compiler.get_compile_only_args() + ['@INPUT@']
+        commands += self.get_source_dir_include_args(target, compiler)
+        commands += self.get_build_dir_include_args(target, compiler)
+        generator = build.Generator(exe, args + commands.to_native(), [output_templ], depfile='@PLAINNAME@.d')
+        return generator.process_files(sources, self.interpreter)
+
+    def compile_target_to_generator(self, target: build.CompileTarget) -> build.GeneratedList:
+        all_sources = T.cast('_ALL_SOURCES_TYPE', target.sources) + T.cast('_ALL_SOURCES_TYPE', target.generated)
+        return self.compiler_to_generator(target, target.compiler, all_sources, target.output_templ)

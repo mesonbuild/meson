@@ -159,6 +159,9 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     def get_preprocess_only_args(self) -> T.List[str]:
         return ['/EP']
 
+    def get_preprocess_to_file_args(self) -> T.List[str]:
+        return ['/EP', '/P']
+
     def get_compile_only_args(self) -> T.List[str]:
         return ['/c']
 
@@ -173,6 +176,8 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         return ['/fsanitize=address']
 
     def get_output_args(self, target: str) -> T.List[str]:
+        if self.mode == 'PREPROCESSOR':
+            return ['/Fi' + target]
         if target.endswith('.exe'):
             return ['/Fe' + target]
         return ['/Fo' + target]
