@@ -27,10 +27,9 @@ import typing as T
 from mesonbuild.interpreterbase.decorators import FeatureDeprecated
 
 from .. import mesonlib, mlog
-from ..compilers.detect import detect_compiler_for
 from ..environment import get_llvm_tool_names
 from ..mesonlib import version_compare, stringlistify, extract_as_list
-from .base import DependencyException, DependencyMethods, strip_system_libdirs, SystemDependency, ExternalDependency, DependencyTypeName
+from .base import DependencyException, DependencyMethods, detect_compiler, strip_system_libdirs, SystemDependency, ExternalDependency, DependencyTypeName
 from .cmake import CMakeDependency
 from .configtool import ConfigToolDependency
 from .factory import DependencyFactory
@@ -532,7 +531,7 @@ class JNISystemDependency(SystemDependency):
         m = self.env.machines[self.for_machine]
 
         if 'java' not in environment.coredata.compilers[self.for_machine]:
-            detect_compiler_for(environment, 'java', self.for_machine)
+            detect_compiler(self.name, environment, self.for_machine, 'java')
         self.javac = environment.coredata.compilers[self.for_machine]['java']
         self.version = self.javac.version
 
