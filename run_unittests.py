@@ -38,6 +38,7 @@ import mesonbuild.modules.pkgconfig
 from unittests.allplatformstests import AllPlatformTests
 from unittests.darwintests import DarwinTests
 from unittests.failuretests import FailureTests
+from unittests.formattertests import FormatterTests
 from unittests.linuxcrosstests import LinuxCrossArmTests, LinuxCrossMingwTests
 from unittests.machinefiletests import NativeFileTests, CrossFileTests
 from unittests.rewritetests import RewriterTests
@@ -116,6 +117,7 @@ def main():
     cases = ['InternalTests', 'DataTests', 'AllPlatformTests', 'FailureTests',
              'PythonTests', 'NativeFileTests', 'RewriterTests', 'CrossFileTests',
              'TAPParserTests', 'SubprojectsCommandTests', 'PlatformAgnosticTests',
+             'FormatterTests'
 
              'LinuxlikeTests', 'LinuxCrossArmTests', 'LinuxCrossMingwTests',
              'WindowsTests', 'DarwinTests']

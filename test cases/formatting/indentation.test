@@ -1,0 +1,83 @@
+if foo
+  foo()
+endif
+
+if foo
+  foo()
+  bar()
+endif
+
+if foo
+  foo()
+  bar()
+  baz()
+endif
+
+if foo
+  foo()
+  bar()
+  baz()
+  if bar
+    foo()
+    bar()
+    baz()
+    foreach x : []
+      foo()
+    endforeach
+
+    foreach x : []
+      foo()
+      bar()
+    endforeach
+  endif
+endif
+
+foreach x : []
+  foo()
+endforeach
+
+foreach x : []
+  foo()
+  bar()
+endforeach
+
+foreach x : []
+  foo()
+  bar()
+  baz()
+endforeach
+
+foo = meson.foo()
+foo = meson.foo('foo')
+foo = meson.foo('foo', 'bar')
+foo = meson.foo('foo',
+                'bar',
+                'baz')
+
+foo = meson.bar(foo : bar)
+foo = meson.bar('foo',
+                foo : bar)
+
+foo = meson.bar(foo : bar,
+                b   : baz)
+
+foo = []
+foo = [
+  '',
+]
+
+foo = [
+  '',
+  'bar',
+]
+
+foo = {}
+foo = {
+  'foo' : bar,
+}
+
+foo = {
+  'foo'  : bar,
+  'foo1' : bar,
+}
+
