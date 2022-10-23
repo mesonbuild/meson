@@ -23,8 +23,9 @@ from mesonbuild.coredata import MesonException
 from . import ModuleReturnValue, ModuleInfo
 from . import ExtensionModule
 from ..dependencies import Dependency, InternalDependency
-from ..interpreterbase import InvalidArguments, noPosargs, noKwargs, typed_pos_args
+from ..interpreterbase import InvalidArguments, noPosargs, noKwargs, typed_kwargs, ContainerTypeInfo, KwargInfo, typed_pos_args
 from ..interpreter import CustomTargetHolder
+from ..interpreter.type_checking import NoneType
 from ..programs import ExternalProgram
 
 
@@ -35,6 +36,8 @@ def ensure_list(value):
 
 
 MIN_HOTDOC_VERSION = '0.8.100'
+
+file_types = (str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex)
 
 
 class HotdocTargetBuilder:
@@ -61,14 +64,13 @@ class HotdocTargetBuilder:
         self._dependencies = []
         self._subprojects = []
 
-    def process_known_arg(self, option, types, argname=None,
-                          value_processor=None, mandatory=False,
-                          force_list=False):
+    def process_known_arg(self, option, argname=None, value_processor=None):
         if not argname:
             argname = option.strip("-").replace("-", "_")
 
-        value, _ = self.get_value(
-            types, argname, None, value_processor, mandatory, force_list)
+        value = self.kwargs.pop(argname)
+        if value is not None and value_processor:
+            value = value_processor(value)
 
         self.set_arg_value(option, value)
 
@@ -147,15 +149,6 @@ class HotdocTargetBuilder:
 
         return None, None
 
-    def setup_extension_paths(self, paths):
-        if not isinstance(paths, list):
-            paths = [paths]
-
-        for path in paths:
-            self.add_extension_paths([path])
-
-        return []
-
     def add_extension_paths(self, paths):
         for path in paths:
             if path in self._extra_extension_paths:
@@ -164,10 +157,6 @@ class HotdocTargetBuilder:
             self._extra_extension_paths.add(path)
             self.cmd.extend(["--extra-extension-path", path])
 
-    def process_extra_extension_paths(self):
-        self.get_value([list, str], 'extra_extensions_paths',
-                       default="", value_processor=self.setup_extension_paths)
-
     def replace_dirs_in_string(self, string):
         return string.replace("@SOURCE_ROOT@", self.sourcedir).replace("@BUILD_ROOT@", self.builddir)
 
@@ -175,7 +164,7 @@ class HotdocTargetBuilder:
         if self.hotdoc.run_hotdoc(['--has-extension=gi-extension']) != 0:
             return
 
-        value, _ = self.get_value([list, str], 'gi_c_source_roots', default=[], force_list=True)
+        value = self.kwargs.pop('gi_c_source_roots')
         value.extend([
             os.path.join(self.sourcedir, self.state.root_subdir),
             os.path.join(self.builddir, self.state.root_subdir)
@@ -215,18 +204,16 @@ class HotdocTargetBuilder:
         return [f.strip('-I') for f in cflags]
 
     def process_extra_assets(self):
-        self._extra_assets, _ = self.get_value("--extra-assets", (str, list), default=[],
-                                               force_list=True)
+        self._extra_assets = self.kwargs.pop('extra_assets')
+
         for assets_path in self._extra_assets:
             self.cmd.extend(["--extra-assets", assets_path])
 
     def process_subprojects(self):
-        _, value = self.get_value([
-            list, HotdocTarget], argname="subprojects",
-            force_list=True, value_processor=self.process_dependencies)
+        value = self.kwargs.pop('subprojects')
 
-        if value is not None:
-            self._subprojects.extend(value)
+        self.process_dependencies(value)
+        self._subprojects.extend(value)
 
     def flatten_config_command(self):
         cmd = []
@@ -292,22 +279,19 @@ class HotdocTargetBuilder:
 
     def make_targets(self):
         self.check_forbidden_args()
-        file_types = (str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex)
-        self.process_known_arg("--index", file_types, mandatory=True, value_processor=self.ensure_file)
-        self.process_known_arg("--project-version", str, mandatory=True)
-        self.process_known_arg("--sitemap", file_types, mandatory=True, value_processor=self.ensure_file)
-        self.process_known_arg("--html-extra-theme", str, value_processor=self.ensure_dir)
-        self.process_known_arg(None, list, "include_paths", force_list=True,
-                               value_processor=lambda x: [self.add_include_path(self.ensure_dir(v)) for v in ensure_list(x)])
-        self.process_known_arg('--c-include-directories',
-                               [Dependency, build.StaticLibrary, build.SharedLibrary, list], argname="dependencies",
-                               force_list=True, value_processor=self.process_dependencies)
+        self.process_known_arg("--index", value_processor=self.ensure_file)
+        self.process_known_arg("--project-version")
+        self.process_known_arg("--sitemap", value_processor=self.ensure_file)
+        self.process_known_arg("--html-extra-theme", value_processor=self.ensure_dir)
+        self.process_known_arg(None, "include_paths",
+                               value_processor=lambda x: [self.add_include_path(self.ensure_dir(v)) for v in x])
+        self.process_known_arg('--c-include-directories', argname="dependencies", value_processor=self.process_dependencies)
         self.process_gi_c_source_roots()
         self.process_extra_assets()
-        self.process_extra_extension_paths()
+        self.add_extension_paths(self.kwargs.pop('extra_extension_paths'))
         self.process_subprojects()
 
-        install, install = self.get_value(bool, "install", mandatory=False)
+        install = self.kwargs.pop('install')
         self.process_extra_args()
 
         fullname = self.name + '-doc'
@@ -352,7 +336,7 @@ class HotdocTargetBuilder:
                               build_by_default=self.build_by_default)
 
         install_script = None
-        if install is True:
+        if install:
             install_script = self.state.backend.get_executable_serialisation(self.build_command + [
                 "--internal", "hotdoc",
                 "--install", os.path.join(fullname, 'html'),
@@ -421,6 +405,27 @@ class HotDocModule(ExtensionModule):
         return self.hotdoc.run_hotdoc([f'--has-extension={extension}' for extension in args[0]]) == 0
 
     @typed_pos_args('hotdoc.generate_doc', str)
+    @typed_kwargs(
+        'hotdoc.generate_doc',
+        KwargInfo('sitemap', file_types, required=True),
+        KwargInfo('index', file_types, required=True),
+        KwargInfo('project_version', str, required=True),
+        KwargInfo('html_extra_theme', (str, NoneType)),
+        KwargInfo('include_paths', ContainerTypeInfo(list, str), listify=True, default=[]),
+        # --c-include-directories
+        KwargInfo(
+            'dependencies',
+            ContainerTypeInfo(list, (Dependency, build.StaticLibrary, build.SharedLibrary)),
+            listify=True,
+            default=[],
+        ),
+        KwargInfo('gi_c_source_roots', ContainerTypeInfo(list, str), listify=True, default=[]),
+        KwargInfo('extra_assets', ContainerTypeInfo(list, str), listify=True, default=[]),
+        KwargInfo('extra_extension_paths', ContainerTypeInfo(list, str), listify=True, default=[]),
+        KwargInfo('subprojects', ContainerTypeInfo(list, HotdocTarget), listify=True, default=[]),
+        KwargInfo('install', bool, default=False),
+        allow_unknown=True
+    )
     def generate_doc(self, state, args, kwargs):
         project_name = args[0]
         builder = HotdocTargetBuilder(project_name, state, self.hotdoc, self.interpreter, kwargs)
