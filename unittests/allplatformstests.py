@@ -3317,7 +3317,7 @@ class AllPlatformTests(BasePlatformTests):
                 A number       : 1
                 yes            : YES
                 no             : NO
-                coma list      : a, b, c
+                comma list     : a, b, c
 
               Stuff
                 missing prog   : NO
@@ -3325,9 +3325,10 @@ class AllPlatformTests(BasePlatformTests):
                 missing dep    : NO
                 external dep   : YES 1.2.3
                 internal dep   : YES
+                disabler       : NO
 
               Plugins
-                long coma list : alpha, alphacolor, apetag, audiofx, audioparsers, auparse,
+                long comma list: alpha, alphacolor, apetag, audiofx, audioparsers, auparse,
                                  autodetect, avi
 
               Subprojects
