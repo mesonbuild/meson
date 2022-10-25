@@ -261,11 +261,14 @@ class AstFormatter(AstVisitor):
         for i, kwarg in enumerate(args.kwargs):
             max_len = max(max_len, len(kwarg.value))
         max_len += 1
+        wide_colon = self.config['wide_colon']
         for i, kwarg in enumerate(args.kwargs):
             self.check_comment(kwarg)
             self.currindent = ' ' * indent_len
             name = kwarg.value
             padding = ' ' * (max_len - len(name))
+            if not wide_colon:
+                padding = ''
             self.append(name + padding + ': ')
             args.kwargs[kwarg].accept(self)
             if i == len(args.kwargs) - 1:
@@ -317,11 +320,13 @@ class AstFormatter(AstVisitor):
         align = 1
         for _, e in enumerate(node.args.kwargs):
             align = max(align, len(e.value))
+        wide_colon = self.config['wide_colon']
         for i, e in enumerate(node.args.kwargs):
             self.currindent = tmp + self.indentstr
             self.check_comment(e)
             e.accept(self)
-            self.append(' ' * (align - len(e.value) + 1))
+            if wide_colon:
+                self.append(' ' * (align - len(e.value) + 1))
             self.append(': ')
             node.args.kwargs[e].accept(self)
             self.check_adjacent_comment(e, ',')
@@ -415,9 +420,13 @@ class AstFormatter(AstVisitor):
         for i in node.arguments:
             i.accept(self)
             self.append(', ')
+        wide_colon = self.config['wide_colon']
         for key, val in node.kwargs.items():
             key.accept(self)
-            self.append(' : ')
+            if not wide_colon:
+                self.append(': ')
+            else:
+                self.append(' : ')
             val.accept(self)
             self.append(', ')
         self.currline = re.sub(r', $', '', self.currline)
