@@ -372,6 +372,15 @@ build directory when running wine.
 
 {{ fmt_unstable_usage.inc }}
 
-Attempts to format your code.
+Attempts to format your code. It is possible some comments aren't readded.
+You can configure the formatting by passing a config file using `-c/--config`.
+It is a simple key-value configuration file with these possible keys:
+
+- `max_line_len`: The maximum length of lines before they are split. (TODO: Not implemented) **Default: 80**
+- `indent_by`: A string that will be used to indent with. (Note: Only spaces are allowed, no tabs) **Default: '    '**
+- `space_array`: Whether to include spaces around array elements (ex. `[1]` vs `[ 1 ]`) **Default: false**
+- `kwa_ml`: Make every dictionary literal and function call with kwargs expand into multiple lines. (TODO: Not implemented) **Default: false**
+- `wide_colon`: Whether to put a space before the colon operator (ex. `key : val`) **Default: false**
+- `no_single_comma_function`: Don't add a trailing comma to multi-line function calls with only one argument. (TODO: Not implemented) **Default: false**
 
 {{ fmt_unstable_arguments.inc }}
