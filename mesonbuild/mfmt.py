@@ -7,7 +7,8 @@ from .ast import AstFormatter
 def add_arguments(parser: argparse.ArgumentParser) -> None:
     coredata.register_builtin_arguments(parser)
     parser.add_argument('file', help='file to format')
-    parser.add_argument("-o", "--output", help="Output file")
+    parser.add_argument('-o', '--output', help='Output file')
+    parser.add_argument('-i', '--inplace', action='store_true', help='Edit the file inplace')
 
 def run(options: argparse.Namespace) -> int:
     if options.file == '-':
@@ -26,8 +27,11 @@ def run(options: argparse.Namespace) -> int:
     formatter = AstFormatter(comments, code.splitlines())
     codeblock.accept(formatter)
     formatter.end()
-    output = sys.stdout if options.output is None else open(options.output, 'w', encoding='utf8')
     print('This will probably eat some of your comments', file=sys.stderr)
+    if not options.inplace:
+        output = sys.stdout if options.output is None else open(options.output, 'w', encoding='utf8')
+    else:
+        output = open(options.file, 'w', encoding='utf8')
     for line in formatter.lines:
         print(line, end='\n', file=output)
     if len(formatter.comments) != 0:
