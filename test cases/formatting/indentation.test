@@ -54,12 +54,12 @@ foo = meson.foo('foo',
                 'bar',
                 'baz')
 
-foo = meson.bar(foo : bar)
+foo = meson.bar(foo: bar)
 foo = meson.bar('foo',
-                foo : bar)
+                foo: bar)
 
-foo = meson.bar(foo : bar,
-                b   : baz)
+foo = meson.bar(foo: bar,
+                b: baz)
 
 foo = []
 foo = [
@@ -73,11 +73,11 @@ foo = [
 
 foo = {}
 foo = {
-    'foo' : bar,
+    'foo': bar,
 }
 
 foo = {
-    'foo'  : bar,
-    'foo1' : bar,
+    'foo': bar,
+    'foo1': bar,
 }
 
