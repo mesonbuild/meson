@@ -179,7 +179,12 @@ class AstFormatter(AstVisitor):
 
     def visit_ArrayNode(self, node: mparser.ArrayNode) -> None:
         self.append('[')
+        num_elements = len(node.args.arguments)
+        if self.config['space_array'] and num_elements != 0:
+            self.append(' ')
         node.args.accept(self)
+        if self.config['space_array'] and num_elements != 0:
+            self.append(' ')
         self.append(']')
 
     def visit_DictNode(self, node: mparser.DictNode) -> None:
@@ -232,7 +237,11 @@ class AstFormatter(AstVisitor):
     def visit_IndexNode(self, node: mparser.IndexNode) -> None:
         node.iobject.accept(self)
         self.append('[')
+        if self.config['space_array']:
+            self.append(' ')
         node.index.accept(self)
+        if self.config['space_array']:
+            self.append(' ')
         self.append(']')
 
     def visit_ArgumentsCall(self, args: mparser.ArgumentNode) -> None:
