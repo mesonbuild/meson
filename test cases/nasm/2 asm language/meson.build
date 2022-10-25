@@ -11,6 +11,24 @@ if not add_languages('nasm', required: false)
   error('MESON_SKIP_TEST: nasm not found')
 endif
 
+nasm = meson.get_compiler('nasm')
+
+code = '''
+SECTION .text
+global main
+main:
+  mov foo,bar ; error: symbol `foo' not defined
+'''
+assert(not nasm.compiles(code, name: 'Invalid NASM code'))
+
+code = '''
+SECTION .text
+global main
+main:
+  mov eax,1
+'''
+assert(nasm.compiles(code, name: 'Valid NASM code'))
+
 config_file = configure_file(
   output: 'config.asm',
   configuration: {'HELLO': 0},
