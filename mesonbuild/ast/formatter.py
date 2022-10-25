@@ -27,13 +27,14 @@ arithmic_map = {
 }
 
 class AstFormatter(AstVisitor):
-    def __init__(self, comments: T.List[mparser.Comment], lines: T.List[str]):
+    def __init__(self, comments: T.List[mparser.Comment], lines: T.List[str], config):
         self.lines = []
-        self.indentstr = '  '
+        self.indentstr = config['indent_by']
         self.currindent = ''
         self.currline = ''
         self.comments = comments
         self.old_lines = lines
+        self.config = config
 
     def end(self):
         self.lines.append(self.currline)

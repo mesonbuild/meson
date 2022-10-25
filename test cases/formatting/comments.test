@@ -7,19 +7,19 @@
 # Foo123
 
 foo = [
-  'foo', # Foo456,
-  'abc'.strip(), # FOOOOO
+    'foo', # Foo456,
+    'abc'.strip(), # FOOOOO
 ]
 
 if true
-  # Foo
+    # Foo
 
-  # Bar
-  # Baz
-  # Baz2
-  # Baz3
-  warning() # Foo
-  # Foo1234
+    # Bar
+    # Baz
+    # Baz2
+    # Baz3
+    warning() # Foo
+    # Foo1234
 endif
 
 bar()

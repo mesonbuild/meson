@@ -1,50 +1,50 @@
 if foo
-  foo()
+    foo()
 endif
 
 if foo
-  foo()
-  bar()
+    foo()
+    bar()
 endif
 
 if foo
-  foo()
-  bar()
-  baz()
-endif
-
-if foo
-  foo()
-  bar()
-  baz()
-  if bar
     foo()
     bar()
     baz()
-    foreach x : []
-      foo()
-    endforeach
+endif
 
-    foreach x : []
-      foo()
-      bar()
-    endforeach
-  endif
+if foo
+    foo()
+    bar()
+    baz()
+    if bar
+        foo()
+        bar()
+        baz()
+        foreach x : []
+            foo()
+        endforeach
+
+        foreach x : []
+            foo()
+            bar()
+        endforeach
+    endif
 endif
 
 foreach x : []
-  foo()
+    foo()
 endforeach
 
 foreach x : []
-  foo()
-  bar()
+    foo()
+    bar()
 endforeach
 
 foreach x : []
-  foo()
-  bar()
-  baz()
+    foo()
+    bar()
+    baz()
 endforeach
 
 foo = meson.foo()
@@ -63,21 +63,21 @@ foo = meson.bar(foo : bar,
 
 foo = []
 foo = [
-  '',
+    '',
 ]
 
 foo = [
-  '',
-  'bar',
+    '',
+    'bar',
 ]
 
 foo = {}
 foo = {
-  'foo' : bar,
+    'foo' : bar,
 }
 
 foo = {
-  'foo'  : bar,
-  'foo1' : bar,
+    'foo'  : bar,
+    'foo1' : bar,
 }
 

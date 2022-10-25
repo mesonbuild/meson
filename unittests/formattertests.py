@@ -37,13 +37,20 @@ class FormatterTests(unittest.TestCase):
     @staticmethod
     def fill_formatter(file: str) -> (mesonbuild.ast.AstFormatter, T.List[str]):
         path = './test cases/formatting/' + file
+        config = {}
+        config['max_line_len'] = 80
+        config['indent_by'] = '    '
+        config['space_array'] = False
+        config['kwa_ml'] = False
+        config['wide_colon'] = False
+        config['no_single_comma_function'] = False
         with open(path, encoding='utf-8') as f:
             code = f.read()
         old_lines = code.splitlines()
         parser = mesonbuild.mparser.Parser(code, path)
         codeblock = parser.parse()
         comments = parser.comments()
-        formatter = mesonbuild.ast.AstFormatter(comments, old_lines)
+        formatter = mesonbuild.ast.AstFormatter(comments, old_lines, config)
         codeblock.accept(formatter)
         formatter.end()
         return (formatter, old_lines)
