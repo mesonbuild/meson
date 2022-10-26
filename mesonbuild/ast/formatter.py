@@ -251,7 +251,16 @@ class AstFormatter(AstVisitor):
         n_linebreaks = 0
         for i, arg in enumerate(args.arguments):
             broke_up = False
-            if len(args.arguments) + len(args.kwargs) != 1:
+            estimated_len = 0
+            if isinstance(arg, mparser.IdNode):
+                estimated_len = len(arg.value)
+            elif isinstance(arg, mparser.StringNode):
+                estimated_len = len(arg.value) + 2
+            elif isinstance(arg, mparser.NumberNode):
+                estimated_len = len(str(arg.value))
+            elif isinstance(arg, mparser.MethodNode) and isinstance(arg.source_object, mparser.StringNode):
+                estimated_len = len(arg.source_object.value) + 2 + len(arg.name)
+            if len(args.arguments) + len(args.kwargs) != 1 or len(self.currline) + estimated_len > self.config['max_line_len']:
                 if len(self.currline) > self.config['max_line_len']:
                     self.force_linebreak()
                     n_linebreaks += 1
