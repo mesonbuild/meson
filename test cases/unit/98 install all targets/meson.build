@@ -31,6 +31,22 @@ configure_file(input: 'foo.in', output: 'foo2-devel.h',
 static_library('static', 'lib.c',
   install: true,
 )
+custom_target('ct-header1',
+  output: ['ct-header1.h'],
+  command: ['script.py', '@OUTPUT@'],
+  install_dir: get_option('includedir'),
+  install: true,
+)
+custom_target('ct-header2',
+  output: ['ct-header2.h', 'ct-header3.h'],
+  command: ['script.py', '@OUTPUT@'],
+  install_dir: [false, get_option('includedir')],
+  install: true,
+)
+install_emptydir(get_option('includedir') / 'subdir-devel')
+install_subdir('custom_files',
+  install_dir: get_option('includedir'),
+)
 
 # Those files should have 'runtime' tag
 executable('app', 'main.c',

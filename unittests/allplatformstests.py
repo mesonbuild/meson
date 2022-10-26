@@ -4054,6 +4054,11 @@ class AllPlatformTests(BasePlatformTests):
             Path(installpath, 'usr/lib/libstatic.a'),
             Path(installpath, 'usr/lib/libboth.a'),
             Path(installpath, 'usr/lib/libboth2.a'),
+            Path(installpath, 'usr/include/ct-header1.h'),
+            Path(installpath, 'usr/include/ct-header3.h'),
+            Path(installpath, 'usr/include/subdir-devel'),
+            Path(installpath, 'usr/include/custom_files'),
+            Path(installpath, 'usr/include/custom_files/data.txt'),
         }
 
         if cc.get_id() in {'msvc', 'clang-cl'}:
