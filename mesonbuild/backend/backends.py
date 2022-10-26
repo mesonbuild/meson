@@ -1654,6 +1654,7 @@ class Backend:
                 if num_outdirs == 1 and num_out > 1:
                     if first_outdir is not False:
                         for output, tag in zip(t.get_outputs(), t.install_tag):
+                            tag = tag or self.guess_install_tag(output, first_outdir)
                             f = os.path.join(self.get_target_dir(t), output)
                             i = TargetInstallData(f, first_outdir, first_outdir_name,
                                                   False, {}, set(), None, install_mode,
@@ -1665,6 +1666,7 @@ class Backend:
                         # User requested that we not install this output
                         if outdir is False:
                             continue
+                        tag = tag or self.guess_install_tag(output, outdir)
                         f = os.path.join(self.get_target_dir(t), output)
                         i = TargetInstallData(f, outdir, outdir_name,
                                               False, {}, set(), None, install_mode,
@@ -1674,6 +1676,9 @@ class Backend:
 
     def generate_custom_install_script(self, d: InstallData) -> None:
         d.install_scripts = self.build.install_scripts
+        for i in d.install_scripts:
+            if not i.tag:
+                mlog.debug('Failed to guess install tag for install script:', ' '.join(i.cmd_args))
 
     def generate_header_install(self, d: InstallData) -> None:
         incroot = self.environment.get_includedir()
@@ -1723,7 +1728,8 @@ class Backend:
     def generate_emptydir_install(self, d: InstallData) -> None:
         emptydir: T.List[build.EmptyDir] = self.build.get_emptydir()
         for e in emptydir:
-            i = InstallEmptyDir(e.path, e.install_mode, e.subproject, e.install_tag)
+            tag = e.install_tag or self.guess_install_tag(e.path)
+            i = InstallEmptyDir(e.path, e.install_mode, e.subproject, tag)
             d.emptydir.append(i)
 
     def generate_data_install(self, d: InstallData) -> None:
@@ -1752,7 +1758,8 @@ class Backend:
             assert isinstance(l, build.SymlinkData)
             install_dir = l.install_dir
             name_abs = os.path.join(install_dir, l.name)
-            s = InstallSymlinkData(l.target, name_abs, install_dir, l.subproject, l.install_tag)
+            tag = l.install_tag or self.guess_install_tag(name_abs)
+            s = InstallSymlinkData(l.target, name_abs, install_dir, l.subproject, tag)
             d.symlinks.append(s)
 
     def generate_subdir_install(self, d: InstallData) -> None:
@@ -1772,7 +1779,8 @@ class Backend:
             if not sd.strip_directory:
                 dst_dir = os.path.join(dst_dir, os.path.basename(src_dir))
                 dst_name = os.path.join(dst_name, os.path.basename(src_dir))
-            i = SubdirInstallData(src_dir, dst_dir, dst_name, sd.install_mode, sd.exclude, sd.subproject, sd.install_tag)
+            tag = sd.install_tag or self.guess_install_tag(os.path.join(sd.install_dir, 'dummy'))
+            i = SubdirInstallData(src_dir, dst_dir, dst_name, sd.install_mode, sd.exclude, sd.subproject, tag)
             d.install_subdirs.append(i)
 
     def get_introspection_data(self, target_id: str, target: build.Target) -> T.List['TargetIntrospectionData']:
