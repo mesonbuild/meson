@@ -46,6 +46,7 @@ if T.TYPE_CHECKING:
 
         """Kwargs for fs.copy"""
 
+        build_mode: FileMode
         install: bool
         install_dir: T.Optional[str]
         install_mode: FileMode
@@ -275,6 +276,7 @@ class FSModule(ExtensionModule):
         'fs.copyfile',
         INSTALL_KW,
         INSTALL_MODE_KW,
+        INSTALL_MODE_KW.evolve(name='build_mode'),
         INSTALL_TAG_KW,
         KwargInfo('install_dir', (str, NoneType)),
     )
@@ -283,6 +285,14 @@ class FSModule(ExtensionModule):
         """Copy a file into the build directory at build time."""
         if kwargs['install'] and not kwargs['install_dir']:
             raise InvalidArguments('"install_dir" must be specified when "install" is true')
+
+        chmod_cmd: T.List[str] = []
+        if kwargs['build_mode']:
+            chmod_cmd.extend(['--file-mode', str(kwargs['build_mode'].perms)])
+            if kwargs['build_mode'].group is not None:
+                raise InvalidArguments.from_node('Cannot set group in build_mode', node=state.current_node)
+            if kwargs['build_mode'].owner is not None:
+                raise InvalidArguments.from_node('Cannot set owner in build_mode', node=state.current_node)
 
         src = self.interpreter.source_strings_to_files([args[0]])[0]
 
@@ -297,7 +307,7 @@ class FSModule(ExtensionModule):
             state.subdir,
             state.subproject,
             state.environment,
-            state.environment.get_build_command() + ['--internal', 'copy', '@INPUT@', '@OUTPUT@'],
+            state.environment.get_build_command() + ['--internal', 'copy', '@INPUT@', '@OUTPUT@'] + chmod_cmd,
             [src],
             [dest],
             build_by_default=True,
