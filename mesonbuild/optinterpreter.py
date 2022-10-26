@@ -90,6 +90,8 @@ class OptionInterpreter:
     def reduce_single(self, arg: T.Union[str, mparser.BaseNode]) -> 'TYPE_var':
         if isinstance(arg, str):
             return arg
+        if isinstance(arg, mparser.ParenthesizedNode):
+            return self.reduce_single(arg.inner)
         elif isinstance(arg, (mparser.StringNode, mparser.BooleanNode,
                               mparser.NumberNode)):
             return arg.value
@@ -122,6 +124,7 @@ class OptionInterpreter:
             FeatureNew.single_use('string concatenation in meson_options.txt', '0.55.0', self.subproject)
             return l + r
         else:
+            print(arg)
             raise OptionException('Arguments may only be string, int, bool, or array of those.')
 
     def reduce_arguments(self, args: mparser.ArgumentNode) -> T.Tuple['TYPE_var', 'TYPE_kwargs']:

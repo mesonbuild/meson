@@ -483,6 +483,11 @@ class IfClauseNode(BaseNode):
         self.ifs = []          # type: T.List[IfNode]
         self.elseblock = None  # type: T.Union[EmptyNode, CodeBlockNode]
 
+class ParenthesizedNode(BaseNode):
+    def __init__(self, inner: BaseNode, lineno: int, colno: int, end_lineno: int, end_colno: int):
+        super().__init__(lineno, colno, inner.filename, end_lineno=end_lineno, end_colno=end_colno)
+        self.inner = inner              # type: BaseNode
+
 class UMinusNode(BaseNode):
     def __init__(self, current_location: Token, value: BaseNode):
         super().__init__(current_location.lineno, current_location.colno, current_location.filename)
@@ -691,7 +696,7 @@ class Parser:
         if self.accept('lparen'):
             e = self.statement()
             self.block_expect('rparen', block_start)
-            return e
+            return ParenthesizedNode(e, block_start.lineno, block_start.colno, self.current.lineno, self.current.colno)
         elif self.accept('lbracket'):
             args = self.args()
             self.block_expect('rbracket', block_start)

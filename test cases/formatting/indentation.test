@@ -50,16 +50,13 @@ endforeach
 foo = meson.foo()
 foo = meson.foo('foo')
 foo = meson.foo('foo', 'bar')
-foo = meson.foo('foo',
-                'bar',
-                'baz')
+foo = meson.foo('foo', 'bar', 'baz')
 
 foo = meson.bar(foo: bar)
-foo = meson.bar('foo',
-                foo: bar)
+foo = meson.bar('foo', foo: bar)
 
 foo = meson.bar(foo: bar,
-                b: baz)
+    b: baz)
 
 foo = []
 foo = [

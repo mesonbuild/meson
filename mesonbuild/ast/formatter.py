@@ -246,37 +246,53 @@ class AstFormatter(AstVisitor):
 
     def visit_ArgumentsCall(self, args: mparser.ArgumentNode) -> None:
         tmp = self.currindent
-        indent_len = len(self.currline)
+        indent_len = len(tmp) + len(self.config['indent_by'])
+        self.currindent = ' ' * indent_len
+        n_linebreaks = 0
         for i, arg in enumerate(args.arguments):
+            broke_up = False
+            if len(args.arguments) + len(args.kwargs) != 1:
+                if len(self.currline) > self.config['max_line_len']:
+                    self.force_linebreak()
+                    n_linebreaks += 1
+                    broke_up = True
+            if not broke_up and i != 0:
+                self.append(' ')
             self.check_comment(arg)
             arg.accept(self)
             if i != len(args.arguments) - 1 or len(args.kwargs) != 0:
                 self.currindent = ' ' * indent_len
-                if len(args.kwargs) == 0 and len(args.arguments) == 2:
-                    self.append(', ')
-                else:
-                    self.append(',')
-                    self.force_linebreak()
+                self.append(',')
         max_len = 0
         for i, kwarg in enumerate(args.kwargs):
             max_len = max(max_len, len(kwarg.value))
         max_len += 1
         wide_colon = self.config['wide_colon']
         for i, kwarg in enumerate(args.kwargs):
+            broke_up = False
+            if (i == 0 and len(args.arguments) != 0) and len(args.kwargs) > 1:
+                self.force_linebreak()
+                n_linebreaks += 1
+                broke_up = True
             self.check_comment(kwarg)
             self.currindent = ' ' * indent_len
             name = kwarg.value
             padding = ' ' * (max_len - len(name))
             if not wide_colon:
                 padding = ''
+            if not broke_up and (i == 0 and len(args.arguments) != 0):
+                self.append(' ')
             self.append(name + padding + ': ')
             args.kwargs[kwarg].accept(self)
+            if n_linebreaks != 0 or i < len(args.kwargs) - 1:
+                self.append(',')
             if i == len(args.kwargs) - 1:
                 self.currindent = tmp
             else:
-                self.append(',')
                 self.force_linebreak()
         self.currindent = tmp
+        if (len(args.arguments) + len(args.kwargs) > 1 and n_linebreaks != 0):
+            self.force_linebreak()
 
     def visit_MethodNode(self, node: mparser.MethodNode) -> None:
         node.source_object.accept(self)
@@ -430,3 +446,8 @@ class AstFormatter(AstVisitor):
             val.accept(self)
             self.append(', ')
         self.currline = re.sub(r', $', '', self.currline)
+
+    def visit_ParenthesizedNode(self, node: mparser.ParenthesizedNode) -> None:
+        self.append('(')
+        node.inner.accept(self)
+        self.append(')')
