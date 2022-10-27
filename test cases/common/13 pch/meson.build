@@ -20,3 +20,7 @@ if meson.backend() == 'xcode'
 else
   subdir('mixed')
 endif
+
+if cc_id == 'msvc'
+  subdir('linkwhole')
+endif
