@@ -63,6 +63,14 @@ class AstFormatter(AstVisitor):
                     add_extra += 2 + len(node.value)
                 elif isinstance(node, mparser.MethodNode):
                     add_extra += node.args.end_colno + 3
+                elif isinstance(node, (mparser.PlusAssignmentNode, mparser.AssignmentNode)):
+                    rhs = node.value
+                    if isinstance(rhs, mparser.StringNode):
+                        add_extra += 2 + len(rhs.value) + rhs.colno
+                    elif isinstance(rhs, mparser.MethodNode):
+                        add_extra += rhs.args.end_colno + 3
+                    else:
+                        add_extra += rhs.end_colno
                 diffstr = self.old_lines[c.lineno - 1][node.end_colno + add_extra:c.colno].strip()
                 bound_matches = diffstr in ('', ',')
                 if not bound_matches:
@@ -228,9 +236,10 @@ class AstFormatter(AstVisitor):
             self.check_comment(i)
             i.accept(self)
             self.check_adjacent_comment(i, '')
-            lastline = i.lineno
+            lastline = AstFormatter.extract_last_line(i)
             idx += 1
-            self.force_linebreak()
+            if i != len(node.lines) - 1:
+                self.force_linebreak()
         if len(node.lines) != 0:
             self.check_post_comment(node.lines[len(node.lines) - 1])
 
@@ -277,9 +286,10 @@ class AstFormatter(AstVisitor):
             max_len = max(max_len, len(kwarg.value))
         max_len += 1
         wide_colon = self.config['wide_colon']
+        kwa_ml = self.config['kwa_ml'] or (len(args.arguments) == 0 and len(args.kwargs) > 0)
         for i, kwarg in enumerate(args.kwargs):
             broke_up = False
-            if (i == 0 and len(args.arguments) != 0) and len(args.kwargs) > 1:
+            if ((i == 0 and len(args.arguments) != 0) and len(args.kwargs) > 1) or kwa_ml:
                 self.force_linebreak()
                 n_linebreaks += 1
                 broke_up = True
@@ -297,10 +307,13 @@ class AstFormatter(AstVisitor):
                 self.append(',')
             if i == len(args.kwargs) - 1:
                 self.currindent = tmp
+                if n_linebreaks != 0:
+                    self.force_linebreak()
             else:
                 self.force_linebreak()
+                n_linebreaks += 1
         self.currindent = tmp
-        if (len(args.arguments) + len(args.kwargs) > 1 and n_linebreaks != 0):
+        if len(args.arguments) + len(args.kwargs) > 1 and n_linebreaks != 0:
             self.force_linebreak()
 
     def visit_MethodNode(self, node: mparser.MethodNode) -> None:
@@ -320,6 +333,9 @@ class AstFormatter(AstVisitor):
 
     def visit_ArrayNodeAssignment(self, node: mparser.ArrayNode) -> None:
         assert isinstance(node, mparser.ArrayNode)
+        if len(node.args.arguments) == 1:
+            node.accept(self)
+            return
         self.append('[')
         tmp = self.currindent
         self.currindent = tmp + self.indentstr
@@ -334,7 +350,6 @@ class AstFormatter(AstVisitor):
             self.force_linebreak()
         self.append(']')
         self.currindent = tmp
-        self.force_linebreak()
 
     def visit_DictNodeAssignment(self, node: mparser.DictNode) -> None:
         assert isinstance(node, mparser.DictNode)
@@ -396,7 +411,6 @@ class AstFormatter(AstVisitor):
         self.force_linebreak()
         self.currline = self.currindent
         self.append('endforeach')
-        self.force_linebreak()
 
     def visit_IfClauseNode(self, node: mparser.IfClauseNode) -> None:
         prefix = ''
@@ -421,6 +435,19 @@ class AstFormatter(AstVisitor):
         self.currindent = tmp
         self.currline = self.currindent
         self.append('endif')
+
+    @staticmethod
+    def extract_last_line(node: mparser.BaseNode) -> int:
+        if isinstance(node, mparser.IfClauseNode):
+            if not isinstance(node.elseblock, mparser.EmptyNode):
+                return AstFormatter.extract_last_line(node.elseblock) + 1
+            return AstFormatter.extract_last_line(node.ifs[-1].block) + 1
+        elif isinstance(node, mparser.ForeachClauseNode):
+            return AstFormatter.extract_last_line(node.block) + 1
+        elif isinstance(node, mparser.CodeBlockNode):
+            if len(node.lines) != 0:
+                return max(AstFormatter.extract_last_line(node.lines[-1]), node.end_lineno)
+        return node.end_lineno
 
     def visit_UMinusNode(self, node: mparser.UMinusNode) -> None:
         self.append('-')

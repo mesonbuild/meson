@@ -35,19 +35,19 @@ def run(options: argparse.Namespace) -> int:
     if options.config is not None:
         with open(options.config, encoding='utf-8') as f:
             for line in f.readlines():
-                ls = line.stripped()
+                ls = line.lstrip()
                 if ls == '' or ls[0] == '#':
                     continue
                 if '=' not in ls:
                     continue
                 parts = ls.split('=', 1)
-                key = parts[0]
+                key = parts[0].strip()
                 value = parts[1].lower()
                 if key == 'max_line_len':
                     config['max_line_len'] = int(value)
                 elif key in ('space_array', 'kwa_ml', 'wide_colon', 'no_single_comma_function'):
-                    if value in ('false', 'true'):
-                        config[key] = value.lower() == 'true'
+                    if value.strip() in ('false', 'true'):
+                        config[key] = value.strip().lower() == 'true'
                     else:
                         print('Unexpected value for key', key, file=sys.stderr)
                 else:

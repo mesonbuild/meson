@@ -1,0 +1,10 @@
+foo = meson.foooooo('a',
+    bar  : foo,
+    fooo : bar,
+)
+
+dict = {
+    foo : bar,
+    f   : bar,
+}
+

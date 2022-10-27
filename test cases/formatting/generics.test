@@ -1,0 +1,38 @@
+x = true ? 1 : 5
+y = f'foo'
+
+foreach z : []
+    if z == 1
+        continue
+    endif
+
+    warning([1, 2, 3][4])
+    break
+endforeach
+
+if (b or not b) and (x > 5)
+endif
+foo = []
+foo += []
+foo += [
+    1,
+    2,
+]
+
+foo += {}
+foo += {
+    foo: 1,
+}
+
+foo += {
+    bar: -1,
+    baz: 2,
+}
+
+if true
+else
+endif
+meson.fooooo('fooooooooooooo', 'foooooo', foooooooooooooooooooo.bar(), fooo, 12345,
+    12345, 'fooooooooooooooooooooooooo'.lower()
+)
+

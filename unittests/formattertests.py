@@ -34,8 +34,28 @@ class FormatterTests(unittest.TestCase):
             self.assertEqual(old_lines[i], line)
         assert(len(formatter.comments) == 0)
 
+    def test_generics(self):
+        (formatter, old_lines) = FormatterTests.fill_formatter('generics.test')
+        for i, line in enumerate(formatter.lines):
+            self.assertEqual(old_lines[i], line)
+        assert(len(formatter.comments) == 0)
+
+    def test_space_array(self):
+        config = {}
+        config['space_array'] = True
+        (formatter, old_lines) = FormatterTests.fill_formatter('space_array.test', config)
+        for i, line in enumerate(formatter.lines):
+            self.assertEqual(old_lines[i], line)
+
+    def test_wide_colon(self):
+        config = {}
+        config['wide_colon'] = True
+        (formatter, old_lines) = FormatterTests.fill_formatter('wide_colon.test', config)
+        for i, line in enumerate(formatter.lines):
+            self.assertEqual(old_lines[i], line)
+
     @staticmethod
-    def fill_formatter(file: str) -> (mesonbuild.ast.AstFormatter, T.List[str]):
+    def fill_formatter(file: str, extra_config={}) -> (mesonbuild.ast.AstFormatter, T.List[str]):
         path = './test cases/formatting/' + file
         config = {}
         config['max_line_len'] = 80
@@ -44,6 +64,7 @@ class FormatterTests(unittest.TestCase):
         config['kwa_ml'] = False
         config['wide_colon'] = False
         config['no_single_comma_function'] = False
+        config.update(extra_config)
         with open(path, encoding='utf-8') as f:
             code = f.read()
         old_lines = code.splitlines()
