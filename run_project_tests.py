@@ -177,7 +177,15 @@ class InstalledFile:
                 return p
             if self.typ == 'python_lib':
                 return p.with_suffix(python_suffix)
-        if self.typ in ['file', 'dir']:
+            if self.typ == 'py_implib':
+                p = p.with_suffix(python_suffix)
+                if env.machines.host.is_windows() and canonical_compiler == 'msvc':
+                    return p.with_suffix('.lib')
+                elif env.machines.host.is_windows() or env.machines.host.is_cygwin():
+                    return p.with_suffix('.dll.a')
+                else:
+                    return None
+        elif self.typ in {'file', 'dir'}:
             return p
         elif self.typ == 'shared_lib':
             if env.machines.host.is_windows() or env.machines.host.is_cygwin():
@@ -211,15 +219,13 @@ class InstalledFile:
             if self.version:
                 p = p.with_name('{}-{}'.format(p.name, self.version[0]))
             return p.with_suffix('.pdb') if has_pdb else None
-        elif self.typ in {'implib', 'implibempty', 'py_implib'}:
+        elif self.typ in {'implib', 'implibempty'}:
             if env.machines.host.is_windows() and canonical_compiler == 'msvc':
                 # only MSVC doesn't generate empty implibs
                 if self.typ == 'implibempty' and compiler == 'msvc':
                     return None
                 return p.parent / (re.sub(r'^lib', '', p.name) + '.lib')
             elif env.machines.host.is_windows() or env.machines.host.is_cygwin():
-                if self.typ == 'py_implib':
-                    p = p.with_suffix(python_suffix)
                 return p.with_suffix('.dll.a')
             else:
                 return None

@@ -372,6 +372,15 @@ def links_against_libpython():
 variables = sysconfig.get_config_vars()
 variables.update({'base_prefix': getattr(sys, 'base_prefix', sys.prefix)})
 
+if sys.version_info < (3, 0):
+    suffix = variables.get('SO')
+elif sys.version_info < (3, 8, 7):
+    # https://bugs.python.org/issue?@action=redirect&bpo=39825
+    from distutils.sysconfig import get_config_var
+    suffix = get_config_var('EXT_SUFFIX')
+else:
+    suffix = variables.get('EXT_SUFFIX')
+
 print(json.dumps({
   'variables': variables,
   'paths': paths,
@@ -382,6 +391,7 @@ print(json.dumps({
   'is_pypy': '__pypy__' in sys.builtin_module_names,
   'is_venv': sys.prefix != variables['base_prefix'],
   'link_libpython': links_against_libpython(),
+  'suffix': suffix,
 }))
 '''
 
@@ -440,8 +450,6 @@ class PythonExternalProgram(ExternalProgram):
             mlog.debug(stderr)
 
         if info is not None and self._check_version(info['version']):
-            variables = info['variables']
-            info['suffix'] = variables.get('EXT_SUFFIX') or variables.get('SO') or variables.get('.so')
             self.info = T.cast('PythonIntrospectionDict', info)
             self.platlib = self._get_path(state, 'platlib')
             self.purelib = self._get_path(state, 'purelib')
