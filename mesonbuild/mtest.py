@@ -380,7 +380,7 @@ class TAPParser:
                 self.state = self._MAIN
 
             assert self.state == self._MAIN
-            if line.startswith('#'):
+            if not line or line.startswith('#'):
                 return
 
             m = self._RE_TEST.match(line)
