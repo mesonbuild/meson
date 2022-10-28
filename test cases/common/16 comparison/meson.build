@@ -141,3 +141,6 @@ assert(exe3 not in [exe1, exe2], ''''exe3 shouldn't be in [exe1, exe2]''')
 
 assert('a' in {'a': 'b'}, '''1 should be in {'a': 'b'}''')
 assert('b' not in {'a': 'b'}, '''1 should be in {'a': 'b'}''')
+
+assert('a' in 'abc')
+assert('b' not in 'def')
