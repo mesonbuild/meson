@@ -275,6 +275,7 @@ TYPE_TAPResult = T.Union['TAPParser.Test',
                          'TAPParser.Error',
                          'TAPParser.Version',
                          'TAPParser.Plan',
+                         'TAPParser.UnknownLine',
                          'TAPParser.Bailout']
 
 class TAPParser:
@@ -298,6 +299,10 @@ class TAPParser:
 
     class Error(T.NamedTuple):
         message: str
+
+    class UnknownLine(T.NamedTuple):
+        message: str
+        lineno: int
 
     class Version(T.NamedTuple):
         version: int
@@ -434,6 +439,9 @@ class TAPParser:
                 else:
                     yield self.Version(version=self.version)
                 return
+
+            # unknown syntax
+            yield self.UnknownLine(line, self.lineno)
         else:
             # end of file
             if self.state == self._YAML:
@@ -673,6 +681,11 @@ class ConsoleLogger(TestLogger):
                       flush=True)
                 if result.verbose or result.res.is_bad():
                     self.print_log(harness, result)
+            if result.warnings:
+                print(flush=True)
+                for w in result.warnings:
+                    print(w, flush=True)
+                print(flush=True)
             if result.verbose or result.res.is_bad():
                 print(flush=True)
 
@@ -899,6 +912,7 @@ class TestRun:
         self.junit = None      # type: T.Optional[et.ElementTree]
         self.is_parallel = is_parallel
         self.verbose = verbose
+        self.warnings = []     # type: T.List[str]
 
     def start(self, cmd: T.List[str]) -> None:
         self.res = TestResult.RUNNING
@@ -1041,9 +1055,13 @@ class TestRunTAP(TestRun):
 
     async def parse(self, harness: 'TestHarness', lines: T.AsyncIterator[str]) -> None:
         res = None
+        warnings = [] # type: T.List[TAPParser.UnknownLine]
+        version: int
 
         async for i in TAPParser().parse_async(lines):
-            if isinstance(i, TAPParser.Bailout):
+            if isinstance(i, TAPParser.Version):
+                version = i.version
+            elif isinstance(i, TAPParser.Bailout):
                 res = TestResult.ERROR
                 harness.log_subtest(self, i.message, res)
             elif isinstance(i, TAPParser.Test):
@@ -1051,10 +1069,23 @@ class TestRunTAP(TestRun):
                 if i.result.is_bad():
                     res = TestResult.FAIL
                 harness.log_subtest(self, i.name or f'subtest {i.number}', i.result)
+            elif isinstance(i, TAPParser.UnknownLine):
+                warnings.append(i)
             elif isinstance(i, TAPParser.Error):
                 self.additional_error += 'TAP parsing error: ' + i.message
                 res = TestResult.ERROR
 
+        if warnings:
+            unknown = str(mlog.yellow('UNKNOWN'))
+            width = len(str(max(i.lineno for i in warnings)))
+            for w in warnings:
+                self.warnings.append(f'stdout: {w.lineno:{width}}: {unknown}: {w.message}')
+            if version > 13:
+                self.warnings.append('Unknown TAP output lines have been ignored. Please open a feature request to\n'
+                                     'implement them, or prefix them with a # if they are not TAP syntax.')
+            else:
+                self.warnings.append(str(mlog.red('ERROR')) + ': Unknown TAP output lines for a supported TAP version.\n'
+                                     'This is probably a bug in the test; if they are not TAP syntax, prefix them with a #')
         if all(t.result is TestResult.SKIP for t in self.results):
             # This includes the case where self.results is empty
             res = TestResult.SKIP
