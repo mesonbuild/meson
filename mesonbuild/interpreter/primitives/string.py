@@ -64,6 +64,8 @@ class StringHolder(ObjectHolder[str]):
         self.operators.update({
             MesonOperator.DIV: self.op_div,
             MesonOperator.INDEX: self.op_index,
+            MesonOperator.IN: self.op_in,
+            MesonOperator.NOT_IN: self.op_notin,
         })
 
     def display_name(self) -> str:
@@ -172,6 +174,16 @@ class StringHolder(ObjectHolder[str]):
             return self.held_object[other]
         except IndexError:
             raise InvalidArguments(f'Index {other} out of bounds of string of size {len(self.held_object)}.')
+
+    @FeatureNew('"in" string operator', '0.64.0')
+    @typed_operator(MesonOperator.IN, str)
+    def op_in(self, other: str) -> bool:
+        return other in self.held_object
+
+    @FeatureNew('"not in" string operator', '0.64.0')
+    @typed_operator(MesonOperator.NOT_IN, str)
+    def op_notin(self, other: str) -> bool:
+        return other not in self.held_object
 
 
 class MesonVersionString(str):
