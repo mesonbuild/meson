@@ -1,7 +1,7 @@
 name: cygwin
 
 concurrency:
-  group: cygwin-${{ github.head_ref }}
+  group: cygwin-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
 on:

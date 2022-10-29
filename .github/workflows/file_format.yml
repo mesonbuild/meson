@@ -3,7 +3,7 @@ name: File format check
 on: [push, pull_request]
 
 concurrency:
-  group: file_fmt-${{ github.head_ref }}
+  group: file_fmt-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
 permissions:

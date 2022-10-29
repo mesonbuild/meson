@@ -1,7 +1,7 @@
 name: macos
 
 concurrency:
-  group: macos-${{ github.head_ref }}
+  group: macos-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
 on:

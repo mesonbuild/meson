@@ -1,7 +1,7 @@
 name: msys2
 
 concurrency:
-  group: msys2-${{ github.head_ref }}
+  group: msys2-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
 on:
