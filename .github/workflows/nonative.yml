@@ -1,7 +1,7 @@
 name: Cross-only compilation environment
 
 concurrency:
-  group: nonative-${{ github.head_ref }}
+  group: nonative-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
 on:

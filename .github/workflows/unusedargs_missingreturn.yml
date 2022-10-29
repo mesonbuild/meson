@@ -10,7 +10,7 @@ env:
   FFLAGS: "-fimplicit-none"
 
 concurrency:
-  group: unusedargs-${{ github.head_ref }}
+  group: unusedargs-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
 on:
