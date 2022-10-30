@@ -104,7 +104,7 @@ def run(options):
                 print('      version: ' + repr(dep.get_version()))
 
             for for_machine in iter(MachineChoice):
-                items_list = list(sorted(v[for_machine].items()))
+                items_list = sorted(v[for_machine].items())
                 if items_list:
                     print(f'Cached dependencies for {for_machine.get_lower_case_name()} machine')
                     for dep_key, deps in items_list:

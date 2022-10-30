@@ -336,8 +336,8 @@ class CudaModule(NewExtensionModule):
                     arch_ptx = arch_bin
                 cuda_arch_ptx += arch_ptx
 
-        cuda_arch_bin = sorted(list(set(cuda_arch_bin)))
-        cuda_arch_ptx = sorted(list(set(cuda_arch_ptx)))
+        cuda_arch_bin = sorted(set(cuda_arch_bin))
+        cuda_arch_ptx = sorted(set(cuda_arch_ptx))
 
         nvcc_flags = []
         nvcc_archs_readable = []
