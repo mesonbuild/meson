@@ -101,7 +101,6 @@ import typing as T
 import textwrap
 import importlib
 import copy
-import itertools
 
 if T.TYPE_CHECKING:
     import argparse
@@ -3086,8 +3085,8 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
             static_lib.sources = []
             static_lib.generated = []
             # Compilers with no corresponding sources confuses the backend.
-            # Keep only the first compiler because it is the linker.
-            static_lib.compilers = dict(itertools.islice(static_lib.compilers.items(), 1))
+            # Keep only compilers used for linking
+            static_lib.compilers = {k: v for k, v in static_lib.compilers.items() if k in compilers.clink_langs}
 
         return build.BothLibraries(shared_lib, static_lib)
 
