@@ -27,7 +27,7 @@ import typing as T
 from . import build
 from . import environment
 from .backend.backends import InstallData
-from .mesonlib import MesonException, Popen_safe, RealPathAction, is_windows, setup_vsenv, pickle_load
+from .mesonlib import MesonException, Popen_safe, RealPathAction, is_windows, setup_vsenv, pickle_load, is_osx
 from .scripts import depfixer, destdir_join
 from .scripts.meson_exe import run_exe
 try:
@@ -566,7 +566,13 @@ class Installer:
 
     def do_strip(self, strip_bin: T.List[str], fname: str, outname: str) -> None:
         self.log(f'Stripping target {fname!r}.')
-        returncode, stdo, stde = self.Popen_safe(strip_bin + [outname])
+        if is_osx():
+            # macOS expects dynamic objects to be stripped with -x maximum.
+            # To also strip the debug info, -S must be added.
+            # See: https://www.unix.com/man-page/osx/1/strip/
+            returncode, stdo, stde = self.Popen_safe(strip_bin + ['-S', '-x', outname])
+        else:
+            returncode, stdo, stde = self.Popen_safe(strip_bin + [outname])
         if returncode != 0:
             print('Could not strip file.\n')
             print(f'Stdout:\n{stdo}\n')
