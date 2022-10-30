@@ -847,7 +847,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
 
         # Check if not cached, and generate, otherwise get from the cache
         if key in cdata.compiler_check_cache:
-            p = cdata.compiler_check_cache[key]  # type: CompileResult
+            p = cdata.compiler_check_cache[key]
             p.cached = True
             mlog.debug('Using cached compile:')
             mlog.debug('Cached command line: ', ' '.join(p.command), '\n')
