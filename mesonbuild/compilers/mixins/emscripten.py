@@ -58,9 +58,6 @@ class EmscriptenMixin(Compiler):
             suffix = 'o'
         return os.path.join(dirname, 'output.' + suffix)
 
-    def thread_flags(self, env: 'Environment') -> T.List[str]:
-        return ['-pthread']
-
     def thread_link_flags(self, env: 'Environment') -> T.List[str]:
         args = ['-pthread']
         count: int = env.coredata.options[OptionKey('thread_count', lang=self.language, machine=self.for_machine)].value
