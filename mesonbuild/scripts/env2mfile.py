@@ -131,16 +131,18 @@ def get_args_from_envvars(infos: MachineInfo) -> None:
     if objcpp_link_args:
         infos.link_args['objcpp'] = objcpp_link_args
 
-cpu_family_map = dict(mips64el="mips64",
-                      i686='x86')
-cpu_map = dict(armhf="arm7hlf",
-               mips64el="mips64",
-               powerpc64le="ppc64",
-               )
+cpu_family_map = {
+    'mips64el': 'mips64',
+    'i686': 'x86',
+}
+cpu_map = {
+    'armhf': 'arm7hlf',
+    'mips64el': 'mips64'
+}
 
 def deb_detect_cmake(infos: MachineInfo, data: T.Dict[str, str]) -> None:
-    system_name_map = dict(linux="Linux", kfreebsd="kFreeBSD", hurd="GNU")
-    system_processor_map = dict(arm='armv7l', mips64el='mips64', powerpc64le='ppc64le')
+    system_name_map = {'linux': 'Linux', 'kfreebsd': 'kFreeBSD', 'hurd': 'GNU'}
+    system_processor_map = {'arm': 'armv7l', 'mips64el': 'mips64', 'powerpc64le': 'ppc64le'}
 
     infos.cmake["CMAKE_C_COMPILER"] = infos.compilers['c']
     infos.cmake["CMAKE_CXX_COMPILER"] = infos.compilers['cpp']

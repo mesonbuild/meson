@@ -2143,7 +2143,7 @@ class NinjaBackend(backends.Backend):
         rsp_file_syntax() is only guaranteed to be implemented if
         can_linker_accept_rsp() returns True.
         """
-        options = dict(rspable=tool.can_linker_accept_rsp())
+        options = {'rspable': tool.can_linker_accept_rsp()}
         if options['rspable']:
             options['rspfile_quote_style'] = tool.rsp_file_syntax()
         return options
