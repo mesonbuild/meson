@@ -2634,6 +2634,13 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     def extract_incdirs(self, kwargs, key: str = 'include_directories'):
         prospectives = extract_as_list(kwargs, key)
+        if key == 'include_directories':
+            for i in prospectives:
+                if isinstance(i, str):
+                    FeatureNew.single_use('include_directories kwarg of type string', '0.50.0', self.subproject,
+                                          f'Use include_directories({i!r}) instead', location=self.current_node)
+                    break
+
         result = []
         for p in prospectives:
             if isinstance(p, build.IncludeDirs):
