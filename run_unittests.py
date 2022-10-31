@@ -117,7 +117,7 @@ def main():
     cases = ['InternalTests', 'DataTests', 'AllPlatformTests', 'FailureTests',
              'PythonTests', 'NativeFileTests', 'RewriterTests', 'CrossFileTests',
              'TAPParserTests', 'SubprojectsCommandTests', 'PlatformAgnosticTests',
-             'FormatterTests'
+             'FormatterTests',
 
              'LinuxlikeTests', 'LinuxCrossArmTests', 'LinuxCrossMingwTests',
              'WindowsTests', 'DarwinTests']
