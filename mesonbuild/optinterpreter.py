@@ -90,6 +90,8 @@ class OptionInterpreter:
     def reduce_single(self, arg: T.Union[str, mparser.BaseNode]) -> 'TYPE_var':
         if isinstance(arg, str):
             return arg
+        if isinstance(arg, mparser.ParenthesizedNode):
+            return self.reduce_single(arg.inner)
         elif isinstance(arg, (mparser.StringNode, mparser.BooleanNode,
                               mparser.NumberNode)):
             return arg.value
