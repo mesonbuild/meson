@@ -239,6 +239,8 @@ class InterpreterBase:
             raise ContinueRequest()
         elif isinstance(cur, mparser.BreakNode):
             raise BreakRequest()
+        elif isinstance(cur, mparser.ParenthesizedNode):
+            return self.evaluate_statement(cur.inner)
         elif isinstance(cur, mparser.TestCaseClauseNode):
             return self.evaluate_testcase(cur)
         else:

@@ -577,6 +577,15 @@ class TernaryNode(BaseNode):
         self.trueblock = trueblock
         self.falseblock = falseblock
 
+@dataclass(unsafe_hash=True)
+class ParenthesizedNode(BaseNode):
+
+    inner: BaseNode
+
+    def __init__(self, inner: BaseNode, lineno: int, colno: int, end_lineno: int, end_colno: int):
+        super().__init__(lineno, colno, inner.filename, end_lineno=end_lineno, end_colno=end_colno)
+        self.inner = inner
+
 if T.TYPE_CHECKING:
     COMPARISONS = Literal['==', '!=', '<', '<=', '>=', '>', 'in', 'notin']
 
@@ -778,7 +787,7 @@ class Parser:
         if self.accept('lparen'):
             e = self.statement()
             self.block_expect('rparen', block_start)
-            return e
+            return ParenthesizedNode(e, block_start.lineno, block_start.colno, self.current.lineno, self.current.colno)
         elif self.accept('lbracket'):
             args = self.args()
             self.block_expect('rbracket', block_start)

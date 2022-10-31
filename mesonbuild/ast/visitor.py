@@ -144,3 +144,7 @@ class AstVisitor:
         for key, val in node.kwargs.items():
             key.accept(self)
             val.accept(self)
+
+    def visit_ParenthesizedNode(self, node: mparser.ParenthesizedNode) -> None:
+        self.visit_default_func(node)
+        node.inner.accept(self)
