@@ -124,7 +124,7 @@ class AstFormatter(AstVisitor):
         for i in range(block_idx, idx + 1):
             for x in range(old_line, self.comments[i].lineno - 1):
                 self.lines.append('')
-            self.lines.append(self.currline + self.comments[i].text)
+            self.lines.append(self.currindent + self.comments[i].text)
             old_line = self.comments[i].lineno
         for i in range(block_idx, idx + 1):
             self.comments.remove(self.comments[block_idx])
@@ -134,8 +134,9 @@ class AstFormatter(AstVisitor):
     def check_post_comment(self, node: mparser.BaseNode):
         to_readd = None
         idx = 0
+        last_line = AstFormatter.extract_last_line(node)
         for c in self.comments:
-            if c.lineno == node.lineno + 1 and self.old_lines[c.lineno - 1].strip().startswith('#'):
+            if c.lineno == last_line + 1 and self.old_lines[c.lineno - 1].strip().startswith('#'):
                 to_readd = c
                 break
             idx += 1
@@ -230,7 +231,7 @@ class AstFormatter(AstVisitor):
         self.check_comment(node)
         for i in node.lines:
             if lastline != -1:
-                if i.lineno > lastline + 1:
+                if i.lineno > lastline + 1 and self.old_lines[lastline + 1].strip() != ')':
                     self.lines.append(self.currline)
                     self.currline = self.currindent
             self.check_comment(i)
@@ -276,7 +277,13 @@ class AstFormatter(AstVisitor):
                     broke_up = True
             if not broke_up and i != 0:
                 self.append(' ')
-            self.check_comment(arg)
+            if i != 0:
+                self.check_comment(arg)
+            else:
+                tmp2 = self.currindent
+                self.currindent = tmp
+                self.check_comment(arg)
+                self.currindent = tmp2
             arg.accept(self)
             if i != len(args.arguments) - 1 or len(args.kwargs) != 0:
                 self.currindent = ' ' * indent_len
@@ -447,6 +454,17 @@ class AstFormatter(AstVisitor):
         elif isinstance(node, mparser.CodeBlockNode):
             if len(node.lines) != 0:
                 return max(AstFormatter.extract_last_line(node.lines[-1]), node.end_lineno)
+        elif isinstance(node, (mparser.AssignmentNode, mparser.PlusAssignmentNode)):
+            return AstFormatter.extract_last_line(node.value)
+        elif isinstance(node, mparser.MethodNode):
+            return AstFormatter.extract_last_line(node.args)
+        elif isinstance(node, mparser.ArgumentNode):
+            max_line = node.end_lineno
+            for arg in node.arguments:
+                max_line = max(max_line, AstFormatter.extract_last_line(arg))
+            for key, val in node.kwargs.items():
+                max_line = max(max_line, AstFormatter.extract_last_line(val))
+            return max_line
         return node.end_lineno
 
     def visit_UMinusNode(self, node: mparser.UMinusNode) -> None:
@@ -454,6 +472,7 @@ class AstFormatter(AstVisitor):
         node.value.accept(self)
 
     def visit_IfNode(self, node: mparser.IfNode) -> None:
+        self.check_comment(node)
         node.condition.accept(self)
         tmp = self.currindent
         self.currindent += self.indentstr

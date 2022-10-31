@@ -50,6 +50,8 @@ def run(options: argparse.Namespace) -> int:
                         config[key] = value.strip().lower() == 'true'
                     else:
                         print('Unexpected value for key', key, file=sys.stderr)
+                elif key == 'indent_by':
+                    config['indent_by'] = value.replace('\n', '')
                 else:
                     print("Unknown key", key, file=sys.stderr)
 

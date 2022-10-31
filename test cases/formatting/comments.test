@@ -25,6 +25,29 @@ endif
 bar()
 foo() # Foo12345
 
+# From mesa
+if with_platform_x11
+    c_args += [
+        '-DVK_USE_PLATFORM_XCB_KHR',
+        '-DVK_USE_PLATFORM_XLIB_KHR',
+    ]
+    #add this once aco and other places can build with it1
+    #cpp_args += ['-DVK_USE_PLATFORM_XCB_KHR', '-DVK_USE_PLATFORM_XLIB_KHR']
+endif
+
+# Disable deprecated keyword warnings, since we have to use them for
+# old-bison compat.  See discussion in
+# https://gitlab.freedesktop.org/mesa/mesa/merge_requests/2161
+if find_program('bison',
+    required: false,
+    version: '> 2.3',
+).found()
+    prog_bison = [
+        prog_bison,
+        '-Wno-deprecated',
+    ]
+endif
+
 foo.bar('ABC', true) # Do stuff
 bar('ABC', true) # Do stuff 2
 x = (((y + 5) + 1) + 2) # Do stuff 3

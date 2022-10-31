@@ -1,6 +1,5 @@
 x = true ? 1 : 5
 y = f'foo'
-
 foreach z : []
     if z == 1
         continue
@@ -9,7 +8,6 @@ foreach z : []
     warning([1, 2, 3][4])
     break
 endforeach
-
 if (b or not b) and (x > 5)
 endif
 foo = []
@@ -28,7 +26,6 @@ foo += {
     bar: -1,
     baz: 2,
 }
-
 if true
 else
 endif
