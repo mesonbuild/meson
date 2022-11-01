@@ -37,7 +37,7 @@ from .. import mlog
 from .. import compilers
 from ..arglist import CompilerArgs
 from ..compilers import Compiler
-from ..linkers import ArLinker, AppleArLinker, RSPFileSyntax
+from ..linkers import ArLinker, RSPFileSyntax
 from ..mesonlib import (
     File, LibType, MachineChoice, MesonException, OrderedSet, PerMachine,
     ProgressBar, quote_arg
@@ -2139,7 +2139,7 @@ class NinjaBackend(backends.Backend):
             if static_linker is None:
                 continue
             rule = 'STATIC_LINKER{}'.format(self.get_rule_suffix(for_machine))
-            cmdlist: T.List[T.Union[str, NinjaCommandArg]] = []
+            cmdlist = []
             args = ['$in']
             # FIXME: Must normalize file names with pathlib.Path before writing
             #        them out to fix this properly on Windows. See:
@@ -2153,17 +2153,6 @@ class NinjaBackend(backends.Backend):
             cmdlist += static_linker.get_exelist()
             cmdlist += ['$LINK_ARGS']
             cmdlist += NinjaCommandArg.list(static_linker.get_output_args('$out'), Quoting.none)
-            # The default ar on MacOS (at least through version 12), does not
-            # add extern'd variables to the symbol table by default, and
-            # requires that apple's ranlib be called with a special flag
-            # instead after linking
-            if isinstance(static_linker, AppleArLinker):
-                # This is a bit of a hack, but we assume that that we won't need
-                # an rspfile on MacOS, otherwise the arguments are passed to
-                # ranlib, not to ar
-                cmdlist.extend(args)
-                args = []
-                cmdlist.extend(['&&', 'ranlib', '-c', '$out'])
             description = 'Linking static target $out'
             if num_pools > 0:
                 pool = 'pool = link_pool'
