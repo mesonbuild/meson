@@ -146,23 +146,15 @@ class FSModule(ExtensionModule):
             path_class = PureWindowsPath  # type: T.Union[T.Type[PurePosixPath], T.Type[PureWindowsPath]]
         else:
             path_class = PurePosixPath
-        
         path_to = path_class(args[0])
-        if not path_to.is_absolute():
-            raise MesonException(f'The first argument ({path_to}) must be an absolute path.')
         path_from = path_class(args[1])
-        if not path_from.is_absolute():
-            raise MesonException(f'The second argument ({path_from}) must be an absolute path.')
         if "within" in kwargs:
             path_within = path_class(kwargs["within"])
-            if not path_within.is_absolute():
-                raise MesonException('The "within" argument ({path_within}) must be an absolute path.')
             # Return path_to if it is not relative to path_within
             try:
                 path_to.relative_to(path_within)
             except ValueError:
                 return ModuleReturnValue(str(path_to), [])
-        # If path_to starts with path_from, then .relative_to() provides a solution:
         try:
             x = os.path.relpath(path_to, path_from).replace('\\', '/')
         except ValueError:
