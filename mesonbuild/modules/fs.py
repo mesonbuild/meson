@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from __future__ import annotations
-from pathlib import Path, PurePath, PureWindowsPath
+from pathlib import Path, PurePath, PurePosixPath, PureWindowsPath
 import hashlib
 import os
 import typing as T
@@ -25,6 +25,7 @@ from ..interpreter.type_checking import INSTALL_KW, INSTALL_MODE_KW, INSTALL_TAG
 from ..interpreterbase import FeatureNew, KwargInfo, typed_kwargs, typed_pos_args, noKwargs
 from ..mesonlib import (
     File,
+    MachineChoice,
     MesonException,
     has_path_sep,
     path_is_in_root,
@@ -75,6 +76,7 @@ class FSModule(ExtensionModule):
             'stem': self.stem,
             'read': self.read,
             'copyfile': self.copyfile,
+            'relative_to': self.relative_to,
         })
 
     def _absolute_dir(self, state: 'ModuleState', arg: 'FileOrString') -> Path:
@@ -123,9 +125,13 @@ class FSModule(ExtensionModule):
         """
         return PureWindowsPath(args[0]).as_posix()
 
-    @stringArgs
-    @permittedKwargs({"within", "native"})
     @FeatureNew('fs.relative_to', '0.64.0')
+    @typed_pos_args('fs.relative_to', (str, File), (str, File))
+    @typed_kwargs(
+        'fs.relative_to',
+        KwargInfo('within', (T.Optional[str], File)),
+        KwargInfo('native', bool, default=False)
+    )
     def relative_to(self, state: 'ModuleState', args: T.Sequence[str], kwargs: dict) -> ModuleReturnValue:
         """
         this function returns a version of the path given by the first argument relative to
@@ -148,8 +154,9 @@ class FSModule(ExtensionModule):
             path_class = PurePosixPath
         path_to = path_class(args[0])
         path_from = path_class(args[1])
-        if "within" in kwargs:
-            path_within = path_class(kwargs["within"])
+        within = kwargs.get("within")
+        if within is not None:
+            path_within = path_class(within)
             # Return path_to if it is not relative to path_within
             try:
                 path_to.relative_to(path_within)
@@ -164,7 +171,6 @@ class FSModule(ExtensionModule):
         else:
             return ModuleReturnValue(str(x), [])
 
-    @stringArgs
     @noKwargs
     @typed_pos_args('fs.exists', str)
     def exists(self, state: 'ModuleState', args: T.Tuple[str], kwargs: T.Dict[str, T.Any]) -> bool:
