@@ -219,7 +219,7 @@ fs.stem('foo/bar/baz.dll.a')  # baz.dll
 
 *since 0.64.0*
 
-Given two absolute paths, returns a version of the first path relative to the second.
+Given two paths, returns a version of the first path relative to the second.
 If a path is given as the 'within' argument, the function will return the first path
 unchanged if it is not inside 'within'.
 
