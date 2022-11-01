@@ -1436,7 +1436,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             comp = self.coredata.compilers[for_machine].get(lang)
             if not comp:
                 try:
-                    comp = compilers.detect_compiler_for(self.environment, lang, for_machine)
+                    comp = compilers.detect_compiler_for(self.environment, lang, for_machine, self)
                     if comp is None:
                         raise InvalidArguments(f'Tried to use unknown language "{lang}".')
                     if self.should_skip_sanity_check(for_machine):
