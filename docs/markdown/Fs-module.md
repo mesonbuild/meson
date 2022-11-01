@@ -204,7 +204,6 @@ suffix
 fs.stem('foo/bar/baz.dll')  # baz
 fs.stem('foo/bar/baz.dll.a')  # baz.dll
 ```
-
 ### read
 - `read(path, encoding: 'utf-8')` *(since 0.57.0)*:
    return a [string](Syntax.md#strings) with the contents of the given `path`.
@@ -215,6 +214,21 @@ fs.stem('foo/bar/baz.dll.a')  # baz.dll
    specified by `path` changes, this will trigger Meson to reconfigure the
    project. If the file specified by `path` is a `files()` object it
    cannot refer to a built file.
+
+### relative_to
+
+*since 0.64.0*
+
+Given two absolute paths, returns a version of the first path relative to the second.
+If a path is given as the 'within' argument is specified, the function will return the
+first path unchanged if it is not inside 'within'.
+
+```meson
+fs.relative_to('/prefix/lib', '/prefix/bin')  # '../lib'
+fs.relative_to('/prefix/lib/foo', '/prefix')  # 'lib/foo'
+fs.relative_to('/usr/lib/foo', '/usr/bin', within: '/usr')  # '../lib/foo'
+fs.relative_to('/usr/lib/foo', '/usr/bin', within: '/var')  # '/usr/lib/foo'
+```
 
 
 ### copyfile
