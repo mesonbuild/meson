@@ -76,6 +76,9 @@ class NasmCompiler(Compiler):
                 parameter_list[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
         return parameter_list
 
+    def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+        return []
+
 class YasmCompiler(NasmCompiler):
     id = 'yasm'
 
