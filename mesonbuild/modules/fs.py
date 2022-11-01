@@ -164,31 +164,13 @@ class FSModule(ExtensionModule):
                 return ModuleReturnValue(str(path_to), [])
         # If path_to starts with path_from, then .relative_to() provides a solution:
         try:
-            x = path_to.relative_to(path_from)
+            x = os.path.relpath(path_to, path_from).replace('\\', '/')
         except ValueError:
-            pass
+            raise MesonException(f"{path_to} and {path_from} do not have a common root " +
+                                  "or one is absolute and the other one is relative." +
+                                 "Use the \"within\" argument if you want an absolute path instead of an error.")
         else:
             return ModuleReturnValue(str(x), [])
-
-        # Get the common root between the two paths:
-        parts_to = path_to.parts
-        parts_from = path_from.parts
-        if parts_to[0] != parts_from[0]:
-            raise MesonException(f"{path_to} and {path_from} do not have a common root." +
-                                 "Use the \"within\" argument if you want an absolute path instead of an error.")
-        parts_root = []
-        for part_to, part_from in zip(parts_to, parts_from):
-            if part_to != part_from:
-                break
-            parts_root.append(part_to)
-        root = path_class(parts_root[0]) / path_class("/".join(parts_root[1:]))
-
-        # Then find how many levels do we need to go from path_from to the root:
-        num_levels = len(path_from.parts) - len(root.parts)
-        # And build the final path, going from path_from to the root and then to path_to:
-        path = path_class("/".join(num_levels*['..'])) / path_to.relative_to(root)
-        return ModuleReturnValue(str(path), [])
-
 
     @stringArgs
     @noKwargs
