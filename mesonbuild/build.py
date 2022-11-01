@@ -1403,13 +1403,11 @@ You probably should put it in link_with instead.''')
                     raise InvalidArguments(msg + ' This is not possible in a cross build.')
                 else:
                     mlog.warning(msg + ' This will fail in cross build.')
-            # When we're a static library and we link_whole: to another static
-            # library, we need to add that target's objects to ourselves.
-            # Otherwise add it to the link_whole_targets, but not both.
             if isinstance(self, StaticLibrary):
+                # When we're a static library and we link_whole: to another static
+                # library, we need to add that target's objects to ourselves.
                 self.objects += t.extract_all_objects_recurse()
-            else:
-                self.link_whole_targets.append(t)
+            self.link_whole_targets.append(t)
 
     def extract_all_objects_recurse(self) -> T.List[T.Union[str, 'ExtractedObjects']]:
         objs = [self.extract_all_objects()]
