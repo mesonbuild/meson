@@ -220,12 +220,6 @@ fs.stem('foo/bar/baz.dll.a')  # baz.dll
 *since 0.64.0*
 
 Given two paths, returns a version of the first path relative to the second.
-If a path is given as the 'within' argument, the function will return the first path
-unchanged if it is not inside 'within'.
-
-The `relative_to` function is system dependent. It accepts the `native: true` argument
-to compute relative paths on the build system. Otherwise it uses the host system.
-
 
 Examples: 
 
@@ -233,13 +227,36 @@ Examples:
 # On windows:
 fs.relative_to('c:\\proj1\\foo', 'c:\\proj1\\bar')  # '..\\foo'
 fs.relative_to('c:\\proj1\\foo', 'd:\\proj1\\bar')  # ERROR, since the relative path does not exist
-fs.relative_to('c:\\proj1\\foo', 'd:\\proj1\\bar', within: 'd:\\')  # 'c:\\proj1\\foo', within allows to get an absolute path
 
 # On other systems:
 fs.relative_to('/prefix/lib', '/prefix/bin')  # '../lib'
 fs.relative_to('/prefix/lib/foo', '/prefix')  # 'lib/foo'
-fs.relative_to('/usr/lib/foo', '/usr/bin', within: '/usr')  # '../lib/foo'
-fs.relative_to('/usr/lib/foo', '/usr/bin', within: '/var')  # '/usr/lib/foo'
+```
+
+`relative_to` has some optional keyword arguments:
+
+- `native`: Can be set to `true` or `false`. Whether the relative paths are computed
+  following the rules of the build machine (native: `true`) or the host (native: `false`).
+
+- `allow_absolute`: If set to `true`, instead of giving an error, `relative_to()`
+  will return the original path. Useful as a fallback
+
+- `if_within`: A path. `relative_to(path1, path2, within: path3)` returns
+  the relative path of `path1 with respect to `path2` if `path1` is found in `path3`,
+  otherwise it returns `path1` unchanged.
+
+Examples: 
+
+```meson
+# On windows:
+fs.relative_to('c:\\proj1\\foo', 'c:\\proj2\\bar', if_within: 'c:\\proj2')  # ERROR, the relative path is outside the "within" argument
+fs.relative_to('c:\\proj1\\foo', 'c:\\proj2\\bar', if_within: 'c:\\proj2', allow_absolute: true)  # 'c:\\proj1\\foo'
+fs.relative_to('c:\\proj1\\foo', 'd:\\proj1\\bar', allow_absolute: true)  # 'c:\\proj1\\foo'
+
+# On other systems:
+fs.relative_to('/project1/lib/foo', '/usr/bin', if_within: '/usr')  # ERROR: '/project1/lib/foo' not in '/usr'
+fs.relative_to('/project1/lib/foo', '/usr/bin', if_within: '/usr', allow_absolute: 'true')  # '/project1/lib/foo'
+fs.relative_to('/usr/lib/foo', '/usr/bin', if_within: '/usr')  # '../lib/foo'
 ```
 
 

@@ -129,15 +129,18 @@ class FSModule(ExtensionModule):
     @typed_pos_args('fs.relative_to', (str, File), (str, File))
     @typed_kwargs(
         'fs.relative_to',
-        KwargInfo('within', (T.Optional[str], File)),
-        KwargInfo('native', bool, default=False)
+        KwargInfo('native', bool, default=False),
+        KwargInfo('allow_absolute', bool, default=False),
+        KwargInfo('if_within', (T.Optional[str], File)),
     )
     def relative_to(self, state: 'ModuleState', args: T.Sequence[str], kwargs: dict) -> ModuleReturnValue:
         """
         this function returns a version of the path given by the first argument relative to
         the path given in the second argument.
-        If a third path is given in 'within' argument, then the function will return the first
-        argument unchanged if it is not within the 'within' path.
+        `native` controls whether paths use rules in the host or build environment
+        `allow_absolute` will return the original path instead of returning an error when the relative path can't be computed
+        `if_within` a third optional path. When it is given, if the path is within `if_within`, then the relative path is
+        computed as usual, however if it is not then the original path is returned
         """
         if len(args) != 2:
             raise MesonException('fs.relative_to takes two arguments and optionally a "within" and a "native" argument.')
@@ -152,22 +155,32 @@ class FSModule(ExtensionModule):
             path_class = PureWindowsPath  # type: T.Union[T.Type[PurePosixPath], T.Type[PureWindowsPath]]
         else:
             path_class = PurePosixPath
+
         path_to = path_class(args[0])
         path_from = path_class(args[1])
-        within = kwargs.get("within")
-        if within is not None:
-            path_within = path_class(within)
+        if_within = kwargs.get("if_within")
+        if if_within is not None:
+            path_within = path_class(if_within)
             # Return path_to if it is not relative to path_within
             try:
                 path_to.relative_to(path_within)
             except ValueError:
-                return ModuleReturnValue(str(path_to), [])
+                if kwargs["allow_absolute"]:
+                    if path_to.is_absolute():
+                        return ModuleReturnValue(str(path_to).replace('\\', '/'), [])
+                    raise MesonException(f"{path_to} is not within {if_within} and it is not an absolute path")
+                raise MesonException(f"{path_to} is not within {if_within}" +
+                                     "Use the \"allow_absolute: true\" argument if you want an absolute path instead of an error.")
         try:
             x = os.path.relpath(path_to, path_from).replace('\\', '/')
         except ValueError:
+            if kwargs["allow_absolute"]:
+                if path_to.is_absolute():
+                    return ModuleReturnValue(str(path_to).replace('\\', '/'), [])
+                raise MesonException(f"{path_to} and {path_from} do not have a common root and path1 is not an absolute path.")
             raise MesonException(f"{path_to} and {path_from} do not have a common root " +
                                   "or one is absolute and the other one is relative." +
-                                 "Use the \"within\" argument if you want an absolute path instead of an error.")
+                                 "Use the \"allow_absolute: true\" argument if you want an absolute path instead of an error.")
         else:
             return ModuleReturnValue(str(x), [])
 

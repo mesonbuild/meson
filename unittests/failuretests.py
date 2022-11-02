@@ -390,3 +390,31 @@ class FailureTests(BasePlatformTests):
     def test_error_func(self):
         self.assertMesonRaises("error('a', 'b', ['c', ['d', {'e': 'f'}]], 'g')",
                                r"Problem encountered: a b \['c', \['d', {'e' : 'f'}\]\] g")
+
+    @unittest.skipIf(is_windows(), 'Windows is not POSIX')
+    def test_posix_relative_to_errors(self):
+        self.assertMesonRaises(
+            """
+            fs = import('fs')
+            fs.relative_to('/project1/lib/foo', '/usr/bin', if_within: '/usr')
+            """,
+            '/project1/lib/foo is not within /usr.*'
+        )
+
+    @unittest.skipIf(not is_windows(), 'POSIX is not Windows')
+    def test_windows_relative_to_errors(self):
+        self.assertMesonRaises(
+            """
+            fs = import('fs')
+            fs.relative_to('c:\\proj1\\foo', 'd:\\proj1\\bar')
+            """,
+            'c:\\proj1\\foo and d:\\proj1\\bar do not have a common root.*'
+        )
+        self.assertMesonRaises(
+            """
+            fs = import('fs')
+            fs.relative_to('c:\\proj1\\foo', 'c:\\proj2\\bar', if_within: 'c:\\proj2')
+            """,
+            'c:\\proj1\\foo is not within c:\\proj2.*'
+        )
+
