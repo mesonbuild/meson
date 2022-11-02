@@ -239,7 +239,8 @@ fs.relative_to('/prefix/lib/foo', '/prefix')  # 'lib/foo'
   following the rules of the build machine (native: `true`) or the host (native: `false`).
 
 - `allow_absolute`: If set to `true`, instead of giving an error, `relative_to()`
-  will return the original path. Useful as a fallback
+  will return the original path. Useful if an absolute path is a reasonable
+  fallback.
 
 - `if_within`: A path. `relative_to(path1, path2, within: path3)` returns
   the relative path of `path1 with respect to `path2` if `path1` is found in `path3`,
