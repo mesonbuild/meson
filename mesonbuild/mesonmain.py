@@ -240,6 +240,13 @@ def run(original_args, mainfile):
         # workaround for https://bugs.python.org/issue34624
         import warnings
         warnings.filterwarnings('error', category=EncodingWarning, module='mesonbuild')
+        # python 3.11 adds a warning that in 3.15, UTF-8 mode will be default.
+        # This is fantastic news, we'd love that. Less fantastic: this warning is silly,
+        # we *want* these checks to be affected. Plus, the recommended alternative API
+        # would (in addition to warning people when UTF-8 mode removed the problem) also
+        # require using a minimum python version of 3.11 (in which the warning was added)
+        # or add verbose if/else soup.
+        warnings.filterwarnings('ignore', message="UTF-8 Mode affects .*getpreferredencoding", category=EncodingWarning)
 
     # Meson gets confused if stdout can't output Unicode, if the
     # locale isn't Unicode, just force stdout to accept it. This tries

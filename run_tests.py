@@ -76,6 +76,15 @@ else:
 os.environ['PYTHONWARNDEFAULTENCODING'] = '1'
 # work around https://bugs.python.org/issue34624
 os.environ['MESON_RUNNING_IN_PROJECT_TESTS'] = '1'
+# python 3.11 adds a warning that in 3.15, UTF-8 mode will be default.
+# This is fantastic news, we'd love that. Less fantastic: this warning is silly,
+# we *want* these checks to be affected. Plus, the recommended alternative API
+# would (in addition to warning people when UTF-8 mode removed the problem) also
+# require using a minimum python version of 3.11 (in which the warning was added)
+# or add verbose if/else soup.
+if sys.version_info >= (3, 10):
+    import warnings
+    warnings.filterwarnings('ignore', message="UTF-8 Mode affects .*getpreferredencoding", category=EncodingWarning)
 
 def guess_backend(backend_str: str, msbuild_exe: str) -> T.Tuple['Backend', T.List[str]]:
     # Auto-detect backend if unspecified
