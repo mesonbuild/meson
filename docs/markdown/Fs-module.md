@@ -242,7 +242,7 @@ fs.relative_to('/prefix/lib/foo', '/prefix')  # 'lib/foo'
   will return the original path. Useful if an absolute path is a reasonable
   fallback.
 
-- `if_within`: A path. `relative_to(path1, path2, within: path3)` returns
+- `if_within`: A path. `relative_to(path1, path2, if_within: path3)` returns
   the relative path of `path1 with respect to `path2` if `path1` is found in `path3`,
   otherwise it returns `path1` unchanged.
 
