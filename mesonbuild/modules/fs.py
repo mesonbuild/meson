@@ -140,7 +140,8 @@ class FSModule(ExtensionModule):
         `native` controls whether paths use rules in the host or build environment
         `allow_absolute` will return the original path instead of returning an error when the relative path can't be computed
         `if_within` a third optional path. When it is given, if the path is within `if_within`, then the relative path is
-        computed as usual, however if it is not then the original path is returned
+        computed as usual. Otherwise, if `allow_absolute: True` and the first argument is an absolute path, the first 
+        argument is returned. If neither of those conditions are fullfilled an error is raised.
         """
         if len(args) != 2:
             raise MesonException('fs.relative_to takes two arguments and optionally a "within" and a "native" argument.')
