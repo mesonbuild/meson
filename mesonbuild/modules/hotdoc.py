@@ -61,7 +61,7 @@ class HotdocTargetBuilder:
 
         self._extra_extension_paths = set()
         self.extra_assets = set()
-        self._dependencies = []
+        self.extra_depends = []
         self._subprojects = []
 
     def process_known_arg(self, option, argname=None, value_processor=None):
@@ -185,7 +185,7 @@ class HotdocTargetBuilder:
             elif isinstance(dep, Dependency):
                 cflags.update(dep.get_compile_args())
             elif isinstance(dep, (build.StaticLibrary, build.SharedLibrary)):
-                self._dependencies.append(dep)
+                self.extra_depends.append(dep)
                 for incd in dep.get_include_dirs():
                     cflags.update(incd.get_incdirs())
             elif isinstance(dep, HotdocTarget):
@@ -197,9 +197,9 @@ class HotdocTargetBuilder:
                 self.cmd += ['--extra-assets=' + p for p in dep.extra_assets]
                 self.add_extension_paths(dep.extra_extension_paths)
             elif isinstance(dep, (build.CustomTarget, build.BuildTarget)):
-                self._dependencies.append(dep)
+                self.extra_depends.append(dep)
             elif isinstance(dep, build.CustomTargetIndex):
-                self._dependencies.append(dep.target)
+                self.extra_depends.append(dep.target)
 
         return [f.strip('-I') for f in cflags]
 
@@ -228,10 +228,10 @@ class HotdocTargetBuilder:
 
                 continue
             elif isinstance(arg, (build.BuildTarget, build.CustomTarget)):
-                self._dependencies.append(arg)
+                self.extra_depends.append(arg)
                 arg = self.interpreter.backend.get_target_filename_abs(arg)
             elif isinstance(arg, build.CustomTargetIndex):
-                self._dependencies.append(arg.target)
+                self.extra_depends.append(arg.target)
                 arg = self.interpreter.backend.get_target_filename_abs(arg)
 
             cmd.append(arg)
@@ -329,7 +329,7 @@ class HotdocTargetBuilder:
                               extra_assets=self._extra_assets,
                               subprojects=self._subprojects,
                               command=target_cmd,
-                              extra_depends=self._dependencies,
+                              extra_depends=self.extra_depends,
                               outputs=[fullname],
                               sources=[],
                               depfile=os.path.basename(depfile),
