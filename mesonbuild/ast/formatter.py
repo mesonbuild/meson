@@ -213,7 +213,7 @@ class AstFormatter(AstVisitor):
 
     def visit_ComparisonNode(self, node: mparser.ComparisonNode) -> None:
         node.left.accept(self)
-        self.append(' ' + node.ctype + ' ')
+        self.append(' ' + (node.ctype if node.ctype != 'notin' else 'not in') + ' ')
         node.right.accept(self)
 
     def visit_ArithmeticNode(self, node: mparser.ArithmeticNode) -> None:
