@@ -131,9 +131,9 @@ class FSModule(ExtensionModule):
         'fs.relative_to',
         KwargInfo('native', bool, default=False),
         KwargInfo('allow_absolute', bool, default=False),
-        KwargInfo('if_within', (T.Optional[str], File)),
+        KwargInfo('if_within', (str, File, NoneType)),
     )
-    def relative_to(self, state: 'ModuleState', args: T.Sequence[str], kwargs: dict) -> ModuleReturnValue:
+    def relative_to(self, state: 'ModuleState', args: T.Sequence[str], kwargs: T.Dict[str, T.Any]) -> ModuleReturnValue:
         """
         this function returns a version of the path given by the first argument relative to
         the path given in the second argument.
