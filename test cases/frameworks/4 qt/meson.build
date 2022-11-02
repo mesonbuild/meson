@@ -149,10 +149,11 @@ foreach qt : ['qt4', 'qt5', 'qt6']
 
     if qt == 'qt5'
       subdir('subfolder')
+    elif qt == 'qt6'
+      subdir('10955')
     endif
 
     # Check we can apply a version constraint
     dependency(qt, modules: qt_modules, version: '>=@0@'.format(qtdep.version()), method : get_option('method'))
-
   endif
 endforeach

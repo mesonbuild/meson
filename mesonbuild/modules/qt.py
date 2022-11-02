@@ -465,7 +465,7 @@ class QtBaseModule(ExtensionModule):
                 self.tools['moc'], arguments, ['moc_@BASENAME@.cpp'],
                 depfile='moc_@BASENAME@.cpp.d',
                 name=f'Qt{self.qt_version} moc header')
-            output.append(moc_gen.process_files(kwargs['headers'], state))
+            output.append(moc_gen.process_files(kwargs['headers'], state, preserve_path_from = state.environment.source_dir))
         if kwargs['sources']:
             moc_gen = build.Generator(
                 self.tools['moc'], arguments, ['@BASENAME@.moc'],
