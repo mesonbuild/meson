@@ -23,7 +23,10 @@ from mesonbuild.coredata import MesonException
 from . import ModuleReturnValue, ModuleInfo
 from . import ExtensionModule
 from ..dependencies import Dependency, InternalDependency
-from ..interpreterbase import InvalidArguments, noPosargs, noKwargs, typed_kwargs, ContainerTypeInfo, KwargInfo, typed_pos_args
+from ..interpreterbase import (
+    InvalidArguments, noPosargs, noKwargs, typed_kwargs, FeatureDeprecated,
+    ContainerTypeInfo, KwargInfo, typed_pos_args
+)
 from ..interpreter import CustomTargetHolder
 from ..interpreter.type_checking import NoneType
 from ..programs import ExternalProgram
@@ -290,6 +293,7 @@ class HotdocTargetBuilder:
         self.process_extra_assets()
         self.add_extension_paths(self.kwargs.pop('extra_extension_paths'))
         self.process_subprojects()
+        self.extra_depends.extend(self.kwargs.pop('depends'))
 
         install = self.kwargs.pop('install')
         self.process_extra_args()
@@ -415,9 +419,17 @@ class HotDocModule(ExtensionModule):
         # --c-include-directories
         KwargInfo(
             'dependencies',
-            ContainerTypeInfo(list, (Dependency, build.StaticLibrary, build.SharedLibrary)),
+            ContainerTypeInfo(list, (Dependency, build.StaticLibrary, build.SharedLibrary,
+                                     build.CustomTarget, build.CustomTargetIndex)),
             listify=True,
             default=[],
+        ),
+        KwargInfo(
+            'depends',
+            ContainerTypeInfo(list, (build.CustomTarget, build.CustomTargetIndex)),
+            listify=True,
+            default=[],
+            since='0.64.1',
         ),
         KwargInfo('gi_c_source_roots', ContainerTypeInfo(list, str), listify=True, default=[]),
         KwargInfo('extra_assets', ContainerTypeInfo(list, str), listify=True, default=[]),
@@ -428,6 +440,9 @@ class HotDocModule(ExtensionModule):
     )
     def generate_doc(self, state, args, kwargs):
         project_name = args[0]
+        if any(isinstance(x, (build.CustomTarget, build.CustomTargetIndex)) for x in kwargs['dependencies']):
+            FeatureDeprecated.single_use('hotdoc.generate_doc dependencies argument with custom_target',
+                                         '0.64.1', state.subproject, 'use `depends`', state.current_node)
         builder = HotdocTargetBuilder(project_name, state, self.hotdoc, self.interpreter, kwargs)
         target, install_script = builder.make_targets()
         targets = [target]
