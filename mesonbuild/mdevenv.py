@@ -6,7 +6,7 @@ import itertools
 
 from pathlib import Path
 from . import build, minstall, dependencies
-from .mesonlib import MesonException, RealPathAction, is_windows, setup_vsenv, OptionKey, quote_arg, get_wine_shortpath
+from .mesonlib import MesonException, is_windows, setup_vsenv, OptionKey, quote_arg, get_wine_shortpath
 from . import mlog
 
 import typing as T
@@ -16,8 +16,10 @@ if T.TYPE_CHECKING:
 POWERSHELL_EXES = {'pwsh.exe', 'powershell.exe'}
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument('-C', dest='wd', action=RealPathAction,
-                        help='Directory to cd into before running')
+    parser.add_argument('-C', dest='builddir', type=Path, default='.',
+                        help='Path to build directory')
+    parser.add_argument('--workdir', '-w', type=Path, default=None,
+                        help='Directory to cd into before running (default: builddir, Since 1.0.0)')
     parser.add_argument('--dump', action='store_true',
                         help='Only print required environment (Since 0.62.0)')
     parser.add_argument('devcmd', nargs=argparse.REMAINDER, metavar='command',
@@ -123,11 +125,12 @@ def write_gdb_script(privatedir: Path, install_data: 'InstallData') -> None:
             mlog.log('Meson detected GDB helpers and added config in', mlog.bold(str(gdbinit_path)))
 
 def run(options: argparse.Namespace) -> int:
-    privatedir = Path(options.wd) / 'meson-private'
+    privatedir = Path(options.builddir) / 'meson-private'
     buildfile = privatedir / 'build.dat'
     if not buildfile.is_file():
-        raise MesonException(f'Directory {options.wd!r} does not seem to be a Meson build directory.')
-    b = build.load(options.wd)
+        raise MesonException(f'Directory {options.builddir!r} does not seem to be a Meson build directory.')
+    b = build.load(options.builddir)
+    workdir = options.workdir or options.builddir
 
     devenv, varnames = get_env(b)
     if options.dump:
@@ -182,7 +185,7 @@ def run(options: argparse.Namespace) -> int:
     try:
         return subprocess.call(args, close_fds=False,
                                env=devenv,
-                               cwd=options.wd)
+                               cwd=workdir)
     except subprocess.CalledProcessError as e:
         return e.returncode
     except FileNotFoundError:
