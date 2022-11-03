@@ -92,7 +92,7 @@ def add_gdb_auto_load(autoload_path: Path, gdb_helper: str, fname: Path) -> None
     except (FileExistsError, shutil.SameFileError):
         pass
 
-def write_gdb_script(privatedir: Path, install_data: 'InstallData') -> None:
+def write_gdb_script(privatedir: Path, install_data: 'InstallData', workdir: Path) -> None:
     if not shutil.which('gdb'):
         return
     bdir = privatedir.parent
@@ -122,7 +122,16 @@ def write_gdb_script(privatedir: Path, install_data: 'InstallData') -> None:
             gdbinit_path.write_text(gdbinit_line, encoding='utf-8')
             first_time = True
         if first_time:
-            mlog.log('Meson detected GDB helpers and added config in', mlog.bold(str(gdbinit_path)))
+            gdbinit_path = gdbinit_path.resolve()
+            workdir_path = workdir.resolve()
+            rel_path = gdbinit_path.relative_to(workdir_path)
+            mlog.log('Meson detected GDB helpers and added config in', mlog.bold(str(rel_path)))
+            mlog.log('To load it automatically you might need to:')
+            mlog.log(' - Add', mlog.bold(f'add-auto-load-safe-path {gdbinit_path.parent}'),
+                     'in', mlog.bold('~/.gdbinit'))
+            if gdbinit_path.parent != workdir_path:
+                mlog.log(' - Change current workdir to', mlog.bold(str(rel_path.parent)),
+                         'or use', mlog.bold(f'--init-command {rel_path}'))
 
 def run(options: argparse.Namespace) -> int:
     privatedir = Path(options.builddir) / 'meson-private'
@@ -142,7 +151,7 @@ def run(options: argparse.Namespace) -> int:
         return 0
 
     install_data = minstall.load_install_data(str(privatedir / 'install.dat'))
-    write_gdb_script(privatedir, install_data)
+    write_gdb_script(privatedir, install_data, workdir)
 
     setup_vsenv(b.need_vsenv)
 
