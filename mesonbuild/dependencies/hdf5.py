@@ -21,7 +21,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from ..mesonlib import OrderedSet, join_args
+from ..mesonlib import Popen_safe, OrderedSet, join_args
 from .base import DependencyException, DependencyMethods
 from .configtool import ConfigToolDependency
 from .pkgconfig import PkgConfigDependency
@@ -163,10 +163,9 @@ def hdf5_factory(env: 'Environment', for_machine: 'MachineChoice',
         PCEXE = shutil.which('pkg-config')
         if PCEXE:
             # some distros put hdf5-1.2.3.pc with version number in .pc filename.
-            ret = subprocess.run([PCEXE, '--list-all'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                                 text=True)
+            ret, stdout, _ = Popen_safe([PCEXE, '--list-all'], stderr=subprocess.DEVNULL)
             if ret.returncode == 0:
-                for pkg in ret.stdout.split('\n'):
+                for pkg in stdout.split('\n'):
                     if pkg.startswith('hdf5'):
                         pkgconfig_files.add(pkg.split(' ', 1)[0])
 
