@@ -1416,7 +1416,7 @@ def Popen_safe(args: T.List[str], write: T.Optional[str] = None,
     if not sys.stdout.encoding or encoding.upper() != 'UTF-8':
         p, o, e = Popen_safe_legacy(args, write=write, stdin=stdin, stdout=stdout, stderr=stderr, **kwargs)
     else:
-        p = subprocess.Popen(args, universal_newlines=True, close_fds=False,
+        p = subprocess.Popen(args, universal_newlines=True, encoding=encoding, close_fds=False,
                              stdin=stdin, stdout=stdout, stderr=stderr, **kwargs)
         o, e = p.communicate(write)
     # Sometimes the command that we run will call another command which will be
