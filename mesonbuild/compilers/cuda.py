@@ -776,3 +776,6 @@ class CudaCompiler(Compiler):
 
     def get_disable_assert_args(self) -> T.List[str]:
         return self.host_compiler.get_disable_assert_args()
+
+    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
+        return ['-MD', '-MT', outtarget, '-MF', outfile]
