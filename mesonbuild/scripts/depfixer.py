@@ -21,7 +21,7 @@ import shutil
 import subprocess
 import typing as T
 
-from ..mesonlib import OrderedSet, generate_list
+from ..mesonlib import OrderedSet, generate_list, Popen_safe
 
 SHT_STRTAB = 3
 DT_NEEDED = 1
@@ -391,9 +391,9 @@ def fix_elf(fname: str, rpath_dirs_to_remove: T.Set[bytes], new_rpath: T.Optiona
             e.fix_rpath(fname, rpath_dirs_to_remove, new_rpath)
 
 def get_darwin_rpaths_to_remove(fname: str) -> T.List[str]:
-    out = subprocess.check_output(['otool', '-l', fname],
-                                  universal_newlines=True,
-                                  stderr=subprocess.DEVNULL)
+    p, out, _ = Popen_safe(['otool', '-l', fname], stderr=subprocess.DEVNULL)
+    if p.returncode != 0:
+        raise subprocess.CalledProcessError(p.returncode, p.args, out)
     result = []
     current_cmd = 'FOOBAR'
     for line in out.split('\n'):
