@@ -1,4 +1,5 @@
 from enum import Enum
+import typing as T
 
 # Used for the --wrap-mode command-line argument
 #
@@ -51,7 +52,7 @@ class WrapMode(Enum):
     nopromote = 5
 
     def __str__(self) -> str:
-        return self.name
+        return T.cast('str', self.name) # type: ignore[redundant-cast]
 
     @staticmethod
     def from_string(mode_name: str) -> 'WrapMode':
