@@ -1407,7 +1407,7 @@ def check_meson_commands_work(use_tmpdir: bool, extra_args: T.List[str]) -> None
     meson_commands = mesonlib.python_command + [get_meson_script()]
     with TemporaryDirectoryWinProof(prefix='b ', dir=None if use_tmpdir else '.') as build_dir:
         print('Checking that configuring works...')
-        gen_cmd = meson_commands + [testdir, build_dir] + backend_flags + extra_args
+        gen_cmd = meson_commands + ['setup' , testdir, build_dir] + backend_flags + extra_args
         pc, o, e = Popen_safe(gen_cmd)
         if pc.returncode != 0:
             raise RuntimeError(f'Failed to configure {testdir!r}:\n{e}\n{o}')
