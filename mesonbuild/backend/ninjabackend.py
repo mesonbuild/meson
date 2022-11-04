@@ -1698,6 +1698,8 @@ class NinjaBackend(backends.Backend):
 
         ext = target.get_option(OptionKey('language', machine=target.for_machine, lang='cython'))
 
+        pyx_sources = []  # Keep track of sources we're adding to build
+
         for src in target.get_sources():
             if src.endswith('.pyx'):
                 output = os.path.join(self.get_target_private_dir(target), f'{src}.{ext}')
@@ -1711,9 +1713,11 @@ class NinjaBackend(backends.Backend):
                 self.add_build(element)
                 # TODO: introspection?
                 cython_sources.append(output)
+                pyx_sources.append(element)
             else:
                 static_sources[src.rel_to_builddir(self.build_to_src)] = src
 
+        header_deps = []  # Keep track of generated headers for those sources
         for gen in target.get_generated_sources():
             for ssrc in gen.get_outputs():
                 if isinstance(gen, GeneratedList):
@@ -1730,10 +1734,20 @@ class NinjaBackend(backends.Backend):
                         [ssrc])
                     element.add_item('ARGS', args)
                     self.add_build(element)
+                    pyx_sources.append(element)
                     # TODO: introspection?
                     cython_sources.append(output)
                 else:
                     generated_sources[ssrc] = mesonlib.File.from_built_file(gen.get_subdir(), ssrc)
+                    # Following logic in L883-900 where we determine whether to add generated source
+                    # as a header(order-only) dep to the .so compilation rule
+                    if not self.environment.is_source(ssrc) and \
+                            not self.environment.is_object(ssrc) and \
+                            not self.environment.is_library(ssrc) and \
+                            not modules.is_module_library(ssrc):
+                        header_deps.append(ssrc)
+        for source in pyx_sources:
+            source.add_orderdep(header_deps)
 
         return static_sources, generated_sources, cython_sources
 
