@@ -120,7 +120,7 @@ def main() -> int:
         if not opts.quiet:
             print('Running mypy (this can take some time) ...')
         p = subprocess.run(
-            [sys.executable, '-m', 'mypy'] + args + to_check,
+            [sys.executable, '-m', 'mypy', '--python-version', '3.10'] + args + to_check,
             cwd=root,
         )
         return p.returncode
