@@ -833,6 +833,32 @@ class AllPlatformTests(BasePlatformTests):
         self.build(target=('barprog' + exe_suffix))
         self.assertPathExists(exe2)
 
+    def test_build_generated_pyx_directly(self):
+        # Check that the transpile stage also includes
+        # dependencies for the compilation stage as dependencies
+        testdir = os.path.join("test cases/cython", '2 generated sources')
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+        try:
+            detect_compiler_for(env, "cython", MachineChoice.HOST)
+        except EnvironmentException:
+            raise SkipTest("Cython is not installed")
+        self.init(testdir)
+        # Need to get the full target name of the pyx.c target
+        # (which is unfortunately not provided by introspection :( )
+        # We'll need to dig into the generated sources
+        targets = self.introspect('--targets')
+        name = None
+        for target in targets:
+            for target_sources in target["target_sources"]:
+                for generated_source in target_sources["generated_sources"]:
+                    if "includestuff.pyx.c" in generated_source:
+                        name = generated_source
+                        break
+        # Split the path (we only want the includestuff.cpython-blahblahblah)
+        name = os.path.normpath(name).split("/")[-2:]
+        name = "/".join(name)  # Glue list into a string
+        self.build(target=name)
+
     def test_internal_include_order(self):
         if mesonbuild.environment.detect_msys2_arch() and ('MESON_RSP_THRESHOLD' in os.environ):
             raise SkipTest('Test does not yet support gcc rsp files on msys2')

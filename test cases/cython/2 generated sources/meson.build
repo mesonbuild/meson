@@ -6,6 +6,7 @@ project(
 py_mod = import('python')
 py3 = py_mod.find_installation('python3')
 py3_dep = py3.dependency(required : false)
+fs = import('fs')
 if not py3_dep.found()
   error('MESON_SKIP_TEST: Python library not found.')
 endif
@@ -68,6 +69,25 @@ test(
   py3,
   args : [files('test.py'), 'g'],
   env : ['PYTHONPATH=' + meson.current_build_dir()]
+)
+
+stuff_pxi = fs.copyfile(
+  'stuff.pxi.in',
+  'stuff.pxi'
+)
+
+# Need to copy the cython source to the build directory
+# since meson can only generate the .pxi there
+includestuff_pyx = fs.copyfile(
+  'includestuff.pyx'
+)
+
+stuff_pxi_dep = declare_dependency(sources: stuff_pxi)
+
+includestuff_ext = py3.extension_module(
+  'includestuff',
+  includestuff_pyx,
+  dependencies: stuff_pxi_dep
 )
 
 subdir('libdir')
