@@ -1181,11 +1181,9 @@ class BuildTarget(Target):
             else:
                 if not isinstance(name_suffix, str):
                     raise InvalidArguments('name_suffix must be a string.')
-                if name_suffix == '':
-                    raise InvalidArguments('name_suffix should not be an empty string. '
-                                           'If you want meson to use the default behaviour '
-                                           'for each platform pass `[]` (empty array)')
                 self.suffix = name_suffix
+                if name_suffix != '':
+                    self.suffix = '.' + self.suffix
                 self.name_suffix_set = True
         if isinstance(self, StaticLibrary):
             # You can't disable PIC on OS X. The compiler ignores -fno-PIC.
@@ -1818,25 +1816,27 @@ class Executable(BuildTarget):
         if not hasattr(self, 'suffix'):
             # Executable for Windows or C#/Mono
             if machine.is_windows() or machine.is_cygwin() or 'cs' in self.compilers:
-                self.suffix = 'exe'
+                self.suffix = '.exe'
             elif machine.system.startswith('wasm') or machine.system == 'emscripten':
-                self.suffix = 'js'
+                self.suffix = '.js'
             elif ('c' in self.compilers and self.compilers['c'].get_id().startswith('armclang') or
                   'cpp' in self.compilers and self.compilers['cpp'].get_id().startswith('armclang')):
-                self.suffix = 'axf'
+                self.suffix = '.axf'
             elif ('c' in self.compilers and self.compilers['c'].get_id().startswith('ccrx') or
                   'cpp' in self.compilers and self.compilers['cpp'].get_id().startswith('ccrx')):
-                self.suffix = 'abs'
+                self.suffix = '.abs'
             elif ('c' in self.compilers and self.compilers['c'].get_id().startswith('xc16')):
-                self.suffix = 'elf'
+                self.suffix = '.elf'
             elif ('c' in self.compilers and self.compilers['c'].get_id() in ('ti', 'c2000') or
                   'cpp' in self.compilers and self.compilers['cpp'].get_id() in ('ti', 'c2000')):
-                self.suffix = 'out'
+                self.suffix = '.out'
             else:
                 self.suffix = machine.get_exe_suffix()
+                if self.suffix != '':
+                    self.suffix = '.' + self.suffix
         self.filename = self.name
         if self.suffix:
-            self.filename += '.' + self.suffix
+            self.filename += self.suffix
         self.outputs = [self.filename]
 
         # The import library this target will generate
@@ -1947,12 +1947,12 @@ class StaticLibrary(BuildTarget):
             if 'rust' in self.compilers:
                 if not hasattr(self, 'rust_crate_type') or self.rust_crate_type == 'rlib':
                     # default Rust static library suffix
-                    self.suffix = 'rlib'
+                    self.suffix = '.rlib'
                 elif self.rust_crate_type == 'staticlib':
-                    self.suffix = 'a'
+                    self.suffix = '.a'
             else:
-                self.suffix = 'a'
-        self.filename = self.prefix + self.name + '.' + self.suffix
+                self.suffix = '.a'
+        self.filename = self.prefix + self.name + self.suffix
         self.outputs = [self.filename]
 
     def get_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:
@@ -2020,7 +2020,7 @@ class SharedLibrary(BuildTarget):
             self.prefix = None
         if not hasattr(self, 'suffix'):
             self.suffix = None
-        self.basic_filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+        self.basic_filename_tpl = '{0.prefix}{0.name}{0.suffix}'
         self.determine_filenames()
 
     def get_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:
@@ -2067,14 +2067,14 @@ class SharedLibrary(BuildTarget):
         # C# and Mono
         if 'cs' in self.compilers:
             prefix = ''
-            suffix = 'dll'
-            self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+            suffix = '.dll'
+            self.filename_tpl = '{0.prefix}{0.name}{0.suffix}'
             create_debug_file = True
         # C, C++, Swift, Vala
         # Only Windows uses a separate import library for linking
         # For all other targets/platforms import_filename stays None
         elif self.environment.machines[self.for_machine].is_windows():
-            suffix = 'dll'
+            suffix = '.dll'
             self.vs_import_filename = '{}{}.lib'.format(self.prefix if self.prefix is not None else '', self.name)
             self.gcc_import_filename = '{}{}.dll.a'.format(self.prefix if self.prefix is not None else 'lib', self.name)
             if self.uses_rust():
@@ -2099,11 +2099,11 @@ class SharedLibrary(BuildTarget):
                 self.import_filename = self.gcc_import_filename
             # Shared library has the soversion if it is defined
             if self.soversion:
-                self.filename_tpl = '{0.prefix}{0.name}-{0.soversion}.{0.suffix}'
+                self.filename_tpl = '{0.prefix}{0.name}-{0.soversion}{0.suffix}'
             else:
-                self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+                self.filename_tpl = '{0.prefix}{0.name}{0.suffix}'
         elif self.environment.machines[self.for_machine].is_cygwin():
-            suffix = 'dll'
+            suffix = '.dll'
             self.gcc_import_filename = '{}{}.dll.a'.format(self.prefix if self.prefix is not None else 'lib', self.name)
             # Shared library is of the form cygfoo.dll
             # (ld --dll-search-prefix=cyg is the default)
@@ -2111,36 +2111,36 @@ class SharedLibrary(BuildTarget):
             # Import library is called libfoo.dll.a
             self.import_filename = self.gcc_import_filename
             if self.soversion:
-                self.filename_tpl = '{0.prefix}{0.name}-{0.soversion}.{0.suffix}'
+                self.filename_tpl = '{0.prefix}{0.name}-{0.soversion}{0.suffix}'
             else:
-                self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+                self.filename_tpl = '{0.prefix}{0.name}{0.suffix}'
         elif self.environment.machines[self.for_machine].is_darwin():
             prefix = 'lib'
-            suffix = 'dylib'
+            suffix = '.dylib'
             # On macOS, the filename can only contain the major version
             if self.soversion:
                 # libfoo.X.dylib
-                self.filename_tpl = '{0.prefix}{0.name}.{0.soversion}.{0.suffix}'
+                self.filename_tpl = '{0.prefix}{0.name}.{0.soversion}{0.suffix}'
             else:
                 # libfoo.dylib
-                self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+                self.filename_tpl = '{0.prefix}{0.name}{0.suffix}'
         elif self.environment.machines[self.for_machine].is_android():
             prefix = 'lib'
-            suffix = 'so'
+            suffix = '.so'
             # Android doesn't support shared_library versioning
-            self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+            self.filename_tpl = '{0.prefix}{0.name}{0.suffix}'
         else:
             prefix = 'lib'
-            suffix = 'so'
+            suffix = '.so'
             if self.ltversion:
                 # libfoo.so.X[.Y[.Z]] (.Y and .Z are optional)
-                self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}.{0.ltversion}'
+                self.filename_tpl = '{0.prefix}{0.name}{0.suffix}.{0.ltversion}'
             elif self.soversion:
                 # libfoo.so.X
-                self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}.{0.soversion}'
+                self.filename_tpl = '{0.prefix}{0.name}{0.suffix}.{0.soversion}'
             else:
                 # No versioning, libfoo.so
-                self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+                self.filename_tpl = '{0.prefix}{0.name}{0.suffix}'
         if self.prefix is None:
             self.prefix = prefix
         if self.suffix is None:
@@ -2295,7 +2295,7 @@ class SharedLibrary(BuildTarget):
         # filename. If ltversion != soversion we create an soversion alias:
         # libfoo.so.0 -> libfoo.so.0.100.0
         # Where libfoo.so.0.100.0 is the actual library
-        if self.suffix == 'so' and self.ltversion and self.ltversion != self.soversion:
+        if self.suffix == '.so' and self.ltversion and self.ltversion != self.soversion:
             alias_tpl = self.filename_tpl.replace('ltversion', 'soversion')
             ltversion_filename = alias_tpl.format(self)
             tag = self.install_tag[0] or 'runtime'

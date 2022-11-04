@@ -640,7 +640,7 @@ class GnuLikeDynamicLinkerMixin:
             # For PE/COFF the soname argument has no effect
             return []
         sostr = '' if soversion is None else '.' + soversion
-        return self._apply_prefix(f'-soname,{prefix}{shlib_name}.{suffix}{sostr}')
+        return self._apply_prefix(f'-soname,{prefix}{shlib_name}{suffix}{sostr}')
 
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: T.Tuple[str, ...], build_rpath: str,
@@ -1405,7 +1405,7 @@ class SolarisDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str, darwin_versions: T.Tuple[str, str]) -> T.List[str]:
         sostr = '' if soversion is None else '.' + soversion
-        return self._apply_prefix(f'-soname,{prefix}{shlib_name}.{suffix}{sostr}')
+        return self._apply_prefix(f'-soname,{prefix}{shlib_name}{suffix}{sostr}')
 
 
 class AIXDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
