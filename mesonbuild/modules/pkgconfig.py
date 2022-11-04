@@ -699,6 +699,9 @@ class PkgConfigModule(NewExtensionModule):
             if mesonlib.is_freebsd():
                 pkgroot = os.path.join(_as_str(state.environment.coredata.get_option(mesonlib.OptionKey('prefix'))), 'libdata', 'pkgconfig')
                 pkgroot_name = os.path.join('{prefix}', 'libdata', 'pkgconfig')
+            elif mesonlib.is_haiku():
+                pkgroot = os.path.join(_as_str(state.environment.coredata.get_option(mesonlib.OptionKey('prefix'))), 'develop', 'lib', 'pkgconfig')
+                pkgroot_name = os.path.join('{prefix}', 'develop', 'lib', 'pkgconfig')
             else:
                 pkgroot = os.path.join(_as_str(state.environment.coredata.get_option(mesonlib.OptionKey('libdir'))), 'pkgconfig')
                 pkgroot_name = os.path.join('{libdir}', 'pkgconfig')
