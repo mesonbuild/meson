@@ -150,6 +150,14 @@ def run(options: argparse.Namespace) -> int:
             print(f'export {name}')
         return 0
 
+    if b.environment.need_exe_wrapper():
+        m = 'An executable wrapper could be required'
+        exe_wrapper = b.environment.get_exe_wrapper()
+        if exe_wrapper:
+            cmd = ' '.join(exe_wrapper.get_command())
+            m += f': {cmd}'
+        mlog.log(m)
+
     install_data = minstall.load_install_data(str(privatedir / 'install.dat'))
     write_gdb_script(privatedir, install_data, workdir)
 

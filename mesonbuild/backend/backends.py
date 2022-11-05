@@ -1854,10 +1854,8 @@ class Backend:
         host_machine = self.environment.machines[MachineChoice.HOST]
         need_wine = not build_machine.is_windows() and host_machine.is_windows()
         for t in self.build.get_targets().values():
-            cross_built = not self.environment.machines.matches_build_machine(t.for_machine)
-            can_run = not cross_built or not need_exe_wrapper or need_wine
             in_default_dir = t.should_install() and not t.get_install_dir()[2]
-            if not can_run or not in_default_dir:
+            if t.for_machine != MachineChoice.HOST or not in_default_dir:
                 continue
             tdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(t))
             if isinstance(t, build.Executable):
