@@ -119,23 +119,24 @@ class EnvironmentVariables(HoldableObject):
         self.envvars.append((self._prepend, name, values, separator))
 
     @staticmethod
-    def _set(env: T.Dict[str, str], name: str, values: T.List[str], separator: str) -> str:
+    def _set(env: T.Dict[str, str], name: str, values: T.List[str], separator: str, default_value: T.Optional[str]) -> str:
         return separator.join(values)
 
     @staticmethod
-    def _append(env: T.Dict[str, str], name: str, values: T.List[str], separator: str) -> str:
-        curr = env.get(name)
+    def _append(env: T.Dict[str, str], name: str, values: T.List[str], separator: str, default_value: T.Optional[str]) -> str:
+        curr = env.get(name, default_value)
         return separator.join(values if curr is None else [curr] + values)
 
     @staticmethod
-    def _prepend(env: T.Dict[str, str], name: str, values: T.List[str], separator: str) -> str:
-        curr = env.get(name)
+    def _prepend(env: T.Dict[str, str], name: str, values: T.List[str], separator: str, default_value: T.Optional[str]) -> str:
+        curr = env.get(name, default_value)
         return separator.join(values if curr is None else values + [curr])
 
-    def get_env(self, full_env: T.MutableMapping[str, str]) -> T.Dict[str, str]:
+    def get_env(self, full_env: T.MutableMapping[str, str], dump: bool = False) -> T.Dict[str, str]:
         env = full_env.copy()
         for method, name, values, separator in self.envvars:
-            env[name] = method(env, name, values, separator)
+            default_value = f'${name}' if dump else None
+            env[name] = method(env, name, values, separator, default_value)
         return env
 
 

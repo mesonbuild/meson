@@ -6,7 +6,7 @@ import itertools
 
 from pathlib import Path
 from . import build, minstall, dependencies
-from .mesonlib import MesonException, is_windows, setup_vsenv, OptionKey, quote_arg, get_wine_shortpath
+from .mesonlib import MesonException, is_windows, setup_vsenv, OptionKey, get_wine_shortpath
 from . import mlog
 
 import typing as T
@@ -47,15 +47,15 @@ def reduce_winepath(env: T.Dict[str, str]) -> None:
     env['WINEPATH'] = get_wine_shortpath([winecmd], winepath.split(';'))
     mlog.log('Meson detected wine and has set WINEPATH accordingly')
 
-def get_env(b: build.Build) -> T.Tuple[T.Dict[str, str], T.Set[str]]:
+def get_env(b: build.Build, dump: bool) -> T.Tuple[T.Dict[str, str], T.Set[str]]:
     extra_env = build.EnvironmentVariables()
     extra_env.set('MESON_DEVENV', ['1'])
     extra_env.set('MESON_PROJECT_NAME', [b.project_name])
 
-    env = os.environ.copy()
+    env = {} if dump else os.environ.copy()
     varnames = set()
     for i in itertools.chain(b.devenv, {extra_env}):
-        env = i.get_env(env)
+        env = i.get_env(env, dump)
         varnames |= i.get_names()
 
     reduce_winepath(env)
@@ -141,12 +141,12 @@ def run(options: argparse.Namespace) -> int:
     b = build.load(options.builddir)
     workdir = options.workdir or options.builddir
 
-    devenv, varnames = get_env(b)
+    devenv, varnames = get_env(b, options.dump)
     if options.dump:
         if options.devcmd:
             raise MesonException('--dump option does not allow running other command.')
         for name in varnames:
-            print(f'{name}={quote_arg(devenv[name])}')
+            print(f'{name}="{devenv[name]}"')
             print(f'export {name}')
         return 0
 
