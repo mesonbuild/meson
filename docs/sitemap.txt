@@ -88,6 +88,7 @@ index.md
 		Wrap-best-practices-and-tips.md
 		Shipping-prebuilt-binaries-as-wraps.md
 	Release-notes.md
+		Release-notes-for-0.64.0.md
 		Release-notes-for-0.63.0.md
 		Release-notes-for-0.62.0.md
 		Release-notes-for-0.61.0.md
