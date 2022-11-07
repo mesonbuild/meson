@@ -6,7 +6,8 @@ import itertools
 
 from pathlib import Path
 from . import build, minstall, dependencies
-from .mesonlib import MesonException, is_windows, setup_vsenv, OptionKey, get_wine_shortpath
+from .mesonlib import (MesonException, is_windows, setup_vsenv, OptionKey,
+                       get_wine_shortpath, MachineChoice)
 from . import mlog
 
 import typing as T
@@ -51,6 +52,10 @@ def get_env(b: build.Build, dump: bool) -> T.Tuple[T.Dict[str, str], T.Set[str]]
     extra_env = build.EnvironmentVariables()
     extra_env.set('MESON_DEVENV', ['1'])
     extra_env.set('MESON_PROJECT_NAME', [b.project_name])
+
+    sysroot = b.environment.properties[MachineChoice.HOST].get_sys_root()
+    if sysroot:
+        extra_env.set('QEMU_LD_PREFIX', [sysroot])
 
     env = {} if dump else os.environ.copy()
     varnames = set()
