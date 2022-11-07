@@ -1462,10 +1462,14 @@ class Interpreter(InterpreterBase, HoldableObject):
                     options[k] = v
                 self.coredata.add_compiler_options(options, lang, for_machine, self.environment)
 
-            mlog.debug(comp.get_display_language(), 'compiler for the', machine_name, 'machine:',
+            if not self.is_subproject() and (for_machine == MachineChoice.HOST or self.environment.is_cross_build()):
+                logger_fun = mlog.log
+            else:
+                logger_fun = mlog.debug
+            logger_fun(comp.get_display_language(), 'compiler for the', machine_name, 'machine:',
                        mlog.bold(' '.join(comp.get_exelist())), comp.get_version_string())
             if comp.linker is not None:
-                mlog.debug(comp.get_display_language(), 'linker for the', machine_name, 'machine:',
+                logger_fun(comp.get_display_language(), 'linker for the', machine_name, 'machine:',
                            mlog.bold(' '.join(comp.linker.get_exelist())), comp.linker.id, comp.linker.version)
             self.build.ensure_static_linker(comp)
             self.compilers[for_machine][lang] = comp
@@ -1652,7 +1656,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                           ) -> T.Union['build.Executable', ExternalProgram, 'OverrideProgram']:
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
-            mlog.debug('Program', mlog.bold(' '.join(args[0])), 'skipped: feature', mlog.bold(feature), 'disabled')
+            mlog.log('Program', mlog.bold(' '.join(args[0])), 'skipped: feature', mlog.bold(feature), 'disabled')
             return self.notfound_program(args[0])
 
         search_dirs = extract_search_dirs(kwargs)
@@ -2531,6 +2535,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         (ofile_path, ofile_fname) = os.path.split(os.path.join(self.subdir, output))
         ofile_abs = os.path.join(self.environment.build_dir, ofile_path, ofile_fname)
 
+        logger_fun = mlog.debug if self.is_subproject() else mlog.log
+
         # Perform the appropriate action
         if kwargs['configuration'] is not None:
             conf = kwargs['configuration']
@@ -2541,7 +2547,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                         raise InvalidArguments(
                             f'"configuration_data": initial value dictionary key "{k!r}"" must be "str | int | bool", not "{v!r}"')
                 conf = build.ConfigurationData(conf)
-            mlog.debug('Configuring', mlog.bold(output), 'using configuration')
+            logger_fun('Configuring', mlog.bold(output), 'using configuration')
             if len(inputs) > 1:
                 raise InterpreterException('At most one input file can given in configuration mode')
             if inputs:
@@ -2578,7 +2584,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 values['@DEPFILE@'] = depfile
             # Substitute @INPUT@, @OUTPUT@, etc here.
             _cmd = mesonlib.substitute_values(kwargs['command'], values)
-            mlog.debug('Configuring', mlog.bold(output), 'with command')
+            logger_fun('Configuring', mlog.bold(output), 'with command')
             cmd, *args = _cmd
             res = self.run_command_impl(node, (cmd, args),
                                         {'capture': True, 'check': True, 'env': build.EnvironmentVariables()},
@@ -2889,7 +2895,8 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     def run(self) -> None:
         super().run()
-        mlog.debug('Build targets in project:', mlog.bold(str(len(self.build.targets))))
+        logger_fun = mlog.debug if self.is_subproject() else mlog.log
+        logger_fun('Build targets in project:', mlog.bold(str(len(self.build.targets))))
         FeatureNew.report(self.subproject)
         FeatureDeprecated.report(self.subproject)
         if not self.is_subproject():
