@@ -39,7 +39,7 @@ from ..interpreterbase.decorators import typed_pos_args
 from ..mesonlib import (
     MachineChoice, MesonException, OrderedSet, Popen_safe, join_args,
 )
-from ..programs import OverrideProgram, EmptyExternalProgram
+from ..programs import OverrideProgram
 from ..scripts.gettext import read_linguas
 
 if T.TYPE_CHECKING:
@@ -1464,9 +1464,8 @@ class GnomeModule(ExtensionModule):
             t_args.append(f'--{program_name}={path}')
         if namespace:
             t_args.append('--namespace=' + namespace)
-        # if not need_exe_wrapper, we get an EmptyExternalProgram. If none provided, we get NoneType
         exe_wrapper = state.environment.get_exe_wrapper()
-        if not isinstance(exe_wrapper, (NoneType, EmptyExternalProgram)):
+        if exe_wrapper:
             t_args.append('--run=' + ' '.join(exe_wrapper.get_command()))
         t_args.append(f'--htmlargs={"@@".join(kwargs["html_args"])}')
         t_args.append(f'--scanargs={"@@".join(kwargs["scan_args"])}')

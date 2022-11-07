@@ -25,9 +25,7 @@ from .mesonlib import (
     search_version, MesonBugException
 )
 from . import mlog
-from .programs import (
-    ExternalProgram, EmptyExternalProgram
-)
+from .programs import ExternalProgram
 
 from .envconfig import (
     BinaryTable, MachineInfo, Properties, known_cpu_families, CMakeVariables,
@@ -852,7 +850,7 @@ class Environment:
             return value
         return not machine_info_can_run(self.machines[for_machine])
 
-    def get_exe_wrapper(self) -> ExternalProgram:
+    def get_exe_wrapper(self) -> T.Optional[ExternalProgram]:
         if not self.need_exe_wrapper():
-            return EmptyExternalProgram()
+            return None
         return self.exe_wrapper

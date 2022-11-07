@@ -1108,10 +1108,7 @@ class Backend:
                         break
 
             is_cross = self.environment.is_cross_build(test_for_machine)
-            if is_cross and self.environment.need_exe_wrapper():
-                exe_wrapper = self.environment.get_exe_wrapper()
-            else:
-                exe_wrapper = None
+            exe_wrapper = self.environment.get_exe_wrapper()
             machine = self.environment.machines[exe.for_machine]
             if machine.is_windows() or machine.is_cygwin():
                 extra_bdeps: T.List[T.Union[build.BuildTarget, build.CustomTarget]] = []
