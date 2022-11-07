@@ -16,7 +16,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from .base import ExternalDependency, DependencyException, sort_libpaths, DependencyTypeName
-from ..mesonlib import OptionKey, OrderedSet, PerMachine, Popen_safe
+from ..mesonlib import OptionKey, OrderedSet, PerMachine, Popen_safe, join_args
 from ..programs import find_external_program, ExternalProgram
 from .. import mlog
 from pathlib import PurePath
@@ -47,38 +47,8 @@ class PkgConfigDependency(ExternalDependency):
         self.is_libtool = False
         # Store a copy of the pkg-config path on the object itself so it is
         # stored in the pickled coredata and recovered.
-        self.pkgbin: T.Union[None, bool, ExternalProgram] = None
-
-        # Only search for pkg-config for each machine the first time and store
-        # the result in the class definition
-        if PkgConfigDependency.class_pkgbin[self.for_machine] is False:
-            mlog.debug(f'Pkg-config binary for {self.for_machine} is cached as not found.')
-        elif PkgConfigDependency.class_pkgbin[self.for_machine] is not None:
-            mlog.debug(f'Pkg-config binary for {self.for_machine} is cached.')
-        else:
-            assert PkgConfigDependency.class_pkgbin[self.for_machine] is None
-            mlog.debug(f'Pkg-config binary for {self.for_machine} is not cached.')
-            for potential_pkgbin in find_external_program(
-                    self.env, self.for_machine, 'pkgconfig', 'Pkg-config',
-                    environment.default_pkgconfig, allow_default_for_cross=False):
-                version_if_ok = self.check_pkgconfig(potential_pkgbin)
-                if not version_if_ok:
-                    continue
-                if not self.silent:
-                    mlog.log('Found pkg-config:', mlog.bold(potential_pkgbin.get_path()),
-                             f'({version_if_ok})')
-                PkgConfigDependency.class_pkgbin[self.for_machine] = potential_pkgbin
-                break
-            else:
-                if not self.silent:
-                    mlog.log('Found Pkg-config:', mlog.red('NO'))
-                # Set to False instead of None to signify that we've already
-                # searched for it and not found it
-                PkgConfigDependency.class_pkgbin[self.for_machine] = False
-
-        self.pkgbin = PkgConfigDependency.class_pkgbin[self.for_machine]
-        if self.pkgbin is False:
-            self.pkgbin = None
+        self.pkgbin = PkgConfigDependency.search_pkgbin(environment, self.for_machine, self.silent)
+        if not self.pkgbin:
             msg = f'Pkg-config binary for machine {self.for_machine} not found. Giving up.'
             if self.required:
                 raise DependencyException(msg)
@@ -124,8 +94,40 @@ class PkgConfigDependency(ExternalDependency):
         mlog.debug(f"Called `{call}` -> {rc}\n{out}")
         return rc, out, err
 
-    @staticmethod
-    def get_env(environment: 'Environment', for_machine: MachineChoice,
+    @classmethod
+    def search_pkgbin(cls, environment: 'Environment', for_machine: MachineChoice, silent: bool) -> T.Optional[ExternalProgram]:
+        # Only search for pkg-config for each machine the first time and store
+        # the result in the class definition
+        if cls.class_pkgbin[for_machine] is False:
+            mlog.debug(f'Pkg-config binary for {for_machine} is cached as not found.')
+        elif cls.class_pkgbin[for_machine] is not None:
+            mlog.debug(f'Pkg-config binary for {for_machine} is cached.')
+        else:
+            assert cls.class_pkgbin[for_machine] is None
+            mlog.debug(f'Pkg-config binary for {for_machine} is not cached.')
+            for potential_pkgbin in find_external_program(
+                    environment, for_machine, 'pkgconfig', 'Pkg-config',
+                    environment.default_pkgconfig, allow_default_for_cross=False):
+                version_if_ok = cls.check_pkgconfig(environment, potential_pkgbin)
+                if not version_if_ok:
+                    continue
+                if not silent:
+                    mlog.log('Found pkg-config:', mlog.bold(potential_pkgbin.get_path()),
+                             f'({version_if_ok})')
+                cls.class_pkgbin[for_machine] = potential_pkgbin
+                break
+            else:
+                if not silent:
+                    mlog.log('Found Pkg-config:', mlog.red('NO'))
+                # Set to False instead of None to signify that we've already
+                # searched for it and not found it
+                cls.class_pkgbin[for_machine] = False
+        pkgbin = cls.class_pkgbin[for_machine] or None
+        assert pkgbin is not True
+        return pkgbin
+
+    @classmethod
+    def get_env(cls, environment: 'Environment', for_machine: MachineChoice,
                 uninstalled: bool = False) -> 'EnvironmentVariables':
         from ..build import EnvironmentVariables
         env = EnvironmentVariables()
@@ -142,6 +144,9 @@ class PkgConfigDependency(ExternalDependency):
         pkg_config_libdir_prop = environment.properties[for_machine].get_pkg_config_libdir()
         if pkg_config_libdir_prop:
             env.set('PKG_CONFIG_LIBDIR', pkg_config_libdir_prop)
+        pkgbin = cls.search_pkgbin(environment, for_machine, silent=True)
+        if pkgbin:
+            env.set('PKG_CONFIG', [join_args(pkgbin.get_command())])
         return env
 
     @staticmethod
@@ -419,7 +424,8 @@ class PkgConfigDependency(ExternalDependency):
         mlog.debug(f'Got pkgconfig variable {variable_name} : {variable}')
         return variable
 
-    def check_pkgconfig(self, pkgbin: ExternalProgram) -> T.Optional[str]:
+    @staticmethod
+    def check_pkgconfig(environment: 'Environment', pkgbin: ExternalProgram) -> T.Optional[str]:
         if not pkgbin.found():
             mlog.log(f'Did not find pkg-config by name {pkgbin.name!r}')
             return None
@@ -438,7 +444,7 @@ class PkgConfigDependency(ExternalDependency):
             return None
         except PermissionError:
             msg = f'Found pkg-config {command_as_string!r} but didn\'t have permissions to run it.'
-            if not self.env.machines.build.is_windows():
+            if not environment.machines.build.is_windows():
                 msg += '\n\nOn Unix-like systems this is often caused by scripts that are not executable.'
             mlog.warning(msg)
             return None
