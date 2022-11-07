@@ -558,28 +558,28 @@ class ConverterTarget:
         return target_type_map.get(self.type.upper())
 
     def log(self) -> None:
-        mlog.log('Target', mlog.bold(self.name), f'({self.cmake_name})')
-        mlog.log('  -- artifacts:      ', mlog.bold(str(self.artifacts)))
-        mlog.log('  -- full_name:      ', mlog.bold(self.full_name))
-        mlog.log('  -- type:           ', mlog.bold(self.type))
-        mlog.log('  -- install:        ', mlog.bold('true' if self.install else 'false'))
-        mlog.log('  -- install_dir:    ', mlog.bold(self.install_dir.as_posix() if self.install_dir else ''))
-        mlog.log('  -- link_libraries: ', mlog.bold(str(self.link_libraries)))
-        mlog.log('  -- link_with:      ', mlog.bold(str(self.link_with)))
-        mlog.log('  -- object_libs:    ', mlog.bold(str(self.object_libs)))
-        mlog.log('  -- link_flags:     ', mlog.bold(str(self.link_flags)))
-        mlog.log('  -- languages:      ', mlog.bold(str(self.languages)))
-        mlog.log('  -- includes:       ', mlog.bold(str(self.includes)))
-        mlog.log('  -- sys_includes:   ', mlog.bold(str(self.sys_includes)))
-        mlog.log('  -- sources:        ', mlog.bold(str(self.sources)))
-        mlog.log('  -- generated:      ', mlog.bold(str(self.generated)))
-        mlog.log('  -- generated_ctgt: ', mlog.bold(str(self.generated_ctgt)))
-        mlog.log('  -- pie:            ', mlog.bold('true' if self.pie else 'false'))
-        mlog.log('  -- override_opts:  ', mlog.bold(str(self.override_options)))
-        mlog.log('  -- depends:        ', mlog.bold(str(self.depends)))
-        mlog.log('  -- options:')
+        mlog.debug('Target', mlog.bold(self.name), f'({self.cmake_name})')
+        mlog.debug('  -- artifacts:      ', mlog.bold(str(self.artifacts)))
+        mlog.debug('  -- full_name:      ', mlog.bold(self.full_name))
+        mlog.debug('  -- type:           ', mlog.bold(self.type))
+        mlog.debug('  -- install:        ', mlog.bold('true' if self.install else 'false'))
+        mlog.debug('  -- install_dir:    ', mlog.bold(self.install_dir.as_posix() if self.install_dir else ''))
+        mlog.debug('  -- link_libraries: ', mlog.bold(str(self.link_libraries)))
+        mlog.debug('  -- link_with:      ', mlog.bold(str(self.link_with)))
+        mlog.debug('  -- object_libs:    ', mlog.bold(str(self.object_libs)))
+        mlog.debug('  -- link_flags:     ', mlog.bold(str(self.link_flags)))
+        mlog.debug('  -- languages:      ', mlog.bold(str(self.languages)))
+        mlog.debug('  -- includes:       ', mlog.bold(str(self.includes)))
+        mlog.debug('  -- sys_includes:   ', mlog.bold(str(self.sys_includes)))
+        mlog.debug('  -- sources:        ', mlog.bold(str(self.sources)))
+        mlog.debug('  -- generated:      ', mlog.bold(str(self.generated)))
+        mlog.debug('  -- generated_ctgt: ', mlog.bold(str(self.generated_ctgt)))
+        mlog.debug('  -- pie:            ', mlog.bold('true' if self.pie else 'false'))
+        mlog.debug('  -- override_opts:  ', mlog.bold(str(self.override_options)))
+        mlog.debug('  -- depends:        ', mlog.bold(str(self.depends)))
+        mlog.debug('  -- options:')
         for key, val in self.compile_opts.items():
-            mlog.log('    -', key, '=', mlog.bold(str(val)))
+            mlog.debug('    -', key, '=', mlog.bold(str(val)))
 
 class CustomTargetReference:
     def __init__(self, ctgt: 'ConverterCustomTarget', index: int) -> None:
@@ -755,14 +755,14 @@ class ConverterCustomTarget:
             return None
 
     def log(self) -> None:
-        mlog.log('Custom Target', mlog.bold(self.name), f'({self.cmake_name})')
-        mlog.log('  -- command:      ', mlog.bold(str(self.command)))
-        mlog.log('  -- outputs:      ', mlog.bold(str(self.outputs)))
-        mlog.log('  -- conflict_map: ', mlog.bold(str(self.conflict_map)))
-        mlog.log('  -- working_dir:  ', mlog.bold(str(self.working_dir)))
-        mlog.log('  -- depends_raw:  ', mlog.bold(str(self.depends_raw)))
-        mlog.log('  -- inputs:       ', mlog.bold(str(self.inputs)))
-        mlog.log('  -- depends:      ', mlog.bold(str(self.depends)))
+        mlog.debug('Custom Target', mlog.bold(self.name), f'({self.cmake_name})')
+        mlog.debug('  -- command:      ', mlog.bold(str(self.command)))
+        mlog.debug('  -- outputs:      ', mlog.bold(str(self.outputs)))
+        mlog.debug('  -- conflict_map: ', mlog.bold(str(self.conflict_map)))
+        mlog.debug('  -- working_dir:  ', mlog.bold(str(self.working_dir)))
+        mlog.debug('  -- depends_raw:  ', mlog.bold(str(self.depends_raw)))
+        mlog.debug('  -- inputs:       ', mlog.bold(str(self.inputs)))
+        mlog.debug('  -- depends:      ', mlog.bold(str(self.depends)))
 
 class CMakeInterpreter:
     def __init__(self, build: 'Build', subdir: Path, src_dir: Path, install_prefix: Path, env: 'Environment', backend: 'Backend'):
@@ -828,17 +828,17 @@ class CMakeInterpreter:
         self.fileapi.setup_request()
 
         # Run CMake
-        mlog.log()
+        mlog.debug()
         with mlog.nested():
-            mlog.log('Configuring the build directory with', mlog.bold('CMake'), 'version', mlog.cyan(cmake_exe.version()))
-            mlog.log(mlog.bold('Running CMake with:'), ' '.join(cmake_args))
-            mlog.log(mlog.bold('  - build directory:         '), self.build_dir.as_posix())
-            mlog.log(mlog.bold('  - source directory:        '), self.src_dir.as_posix())
-            mlog.log(mlog.bold('  - toolchain file:          '), toolchain_file.as_posix())
-            mlog.log(mlog.bold('  - preload file:            '), preload_file.as_posix())
-            mlog.log(mlog.bold('  - trace args:              '), ' '.join(trace_args))
-            mlog.log(mlog.bold('  - disabled policy warnings:'), '[{}]'.format(', '.join(disable_policy_warnings)))
-            mlog.log()
+            mlog.debug('Configuring the build directory with', mlog.bold('CMake'), 'version', mlog.cyan(cmake_exe.version()))
+            mlog.debug(mlog.bold('Running CMake with:'), ' '.join(cmake_args))
+            mlog.debug(mlog.bold('  - build directory:         '), self.build_dir.as_posix())
+            mlog.debug(mlog.bold('  - source directory:        '), self.src_dir.as_posix())
+            mlog.debug(mlog.bold('  - toolchain file:          '), toolchain_file.as_posix())
+            mlog.debug(mlog.bold('  - preload file:            '), preload_file.as_posix())
+            mlog.debug(mlog.bold('  - trace args:              '), ' '.join(trace_args))
+            mlog.debug(mlog.bold('  - disabled policy warnings:'), '[{}]'.format(', '.join(disable_policy_warnings)))
+            mlog.debug()
             self.build_dir.mkdir(parents=True, exist_ok=True)
             os_env = environ.copy()
             os_env['LC_ALL'] = 'C'
@@ -847,9 +847,9 @@ class CMakeInterpreter:
             cmake_exe.set_exec_mode(print_cmout=True, always_capture_stderr=self.trace.requires_stderr())
             rc, _, self.cmake_stderr = cmake_exe.call(final_args, self.build_dir, env=os_env, disable_cache=True)
 
-        mlog.log()
+        mlog.debug()
         h = mlog.green('SUCCEEDED') if rc == 0 else mlog.red('FAILED')
-        mlog.log('CMake configuration:', h)
+        mlog.debug('CMake configuration:', h)
         if rc != 0:
             # get the last CMake error - We only need the message function for this:
             self.trace.functions = {'message': self.trace.functions['message']}
@@ -950,7 +950,7 @@ class CMakeInterpreter:
         for tgt in self.targets:
             tgt.cleanup_dependencies()
 
-        mlog.log('CMake project', mlog.bold(self.project_name), 'has', mlog.bold(str(len(self.targets) + len(self.custom_targets))), 'build targets.')
+        mlog.debug('CMake project', mlog.bold(self.project_name), 'has', mlog.bold(str(len(self.targets) + len(self.custom_targets))), 'build targets.')
 
     def pretend_to_be_meson(self, options: TargetOptions) -> CodeBlockNode:
         if not self.project_name:

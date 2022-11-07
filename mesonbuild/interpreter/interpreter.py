@@ -877,7 +877,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def do_subproject(self, subp_name: str, method: Literal['meson', 'cmake'], kwargs: kwtypes.DoSubproject) -> SubprojectHolder:
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
-            mlog.log('Subproject', mlog.bold(subp_name), ':', 'skipped: feature', mlog.bold(feature), 'disabled')
+            mlog.debug('Subproject', mlog.bold(subp_name), ':', 'skipped: feature', mlog.bold(feature), 'disabled')
             return self.disabled_subproject(subp_name, disabled_feature=feature)
 
         default_options = coredata.create_options_dict(kwargs['default_options'], subp_name)
@@ -1016,9 +1016,9 @@ class Interpreter(InterpreterBase, HoldableObject):
             # Generate a meson ast and execute it with the normal do_subproject_meson
             ast = cm_int.pretend_to_be_meson(options.target_options)
 
-            mlog.log()
+            mlog.debug()
             with mlog.nested('cmake-ast'):
-                mlog.log('Processing generated meson AST')
+                mlog.debug('Processing generated meson AST')
 
                 # Debug print the generated meson file
                 from ..ast import AstIndentationGenerator, AstPrinter
@@ -1030,9 +1030,9 @@ class Interpreter(InterpreterBase, HoldableObject):
                 with open(meson_filename, "w", encoding='utf-8') as f:
                     f.write(printer.result)
 
-                mlog.log('Build file:', meson_filename)
+                mlog.debug('Build file:', meson_filename)
                 mlog.cmd_ci_include(meson_filename)
-                mlog.log()
+                mlog.debug()
 
             result = self._do_subproject_meson(
                     subp_name, subdir, default_options,
@@ -1045,7 +1045,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             )
             result.cm_interpreter = cm_int
 
-        mlog.log()
+        mlog.debug()
         return result
 
     def get_option_internal(self, optname: str) -> coredata.UserOption:
@@ -1276,7 +1276,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         if disabled:
             for lang in sorted(langs, key=compilers.sort_clink):
-                mlog.log('Compiler for language', mlog.bold(lang), 'skipped: feature', mlog.bold(feature), 'disabled')
+                mlog.debug('Compiler for language', mlog.bold(lang), 'skipped: feature', mlog.bold(feature), 'disabled')
             return False
         if native is not None:
             return self.add_languages(langs, required, self.machine_from_native_kwarg(kwargs))
@@ -1462,14 +1462,10 @@ class Interpreter(InterpreterBase, HoldableObject):
                     options[k] = v
                 self.coredata.add_compiler_options(options, lang, for_machine, self.environment)
 
-            if for_machine == MachineChoice.HOST or self.environment.is_cross_build():
-                logger_fun = mlog.log
-            else:
-                logger_fun = mlog.debug
-            logger_fun(comp.get_display_language(), 'compiler for the', machine_name, 'machine:',
+            mlog.debug(comp.get_display_language(), 'compiler for the', machine_name, 'machine:',
                        mlog.bold(' '.join(comp.get_exelist())), comp.get_version_string())
             if comp.linker is not None:
-                logger_fun(comp.get_display_language(), 'linker for the', machine_name, 'machine:',
+                mlog.debug(comp.get_display_language(), 'linker for the', machine_name, 'machine:',
                            mlog.bold(' '.join(comp.linker.get_exelist())), comp.linker.id, comp.linker.version)
             self.build.ensure_static_linker(comp)
             self.compilers[for_machine][lang] = comp
@@ -1656,7 +1652,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                           ) -> T.Union['build.Executable', ExternalProgram, 'OverrideProgram']:
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
-            mlog.log('Program', mlog.bold(' '.join(args[0])), 'skipped: feature', mlog.bold(feature), 'disabled')
+            mlog.debug('Program', mlog.bold(' '.join(args[0])), 'skipped: feature', mlog.bold(feature), 'disabled')
             return self.notfound_program(args[0])
 
         search_dirs = extract_search_dirs(kwargs)
@@ -2545,7 +2541,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                         raise InvalidArguments(
                             f'"configuration_data": initial value dictionary key "{k!r}"" must be "str | int | bool", not "{v!r}"')
                 conf = build.ConfigurationData(conf)
-            mlog.log('Configuring', mlog.bold(output), 'using configuration')
+            mlog.debug('Configuring', mlog.bold(output), 'using configuration')
             if len(inputs) > 1:
                 raise InterpreterException('At most one input file can given in configuration mode')
             if inputs:
@@ -2582,7 +2578,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 values['@DEPFILE@'] = depfile
             # Substitute @INPUT@, @OUTPUT@, etc here.
             _cmd = mesonlib.substitute_values(kwargs['command'], values)
-            mlog.log('Configuring', mlog.bold(output), 'with command')
+            mlog.debug('Configuring', mlog.bold(output), 'with command')
             cmd, *args = _cmd
             res = self.run_command_impl(node, (cmd, args),
                                         {'capture': True, 'check': True, 'env': build.EnvironmentVariables()},
@@ -2596,7 +2592,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                     shutil.copymode(inputs_abs[0], dst_tmp)
                 mesonlib.replace_if_different(ofile_abs, dst_tmp)
             if depfile:
-                mlog.log('Reading depfile:', mlog.bold(depfile))
+                mlog.debug('Reading depfile:', mlog.bold(depfile))
                 with open(depfile, encoding='utf-8') as f:
                     df = DepFile(f.readlines())
                     deps = df.get_all_dependencies(ofile_fname)
@@ -2893,7 +2889,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     def run(self) -> None:
         super().run()
-        mlog.log('Build targets in project:', mlog.bold(str(len(self.build.targets))))
+        mlog.debug('Build targets in project:', mlog.bold(str(len(self.build.targets))))
         FeatureNew.report(self.subproject)
         FeatureDeprecated.report(self.subproject)
         if not self.is_subproject():
