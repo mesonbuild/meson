@@ -113,4 +113,25 @@ foreach cc : compilers
     assert(cc.has_function('__builtin_constant_p', args : unit_test_args),
            '__builtin_constant_p must be found under gcc and clang')
   endif
+
+  # Test whether the `MACOSX_DEPLOYMENT_TARGET=10.13` env is honored.
+  if host_system == 'darwin'
+    # Only available on macOS 10.13 or newer
+    assert(cc.has_function('utimensat',
+           prefix : '#include <sys/stat.h>'),
+           'utimensat must be found when targeting macOS 10.13')
+
+    # Introduced in macOS 11.0
+    assert(not cc.has_function('pthread_jit_write_protect_np',
+           prefix : '#include <pthread.h>'),
+           'pthread_jit_write_protect_np must not be found' +
+           ' when targeting macOS 10.13')
+
+    # Same as above, without `prefix: '#include <pthread.h>'`,
+    # this is currently incorrectly detected as found, see:
+    # FIXME: https://github.com/mesonbuild/meson/issues/3482
+    assert(cc.has_function('pthread_jit_write_protect_np'),
+           'pthread_jit_write_protect_np must not be found' +
+           ' when targeting macOS 10.13')
+  endif
 endforeach
