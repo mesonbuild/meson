@@ -18,7 +18,7 @@ import shlex
 import subprocess
 import typing as T
 
-from . import ExtensionModule, ModuleReturnValue, NewExtensionModule, ModuleInfo
+from . import NewExtensionModule, ModuleReturnValue, ModuleObject, ModuleInfo
 from .. import mlog, build
 from ..compilers.compilers import CFLAGS_MAPPING
 from ..envconfig import ENV_VAR_PROG_MAP
@@ -49,7 +49,7 @@ if T.TYPE_CHECKING:
         build_by_default: bool
 
 
-class ExternalProject(NewExtensionModule):
+class ExternalProject(ModuleObject):
     def __init__(self,
                  state: 'ModuleState',
                  configure_command: str,
@@ -275,12 +275,12 @@ class ExternalProject(NewExtensionModule):
         return dep
 
 
-class ExternalProjectModule(ExtensionModule):
+class ExternalProjectModule(NewExtensionModule):
 
     INFO = ModuleInfo('External build system', '0.56.0', unstable=True)
 
-    def __init__(self, interpreter: 'Interpreter'):
-        super().__init__(interpreter)
+    def __init__(self) -> None:
+        super().__init__()
         self.methods.update({'add_project': self.add_project,
                              })
 
@@ -308,4 +308,4 @@ class ExternalProjectModule(ExtensionModule):
 
 
 def initialize(interp: 'Interpreter') -> ExternalProjectModule:
-    return ExternalProjectModule(interp)
+    return ExternalProjectModule()
