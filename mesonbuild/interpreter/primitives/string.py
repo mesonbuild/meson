@@ -175,12 +175,12 @@ class StringHolder(ObjectHolder[str]):
         except IndexError:
             raise InvalidArguments(f'Index {other} out of bounds of string of size {len(self.held_object)}.')
 
-    @FeatureNew('"in" string operator', '0.64.0')
+    @FeatureNew('"in" string operator', '1.0.0')
     @typed_operator(MesonOperator.IN, str)
     def op_in(self, other: str) -> bool:
         return other in self.held_object
 
-    @FeatureNew('"not in" string operator', '0.64.0')
+    @FeatureNew('"not in" string operator', '1.0.0')
     @typed_operator(MesonOperator.NOT_IN, str)
     def op_notin(self, other: str) -> bool:
         return other not in self.held_object
