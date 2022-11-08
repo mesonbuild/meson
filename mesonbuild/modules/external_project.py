@@ -38,16 +38,15 @@ if T.TYPE_CHECKING:
     from ..build import BuildTarget, CustomTarget
 
     class Dependency(TypedDict):
-
         subdir: str
 
     class AddProject(TypedDict):
-
         configure_options: T.List[str]
         cross_configure_options: T.List[str]
         verbose: bool
         env: build.EnvironmentVariables
         depends: T.List[T.Union[BuildTarget, CustomTarget]]
+        build_by_default: bool
 
 
 class ExternalProject(NewExtensionModule):
@@ -58,7 +57,8 @@ class ExternalProject(NewExtensionModule):
                  cross_configure_options: T.List[str],
                  env: build.EnvironmentVariables,
                  verbose: bool,
-                 extra_depends: T.List[T.Union['BuildTarget', 'CustomTarget']]):
+                 extra_depends: T.List[T.Union['BuildTarget', 'CustomTarget']],
+                 build_by_default: bool):
         super().__init__()
         self.methods.update({'dependency': self.dependency_method,
                              })
@@ -100,7 +100,7 @@ class ExternalProject(NewExtensionModule):
 
         self._configure(state)
 
-        self.targets = self._create_targets(extra_depends)
+        self.targets = self._create_targets(extra_depends, build_by_default)
 
     def _configure(self, state: 'ModuleState') -> None:
         if self.configure_command == 'waf':
@@ -216,7 +216,8 @@ class ExternalProject(NewExtensionModule):
                 m += '\nSee logs: ' + str(log_filename)
             raise MesonException(m)
 
-    def _create_targets(self, extra_depends: T.List[T.Union['BuildTarget', 'CustomTarget']]) -> T.List['TYPE_var']:
+    def _create_targets(self, extra_depends: T.List[T.Union['BuildTarget', 'CustomTarget']],
+                        build_by_default: bool) -> T.List['TYPE_var']:
         cmd = self.env.get_build_command()
         cmd += ['--internal', 'externalproject',
                 '--name', self.name,
@@ -240,6 +241,7 @@ class ExternalProject(NewExtensionModule):
             depfile=f'{self.name}.d',
             console=True,
             extra_depends=extra_depends,
+            build_by_default=build_by_default,
         )
 
         idir = build.InstallDir(self.subdir.as_posix(),
@@ -290,6 +292,7 @@ class ExternalProjectModule(ExtensionModule):
         KwargInfo('verbose', bool, default=False),
         ENV_KW,
         DEPENDS_KW.evolve(since='0.63.0'),
+        KwargInfo('build_by_default', bool, default=False, since='1.0.0')
     )
     def add_project(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'AddProject') -> ModuleReturnValue:
         configure_command = args[0]
@@ -299,7 +302,8 @@ class ExternalProjectModule(ExtensionModule):
                                   kwargs['cross_configure_options'],
                                   kwargs['env'],
                                   kwargs['verbose'],
-                                  kwargs['depends'])
+                                  kwargs['depends'],
+                                  kwargs['build_by_default'])
         return ModuleReturnValue(project, project.targets)
 
 
