@@ -20,6 +20,7 @@ import textwrap
 import os
 import shutil
 import hashlib
+import platform
 from unittest import mock, skipUnless, SkipTest
 from glob import glob
 from pathlib import Path
@@ -1820,3 +1821,32 @@ class LinuxlikeTests(BasePlatformTests):
                 default_symlinks.append(symlink)
                 os.symlink(default_dirs[i], symlink)
             self.assertFalse(cpp.compiler_args([f'-isystem{symlink}' for symlink in default_symlinks]).to_native())
+
+    @skipUnless(is_linux(), 'Kbuild test is only for Linux')
+    def test_kbuild(self):
+        # This is a unittest instead of a project test because it must be placed
+        # in a path without spaces. "test cases/common/" won't work.
+        kernel = None
+        extra_args = []
+        if is_ci():
+            found = list(Path('/lib/modules').glob('**/build/Makefile'))
+            if found:
+                kernel = found[0].parts[3]
+                extra_args = [f'-Dexternal_project.kernel_build_dir={found[0].parent}']
+        else:
+            kernel = platform.uname().release
+        if not kernel or not Path('/lib/modules', kernel, 'build/Makefile').exists():
+            raise SkipTest('Linux kernel headers missing')
+        testdir = os.path.join(self.src_root, 'unittests', 'kbuild')
+        self.init(testdir, extra_args=extra_args)
+        self.build()
+        self.install()
+        installed = list(Path(self.installdir).glob('**/*'))
+        expected = [
+            Path(self.installdir, 'lib'),
+            Path(self.installdir, 'lib/modules'),
+            Path(self.installdir, f'lib/modules/{kernel}'),
+            Path(self.installdir, f'lib/modules/{kernel}/extra'),
+            Path(self.installdir, f'lib/modules/{kernel}/extra/example.ko'),
+        ]
+        self.assertEqual(sorted(installed), sorted(expected))

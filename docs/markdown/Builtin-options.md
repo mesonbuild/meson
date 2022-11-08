@@ -323,3 +323,12 @@ installation is a virtualenv, and use `venv` or `system` as appropriate (but
 never `prefix`). This option is mutually exclusive with the `platlibdir`/`purelibdir`.
 
 For backwards compatibility purposes, the default `install_env` is `prefix`.
+
+### External project module
+
+| Option           | Default value | Possible values | Description                                      |
+|------------------|---------------|-----------------|--------------------------------------------------|
+| kernel_build_dir |               | Directory path  | Directory for Linux kernel headers (Since 1.0.0) |
+
+*Since 1.0.0* The `external_project.kernel_build_dir` option is used by
+`ep_mod.kbuild()` to find Linux kernel headers when building a module.

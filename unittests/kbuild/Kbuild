@@ -1,0 +1,2 @@
+obj-m += example.o
+example-y := $(patsubst $(src)/%.c,%.o,$(wildcard $(src)/*.c))

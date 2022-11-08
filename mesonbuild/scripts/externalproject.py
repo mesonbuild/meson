@@ -32,6 +32,7 @@ class ExternalProject:
         self.stampfile = options.stampfile
         self.depfile = options.depfile
         self.make = split_args(options.make)
+        self.kbuild = options.kbuild
 
     def write_depfile(self) -> None:
         with open(self.depfile, 'w', encoding='utf-8') as f:
@@ -64,8 +65,12 @@ class ExternalProject:
 
         install_cmd = self.make.copy()
         install_env = {}
-        install_env['DESTDIR'] = self.install_dir
-        install_cmd.append('install')
+        if self.kbuild:
+            install_env['INSTALL_MOD_PATH'] = self.install_dir
+            install_cmd.append('modules_install')
+        else:
+            install_env['DESTDIR'] = self.install_dir
+            install_cmd.append('install')
         rc = self._run('install', install_cmd, install_env)
         if rc != 0:
             return rc
@@ -107,6 +112,7 @@ def run(args: T.List[str]) -> int:
     parser.add_argument('--logdir')
     parser.add_argument('--make')
     parser.add_argument('--verbose', action='store_true')
+    parser.add_argument('--kbuild', action='store_true')
     parser.add_argument('stampfile')
     parser.add_argument('depfile')
 
