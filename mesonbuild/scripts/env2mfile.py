@@ -58,6 +58,7 @@ class MachineInfo:
         self.properties: T.Dict[str, T.Union[str, T.List[str]]] = {}
         self.compile_args: T.Dict[str, T.List[str]] = {}
         self.link_args: T.Dict[str, T.List[str]] = {}
+        self.cmake: T.Dict[str, T.Union[str, T.List[str]]] = {}
 
         self.system: T.Optional[str] = None
         self.cpu: T.Optional[str] = None
@@ -84,12 +85,15 @@ def locate_path(program: str) -> T.List[str]:
             return [f]
     raise ValueError("%s not found on $PATH" % program)
 
-def write_args_line(ofile: T.TextIO, name: str, args: T.List[str]) -> None:
+def write_args_line(ofile: T.TextIO, name: str, args: T.Union[str, T.List[str]]) -> None:
     if len(args) == 0:
         return
-    ostr = name + ' = ['
-    ostr += ', '.join("'" + i + "'" for i in args)
-    ostr += ']\n'
+    if isinstance(args, str):
+        ostr = "'" + args + "'"
+    else:
+        ostr = name + ' = ['
+        ostr += ', '.join("'" + i + "'" for i in args)
+        ostr += ']\n'
     ofile.write(ostr)
 
 def get_args_from_envvars(infos: MachineInfo) -> None:
@@ -133,6 +137,16 @@ cpu_map = dict(armhf="arm7hlf",
                mips64el="mips64",
                powerpc64le="ppc64",
                )
+
+def deb_detect_cmake(infos: MachineInfo, data: T.Dict[str, str]) -> None:
+    system_name_map = dict(linux="Linux", kfreebsd="kFreeBSD", hurd="GNU")
+    system_processor_map = dict(arm='armv7l', mips64el='mips64', powerpc64le='ppc64le')
+
+    infos.cmake["CMAKE_C_COMPILER"] = infos.compilers['c']
+    infos.cmake["CMAKE_CXX_COMPILER"] = infos.compilers['cpp']
+    infos.cmake["CMAKE_SYSTEM_NAME"] = system_name_map[data['DEB_HOST_ARCH_OS']]
+    infos.cmake["CMAKE_SYSTEM_PROCESSOR"] = system_processor_map.get(data['DEB_HOST_GNU_CPU'],
+                                                                     data['DEB_HOST_GNU_CPU'])
 
 def deb_compiler_lookup(infos: MachineInfo, compilerstems: T.List[T.Tuple[str, str]], host_arch: str, gccsuffix: str) -> None:
     for langname, stem in compilerstems:
@@ -178,6 +192,11 @@ def detect_cross_debianlike(options: T.Any) -> MachineInfo:
     infos.binaries['objcopy'] = locate_path("%s-objcopy" % host_arch)
     infos.binaries['ld'] = locate_path("%s-ld" % host_arch)
     try:
+        infos.binaries['cmake'] = locate_path("cmake")
+        deb_detect_cmake(infos, data)
+    except ValueError:
+        pass
+    try:
         infos.binaries['pkgconfig'] = locate_path("%s-pkg-config" % host_arch)
     except ValueError:
         pass # pkg-config is optional
@@ -217,7 +236,14 @@ def write_machine_file(infos: MachineInfo, ofilename: str, write_system_info: bo
                 write_args_line(ofile, lang + '_args', infos.compile_args[lang])
             if lang in infos.link_args:
                 write_args_line(ofile, lang + '_link_args', infos.link_args[lang])
+        for k, v in infos.properties.items():
+            write_args_line(ofile, k, v)
         ofile.write('\n')
+
+        if infos.cmake:
+            ofile.write('[cmake]\n\n')
+            for k, v in infos.cmake.items():
+                write_args_line(ofile, k, v)
 
         if write_system_info:
             ofile.write('[host_machine]\n')
