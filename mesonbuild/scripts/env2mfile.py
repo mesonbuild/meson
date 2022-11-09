@@ -130,7 +130,9 @@ def get_args_from_envvars(infos: MachineInfo) -> None:
 cpu_family_map = dict(mips64el="mips64",
                       i686='x86')
 cpu_map = dict(armhf="arm7hlf",
-               mips64el="mips64",)
+               mips64el="mips64",
+               powerpc64le="ppc64",
+               )
 
 def deb_compiler_lookup(infos: MachineInfo, compilerstems: T.List[T.Tuple[str, str]], host_arch: str, gccsuffix: str) -> None:
     for langname, stem in compilerstems:
