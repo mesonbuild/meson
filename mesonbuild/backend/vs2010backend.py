@@ -1029,7 +1029,7 @@ class Vs2010Backend(backends.Backend):
                 file_args[l] += compilers.get_base_compile_args(
                     target.get_options(), comp)
                 file_args[l] += comp.get_option_compile_args(
-                    self.environment.coredata.options)
+                    target.get_options())
 
         # Add compile args added using add_project_arguments()
         for l, args in self.build.projects_args[target.for_machine].get(target.subproject, {}).items():
