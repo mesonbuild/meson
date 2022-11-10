@@ -35,7 +35,7 @@ that automatically.
 Additional, test only dependencies may be passed via the dependencies
 argument.
 
-### bindgen(*, input: string | BuildTarget | [](string | BuildTarget), output: string, include_directories: [](include_directories | string), c_args: []string, args: []string)
+### bindgen(*, input: string | BuildTarget | [](string | BuildTarget), output: string, include_directories: [](include_directories | string), c_args: []string, args: []string, dependencies: []Dependency)
 
 This function wraps bindgen to simplify creating rust bindings around C
 libraries. This has two advantages over hand-rolling ones own with a
@@ -54,6 +54,7 @@ It takes the following keyword arguments
   these are passed to clang as `-I` arguments *(string since 1.0.0)*
 - c_args — A list of string arguments to pass to clang untouched
 - args — A list of string arguments to pass to `bindgen` untouched.
+- dependencies — A list of `Dependency` objects to pass to the underlying clang call (*since 1.0.0*)
 
 ```meson
 rust = import('unstable-rust')

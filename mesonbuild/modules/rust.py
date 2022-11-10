@@ -45,6 +45,7 @@ if T.TYPE_CHECKING:
         include_directories: T.List[IncludeDirs]
         input: T.List[SourceInputs]
         output: str
+        dependencies: T.List[T.Union[Dependency, ExternalLibrary]]
 
 
 class RustModule(ExtensionModule):
@@ -173,6 +174,7 @@ class RustModule(ExtensionModule):
         ),
         INCLUDE_DIRECTORIES.evolve(feature_validator=include_dir_string_new),
         OUTPUT_KW,
+        DEPENDENCIES_KW.evolve(since='1.0.0'),
     )
     def bindgen(self, state: ModuleState, args: T.List, kwargs: FuncBindgen) -> ModuleReturnValue:
         """Wrapper around bindgen to simplify it's use.
@@ -191,11 +193,22 @@ class RustModule(ExtensionModule):
             else:
                 depends.append(d)
 
-        inc_strs: T.List[str] = []
+        clang_args: T.List[str] = []
         for i in state.process_include_dirs(kwargs['include_directories']):
             # bindgen always uses clang, so it's safe to hardcode -I here
-            inc_strs.extend([f'-I{x}' for x in i.to_string_list(
+            clang_args.extend([f'-I{x}' for x in i.to_string_list(
                 state.environment.get_source_dir(), state.environment.get_build_dir())])
+
+        for de in kwargs['dependencies']:
+            for i in de.get_include_dirs():
+                clang_args.extend([f'-I{x}' for x in i.to_string_list(
+                    state.environment.get_source_dir(), state.environment.get_build_dir())])
+            clang_args.extend(de.get_all_compile_args())
+            for s in de.get_sources():
+                if isinstance(s, File):
+                    depend_files.append(s)
+                elif isinstance(s, CustomTarget):
+                    depends.append(s)
 
         if self._bindgen_bin is None:
             self._bindgen_bin = state.find_program('bindgen')
@@ -213,7 +226,7 @@ class RustModule(ExtensionModule):
                 '@INPUT@', '--output',
                 os.path.join(state.environment.build_dir, '@OUTPUT@')
             ] + \
-            kwargs['args'] + ['--'] + kwargs['c_args'] + inc_strs + \
+            kwargs['args'] + ['--'] + kwargs['c_args'] + clang_args + \
             ['-MD', '-MQ', '@INPUT@', '-MF', '@DEPFILE@']
 
         target = CustomTarget(

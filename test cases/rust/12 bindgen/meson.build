@@ -1,5 +1,5 @@
 # SPDX-license-identifer: Apache-2.0
-# Copyright © 2021 Intel Corporation
+# Copyright © 2021-2022 Intel Corporation
 
 project('rustmod bindgen', ['c', 'rust'], meson_version : '>= 0.63')
 
@@ -80,3 +80,4 @@ rust_bin2 = executable(
 test('generated header', rust_bin2)
 
 subdir('sub')
+subdir('dependencies')
