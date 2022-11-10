@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
 import os
 import typing as T
 
@@ -52,9 +53,9 @@ class RustModule(ExtensionModule):
 
     INFO = ModuleInfo('rust', '0.57.0', stabilized='1.0.0')
 
-    def __init__(self, interpreter: 'Interpreter') -> None:
+    def __init__(self, interpreter: Interpreter) -> None:
         super().__init__(interpreter)
-        self._bindgen_bin: T.Optional['ExternalProgram'] = None
+        self._bindgen_bin: T.Optional[ExternalProgram] = None
         self.methods.update({
             'test': self.test,
             'bindgen': self.bindgen,
@@ -67,7 +68,7 @@ class RustModule(ExtensionModule):
         DEPENDENCIES_KW,
         KwargInfo('is_parallel', bool, default=False),
     )
-    def test(self, state: 'ModuleState', args: T.Tuple[str, BuildTarget], kwargs: 'FuncTest') -> ModuleReturnValue:
+    def test(self, state: ModuleState, args: T.Tuple[str, BuildTarget], kwargs: FuncTest) -> ModuleReturnValue:
         """Generate a rust test target from a given rust target.
 
         Rust puts it's unitests inside it's main source files, unlike most
@@ -173,7 +174,7 @@ class RustModule(ExtensionModule):
         INCLUDE_DIRECTORIES.evolve(feature_validator=include_dir_string_new),
         OUTPUT_KW,
     )
-    def bindgen(self, state: 'ModuleState', args: T.List, kwargs: 'FuncBindgen') -> ModuleReturnValue:
+    def bindgen(self, state: ModuleState, args: T.List, kwargs: FuncBindgen) -> ModuleReturnValue:
         """Wrapper around bindgen to simplify it's use.
 
         The main thing this simplifies is the use of `include_directory`
@@ -182,7 +183,7 @@ class RustModule(ExtensionModule):
         header, *_deps = self.interpreter.source_strings_to_files(kwargs['input'])
 
         # Split File and Target dependencies to add pass to CustomTarget
-        depends: T.List['SourceOutputs'] = []
+        depends: T.List[SourceOutputs] = []
         depend_files: T.List[File] = []
         for d in _deps:
             if isinstance(d, File):
@@ -232,5 +233,5 @@ class RustModule(ExtensionModule):
         return ModuleReturnValue([target], [target])
 
 
-def initialize(interp: 'Interpreter') -> RustModule:
+def initialize(interp: Interpreter) -> RustModule:
     return RustModule(interp)
