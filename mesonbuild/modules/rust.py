@@ -19,7 +19,7 @@ from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from .. import mlog
 from ..build import BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList, IncludeDirs, CustomTarget, StructuredSources
 from ..dependencies import Dependency, ExternalLibrary
-from ..interpreter.type_checking import TEST_KWS, OUTPUT_KW, INCLUDE_DIRECTORIES, include_dir_string_new
+from ..interpreter.type_checking import DEPENDENCIES_KW, TEST_KWS, OUTPUT_KW, INCLUDE_DIRECTORIES, include_dir_string_new
 from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noPosargs
 from ..mesonlib import File
 
@@ -64,12 +64,8 @@ class RustModule(ExtensionModule):
     @typed_kwargs(
         'rust.test',
         *TEST_KWS,
+        DEPENDENCIES_KW,
         KwargInfo('is_parallel', bool, default=False),
-        KwargInfo(
-            'dependencies',
-            ContainerTypeInfo(list, (Dependency, ExternalLibrary)),
-            listify=True,
-            default=[]),
     )
     def test(self, state: 'ModuleState', args: T.Tuple[str, BuildTarget], kwargs: 'FuncTest') -> ModuleReturnValue:
         """Generate a rust test target from a given rust target.
