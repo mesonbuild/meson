@@ -223,45 +223,45 @@ c/c++ compiler supports this option.
 
 Since *0.63.0* all compiler options can be set per subproject, see
 [here](#specifying-options-per-subproject) for details on how the default value
-is inherited from main project. This is useful for example when the main project
-requires C++11 but a subproject requires C++14. The `cpp_std` value from
-subproject's `default_options` is now respected.
+is inherited from the main project. This is useful, for example, when the main
+project requires C++11, but a subproject requires C++14. The `cpp_std` value
+from the subproject's `default_options` is now respected.
 
 ## Specifying options per machine
 
 Since *0.51.0*, some options are specified per machine rather than
 globally for all machine configurations. Prefixing the option with
-`build.` just affects the build machine configuration, while
-unprefixed just affects the host machine configuration, respectively.
+`build.` only affects the build machine configuration, while leaving it
+unprefixed only affects the host machine configuration.
 For example:
 
  - `build.pkg_config_path` controls the paths pkg-config will search
-   for just `native: true` dependencies (build machine).
+   for `native: true` (build machine) dependencies.
 
  - `pkg_config_path` controls the paths pkg-config will search for
-   just `native: false` dependencies (host machine).
+   `native: false` (host machine) dependencies.
 
-This is useful for cross builds. In the native builds, build = host,
-and the unprefixed option alone will suffice.
+This is useful for cross builds. In native builds, the build and host
+machines are the same, and the unprefixed option alone will suffice.
 
-Prior to *0.51.0*, these options just effected native builds when
-specified on the command line, as there was no `build.` prefix.
+Prior to *0.51.0*, these options only affected native builds when
+specified on the command line as there was no `build.` prefix.
 Similarly named fields in the `[properties]` section of the cross file
-would effect cross compilers, but the code paths were fairly different
+would affect cross compilers, but the code paths were fairly different,
 allowing differences in behavior to crop out.
 
 ## Specifying options per subproject
 
 Since *0.54.0* `default_library` and `werror` built-in options can be
-defined per subproject. This is useful for example when building
-shared libraries in the main project, but static link a subproject, or
-when the main project must build with no warnings but some subprojects
+defined per subproject. This is useful, for example, when building
+shared libraries in the main project and statically linking a subproject,
+or when the main project must build with no warnings but some subprojects
 cannot.
 
-Most of the time this would be used either by the parent project by
+Most of the time, this would be used either in the parent project by
 setting subproject's default_options (e.g. `subproject('foo',
-default_options: 'default_library=static')`), or by the user using the
-command line `-Dfoo:default_library=static`.
+default_options: 'default_library=static')`), or by the user through the
+command line: `-Dfoo:default_library=static`.
 
 The value is overridden in this order:
 - Value from parent project
@@ -269,12 +269,13 @@ The value is overridden in this order:
 - Value from subproject() default_options if set
 - Value from command line if set
 
-Since 0.56.0 `warning_level` can also be defined per subproject.
+Since *0.56.0* `warning_level` can also be defined per subproject.
 
 ## Module options
 
-Some Meson modules have built-in options. They can be set by prefixing the option
-name with the module name: `-D<module>.<option>=<value>` (e.g. `-Dpython.platlibdir=/foo`).
+Some Meson modules have built-in options. They can be set by prefixing the
+option with the module's name:
+`-D<module>.<option>=<value>` (e.g. `-Dpython.platlibdir=/foo`).
 
 ### Pkgconfig module
 
@@ -283,18 +284,19 @@ name with the module name: `-D<module>.<option>=<value>` (e.g. `-Dpython.platlib
 | relocatable | false         | true, false     | Generate the pkgconfig files as relocatable (Since 0.63.0) |
 
 *Since 0.63.0* The `pkgconfig.relocatable` option is used by the
-pkgconfig module, namely [`pkg.generate()`](Pkgconfig-module.md) and affect how the
-`prefix` in the generated pkgconfig file is set (not to be confused
-with the [install prefix](#directories)). When it is `true` the `prefix` will be
-relative to the `install_dir`. This allows the pkgconfig file to be
-moved around and still work, as long as the relative path is not
-broken. In general this allows for the whole installed package to be
-placed anywhere on the system and still work as a dependency. When it
-is set to `false` the `prefix` will be the same as the install prefix.
+pkgconfig module–namely [`pkg.generate()`](Pkgconfig-module.md)–and
+affects how the `prefix` (not to be confused with the
+[install prefix](#directories)) in the generated pkgconfig file is set.
+When it is `true`, the `prefix` will be relative to the `install_dir`-this
+allows the pkgconfig file to be moved around and still work, as long
+as the relative path is not broken. In general, this allows for the whole
+installed package to be placed anywhere on the system and still work as a
+dependency. When it is set to `false`, the `prefix` will be the same as
+the install prefix.
 
 An error will be raised if `pkgconfig.relocatable` is `true` and the
 `install_dir` for a generated pkgconfig file points outside the
-install prefix. For example if the install prefix is `/usr` and the
+install prefix. For example: if the install prefix is `/usr` and the
 `install_dir` for a pkgconfig file is `/var/lib/pkgconfig`.
 
 ### Python module
@@ -305,13 +307,13 @@ install prefix. For example if the install prefix is `/usr` and the
 | platlibdir       |               | Directory path              | Directory for site-specific, platform-specific files (Since 0.60.0) |
 | purelibdir       |               | Directory path              | Directory for site-specific, non-platform-specific files  (Since 0.60.0) |
 
-*Since 0.60.0* `python.platlibdir` and `python.purelibdir` options are used by
-python module methods `python.install_sources()` and `python.get_install_dir()`.
-By default Meson tries to detect the correct installation path, but make them
-relative to the installation `prefix`, which will often result in installed python
-modules to not be found by the interpreter unless `prefix` is `/usr` on Linux,
-or for example `C:\Python39` on Windows. These options can be absolute paths
-outside of `prefix`.
+*Since 0.60.0* The `python.platlibdir` and `python.purelibdir` options are used
+by the python module methods `python.install_sources()` and
+`python.get_install_dir()`; Meson tries to detect the correct installation paths
+and make them relative to the installation `prefix` by default which will often
+result in the interpreter not finding the installed python modules unless
+`prefix` is `/usr` on Linux, or, for instance, `C:\Python39` on Windows. These
+options can be absolute paths outside of `prefix`.
 
 *Since 0.62.0* The `python.install_env` option is used to detect the correct
 installation path. Setting to `system` will avoid making the paths relative to
