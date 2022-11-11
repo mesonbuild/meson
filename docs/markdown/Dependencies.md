@@ -392,7 +392,7 @@ both `ncurses` (preferred) and other curses implementations.
 
 *New in 0.56.0* The `config-tool` and `system` methods.
 
-To define some of the the preprocessor symbols mentioned in the
+To define some of the preprocessor symbols mentioned in the
 [curses autoconf documentation](http://git.savannah.gnu.org/gitweb/?p=autoconf-archive.git;a=blob_plain;f=m4/ax_with_curses.m4):
 
 ```meson
