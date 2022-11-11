@@ -66,7 +66,7 @@ varargs:
   since: 0.60.0
   min_varargs: 1
   description: |
-    The names of the dependency too look up. The dependencies are looked up in
+    The names of the dependency to look up. The dependencies are looked up in
     the order they are provided here. The first found dependency will then be
     used. The fallback subproject will be used only if none of the names are
     found on the system. Once one of the name has been found, all other names
