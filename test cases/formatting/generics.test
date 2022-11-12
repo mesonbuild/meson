@@ -62,3 +62,10 @@ foreach tuple : [
     warning(tuple)
 endforeach
 
+foreach foo : {
+        # foo
+        foo: 123,
+    }
+    warning(foo)
+endforeach
+
