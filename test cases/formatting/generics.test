@@ -44,3 +44,21 @@ if want_tests != 'false'
     test('test-systemd-tmpfiles', test_systemd_tmpfiles_py, args: exe.full_path())
 endif
 
+foreach tuple : [
+        # dependencies
+        ['ACL'],
+        ['tpm2'],
+        ['xkbcommon'],
+        # compression libs
+        ['zstd'],
+        ['zlib'],
+        ['bzip2'],
+        # components
+        ['backlight'],
+        ['valgrind', conf.get('VALGRIND') == 1],
+        ['standalone-binaries', get_option('standalone-binaries')],
+        ['coverage', get_option('b_coverage')],
+    ]
+    warning(tuple)
+endforeach
+

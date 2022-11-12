@@ -410,7 +410,16 @@ class AstFormatter(AstVisitor):
         self.append('foreach ')
         self.append(', '.join(varnames))
         self.append(' : ')
-        node.items.accept(self)
+        if isinstance(node.items, mparser.ArrayNode) and len(node.items.args.arguments) != 0:
+            self.currindent += self.indentstr
+            self.visit_ArrayNodeAssignment(node.items)
+            self.currindent = tmp
+        elif isinstance(node.items, mparser.DictNode) and len(node.items.args.kwargs) != 0:
+            self.currindent += self.indentstr
+            self.visit_DictNodeAssignment(node.items)
+            self.currindent = tmp
+        else:
+            node.items.accept(self)
         self.currindent += self.indentstr
         self.force_linebreak()
         node.block.accept(self)
