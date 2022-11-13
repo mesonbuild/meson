@@ -153,14 +153,19 @@ time, please help extending the list of well known categories.
   * [[install_headers]],
   * `pkgconfig.generate()`,
   * `gnome.generate_gir()` - `.gir` file,
+  * `gnome.generate_vapi()` - `.vapi` file (*Since 0.64.0*),
   * Files installed into `libdir` and with `.a` or `.pc` extension,
-  * File installed into `includedir`.
+  * File installed into `includedir`,
+  * Generated header files installed with `gnome.compile_resources()`,
+    `gnome.genmarshal()`, `gnome.mkenums()`, `gnome.mkenums_simple()`
+    and `gnome.gdbus_codegen()` (*Since 0.64.0*).
 - `runtime`:
   * [[executable]],
   * [[shared_library]],
   * [[shared_module]],
   * [[jar]],
-  * Files installed into `bindir`.
+  * `gnome.compile_resources()` - `.gresource` file (*Since 0.64.0*),
+  * Files installed into `bindir`,
   * Files installed into `libdir` and with `.so` or `.dll` extension.
 - `python-runtime`:
   * `python.install_sources()`.
