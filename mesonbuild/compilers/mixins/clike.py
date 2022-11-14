@@ -1074,8 +1074,8 @@ class CLikeCompiler(Compiler):
             except ValueError:
                 continue
             filtered.append(lib)
-        float_cmp = lambda x: float(x.rsplit('.so.', maxsplit=1)[1])
-        return sorted(filtered, key=float_cmp, reverse=True)
+        return sorted(filtered, key=lambda x: float(x.rsplit('.so.', maxsplit=1)[1]),
+                      reverse=True)
 
     @classmethod
     def _get_trials_from_pattern(cls, pattern: str, directory: str, libname: str) -> T.List[Path]:

@@ -66,7 +66,6 @@ disable=
     too-many-statements,
     typevar-name-incorrect-variance,
     unidiomatic-typecheck,
-    unnecessary-lambda-assignment,
     unsubscriptable-object,
     unused-argument,
     useless-super-delegation,

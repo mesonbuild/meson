@@ -859,9 +859,14 @@ class Rewriter:
 
         # Sort files
         for i in to_sort_nodes:
-            convert = lambda text: int(text) if text.isdigit() else text.lower()
-            alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)]
-            path_sorter = lambda key: ([(key.count('/') <= idx, alphanum_key(x)) for idx, x in enumerate(key.split('/'))])
+            def convert(text: str) -> T.Union[str, int]:
+                return int(text) if text.isdigit() else text.lower()
+
+            def alphanum_key(key: str) -> T.List[T.Union[str, int]]:
+                return [convert(c) for c in re.split('([0-9]+)', key)]
+
+            def path_sorter(key: str) -> T.List[T.Tuple[bool, T.List[T.Union[str, int]]]]:
+                return [(key.count('/') <= idx, alphanum_key(x)) for idx, x in enumerate(key.split('/'))]
 
             unknown = [x for x in i.arguments if not isinstance(x, StringNode)]
             sources = [x for x in i.arguments if isinstance(x, StringNode)]
