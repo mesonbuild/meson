@@ -47,6 +47,14 @@ class NasmCompiler(Compiler):
     def get_output_args(self, outputname: str) -> T.List[str]:
         return ['-o', outputname]
 
+    def unix_args_to_native(self, args: T.List[str]) -> T.List[str]:
+        outargs = []
+        for arg in args:
+            if arg == '-pthread':
+                continue
+            outargs.append(arg)
+        return outargs
+
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return nasm_optimization_args[optimization_level]
 
