@@ -41,6 +41,30 @@ class AstFormatter(AstVisitor):
         for i, l in enumerate(self.lines):
             if l.strip() == '':
                 self.lines[i] = ''
+        if len(self.comments) == 0:
+            return
+        last_threshold = len(self.old_lines)
+        while True:
+            l = self.old_lines[last_threshold - 1].strip()
+            if l == '' or l.startswith('#'):
+                last_threshold -= 1
+            else:
+                break
+        while last_threshold < len(self.old_lines) and self.old_lines[last_threshold].strip().startswith('#'):
+            last_threshold += 1
+        if last_threshold == len(self.old_lines):
+            return
+        idx = 0
+        for c in self.comments:
+            if c.lineno >= last_threshold:
+                break
+            idx += 1
+        for i in range(last_threshold + 2, self.comments[-1].lineno + 1):
+            if i != self.comments[idx].lineno:
+                self.lines.append('')
+            else:
+                self.lines.append(self.comments[idx].text)
+                del self.comments[idx]
 
     def append(self, to_append):
         self.currline += to_append
