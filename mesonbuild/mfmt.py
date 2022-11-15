@@ -58,7 +58,6 @@ def run(options: argparse.Namespace) -> int:
     formatter = AstFormatter(comments, code.splitlines(), config)
     codeblock.accept(formatter)
     formatter.end()
-    print('This will probably eat some of your comments', file=sys.stderr)
     if not options.inplace:
         output = sys.stdout if options.output is None else open(options.output, 'w', encoding='utf8')
     else:
