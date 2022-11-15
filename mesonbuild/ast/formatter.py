@@ -63,6 +63,8 @@ class AstFormatter(AstVisitor):
                     add_extra += 2 + len(node.value)
                 elif isinstance(node, mparser.MethodNode):
                     add_extra += node.args.end_colno + 3
+                elif isinstance(node, mparser.IdNode):
+                    add_extra += len(node.value)
                 elif isinstance(node, (mparser.PlusAssignmentNode, mparser.AssignmentNode)):
                     rhs = node.value
                     if isinstance(rhs, mparser.StringNode):

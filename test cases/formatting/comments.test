@@ -74,4 +74,21 @@ libclc_compiler = shared_library('clon12compiler', [files_libclc_compiler, sha1_
     ],
     name_prefix: '', # otherwise mingw will create libclon12compiler.dll
 )
+pgmdump2 = executable('pgmdump2', 'pgmdump2.c',
+    include_directories: [
+        inc_freedreno,
+        inc_include,
+        inc_src,
+    ],
+    gnu_symbol_visibility: 'hidden',
+    dependencies: [],
+    link_with: [
+        libfreedreno_cffdec,
+        libfreedreno_io,
+        libfreedreno_ir2, # for disasm_a2xx
+        libfreedreno_ir3, # for disasm_a3xx
+    ],
+    build_by_default: with_tools.contains('freedreno'),
+    install: false,
+)
 
