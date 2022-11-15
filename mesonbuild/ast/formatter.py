@@ -73,8 +73,12 @@ class AstFormatter(AstVisitor):
                         add_extra += rhs.args.end_colno + 3
                     elif isinstance(rhs, mparser.IdNode):
                         add_extra += rhs.end_colno + len(rhs.value)
+                    elif isinstance(rhs, mparser.BooleanNode):
+                        add_extra += rhs.end_colno + (4 if rhs.value else 5)
                     else:
                         add_extra += rhs.end_colno
+                elif isinstance(node, mparser.BooleanNode):
+                    add_extra += node.end_colno + (4 if node.value else 5)
                 diffstr = self.old_lines[c.lineno - 1][node.end_colno + add_extra:c.colno].strip()
                 bound_matches = diffstr in ('', ',')
                 if not bound_matches:

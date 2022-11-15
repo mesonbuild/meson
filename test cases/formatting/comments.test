@@ -114,3 +114,15 @@ if with_dri2
     deps_gbm += dep_libdrm # TODO: pthread-stubs
 endif
 
+sha1_h = custom_target('git_sha1.h',
+    output: 'git_sha1.h',
+    command: [
+        prog_python,
+        git_sha1_gen_py,
+        '--output',
+        '@OUTPUT@',
+    ],
+    build_by_default: true,
+    build_always_stale: true, # commit sha1 can change without having touched these files
+)
+
