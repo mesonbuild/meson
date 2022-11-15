@@ -25,7 +25,7 @@ def parse_fmt_config(file: str):
     config['wide_colon'] = False
     config['no_single_comma_function'] = False
     if file is not None:
-        with open(options.config, encoding='utf-8') as f:
+        with open(file, encoding='utf-8') as f:
             for line in f.readlines():
                 ls = line.lstrip()
                 if ls == '' or ls[0] == '#':

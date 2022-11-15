@@ -367,7 +367,7 @@ class AstFormatter(AstVisitor):
             self.check_adjacent_comment(e, ',')
             if i == len(node.args.arguments) - 1:
                 self.currindent = tmp
-                self.force_linebreak ()
+                self.force_linebreak()
                 n = len(self.comments)
                 self.check_post_comment(e)
                 n1 = len(self.comments)
