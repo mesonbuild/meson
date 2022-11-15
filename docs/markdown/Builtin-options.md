@@ -146,7 +146,7 @@ The value of `b_sanitize` can be one of: `none`, `address`, `thread`,
 compilers might not support all of them. For example Visual Studio
 only supports the address sanitizer.
 
-* < 0 means disable, == 0 means automatic selection, > 0 sets a specific number to use
+\* < 0 means disable, == 0 means automatic selection, > 0 sets a specific number to use
 
 LLVM supports `thin` lto, for more discussion see [LLVM's documentation](https://clang.llvm.org/docs/ThinLTO.html)
 
