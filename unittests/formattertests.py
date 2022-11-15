@@ -27,6 +27,7 @@ class FormatterTests(unittest.TestCase):
         for i, line in enumerate(formatter.lines):
             self.assertEqual(old_lines[i], line)
         assert(len(formatter.comments) == 0)
+        self.assert_still_parsing(formatter.lines)
         self.assert_idempotency(formatter.lines)
 
     def test_indentation(self):
@@ -34,6 +35,7 @@ class FormatterTests(unittest.TestCase):
         for i, line in enumerate(formatter.lines):
             self.assertEqual(old_lines[i], line)
         assert(len(formatter.comments) == 0)
+        self.assert_still_parsing(formatter.lines)
         self.assert_idempotency(formatter.lines)
 
     def test_generics(self):
@@ -41,6 +43,7 @@ class FormatterTests(unittest.TestCase):
         for i, line in enumerate(formatter.lines):
             self.assertEqual(old_lines[i], line)
         assert(len(formatter.comments) == 0)
+        self.assert_still_parsing(formatter.lines)
         self.assert_idempotency(formatter.lines)
 
     def test_space_array(self):
@@ -50,6 +53,7 @@ class FormatterTests(unittest.TestCase):
         for i, line in enumerate(formatter.lines):
             self.assertEqual(old_lines[i], line)
         assert(len(formatter.comments) == 0)
+        self.assert_still_parsing(formatter.lines)
         self.assert_idempotency(formatter.lines, config)
 
     def test_wide_colon(self):
@@ -59,7 +63,13 @@ class FormatterTests(unittest.TestCase):
         for i, line in enumerate(formatter.lines):
             self.assertEqual(old_lines[i], line)
         assert(len(formatter.comments) == 0)
+        self.assert_still_parsing(formatter.lines)
         self.assert_idempotency(formatter.lines, config)
+
+    def assert_still_parsing(self, lines):
+        code = '\n'.join(lines)
+        parser = mesonbuild.mparser.Parser(code, '-')
+        codeblock = parser.parse()
 
     def assert_idempotency(self, new_lines, extra_config = {}):
         config = {}
