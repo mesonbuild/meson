@@ -411,8 +411,8 @@ class AstFormatter(AstVisitor):
                 self.check_post_comment(e)
                 n1 = len(self.comments)
                 if n != n1:
-                    for i in range(0, n - n1):
-                        self.lines[-i - 1] = self.indentstr + self.lines[-i - 1]
+                    for j in range(0, n - n1):
+                        self.lines[-j - 1] = self.indentstr + self.lines[-j - 1]
             else:
                 self.force_linebreak()
         self.append(']')
