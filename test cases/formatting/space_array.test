@@ -10,5 +10,9 @@ y = [
 z = []
 foo = y[ 0 ]
 
-meson.foooo([ 0, 1, 2 ])
+meson.foooo([
+        0,
+        1,
+        2,
+    ])
 

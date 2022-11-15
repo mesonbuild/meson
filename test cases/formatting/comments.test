@@ -136,3 +136,18 @@ efi_arch = {
     'riscv64': ['riscv64', 'riscv64']
 }.get(efi_arch, [])
 
+# From GNOME-Builder
+add_global_arguments([
+        '-DHAVE_CONFIG_H',
+        '-I' + meson.project_build_root(), # config.h
+        '-D_GNU_SOURCE',
+        '-DIDE_COMPILATION',
+    ], language: 'c')
+
+x = [
+    '-DHAVE_CONFIG_H',
+    '-I' + meson.project_build_root(), # config.h
+    '-D_GNU_SOURCE',
+    '-DIDE_COMPILATION',
+]
+

@@ -50,6 +50,34 @@ class AstFormatter(AstVisitor):
             self.lines.append(self.currline)
             self.currline = self.currindent
 
+    def get_length(self, node: mparser.BaseNode):
+        add_extra = 0
+        if isinstance(node, mparser.StringNode):
+            add_extra += 2 + len(node.value)
+        elif isinstance(node, mparser.MethodNode):
+            add_extra += node.args.end_colno + 3
+        elif isinstance(node, mparser.IdNode):
+            add_extra += len(node.value)
+        elif isinstance(node, (mparser.PlusAssignmentNode, mparser.AssignmentNode)):
+            rhs = node.value
+            if isinstance(rhs, mparser.StringNode):
+                add_extra += 2 + len(rhs.value) + rhs.colno
+            elif isinstance(rhs, mparser.MethodNode):
+                add_extra += rhs.args.end_colno + 3
+            elif isinstance(rhs, mparser.IdNode):
+                add_extra += rhs.end_colno + len(rhs.value)
+            elif isinstance(rhs, mparser.BooleanNode):
+                add_extra += rhs.end_colno + (4 if rhs.value else 5)
+            else:
+                add_extra += rhs.end_colno
+        elif isinstance(node, mparser.BooleanNode):
+            add_extra += node.end_colno + (4 if node.value else 5)
+        elif isinstance(node, mparser.ArithmeticNode):
+            add_extra += self.get_length(node.right)
+        else:
+            add_extra += node.end_colno
+        return add_extra
+
     def check_adjacent_comment(self, node: mparser.BaseNode, append: str):
         idx = 0
         to_readd = None
@@ -58,27 +86,7 @@ class AstFormatter(AstVisitor):
                 # Check if the node is really the "biggest" one, i.e. after the node on the line,
                 # there is only the comment.
                 # TODO: Does not seem to work all the time
-                add_extra = 0
-                if isinstance(node, mparser.StringNode):
-                    add_extra += 2 + len(node.value)
-                elif isinstance(node, mparser.MethodNode):
-                    add_extra += node.args.end_colno + 3
-                elif isinstance(node, mparser.IdNode):
-                    add_extra += len(node.value)
-                elif isinstance(node, (mparser.PlusAssignmentNode, mparser.AssignmentNode)):
-                    rhs = node.value
-                    if isinstance(rhs, mparser.StringNode):
-                        add_extra += 2 + len(rhs.value) + rhs.colno
-                    elif isinstance(rhs, mparser.MethodNode):
-                        add_extra += rhs.args.end_colno + 3
-                    elif isinstance(rhs, mparser.IdNode):
-                        add_extra += rhs.end_colno + len(rhs.value)
-                    elif isinstance(rhs, mparser.BooleanNode):
-                        add_extra += rhs.end_colno + (4 if rhs.value else 5)
-                    else:
-                        add_extra += rhs.end_colno
-                elif isinstance(node, mparser.BooleanNode):
-                    add_extra += node.end_colno + (4 if node.value else 5)
+                add_extra = self.get_length(node)
                 diffstr = self.old_lines[c.lineno - 1][node.end_colno + add_extra:c.colno].strip()
                 bound_matches = diffstr in ('', ',')
                 if not bound_matches:
@@ -292,7 +300,10 @@ class AstFormatter(AstVisitor):
                 self.currindent = tmp
                 self.check_comment(arg)
                 self.currindent = tmp2
-            arg.accept(self)
+            if isinstance(arg, mparser.ArrayNode) and len(args.arguments) == 1:
+                self.visit_ArrayNodeAssignment(arg)
+            else:
+                arg.accept(self)
             if i != len(args.arguments) - 1 or len(args.kwargs) != 0:
                 self.currindent = ' ' * indent_len
                 self.append(',')
