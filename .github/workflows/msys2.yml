@@ -124,7 +124,7 @@ jobs:
 
           MSYSTEM= python3 ./tools/run_with_cov.py run_tests.py --backend=ninja
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: ${{ matrix.NAME }}
           path: meson-test-run.*
