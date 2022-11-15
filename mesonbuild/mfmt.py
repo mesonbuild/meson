@@ -91,7 +91,11 @@ def run(options: argparse.Namespace) -> int:
                     full_path = str(path)
                     with open(full_path, encoding='utf-8') as f:
                         code = f.read()
-                    format_code(options, full_path, full_path, code)
+                    try:
+                        format_code(options, full_path, full_path, code)
+                    except mesonlib.MesonException:
+                        print("Unable to format", full_path, file=sys.stderr)
+
                 return 0
         else:
             with open(options.file, encoding='utf-8') as f:
