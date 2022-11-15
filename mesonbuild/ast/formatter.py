@@ -309,9 +309,14 @@ class AstFormatter(AstVisitor):
             if not broke_up and (i == 0 and len(args.arguments) != 0):
                 self.append(' ')
             self.append(name + padding + ': ')
-            args.kwargs[kwarg].accept(self)
+            kw = args.kwargs[kwarg]
+            if isinstance(kw, mparser.ArrayNode) and len(kw.args.arguments) != 0:
+                self.visit_ArrayNodeAssignment(kw)
+            else:
+                kw.accept(self)
             if n_linebreaks != 0 or i < len(args.kwargs) - 1:
                 self.append(',')
+            self.check_adjacent_comment(kw, '')
             if i == len(args.kwargs) - 1:
                 self.currindent = tmp
                 if n_linebreaks != 0:

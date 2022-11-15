@@ -63,3 +63,15 @@ rusticl_gen_args = [
     '-Aclippy::all',
 ]
 
+libclc_compiler = shared_library('clon12compiler', [files_libclc_compiler, sha1_h],
+    vs_module_defs: 'clon12compiler.def',
+    include_directories: [
+        inc_include,
+    ],
+    dependencies: [
+        idep_clc,
+        idep_nir_headers,
+    ],
+    name_prefix: '', # otherwise mingw will create libclon12compiler.dll
+)
+
