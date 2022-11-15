@@ -275,6 +275,7 @@ class AstFormatter(AstVisitor):
         indent_len = len(tmp) + len(self.config['indent_by'])
         self.currindent = ' ' * indent_len
         n_linebreaks = 0
+        broke_up_total = False
         for i, arg in enumerate(args.arguments):
             broke_up = False
             estimated_len = 0
@@ -291,6 +292,7 @@ class AstFormatter(AstVisitor):
                     self.force_linebreak()
                     n_linebreaks += 1
                     broke_up = True
+                    broke_up_total = True
             if not broke_up and i != 0:
                 self.append(' ')
             if i != 0:
@@ -319,6 +321,7 @@ class AstFormatter(AstVisitor):
                 self.force_linebreak()
                 n_linebreaks += 1
                 broke_up = True
+                broke_up_total = True
             self.check_comment(kwarg)
             self.currindent = ' ' * indent_len
             name = kwarg.value
@@ -335,7 +338,8 @@ class AstFormatter(AstVisitor):
                 kw.accept(self)
             if n_linebreaks != 0 or i < len(args.kwargs) - 1:
                 self.append(',')
-            self.check_adjacent_comment(kw, '')
+            if broke_up or broke_up_total:
+                self.check_adjacent_comment(kw, '')
             if i == len(args.kwargs) - 1:
                 self.currindent = tmp
                 if n_linebreaks != 0:

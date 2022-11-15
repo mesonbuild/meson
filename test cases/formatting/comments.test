@@ -150,4 +150,5 @@ x = [
     '-D_GNU_SOURCE',
     '-DIDE_COMPILATION',
 ]
+add_languages('cpp', native: false) # Needed for llvm dep
 
