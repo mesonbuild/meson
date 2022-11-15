@@ -52,7 +52,14 @@ foo.bar('ABC', true) # Do stuff
 bar('ABC', true) # Do stuff 2
 x = (((y + 5) + 1) + 2) # Do stuff 3
 x = 'Foo' # Foo
+
 # Foo
 # BarBaz
 # Postcomments
+
+# From mesa
+rusticl_gen_args = [
+    # can't do anything about it anyway
+    '-Aclippy::all',
+]
 

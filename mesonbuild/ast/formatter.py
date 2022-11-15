@@ -340,7 +340,7 @@ class AstFormatter(AstVisitor):
 
     def visit_ArrayNodeAssignment(self, node: mparser.ArrayNode) -> None:
         assert isinstance(node, mparser.ArrayNode)
-        if len(node.args.arguments) == 1:
+        if len(node.args.arguments) == 1 and node.lineno == node.end_lineno:
             node.accept(self)
             return
         self.append('[')
