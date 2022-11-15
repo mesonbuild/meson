@@ -426,14 +426,14 @@ class AstFormatter(AstVisitor):
         self.force_linebreak()
         align = 1
         for _, e in enumerate(node.args.kwargs):
-            align = max(align, len(e.value))
+            align = max(align, self.get_length(e))
         wide_colon = self.config['wide_colon']
         for i, e in enumerate(node.args.kwargs):
             self.currindent = tmp + self.indentstr
             self.check_comment(e)
             e.accept(self)
             if wide_colon:
-                self.append(' ' * (align - len(e.value) + 1))
+                self.append(' ' * (align - self.get_length(e) + 1))
             self.append(': ')
             node.args.kwargs[e].accept(self)
             self.check_adjacent_comment(e, ',')

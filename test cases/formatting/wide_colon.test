@@ -8,3 +8,13 @@ dict = {
     f   : bar,
 }
 
+# From gstreamer
+gir += {
+    'includes'   : includes,
+    'extra_args' : gir.get('extra_args', []) + ['--add-include-path=' + meson.current_build_dir()],
+    'install'    : true,
+}
+built_girs += {
+    gir.get('namespace') + '-' + gir.get('nsversion') : gnome.generate_gir(gstfull, kwargs : gir)[0],
+}
+
