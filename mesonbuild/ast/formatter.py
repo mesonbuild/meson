@@ -71,6 +71,8 @@ class AstFormatter(AstVisitor):
                         add_extra += 2 + len(rhs.value) + rhs.colno
                     elif isinstance(rhs, mparser.MethodNode):
                         add_extra += rhs.args.end_colno + 3
+                    elif isinstance(rhs, mparser.IdNode):
+                        add_extra += rhs.end_colno + len(rhs.value)
                     else:
                         add_extra += rhs.end_colno
                 diffstr = self.old_lines[c.lineno - 1][node.end_colno + add_extra:c.colno].strip()
@@ -148,7 +150,7 @@ class AstFormatter(AstVisitor):
         while block_idx < len(self.comments) - 1 and self.comments[block_idx + 1].lineno == self.comments[block_idx].lineno + 1:
             block_idx += 1
         for i in range(idx, block_idx + 1):
-            self.lines.append(self.currline + self.comments[idx].text)
+            self.lines.append(self.currindent + self.comments[idx].text)
             del self.comments[idx]
 
     def eventual_linebreak(self):
@@ -361,7 +363,15 @@ class AstFormatter(AstVisitor):
             self.check_adjacent_comment(e, ',')
             if i == len(node.args.arguments) - 1:
                 self.currindent = tmp
-            self.force_linebreak()
+                self.force_linebreak ()
+                n = len(self.comments)
+                self.check_post_comment(e)
+                n1 = len(self.comments)
+                if n != n1:
+                    for i in range(0, n - n1):
+                        self.lines[-i - 1] = self.indentstr + self.lines[-i - 1]
+            else:
+                self.force_linebreak()
         self.append(']')
         self.currindent = tmp
 

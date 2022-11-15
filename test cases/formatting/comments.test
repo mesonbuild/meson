@@ -92,3 +92,25 @@ pgmdump2 = executable('pgmdump2', 'pgmdump2.c',
     install: false,
 )
 
+grl_grl_files = [
+    'gpu/build_leaf.grl',
+    'gpu/build_primref.grl',
+    # 'gpu/build_refit.grl',
+    'gpu/copy.grl',
+    # 'gpu/grl_api_interface_verify.grl',
+    'gpu/misc.grl',
+    # 'gpu/morton_builder.grl',
+    # 'gpu/msb_radix_bitonic_sort.grl',
+    'gpu/new_sah_builder.grl',
+    'gpu/postbuild_info.grl',
+    # 'gpu/presplit.grl',
+    # 'gpu/radix_sort.grl',
+    # 'gpu/rebraid.grl',
+    # 'gpu/traversal_shader.grl',
+]
+
+if with_dri2
+    files_gbm += files('backends/dri/gbm_dri.c', 'backends/dri/gbm_driint.h')
+    deps_gbm += dep_libdrm # TODO: pthread-stubs
+endif
+
