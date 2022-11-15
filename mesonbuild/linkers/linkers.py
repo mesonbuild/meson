@@ -208,8 +208,12 @@ class ArLinker(ArLikeLinker):
         return self.can_rsp
 
     def get_std_link_args(self, env: 'Environment', is_thin: bool) -> T.List[str]:
-        # FIXME: osx ld rejects this: "file built for unknown-unsupported file format"
-        if is_thin and not env.machines[self.for_machine].is_darwin():
+        # Thin archives are a GNU extension not supported by the system linkers
+        # on Mac OS X, Solaris, or illumos, so don't build them on those OSes.
+        # OS X ld rejects with: "file built for unknown-unsupported file format"
+        # illumos/Solaris ld rejects with: "unknown file type"
+        if is_thin and not env.machines[self.for_machine].is_darwin() \
+          and not env.machines[self.for_machine].is_sunos():
             return self.std_thin_args
         else:
             return self.std_args
