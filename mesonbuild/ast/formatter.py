@@ -522,14 +522,25 @@ class AstFormatter(AstVisitor):
             i.accept(self)
             self.append(', ')
         wide_colon = self.config['wide_colon']
+        tmp = self.currindent
+        self.currindent += self.indentstr
+        idx = 0
         for key, val in node.kwargs.items():
+            self.force_linebreak()
+            self.check_comment(key)
             key.accept(self)
             if not wide_colon:
                 self.append(': ')
             else:
                 self.append(' : ')
             val.accept(self)
-            self.append(', ')
+            if idx == len(node.kwargs) - 1:
+                self.currindent = tmp
+                self.force_linebreak()
+            else:
+                self.append(',')
+            idx += 1
+        self.currindent = tmp
         self.currline = re.sub(r', $', '', self.currline)
 
     def visit_ParenthesizedNode(self, node: mparser.ParenthesizedNode) -> None:

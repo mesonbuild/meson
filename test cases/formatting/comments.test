@@ -126,3 +126,13 @@ sha1_h = custom_target('git_sha1.h',
     build_always_stale: true, # commit sha1 can change without having touched these files
 )
 
+# From systemd
+efi_arch = {
+    # host_cc_arch: [efi_arch (see Table 3-2 in UEFI spec), gnu_efi_inc_arch]
+    'x86': ['ia32', 'ia32'],
+    'x86_64': ['x64', 'x86_64'],
+    'arm': ['arm', 'arm'],
+    'aarch64': ['aa64', 'aarch64'],
+    'riscv64': ['riscv64', 'riscv64']
+}.get(efi_arch, [])
+
