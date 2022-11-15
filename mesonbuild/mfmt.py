@@ -13,6 +13,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('-i', '--inplace', action='store_true', help='Edit the file inplace')
     parser.add_argument('-c', '--config', help='Specify config file')
     parser.add_argument('-R', '--recurse', action='store_true', help='Recursively format meson files in a given directory')
+    parser.add_argument('-q', '--quiet', action='store_true', help='Don\'t print comments that couldn\'t be readded')
 
 def parse_fmt_config(file: str):
     config = {}
@@ -64,7 +65,7 @@ def format_code(options: argparse.Namespace, file: str, output: str, code: str) 
         real_output = open(file, 'w', encoding='utf8')
     for line in formatter.lines:
         print(line, end='\n', file=real_output)
-    if len(formatter.comments) != 0:
+    if len(formatter.comments) != 0 and not options.quiet:
         print('Unable to readd', len(formatter.comments), 'comments', file=sys.stderr)
         for c in formatter.comments:
             print(c.text, file=sys.stderr)
