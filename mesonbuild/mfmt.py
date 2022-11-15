@@ -14,6 +14,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('-c', '--config', help='Specify config file')
     parser.add_argument('-R', '--recurse', action='store_true', help='Recursively format meson files in a given directory')
     parser.add_argument('-q', '--quiet', action='store_true', help='Don\'t print comments that couldn\'t be readded')
+    parser.add_argument('-v', '--verbose', action='store_true', help='Don\'t print comments that couldn\'t be readded')
 
 def parse_fmt_config(file: str):
     config = {}
@@ -55,6 +56,9 @@ def format_code(options: argparse.Namespace, file: str, output: str, code: str) 
     except mesonlib.MesonException as me:
         me.file = file
         raise me
+    if options.verbose:
+        n_comments = len(comments)
+        print("Found", n_comments, "comments in file", file=sys.stderr)
     config = parse_fmt_config(options.config)
     formatter = AstFormatter(comments, code.splitlines(), config)
     codeblock.accept(formatter)
