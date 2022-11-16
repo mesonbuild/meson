@@ -1,4 +1,4 @@
-# Copyright © 2020 Intel Corporation
+# Copyright © 2020-2022 Intel Corporation
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -147,9 +147,12 @@ class RustModule(ExtensionModule):
         new_target_kwargs['install'] = False
         new_target_kwargs['dependencies'] = new_target_kwargs.get('dependencies', []) + kwargs['dependencies']
 
+        sources = T.cast('T.List[SourceOutputs]', base_target.sources.copy())
+        sources.extend(base_target.generated)
+
         new_target = Executable(
             name, base_target.subdir, state.subproject, base_target.for_machine,
-            base_target.sources, base_target.structured_sources,
+            sources, base_target.structured_sources,
             base_target.objects, base_target.environment, base_target.compilers,
             new_target_kwargs
         )
