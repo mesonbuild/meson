@@ -114,7 +114,7 @@ project('My Autotools Project', 'c',
   meson_version : '>=0.56.0',
 )
 
-mod = import('unstable_external_project')
+mod = import('unstable-external_project')
 
 p = mod.add_project('configure',
   configure_options : ['--prefix=@PREFIX@',
