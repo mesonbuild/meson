@@ -664,7 +664,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                     raise InvalidArguments(f'Module "{ext_module.INFO.name}" has not been stabilized, and must be imported as unstable-{ext_module.INFO.name}')
                 ext_module = NotFoundExtensionModule(real_modname)
             else:
-                mlog.warning(f'Module {ext_module.INFO.name} has no backwards or forwards compatibility and might not exist in future releases.', location=node)
+                mlog.warning(f'Module {ext_module.INFO.name} has no backwards or forwards compatibility and might not exist in future releases.', location=node, fatal=False)
 
         self.modules[real_modname] = ext_module
         return ext_module
