@@ -314,6 +314,7 @@ class NinjaBuildElement:
         self.orderdeps = OrderedSet()
         self.elems = []
         self.all_outputs = all_outputs
+        self.output_errors = ''
 
     def add_dep(self, dep):
         if isinstance(dep, list):
@@ -362,7 +363,8 @@ class NinjaBuildElement:
                 self.rule.refcount += 1
 
     def write(self, outfile):
-        self.check_outputs()
+        if self.output_errors:
+            raise MesonException(self.output_errors)
         ins = ' '.join([ninja_quote(i, True) for i in self.infilenames])
         outs = ' '.join([ninja_quote(i, True) for i in self.outfilenames])
         implicit_outs = ' '.join([ninja_quote(i, True) for i in self.implicit_outfilenames])
@@ -421,7 +423,7 @@ class NinjaBuildElement:
     def check_outputs(self):
         for n in self.outfilenames:
             if n in self.all_outputs:
-                raise MesonException(f'Multiple producers for Ninja target "{n}". Please rename your targets.')
+                self.output_errors = f'Multiple producers for Ninja target "{n}". Please rename your targets.'
             self.all_outputs[n] = True
 
 @dataclass
@@ -1283,6 +1285,7 @@ class NinjaBackend(backends.Backend):
         self.ruledict[rule.name] = rule
 
     def add_build(self, build):
+        build.check_outputs()
         self.build_elements.append(build)
 
         if build.rulename != 'phony':
@@ -3331,7 +3334,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def generate_scanbuild(self):
         if not environment.detect_scanbuild():
             return
-        if ('', 'scan-build') in self.build.run_target_names:
+        if 'scan-build' in self.all_outputs:
             return
         cmd = self.environment.get_build_command() + \
             ['--internal', 'scanbuild', self.environment.source_dir, self.environment.build_dir] + \
@@ -3351,8 +3354,6 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 not os.path.exists(os.path.join(self.environment.source_dir, '_clang-' + name)):
             return
         if target_name in self.all_outputs:
-            return
-        if ('', target_name) in self.build.run_target_names:
             return
         cmd = self.environment.get_build_command() + \
             ['--internal', 'clang' + name, self.environment.source_dir, self.environment.build_dir] + \
@@ -3377,8 +3378,6 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def generate_tags(self, tool, target_name):
         import shutil
         if not shutil.which(tool):
-            return
-        if ('', target_name) in self.build.run_target_names:
             return
         if target_name in self.all_outputs:
             return

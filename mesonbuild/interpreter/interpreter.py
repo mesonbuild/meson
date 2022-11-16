@@ -1990,9 +1990,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         tg = build.RunTarget(name, all_args, kwargs['depends'], self.subdir, self.subproject, self.environment,
                              kwargs['env'])
         self.add_target(name, tg)
-        full_name = (self.subproject, name)
-        assert full_name not in self.build.run_target_names
-        self.build.run_target_names.add(full_name)
         return tg
 
     @FeatureNew('alias_target', '0.52.0')
