@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+total_comments=0
+total_lost_comments=0
+
 check_it() {
         cd ../$1 || exit
         git stash >/dev/null 2>&1
@@ -15,7 +18,9 @@ check_it() {
         git stash >/dev/null 2>&1
         cd ../meson || exit
         percentage=$(echo "print(str(round(($n_lost_comments/$n_comments) * 100, 3)) + '%')" | python /dev/stdin)
-        echo "$1 has $n_comments, lost $n_lost_comments during formatting ($percentage)"
+        echo "$1 has $n_comments comments, lost $n_lost_comments during formatting ($percentage)"
+        ((total_comments+=n_comments))
+        ((total_lost_comments+=n_lost_comments))
         rounds=0
         while :; do
                 python meson.py fmt_unstable ../$1 -R >/dev/null 2>&1 || exit
@@ -43,4 +48,5 @@ check_it gnome-builder
 check_it gstreamer
 check_it gtk
 check_it glib
-
+percentage=$(echo "print(str(round(($total_lost_comments/$total_comments) * 100, 3)) + '%')" | python /dev/stdin)
+echo "Found $total_comments comments, but lost $total_lost_comments during formatting ($percentage)"
