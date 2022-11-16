@@ -4352,7 +4352,8 @@ class AllPlatformTests(BasePlatformTests):
         self.init(testdir, extra_args=['--werror'], override_envvars={'RUSTC': 'clippy-driver'})
         with self.assertRaises(subprocess.CalledProcessError) as cm:
             self.build()
-        self.assertIn('error: use of a blacklisted/placeholder name `foo`', cm.exception.stdout)
+        self.assertTrue('error: use of a blacklisted/placeholder name `foo`' in cm.exception.stdout or
+                        'error: use of a disallowed/placeholder name `foo`' in cm.exception.stdout)
 
     @skip_if_not_language('rust')
     def test_rust_rlib_linkage(self) -> None:
