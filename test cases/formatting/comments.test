@@ -175,6 +175,17 @@ check_headers = [
     #  ['HAVE_UNISTD_H', 'unistd.h'],
 ]
 
+# From GLib
+
+add_test_setup('unstable_tests',
+    env: common_test_env,
+    timeout_multiplier: 2,
+    # Empty test setup, used for having different results set for flaky tests
+    # Sadly we can't use (https://github.com/mesonbuild/meson/issues/10934):
+    #suites: ['flaky', 'unstable']
+)
+
+
 # Foo
 # Foo
 

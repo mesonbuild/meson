@@ -370,6 +370,11 @@ class AstFormatter(AstVisitor):
                 self.currindent = tmp
                 if n_linebreaks != 0:
                     self.force_linebreak()
+                    n = len(self.comments)
+                    self.check_post_comment(kw)
+                    n1 = len(self.comments)
+                    for j in range(0, n - n1):
+                        self.lines[-j - 1] = self.indentstr + self.lines[-j - 1]
             else:
                 self.force_linebreak()
                 n_linebreaks += 1
