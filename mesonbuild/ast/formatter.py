@@ -45,6 +45,8 @@ class AstFormatter(AstVisitor):
             return
         last_threshold = len(self.old_lines)
         while True:
+            if last_threshold == 0:
+                break
             l = self.old_lines[last_threshold - 1].strip()
             if l == '' or l.startswith('#'):
                 last_threshold -= 1
@@ -356,7 +358,7 @@ class AstFormatter(AstVisitor):
                 self.append(' ')
             self.append(name + padding + ': ')
             kw = args.kwargs[kwarg]
-            if isinstance(kw, mparser.ArrayNode) and len(kw.args.arguments) != 0:
+            if isinstance(kw, mparser.ArrayNode) and (len(kw.args.arguments) != 0 or kw.lineno < kw.end_lineno):
                 self.visit_ArrayNodeAssignment(kw)
             else:
                 kw.accept(self)
@@ -398,7 +400,13 @@ class AstFormatter(AstVisitor):
         self.append('[')
         tmp = self.currindent
         self.currindent = tmp + self.indentstr
-        self.force_linebreak()
+        if len(node.args.arguments) != 0 or node.lineno < node.end_lineno:
+            self.force_linebreak()
+        if len(node.args.arguments) == 0:
+            copy = mparser.ArrayNode(node.args, node.lineno, node.colno, node.lineno, node.colno)
+            copy.end_lineno = copy.lineno
+            self.check_post_comment(copy)
+            self.currline = self.currline[len(self.indentstr):]
         for i, e in enumerate(node.args.arguments):
             self.currindent = tmp + self.indentstr
             self.check_comment(e)
@@ -415,6 +423,9 @@ class AstFormatter(AstVisitor):
                         self.lines[-j - 1] = self.indentstr + self.lines[-j - 1]
             else:
                 self.force_linebreak()
+        if len(node.args.arguments) == 0 and node.lineno < node.end_lineno:
+            self.currindent = tmp
+            self.force_linebreak()
         self.append(']')
         self.currindent = tmp
 
@@ -446,7 +457,7 @@ class AstFormatter(AstVisitor):
 
     def visit_AssignmentNode(self, node: mparser.AssignmentNode) -> None:
         self.append(node.var_name + ' = ')
-        if isinstance(node.value, mparser.ArrayNode) and len(node.value.args.arguments) != 0:
+        if isinstance(node.value, mparser.ArrayNode) and (len(node.value.args.arguments) != 0 or node.value.lineno < node.value.end_lineno):
             self.visit_ArrayNodeAssignment(node.value)
         elif isinstance(node.value, mparser.DictNode) and len(node.value.args.kwargs) != 0:
             self.visit_DictNodeAssignment(node.value)
@@ -455,7 +466,7 @@ class AstFormatter(AstVisitor):
 
     def visit_PlusAssignmentNode(self, node: mparser.PlusAssignmentNode) -> None:
         self.append(node.var_name + ' += ')
-        if isinstance(node.value, mparser.ArrayNode) and len(node.value.args.arguments) != 0:
+        if isinstance(node.value, mparser.ArrayNode) and (len(node.value.args.arguments) != 0 or node.value.lineno < node.value.end_lineno):
             self.visit_ArrayNodeAssignment(node.value)
         elif isinstance(node.value, mparser.DictNode) and len(node.value.args.kwargs) != 0:
             self.visit_DictNodeAssignment(node.value)
@@ -470,7 +481,7 @@ class AstFormatter(AstVisitor):
         self.append('foreach ')
         self.append(', '.join(varnames))
         self.append(' : ')
-        if isinstance(node.items, mparser.ArrayNode) and len(node.items.args.arguments) != 0:
+        if isinstance(node.items, mparser.ArrayNode) and (len(node.items.args.arguments) != 0 or node.items.lineno < node.items.end_lineno):
             self.currindent += self.indentstr
             self.visit_ArrayNodeAssignment(node.items)
             self.currindent = tmp

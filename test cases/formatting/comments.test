@@ -150,7 +150,30 @@ x = [
     '-D_GNU_SOURCE',
     '-DIDE_COMPILATION',
 ]
+
 add_languages('cpp', native: false) # Needed for llvm dep
+
+# From GStreamer
+
+check_headers = [
+    #  ['HAVE_DLFCN_H', 'dlfcn.h'],
+    #  ['HAVE_FCNTL_H', 'fcntl.h'],
+    #  ['HAVE_INTTYPES_H', 'inttypes.h'],
+    #  ['HAVE_MEMORY_H', 'memory.h'],
+    #  ['HAVE_MSACM_H', 'msacm.h'],
+    #  ['HAVE_PTHREAD_H', 'pthread.h'],
+    #  ['HAVE_STDINT_H', 'stdint.h'],
+    #  ['HAVE_STDLIB_H', 'stdlib.h'],
+    #  ['HAVE_STRINGS_H', 'strings.h'],
+    #  ['HAVE_STRING_H', 'string.h'],
+    #  ['HAVE_SYS_PARAM_H', 'sys/param.h'],
+    #  ['HAVE_SYS_SOCKET_H', 'sys/socket.h'],
+    #  ['HAVE_SYS_STAT_H', 'sys/stat.h'],
+    #  ['HAVE_SYS_TIME_H', 'sys/time.h'],
+    #  ['HAVE_SYS_TYPES_H', 'sys/types.h'],
+    #  ['HAVE_SYS_UTSNAME_H', 'sys/utsname.h'],
+    #  ['HAVE_UNISTD_H', 'unistd.h'],
+]
 
 # Foo
 # Foo
