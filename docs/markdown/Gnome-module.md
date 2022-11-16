@@ -124,9 +124,11 @@ typelib_target]`
 Generates a marshal file using the `glib-genmarshal` tool. The first
 argument is the basename of the output files.
 
-* `depends` [](BuildTarget | CustomTarget | CustomTargetIndex):
-  passed directly to CustomTarget (*since 0.61.0*)
-* `depend_files` [](str | File): Passed directly to CustomTarget (*since 0.61.0*)
+* `depends` [](BuildTarget | CustomTarget | CustomTargetIndex | File | str):
+  passed directly to CustomTarget (*since 0.61.0*). Implementation was broken
+  and it had no effect *until 1.0.0* when File and string types have been added.
+* `depend_files` [](str | File): Passed directly to CustomTarget (*since 0.61.0*).
+  Deprecated and replaced by `depends` *since 1.0.0*
 * `extra_args`: (*Added 0.42.0*) additional command line arguments to pass
 * `install_dir`: directory to install header to
 * `install_header`: if true, install the generated header
@@ -250,6 +252,9 @@ useful when running the application locally for example during tests.
   [[files]], or
   [[configure_file]]) of
   schema source XML files that should trigger a re-compile if changed.
+  Deprecated and replaced by `depends` *since 1.0.0*
+* `depends` [](BuildTarget | CustomTarget | CustomTargetIndex | File | str):
+  passed directly to CustomTarget (*since 1.0.0*).
 
 ### gnome.gdbus_codegen()
 

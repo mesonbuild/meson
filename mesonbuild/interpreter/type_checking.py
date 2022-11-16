@@ -260,11 +260,21 @@ DEPENDS_KW: KwargInfo[T.List[T.Union[BuildTarget, CustomTarget, CustomTargetInde
     default=[],
 )
 
+DEPENDS_WITH_FILES_KW: KwargInfo[T.List[T.Union[BuildTarget, CustomTarget, CustomTargetIndex, str, File]]] = KwargInfo(
+    'depends',
+    ContainerTypeInfo(list, (BuildTarget, CustomTarget, CustomTargetIndex, str, File)),
+    since_values={CustomTargetIndex: '1.0.0', str: '1.0.0', File: '1.0.0'},
+    listify=True,
+    default=[],
+)
+
 DEPEND_FILES_KW: KwargInfo[T.List[T.Union[str, File]]] = KwargInfo(
     'depend_files',
     ContainerTypeInfo(list, (File, str)),
     listify=True,
     default=[],
+    deprecated='1.0.0',
+    deprecated_message='Use depends instead',
 )
 
 COMMAND_KW: KwargInfo[T.List[T.Union[str, BuildTarget, CustomTarget, CustomTargetIndex, ExternalProgram, File]]] = KwargInfo(

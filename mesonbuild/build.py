@@ -2358,9 +2358,20 @@ class BothLibraries(SecondLevelHolder):
 
 class CommandBase:
 
-    depend_files: T.List[File]
-    dependencies: T.List[T.Union[BuildTarget, 'CustomTarget']]
+    depend_files: T.List[FileOrString]
+    dependencies: T.List[T.Union[BuildTarget, CustomTarget, CustomTargetIndex, GeneratedList]]
     subproject: str
+
+    def process_depends(self,
+                        depend_files: T.Optional[T.Sequence[FileOrString]],
+                        extra_depends: T.Optional[T.Sequence[T.Union[BuildTarget, CustomTarget, CustomTargetIndex, GeneratedList, str, File]]]) -> None:
+        self.depend_files = list(depend_files or [])
+        self.dependencies: T.List[T.Union[BuildTarget, CustomTarget, CustomTargetIndex, GeneratedList]] = []
+        for d in extra_depends or []:
+            if isinstance(d, (str, File)):
+                self.depend_files.append(d)
+            else:
+                self.dependencies.append(d)
 
     def flatten_command(self, cmd: T.Sequence[T.Union[str, File, programs.ExternalProgram, BuildTargetTypes]]) -> \
             T.List[T.Union[str, File, BuildTarget, 'CustomTarget']]:
@@ -2416,7 +2427,7 @@ class CustomTarget(Target, CommandBase):
                  capture: bool = False,
                  console: bool = False,
                  depend_files: T.Optional[T.Sequence[FileOrString]] = None,
-                 extra_depends: T.Optional[T.Sequence[T.Union[BuildTarget, CustomTarget, CustomTargetIndex, GeneratedList]]] = None,
+                 extra_depends: T.Optional[T.Sequence[T.Union[BuildTarget, CustomTarget, CustomTargetIndex, GeneratedList, str, File]]] = None,
                  depfile: T.Optional[str] = None,
                  env: T.Optional[EnvironmentVariables] = None,
                  feed: bool = False,
@@ -2438,13 +2449,10 @@ class CustomTarget(Target, CommandBase):
         self.build_always_stale = build_always_stale
         self.capture = capture
         self.console = console
-        self.depend_files = list(depend_files or [])
-        self.dependencies: T.List[T.Union[CustomTarget, BuildTarget]] = []
-        # must be after depend_files and dependencies
+        self.process_depends(depend_files, extra_depends)
         self.command = self.flatten_command(command)
         self.depfile = depfile
         self.env = env or EnvironmentVariables()
-        self.extra_depends = list(extra_depends or [])
         self.feed = feed
         self.install = install
         self.install_dir = list(install_dir or [])
@@ -2465,7 +2473,6 @@ class CustomTarget(Target, CommandBase):
     def get_target_dependencies(self) -> T.List[T.Union[SourceOutputs, str]]:
         deps: T.List[T.Union[SourceOutputs, str]] = []
         deps.extend(self.dependencies)
-        deps.extend(self.extra_depends)
         for c in self.sources:
             if isinstance(c, CustomTargetIndex):
                 deps.append(c.target)
@@ -2641,8 +2648,7 @@ class RunTarget(Target, CommandBase):
                  default_env: bool = True):
         # These don't produce output artifacts
         super().__init__(name, subdir, subproject, False, MachineChoice.BUILD, environment)
-        self.dependencies = dependencies
-        self.depend_files = []
+        self.process_depends([], dependencies)
         self.command = self.flatten_command(command)
         self.absolute_paths = False
         self.env = env

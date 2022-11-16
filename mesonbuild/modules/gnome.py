@@ -32,7 +32,10 @@ from .. import mesonlib
 from .. import mlog
 from ..build import CustomTarget, CustomTargetIndex, Executable, GeneratedList, InvalidArguments
 from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
-from ..interpreter.type_checking import DEPENDS_KW, DEPEND_FILES_KW, INSTALL_DIR_KW, INSTALL_KW, NoneType, SOURCES_KW, in_set_validator
+from ..interpreter.type_checking import (
+    DEPENDS_KW, DEPENDS_WITH_FILES_KW, DEPEND_FILES_KW, INSTALL_DIR_KW, INSTALL_KW,
+    NoneType, SOURCES_KW, in_set_validator
+)
 from ..interpreterbase import noPosargs, noKwargs, FeatureNew, FeatureDeprecated
 from ..interpreterbase import typed_kwargs, KwargInfo, ContainerTypeInfo
 from ..interpreterbase.decorators import typed_pos_args
@@ -64,6 +67,7 @@ if T.TYPE_CHECKING:
 
         build_by_default: bool
         depend_files: T.List[FileOrString]
+        depends: T.List[T.Union[BuildTarget, CustomTarget, CustomTargetIndex, GeneratedList, str, mesonlib.File]]
 
     class Yelp(TypedDict):
 
@@ -160,6 +164,7 @@ if T.TYPE_CHECKING:
         sources: T.List[FileOrString]
         stdinc: bool
         valist_marshallers: bool
+        depends: T.List[T.Union[BuildTarget, CustomTarget, CustomTargetIndex, GeneratedList, str, mesonlib.File]]
 
     class GenerateVapi(TypedDict):
 
@@ -1218,7 +1223,10 @@ class GnomeModule(ExtensionModule):
         return ModuleReturnValue(rv, rv)
 
     @noPosargs
-    @typed_kwargs('gnome.compile_schemas', _BUILD_BY_DEFAULT.evolve(since='0.40.0'), DEPEND_FILES_KW)
+    @typed_kwargs('gnome.compile_schemas',
+                  _BUILD_BY_DEFAULT.evolve(since='0.40.0'),
+                  DEPEND_FILES_KW,
+                  DEPENDS_WITH_FILES_KW.evolve(since='1.0.0'))
     def compile_schemas(self, state: 'ModuleState', args: T.List['TYPE_var'], kwargs: 'CompileSchemas') -> ModuleReturnValue:
         srcdir = os.path.join(state.build_to_src, state.subdir)
         outdir = state.subdir
@@ -1238,6 +1246,7 @@ class GnomeModule(ExtensionModule):
             ['gschemas.compiled'],
             build_by_default=kwargs['build_by_default'],
             depend_files=kwargs['depend_files'],
+            extra_depends=kwargs['depends'],
         )
         self._devenv_prepend('GSETTINGS_SCHEMA_DIR', os.path.join(state.environment.get_build_dir(), state.subdir))
         return ModuleReturnValue(target_g, [target_g])
@@ -1932,7 +1941,7 @@ class GnomeModule(ExtensionModule):
     @typed_kwargs(
         'gnome.genmarshal',
         DEPEND_FILES_KW.evolve(since='0.61.0'),
-        DEPENDS_KW.evolve(since='0.61.0'),
+        DEPENDS_WITH_FILES_KW.evolve(since='0.61.0'),
         INSTALL_KW.evolve(name='install_header'),
         INSTALL_DIR_KW,
         KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
@@ -1991,10 +2000,11 @@ class GnomeModule(ExtensionModule):
             install_tag=['devel'],
             capture=capture,
             depend_files=kwargs['depend_files'],
+            extra_depends=kwargs['depends'],
         )
 
         c_cmd = cmd + ['--body', '@INPUT@']
-        extra_deps: T.List[build.CustomTarget] = []
+        extra_deps = list(kwargs['depends'])
         if mesonlib.version_compare(self._get_native_glib_version(state), '>= 2.53.4'):
             # Silence any warnings about missing prototypes
             c_cmd += ['--include-header', header_file]
