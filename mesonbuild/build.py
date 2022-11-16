@@ -1784,7 +1784,7 @@ class Executable(BuildTarget):
     typename = 'executable'
 
     def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
-                 sources: T.List[File], structured_sources: T.Optional['StructuredSources'],
+                 sources: T.List[SourceOutputs], structured_sources: T.Optional['StructuredSources'],
                  objects, environment: environment.Environment, compilers: T.Dict[str, 'Compiler'],
                  kwargs):
         key = OptionKey('b_pie')
@@ -1913,7 +1913,7 @@ class StaticLibrary(BuildTarget):
     typename = 'static library'
 
     def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
-                 sources: T.List[File], structured_sources: T.Optional['StructuredSources'],
+                 sources: T.List[SourceOutputs], structured_sources: T.Optional['StructuredSources'],
                  objects, environment: environment.Environment, compilers: T.Dict[str, 'Compiler'],
                  kwargs):
         self.prelink = kwargs.get('prelink', False)
@@ -1985,7 +1985,7 @@ class SharedLibrary(BuildTarget):
     typename = 'shared library'
 
     def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
-                 sources: T.List[File], structured_sources: T.Optional['StructuredSources'],
+                 sources: T.List[SourceOutputs], structured_sources: T.Optional['StructuredSources'],
                  objects, environment: environment.Environment, compilers: T.Dict[str, 'Compiler'],
                  kwargs):
         self.soversion = None
@@ -2324,7 +2324,7 @@ class SharedModule(SharedLibrary):
     typename = 'shared module'
 
     def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
-                 sources: T.List[File], structured_sources: T.Optional['StructuredSources'],
+                 sources: T.List[SourceOutputs], structured_sources: T.Optional['StructuredSources'],
                  objects, environment: environment.Environment,
                  compilers: T.Dict[str, 'Compiler'], kwargs):
         if 'version' in kwargs:
@@ -2694,7 +2694,7 @@ class Jar(BuildTarget):
     typename = 'jar'
 
     def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
-                 sources: T.List[File], structured_sources: T.Optional['StructuredSources'],
+                 sources: T.List[SourceOutputs], structured_sources: T.Optional['StructuredSources'],
                  objects, environment: environment.Environment, compilers: T.Dict[str, 'Compiler'],
                  kwargs):
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
