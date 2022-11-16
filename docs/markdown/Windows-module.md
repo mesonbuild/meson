@@ -8,6 +8,7 @@ Windows.
 ### compile_resources
 
 ```
+  windows = import('windows')
   windows.compile_resources(...(string | File | CustomTarget | CustomTargetIndex),
                             args: []string,
                             depend_files: [](string | File),
