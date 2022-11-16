@@ -2031,6 +2031,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         KwargInfo('output', ContainerTypeInfo(list, str, allow_empty=False), required=True, listify=True),
         DEPFILE_KW,
         DEPENDS_KW,
+        DEPEND_FILES_KW.evolve(since='1.0.0'),
         KwargInfo('capture', bool, default=False, since='0.43.0'),
     )
     def func_generator(self, node: mparser.FunctionNode,

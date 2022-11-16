@@ -1639,11 +1639,13 @@ class Generator(HoldableObject):
                  output: T.List[str],
                  # how2dataclass
                  *,
+                 depend_files: T.Optional[T.Sequence[FileOrString]] = None,
                  depfile: T.Optional[str] = None,
                  capture: bool = False,
                  depends: T.Optional[T.List[T.Union[BuildTarget, 'CustomTarget']]] = None,
                  name: str = 'Generator'):
         self.exe = exe
+        self.depend_files = list(depend_files or [])
         self.depfile = depfile
         self.capture = capture
         self.depends: T.List[T.Union[BuildTarget, 'CustomTarget']] = depends or []
@@ -1685,7 +1687,15 @@ class Generator(HoldableObject):
                       state: T.Union['Interpreter', 'ModuleState'],
                       preserve_path_from: T.Optional[str] = None,
                       extra_args: T.Optional[T.List[str]] = None) -> 'GeneratedList':
-        output = GeneratedList(self, state.subdir, preserve_path_from, extra_args=extra_args if extra_args is not None else [])
+        depend_files = [
+            File.from_source_file(state.environment.source_dir, state.subdir, e)
+            if isinstance(e, str) else e
+            for e in self.depend_files
+        ]
+
+        output = GeneratedList(self, state.subdir, preserve_path_from,
+                               extra_args=extra_args if extra_args is not None else [],
+                               depend_files=depend_files)
 
         for e in files:
             if isinstance(e, CustomTarget):
@@ -1718,7 +1728,8 @@ class GeneratedList(HoldableObject):
     generator: Generator
     subdir: str
     preserve_path_from: T.Optional[str]
-    extra_args: T.List[str]
+    depend_files: T.List[File] = field(default_factory=list)
+    extra_args: T.List[str] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         self.name = self.generator.exe
@@ -1727,10 +1738,6 @@ class GeneratedList(HoldableObject):
         self.outfilelist: T.List[str] = []
         self.outmap: T.Dict[File, T.List[str]] = {}
         self.extra_depends = []  # XXX: Doesn't seem to be used?
-        self.depend_files: T.List[File] = []
-
-        if self.extra_args is None:
-            self.extra_args: T.List[str] = []
 
         if isinstance(self.generator.exe, programs.ExternalProgram):
             if not self.generator.exe.found():
