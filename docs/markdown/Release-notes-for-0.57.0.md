@@ -128,7 +128,7 @@ can be passed dependencies returned by `declare_dependency`, as long as they
 only specify compiler/linker arguments or other dependencies that satisfy
 the same requirements.
 
-## `unstable_external_project` improvements
+## `unstable-external_project` improvements
 
 - Default arguments are added to `add_project()` in case some tags are not found
   in `configure_options`: `'--prefix=@PREFIX@'`, `'--libdir=@PREFIX@/@LIBDIR@'`,
