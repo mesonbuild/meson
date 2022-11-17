@@ -15,6 +15,7 @@
 '''This module provides helper functions for generating documentation using hotdoc'''
 
 import os
+import subprocess
 from collections import OrderedDict
 
 from mesonbuild import mesonlib
@@ -392,12 +393,14 @@ class HotDocModule(ExtensionModule):
         self.hotdoc = ExternalProgram('hotdoc')
         if not self.hotdoc.found():
             raise MesonException('hotdoc executable not found')
+        version = self.hotdoc.get_version(interpreter)
+        if not mesonlib.version_compare(version, f'>={MIN_HOTDOC_VERSION}'):
+            raise MesonException(f'hotdoc {MIN_HOTDOC_VERSION} required but not found.)')
 
-        try:
-            from hotdoc.run_hotdoc import run  # noqa: F401
-            self.hotdoc.run_hotdoc = run
-        except Exception as e:
-            raise MesonException(f'hotdoc {MIN_HOTDOC_VERSION} required but not found. ({e})')
+        def run_hotdoc(cmd):
+            return subprocess.run(self.hotdoc.get_command() + cmd, stdout=subprocess.DEVNULL).returncode
+
+        self.hotdoc.run_hotdoc = run_hotdoc
         self.methods.update({
             'has_extensions': self.has_extensions,
             'generate_doc': self.generate_doc,
