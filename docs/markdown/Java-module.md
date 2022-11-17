@@ -7,6 +7,7 @@
 ### `generate_native_header()`
 
 *(deprecated in 0.62.0, use `generate_native_headers()`)*
+*(removed in 1.0.0)*
 
 This function will generate a header file for use in Java native module
 development by reading the supplied Java file for `native` method declarations.
