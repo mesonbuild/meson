@@ -19,7 +19,7 @@ from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from .. import mlog
 from ..build import BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList, IncludeDirs, CustomTarget, StructuredSources
 from ..dependencies import Dependency, ExternalLibrary
-from ..interpreter.type_checking import TEST_KWS, OUTPUT_KW
+from ..interpreter.type_checking import TEST_KWS, OUTPUT_KW, INCLUDE_DIRECTORIES, include_dir_string_new
 from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noPosargs
 from ..mesonlib import File
 
@@ -167,7 +167,6 @@ class RustModule(ExtensionModule):
         'rust.bindgen',
         KwargInfo('c_args', ContainerTypeInfo(list, str), default=[], listify=True),
         KwargInfo('args', ContainerTypeInfo(list, str), default=[], listify=True),
-        KwargInfo('include_directories', ContainerTypeInfo(list, IncludeDirs), default=[], listify=True),
         KwargInfo(
             'input',
             ContainerTypeInfo(list, (File, GeneratedList, BuildTarget, BothLibraries, ExtractedObjects, CustomTargetIndex, CustomTarget, str), allow_empty=False),
@@ -175,6 +174,7 @@ class RustModule(ExtensionModule):
             listify=True,
             required=True,
         ),
+        INCLUDE_DIRECTORIES.evolve(feature_validator=include_dir_string_new),
         OUTPUT_KW,
     )
     def bindgen(self, state: 'ModuleState', args: T.List, kwargs: 'FuncBindgen') -> ModuleReturnValue:
@@ -195,7 +195,7 @@ class RustModule(ExtensionModule):
                 depends.append(d)
 
         inc_strs: T.List[str] = []
-        for i in kwargs['include_directories']:
+        for i in state.process_include_dirs(kwargs['include_directories']):
             # bindgen always uses clang, so it's safe to hardcode -I here
             inc_strs.extend([f'-I{x}' for x in i.to_string_list(
                 state.environment.get_source_dir(), state.environment.get_build_dir())])

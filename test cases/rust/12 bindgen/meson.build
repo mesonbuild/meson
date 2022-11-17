@@ -1,7 +1,7 @@
 # SPDX-license-identifer: Apache-2.0
 # Copyright © 2021 Intel Corporation
 
-project('rustmod bindgen', ['c', 'rust'])
+project('rustmod bindgen', ['c', 'rust'], meson_version : '>= 0.63')
 
 prog_bindgen = find_program('bindgen', required : false)
 if not prog_bindgen.found()
@@ -27,7 +27,7 @@ rust = import('unstable-rust')
 gen = rust.bindgen(
   input : 'src/header.h',
   output : 'header.rs',
-  include_directories : inc,
+  include_directories : 'include',
 )
 
 # see: https://github.com/mesonbuild/meson/issues/8160

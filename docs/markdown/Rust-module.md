@@ -3,7 +3,7 @@ short-description: Rust language integration module
 authors:
     - name: Dylan Baker
       email: dylan@pnwbakers.com
-      years: [2020, 2021]
+      years: [2020, 2021, 2022]
 ...
 
 # Rust module
@@ -35,7 +35,7 @@ that automatically.
 Additional, test only dependencies may be passed via the dependencies
 argument.
 
-### bindgen(*, input: string | BuildTarget | [](string | BuildTarget), output: string, include_directories: []include_directories, c_args: []string, args: []string)
+### bindgen(*, input: string | BuildTarget | [](string | BuildTarget), output: string, include_directories: [](include_directories | string), c_args: []string, args: []string)
 
 This function wraps bindgen to simplify creating rust bindings around C
 libraries. This has two advantages over hand-rolling ones own with a
@@ -50,8 +50,8 @@ It takes the following keyword arguments
 - input — A list of Files, Strings, or CustomTargets. The first element is
   the header bindgen will parse, additional elements are dependencies.
 - output — the name of the output rust file
-- include_directories — A list of `include_directories` objects, these are
-  passed to clang as `-I` arguments
+- include_directories — A list of `include_directories` or `string` objects,
+  these are passed to clang as `-I` arguments *(string since 1.0.0)*
 - c_args — A list of string arguments to pass to clang untouched
 - args — A list of string arguments to pass to `bindgen` untouched.
 
