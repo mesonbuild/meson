@@ -182,7 +182,7 @@ class LinuxlikeTests(BasePlatformTests):
             for name in {'ct', 'ct0'}:
                 ct_dep = PkgConfigDependency(name, env, kwargs)
                 self.assertTrue(ct_dep.found())
-                self.assertIn('-lct', ct_dep.get_link_args())
+                self.assertIn('-lct', ct_dep.get_link_args(raw=True))
 
     def test_pkgconfig_gen_deps(self):
         '''
