@@ -36,6 +36,7 @@ class JavaModule(NewExtensionModule):
         super().__init__()
         self.methods.update({
             'generate_native_headers': self.generate_native_headers,
+            'native_headers': self.native_headers,
         })
 
     def __get_java_compiler(self, state: ModuleState) -> Compiler:
@@ -44,6 +45,7 @@ class JavaModule(NewExtensionModule):
         return state.environment.coredata.compilers[MachineChoice.BUILD]['java']
 
     @FeatureNew('java.generate_native_headers', '0.62.0')
+    @FeatureDeprecated('java.generate_native_headers', '1.0.0')
     @typed_pos_args(
         'java.generate_native_headers',
         varargs=(str, mesonlib.File, Target, CustomTargetIndex, GeneratedList))
@@ -53,6 +55,22 @@ class JavaModule(NewExtensionModule):
         KwargInfo('package', str, default=None))
     def generate_native_headers(self, state: ModuleState, args: T.Tuple[T.List[mesonlib.FileOrString]],
                                 kwargs: T.Dict[str, T.Optional[str]]) -> ModuleReturnValue:
+        return self.__native_headers(state, args, kwargs)
+
+    @FeatureNew('java.native_headers', '1.0.0')
+    @typed_pos_args(
+        'java.native_headers',
+        varargs=(str, mesonlib.File, Target, CustomTargetIndex, GeneratedList))
+    @typed_kwargs(
+        'java.native_headers',
+        KwargInfo('classes', ContainerTypeInfo(list, str), default=[], listify=True, required=True),
+        KwargInfo('package', str, default=None))
+    def native_headers(self, state: ModuleState, args: T.Tuple[T.List[mesonlib.FileOrString]],
+                       kwargs: T.Dict[str, T.Optional[str]]) -> ModuleReturnValue:
+        return self.__native_headers(state, args, kwargs)
+
+    def __native_headers(self, state: ModuleState, args: T.Tuple[T.List[mesonlib.FileOrString]],
+                         kwargs: T.Dict[str, T.Optional[str]]) -> ModuleReturnValue:
         classes = T.cast('T.List[str]', kwargs.get('classes'))
         package = kwargs.get('package')
 
