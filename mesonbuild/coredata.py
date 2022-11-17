@@ -1035,9 +1035,9 @@ def update_cmd_line_file(build_dir: str, options: argparse.Namespace):
 def format_cmd_line_options(options: argparse.Namespace) -> str:
     cmdline = ['-D{}={}'.format(str(k), v) for k, v in options.cmd_line_options.items()]
     if options.cross_file:
-        cmdline += [f'--cross-file {f}' for f in options.cross_file]
+        cmdline += [f'--cross-file={f}' for f in options.cross_file]
     if options.native_file:
-        cmdline += [f'--native-file {f}' for f in options.native_file]
+        cmdline += [f'--native-file={f}' for f in options.native_file]
     return ' '.join([shlex.quote(x) for x in cmdline])
 
 def major_versions_differ(v1: str, v2: str) -> bool:
