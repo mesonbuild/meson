@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/rust/12 bindgen/meson.build:30: WARNING: Project targets '>= 0.63' but uses feature introduced in '1.0.0': include_directories kwarg of type string. Use include_directories('include') instead"
+    }
+  ]
+}
