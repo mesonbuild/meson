@@ -132,13 +132,17 @@ class CommandTests(unittest.TestCase):
         bindir = (self.tmpdir / 'bin')
         bindir.mkdir()
         (bindir / 'meson').symlink_to(self.src_root / 'meson.py')
+        (bindir / 'python3').symlink_to(python_command[0])
         os.environ['PATH'] = str(bindir) + os.pathsep + os.environ['PATH']
+        # use our overridden PATH-compatible python
+        path_resolved_meson_command = resolved_meson_command.copy()
+        path_resolved_meson_command[0] = str(bindir / 'python3')
         # See if it works!
         meson_py = 'meson'
         meson_setup = [meson_py, 'setup']
         meson_command = meson_setup + self.meson_args
         stdo = self._run(meson_command + [self.testdir, builddir])
-        self.assertMesonCommandIs(stdo.split('\n')[0], resolved_meson_command)
+        self.assertMesonCommandIs(stdo.split('\n')[0], path_resolved_meson_command)
 
     def test_meson_installed(self):
         # Install meson
