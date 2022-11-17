@@ -36,7 +36,7 @@ from .mesonlib import (
     extract_as_list, typeslistify, stringlistify, classify_unity_sources,
     get_filenames_templates_dict, substitute_values, has_path_sep,
     OptionKey, PerMachineDefaultable, OptionOverrideProxy,
-    MesonBugException, EnvironmentVariables
+    MesonBugException, EnvironmentVariables, pickle_load,
 )
 from .compilers import (
     is_object, clink_langs, sort_clink, all_languages,
@@ -2900,24 +2900,11 @@ def get_sources_string_names(sources, backend):
 
 def load(build_dir: str) -> Build:
     filename = os.path.join(build_dir, 'meson-private', 'build.dat')
-    load_fail_msg = f'Build data file {filename!r} is corrupted. Try with a fresh build tree.'
-    nonexisting_fail_msg = f'No such build data file as "{filename!r}".'
     try:
-        with open(filename, 'rb') as f:
-            obj = pickle.load(f)
+        return pickle_load(filename, 'Build data', Build)
     except FileNotFoundError:
-        raise MesonException(nonexisting_fail_msg)
-    except (pickle.UnpicklingError, EOFError):
-        raise MesonException(load_fail_msg)
-    except AttributeError:
-        raise MesonException(
-            f"Build data file {filename!r} references functions or classes that don't "
-            "exist. This probably means that it was generated with an old "
-            "version of meson. Try running from the source directory "
-            f"meson setup {build_dir} --wipe")
-    if not isinstance(obj, Build):
-        raise MesonException(load_fail_msg)
-    return obj
+        raise MesonException(f'No such build data file as {filename!r}.')
+
 
 def save(obj: Build, filename: str) -> None:
     with open(filename, 'wb') as f:
