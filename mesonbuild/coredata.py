@@ -1239,6 +1239,10 @@ BUILTIN_CORE_OPTIONS: 'MutableKeyedOptionDictType' = OrderedDict([
      BuiltinOption(UserStringOption, 'Directory for site-specific, platform-specific files.', '')),
     (OptionKey('purelibdir', module='python'),
      BuiltinOption(UserStringOption, 'Directory for site-specific, non-platform-specific files.', '')),
+
+    # External project module
+    (OptionKey('kernel_build_dir', module='external_project'),
+     BuiltinOption(UserStringOption, 'Directory for Linux kernel headers.', '')),
 ])
 
 BUILTIN_OPTIONS = OrderedDict(chain(BUILTIN_DIR_OPTIONS.items(), BUILTIN_CORE_OPTIONS.items()))

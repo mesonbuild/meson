@@ -27,6 +27,7 @@ pkgs=(
   bindgen
   itstool
   openjdk-11-jre
+  linux-headers-generic
 )
 
 sed -i '/^#\sdeb-src /s/^#//' "/etc/apt/sources.list"

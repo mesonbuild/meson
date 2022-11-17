@@ -16,14 +16,15 @@ from pathlib import Path
 import os
 import shlex
 import subprocess
+import platform
 import typing as T
 
-from . import ExtensionModule, ModuleReturnValue, NewExtensionModule, ModuleInfo
+from . import NewExtensionModule, ModuleReturnValue, ModuleObject, ModuleInfo
 from .. import mlog, build
 from ..compilers.compilers import CFLAGS_MAPPING
 from ..envconfig import ENV_VAR_PROG_MAP
 from ..dependencies import InternalDependency, PkgConfigDependency
-from ..interpreterbase import FeatureNew
+from ..interpreterbase import FeatureNew, noPosargs
 from ..interpreter.type_checking import ENV_KW, DEPENDS_KW
 from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, typed_kwargs, typed_pos_args
 from ..mesonlib import (EnvironmentException, MesonException, Popen_safe, MachineChoice,
@@ -34,23 +35,86 @@ if T.TYPE_CHECKING:
 
     from . import ModuleState
     from ..interpreter import Interpreter
-    from ..interpreterbase import TYPE_var
     from ..build import BuildTarget, CustomTarget
 
     class Dependency(TypedDict):
-
         subdir: str
 
     class AddProject(TypedDict):
-
         configure_options: T.List[str]
         cross_configure_options: T.List[str]
         verbose: bool
         env: build.EnvironmentVariables
         depends: T.List[T.Union[BuildTarget, CustomTarget]]
+        build_by_default: bool
+
+    class Kbuild(TypedDict):
+        verbose: bool
+        depends: T.List[T.Union[BuildTarget, CustomTarget]]
+        build_by_default: bool
 
 
-class ExternalProject(NewExtensionModule):
+class BaseProject:
+    def __init__(self, state: 'ModuleState', verbose: bool):
+        super().__init__()
+        self.env = state.environment
+        self.subdir = Path(state.subdir)
+        self.subproject = state.subproject
+        self.host_machine = state.host_machine
+        self.verbose = verbose
+        self.src_dir = Path(self.env.get_source_dir(), self.subdir)
+        self.build_dir = Path(self.env.get_build_dir(), self.subdir, 'build')
+        self.install_dir = Path(self.env.get_build_dir(), self.subdir, 'dist')
+        self.name = self.src_dir.name
+        self.make: T.List[str] = []
+
+    def _create_targets(self, extra_depends: T.List[T.Union['BuildTarget', 'CustomTarget']],
+                        build_by_default: bool,
+                        installable_subdir: Path,
+                        install_dir: str,
+                        workdir: Path,
+                        extra_args: T.Optional[T.List[str]] = None) -> None:
+        cmd = self.env.get_build_command()
+        cmd += ['--internal', 'externalproject',
+                '--name', self.name,
+                '--srcdir', self.src_dir.as_posix(),
+                '--builddir', workdir.as_posix(),
+                '--installdir', self.install_dir.as_posix(),
+                '--logdir', mlog.log_dir,
+                '--make', join_args(self.make),
+                ]
+        if self.verbose:
+            cmd.append('--verbose')
+        if extra_args:
+            cmd += extra_args
+
+        self.target = build.CustomTarget(
+            self.name,
+            self.subdir.as_posix(),
+            self.subproject,
+            self.env,
+            cmd + ['@OUTPUT@', '@DEPFILE@'],
+            [],
+            [f'{self.name}.stamp'],
+            depfile=f'{self.name}.d',
+            console=True,
+            extra_depends=extra_depends,
+            build_by_default=build_by_default,
+        )
+
+        idir = build.InstallDir(self.subdir.as_posix(),
+                                installable_subdir.as_posix(),
+                                install_dir,
+                                install_dir_name=install_dir,
+                                install_mode=None,
+                                exclude=None,
+                                strip_directory=True,
+                                from_source_dir=False,
+                                subproject=self.subproject)
+
+        self.targets = [self.target, idir]
+
+class ExternalProject(BaseProject, ModuleObject):
     def __init__(self,
                  state: 'ModuleState',
                  configure_command: str,
@@ -58,26 +122,20 @@ class ExternalProject(NewExtensionModule):
                  cross_configure_options: T.List[str],
                  env: build.EnvironmentVariables,
                  verbose: bool,
-                 extra_depends: T.List[T.Union['BuildTarget', 'CustomTarget']]):
-        super().__init__()
+                 extra_depends: T.List[T.Union['BuildTarget', 'CustomTarget']],
+                 build_by_default: bool):
+        BaseProject.__init__(self, state, verbose)
+        ModuleObject.__init__(self)
         self.methods.update({'dependency': self.dependency_method,
                              })
 
-        self.subdir = Path(state.subdir)
         self.project_version = state.project_version
-        self.subproject = state.subproject
-        self.env = state.environment
         self.build_machine = state.build_machine
-        self.host_machine = state.host_machine
         self.configure_command = configure_command
         self.configure_options = configure_options
         self.cross_configure_options = cross_configure_options
-        self.verbose = verbose
         self.user_env = env
 
-        self.src_dir = Path(self.env.get_source_dir(), self.subdir)
-        self.build_dir = Path(self.env.get_build_dir(), self.subdir, 'build')
-        self.install_dir = Path(self.env.get_build_dir(), self.subdir, 'dist')
         _p = self.env.coredata.get_option(OptionKey('prefix'))
         assert isinstance(_p, str), 'for mypy'
         self.prefix = Path(_p)
@@ -87,7 +145,6 @@ class ExternalProject(NewExtensionModule):
         _i = self.env.coredata.get_option(OptionKey('includedir'))
         assert isinstance(_i, str), 'for mypy'
         self.includedir = Path(_i)
-        self.name = self.src_dir.name
 
         # On Windows if the prefix is "c:/foo" and DESTDIR is "c:/bar", `make`
         # will install files into "c:/bar/c:/foo" which is an invalid path.
@@ -100,7 +157,13 @@ class ExternalProject(NewExtensionModule):
 
         self._configure(state)
 
-        self.targets = self._create_targets(extra_depends)
+        installable_subdir = Path('dist', self.rel_prefix)
+        install_dir = '.'
+        self._create_targets(extra_depends,
+                             build_by_default,
+                             installable_subdir,
+                             install_dir,
+                             self.build_dir)
 
     def _configure(self, state: 'ModuleState') -> None:
         if self.configure_command == 'waf':
@@ -216,44 +279,6 @@ class ExternalProject(NewExtensionModule):
                 m += '\nSee logs: ' + str(log_filename)
             raise MesonException(m)
 
-    def _create_targets(self, extra_depends: T.List[T.Union['BuildTarget', 'CustomTarget']]) -> T.List['TYPE_var']:
-        cmd = self.env.get_build_command()
-        cmd += ['--internal', 'externalproject',
-                '--name', self.name,
-                '--srcdir', self.src_dir.as_posix(),
-                '--builddir', self.build_dir.as_posix(),
-                '--installdir', self.install_dir.as_posix(),
-                '--logdir', mlog.log_dir,
-                '--make', join_args(self.make),
-                ]
-        if self.verbose:
-            cmd.append('--verbose')
-
-        self.target = build.CustomTarget(
-            self.name,
-            self.subdir.as_posix(),
-            self.subproject,
-            self.env,
-            cmd + ['@OUTPUT@', '@DEPFILE@'],
-            [],
-            [f'{self.name}.stamp'],
-            depfile=f'{self.name}.d',
-            console=True,
-            extra_depends=extra_depends,
-        )
-
-        idir = build.InstallDir(self.subdir.as_posix(),
-                                Path('dist', self.rel_prefix).as_posix(),
-                                install_dir='.',
-                                install_dir_name='.',
-                                install_mode=None,
-                                exclude=None,
-                                strip_directory=True,
-                                from_source_dir=False,
-                                subproject=self.subproject)
-
-        return [self.target, idir]
-
     @typed_pos_args('external_project.dependency', str)
     @typed_kwargs('external_project.dependency', KwargInfo('subdir', str, default=''))
     def dependency_method(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'Dependency') -> InternalDependency:
@@ -272,14 +297,50 @@ class ExternalProject(NewExtensionModule):
                                  [], [sources], [], {}, [], [])
         return dep
 
+class KbuildProject(BaseProject, ModuleObject):
+    def __init__(self,
+                 state: 'ModuleState',
+                 verbose: bool,
+                 extra_depends: T.List[T.Union['BuildTarget', 'CustomTarget']],
+                 build_by_default: bool):
+        BaseProject.__init__(self, state, verbose)
+        ModuleObject.__init__(self)
 
-class ExternalProjectModule(ExtensionModule):
+        if not Path(self.src_dir, 'Kbuild').exists() and not Path(self.src_dir, 'Makefile').exists():
+            raise EnvironmentException('Need a "Kbuild" or "Makefile" file in source directory to build kernel module')
+        if not self.host_machine.is_linux():
+            raise EnvironmentException('Kbuild is only supported for Linux platforms')
+
+        kernel_build_dir = T.cast('str', state.get_option('kernel_build_dir', module='external_project'))
+        if not kernel_build_dir:
+            kernel_build_dir = f'/lib/modules/{platform.uname().release}/build'
+        workdir = Path(kernel_build_dir)
+        if not Path(workdir, 'Makefile').exists():
+            raise EnvironmentException(f'Linux kernel headers missing in {workdir}')
+
+        self.build_dir.mkdir(parents=True, exist_ok=True)
+        Path(self.build_dir, 'Makefile').write_text('', encoding='utf-8')
+
+        self.make = state.find_program('make').get_command()
+        self.make += [f'src={self.src_dir}', f'M={self.build_dir}', 'modules']
+
+        installable_subdir = Path('dist')
+        install_dir = '/'
+        self._create_targets(extra_depends,
+                             build_by_default,
+                             installable_subdir,
+                             install_dir,
+                             workdir,
+                             ['--kbuild'])
+
+class ExternalProjectModule(NewExtensionModule):
 
     INFO = ModuleInfo('External build system', '0.56.0', unstable=True)
 
-    def __init__(self, interpreter: 'Interpreter'):
-        super().__init__(interpreter)
+    def __init__(self) -> None:
+        super().__init__()
         self.methods.update({'add_project': self.add_project,
+                             'kbuild': self.kbuild,
                              })
 
     @typed_pos_args('external_project_mod.add_project', str)
@@ -290,6 +351,7 @@ class ExternalProjectModule(ExtensionModule):
         KwargInfo('verbose', bool, default=False),
         ENV_KW,
         DEPENDS_KW.evolve(since='0.63.0'),
+        KwargInfo('build_by_default', bool, default=False, since='1.0.0')
     )
     def add_project(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'AddProject') -> ModuleReturnValue:
         configure_command = args[0]
@@ -299,9 +361,24 @@ class ExternalProjectModule(ExtensionModule):
                                   kwargs['cross_configure_options'],
                                   kwargs['env'],
                                   kwargs['verbose'],
-                                  kwargs['depends'])
+                                  kwargs['depends'],
+                                  kwargs['build_by_default'])
         return ModuleReturnValue(project, project.targets)
 
+    @noPosargs
+    @typed_kwargs(
+        'external_project.kbuild',
+        KwargInfo('verbose', bool, default=False),
+        DEPENDS_KW,
+        KwargInfo('build_by_default', bool, default=False)
+    )
+    @FeatureNew('external_project.kbuild', '1.0.0')
+    def kbuild(self, state: 'ModuleState', args: T.Tuple[str], kwargs: 'Kbuild') -> ModuleReturnValue:
+        project = KbuildProject(state,
+                                kwargs['verbose'],
+                                kwargs['depends'],
+                                kwargs['build_by_default'])
+        return ModuleReturnValue(project, project.targets)
 
 def initialize(interp: 'Interpreter') -> ExternalProjectModule:
-    return ExternalProjectModule(interp)
+    return ExternalProjectModule()
