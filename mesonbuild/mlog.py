@@ -205,8 +205,6 @@ def normal_blue(text: str) -> AnsiDecorator:
 def normal_cyan(text: str) -> AnsiDecorator:
     return AnsiDecorator(text, "\033[36m")
 
-# This really should be AnsiDecorator or anything that implements
-# __str__(), but that requires protocols from typing_extensions
 def process_markup(args: T.Sequence[TV_Loggable], keep: bool) -> T.List[str]:
     arr = []  # type: T.List[str]
     if log_timestamp_start is not None:
