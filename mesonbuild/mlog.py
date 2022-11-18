@@ -503,14 +503,7 @@ def normal_blue(text: str) -> AnsiDecorator:
 def normal_cyan(text: str) -> AnsiDecorator:
     return AnsiDecorator(text, "\033[36m")
 
-# This isn't strictly correct. What we really want here is something like:
-# class StringProtocol(typing_extensions.Protocol):
-#
-#      def __str__(self) -> str: ...
-#
-# This would more accurately embody what this function can handle, but we
-# don't have that yet, so instead we'll do some casting to work around it
-def get_error_location_string(fname: str, lineno: int) -> str:
+def get_error_location_string(fname: StringProtocol, lineno: int) -> str:
     return f'{fname}:{lineno}:'
 
 def get_relative_path(target: Path, current: Path) -> Path:
