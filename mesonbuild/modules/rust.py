@@ -50,7 +50,7 @@ class RustModule(ExtensionModule):
 
     """A module that holds helper functions for rust."""
 
-    INFO = ModuleInfo('rust', '0.57.0', unstable=True)
+    INFO = ModuleInfo('rust', '0.57.0', stabilized='1.0.0')
 
     def __init__(self, interpreter: 'Interpreter') -> None:
         super().__init__(interpreter)

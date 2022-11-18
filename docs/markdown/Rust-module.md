@@ -6,9 +6,10 @@ authors:
       years: [2020, 2021]
 ...
 
-# Unstable Rust module
+# Rust module
 
 *(new in 0.57.0)*
+*(Stable since 1.0.0)*
 
 **Note** Unstable modules make no backwards compatible API guarantees.
 
