@@ -268,7 +268,7 @@ def log(*args: TV_Loggable, is_error: bool = False,
         sep: T.Optional[str] = None,
         end: T.Optional[str] = None) -> None:
     if once:
-        log_once(*args, is_error=is_error, nested=nested, sep=sep, end=end)
+        _log_once(*args, is_error=is_error, nested=nested, sep=sep, end=end)
     else:
         _log(*args, is_error=is_error, nested=nested, sep=sep, end=end)
 
@@ -285,9 +285,9 @@ def _log(*args: TV_Loggable, is_error: bool = False,
     if not log_errors_only or is_error:
         force_print(*arr, nested=nested, sep=sep, end=end)
 
-def log_once(*args: TV_Loggable, is_error: bool = False,
-             nested: bool = True, sep: T.Optional[str] = None,
-             end: T.Optional[str] = None) -> None:
+def _log_once(*args: TV_Loggable, is_error: bool = False,
+              nested: bool = True, sep: T.Optional[str] = None,
+              end: T.Optional[str] = None) -> None:
     """Log variant that only prints a given message one time per meson invocation.
 
     This considers ansi decorated values by the values they wrap without

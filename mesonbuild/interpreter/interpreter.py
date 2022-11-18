@@ -1497,7 +1497,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 try:
                     skip_sanity_check = self.should_skip_sanity_check(for_machine)
                     if skip_sanity_check:
-                        mlog.log_once('Cross compiler sanity tests disabled via the cross file.')
+                        mlog.log('Cross compiler sanity tests disabled via the cross file.', once=True)
                     comp = compilers.detect_compiler_for(self.environment, lang, for_machine, skip_sanity_check)
                     if comp is None:
                         raise InvalidArguments(f'Tried to use unknown language "{lang}".')
