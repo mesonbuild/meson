@@ -24,6 +24,7 @@ import subprocess
 import shutil
 import typing as T
 from contextlib import contextmanager
+from dataclasses import dataclass, field
 from pathlib import Path
 
 if T.TYPE_CHECKING:
@@ -83,55 +84,352 @@ def setup_console() -> None:
         except AttributeError:
             pass
 
-log_dir = None               # type: T.Optional[str]
-log_file = None              # type: T.Optional[T.TextIO]
-log_fname = 'meson-log.txt'  # type: str
-log_depth = []               # type: T.List[str]
-log_timestamp_start = None   # type: T.Optional[float]
-log_fatal_warnings = False   # type: bool
-log_disable_stdout = False   # type: bool
-log_errors_only = False      # type: bool
-_in_ci = 'CI' in os.environ  # type: bool
-_logged_once = set()         # type: T.Set[T.Tuple[str, ...]]
-log_warnings_counter = 0     # type: int
-log_pager: T.Optional['subprocess.Popen'] = None
+_in_ci = 'CI' in os.environ
 
-def disable() -> None:
-    global log_disable_stdout  # pylint: disable=global-statement
-    log_disable_stdout = True
 
-def enable() -> None:
-    global log_disable_stdout  # pylint: disable=global-statement
+class _Severity(enum.Enum):
+
+    NOTICE = enum.auto()
+    WARNING = enum.auto()
+    ERROR = enum.auto()
+    DEPRECATION = enum.auto()
+
+@dataclass
+class _Logger:
+
+    log_dir: T.Optional[str] = None
+    log_depth: T.List[str] = field(default_factory=list)
+    log_file: T.Optional[T.TextIO] = None
+    log_timestamp_start: T.Optional[float] = None
+    log_fatal_warnings = False
     log_disable_stdout = False
-
-def set_quiet() -> None:
-    global log_errors_only  # pylint: disable=global-statement
-    log_errors_only = True
-
-def set_verbose() -> None:
-    global log_errors_only  # pylint: disable=global-statement
     log_errors_only = False
+    logged_once: T.Set[T.Tuple[str, ...]] = field(default_factory=set)
+    log_warnings_counter = 0
+    log_pager: T.Optional['subprocess.Popen'] = None
 
-def initialize(logdir: str, fatal_warnings: bool = False) -> None:
-    global log_dir, log_file, log_fatal_warnings  # pylint: disable=global-statement
-    log_dir = logdir
-    log_file = open(os.path.join(logdir, log_fname), 'w', encoding='utf-8')
-    log_fatal_warnings = fatal_warnings
+    _LOG_FNAME: T.ClassVar[str] = 'meson-log.txt'
 
-def set_timestamp_start(start: float) -> None:
-    global log_timestamp_start  # pylint: disable=global-statement
-    log_timestamp_start = start
+    @contextmanager
+    def no_logging(self) -> T.Iterator[None]:
+        self.log_disable_stdout = True
+        try:
+            yield
+        finally:
+            self.log_disable_stdout = False
 
-def shutdown() -> T.Optional[str]:
-    global log_file  # pylint: disable=global-statement
-    if log_file is not None:
-        path = log_file.name
-        exception_around_goer = log_file
-        log_file = None
-        exception_around_goer.close()
-        return path
-    stop_pager()
-    return None
+    @contextmanager
+    def force_logging(self) -> T.Iterator[None]:
+        restore = self.log_disable_stdout
+        self.log_disable_stdout = False
+        try:
+            yield
+        finally:
+            self.log_disable_stdout = restore
+
+    def set_quiet(self) -> None:
+        self.log_errors_only = True
+
+    def set_verbose(self) -> None:
+        self.log_errors_only = False
+
+    def set_timestamp_start(self, start: float) -> None:
+        self.log_timestamp_start = start
+
+    def shutdown(self) -> T.Optional[str]:
+        if self.log_file is not None:
+            path = self.log_file.name
+            exception_around_goer = self.log_file
+            self.log_file = None
+            exception_around_goer.close()
+            return path
+        self.stop_pager()
+        return None
+
+    def start_pager(self) -> None:
+        if not colorize_console():
+            return
+        pager_cmd = []
+        if 'PAGER' in os.environ:
+            pager_cmd = shlex.split(os.environ['PAGER'])
+        else:
+            less = shutil.which('less')
+            if not less and is_windows():
+                git = shutil.which('git')
+                if git:
+                    path = Path(git).parents[1] / 'usr' / 'bin'
+                    less = shutil.which('less', path=str(path))
+            if less:
+                pager_cmd = [less]
+        if not pager_cmd:
+            return
+        try:
+            # Set 'LESS' environment variable, rather than arguments in
+            # pager_cmd, to also support the case where the user has 'PAGER'
+            # set to 'less'. Arguments set are:
+            # "R" : support color
+            # "X" : do not clear the screen when leaving the pager
+            # "F" : skip the pager if content fits into the screen
+            env = os.environ.copy()
+            if 'LESS' not in env:
+                env['LESS'] = 'RXF'
+            # Set "-c" for lv to support color
+            if 'LV' not in env:
+                env['LV'] = '-c'
+            self.log_pager = subprocess.Popen(pager_cmd, stdin=subprocess.PIPE,
+                                              text=True, encoding='utf-8', env=env)
+        except Exception as e:
+            # Ignore errors, unless it is a user defined pager.
+            if 'PAGER' in os.environ:
+                from .mesonlib import MesonException
+                raise MesonException(f'Failed to start pager: {str(e)}')
+
+    def stop_pager(self) -> None:
+        if self.log_pager:
+            try:
+                self.log_pager.stdin.flush()
+                self.log_pager.stdin.close()
+            except BrokenPipeError:
+                pass
+            self.log_pager.wait()
+            self.log_pager = None
+
+    def initialize(self, logdir: str, fatal_warnings: bool = False) -> None:
+        self.log_dir = logdir
+        self.log_file = open(os.path.join(logdir, self._LOG_FNAME), 'w', encoding='utf-8')
+        self.log_fatal_warnings = fatal_warnings
+
+    def process_markup(self, args: T.Sequence[TV_Loggable], keep: bool) -> T.List[str]:
+        arr = []  # type: T.List[str]
+        if self.log_timestamp_start is not None:
+            arr = ['[{:.3f}]'.format(time.monotonic() - self.log_timestamp_start)]
+        for arg in args:
+            if arg is None:
+                continue
+            if isinstance(arg, str):
+                arr.append(arg)
+            elif isinstance(arg, AnsiDecorator):
+                arr.append(arg.get_text(keep))
+            else:
+                arr.append(str(arg))
+        return arr
+
+    def force_print(self, *args: str, nested: bool, sep: T.Optional[str] = None,
+                    end: T.Optional[str] = None) -> None:
+        if self.log_disable_stdout:
+            return
+        iostr = io.StringIO()
+        print(*args, sep=sep, end=end, file=iostr)
+
+        raw = iostr.getvalue()
+        if self.log_depth:
+            prepend = self.log_depth[-1] + '| ' if nested else ''
+            lines = []
+            for l in raw.split('\n'):
+                l = l.strip()
+                lines.append(prepend + l if l else '')
+            raw = '\n'.join(lines)
+
+        # _Something_ is going to get printed.
+        try:
+            output = self.log_pager.stdin if self.log_pager else None
+            print(raw, end='', file=output)
+        except UnicodeEncodeError:
+            cleaned = raw.encode('ascii', 'replace').decode('ascii')
+            print(cleaned, end='')
+
+    def debug(self, *args: TV_Loggable, sep: T.Optional[str] = None,
+              end: T.Optional[str] = None) -> None:
+        arr = process_markup(args, False)
+        if self.log_file is not None:
+            print(*arr, file=self.log_file, sep=sep, end=end)
+            self.log_file.flush()
+
+    def _log(self, *args: TV_Loggable, is_error: bool = False,
+             nested: bool = True, sep: T.Optional[str] = None,
+             end: T.Optional[str] = None) -> None:
+        arr = process_markup(args, False)
+        if self.log_file is not None:
+            print(*arr, file=self.log_file, sep=sep, end=end)
+            self.log_file.flush()
+        if colorize_console():
+            arr = process_markup(args, True)
+        if not self.log_errors_only or is_error:
+            force_print(*arr, nested=nested, sep=sep, end=end)
+
+    def _debug_log_cmd(self, cmd: str, args: T.List[str]) -> None:
+        if not _in_ci:
+            return
+        args = [f'"{x}"' for x in args]  # Quote all args, just in case
+        self.debug('!meson_ci!/{} {}'.format(cmd, ' '.join(args)))
+
+    def cmd_ci_include(self, file: str) -> None:
+        self._debug_log_cmd('ci_include', [file])
+
+    def log(self, *args: TV_Loggable, is_error: bool = False,
+            once: bool = False, nested: bool = True,
+            sep: T.Optional[str] = None,
+            end: T.Optional[str] = None) -> None:
+        if once:
+            self._log_once(*args, is_error=is_error, nested=nested, sep=sep, end=end)
+        else:
+            self._log(*args, is_error=is_error, nested=nested, sep=sep, end=end)
+
+    def _log_once(self, *args: TV_Loggable, is_error: bool = False,
+                  nested: bool = True, sep: T.Optional[str] = None,
+                  end: T.Optional[str] = None) -> None:
+        """Log variant that only prints a given message one time per meson invocation.
+
+        This considers ansi decorated values by the values they wrap without
+        regard for the AnsiDecorator itself.
+        """
+        def to_str(x: TV_Loggable) -> str:
+            if isinstance(x, str):
+                return x
+            if isinstance(x, AnsiDecorator):
+                return x.text
+            return str(x)
+        t = tuple(to_str(a) for a in args)
+        if t in self.logged_once:
+            return
+        self.logged_once.add(t)
+        self._log(*args, is_error=is_error, nested=nested, sep=sep, end=end)
+
+    def _log_error(self, severity: _Severity, *rargs: TV_Loggable,
+                   once: bool = False, fatal: bool = True,
+                   location: T.Optional[BaseNode] = None,
+                   nested: bool = True, sep: T.Optional[str] = None,
+                   end: T.Optional[str] = None,
+                   is_error: bool = True) -> None:
+        from .mesonlib import MesonException, relpath
+
+        # The typing requirements here are non-obvious. Lists are invariant,
+        # therefore T.List[A] and T.List[T.Union[A, B]] are not able to be joined
+        if severity is _Severity.NOTICE:
+            label = [bold('NOTICE:')]  # type: TV_LoggableList
+        elif severity is _Severity.WARNING:
+            label = [yellow('WARNING:')]
+        elif severity is _Severity.ERROR:
+            label = [red('ERROR:')]
+        elif severity is _Severity.DEPRECATION:
+            label = [red('DEPRECATION:')]
+        # rargs is a tuple, not a list
+        args = label + list(rargs)
+
+        if location is not None:
+            location_file = relpath(location.filename, os.getcwd())
+            location_str = get_error_location_string(location_file, location.lineno)
+            # Unions are frankly awful, and we have to T.cast here to get mypy
+            # to understand that the list concatenation is safe
+            location_list = T.cast('TV_LoggableList', [location_str])
+            args = location_list + args
+
+        log(*args, once=once, nested=nested, sep=sep, end=end, is_error=is_error)
+
+        self.log_warnings_counter += 1
+
+        if self.log_fatal_warnings and fatal:
+            raise MesonException("Fatal warnings enabled, aborting")
+
+    def error(self, *args: TV_Loggable,
+              once: bool = False, fatal: bool = True,
+              location: T.Optional[BaseNode] = None,
+              nested: bool = True, sep: T.Optional[str] = None,
+              end: T.Optional[str] = None) -> None:
+        return self._log_error(_Severity.ERROR, *args, once=once, fatal=fatal, location=location,
+                               nested=nested, sep=sep, end=end, is_error=True)
+
+    def warning(self, *args: TV_Loggable,
+                once: bool = False, fatal: bool = True,
+                location: T.Optional[BaseNode] = None,
+                nested: bool = True, sep: T.Optional[str] = None,
+                end: T.Optional[str] = None) -> None:
+        return self._log_error(_Severity.WARNING, *args, once=once, fatal=fatal, location=location,
+                               nested=nested, sep=sep, end=end, is_error=True)
+
+    def deprecation(self, *args: TV_Loggable,
+                    once: bool = False, fatal: bool = True,
+                    location: T.Optional[BaseNode] = None,
+                    nested: bool = True, sep: T.Optional[str] = None,
+                    end: T.Optional[str] = None) -> None:
+        return self._log_error(_Severity.DEPRECATION, *args, once=once, fatal=fatal, location=location,
+                               nested=nested, sep=sep, end=end, is_error=True)
+
+    def notice(self, *args: TV_Loggable,
+               once: bool = False, fatal: bool = True,
+               location: T.Optional[BaseNode] = None,
+               nested: bool = True, sep: T.Optional[str] = None,
+               end: T.Optional[str] = None) -> None:
+        return self._log_error(_Severity.NOTICE, *args, once=once, fatal=fatal, location=location,
+                               nested=nested, sep=sep, end=end, is_error=False)
+
+    def exception(self, e: Exception, prefix: T.Optional[AnsiDecorator] = None) -> None:
+        if prefix is None:
+            prefix = red('ERROR:')
+        self.log()
+        args = []  # type: T.List[T.Union[AnsiDecorator, str]]
+        if all(getattr(e, a, None) is not None for a in ['file', 'lineno', 'colno']):
+            # Mypy doesn't follow hasattr, and it's pretty easy to visually inspect
+            # that this is correct, so we'll just ignore it.
+            path = get_relative_path(Path(e.file), Path(os.getcwd()))  # type: ignore
+            args.append(f'{path}:{e.lineno}:{e.colno}:')  # type: ignore
+        if prefix:
+            args.append(prefix)
+        args.append(str(e))
+
+        with self.force_logging():
+            self.log(*args, is_error=True)
+
+    @contextmanager
+    def nested(self, name: str = '') -> T.Generator[None, None, None]:
+        self.log_depth.append(name)
+        try:
+            yield
+        finally:
+            self.log_depth.pop()
+
+    def get_log_dir(self) -> str:
+        return self.log_dir
+
+    def get_log_depth(self) -> int:
+        return len(self.log_depth)
+
+    @contextmanager
+    def nested_warnings(self) -> T.Iterator[None]:
+        old = self.log_warnings_counter
+        self.log_warnings_counter = 0
+        try:
+            yield
+        finally:
+            self.log_warnings_counter = old
+
+    def get_warning_count(self) -> int:
+        return self.log_warnings_counter
+
+_logger = _Logger()
+cmd_ci_include = _logger.cmd_ci_include
+debug = _logger.debug
+deprecation = _logger.deprecation
+error = _logger.error
+exception = _logger.exception
+force_print = _logger.force_print
+get_log_depth = _logger.get_log_depth
+get_log_dir = _logger.get_log_dir
+get_warning_count = _logger.get_warning_count
+initialize = _logger.initialize
+log = _logger.log
+nested = _logger.nested
+nested_warnings = _logger.nested_warnings
+no_logging = _logger.no_logging
+notice = _logger.notice
+process_markup = _logger.process_markup
+set_quiet = _logger.set_quiet
+set_timestamp_start = _logger.set_timestamp_start
+set_verbose = _logger.set_verbose
+shutdown = _logger.shutdown
+start_pager = _logger.start_pager
+stop_pager = _logger.stop_pager
+warning = _logger.warning
 
 class AnsiDecorator:
     plain_code = "\033[0m"
@@ -205,104 +503,6 @@ def normal_blue(text: str) -> AnsiDecorator:
 def normal_cyan(text: str) -> AnsiDecorator:
     return AnsiDecorator(text, "\033[36m")
 
-def process_markup(args: T.Sequence[TV_Loggable], keep: bool) -> T.List[str]:
-    arr = []  # type: T.List[str]
-    if log_timestamp_start is not None:
-        arr = ['[{:.3f}]'.format(time.monotonic() - log_timestamp_start)]
-    for arg in args:
-        if arg is None:
-            continue
-        if isinstance(arg, str):
-            arr.append(arg)
-        elif isinstance(arg, AnsiDecorator):
-            arr.append(arg.get_text(keep))
-        else:
-            arr.append(str(arg))
-    return arr
-
-def force_print(*args: str, nested: bool, sep: T.Optional[str] = None,
-                end: T.Optional[str] = None) -> None:
-    if log_disable_stdout:
-        return
-    iostr = io.StringIO()
-    print(*args, sep=sep, end=end, file=iostr)
-
-    raw = iostr.getvalue()
-    if log_depth:
-        prepend = log_depth[-1] + '| ' if nested else ''
-        lines = []
-        for l in raw.split('\n'):
-            l = l.strip()
-            lines.append(prepend + l if l else '')
-        raw = '\n'.join(lines)
-
-    # _Something_ is going to get printed.
-    try:
-        output = log_pager.stdin if log_pager else None
-        print(raw, end='', file=output)
-    except UnicodeEncodeError:
-        cleaned = raw.encode('ascii', 'replace').decode('ascii')
-        print(cleaned, end='')
-
-def debug(*args: TV_Loggable, sep: T.Optional[str] = None,
-          end: T.Optional[str] = None) -> None:
-    arr = process_markup(args, False)
-    if log_file is not None:
-        print(*arr, file=log_file, sep=sep, end=end)
-        log_file.flush()
-
-def _debug_log_cmd(cmd: str, args: T.List[str]) -> None:
-    if not _in_ci:
-        return
-    args = [f'"{x}"' for x in args]  # Quote all args, just in case
-    debug('!meson_ci!/{} {}'.format(cmd, ' '.join(args)))
-
-def cmd_ci_include(file: str) -> None:
-    _debug_log_cmd('ci_include', [file])
-
-
-def log(*args: TV_Loggable, is_error: bool = False,
-        once: bool = False, nested: bool = True,
-        sep: T.Optional[str] = None,
-        end: T.Optional[str] = None) -> None:
-    if once:
-        _log_once(*args, is_error=is_error, nested=nested, sep=sep, end=end)
-    else:
-        _log(*args, is_error=is_error, nested=nested, sep=sep, end=end)
-
-
-def _log(*args: TV_Loggable, is_error: bool = False,
-         nested: bool = True, sep: T.Optional[str] = None,
-         end: T.Optional[str] = None) -> None:
-    arr = process_markup(args, False)
-    if log_file is not None:
-        print(*arr, file=log_file, sep=sep, end=end)
-        log_file.flush()
-    if colorize_console():
-        arr = process_markup(args, True)
-    if not log_errors_only or is_error:
-        force_print(*arr, nested=nested, sep=sep, end=end)
-
-def _log_once(*args: TV_Loggable, is_error: bool = False,
-              nested: bool = True, sep: T.Optional[str] = None,
-              end: T.Optional[str] = None) -> None:
-    """Log variant that only prints a given message one time per meson invocation.
-
-    This considers ansi decorated values by the values they wrap without
-    regard for the AnsiDecorator itself.
-    """
-    def to_str(x: TV_Loggable) -> str:
-        if isinstance(x, str):
-            return x
-        if isinstance(x, AnsiDecorator):
-            return x.text
-        return str(x)
-    t = tuple(to_str(a) for a in args)
-    if t in _logged_once:
-        return
-    _logged_once.add(t)
-    _log(*args, is_error=is_error, nested=nested, sep=sep, end=end)
-
 # This isn't strictly correct. What we really want here is something like:
 # class StringProtocol(typing_extensions.Protocol):
 #
@@ -312,84 +512,6 @@ def _log_once(*args: TV_Loggable, is_error: bool = False,
 # don't have that yet, so instead we'll do some casting to work around it
 def get_error_location_string(fname: str, lineno: int) -> str:
     return f'{fname}:{lineno}:'
-
-
-class _Severity(enum.Enum):
-
-    NOTICE = enum.auto()
-    WARNING = enum.auto()
-    ERROR = enum.auto()
-    DEPRECATION = enum.auto()
-
-
-def _log_error(severity: _Severity, *rargs: TV_Loggable,
-               once: bool = False, fatal: bool = True,
-               location: T.Optional[BaseNode] = None,
-               nested: bool = True, sep: T.Optional[str] = None,
-               end: T.Optional[str] = None,
-               is_error: bool = True) -> None:
-    from .mesonlib import MesonException, relpath
-
-    # The typing requirements here are non-obvious. Lists are invariant,
-    # therefore T.List[A] and T.List[T.Union[A, B]] are not able to be joined
-    if severity is _Severity.NOTICE:
-        label = [bold('NOTICE:')]  # type: TV_LoggableList
-    elif severity is _Severity.WARNING:
-        label = [yellow('WARNING:')]
-    elif severity is _Severity.ERROR:
-        label = [red('ERROR:')]
-    elif severity is _Severity.DEPRECATION:
-        label = [red('DEPRECATION:')]
-    # rargs is a tuple, not a list
-    args = label + list(rargs)
-
-    if location is not None:
-        location_file = relpath(location.filename, os.getcwd())
-        location_str = get_error_location_string(location_file, location.lineno)
-        # Unions are frankly awful, and we have to T.cast here to get mypy
-        # to understand that the list concatenation is safe
-        location_list = T.cast('TV_LoggableList', [location_str])
-        args = location_list + args
-
-    log(*args, once=once, nested=nested, sep=sep, end=end, is_error=is_error)
-
-    global log_warnings_counter  # pylint: disable=global-statement
-    log_warnings_counter += 1
-
-    if log_fatal_warnings and fatal:
-        raise MesonException("Fatal warnings enabled, aborting")
-
-def error(*args: TV_Loggable,
-          once: bool = False, fatal: bool = True,
-          location: T.Optional[BaseNode] = None,
-          nested: bool = True, sep: T.Optional[str] = None,
-          end: T.Optional[str] = None) -> None:
-    return _log_error(_Severity.ERROR, *args, once=once, fatal=fatal, location=location,
-                      nested=nested, sep=sep, end=end, is_error=True)
-
-def warning(*args: TV_Loggable,
-            once: bool = False, fatal: bool = True,
-            location: T.Optional[BaseNode] = None,
-            nested: bool = True, sep: T.Optional[str] = None,
-            end: T.Optional[str] = None) -> None:
-    return _log_error(_Severity.WARNING, *args, once=once, fatal=fatal, location=location,
-                      nested=nested, sep=sep, end=end, is_error=True)
-
-def deprecation(*args: TV_Loggable,
-                once: bool = False, fatal: bool = True,
-                location: T.Optional[BaseNode] = None,
-                nested: bool = True, sep: T.Optional[str] = None,
-                end: T.Optional[str] = None) -> None:
-    return _log_error(_Severity.DEPRECATION, *args, once=once, fatal=fatal, location=location,
-                      nested=nested, sep=sep, end=end, is_error=True)
-
-def notice(*args: TV_Loggable,
-           once: bool = False, fatal: bool = True,
-           location: T.Optional[BaseNode] = None,
-           nested: bool = True, sep: T.Optional[str] = None,
-           end: T.Optional[str] = None) -> None:
-    return _log_error(_Severity.NOTICE, *args, once=once, fatal=fatal, location=location,
-                      nested=nested, sep=sep, end=end, is_error=False)
 
 def get_relative_path(target: Path, current: Path) -> Path:
     """Get the path to target from current"""
@@ -406,27 +528,6 @@ def get_relative_path(target: Path, current: Path) -> Path:
     # we failed, should not get here
     return target
 
-def exception(e: Exception, prefix: T.Optional[AnsiDecorator] = None) -> None:
-    if prefix is None:
-        prefix = red('ERROR:')
-    log()
-    args = []  # type: T.List[T.Union[AnsiDecorator, str]]
-    if all(getattr(e, a, None) is not None for a in ['file', 'lineno', 'colno']):
-        # Mypy doesn't follow hasattr, and it's pretty easy to visually inspect
-        # that this is correct, so we'll just ignore it.
-        path = get_relative_path(Path(e.file), Path(os.getcwd()))  # type: ignore
-        args.append(f'{path}:{e.lineno}:{e.colno}:')  # type: ignore
-    if prefix:
-        args.append(prefix)
-    args.append(str(e))
-
-    restore = log_disable_stdout
-    if restore:
-        enable()
-    log(*args, is_error=True)
-    if restore:
-        disable()
-
 # Format a list for logging purposes as a string. It separates
 # all but the last item with commas, and the last with 'and'.
 def format_list(input_list: T.List[str]) -> str:
@@ -439,65 +540,6 @@ def format_list(input_list: T.List[str]) -> str:
         return input_list[0]
     else:
         return ''
-
-@contextmanager
-def nested(name: str = '') -> T.Generator[None, None, None]:
-    log_depth.append(name)
-    try:
-        yield
-    finally:
-        log_depth.pop()
-
-def start_pager() -> None:
-    if not colorize_console():
-        return
-    pager_cmd = []
-    if 'PAGER' in os.environ:
-        pager_cmd = shlex.split(os.environ['PAGER'])
-    else:
-        less = shutil.which('less')
-        if not less and is_windows():
-            git = shutil.which('git')
-            if git:
-                path = Path(git).parents[1] / 'usr' / 'bin'
-                less = shutil.which('less', path=str(path))
-        if less:
-            pager_cmd = [less]
-    if not pager_cmd:
-        return
-    global log_pager # pylint: disable=global-statement
-    assert log_pager is None
-    try:
-        # Set 'LESS' environment variable, rather than arguments in
-        # pager_cmd, to also support the case where the user has 'PAGER'
-        # set to 'less'. Arguments set are:
-        # "R" : support color
-        # "X" : do not clear the screen when leaving the pager
-        # "F" : skip the pager if content fits into the screen
-        env = os.environ.copy()
-        if 'LESS' not in env:
-            env['LESS'] = 'RXF'
-        # Set "-c" for lv to support color
-        if 'LV' not in env:
-            env['LV'] = '-c'
-        log_pager = subprocess.Popen(pager_cmd, stdin=subprocess.PIPE,
-                                     text=True, encoding='utf-8', env=env)
-    except Exception as e:
-        # Ignore errors, unless it is a user defined pager.
-        if 'PAGER' in os.environ:
-            from .mesonlib import MesonException
-            raise MesonException(f'Failed to start pager: {str(e)}')
-
-def stop_pager() -> None:
-    global log_pager # pylint: disable=global-statement
-    if log_pager:
-        try:
-            log_pager.stdin.flush()
-            log_pager.stdin.close()
-        except BrokenPipeError:
-            pass
-        log_pager.wait()
-        log_pager = None
 
 
 def code_line(text: str, line: str, colno: int) -> str:

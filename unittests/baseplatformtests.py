@@ -229,8 +229,8 @@ class BasePlatformTests(TestCase):
             finally:
                 # Close log file to satisfy Windows file locking
                 mesonbuild.mlog.shutdown()
-                mesonbuild.mlog.log_dir = None
-                mesonbuild.mlog.log_file = None
+                mesonbuild.mlog._logger.log_dir = None
+                mesonbuild.mlog._logger.log_file = None
 
             if 'MESON_SKIP_TEST' in out:
                 raise SkipTest('Project requested skipping.')

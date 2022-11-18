@@ -947,23 +947,23 @@ class InternalTests(unittest.TestCase):
 
     def test_log_once(self):
         f = io.StringIO()
-        with mock.patch('mesonbuild.mlog.log_file', f), \
-                mock.patch('mesonbuild.mlog._logged_once', set()):
-            mesonbuild.mlog.log_once('foo')
-            mesonbuild.mlog.log_once('foo')
+        with mock.patch('mesonbuild.mlog._logger.log_file', f), \
+                mock.patch('mesonbuild.mlog._logger.logged_once', set()):
+            mesonbuild.mlog.log('foo', once=True)
+            mesonbuild.mlog.log('foo', once=True)
             actual = f.getvalue().strip()
             self.assertEqual(actual, 'foo', actual)
 
     def test_log_once_ansi(self):
         f = io.StringIO()
-        with mock.patch('mesonbuild.mlog.log_file', f), \
-                mock.patch('mesonbuild.mlog._logged_once', set()):
-            mesonbuild.mlog.log_once(mesonbuild.mlog.bold('foo'))
-            mesonbuild.mlog.log_once(mesonbuild.mlog.bold('foo'))
+        with mock.patch('mesonbuild.mlog._logger.log_file', f), \
+                mock.patch('mesonbuild.mlog._logger.logged_once', set()):
+            mesonbuild.mlog.log(mesonbuild.mlog.bold('foo'), once=True)
+            mesonbuild.mlog.log(mesonbuild.mlog.bold('foo'), once=True)
             actual = f.getvalue().strip()
             self.assertEqual(actual.count('foo'), 1, actual)
 
-            mesonbuild.mlog.log_once('foo')
+            mesonbuild.mlog.log('foo', once=True)
             actual = f.getvalue().strip()
             self.assertEqual(actual.count('foo'), 1, actual)
 

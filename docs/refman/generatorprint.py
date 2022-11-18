@@ -19,7 +19,7 @@ from mesonbuild import mlog
 import typing as T
 
 def my_nested() -> T.ContextManager[None]:
-    prefix = '|' * len(mlog.log_depth)
+    prefix = '|' * mlog.get_log_depth()
     return mlog.nested(prefix)
 
 class GeneratorPrint(GeneratorBase):

@@ -76,12 +76,10 @@ class Conf:
             self.default_values_only = False
         elif os.path.isfile(os.path.join(self.build_dir, environment.build_filename)):
             # Make sure that log entries in other parts of meson don't interfere with the JSON output
-            mlog.disable()
-            self.source_dir = os.path.abspath(os.path.realpath(self.build_dir))
-            intr = mintro.IntrospectionInterpreter(self.source_dir, '', 'ninja', visitors = [AstIDGenerator()])
-            intr.analyze()
-            # Re-enable logging just in case
-            mlog.enable()
+            with mlog.no_logging():
+                self.source_dir = os.path.abspath(os.path.realpath(self.build_dir))
+                intr = mintro.IntrospectionInterpreter(self.source_dir, '', 'ninja', visitors = [AstIDGenerator()])
+                intr.analyze()
             self.coredata = intr.coredata
             self.default_values_only = True
         else:
