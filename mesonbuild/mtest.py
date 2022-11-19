@@ -1265,14 +1265,14 @@ class TestSubprocess:
 
                 # Make sure the termination signal actually kills the process
                 # group, otherwise retry with a SIGKILL.
-                with suppress(TimeoutError):
+                with suppress(asyncio.TimeoutError):
                     await asyncio.wait_for(p.wait(), timeout=0.5)
                 if p.returncode is not None:
                     return None
 
                 os.killpg(p.pid, signal.SIGKILL)
 
-            with suppress(TimeoutError):
+            with suppress(asyncio.TimeoutError):
                 await asyncio.wait_for(p.wait(), timeout=1)
             if p.returncode is not None:
                 return None
@@ -1281,7 +1281,7 @@ class TestSubprocess:
             # Try to kill it one last time with a direct call.
             # If the process has spawned children, they will remain around.
             p.kill()
-            with suppress(TimeoutError):
+            with suppress(asyncio.TimeoutError):
                 await asyncio.wait_for(p.wait(), timeout=1)
             if p.returncode is not None:
                 return None

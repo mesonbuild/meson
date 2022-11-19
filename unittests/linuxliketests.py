@@ -1820,3 +1820,11 @@ class LinuxlikeTests(BasePlatformTests):
                 default_symlinks.append(symlink)
                 os.symlink(default_dirs[i], symlink)
             self.assertFalse(cpp.compiler_args([f'-isystem{symlink}' for symlink in default_symlinks]).to_native())
+
+    def test_freezing(self):
+        testdir = os.path.join(self.unit_test_dir, '109 freeze')
+        self.init(testdir)
+        self.build()
+        with self.assertRaises(subprocess.CalledProcessError) as e:
+            self.run_tests()
+        self.assertNotIn('Traceback', e.exception.output)
