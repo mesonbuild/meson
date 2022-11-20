@@ -91,6 +91,15 @@ python --version
 echo ""
 python -m pip --disable-pip-version-check install --upgrade pefile pytest-xdist pytest-subtests jsonschema coverage
 
+# Needed for some D tests
+if ($dmd) {
+  if ($env:arch -eq 'x64') { $dmdArch = 'x86_64' } else { $dmdArch = 'x86_mscoff' }
+  echo ""
+  echo "Installing some dependencies for D tests"
+  & dub run dub-build-deep --yes -- xlsx --compiler dmd --arch $dmdArch
+  & dub run dub-build-deep --yes -- vibe-d:http --override-config vibe-d:tls/notls --compiler dmd --arch $dmdArch
+}
+
 echo ""
 echo "=== Start running tests ==="
 # Starting from VS2019 Powershell(?) will fail the test run
