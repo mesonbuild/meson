@@ -283,8 +283,7 @@ class HotdocTargetBuilder:
         self.process_known_arg("--project-version")
         self.process_known_arg("--sitemap", value_processor=self.ensure_file)
         self.process_known_arg("--html-extra-theme", value_processor=self.ensure_dir)
-        self.process_known_arg(None, "include_paths",
-                               value_processor=lambda x: [self.include_paths.add(self.ensure_dir(v)) for v in x])
+        self.include_paths.update(self.ensure_dir(v) for v in self.kwargs.pop('include_paths'))
         self.process_known_arg('--c-include-directories', argname="dependencies", value_processor=self.process_dependencies)
         self.process_gi_c_source_roots()
         self.process_extra_assets()
