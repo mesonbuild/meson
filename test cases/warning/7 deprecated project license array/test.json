@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/warning/7 deprecated project license array/meson.build:2: WARNING: Project uses feature project license as an array of strings which was deprecated in '0.63.0', and can safely be replaced without causing a regression. Use an SPDX license expression with AND and/or OR instead"
+    }
+  ]
+}
