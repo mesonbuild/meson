@@ -17,11 +17,11 @@
 import functools
 import os
 import re
-import shutil
 import subprocess
 from pathlib import Path
 
 from ..mesonlib import Popen_safe, OrderedSet, join_args
+from ..programs import ExternalProgram
 from .base import DependencyException, DependencyMethods
 from .configtool import ConfigToolDependency
 from .pkgconfig import PkgConfigDependency
@@ -159,11 +159,12 @@ def hdf5_factory(env: 'Environment', for_machine: 'MachineChoice',
     if DependencyMethods.PKGCONFIG in methods:
         # Use an ordered set so that these remain the first tried pkg-config files
         pkgconfig_files = OrderedSet(['hdf5', 'hdf5-serial'])
-        # FIXME: This won't honor pkg-config paths, and cross-native files
-        PCEXE = shutil.which('pkg-config')
+        PCEXE = PkgConfigDependency._detect_pkgbin(False, env, for_machine)
+        pcenv = PkgConfigDependency.setup_env(os.environ, env, for_machine)
         if PCEXE:
+            assert isinstance(PCEXE, ExternalProgram)
             # some distros put hdf5-1.2.3.pc with version number in .pc filename.
-            ret, stdout, _ = Popen_safe([PCEXE, '--list-all'], stderr=subprocess.DEVNULL)
+            ret, stdout, _ = Popen_safe(PCEXE.get_command() + ['--list-all'], stderr=subprocess.DEVNULL, env=pcenv)
             if ret.returncode == 0:
                 for pkg in stdout.split('\n'):
                     if pkg.startswith('hdf5'):
