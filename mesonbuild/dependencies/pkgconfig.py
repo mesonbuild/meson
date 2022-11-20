@@ -89,13 +89,13 @@ class PkgConfigDependency(ExternalDependency):
         assert isinstance(self.pkgbin, ExternalProgram)
         mlog.debug('Determining dependency {!r} with pkg-config executable '
                    '{!r}'.format(name, self.pkgbin.get_path()))
-        ret, self.version, _ = self._call_pkgbin(['--modversion', name])
-        if ret != 0:
-            return
-
-        self.is_found = True
-
         try:
+            ret, self.version, err = self._call_pkgbin(['--modversion', name])
+            if ret != 0:
+                raise DependencyException(f'Could not query version for {name}:\n{err}\n')
+
+            self.is_found = True
+
             # Fetch cargs to be used while using this dependency
             self._set_cargs()
             # Fetch the libraries and library paths needed for using this

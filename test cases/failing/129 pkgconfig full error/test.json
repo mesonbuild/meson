@@ -1,0 +1,26 @@
+{
+  "env": {
+    "PKG_CONFIG_PATH": "@ROOT@/testdata/libfoopath"
+  },
+  "stdout": [
+    {
+      "comment": "This is the error message due to libfoo failing pkg-config, there is an unwanted space char at the end of the actual error, so matching with 're' here",
+      "match": "re",
+      "line": "Run-time dependency libfoo found: NO"
+    },
+    {
+      "comment": [
+         "pkg-config --modversion used to not check dependencies and return version info, thus when a dependency does not exist",
+         "meson failure point will be diferent. If pkg-config is new, meson will fail at --modversion step, and if pkg-config is old",
+         "meson will fail at later --cflags step. Thus error messages will be different as below:",
+         "with pkg-config v0.29.1:",
+         "Package 'libbar', required by 'libfoo', not found",
+         "with v1.8.0:",
+         "pkg-config error with 'libfoo': Package libbar was not found in the pkg-config search path.",
+         "Thus below check just makes sure dependent package name appears somewhere in th eoutput"
+       ],
+      "match": "re",
+      "line": ".*libbar"
+    }
+  ]
+}

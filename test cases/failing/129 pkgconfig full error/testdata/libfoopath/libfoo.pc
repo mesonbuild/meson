@@ -1,0 +1,4 @@
+Name: libfoo
+Description: Does foo stuff
+Requires: libbar
+Version: 0.1.2
