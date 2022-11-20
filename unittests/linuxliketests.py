@@ -173,7 +173,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertEqual(libhello_nolib.get_compile_args(), [])
         self.assertEqual(libhello_nolib.get_pkgconfig_variable('foo', [], None), 'bar')
         self.assertEqual(libhello_nolib.get_pkgconfig_variable('prefix', [], None), self.prefix)
-        if version_compare(libhello_nolib.check_pkgconfig(libhello_nolib.pkgbin),">=0.29.1"):
+        if version_compare(PkgConfigDependency.check_pkgconfig(env, libhello_nolib.pkgbin),">=0.29.1"):
             self.assertEqual(libhello_nolib.get_pkgconfig_variable('escaped_var', [], None), r'hello\ world')
         self.assertEqual(libhello_nolib.get_pkgconfig_variable('unescaped_var', [], None), 'hello world')
 
