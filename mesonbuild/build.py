@@ -778,8 +778,9 @@ class BuildTarget(Target):
             elif isinstance(s, (GeneratedList, CustomTarget)):
                 msg = 'Generated files are not allowed in the \'objects\' kwarg ' + \
                     f'for target {self.name!r}.\nIt is meant only for ' + \
-                    'pre-built object files that are shipped with the\nsource ' + \
-                    'tree. Try adding it in the list of sources.'
+                    'pre-built shipped with\nthe source tree ' + \
+                    'or extracted from the target object files.\n' + \
+                    'Try adding it in the list of sources.'
                 raise InvalidArguments(msg)
             else:
                 raise InvalidArguments(f'Bad object of type {type(s).__name__!r} in target {self.name!r}.')
