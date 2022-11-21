@@ -89,7 +89,7 @@ def write_args_line(ofile: T.TextIO, name: str, args: T.Union[str, T.List[str]])
     if len(args) == 0:
         return
     if isinstance(args, str):
-        ostr = "'" + args + "'"
+        ostr = name + "= '" + args + "'\n"
     else:
         ostr = name + ' = ['
         ostr += ', '.join("'" + i + "'" for i in args)
@@ -244,6 +244,7 @@ def write_machine_file(infos: MachineInfo, ofilename: str, write_system_info: bo
             ofile.write('[cmake]\n\n')
             for k, v in infos.cmake.items():
                 write_args_line(ofile, k, v)
+            ofile.write('\n')
 
         if write_system_info:
             ofile.write('[host_machine]\n')
