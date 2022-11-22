@@ -526,9 +526,12 @@ class PythonInstallation(ExternalProgramHolder):
         for dep in mesonlib.extract_as_list(kwargs, 'dependencies'):
             if isinstance(dep, _PythonDependencyBase):
                 has_pydep = True
-                # On macOS and some Linux distros (Debian) distutils doesn't link
-                # extensions against libpython. We call into distutils and mirror its
-                # behavior. See https://github.com/mesonbuild/meson/issues/4117
+                # We call into distutils to detect whether we should
+                # link libpython or not. On macOS and Linux the
+                # extension module should not be linked against
+                # libpython. As it is not possible to know whether the
+                # dependency passed in by the user links to libpython
+                # or not, we strip away the linker flags.
                 if not self.link_libpython:
                     dep = dep.get_partial_dependency(compile_args=True)
             new_deps.append(dep)
@@ -536,6 +539,14 @@ class PythonInstallation(ExternalProgramHolder):
             pydep = self._dependency_method_impl({})
             if not pydep.found():
                 raise mesonlib.MesonException('Python dependency not found')
+            # We call into distutils to detect whether we should link
+            # libpython or not. On macOS and Linux the extension
+            # module should not be linked against libpython. However,
+            # Python <= 3.7 pkg-config metadata contains linker flags
+            # for linking against libpython, thus we need to strip
+            # them away.
+            if not self.link_libpython:
+                pydep = pydep.get_partial_dependency(compile_args=True)
             new_deps.append(pydep)
             FeatureNew.single_use('python_installation.extension_module with implicit dependency on python',
                                   '0.63.0', self.subproject, 'use python_installation.dependency()',
