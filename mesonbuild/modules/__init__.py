@@ -88,9 +88,11 @@ class ModuleState:
     def find_program(self, prog: T.Union[str, T.List[str]], required: bool = True,
                      version_func: T.Optional[T.Callable[['ExternalProgram'], str]] = None,
                      wanted: T.Optional[str] = None, silent: bool = False,
-                     for_machine: MachineChoice = MachineChoice.HOST) -> 'ExternalProgram':
+                     for_machine: MachineChoice = MachineChoice.HOST,
+                     search_dirs: T.Optional[T.List[str]] = None) -> 'ExternalProgram':
         return self._interpreter.find_program_impl(prog, required=required, version_func=version_func,
-                                                   wanted=wanted, silent=silent, for_machine=for_machine)
+                                                   wanted=wanted, silent=silent, for_machine=for_machine,
+                                                   search_dirs=search_dirs)
 
     def find_tool(self, name: str, depname: str, varname: str, required: bool = True,
                   wanted: T.Optional[str] = None) -> T.Union['Executable', ExternalProgram, 'OverrideProgram']:
@@ -115,10 +117,16 @@ class ModuleState:
         return self.find_program(name, required=required, wanted=wanted)
 
     def dependency(self, depname: str, native: bool = False, required: bool = True,
-                   wanted: T.Optional[str] = None) -> 'Dependency':
+                   wanted: T.Optional[str] = None,
+                   modules: T.Optional[T.List[str]] = None,
+                   method: T.Optional[DependencyMethods] = None) -> 'Dependency':
         kwargs = {'native': native, 'required': required}
         if wanted:
             kwargs['version'] = wanted
+        if modules:
+            kwargs['modules'] = modules
+        if method:
+            kwargs['method'] = method
         # FIXME: Even if we fix the function, mypy still can't figure out what's
         # going on here. And we really dont want to call interpreter
         # implementations of meson functions anyway.
