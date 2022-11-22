@@ -78,13 +78,15 @@ methods:
   description: You have found a bug if you can see this!
   kwargs:
     prefix:
-      type: str
+      type: str | list[str]
       description: |
         Used to add `#include`s and other things that are required
-        for the symbol to be declared. System definitions should be
-        passed via compiler args (eg: `_GNU_SOURCE` is often required for
-        some symbols to be exposed on Linux, and it should be passed via
-        `args` keyword argument).
+        for the symbol to be declared. Since 1.0.0 an array is accepted
+        too. When an array is passed, the items are concatenated together
+        separated by a newline.
+        System definitions should be passed via compiler args
+        (eg: `_GNU_SOURCE` is often required for some symbols to be exposed
+        on Linux, and it should be passed via `args` keyword argument).
 
 - name: _no_builtin_args
   returns: void
