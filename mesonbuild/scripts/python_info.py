@@ -13,7 +13,6 @@ if sys.path[0].endswith('scripts'):
     del sys.path[0]
 
 import json, os, sysconfig
-import distutils.command.install
 
 def get_distutils_paths(scheme=None, prefix=None):
     import distutils.dist
@@ -37,15 +36,32 @@ def get_distutils_paths(scheme=None, prefix=None):
 # default scheme to a custom one pointing to /usr/local and replacing
 # site-packages with dist-packages.
 # See https://github.com/mesonbuild/meson/issues/8739.
-# XXX: We should be using sysconfig, but Debian only patches distutils.
+#
+# We should be using sysconfig, but before 3.10.3, Debian only patches distutils.
+# So we may end up falling back.
 
-if 'deb_system' in distutils.command.install.INSTALL_SCHEMES:
-    paths = get_distutils_paths(scheme='deb_system')
-    install_paths = get_distutils_paths(scheme='deb_system', prefix='')
-else:
-    paths = sysconfig.get_paths()
+def get_install_paths():
+    if sys.version_info >= (3, 10):
+        scheme = sysconfig.get_default_scheme()
+    else:
+        scheme = sysconfig._get_default_scheme()
+
+    if sys.version_info >= (3, 10, 3):
+        if 'deb_system' in sysconfig.get_scheme_names():
+            scheme = 'deb_system'
+    else:
+        import distutils.command.install
+        if 'deb_system' in distutils.command.install.INSTALL_SCHEMES:
+            paths = get_distutils_paths(scheme='deb_system')
+            install_paths = get_distutils_paths(scheme='deb_system', prefix='')
+            return paths, install_paths
+
+    paths = sysconfig.get_paths(scheme=scheme)
     empty_vars = {'base': '', 'platbase': '', 'installed_base': ''}
-    install_paths = sysconfig.get_paths(vars=empty_vars)
+    install_paths = sysconfig.get_paths(scheme=scheme, vars=empty_vars)
+    return paths, install_paths
+
+paths, install_paths = get_install_paths()
 
 def links_against_libpython():
     from distutils.core import Distribution, Extension
