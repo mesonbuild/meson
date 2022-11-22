@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from __future__ import annotations
-
+import functools
 import os
 import typing as T
 
@@ -172,7 +172,7 @@ class RustModule(ExtensionModule):
             listify=True,
             required=True,
         ),
-        INCLUDE_DIRECTORIES.evolve(feature_validator=include_dir_string_new),
+        INCLUDE_DIRECTORIES.evolve(feature_validator=functools.partial(include_dir_string_new, '1.0.0')),
         OUTPUT_KW,
         DEPENDENCIES_KW.evolve(since='1.0.0'),
     )
