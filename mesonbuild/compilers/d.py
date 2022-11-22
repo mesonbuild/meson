@@ -314,7 +314,9 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
                 continue
             if arg.startswith('-fstack-protector'):
                 continue
-            if arg.startswith('-D'):
+            if arg.startswith('-D') and not (arg == '-D' or arg.startswith(('-Dd', '-Df'))):
+                # ignore all '-D*' flags (like '-D_THREAD_SAFE')
+                # unless they are related to documentation
                 continue
             if arg.startswith('-Wl,'):
                 # Translate linker arguments here.
