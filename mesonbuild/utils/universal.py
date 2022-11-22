@@ -32,6 +32,7 @@ import typing as T
 import textwrap
 import copy
 import pickle
+import errno
 
 from mesonbuild import mlog
 from .core import MesonException, HoldableObject
@@ -1413,12 +1414,19 @@ def Popen_safe(args: T.List[str], write: T.Optional[str] = None,
     # If write is not None, set stdin to PIPE so data can be sent.
     if write is not None:
         stdin = subprocess.PIPE
-    if not sys.stdout.encoding or encoding.upper() != 'UTF-8':
-        p, o, e = Popen_safe_legacy(args, write=write, stdin=stdin, stdout=stdout, stderr=stderr, **kwargs)
-    else:
-        p = subprocess.Popen(args, universal_newlines=True, encoding=encoding, close_fds=False,
-                             stdin=stdin, stdout=stdout, stderr=stderr, **kwargs)
-        o, e = p.communicate(write)
+
+    try:
+        if not sys.stdout.encoding or encoding.upper() != 'UTF-8':
+            p, o, e = Popen_safe_legacy(args, write=write, stdin=stdin, stdout=stdout, stderr=stderr, **kwargs)
+        else:
+            p = subprocess.Popen(args, universal_newlines=True, encoding=encoding, close_fds=False,
+                                 stdin=stdin, stdout=stdout, stderr=stderr, **kwargs)
+            o, e = p.communicate(write)
+    except OSError as oserr:
+        if oserr.errno == errno.ENOEXEC:
+            raise MesonException(f'Failed running {args[0]!r}, binary or interpreter not executable.\n'
+                                 'Possibly wrong architecture or the executable bit is not set.')
+        raise
     # Sometimes the command that we run will call another command which will be
     # without the above stdin workaround, so set the console mode again just in
     # case.
