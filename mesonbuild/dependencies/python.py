@@ -13,7 +13,7 @@
 # limitations under the License.
 from __future__ import annotations
 
-import functools, json, os, textwrap
+import functools, json, os, textwrap, sys
 from pathlib import Path
 import typing as T
 
@@ -111,21 +111,32 @@ class BasicPythonExternalProgram(ExternalProgram):
     def sanity(self) -> bool:
         # Sanity check, we expect to have something that at least quacks in tune
 
-        import importlib.resources
-
-        with importlib.resources.path('mesonbuild.scripts', 'python_info.py') as f:
-            cmd = self.get_command() + [str(f)]
-            p, stdout, stderr = mesonlib.Popen_safe(cmd)
-
-        try:
-            info = json.loads(stdout)
-        except json.JSONDecodeError:
-            info = None
-            mlog.debug('Could not introspect Python (%s): exit code %d' % (str(p.args), p.returncode))
-            mlog.debug('Program stdout:\n')
-            mlog.debug(stdout)
-            mlog.debug('Program stderr:\n')
-            mlog.debug(stderr)
+        if self.path == sys.executable:
+            try:
+                from ..scripts import python_info
+                info = python_info.main()  # type: ignore[attr-defined]
+            except Exception:
+                import traceback
+                info = None
+                mlog.debug('Could not introspect internal Python')
+                mlog.debug('Error traceback:\n')
+                mlog.debug(traceback.format_exc())
+        else:
+            import importlib.resources
+            with importlib.resources.path('mesonbuild.scripts', 'python_info.py') as f:
+                cmd = self.get_command() + [os.fspath(f)]
+                print(f'running command: {cmd}')
+                print(f'running command: {mesonlib.join_args(str(s) for s in cmd)}')
+                p, stdout, stderr = mesonlib.Popen_safe(cmd)
+            try:
+                info = json.loads(stdout)
+            except json.JSONDecodeError:
+                info = None
+                mlog.debug('Could not introspect Python (%s): exit code %d' % (str(p.args), p.returncode))
+                mlog.debug('Program stdout:\n')
+                mlog.debug(stdout)
+                mlog.debug('Program stderr:\n')
+                mlog.debug(stderr)
 
         if info is not None and self._check_version(info['version']):
             self.info = T.cast('PythonIntrospectionDict', info)
