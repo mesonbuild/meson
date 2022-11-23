@@ -64,10 +64,19 @@ def get_install_paths():
 paths, install_paths = get_install_paths()
 
 def links_against_libpython():
-    from distutils.core import Distribution, Extension
-    cmd = Distribution().get_command_obj('build_ext')
-    cmd.ensure_finalized()
-    return bool(cmd.get_libraries(Extension('dummy', [])))
+    # on versions supporting python-embed.pc, this is the non-embed lib
+    #
+    # PyPy is not yet up to 3.12 and work is still pending to export the
+    # relevant information (it doesn't automatically provide arbitrary
+    # Makefile vars)
+    if sys.version_info >= (3, 8) and not is_pypy:
+        variables = sysconfig.get_config_vars()
+        return bool(variables.get('LIBPYTHON', 'yes'))
+    else:
+        from distutils.core import Distribution, Extension
+        cmd = Distribution().get_command_obj('build_ext')
+        cmd.ensure_finalized()
+        return bool(cmd.get_libraries(Extension('dummy', [])))
 
 variables = sysconfig.get_config_vars()
 variables.update({'base_prefix': getattr(sys, 'base_prefix', sys.prefix)})
