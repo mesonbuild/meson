@@ -410,19 +410,12 @@ class GnomeModule(ExtensionModule):
         target_name, input_file = args
 
         # Validate dependencies
-        subdirs: T.List[str] = []
-        depends: T.List[T.Union[build.CustomTarget, build.CustomTargetIndex]] = []
-        for dep in dependencies:
-            if isinstance(dep, mesonlib.File):
-                subdirs.append(dep.subdir)
-            else:
-                depends.append(dep)
-                subdirs.append(dep.get_subdir())
-                if not mesonlib.version_compare(glib_version, gresource_dep_needed_version):
-                    m = 'The "dependencies" argument of gnome.compile_resources() can not\n' \
-                        'be used with the current version of glib-compile-resources due to\n' \
-                        '<https://bugzilla.gnome.org/show_bug.cgi?id=774368>'
-                    raise MesonException(m)
+        if any(not isinstance(dep, mesonlib.File) for dep in dependencies):
+            if not mesonlib.version_compare(glib_version, gresource_dep_needed_version):
+                m = 'The "dependencies" argument of gnome.compile_resources() can not\n' \
+                    'be used with the current version of glib-compile-resources due to\n' \
+                    '<https://bugzilla.gnome.org/show_bug.cgi?id=774368>'
+                raise MesonException(m)
 
         if not mesonlib.version_compare(glib_version, gresource_dep_needed_version):
             # Resource xml files generated at build-time cannot be used with
