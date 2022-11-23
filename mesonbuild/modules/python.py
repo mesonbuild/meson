@@ -121,6 +121,17 @@ class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
         if libpc and not self.is_found:
             mlog.debug(f'"python-{self.version}" could not be found in LIBPC, this is likely due to a relocated python installation')
 
+        # The "-embed" version of python.pc was introduced in 3.8, and distutils
+        # extension linking was changed to be considered a non embed usage. Before
+        # then, this dependency always uses the embed=True file because that is the
+        # only one that exists,
+        #
+        # On macOS and some Linux distros (Debian) distutils doesn't link extensions
+        # against libpython, even on 3.7 and below. We call into distutils and
+        # mirror its behavior. See https://github.com/mesonbuild/meson/issues/4117
+        if not self.embed and not self.link_libpython and mesonlib.version_compare(self.version, '< 3.8'):
+            self.link_args = []
+
 
 class PythonFrameworkDependency(ExtraFrameworkDependency, _PythonDependencyBase):
 
@@ -529,17 +540,8 @@ class PythonInstallation(ExternalProgramHolder):
 
             kwargs['install_dir'] = self._get_install_dir_impl(False, subdir)
 
-        new_deps = []
-        has_pydep = False
-        for dep in mesonlib.extract_as_list(kwargs, 'dependencies'):
-            if isinstance(dep, _PythonDependencyBase):
-                has_pydep = True
-                # On macOS and some Linux distros (Debian) distutils doesn't link
-                # extensions against libpython. We call into distutils and mirror its
-                # behavior. See https://github.com/mesonbuild/meson/issues/4117
-                if not self.link_libpython:
-                    dep = dep.get_partial_dependency(compile_args=True)
-            new_deps.append(dep)
+        new_deps = mesonlib.extract_as_list(kwargs, 'dependencies')
+        has_pydep = any(isinstance(dep, _PythonDependencyBase) for dep in new_deps)
         if not has_pydep:
             pydep = self._dependency_method_impl({})
             if not pydep.found():
