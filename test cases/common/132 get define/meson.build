@@ -66,6 +66,13 @@ foreach lang : ['c', 'cpp']
   have = cc.get_define('MESON_FAIL_VALUE')
   assert(have == '', 'MESON_FAIL_VALUE value is "@0@" instead of ""'.format(have))
 
+  # Check if prefix array works properly and has the expected order
+  have = cc.get_define('MESON_FAIL_VALUE', prefix: ['#define MESON_FAIL_VALUE 1', '#undef MESON_FAIL_VALUE'])
+  assert(have == '', 'MESON_FAIL_VALUE value is "@0@" instead of ""'.format(have))
+
+  have = cc.get_define('MESON_SUCCESS_VALUE', prefix: ['#undef MESON_SUCCESS_VALUE', '#define MESON_SUCCESS_VALUE 1'])
+  assert(have == '1', 'MESON_SUCCESS_VALUE value is "@0@" instead of ""'.format(have))
+
   # This is used in the test_preprocessor_checks_CPPFLAGS() unit test.
   have = cc.get_define('MESON_TEST_DEFINE_VALUE')
   expect = get_option('MESON_TEST_DEFINE_VALUE')
