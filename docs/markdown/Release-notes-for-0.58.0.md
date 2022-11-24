@@ -150,7 +150,7 @@ include/*
 
 The file `.clang-format-ignore` contains a list of patterns matching the files
 that will be excluded. Files matching the include list (see above) that match
-one of the ignore pattern will not be reformatted. Unlike include patters, ignore
+one of the ignore pattern will not be reformatted. Unlike include patterns, ignore
 patterns does not support `**` and a single `*` match any characters including
 path separators. Empty lines and lines starting with `#` are ignored.
 

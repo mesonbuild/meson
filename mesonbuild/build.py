@@ -388,7 +388,7 @@ class IncludeDirs(HoldableObject):
         """Convert IncludeDirs object to a list of strings.
 
         :param sourcedir: The absolute source directory
-        :param builddir: The absolute build directory, option, buid dir will not
+        :param builddir: The absolute build directory, option, build dir will not
             be added if this is unset
         :returns: A list of strings (without compiler argument)
         """
@@ -2562,7 +2562,7 @@ class CustomTarget(Target, CommandBase):
 
     def is_internal(self) -> bool:
         '''
-        Returns True iif this is a not installed static library.
+        Returns True if this is a not installed static library.
         '''
         if len(self.outputs) != 1:
             return False
@@ -2805,7 +2805,7 @@ class CustomTargetIndex(HoldableObject):
 
     def is_internal(self) -> bool:
         '''
-        Returns True iif this is a not installed static library
+        Returns True if this is a not installed static library
         '''
         suf = os.path.splitext(self.output)[-1]
         return suf in {'.a', '.lib'} and not self.should_install()

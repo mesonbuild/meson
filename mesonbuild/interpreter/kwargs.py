@@ -211,7 +211,7 @@ class _FoundProto(Protocol):
 
     """Protocol for subdir arguments.
 
-    This allows us to define any objec that has a found(self) -> bool method
+    This allows us to define any object that has a found(self) -> bool method
     """
 
     def found(self) -> bool: ...

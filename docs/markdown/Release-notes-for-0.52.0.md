@@ -60,7 +60,7 @@ improved, and one can reasonably expect projects to compile.
 ## Splitting of Compiler.get_function_attribute('visibility')
 
 On macOS there is no `protected` visibility, which results in the
-visbility check always failing. 0.52.0 introduces two changes to
+visibility check always failing. 0.52.0 introduces two changes to
 improve this situation:
 
 1. the "visibility" check no longer includes "protected"

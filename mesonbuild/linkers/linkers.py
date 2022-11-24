@@ -1470,7 +1470,7 @@ class OptlinkDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
 
     def __init__(self, exelist: T.List[str], for_machine: mesonlib.MachineChoice,
                  *, version: str = 'unknown version'):
-        # Use optlink instead of link so we don't interfer with other link.exe
+        # Use optlink instead of link so we don't interfere with other link.exe
         # implementations.
         super().__init__(exelist, for_machine, '', [], version=version)
 
