@@ -186,7 +186,7 @@ class RustModule(ExtensionModule):
         header, *_deps = self.interpreter.source_strings_to_files(kwargs['input'])
 
         # Split File and Target dependencies to add pass to CustomTarget
-        depends: T.List['SourceOutputs'] = []
+        depends: T.List[T.Union[BuildTarget, CustomTarget, CustomTargetIndex, GeneratedList]] = []
         depend_files: T.List[File] = []
         for d in _deps:
             if isinstance(d, File):

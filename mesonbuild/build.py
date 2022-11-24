@@ -1726,7 +1726,6 @@ class GeneratedList(HoldableObject):
         self.infilelist: T.List['File'] = []
         self.outfilelist: T.List[str] = []
         self.outmap: T.Dict[File, T.List[str]] = {}
-        self.extra_depends = []  # XXX: Doesn't seem to be used?
         self.depend_files: T.List[File] = []
 
         if self.extra_args is None:
@@ -2417,7 +2416,7 @@ class CustomTarget(Target, CommandBase):
                  capture: bool = False,
                  console: bool = False,
                  depend_files: T.Optional[T.Sequence[FileOrString]] = None,
-                 extra_depends: T.Optional[T.Sequence[T.Union[str, SourceOutputs]]] = None,
+                 extra_depends: T.Optional[T.Sequence[T.Union[BuildTarget, CustomTarget, CustomTargetIndex, GeneratedList]]] = None,
                  depfile: T.Optional[str] = None,
                  env: T.Optional[EnvironmentVariables] = None,
                  feed: bool = False,
