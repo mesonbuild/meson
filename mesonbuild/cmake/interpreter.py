@@ -483,7 +483,7 @@ class ConverterTarget:
                 # suffix and just produces object files like `foo.obj`. Thus we have to do our best to
                 # undo this step and guess the correct language suffix of the object file. This is done
                 # by trying all language suffixes meson knows and checking if one of them fits.
-                candidates = [j]  # type: T.List[str]
+                candidates = [j]
                 if not any(j.endswith('.' + x) for x in exts):
                     mlog.warning('Object files do not contain source file extensions, thus falling back to guessing them.', once=True)
                     candidates += [f'{j}.{x}' for x in exts]
@@ -583,8 +583,8 @@ class ConverterTarget:
 
 class CustomTargetReference:
     def __init__(self, ctgt: 'ConverterCustomTarget', index: int) -> None:
-        self.ctgt = ctgt    # type: ConverterCustomTarget
-        self.index = index  # type: int
+        self.ctgt = ctgt
+        self.index = index
 
     def __repr__(self) -> str:
         if self.valid():
@@ -599,8 +599,8 @@ class CustomTargetReference:
         return self.ctgt.outputs[self.index]
 
 class ConverterCustomTarget:
-    tgt_counter = 0  # type: int
-    out_counter = 0  # type: int
+    tgt_counter = 0
+    out_counter = 0
 
     def __init__(self, target: CMakeGeneratorTarget, env: 'Environment', for_machine: MachineChoice) -> None:
         assert target.current_bin_dir is not None
@@ -618,8 +618,8 @@ class ConverterCustomTarget:
         self.depends_raw = target.depends
         self.inputs = []                                # type: T.List[T.Union[str, CustomTargetReference]]
         self.depends = []                               # type: T.List[T.Union[ConverterTarget, ConverterCustomTarget]]
-        self.current_bin_dir = target.current_bin_dir   # type: Path
-        self.current_src_dir = target.current_src_dir   # type: Path
+        self.current_bin_dir = target.current_bin_dir
+        self.current_src_dir = target.current_src_dir
         self.env = env
         self.for_machine = for_machine
         self._raw_target = target
@@ -1195,7 +1195,7 @@ class CMakeInterpreter:
             # directory.
 
             detect_cycle(tgt)
-            tgt_var = tgt.name  # type: str
+            tgt_var = tgt.name
 
             def resolve_source(x: T.Union[str, ConverterTarget, ConverterCustomTarget, CustomTargetReference]) -> T.Union[str, IdNode, IndexNode]:
                 if isinstance(x, ConverterTarget):
