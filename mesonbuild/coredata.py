@@ -821,7 +821,7 @@ class CoreData:
                 continue
             elif k in self.options:
                 self.set_option(k, v)
-            elif k.machine != MachineChoice.BUILD:
+            elif k.machine != MachineChoice.BUILD and k.type != OptionType.COMPILER:
                 unknown_options.append(k)
         if unknown_options:
             unknown_options_str = ', '.join(sorted(str(s) for s in unknown_options))
