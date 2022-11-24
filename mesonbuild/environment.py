@@ -676,7 +676,7 @@ class Environment:
                             # acts as a linker driver, `-Dc_args` will not.
                             #
                             # We still use the original key as the base here, as
-                            # we want to inhert the machine and the compiler
+                            # we want to inherit the machine and the compiler
                             # language
                             key = key.evolve('env_args')
                         env_opts[key].extend(p_list)

@@ -1562,7 +1562,7 @@ class Backend:
                 raise MesonException(m.format(t.name, num_out, t.get_outputs(), num_outdirs))
             assert len(t.install_tag) == num_out
             install_mode = t.get_custom_install_mode()
-            # because mypy get's confused type narrowing in lists
+            # because mypy gets confused type narrowing in lists
             first_outdir = outdirs[0]
             first_outdir_name = install_dir_names[0]
 

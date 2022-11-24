@@ -26,7 +26,7 @@ class BaseObject(T.TypedDict):
 
 class Type(T.TypedDict):
     obj:   str                 # References an object from `root.objects`
-    holds: T.Sequence[object]  # Mypy does not support recusive dicts, but this should be T.List[Type]...
+    holds: T.Sequence[object]  # Mypy does not support recursive dicts, but this should be T.List[Type]...
 
 class Argument(BaseObject):
     '''

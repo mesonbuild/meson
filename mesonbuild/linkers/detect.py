@@ -104,7 +104,7 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
             prefix=comp_class.LINKER_PREFIX if use_linker_prefix else [],
             exelist=compiler, version=search_version(o), direct=invoked_directly)
     elif 'OPTLINK' in o:
-        # Opltink's stdout *may* beging with a \r character.
+        # Optlink's stdout *may* begin with a \r character.
         return OptlinkDynamicLinker(compiler, for_machine, version=search_version(o))
     elif o.startswith('Microsoft') or e.startswith('Microsoft'):
         out = o or e

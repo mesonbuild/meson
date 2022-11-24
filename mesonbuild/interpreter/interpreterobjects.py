@@ -323,7 +323,7 @@ class ConfigurationDataHolder(ObjectHolder[build.ConfigurationData], MutableInte
     @typed_kwargs('configuration_data.set10', _CONF_DATA_SET_KWS)
     def set10_method(self, args: T.Tuple[str, T.Union[int, bool]], kwargs: 'kwargs.ConfigurationDataSet') -> None:
         self.__check_used()
-        # bool is a subclass of int, so we need to check for bool excplicitly.
+        # bool is a subclass of int, so we need to check for bool explicitly.
         # We already have typed_pos_args checking that this is either a bool or
         # an int.
         if not isinstance(args[1], bool):
