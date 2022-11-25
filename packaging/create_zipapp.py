@@ -3,6 +3,7 @@
 import argparse
 from pathlib import Path
 import shutil
+import subprocess
 import sys
 import tempfile
 import zipapp
@@ -14,6 +15,12 @@ parser.add_argument('--interpreter', default='/usr/bin/env python3', help='The n
 parser.add_argument('--compress', action='store_true', default=False, help='Compress files')
 
 options = parser.parse_args(sys.argv[1:])
+
+try:
+    subprocess.check_call(options.interpreter + ' -c "import ctypes"', shell=True)
+except subprocess.CalledProcessError:
+    print('Python interpreter is lacking ctypes module', file=sys.stderr)
+    sys.exit(1)
 
 source = Path(options.source).resolve()
 
