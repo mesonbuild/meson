@@ -136,7 +136,7 @@ kwargs:
       argument. Useful for adding regen dependencies.
 
   depends:
-    type: list[build_tgt | custom_tgt | custom_idx | file | str]
+    type: list[build_tgt | custom_tgt | custom_idx | generated_list | file | str]
     description: |
       Specifies that this target depends on the specified
       target(s), even though it does not take any of them as a command
@@ -144,7 +144,7 @@ kwargs:
       e.g. does globbing internally. Usually you should just put the
       generated sources as inputs and Meson will set up all dependencies
       automatically.
-      *Since 1.0.0*: Can also be a custom target index, Files or Strings.
+      *Since 1.0.0*: Can also be a custom target index, generator, Files or Strings.
 
   depfile:
     type: str
