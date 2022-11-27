@@ -53,6 +53,12 @@ Keyword arguments are the following:
   *Since 0.49.0*
 - `modules`: a list of module names that this python installation must have.
   *Since 0.51.0*
+- `pure`: On some platforms, architecture independent files are
+  expected to be placed in a separate directory. However, if the
+  python sources should be installed alongside an extension module
+  built with this module, this keyword argument can be used to
+  override the default behavior of `.install_sources()`.
+  *since 0.64.0*
 
 **Returns**: a [python installation][`python_installation` object]
 
@@ -143,7 +149,8 @@ to control the default installation path. See [Python module options](Builtin-op
   expected to be placed in a separate directory. However, if the
   python sources should be installed alongside an extension module
   built with this module, this keyword argument can be used to
-  override that behaviour. Defaults to `true`
+  override that behaviour. Defaults to the value specified in
+  `find_installation()`, or else `true`
 
 - `subdir`: See documentation for the argument of the same name to
   [][`extension_module()`]
