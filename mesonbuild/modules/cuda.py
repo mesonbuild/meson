@@ -246,11 +246,26 @@ class CudaModule(NewExtensionModule):
                 cuda_hi_limit_gpu_architecture = '8.6'        # noqa: E221
 
         if version_compare(cuda_version, '>=11.1'):
-            cuda_common_gpu_architectures += ['8.6', '8.6+PTX']  # noqa: E221
-            cuda_all_gpu_architectures    += ['8.6']             # noqa: E221
+            cuda_all_gpu_architectures    += ['8.6']          # noqa: E221
 
-            if version_compare(cuda_version, '<12.0'):
-                cuda_hi_limit_gpu_architecture = '9.0'        # noqa: E221
+            if version_compare(cuda_version, '<11.8'):
+                cuda_common_gpu_architectures += ['8.6', '8.6+PTX'] # noqa: E221
+                cuda_hi_limit_gpu_architecture = '8.7'              # noqa: E221
+
+        if version_compare(cuda_version, '>=11.8'):
+            cuda_common_gpu_architectures += ['8.7', '8.7+PTX'] # noqa: E221
+            cuda_all_gpu_architectures    += ['8.7']            # noqa: E221
+
+            cuda_known_gpu_architectures  += ['Ada']            # noqa: E221
+            cuda_common_gpu_architectures += ['8.9', '8.9+PTX'] # noqa: E221
+            cuda_all_gpu_architectures    += ['8.9']            # noqa: E221
+
+            cuda_known_gpu_architectures  += ['Hopper']         # noqa: E221
+            cuda_all_gpu_architectures    += ['9.0']            # noqa: E221
+
+            if version_compare(cuda_version, '<12'):
+                cuda_common_gpu_architectures += ['9.0', '9.0+PTX'] # noqa: E221
+                cuda_hi_limit_gpu_architecture = '9.1'              # noqa: E221
 
         if not cuda_arch_list:
             cuda_arch_list = 'Auto'
@@ -301,6 +316,8 @@ class CudaModule(NewExtensionModule):
                     'Xavier':        (['7.2'],             []),
                     'Turing':        (['7.5'],             ['7.5']),
                     'Ampere':        (['8.0'],             ['8.0']),
+                    'Ada':           (['8.9'],             ['8.9']),
+                    'Hopper':        (['9.0'],             ['9.0']),
                 }.get(arch_name, (None, None))
 
             if arch_bin is None:
