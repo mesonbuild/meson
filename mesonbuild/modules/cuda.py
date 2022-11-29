@@ -337,7 +337,7 @@ class CudaModule(NewExtensionModule):
 
             if version_compare(arch, '<' + cuda_lo_limit_gpu_architecture):
                 continue
-            if version_compare(arch, '>=' + cuda_hi_limit_gpu_architecture):
+            if cuda_hi_limit_gpu_architecture and version_compare(arch, '>=' + cuda_hi_limit_gpu_architecture):
                 continue
 
             if codev:
@@ -359,7 +359,7 @@ class CudaModule(NewExtensionModule):
 
             if version_compare(arch, '<' + cuda_lo_limit_gpu_architecture):
                 continue
-            if version_compare(arch, '>=' + cuda_hi_limit_gpu_architecture):
+            if cuda_hi_limit_gpu_architecture and version_compare(arch, '>=' + cuda_hi_limit_gpu_architecture):
                 continue
 
             arch = arch.replace('.', '')
