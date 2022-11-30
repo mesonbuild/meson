@@ -15,8 +15,11 @@ methods:
 
     Returns a string pointing to the script or executable.
 
-    **NOTE:** You should not need to use this method. Passing the object itself
-    should work in all cases.
+    **NOTE:** You should not usually need to use this method. Passing the
+    object itself should work in most contexts where a program can appear,
+    and allows Meson to setup inter-target dependencies correctly. Only
+    use this if you specifically need a string, such as when embedding a
+    program path into a header file.
 
     For example:
 
@@ -38,8 +41,11 @@ methods:
   description: |
     Returns a string pointing to the script or executable.
 
-    **NOTE:** You should not need to use this method. Passing the object itself
-    should work in all cases.
+    **NOTE:** You should not usually need to use this method. Passing the
+    object itself should work in most contexts where a program can appear,
+    and allows Meson to setup inter-target dependencies correctly. Only
+    use this if you specifically need a string, such as when embedding a
+    program path into a header file.
 
     For example:
 
