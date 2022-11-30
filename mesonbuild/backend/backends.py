@@ -18,6 +18,7 @@ from dataclasses import dataclass, InitVar
 from functools import lru_cache
 from itertools import chain
 from pathlib import Path
+import copy
 import enum
 import json
 import os
@@ -1141,9 +1142,21 @@ class Backend:
                     cmd_args.extend(self.construct_target_rel_paths(a, t.workdir))
                 else:
                     raise MesonException('Bad object in test command.')
+
+            t_env = copy.deepcopy(t.env)
+            if not machine.is_windows() and not machine.is_cygwin() and not machine.is_darwin():
+                ld_lib_path: T.Set[str] = set()
+                for d in depends:
+                    if isinstance(d, build.BuildTarget):
+                        for l in d.get_all_link_deps():
+                            if isinstance(l, build.SharedLibrary):
+                                ld_lib_path.add(os.path.join(self.environment.get_build_dir(), l.get_subdir()))
+                if ld_lib_path:
+                    t_env.prepend('LD_LIBRARY_PATH', list(ld_lib_path), ':')
+
             ts = TestSerialisation(t.get_name(), t.project_name, t.suite, cmd, is_cross,
                                    exe_wrapper, self.environment.need_exe_wrapper(),
-                                   t.is_parallel, cmd_args, t.env,
+                                   t.is_parallel, cmd_args, t_env,
                                    t.should_fail, t.timeout, t.workdir,
                                    extra_paths, t.protocol, t.priority,
                                    isinstance(exe, build.Target),
