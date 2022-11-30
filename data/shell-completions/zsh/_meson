@@ -151,10 +151,10 @@ local -a meson_commands=(
   '--cross-file=[cross-compilation environment description]:cross file:_files' \
   '--native-file=[build machine compilation environment description]:native file:_files' \
   '--clearcache[clear cached state]' \
-  '--fatal-meson-warnings=[exit when any meson warnings are encountered]' \
+  '--fatal-meson-warnings[exit when any meson warnings are encountered]' \
   '(-v --version)'{'-v','--version'}'[print the meson version and exit]' \
-  '--reconfigure=[re-run build configuration]' \
-  '--wipe=[delete saved state and restart using saved command line options]' \
+  '--reconfigure[re-run build configuration]' \
+  '--wipe[delete saved state and restart using saved command line options]' \
   ":$firstd directory:_directories" \
   "::$secondd directory:_directories" \
   "${(@)__meson_common}"
