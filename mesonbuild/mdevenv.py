@@ -20,7 +20,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
                         help='Directory to cd into before running')
     parser.add_argument('--dump', action='store_true',
                         help='Only print required environment (Since 0.62.0)')
-    parser.add_argument('command', nargs=argparse.REMAINDER,
+    parser.add_argument('devcmd', nargs=argparse.REMAINDER, metavar='command',
                         help='Command to run in developer environment (default: interactive shell)')
 
 def get_windows_shell() -> T.Optional[str]:
@@ -131,7 +131,7 @@ def run(options: argparse.Namespace) -> int:
 
     devenv, varnames = get_env(b)
     if options.dump:
-        if options.command:
+        if options.devcmd:
             raise MesonException('--dump option does not allow running other command.')
         for name in varnames:
             print(f'{name}={quote_arg(devenv[name])}')
@@ -143,7 +143,7 @@ def run(options: argparse.Namespace) -> int:
 
     setup_vsenv(b.need_vsenv)
 
-    args = options.command
+    args = options.devcmd
     if not args:
         prompt_prefix = f'[{b.project_name}]'
         shell_env = os.environ.get("SHELL")
