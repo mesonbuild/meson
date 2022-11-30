@@ -204,12 +204,12 @@ class PkgConfigDependency(ExternalDependency):
         return shlex.split(cmd)
 
     def _set_cargs(self) -> None:
-        env = None
-        if self.language == 'fortran':
-            # gfortran doesn't appear to look in system paths for INCLUDE files,
-            # so don't allow pkg-config to suppress -I flags for system paths
-            env = os.environ.copy()
-            env['PKG_CONFIG_ALLOW_SYSTEM_CFLAGS'] = '1'
+        # gfortran doesn't appear to look in system paths for INCLUDE files,
+        # so don't allow pkg-config to suppress -I flags for system paths
+        # Also pkgconf suppresses the prefix it was installed to
+        # when built with Meson
+        env = os.environ.copy()
+        env['PKG_CONFIG_ALLOW_SYSTEM_CFLAGS'] = '1'
         ret, out, err = self._call_pkgbin(['--cflags', self.name], env=env)
         if ret != 0:
             raise DependencyException(f'Could not generate cargs for {self.name}:\n{err}\n')
