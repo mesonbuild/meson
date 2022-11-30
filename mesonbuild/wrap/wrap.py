@@ -582,8 +582,11 @@ class Resolver:
                         verbose_git(['fetch', self.wrap.get('url'), revno], self.dirname, check=True)
                         verbose_git(checkout_cmd, self.dirname, check=True)
             else:
-                verbose_git(['-c', 'advice.detachedHead=false', 'clone', *depth_option, '--branch', revno, self.wrap.get('url'),
-                             self.directory], self.subdir_root, check=True)
+                args = ['-c', 'advice.detachedHead=false', 'clone', *depth_option]
+                if revno.lower() != 'head':
+                    args += ['--branch', revno]
+                args += [self.wrap.get('url'), self.directory]
+                verbose_git(args, self.subdir_root, check=True)
             if self.wrap.values.get('clone-recursive', '').lower() == 'true':
                 verbose_git(['submodule', 'update', '--init', '--checkout', '--recursive', *depth_option],
                             self.dirname, check=True)
