@@ -103,15 +103,20 @@ class SubprojectsCommandTests(BasePlatformTests):
         self._git_remote(['commit', '--no-gpg-sign', '--allow-empty', '-m', f'tag {tag} commit'], name)
         self._git_remote(['tag', '--no-sign', tag], name)
 
-    def _wrap_create_git(self, name, revision='master'):
+    def _wrap_create_git(self, name, revision='master', depth=None):
         path = self.root_dir / name
         with open(str((self.subprojects_dir / name).with_suffix('.wrap')), 'w', encoding='utf-8') as f:
+            if depth is None:
+                depth_line = ''
+            else:
+                depth_line = 'depth = {}'.format(depth)
             f.write(textwrap.dedent(
                 '''
                 [wrap-git]
                 url={}
                 revision={}
-                '''.format(os.path.abspath(str(path)), revision)))
+                {}
+                '''.format(os.path.abspath(str(path)), revision, depth_line)))
 
     def _wrap_create_file(self, name, tarball='dummy.tar.gz'):
         path = self.root_dir / tarball
@@ -204,6 +209,15 @@ class SubprojectsCommandTests(BasePlatformTests):
         self.assertIn('Not a git repository', cm.exception.output)
         self._subprojects_cmd(['update', '--reset'])
         self.assertEqual(self._git_local_commit(subp_name), self._git_remote_commit(subp_name))
+
+        # Create a fake remote git repository and a wrap file targeting
+        # HEAD and depth = 1. Checks that "meson subprojects download" works.
+        subp_name = 'sub3'
+        self._git_create_remote_repo(subp_name)
+        self._wrap_create_git(subp_name, revision='head', depth='1')
+        self._subprojects_cmd(['download'])
+        self.assertPathExists(str(self.subprojects_dir / subp_name))
+        self._git_config(self.subprojects_dir / subp_name)
 
     @skipIfNoExecutable('true')
     def test_foreach(self):
