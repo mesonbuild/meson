@@ -440,14 +440,20 @@ class CLikeCompiler(Compiler):
 
         ca, la = self._get_basic_compiler_args(env, mode)
         cargs += ca
-        largs += la
 
         cargs += self.get_compiler_check_args(mode)
 
         # on MSVC compiler and linker flags must be separated by the "/link" argument
         # at this point, the '/link' argument may already be part of extra_args, otherwise, it is added here
-        if self.linker_to_compiler_args([]) == ['/link'] and largs != [] and '/link' not in extra_args:
-            extra_args += ['/link']
+        largs += [l for l in self.linker_to_compiler_args(la) if l != '/link']
+
+        if self.linker_to_compiler_args([]) == ['/link']:
+            if largs != [] and '/link' not in extra_args:
+                extra_args += ['/link']
+            # all linker flags must be converted now, otherwise the reordering
+            # of arglist will apply and -L flags will be reordered into
+            # breaking form. See arglist._should_prepend
+            largs = self.unix_args_to_native(largs)
 
         args = cargs + extra_args + largs
         return args
