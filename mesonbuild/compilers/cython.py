@@ -7,7 +7,7 @@ from __future__ import annotations
 import typing as T
 
 from .. import coredata
-from ..mesonlib import EnvironmentException, OptionKey
+from ..mesonlib import EnvironmentException, OptionKey, version_compare
 from .compilers import Compiler
 
 if T.TYPE_CHECKING:
@@ -39,6 +39,14 @@ class CythonCompiler(Compiler):
         # Cython doesn't have optimization levels itself, the underlying
         # compiler might though
         return []
+
+    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
+        if version_compare(self.version, '>=0.29.33'):
+            return ['-M']
+        return []
+
+    def get_depfile_suffix(self) -> str:
+        return 'dep'
 
     def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
         code = 'print("hello world")'
