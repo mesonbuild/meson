@@ -457,6 +457,24 @@ class MSVCCompiler(VisualStudioLikeCompiler):
     def get_pch_base_name(self, header: str) -> str:
         return os.path.basename(header)
 
+    # Linking ASM-only objects into an executable or DLL
+    # require this, otherwise it'll fail to find
+    # _WinMain or _DllMainCRTStartup.
+    def get_crt_link_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+        host_crt_compile_args = self.get_crt_compile_args(crt_val, buildtype)
+        for arg in host_crt_compile_args:
+            if arg == '/MTd':
+                return ['/DEFAULTLIB:libucrtd.lib', '/DEFAULTLIB:libvcruntimed.lib', '/DEFAULTLIB:libcmtd.lib']
+            elif arg == '/MT':
+                return ['/DEFAULTLIB:libucrt.lib', '/DEFAULTLIB:libvcruntime.lib', '/DEFAULTLIB:libcmt.lib']
+            elif arg == '/MDd':
+                return ['/DEFAULTLIB:ucrtd.lib', '/DEFAULTLIB:vcruntimed.lib', '/DEFAULTLIB:msvcrtd.lib']
+            elif arg == '/MD':
+                return ['/DEFAULTLIB:ucrt.lib', '/DEFAULTLIB:vcruntime.lib', '/DEFAULTLIB:msvcrt.lib']
+            else:
+                continue
+        return []
+
 
 class ClangClCompiler(VisualStudioLikeCompiler):
 
