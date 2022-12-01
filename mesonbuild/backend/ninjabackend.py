@@ -1703,8 +1703,6 @@ class NinjaBackend(backends.Backend):
         for src in target.get_sources():
             if src.endswith('.pyx'):
                 output = os.path.join(self.get_target_private_dir(target), f'{src}.{ext}')
-                args = args.copy()
-                args += cython.get_output_args(output)
                 element = NinjaBuildElement(
                     self.all_outputs, [output],
                     self.compiler_to_rule_name(cython),
@@ -1725,9 +1723,7 @@ class NinjaBackend(backends.Backend):
                 else:
                     ssrc = os.path.join(gen.get_subdir(), ssrc)
                 if ssrc.endswith('.pyx'):
-                    args = args.copy()
                     output = os.path.join(self.get_target_private_dir(target), f'{ssrc}.{ext}')
-                    args += cython.get_output_args(output)
                     element = NinjaBuildElement(
                         self.all_outputs, [output],
                         self.compiler_to_rule_name(cython),
@@ -2235,9 +2231,14 @@ class NinjaBackend(backends.Backend):
 
     def generate_cython_compile_rules(self, compiler: 'Compiler') -> None:
         rule = self.compiler_to_rule_name(compiler)
-        command = compiler.get_exelist() + ['$ARGS', '$in']
         description = 'Compiling Cython source $in'
-        self.add_rule(NinjaRule(rule, command, [], description, extra='restat = 1'))
+        command = compiler.get_exelist()
+
+        args = ['$ARGS', '$in']
+        args += NinjaCommandArg.list(compiler.get_output_args('$out'), Quoting.none)
+        self.add_rule(NinjaRule(rule, command + args, [],
+                                description,
+                                extra='restat = 1'))
 
     def generate_rust_compile_rules(self, compiler):
         rule = self.compiler_to_rule_name(compiler)
