@@ -189,6 +189,9 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
             trials = [['xilib']]
         elif is_windows() and compiler.id == 'pgi': # this handles cpp / nvidia HPC, in addition to just c/fortran
             trials = [['ar']]  # For PGI on Windows, "ar" is just a wrapper calling link/lib.
+        elif is_windows() and compiler.id == 'nasm':
+            # This may well be LINK.EXE if it's under a MSVC environment
+            trials = [defaults['vs_static_linker'], defaults['clang_cl_static_linker']] + default_linkers
         else:
             trials = default_linkers
     popen_exceptions = {}
