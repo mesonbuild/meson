@@ -2234,10 +2234,14 @@ class NinjaBackend(backends.Backend):
         description = 'Compiling Cython source $in'
         command = compiler.get_exelist()
 
-        args = ['$ARGS', '$in']
+        depargs = compiler.get_dependency_gen_args('$out', '$DEPFILE')
+        depfile = '$out.dep' if depargs else None
+
+        args = depargs + ['$ARGS', '$in']
         args += NinjaCommandArg.list(compiler.get_output_args('$out'), Quoting.none)
         self.add_rule(NinjaRule(rule, command + args, [],
                                 description,
+                                depfile=depfile,
                                 extra='restat = 1'))
 
     def generate_rust_compile_rules(self, compiler):
