@@ -1549,6 +1549,7 @@ You probably should put it in link_with instead.''')
         MASK_LANGS = frozenset([
             # (language, linker)
             ('cpp', 'cuda'),
+            ('nasm', 'c'),
         ])
         # Pick a compiler based on the language priority-order
         for l in clink_langs:
