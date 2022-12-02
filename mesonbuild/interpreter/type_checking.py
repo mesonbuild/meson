@@ -448,3 +448,22 @@ VARIABLES_KW: KwargInfo[T.Dict[str, str]] = KwargInfo(
 )
 
 PRESERVE_PATH_KW: KwargInfo[bool] = KwargInfo('preserve_path', bool, default=False, since='0.63.0')
+
+TEST_KWS: T.List[KwargInfo] = [
+    KwargInfo('args', ContainerTypeInfo(list, (str, File, BuildTarget, CustomTarget, CustomTargetIndex)),
+              listify=True, default=[]),
+    KwargInfo('should_fail', bool, default=False),
+    KwargInfo('timeout', int, default=30),
+    KwargInfo('workdir', (str, NoneType), default=None,
+              validator=lambda x: 'must be an absolute path' if not os.path.isabs(x) else None),
+    KwargInfo('protocol', str,
+              default='exitcode',
+              validator=in_set_validator({'exitcode', 'tap', 'gtest', 'rust'}),
+              since_values={'gtest': '0.55.0', 'rust': '0.57.0'}),
+    KwargInfo('priority', int, default=0, since='0.52.0'),
+    # TODO: env needs reworks of the way the environment variable holder itself works probably
+    ENV_KW,
+    DEPENDS_KW.evolve(since='0.46.0'),
+    KwargInfo('suite', ContainerTypeInfo(list, str), listify=True, default=['']),  # yes, a list of empty string
+    KwargInfo('verbose', bool, default=False, since='0.62.0'),
+]
