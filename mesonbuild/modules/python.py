@@ -91,7 +91,6 @@ mod_kwargs -= {'name_prefix', 'name_suffix'}
 class _PythonDependencyBase(_Base):
 
     def __init__(self, python_holder: 'PythonInstallation', embed: bool):
-        self.name = 'python'  # override the name from the "real" dependency lookup
         self.embed = embed
         self.version: str = python_holder.version
         self.platform = python_holder.platform
