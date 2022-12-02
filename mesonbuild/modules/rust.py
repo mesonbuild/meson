@@ -19,7 +19,7 @@ from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from .. import mlog
 from ..build import BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList, IncludeDirs, CustomTarget, StructuredSources
 from ..dependencies import Dependency, ExternalLibrary
-from ..interpreter.interpreter import TEST_KWARGS, OUTPUT_KW
+from ..interpreter.type_checking import TEST_KWS, OUTPUT_KW
 from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noPosargs
 from ..mesonlib import File
 
@@ -63,7 +63,7 @@ class RustModule(ExtensionModule):
     @typed_pos_args('rust.test', str, BuildTarget)
     @typed_kwargs(
         'rust.test',
-        *TEST_KWARGS,
+        *TEST_KWS,
         KwargInfo('is_parallel', bool, default=False),
         KwargInfo(
             'dependencies',

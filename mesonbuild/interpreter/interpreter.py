@@ -83,6 +83,7 @@ from .type_checking import (
     REQUIRED_KW,
     SOURCES_KW,
     VARIABLES_KW,
+    TEST_KWS,
     NoneType,
     in_set_validator,
     env_convertor_with_method
@@ -222,25 +223,6 @@ known_build_target_kwargs = (
     build.known_jar_kwargs |
     {'target_type'}
 )
-
-TEST_KWARGS: T.List[KwargInfo] = [
-    KwargInfo('args', ContainerTypeInfo(list, (str, mesonlib.File, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)),
-              listify=True, default=[]),
-    KwargInfo('should_fail', bool, default=False),
-    KwargInfo('timeout', int, default=30),
-    KwargInfo('workdir', (str, NoneType), default=None,
-              validator=lambda x: 'must be an absolute path' if not os.path.isabs(x) else None),
-    KwargInfo('protocol', str,
-              default='exitcode',
-              validator=in_set_validator({'exitcode', 'tap', 'gtest', 'rust'}),
-              since_values={'gtest': '0.55.0', 'rust': '0.57.0'}),
-    KwargInfo('priority', int, default=0, since='0.52.0'),
-    # TODO: env needs reworks of the way the environment variable holder itself works probably
-    ENV_KW,
-    DEPENDS_KW.evolve(since='0.46.0'),
-    KwargInfo('suite', ContainerTypeInfo(list, str), listify=True, default=['']),  # yes, a list of empty string
-    KwargInfo('verbose', bool, default=False, since='0.62.0'),
-]
 
 class InterpreterRuleRelaxation(Enum):
     ''' Defines specific relaxations of the Meson rules.
@@ -2050,14 +2032,14 @@ class Interpreter(InterpreterBase, HoldableObject):
         return gen
 
     @typed_pos_args('benchmark', str, (build.Executable, build.Jar, ExternalProgram, mesonlib.File))
-    @typed_kwargs('benchmark', *TEST_KWARGS)
+    @typed_kwargs('benchmark', *TEST_KWS)
     def func_benchmark(self, node: mparser.BaseNode,
                        args: T.Tuple[str, T.Union[build.Executable, build.Jar, ExternalProgram, mesonlib.File]],
                        kwargs: 'kwtypes.FuncBenchmark') -> None:
         self.add_test(node, args, kwargs, False)
 
     @typed_pos_args('test', str, (build.Executable, build.Jar, ExternalProgram, mesonlib.File))
-    @typed_kwargs('test', *TEST_KWARGS, KwargInfo('is_parallel', bool, default=True))
+    @typed_kwargs('test', *TEST_KWS, KwargInfo('is_parallel', bool, default=True))
     def func_test(self, node: mparser.BaseNode,
                   args: T.Tuple[str, T.Union[build.Executable, build.Jar, ExternalProgram, mesonlib.File]],
                   kwargs: 'kwtypes.FuncTest') -> None:
