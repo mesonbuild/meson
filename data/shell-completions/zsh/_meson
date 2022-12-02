@@ -354,14 +354,22 @@ _arguments \
   "${(@)specs}"
 }
 
+local -a __meson_subprojects_common_specs=(
+    '--sourcedir=[path to source directory]: :_directories'
+    '--types[comma-separated list of subproject types]: :_sequence compadd - all file git hg svn'
+    '--num-processes[how many parallel processes to use]:number of processes: '
+    '--allow-insecure[allow insecure server connections]'
+)
+
 (( $+functions[_meson-subprojects-update] )) || _meson-subprojects-update() {
   local curcontext="$curcontext"
   local -a specs=(
     "--rebase[rebase your branch on top of wrap's revision (git only)]"
-    '--sourcedir=[path to source directory]:_directories'
+    '--reset[hard reset to wrap revision (git only)]'
+    "${(@)__meson_subprojects_common_specs}"
     '*:subprojects:__meson_installed_wraps'
   )
-_arguments \
+_arguments -C \
   '(: -)'{'--help','-h'}'[show a help message and quit]' \
   "${(@)specs}"
 }
@@ -370,12 +378,12 @@ _arguments \
   local curcontext="$curcontext"
   local -a specs=(
     '-b[create a new branch]'
-    '--sourcedir=[path to source directory]:_directories'
+    "${(@)__meson_subprojects_common_specs}"
     # FIXME: this doesn't work exactly right, but I can't figure it out
-    ':branch name'
+    '::branch name: '
     '*:subprojects:__meson_installed_wraps'
   )
-_arguments \
+_arguments -C \
   '(: -)'{'--help','-h'}'[show a help message and quit]' \
   "${(@)specs}"
 }
@@ -383,9 +391,10 @@ _arguments \
 (( $+functions[_meson-subprojects-download] )) || _meson-subprojects-download() {
   local curcontext="$curcontext"
   local -a specs=(
-    '--sourcedir=[path to source directory]:_directories'
+    "${(@)__meson_subprojects_common_specs}"
+    '*:subprojects:__meson_installed_wraps'
   )
-_arguments \
+_arguments -C \
   '(: -)'{'--help','-h'}'[show a help message and quit]' \
   "${(@)specs}"
 }
@@ -393,38 +402,70 @@ _arguments \
 (( $+functions[_meson-subprojects-foreach] )) || _meson-subprojects-foreach() {
   local curcontext="$curcontext"
   local -a specs=(
-    '--sourcedir=[path to source directory]:_directories'
+    "${(@)__meson_subprojects_common_specs}"
     '*:command:_command_names -e'
   )
-_arguments \
+_arguments -C \
+  '(: -)'{'--help','-h'}'[show a help message and quit]' \
+  "${(@)specs}"
+}
+
+(( $+functions[_meson-subprojects-purge] )) || _meson-subprojects-purge() {
+  local curcontext="$curcontext"
+  local -a specs=(
+    "${(@)__meson_subprojects_common_specs}"
+    '--include-cache[remove the package cache as well]'
+    '--confirm[confirm the removal of subproject artifacts]'
+    '*:subprojects:__meson_installed_wraps'
+  )
+_arguments -C \
+  '(: -)'{'--help','-h'}'[show a help message and quit]' \
+  "${(@)specs}"
+}
+
+(( $+functions[_meson-subprojects-packagefiles] )) || _meson-subprojects-packagefiles() {
+  local curcontext="$curcontext"
+  local -a specs=(
+    "${(@)__meson_subprojects_common_specs}"
+    '--apply[apply packagefiles to the subproject]'
+    '--save[save packagefiles to the subproject]'
+    '*:subprojects:__meson_installed_wraps'
+  )
+_arguments -C \
   '(: -)'{'--help','-h'}'[show a help message and quit]' \
   "${(@)specs}"
 }
 
 (( $+functions[_meson-subprojects] )) || _meson-subprojects() {
+  local curcontext="$curcontext" state state_descr line
+  local -i ret
   local -a commands=(
     'update:update all subprojects from wrap files'
     'checkout:checkout a branch (git only)'
-    'download:ensure subprojects are fetched, even if not in use. Already downloaded subprojects are not modified.'
+    'download:download unfetched subprojects, even if not in use'
     'foreach:execute a command in each subproject directory'
+    'purge:remove all wrap-based subproject artifacts'
+    'packagefiles:manage the packagefiles overlay'
   )
 
-  if (( CURRENT == 2 )); then
-    _describe -t commands "Meson subproject subcommands" commands
-  else
-    local curcontext="$curcontext"
-    cmd="${${commands[(r)$words[2]:*]%%:*}}"
-    if (( $#cmd )); then
-      if [[ $cmd == status ]]; then
-        _message "no options"
-      else
-        _meson-subprojects-$cmd
-      fi
-    else
-      _message "unknown meson subproject command: $words[2]"
-    fi
-  fi
+  local -a specs=(
+    ':Meson subproject subcommands:(( "${(@)commands}" ))'
+    '*:: :->post-command'
+  )
+_arguments -C \
+  '(: -)'{'--help','-h'}'[show a help message and quit]' \
+  "${(@)specs}"
 
+  case "$state" in
+    post-command)
+      service="$service-$line[1]"
+      curcontext=${curcontext%:*:*}:$service:
+      if ! _call_function ret _$service; then
+        _message "unknown meson subproject command: $line[1]"
+        return ret
+      fi
+      ;;
+  esac
 }
 
 (( $+functions[_meson-compile] )) || _meson-compile() {
