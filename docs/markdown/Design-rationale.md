@@ -251,10 +251,10 @@ Get the code
 --
 
 The code for this experiment can be found at [the Meson
-repository](https://sourceforge.net/p/meson/code/). It should be noted
-that it is not a build system. It is only a proposal for one. It does
-not work reliably yet. You probably should not use it as the build
-system of your project.
+repository](https://github.com/mesonbuild/meson). It should be noted
+that (at the time of writing) it is not a build system. It is only
+a proposal for one. It does not work reliably yet. You probably
+should not use it as the build system of your project.
 
 All that said I hope that this experiment will eventually turn into a
 full blown build system. For that I need your help. Comments and
