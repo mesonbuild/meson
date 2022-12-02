@@ -80,6 +80,9 @@ local -a meson_commands=(
 'wrap:manage source dependencies'
 'subprojects:manage subprojects'
 'compile:Build the project'
+'rewrite:modify the project definition'
+'devenv:run commands in a developer environment'
+'env2mfile:generate a toolchain file from environment'
 )
 
 (( $+functions[__meson_is_build_dir] )) || __meson_is_build_dir() {
@@ -436,6 +439,122 @@ _arguments \
     '--vs-args=[Arguments to pass to vs (only when using msbuild)]'
   )
 _arguments \
+  '(: -)'{'--help','-h'}'[show a help message and quit]' \
+  "${(@)specs}"
+}
+
+(( $+functions[_meson-rewrite-target] )) || _meson-rewrite-target() {
+  local curcontext="$curcontext"
+  local -a specs=(
+    {'-s','--subdir'}'[(for add_target) subdirectory of the new target]: :_directories'
+    '--type[(for add_target) type of the target to add]'
+    ':target: '
+    ':action:(add rm add_target rm_target add_extra_files rm_extra_files info)'
+    '*::sources: '
+  )
+_arguments -C \
+  '(: -)'{'--help','-h'}'[show a help message and quit]' \
+  "${(@)specs}"
+}
+
+(( $+functions[_meson-rewrite-kwargs] )) || _meson-rewrite-kwargs() {
+  local curcontext="$curcontext"
+  local -a specs=(
+    ':action:(set delete add remove remove_regex info)'
+    ':function type to be modified:(dependency target project)'
+    ':function ID: '
+    '*::pairs of keys and values: '
+  )
+_arguments -C \
+  '(: -)'{'--help','-h'}'[show a help message and quit]' \
+  "${(@)specs}"
+}
+
+(( $+functions[_meson-rewrite-default-options] )) || _meson-rewrite-default-options() {
+  local curcontext="$curcontext"
+  local -a specs=(
+    ':action:(set delete)'
+    '*::pairs of keys and values: '
+  )
+_arguments -C \
+  '(: -)'{'--help','-h'}'[show a help message and quit]' \
+  "${(@)specs}"
+}
+
+(( $+functions[_meson-rewrite-command] )) || _meson-rewrite-command() {
+  local curcontext="$curcontext"
+  local -a specs=(
+    '::JSON string: '
+    '::JSON file:_files'
+  )
+_arguments -C \
+  '(: -)'{'--help','-h'}'[show a help message and quit]' \
+  "${(@)specs}"
+}
+
+(( $+functions[_meson-rewrite] )) || _meson-rewrite() {
+  local curcontext="$curcontext" state state_descr line
+  typeset -A opt_args
+  local -i ret
+  local -a commands=(
+    'target:modify a target'
+    'kwargs:modify keyword arguments'
+    'default-options:modify the project default options'
+    'command:execute a JSON array of commands'
+  )
+
+  local -a specs=(
+    '(-s --sourcedir)'{'-s','--sourcedir'}'[path to source directory]: :_directories'
+    '(-S --skip-errors)'{'-S','--skip-errors'}'[skip errors instead of aborting]'
+    '(-V --verbose)'{'-v','--verbose'}'[show verbose output]'
+    '(-):rewrite subcommands:(( "${(@)commands}" ))'
+    '*:: :->post-command'
+  )
+_arguments -C \
+  '(: -)'{'--help','-h'}'[show a help message and quit]' \
+  "${(@)specs}"
+ret=$?
+
+  case "$state" in
+    post-command)
+      service="$service-$line[1]"
+      curcontext=${curcontext%:*:*}:$service:
+      if ! _call_function ret _$service; then
+        _message "unknown subcommand: $line[1]"
+      fi
+      return ret
+      ;;
+  esac
+}
+
+(( $+functions[_meson-devenv] )) || _meson-devenv() {
+  local curcontext="$curcontext"
+  local -a specs=(
+    '-C+[path to build directory]:build directory:_directories'
+    '(-w --workdir)'{'-w','--workdir'}'+[change into this directory before running]:target dir:_directories'
+    '--dump[only print the required environment]::output file:_files'
+    '--dump-format[specify format used with --dump]:dump formats:(sh export vscode)'
+    '*:::command:_command_names -e'
+  )
+_arguments -C \
+  '(: -)'{'--help','-h'}'[show a help message and quit]' \
+  "${(@)specs}"
+}
+
+(( $+functions[_meson-env2mfile] )) || _meson-env2mfile() {
+  local curcontext="$curcontext"
+  local -a specs=(
+    '--debarch[the dpkg architecture to generate]:debarch: '
+    '--gccsuffix[a particular gcc version suffix if necessary]:gccsuffix: '
+    '-o[the output file]: :_files'
+    '--cross[generate a cross compilation file]'
+    '--native[generate a native compilation file]'
+    '--system[define system for cross compilation]:system: '
+    '--cpu[define cpu for cross compilation]:cpu: '
+    '--cpu-family[define cpu family for cross compilation]:cpu family: '
+    '--endian[define endianness for cross compilation]:endianness:(big little)'
+  )
+_arguments -C \
   '(: -)'{'--help','-h'}'[show a help message and quit]' \
   "${(@)specs}"
 }
