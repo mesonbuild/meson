@@ -22,6 +22,7 @@ from mesonbuild.compilers import detect_compiler_for
 from mesonbuild.interpreterbase.decorators import ContainerTypeInfo, FeatureDeprecated, FeatureNew, KwargInfo, typed_pos_args, typed_kwargs
 from mesonbuild.mesonlib import version_compare, MachineChoice
 from . import NewExtensionModule, ModuleReturnValue, ModuleInfo
+from ..interpreter.type_checking import NoneType
 
 if T.TYPE_CHECKING:
     from . import ModuleState
@@ -52,7 +53,7 @@ class JavaModule(NewExtensionModule):
     @typed_kwargs(
         'java.generate_native_headers',
         KwargInfo('classes', ContainerTypeInfo(list, str), default=[], listify=True, required=True),
-        KwargInfo('package', str, default=None))
+        KwargInfo('package', (str, NoneType), default=None))
     def generate_native_headers(self, state: ModuleState, args: T.Tuple[T.List[mesonlib.FileOrString]],
                                 kwargs: T.Dict[str, T.Optional[str]]) -> ModuleReturnValue:
         return self.__native_headers(state, args, kwargs)
@@ -64,7 +65,7 @@ class JavaModule(NewExtensionModule):
     @typed_kwargs(
         'java.native_headers',
         KwargInfo('classes', ContainerTypeInfo(list, str), default=[], listify=True, required=True),
-        KwargInfo('package', str, default=None))
+        KwargInfo('package', (str, NoneType), default=None))
     def native_headers(self, state: ModuleState, args: T.Tuple[T.List[mesonlib.FileOrString]],
                        kwargs: T.Dict[str, T.Optional[str]]) -> ModuleReturnValue:
         return self.__native_headers(state, args, kwargs)
