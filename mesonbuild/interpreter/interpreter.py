@@ -1706,7 +1706,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         assert isinstance(d, Dependency)
         if not d.found() and not_found_message:
             self.message_impl([not_found_message])
-            self.message_impl([not_found_message])
         # Ensure the correct include type
         if 'include_type' in kwargs:
             wanted = kwargs['include_type']
