@@ -13,6 +13,7 @@ here. Some additional projects are listed in the [`meson` GitHub
 topic](https://github.com/topics/meson).
 
  - [2048.cpp](https://github.com/plibither8/2048.cpp), a fully featured terminal version of the game "2048" written in C++
+ - [aawordsearch](https://github.com/theimpossibleastronaut/aawordsearch), generate wordsearch puzzles using random words in different languages
  - [Adwaita Manager](https://github.com/AdwCustomizerTeam/AdwCustomizer), change the look of Adwaita, with ease
  - [Aravis](https://github.com/AravisProject/aravis), a glib/gobject based library for video acquisition using Genicam cameras
  - [Akira](https://github.com/akiraux/Akira), a native Linux app for UI and UX design built in Vala and Gtk
