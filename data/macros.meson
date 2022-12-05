@@ -4,7 +4,7 @@
 
 %meson \
     %set_build_flags \
-    %{shrink:%{__meson} \
+    %{shrink:%{__meson} setup \
         --buildtype=plain \
         --prefix=%{_prefix} \
         --libdir=%{_libdir} \
