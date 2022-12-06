@@ -1,4 +1,4 @@
-project('nasm only')
+project('nasm and c together', 'c')
 
 if not add_languages('nasm', required: false)
   error('MESON_SKIP_TEST: nasm not found')
@@ -8,10 +8,11 @@ if meson.backend().startswith('vs')
   error('MESON_SKIP_TEST: VS backend does not recognise NASM yet')
 endif
 
-sources = files('dummy.asm')
+sources = files('dummy.asm', 'hello.c')
 
-dummy = library(
-    'dummy',
-    sources,
-    vs_module_defs: 'dummy.def',
+hello = executable(
+  'hello',
+  sources,
 )
+
+test('hello', hello)
