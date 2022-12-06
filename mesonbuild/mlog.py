@@ -421,17 +421,23 @@ def start_pager() -> None:
                 path = Path(git).parents[1] / 'usr' / 'bin'
                 less = shutil.which('less', path=str(path))
         if less:
-            # "R" : support color
-            # "X" : do not clear the screen when leaving the pager
-            # "F" : skip the pager if content fit into the screen
-            pager_cmd = [less, '-RXF']
+            pager_cmd = [less]
     if not pager_cmd:
         return
     global log_pager # pylint: disable=global-statement
     assert log_pager is None
     try:
+        # Set 'LESS' environment variable, rather than arguments in
+        # pager_cmd, to also support the case where the user has 'PAGER'
+        # set to 'less'. Arguments set are:
+        # "R" : support color
+        # "X" : do not clear the screen when leaving the pager
+        # "F" : skip the pager if content fits into the screen
+        env = os.environ.copy()
+        if 'LESS' not in env:
+            env['LESS'] = 'RXF'
         log_pager = subprocess.Popen(pager_cmd, stdin=subprocess.PIPE,
-                                     text=True, encoding='utf-8')
+                                     text=True, encoding='utf-8', env=env)
     except Exception as e:
         # Ignore errors, unless it is a user defined pager.
         if 'PAGER' in os.environ:
