@@ -1132,7 +1132,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             validator=_project_version_validator,
             convertor=lambda x: x[0] if isinstance(x, list) else x,
         ),
-        KwargInfo('license', ContainerTypeInfo(list, str), default=['unknown'], listify=True),
+        KwargInfo('license', (ContainerTypeInfo(list, str), NoneType), default=None, listify=True),
+        KwargInfo('license_files', ContainerTypeInfo(list, str), default=[], listify=True, since='1.1.0'),
         KwargInfo('subproject_dir', str, default='subprojects'),
     )
     def func_project(self, node: mparser.FunctionNode, args: T.Tuple[str, T.List[str]], kwargs: 'kwtypes.Project') -> None:
@@ -1198,8 +1199,20 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         if self.build.project_version is None:
             self.build.project_version = self.project_version
-        proj_license = kwargs['license']
-        self.build.dep_manifest[proj_name] = build.DepManifest(self.project_version, proj_license)
+
+        if kwargs['license'] is None:
+            proj_license = ['unknown']
+            if kwargs['license_files']:
+                raise InvalidArguments('Project `license` name must be specified when `license_files` is set')
+        else:
+            proj_license = kwargs['license']
+        proj_license_files = []
+        for i in self.source_strings_to_files(kwargs['license_files']):
+            ifname = i.absolute_path(self.environment.source_dir,
+                                     self.environment.build_dir)
+            proj_license_files.append((ifname, i))
+        self.build.dep_manifest[proj_name] = build.DepManifest(self.project_version, proj_license,
+                                                               proj_license_files, self.subproject)
         if self.subproject in self.build.projects:
             raise InvalidCode('Second call to project().')
 
