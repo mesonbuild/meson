@@ -436,6 +436,9 @@ def start_pager() -> None:
         env = os.environ.copy()
         if 'LESS' not in env:
             env['LESS'] = 'RXF'
+        # Set "-c" for lv to support color
+        if 'LV' not in env:
+            env['LV'] = '-c'
         log_pager = subprocess.Popen(pager_cmd, stdin=subprocess.PIPE,
                                      text=True, encoding='utf-8', env=env)
     except Exception as e:
