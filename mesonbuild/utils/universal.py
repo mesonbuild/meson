@@ -1446,7 +1446,7 @@ def Popen_safe_legacy(args: T.List[str], write: T.Optional[str] = None,
         input_ = write.encode('utf-8')
     o, e = p.communicate(input_)
     if o is not None:
-        if sys.stdout.encoding:
+        if sys.stdout.encoding is not None:
             o = o.decode(encoding=sys.stdout.encoding, errors='replace').replace('\r\n', '\n')
         else:
             o = o.decode(errors='replace').replace('\r\n', '\n')
