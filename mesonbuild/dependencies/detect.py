@@ -108,13 +108,23 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: T.Dict[str, 
 
     for c in candidates:
         # try this dependency method
+        d: T.Optional[ExternalDependency] = None
         try:
             d = c()
             d._check_version()
             pkgdep.append(d)
         except DependencyException as e:
             assert isinstance(c, functools.partial), 'for mypy'
-            bettermsg = f'Dependency lookup for {name} with method {c.func.log_tried()!r} failed: {e}'
+            if d is not None:
+                method = f"with method '{d.log_tried()}'"
+            elif isinstance(c.func, ExternalDependency):
+                method = f"with method '{c.func.log_tried()}'"
+            else:
+                # It is possible for `c.func` to not be an `ExternalDependency`
+                # initializer, in that case we can't figure out what method was
+                # just tried.
+                method = 'with unknown method'
+            bettermsg = f'Dependency lookup for {name} {method} failed: {e}'
             mlog.debug(bettermsg)
             e.args = (bettermsg,)
             pkg_exc.append(e)
