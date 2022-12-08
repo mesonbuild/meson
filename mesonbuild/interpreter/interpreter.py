@@ -3042,14 +3042,6 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
         shared_lib = self.build_target(node, args, kwargs, build.SharedLibrary)
         static_lib = self.build_target(node, args, kwargs, build.StaticLibrary)
 
-        # Check if user forces non-PIC static library.
-        pic = True
-        key = OptionKey('b_staticpic')
-        if 'pic' in kwargs:
-            pic = kwargs['pic']
-        elif key in self.environment.coredata.options:
-            pic = self.environment.coredata.options[key].value
-
         if self.backend.name == 'xcode':
             # Xcode is a bit special in that you can't (at least for the moment)
             # form a library only from object file inputs. The simple but inefficient
@@ -3059,7 +3051,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
             # issue for you.
             reuse_object_files = False
         else:
-            reuse_object_files = pic
+            reuse_object_files = static_lib.pic
 
         if reuse_object_files:
             # Replace sources with objects from the shared library to avoid
