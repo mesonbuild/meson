@@ -41,6 +41,7 @@ not be relied on, since they can be absolute paths in the following cases:
 | includedir                           | include       | Header file directory |
 | infodir                              | share/info    | Info page directory |
 | libdir                               | see below     | Library directory |
+| licensedir                           | see below     | Licenses directory (since 1.1.0)|
 | libexecdir                           | libexec       | Library executable directory |
 | localedir                            | share/locale  | Locale data directory |
 | localstatedir                        | var           | Localstate data directory |
@@ -60,6 +61,10 @@ libdir, but it may not be accurate, especially on Linux where
 different distributions have different defaults. Using a [cross
 file](Cross-compilation.md#defining-the-environment), particularly the
 paths section may be necessary.
+
+`licensedir` is empty by default. If set, it defines the default location
+to install a dependency manifest and project licenses. For more details,
+see [[meson.install_dependency_manifest]].
 
 ### Core options
 

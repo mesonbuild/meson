@@ -1197,6 +1197,7 @@ BUILTIN_DIR_OPTIONS: 'MutableKeyedOptionDictType' = OrderedDict([
     (OptionKey('includedir'),      BuiltinOption(UserStringOption, 'Header file directory', 'include')),
     (OptionKey('infodir'),         BuiltinOption(UserStringOption, 'Info page directory', 'share/info')),
     (OptionKey('libdir'),          BuiltinOption(UserStringOption, 'Library directory', default_libdir())),
+    (OptionKey('licensedir'),      BuiltinOption(UserStringOption, 'Licenses directory', '')),
     (OptionKey('libexecdir'),      BuiltinOption(UserStringOption, 'Library executable directory', default_libexecdir())),
     (OptionKey('localedir'),       BuiltinOption(UserStringOption, 'Locale data directory', 'share/locale')),
     (OptionKey('localstatedir'),   BuiltinOption(UserStringOption, 'Localstate data directory', 'var')),

@@ -323,6 +323,10 @@ methods:
       If license files are defined as well, they will be copied next to the
       manifest and referenced in it.
 
+      If this function is not used, the builtin option `licensedir` can
+      be used to install the manifest to a given directory with the name
+      `depmf.json`.
+
     posargs:
       output_name:
         type: str
