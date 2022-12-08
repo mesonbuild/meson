@@ -76,6 +76,7 @@ class BasePlatformTests(TestCase):
         self.unit_test_dir = os.path.join(src_root, 'test cases/unit')
         self.rewrite_test_dir = os.path.join(src_root, 'test cases/rewrite')
         self.linuxlike_test_dir = os.path.join(src_root, 'test cases/linuxlike')
+        self.nasm_test_dir = os.path.join(src_root, 'test cases/nasm')
         self.objc_test_dir = os.path.join(src_root, 'test cases/objc')
         self.objcpp_test_dir = os.path.join(src_root, 'test cases/objcpp')
 

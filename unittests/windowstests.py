@@ -398,3 +398,35 @@ class WindowsTests(BasePlatformTests):
         with mock.patch.object(self, 'install_command', self.meson_command + ['install']):
             out = self.install(override_envvars=env)
             self.assertIn('Activating VS', out)
+
+    @skip_if_not_language('nasm')
+    def test_nasm_alone_uses_nasm_linker(self):
+        # TODO: there should be some way to query how we're linking things
+        # without resorting to reading the ninja.build file
+        if self.backend is not Backend.ninja:
+            raise SkipTest('This test reads the ninja file')
+
+        testdir = os.path.join(self.nasm_test_dir, '3 nasm only')
+        self.init(testdir)
+
+        build_ninja = os.path.join(self.builddir, 'build.ninja')
+        with open(build_ninja, encoding='utf-8') as f:
+            contents = f.read()
+
+        self.assertRegex(contents, r'build dummy(\.dll)?.*: nasm_LINKER')
+
+    @skip_if_not_language('nasm')
+    def test_nasm_with_c_use_c_linker(self):
+        # TODO: there should be some way to query how we're linking things
+        # without resorting to reading the ninja.build file
+        if self.backend is not Backend.ninja:
+            raise SkipTest('This test reads the ninja file')
+
+        testdir = os.path.join(self.nasm_test_dir, '4 nasm and c together')
+        self.init(testdir)
+
+        build_ninja = os.path.join(self.builddir, 'build.ninja')
+        with open(build_ninja, encoding='utf-8') as f:
+            contents = f.read()
+
+        self.assertRegex(contents, r'build hello(\.exe)?.*: c_LINKER')
