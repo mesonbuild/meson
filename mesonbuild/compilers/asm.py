@@ -1,11 +1,13 @@
 import os
 import typing as T
 
-from ..mesonlib import EnvironmentException, get_meson_command
+from ..mesonlib import EnvironmentException, OptionKey, get_meson_command
 from .compilers import Compiler
 
 if T.TYPE_CHECKING:
+    from ..envconfig import MachineInfo
     from ..environment import Environment
+    from ..mesonlib import MachineChoice
 
 nasm_optimization_args = {
     'plain': [],
@@ -21,6 +23,15 @@ nasm_optimization_args = {
 class NasmCompiler(Compiler):
     language = 'nasm'
     id = 'nasm'
+
+    def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str,
+                 for_machine: 'MachineChoice', info: 'MachineInfo',
+                 cc: Compiler,
+                 full_version: T.Optional[str] = None, is_cross: bool = False):
+        super().__init__(ccache, exelist, version, for_machine, info, cc.linker, full_version=full_version, is_cross=is_cross)
+        self.host_compiler = cc
+        if 'link' in self.linker.id:
+            self.base_options.add(OptionKey('b_vscrt'))
 
     def needs_static_linker(self) -> bool:
         return True
@@ -96,6 +107,9 @@ class NasmCompiler(Compiler):
 
     def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
         return []
+
+    def get_crt_link_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+        return self.host_compiler.get_crt_link_args(crt_val, buildtype)
 
 class YasmCompiler(NasmCompiler):
     id = 'yasm'

@@ -1198,11 +1198,11 @@ def detect_nasm_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
         if 'NASM' in output:
             comp_class = NasmCompiler
             env.coredata.add_lang_args(comp_class.language, comp_class, for_machine, env)
-            return comp_class([], comp, version, for_machine, info, cc.linker, is_cross=is_cross)
+            return comp_class([], comp, version, for_machine, info, cc, is_cross=is_cross)
         elif 'yasm' in output:
             comp_class = YasmCompiler
             env.coredata.add_lang_args(comp_class.language, comp_class, for_machine, env)
-            return comp_class([], comp, version, for_machine, info, cc.linker, is_cross=is_cross)
+            return comp_class([], comp, version, for_machine, info, cc, is_cross=is_cross)
     _handle_exceptions(popen_exceptions, compilers)
     raise EnvironmentException('Unreachable code (exception to make mypy happy)')
 
