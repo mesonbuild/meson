@@ -42,7 +42,13 @@ config_file = configure_file(
 cc = meson.get_compiler('c')
 link_args = cc.get_supported_link_arguments(['-no-pie'])
 
-exe = executable('hello', asm_gen.process('hello.asm'),
+if host_machine.system() == 'windows'
+  sources = asm_gen.process('hello_win.asm')
+else
+  sources = asm_gen.process('hello.asm')
+endif
+
+exe = executable('hello', sources,
   link_args: link_args,
 )
 
