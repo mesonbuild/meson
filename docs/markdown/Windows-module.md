@@ -29,8 +29,10 @@ This method has the following keyword arguments:
 - `depend_files` lists resource files that the resource script depends on
   (e.g. bitmap, cursor, font, html, icon, message table, binary data or manifest
   files referenced by the resource script) (*since 0.47.0*)
+  Deprecated and replaced by `depends` *since 1.0.0*
 - `depends` lists target(s) that this target depends on, even though it does not
   take them as an argument (e.g. as above, but generated) (*since 0.47.0*)
+  *Since 1.0.0* also accepts strings and File objects.
 - `include_directories` lists directories to be both searched by the resource
   compiler for referenced resource files, and added to the preprocessor include
   search path.

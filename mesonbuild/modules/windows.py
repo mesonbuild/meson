@@ -22,7 +22,7 @@ from . import ExtensionModule, ModuleInfo
 from . import ModuleReturnValue
 from .. import mesonlib, build
 from .. import mlog
-from ..interpreter.type_checking import DEPEND_FILES_KW, DEPENDS_KW, INCLUDE_DIRECTORIES
+from ..interpreter.type_checking import DEPEND_FILES_KW, DEPENDS_WITH_FILES_KW, INCLUDE_DIRECTORIES
 from ..interpreterbase.decorators import ContainerTypeInfo, FeatureNew, KwargInfo, typed_kwargs, typed_pos_args
 from ..mesonlib import MachineChoice, MesonException
 from ..programs import ExternalProgram
@@ -113,7 +113,7 @@ class WindowsModule(ExtensionModule):
     @typed_kwargs(
         'windows.compile_resources',
         DEPEND_FILES_KW.evolve(since='0.47.0'),
-        DEPENDS_KW.evolve(since='0.47.0'),
+        DEPENDS_WITH_FILES_KW.evolve(since='0.47.0'),
         INCLUDE_DIRECTORIES,
         KwargInfo('args', ContainerTypeInfo(list, str), default=[], listify=True),
     )

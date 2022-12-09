@@ -390,7 +390,7 @@ class KwargInfo(T.Generic[_T]):
                  default: T.Optional[_T] = None,
                  since: T.Optional[str] = None,
                  since_message: T.Optional[str] = None,
-                 since_values: T.Optional[T.Dict[T.Union[_T, T.Type[T.List], T.Type[T.Dict]], T.Union[str, T.Tuple[str, str]]]] = None,
+                 since_values: T.Optional[T.Dict[T.Union[_T, T.Type[T.Any]], T.Union[str, T.Tuple[str, str]]]] = None,
                  deprecated: T.Optional[str] = None,
                  deprecated_message: T.Optional[str] = None,
                  deprecated_values: T.Optional[T.Dict[T.Union[_T, T.Type[T.List], T.Type[T.Dict]], T.Union[str, T.Tuple[str, str]]]] = None,
@@ -518,9 +518,8 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
                     else:
                         msg = None
 
-                    if n in {dict, list}:
-                        assert isinstance(n, type), 'for mypy'
-                        if isinstance(value, n):
+                    if isinstance(n, type):
+                        if isinstance(value, n) or (isinstance(value, list) and any(isinstance(x, n) for x in value)):
                             feature.single_use(f'"{name}" keyword argument "{info.name}" of type {n.__name__}', version, subproject, msg, location=node)
                     elif isinstance(value, (dict, list)):
                         warn = n in value
