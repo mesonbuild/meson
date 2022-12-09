@@ -345,25 +345,6 @@ class NonExistingExternalProgram(ExternalProgram):  # lgtm [py/missing-call-to-i
         return False
 
 
-class EmptyExternalProgram(ExternalProgram):  # lgtm [py/missing-call-to-init]
-    '''
-    A program object that returns an empty list of commands. Used for cases
-    such as a cross file exe_wrapper to represent that it's not required.
-    '''
-
-    def __init__(self) -> None:
-        self.name = None
-        self.command = []
-        self.path = None
-
-    def __repr__(self) -> str:
-        r = '<{} {!r} -> {!r}>'
-        return r.format(self.__class__.__name__, self.name, self.command)
-
-    def found(self) -> bool:
-        return True
-
-
 class OverrideProgram(ExternalProgram):
 
     """A script overriding a program."""

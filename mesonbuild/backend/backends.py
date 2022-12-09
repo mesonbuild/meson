@@ -1108,10 +1108,7 @@ class Backend:
                         break
 
             is_cross = self.environment.is_cross_build(test_for_machine)
-            if is_cross and self.environment.need_exe_wrapper():
-                exe_wrapper = self.environment.get_exe_wrapper()
-            else:
-                exe_wrapper = None
+            exe_wrapper = self.environment.get_exe_wrapper()
             machine = self.environment.machines[exe.for_machine]
             if machine.is_windows() or machine.is_cygwin():
                 extra_bdeps: T.List[T.Union[build.BuildTarget, build.CustomTarget]] = []
@@ -1850,14 +1847,12 @@ class Backend:
         env = build.EnvironmentVariables()
         extra_paths = set()
         library_paths = set()
+        build_machine = self.environment.machines[MachineChoice.BUILD]
         host_machine = self.environment.machines[MachineChoice.HOST]
-        need_exe_wrapper = self.environment.need_exe_wrapper()
-        need_wine = need_exe_wrapper and host_machine.is_windows()
+        need_wine = not build_machine.is_windows() and host_machine.is_windows()
         for t in self.build.get_targets().values():
-            cross_built = not self.environment.machines.matches_build_machine(t.for_machine)
-            can_run = not cross_built or not need_exe_wrapper or need_wine
             in_default_dir = t.should_install() and not t.get_install_dir()[2]
-            if not can_run or not in_default_dir:
+            if t.for_machine != MachineChoice.HOST or not in_default_dir:
                 continue
             tdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(t))
             if isinstance(t, build.Executable):
@@ -1874,18 +1869,23 @@ class Backend:
                 # LD_LIBRARY_PATH. This allows running system applications using
                 # that library.
                 library_paths.add(tdir)
+        if need_wine:
+            # Executable paths should be in both PATH and WINEPATH.
+            # - Having them in PATH makes bash completion find it,
+            #   and make running "foo.exe" find it when wine-binfmt is installed.
+            # - Having them in WINEPATH makes "wine foo.exe" find it.
+            library_paths.update(extra_paths)
         if library_paths:
-            if host_machine.is_windows() or host_machine.is_cygwin():
+            if need_wine:
+                env.prepend('WINEPATH', list(library_paths), separator=';')
+            elif host_machine.is_windows() or host_machine.is_cygwin():
                 extra_paths.update(library_paths)
             elif host_machine.is_darwin():
                 env.prepend('DYLD_LIBRARY_PATH', list(library_paths))
             else:
                 env.prepend('LD_LIBRARY_PATH', list(library_paths))
         if extra_paths:
-            if need_wine:
-                env.prepend('WINEPATH', list(extra_paths), separator=';')
-            else:
-                env.prepend('PATH', list(extra_paths))
+            env.prepend('PATH', list(extra_paths))
         return env
 
     def compiler_to_generator(self, target: build.BuildTarget,

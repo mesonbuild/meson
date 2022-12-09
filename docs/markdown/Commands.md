@@ -345,6 +345,8 @@ These variables are set in environment in addition to those set using [[meson.ad
   schemas is compiled. This is automatically set when using `gnome.compile_schemas()`.
   Note that this requires GLib >= 2.64 when `gnome.compile_schemas()` is used in
   more than one directory.
+- `QEMU_LD_PREFIX` *Since 1.0.0* is set to the `sys_root` value from cross file
+  when cross compiling and that property is defined.
 
 Since *Since 0.62.0* if bash-completion scripts are being installed and the
 shell is bash, they will be automatically sourced.
