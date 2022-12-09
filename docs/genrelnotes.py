@@ -20,6 +20,7 @@ import argparse
 import subprocess
 import re
 import shutil
+import datetime
 from pathlib import Path
 
 RELNOTE_TEMPLATE = '''---
@@ -73,6 +74,10 @@ def generate(relnotes, to_version, source_dir, output_dir):
     output.parent.mkdir(exist_ok=True, parents=True)
     with output.open('w', encoding='utf-8') as ofile:
         ofile.write(RELNOTE_TEMPLATE.format(title, to_version, title_suffix))
+        if not output_dir:
+            date = datetime.date.today()
+            date_str = date.strftime("%d %B %Y")
+            ofile.write(f'Meson {to_version} was released on {date_str}\n')
         for snippetfile in sorted(Path(source_dir, 'markdown/snippets').glob('*.md')):
             snippet = snippetfile.read_text(encoding='utf-8')
             ofile.write(snippet)
