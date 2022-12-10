@@ -264,6 +264,14 @@ class CudaModule(NewExtensionModule):
             if version_compare(cuda_version, '<12'):
                 cuda_hi_limit_gpu_architecture = '9.1'        # noqa: E221
 
+        if version_compare(cuda_version, '>=12.0'):
+            # https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html#deprecated-features (Current)
+            # https://docs.nvidia.com/cuda/archive/12.0/cuda-toolkit-release-notes/index.html#deprecated-features (Eventual?)
+            cuda_lo_limit_gpu_architecture = '5.0'            # noqa: E221
+
+            if version_compare(cuda_version, '<13'):
+                cuda_hi_limit_gpu_architecture = '10.0'       # noqa: E221
+
         if not cuda_arch_list:
             cuda_arch_list = 'Auto'
 
