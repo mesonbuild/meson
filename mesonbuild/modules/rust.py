@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
 import os
 import typing as T
 
@@ -19,7 +20,7 @@ from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from .. import mlog
 from ..build import BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList, IncludeDirs, CustomTarget, StructuredSources
 from ..dependencies import Dependency, ExternalLibrary
-from ..interpreter.type_checking import TEST_KWS, OUTPUT_KW, INCLUDE_DIRECTORIES, include_dir_string_new
+from ..interpreter.type_checking import DEPENDENCIES_KW, TEST_KWS, OUTPUT_KW, INCLUDE_DIRECTORIES, include_dir_string_new
 from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noPosargs
 from ..mesonlib import File
 
@@ -44,6 +45,7 @@ if T.TYPE_CHECKING:
         include_directories: T.List[IncludeDirs]
         input: T.List[SourceInputs]
         output: str
+        dependencies: T.List[T.Union[Dependency, ExternalLibrary]]
 
 
 class RustModule(ExtensionModule):
@@ -52,9 +54,9 @@ class RustModule(ExtensionModule):
 
     INFO = ModuleInfo('rust', '0.57.0', stabilized='1.0.0')
 
-    def __init__(self, interpreter: 'Interpreter') -> None:
+    def __init__(self, interpreter: Interpreter) -> None:
         super().__init__(interpreter)
-        self._bindgen_bin: T.Optional['ExternalProgram'] = None
+        self._bindgen_bin: T.Optional[ExternalProgram] = None
         self.methods.update({
             'test': self.test,
             'bindgen': self.bindgen,
@@ -64,14 +66,10 @@ class RustModule(ExtensionModule):
     @typed_kwargs(
         'rust.test',
         *TEST_KWS,
+        DEPENDENCIES_KW,
         KwargInfo('is_parallel', bool, default=False),
-        KwargInfo(
-            'dependencies',
-            ContainerTypeInfo(list, (Dependency, ExternalLibrary)),
-            listify=True,
-            default=[]),
     )
-    def test(self, state: 'ModuleState', args: T.Tuple[str, BuildTarget], kwargs: 'FuncTest') -> ModuleReturnValue:
+    def test(self, state: ModuleState, args: T.Tuple[str, BuildTarget], kwargs: FuncTest) -> ModuleReturnValue:
         """Generate a rust test target from a given rust target.
 
         Rust puts it's unitests inside it's main source files, unlike most
@@ -176,8 +174,9 @@ class RustModule(ExtensionModule):
         ),
         INCLUDE_DIRECTORIES.evolve(feature_validator=include_dir_string_new),
         OUTPUT_KW,
+        DEPENDENCIES_KW.evolve(since='1.0.0'),
     )
-    def bindgen(self, state: 'ModuleState', args: T.List, kwargs: 'FuncBindgen') -> ModuleReturnValue:
+    def bindgen(self, state: ModuleState, args: T.List, kwargs: FuncBindgen) -> ModuleReturnValue:
         """Wrapper around bindgen to simplify it's use.
 
         The main thing this simplifies is the use of `include_directory`
@@ -186,7 +185,7 @@ class RustModule(ExtensionModule):
         header, *_deps = self.interpreter.source_strings_to_files(kwargs['input'])
 
         # Split File and Target dependencies to add pass to CustomTarget
-        depends: T.List['SourceOutputs'] = []
+        depends: T.List[SourceOutputs] = []
         depend_files: T.List[File] = []
         for d in _deps:
             if isinstance(d, File):
@@ -194,11 +193,22 @@ class RustModule(ExtensionModule):
             else:
                 depends.append(d)
 
-        inc_strs: T.List[str] = []
+        clang_args: T.List[str] = []
         for i in state.process_include_dirs(kwargs['include_directories']):
             # bindgen always uses clang, so it's safe to hardcode -I here
-            inc_strs.extend([f'-I{x}' for x in i.to_string_list(
+            clang_args.extend([f'-I{x}' for x in i.to_string_list(
                 state.environment.get_source_dir(), state.environment.get_build_dir())])
+
+        for de in kwargs['dependencies']:
+            for i in de.get_include_dirs():
+                clang_args.extend([f'-I{x}' for x in i.to_string_list(
+                    state.environment.get_source_dir(), state.environment.get_build_dir())])
+            clang_args.extend(de.get_all_compile_args())
+            for s in de.get_sources():
+                if isinstance(s, File):
+                    depend_files.append(s)
+                elif isinstance(s, CustomTarget):
+                    depends.append(s)
 
         if self._bindgen_bin is None:
             self._bindgen_bin = state.find_program('bindgen')
@@ -216,7 +226,7 @@ class RustModule(ExtensionModule):
                 '@INPUT@', '--output',
                 os.path.join(state.environment.build_dir, '@OUTPUT@')
             ] + \
-            kwargs['args'] + ['--'] + kwargs['c_args'] + inc_strs + \
+            kwargs['args'] + ['--'] + kwargs['c_args'] + clang_args + \
             ['-MD', '-MQ', '@INPUT@', '-MF', '@DEPFILE@']
 
         target = CustomTarget(
@@ -236,5 +246,5 @@ class RustModule(ExtensionModule):
         return ModuleReturnValue([target], [target])
 
 
-def initialize(interp: 'Interpreter') -> RustModule:
+def initialize(interp: Interpreter) -> RustModule:
     return RustModule(interp)
