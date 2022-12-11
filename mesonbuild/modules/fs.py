@@ -302,7 +302,7 @@ class FSModule(ExtensionModule):
             [dest],
             build_by_default=True,
             install=kwargs['install'],
-            install_dir=kwargs['install_dir'],
+            install_dir=[kwargs['install_dir']],
             install_mode=kwargs['install_mode'],
             install_tag=[kwargs['install_tag']],
             backend=state.backend,

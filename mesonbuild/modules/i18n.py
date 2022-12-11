@@ -189,7 +189,6 @@ class I18nModule(ExtensionModule):
         if build_by_default is None:
             build_by_default = kwargs['install']
 
-        install_dir = [kwargs['install_dir']] if kwargs['install_dir'] is not None else None
         install_tag = [kwargs['install_tag']] if kwargs['install_tag'] is not None else None
 
         ct = build.CustomTarget(
@@ -202,7 +201,7 @@ class I18nModule(ExtensionModule):
             [kwargs['output']],
             build_by_default=build_by_default,
             install=kwargs['install'],
-            install_dir=install_dir,
+            install_dir=[kwargs['install_dir']] if kwargs['install_dir'] is not None else None,
             install_tag=install_tag,
         )
 
@@ -367,7 +366,6 @@ class I18nModule(ExtensionModule):
         if build_by_default is None:
             build_by_default = kwargs['install']
 
-        install_dir = [kwargs['install_dir']] if kwargs['install_dir'] is not None else None
         install_tag = [kwargs['install_tag']] if kwargs['install_tag'] is not None else None
 
         ct = build.CustomTarget(
@@ -381,7 +379,7 @@ class I18nModule(ExtensionModule):
             build_by_default=build_by_default,
             extra_depends=mo_targets,
             install=kwargs['install'],
-            install_dir=install_dir,
+            install_dir=[kwargs['install_dir']] if kwargs['install_dir'] is not None else None,
             install_tag=install_tag,
         )
 
