@@ -6,6 +6,6 @@ configured = configure_file(
 
 sources += configured
 
-native_headers = javamod.generate_native_headers(
+native_headers = javamod.native_headers(
   sources, package: 'com.mesonbuild', classes: ['JniTest'])
 native_header_includes = include_directories('.')
