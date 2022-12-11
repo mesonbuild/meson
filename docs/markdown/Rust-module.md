@@ -11,8 +11,6 @@ authors:
 *(new in 0.57.0)*
 *(Stable since 1.0.0)*
 
-**Note** Unstable modules make no backwards compatible API guarantees.
-
 The rust module provides helper to integrate rust code into Meson. The
 goal is to make using rust in Meson more pleasant, while still
 remaining mesonic, this means that it attempts to make Rust work more
