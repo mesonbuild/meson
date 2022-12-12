@@ -11,5 +11,5 @@ directory. For example, `meson devenv -C builddir --workdir .` can be used to
 remain in the current dir (often source dir) instead.
 
 `--dump` now prints shell commands like `FOO="/prepend/path:$FOO:/append/path"`,
-using the litteral `$FOO` instead of current value of `FOO` from environment.
+using the literal `$FOO` instead of current value of `FOO` from environment.
 This makes easier to evaluate those expressions in a different environment.
