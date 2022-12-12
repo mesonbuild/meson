@@ -75,7 +75,7 @@ class SourceSetRule(T.NamedTuple):
     """Other sourcesets added when this rule's conditions are true"""
 
     if_false: T.List[T.Union[mesonlib.FileOrString, build.GeneratedTypes]]
-    """Source files added when this rule's conditons are false"""
+    """Source files added when this rule's conditions are false"""
 
 
 class SourceFiles(T.NamedTuple):

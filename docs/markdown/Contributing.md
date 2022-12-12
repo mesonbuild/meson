@@ -450,7 +450,7 @@ To promote consistent naming policy, use:
 ## Documentation
 
 The `docs` directory contains the full documentation that will be used
-to generate [the Meson web site](http://mesonbuild.com). Line length
+to generate [the Meson web site](https://mesonbuild.com). Line length
 in most cases should not exceed 70 characters (lines containing links
 or examples are usually exempt). Every change in functionality must
 change the documentation pages. In most cases this means updating the

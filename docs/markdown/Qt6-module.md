@@ -142,7 +142,7 @@ See [Qt dependencies](Dependencies.md#qt4-qt5)
 
 The 'modules' argument is used to include Qt modules in the project.
 See the Qt documentation for the [list of
-modules](http://doc.qt.io/qt-6/qtmodules.html).
+modules](https://doc.qt.io/qt-6/qtmodules.html).
 
 The 'private_headers' argument allows usage of Qt's modules private
 headers.
