@@ -177,3 +177,13 @@ class ClangCompiler(GnuLikeCompiler):
                 raise mesonlib.MesonException('clang support for LTO threads requires clang >=4.0')
             args.append(f'-flto-jobs={threads}')
         return args
+
+    def gen_vs_module_defs_args(self, defsfile: str) -> T.List[str]:
+        if not isinstance(defsfile, str):
+            raise RuntimeError('Module definitions file should be str')
+        # On Windows targets, .def files may be specified on the linker command
+        # line like an object file.
+        if self.info.is_windows() or self.info.is_cygwin():
+            return [defsfile]
+        # For other targets, discard the .def file.
+        return []
