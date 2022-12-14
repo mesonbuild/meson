@@ -169,7 +169,10 @@ class OptionInterpreter:
         parser = self.option_types.get(opt_type)
         if not parser:
             raise OptionException(f'Unknown type {opt_type}.')
-        description = kwargs['description'] or opt_name
+        description = kwargs['description']
+
+        if not description and not isinstance(kwargs['deprecated'], str):
+            description = opt_name
 
         # Only keep in kwargs arguments that are used by option type's parser
         # because they use @permittedKwargs().
