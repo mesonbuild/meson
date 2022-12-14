@@ -76,7 +76,6 @@ class IntrospectionInterpreter(AstInterpreter):
             self.environment = env
         self.subproject_dir = subproject_dir
         self.coredata = self.environment.get_coredata()
-        self.option_file = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
         self.backend = backend
         self.default_options = {OptionKey('backend'): self.backend}
         self.project_data = {}    # type: T.Dict[str, T.Any]
@@ -113,9 +112,12 @@ class IntrospectionInterpreter(AstInterpreter):
             proj_vers = 'undefined'
         self.project_data = {'descriptive_name': proj_name, 'version': proj_vers}
 
-        if os.path.exists(self.option_file):
+        optfile = os.path.join(self.source_root, self.subdir, 'meson.options')
+        if not os.path.exists(optfile):
+            optfile = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
+        if os.path.exists(optfile):
             oi = optinterpreter.OptionInterpreter(self.subproject)
-            oi.process(self.option_file)
+            oi.process(optfile)
             self.coredata.update_project_options(oi.options)
 
         def_opts = self.flatten_args(kwargs.get('default_options', []))

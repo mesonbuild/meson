@@ -82,7 +82,7 @@ kwargs:
     since: 0.38.0
     description: |
       An array of default option values
-      that override those set in the subproject's `meson_options.txt`
+      that override those set in the subproject's `meson.options`
       (like `default_options` in [[project]], they only have
       effect when Meson is run for the first time, and command line
       arguments override any default options in build files)
