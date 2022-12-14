@@ -76,10 +76,14 @@ This type is available since version 0.44.0
 A `feature` option has three states: `enabled`, `disabled` or `auto`.
 It is intended to be passed as value for the `required` keyword
 argument of most functions. Currently supported in
-[[dependency]],
+[[add_languages]],
 [[compiler.find_library]],
-[[find_program]] and
-[[add_languages]] functions.
+[[compiler.has_header]],
+[[dependency]],
+[[find_program]],
+[[import]] and
+[[subproject]]
+functions.
 
 - `enabled` is the same as passing `required : true`.
 - `auto` is the same as passing `required : false`.
