@@ -5,6 +5,7 @@ import unittest
 import functools
 import re
 import typing as T
+import zipfile
 from pathlib import Path
 from contextlib import contextmanager
 
@@ -175,6 +176,22 @@ def get_rpath(fname: str) -> T.Optional[str]:
     if not final:
         return None
     return final
+
+def get_classpath(fname: str) -> T.Optional[str]:
+    with zipfile.ZipFile(fname) as zip:
+        with zip.open('META-INF/MANIFEST.MF') as member:
+            contents = member.read().decode().strip()
+    lines = []
+    for line in contents.splitlines():
+        if line.startswith(' '):
+            # continuation line
+            lines[-1] += line[1:]
+        else:
+            lines.append(line)
+    manifest = {
+        k.lower(): v.strip() for k, v in [l.split(':', 1) for l in lines]
+    }
+    return manifest.get('class-path')
 
 def get_path_without_cmd(cmd: str, path: str) -> str:
     pathsep = os.pathsep
