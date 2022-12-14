@@ -62,7 +62,4 @@ kwargs:
     since: 0.48.0
     default: true
     description: |
-      If `true`, Meson will abort if the subproject could not be setup. You can set
-      this to `false` and then use the `.found()` method on the [[@subproject]] object.
-      You may also pass the value of a
-      [`feature`](Build-options.md#features) option, same as [[dependency]].
+      Works just the same as in [[dependency]].
