@@ -137,7 +137,11 @@ methods:
       type: bool | feature
       default: false
       since: 0.50.0
-      description: If set to `true`, Meson will halt if the header check fails.
+      description:
+        When set to `true`, Meson will halt if the header check fails.
+
+        When set to a [`feature`](Build-options.md#features) option, the feature
+        will control if it is searched and whether to fail if not found.
 
 
 # Star of the actual functions
@@ -367,8 +371,10 @@ methods:
         be found. Otherwise, Meson will continue and the found method of the
         returned object will return `false`.
 
-        *(since 0.47.0)* The value of a [`feature`](Build-options.md#features)
-        option can also be passed here.
+        When set to a [`feature`](Build-options.md#features) option, the feature
+        will control if it is searched and whether to fail if not found.
+
+        *(since 0.47.0)* The value of a `feature` option can also be passed here.
 
     has_headers:
       type: list[str]
@@ -609,4 +615,3 @@ methods:
       type: list[str]
       description: |
         Extra flags to pass to the preprocessor
-

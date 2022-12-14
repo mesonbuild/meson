@@ -19,8 +19,14 @@ posargs:
 kwargs:
   required:
     type: bool | feature
+    default: true
     since: 0.59.0
-    description: Whether the mdule is required and Meson should abort if not found.
+    description:
+      When set to `false`, Meson will proceed with the build even if the module
+      is not found.
+
+      When set to a [`feature`](Build-options.md#features) option, the feature
+      will control if it is searched and whether to fail if not found.
 
   disabler:
     type: bool

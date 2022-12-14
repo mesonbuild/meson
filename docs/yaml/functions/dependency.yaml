@@ -158,9 +158,13 @@ kwargs:
     type: bool | feature
     default: true
     description: |
-      when set to false, Meson will proceed with the build
-      even if the dependency is not found. *(since 0.47.0)* The value of a
-      [`feature`](Build-options.md#features) option can also be passed.
+      When set to `false`, Meson will proceed with the build
+      even if the dependency is not found.
+
+      When set to a [`feature`](Build-options.md#features) option, the feature
+      will control if it is searched and whether to fail if not found.
+
+      *(since 0.47.0)* The value of a `feature` option can also be passed.
 
   static:
     type: bool
