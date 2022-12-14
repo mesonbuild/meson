@@ -16,7 +16,7 @@ If specified, a leading `~` is expanded to the user home directory.
 Environment variables are not available as is the rule throughout Meson.
 That is, $HOME, %USERPROFILE%, $MKLROOT, etc. have no meaning to the Meson
 filesystem module. If needed, pass such variables into Meson via command
-line options in `meson_options.txt`, native-file or cross-file.
+line options in `meson.options`, native-file or cross-file.
 
 Where possible, symlinks and parent directory notation are resolved to an
 absolute path.

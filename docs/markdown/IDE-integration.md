@@ -338,7 +338,7 @@ The output format is as follows:
 ```json
 [
     "/Path/to/the/targets/meson.build",
-    "/Path/to/the/targets/meson_options.txt",
+    "/Path/to/the/targets/meson.options",
     "/Path/to/the/targets/subdir/meson.build"
 ]
 ```
