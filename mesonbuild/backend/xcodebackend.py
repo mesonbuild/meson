@@ -1025,6 +1025,7 @@ class XCodeBackend(backends.Backend):
             group_id = self.write_group_target_entry(objects_dict, target)
             children_array.add_item(group_id)
         potentials = [os.path.join(current_subdir, 'meson.build'),
+                      os.path.join(current_subdir, 'meson.options'),
                       os.path.join(current_subdir, 'meson_options.txt')]
         for bf in potentials:
             i = self.fileref_ids.get(bf, None)

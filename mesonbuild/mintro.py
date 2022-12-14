@@ -329,12 +329,12 @@ def list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[s
     return optlist
 
 def find_buildsystem_files_list(src_dir: str) -> T.List[str]:
+    build_files = frozenset({'meson.build', 'meson.options', 'meson_options.txt'})
     # I feel dirty about this. But only slightly.
-    filelist = []  # type: T.List[str]
+    filelist: T.List[str] = []
     for root, _, files in os.walk(src_dir):
-        for f in files:
-            if f in {'meson.build', 'meson_options.txt'}:
-                filelist.append(os.path.relpath(os.path.join(root, f), src_dir))
+        filelist.extend(os.path.relpath(os.path.join(root, f), src_dir)
+                        for f in build_files.intersection(files))
     return filelist
 
 def list_buildsystem_files(builddata: build.Build, interpreter: Interpreter) -> T.List[str]:

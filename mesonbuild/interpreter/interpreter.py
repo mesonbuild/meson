@@ -23,8 +23,9 @@ from .. import compilers
 from .. import envconfig
 from ..wrap import wrap, WrapMode
 from .. import mesonlib
-from ..mesonlib import (MesonBugException, HoldableObject, FileMode, MachineChoice, OptionKey,
-                        listify, extract_as_list, has_path_sep, PerMachine)
+from ..mesonlib import (MesonBugException, MesonException, HoldableObject,
+                        FileMode, MachineChoice, OptionKey, listify,
+                        extract_as_list, has_path_sep, PerMachine)
 from ..programs import ExternalProgram, NonExistingExternalProgram
 from ..dependencies import Dependency
 from ..depfile import DepFile
@@ -290,7 +291,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         # be different for dependencies provided by wrap files.
         self.subproject_directory_name = subdir.split(os.path.sep)[-1]
         self.subproject_dir = subproject_dir
-        self.option_file = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
         self.relaxations = relaxations or set()
         if not mock and ast is None:
             self.load_root_meson_file()
@@ -1174,11 +1174,27 @@ class Interpreter(InterpreterBase, HoldableObject):
         if kwargs['meson_version']:
             self.handle_meson_version(kwargs['meson_version'], node)
 
-        if os.path.exists(self.option_file):
+        # Load "meson.options" before "meson_options.txt", and produce a warning if
+        # it is being used with an old version. I have added check that if both
+        # exist the warning isn't raised
+        option_file = os.path.join(self.source_root, self.subdir, 'meson.options')
+        old_option_file = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
+
+        if os.path.exists(option_file):
+            if os.path.exists(old_option_file):
+                if os.path.samefile(option_file, old_option_file):
+                    mlog.debug("Not warning about meson.options with version minimum < 1.1 because meson_options.txt also exists")
+                else:
+                    raise MesonException("meson.options and meson_options.txt both exist, but are not the same file.")
+            else:
+                FeatureNew.single_use('meson.options file', '1.1', self.subproject, 'Use meson_options.txt instead')
+        else:
+            option_file = old_option_file
+        if os.path.exists(option_file):
             oi = optinterpreter.OptionInterpreter(self.subproject)
-            oi.process(self.option_file)
+            oi.process(option_file)
             self.coredata.update_project_options(oi.options)
-            self.add_build_def_file(self.option_file)
+            self.add_build_def_file(option_file)
 
         # Do not set default_options on reconfigure otherwise it would override
         # values previously set from command line. That means that changing

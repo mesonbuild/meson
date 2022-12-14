@@ -78,7 +78,9 @@ class FailureTests(BasePlatformTests):
         super().setUp()
         self.srcdir = os.path.realpath(tempfile.mkdtemp())
         self.mbuild = os.path.join(self.srcdir, 'meson.build')
-        self.moptions = os.path.join(self.srcdir, 'meson_options.txt')
+        self.moptions = os.path.join(self.srcdir, 'meson.options')
+        if not os.path.exists(self.moptions):
+            self.moptions = os.path.join(self.srcdir, 'meson_options.txt')
 
     def tearDown(self):
         super().tearDown()
