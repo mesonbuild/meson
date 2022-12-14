@@ -495,3 +495,14 @@ def stop_pager() -> None:
             pass
         log_pager.wait()
         log_pager = None
+
+
+def code_line(text: str, line: str, colno: int) -> str:
+    """Print a line with a caret pointing to the colno
+
+    :param text: A message to display before the line
+    :param line: The line of code to be pointed to
+    :param colno: The column number to point at
+    :return: A formatted string of the text, line, and a caret
+    """
+    return f'{text}\n{line}\n{" " * colno}^'

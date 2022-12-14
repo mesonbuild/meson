@@ -47,7 +47,7 @@ def decode_match(match: T.Match[str]) -> str:
 class ParseException(MesonException):
     def __init__(self, text: str, line: str, lineno: int, colno: int) -> None:
         # Format as error message, followed by the line with the error, followed by a caret to show the error column.
-        super().__init__("{}\n{}\n{}".format(text, line, '{}^'.format(' ' * colno)))
+        super().__init__(mlog.code_line(text, line, colno))
         self.lineno = lineno
         self.colno = colno
 
