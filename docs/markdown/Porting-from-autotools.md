@@ -150,7 +150,7 @@ else
 endif
 ```
 
-`meson_options.txt`:
+`meson.options`:
 
 ```meson
 option('enable-dep11', type : 'boolean', value : true, description : 'enable DEP-11')
