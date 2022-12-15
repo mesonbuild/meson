@@ -17,7 +17,6 @@
 from __future__ import annotations
 from pathlib import Path
 import argparse
-import ctypes
 import enum
 import sys
 import stat
@@ -699,6 +698,7 @@ def windows_detect_native_arch() -> str:
     if sys.platform != 'win32':
         return ''
     try:
+        import ctypes
         process_arch = ctypes.c_ushort()
         native_arch = ctypes.c_ushort()
         kernel32 = ctypes.windll.kernel32
