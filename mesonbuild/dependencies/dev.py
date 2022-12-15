@@ -574,10 +574,10 @@ class JNISystemDependency(SystemDependency):
                         return java_cpus.get(cpu, cpu)
 
                     java_home_lib = self.java_home / 'jre' / 'lib' / cpu_translate(m.cpu_family)
-                    java_home_lib_server = java_home_lib / "server"
                 else:
                     java_home_lib = self.java_home / 'lib'
-                    java_home_lib_server = java_home_lib / "server"
+
+                java_home_lib_server = java_home_lib / 'server'
 
             if 'jvm' in modules:
                 jvm = self.clib_compiler.find_library('jvm', environment, extra_dirs=[str(java_home_lib_server)])
