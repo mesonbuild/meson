@@ -164,6 +164,9 @@ option('o7', type: 'feature', value: 'enabled', deprecated: {'true': 'enabled', 
 option('o8', type: 'string', value: '', deprecated: 'python.platlibdir')
 ```
 
+Since *1.0.0* fully deprecated (`deprecated: true`) and superceded (`deprecated: 'newopt'`) options
+will not be listed in the `meson configure` output if they have no descriptions.
+
 ## Using build options
 
 ```meson
