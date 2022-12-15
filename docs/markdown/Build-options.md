@@ -30,7 +30,7 @@ For built-in options, see [Built-in options][builtin_opts].
 ## Build option types
 
 All types allow a `description` value to be set describing the option,
-if no description is set then the name of the option will be used instead.
+which will appear in the `meson configure` listing.
 
 ### Strings
 
