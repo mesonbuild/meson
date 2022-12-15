@@ -11,9 +11,15 @@ endif
 fs = import('fs')
 javamod = import('java')
 
+cc = meson.get_compiler('c')
 java = find_program('java')
 
 jni_dep = dependency('jni', version : '>=1.8', modules: ['jvm', 'awt'])
+
+# Assert that the header can actually be found with the dependency.
+cc.has_header('jni.h', dependencies: [jni_dep])
+# Assert that the platform-specific include directory is included in the compiler arguments.
+cc.has_header('jni_md.h', dependencies: [jni_dep])
 
 # generate native headers
 subdir('src')

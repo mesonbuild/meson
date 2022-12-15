@@ -22,6 +22,7 @@ import os
 import re
 import pathlib
 import shutil
+import subprocess
 import typing as T
 
 from mesonbuild.interpreterbase.decorators import FeatureDeprecated
@@ -546,6 +547,17 @@ class JNISystemDependency(SystemDependency):
         self.java_home = environment.properties[self.for_machine].get_java_home()
         if not self.java_home:
             self.java_home = pathlib.Path(shutil.which(self.javac.exelist[0])).resolve().parents[1]
+            if m.is_darwin():
+                problem_java_prefix = pathlib.Path('/System/Library/Frameworks/JavaVM.framework/Versions')
+                if problem_java_prefix in self.java_home.parents:
+                    res = subprocess.run(['/usr/libexec/java_home', '--failfast', '--arch', m.cpu_family],
+                                         stdout=subprocess.PIPE)
+                    if res.returncode != 0:
+                        log = mlog.error if self.required else mlog.debug
+                        log('JAVA_HOME could not be discovered on the system. Please set it explicitly.')
+                        self.is_found = False
+                        return
+                    self.java_home = pathlib.Path(res.stdout.decode().strip())
 
         platform_include_dir = self.__machine_info_to_platform_include_dir(m)
         if platform_include_dir is None:
@@ -563,17 +575,7 @@ class JNISystemDependency(SystemDependency):
                 java_home_lib_server = java_home_lib
             else:
                 if version_compare(self.version, '<= 1.8.0'):
-                    # The JDK and Meson have a disagreement here, so translate it
-                    # over. In the event more translation needs to be done, add to
-                    # following dict.
-                    def cpu_translate(cpu: str) -> str:
-                        java_cpus = {
-                            'x86_64': 'amd64',
-                        }
-
-                        return java_cpus.get(cpu, cpu)
-
-                    java_home_lib = self.java_home / 'jre' / 'lib' / cpu_translate(m.cpu_family)
+                    java_home_lib = self.java_home / 'jre' / 'lib' / self.__cpu_translate(m.cpu_family)
                 else:
                     java_home_lib = self.java_home / 'lib'
 
@@ -595,6 +597,18 @@ class JNISystemDependency(SystemDependency):
                     self.link_args.extend(jawt)
 
         self.is_found = True
+
+    @staticmethod
+    def __cpu_translate(cpu: str) -> str:
+        '''
+        The JDK and Meson have a disagreement here, so translate it over. In the event more
+        translation needs to be done, add to following dict.
+        '''
+        java_cpus = {
+            'x86_64': 'amd64',
+        }
+
+        return java_cpus.get(cpu, cpu)
 
     @staticmethod
     def __machine_info_to_platform_include_dir(m: 'MachineInfo') -> T.Optional[str]:
