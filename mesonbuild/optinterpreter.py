@@ -171,7 +171,7 @@ class OptionInterpreter:
             raise OptionException(f'Unknown type {opt_type}.')
         description = kwargs['description']
 
-        if not description and not isinstance(kwargs['deprecated'], str):
+        if not description and not (isinstance(kwargs['deprecated'], str) or kwargs['deprecated'] is True):
             description = opt_name
 
         # Only keep in kwargs arguments that are used by option type's parser

@@ -198,7 +198,7 @@ class Conf:
             root = k.as_root()
             if o.yielding and k.subproject and root in self.coredata.options:
                 printable_value = '<inherited from main project>'
-            if o.description or not isinstance(o.deprecated, str):
+            if o.description or not (isinstance(o.deprecated, str) or o.deprecated is True):
                 self.add_option(str(root), o.description, printable_value, o.choices)
 
     def print_conf(self, pager: bool):
