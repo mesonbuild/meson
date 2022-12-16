@@ -1091,7 +1091,7 @@ def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List
         TestCategory('platform-osx', 'osx', not mesonlib.is_osx()),
         TestCategory('platform-windows', 'windows', not mesonlib.is_windows() and not mesonlib.is_cygwin()),
         TestCategory('platform-linux', 'linuxlike', mesonlib.is_osx() or mesonlib.is_windows()),
-        TestCategory('java', 'java', backend is not Backend.ninja or mesonlib.is_osx() or not have_java()),
+        TestCategory('java', 'java', backend is not Backend.ninja or not have_java()),
         TestCategory('C#', 'csharp', skip_csharp(backend)),
         TestCategory('vala', 'vala', backend is not Backend.ninja or not shutil.which(os.environ.get('VALAC', 'valac'))),
         TestCategory('cython', 'cython', backend is not Backend.ninja or not shutil.which(os.environ.get('CYTHON', 'cython'))),
