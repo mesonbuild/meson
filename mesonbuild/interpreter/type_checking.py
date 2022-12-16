@@ -861,6 +861,7 @@ BUILD_TARGET_KWS: T.List[KwargInfo] = [
     _VS_MODULE_DEF_KW,
     KwargInfo(
         'target_type', str, required=True,
+        deprecated_values={'jar': ('1.1', 'Use the jar() function instead.')},
         validator=in_set_validator({
             'executable', 'shared_library', 'shared_module',
             'static_library', 'both_libraries', 'library',
