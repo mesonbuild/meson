@@ -385,6 +385,8 @@ class BinaryTable:
                     raise mesonlib.MesonException(
                         f'Invalid type {command!r} for entry {name!r} in cross file')
                 self.binaries[name] = mesonlib.listify(command)
+                if name == 'pkgconfig':
+                    self.binaries['pkg-config'] = self.binaries[name]
 
     @staticmethod
     def detect_ccache() -> T.List[str]:
