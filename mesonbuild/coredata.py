@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import copy
+
 from . import mlog, mparser
 import pickle, os, uuid
 import sys
@@ -886,7 +888,7 @@ class CoreData:
         for key in comp.base_options:
             if key in self.options:
                 continue
-            oobj = compilers.base_options[key]
+            oobj = copy.deepcopy(compilers.base_options[key])
             if key in env.options:
                 oobj.set_value(env.options[key])
                 enabled_opts.append(key)
