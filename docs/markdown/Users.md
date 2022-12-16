@@ -68,6 +68,7 @@ topic](https://github.com/topics/meson).
  - [HelenOS](http://helenos.org), a portable microkernel-based multiserver operating system
  - [HexChat](https://github.com/hexchat/hexchat), a cross-platform IRC client in C
  - [IGT](https://gitlab.freedesktop.org/drm/igt-gpu-tools), Linux kernel graphics driver test suite
+ - [i3](https://i3wm.org), improved tiling window manager
  - [inih](https://github.com/benhoyt/inih) (INI Not Invented Here), a small and simple .INI file parser written in C
  - [Irssi](https://github.com/irssi/irssi), a terminal chat client in C
  - [iSH](https://github.com/tbodt/ish), Linux shell for iOS
