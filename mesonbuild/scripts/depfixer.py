@@ -457,7 +457,7 @@ def fix_darwin(fname: str, new_rpath: str, final_path: str, install_name_mapping
         raise SystemExit(err)
 
 def fix_jar(fname: str) -> None:
-    subprocess.check_call(['jar', 'xfv', fname, 'META-INF/MANIFEST.MF'])
+    subprocess.check_call(['jar', 'xf', fname, 'META-INF/MANIFEST.MF'])
     with open('META-INF/MANIFEST.MF', 'r+', encoding='utf-8') as f:
         lines = f.readlines()
         f.seek(0)
@@ -465,7 +465,12 @@ def fix_jar(fname: str) -> None:
             if not line.startswith('Class-Path:'):
                 f.write(line)
         f.truncate()
-    subprocess.check_call(['jar', 'ufm', fname, 'META-INF/MANIFEST.MF'])
+    # jar -um doesn't allow removing existing attributes.  Use -uM instead,
+    # which a) removes the existing manifest from the jar and b) disables
+    # special-casing for the manifest file, so we can re-add it as a normal
+    # archive member.  This puts the manifest at the end of the jar rather
+    # than the beginning, but the spec doesn't forbid that.
+    subprocess.check_call(['jar', 'ufM', fname, 'META-INF/MANIFEST.MF'])
 
 def fix_rpath(fname: str, rpath_dirs_to_remove: T.Set[bytes], new_rpath: T.Union[str, bytes], final_path: str, install_name_mappings: T.Dict[str, str], verbose: bool = True) -> None:
     global INSTALL_NAME_TOOL  # pylint: disable=global-statement

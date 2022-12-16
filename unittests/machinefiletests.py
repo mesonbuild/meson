@@ -42,6 +42,7 @@ import mesonbuild.modules.pkgconfig
 
 
 from run_tests import (
+    Backend,
     get_fake_env
 )
 
@@ -367,6 +368,23 @@ class NativeFileTests(BasePlatformTests):
     def test_java_compiler(self):
         self._single_implementation_compiler(
             'java', 'javac', 'javac 9.99.77', '9.99.77')
+
+    @skip_if_not_language('java')
+    def test_java_classpath(self):
+        if self.backend is not Backend.ninja:
+            raise SkipTest('Jar is only supported with Ninja')
+        testdir = os.path.join(self.unit_test_dir, '110 classpath')
+        self.init(testdir)
+        self.build()
+        one_build_path = get_classpath(os.path.join(self.builddir, 'one.jar'))
+        self.assertIsNone(one_build_path)
+        two_build_path = get_classpath(os.path.join(self.builddir, 'two.jar'))
+        self.assertEqual(two_build_path, 'one.jar')
+        self.install()
+        one_install_path = get_classpath(os.path.join(self.installdir, 'usr/bin/one.jar'))
+        self.assertIsNone(one_install_path)
+        two_install_path = get_classpath(os.path.join(self.installdir, 'usr/bin/two.jar'))
+        self.assertIsNone(two_install_path)
 
     @skip_if_not_language('swift')
     def test_swift_compiler(self):
