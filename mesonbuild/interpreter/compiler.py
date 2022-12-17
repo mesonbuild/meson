@@ -773,12 +773,6 @@ class CompilerHolder(ObjectHolder['Compiler']):
         if any(isinstance(s, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)) for s in sources):
             FeatureNew.single_use('compiler.preprocess with generated sources', '1.1.0', self.subproject,
                                   location=self.current_node)
-        tg_kwargs = {
-            f'{self.compiler.language}_args': kwargs['compile_args'],
-            'build_by_default': False,
-            'include_directories': kwargs['include_directories'],
-            'dependencies': kwargs['dependencies'],
-        }
         tg_name = f'preprocessor_{next(self.preprocess_uid)}'
         tg = build.CompileTarget(
             tg_name,
@@ -789,7 +783,9 @@ class CompilerHolder(ObjectHolder['Compiler']):
             kwargs['output'],
             compiler,
             self.interpreter.backend,
-            tg_kwargs)
+            kwargs['compile_args'],
+            kwargs['include_directories'],
+            kwargs['dependencies'])
         self.interpreter.add_target(tg.name, tg)
         # Expose this target as list of its outputs, so user can pass them to
         # other targets, list outputs, etc.

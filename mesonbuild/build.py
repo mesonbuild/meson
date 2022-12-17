@@ -26,7 +26,6 @@ import re
 import textwrap
 import typing as T
 
-
 from . import environment
 from . import dependencies
 from . import mlog
@@ -2665,8 +2664,16 @@ class CompileTarget(BuildTarget):
                  output_templ: str,
                  compiler: Compiler,
                  backend: Backend,
-                 kwargs):
+                 compile_args: T.List[str],
+                 include_directories: T.List[IncludeDirs],
+                 dependencies: T.List[dependencies.Dependency]):
         compilers = {compiler.get_language(): compiler}
+        kwargs = {
+            'build_by_default': False,
+            f'{compiler.language}_args': compile_args,
+            'include_directories': include_directories,
+            'dependencies': dependencies,
+        }
         super().__init__(name, subdir, subproject, compiler.for_machine,
                          sources, None, [], environment, compilers, kwargs)
         self.filename = name
