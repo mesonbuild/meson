@@ -22,7 +22,13 @@ int main(void) {
 #include<pthread.h>
 #include<stdio.h>
 
-void* main_func(void) {
+#ifdef HAVE_UNUSED
+    #define UNUSED_ATTR __attribute__((unused))
+#else
+    #define UNUSED_ATTR
+#endif
+
+void* main_func(void UNUSED_ATTR *arg) {
     printf("Printing from a thread.\n");
     return NULL;
 }
