@@ -35,6 +35,12 @@ e += executable('exe5', 'main.c', ct[0])
 sl2 = static_library('lib6', sources: ct)
 e += executable('exe6', sources: 'main.c', objects: sl2.extract_all_objects(recursive: true))
 
+e += executable('exe7', sources: 'main.c', objects: ct)
+e += executable('exe8', sources: 'main.c', objects: ct[0])
+
+sl3 = static_library('lib9', objects: ct)
+e += executable('exe9', sources: 'main.c', objects: sl2.extract_all_objects(recursive: true))
+
 foreach i : e
   test(i.name(), i)
 endforeach
