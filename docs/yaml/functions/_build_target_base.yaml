@@ -194,8 +194,11 @@ kwargs:
     type: list[extracted_obj | file | str]
     description: |
       List of object files that should be linked in this target.
-      These can include third party products you don't have source to,
-      or object files produced by other build targets.
+
+      **Since 1.1.0** this can include generated files in addition to
+      object files that you don't have source to or that object files
+      produced by other build targets.  In earlier release, generated
+      object files had to be placed in `sources`.
 
   name_prefix:
     type: str | list[void]
