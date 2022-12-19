@@ -363,15 +363,23 @@ def get_distutils_paths(scheme=None, prefix=None):
 # default scheme to a custom one pointing to /usr/local and replacing
 # site-packages with dist-packages.
 # See https://github.com/mesonbuild/meson/issues/8739.
-# XXX: We should be using sysconfig, but Debian only patches distutils.
+# Until version 3.10.2-6, Debian only patched distutils, not sysconfig.
 
 if 'deb_system' in distutils.command.install.INSTALL_SCHEMES:
+    # Debian systems before setuptools-bundled distutils was used by default
     paths = get_distutils_paths(scheme='deb_system')
     install_paths = get_distutils_paths(scheme='deb_system', prefix='')
 else:
-    paths = sysconfig.get_paths()
+    if 'deb_system' in sysconfig.get_scheme_names():
+        # Use Debian's custom deb_system scheme (with our prefix)
+        scheme = 'deb_system'
+    elif sys.version_info >= (3, 10):
+        scheme = sysconfig.get_default_scheme()
+    else:
+        scheme = sysconfig._get_default_scheme()
+    paths = sysconfig.get_paths(scheme=scheme)
     empty_vars = {'base': '', 'platbase': '', 'installed_base': ''}
-    install_paths = sysconfig.get_paths(vars=empty_vars)
+    install_paths = sysconfig.get_paths(vars=empty_vars, scheme=scheme)
 
 def links_against_libpython():
     from distutils.core import Distribution, Extension
