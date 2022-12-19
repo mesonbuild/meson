@@ -193,6 +193,8 @@ class DependenciesHelper:
                     self.add_version_reqs(obj.name, obj.version_reqs)
             elif isinstance(obj, dependencies.InternalDependency):
                 if obj.found():
+                    if obj.objects:
+                        raise mesonlib.MesonException('.pc file cannot refer to individual object files.')
                     processed_libs += obj.get_link_args()
                     processed_cflags += obj.get_compile_args()
                     self._add_lib_dependencies(obj.libraries, obj.whole_libraries, obj.ext_deps, public, private_external_deps=True)
