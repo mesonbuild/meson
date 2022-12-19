@@ -101,7 +101,7 @@ class CLikeCompilerArgs(arglist.CompilerArgs):
         # Remove system/default include paths added with -isystem
         default_dirs = self.compiler.get_default_include_dirs()
         if default_dirs:
-            real_default_dirs = [os.path.realpath(i) for i in default_dirs]
+            real_default_dirs = [self._cached_realpath(i) for i in default_dirs]
             bad_idx_list = []  # type: T.List[int]
             for i, each in enumerate(new):
                 if not each.startswith('-isystem'):
@@ -110,15 +110,20 @@ class CLikeCompilerArgs(arglist.CompilerArgs):
                 # Remove the -isystem and the path if the path is a default path
                 if (each == '-isystem' and
                         i < (len(new) - 1) and
-                        os.path.realpath(new[i + 1]) in real_default_dirs):
+                        self._cached_realpath(new[i + 1]) in real_default_dirs):
                     bad_idx_list += [i, i + 1]
-                elif each.startswith('-isystem=') and os.path.realpath(each[9:]) in real_default_dirs:
+                elif each.startswith('-isystem=') and self._cached_realpath(each[9:]) in real_default_dirs:
                     bad_idx_list += [i]
-                elif os.path.realpath(each[8:]) in real_default_dirs:
+                elif self._cached_realpath(each[8:]) in real_default_dirs:
                     bad_idx_list += [i]
             for i in reversed(bad_idx_list):
                 new.pop(i)
         return self.compiler.unix_args_to_native(new._container)
+
+    @staticmethod
+    @functools.lru_cache(maxsize=None)
+    def _cached_realpath(arg: str) -> str:
+        return os.path.realpath(arg)
 
     def __repr__(self) -> str:
         self.flush_pre_post()
