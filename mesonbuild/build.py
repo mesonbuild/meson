@@ -1291,6 +1291,7 @@ class BuildTarget(Target):
                 # Those parts that are internal.
                 self.process_sourcelist(dep.sources)
                 self.add_include_dirs(dep.include_directories, dep.get_include_type())
+                self.objects.extend(dep.objects)
                 for l in dep.libraries:
                     self.link(l)
                 for l in dep.whole_libraries:
@@ -1301,7 +1302,7 @@ class BuildTarget(Target):
                                                               [],
                                                               dep.get_compile_args(),
                                                               dep.get_link_args(),
-                                                              [], [], [], [], {}, [], [])
+                                                              [], [], [], [], {}, [], [], [])
                     self.external_deps.append(extpart)
                 # Deps of deps.
                 self.add_deps(dep.ext_deps)

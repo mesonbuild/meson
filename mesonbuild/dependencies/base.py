@@ -31,13 +31,12 @@ from ..mesonlib import version_compare_many
 
 if T.TYPE_CHECKING:
     from .._typing import ImmutableListProtocol
-    from ..build import StructuredSources
     from ..compilers.compilers import Compiler
     from ..environment import Environment
     from ..interpreterbase import FeatureCheckBase
     from ..build import (
         CustomTarget, IncludeDirs, CustomTargetIndex, LibTypes,
-        StaticLibrary
+        StaticLibrary, StructuredSources, ExtractedObjects
     )
     from ..mesonlib import FileOrString
 
@@ -252,7 +251,8 @@ class InternalDependency(Dependency):
                  whole_libraries: T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]],
                  sources: T.Sequence[T.Union[FileOrString, CustomTarget, StructuredSources]],
                  ext_deps: T.List[Dependency], variables: T.Dict[str, str],
-                 d_module_versions: T.List[T.Union[str, int]], d_import_dirs: T.List['IncludeDirs']):
+                 d_module_versions: T.List[T.Union[str, int]], d_import_dirs: T.List['IncludeDirs'],
+                 objects: T.List['ExtractedObjects']):
         super().__init__(DependencyTypeName('internal'), {})
         self.version = version
         self.is_found = True
@@ -264,6 +264,7 @@ class InternalDependency(Dependency):
         self.sources = list(sources)
         self.ext_deps = ext_deps
         self.variables = variables
+        self.objects = objects
         if d_module_versions:
             self.d_features['versions'] = d_module_versions
         if d_import_dirs:
@@ -315,7 +316,7 @@ class InternalDependency(Dependency):
         return InternalDependency(
             self.version, final_includes, final_compile_args,
             final_link_args, final_libraries, final_whole_libraries,
-            final_sources, final_deps, self.variables, [], [])
+            final_sources, final_deps, self.variables, [], [], [])
 
     def get_include_dirs(self) -> T.List['IncludeDirs']:
         return self.include_directories
