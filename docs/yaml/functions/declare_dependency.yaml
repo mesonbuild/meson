@@ -71,3 +71,10 @@ kwargs:
     description: |
       the directories to add to the string search path (i.e. `-J` switch for DMD).
       Must be [[@inc]] objects or plain strings.
+
+  objects:
+    type: list[extracted_obj]
+    since: 1.1.0
+    description: |
+      a list of object files, to be linked directly into the targets that use the
+      dependency.
