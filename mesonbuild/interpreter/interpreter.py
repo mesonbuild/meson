@@ -670,12 +670,14 @@ class Interpreter(InterpreterBase, HoldableObject):
         SOURCES_KW,
         VARIABLES_KW.evolve(since='0.54.0', since_values={list: '0.56.0'}),
         KwargInfo('version', (str, NoneType)),
+        KwargInfo('objects', ContainerTypeInfo(list, build.ExtractedObjects), listify=True, default=[], since='1.1.0'),
     )
     def func_declare_dependency(self, node, args, kwargs):
         deps = kwargs['dependencies']
         incs = self.extract_incdirs(kwargs)
         libs = kwargs['link_with']
         libs_whole = kwargs['link_whole']
+        objects = kwargs['objects']
         sources = self.source_strings_to_files(kwargs['sources'])
         compile_args = kwargs['compile_args']
         link_args = kwargs['link_args']
@@ -703,7 +705,8 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         dep = dependencies.InternalDependency(version, incs, compile_args,
                                               link_args, libs, libs_whole, sources, deps,
-                                              variables, d_module_versions, d_import_dirs)
+                                              variables, d_module_versions, d_import_dirs,
+                                              objects)
         return dep
 
     @typed_pos_args('assert', bool, optargs=[str])
