@@ -191,11 +191,11 @@ kwargs:
       (but *not* before that). On Windows, this argument has no effect.
 
   objects:
-    type: list[extracted_obj]
+    type: list[extracted_obj | file | str]
     description: |
-      List of prebuilt object files (usually for third party
-      products you don't have source to) that should be linked in this
-      target, **never** use this for object files that you build yourself.
+      List of object files that should be linked in this target.
+      These can include third party products you don't have source to,
+      or object files produced by other build targets.
 
   name_prefix:
     type: str | list[void]
