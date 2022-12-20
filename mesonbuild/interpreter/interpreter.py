@@ -3040,7 +3040,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def source_strings_to_files(self, sources: T.List['mesonlib.FileOrString'], strict: bool = False) -> T.List['mesonlib.FileOrString']: ... # noqa: F811
 
     @T.overload
-    def source_strings_to_files(self, sources: T.List[mesonlib.FileOrString, build.GeneratedTypes]) -> T.List[T.Union[mesonlib.File, build.GeneratedTypes]]: ... # noqa: F811
+    def source_strings_to_files(self, sources: T.List[T.Union[mesonlib.FileOrString, build.GeneratedTypes]]) -> T.List[T.Union[mesonlib.File, build.GeneratedTypes]]: ... # noqa: F811
 
     @T.overload
     def source_strings_to_files(self, sources: T.List['SourceInputs'], strict: bool = True) -> T.List['SourceOutputs']: ... # noqa: F811
