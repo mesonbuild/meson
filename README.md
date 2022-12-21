@@ -9,8 +9,6 @@ build system.
 [![PyPI](https://img.shields.io/pypi/v/meson.svg)](https://pypi.python.org/pypi/meson)
 [![Build Status](https://dev.azure.com/jussi0947/jussi/_apis/build/status/mesonbuild.meson)](https://dev.azure.com/jussi0947/jussi/_build/latest?definitionId=1)
 [![Codecov](https://codecov.io/gh/mesonbuild/meson/coverage.svg?branch=master)](https://codecov.io/gh/mesonbuild/meson/branch/master)
-[![Code Quality: Python](https://img.shields.io/lgtm/grade/python/g/mesonbuild/meson.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/mesonbuild/meson/context:python)
-[![Total Alerts](https://img.shields.io/lgtm/alerts/g/mesonbuild/meson.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/mesonbuild/meson/alerts)
 
 #### Dependencies
 
