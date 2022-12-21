@@ -604,6 +604,8 @@ methods:
     normal compilation. That includes for example args added with
     `add_project_arguments()`, or on the command line with `-Dc_args=-DFOO`.
   varargs_inherit: _build_target_base
+  kwargs_inherit:
+    - compiler._include_directories
   kwargs:
     output:
       type: str
