@@ -85,3 +85,63 @@ methods:
       type: str
       default: "''"
       description: The error Message to print if the check fails
+
+- name: enable_if
+  returns: feature
+  since: 1.1.0
+  description: |
+    Returns the object itself if the value is false; an error if the object is
+    `'disabled'` and the value is true; an enabled feature if the object
+    is `'auto'` or `'enabled'` and the value is true.
+
+  example: |
+    `enable_if` is useful to restrict the applicability of `'auto'` features,
+    particularly when passing them to [[dependency]]:
+
+    ```
+    use_llvm = get_option('llvm').enable_if(with_clang).enable_if(with_llvm_libs)
+    dep_llvm = dependency('llvm', require : use_llvm)
+    ```
+
+  posargs:
+    value:
+      type: bool
+      description: The value to check
+
+  kwargs:
+    error_message:
+      type: str
+      default: "''"
+      description: The error Message to print if the check fails
+
+- name: disable_if
+  returns: feature
+  since: 1.1.0
+  description: |
+    Returns the object itself if the value is false; an error if the object is
+    `'enabled'` and the value is true; a disabled feature if the object
+    is `'auto'` or `'disabled'` and the value is true.
+
+    This is equivalent to `feature_opt.require(not condition)`, but may make
+    code easier to reason about, especially when mixed with `enable_if`
+
+  example: |
+    `disable_if` is useful to restrict the applicability of `'auto'` features,
+    particularly when passing them to [[dependency]]:
+
+    ```
+    use_os_feature = get_option('foo') \
+      .disable_if(host_machine.system() == 'darwin', error_message : 'os feature not supported on MacOS')
+    dep_os_feature = dependency('os_feature', require : use_os_feature)
+    ```
+
+  posargs:
+    value:
+      type: bool
+      description: The value to check
+
+  kwargs:
+    error_message:
+      type: str
+      default: "''"
+      description: The error Message to print if the check fails
