@@ -38,6 +38,23 @@ methods:
       type: bool
       description: See the table above
 
+- name: enable_auto_if
+  since: 1.1.0
+  returns: feature
+  description: |
+    Returns the feature, with `'auto'` converted to `'enabled'` if value is true.
+
+    | Feature / Condition | `value = true` | `value = false` |
+    | ------------------- | -------------- | --------------- |
+    | Enabled             | Enabled        | Enabled         |
+    | Disabled            | Disabled       | Disabled        |
+    | Auto                | Enabled        | Auto            |
+
+  posargs:
+    value:
+      type: bool
+      description: See the table above
+
 - name: require
   returns: feature
   since: 0.59.0
