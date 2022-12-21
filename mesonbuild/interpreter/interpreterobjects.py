@@ -41,7 +41,6 @@ if T.TYPE_CHECKING:
 
         separator: str
 
-
 def extract_required_kwarg(kwargs: 'kwargs.ExtractRequired',
                            subproject: 'SubProject',
                            feature_check: T.Optional[FeatureCheckBase] = None,
@@ -97,6 +96,7 @@ class FeatureOptionHolder(ObjectHolder[coredata.UserFeatureOption]):
                              'auto': self.auto_method,
                              'require': self.require_method,
                              'disable_auto_if': self.disable_auto_if_method,
+                             'enable_auto_if': self.enable_auto_if_method,
                              })
 
     @property
@@ -107,6 +107,11 @@ class FeatureOptionHolder(ObjectHolder[coredata.UserFeatureOption]):
         disabled = copy.deepcopy(self.held_object)
         disabled.value = 'disabled'
         return disabled
+
+    def as_enabled(self) -> coredata.UserFeatureOption:
+        enabled = copy.deepcopy(self.held_object)
+        enabled.value = 'enabled'
+        return enabled
 
     @noPosargs
     @noKwargs
@@ -151,6 +156,12 @@ class FeatureOptionHolder(ObjectHolder[coredata.UserFeatureOption]):
     @typed_pos_args('feature_option.disable_auto_if', bool)
     def disable_auto_if_method(self, args: T.Tuple[bool], kwargs: TYPE_kwargs) -> coredata.UserFeatureOption:
         return copy.deepcopy(self.held_object) if self.value != 'auto' or not args[0] else self.as_disabled()
+
+    @FeatureNew('feature_option.enable_auto_if()', '1.1.0')
+    @noKwargs
+    @typed_pos_args('feature_option.enable_auto_if', bool)
+    def enable_auto_if_method(self, args: T.Tuple[bool], kwargs: TYPE_kwargs) -> coredata.UserFeatureOption:
+        return self.as_enabled() if self.value == 'auto' and args[0] else copy.deepcopy(self.held_object)
 
 
 class RunProcess(MesonInterpreterObject):
