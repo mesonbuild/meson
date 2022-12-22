@@ -144,14 +144,13 @@ class RustCompiler(Compiler):
     # use_linker_args method instead.
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
-        key = OptionKey('std', machine=self.for_machine, lang=self.language)
-        return {
-            key: coredata.UserComboOption(
-                'Rust edition to use',
-                ['none', '2015', '2018', '2021'],
-                'none',
-            ),
-        }
+        return coredata.key_option_dict([
+            OptionKey('std', machine=self.for_machine, lang=self.language),
+            coredata.UserComboOption,
+            'Rust edition to use',
+            ['none', '2015', '2018', '2021'],
+            'none',
+        ])
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []

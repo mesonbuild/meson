@@ -2289,6 +2289,7 @@ class OptionKey:
         """Convenience method to check if this is a base option."""
         return self.type is OptionType.BASE
 
+
 def pickle_load(filename: str, object_name: str, object_type: T.Type) -> T.Any:
     load_fail_msg = f'{object_name} file {filename!r} is corrupted. Try with a fresh build tree.'
     try:

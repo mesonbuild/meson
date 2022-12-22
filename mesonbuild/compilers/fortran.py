@@ -129,14 +129,13 @@ class FortranCompiler(CLikeCompiler, Compiler):
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = super().get_options()
-        key = OptionKey('std', machine=self.for_machine, lang=self.language)
-        opts.update({
-            key: coredata.UserComboOption(
-                'Fortran language standard to use',
-                ['none'],
-                'none',
-            ),
-        })
+        opts.update(coredata.key_option_dict([
+            OptionKey('std', machine=self.for_machine, lang=self.language),
+            coredata.UserComboOption,
+            'Fortran language standard to use',
+            ['none'],
+            'none',
+        ]))
         return opts
 
 

@@ -617,14 +617,21 @@ class CudaCompiler(Compiler):
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = super().get_options()
-        std_key = OptionKey('std', machine=self.for_machine, lang=self.language)
-        ccbindir_key = OptionKey('ccbindir', machine=self.for_machine, lang=self.language)
-        opts.update({
-            std_key:      coredata.UserComboOption('C++ language standard to use with CUDA',
-                                                   ['none', 'c++03', 'c++11', 'c++14', 'c++17'], 'none'),
-            ccbindir_key: coredata.UserStringOption('CUDA non-default toolchain directory to use (-ccbin)',
-                                                    ''),
-        })
+        opts.update(coredata.key_option_dict(
+            (
+                OptionKey('std', machine=self.for_machine, lang=self.language),
+                coredata.UserComboOption,
+                'C++ language standard to use with CUDA',
+                ['none', 'c++03', 'c++11', 'c++14', 'c++17'],
+                'none',
+            ),
+            (
+                OptionKey('ccbindir', machine=self.for_machine, lang=self.language),
+                coredata.UserStringOption,
+                'CUDA non-default toolchain directory to use (-ccbin)',
+                '',
+            )
+        ))
         return opts
 
     def _to_host_compiler_options(self, options: 'KeyedOptionDictType') -> 'KeyedOptionDictType':

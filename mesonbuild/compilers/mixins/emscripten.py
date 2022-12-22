@@ -70,13 +70,12 @@ class EmscriptenMixin(Compiler):
 
     def get_options(self) -> 'coredata.MutableKeyedOptionDictType':
         opts = super().get_options()
-        key = OptionKey('thread_count', machine=self.for_machine, lang=self.language)
-        opts.update({
-            key: coredata.UserIntegerOption(
-                'Number of threads to use in web assembly, set to 0 to disable',
-                (0, None, 4),  # Default was picked at random
-            ),
-        })
+        opts.update(coredata.key_option_dict([
+            OptionKey('thread_count', machine=self.for_machine, lang=self.language),
+            coredata.UserIntegerOption,
+            'Number of threads to use in web assembly, set to 0 to disable',
+            (0, None, 4),  # Default was picked at random
+        ]))
 
         return opts
 

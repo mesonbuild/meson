@@ -73,9 +73,10 @@ class MesonVersionMismatchException(MesonException):
 
 
 class UserOption(T.Generic[_T], HoldableObject):
-    def __init__(self, description: str, choices: T.Optional[T.Union[str, T.List[_T]]], yielding: T.Optional[bool]):
+    def __init__(self, name: str, description: str, choices: T.Optional[T.Union[str, T.List[_T]]], yielding: T.Optional[bool]):
         super().__init__()
         self.choices = choices
+        self.name = name
         self.description = description
         if yielding is None:
             yielding = default_yielding
@@ -101,8 +102,8 @@ class UserOption(T.Generic[_T], HoldableObject):
         self.value = self.validate_value(newvalue)
 
 class UserStringOption(UserOption[str]):
-    def __init__(self, description: str, value: T.Any, yielding: T.Optional[bool] = None):
-        super().__init__(description, None, yielding)
+    def __init__(self, name: str, description: str, value: T.Any, yielding: T.Optional[bool] = None):
+        super().__init__(name, description, None, yielding)
         self.set_value(value)
 
     def validate_value(self, value: T.Any) -> str:
@@ -111,8 +112,8 @@ class UserStringOption(UserOption[str]):
         return value
 
 class UserBooleanOption(UserOption[bool]):
-    def __init__(self, description: str, value, yielding: T.Optional[bool] = None) -> None:
-        super().__init__(description, [True, False], yielding)
+    def __init__(self, name: str, description: str, value: T.Any, yielding: T.Optional[bool] = None) -> None:
+        super().__init__(name, description, [True, False], yielding)
         self.set_value(value)
 
     def __bool__(self) -> bool:
@@ -130,7 +131,7 @@ class UserBooleanOption(UserOption[bool]):
         raise MesonException('Value %s is not boolean (true or false).' % value)
 
 class UserIntegerOption(UserOption[int]):
-    def __init__(self, description: str, value: T.Any, yielding: T.Optional[bool] = None):
+    def __init__(self, name: str, description: str, value: T.Any, yielding: T.Optional[bool] = None):
         min_value, max_value, default_value = value
         self.min_value = min_value
         self.max_value = max_value
@@ -140,7 +141,7 @@ class UserIntegerOption(UserOption[int]):
         if max_value is not None:
             c.append('<=' + str(max_value))
         choices = ', '.join(c)
-        super().__init__(description, choices, yielding)
+        super().__init__(name, description, choices, yielding)
         self.set_value(default_value)
 
     def validate_value(self, value: T.Any) -> int:
@@ -168,8 +169,8 @@ class OctalInt(int):
         return oct(int(self))
 
 class UserUmaskOption(UserIntegerOption, UserOption[T.Union[str, OctalInt]]):
-    def __init__(self, description: str, value: T.Any, yielding: T.Optional[bool] = None):
-        super().__init__(description, (0, 0o777, value), yielding)
+    def __init__(self, name: str, description: str, value: T.Any, yielding: T.Optional[bool] = None):
+        super().__init__(name, description, (0, 0o777, value), yielding)
         self.choices = ['preserve', '0000-0777']
 
     def printable_value(self) -> str:
@@ -189,8 +190,8 @@ class UserUmaskOption(UserIntegerOption, UserOption[T.Union[str, OctalInt]]):
             raise MesonException(f'Invalid mode: {e}')
 
 class UserComboOption(UserOption[str]):
-    def __init__(self, description: str, choices: T.List[str], value: T.Any, yielding: T.Optional[bool] = None):
-        super().__init__(description, choices, yielding)
+    def __init__(self, name: str, description: str, choices: T.List[str], value: T.Any, yielding: T.Optional[bool] = None):
+        super().__init__(name, description, choices, yielding)
         if not isinstance(self.choices, list):
             raise MesonException('Combo choices must be an array.')
         for i in self.choices:
@@ -209,12 +210,12 @@ class UserComboOption(UserOption[str]):
             optionsstring = ', '.join([f'"{item}"' for item in self.choices])
             raise MesonException('Value "{}" (of type "{}") for combo option "{}" is not one of the choices.'
                                  ' Possible choices are (as string): {}.'.format(
-                                     value, _type, self.description, optionsstring))
+                                     value, _type, self.name, optionsstring))
         return value
 
 class UserArrayOption(UserOption[T.List[str]]):
-    def __init__(self, description: str, value: T.Union[str, T.List[str]], split_args: bool = False, user_input: bool = False, allow_dups: bool = False, **kwargs: T.Any) -> None:
-        super().__init__(description, kwargs.get('choices', []), yielding=kwargs.get('yielding', None))
+    def __init__(self, name: str, description: str, value: T.Union[str, T.List[str]], split_args: bool = False, user_input: bool = False, allow_dups: bool = False, **kwargs: T.Any) -> None:
+        super().__init__(name, description, kwargs.get('choices', []), yielding=kwargs.get('yielding', None))
         self.split_args = split_args
         self.allow_dups = allow_dups
         self.value = self.validate_value(value, user_input=user_input)
@@ -272,9 +273,8 @@ class UserArrayOption(UserOption[T.List[str]]):
 class UserFeatureOption(UserComboOption):
     static_choices = ['enabled', 'disabled', 'auto']
 
-    def __init__(self, description: str, value: T.Any, yielding: T.Optional[bool] = None):
-        super().__init__(description, self.static_choices, value, yielding)
-        self.name: T.Optional[str] = None  # TODO: Refactor options to all store their name
+    def __init__(self, name: str, description: str, value: T.Any, yielding: T.Optional[bool] = None):
+        super().__init__(name, description, self.static_choices, value, yielding)
 
     def is_enabled(self) -> bool:
         return self.value == 'enabled'
@@ -604,14 +604,19 @@ class CoreData:
 
     def init_backend_options(self, backend_name: str) -> None:
         if backend_name == 'ninja':
-            self.options[OptionKey('backend_max_links')] = UserIntegerOption(
-                'Maximum number of linker processes to run or 0 for no '
-                'limit',
-                (0, None, 0))
+            self.options.update(key_option_dict([
+                'backend_max_links',
+                UserIntegerOption,
+                'Maximum number of linker processes to run or 0 for no limit',
+                (0, None, 0),
+            ]))
         elif backend_name.startswith('vs'):
-            self.options[OptionKey('backend_startup_project')] = UserStringOption(
+            self.options.update(key_option_dict([
+                'backend_startup_project',
+                UserStringOption,
                 'Default project to execute in Visual Studio',
-                '')
+                '',
+            ]))
 
     def get_option(self, key: OptionKey) -> T.Union[T.List[str], str, int, bool, WrapMode]:
         try:
@@ -1136,7 +1141,7 @@ class BuiltinOption(T.Generic[_T, _U]):
         keywords = {'yielding': self.yielding, 'value': value}
         if self.choices:
             keywords['choices'] = self.choices
-        return self.opt_type(self.description, **keywords)
+        return self.opt_type(str(name), self.description, **keywords)
 
     def _argparse_action(self) -> T.Optional[str]:
         # If the type is a boolean, the presence of the argument in --foo form
@@ -1186,6 +1191,21 @@ class BuiltinOption(T.Generic[_T, _U]):
 
         cmdline_name = self.argparse_name_to_arg(name)
         parser.add_argument(cmdline_name, help=h + help_suffix, **kwargs)
+
+
+def key_option_pair(
+                    key: T.Union[str, OptionKey],
+                    opt_type: T.Type[_U],
+                    *args, **kwargs
+                   ) -> T.Tuple[OptionKey, _U]:
+    if isinstance(key, str):
+        key = OptionKey(key)
+
+    return key, opt_type(str(key), *args, **kwargs)
+
+
+def key_option_dict(*items: T.Union[T.Tuple, T.List]) -> 'MutableKeyedOptionDictType':
+    return OrderedDict(key_option_pair(*args) for args in items)
 
 
 # Update `docs/markdown/Builtin-options.md` after changing the options below

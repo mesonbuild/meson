@@ -99,13 +99,13 @@ class CCompiler(CLikeCompiler, Compiler):
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = super().get_options()
-        opts.update({
-            OptionKey('std', machine=self.for_machine, lang=self.language): coredata.UserComboOption(
-                'C language standard to use',
-                ['none'],
-                'none',
-            )
-        })
+        opts.update(coredata.key_option_dict([
+            OptionKey('std', machine=self.for_machine, lang=self.language),
+            coredata.UserComboOption,
+            'C language standard to use',
+            ['none'],
+            'none',
+        ]))
         return opts
 
 
@@ -159,12 +159,11 @@ class ClangCCompiler(_ClangCStds, ClangCompiler, CCompiler):
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = super().get_options()
         if self.info.is_windows() or self.info.is_cygwin():
-            opts.update({
-                OptionKey('winlibs', machine=self.for_machine, lang=self.language): coredata.UserArrayOption(
-                    'Standard Win libraries to link against',
-                    gnu_winlibs,
-                ),
-            })
+            opts.update(coredata.key_option_dict([
+                OptionKey('winlibs', machine=self.for_machine, lang=self.language), coredata.UserArrayOption,
+                'Standard Win libraries to link against',
+                gnu_winlibs,
+            ]))
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
@@ -292,12 +291,12 @@ class GnuCCompiler(GnuCompiler, CCompiler):
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         opts[key].choices = ['none'] + c_stds + g_stds
         if self.info.is_windows() or self.info.is_cygwin():
-            opts.update({
-                key.evolve('winlibs'): coredata.UserArrayOption(
-                    'Standard Win libraries to link against',
-                    gnu_winlibs,
-                ),
-            })
+            opts.update(coredata.key_option_dict([
+                key.evolve('winlibs'),
+                coredata.UserArrayOption,
+                'Standard Win libraries to link against',
+                gnu_winlibs,
+            ]))
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
@@ -426,12 +425,11 @@ class VisualStudioLikeCCompilerMixin(CompilerMixinBase):
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = super().get_options()
-        opts.update({
-            OptionKey('winlibs', machine=self.for_machine, lang=self.language): coredata.UserArrayOption(
-                'Windows libs to link against.',
-                msvc_winlibs,
-            ),
-        })
+        opts.update(coredata.key_option_dict([
+            OptionKey('winlibs', machine=self.for_machine, lang=self.language), coredata.UserArrayOption,
+            'Windows libs to link against.',
+            msvc_winlibs,
+        ]))
         return opts
 
     def get_option_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:

@@ -170,14 +170,13 @@ class CPPCompiler(CLikeCompiler, Compiler):
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = super().get_options()
-        key = OptionKey('std', machine=self.for_machine, lang=self.language)
-        opts.update({
-            key: coredata.UserComboOption(
-                'C++ language standard to use',
-                ['none'],
-                'none',
-            ),
-        })
+        opts.update(coredata.key_option_dict([
+            OptionKey('std', machine=self.for_machine, lang=self.language),
+            coredata.UserComboOption,
+            'C++ language standard to use',
+            ['none'],
+            'none',
+        ]))
         return opts
 
 
@@ -200,26 +199,28 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = CPPCompiler.get_options(self)
         key = OptionKey('key', machine=self.for_machine, lang=self.language)
-        opts.update({
-            key.evolve('eh'): coredata.UserComboOption(
+        opts.update(coredata.key_option_dict(
+            (
+                key.evolve('eh'),
+                coredata.UserComboOption,
                 'C++ exception handling type.',
                 ['none', 'default', 'a', 's', 'sc'],
                 'default',
             ),
-            key.evolve('rtti'): coredata.UserBooleanOption('Enable RTTI', True),
-        })
+            (key.evolve('rtti'), coredata.UserBooleanOption, 'Enable RTTI', True),
+        ))
         opts[key.evolve('std')].choices = [
             'none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'c++1z',
             'c++2a', 'c++20', 'gnu++11', 'gnu++14', 'gnu++17', 'gnu++1z',
             'gnu++2a', 'gnu++20',
         ]
         if self.info.is_windows() or self.info.is_cygwin():
-            opts.update({
-                key.evolve('winlibs'): coredata.UserArrayOption(
-                    'Standard Win libraries to link against',
-                    gnu_winlibs,
-                ),
-            })
+            opts.update(coredata.key_option_dict([
+                key.evolve('winlibs'),
+                coredata.UserArrayOption,
+                'Standard Win libraries to link against',
+                gnu_winlibs,
+            ]))
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
@@ -321,13 +322,13 @@ class ArmclangCPPCompiler(ArmclangCompiler, CPPCompiler):
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = CPPCompiler.get_options(self)
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
-        opts.update({
-            key.evolve('eh'): coredata.UserComboOption(
-                'C++ exception handling type.',
-                ['none', 'default', 'a', 's', 'sc'],
-                'default',
-            ),
-        })
+        opts.update(coredata.key_option_dict([
+            key.evolve('eh'),
+            coredata.UserComboOption,
+            'C++ exception handling type.',
+            ['none', 'default', 'a', 's', 'sc'],
+            'default',
+        ]))
         opts[key].choices = [
             'none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'gnu++98',
             'gnu++03', 'gnu++11', 'gnu++14', 'gnu++17',
@@ -370,30 +371,29 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
     def get_options(self) -> 'MutableKeyedOptionDictType':
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         opts = CPPCompiler.get_options(self)
-        opts.update({
-            key.evolve('eh'): coredata.UserComboOption(
+        opts.update(coredata.key_option_dict(
+            (
+                key.evolve('eh'),
+                coredata.UserComboOption,
                 'C++ exception handling type.',
                 ['none', 'default', 'a', 's', 'sc'],
                 'default',
             ),
-            key.evolve('rtti'): coredata.UserBooleanOption('Enable RTTI', True),
-            key.evolve('debugstl'): coredata.UserBooleanOption(
-                'STL debug mode',
-                False,
-            )
-        })
+            (key.evolve('rtti'), coredata.UserBooleanOption, 'Enable RTTI', True),
+            (key.evolve('debugstl'), coredata.UserBooleanOption, 'STL debug mode', False),
+        ))
         opts[key].choices = [
             'none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'c++1z',
             'c++2a', 'c++20', 'gnu++03', 'gnu++11', 'gnu++14', 'gnu++17',
             'gnu++1z', 'gnu++2a', 'gnu++20',
         ]
         if self.info.is_windows() or self.info.is_cygwin():
-            opts.update({
-                key.evolve('winlibs'): coredata.UserArrayOption(
-                    'Standard Win libraries to link against',
-                    gnu_winlibs,
-                ),
-            })
+            opts.update(coredata.key_option_dict([
+                key.evolve('winlibs'),
+                coredata.UserArrayOption,
+                'Standard Win libraries to link against',
+                gnu_winlibs,
+            ]))
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
@@ -490,17 +490,16 @@ class ElbrusCPPCompiler(ElbrusCompiler, CPPCompiler):
             cpp_stds += ['c++20', 'gnu++20']
 
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
-        opts.update({
-            key.evolve('eh'): coredata.UserComboOption(
+        opts.update(coredata.key_option_dict(
+            (
+                key.evolve('eh'),
+                coredata.UserComboOption,
                 'C++ exception handling type.',
                 ['none', 'default', 'a', 's', 'sc'],
                 'default',
             ),
-            key.evolve('debugstl'): coredata.UserBooleanOption(
-                'STL debug mode',
-                False,
-            ),
-        })
+            (key.evolve('debugstl'), coredata.UserBooleanOption, 'STL debug mode', False),
+        ))
         opts[key].choices = cpp_stds
         return opts
 
@@ -566,15 +565,17 @@ class IntelCPPCompiler(IntelGnuLikeCompiler, CPPCompiler):
             g_stds += ['gnu++2a']
 
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
-        opts.update({
-            key.evolve('eh'): coredata.UserComboOption(
+        opts.update(coredata.key_option_dict(
+            (
+                key.evolve('eh'),
+                coredata.UserComboOption,
                 'C++ exception handling type.',
                 ['none', 'default', 'a', 's', 'sc'],
                 'default',
             ),
-            key.evolve('rtti'): coredata.UserBooleanOption('Enable RTTI', True),
-            key.evolve('debugstl'): coredata.UserBooleanOption('STL debug mode', False),
-        })
+            (key.evolve('rtti'), coredata.UserBooleanOption, 'Enable RTTI', True),
+            (key.evolve('debugstl'), coredata.UserBooleanOption, 'STL debug mode', False),
+        ))
         opts[key].choices = ['none'] + c_stds + g_stds
         return opts
 
@@ -630,18 +631,22 @@ class VisualStudioLikeCPPCompilerMixin(CompilerMixinBase):
 
     def _get_options_impl(self, opts: 'MutableKeyedOptionDictType', cpp_stds: T.List[str]) -> 'MutableKeyedOptionDictType':
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
-        opts.update({
-            key.evolve('eh'): coredata.UserComboOption(
+        opts.update(coredata.key_option_dict(
+            (
+                key.evolve('eh'),
+                coredata.UserComboOption,
                 'C++ exception handling type.',
                 ['none', 'default', 'a', 's', 'sc'],
                 'default',
             ),
-            key.evolve('rtti'): coredata.UserBooleanOption('Enable RTTI', True),
-            key.evolve('winlibs'): coredata.UserArrayOption(
+            (key.evolve('rtti'), coredata.UserBooleanOption, 'Enable RTTI', True),
+            (
+                key.evolve('winlibs'),
+                coredata.UserArrayOption,
                 'Windows libs to link against.',
                 msvc_winlibs,
             ),
-        })
+        ))
         opts[key.evolve('std')].choices = cpp_stds
         return opts
 
