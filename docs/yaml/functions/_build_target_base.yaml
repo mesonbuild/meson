@@ -291,7 +291,8 @@ kwargs:
 
       If it is a [[static_library]] it defaults to "lib", and may be "lib",
       "staticlib", or "rlib". If "lib" then Rustc will pick a default, "staticlib"
-      means a C ABI library, "rlib" means a Rust ABI.
+      means a C ABI library, "rlib" means a Rust ABI, "object" means only object
+      files will be emitted.
 
       If it is a [[shared_library]] it defaults to "lib", and may be "lib",
       "dylib", "cdylib", or "proc-macro". If "lib" then Rustc will pick a
@@ -299,3 +300,12 @@ kwargs:
       "proc-macro" is a special rust proceedural macro crate.
 
       "proc-macro" is new in 0.62.0.
+
+      "object" is new in 1.1.0 and allows to link Rust object files in C/C++
+      programs without static linking Rust crates/libraries. The caller must
+      provide dynamic linking parameters for all crates/libraries used, including
+      the Rust standard library. Note that due to the instability of Rustc, such
+      object files might require extra work (e.g.: additional linking)
+      depending on the compiler version, and might change between versions. This
+      option is provided as-is, and it's the caller's responsibility to deal with
+      these issues.

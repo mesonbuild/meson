@@ -1934,8 +1934,14 @@ class StaticLibrary(BuildTarget):
                 mlog.debug('Defaulting Rust static library target crate type to rlib')
                 self.rust_crate_type = 'rlib'
             # Don't let configuration proceed with a non-static crate type
-            elif self.rust_crate_type not in ['rlib', 'staticlib']:
-                raise InvalidArguments(f'Crate type "{self.rust_crate_type}" invalid for static libraries; must be "rlib" or "staticlib"')
+            elif self.rust_crate_type not in ['rlib', 'staticlib', 'object']:
+                raise InvalidArguments(f'Crate type "{self.rust_crate_type}" invalid for static libraries; must be "rlib", "staticlib" or "object"')
+            elif self.rust_crate_type == 'object':
+                mlog.warning(textwrap.dedent("""\
+                    Due to the unreliability of Rustc, crate type "object" compiled output might be unstable and require extra work to use.
+                    The use of this feature means that Meson makes no guarantee anything works. We believe it's likely this is going to break without warning in
+                    minor releases of rust, and if it does, you need to report it to the package making use of it, not Meson, because all bugs are the responsibility of
+                    the package using unstable features."""))
         # By default a static library is named libfoo.a even on Windows because
         # MSVC does not have a consistent convention for what static libraries
         # are called. The MSVC CRT uses libfoo.lib syntax but nothing else uses
@@ -1952,6 +1958,9 @@ class StaticLibrary(BuildTarget):
                     self.suffix = 'rlib'
                 elif self.rust_crate_type == 'staticlib':
                     self.suffix = 'a'
+                elif self.rust_crate_type == 'object':
+                    # Note that rustc uses '.o' even with MSVC, see: https://github.com/rust-lang/rust/issues/37207
+                    self.suffix = 'o'
             else:
                 self.suffix = 'a'
         self.filename = self.prefix + self.name + '.' + self.suffix
@@ -2250,6 +2259,8 @@ class SharedLibrary(BuildTarget):
                 raise InvalidArguments(f'Invalid rust_crate_type "{rust_crate_type}": must be a string.')
             if rust_crate_type == 'proc-macro':
                 FeatureNew.single_use('Rust crate type "proc-macro"', '0.62.0', self.subproject)
+            if rust_crate_type == 'object':
+                FeatureNew.single_use('Rust crate type "object"', '1.1.0', self.subproject)
 
     def get_import_filename(self) -> T.Optional[str]:
         """

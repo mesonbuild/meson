@@ -1871,6 +1871,14 @@ class NinjaBackend(backends.Backend):
             cratetype = 'rlib'
         else:
             raise InvalidArguments('Unknown target type for rustc.')
+
+        # Support for building and linking only object files, without static linking crates
+        # Note that we don't emit the shared library here (avoid --emit link) as we only want objects
+        if cratetype == 'object':
+            cratetype = 'cdylib'
+            args.extend(['--emit', 'obj', '-C', 'prefer-dynamic'])
+        else:
+            args.extend(['--emit', 'link'])
         args.extend(['--crate-type', cratetype])
 
         # If we're dynamically linking, add those arguments
@@ -1884,7 +1892,7 @@ class NinjaBackend(backends.Backend):
         # Rustc replaces - with _. spaces are not allowed, so we replace them with underscores
         args += ['--crate-name', target.name.replace('-', '_').replace(' ', '_')]
         depfile = os.path.join(target.subdir, target.name + '.d')
-        args += ['--emit', f'dep-info={depfile}', '--emit', 'link']
+        args += ['--emit', f'dep-info={depfile}']
         args += target.get_extra_args('rust')
         output = rustc.get_output_args(os.path.join(target.subdir, target.get_filename()))
         args += output
