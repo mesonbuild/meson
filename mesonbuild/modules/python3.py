@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
 import sysconfig
 from .. import mesonlib
 
@@ -76,8 +77,16 @@ class Python3Module(ExtensionModule):
         if path_name not in valid_names:
             raise mesonlib.MesonException(f'{path_name} is not a valid path name {valid_names}.')
 
+        if 'deb_system' in sysconfig.get_scheme_names():
+            # Use Debian's custom deb_system scheme (with our prefix)
+            scheme = 'deb_system'
+        elif sys.version_info >= (3, 10):
+            scheme = sysconfig.get_default_scheme()
+        else:
+            scheme = sysconfig._get_default_scheme()
+
         # Get a relative path without a prefix, e.g. lib/python3.6/site-packages
-        return sysconfig.get_path(path_name, vars={'base': '', 'platbase': '', 'installed_base': ''})[1:]
+        return sysconfig.get_path(path_name, vars={'base': '', 'platbase': '', 'installed_base': ''}, scheme=scheme)[1:]
 
 
 def initialize(*args, **kwargs):
