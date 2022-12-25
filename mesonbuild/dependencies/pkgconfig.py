@@ -124,7 +124,11 @@ class PkgConfigDependency(ExternalDependency):
         p, out, err = Popen_safe(cmd, env=env)
         rc, out, err = p.returncode, out.strip(), err.strip()
         call = ' '.join(cmd)
-        mlog.debug(f"Called `{call}` -> {rc}\n{out}")
+        mlog.debug(f"Called `{call}` -> {rc}")
+        if out:
+            mlog.debug(f'stdout:\n{out}\n-----------')
+        if err:
+            mlog.debug(f'stderr:\n{err}\n-----------')
         return rc, out, err
 
     @staticmethod
