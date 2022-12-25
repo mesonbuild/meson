@@ -1925,9 +1925,12 @@ class TestHarness:
     def run_tests(self, runners: T.List[SingleTestRunner]) -> None:
         try:
             self.open_logfiles()
-            # Replace with asyncio.run once we can require Python 3.7
-            loop = asyncio.get_event_loop()
-            loop.run_until_complete(self._run_tests(runners))
+
+            # TODO: this is the default for python 3.8
+            if sys.platform == 'win32':
+                asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+
+            asyncio.run(self._run_tests(runners))
         finally:
             self.close_logfiles()
 
@@ -2089,10 +2092,6 @@ def run(options: argparse.Namespace) -> int:
 
     if options.wrapper:
         check_bin = options.wrapper[0]
-
-    if sys.platform == 'win32':
-        loop = asyncio.ProactorEventLoop()
-        asyncio.set_event_loop(loop)
 
     if check_bin is not None:
         exe = ExternalProgram(check_bin, silent=True)
