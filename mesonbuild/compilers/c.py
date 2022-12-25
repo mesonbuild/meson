@@ -214,6 +214,8 @@ class EmscriptenCCompiler(EmscriptenMixin, ClangCCompiler):
                  full_version: T.Optional[str] = None):
         if not is_cross:
             raise MesonException('Emscripten compiler can only be used for cross compilation.')
+        if not version_compare(version, '>=1.39.19'):
+            raise MesonException('Meson requires Emscripten >= 1.39.19')
         ClangCCompiler.__init__(self, ccache, exelist, version, for_machine, is_cross,
                                 info, exe_wrapper=exe_wrapper, linker=linker,
                                 defines=defines, full_version=full_version)
