@@ -235,7 +235,7 @@ class ExternalProgram(mesonlib.HoldableObject):
     def _search_dir(self, name: str, search_dir: T.Optional[str]) -> T.Optional[list]:
         if search_dir is None:
             return None
-        trial = os.path.join(search_dir, name)
+        trial = os.path.join(search_dir, os.path.expanduser(name))
         if os.path.exists(trial):
             if self._is_executable(trial):
                 return [trial]
@@ -309,6 +309,12 @@ class ExternalProgram(mesonlib.HoldableObject):
         path = os.environ.get('PATH', None)
         if mesonlib.is_windows() and path:
             path = self._windows_sanitize_path(path)
+        elif path:
+            # Expand "~" into full paths.
+            path2 = []
+            for p in path.split(":"):
+                path2.append(os.path.expanduser(p))
+            path = ":".join(path2)
         command = shutil.which(name, path=path)
         if mesonlib.is_windows():
             return self._search_windows_special_cases(name, command)
