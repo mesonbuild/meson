@@ -770,7 +770,7 @@ class ClangClCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixin, Cl
         ClangClCompiler.__init__(self, target)
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
-        cpp_stds = ['none', 'c++11', 'vc++11', 'c++14', 'vc++14', 'c++17', 'vc++17', 'c++latest']
+        cpp_stds = ['none', 'c++11', 'vc++11', 'c++14', 'vc++14', 'c++17', 'vc++17', 'c++20', 'vc++20', 'c++latest']
         return self._get_options_impl(super().get_options(), cpp_stds)
 
 
