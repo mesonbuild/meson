@@ -538,6 +538,18 @@ def clear_internal_caches() -> None:
     mesonbuild.interpreterbase.FeatureNew.feature_registry = {}
     CMakeDependency.class_cmakeinfo = PerMachine(None, None)
 
+def run_test_external(testdir: str) -> T.Tuple[int, str, str, str]:
+    norebuild = ['--no-rebuild']
+
+    r = subprocess.run(test_commands + norebuild, cwd=testdir, text=True, capture_output=True)
+
+    test_log = ''
+    test_log_fname = Path(testdir, 'meson-logs', 'testlog.txt')
+    if test_log_fname.exists():
+        test_log = test_log_fname.read_text(encoding='utf-8', errors='ignore')
+
+    return r.returncode, r.stdout, r.stderr, test_log
+
 def run_test_inprocess(testdir: str) -> T.Tuple[int, str, str, str]:
     old_stdout = sys.stdout
     sys.stdout = mystdout = StringIO()
@@ -558,6 +570,11 @@ def run_test_inprocess(testdir: str) -> T.Tuple[int, str, str, str]:
         sys.stderr = old_stderr
         os.chdir(old_cwd)
     return max(returncode_test, returncode_benchmark), mystdout.getvalue(), mystderr.getvalue(), test_log
+
+def run_mtest_impl(testdir: str) -> T.Tuple[int, str, str, str]:
+    if meson_exe:
+        return run_test_external(testdir)
+    return run_test_inprocess(testdir)
 
 # Build directory name must be the same so Ccache works over
 # consecutive invocations.
@@ -717,7 +734,7 @@ def _run_test(test: TestDef,
     # Test in-process
     clear_internal_caches()
     test_start = time.time()
-    (returncode, tstdo, tstde, test_log) = run_test_inprocess(test_build_dir)
+    (returncode, tstdo, tstde, test_log) = run_mtest_impl(test_build_dir)
     testresult.add_step(BuildStep.test, tstdo, tstde, test_log, time.time() - test_start)
     if should_fail == 'test':
         if returncode != 0:
