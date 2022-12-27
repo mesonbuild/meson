@@ -426,3 +426,4 @@ schema is defined by the class structure given in
 - [Meson Syntax Highlighter](https://plugins.jetbrains.com/plugin/13269-meson-syntax-highlighter) plugin for JetBrains IDEs.
 - [asabil.meson](https://open-vsx.org/extension/asabil/meson) extension for VS Code/Codium
 - [Qt Creator](https://doc.qt.io/qtcreator/creator-project-meson.html)
+- [mmeson](https://github.com/stephanlachnit/mmeson) (ccmake clone for Meson)
