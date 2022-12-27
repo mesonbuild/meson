@@ -56,7 +56,7 @@ from mesonbuild.modules.python import PythonExternalProgram
 from run_tests import get_fake_options, run_configure, get_meson_script
 from run_tests import get_backend_commands, get_backend_args_for_dir, Backend
 from run_tests import ensure_backend_detects_changes
-from run_tests import guess_backend
+from run_tests import guess_backend, meson_exe
 
 if T.TYPE_CHECKING:
     from types import FrameType
@@ -1413,11 +1413,14 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
 def check_meson_commands_work(use_tmpdir: bool, extra_args: T.List[str]) -> None:
     global backend, compile_commands, test_commands, install_commands
     testdir = PurePath('test cases', 'common', '1 trivial').as_posix()
-    meson_commands = mesonlib.python_command + [get_meson_script()]
+    if meson_exe:
+        meson_commands = meson_exe
+    else:
+        meson_commands = mesonlib.python_command + [get_meson_script()]
     with TemporaryDirectoryWinProof(prefix='b ', dir=None if use_tmpdir else '.') as build_dir:
         print('Checking that configuring works...')
-        gen_cmd = meson_commands + ['setup' , testdir, build_dir] + backend_flags + extra_args
-        pc, o, e = Popen_safe(gen_cmd)
+        gen_cmd = meson_commands + ['setup'] + backend_flags + extra_args + [os.path.abspath(build_dir)]
+        pc, o, e = Popen_safe(gen_cmd, cwd=testdir)
         if pc.returncode != 0:
             raise RuntimeError(f'Failed to configure {testdir!r}:\n{e}\n{o}')
         print('Checking that introspect works...')
@@ -1584,9 +1587,9 @@ if __name__ == '__main__':
     options = T.cast('ArgumentType', parser.parse_args())
 
     if options.cross_file:
-        options.extra_args += ['--cross-file', options.cross_file]
+        options.extra_args += ['--cross-file', os.path.abspath(options.cross_file)]
     if options.native_file:
-        options.extra_args += ['--native-file', options.native_file]
+        options.extra_args += ['--native-file', os.path.abspath(options.native_file)]
 
     clear_transitive_files()
 
