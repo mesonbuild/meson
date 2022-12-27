@@ -107,6 +107,9 @@ def guess_backend(backend_str: str, msbuild_exe: str) -> T.Tuple['Backend', T.Li
         backend = Backend.ninja
     else:
         raise RuntimeError(f'Unknown backend: {backend_str!r}')
+
+    if muon_exe:
+        return (backend, [])
     return (backend, backend_flags)
 
 
@@ -179,8 +182,10 @@ Backend = Enum('Backend', 'ninja vs xcode')
 
 if 'MESON_EXE' in os.environ:
     meson_exe = mesonlib.split_args(os.environ['MESON_EXE'])
+    muon_exe = any('muon' in i for i in meson_exe)
 else:
     meson_exe = None
+    muon_exe = False
 
 if mesonlib.is_windows() or mesonlib.is_cygwin():
     exe_suffix = '.exe'

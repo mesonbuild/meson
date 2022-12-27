@@ -56,7 +56,7 @@ from mesonbuild.modules.python import PythonExternalProgram
 from run_tests import get_fake_options, run_configure, get_meson_script
 from run_tests import get_backend_commands, get_backend_args_for_dir, Backend
 from run_tests import ensure_backend_detects_changes
-from run_tests import guess_backend, meson_exe
+from run_tests import guess_backend, meson_exe, muon_exe
 
 if T.TYPE_CHECKING:
     from types import FrameType
@@ -1440,11 +1440,12 @@ def check_meson_commands_work(use_tmpdir: bool, extra_args: T.List[str]) -> None
         pc, o, e = Popen_safe(gen_cmd, cwd=testdir)
         if pc.returncode != 0:
             raise RuntimeError(f'Failed to configure {testdir!r}:\n{e}\n{o}')
-        print('Checking that introspect works...')
-        pc, o, e = Popen_safe(meson_commands + ['introspect', '--targets'], cwd=build_dir)
-        json.loads(o)
-        if pc.returncode != 0:
-            raise RuntimeError(f'Failed to introspect --targets {testdir!r}:\n{e}\n{o}')
+        if not muon_exe:
+            print('Checking that introspect works...')
+            pc, o, e = Popen_safe(meson_commands + ['introspect', '--targets'], cwd=build_dir)
+            json.loads(o)
+            if pc.returncode != 0:
+                raise RuntimeError(f'Failed to introspect --targets {testdir!r}:\n{e}\n{o}')
         print('Checking that building works...')
         dir_args = get_backend_args_for_dir(backend, build_dir)
         pc, o, e = Popen_safe(compile_commands + dir_args, cwd=build_dir)
