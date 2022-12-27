@@ -53,7 +53,7 @@ from mesonbuild.mesonlib import MachineChoice, Popen_safe, TemporaryDirectoryWin
 from mesonbuild.mlog import blue, bold, cyan, green, red, yellow, normal_green
 from mesonbuild.coredata import backendlist, version as meson_version
 from mesonbuild.modules.python import PythonExternalProgram
-from run_tests import get_fake_options, run_configure, get_meson_script
+from run_tests import get_fake_options, get_convincing_fake_env_and_cc, run_configure, get_meson_script
 from run_tests import get_backend_commands, get_backend_args_for_dir, Backend
 from run_tests import ensure_backend_detects_changes
 from run_tests import guess_backend, meson_exe, muon_exe
@@ -665,6 +665,7 @@ def _run_test(test: TestDef,
     gen_start = time.time()
     # Configure in-process
     gen_args = ['setup']
+    prefix = '/usr'
     if 'prefix' not in test.do_not_set_opts:
         prefix = 'x:/usr' if mesonlib.is_windows() else '/usr'
         gen_args += ['-Dprefix='+prefix]
@@ -705,7 +706,10 @@ def _run_test(test: TestDef,
     if returncode != 0:
         testresult.fail('Generating the build system failed.')
         return testresult
-    builddata = build.load(test_build_dir)
+    if muon_exe:
+        builddata_env = get_convincing_fake_env_and_cc(test_build_dir, prefix)[0]
+    else:
+        builddata_env = build.load(test_build_dir).environment
     dir_args = get_backend_args_for_dir(backend, test_build_dir)
 
     # Build with subprocess
@@ -774,7 +778,7 @@ def _run_test(test: TestDef,
     testresult.add_step(BuildStep.install, '', '')
     if not install_commands:
         return testresult
-    install_msg = validate_install(test, Path(install_dir), builddata.environment)
+    install_msg = validate_install(test, Path(install_dir), builddata_env)
     if install_msg:
         testresult.fail('\n' + install_msg)
         return testresult

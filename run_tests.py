@@ -166,7 +166,7 @@ def get_fake_env(sdir='', bdir=None, prefix='', opts=None):
     env.machines.host.cpu_family = 'x86_64' # Used on macOS inside find_library
     return env
 
-def get_convincing_fake_env_and_cc(bdir, prefix):
+def get_convincing_fake_env_and_cc(bdir: str, prefix: str) -> T.Tuple[Environment, CCompiler]:
     '''
     Return a fake env and C compiler with the fake env
     machine info properly detected using that compiler.
