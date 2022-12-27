@@ -524,6 +524,8 @@ def _compare_output(expected: T.List[T.Dict[str, str]], output: str, desc: str) 
     return ''
 
 def validate_output(test: TestDef, stdo: str, stde: str) -> str:
+    if muon_exe:
+        return ''
     return _compare_output(test.stdout, stdo, 'stdout')
 
 # There are some class variables and such that cache
