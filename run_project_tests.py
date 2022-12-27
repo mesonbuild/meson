@@ -539,7 +539,10 @@ def clear_internal_caches() -> None:
     CMakeDependency.class_cmakeinfo = PerMachine(None, None)
 
 def run_test_external(testdir: str) -> T.Tuple[int, str, str, str]:
-    norebuild = ['--no-rebuild']
+    if muon_exe:
+        norebuild = ['-R']
+    else:
+        norebuild = ['--no-rebuild']
 
     r = subprocess.run(test_commands + norebuild, cwd=testdir, text=True, capture_output=True)
 
@@ -661,10 +664,11 @@ def _run_test(test: TestDef,
     # Configure in-process
     gen_args = ['setup']
     if 'prefix' not in test.do_not_set_opts:
-        gen_args += ['--prefix', 'x:/usr'] if mesonlib.is_windows() else ['--prefix', '/usr']
+        prefix = 'x:/usr' if mesonlib.is_windows() else '/usr'
+        gen_args += ['-Dprefix='+prefix]
     if 'libdir' not in test.do_not_set_opts:
-        gen_args += ['--libdir', 'lib']
-    gen_args += [test.path.as_posix(), test_build_dir] + backend_flags + extra_args
+        gen_args += ['-Dlibdir=lib']
+    gen_args += backend_flags + extra_args
 
     nativefile, crossfile = detect_parameter_files(test, test_build_dir)
 
@@ -672,7 +676,7 @@ def _run_test(test: TestDef,
         gen_args.extend(['--native-file', nativefile.as_posix()])
     if crossfile.exists():
         gen_args.extend(['--cross-file', crossfile.as_posix()])
-    (returncode, stdo, stde) = run_configure(gen_args, env=test.env, catch_exception=True)
+    (returncode, stdo, stde) = run_configure(gen_args, test.path.as_posix(), test_build_dir, env=test.env, catch_exception=True)
     try:
         logfile = Path(test_build_dir, 'meson-logs', 'meson-log.txt')
         with logfile.open(errors='ignore', encoding='utf-8') as fid:

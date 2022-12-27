@@ -262,7 +262,15 @@ def get_backend_commands(backend: Backend, debug: bool = False) -> \
     clean_cmd: T.List[str]
     cmd: T.List[str]
     test_cmd: T.List[str]
-    if backend is Backend.vs:
+    if muon_exe:
+        cmd = NINJA_CMD + ['-w', 'dupbuild=err', '-d', 'explain']
+        if debug:
+            cmd += ['-v']
+        clean_cmd = cmd + ['-t', 'clean']
+        test_cmd = meson_exe + ['test']
+        install_cmd = meson_exe + ['install']
+        uninstall_cmd = ['true']
+    elif backend is Backend.vs:
         cmd = ['msbuild']
         clean_cmd = cmd + ['/target:Clean']
         test_cmd = cmd + ['RUN_TESTS.vcxproj']
@@ -271,7 +279,6 @@ def get_backend_commands(backend: Backend, debug: bool = False) -> \
         clean_cmd = cmd + ['-alltargets', 'clean']
         test_cmd = cmd + ['-target', 'RUN_TESTS']
     elif backend is Backend.ninja:
-        global NINJA_CMD
         cmd = NINJA_CMD + ['-w', 'dupbuild=err', '-d', 'explain']
         if debug:
             cmd += ['-v']
@@ -328,15 +335,15 @@ def run_configure_inprocess(commandlist: T.List[str], env: T.Optional[T.Dict[str
             clear_meson_configure_class_caches()
     return returncode, stdout.getvalue(), stderr.getvalue()
 
-def run_configure_external(full_command: T.List[str], env: T.Optional[T.Dict[str, str]] = None) -> T.Tuple[int, str, str]:
-    pc, o, e = mesonlib.Popen_safe(full_command, env=env)
+def run_configure_external(full_command: T.List[str], cwd: str, env: T.Optional[T.Dict[str, str]] = None) -> T.Tuple[int, str, str]:
+    pc, o, e = mesonlib.Popen_safe(full_command, env=env, cwd=cwd)
     return pc.returncode, o, e
 
-def run_configure(commandlist: T.List[str], env: T.Optional[T.Dict[str, str]] = None, catch_exception: bool = False) -> T.Tuple[int, str, str]:
-    global meson_exe
+def run_configure(commandlist: T.List[str], srcdir: str, builddir: str, env: T.Optional[T.Dict[str, str]] = None,
+                  catch_exception: bool = False) -> T.Tuple[int, str, str]:
     if meson_exe:
-        return run_configure_external(meson_exe + commandlist, env=env)
-    return run_configure_inprocess(commandlist, env=env, catch_exception=catch_exception)
+        return run_configure_external(meson_exe + commandlist + [builddir], cwd=srcdir, env=env)
+    return run_configure_inprocess(commandlist + [srcdir, builddir], env=env, catch_exception=catch_exception)
 
 def print_system_info():
     print(mlog.bold('System information.'))
