@@ -104,7 +104,6 @@ class Token(T.Generic[TV_TokenTypes]):
             return self.tid == other.tid
         return NotImplemented
 
-# TODO: What type annotations?
 @dataclass(eq=False)
 class Comment:
     line_start: int
@@ -125,6 +124,7 @@ class Lexer:
                          'endif', 'and', 'or', 'not', 'foreach', 'endforeach',
                          'in', 'continue', 'break'}
         self.future_keywords = {'return'}
+        self.comments = [] # type: T.List[Comment]
         self.token_specification = [
             # Need to be sorted longest to shortest.
             ('ignore', re.compile(r'[ \t]')),
@@ -192,9 +192,6 @@ class Lexer:
                     match_text = mo.group()
                     if tid == 'ignore':
                         break
-                    elif tid == 'comment':
-                        self.comments.append(Comment(curline_start, curline, col, bytespan, match_text))
-                        break
                     elif tid == 'lparen':
                         par_count += 1
                     elif tid == 'rparen':
@@ -248,6 +245,9 @@ class Lexer:
                         line_start = loc
                         if par_count > 0 or bracket_count > 0 or curl_count > 0:
                             break
+                    elif tid == 'comment':
+                        self.comments.append(Comment(curline_start, curline, col, bytespan, match_text))
+                        break
                     elif tid == 'id':
                         if match_text in self.keywords:
                             tid = match_text
@@ -268,6 +268,10 @@ class BaseNode:
     filename: str
     end_lineno: T.Optional[int] = None
     end_colno: T.Optional[int] = None
+    bytespan: T.Optional[T.Tuple[int, int]] = None
+    pre_comments: T.Optional[T.List['Comment']] = None
+    comments: T.Optional[T.List['Comment']] = None
+    post_comments: T.Optional[T.List['Comment']] = None
 
     def __post_init__(self) -> None:
         if self.end_lineno is None:
@@ -279,6 +283,9 @@ class BaseNode:
         self.level = 0            # type: int
         self.ast_id = ''          # type: str
         self.condition_level = 0  # type: int
+        self.pre_comments = []
+        self.comments = []
+        self.post_comments = []
 
     def accept(self, visitor: 'AstVisitor') -> None:
         fname = 'visit_{}'.format(type(self).__name__)
@@ -532,6 +539,18 @@ class Parser:
         self.current = Token('eof', '', 0, 0, 0, (0, 0), None)  # type: Token
         self.getsym()
         self.in_ternary = False
+        self.stack = [] # type: T.List[Token]
+        self.nodes = set() # type: T.Set[BaseNode]
+
+    def begin(self) -> None:
+        self.stack.append(self.current)
+
+    def end(self, node: BaseNode) -> None:
+        assert len(self.stack) > 0
+        token = self.stack.pop()
+        # print("%s: [%s:%s] -> [%s:%s] (%s %s)"%(type(node), token.lineno, token.colno, self.current.lineno, self.current.colno, token.bytespan, self.current.bytespan))
+        node.bytespan = (token.bytespan[0], self.current.bytespan[0])
+        self.nodes.add(node)
 
     def comments(self) -> T.List[Comment]:
         return self.lexer.comments
@@ -571,26 +590,88 @@ class Parser:
     def parse(self) -> CodeBlockNode:
         block = self.codeblock()
         self.expect('eof')
+        for s in self.stack:
+            print(s)
+        assert len(self.stack) == 0
+        for c in self.lexer.comments:
+            self.attach_comment(c)
         return block
 
+    def attach_comment(self, comment: Comment) -> None:
+        if len(self.nodes) == 0:
+            return
+        smallest_distance = 100000000000
+        node = None
+        for n in self.nodes:
+            # Comment is before node
+            if n.bytespan[0] > comment.bytespan[0]:
+                continue
+            # Comment is after node
+            if n.bytespan[1] < comment.bytespan[0]:
+                continue
+            distance = n.bytespan[1] - n.bytespan[0]
+            if smallest_distance > distance:
+                smallest_distance = distance
+                node = n
+        if node is not None:
+            node.comments.append(comment)
+            return
+        smallest_distance = 100000000000
+        node = None
+        # Now we try to attach the comment to nodes that are before it
+        for n in self.nodes:
+            # Comment is before node
+            if n.bytespan[0] > comment.bytespan[0]:
+                continue
+            distance = n.bytespan[1] - comment.bytespan[0]
+            if smallest_distance > distance:
+                smallest_distance = distance
+                node = n
+        if node is not None:
+            node.pre_comments.append(comment)
+            return
+        smallest_distance = 100000000000
+        node = None
+        # Now we try to attach the comment to nodes that are after it
+        for n in self.nodes:
+            # Comment is after node
+            if comment.bytespan[1] < n.bytespan[0]:
+                continue
+            distance = comment.bytespan[1] - n.bytespan[0]
+            if smallest_distance > distance:
+                smallest_distance = distance
+                node = n
+        if node is not None:
+            node.post_comments.append(comment)
+            return
+        assert node is not None
+
     def statement(self) -> BaseNode:
-        return self.e1()
+        self.begin()
+        e = self.e1()
+        self.end(e)
+        return e
 
     def e1(self) -> BaseNode:
+        self.begin()
         left = self.e2()
         if self.accept('plusassign'):
             value = self.e1()
             if not isinstance(left, IdNode):
                 raise ParseException('Plusassignment target must be an id.', self.getline(), left.lineno, left.colno)
             assert isinstance(left.value, str)
-            return PlusAssignmentNode(left.filename, left.lineno, left.colno, left.value, value)
+            e = PlusAssignmentNode(left.filename, left.lineno, left.colno, left.value, value)
+            self.end(e)
+            return e
         elif self.accept('assign'):
             value = self.e1()
             if not isinstance(left, IdNode):
                 raise ParseException('Assignment target must be an id.',
                                      self.getline(), left.lineno, left.colno)
             assert isinstance(left.value, str)
-            return AssignmentNode(left.filename, left.lineno, left.colno, left.value, value)
+            f = AssignmentNode(left.filename, left.lineno, left.colno, left.value, value)
+            self.end(f)
+            return f
         elif self.accept('questionmark'):
             if self.in_ternary:
                 raise ParseException('Nested ternary operators are not allowed.',
@@ -600,40 +681,67 @@ class Parser:
             self.expect('colon')
             falseblock = self.e1()
             self.in_ternary = False
-            return TernaryNode(left, trueblock, falseblock)
+            g = TernaryNode(left, trueblock, falseblock)
+            self.end(g)
+            return g
+        self.end(left)
         return left
 
     def e2(self) -> BaseNode:
+        self.begin()
         left = self.e3()
+        started = False
         while self.accept('or'):
+            started = True
             if isinstance(left, EmptyNode):
                 raise ParseException('Invalid or clause.',
                                      self.getline(), left.lineno, left.colno)
-            left = OrNode(left, self.e3())
+            x1 = OrNode(left, self.e3())
+            self.end(x1)
+            left = x1
+            started = False
+            self.begin()
+        if not started:
+            self.end(left)
         return left
 
     def e3(self) -> BaseNode:
+        self.begin()
         left = self.e4()
+        started = False
         while self.accept('and'):
             if isinstance(left, EmptyNode):
                 raise ParseException('Invalid and clause.',
                                      self.getline(), left.lineno, left.colno)
-            left = AndNode(left, self.e4())
+            x1 = AndNode(left, self.e4())
+            self.end(x1)
+            left = x1
+            started = False
+            self.begin()
+        if not started:
+            self.end(left)
         return left
 
     def e4(self) -> BaseNode:
+        self.begin()
         left = self.e5()
         for nodename, operator_type in comparison_map.items():
             if self.accept(nodename):
-                return ComparisonNode(operator_type, left, self.e5())
+                x = ComparisonNode(operator_type, left, self.e5())
+                self.end(x)
+                return x
         if self.accept('not') and self.accept('in'):
-            return ComparisonNode('notin', left, self.e5())
+            x = ComparisonNode('notin', left, self.e5())
+            self.end(x)
+            return x
+        self.end(left)
         return left
 
     def e5(self) -> BaseNode:
         return self.e5addsub()
 
     def e5addsub(self) -> BaseNode:
+        self.begin()
         op_map = {
             'plus': 'add',
             'dash': 'sub',
@@ -642,12 +750,17 @@ class Parser:
         while True:
             op = self.accept_any(tuple(op_map.keys()))
             if op:
-                left = ArithmeticNode(op_map[op], left, self.e5muldiv())
+                x1 = ArithmeticNode(op_map[op], left, self.e5muldiv())
+                self.end(x1)
+                left = x1
+                self.begin()
             else:
                 break
+        self.end(left)
         return left
 
     def e5muldiv(self) -> BaseNode:
+        self.begin()
         op_map = {
             'percent': 'mod',
             'star': 'mul',
@@ -657,19 +770,31 @@ class Parser:
         while True:
             op = self.accept_any(tuple(op_map.keys()))
             if op:
-                left = ArithmeticNode(op_map[op], left, self.e6())
+                x1 = ArithmeticNode(op_map[op], left, self.e6())
+                self.end(x1)
+                left = x1
+                self.begin()
             else:
                 break
+        self.end(left)
         return left
 
     def e6(self) -> BaseNode:
+        self.begin()
         if self.accept('not'):
-            return NotNode(self.current, self.e7())
+            x = NotNode(self.current, self.e7())
+            self.end(x)
+            return x
         if self.accept('dash'):
-            return UMinusNode(self.current, self.e7())
-        return self.e7()
+            x1 = UMinusNode(self.current, self.e7())
+            self.end(x1)
+            return x1
+        x2 = self.e7()
+        self.end(x2)
+        return x2
 
     def e7(self) -> BaseNode:
+        self.begin()
         left = self.e8()
         block_start = self.current
         if self.accept('lparen'):
@@ -679,56 +804,93 @@ class Parser:
                 raise ParseException('Function call must be applied to plain id',
                                      self.getline(), left.lineno, left.colno)
             assert isinstance(left.value, str)
-            left = FunctionNode(left.filename, left.lineno, left.colno, self.current.lineno, self.current.colno, left.value, args)
+            x1 = FunctionNode(left.filename, left.lineno, left.colno, self.current.lineno, self.current.colno, left.value, args)
+            self.end(left)
+            left = x1
+            self.begin()
         go_again = True
         while go_again:
             go_again = False
             if self.accept('dot'):
                 go_again = True
-                left = self.method_call(left)
+                x2 = self.method_call(left)
+                self.end(left)
+                left = x2
+                self.begin()
             if self.accept('lbracket'):
                 go_again = True
-                left = self.index_call(left)
+                x3 = self.index_call(left)
+                self.end(left)
+                left = x3
+                self.begin()
+        self.end(left)
         return left
 
     def e8(self) -> BaseNode:
+        self.begin()
         block_start = self.current
         if self.accept('lparen'):
             e = self.statement()
             self.block_expect('rparen', block_start)
-            return ParenthesizedNode(e, block_start.lineno, block_start.colno, self.current.lineno, self.current.colno)
+            e1 = ParenthesizedNode(e, block_start.lineno, block_start.colno, self.current.lineno, self.current.colno)
+            self.end(e1)
+            return e1
         elif self.accept('lbracket'):
             args = self.args()
             self.block_expect('rbracket', block_start)
-            return ArrayNode(args, block_start.lineno, block_start.colno, self.current.lineno, self.current.colno)
+            x1 = ArrayNode(args, block_start.lineno, block_start.colno, self.current.lineno, self.current.colno)
+            self.end(x1)
+            return x1
         elif self.accept('lcurl'):
             key_values = self.key_values()
             self.block_expect('rcurl', block_start)
-            return DictNode(key_values, block_start.lineno, block_start.colno, self.current.lineno, self.current.colno)
+            x2 = DictNode(key_values, block_start.lineno, block_start.colno, self.current.lineno, self.current.colno)
+            self.end(x2)
+            return x2
         else:
-            return self.e9()
+            x3 = self.e9()
+            self.end(x3)
+            return x3
 
     def e9(self) -> BaseNode:
+        self.begin()
         t = self.current
         if self.accept('true'):
             t.value = True
-            return BooleanNode(t)
+            x1 = BooleanNode(t)
+            self.end(x1)
+            return x1
         if self.accept('false'):
             t.value = False
-            return BooleanNode(t)
+            x2 = BooleanNode(t)
+            self.end(x2)
+            return x2
         if self.accept('id'):
-            return IdNode(t)
+            x3 = IdNode(t)
+            self.end(x3)
+            return x3
         if self.accept('number'):
-            return NumberNode(t)
+            x4 = NumberNode(t)
+            self.end(x4)
+            return x4
         if self.accept('string'):
-            return StringNode(t)
+            x5 = StringNode(t)
+            self.end(x5)
+            return x5
         if self.accept('fstring'):
-            return FormatStringNode(t)
+            x6 = FormatStringNode(t)
+            self.end(x6)
+            return x6
         if self.accept('multiline_fstring'):
-            return MultilineFormatStringNode(t)
-        return EmptyNode(self.current.lineno, self.current.colno, self.current.filename)
+            x7 = MultilineFormatStringNode(t)
+            self.end(x7)
+            return x7
+        x8 = EmptyNode(self.current.lineno, self.current.colno, self.current.filename)
+        self.end(x8)
+        return x8
 
     def key_values(self) -> ArgumentNode:
+        self.begin()
         s = self.statement()  # type: BaseNode
         a = ArgumentNode(self.current)
 
@@ -737,15 +899,18 @@ class Parser:
                 a.set_kwarg_no_check(s, self.statement())
                 potential = self.current
                 if not self.accept('comma'):
+                    self.end(a)
                     return a
                 a.commas.append(potential)
             else:
                 raise ParseException('Only key:value pairs are valid in dict construction.',
                                      self.getline(), s.lineno, s.colno)
             s = self.statement()
+        self.end(a)
         return a
 
     def args(self) -> ArgumentNode:
+        self.begin()
         s = self.statement()  # type: BaseNode
         a = ArgumentNode(self.current)
 
@@ -761,15 +926,19 @@ class Parser:
                 a.set_kwarg(s, self.statement())
                 potential = self.current
                 if not self.accept('comma'):
+                    self.end(a)
                     return a
                 a.commas.append(potential)
             else:
                 a.append(s)
+                self.end(a)
                 return a
             s = self.statement()
+        self.end(a)
         return a
 
     def method_call(self, source_object: BaseNode) -> MethodNode:
+        self.begin()
         methodname = self.e9()
         if not isinstance(methodname, IdNode):
             raise ParseException('Method name must be plain id',
@@ -780,15 +949,22 @@ class Parser:
         self.expect('rparen')
         method = MethodNode(methodname.filename, methodname.lineno, methodname.colno, source_object, methodname.value, args)
         if self.accept('dot'):
-            return self.method_call(method)
+            x1 = self.method_call(method)
+            self.end(x1)
+            return x1
+        self.end(method)
         return method
 
     def index_call(self, source_object: BaseNode) -> IndexNode:
+        self.begin()
         index_statement = self.statement()
         self.expect('rbracket')
-        return IndexNode(source_object, index_statement)
+        x1 = IndexNode(source_object, index_statement)
+        self.end(x1)
+        return x1
 
     def foreachblock(self) -> ForeachClauseNode:
+        self.begin()
         t = self.current
         self.expect('id')
         assert isinstance(t.value, str)
@@ -804,50 +980,75 @@ class Parser:
         self.expect('colon')
         items = self.statement()
         block = self.codeblock()
-        return ForeachClauseNode(varname, varnames, items, block)
+        x1 = ForeachClauseNode(varname, varnames, items, block)
+        self.end(x1)
+        return x1
 
     def ifblock(self) -> IfClauseNode:
+        self.begin()
         condition = self.statement()
         clause = IfClauseNode(condition)
         self.expect('eol')
         block = self.codeblock()
-        clause.ifs.append(IfNode(clause, condition, block))
+        self.begin()
+        i = IfNode(clause, condition, block)
+        self.end(i)
+        clause.ifs.append(i)
         self.elseifblock(clause)
         clause.elseblock = self.elseblock()
+        self.end(clause)
         return clause
 
     def elseifblock(self, clause: IfClauseNode) -> None:
         while self.accept('elif'):
+            self.begin()
             s = self.statement()
             self.expect('eol')
             b = self.codeblock()
-            clause.ifs.append(IfNode(s, s, b))
+            x1 = IfNode(s, s, b)
+            self.end(x1)
+            clause.ifs.append(x1)
 
     def elseblock(self) -> T.Union[CodeBlockNode, EmptyNode]:
         if self.accept('else'):
             self.expect('eol')
             return self.codeblock()
-        return EmptyNode(self.current.lineno, self.current.colno, self.current.filename)
+        self.begin()
+        x1 = EmptyNode(self.current.lineno, self.current.colno, self.current.filename)
+        self.end(x1)
+        return x1
 
     def line(self) -> BaseNode:
         block_start = self.current
+        self.begin()
         if self.current == 'eol':
-            return EmptyNode(self.current.lineno, self.current.colno, self.current.filename)
+            x1 = EmptyNode(self.current.lineno, self.current.colno, self.current.filename)
+            self.end(x1)
+            return x1
         if self.accept('if'):
             ifblock = self.ifblock()
             self.block_expect('endif', block_start)
+            self.end(ifblock)
             return ifblock
         if self.accept('foreach'):
             forblock = self.foreachblock()
             self.block_expect('endforeach', block_start)
+            self.end(forblock)
             return forblock
         if self.accept('continue'):
-            return ContinueNode(self.current)
+            x2 = ContinueNode(self.current)
+            self.end(x2)
+            return x2
         if self.accept('break'):
-            return BreakNode(self.current)
-        return self.statement()
+            x3 = BreakNode(self.current)
+            self.end(x3)
+            return x3
+        s = self.statement()
+        self.end(s)
+        return s
 
     def codeblock(self) -> CodeBlockNode:
+        self.begin()
         block = CodeBlockNode(self.current)
         cond = True
         while cond:
@@ -855,4 +1056,5 @@ class Parser:
             if not isinstance(curline, EmptyNode):
                 block.lines.append(curline)
             cond = self.accept('eol')
+        self.end(block)
         return block
