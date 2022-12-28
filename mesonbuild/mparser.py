@@ -124,7 +124,7 @@ class Lexer:
                          'endif', 'and', 'or', 'not', 'foreach', 'endforeach',
                          'in', 'continue', 'break'}
         self.future_keywords = {'return'}
-        self.comments = []
+        self.comments = [] # type: T.List[Comment]
         self.token_specification = [
             # Need to be sorted longest to shortest.
             ('ignore', re.compile(r'[ \t]')),
@@ -529,14 +529,14 @@ class Parser:
         self.current = Token('eof', '', 0, 0, 0, (0, 0), None)  # type: Token
         self.getsym()
         self.in_ternary = False
-        self.stack = []
-        self.nodes = set()
+        self.stack = [] # type: T.List[Token]
+        self.nodes = set() # type: T.Set[BaseNode]
 
-    def begin(self):
+    def begin(self) -> None:
         self.stack.append(self.current)
 
-    def end(self, node):
-        assert(len(self.stack) > 0)
+    def end(self, node: BaseNode) -> None:
+        assert len(self.stack) > 0
         token = self.stack.pop()
         # print("%s: [%s:%s] -> [%s:%s] (%s %s)"%(type(node), token.lineno, token.colno, self.current.lineno, self.current.colno, token.bytespan, self.current.bytespan))
         node.bytespan = (token.bytespan[0], self.current.bytespan[0])
@@ -584,7 +584,7 @@ class Parser:
             self.attach_comment(c)
         return block
 
-    def attach_comment(self, comment):
+    def attach_comment(self, comment: Comment) -> None:
         smallest_distance = 100000000000
         node = None
         for n in self.nodes:
@@ -610,7 +610,7 @@ class Parser:
             # Comment is before node
             if n.bytespan[0] > comment.bytespan[0]:
                 continue
-            distance = n.bytespan[1] -comment.bytespan[0]
+            distance = n.bytespan[1] - comment.bytespan[0]
             if smallest_distance > distance:
                 smallest_distance = distance
                 node = n
@@ -618,7 +618,7 @@ class Parser:
             # print("Adding", comment, "to", node, "in second attempt")
             node.comments.append(comment)
             return
-        assert (node is not None)
+        assert node is not None
 
     def statement(self) -> BaseNode:
         self.begin()
@@ -643,9 +643,9 @@ class Parser:
                 raise ParseException('Assignment target must be an id.',
                                      self.getline(), left.lineno, left.colno)
             assert isinstance(left.value, str)
-            e = AssignmentNode(left.filename, left.lineno, left.colno, left.value, value)
-            self.end(e)
-            return e
+            f = AssignmentNode(left.filename, left.lineno, left.colno, left.value, value)
+            self.end(f)
+            return f
         elif self.accept('questionmark'):
             if self.in_ternary:
                 raise ParseException('Nested ternary operators are not allowed.',
@@ -655,9 +655,9 @@ class Parser:
             self.expect('colon')
             falseblock = self.e1()
             self.in_ternary = False
-            e = TernaryNode(left, trueblock, falseblock)
-            self.end(e)
-            return e
+            g = TernaryNode(left, trueblock, falseblock)
+            self.end(g)
+            return g
         self.end(left)
         return left
 
@@ -760,12 +760,12 @@ class Parser:
             self.end(x)
             return x
         if self.accept('dash'):
-            x = UMinusNode(self.current, self.e7())
-            self.end(x)
-            return x
-        x = self.e7()
-        self.end(x)
-        return x
+            x1 = UMinusNode(self.current, self.e7())
+            self.end(x1)
+            return x1
+        x2 = self.e7()
+        self.end(x2)
+        return x2
 
     def e7(self) -> BaseNode:
         # self.begin()
@@ -787,15 +787,15 @@ class Parser:
             go_again = False
             if self.accept('dot'):
                 go_again = True
-                x1 = self.method_call(left)
+                x2 = self.method_call(left)
                 # self.end(left)
-                left = x1
+                left = x2
                 # self.begin()
             if self.accept('lbracket'):
                 go_again = True
-                x1 = self.index_call(left)
+                x3 = self.index_call(left)
                 # self.end(left)
-                left = x1
+                left = x3
                 # self.begin()
         # self.end(left)
         return left
@@ -817,13 +817,13 @@ class Parser:
         elif self.accept('lcurl'):
             key_values = self.key_values()
             self.block_expect('rcurl', block_start)
-            x1 = DictNode(key_values, block_start.lineno, block_start.colno, self.current.lineno, self.current.colno)
-            self.end(x1)
-            return x1
+            x2 = DictNode(key_values, block_start.lineno, block_start.colno, self.current.lineno, self.current.colno)
+            self.end(x2)
+            return x2
         else:
-            x1 = self.e9()
-            self.end(x1)
-            return x1
+            x3 = self.e9()
+            self.end(x3)
+            return x3
 
     def e9(self) -> BaseNode:
         self.begin()
@@ -835,32 +835,32 @@ class Parser:
             return x1
         if self.accept('false'):
             t.value = False
-            x1 = BooleanNode(t)
-            self.end(x1)
-            return x1
+            x2 = BooleanNode(t)
+            self.end(x2)
+            return x2
         if self.accept('id'):
-            x1 = IdNode(t)
-            self.end(x1)
-            return x1
+            x3 = IdNode(t)
+            self.end(x3)
+            return x3
         if self.accept('number'):
-            x1 = NumberNode(t)
-            self.end(x1)
-            return x1
+            x4 = NumberNode(t)
+            self.end(x4)
+            return x4
         if self.accept('string'):
-            x1 = StringNode(t)
-            self.end(x1)
-            return x1
+            x5 = StringNode(t)
+            self.end(x5)
+            return x5
         if self.accept('fstring'):
-            x1 = FormatStringNode(t)
-            self.end(x1)
-            return x1
+            x6 = FormatStringNode(t)
+            self.end(x6)
+            return x6
         if self.accept('multiline_fstring'):
-            x1 = MultilineFormatStringNode(t)
-            self.end(x1)
-            return x1
-        x1 = EmptyNode(self.current.lineno, self.current.colno, self.current.filename)
-        self.end(x1)
-        return x1
+            x7 = MultilineFormatStringNode(t)
+            self.end(x7)
+            return x7
+        x8 = EmptyNode(self.current.lineno, self.current.colno, self.current.filename)
+        self.end(x8)
+        return x8
 
     def key_values(self) -> ArgumentNode:
         self.begin()
@@ -1005,13 +1005,13 @@ class Parser:
             self.end(forblock)
             return forblock
         if self.accept('continue'):
-            x1 = ContinueNode(self.current)
-            self.end(x1)
-            return x1
+            x2 = ContinueNode(self.current)
+            self.end(x2)
+            return x2
         if self.accept('break'):
-            x1 = BreakNode(self.current)
-            self.end(x1)
-            return x1
+            x3 = BreakNode(self.current)
+            self.end(x3)
+            return x3
         s = self.statement()
         self.end(s)
         return s
