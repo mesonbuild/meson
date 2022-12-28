@@ -297,6 +297,7 @@ base_options: 'KeyedOptionDictType' = {
     OptionKey('b_pgo'): coredata.UserComboOption('Use profile guided optimization',
                                                  ['off', 'generate', 'use'],
                                                  'off'),
+    OptionKey('b_profile'): coredata.UserBooleanOption('Generate extra code to write profile information suitable for gprof', False),
     OptionKey('b_coverage'): coredata.UserBooleanOption('Enable coverage tracking.', False),
     OptionKey('b_colorout'): coredata.UserComboOption('Use colored output',
                                                       ['auto', 'always', 'never'],
@@ -360,6 +361,11 @@ def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler') 
     except KeyError:
         pass
     try:
+        if options[OptionKey('b_profile')].value:
+            args += compiler.get_gprof_args()
+    except KeyError:
+        pass
+    try:
         if options[OptionKey('b_coverage')].value:
             args += compiler.get_coverage_args()
     except KeyError:
@@ -411,6 +417,11 @@ def get_base_link_args(options: 'KeyedOptionDictType', linker: 'Compiler',
             args.extend(linker.get_profile_generate_args())
         elif pgo_val == 'use':
             args.extend(linker.get_profile_use_args())
+    except KeyError:
+        pass
+    try:
+        if options[OptionKey('b_profile')].value:
+            args += linker.get_gprof_link_args()
     except KeyError:
         pass
     try:
@@ -1064,6 +1075,12 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         """Get a list of arguments to pass to the compiler to set the linker.
         """
         return []
+
+    def get_gprof_args(self) -> T.List[str]:
+        return []
+
+    def get_gprof_link_args(self) -> T.List[str]:
+        return self.linker.get_gprof_args()
 
     def get_coverage_args(self) -> T.List[str]:
         return []

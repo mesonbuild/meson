@@ -78,7 +78,7 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
         # there is an unfortunate rule for using IPO (you can't control the
         # name of the output file) which break assumptions meson makes
         self.base_options = {mesonlib.OptionKey(o) for o in [
-            'b_pch', 'b_lundef', 'b_asneeded', 'b_pgo', 'b_coverage',
+            'b_pch', 'b_lundef', 'b_asneeded', 'b_pgo', 'b_profile', 'b_coverage',
             'b_ndebug', 'b_staticpic', 'b_pie']}
         self.lang_header = 'none'
 
@@ -114,6 +114,9 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
 
     def get_profile_use_args(self) -> T.List[str]:
         return ['-prof-use']
+
+    def get_gprof_args(self) -> T.List[str]:
+        return ['-pg']
 
     def get_buildtype_args(self, buildtype: str) -> T.List[str]:
         return self.BUILD_ARGS[buildtype]

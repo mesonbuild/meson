@@ -53,6 +53,7 @@ a sample output for a simple project.
       b_ndebug    false         [true, false, if-release]                                     Disable asserts
       b_pch       true          [true, false]                                                 Use precompiled headers
       b_pgo       off           [off, generate, use]                                          Use profile guided optimization
+      b_profile   false         [true, false]                                                 Generate extra code to write profile information suitable for gprof
       b_sanitize  none          [none, address, thread, undefined, leak, memory, address,undefined] Code sanitizer to use
       b_staticpic true          [true, false]                                                 Build static libraries as position independent
 

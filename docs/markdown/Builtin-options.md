@@ -168,6 +168,7 @@ available on all platforms or with all compilers:
 | b_ndebug            | false                | true, false, if-release                                       | Disable asserts                                                                |
 | b_pch               | true                 | true, false                                                   | Use precompiled headers                                                        |
 | b_pgo               | off                  | off, generate, use                                            | Use profile guided optimization                                                |
+| b_profile           | false                | true, false                                                   | Generate extra code to write profile information suitable for gprof            |
 | b_sanitize          | none                 | see below                                                     | Code sanitizer to use                                                          |
 | b_staticpic         | true                 | true, false                                                   | Build static libraries as position independent                                 |
 | b_pie               | false                | true, false                                                   | Build position-independent executables (since 0.49.0)                          |

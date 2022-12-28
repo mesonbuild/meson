@@ -4092,6 +4092,18 @@ class AllPlatformTests(BasePlatformTests):
         self.assertIn(f'TEST_C="{expected}"', o)
         self.assertIn('export TEST_C', o)
 
+    def test_create_gmon_out(self):
+        env = get_fake_env()
+        cc = detect_c_compiler(env, MachineChoice.HOST)
+        if cc.get_id() == 'clang' or is_windows() or is_cygwin():
+            raise SkipTest('-pg not supported by compiler')
+        testdir = os.path.join(self.unit_test_dir, '90 devenv')
+        self.init(testdir, extra_args=['-Db_profile=True'])
+        self.build()
+        self._run('./app', workdir = self.builddir)
+        gmon_out_path = os.path.join(self.builddir, 'gmon.out')
+        self.assertPathExists(gmon_out_path)
+
     def test_clang_format_check(self):
         if self.backend is not Backend.ninja:
             raise SkipTest(f'Skipping clang-format tests with {self.backend.name} backend')

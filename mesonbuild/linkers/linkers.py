@@ -69,6 +69,9 @@ class StaticLinker:
     def get_output_args(self, target: str) -> T.List[str]:
         return []
 
+    def get_gprof_link_args(self) -> T.List[str]:
+        return []
+
     def get_coverage_link_args(self) -> T.List[str]:
         return []
 
@@ -487,6 +490,9 @@ class DynamicLinker(metaclass=abc.ABCMeta):
     def get_output_args(self, outname: str) -> T.List[str]:
         pass
 
+    def get_gprof_args(self) -> T.List[str]:
+        raise EnvironmentException(f"Linker {self.id} doesn't implement gprof data.")
+
     def get_coverage_args(self) -> T.List[str]:
         raise EnvironmentException(f"Linker {self.id} doesn't implement coverage data generation.")
 
@@ -626,6 +632,9 @@ class GnuLikeDynamicLinkerMixin:
         if value == 'none':
             return []
         return ['-fsanitize=' + value]
+
+    def get_gprof_args(self) -> T.List[str]:
+        return ['-pg']
 
     def get_coverage_args(self) -> T.List[str]:
         return ['--coverage']
@@ -771,6 +780,9 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
             result.extend(self._apply_prefix('-force_load'))
             result.append(a)
         return result
+
+    def get_gprof_args(self) -> T.List[str]:
+        return ['-pg']
 
     def get_coverage_args(self) -> T.List[str]:
         return ['--coverage']
