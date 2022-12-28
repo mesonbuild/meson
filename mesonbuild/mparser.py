@@ -268,7 +268,9 @@ class BaseNode:
     end_lineno: T.Optional[int] = None
     end_colno: T.Optional[int] = None
     bytespan: T.Optional[T.Tuple[int, int]] = None
+    pre_comments: T.Optional[T.List['Comment']] = None
     comments: T.Optional[T.List['Comment']] = None
+    post_comments: T.Optional[T.List['Comment']] = None
 
     def __post_init__(self) -> None:
         if self.end_lineno is None:
@@ -280,7 +282,9 @@ class BaseNode:
         self.level = 0            # type: int
         self.ast_id = ''          # type: str
         self.condition_level = 0  # type: int
+        self.pre_comments = []
         self.comments = []
+        self.post_comments = []
 
     def accept(self, visitor: 'AstVisitor') -> None:
         fname = 'visit_{}'.format(type(self).__name__)
@@ -615,7 +619,7 @@ class Parser:
                 smallest_distance = distance
                 node = n
         if node is not None:
-            node.comments.append(comment)
+            node.pre_comments.append(comment)
             return
         smallest_distance = 100000000000
         node = None
@@ -629,7 +633,7 @@ class Parser:
                 smallest_distance = distance
                 node = n
         if node is not None:
-            node.comments.append(comment)
+            node.post_comments.append(comment)
             return
         assert node is not None
 
