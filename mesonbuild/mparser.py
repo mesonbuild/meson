@@ -601,12 +601,10 @@ class Parser:
                 smallest_distance = distance
                 node = n
         if node is not None:
-            print("Adding", comment, "to", node)
             node.comments.append(comment)
             return
         smallest_distance = 100000000000
         node = None
-        # print("OOPS:", comment)
         # Now we try to attach the comment to nodes that are before it
         for n in self.nodes:
             # Comment is before node
@@ -617,9 +615,10 @@ class Parser:
                 smallest_distance = distance
                 node = n
         if node is not None:
-            print("Adding", comment, "to", node, "in second attempt")
             node.comments.append(comment)
             return
+        smallest_distance = 100000000000
+        node = None
         # Now we try to attach the comment to nodes that are after it
         for n in self.nodes:
             # Comment is after node
@@ -630,7 +629,6 @@ class Parser:
                 smallest_distance = distance
                 node = n
         if node is not None:
-            print("Adding", comment, "to", node, "in third attempt")
             node.comments.append(comment)
             return
         assert node is not None
