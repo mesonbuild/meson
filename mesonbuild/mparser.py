@@ -162,7 +162,6 @@ class Lexer:
             ('gt', re.compile(r'>')),
             ('questionmark', re.compile(r'\?')),
         ]
-        self.comments = [] # type: T.List[Comment]
 
     def getline(self, line_start: int) -> str:
         return self.code[line_start:self.code.find('\n', line_start)]

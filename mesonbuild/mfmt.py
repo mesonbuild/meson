@@ -3,7 +3,7 @@ import os
 import sys
 from . import coredata, mparser
 from . import mesonlib
-from .ast import AstFormatter
+from .ast import AstFormatter, AstFormatter2
 from pathlib import Path
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
@@ -52,15 +52,11 @@ def format_code(options: argparse.Namespace, file: str, output: str, code: str) 
     try:
         parser = mparser.Parser(code, file)
         codeblock = parser.parse()
-        comments = parser.comments()
     except mesonlib.MesonException as me:
         me.file = file
         raise me
-    if options.verbose:
-        n_comments = len(comments)
-        print("Found", n_comments, "comments in file", file=sys.stderr)
     config = parse_fmt_config(options.config)
-    formatter = AstFormatter(comments, code.splitlines(), config)
+    formatter = AstFormatter2(code.splitlines(), config)
     codeblock.accept(formatter)
     formatter.end()
     if not options.inplace:
@@ -69,10 +65,6 @@ def format_code(options: argparse.Namespace, file: str, output: str, code: str) 
         real_output = open(file, 'w', encoding='utf8')
     for line in formatter.lines:
         print(line, end='\n', file=real_output)
-    if len(formatter.comments) != 0 and not options.quiet:
-        print('Unable to readd', len(formatter.comments), 'comments', file=sys.stderr)
-        for c in formatter.comments:
-            print(c.text, file=sys.stderr)
     return 0
 
 def run(options: argparse.Namespace) -> int:
