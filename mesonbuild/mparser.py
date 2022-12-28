@@ -585,6 +585,8 @@ class Parser:
         return block
 
     def attach_comment(self, comment: Comment) -> None:
+        if len(self.nodes) == 0:
+            return
         smallest_distance = 100000000000
         node = None
         for n in self.nodes:
@@ -768,7 +770,7 @@ class Parser:
         return x2
 
     def e7(self) -> BaseNode:
-        # self.begin()
+        self.begin()
         left = self.e8()
         block_start = self.current
         if self.accept('lparen'):
@@ -779,25 +781,25 @@ class Parser:
                                      self.getline(), left.lineno, left.colno)
             assert isinstance(left.value, str)
             x1 = FunctionNode(left.filename, left.lineno, left.colno, self.current.lineno, self.current.colno, left.value, args)
-            # self.end(left)
+            self.end(left)
             left = x1
-            # self.begin()
+            self.begin()
         go_again = True
         while go_again:
             go_again = False
             if self.accept('dot'):
                 go_again = True
                 x2 = self.method_call(left)
-                # self.end(left)
+                self.end(left)
                 left = x2
-                # self.begin()
+                self.begin()
             if self.accept('lbracket'):
                 go_again = True
                 x3 = self.index_call(left)
-                # self.end(left)
+                self.end(left)
                 left = x3
-                # self.begin()
-        # self.end(left)
+                self.begin()
+        self.end(left)
         return left
 
     def e8(self) -> BaseNode:
@@ -872,6 +874,7 @@ class Parser:
                 a.set_kwarg_no_check(s, self.statement())
                 potential = self.current
                 if not self.accept('comma'):
+                    self.end(a)
                     return a
                 a.commas.append(potential)
             else:
@@ -962,7 +965,10 @@ class Parser:
         clause = IfClauseNode(condition)
         self.expect('eol')
         block = self.codeblock()
-        clause.ifs.append(IfNode(clause, condition, block))
+        self.begin()
+        i = IfNode(clause, condition, block)
+        self.end(i)
+        clause.ifs.append(i)
         self.elseifblock(clause)
         clause.elseblock = self.elseblock()
         self.end(clause)
