@@ -889,10 +889,10 @@ class WASMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dyna
     id = 'ld.wasm'
 
     def get_allow_undefined_args(self) -> T.List[str]:
-        return ['-s', 'ERROR_ON_UNDEFINED_SYMBOLS=0']
+        return ['-sERROR_ON_UNDEFINED_SYMBOLS=0']
 
     def no_undefined_args(self) -> T.List[str]:
-        return ['-s', 'ERROR_ON_UNDEFINED_SYMBOLS=1']
+        return ['-sERROR_ON_UNDEFINED_SYMBOLS=1']
 
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str, darwin_versions: T.Tuple[str, str]) -> T.List[str]:

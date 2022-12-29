@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2021 The Meson development team
 # Copyright © 2021 Intel Corporation
+from __future__ import annotations
 
 import os
 import typing as T
@@ -74,6 +75,7 @@ class MesonMain(MesonInterpreterObject):
                              'override_find_program': self.override_find_program_method,
                              'project_version': self.project_version_method,
                              'project_license': self.project_license_method,
+                             'project_license_files': self.project_license_files_method,
                              'version': self.version_method,
                              'project_name': self.project_name_method,
                              'get_cross_property': self.get_cross_property_method,
@@ -399,6 +401,12 @@ class MesonMain(MesonInterpreterObject):
     @noKwargs
     def project_license_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> T.List[str]:
         return self.build.dep_manifest[self.interpreter.active_projectname].license
+
+    @FeatureNew('meson.project_license_files()', '1.1.0')
+    @noPosargs
+    @noKwargs
+    def project_license_files_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.List[mesonlib.File]:
+        return [l[1] for l in self.build.dep_manifest[self.interpreter.active_projectname].license_files]
 
     @noPosargs
     @noKwargs

@@ -317,8 +317,15 @@ methods:
     returns: void
     description: |
       Installs a manifest file
-      containing a list of all subprojects, their versions and license
-      files to the file name given as the argument.
+      containing a list of all subprojects, their versions and license names
+      to the file name given as the argument.
+
+      If license files are defined as well, they will be copied next to the
+      manifest and referenced in it.
+
+      If this function is not used, the builtin option `licensedir` can
+      be used to install the manifest to a given directory with the name
+      `depmf.json`.
 
     posargs:
       output_name:
@@ -405,6 +412,11 @@ methods:
     returns: list[str]
     since: 0.45.0
     description: Returns the array of licenses specified in [[project]] function call.
+
+  - name: project_license_files
+    returns: list[file]
+    since: 1.1.0
+    description: Returns the array of license files specified in the [[project]] function call.
 
   - name: project_name
     returns: str

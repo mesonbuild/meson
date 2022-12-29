@@ -2062,6 +2062,7 @@ _BUILTIN_NAMES = {
     'includedir',
     'infodir',
     'libdir',
+    'licensedir',
     'libexecdir',
     'localedir',
     'localstatedir',

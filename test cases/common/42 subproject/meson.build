@@ -1,6 +1,8 @@
 project('subproj user', 'c',
   version : '2.3.4',
-  license : 'mylicense')
+  license : 'mylicense',
+  license_files: 'mylicense.txt',
+)
 
 assert(meson.project_name() == 'subproj user', 'Incorrect project name')
 

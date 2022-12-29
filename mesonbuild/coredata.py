@@ -53,7 +53,7 @@ if T.TYPE_CHECKING:
 #
 # Pip requires that RCs are named like this: '0.1.0.rc1'
 # But the corresponding Git tag needs to be '0.1.0rc1'
-version = '1.0.0.rc2'
+version = '1.0.99'
 
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2012', 'vs2013', 'vs2015', 'vs2017', 'vs2019', 'vs2022', 'xcode']
 
@@ -1197,6 +1197,7 @@ BUILTIN_DIR_OPTIONS: 'MutableKeyedOptionDictType' = OrderedDict([
     (OptionKey('includedir'),      BuiltinOption(UserStringOption, 'Header file directory', 'include')),
     (OptionKey('infodir'),         BuiltinOption(UserStringOption, 'Info page directory', 'share/info')),
     (OptionKey('libdir'),          BuiltinOption(UserStringOption, 'Library directory', default_libdir())),
+    (OptionKey('licensedir'),      BuiltinOption(UserStringOption, 'Licenses directory', '')),
     (OptionKey('libexecdir'),      BuiltinOption(UserStringOption, 'Library executable directory', default_libexecdir())),
     (OptionKey('localedir'),       BuiltinOption(UserStringOption, 'Locale data directory', 'share/locale')),
     (OptionKey('localstatedir'),   BuiltinOption(UserStringOption, 'Localstate data directory', 'var')),

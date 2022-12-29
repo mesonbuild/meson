@@ -5,9 +5,9 @@ ar = '/home/jpakkane/src/emsdk/upstream/emscripten/emar'
 
 [built-in options]
 c_args = []
-c_link_args = ['-s','EXPORT_ALL=1']
+c_link_args = ['-sEXPORT_ALL=1']
 cpp_args = []
-cpp_link_args = ['-s', 'EXPORT_ALL=1']
+cpp_link_args = ['-sEXPORT_ALL=1']
 
 [host_machine]
 
