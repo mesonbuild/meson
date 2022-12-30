@@ -732,6 +732,9 @@ class CudaCompiler(Compiler):
     def get_output_args(self, target: str) -> T.List[str]:
         return ['-o', target]
 
+    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
+        return ['-MD', '-MT', outtarget, '-MF', outfile]
+
     def get_std_exe_link_args(self) -> T.List[str]:
         return self._to_host_flags(self.host_compiler.get_std_exe_link_args(), _Phase.LINKER)
 
