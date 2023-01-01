@@ -502,7 +502,9 @@ class ConsoleLogger(TestLogger):
         self.progress_task = None          # type: T.Optional[asyncio.Future]
         self.max_left_width = 0            # type: int
         self.stop = False
-        self.update = asyncio.Event()
+        # TODO: before 3.10 this cannot be created immediately, because
+        # it will create a new event loop
+        self.update: asyncio.Event
         self.should_erase_line = ''
         self.test_count = 0
         self.started_tests = 0
@@ -600,6 +602,7 @@ class ConsoleLogger(TestLogger):
                 self.emit_progress(harness)
             self.flush()
 
+        self.update = asyncio.Event()
         self.test_count = harness.test_count
         self.cols = max(self.cols, harness.max_left_width + 30)
 
