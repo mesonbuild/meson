@@ -574,7 +574,7 @@ class ConsoleLogger(TestLogger):
 
     def start(self, harness: 'TestHarness') -> None:
         async def report_progress() -> None:
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             next_update = 0.0
             self.request_update()
             while not self.stop:
@@ -1232,13 +1232,14 @@ async def complete_all(futures: T.Iterable[asyncio.Future],
 
     # Python is silly and does not have a variant of asyncio.wait with an
     # absolute time as deadline.
-    deadline = None if timeout is None else asyncio.get_event_loop().time() + timeout
+    loop = asyncio.get_running_loop()
+    deadline = None if timeout is None else loop.time() + timeout
     while futures and (timeout is None or timeout > 0):
         done, futures = await asyncio.wait(futures, timeout=timeout,
                                            return_when=asyncio.FIRST_EXCEPTION)
         check_futures(done)
         if deadline:
-            timeout = deadline - asyncio.get_event_loop().time()
+            timeout = deadline - loop.time()
 
     check_futures(futures)
 
@@ -1948,6 +1949,7 @@ class TestHarness:
         running_tests = {}  # type: T.Dict[asyncio.Future, str]
         interrupted = False
         ctrlc_times = deque(maxlen=MAX_CTRLC)  # type: T.Deque[float]
+        loop = asyncio.get_running_loop()
 
         async def run_test(test: SingleTestRunner) -> None:
             async with semaphore:
@@ -1996,7 +1998,7 @@ class TestHarness:
             nonlocal interrupted
             if interrupted:
                 return
-            ctrlc_times.append(asyncio.get_event_loop().time())
+            ctrlc_times.append(loop.time())
             if len(ctrlc_times) == MAX_CTRLC and ctrlc_times[-1] - ctrlc_times[0] < 1:
                 self.flush_logfiles()
                 mlog.warning('CTRL-C detected, exiting')
@@ -2013,10 +2015,10 @@ class TestHarness:
 
         if sys.platform != 'win32':
             if os.getpgid(0) == os.getpid():
-                asyncio.get_event_loop().add_signal_handler(signal.SIGINT, sigint_handler)
+                loop.add_signal_handler(signal.SIGINT, sigint_handler)
             else:
-                asyncio.get_event_loop().add_signal_handler(signal.SIGINT, sigterm_handler)
-            asyncio.get_event_loop().add_signal_handler(signal.SIGTERM, sigterm_handler)
+                loop.add_signal_handler(signal.SIGINT, sigterm_handler)
+            loop.add_signal_handler(signal.SIGTERM, sigterm_handler)
         try:
             for runner in runners:
                 if not runner.is_parallel:
@@ -2033,8 +2035,8 @@ class TestHarness:
             await complete_all(futures)
         finally:
             if sys.platform != 'win32':
-                asyncio.get_event_loop().remove_signal_handler(signal.SIGINT)
-                asyncio.get_event_loop().remove_signal_handler(signal.SIGTERM)
+                loop.remove_signal_handler(signal.SIGINT)
+                loop.remove_signal_handler(signal.SIGTERM)
             for l in self.loggers:
                 await l.finish(self)
 
