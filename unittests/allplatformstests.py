@@ -1507,12 +1507,12 @@ class AllPlatformTests(BasePlatformTests):
         test. Needs to be a unit test because it accesses Meson internals.
         '''
         testdir = os.path.join(self.common_test_dir, '150 reserved targets')
-        targets = mesonbuild.coredata.FORBIDDEN_TARGET_NAMES
+        targets = set(mesonbuild.coredata.FORBIDDEN_TARGET_NAMES)
         # We don't actually define a target with this name
-        targets.pop('build.ninja')
+        targets.remove('build.ninja')
         # Remove this to avoid multiple entries with the same name
         # but different case.
-        targets.pop('PHONY')
+        targets.remove('PHONY')
         for i in targets:
             self.assertPathExists(os.path.join(testdir, i))
 
