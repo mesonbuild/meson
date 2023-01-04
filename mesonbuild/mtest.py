@@ -1056,7 +1056,7 @@ class TestRunTAP(TestRun):
     async def parse(self, harness: 'TestHarness', lines: T.AsyncIterator[str]) -> None:
         res = None
         warnings = [] # type: T.List[TAPParser.UnknownLine]
-        version: T.Optional[int] = None
+        version = 12
 
         async for i in TAPParser().parse_async(lines):
             if isinstance(i, TAPParser.Version):
@@ -1075,9 +1075,6 @@ class TestRunTAP(TestRun):
                 self.additional_error += 'TAP parsing error: ' + i.message
                 res = TestResult.ERROR
 
-        if version is None:
-            self.warnings.append('Unknown TAP version. The first line MUST be `TAP version <int>`. Assuming version 12.')
-            version = 12
         if warnings:
             unknown = str(mlog.yellow('UNKNOWN'))
             width = len(str(max(i.lineno for i in warnings)))
