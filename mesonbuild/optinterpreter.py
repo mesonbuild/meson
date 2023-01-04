@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
 import re
 import typing as T
 
@@ -19,11 +20,13 @@ from . import coredata
 from . import mesonlib
 from . import mparser
 from . import mlog
-from .interpreterbase import FeatureNew, typed_pos_args, typed_kwargs, ContainerTypeInfo, KwargInfo, permittedKwargs
+from .interpreterbase import FeatureNew, typed_pos_args, typed_kwargs, ContainerTypeInfo, KwargInfo
+from .interpreter.type_checking import NoneType, in_set_validator
 if T.TYPE_CHECKING:
     from .interpreterbase import TYPE_var, TYPE_kwargs
     from .interpreterbase import SubProject
-    from typing_extensions import TypedDict
+    from typing_extensions import TypedDict, Literal
+
     FuncOptionArgs = TypedDict('FuncOptionArgs', {
         'type': str,
         'description': str,
@@ -34,13 +37,33 @@ if T.TYPE_CHECKING:
         'max': T.Optional[int],
         'deprecated': T.Union[bool, str, T.Dict[str, str], T.List[str]],
         })
-    ParserArgs = TypedDict('ParserArgs', {
-        'yield': bool,
-        'choices': T.Optional[T.List[str]],
-        'value': object,
-        'min': T.Optional[int],
-        'max': T.Optional[int],
-        })
+
+    _YieldArgs = TypedDict('_YieldArgs', {
+        'yield': T.Optional[bool],
+    })
+
+    class StringArgs(_YieldArgs):
+        value: str
+
+    class BooleanArgs(_YieldArgs):
+        value: bool
+
+    class ComboArgs(_YieldArgs):
+        value: str
+        choices: T.List[str]
+
+    class IntegerArgs(_YieldArgs):
+        value: int
+        min: T.Optional[int]
+        max: T.Optional[int]
+
+    class StringArrayArgs(_YieldArgs):
+        value: str
+        choices: T.List[str]
+
+    class FeatureArgs(_YieldArgs):
+        value: Literal['enabled', 'disabled', 'auto']
+        choices: T.List[str]
 
 
 class OptionException(mesonlib.MesonException):
@@ -54,13 +77,14 @@ class OptionInterpreter:
     def __init__(self, subproject: 'SubProject') -> None:
         self.options: 'coredata.MutableKeyedOptionDictType' = {}
         self.subproject = subproject
-        self.option_types = {'string': self.string_parser,
-                             'boolean': self.boolean_parser,
-                             'combo': self.combo_parser,
-                             'integer': self.integer_parser,
-                             'array': self.string_array_parser,
-                             'feature': self.feature_parser,
-                             }
+        self.option_types: T.Dict[str, T.Callable[..., coredata.UserOption]] = {
+            'string': self.string_parser,
+            'boolean': self.boolean_parser,
+            'combo': self.combo_parser,
+            'integer': self.integer_parser,
+            'array': self.string_array_parser,
+            'feature': self.feature_parser,
+        }
 
     def process(self, option_file: str) -> None:
         try:
@@ -146,13 +170,14 @@ class OptionInterpreter:
         self.func_option(posargs, kwargs)
 
     @typed_kwargs('option',
-                  KwargInfo('type', str, required=True),
+                  KwargInfo('type', str, required=True,
+                            validator=in_set_validator({'string', 'boolean', 'integer', 'combo', 'array', 'feature'})),
                   KwargInfo('description', str, default=''),
                   KwargInfo('yield', bool, default=coredata.default_yielding, since='0.45.0'),
-                  KwargInfo('choices', (ContainerTypeInfo(list, str), type(None))),
+                  KwargInfo('choices', (ContainerTypeInfo(list, str), NoneType)),
                   KwargInfo('value', object),
-                  KwargInfo('min', (int, type(None))),
-                  KwargInfo('max', (int, type(None))),
+                  KwargInfo('min', (int, NoneType)),
+                  KwargInfo('max', (int, NoneType)),
                   KwargInfo('deprecated', (bool, str, ContainerTypeInfo(dict, str), ContainerTypeInfo(list, str)),
                             default=False, since='0.60.0')
                   )
@@ -166,16 +191,12 @@ class OptionInterpreter:
             raise OptionException('Option name %s is reserved.' % opt_name)
 
         opt_type = kwargs['type']
-        parser = self.option_types.get(opt_type)
-        if not parser:
-            raise OptionException(f'Unknown type {opt_type}.')
+        parser = self.option_types[opt_type]
         description = kwargs['description'] or opt_name
 
         # Only keep in kwargs arguments that are used by option type's parser
         # because they use @permittedKwargs().
-        known_parser_kwargs = {'value', 'choices', 'yield', 'min', 'max'}
-        parser_kwargs = {k: v for k, v in kwargs.items() if k in known_parser_kwargs and v is not None}
-        opt = parser(description, T.cast('ParserArgs', parser_kwargs))
+        opt = parser(description, kwargs)
         opt.deprecated = kwargs['deprecated']
         if isinstance(opt.deprecated, str):
             FeatureNew.single_use('String value to "deprecated" keyword argument', '0.63.0', self.subproject)
@@ -183,43 +204,62 @@ class OptionInterpreter:
             mlog.deprecation(f'Option {opt_name} already exists.')
         self.options[key] = opt
 
-    @permittedKwargs({'value', 'yield'})
-    def string_parser(self, description: str, kwargs: 'ParserArgs') -> coredata.UserOption:
-        value = kwargs.get('value', '')
-        return coredata.UserStringOption(description, value, kwargs['yield'])
+    @typed_kwargs(
+        'string option',
+        KwargInfo('value', str, default=''),
+        allow_unknown=True,
+    )
+    def string_parser(self, description: str, kwargs: StringArgs) -> coredata.UserOption:
+        return coredata.UserStringOption(description, kwargs['value'], kwargs['yield'])
 
-    @permittedKwargs({'value', 'yield'})
-    def boolean_parser(self, description: str, kwargs: 'ParserArgs') -> coredata.UserOption:
-        value = kwargs.get('value', True)
-        return coredata.UserBooleanOption(description, value, kwargs['yield'])
+    @typed_kwargs(
+        'boolean option',
+        KwargInfo('value', bool, default=True),
+        allow_unknown=True,
+    )
+    def boolean_parser(self, description: str, kwargs: BooleanArgs) -> coredata.UserOption:
+        return coredata.UserBooleanOption(description, kwargs['value'], kwargs['yield'])
 
-    @permittedKwargs({'value', 'yield', 'choices'})
-    def combo_parser(self, description: str, kwargs: 'ParserArgs') -> coredata.UserOption:
-        choices = kwargs.get('choices')
-        if not choices:
-            raise OptionException('Combo option missing "choices" keyword.')
-        value = kwargs.get('value', choices[0])
+    @typed_kwargs(
+        'combo option',
+        KwargInfo('value', (str, NoneType)),
+        KwargInfo('choices', ContainerTypeInfo(list, str, allow_empty=False), required=True),
+        allow_unknown=True,
+    )
+    def combo_parser(self, description: str, kwargs: ComboArgs) -> coredata.UserOption:
+        choices = kwargs['choices']
+        value = kwargs['value']
+        if value is None:
+            value = kwargs['choices'][0]
         return coredata.UserComboOption(description, choices, value, kwargs['yield'])
 
-    @permittedKwargs({'value', 'min', 'max', 'yield'})
-    def integer_parser(self, description: str, kwargs: 'ParserArgs') -> coredata.UserOption:
-        value = kwargs.get('value')
-        if value is None:
-            raise OptionException('Integer option must contain value argument.')
-        inttuple = (kwargs.get('min'), kwargs.get('max'), value)
+    @typed_kwargs(
+        'integer option',
+        KwargInfo('value', int),
+        allow_unknown=True,
+    )
+    def integer_parser(self, description: str, kwargs: IntegerArgs) -> coredata.UserOption:
+        value = kwargs['value']
+        inttuple = (kwargs['min'], kwargs['max'], value)
         return coredata.UserIntegerOption(description, inttuple, kwargs['yield'])
 
-    @permittedKwargs({'value', 'yield', 'choices'})
-    def string_array_parser(self, description: str, kwargs: 'ParserArgs') -> coredata.UserOption:
-        choices = kwargs.get('choices', [])
-        value = kwargs.get('value', choices)
-        if not isinstance(value, list):
-            raise OptionException('Array choices must be passed as an array.')
+    @typed_kwargs(
+        'string array option',
+        KwargInfo('value', ContainerTypeInfo(list, str), default=[]),
+        KwargInfo('choices', ContainerTypeInfo(list, str), default=[]),
+        allow_unknown=True,
+    )
+    def string_array_parser(self, description: str, kwargs: StringArrayArgs) -> coredata.UserOption:
+        choices = kwargs['choices']
+        value = kwargs['value'] or choices
         return coredata.UserArrayOption(description, value,
                                         choices=choices,
                                         yielding=kwargs['yield'])
 
-    @permittedKwargs({'value', 'yield'})
-    def feature_parser(self, description: str, kwargs: 'ParserArgs') -> coredata.UserOption:
-        value = kwargs.get('value', 'auto')
-        return coredata.UserFeatureOption(description, value, kwargs['yield'])
+    @typed_kwargs(
+        'feature option',
+        KwargInfo('value', str, default='auto', validator=in_set_validator({'auto', 'enabled', 'disabled'})),
+        allow_unknown=True,
+    )
+    def feature_parser(self, description: str, kwargs: FeatureArgs) -> coredata.UserOption:
+        return coredata.UserFeatureOption(description, kwargs['value'], kwargs['yield'])
