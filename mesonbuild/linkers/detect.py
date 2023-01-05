@@ -21,6 +21,7 @@ from ..mesonlib import (
 )
 from .linkers import (
     AppleDynamicLinker,
+    LLVMLD64DynamicLinker,
     GnuGoldDynamicLinker,
     GnuBFDDynamicLinker,
     MoldDynamicLinker,
@@ -165,7 +166,23 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     v = search_version(o + e)
     linker: DynamicLinker
     if 'LLD' in o.split('\n', maxsplit=1)[0]:
-        linker = LLVMDynamicLinker(
+        if isinstance(comp_class.LINKER_PREFIX, str):
+            cmd = compiler + override + [comp_class.LINKER_PREFIX + '-v'] + extra_args
+        else:
+            cmd = compiler + override + comp_class.LINKER_PREFIX + ['-v'] + extra_args
+        mlog.debug('-----')
+        mlog.debug(f'Detecting LLD linker via: {join_args(cmd)}')
+        _, newo, newerr = Popen_safe(cmd)
+        mlog.debug(f'linker stdout:\n{newo}')
+        mlog.debug(f'linker stderr:\n{newerr}')
+
+        lld_cls: T.Type[DynamicLinker]
+        if 'ld64.lld' in newerr:
+            lld_cls = LLVMLD64DynamicLinker
+        else:
+            lld_cls = LLVMDynamicLinker
+
+        linker = lld_cls(
             compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
     elif 'Snapdragon' in e and 'LLVM' in e:
         linker = QualcommLLVMDynamicLinker(
@@ -208,16 +225,16 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
             __failed_to_detect_linker(compiler, check_args, o, e)
         linker = AppleDynamicLinker(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
     elif 'GNU' in o or 'GNU' in e:
-        cls: T.Type[GnuDynamicLinker]
+        gnu_cls: T.Type[GnuDynamicLinker]
         # this is always the only thing on stdout, except for swift
         # which may or may not redirect the linker stdout to stderr
         if o.startswith('GNU gold') or e.startswith('GNU gold'):
-            cls = GnuGoldDynamicLinker
+            gnu_cls = GnuGoldDynamicLinker
         elif o.startswith('mold') or e.startswith('mold'):
-            cls = MoldDynamicLinker
+            gnu_cls = MoldDynamicLinker
         else:
-            cls = GnuBFDDynamicLinker
-        linker = cls(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
+            gnu_cls = GnuBFDDynamicLinker
+        linker = gnu_cls(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
     elif 'Solaris' in e or 'Solaris' in o:
         for line in (o+e).split('\n'):
             if 'ld: Software Generation Utilities' in line:
