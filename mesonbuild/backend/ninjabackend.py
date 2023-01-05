@@ -1901,7 +1901,8 @@ class NinjaBackend(backends.Backend):
         args += output
         linkdirs = mesonlib.OrderedSet()
         external_deps = target.external_deps.copy()
-        for d in itertools.chain(target.link_targets, target.link_whole_targets):
+        # TODO: we likely need to use verbatim to handle name_prefix and name_suffix
+        for d in target.link_targets:
             linkdirs.add(d.subdir)
             if d.uses_rust():
                 # specify `extern CRATE_NAME=OUTPUT_FILE` for each Rust
@@ -1922,6 +1923,55 @@ class NinjaBackend(backends.Backend):
                 # Rust uses -l for non rust dependencies, but we still need to
                 # add dylib=foo
                 args += ['-l', f'dylib={d.name}']
+
+        # Since 1.61.0 Rust has a special modifier for whole-archive linking,
+        # before that it would treat linking two static libraries as
+        # whole-archive linking. However, to make this work we have to disable
+        # bundling, which can't be done until 1.63.0… So for 1.61–1.62 we just
+        # have to hope that the default cases of +whole-archive are sufficent.
+        # See: https://github.com/rust-lang/rust/issues/99429
+        if mesonlib.version_compare(rustc.version, '>= 1.63.0'):
+            whole_archive = ':+whole-archive,-bundle'
+        else:
+            whole_archive = ''
+
+        if mesonlib.version_compare(rustc.version, '>= 1.67.0'):
+            verbatim = ',+verbatim'
+        else:
+            verbatim = ''
+
+        for d in target.link_whole_targets:
+            linkdirs.add(d.subdir)
+            if d.uses_rust():
+                # specify `extern CRATE_NAME=OUTPUT_FILE` for each Rust
+                # dependency, so that collisions with libraries in rustc's
+                # sysroot don't cause ambiguity
+                args += ['--extern', '{}={}'.format(d.name, os.path.join(d.subdir, d.filename))]
+                project_deps.append(RustDep(d.name, self.rust_crates[d.name].order))
+            else:
+                if rustc.linker.id in {'link', 'lld-link'}:
+                    if verbatim:
+                        # If we can use the verbatim modifier, then everything is great
+                        args += ['-l', f'static{whole_archive}{verbatim}={d.get_outputs()[0]}']
+                    elif isinstance(target, build.StaticLibrary):
+                        # If we don't, for static libraries the only option is
+                        # to make a copy, since we can't pass objects in, or
+                        # directly affect the archiver. but we're not going to
+                        # do that given how quickly rustc versions go out of
+                        # support unless there's a compelling reason to do so.
+                        # This only affects 1.61–1.66
+                        mlog.warning('Due to limitations in Rustc versions 1.61–1.66 and meson library naming',
+                                     'whole-archive linking with MSVC may or may not work. Upgrade rustc to',
+                                     '>= 1.67. A best effort is being made, but likely won\'t work')
+                        args += ['-l', f'static={d.name}']
+                    else:
+                        # When doing dynamic linking (binaries and [c]dylibs),
+                        # we can instead just proxy the correct arguments to the linker
+                        for link_whole_arg in rustc.linker.get_link_whole_for([self.get_target_filename_for_linking(d)]):
+                            args += ['-C', f'link-arg={link_whole_arg}']
+                else:
+                    args += ['-l', f'static{whole_archive}={d.name}']
+                external_deps.extend(d.external_deps)
         for e in external_deps:
             for a in e.get_link_args():
                 if a.endswith(('.dll', '.so', '.dylib')):

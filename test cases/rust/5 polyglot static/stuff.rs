@@ -1,6 +1,6 @@
 #![crate_name = "stuff"]
 
 #[no_mangle]
-pub extern fn f() {
+pub extern "C" fn hello_from_rust() {
     println!("Hello from Rust!");
 }
