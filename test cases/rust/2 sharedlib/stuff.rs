@@ -1,3 +1,11 @@
 #![crate_name = "stuff"]
 
-pub fn explore() -> &'static str { "librarystring" }
+extern "C" {
+        fn c_value() -> i32;
+}
+
+pub fn explore() -> String {
+    unsafe {
+        format!("library{}string", c_value())
+    }
+}
