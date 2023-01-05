@@ -825,6 +825,11 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         return ["-Wl,-cache_path_lto," + path]
 
 
+class LLVMLD64DynamicLinker(AppleDynamicLinker):
+
+    id = 'ld64.lld'
+
+
 class GnuDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, DynamicLinker):
 
     """Representation of GNU ld.bfd and ld.gold."""
