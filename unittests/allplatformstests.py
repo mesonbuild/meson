@@ -1764,7 +1764,7 @@ class AllPlatformTests(BasePlatformTests):
 
         expected = {
             'name': 'list',
-            'description': 'list',
+            'description': '',
             'section': 'user',
             'type': 'array',
             'value': ['foo', 'bar'],
@@ -1791,7 +1791,7 @@ class AllPlatformTests(BasePlatformTests):
 
         expected = {
             'name': 'list',
-            'description': 'list',
+            'description': '',
             'section': 'user',
             'type': 'array',
             'value': ['foo', 'bar'],
@@ -1818,7 +1818,7 @@ class AllPlatformTests(BasePlatformTests):
 
         expected = {
             'name': 'list',
-            'description': 'list',
+            'description': '',
             'section': 'user',
             'type': 'array',
             'value': [],
