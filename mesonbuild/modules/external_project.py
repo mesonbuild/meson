@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
 from pathlib import Path
 import os
 import shlex
@@ -33,9 +34,10 @@ if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
 
     from . import ModuleState
+    from .._typing import ImmutableListProtocol
+    from ..build import BuildTarget, CustomTarget
     from ..interpreter import Interpreter
     from ..interpreterbase import TYPE_var
-    from ..build import BuildTarget, CustomTarget
 
     class Dependency(TypedDict):
 
@@ -51,6 +53,9 @@ if T.TYPE_CHECKING:
 
 
 class ExternalProject(NewExtensionModule):
+
+    make: ImmutableListProtocol[str]
+
     def __init__(self,
                  state: 'ModuleState',
                  configure_command: str,
