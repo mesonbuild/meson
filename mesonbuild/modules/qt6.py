@@ -12,17 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+import typing as T
+
 from .qt import QtBaseModule
 from . import ModuleInfo
 
+if T.TYPE_CHECKING:
+    from ..interpreter import Interpreter
 
 class Qt6Module(QtBaseModule):
 
     INFO = ModuleInfo('qt6', '0.57.0')
 
-    def __init__(self, interpreter):
+    def __init__(self, interpreter: Interpreter):
         QtBaseModule.__init__(self, interpreter, qt_version=6)
 
 
-def initialize(*args, **kwargs):
-    return Qt6Module(*args, **kwargs)
+def initialize(interp: Interpreter) -> Qt6Module:
+    return Qt6Module(interp)
