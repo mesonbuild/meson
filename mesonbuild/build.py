@@ -1913,6 +1913,10 @@ class Executable(BuildTarget):
         """Provides compatibility with ExternalProgram."""
         return os.path.join(self.subdir, self.filename)
 
+    def found(self) -> bool:
+        """Provides compatibility with ExternalProgram."""
+        return True
+
 
 class StaticLibrary(BuildTarget):
     known_kwargs = known_stlib_kwargs
