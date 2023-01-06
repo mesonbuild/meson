@@ -23,7 +23,7 @@ from . import ModuleReturnValue, ExtensionModule
 from .. import build
 from .. import coredata
 from .. import mlog
-from ..dependencies import find_external_dependency, Dependency, ExternalLibrary
+from ..dependencies import Dependency, ExternalLibrary
 from ..mesonlib import MesonException, File, version_compare, Popen_safe
 from ..interpreter import extract_required_kwarg
 from ..interpreter.type_checking import INSTALL_DIR_KW, INSTALL_KW, NoneType
@@ -123,27 +123,17 @@ class QtBaseModule(ExtensionModule):
             'compile_moc': self.compile_moc,
         })
 
-    def compilers_detect(self, state: 'ModuleState', qt_dep: 'QtDependencyType') -> None:
+    def compilers_detect(self, state: 'ModuleState', qt_dep: 'QtDependencyType', required: bool) -> None:
         """Detect Qt (4 or 5) moc, uic, rcc in the specified bindir or in PATH"""
         wanted = f'== {qt_dep.version}'
 
-        def gen_bins() -> T.Generator[T.Tuple[str, str], None, None]:
-            for b in self.tools:
-                if qt_dep.bindir:
-                    yield os.path.join(qt_dep.bindir, b), b
-                if qt_dep.libexecdir:
-                    yield os.path.join(qt_dep.libexecdir, b), b
-                # prefer the (official) <tool><version> or (unofficial) <tool>-qt<version>
-                # of the tool to the plain one, as we
-                # don't know what the unsuffixed one points to without calling it.
-                yield f'{b}{qt_dep.qtver}', b
-                yield f'{b}-qt{qt_dep.qtver}', b
-                yield b, b
+        search_dirs = []
+        if qt_dep.bindir:
+            search_dirs.append(qt_dep.bindir)
+        if qt_dep.libexecdir:
+            search_dirs.append(qt_dep.libexecdir)
 
-        for b, name in gen_bins():
-            if self.tools[name].found():
-                continue
-
+        for name in self.tools:
             if name == 'lrelease':
                 arg = ['-version']
             elif version_compare(qt_dep.version, '>= 5'):
@@ -160,23 +150,25 @@ class QtBaseModule(ExtensionModule):
                     care = err
                 return care.rsplit(' ', maxsplit=1)[-1].replace(')', '').strip()
 
-            p = state.find_program(b, required=False,
-                                   version_func=get_version,
-                                   wanted=wanted)
-            if p.found():
-                self.tools[name] = p
+            # prefer the (official) <tool><version> or (unofficial) <tool>-qt<version>
+            # of the tool to the plain one, as we
+            # don't know what the unsuffixed one points to without calling it.
+            self.tools[name] = state.find_program(
+                [f'{name}{qt_dep.qtver}', f'{name}-qt{qt_dep.qtver}', name],
+                required=required,
+                wanted=wanted,
+                version_func=get_version,
+                search_dirs=search_dirs)
 
     def _detect_tools(self, state: 'ModuleState', method: str, required: bool = True) -> None:
         if self._tools_detected:
             return
         self._tools_detected = True
         mlog.log(f'Detecting Qt{self.qt_version} tools')
-        kwargs = {'required': required, 'modules': 'Core', 'method': method}
-        # Just pick one to make mypy happy
-        qt = T.cast('QtPkgConfigDependency', find_external_dependency(f'qt{self.qt_version}', state.environment, kwargs))
+        qt = state.dependency(f'qt{self.qt_version}', required=required, modules=['Core'], method=method)
         if qt.found():
             # Get all tools and then make sure that they are the right version
-            self.compilers_detect(state, qt)
+            self.compilers_detect(state, qt, required)
             if version_compare(qt.version, '>=5.15.0'):
                 self._moc_supports_depfiles = True
             else:
