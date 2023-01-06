@@ -1909,6 +1909,11 @@ class Executable(BuildTarget):
         """
         return self.outputs
 
+    def get_path(self) -> str:
+        """Provides compatibility with ExternalProgram."""
+        return os.path.join(self.subdir, self.filename)
+
+
 class StaticLibrary(BuildTarget):
     known_kwargs = known_stlib_kwargs
 
