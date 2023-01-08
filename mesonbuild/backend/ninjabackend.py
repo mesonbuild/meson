@@ -523,8 +523,9 @@ class NinjaBackend(backends.Backend):
         else:
             # None of our compilers are MSVC, we're done.
             return open(tempfilename, 'a', encoding='utf-8')
+        filebase = 'incdetect.' + compilers.lang_suffixes[compiler.language][0]
         filename = os.path.join(self.environment.get_scratch_dir(),
-                                'incdetect.c')
+                                filebase)
         with open(filename, 'w', encoding='utf-8') as f:
             f.write(dedent('''\
                 #include<stdio.h>
@@ -536,7 +537,7 @@ class NinjaBackend(backends.Backend):
         # Python strings leads to failure. We _must_ do this detection
         # in raw byte mode and write the result in raw bytes.
         pc = subprocess.Popen(compiler.get_exelist() +
-                              ['/showIncludes', '/c', 'incdetect.c'],
+                              ['/showIncludes', '/c', filebase],
                               cwd=self.environment.get_scratch_dir(),
                               stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (stdout, stderr) = pc.communicate()
