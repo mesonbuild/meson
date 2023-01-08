@@ -676,7 +676,7 @@ class Resolver:
             except urllib.error.URLError as e:
                 mlog.log(str(e))
                 raise WrapException(f'could not get {urlstring} is the internet available?')
-        with contextlib.closing(resp) as resp:
+        with contextlib.closing(resp) as resp, tmpfile as tmpfile:
             try:
                 dlsize = int(resp.info()['Content-Length'])
             except TypeError:
