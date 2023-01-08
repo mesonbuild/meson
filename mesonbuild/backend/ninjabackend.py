@@ -512,8 +512,8 @@ class NinjaBackend(backends.Backend):
         for compiler in self.environment.coredata.compilers.host.values():
             # Have to detect the dependency format
 
-            # IFort on windows is MSVC like, but doesn't have /showincludes
-            if compiler.language == 'fortran':
+            # IFort / masm on windows is MSVC like, but doesn't have /showincludes
+            if compiler.language in {'fortran', 'masm'}:
                 continue
             if compiler.id == 'pgi' and mesonlib.is_windows():
                 # for the purpose of this function, PGI doesn't act enough like MSVC
