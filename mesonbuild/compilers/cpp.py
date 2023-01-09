@@ -58,8 +58,8 @@ def non_msvc_eh_options(eh: str, args: T.List[str]) -> None:
     if eh == 'none':
         args.append('-fno-exceptions')
     elif eh in {'s', 'c'}:
-        mlog.warning('non-MSVC compilers do not support ' + eh + ' exception handling.' +
-                     'You may want to set eh to \'default\'.')
+        mlog.warning(f'non-MSVC compilers do not support {eh} exception handling. '
+                     'You may want to set eh to \'default\'.', fatal=False)
 
 class CPPCompiler(CLikeCompiler, Compiler):
     def attribute_check_func(self, name: str) -> str:
@@ -692,7 +692,8 @@ class CPP11AsCPP14Mixin(CompilerMixinBase):
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         if options[key].value in {'vc++11', 'c++11'}:
             mlog.warning(self.id, 'does not support C++11;',
-                         'attempting best effort; setting the standard to C++14', once=True)
+                         'attempting best effort; setting the standard to C++14',
+                         once=True, fatal=False)
             # Don't mutate anything we're going to change, we need to use
             # deepcopy since we're messing with members, and we can't simply
             # copy the members because the option proxy doesn't support it.
@@ -732,7 +733,7 @@ class VisualStudioCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixi
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         if options[key].value != 'none' and version_compare(self.version, '<19.00.24210'):
-            mlog.warning('This version of MSVC does not support cpp_std arguments')
+            mlog.warning('This version of MSVC does not support cpp_std arguments', fatal=False)
             options = copy.copy(options)
             options[key].value = 'none'
 
@@ -770,7 +771,7 @@ class ClangClCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixin, Cl
         ClangClCompiler.__init__(self, target)
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
-        cpp_stds = ['none', 'c++11', 'vc++11', 'c++14', 'vc++14', 'c++17', 'vc++17', 'c++latest']
+        cpp_stds = ['none', 'c++11', 'vc++11', 'c++14', 'vc++14', 'c++17', 'vc++17', 'c++20', 'vc++20', 'c++latest']
         return self._get_options_impl(super().get_options(), cpp_stds)
 
 

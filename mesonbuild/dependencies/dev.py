@@ -422,7 +422,7 @@ class LLVMDependencyCMake(CMakeDependency):
         # cmake if dynamic is required
         if not self.static:
             self.is_found = False
-            mlog.warning('Ignoring LLVM CMake dependency because dynamic was requested')
+            mlog.warning('Ignoring LLVM CMake dependency because dynamic was requested', fatal=False)
             return
 
         if self.traceparser is None:
@@ -455,7 +455,7 @@ class LLVMDependencyCMake(CMakeDependency):
                 if required:
                     raise self._gen_exception(f'LLVM module {mod} was not found')
                 else:
-                    mlog.warning('Optional LLVM module', mlog.bold(mod), 'was not found')
+                    mlog.warning('Optional LLVM module', mlog.bold(mod), 'was not found', fatal=False)
                     continue
             for i in cm_targets:
                 res += [(i, required)]
@@ -534,8 +534,11 @@ class JNISystemDependency(SystemDependency):
         modules: T.List[str] = mesonlib.listify(kwargs.get('modules', []))
         for module in modules:
             if module not in {'jvm', 'awt'}:
-                log = mlog.error if self.required else mlog.debug
-                log(f'Unknown JNI module ({module})')
+                msg = f'Unknown JNI module ({module})'
+                if self.required:
+                    mlog.error(msg)
+                else:
+                    mlog.debug(msg)
                 self.is_found = False
                 return
 
@@ -553,8 +556,11 @@ class JNISystemDependency(SystemDependency):
                     res = subprocess.run(['/usr/libexec/java_home', '--failfast', '--arch', m.cpu_family],
                                          stdout=subprocess.PIPE)
                     if res.returncode != 0:
-                        log = mlog.error if self.required else mlog.debug
-                        log('JAVA_HOME could not be discovered on the system. Please set it explicitly.')
+                        msg = 'JAVA_HOME could not be discovered on the system. Please set it explicitly.'
+                        if self.required:
+                            mlog.error(msg)
+                        else:
+                            mlog.debug(msg)
                         self.is_found = False
                         return
                     self.java_home = pathlib.Path(res.stdout.decode().strip())

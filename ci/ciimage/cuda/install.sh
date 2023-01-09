@@ -5,7 +5,7 @@ set -e
 source /ci/common.sh
 
 pkgs=(
-  python python-pip
+  python python-pip python-setuptools
   ninja gcc gcc-objc git cmake
   cuda zlib pkgconf
 )

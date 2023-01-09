@@ -22,6 +22,8 @@ jobs:
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v2
       with:
+        # bypass cache: https://github.com/github/codeql-action/issues/1445
+        tools: latest
         config-file: .github/codeql/codeql-config.yml
         languages: python
         # we have none

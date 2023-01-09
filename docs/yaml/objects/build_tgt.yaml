@@ -13,8 +13,8 @@ methods:
     source files. This is typically used to take single object files and link
     them to unit tests or to compile some source files with custom flags. To
     use the object file(s) in another build target, use the
-    `objects:` keyword argument to a [[build_target]] or include them in the command
-    line of a [[custom_target]].
+    `objects:` keyword argument to a [[build_target]] or [[declare_dependency]],
+    or include them in the command line of a [[custom_target]].
   varargs:
     name: source
     type: str | file

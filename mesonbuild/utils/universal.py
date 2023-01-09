@@ -249,7 +249,7 @@ def check_direntry_issues(direntry_array: T.Union[T.Iterable[T.Union[str, bytes]
                 You are using {e!r} which is not a Unicode-compatible
                 locale but you are trying to access a file system entry called {de!r} which is
                 not pure ASCII. This may cause problems.
-                '''), file=sys.stderr)
+                '''))
 
 class SecondLevelHolder(HoldableObject, metaclass=abc.ABCMeta):
     ''' A second level object holder. The primary purpose

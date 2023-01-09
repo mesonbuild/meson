@@ -699,7 +699,8 @@ def run(options: 'Arguments') -> int:
             raise MesonException(f'Unknown subproject type {t!r}, supported types are: {ALL_TYPES_STRING}')
     tasks: T.List[T.Awaitable[bool]] = []
     task_names: T.List[str] = []
-    loop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     executor = ThreadPoolExecutor(options.num_processes)
     if types:
         wraps = [wrap for wrap in wraps if wrap.type in types]

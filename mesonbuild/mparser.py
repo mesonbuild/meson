@@ -15,7 +15,6 @@
 from dataclasses import dataclass
 import re
 import codecs
-import types
 import typing as T
 from .mesonlib import MesonException
 from . import mlog
@@ -48,7 +47,7 @@ def decode_match(match: T.Match[str]) -> str:
 class ParseException(MesonException):
     def __init__(self, text: str, line: str, lineno: int, colno: int) -> None:
         # Format as error message, followed by the line with the error, followed by a caret to show the error column.
-        super().__init__("{}\n{}\n{}".format(text, line, '{}^'.format(' ' * colno)))
+        super().__init__(mlog.code_line(text, line, colno))
         self.lineno = lineno
         self.colno = colno
 
@@ -194,11 +193,10 @@ class Lexer:
                     elif tid in {'string', 'fstring'}:
                         # Handle here and not on the regexp to give a better error message.
                         if match_text.find("\n") != -1:
-                            msg = ParseException("Newline character in a string detected, use ''' (three single quotes) "
-                                                 "for multiline strings instead.\n"
-                                                 "This will become a hard error in a future Meson release.",
-                                                 self.getline(line_start), lineno, col)
-                            mlog.warning(msg, location=BaseNode(lineno, col, filename))
+                            msg = ("Newline character in a string detected, use ''' (three single quotes) "
+                                   "for multiline strings instead.\n"
+                                   "This will become a hard error in a future Meson release.")
+                            mlog.warning(mlog.code_line(msg, self.getline(line_start), col), location=BaseNode(lineno, col, filename))
                         value = match_text[2 if tid == 'fstring' else 1:-1]
                         try:
                             value = ESCAPE_SEQUENCE_SINGLE_RE.sub(decode_match, value)
@@ -236,7 +234,7 @@ class Lexer:
                         else:
                             if match_text in self.future_keywords:
                                 mlog.warning(f"Identifier '{match_text}' will become a reserved keyword in a future release. Please rename it.",
-                                             location=types.SimpleNamespace(filename=filename, lineno=lineno))
+                                             location=BaseNode(lineno, col, filename))
                             value = match_text
                     yield Token(tid, filename, curline_start, curline, col, bytespan, value)
                     break

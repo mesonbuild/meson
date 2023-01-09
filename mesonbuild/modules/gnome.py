@@ -319,14 +319,15 @@ class GnomeModule(ExtensionModule):
                                         gresource_dep_needed_version):
             mlog.warning('GLib compiled dependencies do not work reliably with \n'
                          'the current version of GLib. See the following upstream issue:',
-                         mlog.bold('https://bugzilla.gnome.org/show_bug.cgi?id=774368'))
+                         mlog.bold('https://bugzilla.gnome.org/show_bug.cgi?id=774368'),
+                         once=True, fatal=False)
 
     @staticmethod
     def _print_gdbus_warning() -> None:
         mlog.warning('Code generated with gdbus_codegen() requires the root directory be added to\n'
                      '  include_directories of targets with GLib < 2.51.3:',
                      mlog.bold('https://github.com/mesonbuild/meson/issues/1387'),
-                     once=True)
+                     once=True, fatal=False)
 
     @typed_kwargs(
         'gnome.post_install',
@@ -1966,7 +1967,8 @@ class GnomeModule(ExtensionModule):
             else:
                 mlog.warning('The current version of GLib does not support extra arguments \n'
                              'for glib-genmarshal. You need at least GLib 2.53.3. See ',
-                             mlog.bold('https://github.com/mesonbuild/meson/pull/2049'))
+                             mlog.bold('https://github.com/mesonbuild/meson/pull/2049'),
+                             once=True, fatal=False)
         for k in ['internal', 'nostdinc', 'skip_source', 'stdinc', 'valist_marshallers']:
             # Mypy can't figure out that this is correct
             if kwargs[k]:                                            # type: ignore
@@ -2151,7 +2153,7 @@ class GnomeModule(ExtensionModule):
         # - add relevant directories to include dirs
         incs = [build.IncludeDirs(state.subdir, ['.'] + vapi_includes, False)]
         sources = [vapi_target] + vapi_depends
-        rv = InternalDependency(None, incs, [], [], link_with, [], sources, [], {}, [], [])
+        rv = InternalDependency(None, incs, [], [], link_with, [], sources, [], {}, [], [], [])
         created_values.append(rv)
         return ModuleReturnValue(rv, created_values)
 
