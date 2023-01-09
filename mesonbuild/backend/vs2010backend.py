@@ -137,7 +137,6 @@ class Vs2010Backend(backends.Backend):
                 infilelist = genlist.get_inputs()
                 outfilelist = genlist.get_outputs()
                 source_dir = os.path.join(down, self.build_to_src, genlist.subdir)
-                exe_arr = self.build_target_to_cmd_array(exe)
                 idgroup = ET.SubElement(parent_node, 'ItemGroup')
                 for i, curfile in enumerate(infilelist):
                     if len(infilelist) == len(outfilelist):
@@ -161,13 +160,12 @@ class Vs2010Backend(backends.Backend):
                              .replace("@BUILD_ROOT@", self.environment.get_build_dir())
                             for x in args]
                     args = [x.replace('\\', '/') for x in args]
-                    cmd = exe_arr + self.replace_extra_args(args, genlist)
                     # Always use a wrapper because MSBuild eats random characters when
                     # there are many arguments.
                     tdir_abs = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
                     cmd, _ = self.as_meson_exe_cmdline(
-                        cmd[0],
-                        cmd[1:],
+                        exe,
+                        self.replace_extra_args(args, genlist),
                         workdir=tdir_abs,
                         capture=outfiles[0] if generator.capture else None,
                         force_serialize=True
