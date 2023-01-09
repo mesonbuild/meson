@@ -1,10 +1,10 @@
 [binaries]
-c = 'ccomp'
+c = ['ccomp', '-target', 'armv7a-eabi']
 ar = 'ccomp'
 strip = 'strip'
 
 [built-in options]
-c_args      = ['-target', 'armv7a-eabi', '-fall']
+c_args      = ['-fall']
 
 [host_machine]
 system = 'bare metal'      # Update with your system name - bare metal/OS.
