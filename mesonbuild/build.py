@@ -777,12 +777,11 @@ class BuildTarget(Target):
         for s in objects:
             if isinstance(s, (str, File, ExtractedObjects)):
                 self.objects.append(s)
-            elif isinstance(s, (GeneratedList, CustomTarget)):
-                msg = 'Generated files are not allowed in the \'objects\' kwarg ' + \
-                    f'for target {self.name!r}.\nIt is meant only for ' + \
-                    'pre-built object files that are shipped with the\nsource ' + \
-                    'tree. Try adding it in the list of sources.'
-                raise InvalidArguments(msg)
+            elif isinstance(s, (CustomTarget, CustomTargetIndex, GeneratedList)):
+                non_objects = [o for o in s.get_outputs() if not is_object(o)]
+                if non_objects:
+                    raise InvalidArguments(f'Generated file {non_objects[0]} in the \'objects\' kwarg is not an object.')
+                self.generated.append(s)
             else:
                 raise InvalidArguments(f'Bad object of type {type(s).__name__!r} in target {self.name!r}.')
 
@@ -1295,6 +1294,7 @@ class BuildTarget(Target):
                 # Those parts that are internal.
                 self.process_sourcelist(dep.sources)
                 self.add_include_dirs(dep.include_directories, dep.get_include_type())
+                self.objects.extend(dep.objects)
                 for l in dep.libraries:
                     self.link(l)
                 for l in dep.whole_libraries:
@@ -1305,7 +1305,7 @@ class BuildTarget(Target):
                                                               [],
                                                               dep.get_compile_args(),
                                                               dep.get_link_args(),
-                                                              [], [], [], [], {}, [], [])
+                                                              [], [], [], [], {}, [], [], [])
                     self.external_deps.append(extpart)
                 # Deps of deps.
                 self.add_deps(dep.ext_deps)

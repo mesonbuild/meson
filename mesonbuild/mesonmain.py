@@ -235,6 +235,13 @@ def set_meson_command(mainfile):
     mesonlib.set_meson_command(mainfile)
 
 def run(original_args, mainfile):
+    if os.environ.get('MESON_SHOW_DEPRECATIONS'):
+        # workaround for https://bugs.python.org/issue34624
+        import warnings
+        for typ in [DeprecationWarning, SyntaxWarning, FutureWarning, PendingDeprecationWarning]:
+            warnings.filterwarnings('error', category=typ, module='mesonbuild')
+        warnings.filterwarnings('ignore', message=".*importlib-resources.*")
+
     if sys.version_info >= (3, 10) and os.environ.get('MESON_RUNNING_IN_PROJECT_TESTS'):
         # workaround for https://bugs.python.org/issue34624
         import warnings
