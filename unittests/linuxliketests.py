@@ -889,9 +889,11 @@ class LinuxlikeTests(BasePlatformTests):
             if not found:
                 print('^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
                 with open(os.path.join(self.builddir, 'build.ninja')) as ifile:
-                    for line in ifile:
+                    line = ifile.readline()
+                    while line:
                         print(line)
-                #raise RuntimeError(f'Linker entries not found in the Ninja file, {case=}: {expected_res[case]}')
+                        line = ifile.readline()
+                raise RuntimeError(f'Linker entries not found in the Ninja file, {case=}: {expected_res[case]}')
 
             self.wipe()
 
