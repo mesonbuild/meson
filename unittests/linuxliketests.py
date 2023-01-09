@@ -891,7 +891,7 @@ class LinuxlikeTests(BasePlatformTests):
                 with open(os.path.join(self.builddir, 'build.ninja')) as ifile:
                     line = ifile.readline()
                     while line:
-                        print(line)
+                        print('IDONTSEETHELINE ', line)
                         line = ifile.readline()
                 raise RuntimeError(f'Linker entries not found in the Ninja file, {case=}: {expected_res[case]}')
 
