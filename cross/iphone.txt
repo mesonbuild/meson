@@ -3,20 +3,20 @@
 # these might not work for you. Use the googels and xcrun.
 
 [binaries]
-c = 'clang'
-cpp = 'clang++'
-objc = 'clang'
-objcpp = 'clang++'
+c = ['clang', '-arch', 'arm64', '-isysroot', '/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk']
+cpp = ['clang++', '-arch', 'arm64', '-isysroot', '/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk']
+objc = ['clang', '-arch', 'arm64', '-isysroot', '/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk']
+objcpp = ['clang++', '-arch', 'arm64', '-isysroot', '/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk']
 ar = 'ar'
 strip = 'strip'
 
 [built-in options]
-c_args = ['-arch', 'arm64', '-miphoneos-version-min=11.0', '-isysroot', '/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk']
-cpp_args = ['-arch', 'arm64', '-miphoneos-version-min=11.0', '-isysroot', '/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk']
-c_link_args = ['-arch', 'arm64', '-miphoneos-version-min=11.0', '-isysroot', '/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk']
-cpp_link_args = ['-arch', 'arm64', '-miphoneos-version-min=11.0', '-isysroot', '/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk']
-objc_args = ['-arch', 'arm64', '-miphoneos-version-min=11.0', '-isysroot', '/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk']
-objcpp_args = ['-arch', 'arm64', '-miphoneos-version-min=11.0', '-isysroot', '/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk']
+c_args = ['-miphoneos-version-min=11.0']
+cpp_args = ['-miphoneos-version-min=11.0']
+c_link_args = ['-miphoneos-version-min=11.0']
+cpp_link_args = ['-miphoneos-version-min=11.0']
+objc_args = ['-miphoneos-version-min=11.0']
+objcpp_args = ['-miphoneos-version-min=11.0']
 
 [properties]
 root = '/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer'

@@ -3,16 +3,16 @@
 # these might not work for you. Use the googels and xcrun.
 
 [binaries]
-c = 'clang'
-cpp = 'clang++'
+c = ['clang', '-arch', 'arm64', '-isysroot', '/Applications/Xcode.app/Contents/Developer/Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS.sdk']
+cpp = ['clang++', '-arch', 'arm64', '-isysroot', '/Applications/Xcode.app/Contents/Developer/Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS.sdk']
 ar = 'ar'
 strip = 'strip'
 
 [built-in options]
-c_args = ['-arch', 'arm64', '-mtvos-version-min=12.0', '-isysroot', '/Applications/Xcode.app/Contents/Developer/Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS.sdk']
-cpp_args = ['-arch', 'arm64', '-mtvos-version-min=12.0', '-isysroot', '/Applications/Xcode.app/Contents/Developer/Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS.sdk']
-c_link_args = ['-arch', 'arm64', '-mtvos-version-min=12.0', '-isysroot', '/Applications/Xcode.app/Contents/Developer/Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS.sdk']
-cpp_link_args = ['-arch', 'arm64', '-mtvos-version-min=12.0', '-isysroot', '/Applications/Xcode.app/Contents/Developer/Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS.sdk']
+c_args = ['-mtvos-version-min=12.0']
+cpp_args = ['-mtvos-version-min=12.0']
+c_link_args = ['-mtvos-version-min=12.0']
+cpp_link_args = ['-mtvos-version-min=12.0']
 
 [properties]
 root = '/Applications/Xcode.app/Contents/Developer/Platforms/AppleTVOS.platform/Developer'
