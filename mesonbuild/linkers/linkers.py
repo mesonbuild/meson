@@ -587,6 +587,18 @@ class GnuLikeDynamicLinkerMixin:
         'custom': [],
     }  # type: T.Dict[str, T.List[str]]
 
+    _SUBSYSTEMS = {
+        "native": "1",
+        "windows": "windows",
+        "console": "console",
+        "posix": "7",
+        "efi_application": "10",
+        "efi_boot_service_driver": "11",
+        "efi_runtime_driver": "12",
+        "efi_rom": "13",
+        "boot_application": "16",
+    }  # type: T.Dict[str, str]
+
     def get_buildtype_args(self, buildtype: str) -> T.List[str]:
         # We can override these in children by just overriding the
         # _BUILDTYPE_ARGS value.
@@ -720,21 +732,10 @@ class GnuLikeDynamicLinkerMixin:
         # as well, and is always accepted, so we manually map the
         # other types here. List of all types:
         # https://github.com/wine-mirror/wine/blob/3ded60bd1654dc689d24a23305f4a93acce3a6f2/include/winnt.h#L2492-L2507
-        subsystems = {
-            "native": "1",
-            "windows": "windows",
-            "console": "console",
-            "posix": "7",
-            "efi_application": "10",
-            "efi_boot_service_driver": "11",
-            "efi_runtime_driver": "12",
-            "efi_rom": "13",
-            "boot_application": "16",
-        }
         versionsuffix = None
         if ',' in value:
             value, versionsuffix = value.split(',', 1)
-        newvalue = subsystems.get(value)
+        newvalue = self._SUBSYSTEMS.get(value)
         if newvalue is not None:
             if versionsuffix is not None:
                 newvalue += f':{versionsuffix}'
@@ -880,6 +881,18 @@ class LLVMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dyna
 
     def get_thinlto_cache_args(self, path: str) -> T.List[str]:
         return ['-Wl,--thinlto-cache-dir=' + path]
+
+    def get_win_subsystem_args(self, value: str) -> T.List[str]:
+        # lld does not support a numeric subsystem value
+        version = None
+        if ',' in value:
+            value, version = value.split(',', 1)
+        if value in self._SUBSYSTEMS:
+            if version is not None:
+                value += f':{version}'
+            return self._apply_prefix([f'--subsystem,{value}'])
+        else:
+            raise mesonlib.MesonBugException(f'win_subsystem: {value} not handled in lld linker. This should not be possible.')
 
 
 class WASMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, DynamicLinker):
