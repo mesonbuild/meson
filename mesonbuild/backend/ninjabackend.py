@@ -2388,7 +2388,6 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         generator = genlist.get_generator()
         subdir = genlist.subdir
         exe = generator.get_exe()
-        exe_arr = self.build_target_to_cmd_array(exe)
         infilelist = genlist.get_inputs()
         outfilelist = genlist.get_outputs()
         extra_dependencies = self.get_custom_target_depend_files(genlist)
@@ -2416,8 +2415,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             if len(generator.outputs) > 1:
                 outfilelist = outfilelist[len(generator.outputs):]
             args = self.replace_paths(target, args, override_subdir=subdir)
-            cmdlist = exe_arr + self.replace_extra_args(args, genlist)
-            cmdlist, reason = self.as_meson_exe_cmdline(cmdlist[0], cmdlist[1:],
+            cmdlist, reason = self.as_meson_exe_cmdline(exe,
+                                                        self.replace_extra_args(args, genlist),
                                                         capture=outfiles[0] if generator.capture else None)
             abs_pdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
             os.makedirs(abs_pdir, exist_ok=True)

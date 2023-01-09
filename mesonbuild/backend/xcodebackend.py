@@ -1219,6 +1219,8 @@ class XCodeBackend(backends.Backend):
                     generator_id += 1
 
     def generate_single_generator_phase(self, tname, t, genlist, generator_id, objects_dict):
+        # TODO: this should be rewritten to use the meson wrapper, like the other generators do
+        # Currently it doesn't handle a host binary that requires an exe wrapper correctly.
         generator = genlist.get_generator()
         exe = generator.get_exe()
         exe_arr = self.build_target_to_cmd_array(exe)
