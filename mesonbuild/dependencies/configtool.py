@@ -31,6 +31,9 @@ class ConfigToolDependency(ExternalDependency):
     Takes the following extra keys in kwargs that it uses internally:
     :tools List[str]: A list of tool names to use
     :version_arg str: The argument to pass to the tool to get it's version
+    :skip_version str: The argument to pass to the tool to ignore its version
+        (if ``version_arg`` fails, but it may start accepting it in the future)
+        Because some tools are stupid and don't accept --version
     :returncode_value int: The value of the correct returncode
         Because some tools are stupid and don't return 0
     """
@@ -38,6 +41,7 @@ class ConfigToolDependency(ExternalDependency):
     tools: T.Optional[T.List[str]] = None
     tool_name: T.Optional[str] = None
     version_arg = '--version'
+    skip_version: T.Optional[str] = None
     __strip_version = re.compile(r'^[0-9][0-9.]+')
 
     def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None):
@@ -89,7 +93,13 @@ class ConfigToolDependency(ExternalDependency):
             except (FileNotFoundError, PermissionError):
                 continue
             if p.returncode != returncode:
-                continue
+                if self.skip_version:
+                    # maybe the executable is valid even if it doesn't support --version
+                    p = Popen_safe(tool + [self.skip_version])[0]
+                    if p.returncode != returncode:
+                        continue
+                else:
+                    continue
 
             out = self._sanitize_version(out.strip())
             # Some tools, like pcap-config don't supply a version, but also
