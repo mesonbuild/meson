@@ -105,6 +105,8 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     # See: https://ninja-build.org/manual.html#_deps
     # Assume UTF-8 sources by default, but self.unix_args_to_native() removes it
     # if `/source-charset` is set too.
+    # It is also dropped if Visual Studio 2013 or earlier is used, since it would
+    # not be supported in that case.
     always_args = ['/nologo', '/showIncludes', '/utf-8']
     warn_args = {
         '0': [],
@@ -428,6 +430,14 @@ class MSVCCompiler(VisualStudioLikeCompiler):
         if pch and mesonlib.version_compare(self.version, '>=18.0'):
             args = ['/FS'] + args
         return args
+
+    # Override CCompiler.get_always_args
+    # We want to drop '/utf-8' for Visual Studio 2013 and earlier
+    def get_always_args(self) -> T.List[str]:
+        if mesonlib.version_compare(self.version, '<19.00'):
+            if '/utf-8' in self.always_args:
+                self.always_args.remove('/utf-8')
+        return self.always_args
 
     def get_instruction_set_args(self, instruction_set: str) -> T.Optional[T.List[str]]:
         if self.version.split('.')[0] == '16' and instruction_set == 'avx':
