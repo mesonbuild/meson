@@ -22,7 +22,7 @@ import sys
 import os
 import re
 from glob import glob
-from mesonbuild import mesonlib
+from mesonbuild import build, mesonlib, mlog
 from mesonbuild.coredata import FORBIDDEN_TARGET_NAMES
 from mesonbuild.environment import detect_ninja
 from mesonbuild.templates.samplefactory import sameple_generator
@@ -180,10 +180,16 @@ def run(options: 'argparse.Namespace') -> int:
             print('Build directory already exists, deleting it.')
             shutil.rmtree(options.builddir)
         print('Building...')
-        cmd = mesonlib.get_meson_command() + [options.builddir]
+        cmd = mesonlib.get_meson_command() + ['setup', options.builddir]
         ret = subprocess.run(cmd)
         if ret.returncode:
             raise SystemExit
+
+        b = build.load(options.builddir)
+        vsenv_active = mesonlib.setup_vsenv(b.need_vsenv)
+        if vsenv_active:
+            mlog.log(mlog.green('INFO:'), 'automatically activated MSVC compiler environment')
+
         cmd = detect_ninja() + ['-C', options.builddir]
         ret = subprocess.run(cmd)
         if ret.returncode:
