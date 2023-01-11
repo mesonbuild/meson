@@ -29,7 +29,7 @@ if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
     from ..interpreter import kwargs as _kwargs
     from ..interpreter.interpreter import SourceInputs, SourceOutputs
-    from ..programs import ExternalProgram
+    from ..programs import ExternalProgram, OverrideProgram
 
     from typing_extensions import TypedDict
 
@@ -56,7 +56,7 @@ class RustModule(ExtensionModule):
 
     def __init__(self, interpreter: Interpreter) -> None:
         super().__init__(interpreter)
-        self._bindgen_bin: T.Optional[ExternalProgram] = None
+        self._bindgen_bin: T.Optional[T.Union[ExternalProgram, Executable, OverrideProgram]] = None
         self.methods.update({
             'test': self.test,
             'bindgen': self.bindgen,
