@@ -746,17 +746,6 @@ class CoreData:
             return True
         return optname.lang is not None
 
-    def validate_option_value(self, option_name: OptionKey, override_value):
-        try:
-            opt = self.options[option_name]
-        except KeyError:
-            raise MesonException(f'Tried to validate unknown option {str(option_name)}')
-        try:
-            return opt.validate_value(override_value)
-        except MesonException as e:
-            raise type(e)(('Validation failed for option %s: ' % option_name) + str(e)) \
-                .with_traceback(sys.exc_info()[2])
-
     def get_external_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
         return self.options[OptionKey('args', machine=for_machine, lang=lang)].value
 
