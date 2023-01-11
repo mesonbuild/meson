@@ -4,6 +4,7 @@
 """Helpers for strict type checking."""
 
 from __future__ import annotations
+import functools
 import os
 import typing as T
 
@@ -14,7 +15,7 @@ from ..build import (CustomTarget, BuildTarget,
 from ..coredata import UserFeatureOption
 from ..dependencies import Dependency, InternalDependency
 from ..interpreterbase import FeatureNew
-from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo
+from ..interpreterbase.decorators import FeatureDeprecated, KwargInfo, ContainerTypeInfo
 from ..mesonlib import (
     File, FileMode, MachineChoice, listify, has_path_sep, OptionKey,
     EnvInitValueType, EnvironmentVariables)
@@ -28,6 +29,104 @@ if T.TYPE_CHECKING:
 
     from ..interpreterbase import TYPE_var
     from ..interpreterbase.decorators import FeatureCheckBase
+
+
+def apply_feature_validators(*validators: T.Callable[[object, str], T.Iterable[FeatureCheckBase]]
+                             ) -> T.Callable[[object, str], T.Iterable[FeatureCheckBase]]:
+    """Convernient wrapper for applying a list of feature_validators"""
+
+    def inner(to_validate: object, message: str) -> T.Iterable[FeatureCheckBase]:
+        for v in validators:
+            yield from v(to_validate, message)
+
+    return inner
+
+
+def types_feature_validator(
+        since: T.Optional[T.Dict[type, T.Union[str, T.Tuple[str, str]]]] = None,
+        deprecated: T.Optional[T.Dict[type, T.Union[str, T.Tuple[str, str]]]] = None,
+        ) -> T.Callable[[object, str], T.Iterable[FeatureCheckBase]]:
+    """Check for types and emit FeatureCheckBase checks
+
+    :Note: this behaves differently than the value checker in regards to
+    dictionaries, as it looks at the values, while the value check looks at the
+    keys.
+
+    :param types: A mapping of types to versions or (version, extra_message)
+    :return: A function suitable to pass to :attribute:`KwargInfo.feature_validator`
+    """
+
+    assert since is not None or deprecated is not None, 'Must pass at least one of since and deprecated'
+
+    def validator(types: T.Dict[type, T.Union[str, T.Tuple[str, str]]],
+                  change: T.Type[FeatureCheckBase],
+                  to_validate: object, prefix: str) -> T.Iterable[FeatureCheckBase]:
+        for type_, version in types.items():
+            message: T.Optional[str]
+            if isinstance(version, tuple):
+                version, message = version
+            else:
+                message = None
+
+            # Handle scalar types (str, int, etc) *and* dictionaries and lists
+            # We do sometimes deprecate passing lists and dicts.
+            if type_ in {dict, list} or not isinstance(to_validate, (dict, list)):
+                if isinstance(to_validate, type_):
+                    yield change(f"{prefix} of type {type_.__name__}", version, message)
+            elif isinstance(to_validate, dict):
+                if any(isinstance(v, type_) for v in to_validate.values()):
+                    yield change(f"{prefix} of type {type_.__name__}", version, message)
+            elif isinstance(to_validate, list):
+                if any(isinstance(v, type_) for v in to_validate):
+                    yield change(f"{prefix} of type {type_.__name__}", version, message)
+
+    checks: T.List[T.Callable[[object, str], T.Iterable[FeatureCheckBase]]] = []
+    if since:
+        checks.append(functools.partial(validator, since, FeatureNew))
+    if deprecated:
+        checks.append(functools.partial(validator, deprecated, FeatureDeprecated))
+
+    return apply_feature_validators(*checks)
+
+
+def value_feature_validator(
+        since: T.Optional[T.Dict[object, T.Union[str, T.Tuple[str, str]]]] = None,
+        deprecated: T.Optional[T.Dict[object, T.Union[str, T.Tuple[str, str]]]] = None,
+        ) -> T.Callable[[object, str], T.Iterable[FeatureCheckBase]]:
+    """Check for values and emit FeatureCheckBase checks
+
+    :Note: this behaves differently than the type checker in regards to
+    dictionaries, as it looks at the keys while the type check looks at the
+    values.
+
+    :param to_check: A mapping of types to versions or (version, extra_message)
+    :return: A function suitable to pass to :attribute:`KwargInfo.feature_validator`
+    """
+
+    def validator(to_check: T.Dict[object, T.Union[str, T.Tuple[str, str]]],
+                  change: T.Type[FeatureCheckBase],
+                  to_validate: object, prefix: str) -> T.Iterable[FeatureCheckBase]:
+        for check, version in to_check.items():
+            message: T.Optional[str]
+            if isinstance(version, tuple):
+                version, message = version
+            else:
+                message = None
+
+            if isinstance(to_validate, (dict, list)):
+                if check in to_validate:
+                    yield change(f'{prefix} value "{check}"', version, message)
+            elif to_validate == check:
+                yield change(f'{prefix} value "{check}"', version, message)
+
+    checks: T.List[T.Callable[[object, str], T.Iterable[FeatureCheckBase]]] = []
+    if since:
+        checks.append(functools.partial(validator, since, FeatureNew))
+    if deprecated:
+        checks.append(functools.partial(validator, deprecated, FeatureDeprecated))
+
+    return apply_feature_validators(*checks)
+
 
 def in_set_validator(choices: T.Set[str]) -> T.Callable[[str], T.Optional[str]]:
     """Check that the choice given was one of the given set."""
