@@ -32,7 +32,7 @@ from .. import mesonlib
 from .. import mlog
 from ..build import CustomTarget, CustomTargetIndex, Executable, GeneratedList, InvalidArguments
 from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
-from ..interpreter.type_checking import DEPENDS_KW, DEPEND_FILES_KW, INSTALL_DIR_KW, INSTALL_KW, NoneType, SOURCES_KW, in_set_validator
+from ..interpreter.type_checking import DEPENDS_KW, DEPEND_FILES_KW, INSTALL_DIR_KW, INSTALL_KW, NoneType, SOURCES_KW, in_set_validator, value_feature_validator
 from ..interpreterbase import noPosargs, noKwargs, FeatureNew, FeatureDeprecated
 from ..interpreterbase import typed_kwargs, KwargInfo, ContainerTypeInfo
 from ..interpreterbase.decorators import typed_pos_args
@@ -1104,11 +1104,11 @@ class GnomeModule(ExtensionModule):
         KwargInfo('includes', ContainerTypeInfo(list, (str, GirTarget)), default=[], listify=True),
         KwargInfo('install_gir', (bool, NoneType), since='0.61.0'),
         KwargInfo('install_dir_gir', (str, bool, NoneType),
-                  deprecated_values={False: ('0.61.0', 'Use install_gir to disable installation')},
+                  feature_validator=value_feature_validator(deprecated={False: ('0.61.0', 'Use install_gir to disable installation')}),
                   validator=lambda x: 'as boolean can only be false' if x is True else None),
         KwargInfo('install_typelib', (bool, NoneType), since='0.61.0'),
         KwargInfo('install_dir_typelib', (str, bool, NoneType),
-                  deprecated_values={False: ('0.61.0', 'Use install_typelib to disable installation')},
+                  feature_validator=value_feature_validator(deprecated={False: ('0.61.0', 'Use install_typelib to disable installation')}),
                   validator=lambda x: 'as boolean can only be false' if x is True else None),
         KwargInfo('link_with', ContainerTypeInfo(list, (build.SharedLibrary, build.StaticLibrary)), default=[], listify=True),
         KwargInfo('namespace', str, required=True),

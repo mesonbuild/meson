@@ -27,7 +27,7 @@ from .. import mesonlib
 from .. import mlog
 from ..coredata import BUILTIN_DIR_OPTIONS
 from ..dependencies import ThreadDependency
-from ..interpreter.type_checking import D_MODULE_VERSIONS_KW, INSTALL_DIR_KW, VARIABLES_KW, NoneType
+from ..interpreter.type_checking import D_MODULE_VERSIONS_KW, INSTALL_DIR_KW, VARIABLES_KW, NoneType, types_feature_validator
 from ..interpreterbase import FeatureNew, FeatureDeprecated
 from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, typed_kwargs, typed_pos_args
 
@@ -611,8 +611,14 @@ class PkgConfigModule(NewExtensionModule):
         KwargInfo('version', (str, NoneType)),
         VARIABLES_KW.evolve(name="unescaped_uninstalled_variables", since='0.59.0'),
         VARIABLES_KW.evolve(name="unescaped_variables", since='0.59.0'),
-        VARIABLES_KW.evolve(name="uninstalled_variables", since='0.54.0', since_values={dict: '0.56.0'}),
-        VARIABLES_KW.evolve(since='0.41.0', since_values={dict: '0.56.0'}),
+        VARIABLES_KW.evolve(
+            name="uninstalled_variables", since='0.54.0',
+            feature_validator=types_feature_validator({dict: '0.56.0'}),
+        ),
+        VARIABLES_KW.evolve(
+            since='0.41.0',
+            feature_validator=types_feature_validator({dict: '0.56.0'}),
+        ),
         _PKG_LIBRARIES,
         _PKG_LIBRARIES.evolve(name='libraries_private'),
         _PKG_REQUIRES,

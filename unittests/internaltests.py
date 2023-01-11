@@ -44,7 +44,7 @@ from mesonbuild.mesonlib import (
     is_cygwin, is_openbsd, search_version, MesonException, OptionKey,
     OptionType
 )
-from mesonbuild.interpreter.type_checking import in_set_validator, NoneType
+from mesonbuild.interpreter.type_checking import in_set_validator, NoneType, types_feature_validator, value_feature_validator
 from mesonbuild.dependencies import PkgConfigDependency
 from mesonbuild.programs import ExternalProgram
 import mesonbuild.modules.pkgconfig
@@ -1379,19 +1379,28 @@ class InternalTests(unittest.TestCase):
     def test_typed_kwarg_since_values(self) -> None:
         @typed_kwargs(
             'testfunc',
-            KwargInfo('input', ContainerTypeInfo(list, str), listify=True, default=[], deprecated_values={'foo': '0.9'}, since_values={'bar': '1.1'}),
-            KwargInfo('output', ContainerTypeInfo(dict, str), default={}, deprecated_values={'foo': '0.9', 'foo2': ('0.9', 'dont use it')}, since_values={'bar': '1.1', 'bar2': ('1.1', 'use this')}),
-            KwargInfo('install_dir', (bool, str, NoneType), deprecated_values={False: '0.9'}),
+            KwargInfo('input', ContainerTypeInfo(list, str), listify=True, default=[],
+                      feature_validator=value_feature_validator({'bar': '1.1'}, {'foo': '0.9'})),
+            KwargInfo('output', ContainerTypeInfo(dict, str), default={},
+                      feature_validator=value_feature_validator(
+                        {'bar': '1.1', 'bar2': ('1.1', 'use this')},
+                        {'foo': '0.9', 'foo2': ('0.9', 'dont use it')})),
+            KwargInfo('install_dir', (bool, str, NoneType),
+                      feature_validator=value_feature_validator(deprecated={False: '0.9'})),
             KwargInfo(
                 'mode',
                 (str, type(None)),
                 validator=in_set_validator({'clean', 'build', 'rebuild', 'deprecated', 'since'}),
-                deprecated_values={'deprecated': '1.0'},
-                since_values={'since': '1.1'}),
-            KwargInfo('dict', (ContainerTypeInfo(list, str), ContainerTypeInfo(dict, str)), default={},
-                      since_values={list: '1.9'}),
-            KwargInfo('new_dict', (ContainerTypeInfo(list, str), ContainerTypeInfo(dict, str)), default={},
-                      since_values={dict: '1.1'}),
+                feature_validator=value_feature_validator({'since': '1.1'}, {'deprecated': '1.0'})),
+            KwargInfo(
+                'dict', (ContainerTypeInfo(list, str), ContainerTypeInfo(dict, str)), default={},
+                feature_validator=types_feature_validator({list: '1.9'})),
+            KwargInfo(
+                'new_dict', (ContainerTypeInfo(list, str), ContainerTypeInfo(dict, str)), default={},
+                feature_validator=types_feature_validator({dict: '1.1'})),
+            KwargInfo(
+                'deprecated_type', (ContainerTypeInfo(list, str), ContainerTypeInfo(dict, str)), default={},
+                feature_validator=types_feature_validator(deprecated={dict: '0.9'})),
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
             pass
@@ -1443,6 +1452,14 @@ class InternalTests(unittest.TestCase):
         with self.subTest('new container default'), mock.patch('sys.stdout', io.StringIO()) as out:
             _(None, mock.Mock(subproject=''), [], {})
             self.assertNotRegex(out.getvalue(), r"""WARNING:.Project targets '1.0'.*introduced in '1.1': "testfunc" keyword argument "new_dict" of type dict.*""")
+
+        with self.subTest('deprecated type'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [], {'deprecated_type': {}})
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '1.0'.*deprecated since '0.9': "testfunc" keyword argument "deprecated_type" of type dict.*""")
+
+        with self.subTest('deprecated type default'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [], {})
+            self.assertNotRegex(out.getvalue(), r"""WARNING:.Project targets '1.0'.*deprecated since '0.9': "testfunc" keyword argument "deprecated_type" of type dict.*""")
 
     def test_typed_kwarg_evolve(self) -> None:
         k = KwargInfo('foo', str, required=True, default='foo')

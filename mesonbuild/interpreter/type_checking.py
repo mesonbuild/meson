@@ -567,7 +567,7 @@ TEST_KWS: T.List[KwargInfo] = [
     KwargInfo('protocol', str,
               default='exitcode',
               validator=in_set_validator({'exitcode', 'tap', 'gtest', 'rust'}),
-              since_values={'gtest': '0.55.0', 'rust': '0.57.0'}),
+              feature_validator=value_feature_validator({'gest': '0.55.0', 'rust': '0.57.0'})),
     KwargInfo('priority', int, default=0, since='0.52.0'),
     # TODO: env needs reworks of the way the environment variable holder itself works probably
     ENV_KW,

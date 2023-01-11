@@ -20,7 +20,7 @@ from ..interpreterbase import (ObjectHolder, noPosargs, noKwargs,
 from ..interpreterbase.decorators import ContainerTypeInfo, typed_kwargs, KwargInfo, typed_pos_args
 from ..mesonlib import OptionKey
 from .interpreterobjects import (extract_required_kwarg, extract_search_dirs)
-from .type_checking import REQUIRED_KW, in_set_validator, NoneType
+from .type_checking import REQUIRED_KW, in_set_validator, types_feature_validator, NoneType
 
 if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
@@ -146,7 +146,7 @@ _PREFIX_KW: KwargInfo[str] = KwargInfo(
     'prefix',
     (str, ContainerTypeInfo(list, str)),
     default='',
-    since_values={list: '1.0.0'},
+    feature_validator=types_feature_validator({list: '1.0.0'}),
     convertor=lambda x: '\n'.join(x) if isinstance(x, list) else x)
 
 _NO_BUILTIN_ARGS_KW = KwargInfo('no_builtin_args', bool, default=False)
