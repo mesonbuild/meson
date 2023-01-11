@@ -1,4 +1,4 @@
-project('options', 'c')
+project('options', 'c', meson_version : '>= 1.0.0')
 
 if get_option('testoption') != 'optval'
   error('Incorrect value to test option')
@@ -43,3 +43,6 @@ if get_option('CASESENSITIVE') != 'ALL CAPS'
 endif
 
 assert(get_option('wrap_mode') == 'default', 'Wrap mode option is broken.')
+assert(get_option('boolean_string') == false)
+assert(get_option('boolean_string2') == true)
+assert(get_option('integer_string') == 42)
