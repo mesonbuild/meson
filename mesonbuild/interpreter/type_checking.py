@@ -375,11 +375,11 @@ INCLUDE_DIRECTORIES: KwargInfo[T.List[T.Union[str, IncludeDirs]]] = KwargInfo(
     default=[],
 )
 
-def include_dir_string_new(val: T.List[T.Union[str, IncludeDirs]]) -> T.Iterable[FeatureCheckBase]:
+def include_dir_string_new(val: T.List[T.Union[str, IncludeDirs]], message: str) -> T.Iterable[FeatureCheckBase]:
     strs = [v for v in val if isinstance(v, str)]
     if strs:
         str_msg = ", ".join(f"'{s}'" for s in strs)
-        yield FeatureNew('include_directories kwarg of type string', '1.0.0',
+        yield FeatureNew(f'{message} of type string', '1.0.0',
                          f'Use include_directories({str_msg}) instead')
 
 # for cases like default_options and override_options

@@ -181,7 +181,7 @@ class OptionInterpreter:
             (bool, str, ContainerTypeInfo(dict, str), ContainerTypeInfo(list, str)),
             default=False,
             since='0.60.0',
-            feature_validator=lambda x: [FeatureNew('string value to "deprecated" keyword argument', '0.63.0')] if isinstance(x, str) else []
+            feature_validator=lambda x, m: [FeatureNew(f'{m} string value to "deprecated" keyword argument', '0.63.0')] if isinstance(x, str) else []
         ),
         KwargInfo('yield', bool, default=coredata.DEFAULT_YIELDING, since='0.45.0'),
         allow_unknown=True,
@@ -246,7 +246,7 @@ class OptionInterpreter:
             'value',
             (int, str),
             default=True,
-            feature_validator=lambda x: [FeatureDeprecated('number values as strings', '1.1.0', 'use a raw number instead')] if isinstance(x, str) else [],
+            feature_validator=lambda x, m: [FeatureDeprecated(f'{m} number values as strings', '1.1.0', 'use a raw number instead')] if isinstance(x, str) else [],
             convertor=int,
         ),
         KwargInfo('min', (int, NoneType)),
