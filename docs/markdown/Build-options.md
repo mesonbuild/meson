@@ -73,7 +73,11 @@ This type is available since version 0.44.0
 
 ### Features
 
-A `feature` option has three states: `enabled`, `disabled` or `auto`.
+A `feature` option has three states: `enabled`, `disabled`, or `auto`.
+Since 1.1.0, the values of `true` and `false` are also accepted for
+compatibility with boolean options, and are converted to `enabled` and
+`disabled` respectively.
+
 It is intended to be passed as value for the `required` keyword
 argument of most functions. Currently supported in
 [[add_languages]],

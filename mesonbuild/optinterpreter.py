@@ -258,7 +258,14 @@ class OptionInterpreter:
 
     @typed_kwargs(
         'feature option',
-        KwargInfo('value', str, default='auto', validator=in_set_validator({'auto', 'enabled', 'disabled'})),
+        KwargInfo(
+            'value',
+            str,
+            default='auto',
+            validator=in_set_validator({'auto', 'enabled', 'disabled', 'true', 'false'}),
+            since_values={'true': '1.1.0', 'false': '1.1.0'},
+            convertor=lambda x: {'true': 'enabled', 'false': 'disabled'}.get(x, x),  # convert true and false, return other values unchanged
+        ),
         allow_unknown=True,
     )
     def feature_parser(self, description: str, kwargs: FeatureArgs) -> coredata.UserOption:
