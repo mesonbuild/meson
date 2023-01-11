@@ -280,35 +280,54 @@ cuda_debug_args = {False: [],
 clike_debug_args = {False: [],
                     True: ['-g']}  # type: T.Dict[bool, T.List[str]]
 
-base_options: 'KeyedOptionDictType' = {
-    OptionKey('b_pch'): coredata.UserBooleanOption('Use precompiled headers', True),
-    OptionKey('b_lto'): coredata.UserBooleanOption('Use link time optimization', False),
-    OptionKey('b_lto_threads'): coredata.UserIntegerOption('Use multiple threads for Link Time Optimization', (None, None, 0)),
-    OptionKey('b_lto_mode'): coredata.UserComboOption('Select between different LTO modes.',
-                                                      ['default', 'thin'],
-                                                      'default'),
-    OptionKey('b_thinlto_cache'): coredata.UserBooleanOption('Use LLVM ThinLTO caching for faster incremental builds', False),
-    OptionKey('b_thinlto_cache_dir'): coredata.UserStringOption('Directory to store ThinLTO cache objects', ''),
-    OptionKey('b_sanitize'): coredata.UserComboOption('Code sanitizer to use',
-                                                      ['none', 'address', 'thread', 'undefined', 'memory', 'leak', 'address,undefined'],
-                                                      'none'),
-    OptionKey('b_lundef'): coredata.UserBooleanOption('Use -Wl,--no-undefined when linking', True),
-    OptionKey('b_asneeded'): coredata.UserBooleanOption('Use -Wl,--as-needed when linking', True),
-    OptionKey('b_pgo'): coredata.UserComboOption('Use profile guided optimization',
-                                                 ['off', 'generate', 'use'],
-                                                 'off'),
-    OptionKey('b_coverage'): coredata.UserBooleanOption('Enable coverage tracking.', False),
-    OptionKey('b_colorout'): coredata.UserComboOption('Use colored output',
-                                                      ['auto', 'always', 'never'],
-                                                      'always'),
-    OptionKey('b_ndebug'): coredata.UserComboOption('Disable asserts', ['true', 'false', 'if-release'], 'false'),
-    OptionKey('b_staticpic'): coredata.UserBooleanOption('Build static libraries as position independent', True),
-    OptionKey('b_pie'): coredata.UserBooleanOption('Build executables as position independent', False),
-    OptionKey('b_bitcode'): coredata.UserBooleanOption('Generate and embed bitcode (only macOS/iOS/tvOS)', False),
-    OptionKey('b_vscrt'): coredata.UserComboOption('VS run-time library type to use.',
-                                                   ['none', 'md', 'mdd', 'mt', 'mtd', 'from_buildtype', 'static_from_buildtype'],
-                                                   'from_buildtype'),
-}
+base_options: 'KeyedOptionDictType' = coredata.key_option_dict(
+    ('b_pch', coredata.UserBooleanOption, 'Use precompiled headers', True),
+    ('b_lto', coredata.UserBooleanOption, 'Use link time optimization', False),
+    ('b_lto_threads', coredata.UserIntegerOption,
+     'Use multiple threads for Link Time Optimization', (None, None, 0)),
+    ('b_lto_mode', coredata.UserComboOption,
+     'Select between different LTO modes.',
+     ['default', 'thin'],
+     'default'),
+    ('b_thinlto_cache', coredata.UserBooleanOption,
+     'Use LLVM ThinLTO caching for faster incremental builds', False),
+    ('b_thinlto_cache_dir', coredata.UserStringOption,
+     'Directory to store ThinLTO cache objects',
+     ''),
+    ('b_sanitize', coredata.UserComboOption,
+     'Code sanitizer to use',
+     ['none', 'address', 'thread', 'undefined', 'memory', 'leak', 'address,undefined'],
+     'none'),
+    ('b_lundef', coredata.UserBooleanOption, 'Use -Wl,--no-undefined when linking', True),
+    ('b_asneeded', coredata.UserBooleanOption, 'Use -Wl,--as-needed when linking', True),
+    ('b_pgo', coredata.UserComboOption,
+     'Use profile guided optimization',
+     ['off', 'generate', 'use'],
+     'off'),
+    ('b_coverage', coredata.UserBooleanOption, 'Enable coverage tracking.', False),
+    ('b_colorout', coredata.UserComboOption,
+     'Use colored output',
+     ['auto', 'always', 'never'],
+     'always'),
+    ('b_ndebug', coredata.UserComboOption,
+     'Disable asserts',
+     ['true', 'false', 'if-release'],
+     'false'),
+    ('b_staticpic', coredata.UserBooleanOption,
+     'Build static libraries as position independent',
+     True),
+    ('b_pie', coredata.UserBooleanOption,
+     'Build executables as position independent',
+     False),
+    ('b_bitcode', coredata.UserBooleanOption,
+     'Generate and embed bitcode (only macOS/iOS/tvOS)',
+     False),
+    ('b_vscrt', coredata.UserComboOption,
+     'VS run-time library type to use.',
+     ['none', 'md', 'mdd', 'mt', 'mtd', 'from_buildtype', 'static_from_buildtype'],
+     'from_buildtype'),
+)
+
 
 def option_enabled(boptions: T.Set[OptionKey], options: 'KeyedOptionDictType',
                    option: OptionKey) -> bool:
@@ -1321,11 +1340,13 @@ def get_global_options(lang: str,
     comp_options = env.options.get(comp_key, [])
     link_options = env.options.get(largkey, [])
 
-    cargs = coredata.UserArrayOption(
+    cargs = coredata.key_option_pair(
+        argkey, coredata.UserArrayOption,
         description + ' compiler',
         comp_options, split_args=True, user_input=True, allow_dups=True)
 
-    largs = coredata.UserArrayOption(
+    largs = coredata.key_option_pair(
+        largkey, coredata.UserArrayOption,
         description + ' linker',
         link_options, split_args=True, user_input=True, allow_dups=True)
 
@@ -1335,8 +1356,8 @@ def get_global_options(lang: str,
         # arguments, then put the compiler flags in the linker flags as well.
         # This is how autotools works, and the env vars freature is for
         # autotools compatibility.
-        largs.extend_value(comp_options)
+        largs[1].extend_value(comp_options)
 
-    opts: 'KeyedOptionDictType' = {argkey: cargs, largkey: largs}
+    opts: 'KeyedOptionDictType' = dict([cargs, largs])
 
     return opts

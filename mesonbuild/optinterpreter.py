@@ -175,7 +175,7 @@ class OptionInterpreter:
         # because they use @permittedKwargs().
         known_parser_kwargs = {'value', 'choices', 'yield', 'min', 'max'}
         parser_kwargs = {k: v for k, v in kwargs.items() if k in known_parser_kwargs and v is not None}
-        opt = parser(description, T.cast('ParserArgs', parser_kwargs))
+        opt = parser(opt_name, description, T.cast('ParserArgs', parser_kwargs))
         opt.deprecated = kwargs['deprecated']
         if isinstance(opt.deprecated, str):
             FeatureNew.single_use('String value to "deprecated" keyword argument', '0.63.0', self.subproject)
@@ -184,42 +184,42 @@ class OptionInterpreter:
         self.options[key] = opt
 
     @permittedKwargs({'value', 'yield'})
-    def string_parser(self, description: str, kwargs: 'ParserArgs') -> coredata.UserOption:
+    def string_parser(self, name: str, description: str, kwargs: 'ParserArgs') -> coredata.UserOption:
         value = kwargs.get('value', '')
-        return coredata.UserStringOption(description, value, kwargs['yield'])
+        return coredata.UserStringOption(name, description, value, kwargs['yield'])
 
     @permittedKwargs({'value', 'yield'})
-    def boolean_parser(self, description: str, kwargs: 'ParserArgs') -> coredata.UserOption:
+    def boolean_parser(self, name: str, description: str, kwargs: 'ParserArgs') -> coredata.UserOption:
         value = kwargs.get('value', True)
-        return coredata.UserBooleanOption(description, value, kwargs['yield'])
+        return coredata.UserBooleanOption(name, description, value, kwargs['yield'])
 
     @permittedKwargs({'value', 'yield', 'choices'})
-    def combo_parser(self, description: str, kwargs: 'ParserArgs') -> coredata.UserOption:
+    def combo_parser(self, name: str, description: str, kwargs: 'ParserArgs') -> coredata.UserOption:
         choices = kwargs.get('choices')
         if not choices:
             raise OptionException('Combo option missing "choices" keyword.')
         value = kwargs.get('value', choices[0])
-        return coredata.UserComboOption(description, choices, value, kwargs['yield'])
+        return coredata.UserComboOption(name, description, choices, value, kwargs['yield'])
 
     @permittedKwargs({'value', 'min', 'max', 'yield'})
-    def integer_parser(self, description: str, kwargs: 'ParserArgs') -> coredata.UserOption:
+    def integer_parser(self, name: str, description: str, kwargs: 'ParserArgs') -> coredata.UserOption:
         value = kwargs.get('value')
         if value is None:
             raise OptionException('Integer option must contain value argument.')
         inttuple = (kwargs.get('min'), kwargs.get('max'), value)
-        return coredata.UserIntegerOption(description, inttuple, kwargs['yield'])
+        return coredata.UserIntegerOption(name, description, inttuple, kwargs['yield'])
 
     @permittedKwargs({'value', 'yield', 'choices'})
-    def string_array_parser(self, description: str, kwargs: 'ParserArgs') -> coredata.UserOption:
+    def string_array_parser(self, name: str, description: str, kwargs: 'ParserArgs') -> coredata.UserOption:
         choices = kwargs.get('choices', [])
         value = kwargs.get('value', choices)
         if not isinstance(value, list):
             raise OptionException('Array choices must be passed as an array.')
-        return coredata.UserArrayOption(description, value,
+        return coredata.UserArrayOption(name, description, value,
                                         choices=choices,
                                         yielding=kwargs['yield'])
 
     @permittedKwargs({'value', 'yield'})
-    def feature_parser(self, description: str, kwargs: 'ParserArgs') -> coredata.UserOption:
+    def feature_parser(self, name: str, description: str, kwargs: 'ParserArgs') -> coredata.UserOption:
         value = kwargs.get('value', 'auto')
-        return coredata.UserFeatureOption(description, value, kwargs['yield'])
+        return coredata.UserFeatureOption(name, description, value, kwargs['yield'])
