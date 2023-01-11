@@ -252,7 +252,7 @@ class InstalledFile:
 
 @functools.total_ordering
 class TestDef:
-    def __init__(self, path: Path, name: T.Optional[str], args: T.List[str], skip: bool = False):
+    def __init__(self, path: Path, name: T.Optional[str], args: T.List[str], skip: bool = False, skip_category: bool = False):
         self.category = path.parts[1]
         self.path = path
         self.name = name
@@ -262,6 +262,7 @@ class TestDef:
         self.installed_files = []  # type: T.List[InstalledFile]
         self.do_not_set_opts = []  # type: T.List[str]
         self.stdout = [] # type: T.List[T.Dict[str, str]]
+        self.skip_category = skip_category
         self.skip_expected = False
 
         # Always print a stack trace for Meson exceptions
@@ -789,7 +790,7 @@ def _skip_keys(test_def: T.Dict) -> T.Tuple[bool, bool]:
     return (skip, skip_expected)
 
 
-def load_test_json(t: TestDef, stdout_mandatory: bool) -> T.List[TestDef]:
+def load_test_json(t: TestDef, stdout_mandatory: bool, skip_category: bool = False) -> T.List[TestDef]:
     all_tests: T.List[TestDef] = []
     test_def = {}
     test_def_file = t.path / 'test.json'
@@ -899,7 +900,7 @@ def load_test_json(t: TestDef, stdout_mandatory: bool) -> T.List[TestDef]:
         opts = [f'-D{x[0]}={x[1]}' for x in i if x[1] is not None]
         skip = any([x[2] for x in i])
         skip_expected = any([x[3] for x in i])
-        test = TestDef(t.path, name, opts, skip or t.skip)
+        test = TestDef(t.path, name, opts, skip or t.skip, skip_category)
         test.env.update(env)
         test.installed_files = installed
         test.do_not_set_opts = do_not_set_opts
@@ -910,7 +911,7 @@ def load_test_json(t: TestDef, stdout_mandatory: bool) -> T.List[TestDef]:
     return all_tests
 
 
-def gather_tests(testdir: Path, stdout_mandatory: bool, only: T.List[str]) -> T.List[TestDef]:
+def gather_tests(testdir: Path, stdout_mandatory: bool, only: T.List[str], skip_category: bool) -> T.List[TestDef]:
     all_tests: T.List[TestDef] = []
     for t in testdir.iterdir():
         # Filter non-tests files (dot files, etc)
@@ -918,8 +919,8 @@ def gather_tests(testdir: Path, stdout_mandatory: bool, only: T.List[str]) -> T.
             continue
         if only and not any(t.name.startswith(prefix) for prefix in only):
             continue
-        test_def = TestDef(t, None, [])
-        all_tests.extend(load_test_json(test_def, stdout_mandatory))
+        test_def = TestDef(t, None, [], skip_category=skip_category)
+        all_tests.extend(load_test_json(test_def, stdout_mandatory, skip_category))
     return sorted(all_tests)
 
 
@@ -1120,7 +1121,7 @@ def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List
             assert key in categories, f'key `{key}` is not a recognized category'
         all_tests = [t for t in all_tests if t.category in only.keys()]
 
-    gathered_tests = [(t.category, gather_tests(Path('test cases', t.subdir), t.stdout_mandatory, only[t.category]), t.skip) for t in all_tests]
+    gathered_tests = [(t.category, gather_tests(Path('test cases', t.subdir), t.stdout_mandatory, only[t.category], t.skip), t.skip) for t in all_tests]
     return gathered_tests
 
 def run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
@@ -1322,7 +1323,8 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
 
         if is_skipped and skip_as_expected:
             f.update_log(TestStatus.SKIP)
-            safe_print(bold('Reason:'), skip_reason)
+            if not t.skip_category:
+                safe_print(bold('Reason:'), skip_reason)
             current_test = ET.SubElement(current_suite, 'testcase', {'name': testname, 'classname': t.category})
             ET.SubElement(current_test, 'skipped', {})
             continue
