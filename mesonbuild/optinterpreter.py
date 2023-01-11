@@ -20,7 +20,7 @@ from . import coredata
 from . import mesonlib
 from . import mparser
 from . import mlog
-from .interpreterbase import FeatureNew, typed_pos_args, typed_kwargs, ContainerTypeInfo, KwargInfo
+from .interpreterbase import FeatureNew, typed_pos_args, typed_kwargs, ContainerTypeInfo, KwargInfo, FeatureDeprecated
 from .interpreter.type_checking import NoneType, in_set_validator
 if T.TYPE_CHECKING:
     from .interpreterbase import TYPE_var, TYPE_kwargs
@@ -221,6 +221,7 @@ class OptionInterpreter:
             (bool, str),
             default=True,
             validator=lambda x: None if isinstance(x, bool) or x in {'true', 'false'} else 'boolean options must have boolean values',
+            deprecated_values={'true': ('1.1.0', 'use a boolean, not a string'), 'false': ('1.1.0', 'use a boolean, not a string')},
         ),
     )
     def boolean_parser(self, description: str, yield_: bool, kwargs: BooleanArgs) -> coredata.UserOption:
@@ -244,6 +245,7 @@ class OptionInterpreter:
             'value',
             (int, str),
             default=True,
+            feature_validator=lambda x: [FeatureDeprecated('number values as strings', '1.1.0', 'use a raw number instead')] if isinstance(x, str) else [],
             convertor=int,
         ),
         KwargInfo('min', (int, NoneType)),
