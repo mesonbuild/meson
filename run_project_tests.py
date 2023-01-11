@@ -1330,7 +1330,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
         if not skip_as_expected:
             failing_tests += 1
             if is_skipped:
-                skip_msg = 'Test asked to be skipped, but was not expected to'
+                skip_msg = f'Test asked to be skipped ({skip_reason}), but was not expected to'
                 status = TestStatus.UNEXSKIP
             else:
                 skip_msg = 'Test ran, but was expected to be skipped'
@@ -1338,6 +1338,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
             result.msg = f"{skip_msg} for MESON_CI_JOBNAME '{ci_jobname}'"
 
             f.update_log(status)
+            safe_print(bold('Reason:'), result.msg)
             current_test = ET.SubElement(current_suite, 'testcase', {'name': testname, 'classname': t.category})
             ET.SubElement(current_test, 'failure', {'message': result.msg})
             continue
