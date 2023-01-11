@@ -693,6 +693,10 @@ class CompilerHolder(ObjectHolder['Compiler']):
     @noKwargs
     @typed_pos_args('compiler.has_link_argument', str)
     def has_link_argument_method(self, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> bool:
+        if '--version-script' in args[0]:
+            # See https://github.com/mesonbuild/meson/issues/3923
+            mlog.warning('has_link_argument() cannot be used to check if --version-script argument is supported.',
+                         "Please use has_multi_link_argument(['-shared', '-Wl,--version-script=foo.map']) instead.")
         return self._has_argument_impl([args[0]], mode=_TestMode.LINKER)
 
     @FeatureNew('compiler.has_multi_link_argument', '0.46.0')
