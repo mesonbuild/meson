@@ -21,6 +21,7 @@ from pathlib import Path
 import copy
 import enum
 import json
+import math
 import os
 import pickle
 import re
@@ -389,6 +390,13 @@ class Backend:
         osrc = f'{target.name}-unity{number}.{suffix}'
         return mesonlib.File.from_built_file(self.get_target_private_dir(target), osrc)
 
+    def remove_unity_source_files(self, target: build.BuildTarget, suffix: str, start_index: int=0):
+        src_file = self.get_unity_source_file(target, suffix, start_index)
+        while os.path.exists(str(src_file)):
+            os.unlink(str(src_file))
+            start_index += 1
+            src_file = self.get_unity_source_file(target, suffix, start_index)
+
     def generate_unity_files(self, target: build.BuildTarget, unity_src: str) -> T.List[mesonlib.File]:
         abs_files: T.List[str] = []
         result: T.List[mesonlib.File] = []
@@ -396,7 +404,7 @@ class Backend:
         unity_size = target.get_option(OptionKey('unity_size'))
         assert isinstance(unity_size, int), 'for mypy'
 
-        def init_language_file(suffix: str, unity_file_number: int) -> T.TextIO:
+        def init_language_file(suffix: str, unity_file_number: int) -> str:
             unity_src = self.get_unity_source_file(target, suffix, unity_file_number)
             outfileabs = unity_src.absolute_path(self.environment.get_source_dir(),
                                                  self.environment.get_build_dir())
@@ -406,29 +414,21 @@ class Backend:
             if not os.path.exists(outfileabs_tmp_dir):
                 os.makedirs(outfileabs_tmp_dir)
             result.append(unity_src)
-            return open(outfileabs_tmp, 'w', encoding='utf-8')
+            return outfileabs_tmp
 
         # For each language, generate unity source files and return the list
         for comp, srcs in compsrcs.items():
-            files_in_current = unity_size + 1
-            unity_file_number = 0
-            # TODO: this could be simplified with an algorithm that pre-sorts
-            # the sources into the size of chunks we want
-            ofile = None
-            for src in srcs:
-                if files_in_current >= unity_size:
-                    if ofile:
-                        ofile.close()
-                    ofile = init_language_file(comp.get_default_suffix(), unity_file_number)
-                    unity_file_number += 1
-                    files_in_current = 0
-                ofile.write(f'#include<{src}>\n')
-                files_in_current += 1
-            if ofile:
-                ofile.close()
+            for unity_file_number in range(math.ceil(len(srcs) / unity_size)):
+                unity_file = init_language_file(comp.get_default_suffix(), unity_file_number)
+                with open(unity_file, 'w', encoding='utf-8') as ofile:
+                    index = unity_file_number*unity_size
+                    for src in srcs[index:index+unity_size]:
+                        ofile.write(f'#include<{src}>\n')
+            self.remove_unity_source_files(target, comp.get_default_suffix(), unity_file_number)
 
         for x in abs_files:
             mesonlib.replace_if_different(x, x + '.tmp')
+        
         return result
 
     @staticmethod

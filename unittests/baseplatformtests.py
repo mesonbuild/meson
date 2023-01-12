@@ -174,7 +174,7 @@ class BasePlatformTests(TestCase):
             print('stderr:')
             print(p.stderr)
         if p.returncode != 0:
-            if 'MESON_SKIP_TEST' in p.stdout:
+            if p.stdout and 'MESON_SKIP_TEST' in p.stdout:
                 raise SkipTest('Project requested skipping.')
             raise subprocess.CalledProcessError(p.returncode, command, output=p.stdout)
         return p.stdout

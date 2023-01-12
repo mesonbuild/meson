@@ -904,6 +904,9 @@ class Vs2010Backend(backends.Backend):
         (sources, headers, objects, languages) = self.split_sources(target.sources)
         if target.is_unity:
             sources = self.generate_unity_files(target, sources)
+        else:
+            for comp in target.compilers.values():
+                self.remove_unity_source_files(target, comp.get_default_suffix())
         compiler = self._get_cl_compiler(target)
         build_args = compiler.get_buildtype_args(self.buildtype)
         build_args += compiler.get_optimization_args(self.optimization)

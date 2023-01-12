@@ -18,6 +18,7 @@ from __future__ import annotations
 from pathlib import Path
 import argparse
 import enum
+import filecmp
 import sys
 import stat
 import time
@@ -43,6 +44,7 @@ if T.TYPE_CHECKING:
     from ..build import ConfigurationData
     from ..coredata import KeyedOptionDictType, UserOption
     from ..compilers.compilers import Compiler
+    from ..mesonlib import File
 
 FileOrString = T.Union['File', str]
 
@@ -1307,20 +1309,13 @@ def dump_conf_header(ofilename: str, cdata: 'ConfigurationData', output_format: 
     replace_if_different(ofilename, ofilename_tmp)
 
 
-def replace_if_different(dst: str, dst_tmp: str) -> None:
+def replace_if_different(dst: T.Union[str, File], dst_tmp: T.Union[str, File]) -> None:
     # If contents are identical, don't touch the file to prevent
     # unnecessary rebuilds.
-    different = True
-    try:
-        with open(dst, 'rb') as f1, open(dst_tmp, 'rb') as f2:
-            if f1.read() == f2.read():
-                different = False
-    except FileNotFoundError:
-        pass
-    if different:
-        os.replace(dst_tmp, dst)
+    if os.path.exists(str(dst)) and filecmp.cmp(str(dst), str(dst_tmp), False):
+        os.unlink(str(dst_tmp))
     else:
-        os.unlink(dst_tmp)
+        os.replace(str(dst_tmp), str(dst))
 
 
 def listify(item: T.Any, flatten: bool = True) -> T.List[T.Any]:
