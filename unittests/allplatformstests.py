@@ -3973,6 +3973,33 @@ class AllPlatformTests(BasePlatformTests):
         self._run(cmd + python_command + [script])
         self.assertEqual('This is text.', self._run(cmd + [app]).strip())
 
+        cmd = self.meson_command + ['devenv', '-C', self.builddir, '--dump']
+        o = self._run(cmd)
+        expected = os.pathsep.join(['/prefix', '$TEST_C', '/suffix'])
+        self.assertIn(f'TEST_C="{expected}"', o)
+        self.assertIn('export TEST_C', o)
+
+        cmd = self.meson_command + ['devenv', '-C', self.builddir, '--dump', '--dump-format', 'sh']
+        o = self._run(cmd)
+        expected = os.pathsep.join(['/prefix', '$TEST_C', '/suffix'])
+        self.assertIn(f'TEST_C="{expected}"', o)
+        self.assertNotIn('export', o)
+
+        cmd = self.meson_command + ['devenv', '-C', self.builddir, '--dump', '--dump-format', 'vscode']
+        o = self._run(cmd)
+        expected = os.pathsep.join(['/prefix', '/suffix'])
+        self.assertIn(f'TEST_C="{expected}"', o)
+        self.assertNotIn('export', o)
+
+        fname = os.path.join(self.builddir, 'dump.env')
+        cmd = self.meson_command + ['devenv', '-C', self.builddir, '--dump', fname]
+        o = self._run(cmd)
+        self.assertEqual(o, '')
+        o = Path(fname).read_text()
+        expected = os.pathsep.join(['/prefix', '$TEST_C', '/suffix'])
+        self.assertIn(f'TEST_C="{expected}"', o)
+        self.assertIn('export TEST_C', o)
+
     def test_clang_format_check(self):
         if self.backend is not Backend.ninja:
             raise SkipTest(f'Skipping clang-format tests with {self.backend.name} backend')

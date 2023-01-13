@@ -348,20 +348,31 @@ These variables are set in environment in addition to those set using [[meson.ad
 - `QEMU_LD_PREFIX` *Since 1.0.0* is set to the `sys_root` value from cross file
   when cross compiling and that property is defined.
 
-Since *Since 0.62.0* if bash-completion scripts are being installed and the
+*Since 0.62.0* if bash-completion scripts are being installed and the
 shell is bash, they will be automatically sourced.
 
-Since *Since 0.62.0* when GDB helper scripts (*-gdb.py, *-gdb.gdb, and *-gdb.csm)
+*Since 0.62.0* when GDB helper scripts (*-gdb.py, *-gdb.gdb, and *-gdb.csm)
 are installed with a library name that matches one being built, Meson adds the
 needed auto-load commands into `<builddir>/.gdbinit` file. When running gdb from
 top build directory, that file is loaded by gdb automatically. In the case of
 python scripts that needs to load other python modules, `PYTHONPATH` may need
 to be modified using `meson.add_devenv()`.
 
-Since *Since 0.63.0* when cross compiling for Windows `WINEPATH` is used instead
+*Since 0.63.0* when cross compiling for Windows `WINEPATH` is used instead
 of `PATH` which allows running Windows executables using wine. Note that since
 `WINEPATH` size is currently limited to 1024 characters, paths relative to the
 root of build directory are used. That means current workdir must be the root of
 build directory when running wine.
+
+*Since 1.1.0* `meson devenv --dump [<filename>]` command takes an optional
+filename argument to write the environment into a file instead of printing to
+stdout.
+
+*Since 1.1.0* `--dump-format` argument has been added to select which shell
+format should be used. There are currently 3 formats supported:
+- `sh`: Lines are in the format `VAR=/prepend:$VAR:/append`.
+- `export`: Same as `sh` but with extra `export VAR` lines.
+- `vscode`: Same as `sh` but without `$VAR` substitution because they do not
+  seems to be properly supported by vscode.
 
 {{ devenv_arguments.inc }}

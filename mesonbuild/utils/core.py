@@ -135,10 +135,10 @@ class EnvironmentVariables(HoldableObject):
         curr = env.get(name, default_value)
         return separator.join(values if curr is None else values + [curr])
 
-    def get_env(self, full_env: EnvironOrDict, dump: bool = False) -> T.Dict[str, str]:
+    def get_env(self, full_env: EnvironOrDict, default_fmt: T.Optional[str] = None) -> T.Dict[str, str]:
         env = full_env.copy()
         for method, name, values, separator in self.envvars:
-            default_value = f'${name}' if dump else None
+            default_value = default_fmt.format(name) if default_fmt else None
             env[name] = method(env, name, values, separator, default_value)
         return env
 
