@@ -21,6 +21,8 @@ line options in `meson_options.txt`, native-file or cross-file.
 Where possible, symlinks and parent directory notation are resolved to an
 absolute path.
 
+**Note**: Empty string arguments will resolve to the current directory and may therefore produce undesired results (`fs.exists('')` is always true).
+
 ### exists
 
 Takes a single string argument and returns true if an entity with that

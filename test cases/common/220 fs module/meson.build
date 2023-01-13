@@ -6,6 +6,10 @@ fs = import('fs')
 
 f = files('meson.build')
 
+assert(fs.exists(''), 'Empty arg was not found.')
+assert(fs.is_dir(''), 'Empty arg not detected as a dir.')
+assert(not fs.is_file(''), 'Empty arg detected as a file.')
+
 assert(fs.exists('meson.build'), 'Existing file reported as missing.')
 assert(not fs.exists('nonexisting'), 'Nonexisting file was found.')
 

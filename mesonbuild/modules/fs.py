@@ -126,6 +126,8 @@ class FSModule(ExtensionModule):
     @noKwargs
     @typed_pos_args('fs.exists', str)
     def exists(self, state: 'ModuleState', args: T.Tuple[str], kwargs: T.Dict[str, T.Any]) -> bool:
+        if args[0] == '':
+            mlog.deprecation('Passing an empty string to fs.exists() is deprecated as it will always resolve to current dir')
         return self._resolve_dir(state, args[0]).exists()
 
     @noKwargs
@@ -143,6 +145,8 @@ class FSModule(ExtensionModule):
     @noKwargs
     @typed_pos_args('fs.is_dir', str)
     def is_dir(self, state: 'ModuleState', args: T.Tuple[str], kwargs: T.Dict[str, T.Any]) -> bool:
+        if args[0] == '':
+            mlog.deprecation('Passing an empty string to fs.is_dir() is deprecated as it will always resolve to current dir')
         return self._resolve_dir(state, args[0]).is_dir()
 
     @noKwargs
