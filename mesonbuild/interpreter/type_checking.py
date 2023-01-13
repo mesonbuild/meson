@@ -648,7 +648,7 @@ _PIE_KW: KwargInfo[T.Optional[bool]] = KwargInfo(
     'pie', (bool, NoneType), since='0.49.0',
 )
 
-_LANGUAGE_KWS: T.List[KwargInfo] = [
+_LANGUAGE_KWS: T.List[KwargInfo[T.List[str]]] = [
     KwargInfo(f'{lang}_args', ContainerTypeInfo(list, str), listify=True, default=[])
     for lang in compilers.all_languages if lang != 'java'
 ]
@@ -660,15 +660,28 @@ _JAVA_LANGUAGE_KW: KwargInfo[T.List[str]] = KwargInfo(
     default=[],
 )
 
+_D_JAVA_LANGUAGE_KW = _JAVA_LANGUAGE_KW.evolve(
+    deprecated='1.1.0',
+    deprecated_message='argument should be removed. It is silently ignored except in Jar',
+)
+
+
+def _win_subsystem_validator(value: T.Optional[str]) -> T.Optional[str]:
+    value = value.lower()
+    if re.fullmatch(r'(boot_application|console|efi_application|efi_boot_service_driver|efi_rom|efi_runtime_driver|native|posix|windows)(,\d+(\.\d+)?)?', value) is None:
+        return f'Invalid value for win_subsystem: {value}.'
+    return None
+
 _EXCLUSIVE_STATIC_LIB_KWS: T.List[KwargInfo] = [
     KwargInfo('pic', (bool, NoneType), since='0.36.0'),
     KwargInfo('prelink', bool, default=False, since='0.57.0'),
 ]
 
 STATIC_LIB_KWS: T.List[KwargInfo] = (
-    _BUILD_TARGET_KWS + _LANGUAGE_KWS + _EXCLUSIVE_STATIC_LIB_KWS +
+    _ALL_TARGET_KWS + _BUILD_TARGET_KWS + _LANGUAGE_KWS + _EXCLUSIVE_STATIC_LIB_KWS +
     [_LINK_WITH_KW,
      _PIE_KW,
+     _D_JAVA_LANGUAGE_KW,
      _RUST_CRATE_TYPE_KW.evolve(validator=in_set_validator({'lib', 'rlib', 'staticlib'}))]
 )
 
@@ -709,21 +722,20 @@ def _validate_library_version(ver: T.Optional[str]) -> T.Optional[str]:
                 'Must be of the form X.Y.Z where all three are numbers. Y and Z are optional.')
     return None
 
+_DARWIN_VERSIONS_KW: KwargInfo[T.List[T.Union[str, int]]] = KwargInfo(
+    'darwin_versions',
+    ContainerTypeInfo(list, (str, int)),
+    default=[],
+    listify=True,
+    validator=_validate_darwin_versions,
+    convertor=_convert_darwin_versions,
+    since='0.48.0',
+)
 
 _EXCLUSIVE_SHARED_LIB_KWS: T.List[KwargInfo] = [
-    _VS_MODULE_DEF_KW,
-    _LINK_WITH_KW,
+    _DARWIN_VERSIONS_KW,
     KwargInfo('version', (str, NoneType), validator=_validate_library_version),
     KwargInfo('soversion', (str, int, NoneType), convertor=lambda x: str(x) if x is not None else None),
-    KwargInfo(
-        'darwin_versions',
-        ContainerTypeInfo(list, (str, int)),
-        default=[],
-        listify=True,
-        validator=_validate_darwin_versions,
-        convertor=_convert_darwin_versions,
-        since='0.48.0',
-    ),
 ]
 
 _SHARED_LIB_RUST_CRATE = _RUST_CRATE_TYPE_KW.evolve(
@@ -732,15 +744,24 @@ _SHARED_LIB_RUST_CRATE = _RUST_CRATE_TYPE_KW.evolve(
 )
 
 SHARED_LIB_KWS: T.List[KwargInfo] = (
-    _BUILD_TARGET_KWS + _LANGUAGE_KWS + _EXCLUSIVE_SHARED_LIB_KWS +
+    _ALL_TARGET_KWS + _BUILD_TARGET_KWS + _LANGUAGE_KWS + _EXCLUSIVE_SHARED_LIB_KWS +
     [
+        _VS_MODULE_DEF_KW,
+        _LINK_WITH_KW,
         _SHARED_LIB_RUST_CRATE,
+        _D_JAVA_LANGUAGE_KW,
     ]
 )
 
 SHARED_MOD_KWS: T.List[KwargInfo] = [
+    *_ALL_TARGET_KWS,
     *_BUILD_TARGET_KWS,
     *_LANGUAGE_KWS,
+    _DARWIN_VERSIONS_KW.evolve(
+        deprecated='1.1.0',
+        deprecated_message='This argument is only valid for shared_library(), and should be removed. It is, and always has been, ignored.'
+    ),
+    _D_JAVA_LANGUAGE_KW,
     _SHARED_LIB_RUST_CRATE,
     _VS_MODULE_DEF_KW.evolve(since='0.52.0'),
     # Shared modules can additionally by linked with Executables
@@ -758,33 +779,39 @@ SHARED_MOD_KWS: T.List[KwargInfo] = [
 ]
 
 BOTH_LIB_KWS: T.List[KwargInfo] = (
-    _BUILD_TARGET_KWS + _LANGUAGE_KWS + _EXCLUSIVE_SHARED_LIB_KWS + _EXCLUSIVE_STATIC_LIB_KWS +
+    _ALL_TARGET_KWS + _BUILD_TARGET_KWS + _LANGUAGE_KWS + _EXCLUSIVE_SHARED_LIB_KWS + _EXCLUSIVE_STATIC_LIB_KWS +
     # XXX: rust_crate_type (and rust in general?) is busted with both lib
     [
         _RUST_CRATE_TYPE_KW.evolve(
             validator=in_set_validator({'lib', 'dylib', 'cdylib', 'rlib', 'staticlib', 'proc-macro'}),
             since_values={'proc-macro': '0.62.0'}),
         _PIE_KW,
+        _D_JAVA_LANGUAGE_KW,
+        _VS_MODULE_DEF_KW,
+        LINK_WITH_KW,
     ]
 )
 
-def _win_subsystem_validator(value: T.Optional[str]) -> T.Optional[str]:
-    value = value.lower()
-    if re.fullmatch(r'(boot_application|console|efi_application|efi_boot_service_driver|efi_rom|efi_runtime_driver|native|posix|windows)(,\d+(\.\d+)?)?', value) is None:
-        return f'Invalid value for win_subsystem: {value}.'
-    return None
-
-
 _EXCLUSIVE_EXECUTABLE_KWS: T.List[KwargInfo] = [
     KwargInfo('export_dynamic', bool, default=False, since='0.45.0'),
-    KwargInfo('gui_app', (bool, NoneType), deprecated='0.56.0', deprecated_message="Use 'win_subsystem' instead."),
     KwargInfo('implib', (bool, str, NoneType), since='0.42.0'),
-    KwargInfo('win_subsystem', (str, NoneType), since='0.56.0', validator=_win_subsystem_validator),
+    KwargInfo(
+        'gui_app',
+        (bool, NoneType),
+        deprecated='0.56.0',
+        deprecated_message="Use 'win_subsystem' instead.",
+    ),
+    KwargInfo(
+        'win_subsystem',
+        (str, NoneType),
+        since='0.56.0',
+        validator=_win_subsystem_validator,
+    ),
     _LINK_WITH_KW,
 ]
 
 EXECUTABLE_KWS: T.List[KwargInfo] = \
-    _BUILD_TARGET_KWS + _LANGUAGE_KWS + _EXCLUSIVE_EXECUTABLE_KWS + [
+    _ALL_TARGET_KWS + _BUILD_TARGET_KWS + _LANGUAGE_KWS + _EXCLUSIVE_EXECUTABLE_KWS + [
         _PIE_KW,
         _RUST_CRATE_TYPE_KW.evolve(default='bin', validator=in_set_validator({'bin'})),
     ]
@@ -807,19 +834,31 @@ JAR_KWS: T.List[KwargInfo] = [
         default=[],
         listify=True,
     ),
+
+    # For backwards compatibility reasons (we're post 1.0), we can't just remove
+    # these, we have to deprecated them and remove them in 2.0
+    *[a.evolve(deprecated='1.1.0', deprecated_message='has always been ignored, and is safe to delete')
+      for a in _BUILD_TARGET_KWS if a.name not in {'sources', 'link_with'}],
+    _RUST_CRATE_TYPE_KW.evolve(
+        deprecated='1.1.0',
+        deprecated_message='is not a valid argument for Jar, and should be removed. It is, and has always been, silently ignored',
+    ),
 ]
 
 BUILD_TARGET_KWS: T.List[KwargInfo] = [
+    *_ALL_TARGET_KWS,
     *_BUILD_TARGET_KWS,
     *_LANGUAGE_KWS,
     *_EXCLUSIVE_SHARED_LIB_KWS,
     *_EXCLUSIVE_STATIC_LIB_KWS,
     *_EXCLUSIVE_EXECUTABLE_KWS,
-    *_EXCLUSIVE_JAVA_KWS,
+    *[a.evolve(deprecated='1.1.0', deprecated_message='build_type: jar is deprecated, as are all jar specific arguments')
+      for a in _EXCLUSIVE_JAVA_KWS],
     _PIE_KW,
     _RUST_CRATE_TYPE_KW.evolve(
         validator=in_set_validator({'lib', 'dylib', 'cdylib', 'rlib', 'staticlib', 'proc-macro', 'bin'}),
         since_values={'proc-macro': '0.62.0'}),
+    _VS_MODULE_DEF_KW,
     KwargInfo(
         'target_type', str, required=True,
         validator=in_set_validator({
