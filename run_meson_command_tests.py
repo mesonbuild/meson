@@ -84,7 +84,7 @@ class CommandTests(unittest.TestCase):
         os.chdir(str(self.orig_dir))
         super().tearDown()
 
-    def _run(self, command, workdir=None):
+    def _run(self, command, workdir=None, env=None):
         '''
         Run a command while printing the stdout, and also return a copy of it
         '''
@@ -92,7 +92,7 @@ class CommandTests(unittest.TestCase):
         # between CI issue and test bug in that case. Set timeout and fail loud
         # instead.
         p = subprocess.run(command, stdout=subprocess.PIPE,
-                           env=os.environ.copy(), text=True,
+                           env=env, text=True,
                            cwd=workdir, timeout=60 * 5)
         print(p.stdout)
         if p.returncode != 0:
@@ -209,6 +209,21 @@ class CommandTests(unittest.TestCase):
         script = source / 'packaging' / 'create_zipapp.py'
         self._run([script.as_posix(), source, '--outfile', target, '--interpreter', python_command[0]])
         self._run([target.as_posix(), '--help'])
+
+    def test_meson_runpython(self):
+        meson_command = str(self.src_root / 'meson.py')
+        script_file = str(self.src_root / 'foo.py')
+        test_command = 'import sys; print(sys.argv[1])'
+        env = os.environ.copy()
+        del env['MESON_COMMAND_TESTS']
+        with open(script_file, 'w') as f:
+            f.write('#!/usr/bin/env python3\n\n')
+            f.write(f'{test_command}\n')
+
+        for cmd in [['-c', test_command, 'fake argument'], [script_file, 'fake argument']]:
+            pyout = self._run(python_command + cmd)
+            mesonout = self._run(python_command + [meson_command, 'runpython'] + cmd, env=env)
+            self.assertEqual(pyout, mesonout)
 
 
 if __name__ == '__main__':
