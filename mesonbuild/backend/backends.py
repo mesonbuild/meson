@@ -740,7 +740,7 @@ class Backend:
         srcdir = self.environment.get_source_dir()
 
         for dep in target.external_deps:
-            if not isinstance(dep, (dependencies.ExternalLibrary, dependencies.PkgConfigDependency)):
+            if dep.type_name not in {'library', 'pkgconfig'}:
                 continue
             for libpath in dep.link_args:
                 # For all link args that are absolute paths to a library file, add RPATH args
@@ -1006,7 +1006,8 @@ class Backend:
                 continue
 
             if compiler.language == 'vala':
-                if isinstance(dep, dependencies.PkgConfigDependency):
+                if dep.type_name == 'pkgconfig':
+                    assert isinstance(dep, dependencies.ExternalDependency)
                     if dep.name == 'glib-2.0' and dep.version_reqs is not None:
                         for req in dep.version_reqs:
                             if req.startswith(('>=', '==')):
@@ -1075,7 +1076,7 @@ class Backend:
         results = set()
         for dep in target.external_deps:
 
-            if isinstance(dep, dependencies.PkgConfigDependency):
+            if dep.type_name == 'pkgconfig':
                 # If by chance pkg-config knows the bin dir...
                 bindir = dep.get_pkgconfig_variable('bindir', [], default='')
                 if bindir:

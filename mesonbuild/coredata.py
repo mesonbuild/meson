@@ -324,11 +324,10 @@ class DependencyCacheType(enum.Enum):
 
     @classmethod
     def from_type(cls, dep: 'dependencies.Dependency') -> 'DependencyCacheType':
-        from . import dependencies
         # As more types gain search overrides they'll need to be added here
-        if isinstance(dep, dependencies.PkgConfigDependency):
+        if dep.type_name == 'pkgconfig':
             return cls.PKG_CONFIG
-        if isinstance(dep, dependencies.CMakeDependency):
+        if dep.type_name == 'cmake':
             return cls.CMAKE
         return cls.OTHER
 

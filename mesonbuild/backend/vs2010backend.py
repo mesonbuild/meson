@@ -25,7 +25,6 @@ import re
 
 from . import backends
 from .. import build
-from .. import dependencies
 from .. import mlog
 from .. import compilers
 from ..mesonlib import (
@@ -944,6 +943,7 @@ class Vs2010Backend(backends.Backend):
             return self.gen_compile_target_vcxproj(target, ofname, guid)
         else:
             raise MesonException(f'Unknown target type for {target.get_basename()}')
+        assert isinstance(target, (build.Executable, build.SharedLibrary, build.StaticLibrary, build.SharedModule)), 'for mypy'
         # Prefix to use to access the build root from the vcxproj dir
         down = self.target_to_build_root(target)
         # Prefix to use to access the source tree's root from the vcxproj dir
@@ -1175,7 +1175,7 @@ class Vs2010Backend(backends.Backend):
         for d in reversed(target.get_external_deps()):
             # Cflags required by external deps might have UNIX-specific flags,
             # so filter them out if needed
-            if isinstance(d, dependencies.OpenMPDependency):
+            if d.name == 'openmp':
                 ET.SubElement(clconf, 'OpenMPSupport').text = 'true'
             else:
                 d_compile_args = compiler.unix_args_to_native(d.get_compile_args())
@@ -1288,14 +1288,14 @@ class Vs2010Backend(backends.Backend):
             for dep in target.get_external_deps():
                 # Extend without reordering or de-dup to preserve `-L -l` sets
                 # https://github.com/mesonbuild/meson/issues/1718
-                if isinstance(dep, dependencies.OpenMPDependency):
+                if dep.name == 'openmp':
                     ET.SubElement(clconf, 'OpenMPSupport').text = 'true'
                 else:
                     extra_link_args.extend_direct(dep.get_link_args())
             for d in target.get_dependencies():
                 if isinstance(d, build.StaticLibrary):
                     for dep in d.get_external_deps():
-                        if isinstance(dep, dependencies.OpenMPDependency):
+                        if dep.name == 'openmp':
                             ET.SubElement(clconf, 'OpenMPSupport').text = 'true'
                         else:
                             extra_link_args.extend_direct(dep.get_link_args())

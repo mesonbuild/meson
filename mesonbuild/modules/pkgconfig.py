@@ -26,7 +26,6 @@ from .. import dependencies
 from .. import mesonlib
 from .. import mlog
 from ..coredata import BUILTIN_DIR_OPTIONS
-from ..dependencies import ThreadDependency
 from ..dependencies.pkgconfig import PkgConfigDependency
 from ..interpreter.type_checking import D_MODULE_VERSIONS_KW, INSTALL_DIR_KW, VARIABLES_KW, NoneType
 from ..interpreterbase import FeatureNew, FeatureDeprecated
@@ -164,7 +163,7 @@ class DependenciesHelper:
                 self.add_version_reqs(name, [version_req] if version_req is not None else None)
             elif isinstance(obj, dependencies.Dependency) and not obj.found():
                 pass
-            elif isinstance(obj, ThreadDependency):
+            elif isinstance(obj, dependencies.ExternalDependency) and obj.name == 'threads':
                 pass
             else:
                 raise mesonlib.MesonException('requires argument not a string, '
@@ -196,7 +195,7 @@ class DependenciesHelper:
                     and obj.get_id() in self.metadata):
                 self._check_generated_pc_deprecation(obj)
                 processed_reqs.append(self.metadata[obj.get_id()].filebase)
-            elif isinstance(obj, dependencies.ValgrindDependency):
+            elif isinstance(obj, dependencies.ExternalDependency) and obj.name == 'valgrind':
                 pass
             elif isinstance(obj, PkgConfigDependency):
                 if obj.found():
