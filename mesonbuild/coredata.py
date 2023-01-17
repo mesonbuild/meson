@@ -215,8 +215,11 @@ class UserComboOption(UserOption[str]):
         return value
 
 class UserArrayOption(UserOption[T.List[str]]):
-    def __init__(self, description: str, value: T.Union[str, T.List[str]], split_args: bool = False, user_input: bool = False, allow_dups: bool = False, **kwargs: T.Any) -> None:
-        super().__init__(description, kwargs.get('choices', []), yielding=kwargs.get('yielding', DEFAULT_YIELDING))
+    def __init__(self, description: str, value: T.Union[str, T.List[str]],
+                 split_args: bool = False, user_input: bool = False,
+                 allow_dups: bool = False, yielding: bool = DEFAULT_YIELDING,
+                 choices: T.Optional[T.List[str]] = None) -> None:
+        super().__init__(description, choices if choices is not None else [], yielding)
         self.split_args = split_args
         self.allow_dups = allow_dups
         self.value = self.validate_value(value, user_input=user_input)
