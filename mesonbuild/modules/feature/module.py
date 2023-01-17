@@ -41,6 +41,7 @@ from .. import ModuleInfo, NewExtensionModule, ModuleReturnValue
 
 from .feature import FeatureObject
 from .utils import get_compiler
+from .x86_features import x86_features
 
 if T.TYPE_CHECKING:
     from typing import TypedDict
@@ -71,6 +72,27 @@ class Module(NewExtensionModule):
                    args: T.List['TYPE_var'],
                    kwargs: 'TYPE_kwargs') -> FeatureObject:
         return FeatureObject(state, args, kwargs)
+
+    @noPosargs
+    @typed_kwargs('feature.cpu_features',
+        KwargInfo(
+            'compiler', (NoneType, Compiler),
+        ),
+    )
+    def cpu_features_method(self, state: 'ModuleState',
+                            args: T.List['TYPE_var'],
+                            kwargs: T.Dict[str, Compiler]
+                            ) -> T.Dict[str, FeatureObject]:
+        compiler = kwargs['compiler']
+        if compiler is None:
+            compiler = get_compiler(state)
+
+        features: T.Dict[str, FeatureObject] = {}
+        for func in (
+            x86_features,
+        ):
+            features.update(func(state, compiler))
+        return features
 
     @typed_pos_args('feature.test',
         varargs=FeatureObject
