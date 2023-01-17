@@ -14,10 +14,6 @@
 from __future__ import annotations
 
 from .base import ExternalDependency, DependencyException, DependencyMethods, NotFoundDependency
-from .cmake import CMakeDependency
-from .dub import DubDependency
-from .framework import ExtraFrameworkDependency
-from .pkgconfig import PkgConfigDependency
 
 from ..mesonlib import listify, MachineChoice, PerMachine
 from .. import mlog
@@ -201,21 +197,25 @@ def _build_external_dependency_list(name: str, env: 'Environment', for_machine: 
 
     # Exclusive to when it is explicitly requested
     if 'dub' in methods:
+        from .dub import DubDependency
         candidates.append(functools.partial(DubDependency, name, env, kwargs))
 
     # Preferred first candidate for auto.
     if 'pkg-config' in methods:
+        from .pkgconfig import PkgConfigDependency
         candidates.append(functools.partial(PkgConfigDependency, name, env, kwargs))
 
     # On OSX only, try framework dependency detector.
     if 'extraframework' in methods:
         if env.machines[for_machine].is_darwin():
+            from .framework import ExtraFrameworkDependency
             candidates.append(functools.partial(ExtraFrameworkDependency, name, env, kwargs))
 
     # Only use CMake:
     # - if it's explicitly requested
     # - as a last resort, since it might not work 100% (see #6113)
     if 'cmake' in methods:
+        from .cmake import CMakeDependency
         candidates.append(functools.partial(CMakeDependency, name, env, kwargs))
 
     return candidates

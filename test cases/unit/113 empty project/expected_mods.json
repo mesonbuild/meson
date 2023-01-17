@@ -208,7 +208,6 @@
       "mesonbuild.dependencies.cuda",
       "mesonbuild.dependencies.detect",
       "mesonbuild.dependencies.dev",
-      "mesonbuild.dependencies.dub",
       "mesonbuild.dependencies.factory",
       "mesonbuild.dependencies.framework",
       "mesonbuild.dependencies.hdf5",
@@ -272,6 +271,6 @@
       "mesonbuild.wrap",
       "mesonbuild.wrap.wrap"
     ],
-    "count": 98
+    "count": 97
   }
 }
