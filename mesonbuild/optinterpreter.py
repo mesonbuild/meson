@@ -148,7 +148,7 @@ class OptionInterpreter:
     @typed_kwargs('option',
                   KwargInfo('type', str, required=True),
                   KwargInfo('description', str, default=''),
-                  KwargInfo('yield', bool, default=coredata.default_yielding, since='0.45.0'),
+                  KwargInfo('yield', bool, default=coredata.DEFAULT_YIELDING, since='0.45.0'),
                   KwargInfo('choices', (ContainerTypeInfo(list, str), type(None))),
                   KwargInfo('value', object),
                   KwargInfo('min', (int, type(None))),

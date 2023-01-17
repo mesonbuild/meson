@@ -59,7 +59,7 @@ version = '1.0.99'
 
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2012', 'vs2013', 'vs2015', 'vs2017', 'vs2019', 'vs2022', 'xcode']
 
-default_yielding = False
+DEFAULT_YIELDING = False
 
 # Can't bind this near the class method it seems, sadly.
 _T = T.TypeVar('_T')
@@ -75,12 +75,11 @@ class MesonVersionMismatchException(MesonException):
 
 
 class UserOption(T.Generic[_T], HoldableObject):
-    def __init__(self, description: str, choices: T.Optional[T.Union[str, T.List[_T]]], yielding: T.Optional[bool]):
+    def __init__(self, description: str, choices: T.Optional[T.Union[str, T.List[_T]]],
+                 yielding: bool):
         super().__init__()
         self.choices = choices
         self.description = description
-        if yielding is None:
-            yielding = default_yielding
         if not isinstance(yielding, bool):
             raise MesonException('Value of "yielding" must be a boolean.')
         self.yielding = yielding
@@ -103,7 +102,7 @@ class UserOption(T.Generic[_T], HoldableObject):
         self.value = self.validate_value(newvalue)
 
 class UserStringOption(UserOption[str]):
-    def __init__(self, description: str, value: T.Any, yielding: T.Optional[bool] = None):
+    def __init__(self, description: str, value: T.Any, yielding: bool = DEFAULT_YIELDING):
         super().__init__(description, None, yielding)
         self.set_value(value)
 
@@ -113,7 +112,7 @@ class UserStringOption(UserOption[str]):
         return value
 
 class UserBooleanOption(UserOption[bool]):
-    def __init__(self, description: str, value, yielding: T.Optional[bool] = None) -> None:
+    def __init__(self, description: str, value, yielding: bool = DEFAULT_YIELDING) -> None:
         super().__init__(description, [True, False], yielding)
         self.set_value(value)
 
@@ -132,7 +131,7 @@ class UserBooleanOption(UserOption[bool]):
         raise MesonException('Value %s is not boolean (true or false).' % value)
 
 class UserIntegerOption(UserOption[int]):
-    def __init__(self, description: str, value: T.Any, yielding: T.Optional[bool] = None):
+    def __init__(self, description: str, value: T.Any, yielding: bool = DEFAULT_YIELDING):
         min_value, max_value, default_value = value
         self.min_value = min_value
         self.max_value = max_value
@@ -170,7 +169,7 @@ class OctalInt(int):
         return oct(int(self))
 
 class UserUmaskOption(UserIntegerOption, UserOption[T.Union[str, OctalInt]]):
-    def __init__(self, description: str, value: T.Any, yielding: T.Optional[bool] = None):
+    def __init__(self, description: str, value: T.Any, yielding: bool = DEFAULT_YIELDING):
         super().__init__(description, (0, 0o777, value), yielding)
         self.choices = ['preserve', '0000-0777']
 
@@ -191,7 +190,8 @@ class UserUmaskOption(UserIntegerOption, UserOption[T.Union[str, OctalInt]]):
             raise MesonException(f'Invalid mode: {e}')
 
 class UserComboOption(UserOption[str]):
-    def __init__(self, description: str, choices: T.List[str], value: T.Any, yielding: T.Optional[bool] = None):
+    def __init__(self, description: str, choices: T.List[str], value: T.Any,
+                 yielding: bool = DEFAULT_YIELDING):
         super().__init__(description, choices, yielding)
         if not isinstance(self.choices, list):
             raise MesonException('Combo choices must be an array.')
@@ -216,7 +216,7 @@ class UserComboOption(UserOption[str]):
 
 class UserArrayOption(UserOption[T.List[str]]):
     def __init__(self, description: str, value: T.Union[str, T.List[str]], split_args: bool = False, user_input: bool = False, allow_dups: bool = False, **kwargs: T.Any) -> None:
-        super().__init__(description, kwargs.get('choices', []), yielding=kwargs.get('yielding', None))
+        super().__init__(description, kwargs.get('choices', []), yielding=kwargs.get('yielding', DEFAULT_YIELDING))
         self.split_args = split_args
         self.allow_dups = allow_dups
         self.value = self.validate_value(value, user_input=user_input)
@@ -274,7 +274,7 @@ class UserArrayOption(UserOption[T.List[str]]):
 class UserFeatureOption(UserComboOption):
     static_choices = ['enabled', 'disabled', 'auto']
 
-    def __init__(self, description: str, value: T.Any, yielding: T.Optional[bool] = None):
+    def __init__(self, description: str, value: T.Any, yielding: bool = DEFAULT_YIELDING):
         super().__init__(description, self.static_choices, value, yielding)
         self.name: T.Optional[str] = None  # TODO: Refactor options to all store their name
 
