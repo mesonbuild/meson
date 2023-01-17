@@ -62,6 +62,7 @@ modules = [
     'mesonbuild/modules/sourceset.py',
     'mesonbuild/modules/wayland.py',
     'mesonbuild/modules/windows.py',
+    'mesonbuild/modules/feature/',
     'mesonbuild/mparser.py',
     'mesonbuild/msetup.py',
     'mesonbuild/mtest.py',
