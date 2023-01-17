@@ -21,7 +21,6 @@ from .base import (
         BuiltinDependency, SystemDependency, get_leaf_external_dependencies)
 from .cmake import CMakeDependency
 from .configtool import ConfigToolDependency
-from .dub import DubDependency
 from .framework import ExtraFrameworkDependency
 from .pkgconfig import PkgConfigDependency
 from .factory import DependencyFactory
@@ -57,7 +56,6 @@ __all__ = [
 
     'CMakeDependency',
     'ConfigToolDependency',
-    'DubDependency',
     'ExtraFrameworkDependency',
     'PkgConfigDependency',
 
