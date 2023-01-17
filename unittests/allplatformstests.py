@@ -56,7 +56,7 @@ from mesonbuild.compilers import (
     detect_compiler_for
 )
 
-from mesonbuild.dependencies import PkgConfigDependency
+from mesonbuild.dependencies.pkgconfig import PkgConfigDependency
 from mesonbuild.build import Target, ConfigurationData, Executable, SharedLibrary, StaticLibrary
 import mesonbuild.modules.pkgconfig
 from mesonbuild.scripts import destdir_join

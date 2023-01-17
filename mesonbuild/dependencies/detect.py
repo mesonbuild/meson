@@ -13,12 +13,13 @@
 # limitations under the License.
 from __future__ import annotations
 
+import collections, functools, importlib
+import typing as T
+
 from .base import ExternalDependency, DependencyException, DependencyMethods, NotFoundDependency
 
 from ..mesonlib import listify, MachineChoice, PerMachine
 from .. import mlog
-import functools
-import typing as T
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
@@ -26,12 +27,27 @@ if T.TYPE_CHECKING:
 
     TV_DepIDEntry = T.Union[str, bool, int, T.Tuple[str, ...]]
     TV_DepID = T.Tuple[T.Tuple[str, TV_DepIDEntry], ...]
+    PackageTypes = T.Union[T.Type[ExternalDependency], DependencyFactory, WrappedFactoryFunc]
+
+class DependencyPackages(collections.UserDict):
+    data: T.Dict[str, PackageTypes]
+    defaults: T.Dict[str, str] = {}
+
+    def __missing__(self, key: str) -> PackageTypes:
+        if key in self.defaults:
+            modn, package = self.defaults[key].split(':', maxsplit=1)
+            mod = importlib.import_module(f'mesonbuild.dependencies.{modn}')
+            value = T.cast('PackageTypes', getattr(mod, package))
+            self.data[key] = value
+
+            return value
+        raise KeyError(key)
+
+    def __contains__(self, key: object) -> bool:
+        return key in self.defaults or key in self.data
 
 # These must be defined in this file to avoid cyclical references.
-packages: T.Dict[
-    str,
-    T.Union[T.Type[ExternalDependency], 'DependencyFactory', 'WrappedFactoryFunc']
-] = {}
+packages = DependencyPackages()
 _packages_accept_language: T.Set[str] = set()
 
 def get_dep_identifier(name: str, kwargs: T.Dict[str, T.Any]) -> 'TV_DepID':

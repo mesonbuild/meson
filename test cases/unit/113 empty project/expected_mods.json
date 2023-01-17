@@ -201,24 +201,8 @@
       "mesonbuild.coredata",
       "mesonbuild.dependencies",
       "mesonbuild.dependencies.base",
-      "mesonbuild.dependencies.boost",
-      "mesonbuild.dependencies.cmake",
-      "mesonbuild.dependencies.coarrays",
-      "mesonbuild.dependencies.configtool",
-      "mesonbuild.dependencies.cuda",
       "mesonbuild.dependencies.detect",
-      "mesonbuild.dependencies.dev",
-      "mesonbuild.dependencies.factory",
-      "mesonbuild.dependencies.framework",
-      "mesonbuild.dependencies.hdf5",
-      "mesonbuild.dependencies.misc",
-      "mesonbuild.dependencies.mpi",
       "mesonbuild.dependencies.pkgconfig",
-      "mesonbuild.dependencies.platform",
-      "mesonbuild.dependencies.python",
-      "mesonbuild.dependencies.qt",
-      "mesonbuild.dependencies.scalapack",
-      "mesonbuild.dependencies.ui",
       "mesonbuild.depfile",
       "mesonbuild.envconfig",
       "mesonbuild.environment",
@@ -271,6 +255,6 @@
       "mesonbuild.wrap",
       "mesonbuild.wrap.wrap"
     ],
-    "count": 97
+    "count": 81
   }
 }

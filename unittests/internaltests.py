@@ -46,7 +46,7 @@ from mesonbuild.mesonlib import (
     OptionType
 )
 from mesonbuild.interpreter.type_checking import in_set_validator, NoneType
-from mesonbuild.dependencies import PkgConfigDependency
+from mesonbuild.dependencies.pkgconfig import PkgConfigDependency
 from mesonbuild.programs import ExternalProgram
 import mesonbuild.modules.pkgconfig
 

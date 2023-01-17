@@ -45,7 +45,7 @@ from mesonbuild.compilers.c import AppleClangCCompiler
 from mesonbuild.compilers.cpp import AppleClangCPPCompiler
 from mesonbuild.compilers.objc import AppleClangObjCCompiler
 from mesonbuild.compilers.objcpp import AppleClangObjCPPCompiler
-from mesonbuild.dependencies import PkgConfigDependency
+from mesonbuild.dependencies.pkgconfig import PkgConfigDependency
 import mesonbuild.modules.pkgconfig
 
 PKG_CONFIG = os.environ.get('PKG_CONFIG', 'pkg-config')

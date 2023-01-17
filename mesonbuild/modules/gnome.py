@@ -31,7 +31,8 @@ from .. import interpreter
 from .. import mesonlib
 from .. import mlog
 from ..build import CustomTarget, CustomTargetIndex, Executable, GeneratedList, InvalidArguments
-from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
+from ..dependencies import Dependency, InternalDependency
+from ..dependencies.pkgconfig import PkgConfigDependency
 from ..interpreter.type_checking import DEPENDS_KW, DEPEND_FILES_KW, ENV_KW, INSTALL_DIR_KW, INSTALL_KW, NoneType, SOURCES_KW, in_set_validator
 from ..interpreterbase import noPosargs, noKwargs, FeatureNew, FeatureDeprecated
 from ..interpreterbase import typed_kwargs, KwargInfo, ContainerTypeInfo

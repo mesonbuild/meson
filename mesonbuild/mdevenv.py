@@ -7,7 +7,7 @@ import shutil
 import itertools
 
 from pathlib import Path
-from . import build, minstall, dependencies
+from . import build, minstall
 from .mesonlib import (MesonException, is_windows, setup_vsenv, OptionKey,
                        get_wine_shortpath, MachineChoice)
 from . import mlog
@@ -75,9 +75,10 @@ def get_env(b: build.Build, dump_fmt: T.Optional[str]) -> T.Tuple[T.Dict[str, st
     return env, varnames
 
 def bash_completion_files(b: build.Build, install_data: 'InstallData') -> T.List[str]:
+    from .dependencies.pkgconfig import PkgConfigDependency
     result = []
-    dep = dependencies.PkgConfigDependency('bash-completion', b.environment,
-                                           {'required': False, 'silent': True, 'version': '>=2.10'})
+    dep = PkgConfigDependency('bash-completion', b.environment,
+                              {'required': False, 'silent': True, 'version': '>=2.10'})
     if dep.found():
         prefix = b.environment.coredata.get_option(OptionKey('prefix'))
         assert isinstance(prefix, str), 'for mypy'

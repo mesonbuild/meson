@@ -540,7 +540,7 @@ def validate_output(test: TestDef, stdo: str, stde: str) -> str:
 # coded to run as a batch process.
 def clear_internal_caches() -> None:
     import mesonbuild.interpreterbase
-    from mesonbuild.dependencies import CMakeDependency
+    from mesonbuild.dependencies.cmake import CMakeDependency
     from mesonbuild.mesonlib import PerMachine
     mesonbuild.interpreterbase.FeatureNew.feature_registry = {}
     CMakeDependency.class_cmakeinfo = PerMachine(None, None)

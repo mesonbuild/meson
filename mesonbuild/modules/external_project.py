@@ -23,7 +23,8 @@ from . import ExtensionModule, ModuleReturnValue, NewExtensionModule, ModuleInfo
 from .. import mlog, build
 from ..compilers.compilers import CFLAGS_MAPPING
 from ..envconfig import ENV_VAR_PROG_MAP
-from ..dependencies import InternalDependency, PkgConfigDependency
+from ..dependencies import InternalDependency
+from ..dependencies.pkgconfig import PkgConfigDependency
 from ..interpreterbase import FeatureNew
 from ..interpreter.type_checking import ENV_KW, DEPENDS_KW
 from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, typed_kwargs, typed_pos_args
