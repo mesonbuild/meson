@@ -1,6 +1,6 @@
 ## Dump devenv into file and select format
 
-`meson devenv --dump [<filename>]` command now takes an option filename argument
+`meson devenv --dump [<filename>]` command now takes an optional filename argument
 to write the environment into a file instead of printing to stdout.
 
 A new `--dump-format` argument has been added to select which shell format
