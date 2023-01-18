@@ -47,7 +47,7 @@ if zlib.found() then
     dependencies += [zlib]
 endif
 # many more "if"s here...
-executable('exe', sources: sources, dependencies: dependencies())
+executable('exe', sources: sources, dependencies: dependencies)
 ```
 
 Sourcesets can be used with a single invocation of the `apply` method,
