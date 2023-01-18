@@ -749,15 +749,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                 message = printer.result
             raise InterpreterException('Assert failed: ' + message)
 
-    def validate_arguments(self, args, argcount, arg_types):
-        if argcount is not None:
-            if argcount != len(args):
-                raise InvalidArguments(f'Expected {argcount} arguments, got {len(args)}.')
-        for actual, wanted in zip(args, arg_types):
-            if wanted is not None:
-                if not isinstance(actual, wanted):
-                    raise InvalidArguments('Incorrect argument type.')
-
     # Executables aren't actually accepted, but we allow them here to allow for
     # better error messages when overridden
     @typed_pos_args(
@@ -2372,27 +2363,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         except SubdirDoneRequest:
             pass
         self.subdir = prev_subdir
-
-    def _get_kwarg_install_mode(self, kwargs: T.Dict[str, T.Any]) -> T.Optional[FileMode]:
-        if kwargs.get('install_mode', None) is None:
-            return None
-        if isinstance(kwargs['install_mode'], FileMode):
-            return kwargs['install_mode']
-        install_mode: T.List[str] = []
-        mode = mesonlib.typeslistify(kwargs.get('install_mode', []), (str, int))
-        for m in mode:
-            # We skip any arguments that are set to `false`
-            if m is False:
-                m = None
-            install_mode.append(m)
-        if len(install_mode) > 3:
-            raise InvalidArguments('Keyword argument install_mode takes at '
-                                   'most 3 arguments.')
-        if len(install_mode) > 0 and install_mode[0] is not None and \
-           not isinstance(install_mode[0], str):
-            raise InvalidArguments('Keyword argument install_mode requires the '
-                                   'permissions arg to be a string or false')
-        return FileMode(*install_mode)
 
     # This is either ignored on basically any OS nowadays, or silently gets
     # ignored (Solaris) or triggers an "illegal operation" error (FreeBSD).
