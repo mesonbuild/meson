@@ -187,7 +187,7 @@ class Convert:
             if not isinstance(edict, dict):
                 # It shouldn't happen
                 continue
-            unknown_keys = tuple([k for k in edict.keys() if k not in accepted_keys])
+            unknown_keys = [k for k in edict.keys() if k not in accepted_keys]
             if unknown_keys:
                 raise MesonException(
                     f'feature.new: unknown keys {unknown_keys} in '
@@ -221,6 +221,7 @@ class Convert:
                  ['IMPLIED_ATTR'],
                  T.Union[None, T.List[ImpliedAttr]]]:
         return lambda values: Convert._implattr(opt_name, values)
+
 
 if T.TYPE_CHECKING:
     class FeatureKwArgs(TypedDict):
@@ -258,34 +259,33 @@ class FeatureObject(ModuleObject):
             str, ContainerTypeInfo(dict, str),
             ContainerTypeInfo(list, (dict, str)),
         )
+
         @typed_pos_args('feature.new', str, int)
         @typed_kwargs('feature.new',
-            KwargInfo('implies',
+            KwargInfo(
+                'implies',
                 (FeatureObject, ContainerTypeInfo(list, FeatureObject)),
                 default=[], listify=True
             ),
-            KwargInfo('group',
-                (str, ContainerTypeInfo(list, str)),
+            KwargInfo(
+                'group', (str, ContainerTypeInfo(list, str)),
                 default=[], listify=True
             ),
-            KwargInfo('detect',
-                IMPLIED_ATTR_TYPES, convertor=Convert.implattr('detect'),
-                default=[]
+            KwargInfo(
+                'detect', IMPLIED_ATTR_TYPES,
+                convertor=Convert.implattr('detect'), default=[]
             ),
-            KwargInfo('args',
-                IMPLIED_ATTR_TYPES, convertor=Convert.implattr('args'),
-                default=[]
-            ),
-            KwargInfo('headers',
-                IMPLIED_ATTR_TYPES, convertor=Convert.implattr('headers'),
+            KwargInfo(
+                'args', IMPLIED_ATTR_TYPES, convertor=Convert.implattr('args'),
                 default=[]
             ),
             KwargInfo(
-                'test_code', (str, File),
-                default=''
+                'headers', IMPLIED_ATTR_TYPES,
+                convertor=Convert.implattr('headers'), default=[]
             ),
-            KwargInfo('extra_tests',
-                (ContainerTypeInfo(dict, (str, File))),
+            KwargInfo('test_code', (str, File), default=''),
+            KwargInfo(
+                'extra_tests', (ContainerTypeInfo(dict, (str, File))),
                 default={}
             ),
             KwargInfo('disable', (str), default=''),
@@ -299,7 +299,7 @@ class FeatureObject(ModuleObject):
             self.implies = set(kwargs['implies'])
             self.group = kwargs['group']
             self.detect = kwargs['detect']
-            self.args  = kwargs['args']
+            self.args = kwargs['args']
             self.headers = kwargs['headers']
             self.test_code = kwargs['test_code']
             self.extra_tests = kwargs['extra_tests']
@@ -345,29 +345,38 @@ class FeatureObject(ModuleObject):
             NoneType, str, ContainerTypeInfo(dict, str),
             ContainerTypeInfo(list, (dict, str)),
         )
+
         @noPosargs
         @typed_kwargs('feature.update',
             KwargInfo('name', (NoneType, str)),
             KwargInfo('interest', (NoneType, int)),
-            KwargInfo('implies',
-                (NoneType, FeatureObject, ContainerTypeInfo(list, FeatureObject)),
+            KwargInfo(
+                'implies', (
+                    NoneType, FeatureObject,
+                    ContainerTypeInfo(list, FeatureObject)
+                ),
                 listify=True
             ),
-            KwargInfo('group',
-                (NoneType, str, ContainerTypeInfo(list, str)), listify=True
+            KwargInfo(
+                'group', (NoneType, str, ContainerTypeInfo(list, str)),
+                listify=True
             ),
-            KwargInfo('detect',
-                IMPLIED_ATTR_NTYPES, convertor=Convert.implattr('detect')
+            KwargInfo(
+                'detect', IMPLIED_ATTR_NTYPES,
+                convertor=Convert.implattr('detect')
             ),
-            KwargInfo('args',
-                IMPLIED_ATTR_NTYPES, convertor=Convert.implattr('args')
+            KwargInfo(
+                'args', IMPLIED_ATTR_NTYPES,
+                convertor=Convert.implattr('args')
             ),
-            KwargInfo('headers',
-                IMPLIED_ATTR_NTYPES, convertor=Convert.implattr('headers')
+            KwargInfo(
+                'headers', IMPLIED_ATTR_NTYPES,
+                convertor=Convert.implattr('headers')
             ),
             KwargInfo('test_code', (NoneType, str, File)),
-            KwargInfo('extra_tests',
-                (NoneType, ContainerTypeInfo(dict, (str, File)))
+            KwargInfo(
+                'extra_tests', (
+                    NoneType, ContainerTypeInfo(dict, (str, File)))
             ),
             KwargInfo('disable', (NoneType, str)),
         )
@@ -397,11 +406,11 @@ class FeatureObject(ModuleObject):
             ret[attr] = [v.to_dict() for v in getattr(self, attr)]
         return ret
 
-    def get_implicit(self, _caller: 'T.Set[FeatureObject]' = None
-                    ) -> 'T.Set[FeatureObject]':
+    def get_implicit(self, _caller: T.Set['FeatureObject'] = None
+                     ) -> T.Set['FeatureObject']:
         # infinity recursive guard since
         # features can imply each other
-        _caller = {self,} if not _caller else _caller.union({self,})
+        _caller = {self, } if not _caller else _caller.union({self, })
         implies = self.implies.difference(_caller)
         ret = self.implies
         for sub_fet in implies:
@@ -409,7 +418,7 @@ class FeatureObject(ModuleObject):
         return ret
 
     def test_args(self, state: 'ModuleState', compiler: 'Compiler'
-                 ) -> T.Tuple[bool, T.List[ImpliedAttr], T.List[ImpliedAttr]]:
+                  ) -> T.Tuple[bool, T.List[ImpliedAttr], T.List[ImpliedAttr]]:
         check_args = compiler.has_multi_arguments
         args: T.List[ImpliedAttr] = []
         skipped_args: T.List[ImpliedAttr] = []
@@ -424,8 +433,9 @@ class FeatureObject(ModuleObject):
         return cached, args, skipped_args
 
     def test_headers(self, state: 'ModuleState', compiler: 'Compiler',
-                     args: T.List[str]
-                     ) -> T.Tuple[bool, T.List[ImpliedAttr], T.List[ImpliedAttr]]:
+                     args: T.List[str]) -> T.Tuple[
+                         bool, T.List[ImpliedAttr], T.List[ImpliedAttr]
+                     ]:
         check_header = compiler.check_header
         headers: T.List[ImpliedAttr] = []
         skipped_headers: T.List[ImpliedAttr] = []
@@ -442,11 +452,9 @@ class FeatureObject(ModuleObject):
             cached &= tcached
         return cached, headers, skipped_headers
 
-    def test_extra(self, state: 'ModuleState',
-                         compiler: 'Compiler',
-                         args: T.List[str],
-                         headers: T.List[str]
-                         ) -> T.Tuple[bool, T.List[str], T.List[str]]:
+    def test_extra(self, state: 'ModuleState', compiler: 'Compiler',
+                   args: T.List[str], headers: T.List[str]
+                   ) -> T.Tuple[bool, T.List[str], T.List[str]]:
         extra: T.List[str] = []
         skipped_extra: T.List[str] = []
         cached = True
@@ -505,13 +513,13 @@ class FeatureObject(ModuleObject):
         if self.disable:
             return False, True, f'{prefix}disabled due to {self.disable}', None
 
-        _caller = {self,} if not _caller else _caller.union({self,})
+        _caller = {self, } if not _caller else _caller.union({self, })
         cached = True
         result = TestResult(implicit=self.implies.difference(_caller))
         after = TestResult()
         implicit: T.List[FeatureObject] = sorted(result.implicit)
         for fet in implicit:
-            imp_ret  = fet.test_impl(state, compiler, force_args, _caller)
+            imp_ret = fet.test_impl(state, compiler, force_args, _caller)
             imp_cached, _, _, imp_result = imp_ret
             if not imp_result:
                 return imp_ret
@@ -526,8 +534,8 @@ class FeatureObject(ModuleObject):
             if (not rargs and skipped_args) and not self.test_code:
                 return (
                     tcached, False,
-                    f'{prefix}specified arguments {tuple(skipped_args)} are not '
-                     'supported and the test file is not specified',
+                    f'{prefix}specified arguments {tuple(skipped_args)} '
+                    'are not supported and the test file is not specified',
                     None
                 )
             result.args = ImpliedAttr.normalize(
@@ -538,12 +546,15 @@ class FeatureObject(ModuleObject):
         else:
             args = force_args
 
-        tcached, rheaders, skipped_headers = self.test_headers(state, compiler, args)
+        tcached, rheaders, skipped_headers = self.test_headers(
+            state, compiler, args
+        )
         if not rheaders and skipped_headers:
             return (
                 tcached, False,
-                f'{prefix}specified headers {tuple(h.val for h in skipped_headers)} '
-                 'are not supported by the compiler',
+                f'{prefix}specified headers '
+                f'{[h.val for h in skipped_headers]}'
+                'are not supported by the compiler',
                 None
             )
         cached &= tcached

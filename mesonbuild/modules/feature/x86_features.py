@@ -320,7 +320,9 @@ def _init_features(state: 'ModuleState') -> T.Dict[str, FeatureObject]:
                 m64 = _kxor_mask64(m64, m64);
                 m64 = _cvtu64_mask64(_cvtmask64_u64(m64));
                 m64 = _mm512_kunpackd(m64, m64);
-                m64 = (__mmask64)_mm512_kunpackw((__mmask32)m64, (__mmask32)m64);
+                m64 = (__mmask64)_mm512_kunpackw(
+                    (__mmask32)m64, (__mmask32)m64
+                );
                 *(int*)src = (int)_cvtmask64_u64(m64);
             ''',
             AVX512DQ_MASK=f'''\
@@ -445,14 +447,14 @@ def _features_args(state: 'ModuleState',
         # we specify the arguments that we need to filterd
         # from implied features rather than blinedly removes all args(.*)
         # since args may updated from outside.
-        filter_all = ".*m[sse|avx|arch\=|-x[a-z0-9\-]].*"
+        filter_all = r'.*m[sse|avx|arch\=|-x[a-z0-9\-]].*'
         for fet, arg in (
             ('SSE41', dict(val='-msse4.1')),
             ('SSE42', dict(val='-msse4.2')),
             ('FMA3', dict(val='-march=core-avx2', match='.*m[sse|avx].*')),
             ('AVX2', dict(val='-march=core-avx2', match='.*m[sse|avx].*')),
             ('AVX512_COMMON', dict(
-                val='-march=common-avx512', match='.*m[sse|avx|arch\=].*'
+                val='-march=common-avx512', match=r'.*m[sse|avx|arch\=].*'
             )),
             ('AVX512_KNL', dict(
                 val='-xKNL', match=filter_all

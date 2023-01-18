@@ -94,20 +94,14 @@ class Module(NewExtensionModule):
             features.update(func(state, compiler))
         return features
 
-    @typed_pos_args('feature.test',
-        varargs=FeatureObject
-    )
+    @typed_pos_args('feature.test', varargs=FeatureObject)
     @typed_kwargs('feature.test',
-        KwargInfo('compiler',
-            (NoneType, Compiler)
-        ),
-        KwargInfo('force_args',
-            (NoneType, str, ContainerTypeInfo(list, str)),
+        KwargInfo('compiler', (NoneType, Compiler)),
+        KwargInfo(
+            'force_args', (NoneType, str, ContainerTypeInfo(list, str)),
             listify=True
         ),
-        KwargInfo('any',
-            bool, default=True
-        )
+        KwargInfo('any', bool, default=True)
     )
     def test_method(self, state: 'ModuleState',
                     args: T.Tuple[T.List[FeatureObject]],
@@ -141,14 +135,12 @@ class Module(NewExtensionModule):
             return [False, {}]
         return [True, result.to_dict()]
 
-    @typed_pos_args('feature.implicit',
-        varargs=FeatureObject
-    )
+    @typed_pos_args('feature.implicit', varargs=FeatureObject)
     @noKwargs
     def implicit_method(self, state: 'ModuleState',
-                       args: T.Tuple[T.List[FeatureObject]],
-                       kwargs: 'TYPE_kwargs'
-                       ) -> T.List[FeatureObject]:
+                        args: T.Tuple[T.List[FeatureObject]],
+                        kwargs: 'TYPE_kwargs'
+                        ) -> T.List[FeatureObject]:
 
         features = args[0]
         implicit = set().union(*[fet.get_implicit() for fet in features])
@@ -156,9 +148,7 @@ class Module(NewExtensionModule):
         implicit.difference_update(set(features))
         return sorted(implicit)
 
-    @typed_pos_args('feature.ahead',
-        varargs=FeatureObject
-    )
+    @typed_pos_args('feature.ahead', varargs=FeatureObject)
     @noKwargs
     def ahead_method(self, state: 'ModuleState',
                      args: T.Tuple[T.List[FeatureObject]],
@@ -174,9 +164,7 @@ class Module(NewExtensionModule):
             ahead = list(sorted(features, reverse=True)[:1])
         return ahead
 
-    @typed_pos_args('feature.untied',
-        varargs=FeatureObject
-    )
+    @typed_pos_args('feature.untied', varargs=FeatureObject)
     @noKwargs
     def untied_method(self, state: 'ModuleState',
                       args: T.Tuple[T.List[FeatureObject]],
@@ -190,7 +178,7 @@ class Module(NewExtensionModule):
                 if sub_fet in fet.implies and fet in sub_fet.implies
             }
             if tied:
-                stied = sorted(tied.union({fet,}))
+                stied = sorted(tied.union({fet, }))
                 if fet not in stied[1:]:
                     continue
                 ret.remove(stied[0])
