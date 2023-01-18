@@ -159,7 +159,7 @@ def _init_features(state: 'ModuleState') -> T.Dict[str, FeatureObject]:
     AVX = fet('AVX', 20, dict(
         implies=SSE42,
         headers='immintrin.h',
-        detect=dict(val='AVX', match='.*'),
+        detect=dict(val='AVX', match='.*SSE.*'),
         test_code='''\
             __m256 s0 = _mm256_loadu_ps((float*)src);
             __m256 s1 = _mm256_loadu_ps((float*)src+8);
