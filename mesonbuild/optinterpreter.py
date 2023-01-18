@@ -27,6 +27,8 @@ if T.TYPE_CHECKING:
     from .interpreterbase import SubProject
     from typing_extensions import TypedDict, Literal
 
+    _DEPRECATED_ARGS = T.Union[bool, str, T.Dict[str, str], T.List[str]]
+
     FuncOptionArgs = TypedDict('FuncOptionArgs', {
         'type': str,
         'description': str,
@@ -35,7 +37,7 @@ if T.TYPE_CHECKING:
         'value': object,
         'min': T.Optional[int],
         'max': T.Optional[int],
-        'deprecated': T.Union[bool, str, T.Dict[str, str], T.List[str]],
+        'deprecated': _DEPRECATED_ARGS,
         })
 
     class StringArgs(TypedDict):
@@ -201,8 +203,7 @@ class OptionInterpreter:
         n_kwargs = {k: v for k, v in kwargs.items()
                     if k not in {'type', 'description', 'deprecated', 'yield'}}
 
-        opt = parser(description, kwargs['yield'], n_kwargs)
-        opt.deprecated = kwargs['deprecated']
+        opt = parser(description, (kwargs['yield'], kwargs['deprecated']), n_kwargs)
         if key in self.options:
             mlog.deprecation(f'Option {opt_name} already exists.')
         self.options[key] = opt
@@ -211,8 +212,8 @@ class OptionInterpreter:
         'string option',
         KwargInfo('value', str, default=''),
     )
-    def string_parser(self, description: str, yield_: bool, kwargs: StringArgs) -> coredata.UserOption:
-        return coredata.UserStringOption(description, kwargs['value'], yield_)
+    def string_parser(self, description: str, args: T.Tuple[bool, _DEPRECATED_ARGS], kwargs: StringArgs) -> coredata.UserOption:
+        return coredata.UserStringOption(description, kwargs['value'], *args)
 
     @typed_kwargs(
         'boolean option',
@@ -224,20 +225,20 @@ class OptionInterpreter:
             deprecated_values={'true': ('1.1.0', 'use a boolean, not a string'), 'false': ('1.1.0', 'use a boolean, not a string')},
         ),
     )
-    def boolean_parser(self, description: str, yield_: bool, kwargs: BooleanArgs) -> coredata.UserOption:
-        return coredata.UserBooleanOption(description, kwargs['value'], yield_)
+    def boolean_parser(self, description: str, args: T.Tuple[bool, _DEPRECATED_ARGS], kwargs: BooleanArgs) -> coredata.UserOption:
+        return coredata.UserBooleanOption(description, kwargs['value'], *args)
 
     @typed_kwargs(
         'combo option',
         KwargInfo('value', (str, NoneType)),
         KwargInfo('choices', ContainerTypeInfo(list, str, allow_empty=False), required=True),
     )
-    def combo_parser(self, description: str, kwargs: ComboArgs, yield_: bool) -> coredata.UserOption:
+    def combo_parser(self, description: str, args: T.Tuple[bool, _DEPRECATED_ARGS], kwargs: ComboArgs) -> coredata.UserOption:
         choices = kwargs['choices']
         value = kwargs['value']
         if value is None:
             value = kwargs['choices'][0]
-        return coredata.UserComboOption(description, choices, value, yield_)
+        return coredata.UserComboOption(description, choices, value, *args)
 
     @typed_kwargs(
         'integer option',
@@ -251,26 +252,27 @@ class OptionInterpreter:
         KwargInfo('min', (int, NoneType)),
         KwargInfo('max', (int, NoneType)),
     )
-    def integer_parser(self, description: str, yield_: bool, kwargs: IntegerArgs) -> coredata.UserOption:
+    def integer_parser(self, description: str, args: T.Tuple[bool, _DEPRECATED_ARGS], kwargs: IntegerArgs) -> coredata.UserOption:
         value = kwargs['value']
         inttuple = (kwargs['min'], kwargs['max'], value)
-        return coredata.UserIntegerOption(description, inttuple, yield_)
+        return coredata.UserIntegerOption(description, inttuple, *args)
 
     @typed_kwargs(
         'string array option',
         KwargInfo('value', (ContainerTypeInfo(list, str), str, NoneType)),
         KwargInfo('choices', ContainerTypeInfo(list, str), default=[]),
     )
-    def string_array_parser(self, description: str, yield_: bool, kwargs: StringArrayArgs) -> coredata.UserOption:
+    def string_array_parser(self, description: str, args: T.Tuple[bool, _DEPRECATED_ARGS], kwargs: StringArrayArgs) -> coredata.UserOption:
         choices = kwargs['choices']
         value = kwargs['value'] if kwargs['value'] is not None else choices
         return coredata.UserArrayOption(description, value,
                                         choices=choices,
-                                        yielding=yield_)
+                                        yielding=args[0],
+                                        deprecated=args[1])
 
     @typed_kwargs(
         'feature option',
         KwargInfo('value', str, default='auto', validator=in_set_validator({'auto', 'enabled', 'disabled'})),
     )
-    def feature_parser(self, description: str, yield_: bool, kwargs: FeatureArgs) -> coredata.UserOption:
-        return coredata.UserFeatureOption(description, kwargs['value'], yield_)
+    def feature_parser(self, description: str, args: T.Tuple[bool, _DEPRECATED_ARGS], kwargs: FeatureArgs) -> coredata.UserOption:
+        return coredata.UserFeatureOption(description, kwargs['value'], *args)
