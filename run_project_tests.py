@@ -299,11 +299,12 @@ host_c_compiler: T.Optional[str]   = None
 compiler_id_map: T.Dict[str, str]  = {}
 tool_vers_map:   T.Dict[str, str]  = {}
 
-compile_commands:   T.List[str]
-clean_commands:     T.List[str]
-test_commands:      T.List[str]
-install_commands:   T.List[str]
-uninstall_commands: T.List[str]
+compile_commands:       T.List[str]
+clean_commands:         T.List[str]
+compile_tests_commands: T.List[str]
+test_commands:          T.List[str]
+install_commands:       T.List[str]
+uninstall_commands:     T.List[str]
 
 backend:      'Backend'
 backend_flags: T.List[str]
@@ -330,9 +331,9 @@ signal.signal(signal.SIGTERM, stop_handler)
 
 def setup_commands(optbackend: str) -> None:
     global do_debug, backend, backend_flags
-    global compile_commands, clean_commands, test_commands, install_commands, uninstall_commands
+    global compile_commands, clean_commands, compile_tests_commands, test_commands, install_commands, uninstall_commands
     backend, backend_flags = guess_backend(optbackend, shutil.which('msbuild'))
-    compile_commands, clean_commands, test_commands, install_commands, \
+    compile_commands, clean_commands, compile_tests_commands, test_commands, install_commands, \
         uninstall_commands = get_backend_commands(backend, do_debug)
 
 # TODO try to eliminate or at least reduce this function
@@ -598,11 +599,12 @@ def detect_parameter_files(test: TestDef, test_build_dir: str) -> T.Tuple[Path, 
 # In previous python versions the global variables are lost in ProcessPoolExecutor.
 # So, we use this tuple to restore some of them
 class GlobalState(T.NamedTuple):
-    compile_commands:   T.List[str]
-    clean_commands:     T.List[str]
-    test_commands:      T.List[str]
-    install_commands:   T.List[str]
-    uninstall_commands: T.List[str]
+    compile_commands:       T.List[str]
+    clean_commands:         T.List[str]
+    compile_tests_commands: T.List[str]
+    test_commands:          T.List[str]
+    install_commands:       T.List[str]
+    uninstall_commands:     T.List[str]
 
     backend:      'Backend'
     backend_flags: T.List[str]
@@ -615,9 +617,9 @@ def run_test(test: TestDef,
              use_tmp: bool,
              state: T.Optional[GlobalState] = None) -> T.Optional[TestResult]:
     # Unpack the global state
-    global compile_commands, clean_commands, test_commands, install_commands, uninstall_commands, backend, backend_flags, host_c_compiler
+    global compile_commands, clean_commands, compile_tests_commands, install_commands, uninstall_commands, backend, backend_flags, host_c_compiler
     if state is not None:
-        compile_commands, clean_commands, test_commands, install_commands, uninstall_commands, backend, backend_flags, host_c_compiler = state
+        compile_commands, clean_commands, compile_tests_commands, test_commands, install_commands, uninstall_commands, backend, backend_flags, host_c_compiler = state
     # Store that this is a worker process
     global is_worker_process
     is_worker_process = True
@@ -713,6 +715,12 @@ def _run_test(test: TestDef,
 
     # test that regeneration works for test step
     force_regenerate()
+
+    # Compile test prerequisites if backend supported
+    if compile_tests_commands:
+        env = test.env.copy()
+        pi, o, e = Popen_safe(compile_tests_commands, cwd=test_build_dir, env=env)
+        testresult.add_step(compile_tests_commands, o, e)
 
     # Test in-process
     clear_internal_caches()
@@ -1212,7 +1220,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
     print(f'\nRunning tests with {num_workers} workers')
 
     # Pack the global state
-    state = GlobalState(compile_commands, clean_commands, test_commands, install_commands, uninstall_commands, backend, backend_flags, host_c_compiler)
+    state = GlobalState(compile_commands, clean_commands, compile_tests_commands, test_commands, install_commands, uninstall_commands, backend, backend_flags, host_c_compiler)
     executor = ProcessPoolExecutor(max_workers=num_workers)
 
     futures: T.List[RunFutureUnion] = []
@@ -1411,7 +1419,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
     return passing_tests, failing_tests, skipped_tests
 
 def check_meson_commands_work(use_tmpdir: bool, extra_args: T.List[str]) -> None:
-    global backend, compile_commands, test_commands, install_commands
+    global backend, compile_commands, compile_tests_commands, test_commands, install_commands
     testdir = PurePath('test cases', 'common', '1 trivial').as_posix()
     meson_commands = mesonlib.python_command + [get_meson_script()]
     with TemporaryDirectoryWinProof(prefix='b ', dir=None if use_tmpdir else '.') as build_dir:
@@ -1430,6 +1438,11 @@ def check_meson_commands_work(use_tmpdir: bool, extra_args: T.List[str]) -> None
         pc, o, e = Popen_safe(compile_commands + dir_args, cwd=build_dir)
         if pc.returncode != 0:
             raise RuntimeError(f'Failed to build {testdir!r}:\n{e}\n{o}')
+        print('Checking that building tests works...')
+        if compile_tests_commands:
+            pc, o, e = Popen_safe(compile_tests_commands + dir_args, cwd=build_dir)
+            if pc.returncode != 0:
+                raise RuntimeError(f'Failed to build tests {testdir!r}:\n{e}\n{o}')
         print('Checking that testing works...')
         pc, o, e = Popen_safe(test_commands, cwd=build_dir)
         if pc.returncode != 0:

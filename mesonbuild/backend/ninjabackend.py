@@ -3422,10 +3422,6 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 ('meson-test-prereq', self.get_testlike_targets()),
                 ('meson-benchmark-prereq', self.get_testlike_targets(True))]:
             targetlist = []
-            # These must also be built by default.
-            # XXX: Sometime in the future these should be built only before running tests.
-            if targ == 'all':
-                targetlist.extend(['meson-test-prereq', 'meson-benchmark-prereq'])
             for t in deps.values():
                 # Add the first output of each target to the 'all' target so that
                 # they are all built

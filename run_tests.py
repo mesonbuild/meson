@@ -251,19 +251,22 @@ def get_builddir_target_args(backend: Backend, builddir, target):
     return target_args + dir_args
 
 def get_backend_commands(backend: Backend, debug: bool = False) -> \
-        T.Tuple[T.List[str], T.List[str], T.List[str], T.List[str], T.List[str]]:
+        T.Tuple[T.List[str], T.List[str], T.List[str], T.List[str], T.List[str], T.List[str]]:
     install_cmd: T.List[str] = []
     uninstall_cmd: T.List[str] = []
+    buildtests_cmd: T.List[str] = []
     clean_cmd: T.List[str]
     cmd: T.List[str]
     test_cmd: T.List[str]
     if backend is Backend.vs:
         cmd = ['msbuild']
         clean_cmd = cmd + ['/target:Clean']
+        buildtests_cmd = None
         test_cmd = cmd + ['RUN_TESTS.vcxproj']
     elif backend is Backend.xcode:
         cmd = ['xcodebuild']
         clean_cmd = cmd + ['-alltargets', 'clean']
+        buildtests_cmd = cmd + ['-target', 'BUILD_TESTS']
         test_cmd = cmd + ['-target', 'RUN_TESTS']
     elif backend is Backend.ninja:
         global NINJA_CMD
@@ -271,12 +274,13 @@ def get_backend_commands(backend: Backend, debug: bool = False) -> \
         if debug:
             cmd += ['-v']
         clean_cmd = cmd + ['clean']
+        buildtests_cmd = cmd + ['meson-test-prereq', 'meson-benchmark-prereq']
         test_cmd = cmd + ['test', 'benchmark']
         install_cmd = cmd + ['install']
         uninstall_cmd = cmd + ['uninstall']
     else:
         raise AssertionError(f'Unknown backend: {backend!r}')
-    return cmd, clean_cmd, test_cmd, install_cmd, uninstall_cmd
+    return cmd, clean_cmd, buildtests_cmd, test_cmd, install_cmd, uninstall_cmd
 
 def ensure_backend_detects_changes(backend: Backend) -> None:
     global NINJA_1_9_OR_NEWER

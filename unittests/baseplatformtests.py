@@ -66,8 +66,8 @@ class BasePlatformTests(TestCase):
         self.wrap_command = self.meson_command + ['wrap']
         self.rewrite_command = self.meson_command + ['rewrite']
         # Backend-specific build commands
-        self.build_command, self.clean_command, self.test_command, self.install_command, \
-            self.uninstall_command = get_backend_commands(self.backend)
+        self.build_command, self.clean_command, self.compile_tests_command, self.test_command, \
+            self.install_command, self.uninstall_command = get_backend_commands(self.backend)
         # Test directories
         self.common_test_dir = os.path.join(src_root, 'test cases/common')
         self.rust_test_dir = os.path.join(src_root, 'test cases/rust')
