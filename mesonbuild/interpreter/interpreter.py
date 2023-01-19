@@ -33,7 +33,7 @@ from ..interpreterbase import ContainerTypeInfo, InterpreterBase, KwargInfo, typ
 from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, noArgsFlattening, noSecondLevelHolderResolving, unholder_return
 from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
 from ..interpreterbase import Disabler, disablerIfNotFound
-from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs, FeatureDeprecatedKwargs
+from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureBroken, FeatureNewKwargs, FeatureDeprecatedKwargs
 from ..interpreterbase import ObjectHolder, ContextManagerObject
 from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule
 from ..cmake import CMakeInterpreter
@@ -2978,6 +2978,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         mlog.log('Build targets in project:', mlog.bold(str(len(self.build.targets))))
         FeatureNew.report(self.subproject)
         FeatureDeprecated.report(self.subproject)
+        FeatureBroken.report(self.subproject)
         if not self.is_subproject():
             self.print_extra_warnings()
             self._print_summary()

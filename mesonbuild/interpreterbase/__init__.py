@@ -53,6 +53,7 @@ __all__ = [
     'FeatureCheckBase',
     'FeatureNew',
     'FeatureDeprecated',
+    'FeatureBroken',
     'FeatureNewKwargs',
     'FeatureDeprecatedKwargs',
 
@@ -118,6 +119,7 @@ from .decorators import (
     FeatureCheckBase,
     FeatureNew,
     FeatureDeprecated,
+    FeatureBroken,
     FeatureNewKwargs,
     FeatureDeprecatedKwargs,
 )

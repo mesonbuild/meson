@@ -604,6 +604,7 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
 
     feature_registry: T.ClassVar[T.Dict[str, T.Dict[str, T.Set[T.Tuple[str, T.Optional['mparser.BaseNode']]]]]]
     emit_notice = False
+    unconditional = False
 
     def __init__(self, feature_name: str, feature_version: str, extra_message: str = ''):
         self.feature_name = feature_name  # type: str
@@ -625,7 +626,7 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
     def use(self, subproject: 'SubProject', location: T.Optional['mparser.BaseNode'] = None) -> None:
         tv = self.get_target_version(subproject)
         # No target version
-        if tv == '':
+        if tv == '' and not self.unconditional:
             return
         # Target version is new enough, don't warn
         if self.check_version(tv, self.feature_version) and not self.emit_notice:
@@ -759,6 +760,40 @@ class FeatureDeprecated(FeatureCheckBase):
         if self.extra_message:
             args.append(self.extra_message)
         mlog.warning(*args, location=location)
+
+
+class FeatureBroken(FeatureCheckBase):
+    """Checks for broken features"""
+
+    # Class variable, shared across all instances
+    #
+    # Format: {subproject: {feature_version: set(feature_names)}}
+    feature_registry = {}
+    unconditional = True
+
+    @staticmethod
+    def check_version(target_version: str, feature_version: str) -> bool:
+        # always warn for broken stuff
+        return False
+
+    @staticmethod
+    def get_warning_str_prefix(tv: str) -> str:
+        return 'Broken features used:'
+
+    @staticmethod
+    def get_notice_str_prefix(tv: str) -> str:
+        return ''
+
+    def log_usage_warning(self, tv: str, location: T.Optional['mparser.BaseNode']) -> None:
+        args = [
+            'Project uses feature that was always broken,',
+            'and is now deprecated since',
+            f"'{self.feature_version}':",
+            f'{self.feature_name}.',
+        ]
+        if self.extra_message:
+            args.append(self.extra_message)
+        mlog.deprecation(*args, location=location)
 
 
 # This cannot be a dataclass due to https://github.com/python/mypy/issues/5374
