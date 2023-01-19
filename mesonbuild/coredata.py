@@ -1259,6 +1259,7 @@ BUILTIN_CORE_OPTIONS: 'MutableKeyedOptionDictType' = OrderedDict([
     (OptionKey('werror'),          BuiltinOption(UserBooleanOption, 'Treat warnings as errors', False, yielding=False)),
     (OptionKey('wrap_mode'),       BuiltinOption(UserComboOption, 'Wrap mode', 'default', choices=['default', 'nofallback', 'nodownload', 'forcefallback', 'nopromote'])),
     (OptionKey('force_fallback_for'), BuiltinOption(UserArrayOption, 'Force fallback for those subprojects', [])),
+    (OptionKey('vsenv'),           BuiltinOption(UserBooleanOption, 'Activate Visual Studio environment', False, readonly=True)),
 
     # Pkgconfig module
     (OptionKey('relocatable', module='pkgconfig'),

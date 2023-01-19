@@ -159,7 +159,8 @@ def run(options: argparse.Namespace) -> int:
     b = build.load(options.builddir)
     workdir = options.workdir or options.builddir
 
-    setup_vsenv(b.need_vsenv)  # Call it before get_env to get vsenv vars as well
+    need_vsenv = T.cast('bool', b.environment.coredata.get_option(OptionKey('vsenv')))
+    setup_vsenv(need_vsenv) # Call it before get_env to get vsenv vars as well
     dump_fmt = options.dump_format if options.dump else None
     devenv, varnames = get_env(b, dump_fmt)
     if options.dump:
