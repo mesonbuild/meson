@@ -27,7 +27,8 @@ import typing as T
 from . import build
 from . import environment
 from .backend.backends import InstallData
-from .mesonlib import MesonException, Popen_safe, RealPathAction, is_windows, setup_vsenv, pickle_load, is_osx
+from .mesonlib import (MesonException, Popen_safe, RealPathAction, is_windows,
+                       setup_vsenv, pickle_load, is_osx, OptionKey)
 from .scripts import depfixer, destdir_join
 from .scripts.meson_exe import run_exe
 try:
@@ -757,7 +758,8 @@ def run(opts: 'ArgumentType') -> int:
         sys.exit('Install data not found. Run this command in build directory root.')
     if not opts.no_rebuild:
         b = build.load(opts.wd)
-        setup_vsenv(b.need_vsenv)
+        need_vsenv = T.cast('bool', b.environment.coredata.get_option(OptionKey('vsenv')))
+        setup_vsenv(need_vsenv)
         if not rebuild_all(opts.wd):
             sys.exit(-1)
     os.chdir(opts.wd)

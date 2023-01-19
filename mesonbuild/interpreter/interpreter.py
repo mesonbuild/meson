@@ -1256,9 +1256,9 @@ class Interpreter(InterpreterBase, HoldableObject):
             # vs backend version we need. But after setting default_options in case
             # the project sets vs backend by default.
             backend = self.coredata.get_option(OptionKey('backend'))
-            force_vsenv = self.user_defined_options.vsenv or backend.startswith('vs')
-            if mesonlib.setup_vsenv(force_vsenv):
-                self.build.need_vsenv = True
+            vsenv = self.coredata.get_option(OptionKey('vsenv'))
+            force_vsenv = vsenv or backend.startswith('vs')
+            mesonlib.setup_vsenv(force_vsenv)
 
         self.add_languages(proj_langs, True, MachineChoice.HOST)
         self.add_languages(proj_langs, False, MachineChoice.BUILD)

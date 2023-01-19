@@ -2128,6 +2128,7 @@ _BUILTIN_NAMES = {
     'cmake_prefix_path',
     'cross_file',
     'native_file',
+    'vsenv',
 }
 
 

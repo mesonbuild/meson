@@ -26,7 +26,6 @@ from pathlib import Path
 
 from . import mlog
 from . import mesonlib
-from . import coredata
 from .mesonlib import MesonException, RealPathAction, join_args, setup_vsenv
 from mesonbuild.environment import detect_ninja
 from mesonbuild.coredata import UserArrayOption
@@ -335,8 +334,8 @@ def run(options: 'argparse.Namespace') -> int:
 
     b = build.load(options.wd)
     cdata = b.environment.coredata
-    vsenv_active = setup_vsenv(b.need_vsenv)
-    if vsenv_active:
+    need_vsenv = T.cast('bool', cdata.get_option(mesonlib.OptionKey('vsenv')))
+    if setup_vsenv(need_vsenv):
         mlog.log(mlog.green('INFO:'), 'automatically activated MSVC compiler environment')
 
     cmd = []    # type: T.List[str]

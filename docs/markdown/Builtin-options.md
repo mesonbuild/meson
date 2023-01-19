@@ -94,8 +94,9 @@ machine](#specifying-options-per-machine) section for details.
 | werror                                 | false         | Treat warnings as errors                                       | no             | yes               |
 | wrap_mode {default, nofallback,<br>nodownload, forcefallback, nopromote} | default | Wrap mode to use                 | no             | no                |
 | force_fallback_for                     | []            | Force fallback for those dependencies                          | no             | no                |
-| cross_file      | []            | File describing cross compilation environment                                         | no             | no |
-| native_file      | []            | File containing overrides for native compilation environment                         | no             | no |
+| cross_file      | []            | File describing cross compilation environment                                        | no             | no |
+| native_file     | []            | File containing overrides for native compilation environment                         | no             | no |
+| vsenv           | false         | Activate Visual Studio environment                                                   | no             | no |
 
 <a name="build-type-options"></a> For setting optimization levels and
 toggling debug, you can either set the `buildtype` option, or you can

@@ -272,7 +272,6 @@ class Build:
             environment.is_cross_build(), {}, {})
         self.devenv: T.List[EnvironmentVariables] = []
         self.modules: T.List[str] = []
-        self.need_vsenv = False
 
     def get_build_targets(self):
         build_targets = OrderedDict()

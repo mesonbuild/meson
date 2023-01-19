@@ -44,10 +44,6 @@ syntax: glob
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
     coredata.register_builtin_arguments(parser)
-    parser.add_argument('--vsenv', action='store_true',
-                        help='Setup Visual Studio environment even when other compilers are found, ' +
-                             'abort if Visual Studio is not found. This option has no effect on other ' +
-                             'platforms than Windows. Defaults to True when using "vs" backend.')
     parser.add_argument('-v', '--version', action='version',
                         version=coredata.version)
     parser.add_argument('--profile-self', action='store_true', dest='profile',

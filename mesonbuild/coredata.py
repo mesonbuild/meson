@@ -1243,6 +1243,7 @@ BUILTIN_CORE_OPTIONS: 'MutableKeyedOptionDictType' = OrderedDict([
                                              readonly=True, action='append')),
     (OptionKey('cross_file'), BuiltinOption(UserArrayOption, 'File describing cross compilation environment', [],
                                             readonly=True, action='append')),
+    (OptionKey('vsenv'), BuiltinOption(UserBooleanOption, 'Activate Visual Studio environment', False, readonly=True)),
 
     # Pkgconfig module
     (OptionKey('relocatable', module='pkgconfig'),
