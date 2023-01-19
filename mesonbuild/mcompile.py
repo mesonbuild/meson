@@ -333,8 +333,8 @@ def run(options: 'argparse.Namespace') -> int:
 
     b = build.load(options.wd)
     cdata = b.environment.coredata
-    vsenv_active = setup_vsenv(b.need_vsenv)
-    if vsenv_active:
+    need_vsenv = T.cast('bool', cdata.get_option(mesonlib.OptionKey('vsenv')))
+    if setup_vsenv(need_vsenv):
         mlog.log(mlog.green('INFO:'), 'automatically activated MSVC compiler environment')
 
     cmd = []    # type: T.List[str]

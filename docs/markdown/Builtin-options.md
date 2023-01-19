@@ -74,11 +74,11 @@ machine](#specifying-options-per-machine) section for details.
 
 | Option                                 | Default value | Description                                                    | Is per machine | Is per subproject |
 | -------------------------------------- | ------------- | -----------                                                    | -------------- | ----------------- |
-| auto_features {enabled, disabled, auto} | auto       | Override value of all 'auto' features                          | no             | no                |
-| backend {ninja, vs,<br>vs2010, vs2012, vs2013, vs2015, vs2017, vs2019, vs2022, xcode, none} | ninja | Backend to use  | no             | no                |
-| buildtype {plain, debug,<br>debugoptimized, release, minsize, custom} | debug |  Build type to use                    | no             | no                |
+| auto_features {enabled, disabled, auto} | auto         | Override value of all 'auto' features                          | no             | no                |
+| backend {ninja, vs,<br>vs2010, vs2012, vs2013, vs2015, vs2017, vs2019, vs2022, xcode, none} | ninja | Backend to use    | no             | no                |
+| buildtype {plain, debug,<br>debugoptimized, release, minsize, custom} | debug | Build type to use                       | no             | no                |
 | debug                                  | true          | Enable debug symbols and other information                     | no             | no                |
-| default_library {shared, static, both} | shared      | Default library type                                           | no             | yes               |
+| default_library {shared, static, both} | shared        | Default library type                                           | no             | yes               |
 | errorlogs                              | true          | Whether to print the logs from failing tests.                  | no             | no                |
 | install_umask {preserve, 0000-0777}    | 022           | Default umask to apply on permissions of installed files       | no             | no                |
 | layout {mirror,flat}                   | mirror        | Build directory layout                                         | no             | no                |
@@ -92,8 +92,9 @@ machine](#specifying-options-per-machine) section for details.
 | unity_size {>=2}                       | 4             | Unity file block size                                          | no             | no                |
 | warning_level {0, 1, 2, 3, everything} | 1             | Set the warning level. From 0 = none to everything = highest   | no             | yes               |
 | werror                                 | false         | Treat warnings as errors                                       | no             | yes               |
-| wrap_mode {default, nofallback,<br>nodownload, forcefallback, nopromote} | default | Wrap mode to use                 | no             | no                |
+| wrap_mode {default, nofallback,<br>nodownload, forcefallback, nopromote} | default | Wrap mode to use                   | no             | no                |
 | force_fallback_for                     | []            | Force fallback for those dependencies                          | no             | no                |
+| vsenv                                  | false         | Activate Visual Studio environment                             | no             | no                |
 
 #### Details for `backend`
 
@@ -139,6 +140,21 @@ table for most common compilers.
 | everything    | -Weverything             | /Wall |
 
 Clang's `-Weverything` is emulated on GCC by passing all known warning flags.
+
+#### Details for `vsenv`
+
+The `--vsenv` argument is supported since `0.60.0`, `-Dvsenv=true` syntax is supported
+since `1.1.0`.
+
+Since `0.59.0`, meson automatically activates a Visual Studio environment on Windows
+for all its subcommands, but only if no other compilers (e.g. `gcc` or `clang`)
+are found, and silently continues if Visual Studio activation fails.
+
+Setting the `vsenv` option to `true` forces Visual Studio activation even when other
+compilers are found. It also make Meson abort with an error message when activation
+fails.
+
+`vsenv` is `true` by default when using the `vs` backend.
 
 ## Base options
 

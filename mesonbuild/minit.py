@@ -187,7 +187,8 @@ def run(options: 'argparse.Namespace') -> int:
             raise SystemExit
 
         b = build.load(options.builddir)
-        vsenv_active = mesonlib.setup_vsenv(b.need_vsenv)
+        need_vsenv = T.cast('bool', b.environment.coredata.get_option(mesonlib.OptionKey('vsenv')))
+        vsenv_active = mesonlib.setup_vsenv(need_vsenv)
         if vsenv_active:
             mlog.log(mlog.green('INFO:'), 'automatically activated MSVC compiler environment')
 

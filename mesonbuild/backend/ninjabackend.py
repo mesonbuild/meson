@@ -574,7 +574,7 @@ class NinjaBackend(backends.Backend):
 
     def generate(self):
         ninja = environment.detect_ninja_command_and_version(log=True)
-        if self.build.need_vsenv:
+        if self.environment.coredata.get_option(OptionKey('vsenv')):
             builddir = Path(self.environment.get_build_dir())
             try:
                 # For prettier printing, reduce to a relative path. If

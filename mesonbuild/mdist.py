@@ -24,11 +24,13 @@ import subprocess
 import tarfile
 import tempfile
 import hashlib
+import typing as T
+
 from glob import glob
 from pathlib import Path
 from mesonbuild.environment import detect_ninja
 from mesonbuild.mesonlib import (MesonException, RealPathAction, quiet_git,
-                                 windows_proof_rmtree, setup_vsenv)
+                                 windows_proof_rmtree, setup_vsenv, OptionKey)
 from mesonbuild.msetup import add_arguments as msetup_argparse
 from mesonbuild.wrap import wrap
 from mesonbuild import mlog, build, coredata
@@ -285,7 +287,7 @@ def create_cmdline_args(bld_root):
     args = parser.parse_args([])
     coredata.parse_cmd_line_options(args)
     coredata.read_cmd_line_file(bld_root, args)
-    args.cmd_line_options.pop(coredata.OptionKey('backend'), '')
+    args.cmd_line_options.pop(OptionKey('backend'), '')
     return shlex.split(coredata.format_cmd_line_options(args))
 
 def determine_archives_to_generate(options):
@@ -303,7 +305,8 @@ def run(options):
     if not buildfile.is_file():
         raise MesonException(f'Directory {options.wd!r} does not seem to be a Meson build directory.')
     b = build.load(options.wd)
-    setup_vsenv(b.need_vsenv)
+    need_vsenv = T.cast('bool', b.environment.coredata.get_option(OptionKey('vsenv')))
+    setup_vsenv(need_vsenv)
     # This import must be load delayed, otherwise it will get the default
     # value of None.
     from mesonbuild.mesonlib import get_meson_command
