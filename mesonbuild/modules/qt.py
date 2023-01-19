@@ -288,6 +288,7 @@ class QtBaseModule(ExtensionModule):
     @typed_kwargs(
         'qt.compile_resources',
         KwargInfo('name', (str, NoneType)),
+        KwargInfo('prefix', (str, NoneType)),
         KwargInfo(
             'sources',
             ContainerTypeInfo(list, (File, str, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList), allow_empty=False),
@@ -323,6 +324,7 @@ class QtBaseModule(ExtensionModule):
         DEPFILE_ARGS: T.List[str] = ['--depfile', '@DEPFILE@'] if self._rcc_supports_depfiles else []
 
         name = kwargs['name']
+        prefix = kwargs['prefix']
         sources: T.List['FileOrString'] = []
         for s in kwargs['sources']:
             if isinstance(s, (str, File)):
@@ -332,8 +334,33 @@ class QtBaseModule(ExtensionModule):
         extra_args = kwargs['extra_args']
 
         # If a name was set generate a single .cpp file from all of the qrc
+        # If a name and prefix was set, it will create a qrc and generate it
         # files, otherwise generate one .cpp file per qrc file.
-        if name:
+        if prefix and name:
+            outfilename = os.path.join(state.environment.build_dir, f'{name}.qrc')
+            with open(outfilename, 'w', encoding='utf-8') as outfile:
+                outfile.write("<!DOCTYPE RCC>\n")
+                outfile.write("<RCC>\n")
+                outfile.write(f"  <qresource prefix=\"{prefix}\">\n")
+                for s in sources:
+                    thefileabspath = os.path.abspath(s)
+                    outfile.write(f"    <file alias=\"{s}\">{thefileabspath}</file>\n")
+                outfile.write("  </qresource>\n")
+                outfile.write("</RCC>\n")
+
+            res_target = build.CustomTarget(
+                name,
+                state.subdir,
+                state.subproject,
+                state.environment,
+                self.tools['rcc'].get_command() + ['-name', name, '-o', '@OUTPUT@'] + extra_args + ['@INPUT@'] + DEPFILE_ARGS,
+                [outfilename],
+                [f'{name}.cpp'],
+                depend_files=sources,
+                depfile=f'{name}.d',
+            )
+            targets.append(res_target)
+        elif name:
             qrc_deps: T.List[File] = []
             for s in sources:
                 qrc_deps.extend(self._parse_qrc_deps(state, s))
