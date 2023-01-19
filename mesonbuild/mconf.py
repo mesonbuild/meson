@@ -72,7 +72,7 @@ class Conf:
         if os.path.isdir(os.path.join(self.build_dir, 'meson-private')):
             self.build = build.load(self.build_dir)
             self.source_dir = self.build.environment.get_source_dir()
-            self.coredata = coredata.load(self.build_dir)
+            self.coredata = self.build.environment.coredata
             self.default_values_only = False
         elif os.path.isfile(os.path.join(self.build_dir, environment.build_filename)):
             # Make sure that log entries in other parts of meson don't interfere with the JSON output
