@@ -333,8 +333,8 @@ def run(options: 'argparse.Namespace') -> int:
     if options.targets and options.clean:
         raise MesonException('`TARGET` and `--clean` can\'t be used simultaneously')
 
-    cdata = coredata.load(options.wd)
     b = build.load(options.wd)
+    cdata = b.environment.coredata
     vsenv_active = setup_vsenv(b.need_vsenv)
     if vsenv_active:
         mlog.log(mlog.green('INFO:'), 'automatically activated MSVC compiler environment')
