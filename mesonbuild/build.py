@@ -26,6 +26,7 @@ import re
 import textwrap
 import typing as T
 
+from . import coredata
 from . import environment
 from . import dependencies
 from . import mlog
@@ -235,6 +236,7 @@ class Build:
     """
 
     def __init__(self, environment: environment.Environment):
+        self.version = coredata.version
         self.project_name = 'name of master project'
         self.project_version = None
         self.environment = environment
@@ -2980,11 +2982,20 @@ def get_sources_string_names(sources, backend):
 def load(build_dir: str) -> Build:
     filename = os.path.join(build_dir, 'meson-private', 'build.dat')
     try:
-        return pickle_load(filename, 'Build data', Build)
+        b = pickle_load(filename, 'Build data', Build)
+        # We excluded coredata when saving Build object, load it separately
+        b.environment.coredata = coredata.load(build_dir)
+        return b
     except FileNotFoundError:
         raise MesonException(f'No such build data file as {filename!r}.')
 
 
 def save(obj: Build, filename: str) -> None:
-    with open(filename, 'wb') as f:
-        pickle.dump(obj, f)
+    # Exclude coredata because we pickle it separately already
+    cdata = obj.environment.coredata
+    obj.environment.coredata = None
+    try:
+        with open(filename, 'wb') as f:
+            pickle.dump(obj, f)
+    finally:
+        obj.environment.coredata = cdata
