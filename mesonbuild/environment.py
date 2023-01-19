@@ -467,6 +467,13 @@ class Environment:
             self.scratch_dir = ''
             self.create_new_coredata(options)
 
+        # We want `meson setup --reconfigure --cross-file foo.txt` to work if
+        # the initial setup had the same foo.txt file. For that we need to
+        # resolve the full path again so we can check the value did not change.
+        if not self.first_invocation:
+            self.coredata.resolve_config_files(options, self.scratch_dir, "cross")
+            self.coredata.resolve_config_files(options, self.scratch_dir, "native")
+
         ## locally bind some unfrozen configuration
 
         # Stores machine infos, the only *three* machine one because we have a

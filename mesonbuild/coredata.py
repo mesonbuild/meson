@@ -87,6 +87,7 @@ class UserOption(T.Generic[_T], HoldableObject):
             raise MesonException('Value of "yielding" must be a boolean.')
         self.yielding = yielding
         self.deprecated = deprecated
+        self.readonly = False
 
     def listify(self, value: T.Any) -> T.List[T.Any]:
         return [value]
@@ -459,8 +460,12 @@ class CoreData:
         self.target_guids = {}
         self.version = version
         self.options: 'MutableKeyedOptionDictType' = {}
-        self.cross_files = self.__load_config_files(options, scratch_dir, 'cross')
         self.compilers = PerMachine(OrderedDict(), OrderedDict())  # type: PerMachine[T.Dict[str, Compiler]]
+
+        self.init_builtins('')
+        self.cross_files = self.resolve_config_files(options, scratch_dir, 'cross')
+        self.config_files = self.resolve_config_files(options, scratch_dir, 'native')
+        self.builtin_options_libdir_cross_fixup()
 
         # Set of subprojects that have already been initialized once, this is
         # required to be stored and reloaded with the coredata, as we don't
@@ -478,20 +483,11 @@ class CoreData:
         # CMake cache
         self.cmake_cache: PerMachine[CMakeStateCache] = PerMachine(CMakeStateCache(), CMakeStateCache())
 
-        # Only to print a warning if it changes between Meson invocations.
-        self.config_files = self.__load_config_files(options, scratch_dir, 'native')
-        self.builtin_options_libdir_cross_fixup()
-        self.init_builtins('')
-
-    @staticmethod
-    def __load_config_files(options: argparse.Namespace, scratch_dir: str, ftype: str) -> T.List[str]:
+    def resolve_config_files(self, options: argparse.Namespace, scratch_dir: str, ftype: str) -> T.List[str]:
         # Need to try and make the passed filenames absolute because when the
         # files are parsed later we'll have chdir()d.
-        if ftype == 'cross':
-            filenames = options.cross_file
-        else:
-            filenames = options.native_file
-
+        key = OptionKey(f'{ftype}_file')
+        filenames = self.options[key].listify(options.cmd_line_options.get(key, []))
         if not filenames:
             return []
 
@@ -539,6 +535,7 @@ class CoreData:
                 mlog.log('Found invalid candidates for', ftype, 'file:', *found_invalid)
             mlog.log('Could not find any valid candidate for', ftype, 'files:', *missing)
             raise MesonException(f'Cannot find specified {ftype} file: {f}')
+        options.cmd_line_options[key] = real
         return real
 
     def builtin_options_libdir_cross_fixup(self):
@@ -546,7 +543,7 @@ class CoreData:
         # getting the "system default" is always wrong on multiarch
         # platforms as it gets a value like lib/x86_64-linux-gnu.
         if self.cross_files:
-            BUILTIN_OPTIONS[OptionKey('libdir')].default = 'lib'
+            self.options[OptionKey('libdir')].set_value('lib')
 
     def sanitize_prefix(self, prefix):
         prefix = os.path.expanduser(prefix)
@@ -648,7 +645,7 @@ class CoreData:
 
         raise MesonException(f'Tried to get unknown builtin option {str(key)}')
 
-    def set_option(self, key: OptionKey, value) -> None:
+    def set_option(self, key: OptionKey, value, first_invocation: bool = False) -> None:
         if key.is_builtin():
             if key.name == 'prefix':
                 value = self.sanitize_prefix(value)
@@ -688,9 +685,12 @@ class CoreData:
             newname = opt.deprecated
             newkey = OptionKey.from_string(newname).evolve(subproject=key.subproject)
             mlog.deprecation(f'Option {key.name!r} is replaced by {newname!r}')
-            self.set_option(newkey, value)
+            self.set_option(newkey, value, first_invocation)
 
+        oldvalue = opt.value
         opt.set_value(value)
+        if opt.readonly and not first_invocation and opt.value != oldvalue:
+            raise MesonException(f'Tried modify read only option {str(key)}')
 
         if key.name == 'buildtype':
             self._set_others_from_buildtype(value)
@@ -808,7 +808,7 @@ class CoreData:
                 except KeyError:
                     continue
 
-    def set_options(self, options: T.Dict[OptionKey, T.Any], subproject: str = '') -> None:
+    def set_options(self, options: T.Dict[OptionKey, T.Any], subproject: str = '', first_invocation: bool = False) -> None:
         if not self.is_cross_build():
             options = {k: v for k, v in options.items() if k.machine is not MachineChoice.BUILD}
         # Set prefix first because it's needed to sanitize other options
@@ -825,7 +825,7 @@ class CoreData:
             if k == pfk:
                 continue
             elif k in self.options:
-                self.set_option(k, v)
+                self.set_option(k, v, first_invocation)
             elif k.machine != MachineChoice.BUILD and k.type != OptionType.COMPILER:
                 unknown_options.append(k)
         if unknown_options:
@@ -872,7 +872,7 @@ class CoreData:
                 continue
             options[k] = v
 
-        self.set_options(options, subproject=subproject)
+        self.set_options(options, subproject=subproject, first_invocation=env.first_invocation)
 
     def add_compiler_options(self, options: 'MutableKeyedOptionDictType', lang: str, for_machine: MachineChoice,
                              env: 'Environment') -> None:
@@ -1006,23 +1006,27 @@ def read_cmd_line_file(build_dir: str, options: argparse.Namespace) -> None:
     d.update(options.cmd_line_options)
     options.cmd_line_options = d
 
+    # Legacy: Older Meson versions had cross_file and native_file in a separate
+    # section instead of being a normal built-in option.
     properties = config['properties']
-    if not options.cross_file:
-        options.cross_file = ast.literal_eval(properties.get('cross_file', '[]'))
-    if not options.native_file:
-        # This will be a string in the form: "['first', 'second', ...]", use
-        # literal_eval to get it into the list of strings.
-        options.native_file = ast.literal_eval(properties.get('native_file', '[]'))
+    for k in ['cross_file', 'native_file']:
+        key = OptionKey(k)
+        val = properties.get(k)
+        if key not in options.cmd_line_options and val:
+            options.cmd_line_options[key] = val
 
 def write_cmd_line_file(build_dir: str, options: argparse.Namespace) -> None:
     filename = get_cmd_line_file(build_dir)
     config = CmdLineFileParser()
 
+    # Legacy: Older Meson versions had cross_file and native_file in a separate
+    # section instead of being a normal built-in option.
     properties = OrderedDict()
-    if options.cross_file:
-        properties['cross_file'] = options.cross_file
-    if options.native_file:
-        properties['native_file'] = options.native_file
+    for k in ['cross_file', 'native_file']:
+        key = OptionKey(k)
+        val = options.cmd_line_options.get(key)
+        if val:
+            properties[k] = val
 
     config['options'] = {str(k): str(v) for k, v in options.cmd_line_options.items()}
     config['properties'] = properties
@@ -1039,10 +1043,6 @@ def update_cmd_line_file(build_dir: str, options: argparse.Namespace):
 
 def format_cmd_line_options(options: argparse.Namespace) -> str:
     cmdline = ['-D{}={}'.format(str(k), v) for k, v in options.cmd_line_options.items()]
-    if options.cross_file:
-        cmdline += [f'--cross-file={f}' for f in options.cross_file]
-    if options.native_file:
-        cmdline += [f'--native-file={f}' for f in options.native_file]
     return ' '.join([shlex.quote(x) for x in cmdline])
 
 def major_versions_differ(v1: str, v2: str) -> bool:
@@ -1127,12 +1127,14 @@ class BuiltinOption(T.Generic[_T, _U]):
     """
 
     def __init__(self, opt_type: T.Type[_U], description: str, default: T.Any, yielding: bool = True, *,
-                 choices: T.Any = None):
+                 choices: T.Any = None, readonly: bool = False, action: T.Optional[str] = None):
         self.opt_type = opt_type
         self.description = description
         self.default = default
         self.choices = choices
         self.yielding = yielding
+        self.readonly = readonly
+        self.action = action
 
     def init_option(self, name: 'OptionKey', value: T.Optional[T.Any], prefix: str) -> _U:
         """Create an instance of opt_type and return it."""
@@ -1141,7 +1143,9 @@ class BuiltinOption(T.Generic[_T, _U]):
         keywords = {'yielding': self.yielding, 'value': value}
         if self.choices:
             keywords['choices'] = self.choices
-        return self.opt_type(self.description, **keywords)
+        o = self.opt_type(self.description, **keywords)
+        o.readonly = self.readonly
+        return o
 
     def _argparse_action(self) -> T.Optional[str]:
         # If the type is a boolean, the presence of the argument in --foo form
@@ -1149,7 +1153,7 @@ class BuiltinOption(T.Generic[_T, _U]):
         # parsed under `args.projectoptions` and does not hit this codepath.
         if isinstance(self.default, bool):
             return 'store_true'
-        return None
+        return self.action
 
     def _argparse_choices(self) -> T.Any:
         if self.opt_type is UserBooleanOption:
@@ -1233,6 +1237,12 @@ BUILTIN_CORE_OPTIONS: 'MutableKeyedOptionDictType' = OrderedDict([
     (OptionKey('werror'),          BuiltinOption(UserBooleanOption, 'Treat warnings as errors', False, yielding=False)),
     (OptionKey('wrap_mode'),       BuiltinOption(UserComboOption, 'Wrap mode', 'default', choices=['default', 'nofallback', 'nodownload', 'forcefallback', 'nopromote'])),
     (OptionKey('force_fallback_for'), BuiltinOption(UserArrayOption, 'Force fallback for those subprojects', [])),
+
+    # Readonly options that cannot be changed after initial setup
+    (OptionKey('native_file'), BuiltinOption(UserArrayOption, 'File containing overrides for native compilation environment', [],
+                                             readonly=True, action='append')),
+    (OptionKey('cross_file'), BuiltinOption(UserArrayOption, 'File describing cross compilation environment', [],
+                                            readonly=True, action='append')),
 
     # Pkgconfig module
     (OptionKey('relocatable', module='pkgconfig'),

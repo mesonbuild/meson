@@ -148,8 +148,6 @@ class FakeCompilerOptions:
 # TODO: use a typing.Protocol here
 def get_fake_options(prefix: str = '') -> argparse.Namespace:
     opts = argparse.Namespace()
-    opts.native_file = []
-    opts.cross_file = None
     opts.wrap_mode = None
     opts.prefix = prefix
     opts.cmd_line_options = {}

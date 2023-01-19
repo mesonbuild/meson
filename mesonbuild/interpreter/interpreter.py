@@ -1349,10 +1349,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         # Add automatic section with all user defined options
         if self.user_defined_options:
             values = collections.OrderedDict()
-            if self.user_defined_options.cross_file:
-                values['Cross files'] = self.user_defined_options.cross_file
-            if self.user_defined_options.native_file:
-                values['Native files'] = self.user_defined_options.native_file
             sorted_options = sorted(self.user_defined_options.cmd_line_options.items())
             values.update({str(k): v for k, v in sorted_options})
             if values:
