@@ -108,11 +108,9 @@ def get_target_from_intro_data(target: ParsedTargetName, builddir: Path, introsp
         found_targets = intro_targets
     else:
         for intro_target in intro_targets:
-            if (intro_target['subproject'] or
-                    (target.type and target.type != intro_target['type'].replace(' ', '_')) or
-                    (target.path
-                        and intro_target['filename'] != 'no_name'
-                        and Path(target.path) != Path(intro_target['filename'][0]).relative_to(resolved_bdir).parent)):
+            if ((target.type and target.type != intro_target['type'].replace(' ', '_')) or
+                (target.path and intro_target['filename'] != 'no_name' and
+                 Path(target.path) != Path(intro_target['filename'][0]).relative_to(resolved_bdir).parent)):
                 continue
             found_targets += [intro_target]
 
