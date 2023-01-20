@@ -146,6 +146,7 @@ def run(options: argparse.Namespace) -> int:
     b = build.load(options.builddir)
     workdir = options.workdir or options.builddir
 
+    setup_vsenv(b.need_vsenv)  # Call it before get_env to get vsenv vars as well
     devenv, varnames = get_env(b, options.dump)
     if options.dump:
         if options.devcmd:
@@ -165,8 +166,6 @@ def run(options: argparse.Namespace) -> int:
 
     install_data = minstall.load_install_data(str(privatedir / 'install.dat'))
     write_gdb_script(privatedir, install_data, workdir)
-
-    setup_vsenv(b.need_vsenv)
 
     args = options.devcmd
     if not args:
