@@ -289,7 +289,6 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
         trial = platform.processor().lower()
     else:
         trial = platform.machine().lower()
-    mlog.debug(f'detecting CPU family based on trial={trial!r}')
     if trial.startswith('i') and trial.endswith('86'):
         trial = 'x86'
     elif trial == 'bepc':
