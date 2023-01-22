@@ -384,7 +384,13 @@ def exception(e: Exception, prefix: T.Optional[AnsiDecorator] = None) -> None:
     if prefix:
         args.append(prefix)
     args.append(str(e))
-    log(*args)
+
+    restore = log_disable_stdout
+    if restore:
+        enable()
+    log(*args, is_error=True)
+    if restore:
+        disable()
 
 # Format a list for logging purposes as a string. It separates
 # all but the last item with commas, and the last with 'and'.
