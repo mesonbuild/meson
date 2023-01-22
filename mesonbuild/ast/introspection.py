@@ -141,8 +141,8 @@ class IntrospectionInterpreter(AstInterpreter):
         options = {k: v for k, v in self.environment.options.items() if k.is_backend()}
 
         self.coredata.set_options(options)
-        self._add_languages(proj_langs, MachineChoice.HOST)
-        self._add_languages(proj_langs, MachineChoice.BUILD)
+        self._add_languages(proj_langs, True, MachineChoice.HOST)
+        self._add_languages(proj_langs, True, MachineChoice.BUILD)
 
     def do_subproject(self, dirname: str) -> None:
         subproject_dir_abs = os.path.join(self.environment.get_source_dir(), self.subproject_dir)
@@ -157,14 +157,17 @@ class IntrospectionInterpreter(AstInterpreter):
 
     def func_add_languages(self, node: BaseNode, args: T.List[TYPE_nvar], kwargs: T.Dict[str, TYPE_nvar]) -> None:
         kwargs = self.flatten_kwargs(kwargs)
+        required = kwargs.get('required', True)
+        if isinstance(required, cdata.UserFeatureOption):
+            required = required.is_enabled()
         if 'native' in kwargs:
             native = kwargs.get('native', False)
-            self._add_languages(args, MachineChoice.BUILD if native else MachineChoice.HOST)
+            self._add_languages(args, required, MachineChoice.BUILD if native else MachineChoice.HOST)
         else:
             for for_machine in [MachineChoice.BUILD, MachineChoice.HOST]:
-                self._add_languages(args, for_machine)
+                self._add_languages(args, required, for_machine)
 
-    def _add_languages(self, raw_langs: T.List[TYPE_nvar], for_machine: MachineChoice) -> None:
+    def _add_languages(self, raw_langs: T.List[TYPE_nvar], required: bool, for_machine: MachineChoice) -> None:
         langs = []  # type: T.List[str]
         for l in self.flatten_args(raw_langs):
             if isinstance(l, str):
@@ -175,7 +178,14 @@ class IntrospectionInterpreter(AstInterpreter):
         for lang in sorted(langs, key=compilers.sort_clink):
             lang = lang.lower()
             if lang not in self.coredata.compilers[for_machine]:
-                comp = detect_compiler_for(self.environment, lang, for_machine)
+                try:
+                    comp = detect_compiler_for(self.environment, lang, for_machine)
+                except mesonlib.MesonException:
+                    # do we even care about introspecting this language?
+                    if required:
+                        raise
+                    else:
+                        continue
                 if self.subproject:
                     options = {}
                     for k in comp.get_options():
