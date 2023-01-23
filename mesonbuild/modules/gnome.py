@@ -300,6 +300,7 @@ class GnomeModule(ExtensionModule):
             'genmarshal': self.genmarshal,
             'generate_vapi': self.generate_vapi,
         })
+        self.__last_project_name: T.Optional[str] = None
 
     def _get_native_glib_version(self, state: 'ModuleState') -> str:
         if self.native_glib_version is None:
@@ -789,10 +790,23 @@ class GnomeModule(ExtensionModule):
 
     def _get_gir_dep(self, state: 'ModuleState') -> T.Tuple[Dependency, T.Union[build.Executable, 'ExternalProgram', 'OverrideProgram'],
                                                             T.Union[build.Executable, 'ExternalProgram', 'OverrideProgram']]:
+        # gobject-introspection requires internally the 'gobject-introspection-no-typelibs-1.0'
+        # dependency to be able use gnome.generate_gir before creating all the typelibs targets.
+        # The cached dependency is reset so that other projects will use the final
+        # 'gobject-introspection-1.0' dependency
+        if self.__last_project_name == 'gobject-introspection' and state.project_name != 'gobject-introspection':
+            self.gir_dep = None
+
         if not self.gir_dep:
-            self.gir_dep = state.dependency('gobject-introspection-1.0')
-            self.giscanner = state.find_tool('g-ir-scanner', 'gobject-introspection-1.0', 'g_ir_scanner')
-            self.gicompiler = state.find_tool('g-ir-compiler', 'gobject-introspection-1.0', 'g_ir_compiler')
+            if state.project_name == 'gobject-introspection':
+                dep_name = 'gobject-introspection-no-typelibs-1.0'
+            else:
+                dep_name = 'gobject-introspection-1.0'
+            self.gir_dep = state.dependency(dep_name)
+            self.giscanner = state.find_tool('g-ir-scanner', dep_name, 'g_ir_scanner')
+            self.gicompiler = state.find_tool('g-ir-compiler', dep_name, 'g_ir_compiler')
+            self.__last_project_name = state.project_name
+
         return self.gir_dep, self.giscanner, self.gicompiler
 
     @functools.lru_cache(maxsize=None)
