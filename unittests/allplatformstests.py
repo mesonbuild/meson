@@ -153,10 +153,19 @@ class AllPlatformTests(BasePlatformTests):
             (result, missing_variables, confdata_useless) = do_conf_str('configuration_file', in_data, confdata, variable_format = vformat)
             return '\n'.join(result)
 
-        def check_formats(confdata, result):
+        def check_meson_format(confdata, result):
             self.assertEqual(conf_str(['#mesondefine VAR'], confdata, 'meson'), result)
+
+        def check_cmake_format_simple(confdata, result):
+            self.assertEqual(conf_str(['#cmakedefine VAR'], confdata, 'cmake'), result)
+
+        def check_cmake_formats_full(confdata, result):
             self.assertEqual(conf_str(['#cmakedefine VAR ${VAR}'], confdata, 'cmake'), result)
             self.assertEqual(conf_str(['#cmakedefine VAR @VAR@'], confdata, 'cmake@'), result)
+
+        def check_formats(confdata, result):
+            check_meson_format(confdata, result)
+            check_cmake_formats_full(confdata, result)
 
         confdata = ConfigurationData()
         # Key error as they do not exists
@@ -164,9 +173,13 @@ class AllPlatformTests(BasePlatformTests):
 
         # Check boolean
         confdata.values = {'VAR': (False, 'description')}
-        check_formats(confdata, '#undef VAR\n')
+        check_meson_format(confdata, '#undef VAR\n')
+        check_cmake_formats_full(confdata, '/* #undef VAR */\n')
+
         confdata.values = {'VAR': (True, 'description')}
-        check_formats(confdata, '#define VAR\n')
+        check_meson_format(confdata, '#define VAR\n')
+        check_cmake_format_simple(confdata, '#define VAR\n')
+        check_cmake_formats_full(confdata, '#define VAR 1\n')
 
         # Check string
         confdata.values = {'VAR': ('value', 'description')}
@@ -175,6 +188,25 @@ class AllPlatformTests(BasePlatformTests):
         # Check integer
         confdata.values = {'VAR': (10, 'description')}
         check_formats(confdata, '#define VAR 10\n')
+
+        # Checking if cmakedefine behaves as it does with cmake
+        confdata.values = {'VAR': ("var", 'description')}
+        self.assertEqual(conf_str(['#cmakedefine VAR @VAR@'], confdata, 'cmake@'), '#define VAR var\n')
+
+        confdata.values = {'VAR': (True, 'description')}
+        self.assertEqual(conf_str(['#cmakedefine01 VAR'], confdata, 'cmake'), '#define VAR 1\n')
+
+        confdata.values = {'VAR': (0, 'description')}
+        self.assertEqual(conf_str(['#cmakedefine01 VAR'], confdata, 'cmake'), '#define VAR 0\n')
+        confdata.values = {'VAR': (False, 'description')}
+        self.assertEqual(conf_str(['#cmakedefine01 VAR'], confdata, 'cmake'), '#define VAR 0\n')
+
+        confdata.values = {}
+        self.assertEqual(conf_str(['#cmakedefine01 VAR'], confdata, 'cmake'), '#define VAR 0\n')
+        self.assertEqual(conf_str(['#cmakedefine VAR @VAR@'], confdata, 'cmake@'), '/* #undef VAR */\n')
+
+        confdata.values = {'VAR': (5, 'description')}
+        self.assertEqual(conf_str(['#cmakedefine VAR'], confdata, 'cmake'), '#define VAR\n')
 
         # Check multiple string with cmake formats
         confdata.values = {'VAR': ('value', 'description')}
