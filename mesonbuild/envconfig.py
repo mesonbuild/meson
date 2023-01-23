@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import platform
 import subprocess
 import typing as T
 from enum import Enum
@@ -354,6 +355,17 @@ class MachineInfo(HoldableObject):
     def is_irix(self) -> bool:
         """Machine is IRIX?"""
         return self.system.startswith('irix')
+
+    def is_qnx(self) -> bool:
+        """Machine is QNX?"""
+        return self.system == 'qnx'
+
+    def is_aix(self) -> bool:
+        """Machine is AIX?"""
+        return self.system == 'aix'
+
+    def is_wsl(self) -> bool:
+        return self.is_linux() and 'microsoft' in platform.release().lower()
 
     # Various prefixes and suffixes for import libraries, shared libraries,
     # static libraries, and executables.
