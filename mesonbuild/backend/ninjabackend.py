@@ -1102,8 +1102,11 @@ class NinjaBackend(backends.Backend):
         elem.add_dep(deps)
         for d in target.extra_depends:
             # Add a dependency on all the outputs of this target
-            for output in d.get_outputs():
-                elem.add_dep(os.path.join(self.get_target_dir(d), output))
+            if isinstance(d, File):
+                elem.add_dep(d.absolute_path(self.environment.get_source_dir(), self.environment.get_build_dir()))
+            else:
+                for output in d.get_outputs():
+                    elem.add_dep(os.path.join(self.get_target_dir(d), output))
 
         cmd, reason = self.as_meson_exe_cmdline(target.command[0], cmd[1:],
                                                 extra_bdeps=target.get_transitive_build_target_deps(),
