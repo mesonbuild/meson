@@ -21,11 +21,9 @@ import subprocess
 import typing as T
 
 from .. import mlog
-from .. import mesonlib
 from ..mesonlib import (
-    Popen_safe, extract_as_list, version_compare_many, MachineChoice
+    Popen_safe, extract_as_list, version_compare_many
 )
-from ..environment import detect_cpu_family
 
 from .base import DependencyException, DependencyMethods, DependencyTypeName, SystemDependency
 from .configtool import ConfigToolDependency
@@ -203,19 +201,17 @@ class VulkanDependencySystem(SystemDependency):
         if self.vulkan_sdk:
             # TODO: this config might not work on some platforms, fix bugs as reported
             # we should at least detect other 64-bit platforms (e.g. armv8)
-            lib_name = 'vulkan'
-            lib_dir = 'lib'
-            inc_dir = 'include'
-            if mesonlib.is_windows():
+            if self.env.machines[self.for_machine].is_windows():
                 lib_name = 'vulkan-1'
-                lib_dir = 'Lib32'
                 inc_dir = 'Include'
-                if self.for_machine is MachineChoice.HOST and self.env.is_cross_build():
-                    arch = self.env.machines.host.cpu_family
-                else:
-                    arch = detect_cpu_family(self.env.coredata.compilers.build)
-                if arch == 'x86_64':
+                if self.env.machines[self.for_machine].cpu_family == 'x86_64':
                     lib_dir = 'Lib'
+                else:
+                    lib_dir = 'Lib32'
+            else:
+                lib_name = 'vulkan'
+                lib_dir = 'lib'
+                inc_dir = 'include'
 
             # make sure header and lib are valid
             inc_path = os.path.join(self.vulkan_sdk, inc_dir)
