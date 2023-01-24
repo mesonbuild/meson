@@ -315,6 +315,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.build_func_dict()
         self.build_holder_map()
         self.user_defined_options = user_defined_options
+
+        # Tracked compilers that are part of this subproject only.
         self.compilers: PerMachine[T.Dict[str, 'compilers.Compiler']] = PerMachine({}, {})
 
         # build_def_files needs to be defined before parse_project is called
