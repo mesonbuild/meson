@@ -1100,12 +1100,7 @@ def detect_d_compiler(env: 'Environment', for_machine: MachineChoice) -> Compile
             'determine the D language platform information.')
     is_msvc = isinstance(cc, c.VisualStudioCCompiler)
 
-    # Import here to avoid circular imports
-    if for_machine is MachineChoice.HOST and env.is_cross_build():
-        arch = env.machines.host.cpu_family
-    else:
-        from ..environment import detect_cpu_family
-        arch = detect_cpu_family({'c': cc})
+    arch = env.machines[for_machine].cpu_family
     if is_msvc and arch == 'x86':
         arch = 'x86_mscoff'
 
@@ -1243,11 +1238,7 @@ def detect_nasm_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
         raise MesonException(
             'Could not detect a C compiler, which is required to get the '
             'linker for nasm')
-    if for_machine is MachineChoice.HOST and env.is_cross_build():
-        info = env.machines.host
-    else:
-        from ..environment import detect_machine_info
-        info = detect_machine_info({'c': cc})
+    info = env.machines[for_machine]
 
     popen_exceptions: T.Dict[str, Exception] = {}
     for comp in compilers:
@@ -1295,11 +1286,7 @@ def detect_masm_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
         raise MesonException(
             'Could not detect a C compiler, which is required to get the '
             'linker for masm')
-    if for_machine is MachineChoice.HOST and env.is_cross_build():
-        info = env.machines.host
-    else:
-        from ..environment import detect_machine_info
-        info = detect_machine_info({'c': cc})
+    info = env.machines[for_machine]
 
     from .asm import MasmCompiler, MasmARMCompiler
     comp_class: T.Type[Compiler]
