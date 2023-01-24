@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import platform
 import subprocess
 import sys
@@ -434,12 +434,14 @@ class Properties:
     def get(self, key: str, default: T.Optional[T.Union[str, bool, int, T.List[str]]] = None) -> T.Optional[T.Union[str, bool, int, T.List[str]]]:
         return self.properties.get(key, default)
 
-@dataclass(unsafe_hash=True)
+@dataclass
 class MachineInfo(HoldableObject):
+
     system: str
     cpu_family: str
     cpu: str
     endian: str
+    _allow_redetect: bool = field(default=True, compare=False, repr=False)
 
     def __post_init__(self) -> None:
         self.is_64_bit: bool = self.cpu_family in CPU_FAMILIES_64_BIT
@@ -469,10 +471,26 @@ class MachineInfo(HoldableObject):
     def detect(cls, compilers: T.Optional[CompilersDict] = None) -> MachineInfo:
         return cls(
             detect_system(),
-            detect_cpu_family(compilers) if compilers is not None else None,
-            detect_cpu(compilers) if compilers is not None else None,
+            detect_cpu_family(compilers or {}),
+            detect_cpu(compilers or {}),
             sys.byteorder,
+            compilers is None,
         )
+
+    def redetect(self, compilers: CompilersDict) -> None:
+        """Redetect cpu_family and cpu with current compiler data.
+
+        Sometimes when we've initially detected the cpu_family and cpu we don't
+        have access to the compilers, which we need for getting accurate results.
+        In order to fix that, once a compiler is added we redetect the cpu and
+        cpu_family.
+
+        :param compilers: A dictionary of {lang: compiler}
+        """
+        if self._allow_redetect:
+            self.cpu_family = detect_cpu_family(compilers)
+            self.cpu = detect_cpu(compilers)
+            self._allow_redetect = False
 
     def is_windows(self) -> bool:
         """

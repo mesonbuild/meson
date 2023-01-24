@@ -1646,9 +1646,9 @@ class InternalTests(unittest.TestCase):
 
     def test_interpreter_unpicklable(self) -> None:
         build = mock.Mock()
-        build.environment = mock.Mock()
+        build.environment = get_fake_env()
         build.environment.get_source_dir = mock.Mock(return_value='')
-        with mock.patch('mesonbuild.interpreter.Interpreter._redetect_machines', mock.Mock()), \
+        with mock.patch('mesonbuild.envconfig.MachineInfo.redetect', mock.Mock()), \
                 self.assertRaises(mesonbuild.mesonlib.MesonBugException):
             i = mesonbuild.interpreter.Interpreter(build, mock=True)
             pickle.dumps(i)

@@ -298,7 +298,12 @@ class Interpreter(InterpreterBase, HoldableObject):
         elif ast is not None:
             self.ast = ast
             self.sanity_check_ast()
-        self.builtin.update({'meson': MesonMain(self.build, self)})
+        self.builtin.update({
+            'meson': MesonMain(self.build, self),
+            'build_machine': OBJ.MachineHolder(self.environment.machines.build, self),
+            'host_machine': OBJ.MachineHolder(self.environment.machines.host, self),
+            'target_machine': OBJ.MachineHolder(self.environment.machines.target, self),
+        })
         self.generators: T.List[build.Generator] = []
         self.processed_buildfiles = set() # type: T.Set[str]
         self.project_args_frozen = False
@@ -330,28 +335,12 @@ class Interpreter(InterpreterBase, HoldableObject):
             self.build_def_files.add(build_filename)
         if not mock:
             self.parse_project()
-        self._redetect_machines()
+        self.environment.machines.build.redetect(self.coredata.compilers.build)
+        if self.coredata.is_cross_build():
+            self.environment.machines.host.redetect(self.coredata.compilers.host)
 
     def __getnewargs_ex__(self) -> T.Tuple[T.Tuple[object], T.Dict[str, object]]:
         raise MesonBugException('This class is unpicklable')
-
-    def _redetect_machines(self) -> None:
-        # Re-initialize machine descriptions. We can do a better job now because we
-        # have the compilers needed to gain more knowledge, so wipe out old
-        # inference and start over.
-        machines = self.build.environment.machines.miss_defaulting()
-        machines.build = environment.detect_machine_info(self.coredata.compilers.build)
-        self.build.environment.machines = machines.default_missing()
-        assert self.build.environment.machines.build.cpu is not None
-        assert self.build.environment.machines.host.cpu is not None
-        assert self.build.environment.machines.target.cpu is not None
-
-        self.builtin['build_machine'] = \
-            OBJ.MachineHolder(self.build.environment.machines.build, self)
-        self.builtin['host_machine'] = \
-            OBJ.MachineHolder(self.build.environment.machines.host, self)
-        self.builtin['target_machine'] = \
-            OBJ.MachineHolder(self.build.environment.machines.target, self)
 
     def build_func_dict(self) -> None:
         self.funcs.update({'add_global_arguments': self.func_add_global_arguments,
@@ -1460,7 +1449,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         success = self.add_languages_for(args, required, for_machine)
         if not self.coredata.is_cross_build():
             self.coredata.copy_build_options_from_regular_ones()
-        self._redetect_machines()
+        self.environment.machines[for_machine].redetect(self.coredata.compilers[for_machine])
         return success
 
     def should_skip_sanity_check(self, for_machine: MachineChoice) -> bool:
