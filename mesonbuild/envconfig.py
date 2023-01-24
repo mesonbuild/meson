@@ -477,6 +477,23 @@ class MachineInfo(HoldableObject):
             compilers is None,
         )
 
+    def can_run(self) -> bool:
+        """Whether we can run binaries for this machine on the current machine.
+
+        Can almost always run 32-bit binaries on 64-bit natively if the host
+        and build systems are the same. We don't pass any compilers to
+        detect_cpu_family() here because we always want to know the OS
+        architecture, not what the compiler environment tells us.
+        """
+        # TODO make this compare two `MachineInfo`s purely. How important is the
+        # `detect_cpu_family({})` distinction? It is the one impediment to that.
+        if self.system != detect_system():
+            return False
+        true_build_cpu_family = detect_cpu_family({})
+        return (self.cpu_family == true_build_cpu_family or
+                (true_build_cpu_family == 'x86_64' and self.cpu_family == 'x86') or
+                (true_build_cpu_family == 'aarch64' and self.cpu_family == 'arm'))
+
     def redetect(self, compilers: CompilersDict) -> None:
         """Redetect cpu_family and cpu with current compiler data.
 
