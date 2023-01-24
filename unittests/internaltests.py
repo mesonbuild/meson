@@ -1598,13 +1598,13 @@ class InternalTests(unittest.TestCase):
         with mock.patch('mesonbuild.envconfig.any_compiler_has_define', mock.Mock(return_value=False)):
             for test, expected in cases:
                 with self.subTest(test, has_define=False), mock_trial(test):
-                    actual = mesonbuild.envconfig.detect_cpu_family({})
+                    actual = mesonbuild.envconfig._detect_cpu_family({})
                     self.assertEqual(actual, expected)
 
         with mock.patch('mesonbuild.envconfig.any_compiler_has_define', mock.Mock(return_value=True)):
             for test, expected in [('x86_64', 'x86'), ('aarch64', 'arm'), ('ppc', 'ppc64'), ('mips64', 'mips64')]:
                 with self.subTest(test, has_define=True), mock_trial(test):
-                    actual = mesonbuild.envconfig.detect_cpu_family({})
+                    actual = mesonbuild.envconfig._detect_cpu_family({})
                     self.assertEqual(actual, expected)
 
     def test_detect_cpu(self) -> None:
@@ -1635,13 +1635,13 @@ class InternalTests(unittest.TestCase):
         with mock.patch('mesonbuild.envconfig.any_compiler_has_define', mock.Mock(return_value=False)):
             for test, expected in cases:
                 with self.subTest(test, has_define=False), mock_trial(test):
-                    actual = mesonbuild.envconfig.detect_cpu({})
+                    actual = mesonbuild.envconfig._detect_cpu({})
                     self.assertEqual(actual, expected)
 
         with mock.patch('mesonbuild.envconfig.any_compiler_has_define', mock.Mock(return_value=True)):
             for test, expected in [('x86_64', 'i686'), ('aarch64', 'arm'), ('ppc', 'ppc64'), ('mips64', 'mips64')]:
                 with self.subTest(test, has_define=True), mock_trial(test):
-                    actual = mesonbuild.envconfig.detect_cpu({})
+                    actual = mesonbuild.envconfig._detect_cpu({})
                     self.assertEqual(actual, expected)
 
     def test_interpreter_unpicklable(self) -> None:

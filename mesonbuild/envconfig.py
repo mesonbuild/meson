@@ -157,7 +157,7 @@ DEPRECATED_ENV_PROG_MAP: T.Mapping[str, str] = {
 }
 
 
-def detect_system() -> str:
+def _detect_system() -> str:
     if sys.platform == 'cygwin':
         return 'cygwin'
     return platform.system().lower()
@@ -215,7 +215,7 @@ def any_compiler_has_define(compilers: CompilersDict, define: str) -> bool:
     return False
 
 
-def detect_cpu_family(compilers: CompilersDict) -> str:
+def _detect_cpu_family(compilers: CompilersDict) -> str:
     """
     Python is inconsistent in its platform module.
     It returns different values for the same cpu.
@@ -287,7 +287,8 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
 
     return trial
 
-def detect_cpu(compilers: CompilersDict) -> str:
+
+def _detect_cpu(compilers: CompilersDict) -> str:
     if mesonlib.is_windows():
         trial = detect_windows_arch(compilers)
     elif mesonlib.is_freebsd() or mesonlib.is_netbsd() or mesonlib.is_openbsd() or mesonlib.is_aix():
@@ -470,9 +471,9 @@ class MachineInfo(HoldableObject):
     @classmethod
     def detect(cls, compilers: T.Optional[CompilersDict] = None) -> MachineInfo:
         return cls(
-            detect_system(),
-            detect_cpu_family(compilers or {}),
-            detect_cpu(compilers or {}),
+            _detect_system(),
+            _detect_cpu_family(compilers or {}),
+            _detect_cpu(compilers or {}),
             sys.byteorder,
             compilers is None,
         )
@@ -487,9 +488,9 @@ class MachineInfo(HoldableObject):
         """
         # TODO make this compare two `MachineInfo`s purely. How important is the
         # `detect_cpu_family({})` distinction? It is the one impediment to that.
-        if self.system != detect_system():
+        if self.system != _detect_system():
             return False
-        true_build_cpu_family = detect_cpu_family({})
+        true_build_cpu_family = _detect_cpu_family({})
         return (self.cpu_family == true_build_cpu_family or
                 (true_build_cpu_family == 'x86_64' and self.cpu_family == 'x86') or
                 (true_build_cpu_family == 'aarch64' and self.cpu_family == 'arm'))
@@ -505,9 +506,9 @@ class MachineInfo(HoldableObject):
         :param compilers: A dictionary of {lang: compiler}
         """
         if self._allow_redetect:
-            self.cpu_family = detect_cpu_family(compilers)
-            self.cpu = detect_cpu(compilers)
-            self._allow_redetect = False
+            self.cpu_family = _detect_cpu_family(compilers)
+            self.cpu = _detect_cpu(compilers)
+            self._allow_redetect = not bool(compilers)
 
     def is_windows(self) -> bool:
         """
