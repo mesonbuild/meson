@@ -528,6 +528,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         self.info = info
         self.is_cross = is_cross
         self.modes: T.List[Compiler] = []
+        self.target: T.Optional[str] = None
 
     def __repr__(self) -> str:
         repr_str = "<{0}: v{1} `{2}`>"
