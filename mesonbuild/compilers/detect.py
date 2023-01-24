@@ -973,7 +973,9 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
     is_cross = env.is_cross_build(for_machine)
     info = env.machines[for_machine]
 
-    cc = detect_c_compiler(env, for_machine)
+    # We need to skip the sanity check when env.scratch_dir is unset, this
+    # happens in the initial compiler detection pass of run_project_tests
+    cc = detect_compiler_for(env, 'c', for_machine, env.scratch_dir == '')
     is_link_exe = isinstance(cc.linker, linkers.VisualStudioLikeLinkerMixin)
     override = env.lookup_binary_entry(for_machine, 'rust_ld')
 
@@ -1088,17 +1090,22 @@ def detect_d_compiler(env: 'Environment', for_machine: MachineChoice) -> Compile
 
     # Detect the target architecture, required for proper architecture handling on Windows.
     # MSVC compiler is required for correct platform detection.
-    c_compiler = {'c': detect_c_compiler(env, for_machine)}
-    is_msvc = isinstance(c_compiler['c'], c.VisualStudioCCompiler)
-    if not is_msvc:
-        c_compiler = {}
+    #
+    # We need to skip the sanity check when env.scratch_dir is unset, this
+    # happens in the initial compiler detection pass of run_project_tests
+    cc = detect_compiler_for(env, 'c', for_machine, env.scratch_dir == '')
+    if cc is None:
+        raise MesonException(
+            'Could not detect a C compiler, which is required to correctly '
+            'determine the D language platform information.')
+    is_msvc = isinstance(cc, c.VisualStudioCCompiler)
 
     # Import here to avoid circular imports
     if for_machine is MachineChoice.HOST and env.is_cross_build():
         arch = env.machines.host.cpu_family
     else:
         from ..environment import detect_cpu_family
-        arch = detect_cpu_family(c_compiler)
+        arch = detect_cpu_family({'c': cc})
     if is_msvc and arch == 'x86':
         arch = 'x86_mscoff'
 
@@ -1228,7 +1235,14 @@ def detect_nasm_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
     is_cross = env.is_cross_build(for_machine)
 
     # We need a C compiler to properly detect the machine info and linker
-    cc = detect_c_compiler(env, for_machine)
+    #
+    # We need to skip the sanity check when env.scratch_dir is unset, this
+    # happens in the initial compiler detection pass of run_project_tests
+    cc = detect_compiler_for(env, 'c', for_machine, env.scratch_dir == '')
+    if cc is None:
+        raise MesonException(
+            'Could not detect a C compiler, which is required to get the '
+            'linker for nasm')
     if for_machine is MachineChoice.HOST and env.is_cross_build():
         info = env.machines.host
     else:
@@ -1270,9 +1284,17 @@ def detect_nasm_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
     raise EnvironmentException('Unreachable code (exception to make mypy happy)')
 
 def detect_masm_compiler(env: 'Environment', for_machine: MachineChoice) -> Compiler:
-    # We need a C compiler to properly detect the machine info and linker
     is_cross = env.is_cross_build(for_machine)
-    cc = detect_c_compiler(env, for_machine)
+
+    # We need a C compiler to properly detect the machine info and linker
+    #
+    # We need to skip the sanity check when env.scratch_dir is unset, this
+    # happens in the initial compiler detection pass of run_project_tests
+    cc = detect_compiler_for(env, 'c', for_machine, env.scratch_dir == '')
+    if cc is None:
+        raise MesonException(
+            'Could not detect a C compiler, which is required to get the '
+            'linker for masm')
     if for_machine is MachineChoice.HOST and env.is_cross_build():
         info = env.machines.host
     else:
