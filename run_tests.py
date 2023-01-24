@@ -17,6 +17,7 @@
 # Work around some pathlib bugs...
 from mesonbuild import _pathlib
 import sys
+
 sys.modules['pathlib'] = _pathlib
 
 import collections
@@ -34,6 +35,7 @@ from pathlib import Path
 from unittest import mock
 import typing as T
 
+from mesonbuild.envconfig import MachineInfo
 from mesonbuild.compilers.c import CCompiler
 from mesonbuild.compilers.detect import detect_c_compiler
 from mesonbuild import dependencies
@@ -41,7 +43,7 @@ from mesonbuild import mesonlib
 from mesonbuild import mesonmain
 from mesonbuild import mtest
 from mesonbuild import mlog
-from mesonbuild.environment import Environment, detect_ninja, detect_machine_info
+from mesonbuild.environment import Environment, detect_ninja
 from mesonbuild.coredata import backendlist, version as meson_version
 from mesonbuild.mesonlib import OptionKey, setup_vsenv
 
@@ -172,7 +174,7 @@ def get_convincing_fake_env_and_cc(bdir, prefix):
     env = get_fake_env('', bdir, prefix)
     cc = detect_c_compiler(env, mesonlib.MachineChoice.HOST)
     # Detect machine info
-    env.machines.host = detect_machine_info({'c':cc})
+    env.machines.host = MachineInfo.detect({'c':cc})
     return (env, cc)
 
 Backend = Enum('Backend', 'ninja vs xcode')

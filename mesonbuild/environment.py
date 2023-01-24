@@ -233,15 +233,6 @@ def detect_clangformat() -> T.List[str]:
 def detect_msys2_arch() -> T.Optional[str]:
     return os.environ.get('MSYSTEM_CARCH', None)
 
-def detect_machine_info(compilers: T.Optional[CompilersDict] = None) -> MachineInfo:
-    """Detect the machine we're running on
-
-    If compilers are not provided, we cannot know as much. None out those
-    fields to avoid accidentally depending on partial knowledge. The
-    underlying ''detect_*'' method can be called to explicitly use the
-    partial information.
-    """
-    return MachineInfo.detect(compilers)
 
 # TODO make this compare two `MachineInfo`s purely. How important is the
 # `detect_cpu_family({})` distinction? It is the one impediment to that.
@@ -323,7 +314,7 @@ class Environment:
         ## Setup build machine defaults
 
         # Will be fully initialized later using compilers later.
-        machines.build = detect_machine_info()
+        machines.build = MachineInfo.detect()
 
         # Just uses hard-coded defaults and environment variables. Might be
         # overwritten by a native file.
