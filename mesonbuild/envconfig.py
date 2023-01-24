@@ -42,7 +42,7 @@ if T.TYPE_CHECKING:
 # instances of these classes.
 
 
-known_cpu_families = (
+KNOWN_CPU_FAMILIES = frozenset({
     'aarch64',
     'alpha',
     'arc',
@@ -77,7 +77,7 @@ known_cpu_families = (
     'wasm64',
     'x86',
     'x86_64',
-)
+})
 
 # It would feel more natural to call this "64_BIT_CPU_FAMILIES", but
 # python identifiers cannot start with numbers
@@ -280,7 +280,7 @@ def _detect_cpu_family(compilers: CompilersDict) -> str:
         if not any_compiler_has_define(compilers, '__mips64'):
             trial = 'mips'
 
-    if trial not in known_cpu_families:
+    if trial not in KNOWN_CPU_FAMILIES:
         mlog.warning(f'Unknown CPU family {trial!r}, please report this at '
                      'https://github.com/mesonbuild/meson/issues/new with the '
                      'output of `uname -a` and `cat /proc/cpuinfo`')
@@ -459,7 +459,7 @@ class MachineInfo(HoldableObject):
                 'but is missing {}.'.format(minimum_literal - set(literal)))
 
         cpu_family = literal['cpu_family']
-        if cpu_family not in known_cpu_families:
+        if cpu_family not in KNOWN_CPU_FAMILIES:
             mlog.warning(f'Unknown CPU family {cpu_family}, please report this at https://github.com/mesonbuild/meson/issues/new')
 
         endian = literal['endian']
