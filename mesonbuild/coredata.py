@@ -931,6 +931,8 @@ class CoreData:
             self.options[key] = oobj
         self.emit_base_options_warnings(enabled_opts)
 
+        env.machines[comp.for_machine].redetect(self.compilers[comp.for_machine])
+
     def emit_base_options_warnings(self, enabled_opts: T.List[OptionKey]) -> None:
         if OptionKey('b_bitcode') in enabled_opts:
             mlog.warning('Base option \'b_bitcode\' is enabled, which is incompatible with many linker options. Incompatible options such as \'b_asneeded\' have been disabled.', fatal=False)

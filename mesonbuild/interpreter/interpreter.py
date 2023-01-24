@@ -335,9 +335,6 @@ class Interpreter(InterpreterBase, HoldableObject):
             self.build_def_files.add(build_filename)
         if not mock:
             self.parse_project()
-        self.environment.machines.build.redetect(self.coredata.compilers.build)
-        if self.coredata.is_cross_build():
-            self.environment.machines.host.redetect(self.coredata.compilers.host)
 
     def __getnewargs_ex__(self) -> T.Tuple[T.Tuple[object], T.Dict[str, object]]:
         raise MesonBugException('This class is unpicklable')
@@ -1449,7 +1446,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         success = self.add_languages_for(args, required, for_machine)
         if not self.coredata.is_cross_build():
             self.coredata.copy_build_options_from_regular_ones()
-        self.environment.machines[for_machine].redetect(self.coredata.compilers[for_machine])
         return success
 
     def should_skip_sanity_check(self, for_machine: MachineChoice) -> bool:
