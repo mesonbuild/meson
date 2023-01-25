@@ -66,6 +66,7 @@ class Module(NewExtensionModule):
             'implicit': self.implicit_method,
             'ahead': self.ahead_method,
             'untied': self.untied_method,
+            'sort': self.sort_method,
         })
 
     def new_method(self, state: 'ModuleState',
@@ -94,14 +95,14 @@ class Module(NewExtensionModule):
             features.update(func(state, compiler))
         return features
 
-    @typed_pos_args('feature.test', varargs=FeatureObject)
+    @typed_pos_args('feature.test', varargs=FeatureObject, min_varargs=1)
     @typed_kwargs('feature.test',
         KwargInfo('compiler', (NoneType, Compiler)),
         KwargInfo(
             'force_args', (NoneType, str, ContainerTypeInfo(list, str)),
             listify=True
         ),
-        KwargInfo('any', bool, default=True)
+        KwargInfo('any', bool, default=False)
     )
     def test_method(self, state: 'ModuleState',
                     args: T.Tuple[T.List[FeatureObject]],
@@ -115,27 +116,34 @@ class Module(NewExtensionModule):
         if not compiler:
             compiler = get_compiler(state)
 
-        features = args[0]
-        if len(features) == 1:
-            result = features[0].test(state, compiler, force_args)
-            if result is None:
-                return [False, {}]
-            return [True, result.to_dict()]
+        features = self.ahead(args[0])
+        if any_:
+            features = self.implicit_c(features)
 
-        features = sorted(features)
         result = features[0].test(state, compiler, force_args)
-        for fet in features[1:]:
-            ret = fet.test(state, compiler, force_args)
-            if not ret:
-                if not any_:
-                    return None
-                continue
-            result += ret
+        supported_features = []
+        if result is not None:
+            supported_features = [features[0]]
+            for fet in features[1:]:
+                ret = fet.test(state, compiler, force_args)
+                if ret is None:
+                    if any_:
+                        continue
+                    result = ret
+                    break
+                supported_features += [fet]
+                result += ret
+
         if result is None:
             return [False, {}]
-        return [True, result.to_dict()]
 
-    @typed_pos_args('feature.implicit', varargs=FeatureObject)
+        result = result.to_dict()
+        result['features'] = [
+            fet.name for fet in self.implicit_c(supported_features)
+        ]
+        return [True, result]
+
+    @typed_pos_args('feature.implicit', varargs=FeatureObject, min_varargs=1)
     @noKwargs
     def implicit_method(self, state: 'ModuleState',
                         args: T.Tuple[T.List[FeatureObject]],
@@ -143,12 +151,9 @@ class Module(NewExtensionModule):
                         ) -> T.List[FeatureObject]:
 
         features = args[0]
-        implicit = set().union(*[fet.get_implicit() for fet in features])
-        # since features can imply each other
-        implicit.difference_update(set(features))
-        return sorted(implicit)
+        return self.implicit(features)
 
-    @typed_pos_args('feature.ahead', varargs=FeatureObject)
+    @typed_pos_args('feature.ahead', varargs=FeatureObject, min_varargs=1)
     @noKwargs
     def ahead_method(self, state: 'ModuleState',
                      args: T.Tuple[T.List[FeatureObject]],
@@ -156,15 +161,9 @@ class Module(NewExtensionModule):
                      ) -> T.List[FeatureObject]:
 
         features = args[0]
-        implicit = set().union(*[fet.get_implicit() for fet in features])
-        ahead = [fet for fet in features if fet not in implicit]
-        if len(ahead) == 0:
-            # return the highest interested feature
-            # if all features imply each other
-            ahead = list(sorted(features, reverse=True)[:1])
-        return ahead
+        return self.ahead(features)
 
-    @typed_pos_args('feature.untied', varargs=FeatureObject)
+    @typed_pos_args('feature.untied', varargs=FeatureObject, min_varargs=1)
     @noKwargs
     def untied_method(self, state: 'ModuleState',
                       args: T.Tuple[T.List[FeatureObject]],
@@ -184,4 +183,34 @@ class Module(NewExtensionModule):
                 ret.remove(stied[0])
             ret.append(fet)
         return ret
+
+    @typed_pos_args('feature.sort', varargs=FeatureObject, min_varargs=1)
+    @noKwargs
+    def sort_method(self, state: 'ModuleState',
+                    args: T.Tuple[T.List[FeatureObject]],
+                    kwargs: 'TYPE_kwargs'
+                    ) -> T.List[FeatureObject]:
+        return sorted(args[0])
+
+    @staticmethod
+    def implicit(features: T.Sequence[FeatureObject]) -> T.List[FeatureObject]:
+        implicit = set().union(*[fet.get_implicit() for fet in features])
+        # since features can imply each other
+        implicit.difference_update(set(features))
+        return sorted(implicit)
+
+    @staticmethod
+    def implicit_c(features: T.Sequence[FeatureObject]) -> T.List[FeatureObject]:
+        implicit = set().union(*[fet.get_implicit() for fet in features], features)
+        return sorted(implicit)
+
+    @staticmethod
+    def ahead(features: T.Sequence[FeatureObject]) -> T.List[FeatureObject]:
+        implicit = set().union(*[fet.get_implicit() for fet in features])
+        ahead = [fet for fet in features if fet not in implicit]
+        if len(ahead) == 0:
+            # return the highest interested feature
+            # if all features imply each other
+            ahead = list(sorted(features, reverse=True)[:1])
+        return ahead
 
