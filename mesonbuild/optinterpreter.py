@@ -20,7 +20,7 @@ from . import coredata
 from . import mesonlib
 from . import mparser
 from . import mlog
-from .interpreterbase import FeatureNew, typed_pos_args, typed_kwargs, ContainerTypeInfo, KwargInfo, FeatureDeprecated
+from .interpreterbase import FeatureNew, typed_pos_args, typed_kwargs, ContainerTypeInfo, KwargInfo
 from .interpreter.type_checking import NoneType, in_set_validator
 
 if T.TYPE_CHECKING:
@@ -182,7 +182,7 @@ class OptionInterpreter:
             (bool, str, ContainerTypeInfo(dict, str), ContainerTypeInfo(list, str)),
             default=False,
             since='0.60.0',
-            feature_validator=lambda x: [FeatureNew('string value to "deprecated" keyword argument', '0.63.0')] if isinstance(x, str) else []
+            since_values={str: '0.63.0'},
         ),
         KwargInfo('yield', bool, default=coredata.DEFAULT_YIELDING, since='0.45.0'),
         allow_unknown=True,
@@ -223,7 +223,7 @@ class OptionInterpreter:
             (bool, str),
             default=True,
             validator=lambda x: None if isinstance(x, bool) or x in {'true', 'false'} else 'boolean options must have boolean values',
-            deprecated_values={'true': ('1.1.0', 'use a boolean, not a string'), 'false': ('1.1.0', 'use a boolean, not a string')},
+            deprecated_values={str: ('1.1.0', 'use a boolean, not a string')},
         ),
     )
     def boolean_parser(self, description: str, args: T.Tuple[bool, _DEPRECATED_ARGS], kwargs: BooleanArgs) -> coredata.UserOption:
@@ -247,7 +247,7 @@ class OptionInterpreter:
             'value',
             (int, str),
             default=True,
-            feature_validator=lambda x: [FeatureDeprecated('number values as strings', '1.1.0', 'use a raw number instead')] if isinstance(x, str) else [],
+            deprecated_values={str: ('1.1.0', 'use an integer, not a string')},
             convertor=int,
         ),
         KwargInfo('min', (int, NoneType)),
