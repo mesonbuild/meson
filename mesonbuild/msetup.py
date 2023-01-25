@@ -77,9 +77,9 @@ class MesonApp:
                     try:
                         restore.append((shutil.copy(filename, d), filename))
                     except FileNotFoundError:
-                        raise MesonException(
-                            'Cannot find cmd_line.txt. This is probably because this '
-                            'build directory was configured with a meson version < 0.49.0.')
+                        # validate_dirs() already verified that build_dir has
+                        # has cmd_line.txt or is empty.
+                        pass
 
                 coredata.read_cmd_line_file(self.build_dir, options)
 
@@ -139,8 +139,6 @@ class MesonApp:
         raise MesonException(f'Neither directory contains a build file {environment.build_filename}.')
 
     def add_vcs_ignore_files(self, build_dir: str) -> None:
-        if os.listdir(build_dir):
-            return
         with open(os.path.join(build_dir, '.gitignore'), 'w', encoding='utf-8') as ofile:
             ofile.write(git_ignore_file)
         with open(os.path.join(build_dir, '.hgignore'), 'w', encoding='utf-8') as ofile:
@@ -148,7 +146,9 @@ class MesonApp:
 
     def validate_dirs(self, dir1: str, dir2: str, reconfigure: bool, wipe: bool) -> T.Tuple[str, str]:
         (src_dir, build_dir) = self.validate_core_dirs(dir1, dir2)
-        self.add_vcs_ignore_files(build_dir)
+        if not os.listdir(build_dir):
+            self.add_vcs_ignore_files(build_dir)
+            return src_dir, build_dir
         priv_dir = os.path.join(build_dir, 'meson-private/coredata.dat')
         if os.path.exists(priv_dir):
             if not reconfigure and not wipe:
