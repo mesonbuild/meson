@@ -37,6 +37,11 @@ methods:
     description: The values to replace the @number@ placeholders in the format string.
     type: int | bool | str
 
+# str.length()
+- name: length
+  returns: int
+  description: Returns the current length of the string.
+
 # str.replace(old, new)
 - name: replace
   description: Search all occurrences of `old` and and replace it with `new`

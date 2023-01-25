@@ -19,6 +19,15 @@ long = 'abcde'
 prefix = 'abc'
 suffix = 'cde'
 
+assert(''.length() == 0)
+assert(long.length() == 5)
+assert(prefix.length() == 3)
+
+expected_long_chars = ['a', 'b', 'c', 'd', 'e']
+foreach i: range(long.length())
+  assert(long[i] == expected_long_chars[i])
+endforeach
+
 assert(long[0] == 'a')
 assert(long[2] == 'c')
 
