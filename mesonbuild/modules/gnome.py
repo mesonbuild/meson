@@ -1147,13 +1147,14 @@ class GnomeModule(ExtensionModule):
         builddir = os.path.join(state.environment.get_build_dir(), state.subdir)
 
         depends: T.List[T.Union['FileOrString', 'build.GeneratedTypes', build.BuildTarget, build.StructuredSources]] = []
+        depends.extend(gir_dep.libraries)
         depends.extend(girtargets)
 
         langs_compilers = self._get_girtargets_langs_compilers(girtargets)
         cflags, internal_ldflags, external_ldflags = self._get_langs_compilers_flags(state, langs_compilers)
         deps = self._get_gir_targets_deps(girtargets)
         deps += kwargs['dependencies']
-        deps += [gir_dep]
+        deps += gir_dep.ext_deps
         typelib_includes, depends = self._gather_typelib_includes_and_update_depends(state, deps, depends)
         # ldflags will be misinterpreted by gir scanner (showing
         # spurious dependencies) but building GStreamer fails if they
