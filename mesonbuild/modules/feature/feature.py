@@ -39,7 +39,7 @@ from ...mesonlib import File, MesonException
 from ...interpreter.type_checking import NoneType
 from ...interpreterbase.decorators import (
     noKwargs, noPosargs, KwargInfo, typed_kwargs, typed_pos_args,
-    ContainerTypeInfo,
+    ContainerTypeInfo, noArgsFlattening
 )
 from .. import ModuleObject
 from .utils import test_code, get_compiler
@@ -123,8 +123,6 @@ class ImpliedAttr:
 
 @dataclass
 class TestResult:
-    #implicit: T.Set['FeatureObject'] = field(default_factory=set)
-    implicit: T.Set[T.Any] = field(default_factory=set)
     args: T.List[ImpliedAttr] = field(default_factory=list)
     detect: T.List[ImpliedAttr] = field(default_factory=list)
     headers: T.List[ImpliedAttr] = field(default_factory=list)
@@ -136,7 +134,6 @@ class TestResult:
 
     def __add__(self, robj: 'TestResult') -> 'TestResult':
         return TestResult(
-            implicit = self.implicit.union(robj.implicit),
             args = ImpliedAttr.normalize(self.args + robj.args),
             headers = ImpliedAttr.normalize(self.headers + robj.headers),
             detect = ImpliedAttr.normalize(self.detect + robj.detect),
@@ -159,7 +156,6 @@ class TestResult:
         for attr in ('defines', 'undefines'):
             ret[attr] = getattr(self, attr)[:]
 
-        ret['implicit'] = [str(fet) for fet in sorted(self.implicit)]
         ret['support'] = self.support.to_list()
         return ret
 
@@ -255,6 +251,8 @@ class FeatureObject(ModuleObject):
                  args: T.List['TYPE_var'],
                  kwargs: 'TYPE_kwargs') -> None:
 
+        super().__init__()
+
         IMPLIED_ATTR_TYPES = (
             str, ContainerTypeInfo(dict, str),
             ContainerTypeInfo(list, (dict, str)),
@@ -305,11 +303,10 @@ class FeatureObject(ModuleObject):
             self.extra_tests = kwargs['extra_tests']
             self.disable: str = kwargs['disable']
 
-        super().__init__()
         init_attrs(state, args, kwargs)
         self.methods.update({
             'update': self.update_method,
-            'to_dict': self.to_dict_method,
+            'get': self.get_method,
         })
 
     def __hash__(self) -> int:
@@ -336,9 +333,6 @@ class FeatureObject(ModuleObject):
     def __ge__(self, robj: object) -> T.Any:
         return robj <= self
 
-    def __str__(self) -> str:
-        return self.name
-
     def update_method(self, state: 'ModuleState', args: T.List['TYPE_var'],
                       kwargs: 'TYPE_kwargs') -> 'FeatureObject':
         IMPLIED_ATTR_NTYPES = (
@@ -347,7 +341,7 @@ class FeatureObject(ModuleObject):
         )
 
         @noPosargs
-        @typed_kwargs('feature.update',
+        @typed_kwargs('feature.feature.update',
             KwargInfo('name', (NoneType, str)),
             KwargInfo('interest', (NoneType, int)),
             KwargInfo(
@@ -391,20 +385,30 @@ class FeatureObject(ModuleObject):
         update(state, args, kwargs)
         return self
 
-    @noPosargs
     @noKwargs
-    def to_dict_method(self, state: 'ModuleState', args: T.List['TYPE_var'],
-                       kwargs: 'TYPE_kwargs'
-                       ) -> T.Dict[str, T.Union[str, T.List[str]]]:
-        return self.to_dict()
+    @typed_pos_args('feature.feature.get', str)
+    def get_method(self, state: 'ModuleState', args: T.Tuple[str],
+                   kwargs: 'TYPE_kwargs') -> 'TYPE_var':
 
-    def to_dict(self) -> T.Dict[str, T.Union[str, T.List[str]]]:
-        ret = self.__dict__.copy()
-        ret.pop('methods')
-        ret['implies'] = [str(fet) for fet in sorted(self.implies)]
-        for attr in ('detect', 'args', 'headers'):
-            ret[attr] = [v.to_dict() for v in getattr(self, attr)]
-        return ret
+        impl_lst = lambda lst: [v.to_dict() for v in lst]
+        noconv = lambda v: v
+        dfunc = dict(
+            name = noconv,
+            interest = noconv,
+            group = noconv,
+            implies = lambda v: [fet.name for fet in sorted(v)],
+            detect = impl_lst,
+            args = impl_lst,
+            headers = impl_lst,
+            test_code = noconv,
+            extra_tests = noconv,
+            disable = noconv
+        )
+        cfunc = dfunc.get(args[0])
+        if cfunc is None:
+            raise MesonException(f'Key {args[0]!r} is not in the feature.')
+
+        return cfunc(getattr(self, args[0]))
 
     def get_implicit(self, _caller: T.Set['FeatureObject'] = None
                      ) -> T.Set['FeatureObject']:
@@ -515,10 +519,10 @@ class FeatureObject(ModuleObject):
 
         _caller = {self, } if not _caller else _caller.union({self, })
         cached = True
-        result = TestResult(implicit=self.implies.difference(_caller))
+        result = TestResult()
         after = TestResult()
-        implicit: T.List[FeatureObject] = sorted(result.implicit)
-        for fet in implicit:
+        implies: T.List[FeatureObject] = sorted(self.implies.difference(_caller))
+        for fet in implies:
             imp_ret = fet.test_impl(state, compiler, force_args, _caller)
             imp_cached, _, _, imp_result = imp_ret
             if not imp_result:
