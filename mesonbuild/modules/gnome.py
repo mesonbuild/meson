@@ -890,10 +890,10 @@ class GnomeModule(ExtensionModule):
         return ret
 
     @staticmethod
-    def _get_gir_targets_inc_dirs(girtargets: T.Sequence[build.BuildTarget]) -> T.List[build.IncludeDirs]:
-        ret: T.List[build.IncludeDirs] = []
+    def _get_gir_targets_inc_dirs(girtargets: T.Sequence[build.BuildTarget]) -> OrderedSet[build.IncludeDirs]:
+        ret: OrderedSet = OrderedSet()
         for girtarget in girtargets:
-            ret += girtarget.get_include_dirs()
+            ret.update(girtarget.get_include_dirs())
         return ret
 
     @staticmethod
