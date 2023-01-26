@@ -21,6 +21,7 @@ topic](https://github.com/topics/meson).
  - [Arduino sample project](https://github.com/jpakkane/mesonarduino)
  - [Audacious](https://github.com/audacious-media-player), a lightweight and versatile audio player
  - [bolt](https://gitlab.freedesktop.org/bolt/bolt), userspace daemon to enable security levels for Thunderbolt™ 3 on Linux
+ - [bsdutils](https://github.com/dcantrell/bsdutils), alternative to GNU coreutils using software from FreeBSD
  - [Bubblewrap](https://github.com/containers/bubblewrap), unprivileged sandboxing tool
  - [Budgie Desktop](https://github.com/budgie-desktop/budgie-desktop), a desktop environment built on GNOME technologies
  - [Bzip2](https://gitlab.com/federicomenaquintero/bzip2), the bzip2 compressor/decompressor
