@@ -475,7 +475,7 @@ class FeatureObject(ModuleObject):
 
     def test(self, state: 'ModuleState', compiler: 'Compiler',
              force_args: T.Optional[T.List[str]] = None
-             ) -> TestResult:
+             ) -> T.Optional[TestResult]:
 
         cached, disabled, error, result = self.test_impl(
             state, compiler, force_args
@@ -498,7 +498,7 @@ class FeatureObject(ModuleObject):
                 'due to',
                 error
             )
-            return TestResult(support=FeatureSupport.NONE)
+            return None
         mlog.log(
             log_prefix,
             mlog.green('Supported'),
