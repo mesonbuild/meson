@@ -1,5 +1,4 @@
 # Copyright 2012-2022 The Meson development team
-
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -12,6 +11,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import copy
+
 from . import mlog, mparser
 import pickle, os, uuid
 import sys
@@ -22,7 +23,9 @@ from .mesonlib import (
     HoldableObject,
     MesonException, EnvironmentException, MachineChoice, PerMachine,
     PerMachineDefaultable, default_libdir, default_libexecdir,
-    default_prefix, split_args, OptionKey, OptionType, stringlistify,
+    default_prefix, default_datadir, default_includedir, default_infodir,
+    default_localedir, default_mandir, default_sbindir, default_sysconfdir,
+    split_args, OptionKey, OptionType, stringlistify,
     pickle_load, replace_if_different
 )
 from .wrap import WrapMode
@@ -57,7 +60,7 @@ version = '1.0.99'
 
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2012', 'vs2013', 'vs2015', 'vs2017', 'vs2019', 'vs2022', 'xcode']
 
-default_yielding = False
+DEFAULT_YIELDING = False
 
 # Can't bind this near the class method it seems, sadly.
 _T = T.TypeVar('_T')
@@ -73,16 +76,16 @@ class MesonVersionMismatchException(MesonException):
 
 
 class UserOption(T.Generic[_T], HoldableObject):
-    def __init__(self, description: str, choices: T.Optional[T.Union[str, T.List[_T]]], yielding: T.Optional[bool]):
+    def __init__(self, description: str, choices: T.Optional[T.Union[str, T.List[_T]]],
+                 yielding: bool,
+                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
         super().__init__()
         self.choices = choices
         self.description = description
-        if yielding is None:
-            yielding = default_yielding
         if not isinstance(yielding, bool):
             raise MesonException('Value of "yielding" must be a boolean.')
         self.yielding = yielding
-        self.deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False
+        self.deprecated = deprecated
 
     def listify(self, value: T.Any) -> T.List[T.Any]:
         return [value]
@@ -101,8 +104,9 @@ class UserOption(T.Generic[_T], HoldableObject):
         self.value = self.validate_value(newvalue)
 
 class UserStringOption(UserOption[str]):
-    def __init__(self, description: str, value: T.Any, yielding: T.Optional[bool] = None):
-        super().__init__(description, None, yielding)
+    def __init__(self, description: str, value: T.Any, yielding: bool = DEFAULT_YIELDING,
+                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
+        super().__init__(description, None, yielding, deprecated)
         self.set_value(value)
 
     def validate_value(self, value: T.Any) -> str:
@@ -111,8 +115,9 @@ class UserStringOption(UserOption[str]):
         return value
 
 class UserBooleanOption(UserOption[bool]):
-    def __init__(self, description: str, value, yielding: T.Optional[bool] = None) -> None:
-        super().__init__(description, [True, False], yielding)
+    def __init__(self, description: str, value, yielding: bool = DEFAULT_YIELDING,
+                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
+        super().__init__(description, [True, False], yielding, deprecated)
         self.set_value(value)
 
     def __bool__(self) -> bool:
@@ -130,7 +135,8 @@ class UserBooleanOption(UserOption[bool]):
         raise MesonException('Value %s is not boolean (true or false).' % value)
 
 class UserIntegerOption(UserOption[int]):
-    def __init__(self, description: str, value: T.Any, yielding: T.Optional[bool] = None):
+    def __init__(self, description: str, value: T.Any, yielding: bool = DEFAULT_YIELDING,
+                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
         min_value, max_value, default_value = value
         self.min_value = min_value
         self.max_value = max_value
@@ -140,7 +146,7 @@ class UserIntegerOption(UserOption[int]):
         if max_value is not None:
             c.append('<=' + str(max_value))
         choices = ', '.join(c)
-        super().__init__(description, choices, yielding)
+        super().__init__(description, choices, yielding, deprecated)
         self.set_value(default_value)
 
     def validate_value(self, value: T.Any) -> int:
@@ -168,8 +174,9 @@ class OctalInt(int):
         return oct(int(self))
 
 class UserUmaskOption(UserIntegerOption, UserOption[T.Union[str, OctalInt]]):
-    def __init__(self, description: str, value: T.Any, yielding: T.Optional[bool] = None):
-        super().__init__(description, (0, 0o777, value), yielding)
+    def __init__(self, description: str, value: T.Any, yielding: bool = DEFAULT_YIELDING,
+                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
+        super().__init__(description, (0, 0o777, value), yielding, deprecated)
         self.choices = ['preserve', '0000-0777']
 
     def printable_value(self) -> str:
@@ -189,8 +196,10 @@ class UserUmaskOption(UserIntegerOption, UserOption[T.Union[str, OctalInt]]):
             raise MesonException(f'Invalid mode: {e}')
 
 class UserComboOption(UserOption[str]):
-    def __init__(self, description: str, choices: T.List[str], value: T.Any, yielding: T.Optional[bool] = None):
-        super().__init__(description, choices, yielding)
+    def __init__(self, description: str, choices: T.List[str], value: T.Any,
+                 yielding: bool = DEFAULT_YIELDING,
+                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
+        super().__init__(description, choices, yielding, deprecated)
         if not isinstance(self.choices, list):
             raise MesonException('Combo choices must be an array.')
         for i in self.choices:
@@ -213,8 +222,12 @@ class UserComboOption(UserOption[str]):
         return value
 
 class UserArrayOption(UserOption[T.List[str]]):
-    def __init__(self, description: str, value: T.Union[str, T.List[str]], split_args: bool = False, user_input: bool = False, allow_dups: bool = False, **kwargs: T.Any) -> None:
-        super().__init__(description, kwargs.get('choices', []), yielding=kwargs.get('yielding', None))
+    def __init__(self, description: str, value: T.Union[str, T.List[str]],
+                 split_args: bool = False, user_input: bool = False,
+                 allow_dups: bool = False, yielding: bool = DEFAULT_YIELDING,
+                 choices: T.Optional[T.List[str]] = None,
+                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
+        super().__init__(description, choices if choices is not None else [], yielding, deprecated)
         self.split_args = split_args
         self.allow_dups = allow_dups
         self.value = self.validate_value(value, user_input=user_input)
@@ -272,8 +285,9 @@ class UserArrayOption(UserOption[T.List[str]]):
 class UserFeatureOption(UserComboOption):
     static_choices = ['enabled', 'disabled', 'auto']
 
-    def __init__(self, description: str, value: T.Any, yielding: T.Optional[bool] = None):
-        super().__init__(description, self.static_choices, value, yielding)
+    def __init__(self, description: str, value: T.Any, yielding: bool = DEFAULT_YIELDING,
+                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
+        super().__init__(description, self.static_choices, value, yielding, deprecated)
         self.name: T.Optional[str] = None  # TODO: Refactor options to all store their name
 
     def is_enabled(self) -> bool:
@@ -746,17 +760,6 @@ class CoreData:
             return True
         return optname.lang is not None
 
-    def validate_option_value(self, option_name: OptionKey, override_value):
-        try:
-            opt = self.options[option_name]
-        except KeyError:
-            raise MesonException(f'Tried to validate unknown option {str(option_name)}')
-        try:
-            return opt.validate_value(override_value)
-        except MesonException as e:
-            raise type(e)(('Validation failed for option %s: ' % option_name) + str(e)) \
-                .with_traceback(sys.exc_info()[2])
-
     def get_external_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
         return self.options[OptionKey('args', machine=for_machine, lang=lang)].value
 
@@ -897,7 +900,7 @@ class CoreData:
         for key in comp.base_options:
             if key in self.options:
                 continue
-            oobj = compilers.base_options[key]
+            oobj = copy.deepcopy(compilers.base_options[key])
             if key in env.options:
                 oobj.set_value(env.options[key])
                 enabled_opts.append(key)
@@ -1194,18 +1197,18 @@ class BuiltinOption(T.Generic[_T, _U]):
 BUILTIN_DIR_OPTIONS: 'MutableKeyedOptionDictType' = OrderedDict([
     (OptionKey('prefix'),          BuiltinOption(UserStringOption, 'Installation prefix', default_prefix())),
     (OptionKey('bindir'),          BuiltinOption(UserStringOption, 'Executable directory', 'bin')),
-    (OptionKey('datadir'),         BuiltinOption(UserStringOption, 'Data file directory', 'share')),
-    (OptionKey('includedir'),      BuiltinOption(UserStringOption, 'Header file directory', 'include')),
-    (OptionKey('infodir'),         BuiltinOption(UserStringOption, 'Info page directory', 'share/info')),
+    (OptionKey('datadir'),         BuiltinOption(UserStringOption, 'Data file directory', default_datadir())),
+    (OptionKey('includedir'),      BuiltinOption(UserStringOption, 'Header file directory', default_includedir())),
+    (OptionKey('infodir'),         BuiltinOption(UserStringOption, 'Info page directory', default_infodir())),
     (OptionKey('libdir'),          BuiltinOption(UserStringOption, 'Library directory', default_libdir())),
     (OptionKey('licensedir'),      BuiltinOption(UserStringOption, 'Licenses directory', '')),
     (OptionKey('libexecdir'),      BuiltinOption(UserStringOption, 'Library executable directory', default_libexecdir())),
-    (OptionKey('localedir'),       BuiltinOption(UserStringOption, 'Locale data directory', 'share/locale')),
+    (OptionKey('localedir'),       BuiltinOption(UserStringOption, 'Locale data directory', default_localedir())),
     (OptionKey('localstatedir'),   BuiltinOption(UserStringOption, 'Localstate data directory', 'var')),
-    (OptionKey('mandir'),          BuiltinOption(UserStringOption, 'Manual page directory', 'share/man')),
-    (OptionKey('sbindir'),         BuiltinOption(UserStringOption, 'System executable directory', 'sbin')),
+    (OptionKey('mandir'),          BuiltinOption(UserStringOption, 'Manual page directory', default_mandir())),
+    (OptionKey('sbindir'),         BuiltinOption(UserStringOption, 'System executable directory', default_sbindir())),
     (OptionKey('sharedstatedir'),  BuiltinOption(UserStringOption, 'Architecture-independent data directory', 'com')),
-    (OptionKey('sysconfdir'),      BuiltinOption(UserStringOption, 'Sysconf data directory', 'etc')),
+    (OptionKey('sysconfdir'),      BuiltinOption(UserStringOption, 'Sysconf data directory', default_sysconfdir())),
 ])
 
 BUILTIN_CORE_OPTIONS: 'MutableKeyedOptionDictType' = OrderedDict([
@@ -1260,24 +1263,25 @@ BULITIN_DIR_NOPREFIX_OPTIONS: T.Dict[OptionKey, T.Dict[str, str]] = {
     OptionKey('purelibdir', module='python'): {},
 }
 
-FORBIDDEN_TARGET_NAMES = {'clean': None,
-                          'clean-ctlist': None,
-                          'clean-gcno': None,
-                          'clean-gcda': None,
-                          'coverage': None,
-                          'coverage-text': None,
-                          'coverage-xml': None,
-                          'coverage-html': None,
-                          'phony': None,
-                          'PHONY': None,
-                          'all': None,
-                          'test': None,
-                          'benchmark': None,
-                          'install': None,
-                          'uninstall': None,
-                          'build.ninja': None,
-                          'scan-build': None,
-                          'reconfigure': None,
-                          'dist': None,
-                          'distcheck': None,
-                          }
+FORBIDDEN_TARGET_NAMES = frozenset({
+    'clean',
+    'clean-ctlist',
+    'clean-gcno',
+    'clean-gcda',
+    'coverage',
+    'coverage-text',
+    'coverage-xml',
+    'coverage-html',
+    'phony',
+    'PHONY',
+    'all',
+    'test',
+    'benchmark',
+    'install',
+    'uninstall',
+    'build.ninja',
+    'scan-build',
+    'reconfigure',
+    'dist',
+    'distcheck',
+})

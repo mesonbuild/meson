@@ -27,9 +27,12 @@ import abc
 import typing as T
 
 if T.TYPE_CHECKING:
+    from hashlib import _Hash
     from typing_extensions import Literal
     from ..mparser import BaseNode
-    from . import programs
+    from .. import programs
+
+    EnvironOrDict = T.Union[T.Dict[str, str], os._Environ[str]]
 
 
 __all__ = [
@@ -78,7 +81,7 @@ EnvInitValueType = T.Dict[str, T.Union[str, T.List[str]]]
 class EnvironmentVariables(HoldableObject):
     def __init__(self, values: T.Optional[EnvInitValueType] = None,
                  init_method: Literal['set', 'prepend', 'append'] = 'set', separator: str = os.pathsep) -> None:
-        self.envvars: T.List[T.Tuple[T.Callable[[T.Dict[str, str], str, T.List[str], str], str], str, T.List[str], str]] = []
+        self.envvars: T.List[T.Tuple[T.Callable[[T.Dict[str, str], str, T.List[str], str, T.Optional[str]], str], str, T.List[str], str]] = []
         # The set of all env vars we have operations for. Only used for self.has_name()
         self.varnames: T.Set[str] = set()
 
@@ -92,7 +95,7 @@ class EnvironmentVariables(HoldableObject):
         repr_str = "<{0}: {1}>"
         return repr_str.format(self.__class__.__name__, self.envvars)
 
-    def hash(self, hasher: T.Any):
+    def hash(self, hasher: _Hash) -> None:
         myenv = self.get_env({})
         for key in sorted(myenv.keys()):
             hasher.update(bytes(key, encoding='utf-8'))
@@ -132,10 +135,10 @@ class EnvironmentVariables(HoldableObject):
         curr = env.get(name, default_value)
         return separator.join(values if curr is None else values + [curr])
 
-    def get_env(self, full_env: T.MutableMapping[str, str], dump: bool = False) -> T.Dict[str, str]:
+    def get_env(self, full_env: EnvironOrDict, default_fmt: T.Optional[str] = None) -> T.Dict[str, str]:
         env = full_env.copy()
         for method, name, values, separator in self.envvars:
-            default_value = f'${name}' if dump else None
+            default_value = default_fmt.format(name) if default_fmt else None
             env[name] = method(env, name, values, separator, default_value)
         return env
 

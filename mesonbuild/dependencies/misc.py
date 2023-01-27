@@ -293,13 +293,19 @@ class PcapDependencyConfigTool(ConfigToolDependency):
     tools = ['pcap-config']
     tool_name = 'pcap-config'
 
+    # version 1.10.2 added error checking for invalid arguments
+    # version 1.10.3 will hopefully add actual support for --version
+    skip_version = '--help'
+
     def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
         super().__init__(name, environment, kwargs)
         if not self.is_found:
             return
         self.compile_args = self.get_config_value(['--cflags'], 'compile_args')
         self.link_args = self.get_config_value(['--libs'], 'link_args')
-        self.version = self.get_pcap_lib_version()
+        if self.version is None:
+            # older pcap-config versions don't support this
+            self.version = self.get_pcap_lib_version()
 
     def get_pcap_lib_version(self) -> T.Optional[str]:
         # Since we seem to need to run a program to discover the pcap version,

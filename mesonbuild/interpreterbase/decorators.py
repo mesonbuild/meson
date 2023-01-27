@@ -652,10 +652,11 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
         fv = cls.feature_registry[subproject]
         tv = cls.get_target_version(subproject)
         for version in sorted(fv.keys()):
+            message = ', '.join(sorted(f"'{i[0]}'" for i in fv[version]))
             if cls.check_version(tv, version):
-                notice_str += '\n * {}: {}'.format(version, {i[0] for i in fv[version]})
+                notice_str += '\n * {}: {{{}}}'.format(version, message)
             else:
-                warning_str += '\n * {}: {}'.format(version, {i[0] for i in fv[version]})
+                warning_str += '\n * {}: {{{}}}'.format(version, message)
         if '\n' in notice_str:
             mlog.notice(notice_str, fatal=False)
         if '\n' in warning_str:

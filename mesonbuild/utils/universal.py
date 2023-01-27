@@ -82,6 +82,13 @@ __all__ = [
     'default_libdir',
     'default_libexecdir',
     'default_prefix',
+    'default_datadir',
+    'default_includedir',
+    'default_infodir',
+    'default_localedir',
+    'default_mandir',
+    'default_sbindir',
+    'default_sysconfdir',
     'detect_subprojects',
     'detect_vcs',
     'do_conf_file',
@@ -94,7 +101,6 @@ __all__ = [
     'generate_list',
     'get_compiler_for_source',
     'get_filenames_templates_dict',
-    'get_library_dirs',
     'get_variable_regex',
     'get_wine_shortpath',
     'git',
@@ -978,58 +984,60 @@ def default_libdir() -> str:
 
 
 def default_libexecdir() -> str:
+    if is_haiku():
+        return 'lib'
     # There is no way to auto-detect this, so it must be set at build time
     return 'libexec'
 
 
 def default_prefix() -> str:
-    return 'c:/' if is_windows() else '/usr/local'
-
-
-def get_library_dirs() -> T.List[str]:
     if is_windows():
-        return ['C:/mingw/lib'] # TODO: get programmatically
-    if is_osx():
-        return ['/usr/lib'] # TODO: get programmatically
-    # The following is probably Debian/Ubuntu specific.
-    # /usr/local/lib is first because it contains stuff
-    # installed by the sysadmin and is probably more up-to-date
-    # than /usr/lib. If you feel that this search order is
-    # problematic, please raise the issue on the mailing list.
-    unixdirs = ['/usr/local/lib', '/usr/lib', '/lib']
+        return 'c:/'
+    if is_haiku():
+        return '/boot/system/non-packaged'
+    return '/usr/local'
 
-    if is_freebsd():
-        return unixdirs
-    # FIXME: this needs to be further genericized for aarch64 etc.
-    machine = platform.machine()
-    if machine in {'i386', 'i486', 'i586', 'i686'}:
-        plat = 'i386'
-    elif machine.startswith('arm'):
-        plat = 'arm'
-    else:
-        plat = ''
 
-    # Solaris puts 32-bit libraries in the main /lib & /usr/lib directories
-    # and 64-bit libraries in platform specific subdirectories.
-    if is_sunos():
-        if machine == 'i86pc':
-            plat = 'amd64'
-        elif machine.startswith('sun4'):
-            plat = 'sparcv9'
+def default_datadir() -> str:
+    if is_haiku():
+        return 'data'
+    return 'share'
 
-    usr_platdir = Path('/usr/lib/') / plat
-    if usr_platdir.is_dir():
-        unixdirs += [str(x) for x in (usr_platdir).iterdir() if x.is_dir()]
-    if os.path.exists('/usr/lib64'):
-        unixdirs.append('/usr/lib64')
 
-    lib_platdir = Path('/lib/') / plat
-    if lib_platdir.is_dir():
-        unixdirs += [str(x) for x in (lib_platdir).iterdir() if x.is_dir()]
-    if os.path.exists('/lib64'):
-        unixdirs.append('/lib64')
+def default_includedir() -> str:
+    if is_haiku():
+        return 'develop/headers'
+    return 'include'
 
-    return unixdirs
+
+def default_infodir() -> str:
+    if is_haiku():
+        return 'documentation/info'
+    return 'share/info'
+
+
+def default_localedir() -> str:
+    if is_haiku():
+        return 'data/locale'
+    return 'share/locale'
+
+
+def default_mandir() -> str:
+    if is_haiku():
+        return 'documentation/man'
+    return 'share/man'
+
+
+def default_sbindir() -> str:
+    if is_haiku():
+        return 'bin'
+    return 'sbin'
+
+
+def default_sysconfdir() -> str:
+    if is_haiku():
+        return 'settings'
+    return 'etc'
 
 
 def has_path_sep(name: str, sep: str = '/\\') -> bool:

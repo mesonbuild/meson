@@ -17,15 +17,12 @@
 [binaries]
 # we could set exe_wrapper = qemu-arm-static but to test the case
 # when cross compiled binaries can't be run we don't do that
-c = '/opt/arm/developmentstudio-2019.0/sw/ARMCompiler6.12/bin/armclang'
+c = ['/opt/arm/developmentstudio-2019.0/sw/ARMCompiler6.12/bin/armclang', '--target=aarch64-arm-none-eabi']
 #c = '/opt/arm/developmentstudio-2019.0/sw/ARMCompiler5.06u6/bin/armcc'
 #cpp = '/usr/bin/arm-linux-gnueabihf-g++'
 ar = '/opt/arm/developmentstudio-2019.0/sw/ARMCompiler6.12/bin/armar'
 #strip = '/usr/arm-linux-gnueabihf/bin/strip'
 #pkgconfig = '/usr/bin/arm-linux-gnueabihf-pkg-config'
-
-[built-in options]
-c_args = ['--target=aarch64-arm-none-eabi']
 
 [host_machine]
 system = 'baremetal'

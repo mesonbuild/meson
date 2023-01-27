@@ -16,7 +16,7 @@ option('o5', type: 'boolean', deprecated: {'enabled': 'true', 'disabled': 'false
 
 # A boolean option has been replaced by a feature with another name, old true/false values
 # are accepted by the new option for backward compatibility.
-option('o6', type: 'boolean', value: 'true', deprecated: 'o7')
+option('o6', type: 'boolean', value: true, deprecated: 'o7')
 option('o7', type: 'feature', value: 'enabled', deprecated: {'true': 'enabled', 'false': 'disabled'})
 
 # A project option is replaced by a module option
