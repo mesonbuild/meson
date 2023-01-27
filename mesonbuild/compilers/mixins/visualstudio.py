@@ -260,7 +260,9 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
                 continue
             # cl.exe does not allow specifying both, so remove /utf-8 that we
             # added automatically in the case the user overrides it manually.
-            elif i.startswith('/source-charset:') or i.startswith('/execution-charset:'):
+            elif (i.startswith('/source-charset:')
+                    or i.startswith('/execution-charset:')
+                    or i == '/validate-charset-'):
                 try:
                     result.remove('/utf-8')
                 except ValueError:
