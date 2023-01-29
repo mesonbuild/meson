@@ -25,6 +25,7 @@ from ..mesonlib import Popen_safe, OrderedSet, join_args
 from ..programs import ExternalProgram
 from .base import DependencyException, DependencyMethods
 from .configtool import ConfigToolDependency
+from .detect import packages
 from .pkgconfig import PkgConfigDependency
 from .factory import factory_methods
 import typing as T
@@ -178,3 +179,5 @@ def hdf5_factory(env: 'Environment', for_machine: 'MachineChoice',
         candidates.append(functools.partial(HDF5ConfigToolDependency, 'hdf5', env, kwargs, language))
 
     return candidates
+
+packages['hdf5'] = hdf5_factory

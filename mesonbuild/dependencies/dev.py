@@ -34,6 +34,7 @@ from ..mesonlib import version_compare, version_compare_many, search_version, st
 from .base import DependencyException, DependencyMethods, detect_compiler, strip_system_includedirs, strip_system_libdirs, SystemDependency, ExternalDependency, DependencyTypeName
 from .cmake import CMakeDependency
 from .configtool import ConfigToolDependency
+from .detect import packages
 from .factory import DependencyFactory
 from .misc import threads_factory
 from .pkgconfig import PkgConfigDependency
@@ -507,6 +508,8 @@ class ValgrindDependency(PkgConfigDependency):
     def get_link_args(self, language: T.Optional[str] = None, raw: bool = False) -> T.List[str]:
         return []
 
+packages['valgrind'] = ValgrindDependency
+
 
 class ZlibSystemDependency(SystemDependency):
 
@@ -671,6 +674,8 @@ class JNISystemDependency(SystemDependency):
 
         return None
 
+packages['jni'] = JNISystemDependency
+
 
 class JDKSystemDependency(JNISystemDependency):
     def __init__(self, environment: 'Environment', kwargs: JNISystemDependencyKW):
@@ -683,29 +688,31 @@ class JDKSystemDependency(JNISystemDependency):
             'Use the jni system dependency instead'
         ))
 
+packages['jdk'] = JDKSystemDependency
 
-llvm_factory = DependencyFactory(
+
+packages['llvm'] = llvm_factory = DependencyFactory(
     'LLVM',
     [DependencyMethods.CMAKE, DependencyMethods.CONFIG_TOOL],
     cmake_class=LLVMDependencyCMake,
     configtool_class=LLVMDependencyConfigTool,
 )
 
-gtest_factory = DependencyFactory(
+packages['gtest'] = gtest_factory = DependencyFactory(
     'gtest',
     [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM],
     pkgconfig_class=GTestDependencyPC,
     system_class=GTestDependencySystem,
 )
 
-gmock_factory = DependencyFactory(
+packages['gmock'] = gmock_factory = DependencyFactory(
     'gmock',
     [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM],
     pkgconfig_class=GMockDependencyPC,
     system_class=GMockDependencySystem,
 )
 
-zlib_factory = DependencyFactory(
+packages['zlib'] = zlib_factory = DependencyFactory(
     'zlib',
     [DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE, DependencyMethods.SYSTEM],
     cmake_name='ZLIB',

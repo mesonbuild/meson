@@ -29,6 +29,7 @@ from ..environment import detect_cpu_family
 
 from .base import DependencyException, DependencyMethods, DependencyTypeName, SystemDependency
 from .configtool import ConfigToolDependency
+from .detect import packages
 from .factory import DependencyFactory
 
 if T.TYPE_CHECKING:
@@ -136,6 +137,8 @@ class GnuStepDependency(ConfigToolDependency):
             version = '1'
         return version
 
+packages['gnustep'] = GnuStepDependency
+
 
 class SDL2DependencyConfigTool(ConfigToolDependency):
 
@@ -187,6 +190,7 @@ class WxDependency(ConfigToolDependency):
                 raise DependencyException('wxwidgets module argument is not a string')
         return candidates
 
+packages['wxwidgets'] = WxDependency
 
 class VulkanDependencySystem(SystemDependency):
 
@@ -244,20 +248,20 @@ class VulkanDependencySystem(SystemDependency):
                     self.link_args.append(lib)
                 return
 
-gl_factory = DependencyFactory(
+packages['gl'] = gl_factory = DependencyFactory(
     'gl',
     [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM],
     system_class=GLDependencySystem,
 )
 
-sdl2_factory = DependencyFactory(
+packages['sdl2'] = sdl2_factory = DependencyFactory(
     'sdl2',
     [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK, DependencyMethods.CMAKE],
     configtool_class=SDL2DependencyConfigTool,
     cmake_name='SDL2',
 )
 
-vulkan_factory = DependencyFactory(
+packages['vulkan'] = vulkan_factory = DependencyFactory(
     'vulkan',
     [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM],
     system_class=VulkanDependencySystem,

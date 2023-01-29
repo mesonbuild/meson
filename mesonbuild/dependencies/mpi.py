@@ -21,6 +21,7 @@ import re
 from ..environment import detect_cpu_family
 from .base import DependencyMethods, detect_compiler, SystemDependency
 from .configtool import ConfigToolDependency
+from .detect import packages
 from .factory import factory_methods
 from .pkgconfig import PkgConfigDependency
 
@@ -99,6 +100,8 @@ def mpi_factory(env: 'Environment',
             MSMPIDependency, 'msmpi', env, kwargs, language=language))
 
     return candidates
+
+packages['mpi'] = mpi_factory
 
 
 class _MPIConfigToolDependency(ConfigToolDependency):

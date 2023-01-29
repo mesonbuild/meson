@@ -192,62 +192,66 @@ this approach, and no new dependencies should do this.
 # - An ExternalDependency subclass
 # - A DependencyFactory object
 # - A callable with a signature of (Environment, MachineChoice, Dict[str, Any]) -> List[Callable[[], ExternalDependency]]
+#
+# The internal "defaults" attribute contains a separate dictionary mapping
+# for lazy imports. The values must be:
+# - a string naming the submodule that should be imported from `mesonbuild.dependencies` to populate the dependency
 packages.defaults.update({
     # From dev:
-    'gtest': 'dev:gtest_factory',
-    'gmock': 'dev:gmock_factory',
-    'llvm': 'dev:llvm_factory',
-    'valgrind': 'dev:ValgrindDependency',
-    'zlib': 'dev:zlib_factory',
-    'jni': 'dev:JNISystemDependency',
-    'jdk': 'dev:JDKSystemDependency',
+    'gtest': 'dev',
+    'gmock': 'dev',
+    'llvm': 'dev',
+    'valgrind': 'dev',
+    'zlib': 'dev',
+    'jni': 'dev',
+    'jdk': 'dev',
 
-    'boost': 'boost:BoostDependency',
-    'cuda': 'cuda:CudaDependency',
+    'boost': 'boost',
+    'cuda': 'cuda',
 
     # per-file
-    'coarray': 'coarrays:coarray_factory',
-    'hdf5': 'hdf5:hdf5_factory',
-    'mpi': 'mpi:mpi_factory',
-    'scalapack': 'scalapack:scalapack_factory',
+    'coarray': 'coarrays',
+    'hdf5': 'hdf5',
+    'mpi': 'mpi',
+    'scalapack': 'scalapack',
 
     # From misc:
-    'blocks': 'misc:BlocksDependency',
-    'curses': 'misc:curses_factory',
-    'netcdf': 'misc:netcdf_factory',
-    'openmp': 'misc:OpenMPDependency',
-    'threads': 'misc:threads_factory',
-    'pcap': 'misc:pcap_factory',
-    'cups': 'misc:cups_factory',
-    'libwmf': 'misc:libwmf_factory',
-    'libgcrypt': 'misc:libgcrypt_factory',
-    'gpgme': 'misc:gpgme_factory',
-    'shaderc': 'misc:shaderc_factory',
-    'iconv': 'misc:iconv_factory',
-    'intl': 'misc:intl_factory',
-    'dl': 'misc:dl_factory',
-    'openssl': 'misc:openssl_factory',
-    'libcrypto': 'misc:libcrypto_factory',
-    'libssl': 'misc:libssl_factory',
+    'blocks': 'misc',
+    'curses': 'misc',
+    'netcdf': 'misc',
+    'openmp': 'misc',
+    'threads': 'misc',
+    'pcap': 'misc',
+    'cups': 'misc',
+    'libwmf': 'misc',
+    'libgcrypt': 'misc',
+    'gpgme': 'misc',
+    'shaderc': 'misc',
+    'iconv': 'misc',
+    'intl': 'misc',
+    'dl': 'misc',
+    'openssl': 'misc',
+    'libcrypto': 'misc',
+    'libssl': 'misc',
 
     # From platform:
-    'appleframeworks': 'platform:AppleFrameworks',
+    'appleframeworks': 'platform',
 
     # from python:
-    'python3': 'python:python_factory',
-    'pybind11': 'python:pybind11_factory',
+    'python3': 'python',
+    'pybind11': 'python',
 
     # From ui:
-    'gl': 'ui:gl_factory',
-    'gnustep': 'ui:GnuStepDependency',
-    'sdl2': 'ui:sdl2_factory',
-    'wxwidgets': 'ui:WxDependency',
-    'vulkan': 'ui:vulkan_factory',
+    'gl': 'ui',
+    'gnustep': 'ui',
+    'sdl2': 'ui',
+    'wxwidgets': 'ui',
+    'vulkan': 'ui',
 
     # from qt
-    'qt4': 'qt:qt4_factory',
-    'qt5': 'qt:qt5_factory',
-    'qt6': 'qt:qt6_factory',
+    'qt4': 'qt',
+    'qt5': 'qt',
+    'qt6': 'qt',
 })
 _packages_accept_language.update({
     'hdf5',

@@ -23,6 +23,7 @@ from .. import mesonlib
 from .. import mlog
 from ..environment import detect_cpu_family
 from .base import DependencyException, SystemDependency
+from .detect import packages
 
 
 if T.TYPE_CHECKING:
@@ -290,3 +291,5 @@ class CudaDependency(SystemDependency):
         for lib in self.requested_modules:
             args += self.lib_modules[lib]
         return args
+
+packages['cuda'] = CudaDependency

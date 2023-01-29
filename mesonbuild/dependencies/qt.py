@@ -24,6 +24,7 @@ import typing as T
 
 from .base import DependencyException, DependencyMethods
 from .configtool import ConfigToolDependency
+from .detect import packages
 from .framework import ExtraFrameworkDependency
 from .pkgconfig import PkgConfigDependency
 from .factory import DependencyFactory
@@ -467,21 +468,21 @@ class Qt6PkgConfigDependency(Qt6WinMainMixin, QtPkgConfigDependency):
         return _qt_get_private_includes(mod_inc_dir, module, self.version)
 
 
-qt4_factory = DependencyFactory(
+packages['qt4'] = qt4_factory = DependencyFactory(
     'qt4',
     [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL],
     pkgconfig_class=Qt4PkgConfigDependency,
     configtool_class=Qt4ConfigToolDependency,
 )
 
-qt5_factory = DependencyFactory(
+packages['qt5'] = qt5_factory = DependencyFactory(
     'qt5',
     [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL],
     pkgconfig_class=Qt5PkgConfigDependency,
     configtool_class=Qt5ConfigToolDependency,
 )
 
-qt6_factory = DependencyFactory(
+packages['qt6'] = qt6_factory = DependencyFactory(
     'qt6',
     [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL],
     pkgconfig_class=Qt6PkgConfigDependency,

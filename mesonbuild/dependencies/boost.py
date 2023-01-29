@@ -23,6 +23,7 @@ from .. import mlog
 from .. import mesonlib
 
 from .base import DependencyException, SystemDependency
+from .detect import packages
 from .pkgconfig import PkgConfigDependency
 from .misc import threads_factory
 
@@ -738,6 +739,7 @@ class BoostDependency(SystemDependency):
         # BOOST_ALL_DYN_LINK should not be required with the known defines below
         return ['-DBOOST_ALL_NO_LIB']  # Disable automatic linking
 
+packages['boost'] = BoostDependency
 
 # See https://www.boost.org/doc/libs/1_72_0/more/getting_started/unix-variants.html#library-naming
 # See https://mesonbuild.com/Reference-tables.html#cpu-families

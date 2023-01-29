@@ -18,6 +18,7 @@ import typing as T
 
 from .base import DependencyMethods, detect_compiler, SystemDependency
 from .cmake import CMakeDependency
+from .detect import packages
 from .pkgconfig import PkgConfigDependency
 from .factory import factory_methods
 
@@ -51,6 +52,7 @@ def coarray_factory(env: 'Environment',
         candidates.append(functools.partial(CoarrayDependency, env, kwargs))
 
     return candidates
+packages['coarray'] = coarray_factory
 
 
 class CoarrayDependency(SystemDependency):

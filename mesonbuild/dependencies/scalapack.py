@@ -22,6 +22,7 @@ from ..mesonlib import OptionKey
 from .base import DependencyMethods
 from .base import DependencyException
 from .cmake import CMakeDependency
+from .detect import packages
 from .pkgconfig import PkgConfigDependency
 from .factory import factory_methods
 
@@ -51,6 +52,8 @@ def scalapack_factory(env: 'Environment', for_machine: 'MachineChoice',
             CMakeDependency, 'Scalapack', env, kwargs))
 
     return candidates
+
+packages['scalapack'] = scalapack_factory
 
 
 class MKLPkgConfigDependency(PkgConfigDependency):

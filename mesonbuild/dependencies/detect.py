@@ -35,12 +35,10 @@ class DependencyPackages(collections.UserDict):
 
     def __missing__(self, key: str) -> PackageTypes:
         if key in self.defaults:
-            modn, package = self.defaults[key].split(':', maxsplit=1)
-            mod = importlib.import_module(f'mesonbuild.dependencies.{modn}')
-            value = T.cast('PackageTypes', getattr(mod, package))
-            self.data[key] = value
+            modn = self.defaults[key]
+            importlib.import_module(f'mesonbuild.dependencies.{modn}')
 
-            return value
+            return self.data[key]
         raise KeyError(key)
 
     def __contains__(self, key: object) -> bool:
