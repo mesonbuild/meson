@@ -733,6 +733,7 @@ class Backend:
     @lru_cache(maxsize=None)
     def rpaths_for_non_system_absolute_shared_libraries(self, target: build.BuildTarget, exclude_system: bool = True) -> 'ImmutableListProtocol[str]':
         paths: OrderedSet[str] = OrderedSet()
+        srcdir = self.environment.get_source_dir()
         for dep in target.external_deps:
             if not isinstance(dep, (dependencies.ExternalLibrary, dependencies.PkgConfigDependency)):
                 continue
@@ -751,8 +752,14 @@ class Backend:
                 # emulate rpaths by setting PATH, so also accept DLLs here
                 if os.path.splitext(libpath)[1] not in ['.dll', '.lib', '.so', '.dylib']:
                     continue
-                if libdir.startswith(self.environment.get_source_dir()):
-                    rel_to_src = libdir[len(self.environment.get_source_dir()) + 1:]
+
+                try:
+                    commonpath = os.path.commonpath((libdir, srcdir))
+                except ValueError: # when paths are on different drives on Windows
+                    commonpath = ''
+
+                if commonpath == srcdir:
+                    rel_to_src = libdir[len(srcdir) + 1:]
                     assert not os.path.isabs(rel_to_src), f'rel_to_src: {rel_to_src} is absolute'
                     paths.add(os.path.join(self.build_to_src, rel_to_src))
                 else:
