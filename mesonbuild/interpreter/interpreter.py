@@ -3203,13 +3203,13 @@ class Interpreter(InterpreterBase, HoldableObject):
         if 'sources' in kwargs:
             sources += listify(kwargs['sources'])
         if any(isinstance(s, build.BuildTarget) for s in sources):
-            FeatureDeprecated.single_use('passing references to built targets as a source file', '1.1.0', self.subproject,
-                                         'consider using `link_with` or `link_whole` if you meant to link, or dropping them as otherwise they are ignored',
-                                         node)
+            FeatureBroken.single_use('passing references to built targets as a source file', '1.1.0', self.subproject,
+                                     'Consider using `link_with` or `link_whole` if you meant to link, or dropping them as otherwise they are ignored.',
+                                     node)
         if any(isinstance(s, build.ExtractedObjects) for s in sources):
-            FeatureDeprecated.single_use('passing object files as sources', '1.1.0', self.subproject,
-                                         'pass these to the `objects` keyword instead, they are ignored when passed as sources',
-                                         node)
+            FeatureBroken.single_use('passing object files as sources', '1.1.0', self.subproject,
+                                     'Pass these to the `objects` keyword instead, they are ignored when passed as sources.',
+                                     node)
         # Go ahead and drop these here, since they're only allowed through for
         # backwards compatibility anyway
         sources = [s for s in sources
