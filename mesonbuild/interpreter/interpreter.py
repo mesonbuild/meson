@@ -36,7 +36,6 @@ from ..interpreterbase import Disabler, disablerIfNotFound
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureBroken, FeatureNewKwargs, FeatureDeprecatedKwargs
 from ..interpreterbase import ObjectHolder, ContextManagerObject
 from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule
-from ..cmake import CMakeInterpreter
 from ..backend.backends import ExecutableSerialisation
 
 from . import interpreterobjects as OBJ
@@ -1011,6 +1010,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def _do_subproject_cmake(self, subp_name: str, subdir: str, subdir_abs: str,
                              default_options: T.Dict[OptionKey, str],
                              kwargs: kwtypes.DoSubproject) -> SubprojectHolder:
+        from ..cmake import CMakeInterpreter
         with mlog.nested(subp_name):
             new_build = self.build.copy()
             prefix = self.coredata.options[OptionKey('prefix')].value

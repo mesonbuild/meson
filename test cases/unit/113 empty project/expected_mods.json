@@ -94,14 +94,9 @@
       "http",
       "http.client",
       "importlib",
-      "importlib._abc",
-      "importlib._adapters",
       "importlib._bootstrap",
       "importlib._bootstrap_external",
-      "importlib._common",
-      "importlib.abc",
       "importlib.machinery",
-      "importlib.resources",
       "inspect",
       "io",
       "itertools",
@@ -169,7 +164,7 @@
       "zipimport",
       "zlib"
     ],
-    "count": 167
+    "count": 162
   },
   "meson": {
     "modules": [
@@ -186,15 +181,6 @@
       "mesonbuild.backend.backends",
       "mesonbuild.backend.ninjabackend",
       "mesonbuild.build",
-      "mesonbuild.cmake",
-      "mesonbuild.cmake.common",
-      "mesonbuild.cmake.executor",
-      "mesonbuild.cmake.fileapi",
-      "mesonbuild.cmake.generator",
-      "mesonbuild.cmake.interpreter",
-      "mesonbuild.cmake.toolchain",
-      "mesonbuild.cmake.traceparser",
-      "mesonbuild.cmake.tracetargets",
       "mesonbuild.compilers",
       "mesonbuild.compilers.compilers",
       "mesonbuild.compilers.detect",
@@ -232,7 +218,6 @@
       "mesonbuild.linkers",
       "mesonbuild.linkers.detect",
       "mesonbuild.linkers.linkers",
-      "mesonbuild.mesondata",
       "mesonbuild.mesonlib",
       "mesonbuild.mesonmain",
       "mesonbuild.mintro",
@@ -255,6 +240,6 @@
       "mesonbuild.wrap",
       "mesonbuild.wrap.wrap"
     ],
-    "count": 81
+    "count": 71
   }
 }
