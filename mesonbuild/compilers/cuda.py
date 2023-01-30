@@ -22,7 +22,7 @@ from .. import coredata
 from .. import mlog
 from ..mesonlib import (
     EnvironmentException, Popen_safe, OptionOverrideProxy,
-    is_windows, LibType, OptionKey,
+    is_windows, LibType, OptionKey, version_compare,
 )
 from .compilers import (Compiler, cuda_buildtype_args, cuda_optimization_args,
                         cuda_debug_args)
@@ -615,13 +615,26 @@ class CudaCompiler(Compiler):
         }}'''
         return self.compiles(t.format_map(fargs), env, extra_args=extra_args, dependencies=dependencies)
 
+    _CPP14_VERSION = '>=9.0'
+    _CPP17_VERSION = '>=11.0'
+    _CPP20_VERSION = '>=12.0'
+
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = super().get_options()
         std_key = OptionKey('std', machine=self.for_machine, lang=self.language)
         ccbindir_key = OptionKey('ccbindir', machine=self.for_machine, lang=self.language)
+
+        cpp_stds = ['none', 'c++03', 'c++11']
+        if version_compare(self.version, self._CPP14_VERSION):
+            cpp_stds += ['c++14']
+        if version_compare(self.version, self._CPP17_VERSION):
+            cpp_stds += ['c++17']
+        if version_compare(self.version, self._CPP20_VERSION):
+            cpp_stds += ['c++20']
+
         opts.update({
             std_key:      coredata.UserComboOption('C++ language standard to use with CUDA',
-                                                   ['none', 'c++03', 'c++11', 'c++14', 'c++17'], 'none'),
+                                                   cpp_stds, 'none'),
             ccbindir_key: coredata.UserStringOption('CUDA non-default toolchain directory to use (-ccbin)',
                                                     ''),
         })
