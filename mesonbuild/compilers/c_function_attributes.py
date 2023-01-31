@@ -100,6 +100,8 @@ C_FUNC_ATTRIBUTES = {
         'int foo(void) __attribute__((unused));',
     'used':
         'int foo(void) __attribute__((used));',
+    'vector_size':
+        '__attribute__((vector_size(32))); int foo(void) { return 0; }',
     'visibility': '''
         int foo_def(void) __attribute__((visibility("default")));
         int foo_hid(void) __attribute__((visibility("hidden")));
