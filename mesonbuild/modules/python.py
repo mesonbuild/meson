@@ -611,7 +611,7 @@ class PythonInstallation(ExternalProgramHolder):
     )
     def install_sources_method(self, args: T.Tuple[T.List[T.Union[str, mesonlib.File]]],
                                kwargs: 'PyInstallKw') -> 'Data':
-        tag = kwargs['install_tag'] or 'runtime'
+        tag = kwargs['install_tag'] or 'python-runtime'
         pure = kwargs['pure'] if kwargs['pure'] is not None else self.pure
         install_dir = self._get_install_dir_impl(pure, kwargs['subdir'])
         return self.interpreter.install_data_impl(
