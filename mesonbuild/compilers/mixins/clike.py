@@ -882,9 +882,7 @@ class CLikeCompiler(Compiler):
         if extra_args is None:
             extra_args = []
         # Create code that accesses all members
-        members = ''
-        for member in membernames:
-            members += f'foo.{member};\n'
+        members = ''.join(f'foo.{member};\n' for member in membernames)
         t = f'''{prefix}
         void bar(void) {{
             {typename} foo;
