@@ -411,7 +411,7 @@ class TAPParser:
                     yield self.Error('more than one plan found')
                 else:
                     num_tests = int(m.group(1))
-                    skipped = (num_tests == 0)
+                    skipped = num_tests == 0
                     if m.group(2):
                         if m.group(2).upper().startswith('SKIP'):
                             if num_tests > 0:

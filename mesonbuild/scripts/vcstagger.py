@@ -27,7 +27,7 @@ def config_vcs_tag(infile: str, outfile: str, fallback: str, source_dir: str, re
         new_data = f.read().replace(replace_string, new_string)
     if os.path.exists(outfile):
         with open(outfile, encoding='utf-8') as f:
-            needs_update = (f.read() != new_data)
+            needs_update = f.read() != new_data
     else:
         needs_update = True
     if needs_update:
