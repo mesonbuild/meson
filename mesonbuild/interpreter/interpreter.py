@@ -1375,7 +1375,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @noKwargs
     @noPosargs
     def func_exception(self, node, args, kwargs):
-        raise Exception()
+        raise RuntimeError('unit test traceback :)')
 
     def add_languages(self, args: T.List[str], required: bool, for_machine: MachineChoice) -> bool:
         success = self.add_languages_for(args, required, for_machine)
