@@ -63,4 +63,3 @@ disable=
     typevar-name-incorrect-variance,
     unsubscriptable-object,
     unused-argument,
-    useless-super-delegation,

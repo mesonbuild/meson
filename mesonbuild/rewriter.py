@@ -150,8 +150,6 @@ class MTypeBase:
         mlog.warning('Cannot remove a regex in type', mlog.bold(type(self).__name__), '--> skipping')
 
 class MTypeStr(MTypeBase):
-    def __init__(self, node: T.Optional[BaseNode] = None):
-        super().__init__(node)
 
     def _new_node(self):
         return StringNode(Token('', '', 0, 0, 0, None, ''))
@@ -163,8 +161,6 @@ class MTypeStr(MTypeBase):
         self.node.value = str(value)
 
 class MTypeBool(MTypeBase):
-    def __init__(self, node: T.Optional[BaseNode] = None):
-        super().__init__(node)
 
     def _new_node(self):
         return BooleanNode(Token('', '', 0, 0, 0, None, False))
@@ -176,8 +172,6 @@ class MTypeBool(MTypeBase):
         self.node.value = bool(value)
 
 class MTypeID(MTypeBase):
-    def __init__(self, node: T.Optional[BaseNode] = None):
-        super().__init__(node)
 
     def _new_node(self):
         return IdNode(Token('', '', 0, 0, 0, None, ''))
@@ -189,8 +183,6 @@ class MTypeID(MTypeBase):
         self.node.value = str(value)
 
 class MTypeList(MTypeBase):
-    def __init__(self, node: T.Optional[BaseNode] = None):
-        super().__init__(node)
 
     def _new_node(self):
         return ArrayNode(ArgumentNode(Token('', '', 0, 0, 0, None, '')), 0, 0, 0, 0)
@@ -258,8 +250,6 @@ class MTypeList(MTypeBase):
         self._remove_helper(regex, self._check_regex_matches)
 
 class MTypeStrList(MTypeList):
-    def __init__(self, node: T.Optional[BaseNode] = None):
-        super().__init__(node)
 
     def _new_element_node(self, value):
         return StringNode(Token('', '', 0, 0, 0, None, str(value)))
@@ -278,8 +268,6 @@ class MTypeStrList(MTypeList):
         return [StringNode]
 
 class MTypeIDList(MTypeList):
-    def __init__(self, node: T.Optional[BaseNode] = None):
-        super().__init__(node)
 
     def _new_element_node(self, value):
         return IdNode(Token('', '', 0, 0, 0, None, str(value)))
