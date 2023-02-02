@@ -25,7 +25,6 @@ disable=
     import-error,
     import-outside-toplevel,
     inconsistent-mro,
-    inconsistent-return-statements,
     invalid-name,
     invalid-unary-operand-type,
     line-too-long,
