@@ -335,11 +335,26 @@ class _BuildTarget(_BaseBuildTarget):
 
     rust_dependency_map: T.Dict[str, str]
     sources: SourcesVarargsType
+    c_args: T.List[str]
+    cpp_args: T.List[str]
+    cuda_args: T.List[str]
+    fortran_args: T.List[str]
+    d_args: T.List[str]
+    objc_args: T.List[str]
+    objcpp_args: T.List[str]
+    rust_args: T.List[str]
+    vala_args: T.List[T.Union[str, File]]  # Yes, Vala is really special
+    cs_args: T.List[str]
+    swift_args: T.List[str]
+    cython_args: T.List[str]
+    nasm_args: T.List[str]
+    masm_args: T.List[str]
 
 
 class _LibraryMixin(TypedDict):
 
     rust_abi: T.Optional[Literal['c', 'rust']]
+
 
 class Executable(_BuildTarget):
 
@@ -394,6 +409,7 @@ class Jar(_BaseBuildTarget):
     main_class: str
     java_resources: T.Optional[build.StructuredSources]
     sources: T.Union[str, File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.ExtractedObjects, build.BuildTarget]
+    java_args: T.List[str]
 
 
 class FuncDeclareDependency(TypedDict):

@@ -526,8 +526,25 @@ _VS_MODULE_DEFS_KW: KwargInfo[T.Optional[T.Union[str, File, CustomTarget, Custom
     since_values={CustomTargetIndex: '1.3.0'}
 )
 
+_BASE_LANG_KW: KwargInfo[T.List[str]] = KwargInfo(
+    'UNKNOWN',
+    ContainerTypeInfo(list, (str)),
+    listify=True,
+    default=[],
+)
+
+_LANGUAGE_KWS: T.List[KwargInfo[T.List[str]]] = [
+    _BASE_LANG_KW.evolve(name=f'{lang}_args')
+    for lang in compilers.all_languages - {'rust', 'vala'}
+]
+# Cannot use _BASE_LANG_KW here because Vala is special for types
+_LANGUAGE_KWS.append(KwargInfo(
+    'vala_args', ContainerTypeInfo(list, (str, File)), listify=True, default=[]))
+_LANGUAGE_KWS.append(_BASE_LANG_KW.evolve(name='rust_args', since='0.41.0'))
+
 # Applies to all build_target like classes
 _ALL_TARGET_KWS: T.List[KwargInfo] = [
+    *_LANGUAGE_KWS,
     OVERRIDE_OPTIONS_KW,
 ]
 

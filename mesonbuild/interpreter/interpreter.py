@@ -3230,7 +3230,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         else:
             raise InterpreterException(f'Unknown default_library value: {default_library}.')
 
-    def __convert_file_args(self, raw: T.List[mesonlib.FileOrString], allow_file: bool) -> T.Tuple[T.List[mesonlib.File], T.List[str]]:
+    def __convert_file_args(self, raw: T.List[mesonlib.FileOrString]) -> T.Tuple[T.List[mesonlib.File], T.List[str]]:
         """Convert raw target arguments from File | str to File.
 
         This removes files from the command line and replaces them with string
@@ -3246,8 +3246,6 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         for a in raw:
             if isinstance(a, mesonlib.File):
-                if not allow_file:
-                    raise InvalidArguments('File type arguments are only allowed for vala')
                 depend_files.append(a)
                 args.append(a.rel_to_builddir(build_to_source))
             else:
@@ -3264,11 +3262,13 @@ class Interpreter(InterpreterBase, HoldableObject):
         them for the IR.
         """
         d = kwargs.setdefault('depend_files', [])
+        new_args: T.DefaultDict[str, T.List[str]] = collections.defaultdict(list)
 
         for l in compilers.all_languages:
-            deps, args = self.__convert_file_args(kwargs[f'{l}_args'], l == 'vala')
-            kwargs[f'{l}_args'] = args
+            deps, args = self.__convert_file_args(kwargs[f'{l}_args'])
+            new_args[l] = args
             d.extend(deps)
+        kwargs['language_args'] = new_args
 
     @T.overload
     def build_target(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType],
@@ -3295,7 +3295,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                      targetclass: T.Type[T.Union[build.Executable, build.StaticLibrary, build.SharedModule, build.SharedLibrary, build.Jar]]
                      ) -> T.Union[build.Executable, build.StaticLibrary, build.SharedModule, build.SharedLibrary, build.Jar]:
         @FeatureNewKwargs('build target', '0.42.0', ['build_rpath', 'implicit_include_directories'])
-        @FeatureNewKwargs('build target', '0.41.0', ['rust_args'])
         @FeatureNewKwargs('build target', '0.38.0', ['build_by_default'])
         @FeatureNewKwargs('build target', '0.48.0', ['gnu_symbol_visibility'])
         def build_target_decorator_caller(self, node, args, kwargs):
@@ -3339,7 +3338,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         # Filter out kwargs from other target types. For example 'soversion'
         # passed to library() when default_library == 'static'.
-        kwargs = {k: v for k, v in kwargs.items() if k in targetclass.known_kwargs}
+        kwargs = {k: v for k, v in kwargs.items() if k in targetclass.known_kwargs | {'language_args'}}
 
         srcs: T.List['SourceInputs'] = []
         struct: T.Optional[build.StructuredSources] = build.StructuredSources()

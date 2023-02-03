@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from __future__ import annotations
-
 import os
 import typing as T
 from mesonbuild.interpreterbase.decorators import FeatureNew
@@ -160,11 +159,13 @@ class RustModule(ExtensionModule):
         new_target_kwargs = base_target.original_kwargs.copy()
         # Don't mutate the shallow copied list, instead replace it with a new
         # one
-        new_target_kwargs['rust_args'] = \
-            new_target_kwargs.get('rust_args', []) + kwargs['rust_args'] + ['--test']
         new_target_kwargs['install'] = False
         new_target_kwargs['dependencies'] = new_target_kwargs.get('dependencies', []) + kwargs['dependencies']
         new_target_kwargs['link_with'] = new_target_kwargs.get('link_with', []) + kwargs['link_with']
+
+        lang_args = base_target.extra_args.copy()
+        lang_args['rust'] = base_target.extra_args['rust'] + kwargs['rust_args'] + ['--test']
+        new_target_kwargs['language_args'] = lang_args
 
         sources = T.cast('T.List[SourceOutputs]', base_target.sources.copy())
         sources.extend(base_target.generated)

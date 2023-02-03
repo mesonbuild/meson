@@ -724,7 +724,7 @@ class BuildTarget(Target):
             objects: T.List[ObjectTypes],
             environment: environment.Environment,
             compilers: T.Dict[str, 'Compiler'],
-            kwargs):
+            kwargs: T.Dict[str, T.Any]):
         super().__init__(name, subdir, subproject, True, for_machine, environment, install=kwargs.get('install', False))
         self.all_compilers = compilers
         self.compilers: OrderedDict[str, Compiler] = OrderedDict()
@@ -747,7 +747,7 @@ class BuildTarget(Target):
         # as Vala which generates .vapi and .h besides the compiled output.
         self.outputs = [self.filename]
         self.pch: T.Dict[str, T.List[str]] = {}
-        self.extra_args: T.Dict[str, T.List[str]] = {}
+        self.extra_args: T.DefaultDict[str, T.List[str]] = kwargs.get('language_args', defaultdict(list))
         self.sources: T.List[File] = []
         self.generated: T.List['GeneratedTypes'] = []
         self.extra_files: T.List[File] = []
@@ -831,6 +831,8 @@ class BuildTarget(Target):
     def check_unknown_kwargs_int(self, kwargs, known_kwargs):
         unknowns = []
         for k in kwargs:
+            if k == 'language_args':
+                continue
             if k not in known_kwargs:
                 unknowns.append(k)
         if len(unknowns) > 0:
@@ -1104,10 +1106,6 @@ class BuildTarget(Target):
         self.process_kwargs_base(kwargs)
         self.original_kwargs = kwargs
 
-        for lang in all_languages:
-            lang_args = extract_as_list(kwargs, f'{lang}_args')
-            self.add_compiler_args(lang, lang_args)
-
         self.add_pch('c', extract_as_list(kwargs, 'c_pch'))
         self.add_pch('cpp', extract_as_list(kwargs, 'cpp_pch'))
 
@@ -1279,8 +1277,8 @@ class BuildTarget(Target):
     def get_outputs(self) -> T.List[str]:
         return self.outputs
 
-    def get_extra_args(self, language) -> T.List[str]:
-        return self.extra_args.get(language, [])
+    def get_extra_args(self, language: str) -> T.List[str]:
+        return self.extra_args[language]
 
     @lru_cache(maxsize=None)
     def get_dependencies(self) -> OrderedSet[Target]:
@@ -1538,16 +1536,6 @@ class BuildTarget(Target):
             is_system = set_is_system == 'system'
             ids = [IncludeDirs(x.get_curdir(), x.get_incdirs(), is_system, x.get_extra_build_dirs()) for x in ids]
         self.include_dirs += ids
-
-    def add_compiler_args(self, language: str, args: T.List['FileOrString']) -> None:
-        args = listify(args)
-        for a in args:
-            if not isinstance(a, (str, File)):
-                raise InvalidArguments('A non-string passed to compiler args.')
-        if language in self.extra_args:
-            self.extra_args[language] += args
-        else:
-            self.extra_args[language] = args
 
     def get_aliases(self) -> T.List[T.Tuple[str, str, str]]:
         return []
@@ -2876,7 +2864,7 @@ class Jar(BuildTarget):
             raise InvalidArguments('structured sources are not supported in Java targets.')
         self.filename = self.name + '.jar'
         self.outputs = [self.filename]
-        self.java_args = kwargs.get('java_args', [])
+        self.java_args = self.extra_args['java']
         self.main_class = kwargs.get('main_class', '')
         self.java_resources: T.Optional[StructuredSources] = kwargs.get('java_resources', None)
 
