@@ -3256,16 +3256,17 @@ class Interpreter(InterpreterBase, HoldableObject):
         them for the IR.
         """
         d = kwargs.setdefault('depend_files', [])
+        new_args: T.DefaultDict[str, T.List[str]] = collections.defaultdict(list)
 
         for l in compilers.all_languages:
             deps, args = self.__convert_file_args(kwargs[f'{l}_args'])
-            kwargs[f'{l}_args'] = args
+            new_args[l] = args
             d.extend(deps)
+        kwargs['language_args'] = new_args
 
     def build_target(self, node: mparser.BaseNode, args, kwargs, targetclass):
         @FeatureNewKwargs('build target', '1.2.0', ['rust_dependency_map'])
         @FeatureNewKwargs('build target', '0.42.0', ['rust_crate_type', 'build_rpath', 'implicit_include_directories'])
-        @FeatureNewKwargs('build target', '0.41.0', ['rust_args'])
         @FeatureNewKwargs('build target', '0.38.0', ['build_by_default'])
         @FeatureNewKwargs('build target', '0.48.0', ['gnu_symbol_visibility'])
         def build_target_decorator_caller(self, node, args, kwargs):
@@ -3309,7 +3310,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         # Filter out kwargs from other target types. For example 'soversion'
         # passed to library() when default_library == 'static'.
-        kwargs = {k: v for k, v in kwargs.items() if k in targetclass.known_kwargs}
+        kwargs = {k: v for k, v in kwargs.items() if k in targetclass.known_kwargs | {'language_args'}}
 
         srcs: T.List['SourceInputs'] = []
         struct: T.Optional[build.StructuredSources] = build.StructuredSources()

@@ -513,8 +513,18 @@ RUST_ABI_KW: KwargInfo[T.Union[str, None]] = KwargInfo(
     since='1.3.0',
     validator=in_set_validator({'rust', 'c'}))
 
+_LANGUAGE_KWS: T.List[KwargInfo[T.List[str]]] = [
+    KwargInfo(f'{lang}_args', ContainerTypeInfo(list, (str, File)), listify=True, default=[])
+    for lang in compilers.all_languages - {'rust', 'vala'}
+]
+_LANGUAGE_KWS.append(KwargInfo(
+    'vala_args', ContainerTypeInfo(list, (str, File)), listify=True, default=[]))
+_LANGUAGE_KWS.append(KwargInfo(
+    'rust_args', ContainerTypeInfo(list, str), listify=True, default=[], since='0.41.0'))
+
 # Applies to all build_target like classes
 _ALL_TARGET_KWS: T.List[KwargInfo] = [
+    *_LANGUAGE_KWS,
     OVERRIDE_OPTIONS_KW,
 ]
 
