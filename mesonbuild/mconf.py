@@ -194,11 +194,14 @@ class Conf:
             return
         if title:
             self.add_title(title)
+        auto = T.cast('coredata.UserFeatureOption', self.coredata.options[OptionKey('auto_features')])
         for k, o in sorted(options.items()):
             printable_value = o.printable_value()
             root = k.as_root()
             if o.yielding and k.subproject and root in self.coredata.options:
                 printable_value = '<inherited from main project>'
+            if isinstance(o, coredata.UserFeatureOption) and o.is_auto():
+                printable_value = auto.printable_value()
             self.add_option(str(root), o.description, printable_value, o.choices)
 
     def print_conf(self, pager: bool):
