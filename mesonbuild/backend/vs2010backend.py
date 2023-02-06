@@ -870,6 +870,46 @@ class Vs2010Backend(backends.Backend):
             of.write(doc.toprettyxml())
         replace_if_different(ofname, ofname_tmp)
 
+    def gen_vcxproj_filters(self, target, ofname):
+        # Generate pitchfork of filters based on directory structure.
+        root = ET.Element('Project', {'ToolsVersion': '4.0',
+                                      'xmlns': 'http://schemas.microsoft.com/developer/msbuild/2003'})
+        filter_folders = ET.SubElement(root, 'ItemGroup')
+        filter_items = ET.SubElement(root, 'ItemGroup')
+        mlog.debug(f'Generating vcxproj filters {target.name}.')
+        found_folders = []
+        for i in target.sources:
+            path = i.fname.replace('/', '\\')
+            dirname = path
+            while dirname:
+                dirname = os.path.dirname(dirname)
+                if not dirname or dirname in found_folders:
+                    break
+                found_folders.append(dirname)
+
+        for folder in found_folders:
+            filter_element = ET.SubElement(filter_folders, 'Filter', {'Include': folder})
+            uuid_element = ET.SubElement(filter_element, 'UniqueIdentifier')
+            uuid_element.text = '{' + str(uuid.uuid4()).upper() + '}'
+
+        sources, headers, objects, languages = self.split_sources(target.sources)
+        down = self.target_to_build_root(target)
+        def add_element(type_name, elements):
+            for i in elements:
+                path = i.fname.replace('/', '\\')
+                dirname = os.path.dirname(path)
+                if dirname:
+                    relpath = os.path.join(down, i.rel_to_builddir(self.build_to_src))
+                    target_element = ET.SubElement(filter_items, type_name, {'Include': relpath})
+                    filter_element = ET.SubElement(target_element, 'Filter')
+                    filter_element.text = dirname
+
+        add_element('ClCompile', sources)
+        add_element('ClInclude', headers)
+        add_element('Object', objects)
+
+        self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname + '.filters')
+
     def gen_vcxproj(self, target, ofname, guid):
         mlog.debug(f'Generating vcxproj {target.name}.')
         subsystem = 'Windows'
@@ -1451,6 +1491,8 @@ class Vs2010Backend(backends.Backend):
         self.add_regen_dependency(root)
         self.add_target_deps(root, target)
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
+        if self.environment.coredata.get_option(OptionKey('layout')) == 'mirror':
+            self.gen_vcxproj_filters(target, ofname)
 
     def gen_regenproj(self, project_name, ofname):
         guid = self.environment.coredata.regen_guid
