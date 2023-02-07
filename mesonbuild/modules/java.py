@@ -75,13 +75,16 @@ class JavaModule(NewExtensionModule):
         classes = T.cast('T.List[str]', kwargs.get('classes'))
         package = kwargs.get('package')
 
+        if package:
+            sanitized_package = package.replace("-", "_").replace(".", "_")
+
         headers: T.List[str] = []
         for clazz in classes:
-            underscore_clazz = clazz.replace(".", "_")
+            sanitized_clazz = clazz.replace(".", "_")
             if package:
-                headers.append(f'{package.replace(".", "_")}_{underscore_clazz}.h')
+                headers.append(f'{sanitized_package}_{sanitized_clazz}.h')
             else:
-                headers.append(f'{underscore_clazz}.h')
+                headers.append(f'{sanitized_clazz}.h')
 
         javac = self.__get_java_compiler(state)
 
