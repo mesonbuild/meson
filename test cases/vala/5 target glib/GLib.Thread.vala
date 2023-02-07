@@ -1,4 +1,4 @@
-extern int get_ret_code ();
+extern void * get_ret_code ();
 
 public class MyThread : Object {
     public int x_times { get; private set; }

@@ -1,5 +1,5 @@
-int
+void *
 get_ret_code (void)
 {
-  return 42;
+  return (void *) (int) 42;
 }
