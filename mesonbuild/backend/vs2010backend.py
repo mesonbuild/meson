@@ -894,6 +894,7 @@ class Vs2010Backend(backends.Backend):
 
         sources, headers, objects, languages = self.split_sources(target.sources)
         down = self.target_to_build_root(target)
+
         def add_element(type_name, elements):
             for i in elements:
                 path = i.fname.replace('/', '\\')
