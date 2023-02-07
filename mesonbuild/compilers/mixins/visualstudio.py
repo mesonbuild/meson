@@ -140,7 +140,8 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
 
     # Override CCompiler.get_always_args
     def get_always_args(self) -> T.List[str]:
-        return self.always_args
+        # TODO: use ImmutableListProtocol[str] here instead
+        return self.always_args.copy()
 
     def get_pch_suffix(self) -> str:
         return 'pch'
