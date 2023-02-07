@@ -718,6 +718,12 @@ class VisualStudioCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixi
                              info, exe_wrapper, linker=linker, full_version=full_version)
         MSVCCompiler.__init__(self, target)
 
+        # By default, MSVC has a broken __cplusplus define that pretends to be c++98:
+        # https://docs.microsoft.com/en-us/cpp/build/reference/zc-cplusplus?view=msvc-160
+        # Pass the flag to enable a truthful define, if possible.
+        if version_compare(self.version, '>= 19.14.26428'):
+            self.always_args = self.always_args + ['/Zc:__cplusplus']
+
     def get_options(self) -> 'MutableKeyedOptionDictType':
         cpp_stds = ['none', 'c++11', 'vc++11']
         # Visual Studio 2015 and later
@@ -745,16 +751,6 @@ class VisualStudioCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixi
             except ValueError:
                 return args
             del args[i]
-        return args
-
-    def get_always_args(self) -> T.List[str]:
-        args = super().get_always_args()
-
-        # By default, MSVC has a broken __cplusplus define that pretends to be c++98:
-        # https://docs.microsoft.com/en-us/cpp/build/reference/zc-cplusplus?view=msvc-160
-        # Pass the flag to enable a truthful define, if possible.
-        if version_compare(self.version, '>= 19.14.26428') and '/Zc:__cplusplus' not in args:
-            return args + ['/Zc:__cplusplus']
         return args
 
 class ClangClCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixin, ClangClCompiler, CPPCompiler):
