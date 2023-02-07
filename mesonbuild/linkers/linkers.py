@@ -14,10 +14,10 @@
 from __future__ import annotations
 
 import abc
-import enum
 import os
 import typing as T
 
+from .base import ArLikeLinker, RSPFileSyntax
 from .. import mesonlib
 from ..mesonlib import EnvironmentException, MesonException
 from ..arglist import CompilerArgs
@@ -26,15 +26,6 @@ if T.TYPE_CHECKING:
     from ..coredata import KeyedOptionDictType
     from ..environment import Environment
     from ..mesonlib import MachineChoice
-
-
-@enum.unique
-class RSPFileSyntax(enum.Enum):
-
-    """Which RSP file syntax the compiler supports."""
-
-    MSVC = enum.auto()
-    GCC = enum.auto()
 
 
 class StaticLinker:
@@ -168,26 +159,7 @@ class IntelVisualStudioLinker(VisualStudioLikeLinker, StaticLinker):
         VisualStudioLikeLinker.__init__(self, machine)
 
 
-class ArLikeLinker(StaticLinker):
-    # POSIX requires supporting the dash, GNU permits omitting it
-    std_args = ['-csr']
-
-    def can_linker_accept_rsp(self) -> bool:
-        # armar / AIX can't accept arguments using the @rsp syntax
-        # in fact, only the 'ar' id can
-        return False
-
-    def get_std_link_args(self, env: 'Environment', is_thin: bool) -> T.List[str]:
-        return self.std_args
-
-    def get_output_args(self, target: str) -> T.List[str]:
-        return [target]
-
-    def rsp_file_syntax(self) -> RSPFileSyntax:
-        return RSPFileSyntax.GCC
-
-
-class ArLinker(ArLikeLinker):
+class ArLinker(ArLikeLinker, StaticLinker):
     id = 'ar'
 
     def __init__(self, for_machine: mesonlib.MachineChoice, exelist: T.List[str]):
@@ -227,7 +199,7 @@ class AppleArLinker(ArLinker):
     id = 'applear'
 
 
-class ArmarLinker(ArLikeLinker):
+class ArmarLinker(ArLikeLinker, StaticLinker):
     id = 'armar'
 
 
@@ -322,7 +294,7 @@ class C2000Linker(TILinker):
     id = 'ar2000'
 
 
-class AIXArLinker(ArLikeLinker):
+class AIXArLinker(ArLikeLinker, StaticLinker):
     id = 'aixar'
     std_args = ['-csr', '-Xany']
 

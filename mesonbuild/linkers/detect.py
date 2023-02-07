@@ -19,20 +19,6 @@ from ..mesonlib import (
     EnvironmentException,
     Popen_safe, Popen_safe_logged, join_args, search_version
 )
-from .linkers import (
-    AppleDynamicLinker,
-    LLVMLD64DynamicLinker,
-    GnuGoldDynamicLinker,
-    GnuBFDDynamicLinker,
-    MoldDynamicLinker,
-    LLVMDynamicLinker,
-    QualcommLLVMDynamicLinker,
-    MSVCDynamicLinker,
-    ClangClDynamicLinker,
-    SolarisDynamicLinker,
-    AIXDynamicLinker,
-    OptlinkDynamicLinker,
-)
 
 import re
 import shlex
@@ -62,6 +48,7 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
                      comp_version: str, for_machine: MachineChoice, *,
                      use_linker_prefix: bool = True, invoked_directly: bool = True,
                      extra_args: T.Optional[T.List[str]] = None) -> 'DynamicLinker':
+    from . import linkers
     env.coredata.add_lang_args(comp_class.language, comp_class, for_machine, env)
 
     # Explicitly pass logo here so that we can get the version of link.exe
@@ -86,11 +73,11 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     p, o, _ = Popen_safe(compiler + check_args)
     if 'LLD' in o.split('\n', maxsplit=1)[0]:
         if '(compatible with GNU linkers)' in o:
-            return LLVMDynamicLinker(
+            return linkers.LLVMDynamicLinker(
                 compiler, for_machine, comp_class.LINKER_PREFIX,
                 override, version=search_version(o))
         elif not invoked_directly:
-            return ClangClDynamicLinker(
+            return linkers.ClangClDynamicLinker(
                 for_machine, override, exelist=compiler, prefix=comp_class.LINKER_PREFIX,
                 version=search_version(o), direct=False, machine=None)
 
@@ -100,13 +87,13 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
 
     p, o, e = Popen_safe(compiler + check_args)
     if 'LLD' in o.split('\n', maxsplit=1)[0]:
-        return ClangClDynamicLinker(
+        return linkers.ClangClDynamicLinker(
             for_machine, [],
             prefix=comp_class.LINKER_PREFIX if use_linker_prefix else [],
             exelist=compiler, version=search_version(o), direct=invoked_directly)
     elif 'OPTLINK' in o:
         # Optlink's stdout *may* begin with a \r character.
-        return OptlinkDynamicLinker(compiler, for_machine, version=search_version(o))
+        return linkers.OptlinkDynamicLinker(compiler, for_machine, version=search_version(o))
     elif o.startswith('Microsoft') or e.startswith('Microsoft'):
         out = o or e
         match = re.search(r'.*(X86|X64|ARM|ARM64).*', out)
@@ -115,7 +102,7 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
         else:
             target = 'x86'
 
-        return MSVCDynamicLinker(
+        return linkers.MSVCDynamicLinker(
             for_machine, [], machine=target, exelist=compiler,
             prefix=comp_class.LINKER_PREFIX if use_linker_prefix else [],
             version=search_version(out), direct=invoked_directly)
@@ -139,6 +126,7 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     :for_machine: which machine this linker targets
     :extra_args: Any additional arguments required (such as a source file)
     """
+    from . import linkers
     env.coredata.add_lang_args(comp_class.language, comp_class, for_machine, env)
     extra_args = extra_args or []
 
@@ -170,14 +158,14 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
 
         lld_cls: T.Type[DynamicLinker]
         if 'ld64.lld' in newerr:
-            lld_cls = LLVMLD64DynamicLinker
+            lld_cls = linkers.LLVMLD64DynamicLinker
         else:
-            lld_cls = LLVMDynamicLinker
+            lld_cls = linkers.LLVMDynamicLinker
 
         linker = lld_cls(
             compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
     elif 'Snapdragon' in e and 'LLVM' in e:
-        linker = QualcommLLVMDynamicLinker(
+        linker = linkers.QualcommLLVMDynamicLinker(
             compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
     elif e.startswith('lld-link: '):
         # The LLD MinGW frontend didn't respond to --version before version 9.0.0,
@@ -196,7 +184,7 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
             _, o, e = Popen_safe([linker_cmd, '--version'])
             v = search_version(o)
 
-        linker = LLVMDynamicLinker(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
+        linker = linkers.LLVMDynamicLinker(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
     # first might be apple clang, second is for real gcc, the third is icc
     elif e.endswith('(use -v to see invocation)\n') or 'macosx_version' in e or 'ld: unknown option:' in e:
         if isinstance(comp_class.LINKER_PREFIX, str):
@@ -211,17 +199,17 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
                 break
         else:
             __failed_to_detect_linker(compiler, check_args, o, e)
-        linker = AppleDynamicLinker(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
+        linker = linkers.AppleDynamicLinker(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
     elif 'GNU' in o or 'GNU' in e:
         gnu_cls: T.Type[GnuDynamicLinker]
         # this is always the only thing on stdout, except for swift
         # which may or may not redirect the linker stdout to stderr
         if o.startswith('GNU gold') or e.startswith('GNU gold'):
-            gnu_cls = GnuGoldDynamicLinker
+            gnu_cls = linkers.GnuGoldDynamicLinker
         elif o.startswith('mold') or e.startswith('mold'):
-            gnu_cls = MoldDynamicLinker
+            gnu_cls = linkers.MoldDynamicLinker
         else:
-            gnu_cls = GnuBFDDynamicLinker
+            gnu_cls = linkers.GnuBFDDynamicLinker
         linker = gnu_cls(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
     elif 'Solaris' in e or 'Solaris' in o:
         for line in (o+e).split('\n'):
@@ -230,7 +218,7 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
                 break
         else:
             v = 'unknown version'
-        linker = SolarisDynamicLinker(
+        linker = linkers.SolarisDynamicLinker(
             compiler, for_machine, comp_class.LINKER_PREFIX, override,
             version=v)
     elif 'ld: 0706-012 The -- flag is not recognized' in e:
@@ -238,7 +226,7 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
             _, _, e = Popen_safe(compiler + [comp_class.LINKER_PREFIX + '-V'] + extra_args)
         else:
             _, _, e = Popen_safe(compiler + comp_class.LINKER_PREFIX + ['-V'] + extra_args)
-        linker = AIXDynamicLinker(
+        linker = linkers.AIXDynamicLinker(
             compiler, for_machine, comp_class.LINKER_PREFIX, override,
             version=search_version(e))
     else:

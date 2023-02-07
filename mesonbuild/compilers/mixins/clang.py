@@ -20,7 +20,7 @@ import shutil
 import typing as T
 
 from ... import mesonlib
-from ...linkers import AppleDynamicLinker, ClangClDynamicLinker, LLVMDynamicLinker, GnuGoldDynamicLinker, \
+from ...linkers.linkers import AppleDynamicLinker, ClangClDynamicLinker, LLVMDynamicLinker, GnuGoldDynamicLinker, \
     MoldDynamicLinker
 from ...mesonlib import OptionKey
 from ..compilers import CompileCheckMode

@@ -46,7 +46,7 @@ if T.TYPE_CHECKING:
     from ..compilers import Compiler
     from ..environment import Environment
     from ..interpreter import Interpreter, Test
-    from ..linkers import StaticLinker
+    from ..linkers.linkers import StaticLinker
     from ..mesonlib import FileMode, FileOrString
 
     from typing_extensions import TypedDict

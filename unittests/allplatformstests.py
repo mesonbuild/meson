@@ -55,6 +55,7 @@ from mesonbuild.compilers import (
     detect_static_linker, detect_c_compiler, compiler_from_language,
     detect_compiler_for
 )
+from mesonbuild.linkers import linkers
 
 from mesonbuild.dependencies.pkgconfig import PkgConfigDependency
 from mesonbuild.build import Target, ConfigurationData, Executable, SharedLibrary, StaticLibrary
@@ -354,7 +355,7 @@ class AllPlatformTests(BasePlatformTests):
         static_linker = detect_static_linker(env, cc)
         if is_windows():
             raise SkipTest('https://github.com/mesonbuild/meson/issues/1526')
-        if not isinstance(static_linker, mesonbuild.linkers.ArLinker):
+        if not isinstance(static_linker, linkers.ArLinker):
             raise SkipTest('static linker is not `ar`')
         # Configure
         self.init(testdir)
@@ -983,8 +984,8 @@ class AllPlatformTests(BasePlatformTests):
         intel = IntelGnuLikeCompiler
         msvc = (VisualStudioCCompiler, VisualStudioCPPCompiler)
         clangcl = (ClangClCCompiler, ClangClCPPCompiler)
-        ar = mesonbuild.linkers.ArLinker
-        lib = mesonbuild.linkers.VisualStudioLinker
+        ar = linkers.ArLinker
+        lib = linkers.VisualStudioLinker
         langs = [('c', 'CC'), ('cpp', 'CXX')]
         if not is_windows() and platform.machine().lower() != 'e2k':
             langs += [('objc', 'OBJC'), ('objcpp', 'OBJCXX')]
@@ -1028,39 +1029,39 @@ class AllPlatformTests(BasePlatformTests):
             if isinstance(cc, gnu):
                 self.assertIsInstance(linker, ar)
                 if is_osx():
-                    self.assertIsInstance(cc.linker, mesonbuild.linkers.AppleDynamicLinker)
+                    self.assertIsInstance(cc.linker, linkers.AppleDynamicLinker)
                 elif is_sunos():
-                    self.assertIsInstance(cc.linker, (mesonbuild.linkers.SolarisDynamicLinker, mesonbuild.linkers.GnuLikeDynamicLinkerMixin))
+                    self.assertIsInstance(cc.linker, (linkers.SolarisDynamicLinker, linkers.GnuLikeDynamicLinkerMixin))
                 else:
-                    self.assertIsInstance(cc.linker, mesonbuild.linkers.GnuLikeDynamicLinkerMixin)
+                    self.assertIsInstance(cc.linker, linkers.GnuLikeDynamicLinkerMixin)
             if isinstance(cc, clangcl):
                 self.assertIsInstance(linker, lib)
-                self.assertIsInstance(cc.linker, mesonbuild.linkers.ClangClDynamicLinker)
+                self.assertIsInstance(cc.linker, linkers.ClangClDynamicLinker)
             if isinstance(cc, clang):
                 self.assertIsInstance(linker, ar)
                 if is_osx():
-                    self.assertIsInstance(cc.linker, mesonbuild.linkers.AppleDynamicLinker)
+                    self.assertIsInstance(cc.linker, linkers.AppleDynamicLinker)
                 elif is_windows():
                     # This is clang, not clang-cl. This can be either an
                     # ld-like linker of link.exe-like linker (usually the
                     # former for msys2, the latter otherwise)
-                    self.assertIsInstance(cc.linker, (mesonbuild.linkers.MSVCDynamicLinker, mesonbuild.linkers.GnuLikeDynamicLinkerMixin))
+                    self.assertIsInstance(cc.linker, (linkers.MSVCDynamicLinker, linkers.GnuLikeDynamicLinkerMixin))
                 else:
-                    self.assertIsInstance(cc.linker, mesonbuild.linkers.GnuLikeDynamicLinkerMixin)
+                    self.assertIsInstance(cc.linker, linkers.GnuLikeDynamicLinkerMixin)
             if isinstance(cc, intel):
                 self.assertIsInstance(linker, ar)
                 if is_osx():
-                    self.assertIsInstance(cc.linker, mesonbuild.linkers.AppleDynamicLinker)
+                    self.assertIsInstance(cc.linker, linkers.AppleDynamicLinker)
                 elif is_windows():
-                    self.assertIsInstance(cc.linker, mesonbuild.linkers.XilinkDynamicLinker)
+                    self.assertIsInstance(cc.linker, linkers.XilinkDynamicLinker)
                 else:
-                    self.assertIsInstance(cc.linker, mesonbuild.linkers.GnuDynamicLinker)
+                    self.assertIsInstance(cc.linker, linkers.GnuDynamicLinker)
             if isinstance(cc, msvc):
                 self.assertTrue(is_windows())
                 self.assertIsInstance(linker, lib)
                 self.assertEqual(cc.id, 'msvc')
                 self.assertTrue(hasattr(cc, 'is_64'))
-                self.assertIsInstance(cc.linker, mesonbuild.linkers.MSVCDynamicLinker)
+                self.assertIsInstance(cc.linker, linkers.MSVCDynamicLinker)
                 # If we're on Windows CI, we know what the compiler will be
                 if 'arch' in os.environ:
                     if os.environ['arch'] == 'x64':

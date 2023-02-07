@@ -52,7 +52,7 @@ if T.TYPE_CHECKING:
     from .._typing import ImmutableListProtocol
     from ..build import ExtractedObjects, LibTypes
     from ..interpreter import Interpreter
-    from ..linkers import DynamicLinker, StaticLinker
+    from ..linkers.linkers import DynamicLinker, StaticLinker
     from ..compilers.cs import CsCompiler
     from ..compilers.fortran import FortranCompiler
 

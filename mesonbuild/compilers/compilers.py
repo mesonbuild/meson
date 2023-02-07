@@ -36,7 +36,8 @@ if T.TYPE_CHECKING:
     from ..coredata import MutableKeyedOptionDictType, KeyedOptionDictType
     from ..envconfig import MachineInfo
     from ..environment import Environment
-    from ..linkers import DynamicLinker, RSPFileSyntax
+    from ..linkers import RSPFileSyntax
+    from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
     from ..dependencies import Dependency
 

@@ -35,7 +35,7 @@ from pathlib import Path
 from ... import arglist
 from ... import mesonlib
 from ... import mlog
-from ...linkers import GnuLikeDynamicLinkerMixin, SolarisDynamicLinker, CompCertDynamicLinker
+from ...linkers.linkers import GnuLikeDynamicLinkerMixin, SolarisDynamicLinker, CompCertDynamicLinker
 from ...mesonlib import LibType
 from ...coredata import OptionKey
 from .. import compilers

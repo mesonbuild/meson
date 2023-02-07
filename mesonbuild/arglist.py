@@ -22,7 +22,7 @@ import re
 import typing as T
 
 if T.TYPE_CHECKING:
-    from .linkers import StaticLinker
+    from .linkers.linkers import StaticLinker
     from .compilers import Compiler
 
 # execinfo is a compiler lib on BSD

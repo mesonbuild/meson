@@ -52,7 +52,7 @@ if T.TYPE_CHECKING:
     from .compilers import Compiler
     from .interpreter.interpreter import Test, SourceOutputs, Interpreter
     from .interpreterbase import SubProject
-    from .linkers import StaticLinker
+    from .linkers.linkers import StaticLinker
     from .mesonlib import FileMode, FileOrString
     from .modules import ModuleState
     from .mparser import BaseNode

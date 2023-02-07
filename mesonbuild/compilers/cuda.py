@@ -34,7 +34,7 @@ if T.TYPE_CHECKING:
     from ..dependencies import Dependency
     from ..environment import Environment  # noqa: F401
     from ..envconfig import MachineInfo
-    from ..linkers import DynamicLinker
+    from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
     from ..programs import ExternalProgram
 

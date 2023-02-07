@@ -48,7 +48,7 @@ if T.TYPE_CHECKING:
     from ..dependencies import Dependency
     from ..envconfig import MachineInfo
     from ..environment import Environment
-    from ..linkers import DynamicLinker
+    from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
     from ..programs import ExternalProgram
     CompilerMixinBase = CLikeCompiler

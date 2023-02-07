@@ -36,7 +36,7 @@ if T.TYPE_CHECKING:
     from .cpp import CPPCompiler
     from .fortran import FortranCompiler
     from .rust import RustCompiler
-    from ..linkers import StaticLinker, DynamicLinker
+    from ..linkers.linkers import StaticLinker, DynamicLinker
     from ..environment import Environment
     from ..programs import ExternalProgram
 

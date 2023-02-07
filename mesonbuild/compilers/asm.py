@@ -7,7 +7,7 @@ from .mixins.metrowerks import MetrowerksCompiler, mwasmarm_instruction_set_args
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
-    from ..linkers import DynamicLinker
+    from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
     from ..envconfig import MachineInfo
 
