@@ -420,6 +420,15 @@ class MSVCCompiler(VisualStudioLikeCompiler):
 
     id = 'msvc'
 
+    def __init__(self, target: str):
+        super().__init__(target)
+
+        # Visual Studio 2013 and erlier don't support the /utf-8 argument.
+        # We want to remove it. We also want to make an explicit copy so we
+        # don't mutate class constant state
+        if mesonlib.version_compare(self.version, '<19.00') and '/utf-8' in self.always_args:
+            self.always_args = [r for r in self.always_args if r != '/utf-8']
+
     def get_compile_debugfile_args(self, rel_obj: str, pch: bool = False) -> T.List[str]:
         args = super().get_compile_debugfile_args(rel_obj, pch)
         # When generating a PDB file with PCH, all compile commands write
@@ -435,9 +444,6 @@ class MSVCCompiler(VisualStudioLikeCompiler):
     # Override CCompiler.get_always_args
     # We want to drop '/utf-8' for Visual Studio 2013 and earlier
     def get_always_args(self) -> T.List[str]:
-        if mesonlib.version_compare(self.version, '<19.00'):
-            if '/utf-8' in self.always_args:
-                self.always_args.remove('/utf-8')
         return self.always_args
 
     def get_instruction_set_args(self, instruction_set: str) -> T.Optional[T.List[str]]:
