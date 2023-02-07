@@ -1247,8 +1247,8 @@ class TestSubprocess:
         self._process = p
         self.stdout = stdout
         self.stderr = stderr
-        self.stdo_task = None            # type: T.Optional[asyncio.Future[str]]
-        self.stde_task = None            # type: T.Optional[asyncio.Future[str]]
+        self.stdo_task: T.Optional[asyncio.Task[None]] = None
+        self.stde_task: T.Optional[asyncio.Task[None]] = None
         self.postwait_fn = postwait_fn   # type: T.Callable[[], None]
         self.all_futures = []            # type: T.List[asyncio.Future]
         self.queue = None                # type: T.Optional[asyncio.Queue[T.Optional[str]]]
