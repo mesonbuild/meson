@@ -102,6 +102,20 @@ Telling Meson to run this script at install time is a one-liner.
 The argument is the name of the script file relative to the current
 subdirectory.
 
+## Installing as the superuser
+
+When building as a non-root user, but installing to root-owned locations via
+e.g. `sudo ninja install`, ninja will attempt to rebuild any out of date
+targets as root. This results in various bad behaviors due to build outputs and
+ninja internal files being owned by root.
+
+Running `meson install` is preferred for several reasons. It can rebuild out of
+date targets and then re-invoke itself as root.
+
+*(since 1.1.0)* Re-invoking as root will try to guess the user's preferred method for
+re-running commands as root. The order of precedence is: sudo, doas, pkexec
+(polkit). An elevation tool can be forced by setting `$MESON_ROOT_CMD`.
+
 ## DESTDIR support
 
 Sometimes you need to install to a different directory than the

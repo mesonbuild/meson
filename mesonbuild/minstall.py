@@ -556,13 +556,23 @@ class Installer:
                     self.log('Preserved {} unchanged files, see {} for the full list'
                              .format(self.preserved_file_count, os.path.normpath(self.lf.name)))
         except PermissionError:
-            if shutil.which('pkexec') is not None and 'PKEXEC_UID' not in os.environ and destdir == '':
-                print('Installation failed due to insufficient permissions.')
-                print('Attempting to use polkit to gain elevated privileges...')
-                os.execlp('pkexec', 'pkexec', sys.executable, main_file, *sys.argv[1:],
-                          '-C', os.getcwd(), '--no-rebuild')
-            else:
+            if is_windows() or destdir != '' or not os.isatty(sys.stdout.fileno()) or not os.isatty(sys.stderr.fileno()):
+                # can't elevate to root except in an interactive unix environment *and* when not doing a destdir install
                 raise
+            rootcmd = os.environ.get('MESON_ROOT_CMD') or shutil.which('sudo') or shutil.which('doas')
+            pkexec = shutil.which('pkexec')
+            if rootcmd is None and pkexec is not None and 'PKEXEC_UID' not in os.environ:
+                rootcmd = pkexec
+
+            if rootcmd is not None:
+                print('Installation failed due to insufficient permissions.')
+                ans = input(f'Attempt to use {rootcmd} to gain elevated privileges? [y/n] ')
+                if ans not in {'y', 'n'}:
+                    raise MesonException('Answer not one of [y/n]')
+                elif ans == 'y':
+                    os.execlp(rootcmd, rootcmd, sys.executable, main_file, *sys.argv[1:],
+                              '-C', os.getcwd(), '--no-rebuild')
+            raise
 
     def do_strip(self, strip_bin: T.List[str], fname: str, outname: str) -> None:
         self.log(f'Stripping target {fname!r}.')
