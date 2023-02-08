@@ -31,6 +31,7 @@ topic](https://github.com/topics/meson).
  - [cglm](https://github.com/recp/cglm), a highly optimized graphics math library for C
  - [cinnamon-desktop](https://github.com/linuxmint/cinnamon-desktop), the cinnamon desktop library
  - [Cozy](https://github.com/geigi/cozy), a modern audio book player for Linux and macOS using GTK+ 3
+ - [Criterion](https://github.com/Snaipe/Criterion), extensible cross-platform C and C++ unit testing framework
  - [dav1d](https://code.videolan.org/videolan/dav1d), an AV1 decoder
  - [dbus-broker](https://github.com/bus1/dbus-broker), Linux D-Bus Message Broker
  - [DOSBox Staging](https://github.com/dosbox-staging/dosbox-staging), DOS/x86 emulator
