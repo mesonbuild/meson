@@ -18,6 +18,7 @@ from pathlib import Path
 import argparse
 import errno
 import os
+import selectors
 import shlex
 import shutil
 import subprocess
@@ -566,12 +567,22 @@ class Installer:
 
             if rootcmd is not None:
                 print('Installation failed due to insufficient permissions.')
+                s = selectors.DefaultSelector()
+                s.register(sys.stdin, selectors.EVENT_READ)
+                ans = None
                 for attempt in range(5):
-                    ans = input(f'Attempt to use {rootcmd} to gain elevated privileges? [y/n] ')
+                    print(f'Attempt to use {rootcmd} to gain elevated privileges? [y/n] ', end='', flush=True)
+                    if s.select(30):
+                        # we waited on sys.stdin *only*
+                        ans = sys.stdin.readline().rstrip('\n')
+                    else:
+                        print()
+                        break
                     if ans in {'y', 'n'}:
                         break
                 else:
-                    raise MesonException('Answer not one of [y/n]')
+                    if ans is not None:
+                        raise MesonException('Answer not one of [y/n]')
                 if ans == 'y':
                     os.execlp(rootcmd, rootcmd, sys.executable, main_file, *sys.argv[1:],
                               '-C', os.getcwd(), '--no-rebuild')
