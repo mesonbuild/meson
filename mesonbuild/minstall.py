@@ -566,10 +566,13 @@ class Installer:
 
             if rootcmd is not None:
                 print('Installation failed due to insufficient permissions.')
-                ans = input(f'Attempt to use {rootcmd} to gain elevated privileges? [y/n] ')
-                if ans not in {'y', 'n'}:
+                for attempt in range(5):
+                    ans = input(f'Attempt to use {rootcmd} to gain elevated privileges? [y/n] ')
+                    if ans in {'y', 'n'}:
+                        break
+                else:
                     raise MesonException('Answer not one of [y/n]')
-                elif ans == 'y':
+                if ans == 'y':
                     os.execlp(rootcmd, rootcmd, sys.executable, main_file, *sys.argv[1:],
                               '-C', os.getcwd(), '--no-rebuild')
             raise
