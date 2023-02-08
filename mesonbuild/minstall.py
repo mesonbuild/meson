@@ -560,7 +560,7 @@ class Installer:
                 print('Installation failed due to insufficient permissions.')
                 print('Attempting to use polkit to gain elevated privileges...')
                 os.execlp('pkexec', 'pkexec', sys.executable, main_file, *sys.argv[1:],
-                          '-C', os.getcwd())
+                          '-C', os.getcwd(), '--no-rebuild')
             else:
                 raise
 
