@@ -110,7 +110,9 @@ targets as root. This results in various bad behaviors due to build outputs and
 ninja internal files being owned by root.
 
 Running `meson install` is preferred for several reasons. It can rebuild out of
-date targets and then re-invoke itself as root.
+date targets and then re-invoke itself as root. *(since 1.1.0)* Additionally,
+running `sudo meson install` will drop permissions and rebuild out of date
+targets as the original user, not as root.
 
 *(since 1.1.0)* Re-invoking as root will try to guess the user's preferred method for
 re-running commands as root. The order of precedence is: sudo, doas, pkexec
