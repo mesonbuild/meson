@@ -93,7 +93,6 @@ def main() -> int:
     check_mypy()
 
     root = Path(__file__).absolute().parent
-    args = []  # type: T.List[str]
 
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument('files', nargs='*')
@@ -101,7 +100,7 @@ def main() -> int:
     parser.add_argument('-p', '--pretty', action='store_true', help='pretty print mypy errors')
     parser.add_argument('-C', '--clear', action='store_true', help='clear the terminal before running mypy')
 
-    opts = parser.parse_args()
+    opts, args = parser.parse_known_args()
     if opts.pretty:
         args.append('--pretty')
 
