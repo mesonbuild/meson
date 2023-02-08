@@ -1438,7 +1438,6 @@ def check_meson_commands_work(use_tmpdir: bool, extra_args: T.List[str]) -> None
         pc, o, e = Popen_safe(compile_commands + dir_args, cwd=build_dir)
         if pc.returncode != 0:
             raise RuntimeError(f'Failed to build {testdir!r}:\n{e}\n{o}')
-        print('Checking that building tests works...')
         if compile_tests_commands:
             pc, o, e = Popen_safe(compile_tests_commands + dir_args, cwd=build_dir)
             if pc.returncode != 0:
