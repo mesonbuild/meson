@@ -7,7 +7,7 @@ source /ci/common.sh
 # Inspired by https://github.com/greyltc/docker-archlinux-aur/blob/master/add-aur.sh
 
 pkgs=(
-  python python-pip
+  python python-pip pypy3
   ninja make git sudo fakeroot autoconf automake patch
   libelf gcc gcc-fortran gcc-objc vala rust bison flex cython go dlang-dmd
   mono boost qt5-base gtkmm3 gtest gmock protobuf gobject-introspection

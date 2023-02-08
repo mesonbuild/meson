@@ -58,22 +58,6 @@ update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.7 2 \
 
 python3 -m pip install -U "${base_python_pkgs[@]}" "${python_pkgs[@]}"
 
-pushd /opt
-# Download and install PyPy3.8, and link it to /usr/bin/pypy3
-# At some point it would be more robust to download and parse
-# https://downloads.python.org/pypy/versions.json
-wget https://downloads.python.org/pypy/pypy3.8-v7.3.9-linux64.tar.bz2
-pypy_sha256="08be25ec82fc5d23b78563eda144923517daba481a90af0ace7a047c9c9a3c34"
-if [ $pypy_sha256 != $(sha256sum pypy3.8-v7.3.9-linux64.tar.bz2 | cut -f1 -d" ") ]; then
-  echo bad sha256 for PyPy
-  exit -1
-fi
-tar -xf pypy3.8-v7.3.9-linux64.tar.bz2
-pypy3.8-v7.3.9-linux64/bin/pypy3 -m ensurepip
-popd
-ln -s /opt/pypy3.8-v7.3.9-linux64/bin/pypy3 /usr/bin/pypy3
-
-
 # Install the ninja 0.10
 wget https://github.com/ninja-build/ninja/releases/download/v1.10.0/ninja-linux.zip
 unzip ninja-linux.zip -d /ci
