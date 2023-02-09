@@ -38,6 +38,7 @@ if T.TYPE_CHECKING:
 
         skip_if_destdir: bool
         install_tag: str
+        dry_run: bool
 
     class NativeKW(TypedDict):
 
@@ -152,6 +153,7 @@ class MesonMain(MesonInterpreterObject):
         'meson.add_install_script',
         KwargInfo('skip_if_destdir', bool, default=False, since='0.57.0'),
         KwargInfo('install_tag', (str, NoneType), since='0.60.0'),
+        KwargInfo('dry_run', bool, default=False, since='1.1.0'),
     )
     def add_install_script_method(
             self,
@@ -162,6 +164,7 @@ class MesonMain(MesonInterpreterObject):
         script = self._find_source_script('add_install_script', args[0], script_args)
         script.skip_if_destdir = kwargs['skip_if_destdir']
         script.tag = kwargs['install_tag']
+        script.dry_run = kwargs['dry_run']
         self.build.install_scripts.append(script)
 
     @typed_pos_args(

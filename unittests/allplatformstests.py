@@ -4243,6 +4243,20 @@ class AllPlatformTests(BasePlatformTests):
         do_install('runtime,custom', expected_runtime_custom, 1)
         do_install(None, expected_all, 2)
 
+
+    def test_install_script_dry_run(self):
+        testdir = os.path.join(self.common_test_dir, '53 install script')
+        self.init(testdir)
+        self.build()
+
+        cmd = self.meson_command + ['install', '--dry-run', '--destdir', self.installdir]
+        outputs = self._run(cmd, workdir=self.builddir)
+
+        installpath = Path(self.installdir)
+        self.assertFalse((installpath / 'usr/diiba/daaba/file.dat').exists())
+        self.assertIn("DRYRUN: Writing file file.dat", outputs)
+
+
     def test_introspect_install_plan(self):
         testdir = os.path.join(self.unit_test_dir, '98 install all targets')
         introfile = os.path.join(self.builddir, 'meson-info', 'intro-install_plan.json')

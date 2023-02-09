@@ -64,6 +64,9 @@ methods:
       *(since 0.54.0)* If `meson install` is called with the `--quiet` option, the
       environment variable `MESON_INSTALL_QUIET` will be set.
 
+      *(since 1.1.0)* If `meson install` is called with the `--dry-run` option, the
+      environment variable `MESON_INSTALL_DRY_RUN` will be set.
+
       Meson uses the `DESTDIR` environment variable as set by the
       inherited environment to determine the (temporary) installation
       location for files. Your install script must be aware of this while
@@ -125,6 +128,15 @@ methods:
           to install only a subset of the files.
           By default the script has no install tag which means it is not being run when
           `meson install --tags` argument is specified.
+      
+      dry_run:
+        type: bool
+        since: 1.1.0
+        default: false
+        description: |
+          If `true` the script will be run even if `--dry-run` option is provided to
+          the `meson install` command. The script can use the `MESON_INSTALL_DRY_RUN`
+          variable to determine if it is in dry run mode or not.
 
   - name: add_postconf_script
     returns: void
