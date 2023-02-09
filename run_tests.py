@@ -343,6 +343,10 @@ def print_system_info():
     print('')
     print(flush=True)
 
+def subprocess_call(cmd, **kwargs):
+    print(f'$ {mesonlib.join_args(cmd)}')
+    return subprocess.call(cmd, **kwargs)
+
 def main():
     print_system_info()
     parser = argparse.ArgumentParser()
@@ -380,7 +384,7 @@ def main():
         cmd = mesonlib.python_command + ['run_meson_command_tests.py', '-v']
         if options.failfast:
             cmd += ['--failfast']
-        returncode += subprocess.call(cmd, env=env)
+        returncode += subprocess_call(cmd, env=env)
         if options.failfast and returncode != 0:
             return returncode
         if no_unittests:
@@ -393,11 +397,11 @@ def main():
             cmd = mesonlib.python_command + ['run_unittests.py', '--backend=' + backend.name, '-v']
             if options.failfast:
                 cmd += ['--failfast']
-            returncode += subprocess.call(cmd, env=env)
+            returncode += subprocess_call(cmd, env=env)
             if options.failfast and returncode != 0:
                 return returncode
         cmd = mesonlib.python_command + ['run_project_tests.py'] + sys.argv[1:]
-        returncode += subprocess.call(cmd, env=env)
+        returncode += subprocess_call(cmd, env=env)
     else:
         cross_test_args = mesonlib.python_command + ['run_cross_test.py']
         for cf in options.cross:
@@ -408,7 +412,7 @@ def main():
                 cmd += ['--failfast']
             if options.cross_only:
                 cmd += ['--cross-only']
-            returncode += subprocess.call(cmd, env=env)
+            returncode += subprocess_call(cmd, env=env)
             if options.failfast and returncode != 0:
                 return returncode
     return returncode
