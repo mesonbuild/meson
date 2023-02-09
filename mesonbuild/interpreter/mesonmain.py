@@ -102,7 +102,7 @@ class MesonMain(MesonInterpreterObject):
             largs.append(found)
 
         largs.extend(args)
-        es = self.interpreter.backend.get_executable_serialisation(largs)
+        es = self.interpreter.backend.get_executable_serialisation(largs, verbose=True)
         es.subproject = self.interpreter.subproject
         return es
 
