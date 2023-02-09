@@ -33,6 +33,9 @@ sed -i "s,PKGEXT='.pkg.tar.zst',PKGEXT='.pkg.tar',g" /etc/makepkg.conf
 pacman -Syu $PACMAN_OPTS "${pkgs[@]}"
 install_python_packages
 
+pypy3 -m ensurepip
+pypy3 -m pip install "${base_python_pkgs[@]}"
+
 # Setup the user
 useradd -m $AUR_USER
 echo "${AUR_USER}:" | chpasswd -e
