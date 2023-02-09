@@ -90,6 +90,11 @@ includestuff_ext = py3.extension_module(
   dependencies: stuff_pxi_dep
 )
 
+simpleinclude_ext = py3.extension_module(
+  'simpleinclude',
+  'simpleinclude.pyx',
+)
+
 subdir('libdir')
 
 test(
