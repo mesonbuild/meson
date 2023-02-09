@@ -56,6 +56,21 @@ jobs:
     - name: Upload coverage report
       run: ./ci/upload_cov.sh "OS Comp [${{ matrix.cfg.name }}]"
 
+  pypy:
+    name: 'Arch / PyPy'
+    runs-on: ubuntu-latest
+    container: mesonbuild/arch:latest
+    env:
+      MESON_CI_JOBNAME_UPDATE: linux-arch-gcc-pypy
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Run tests
+      run: |
+        source /ci/env_vars.sh
+        export MESON_CI_JOBNAME=$MESON_CI_JOBNAME_UPDATE
+        pypy3 run_tests.py
+
   ubuntu-rolling:
     name: 'Ubuntu Rolling'
     runs-on: ubuntu-latest
