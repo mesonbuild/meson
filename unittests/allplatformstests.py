@@ -859,6 +859,27 @@ class AllPlatformTests(BasePlatformTests):
         name = "/".join(name)  # Glue list into a string
         self.build(target=name)
 
+    def test_build_pyx_depfiles(self):
+        # building regularly and then touching a depfile dependency should rebuild
+        testdir = os.path.join("test cases/cython", '2 generated sources')
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+        try:
+            cython = detect_compiler_for(env, "cython", MachineChoice.HOST)
+            if not version_compare(cython.version, '>=0.29.33'):
+                raise SkipTest('Cython is too old')
+        except EnvironmentException:
+            raise SkipTest("Cython is not installed")
+        self.init(testdir)
+
+        targets = self.introspect('--targets')
+        for target in targets:
+            if target['name'].startswith('simpleinclude'):
+                name = target['name']
+        self.build()
+        self.utime(os.path.join(testdir, 'simplestuff.pxi'))
+        self.assertBuildRelinkedOnlyTarget(name)
+
+
     def test_internal_include_order(self):
         if mesonbuild.environment.detect_msys2_arch() and ('MESON_RSP_THRESHOLD' in os.environ):
             raise SkipTest('Test does not yet support gcc rsp files on msys2')
