@@ -1104,7 +1104,7 @@ def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List
         TestCategory('swift', 'swift', backend not in (Backend.ninja, Backend.xcode) or not shutil.which('swiftc')),
         # CUDA tests on Windows: use Ninja backend:  python run_project_tests.py --only cuda --backend ninja
         TestCategory('cuda', 'cuda', backend not in (Backend.ninja, Backend.xcode) or not shutil.which('nvcc')),
-        TestCategory('python3', 'python3', backend is not Backend.ninja),
+        TestCategory('python3', 'python3', backend is not Backend.ninja or 'python3' not in sys.executable),
         TestCategory('python', 'python'),
         TestCategory('fpga', 'fpga', shutil.which('yosys') is None),
         TestCategory('frameworks', 'frameworks'),
@@ -1591,7 +1591,7 @@ if __name__ == '__main__':
     clear_transitive_files()
 
     print('Meson build system', meson_version, 'Project Tests')
-    print('Using python', sys.version.split('\n')[0])
+    print('Using python', sys.version.split('\n')[0], f'({sys.executable!r})')
     if 'VSCMD_VER' in os.environ:
         print('VSCMD version', os.environ['VSCMD_VER'])
     setup_commands(options.backend)
