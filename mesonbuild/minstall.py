@@ -361,9 +361,9 @@ class Installer:
             return p.returncode, o, e
         return 0, '', ''
 
-    def run_exe(self, *args: T.Any, **kwargs: T.Any) -> int:
-        if not self.dry_run:
-            return run_exe(*args, **kwargs)
+    def run_exe(self, exe: ExecutableSerialisation, extra_env: T.Optional[T.Dict[str, str]] = None) -> int:
+        if (not self.dry_run) or exe.dry_run:
+            return run_exe(exe, extra_env)
         return 0
 
     def should_install(self, d: T.Union[TargetInstallData, InstallEmptyDir,
@@ -655,6 +655,8 @@ class Installer:
                }
         if self.options.quiet:
             env['MESON_INSTALL_QUIET'] = '1'
+        if self.dry_run:
+            env['MESON_INSTALL_DRY_RUN'] = '1'
 
         for i in d.install_scripts:
             if not self.should_install(i):

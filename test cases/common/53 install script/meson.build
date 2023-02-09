@@ -1,6 +1,6 @@
 project('custom install script', 'c')
 
-meson.add_install_script('myinstall.py', 'diiba/daaba', 'file.dat')
+meson.add_install_script('myinstall.py', 'diiba/daaba', 'file.dat', dry_run: true)
 meson.add_install_script('myinstall.py', 'this/should', 'also-work.dat')
 
 subdir('src')

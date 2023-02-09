@@ -5,6 +5,7 @@ import os
 import shutil
 
 prefix = os.environ['MESON_INSTALL_DESTDIR_PREFIX']
+dry_run = bool(os.environ.get('MESON_INSTALL_DRY_RUN'))
 
 
 def main() -> None:
@@ -16,15 +17,24 @@ def main() -> None:
 
     dirname = os.path.join(prefix, args.dirname)
     if not os.path.exists(dirname):
-        os.makedirs(dirname)
+        if dry_run:
+            print(f"DRYRUN: Creating directory {dirname}")
+        else:
+            os.makedirs(dirname)
 
     if args.mode == 'create':
         for name in args.files:
-            with open(os.path.join(dirname, name), 'w') as f:
-                f.write('')
+            if dry_run:
+                print(f'DRYRUN: Writing file {name}')
+            else:
+                with open(os.path.join(dirname, name), 'w') as f:
+                    f.write('')
     else:
         for name in args.files:
-            shutil.copy(name, dirname)
+            if dry_run:
+                print(f"DRYRUN: Copying file {name} to {dirname}")
+            else:
+                shutil.copy(name, dirname)
 
 
 if __name__ == "__main__":

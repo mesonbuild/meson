@@ -152,3 +152,4 @@ class ExecutableSerialisation:
         self.pickled = False
         self.skip_if_destdir = False
         self.subproject = ''
+        self.dry_run = False
