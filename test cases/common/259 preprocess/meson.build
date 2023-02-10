@@ -4,7 +4,16 @@ cc = meson.get_compiler('c')
 
 add_project_arguments(['-DFOO=0', '-DBAR=0'], language: 'c')
 
-pp_files = cc.preprocess('foo.c', 'bar.c', output: '@PLAINNAME@')
+fs = import('fs')
+bar_content = fs.read('bar.c')
+bar_c = custom_target(
+  input: 'bar.c',
+  output: 'bar.c',
+  command: ['python3', '-c', '''import sys;print(sys.argv[1].replace('@BAR@', 'bar'))''', bar_content],
+  capture: true,
+)
+
+pp_files = cc.preprocess('foo.c', bar_c, output: '@PLAINNAME@')
 
 foreach f : pp_files
   message(f.full_path())
