@@ -2609,9 +2609,10 @@ class CompileTarget(BuildTarget):
                  subdir: str,
                  subproject: str,
                  environment: environment.Environment,
-                 sources: T.List[File],
+                 sources: T.List['SourceOutputs'],
                  output_templ: str,
                  compiler: Compiler,
+                 backend: Backend,
                  kwargs):
         compilers = {compiler.get_language(): compiler}
         super().__init__(name, subdir, subproject, compiler.for_machine,
@@ -2620,11 +2621,13 @@ class CompileTarget(BuildTarget):
         self.compiler = compiler
         self.output_templ = output_templ
         self.outputs = []
-        for f in sources:
-            plainname = os.path.basename(f.fname)
-            basename = os.path.splitext(plainname)[0]
-            self.outputs.append(output_templ.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname))
-        self.sources_map = dict(zip(sources, self.outputs))
+        self.sources_map: T.Dict[File, str] = {}
+        for f in self.sources:
+            self._add_output(f)
+        for gensrc in self.generated:
+            for s in gensrc.get_outputs():
+                rel_src = backend.get_target_generated_dir(self, gensrc, s)
+                self._add_output(File.from_built_relative(rel_src))
 
     def type_suffix(self) -> str:
         return "@compile"
@@ -2632,6 +2635,13 @@ class CompileTarget(BuildTarget):
     @property
     def is_unity(self) -> bool:
         return False
+
+    def _add_output(self, f: File) -> None:
+        plainname = os.path.basename(f.fname)
+        basename = os.path.splitext(plainname)[0]
+        o = self.output_templ.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname)
+        self.outputs.append(o)
+        self.sources_map[f] = o
 
 
 class RunTarget(Target, CommandBase):

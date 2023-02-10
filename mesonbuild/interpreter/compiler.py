@@ -6,6 +6,7 @@ from __future__ import annotations
 import enum
 import functools
 import os
+import itertools
 import typing as T
 
 from .. import build
@@ -28,6 +29,7 @@ if T.TYPE_CHECKING:
     from ..compilers import Compiler, RunResult
     from ..interpreterbase import TYPE_var, TYPE_kwargs
     from .kwargs import ExtractRequired, ExtractSearchDirs
+    from .interpreter.interpreter import SourceOutputs
 
     from typing_extensions import TypedDict, Literal
 
@@ -163,6 +165,8 @@ _COMPILES_KWS: T.List[KwargInfo] = [_NAME_KW, _ARGS_KW, _DEPENDENCIES_KW, _INCLU
 _HEADER_KWS: T.List[KwargInfo] = [REQUIRED_KW.evolve(since='0.50.0', default=False), *_COMMON_KWS]
 
 class CompilerHolder(ObjectHolder['Compiler']):
+    preprocess_uid = itertools.count()
+
     def __init__(self, compiler: 'Compiler', interpreter: 'Interpreter'):
         super().__init__(compiler, interpreter)
         self.environment = self.env
@@ -750,7 +754,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return self.compiler.get_argument_syntax()
 
     @FeatureNew('compiler.preprocess', '0.64.0')
-    @typed_pos_args('compiler.preprocess', varargs=(mesonlib.File, str), min_varargs=1)
+    @typed_pos_args('compiler.preprocess', varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList), min_varargs=1)
     @typed_kwargs(
         'compiler.preprocess',
         KwargInfo('output', str, default='@PLAINNAME@.i'),
@@ -759,20 +763,25 @@ class CompilerHolder(ObjectHolder['Compiler']):
     )
     def preprocess_method(self, args: T.Tuple[T.List['mesonlib.FileOrString']], kwargs: 'PreprocessKW') -> T.List[build.CustomTargetIndex]:
         compiler = self.compiler.get_preprocessor()
-        sources = self.interpreter.source_strings_to_files(args[0])
+        sources: 'SourceOutputs' = self.interpreter.source_strings_to_files(args[0])
+        if any(isinstance(s, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)) for s in sources):
+            FeatureNew.single_use('compiler.preprocess with generated sources', '1.1.0', self.subproject,
+                                  location=self.current_node)
         tg_kwargs = {
             f'{self.compiler.language}_args': kwargs['compile_args'],
             'build_by_default': False,
             'include_directories': kwargs['include_directories'],
         }
+        tg_name = f'preprocessor_{next(self.preprocess_uid)}'
         tg = build.CompileTarget(
-            'preprocessor',
+            tg_name,
             self.interpreter.subdir,
             self.subproject,
             self.environment,
             sources,
             kwargs['output'],
             compiler,
+            self.interpreter.backend,
             tg_kwargs)
         self.interpreter.add_target(tg.name, tg)
         # Expose this target as list of its outputs, so user can pass them to
