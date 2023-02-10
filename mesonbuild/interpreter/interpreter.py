@@ -670,7 +670,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         LINK_WITH_KW,
         LINK_WHOLE_KW.evolve(since='0.46.0'),
         SOURCES_KW,
-        VARIABLES_KW.evolve(since='0.54.0', since_values={list: '0.56.0'}),
+        VARIABLES_KW.evolve(since='0.54.0', since_types={list: '0.56.0'}),
         KwargInfo('version', (str, NoneType)),
         KwargInfo('objects', ContainerTypeInfo(list, build.ExtractedObjects), listify=True, default=[], since='1.1.0'),
     )

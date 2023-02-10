@@ -1404,17 +1404,20 @@ class InternalTests(unittest.TestCase):
             'testfunc',
             KwargInfo('input', ContainerTypeInfo(list, str), listify=True, default=[], deprecated_values={'foo': '0.9'}, since_values={'bar': '1.1'}),
             KwargInfo('output', ContainerTypeInfo(dict, str), default={}, deprecated_values={'foo': '0.9', 'foo2': ('0.9', 'dont use it')}, since_values={'bar': '1.1', 'bar2': ('1.1', 'use this')}),
-            KwargInfo('install_dir', (bool, str, NoneType), deprecated_values={False: '0.9'}),
+            KwargInfo('install_dir', (bool, str, NoneType), deprecated_values={False: '0.9'}, deprecated_types={str: '0.9'}),
+            KwargInfo('other_arg', (bool, str), default=False, since_types={str: '1.7'}),
             KwargInfo(
                 'mode',
                 (str, type(None)),
                 validator=in_set_validator({'clean', 'build', 'rebuild', 'deprecated', 'since'}),
                 deprecated_values={'deprecated': '1.0'},
                 since_values={'since': '1.1'}),
-            KwargInfo('dict', (ContainerTypeInfo(list, str), ContainerTypeInfo(dict, str)), default={},
-                      since_values={list: '1.9'}),
-            KwargInfo('new_dict', (ContainerTypeInfo(list, str), ContainerTypeInfo(dict, str)), default={},
-                      since_values={dict: '1.1'}),
+            KwargInfo('dict', (ContainerTypeInfo(list, (str, int)), ContainerTypeInfo(dict, (int, str))), default={},
+                      since_types={list: '1.9', int: '1.4'}),
+            KwargInfo('new_dict', (ContainerTypeInfo(list, (str, int)), ContainerTypeInfo(dict, (str, int))), default={},
+                      since_types={dict: '1.1', int: '1.4'}),
+            KwargInfo('no_more_list', (ContainerTypeInfo(list, (str, int)), ContainerTypeInfo(dict, (str, int))), default={},
+                      deprecated_types={list: '0.1', int: '0.4'}),
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
             pass
@@ -1447,6 +1450,14 @@ class InternalTests(unittest.TestCase):
             _(None, mock.Mock(subproject=''), [], {'install_dir': False})
             self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '1.0'.*deprecated since '0.9': "testfunc" keyword argument "install_dir" value "False".*""")
 
+        with self.subTest('deprecated type'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [], {'install_dir': 'false'})
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '1.0'.*deprecated since '0.9': "testfunc" keyword argument "install_dir" has type "str" in values.*""")
+
+        with self.subTest('since type'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [], {'other_arg': 'false'})
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '1.0'.*introduced in '1.7': "testfunc" keyword argument "other_arg" has type "str" in values.*""")
+
         with self.subTest('deprecated string union'), mock.patch('sys.stdout', io.StringIO()) as out:
             _(None, mock.Mock(subproject=''), [], {'mode': 'deprecated'})
             self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '1.0'.*deprecated since '1.0': "testfunc" keyword argument "mode" value "deprecated".*""")
@@ -1458,6 +1469,26 @@ class InternalTests(unittest.TestCase):
         with self.subTest('new container'), mock.patch('sys.stdout', io.StringIO()) as out:
             _(None, mock.Mock(subproject=''), [], {'dict': ['a=b']})
             self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '1.0'.*introduced in '1.9': "testfunc" keyword argument "dict" of type list.*""")
+
+        with self.subTest('old container'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [], {'no_more_list': ['a=b']})
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '1.0'.*deprecated since '0.1': "testfunc" keyword argument "no_more_list" of type list.*""")
+
+        with self.subTest('deprecated type in dict'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [], {'no_more_list': {'x': 7}})
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '1.0'.*deprecated since '0.4': "testfunc" keyword argument "no_more_list" has type "int" in values.*""")
+
+        with self.subTest('deprecated type in list'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [], {'no_more_list': {'x': 7}})
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '1.0'.*deprecated since '0.4': "testfunc" keyword argument "no_more_list" has type "int" in values.*""")
+
+        with self.subTest('since type in dict'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [], {'dict': {'x': 7}})
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '1.0'.*feature introduced in '1.4': "testfunc" keyword argument "dict" has type "int" in values.*""")
+
+        with self.subTest('since type in list'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [], {'new_dict': {'x': 7}})
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '1.0'.*feature introduced in '1.4': "testfunc" keyword argument "new_dict" has type "int" in values.*""")
 
         with self.subTest('new container set to default'), mock.patch('sys.stdout', io.StringIO()) as out:
             _(None, mock.Mock(subproject=''), [], {'new_dict': {}})

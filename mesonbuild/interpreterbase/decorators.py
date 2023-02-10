@@ -380,6 +380,11 @@ class KwargInfo(T.Generic[_T]):
         argument.
     :param since_values: a dictionary mapping a value to the version of meson it was
         added in.
+    :param deprecated_types: a dictionary mapping a value to the version of
+        meson it was deprecated in. The Value may be any valid type for this
+        argument.
+    :param since_type: a dictionary mapping a type to the version of meson it was
+        added in.
     :param not_set_warning: A warning message that is logged if the kwarg is not
         set by the user.
     :param feature_validator: A callable returning an iterable of FeatureNew | FeatureDeprecated objects.
@@ -390,10 +395,12 @@ class KwargInfo(T.Generic[_T]):
                  default: T.Optional[_T] = None,
                  since: T.Optional[str] = None,
                  since_message: T.Optional[str] = None,
-                 since_values: T.Optional[T.Dict[T.Union[_T, T.Type[T.List], T.Type[T.Dict]], T.Union[str, T.Tuple[str, str]]]] = None,
+                 since_values: T.Optional[T.Dict[_T, T.Union[str, T.Tuple[str, str]]]] = None,
+                 since_types: T.Optional[T.Dict[type, T.Union[str, T.Tuple[str, str]]]] = None,
                  deprecated: T.Optional[str] = None,
                  deprecated_message: T.Optional[str] = None,
-                 deprecated_values: T.Optional[T.Dict[T.Union[_T, T.Type[T.List], T.Type[T.Dict]], T.Union[str, T.Tuple[str, str]]]] = None,
+                 deprecated_values: T.Optional[T.Dict[_T, T.Union[str, T.Tuple[str, str]]]] = None,
+                 deprecated_types: T.Optional[T.Dict[type, T.Union[str, T.Tuple[str, str]]]] = None,
                  feature_validator: T.Optional[T.Callable[[_T], T.Iterable[FeatureCheckBase]]] = None,
                  validator: T.Optional[T.Callable[[T.Any], T.Optional[str]]] = None,
                  convertor: T.Optional[T.Callable[[_T], object]] = None,
@@ -406,10 +413,12 @@ class KwargInfo(T.Generic[_T]):
         self.since = since
         self.since_message = since_message
         self.since_values = since_values
+        self.since_types = since_types
         self.feature_validator = feature_validator
         self.deprecated = deprecated
         self.deprecated_message = deprecated_message
         self.deprecated_values = deprecated_values
+        self.deprecated_types = deprecated_types
         self.validator = validator
         self.convertor = convertor
         self.not_set_warning = not_set_warning
@@ -421,10 +430,12 @@ class KwargInfo(T.Generic[_T]):
                default: T.Union[_T, None, _NULL_T] = _NULL,
                since: T.Union[str, None, _NULL_T] = _NULL,
                since_message: T.Union[str, None, _NULL_T] = _NULL,
-               since_values: T.Union[T.Dict[T.Union[_T, T.Type[T.List], T.Type[T.Dict]], T.Union[str, T.Tuple[str, str]]], None, _NULL_T] = _NULL,
+               since_values: T.Union[T.Dict[_T, T.Union[str, T.Tuple[str, str]]], None, _NULL_T] = _NULL,
+               since_types: T.Union[T.Dict[type, T.Union[str, T.Tuple[str, str]]], None, _NULL_T] = _NULL,
                deprecated: T.Union[str, None, _NULL_T] = _NULL,
                deprecated_message: T.Union[str, None, _NULL_T] = _NULL,
-               deprecated_values: T.Union[T.Dict[T.Union[_T, T.Type[T.List], T.Type[T.Dict]], T.Union[str, T.Tuple[str, str]]], None, _NULL_T] = _NULL,
+               deprecated_values: T.Union[T.Dict[_T, T.Union[str, T.Tuple[str, str]]], None, _NULL_T] = _NULL,
+               deprecated_types: T.Union[T.Dict[type, T.Union[str, T.Tuple[str, str]]], None, _NULL_T] = _NULL,
                feature_validator: T.Union[T.Callable[[_T], T.Iterable[FeatureCheckBase]], None, _NULL_T] = _NULL,
                validator: T.Union[T.Callable[[_T], T.Optional[str]], None, _NULL_T] = _NULL,
                convertor: T.Union[T.Callable[[_T], TYPE_var], None, _NULL_T] = _NULL) -> 'KwargInfo':
@@ -448,9 +459,11 @@ class KwargInfo(T.Generic[_T]):
             since=since if not isinstance(since, _NULL_T) else self.since,
             since_message=since_message if not isinstance(since_message, _NULL_T) else self.since_message,
             since_values=since_values if not isinstance(since_values, _NULL_T) else self.since_values,
+            since_types=since_types if not isinstance(since_types, _NULL_T) else self.since_types,
             deprecated=deprecated if not isinstance(deprecated, _NULL_T) else self.deprecated,
             deprecated_message=deprecated_message if not isinstance(deprecated_message, _NULL_T) else self.deprecated_message,
             deprecated_values=deprecated_values if not isinstance(deprecated_values, _NULL_T) else self.deprecated_values,
+            deprecated_types=deprecated_types if not isinstance(deprecated_types, _NULL_T) else self.deprecated_types,
             feature_validator=feature_validator if not isinstance(feature_validator, _NULL_T) else self.feature_validator,
             validator=validator if not isinstance(validator, _NULL_T) else self.validator,
             convertor=convertor if not isinstance(convertor, _NULL_T) else self.convertor,
@@ -471,17 +484,41 @@ def _emit_feature_change(info: KwargInfo,
         else:
             msg = None
 
-        if n in {dict, list}:
-            assert isinstance(n, type), 'for mypy'
-            if isinstance(value, n):
-                feature.single_use(f'"{name}" keyword argument "{info.name}" of type {n.__name__}', version, subproject, msg, location=node)
-        elif isinstance(value, (dict, list)):
+        if isinstance(value, (dict, list)):
             warn = n in value
         else:
             warn = n == value
 
         if warn:
             feature.single_use(f'"{name}" keyword argument "{info.name}" value "{n}"', version, subproject, msg, location=node)
+
+
+def _type_feature_change(info: KwargInfo,
+                         value: object,
+                         name: str,
+                         subproject: SubProject,
+                         node: mparser.BaseNode,
+                         values: T.Dict[type, T.Union[str, T.Tuple[str, str]]],
+                         feature: T.Union[T.Type['FeatureDeprecated'], T.Type['FeatureNew']]) -> None:
+    for n, version in values.items():
+        warn = False
+        if isinstance(version, tuple):
+            version, msg = version
+        else:
+            msg = None
+
+        if n in {dict, list}:
+            if isinstance(value, n):
+                feature.single_use(f'"{name}" keyword argument "{info.name}" of type {n.__name__}', version, subproject, msg, location=node)
+        elif isinstance(value, list):
+            warn = any(isinstance(v, n) for v in value)
+        elif isinstance(value, dict):
+            warn = any(isinstance(v, n) for v in value.values())
+        else:
+            warn = isinstance(value, n)
+
+        if warn:
+            feature.single_use(f'"{name}" keyword argument "{info.name}" has type "{n.__name__}" in values', version, subproject, msg, location=node)
 
 
 def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T.Callable[..., T.Any]:
@@ -578,10 +615,20 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
                             info, value, name, subproject, node,
                             info.deprecated_values, FeatureDeprecated)
 
+                    if info.deprecated_types is not None:
+                        _type_feature_change(
+                            info, value, name, subproject, node,
+                            info.deprecated_types, FeatureDeprecated)
+
                     if info.since_values is not None:
                         _emit_feature_change(
                             info, value, name, subproject, node,
                             info.since_values, FeatureNew)
+
+                    if info.since_types is not None:
+                        _type_feature_change(
+                            info, value, name, subproject, node,
+                            info.since_types, FeatureNew)
 
                 elif info.required:
                     raise InvalidArguments(f'{name} is missing required keyword argument "{info.name}"')

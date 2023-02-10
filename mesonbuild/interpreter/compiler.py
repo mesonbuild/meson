@@ -147,7 +147,7 @@ _PREFIX_KW: KwargInfo[str] = KwargInfo(
     'prefix',
     (str, ContainerTypeInfo(list, str)),
     default='',
-    since_values={list: '1.0.0'},
+    since_types={list: '1.0.0'},
     convertor=lambda x: '\n'.join(x) if isinstance(x, list) else x)
 
 _NO_BUILTIN_ARGS_KW = KwargInfo('no_builtin_args', bool, default=False)
