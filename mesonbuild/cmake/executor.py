@@ -108,23 +108,29 @@ class CMakeExecutor:
             mlog.log(f'Did not find CMake {cmakebin.name!r}')
             return None
         try:
-            p, out = Popen_safe(cmakebin.get_command() + ['--version'])[0:2]
+            cmd = cmakebin.get_command()
+            p, out = Popen_safe(cmd + ['--version'])[0:2]
             if p.returncode != 0:
                 mlog.warning('Found CMake {!r} but couldn\'t run it'
-                             ''.format(' '.join(cmakebin.get_command())))
+                             ''.format(' '.join(cmd)))
                 return None
         except FileNotFoundError:
             mlog.warning('We thought we found CMake {!r} but now it\'s not there. How odd!'
-                         ''.format(' '.join(cmakebin.get_command())))
+                         ''.format(' '.join(cmd)))
             return None
         except PermissionError:
-            msg = 'Found CMake {!r} but didn\'t have permissions to run it.'.format(' '.join(cmakebin.get_command()))
+            msg = 'Found CMake {!r} but didn\'t have permissions to run it.'.format(' '.join(cmd))
             if not is_windows():
                 msg += '\n\nOn Unix-like systems this is often caused by scripts that are not executable.'
             mlog.warning(msg)
             return None
-        cmvers = re.search(r'(cmake|cmake3)\s*version\s*([\d.]+)', out).group(2)
-        return cmvers
+
+        cmvers = re.search(r'(cmake|cmake3)\s*version\s*([\d.]+)', out)
+        if cmvers is not None:
+            return cmvers.group(2)
+        mlog.warning(f'We thought we found CMake {cmd!r}, but it was missing the expected '
+                     'version string in its output.')
+        return None
 
     def set_exec_mode(self, print_cmout: T.Optional[bool] = None, always_capture_stderr: T.Optional[bool] = None) -> None:
         if print_cmout is not None:
