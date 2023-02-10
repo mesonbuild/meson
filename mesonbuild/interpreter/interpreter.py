@@ -1484,7 +1484,9 @@ class Interpreter(InterpreterBase, HoldableObject):
             if not isinstance(p, str):
                 raise InterpreterException('Executable name must be a string')
             prog = ExternalProgram.from_bin_list(self.environment, for_machine, p)
-            if prog.found():
+            # if the machine file specified something, it may be a regular
+            # not-found program but we still want to return that
+            if not isinstance(prog, NonExistingExternalProgram):
                 return prog
         return None
 
