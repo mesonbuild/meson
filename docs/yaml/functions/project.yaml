@@ -22,8 +22,9 @@ description: |
   *(since 0.56.0)* The build machine compilers for the specified
   languages are not required.
 
-  Supported values for languages are `c`, `cpp` (for `C++`), `cuda`, `d`,
-  `objc`, `objcpp`, `fortran`, `java`, `cs` (for `C#`), `vala` and `rust`.
+  Supported values for languages are `c`, `cpp` (for `C++`), `cuda`,
+  `cython`, `d`, `objc`, `objcpp`, `fortran`, `java`, `cs` (for `C#`),
+  `vala` and `rust`.
 
 posargs:
   project_name:
