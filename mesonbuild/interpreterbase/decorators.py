@@ -457,6 +457,33 @@ class KwargInfo(T.Generic[_T]):
         )
 
 
+def _emit_feature_change(info: KwargInfo,
+                         value: object,
+                         name: str,
+                         subproject: SubProject,
+                         node: mparser.BaseNode,
+                         values: T.Dict[_T, T.Union[str, T.Tuple[str, str]]],
+                         feature: T.Union[T.Type['FeatureDeprecated'], T.Type['FeatureNew']]) -> None:
+    for n, version in values.items():
+        warn = False
+        if isinstance(version, tuple):
+            version, msg = version
+        else:
+            msg = None
+
+        if n in {dict, list}:
+            assert isinstance(n, type), 'for mypy'
+            if isinstance(value, n):
+                feature.single_use(f'"{name}" keyword argument "{info.name}" of type {n.__name__}', version, subproject, msg, location=node)
+        elif isinstance(value, (dict, list)):
+            warn = n in value
+        else:
+            warn = n == value
+
+        if warn:
+            feature.single_use(f'"{name}" keyword argument "{info.name}" value "{n}"', version, subproject, msg, location=node)
+
+
 def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T.Callable[..., T.Any]:
     """Decorator for type checking keyword arguments.
 
@@ -510,26 +537,6 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
         @wraps(f)
         def wrapper(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
 
-            def emit_feature_change(values: T.Dict[_T, T.Union[str, T.Tuple[str, str]]], feature: T.Union[T.Type['FeatureDeprecated'], T.Type['FeatureNew']]) -> None:
-                for n, version in values.items():
-                    warn = False
-                    if isinstance(version, tuple):
-                        version, msg = version
-                    else:
-                        msg = None
-
-                    if n in {dict, list}:
-                        assert isinstance(n, type), 'for mypy'
-                        if isinstance(value, n):
-                            feature.single_use(f'"{name}" keyword argument "{info.name}" of type {n.__name__}', version, subproject, msg, location=node)
-                    elif isinstance(value, (dict, list)):
-                        warn = n in value
-                    else:
-                        warn = n == value
-
-                    if warn:
-                        feature.single_use(f'"{name}" keyword argument "{info.name}" value "{n}"', version, subproject, msg, location=node)
-
             node, _, _kwargs, subproject = get_callee_args(wrapped_args)
             # Cast here, as the convertor function may place something other than a TYPE_var in the kwargs
             kwargs = T.cast('T.Dict[str, object]', _kwargs)
@@ -567,10 +574,14 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
                             each.use(subproject, node)
 
                     if info.deprecated_values is not None:
-                        emit_feature_change(info.deprecated_values, FeatureDeprecated)
+                        _emit_feature_change(
+                            info, value, name, subproject, node,
+                            info.deprecated_values, FeatureDeprecated)
 
                     if info.since_values is not None:
-                        emit_feature_change(info.since_values, FeatureNew)
+                        _emit_feature_change(
+                            info, value, name, subproject, node,
+                            info.since_values, FeatureNew)
 
                 elif info.required:
                     raise InvalidArguments(f'{name} is missing required keyword argument "{info.name}"')
