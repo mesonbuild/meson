@@ -87,6 +87,7 @@ if T.TYPE_CHECKING:
         output: str
         compile_args: T.List[str]
         include_directories: T.List[build.IncludeDirs]
+        dependencies: T.List[dependencies.Dependency]
 
 
 class _TestMode(enum.Enum):
@@ -760,6 +761,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         KwargInfo('output', str, default='@PLAINNAME@.i'),
         KwargInfo('compile_args', ContainerTypeInfo(list, str), listify=True, default=[]),
         _INCLUDE_DIRS_KW,
+        _DEPENDENCIES_KW.evolve(since='1.1.0'),
     )
     def preprocess_method(self, args: T.Tuple[T.List['mesonlib.FileOrString']], kwargs: 'PreprocessKW') -> T.List[build.CustomTargetIndex]:
         compiler = self.compiler.get_preprocessor()
@@ -771,6 +773,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             f'{self.compiler.language}_args': kwargs['compile_args'],
             'build_by_default': False,
             'include_directories': kwargs['include_directories'],
+            'dependencies': kwargs['dependencies'],
         }
         tg_name = f'preprocessor_{next(self.preprocess_uid)}'
         tg = build.CompileTarget(

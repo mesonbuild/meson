@@ -1,3 +1,3 @@
 int @BAR@(void) {
-    return BAR;
+    return BAR + PLOP;
 }
