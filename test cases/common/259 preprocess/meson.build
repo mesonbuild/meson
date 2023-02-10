@@ -13,7 +13,9 @@ bar_c = custom_target(
   capture: true,
 )
 
-pp_files = cc.preprocess('foo.c', bar_c, output: '@PLAINNAME@')
+dep = declare_dependency(compile_args: '-DPLOP=0')
+
+pp_files = cc.preprocess('foo.c', bar_c, output: '@PLAINNAME@', dependencies: dep)
 
 foreach f : pp_files
   message(f.full_path())

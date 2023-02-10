@@ -617,3 +617,7 @@ methods:
       type: list[str]
       description: |
         Extra flags to pass to the preprocessor
+    dependencies:
+      type: dep | list[dep]
+      description: Additionally dependencies required.
+      since: 1.1.0
