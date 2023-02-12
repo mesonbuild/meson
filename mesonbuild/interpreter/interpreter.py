@@ -102,6 +102,7 @@ import typing as T
 import textwrap
 import importlib
 import copy
+import pkg_resources
 
 if T.TYPE_CHECKING:
     import argparse
@@ -613,9 +614,17 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         if real_modname in self.modules:
             return self.modules[real_modname]
+        module = None
         try:
             module = importlib.import_module(f'mesonbuild.modules.{real_modname}')
         except ImportError:
+            try:
+                module_entry = next(pkg_resources.iter_entry_points("mesonbuild.modules", real_modname))
+            except StopIteration:
+                pass
+            else:
+                module = module_entry.load()
+        if module is None:
             if required:
                 raise InvalidArguments(f'Module "{modname}" does not exist')
             ext_module = NotFoundExtensionModule(real_modname)
