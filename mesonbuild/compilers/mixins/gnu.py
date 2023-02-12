@@ -445,7 +445,7 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         return ['-fprofile-generate']
 
     def get_profile_use_args(self) -> T.List[str]:
-        return ['-fprofile-use', '-fprofile-correction']
+        return ['-fprofile-use']
 
     def get_gui_app_args(self, value: bool) -> T.List[str]:
         return ['-mwindows' if value else '-mconsole']
@@ -644,3 +644,6 @@ class GnuCompiler(GnuLikeCompiler):
         if linker == 'mold' and mesonlib.version_compare(version, '>=12.0.1'):
             return ['-fuse-ld=mold']
         return super().use_linker_args(linker, version)
+
+    def get_profile_use_args(self) -> T.List[str]:
+        return super().get_profile_use_args() + ['-fprofile-correction']
