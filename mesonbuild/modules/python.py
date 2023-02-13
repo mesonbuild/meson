@@ -282,10 +282,11 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
 
 
 def python_factory(env: 'Environment', for_machine: 'MachineChoice',
-                   kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods],
+                   kwargs: T.Dict[str, T.Any],
                    installation: 'PythonExternalProgram') -> T.List['DependencyGenerator']:
     # We can't use the factory_methods decorator here, as we need to pass the
     # extra installation argument
+    methods = process_method_kw({DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM}, kwargs)
     embed = kwargs.get('embed', False)
     candidates: T.List['DependencyGenerator'] = []
     pkg_version = installation.info['variables'].get('LDVERSION') or installation.info['version']
@@ -507,10 +508,9 @@ class PythonInstallation(ExternalProgramHolder):
 
         new_kwargs = kwargs.copy()
         new_kwargs['required'] = False
-        methods = process_method_kw({DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM}, kwargs)
         # it's theoretically (though not practically) possible to not bind dep, let's ensure it is.
         dep: Dependency = NotFoundDependency('python', self.interpreter.environment)
-        for d in python_factory(self.interpreter.environment, for_machine, new_kwargs, methods, self.held_object):
+        for d in python_factory(self.interpreter.environment, for_machine, new_kwargs, self.held_object):
             dep = d()
             if dep.found():
                 break
