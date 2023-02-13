@@ -72,7 +72,8 @@ kwargs:
       `#mesondefine` statements and variables surrounded by `@` characters, you can also use `'cmake'`
       to replace `#cmakedefine` statements and variables with the `${variable}` syntax. Finally you can use
       `'cmake@'` in which case substitutions will apply on `#cmakedefine` statements and variables with
-      the `@variable@` syntax.
+      the `@variable@` syntax. Another supported format is `'autoconf'`, which replaces `#undef` statements
+      and doesn't do any variable replacement.
 
   input:
     type: str | file

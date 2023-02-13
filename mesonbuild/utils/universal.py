@@ -1192,7 +1192,7 @@ def do_replacement(regex: T.Pattern[str], line: str,
     return re.sub(regex, variable_replace, line), missing_variables
 
 def do_define(regex: T.Pattern[str], line: str, confdata: 'ConfigurationData',
-              variable_format: Literal['meson', 'cmake', 'cmake@']) -> str:
+              variable_format: Literal['meson', 'cmake', 'cmake@', 'autoconf']) -> str:
     def get_cmake_define(line: str, confdata: 'ConfigurationData') -> str:
         arr = line.split()
         define_value = []
@@ -1221,42 +1221,44 @@ def do_define(regex: T.Pattern[str], line: str, confdata: 'ConfigurationData',
     elif isinstance(v, int):
         return '#define %s %d\n' % (varname, v)
     elif isinstance(v, str):
-        if variable_format == 'meson':
-            result = v
-        else:
+        if variable_format in {'cmake', 'cmake@'}:
             result = get_cmake_define(line, confdata)
+        else:
+            result = v
         result = f'#define {varname} {result}\n'
-        (result, missing_variable) = do_replacement(regex, result, variable_format, confdata)
+        if variable_format != 'autoconf':
+            (result, missing_variable) = do_replacement(regex, result, variable_format, confdata)
         return result
     else:
         raise MesonException('#mesondefine argument "%s" is of unknown type.' % varname)
 
-def get_variable_regex(variable_format: Literal['meson', 'cmake', 'cmake@'] = 'meson') -> T.Pattern[str]:
+def get_variable_regex(variable_format: Literal['meson', 'cmake', 'cmake@', 'autoconf'] = 'meson') -> T.Pattern[str]:
     # Only allow (a-z, A-Z, 0-9, _, -) as valid characters for a define
     # Also allow escaping '@' with '\@'
-    if variable_format in {'meson', 'cmake@'}:
-        regex = re.compile(r'(?:\\\\)+(?=\\?@)|\\@|@([-a-zA-Z0-9_]+)@')
-    else:
+    if variable_format == 'cmake':
         regex = re.compile(r'(?:\\\\)+(?=\\?\$)|\\\${|\${([-a-zA-Z0-9_]+)}')
+    else:
+        regex = re.compile(r'(?:\\\\)+(?=\\?@)|\\@|@([-a-zA-Z0-9_]+)@')
     return regex
 
 def do_conf_str(src: str, data: list, confdata: 'ConfigurationData',
-                variable_format: Literal['meson', 'cmake', 'cmake@'],
+                variable_format: Literal['meson', 'cmake', 'cmake@', 'autoconf'],
                 encoding: str = 'utf-8') -> T.Tuple[T.List[str], T.Set[str], bool]:
-    def line_is_valid(line: str, variable_format: str) -> bool:
-        if variable_format == 'meson':
-            if '#cmakedefine' in line:
-                return False
-        else: # cmake format
-            if '#mesondefine' in line:
-                return False
+    def line_is_valid(line: str, search_token: str) -> bool:
+        if search_token != '#mesondefine' and '#mesondefine' in line:
+            return False
+        if search_token != '#cmakedefine' and '#cmakedefine' in line:
+            return False
+        # Allow '#undef' tokens in cmake and meson formats
         return True
 
     regex = get_variable_regex(variable_format)
 
     search_token = '#mesondefine'
-    if variable_format != 'meson':
+    if variable_format in {'cmake', 'cmake@'}:
         search_token = '#cmakedefine'
+    if variable_format == 'autoconf':
+        search_token = '#undef'
 
     result = []
     missing_variables = set()
@@ -1268,18 +1270,19 @@ def do_conf_str(src: str, data: list, confdata: 'ConfigurationData',
             confdata_useless = False
             line = do_define(regex, line, confdata, variable_format)
         else:
-            if not line_is_valid(line, variable_format):
+            if not line_is_valid(line, search_token):
                 raise MesonException(f'Format error in {src}: saw "{line.strip()}" when format set to "{variable_format}"')
-            line, missing = do_replacement(regex, line, variable_format, confdata)
-            missing_variables.update(missing)
-            if missing:
-                confdata_useless = False
+            if variable_format != 'autoconf':
+                line, missing = do_replacement(regex, line, variable_format, confdata)
+                missing_variables.update(missing)
+                if missing:
+                    confdata_useless = False
         result.append(line)
 
     return result, missing_variables, confdata_useless
 
 def do_conf_file(src: str, dst: str, confdata: 'ConfigurationData',
-                 variable_format: Literal['meson', 'cmake', 'cmake@'],
+                 variable_format: Literal['meson', 'cmake', 'cmake@', 'autoconf'],
                  encoding: str = 'utf-8') -> T.Tuple[T.Set[str], bool]:
     try:
         with open(src, encoding=encoding, newline='') as f:
