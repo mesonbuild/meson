@@ -26,7 +26,8 @@ from .. import mesonlib
 from .. import mlog
 from ..coredata import UserFeatureOption
 from ..build import known_shmod_kwargs
-from ..dependencies import DependencyMethods, PkgConfigDependency, NotFoundDependency, SystemDependency, ExtraFrameworkDependency
+from ..dependencies import (DependencyMethods, PkgConfigDependency, NotFoundDependency, SystemDependency, ExtraFrameworkDependency,
+                            DependencyTypeName, ExternalDependency)
 from ..dependencies.base import process_method_kw
 from ..dependencies.detect import get_dep_identifier
 from ..environment import detect_cpu_family
@@ -46,7 +47,7 @@ if T.TYPE_CHECKING:
 
     from . import ModuleState
     from ..build import SharedModule, Data
-    from ..dependencies import ExternalDependency, Dependency
+    from ..dependencies import Dependency
     from ..dependencies.factory import DependencyGenerator
     from ..environment import Environment
     from ..interpreter import Interpreter
@@ -298,7 +299,9 @@ def python_factory(env: 'Environment', for_machine: 'MachineChoice',
                                    installation: 'PythonInstallation') -> 'ExternalDependency':
             if not pkg_libdir:
                 # there is no LIBPC, so we can't search in it
-                return NotFoundDependency('python', env)
+                empty = ExternalDependency(DependencyTypeName('pkgconfig'), env, {})
+                empty.name = 'python'
+                return empty
 
             old_pkg_libdir = os.environ.pop('PKG_CONFIG_LIBDIR', None)
             old_pkg_path = os.environ.pop('PKG_CONFIG_PATH', None)
@@ -306,7 +309,7 @@ def python_factory(env: 'Environment', for_machine: 'MachineChoice',
             try:
                 return PythonPkgConfigDependency(name, env, kwargs, installation, True)
             finally:
-                def set_env(name, value):
+                def set_env(name: str, value: str) -> None:
                     if value is not None:
                         os.environ[name] = value
                     elif name in os.environ:
@@ -428,6 +431,7 @@ class PythonExternalProgram(ExternalProgram):
             'sysconfig_paths': {},
             'paths': {},
             'platform': 'sentinal',
+            'suffix': 'sentinel',
             'variables': {},
             'version': '0.0',
         }
