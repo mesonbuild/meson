@@ -73,6 +73,7 @@ kwargs:
       to replace `#cmakedefine` statements and variables with the `${variable}` syntax. Finally you can use
       `'cmake@'` in which case substitutions will apply on `#cmakedefine` statements and variables with
       the `@variable@` syntax.
+      *Since 1.1.0* `'autoconf'` format replaces `#undef` statements.
 
   input:
     type: str | file
