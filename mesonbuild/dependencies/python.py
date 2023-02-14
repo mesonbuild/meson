@@ -119,7 +119,15 @@ class _PythonDependencyBase(_Base):
         self.variables = python_holder.info['variables']
         self.paths = python_holder.info['paths']
         self.is_pypy = python_holder.info['is_pypy']
-        self.link_libpython = python_holder.info['link_libpython']
+        # The "-embed" version of python.pc / python-config was introduced in 3.8,
+        # and distutils extension linking was changed to be considered a non embed
+        # usage. Before then, this dependency always uses the embed=True handling
+        # because that is the only one that exists.
+        #
+        # On macOS and some Linux distros (Debian) distutils doesn't link extensions
+        # against libpython, even on 3.7 and below. We call into distutils and
+        # mirror its behavior. See https://github.com/mesonbuild/meson/issues/4117
+        self.link_libpython = python_holder.info['link_libpython'] or embed
         self.info: T.Optional[T.Dict[str, str]] = None
         if mesonlib.version_compare(self.version, '>= 3.0'):
             self.major_version = 3
@@ -143,15 +151,8 @@ class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
         if libpc and not self.is_found:
             mlog.debug(f'"python-{self.version}" could not be found in LIBPC, this is likely due to a relocated python installation')
 
-        # The "-embed" version of python.pc was introduced in 3.8, and distutils
-        # extension linking was changed to be considered a non embed usage. Before
-        # then, this dependency always uses the embed=True file because that is the
-        # only one that exists,
-        #
-        # On macOS and some Linux distros (Debian) distutils doesn't link extensions
-        # against libpython, even on 3.7 and below. We call into distutils and
-        # mirror its behavior. See https://github.com/mesonbuild/meson/issues/4117
-        if not self.embed and not self.link_libpython and mesonlib.version_compare(self.version, '< 3.8'):
+        # pkg-config files are usually accurate starting with python 3.8
+        if not self.link_libpython and mesonlib.version_compare(self.version, '< 3.8'):
             self.link_args = []
 
 
@@ -170,11 +171,15 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
         SystemDependency.__init__(self, name, environment, kwargs)
         _PythonDependencyBase.__init__(self, installation, kwargs.get('embed', False))
 
-        # link args
-        if mesonlib.is_windows():
-            self.find_libpy_windows(environment)
+        # match pkg-config behavior
+        if self.link_libpython:
+            # link args
+            if mesonlib.is_windows():
+                self.find_libpy_windows(environment)
+            else:
+                self.find_libpy(environment)
         else:
-            self.find_libpy(environment)
+            self.is_found = True
 
         # compile args
         inc_paths = mesonlib.OrderedSet([
@@ -210,8 +215,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
         largs = self.clib_compiler.find_library(libname, environment, libdirs)
         if largs is not None:
             self.link_args = largs
-
-        self.is_found = largs is not None or not self.link_libpython
+            self.is_found = True
 
     def get_windows_python_arch(self) -> T.Optional[str]:
         if self.platform == 'mingw':
