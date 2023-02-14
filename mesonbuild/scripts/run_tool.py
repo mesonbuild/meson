@@ -17,10 +17,10 @@ import itertools
 import fnmatch
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
+import typing as T
 
 from ..compilers import lang_suffixes
 from ..mesonlib import Popen_safe
-import typing as T
 
 if T.TYPE_CHECKING:
     import subprocess

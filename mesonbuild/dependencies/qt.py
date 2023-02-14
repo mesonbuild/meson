@@ -13,10 +13,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import annotations
 
 """Dependency finders for the Qt framework."""
 
+from __future__ import annotations
 import abc
 import re
 import os
@@ -206,7 +206,7 @@ class QtPkgConfigDependency(_QtBase, PkgConfigDependency, metaclass=abc.ABCMeta)
                 mod_private_inc = _qt_get_private_includes(mod_private_dir, m, mod.version)
                 for directory in mod_private_inc:
                     mod.compile_args.append('-I' + directory)
-            self._add_sub_dependency([lambda: mod])
+            self._add_sub_dependency([mod])
 
         if self.env.machines[self.for_machine].is_windows() and self.qtmain:
             # Check if we link with debug binaries

@@ -99,7 +99,7 @@ class WindowsModule(ExtensionModule):
                 ('--version', '^.*GNU windres.*$', ResourceCompilerType.windres),
                 ('--version', '^.*Wine Resource Compiler.*$', ResourceCompilerType.wrc),
         ]:
-            p, o, e = mesonlib.Popen_safe(rescomp.get_command() + [arg])
+            o = mesonlib.Popen_safe(rescomp.get_command() + [arg])[1]
             m = re.search(match, o, re.MULTILINE)
             if m:
                 mlog.log('Windows resource compiler: %s' % m.group())

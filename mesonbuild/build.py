@@ -18,7 +18,8 @@ from dataclasses import dataclass, field
 from functools import lru_cache
 import copy
 import hashlib
-import itertools, pathlib
+import itertools
+import pathlib
 import os
 import pickle
 import re
@@ -803,15 +804,6 @@ class BuildTarget(Target):
             elif isinstance(s, (CustomTarget, CustomTargetIndex, GeneratedList)):
                 self.generated.append(s)
 
-    @staticmethod
-    def can_compile_remove_sources(compiler: 'Compiler', sources: T.List['FileOrString']) -> bool:
-        removed = False
-        for s in sources[:]:
-            if compiler.can_compile(s):
-                sources.remove(s)
-                removed = True
-        return removed
-
     def process_compilers_late(self, extra_languages: T.List[str]):
         """Processes additional compilers after kwargs have been evaluated.
 
@@ -1366,7 +1358,8 @@ You probably should put it in link_with instead.''')
                     # https://github.com/mesonbuild/meson/issues/10722
                     # https://github.com/mesonbuild/meson/issues/10723
                     # https://github.com/mesonbuild/meson/issues/10724
-                    return self.link_whole(t)
+                    self.link_whole(t)
+                    return
             if not isinstance(t, (Target, CustomTargetIndex)):
                 raise InvalidArguments(f'{t!r} is not a target.')
             if not t.is_linkable_target():

@@ -316,7 +316,9 @@ class DependenciesHelper:
         # Exclude 'x' in all its forms and return if it was already excluded
         def _add_exclude(x: T.Union[str, build.CustomTarget, build.CustomTargetIndex, build.StaticLibrary, build.SharedLibrary]) -> bool:
             was_excluded = False
-            for i in _ids(x):
+            # This warning shows up in pylint 2.16. It is a false positive,
+            # because of the side effect of mutating exclude
+            for i in _ids(x):  # pylint: disable=consider-using-any-or-all
                 if i in exclude:
                     was_excluded = True
                 else:

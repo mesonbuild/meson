@@ -11,6 +11,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from __future__ import annotations
+from pathlib import Path
+from enum import Enum
+import os
+import shutil
+import uuid
+import re
+import stat
+import collections
+import typing as T
+import textwrap
+import importlib
+import copy
 
 from .. import mparser
 from .. import environment
@@ -89,19 +101,6 @@ from .type_checking import (
     env_convertor_with_method
 )
 from . import primitives as P_OBJ
-
-from pathlib import Path
-from enum import Enum
-import os
-import shutil
-import uuid
-import re
-import stat
-import collections
-import typing as T
-import textwrap
-import importlib
-import copy
 
 if T.TYPE_CHECKING:
     import argparse
@@ -465,15 +464,13 @@ class Interpreter(InterpreterBase, HoldableObject):
             build.ConfigurationData: OBJ.ConfigurationDataHolder,
         })
 
-        '''
-            Build a mapping of `HoldableObject` base classes to their
-            corresponding `ObjectHolder`s. The difference to `self.holder_map`
-            is that the keys here define an upper bound instead of requiring an
-            exact match.
+        # Build a mapping of `HoldableObject` base classes to their
+        # corresponding `ObjectHolder`s. The difference to `self.holder_map`
+        # is that the keys here define an upper bound instead of requiring an
+        # exact match.
 
-            The mappings defined here are only used when there was no direct hit
-            found in `self.holder_map`.
-        '''
+        # The mappings defined here are only used when there was no direct hit
+        # found in `self.holder_map`.
         self.bound_holder_map.update({
             dependencies.Dependency: OBJ.DependencyHolder,
             ExternalProgram: OBJ.ExternalProgramHolder,
@@ -2966,10 +2963,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 installabledirs = [str(Path(srcdir, s.source_subdir)) for s in self.build.install_dirs]
                 if fpath in installablefiles:
                     return True
-                for d in installabledirs:
-                    if str(fpath).startswith(d):
-                        return True
-                return False
+                return any(str(fpath).startswith(d) for d in installabledirs)
 
             norm = Path(fname)
             # variables built from a dep.get_variable are allowed to refer to

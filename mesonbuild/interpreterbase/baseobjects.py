@@ -13,15 +13,15 @@
 # limitations under the License.
 from __future__ import annotations
 
+from abc import ABCMeta
+import textwrap
+import typing as T
+
 from .. import mparser
 from .exceptions import InvalidCode, InvalidArguments
 from .helpers import flatten, resolve_second_level_holders
 from .operator import MesonOperator
 from ..mesonlib import HoldableObject, MesonBugException
-import textwrap
-
-import typing as T
-from abc import ABCMeta
 
 if T.TYPE_CHECKING:
     from typing_extensions import Protocol
@@ -32,7 +32,7 @@ if T.TYPE_CHECKING:
     __T = T.TypeVar('__T', bound='TYPE_var', contravariant=True)
 
     class OperatorCall(Protocol[__T]):
-        def __call__(self, other: __T) -> 'TYPE_var': ...
+        def __call__(self, other: __T) -> 'TYPE_var': ...  # pylint: disable=multiple-statements
 
 TV_fw_var = T.Union[str, int, bool, list, dict, 'InterpreterObject']
 TV_fw_args = T.List[T.Union[mparser.BaseNode, TV_fw_var]]
@@ -118,12 +118,12 @@ class InterpreterObject:
         # We use `type(...) == type(...)` here to enforce an *exact* match for comparison. We
         # don't want comparisons to be possible where `isinstance(derived_obj, type(base_obj))`
         # would pass because this comparison must never be true: `derived_obj == base_obj`
-        if type(self) != type(other):
+        if type(self) != type(other):  # pylint: disable=unidiomatic-typecheck
             self._throw_comp_exception(other, '==')
         return self == other
 
     def op_not_equals(self, other: TYPE_var) -> bool:
-        if type(self) != type(other):
+        if type(self) != type(other):  # pylint: disable=unidiomatic-typecheck
             self._throw_comp_exception(other, '!=')
         return self != other
 
@@ -156,12 +156,12 @@ class ObjectHolder(InterpreterObject, T.Generic[InterpreterObjectTypeVar]):
     # Override default comparison operators for the held object
     def op_equals(self, other: TYPE_var) -> bool:
         # See the comment from InterpreterObject why we are using `type()` here.
-        if type(self.held_object) != type(other):
+        if type(self.held_object) != type(other):  # pylint: disable=unidiomatic-typecheck
             self._throw_comp_exception(other, '==')
         return self.held_object == other
 
     def op_not_equals(self, other: TYPE_var) -> bool:
-        if type(self.held_object) != type(other):
+        if type(self.held_object) != type(other):  # pylint: disable=unidiomatic-typecheck
             self._throw_comp_exception(other, '!=')
         return self.held_object != other
 

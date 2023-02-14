@@ -14,12 +14,21 @@ from __future__ import annotations
 
 import copy
 
-from . import mlog, mparser
-import pickle, os, uuid
+import pickle
+import os
+import uuid
 import sys
 from itertools import chain
 from pathlib import PurePath
 from collections import OrderedDict
+import ast
+import argparse
+import configparser
+import enum
+import shlex
+import typing as T
+
+from . import mlog, mparser
 from .mesonlib import (
     HoldableObject,
     MesonException, EnvironmentException, MachineChoice, PerMachine,
@@ -30,12 +39,6 @@ from .mesonlib import (
     pickle_load, replace_if_different
 )
 from .wrap import WrapMode
-import ast
-import argparse
-import configparser
-import enum
-import shlex
-import typing as T
 
 if T.TYPE_CHECKING:
     from . import dependencies
@@ -537,8 +540,7 @@ class CoreData:
         if missing:
             if found_invalid:
                 mlog.log('Found invalid candidates for', ftype, 'file:', *found_invalid)
-            mlog.log('Could not find any valid candidate for', ftype, 'files:', *missing)
-            raise MesonException(f'Cannot find specified {ftype} file: {f}')
+            mlog.error('Could not find any valid candidate for', ftype, 'files:', *missing)
         return real
 
     def builtin_options_libdir_cross_fixup(self):
@@ -776,7 +778,10 @@ class CoreData:
                 continue
 
             oldval = self.options[key]
-            if type(oldval) != type(value):
+            # We cannot use isinstance here, because the relation between val
+            # and oldval may be that of a parent and child, which will make the
+            # check not work.
+            if type(oldval) != type(value):  # pylint: disable=unidiomatic-typecheck
                 self.options[key] = value
             elif oldval.choices != value.choices:
                 # If the choices have changed, use the new value, but attempt

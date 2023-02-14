@@ -13,7 +13,6 @@
 # limitations under the License.
 from __future__ import annotations
 
-from .. import mlog
 import contextlib
 from dataclasses import dataclass
 import urllib.request
@@ -38,6 +37,7 @@ from pathlib import Path
 
 from . import WrapMode
 from .. import coredata
+from .. import mlog
 from ..mesonlib import quiet_git, GIT, ProgressBar, MesonException, windows_proof_rmtree, Popen_safe
 from ..interpreterbase import FeatureNew
 from ..interpreterbase import SubProject
@@ -309,7 +309,7 @@ class Resolver:
     def load_wraps(self) -> None:
         if not os.path.isdir(self.subdir_root):
             return
-        root, dirs, files = next(os.walk(self.subdir_root))
+        _, dirs, files = next(os.walk(self.subdir_root))
         ignore_dirs = {'packagecache', 'packagefiles'}
         for i in files:
             if not i.endswith('.wrap'):
@@ -739,7 +739,8 @@ class Resolver:
         except WrapException:
             if not fallback:
                 if what + '_fallback_url' in self.wrap.values:
-                    return self.download(what, ofname, fallback=True)
+                    self.download(what, ofname, fallback=True)
+                    return
                 mlog.log('A fallback URL could be specified using',
                          mlog.bold(what + '_fallback_url'), 'key in the wrap file')
             raise

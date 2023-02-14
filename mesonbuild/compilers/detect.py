@@ -12,6 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from __future__ import annotations
+import subprocess
+import platform
+import re
+import shutil
+import tempfile
+import os
+import typing as T
 
 from ..mesonlib import (
     MesonException, EnvironmentException, MachineChoice, join_args,
@@ -21,14 +28,6 @@ from ..envconfig import BinaryTable
 from .. import mlog
 
 from ..linkers import guess_win_linker, guess_nix_linker
-
-import subprocess
-import platform
-import re
-import shutil
-import tempfile
-import os
-import typing as T
 
 if T.TYPE_CHECKING:
     from .compilers import Compiler
@@ -589,7 +588,7 @@ def detect_cuda_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
     for compiler in compilers:
         arg = '--version'
         try:
-            p, out, err = Popen_safe(compiler + [arg])
+            out = Popen_safe(compiler + [arg])[1]
         except OSError as e:
             popen_exceptions[join_args(compiler + [arg])] = e
             continue
@@ -620,14 +619,14 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
     from . import fortran
     from ..linkers import linkers
     popen_exceptions: T.Dict[str, T.Union[Exception, str]] = {}
-    compilers, ccache, exe_wrap = _get_compilers(env, 'fortran', for_machine)
+    compilers, _, exe_wrap = _get_compilers(env, 'fortran', for_machine)
     is_cross = env.is_cross_build(for_machine)
     info = env.machines[for_machine]
     cls: T.Type[FortranCompiler]
     for compiler in compilers:
         for arg in ['--version', '-V']:
             try:
-                p, out, err = Popen_safe(compiler + [arg])
+                _, out, err = Popen_safe(compiler + [arg])
             except OSError as e:
                 popen_exceptions[join_args(compiler + [arg])] = e
                 continue
@@ -790,7 +789,7 @@ def _detect_objc_or_objcpp_compiler(env: 'Environment', lang: str, for_machine: 
     for compiler in compilers:
         arg = ['--version']
         try:
-            p, out, err = Popen_safe(compiler + arg)
+            out = Popen_safe(compiler + arg)[1]
         except OSError as e:
             popen_exceptions[join_args(compiler + arg)] = e
             continue
@@ -840,7 +839,7 @@ def detect_java_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
         exelist = [defaults['java'][0]]
 
     try:
-        p, out, err = Popen_safe(exelist + ['-version'])
+        _, out, err = Popen_safe(exelist + ['-version'])
     except OSError:
         raise EnvironmentException('Could not execute Java compiler: {}'.format(join_args(exelist)))
     if 'javac' in out or 'javac' in err:
@@ -856,12 +855,12 @@ def detect_java_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
 
 def detect_cs_compiler(env: 'Environment', for_machine: MachineChoice) -> Compiler:
     from . import cs
-    compilers, ccache, exe_wrap = _get_compilers(env, 'cs', for_machine)
+    compilers, *_ = _get_compilers(env, 'cs', for_machine)
     popen_exceptions = {}
     info = env.machines[for_machine]
     for comp in compilers:
         try:
-            p, out, err = Popen_safe(comp + ['--version'])
+            out = Popen_safe(comp + ['--version'])[1]
         except OSError as e:
             popen_exceptions[join_args(comp + ['--version'])] = e
             continue
@@ -913,7 +912,7 @@ def detect_vala_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
         exelist = [defaults['vala'][0]]
 
     try:
-        p, out = Popen_safe(exelist + ['--version'])[0:2]
+        out = Popen_safe(exelist + ['--version'])[1]
     except OSError:
         raise EnvironmentException('Could not execute Vala compiler: {}'.format(join_args(exelist)))
     version = search_version(out)
@@ -1048,7 +1047,7 @@ def detect_d_compiler(env: 'Environment', for_machine: MachineChoice) -> Compile
 
     popen_exceptions = {}
     is_cross = env.is_cross_build(for_machine)
-    compilers, ccache, exe_wrap = _get_compilers(env, 'd', for_machine)
+    compilers, _, exe_wrap = _get_compilers(env, 'd', for_machine)
     cls: T.Type[d.DCompiler]
     for exelist in compilers:
         # Search for a D compiler.
@@ -1060,7 +1059,7 @@ def detect_d_compiler(env: 'Environment', for_machine: MachineChoice) -> Compile
                 f'Meson does not support {exelist[-1]} as it is only a DMD frontend for another compiler.'
                 'Please provide a valid value for DC or unset it so that Meson can resolve the compiler by itself.')
         try:
-            p, out = Popen_safe(exelist + ['--version'])[0:2]
+            out = Popen_safe(exelist + ['--version'])[1]
         except OSError as e:
             popen_exceptions[join_args(exelist + ['--version'])] = e
             continue
@@ -1150,7 +1149,7 @@ def detect_swift_compiler(env: 'Environment', for_machine: MachineChoice) -> Com
         exelist = [defaults['swift'][0]]
 
     try:
-        p, _, err = Popen_safe(exelist + ['-v'])
+        err = Popen_safe(exelist + ['-v'])[2]
     except OSError:
         raise EnvironmentException('Could not execute Swift compiler: {}'.format(join_args(exelist)))
     version = search_version(err)

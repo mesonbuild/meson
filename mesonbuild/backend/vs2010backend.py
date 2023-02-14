@@ -612,9 +612,9 @@ class Vs2010Backend(backends.Backend):
         return (root, type_config)
 
     def gen_run_target_vcxproj(self, target, ofname, guid):
-        (root, type_config) = self.create_basic_project(target.name,
-                                                        temp_dir=target.get_id(),
-                                                        guid=guid)
+        root, _ = self.create_basic_project(target.name,
+                                            temp_dir=target.get_id(),
+                                            guid=guid)
         depend_files = self.get_custom_target_depend_files(target)
 
         if not target.command:
@@ -646,10 +646,10 @@ class Vs2010Backend(backends.Backend):
             platform = self.build_platform
         else:
             platform = self.platform
-        (root, type_config) = self.create_basic_project(target.name,
-                                                        temp_dir=target.get_id(),
-                                                        guid=guid,
-                                                        target_platform=platform)
+        root, _ = self.create_basic_project(target.name,
+                                            temp_dir=target.get_id(),
+                                            guid=guid,
+                                            target_platform=platform)
         # We need to always use absolute paths because our invocation is always
         # from the target dir, not the build root.
         target.absolute_paths = True
@@ -686,10 +686,10 @@ class Vs2010Backend(backends.Backend):
             platform = self.build_platform
         else:
             platform = self.platform
-        (root, type_config) = self.create_basic_project(target.name,
-                                                        temp_dir=target.get_id(),
-                                                        guid=guid,
-                                                        target_platform=platform)
+        root, _ = self.create_basic_project(target.name,
+                                            temp_dir=target.get_id(),
+                                            guid=guid,
+                                            target_platform=platform)
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
         target.generated = [self.compile_target_to_generator(target)]
         target.sources = []
@@ -1426,7 +1426,7 @@ class Vs2010Backend(backends.Backend):
                     self.create_pch(pch_sources, lang, inc_cl)
                     self.add_additional_options(lang, inc_cl, file_args)
                     self.add_preprocessor_defines(lang, inc_cl, file_defines)
-                    pch_header_dir = pch_sources[lang][3]
+                    pch_header_dir = headers[3]
                     if pch_header_dir:
                         inc_dirs = copy.deepcopy(file_inc_dirs)
                         inc_dirs[lang] = [pch_header_dir] + inc_dirs[lang]
@@ -1454,9 +1454,9 @@ class Vs2010Backend(backends.Backend):
 
     def gen_regenproj(self, project_name, ofname):
         guid = self.environment.coredata.regen_guid
-        (root, type_config) = self.create_basic_project(project_name,
-                                                        temp_dir='regen-temp',
-                                                        guid=guid)
+        root, _ = self.create_basic_project(project_name,
+                                            temp_dir='regen-temp',
+                                            guid=guid)
 
         action = ET.SubElement(root, 'ItemDefinitionGroup')
         midl = ET.SubElement(action, 'Midl')
@@ -1480,9 +1480,9 @@ class Vs2010Backend(backends.Backend):
 
     def gen_testproj(self, target_name, ofname):
         guid = self.environment.coredata.test_guid
-        (root, type_config) = self.create_basic_project(target_name,
-                                                        temp_dir='test-temp',
-                                                        guid=guid)
+        root, _ = self.create_basic_project(target_name,
+                                            temp_dir='test-temp',
+                                            guid=guid)
 
         action = ET.SubElement(root, 'ItemDefinitionGroup')
         midl = ET.SubElement(action, 'Midl')
@@ -1508,9 +1508,9 @@ class Vs2010Backend(backends.Backend):
         self.create_install_data_files()
 
         guid = self.environment.coredata.install_guid
-        (root, type_config) = self.create_basic_project(target_name,
-                                                        temp_dir='install-temp',
-                                                        guid=guid)
+        root, _ = self.create_basic_project(target_name,
+                                            temp_dir='install-temp',
+                                            guid=guid)
 
         action = ET.SubElement(root, 'ItemDefinitionGroup')
         midl = ET.SubElement(action, 'Midl')

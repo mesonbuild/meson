@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import annotations
 
 """Entrypoint script for backend agnostic compile."""
 
+from __future__ import annotations
 import os
 import json
 import re
@@ -28,9 +28,9 @@ from . import mlog
 from . import mesonlib
 from . import coredata
 from .mesonlib import MesonException, RealPathAction, join_args, setup_vsenv
-from mesonbuild.environment import detect_ninja
-from mesonbuild.coredata import UserArrayOption
-from mesonbuild import build
+from .environment import detect_ninja
+from .coredata import UserArrayOption
+from . import build
 
 if T.TYPE_CHECKING:
     import argparse

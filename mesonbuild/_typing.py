@@ -19,6 +19,12 @@
 Holds typing helper classes, such as the ImmutableProtocol classes
 """
 
+# Turn the multiple-statements warning off for this file otherwise pylint gets
+# grumpy about idiomatic statements like:
+#    def foo(x: str) -> None: ...
+# because `...` is a statement
+# pylint: disable=multiple-statements
+
 __all__ = [
     'Protocol',
     'ImmutableListProtocol'

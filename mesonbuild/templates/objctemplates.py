@@ -11,10 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import annotations
 
-from mesonbuild.templates.sampleimpl import SampleImpl
+from __future__ import annotations
 import re
+
+from ..templates.sampleimpl import SampleImpl
 
 
 lib_h_template = '''#pragma once

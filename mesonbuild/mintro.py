@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import annotations
 
 """This is a helper script for IDE developers. It allows you to
 extract information such as list of targets, files, compiler flags,
@@ -19,6 +18,8 @@ tests and so on. All output is in JSON for simple parsing.
 
 Currently only works for the Ninja backend. Others use generated
 project files and don't need this info."""
+
+from __future__ import annotations
 
 import collections
 import json
@@ -163,7 +164,7 @@ def list_targets_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[st
     tlist = []  # type: T.List[T.Dict[str, T.Union[bool, str, T.List[T.Union[str, T.Dict[str, T.Union[str, T.List[str], bool]]]]]]]
     root_dir = Path(intr.source_root)
 
-    def nodes_to_paths(node_list: T.List[BaseNode]) -> T.List[Path]:
+    def nodes_to_paths(node_list: T.List[BaseNode], subdir: str) -> T.List[Path]:
         res = []  # type: T.List[Path]
         for n in node_list:
             args = []  # type: T.List[BaseNode]
@@ -181,13 +182,13 @@ def list_targets_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[st
                     res += [Path(j.value)]
                 elif isinstance(j, str):
                     res += [Path(j)]
-        res = [root_dir / i['subdir'] / x for x in res]
+        res = [root_dir / subdir / x for x in res]
         res = [x.resolve() for x in res]
         return res
 
     for i in intr.targets:
-        sources = nodes_to_paths(i['sources'])
-        extra_f = nodes_to_paths(i['extra_files'])
+        sources = nodes_to_paths(i['sources'], i['subdir'])
+        extra_f = nodes_to_paths(i['extra_files'], i['subdir'])
         outdir = get_target_dir(intr.coredata, i['subdir'])
 
         tlist += [{

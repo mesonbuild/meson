@@ -1927,7 +1927,7 @@ class NinjaBackend(backends.Backend):
                 if a.endswith(('.dll', '.so', '.dylib')):
                     dir_, lib = os.path.split(a)
                     linkdirs.add(dir_)
-                    lib, ext = os.path.splitext(lib)
+                    lib, _ = os.path.splitext(lib)
                     if lib.startswith('lib'):
                         lib = lib[3:]
                     args.extend(['-l', f'dylib={lib}'])
@@ -3297,7 +3297,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         return self.get_target_filename(t)
 
     def generate_shlib_aliases(self, target, outdir):
-        for alias, to, tag in target.get_aliases():
+        for alias, to, _ in target.get_aliases():
             aliasfile = os.path.join(self.environment.get_build_dir(), outdir, alias)
             try:
                 os.remove(aliasfile)

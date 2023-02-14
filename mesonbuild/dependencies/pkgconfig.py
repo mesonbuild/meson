@@ -12,18 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from __future__ import annotations
-
-from pathlib import Path
+from pathlib import Path, PurePath
+import re
+import os
+import shlex
+import typing as T
 
 from .base import ExternalDependency, DependencyException, sort_libpaths, DependencyTypeName
 from ..mesonlib import OptionKey, OrderedSet, PerMachine, Popen_safe
 from ..programs import find_external_program, ExternalProgram
 from .. import mlog
-from pathlib import PurePath
-import re
-import os
-import shlex
-import typing as T
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
@@ -393,7 +391,7 @@ class PkgConfigDependency(ExternalDependency):
         # Also get the 'raw' output without -Lfoo system paths for adding -L
         # args with -lfoo when a library can't be found, and also in
         # gnome.generate_gir + gnome.gtkdoc which need -L -l arguments.
-        ret, out_raw, err_raw = self._call_pkgbin(libcmd)
+        ret, out_raw, _ = self._call_pkgbin(libcmd)
         if ret != 0:
             raise DependencyException(f'Could not generate libs for {self.name}:\n\n{out_raw}')
         self.link_args, self.raw_link_args = self._search_libs(out, out_raw)

@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright © 2021 The Meson Developers
 # Copyright © 2021 Intel Corporation
-from __future__ import annotations
 
 """Keyword Argument type annotations."""
 
+from __future__ import annotations
 import typing as T
 
 from typing_extensions import TypedDict, Literal, Protocol
@@ -15,6 +15,10 @@ from ..compilers import Compiler
 from ..mesonlib import MachineChoice, File, FileMode, FileOrString
 from ..modules.cmake import CMakeSubprojectOptions
 from ..programs import ExternalProgram
+
+# Turn of this pylint warning, otherwise some versions of pylint get grumpy
+# about `def foo() -> None: ...`
+# pylint: disable=multiple-statements
 
 
 class FuncAddProjectArgs(TypedDict):

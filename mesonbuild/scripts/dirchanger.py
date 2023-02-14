@@ -11,12 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import annotations
 
 '''CD into dir given as first argument and execute
 the command given in the rest of the arguments.'''
 
-import os, subprocess, sys
+from __future__ import annotations
+import os
+import subprocess
+import sys
 import typing as T
 
 def run(args: T.List[str]) -> int:

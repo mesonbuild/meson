@@ -293,7 +293,7 @@ def determine_archives_to_generate(options):
         if i not in archive_choices:
             sys.exit(f'Value "{i}" not one of permitted values {archive_choices}.')
         result.append(i)
-    if len(i) == 0:
+    if not result:
         sys.exit('No archive types specified.')
     return result
 

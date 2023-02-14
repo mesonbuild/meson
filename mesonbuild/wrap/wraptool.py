@@ -13,16 +13,16 @@
 # limitations under the License.
 from __future__ import annotations
 
-import sys, os
+from pathlib import Path
+from glob import glob
+import sys
+import os
 import configparser
 import shutil
 import typing as T
 
-from glob import glob
 from .wrap import (open_wrapdburl, WrapException, get_releases, get_releases_data,
                    update_wrap_file, parse_patch_url)
-from pathlib import Path
-
 from .. import mesonlib, msubprojects
 
 if T.TYPE_CHECKING:

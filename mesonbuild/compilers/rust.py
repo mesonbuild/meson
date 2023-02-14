@@ -13,7 +13,8 @@
 # limitations under the License.
 from __future__ import annotations
 
-import subprocess, os.path
+import subprocess
+import os.path
 import textwrap
 import typing as T
 
@@ -111,7 +112,7 @@ class RustCompiler(Compiler):
 
     def get_sysroot(self) -> str:
         cmd = self.get_exelist(ccache=False) + ['--print', 'sysroot']
-        p, stdo, stde = Popen_safe(cmd)
+        stdo = Popen_safe(cmd)[1]
         return stdo.split('\n', maxsplit=1)[0]
 
     def get_debug_args(self, is_debug: bool) -> T.List[str]:

@@ -16,17 +16,17 @@
 # or an interpreter-based tool.
 from __future__ import annotations
 
-from .common import CMakeException
-from .generator import parse_generator_expressions
-from .. import mlog
-from ..mesonlib import version_compare
-
 import typing as T
 from pathlib import Path
 from functools import lru_cache
 import re
 import json
 import textwrap
+
+from .common import CMakeException
+from .generator import parse_generator_expressions
+from .. import mlog
+from ..mesonlib import version_compare
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
@@ -325,7 +325,8 @@ class CMakeTraceParser:
             args.append(i)
 
         if len(args) < 1:
-            return self._gen_exception('set', 'requires at least one argument', tline)
+            self._gen_exception('set', 'requires at least one argument', tline)
+            return
 
         # Now that we've removed extra arguments all that should be left is the
         # variable identifier and the value, join the value back together to
@@ -351,7 +352,8 @@ class CMakeTraceParser:
     def _cmake_unset(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/unset.html
         if len(tline.args) < 1:
-            return self._gen_exception('unset', 'requires at least one argument', tline)
+            self._gen_exception('unset', 'requires at least one argument', tline)
+            return
 
         if tline.args[0] in self.vars:
             del self.vars[tline.args[0]]
@@ -363,12 +365,14 @@ class CMakeTraceParser:
         # Make sure the exe is imported
         is_imported = True
         if 'IMPORTED' not in args:
-            return self._gen_exception('add_executable', 'non imported executables are not supported', tline)
+            self._gen_exception('add_executable', 'non imported executables are not supported', tline)
+            return
 
         args.remove('IMPORTED')
 
         if len(args) < 1:
-            return self._gen_exception('add_executable', 'requires at least 1 argument', tline)
+            self._gen_exception('add_executable', 'requires at least 1 argument', tline)
+            return
 
         self.targets[args[0]] = CMakeTarget(args[0], 'EXECUTABLE', {}, tline=tline, imported=is_imported)
 
@@ -381,7 +385,8 @@ class CMakeTraceParser:
             args.remove('INTERFACE')
 
             if len(args) < 1:
-                return self._gen_exception('add_library', 'interface library name not specified', tline)
+                self._gen_exception('add_library', 'interface library name not specified', tline)
+                return
 
             self.targets[args[0]] = CMakeTarget(args[0], 'INTERFACE', {}, tline=tline, imported='IMPORTED' in args)
         elif 'IMPORTED' in args:
@@ -389,7 +394,8 @@ class CMakeTraceParser:
 
             # Now, only look at the first two arguments (target_name and target_type) and ignore the rest
             if len(args) < 2:
-                return self._gen_exception('add_library', 'requires at least 2 arguments', tline)
+                self._gen_exception('add_library', 'requires at least 2 arguments', tline)
+                return
 
             self.targets[args[0]] = CMakeTarget(args[0], args[1], {}, tline=tline, imported=True)
         elif 'ALIAS' in args:
@@ -397,12 +403,14 @@ class CMakeTraceParser:
 
             # Now, only look at the first two arguments (target_name and target_ref) and ignore the rest
             if len(args) < 2:
-                return self._gen_exception('add_library', 'requires at least 2 arguments', tline)
+                self._gen_exception('add_library', 'requires at least 2 arguments', tline)
+                return
 
             # Simulate the ALIAS with INTERFACE_LINK_LIBRARIES
             self.targets[args[0]] = CMakeTarget(args[0], 'ALIAS', {'INTERFACE_LINK_LIBRARIES': [args[1]]}, tline=tline)
         elif 'OBJECT' in args:
-            return self._gen_exception('add_library', 'OBJECT libraries are not supported', tline)
+            self._gen_exception('add_library', 'OBJECT libraries are not supported', tline)
+            return
         else:
             self.targets[args[0]] = CMakeTarget(args[0], 'NORMAL', {}, tline=tline)
 
@@ -411,11 +419,13 @@ class CMakeTraceParser:
         args = self._flatten_args(list(tline.args))  # Commands can be passed as ';' separated lists
 
         if not args:
-            return self._gen_exception('add_custom_command', 'requires at least 1 argument', tline)
+            self._gen_exception('add_custom_command', 'requires at least 1 argument', tline)
+            return
 
         # Skip the second function signature
         if args[0] == 'TARGET':
-            return self._gen_exception('add_custom_command', 'TARGET syntax is currently not supported', tline)
+            self._gen_exception('add_custom_command', 'TARGET syntax is currently not supported', tline)
+            return
 
         magic_keys = ['OUTPUT', 'COMMAND', 'MAIN_DEPENDENCY', 'DEPENDS', 'BYPRODUCTS',
                       'IMPLICIT_DEPENDS', 'WORKING_DIRECTORY', 'COMMENT', 'DEPFILE',
@@ -482,7 +492,8 @@ class CMakeTraceParser:
         # DOC: https://cmake.org/cmake/help/latest/command/add_custom_target.html
         # We only the first parameter (the target name) is interesting
         if len(tline.args) < 1:
-            return self._gen_exception('add_custom_target', 'requires at least one argument', tline)
+            self._gen_exception('add_custom_target', 'requires at least one argument', tline)
+            return
 
         # It's pretty much the same as a custom command
         self._cmake_add_custom_command(tline, tline.args[0])
@@ -509,7 +520,8 @@ class CMakeTraceParser:
             targets += curr.split(';')
 
         if not args:
-            return self._gen_exception('set_property', 'faild to parse argument list', tline)
+            self._gen_exception('set_property', 'faild to parse argument list', tline)
+            return
 
         if len(args) == 1:
             # Tries to set property to nothing so nothing has to be done
@@ -525,7 +537,8 @@ class CMakeTraceParser:
 
         def do_target(t: str) -> None:
             if t not in self.targets:
-                return self._gen_exception('set_property', f'TARGET {t} not found', tline)
+                self._gen_exception('set_property', f'TARGET {t} not found', tline)
+                return
 
             tgt = self.targets[t]
             if identifier not in tgt.properties:
@@ -612,7 +625,8 @@ class CMakeTraceParser:
         for name, value in arglist:
             for i in targets:
                 if i not in self.targets:
-                    return self._gen_exception('set_target_properties', f'TARGET {i} not found', tline)
+                    self._gen_exception('set_target_properties', f'TARGET {i} not found', tline)
+                    return
 
                 self.targets[i].properties[name] = value
 
@@ -621,11 +635,13 @@ class CMakeTraceParser:
         args = list(tline.args)
 
         if len(args) < 2:
-            return self._gen_exception('add_dependencies', 'takes at least 2 arguments', tline)
+            self._gen_exception('add_dependencies', 'takes at least 2 arguments', tline)
+            return
 
         target = self.targets.get(args[0])
         if not target:
-            return self._gen_exception('add_dependencies', 'target not found', tline)
+            self._gen_exception('add_dependencies', 'target not found', tline)
+            return
 
         for i in args[1:]:
             target.depends += i.split(';')
@@ -655,7 +671,8 @@ class CMakeTraceParser:
         args = list(tline.args)
 
         if len(args) < 1:
-            return self._gen_exception('message', 'takes at least 1 argument', tline)
+            self._gen_exception('message', 'takes at least 1 argument', tline)
+            return
 
         if args[0].upper().strip() not in ['FATAL_ERROR', 'SEND_ERROR']:
             return
@@ -669,11 +686,13 @@ class CMakeTraceParser:
         args = list(tline.args)
 
         if len(args) < 1:
-            return self._gen_exception(func, 'requires at least one argument', tline)
+            self._gen_exception(func, 'requires at least one argument', tline)
+            return
 
         target = args[0]
         if target not in self.targets:
-            return self._gen_exception(func, f'TARGET {target} not found', tline)
+            self._gen_exception(func, f'TARGET {target} not found', tline)
+            return
 
         interface = []
         private = []

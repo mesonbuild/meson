@@ -15,6 +15,7 @@
 """A library of random helper functionality."""
 
 from __future__ import annotations
+from glob import glob
 from pathlib import Path
 import argparse
 import enum
@@ -22,7 +23,13 @@ import sys
 import stat
 import time
 import abc
-import platform, subprocess, operator, os, shlex, shutil, re
+import platform
+import subprocess
+import operator
+import os
+import shlex
+import shutil
+import re
 import collections
 from functools import lru_cache, wraps, total_ordering
 from itertools import tee
@@ -141,7 +148,6 @@ __all__ = [
     'split_args',
     'stringlistify',
     'substitute_values',
-    'substring_is_in_list',
     'typeslistify',
     'verbose_git',
     'version_compare',
@@ -158,9 +164,6 @@ __all__ = [
 # interpreter
 # {subproject: project_meson_version}
 project_meson_versions = collections.defaultdict(str)  # type: T.DefaultDict[str, str]
-
-
-from glob import glob
 
 if os.path.basename(sys.executable) == 'meson.exe':
     # In Windows and using the MSI installed executable.
@@ -263,7 +266,8 @@ class SecondLevelHolder(HoldableObject, metaclass=abc.ABCMeta):
         default option. '''
 
     @abc.abstractmethod
-    def get_default_object(self) -> HoldableObject: ...
+    def get_default_object(self) -> HoldableObject:
+        pass
 
 class FileMode:
     # The first triad is for owner permissions, the second for group permissions,
@@ -1070,10 +1074,7 @@ def default_sysconfdir() -> str:
 
 def has_path_sep(name: str, sep: str = '/\\') -> bool:
     'Checks if any of the specified @sep path separators are in @name'
-    for each in sep:
-        if each in name:
-            return True
-    return False
+    return any(each in name for each in sep)
 
 
 if is_windows():
@@ -1198,7 +1199,7 @@ def do_define(regex: T.Pattern[str], line: str, confdata: 'ConfigurationData',
         define_value = []
         for token in arr[2:]:
             try:
-                (v, desc) = confdata.get(token)
+                v, _ = confdata.get(token)
                 define_value += [str(v)]
             except KeyError:
                 define_value += [token]
@@ -1210,7 +1211,7 @@ def do_define(regex: T.Pattern[str], line: str, confdata: 'ConfigurationData',
 
     varname = arr[1]
     try:
-        (v, desc) = confdata.get(varname)
+        v, _ = confdata.get(varname)
     except KeyError:
         return '/* #undef %s */\n' % varname
     if isinstance(v, bool):
@@ -1226,7 +1227,7 @@ def do_define(regex: T.Pattern[str], line: str, confdata: 'ConfigurationData',
         else:
             result = get_cmake_define(line, confdata)
         result = f'#define {varname} {result}\n'
-        (result, missing_variable) = do_replacement(regex, result, variable_format, confdata)
+        result, _ = do_replacement(regex, result, variable_format, confdata)
         return result
     else:
         raise MesonException('#mesondefine argument "%s" is of unknown type.' % varname)
@@ -1765,13 +1766,6 @@ def detect_subprojects(spdir_name: str, current_dir: str = '',
             else:
                 result[basename] = [trial]
     return result
-
-
-def substring_is_in_list(substr: str, strlist: T.List[str]) -> bool:
-    for s in strlist:
-        if substr in s:
-            return True
-    return False
 
 
 class OrderedSet(T.MutableSet[_T]):

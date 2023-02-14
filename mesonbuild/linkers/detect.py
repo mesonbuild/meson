@@ -13,6 +13,9 @@
 # limitations under the License.
 
 from __future__ import annotations
+import re
+import shlex
+import typing as T
 
 from .. import mlog
 from ..mesonlib import (
@@ -34,10 +37,6 @@ from .linkers import (
     OptlinkDynamicLinker,
 )
 
-import re
-import shlex
-import typing as T
-
 if T.TYPE_CHECKING:
     from .linkers import DynamicLinker, GnuDynamicLinker
     from ..environment import Environment
@@ -52,7 +51,7 @@ defaults['cuda_static_linker'] = ['nvlink']
 defaults['gcc_static_linker'] = ['gcc-ar']
 defaults['clang_static_linker'] = ['llvm-ar']
 
-def __failed_to_detect_linker(compiler: T.List[str], args: T.List[str], stdout: str, stderr: str) -> 'T.NoReturn':
+def __failed_to_detect_linker(compiler: T.List[str], args: T.List[str], stdout: str, stderr: str) -> T.NoReturn:
     msg = 'Unable to detect linker for compiler `{}`\nstdout: {}\nstderr: {}'.format(
         join_args(compiler + args), stdout, stderr)
     raise EnvironmentException(msg)
@@ -83,7 +82,7 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     if extra_args is not None:
         check_args.extend(extra_args)
 
-    p, o, _ = Popen_safe(compiler + check_args)
+    o = Popen_safe(compiler + check_args)[1]
     if 'LLD' in o.split('\n', maxsplit=1)[0]:
         if '(compatible with GNU linkers)' in o:
             return LLVMDynamicLinker(
@@ -98,7 +97,7 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
         compiler = value
         # We've already hanedled the non-direct case above
 
-    p, o, e = Popen_safe(compiler + check_args)
+    _, o, e = Popen_safe(compiler + check_args)
     if 'LLD' in o.split('\n', maxsplit=1)[0]:
         return ClangClDynamicLinker(
             for_machine, [],

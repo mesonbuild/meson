@@ -15,9 +15,11 @@ from __future__ import annotations
 
 # Work around some pathlib bugs...
 
-from . import _pathlib
+# pylint: disable=wrong-import-position
+from . import _pathlib  # pylint: disable=wrong-import-order
 import sys
 sys.modules['pathlib'] = _pathlib
+# pylint: enable=wrong-import-position
 
 # This file is an entry point for all commands, including scripts. Include the
 # strict minimum python modules for performance reasons.

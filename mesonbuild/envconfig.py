@@ -17,11 +17,11 @@ from dataclasses import dataclass
 import subprocess
 import typing as T
 from enum import Enum
+from pathlib import Path
 
 from . import mesonlib
 from .mesonlib import EnvironmentException, HoldableObject
 from . import mlog
-from pathlib import Path
 
 
 # These classes contains all the data pulled from configuration files (native

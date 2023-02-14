@@ -11,8 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import annotations
-
 
 """Mixin classes to be shared between C and C++ compilers.
 
@@ -21,6 +19,7 @@ of this is to have mixin's, which are classes that are designed *not* to be
 standalone, they only work through inheritance.
 """
 
+from __future__ import annotations
 import collections
 import functools
 import glob
@@ -1075,8 +1074,8 @@ class CLikeCompiler(Compiler):
             except ValueError:
                 continue
             filtered.append(lib)
-        float_cmp = lambda x: float(x.rsplit('.so.', maxsplit=1)[1])
-        return sorted(filtered, key=float_cmp, reverse=True)
+        return sorted(filtered, key=lambda x: float(x.rsplit('.so.', maxsplit=1)[1]),
+                      reverse=True)
 
     @classmethod
     def _get_trials_from_pattern(cls, pattern: str, directory: str, libname: str) -> T.List[Path]:

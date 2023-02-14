@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from __future__ import annotations
-
+import functools
 import os
 import shutil
 import typing as T
@@ -140,6 +140,15 @@ class QtBaseModule(ExtensionModule):
                 yield f'{b}-qt{qt_dep.qtver}', b
                 yield b, b
 
+        # Ensure that the version of qt and each tool are the same
+        def get_version(name: str, dep_ver: str, p: ExternalProgram) -> str:
+            _, out, err = Popen_safe(p.get_command() + arg)
+            if name == 'lrelease' or not dep_ver.startswith('4'):
+                care = out
+            else:
+                care = err
+            return care.rsplit(' ', maxsplit=1)[-1].replace(')', '').strip()
+
         for b, name in gen_bins():
             if self.tools[name].found():
                 continue
@@ -151,17 +160,8 @@ class QtBaseModule(ExtensionModule):
             else:
                 arg = ['-v']
 
-            # Ensure that the version of qt and each tool are the same
-            def get_version(p: T.Union[ExternalProgram, build.Executable]) -> str:
-                _, out, err = Popen_safe(p.get_command() + arg)
-                if name == 'lrelease' or not qt_dep.version.startswith('4'):
-                    care = out
-                else:
-                    care = err
-                return care.rsplit(' ', maxsplit=1)[-1].replace(')', '').strip()
-
             p = state.find_program(b, required=False,
-                                   version_func=get_version,
+                                   version_func=functools.partial(get_version, name, qt_dep.version),
                                    wanted=wanted)
             if p.found():
                 self.tools[name] = p

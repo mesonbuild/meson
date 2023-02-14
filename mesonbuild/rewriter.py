@@ -24,13 +24,17 @@
 # - reindent?
 from __future__ import annotations
 
-from .ast import IntrospectionInterpreter, BUILD_TARGET_FUNCTIONS, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstPrinter
-from mesonbuild.mesonlib import MesonException
-from . import mlog, environment
 from functools import wraps
-from .mparser import Token, ArrayNode, ArgumentNode, AssignmentNode, BooleanNode, ElementaryNode, IdNode, FunctionNode, StringNode
-import json, os, re, sys
+import json
+import os
+import re
+import sys
 import typing as T
+
+from .ast import IntrospectionInterpreter, BUILD_TARGET_FUNCTIONS, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstPrinter
+from .mesonlib import MesonException
+from . import mlog, environment
+from .mparser import Token, ArrayNode, ArgumentNode, AssignmentNode, BooleanNode, ElementaryNode, IdNode, FunctionNode, StringNode
 
 if T.TYPE_CHECKING:
     from .mparser import BaseNode
@@ -146,8 +150,6 @@ class MTypeBase:
         mlog.warning('Cannot remove a regex in type', mlog.bold(type(self).__name__), '--> skipping')
 
 class MTypeStr(MTypeBase):
-    def __init__(self, node: T.Optional[BaseNode] = None):
-        super().__init__(node)
 
     def _new_node(self):
         return StringNode(Token('', '', 0, 0, 0, None, ''))
@@ -159,8 +161,6 @@ class MTypeStr(MTypeBase):
         self.node.value = str(value)
 
 class MTypeBool(MTypeBase):
-    def __init__(self, node: T.Optional[BaseNode] = None):
-        super().__init__(node)
 
     def _new_node(self):
         return BooleanNode(Token('', '', 0, 0, 0, None, False))
@@ -172,8 +172,6 @@ class MTypeBool(MTypeBase):
         self.node.value = bool(value)
 
 class MTypeID(MTypeBase):
-    def __init__(self, node: T.Optional[BaseNode] = None):
-        super().__init__(node)
 
     def _new_node(self):
         return IdNode(Token('', '', 0, 0, 0, None, ''))
@@ -185,8 +183,6 @@ class MTypeID(MTypeBase):
         self.node.value = str(value)
 
 class MTypeList(MTypeBase):
-    def __init__(self, node: T.Optional[BaseNode] = None):
-        super().__init__(node)
 
     def _new_node(self):
         return ArrayNode(ArgumentNode(Token('', '', 0, 0, 0, None, '')), 0, 0, 0, 0)
@@ -238,18 +234,12 @@ class MTypeList(MTypeBase):
             self.node.args.arguments += [self._new_element_node(i)]
 
     def _remove_helper(self, value, equal_func):
-        def check_remove_node(node):
-            for j in value:
-                if equal_func(i, j):
-                    return True
-            return False
-
         if not isinstance(value, list):
             value = [value]
         self._ensure_array_node()
         removed_list = []
         for i in self.node.args.arguments:
-            if not check_remove_node(i):
+            if not any(equal_func(i, j) for j in value):
                 removed_list += [i]
         self.node.args.arguments = removed_list
 
@@ -260,8 +250,6 @@ class MTypeList(MTypeBase):
         self._remove_helper(regex, self._check_regex_matches)
 
 class MTypeStrList(MTypeList):
-    def __init__(self, node: T.Optional[BaseNode] = None):
-        super().__init__(node)
 
     def _new_element_node(self, value):
         return StringNode(Token('', '', 0, 0, 0, None, str(value)))
@@ -280,8 +268,6 @@ class MTypeStrList(MTypeList):
         return [StringNode]
 
 class MTypeIDList(MTypeList):
-    def __init__(self, node: T.Optional[BaseNode] = None):
-        super().__init__(node)
 
     def _new_element_node(self, value):
         return IdNode(Token('', '', 0, 0, 0, None, str(value)))
@@ -497,7 +483,8 @@ class Rewriter:
         mlog.log('Processing function type', mlog.bold(cmd['function']), 'with id', mlog.cyan("'" + cmd['id'] + "'"))
         if cmd['function'] not in rewriter_func_kwargs:
             mlog.error('Unknown function type', cmd['function'], *self.on_error())
-            return self.handle_error()
+            self.handle_error()
+            return
         kwargs_def = rewriter_func_kwargs[cmd['function']]
 
         # Find the function node to modify
@@ -510,7 +497,8 @@ class Rewriter:
             # other shells.
             if {'/', '//'}.isdisjoint({cmd['id']}):
                 mlog.error('The ID for the function type project must be "/" or "//" not "' + cmd['id'] + '"', *self.on_error())
-                return self.handle_error()
+                self.handle_error()
+                return
             node = self.interpreter.project_node
             arg_node = node.args
         elif cmd['function'] == 'target':
@@ -857,12 +845,17 @@ class Rewriter:
             }
             self.add_info('target', target['id'], test_data)
 
+        def convert(text: str) -> T.Union[str, int]:
+            return int(text) if text.isdigit() else text.lower()
+
+        def alphanum_key(key: str) -> T.List[T.Union[str, int]]:
+            return [convert(c) for c in re.split('([0-9]+)', key)]
+
+        def path_sorter(key: str) -> T.List[T.Tuple[bool, T.List[T.Union[str, int]]]]:
+            return [(key.count('/') <= idx, alphanum_key(x)) for idx, x in enumerate(key.split('/'))]
+
         # Sort files
         for i in to_sort_nodes:
-            convert = lambda text: int(text) if text.isdigit() else text.lower()
-            alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)]
-            path_sorter = lambda key: ([(key.count('/') <= idx, alphanum_key(x)) for idx, x in enumerate(key.split('/'))])
-
             unknown = [x for x in i.arguments if not isinstance(x, StringNode)]
             sources = [x for x in i.arguments if isinstance(x, StringNode)]
             sources = sorted(sources, key=lambda x: path_sorter(x.value))

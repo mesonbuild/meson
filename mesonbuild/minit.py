@@ -11,31 +11,30 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import annotations
 
 """Code that creates simple startup projects."""
 
-from pathlib import Path
+from __future__ import annotations
 from enum import Enum
-import subprocess
-import shutil
-import sys
+from glob import glob
+from pathlib import Path
 import os
 import re
-from glob import glob
-from mesonbuild import build, mesonlib, mlog
-from mesonbuild.coredata import FORBIDDEN_TARGET_NAMES
-from mesonbuild.environment import detect_ninja
-from mesonbuild.templates.samplefactory import sameple_generator
+import shutil
+import subprocess
+import sys
 import typing as T
+
+from . import build
+from . import mlog
+from . import mesonlib
+from .coredata import FORBIDDEN_TARGET_NAMES
+from .environment import detect_ninja
+from .templates.samplefactory import sameple_generator
+from .templates.mesontemplates import create_meson_build
 
 if T.TYPE_CHECKING:
     import argparse
-
-'''
-we currently have one meson template at this time.
-'''
-from mesonbuild.templates.mesontemplates import create_meson_build
 
 FORTRAN_SUFFIXES = {'.f', '.for', '.F', '.f90', '.F90'}
 LANG_SUFFIXES = {'.c', '.cc', '.cpp', '.cs', '.cu', '.d', '.m', '.mm', '.rs', '.java', '.vala'} | FORTRAN_SUFFIXES

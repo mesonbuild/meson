@@ -13,7 +13,10 @@
 # limitations under the License.
 from __future__ import annotations
 
-import sys, os, subprocess, shutil
+import sys
+import os
+import subprocess
+import shutil
 import shlex
 import typing as T
 
@@ -25,11 +28,6 @@ from ..compilers.detect import defaults as compiler_names
 if T.TYPE_CHECKING:
     import argparse
 
-def has_for_build() -> bool:
-    for cenv in envconfig.ENV_VAR_COMPILER_MAP.values():
-        if os.environ.get(cenv + '_FOR_BUILD'):
-            return True
-    return False
 
 def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     parser.add_argument('--debarch', default=None,
@@ -339,8 +337,7 @@ def detect_missing_native_binaries(infos: MachineInfo) -> None:
             infos.binaries[toolname] = [exe]
 
 def detect_native_env(options: T.Any) -> MachineInfo:
-    use_for_build = has_for_build()
-    if use_for_build:
+    if any(os.environ.get(f'{cenv}_FOR_BUILD') for cenv in envconfig.ENV_VAR_COMPILER_MAP.values()):
         mlog.log('Using FOR_BUILD envvars for detection')
         esuffix = '_FOR_BUILD'
     else:

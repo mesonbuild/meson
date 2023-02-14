@@ -104,7 +104,8 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
     if T.TYPE_CHECKING:
         mscrt_args = {}  # type: T.Dict[str, T.List[str]]
 
-        def _get_target_arch_args(self) -> T.List[str]: ...
+        def _get_target_arch_args(self) -> T.List[str]:
+            pass
 
     LINKER_PREFIX = '-L='
 

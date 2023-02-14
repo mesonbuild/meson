@@ -13,12 +13,13 @@
 # limitations under the License.
 from __future__ import annotations
 
-from .common import CMakeException, CMakeBuildFile, CMakeConfiguration
 import typing as T
-from .. import mlog
 from pathlib import Path
 import json
 import re
+
+from .. import mlog
+from .common import CMakeException, CMakeBuildFile, CMakeConfiguration
 
 STRIP_KEYS = ['cmake', 'reply', 'backtrace', 'backtraceGraph', 'version']
 

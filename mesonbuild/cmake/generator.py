@@ -13,10 +13,11 @@
 # limitations under the License.
 from __future__ import annotations
 
+import typing as T
+
 from .. import mesonlib
 from .. import mlog
 from .common import cmake_is_debug
-import typing as T
 
 if T.TYPE_CHECKING:
     from .traceparser import CMakeTraceParser, CMakeTarget

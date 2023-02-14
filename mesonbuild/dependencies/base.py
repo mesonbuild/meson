@@ -215,7 +215,7 @@ class Dependency(HoldableObject):
         """
         raise RuntimeError('Unreachable code in partial_dependency called')
 
-    def _add_sub_dependency(self, deplist: T.Iterable[T.Callable[[], 'Dependency']]) -> bool:
+    def _add_sub_dependency(self, deplist: T.Iterable[T.Union[T.Callable[[], 'Dependency'], Dependency]]) -> bool:
         """Add an internal dependency from a list of possible dependencies.
 
         This method is intended to make it easier to add additional
@@ -225,7 +225,7 @@ class Dependency(HoldableObject):
         otherwise.
         """
         for d in deplist:
-            dep = d()
+            dep = d if isinstance(d, Dependency) else d()
             if dep.is_found:
                 self.ext_deps.append(dep)
                 return True

@@ -12,11 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from __future__ import annotations
-
-from .base import ExternalDependency, DependencyException, DependencyTypeName
-from ..mesonlib import is_windows, MesonException, PerMachine, stringlistify, extract_as_list
-from ..cmake import CMakeExecutor, CMakeTraceParser, CMakeException, CMakeToolchain, CMakeExecScope, check_cmake_args, resolve_cmake_trace_targets, cmake_is_debug
-from .. import mlog
 import importlib.resources
 from pathlib import Path
 import functools
@@ -25,6 +20,11 @@ import os
 import shutil
 import textwrap
 import typing as T
+
+from .base import ExternalDependency, DependencyException, DependencyTypeName
+from ..mesonlib import is_windows, MesonException, PerMachine, stringlistify, extract_as_list
+from ..cmake import CMakeExecutor, CMakeTraceParser, CMakeException, CMakeToolchain, CMakeExecScope, check_cmake_args, resolve_cmake_trace_targets, cmake_is_debug
+from .. import mlog
 
 if T.TYPE_CHECKING:
     from ..cmake import CMakeTarget
@@ -350,11 +350,7 @@ class CMakeDependency(ExternalDependency):
 
         # Check the Linux CMake registry
         linux_reg = Path.home() / '.cmake' / 'packages'
-        for p in [linux_reg / name, linux_reg / lname]:
-            if p.exists():
-                return True
-
-        return False
+        return any(p.exists() for p in [linux_reg / name, linux_reg / lname])
 
     def _detect_dep(self, name: str, package_version: str, modules: T.List[T.Tuple[str, bool]], components: T.List[T.Tuple[str, bool]], args: T.List[str]) -> None:
         # Detect a dependency with CMake using the '--find-package' mode
