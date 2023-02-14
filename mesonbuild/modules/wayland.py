@@ -66,6 +66,7 @@ class WaylandModule(ExtensionModule):
         KwargInfo('public', bool, default=False),
         KwargInfo('client', bool, default=True),
         KwargInfo('server', bool, default=False),
+        KwargInfo('custom_prefix', (str, NoneType)),
         KwargInfo('include_core_only', bool, default=True, since='0.64.0'),
     )
     def scan_xml(self, state: ModuleState, args: T.Tuple[T.List[FileOrString]], kwargs: ScanXML) -> ModuleReturnValue:
@@ -83,10 +84,11 @@ class WaylandModule(ExtensionModule):
             raise MesonException('At least one of client or server keyword argument must be set to true.')
 
         xml_files = self.interpreter.source_strings_to_files(args[0])
+        custom_prefix = kwargs['custom_prefix']
         targets: T.List[CustomTarget] = []
         for xml_file in xml_files:
             name = os.path.splitext(os.path.basename(xml_file.fname))[0]
-
+            scanprefix = f'{custom_prefix}-{name}' if custom_prefix else name
             code = CustomTarget(
                 f'{name}-protocol',
                 state.subdir,
@@ -94,7 +96,7 @@ class WaylandModule(ExtensionModule):
                 state.environment,
                 [self.scanner_bin, f'{scope}-code', '@INPUT@', '@OUTPUT@'],
                 [xml_file],
-                [f'{name}-protocol.c'],
+                [f'{scanprefix}-protocol.c'],
                 backend=state.backend,
             )
             targets.append(code)
@@ -111,7 +113,7 @@ class WaylandModule(ExtensionModule):
                     state.environment,
                     command,
                     [xml_file],
-                    [f'{name}-{side}-protocol.h'],
+                    [f'{scanprefix}-{side}-protocol.h'],
                     backend=state.backend,
                 )
                 targets.append(header)

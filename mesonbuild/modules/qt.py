@@ -121,6 +121,7 @@ class QtBaseModule(ExtensionModule):
             'compile_resources': self.compile_resources,
             'compile_ui': self.compile_ui,
             'compile_moc': self.compile_moc,
+            'compile_qwayland': self.compile_qwayland,
         })
 
     def compilers_detect(self, state: 'ModuleState', qt_dep: 'QtDependencyType') -> None:
@@ -371,6 +372,85 @@ class QtBaseModule(ExtensionModule):
                 )
                 targets.append(res_target)
 
+        return targets
+
+    @FeatureNew('qt.compile_qwayland', '1.2.0')
+    @noPosargs
+    @typed_kwargs(
+        'qt.compile_qwayland',
+        KwargInfo('client', bool, default=True),
+        KwargInfo('server', bool, default=False),
+        KwargInfo('source', (str, File)),
+        KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
+        KwargInfo('method', str, default='auto')
+    )
+    def compile_qwayland(self, state: 'ModuleState', args: T.Tuple, kwargs: 'ResourceCompilerKwArgs') -> ModuleReturnValue:
+        """Compile wayland header and source files for qt.
+
+        Uses CustomTargets to generate .cpp files from wayland .xml files.
+        """
+
+        out = self._compile_qwayland_impl(state, kwargs)
+
+        return ModuleReturnValue(out, [out])
+
+    def _compile_qwayland_impl(self, state: 'ModuleState', kwargs: 'ResourceCompilerKwArgs') -> T.List[build.CustomTarget]:
+        targets: T.List[build.CustomTarget] = []
+        extra_args = kwargs['extra_args']
+        xml_src = kwargs['source']
+
+        qtwaylandscanner = state.find_program("qtwaylandscanner", required=True)
+
+        xml_file = self.interpreter.source_strings_to_files(xml_src)[0]
+        filename = os.path.splitext(os.path.basename(xml_file.fname))[0]
+
+        ouput_file_prefix = f'qwayland-{filename}' if kwargs['client'] else f'qwayland-server-{filename}'
+        if kwargs['client']:
+            res_target_header = build.CustomTarget(
+                name=f'qwayland-{filename}.h',
+                subdir=state.subdir,
+                subproject=state.subproject,
+                environment=state.environment,
+                command=[qtwaylandscanner, "client-header", xml_file, extra_args],
+                sources=[xml_src],
+                outputs=[f'{ouput_file_prefix}.h'],
+                capture=True
+            )
+            res_target_code = build.CustomTarget(
+                name=f'qwayland-{filename}.cpp',
+                subdir=state.subdir,
+                subproject=state.subproject,
+                environment=state.environment,
+                command=[qtwaylandscanner, "client-code", xml_file, extra_args],
+                sources=[xml_src],
+                outputs=[f'{ouput_file_prefix}.cpp'],
+                capture=True
+            )
+            targets.append(res_target_header)
+            targets.append(res_target_code)
+        if kwargs['server']:
+            res_target_header = build.CustomTarget(
+                name=f'qwayland-server-{filename}.h',
+                subdir=state.subdir,
+                subproject=state.subproject,
+                environment=state.environment,
+                command=[qtwaylandscanner, "server-header", xml_file, extra_args],
+                sources=[xml_src],
+                outputs=[f'{ouput_file_prefix}.h'],
+                capture=True
+            )
+            res_target_code = build.CustomTarget(
+                name=f'qwayland-server-{filename}.cpp',
+                subdir=state.subdir,
+                subproject=state.subproject,
+                environment=state.environment,
+                command=[qtwaylandscanner, "server-code", xml_file, extra_args],
+                sources=[xml_src],
+                outputs=[f'{ouput_file_prefix}.cpp'],
+                capture=True
+            )
+            targets.append(res_target_header)
+            targets.append(res_target_code)
         return targets
 
     @FeatureNew('qt.compile_ui', '0.59.0')
