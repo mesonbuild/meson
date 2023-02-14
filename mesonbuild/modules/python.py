@@ -152,6 +152,9 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
         else:
             self._find_libpy(installation, environment)
 
+        if not self.clib_compiler.has_header('Python.h', '', environment, extra_args=self.compile_args):
+            self.is_found = False
+
     def _find_libpy(self, python_holder: 'PythonInstallation', environment: 'Environment') -> None:
         if python_holder.is_pypy:
             if self.major_version == 3:
