@@ -170,10 +170,23 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
         SystemDependency.__init__(self, name, environment, kwargs)
         _PythonDependencyBase.__init__(self, installation, kwargs.get('embed', False))
 
+        # link args
         if mesonlib.is_windows():
             self.find_libpy_windows(environment)
         else:
             self.find_libpy(environment)
+
+        # compile args
+        inc_paths = mesonlib.OrderedSet([
+            self.variables.get('INCLUDEPY'),
+            self.paths.get('include'),
+            self.paths.get('platinclude')])
+
+        self.compile_args += ['-I' + path for path in inc_paths if path]
+
+        # https://sourceforge.net/p/mingw-w64/mailman/message/30504611/
+        if mesonlib.is_windows() and self.get_windows_python_arch() == '64' and self.major_version == 2:
+            self.compile_args += ['-DMS_WIN64']
 
     def find_libpy(self, environment: 'Environment') -> None:
         if self.is_pypy:
@@ -196,13 +209,6 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
             self.link_args = largs
 
         self.is_found = largs is not None or not self.link_libpython
-
-        inc_paths = mesonlib.OrderedSet([
-            self.variables.get('INCLUDEPY'),
-            self.paths.get('include'),
-            self.paths.get('platinclude')])
-
-        self.compile_args += ['-I' + path for path in inc_paths if path]
 
     def get_windows_python_arch(self) -> T.Optional[str]:
         if self.platform == 'mingw':
@@ -287,18 +293,6 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
             self.is_found = False
             return
         self.link_args = largs
-        # Compile args
-        inc_paths = mesonlib.OrderedSet([
-            self.variables.get('INCLUDEPY'),
-            self.paths.get('include'),
-            self.paths.get('platinclude')])
-
-        self.compile_args += ['-I' + path for path in inc_paths if path]
-
-        # https://sourceforge.net/p/mingw-w64/mailman/message/30504611/
-        if pyarch == '64' and self.major_version == 2:
-            self.compile_args += ['-DMS_WIN64']
-
         self.is_found = True
 
     @staticmethod
