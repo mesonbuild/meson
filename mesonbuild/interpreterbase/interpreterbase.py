@@ -26,6 +26,7 @@ from .baseobjects import (
     InterpreterObjectTypeVar,
     ObjectHolder,
     IterableObject,
+    ContextManagerObject,
 
     HoldableTypes,
 )
@@ -231,6 +232,8 @@ class InterpreterBase:
             raise ContinueRequest()
         elif isinstance(cur, mparser.BreakNode):
             raise BreakRequest()
+        elif isinstance(cur, mparser.TestCaseClauseNode):
+            return self.evaluate_testcase(cur)
         else:
             raise InvalidCode("Unknown statement.")
         return None
@@ -292,6 +295,16 @@ class InterpreterBase:
                 return None
         if not isinstance(node.elseblock, mparser.EmptyNode):
             self.evaluate_codeblock(node.elseblock)
+        return None
+
+    def evaluate_testcase(self, node: mparser.TestCaseClauseNode) -> T.Optional[Disabler]:
+        result = self.evaluate_statement(node.condition)
+        if isinstance(result, Disabler):
+            return result
+        if not isinstance(result, ContextManagerObject):
+            raise InvalidCode(f'testcase clause {result!r} does not evaluate to a context manager.')
+        with result:
+            self.evaluate_codeblock(node.block)
         return None
 
     def evaluate_comparison(self, node: mparser.ComparisonNode) -> InterpreterObject:
