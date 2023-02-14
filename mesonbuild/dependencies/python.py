@@ -13,17 +13,94 @@
 # limitations under the License.
 from __future__ import annotations
 
+import json, sysconfig
 from pathlib import Path
-import sysconfig
 import typing as T
 
-from .. import mlog
+from .. import mesonlib, mlog
 from .base import DependencyMethods, SystemDependency
 from .factory import DependencyFactory
 from ..environment import detect_cpu_family
+from ..programs import ExternalProgram
 
 if T.TYPE_CHECKING:
+    from typing_extensions import TypedDict
+
     from ..environment import Environment
+
+    class PythonIntrospectionDict(TypedDict):
+
+        install_paths: T.Dict[str, str]
+        is_pypy: bool
+        is_venv: bool
+        link_libpython: bool
+        sysconfig_paths: T.Dict[str, str]
+        paths: T.Dict[str, str]
+        platform: str
+        suffix: str
+        variables: T.Dict[str, str]
+        version: str
+
+
+class BasicPythonExternalProgram(ExternalProgram):
+    def __init__(self, name: str, command: T.Optional[T.List[str]] = None,
+                 ext_prog: T.Optional[ExternalProgram] = None):
+        if ext_prog is None:
+            super().__init__(name, command=command, silent=True)
+        else:
+            self.name = name
+            self.command = ext_prog.command
+            self.path = ext_prog.path
+
+        # We want strong key values, so we always populate this with bogus data.
+        # Otherwise to make the type checkers happy we'd have to do .get() for
+        # everycall, even though we know that the introspection data will be
+        # complete
+        self.info: 'PythonIntrospectionDict' = {
+            'install_paths': {},
+            'is_pypy': False,
+            'is_venv': False,
+            'link_libpython': False,
+            'sysconfig_paths': {},
+            'paths': {},
+            'platform': 'sentinal',
+            'suffix': 'sentinel',
+            'variables': {},
+            'version': '0.0',
+        }
+        self.pure: bool = True
+
+    def _check_version(self, version: str) -> bool:
+        if self.name == 'python2':
+            return mesonlib.version_compare(version, '< 3.0')
+        elif self.name == 'python3':
+            return mesonlib.version_compare(version, '>= 3.0')
+        return True
+
+    def sanity(self) -> bool:
+        # Sanity check, we expect to have something that at least quacks in tune
+
+        import importlib.resources
+
+        with importlib.resources.path('mesonbuild.scripts', 'python_info.py') as f:
+            cmd = self.get_command() + [str(f)]
+            p, stdout, stderr = mesonlib.Popen_safe(cmd)
+
+        try:
+            info = json.loads(stdout)
+        except json.JSONDecodeError:
+            info = None
+            mlog.debug('Could not introspect Python (%s): exit code %d' % (str(p.args), p.returncode))
+            mlog.debug('Program stdout:\n')
+            mlog.debug(stdout)
+            mlog.debug('Program stderr:\n')
+            mlog.debug(stderr)
+
+        if info is not None and self._check_version(info['version']):
+            self.info = T.cast('PythonIntrospectionDict', info)
+            return True
+        else:
+            return False
 
 
 class Python3DependencySystem(SystemDependency):

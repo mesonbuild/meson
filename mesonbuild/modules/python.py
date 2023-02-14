@@ -16,7 +16,6 @@ from __future__ import annotations
 from pathlib import Path
 import copy
 import functools
-import json
 import os
 import shutil
 import typing as T
@@ -30,6 +29,7 @@ from ..dependencies import (DependencyMethods, PkgConfigDependency, NotFoundDepe
                             DependencyTypeName, ExternalDependency)
 from ..dependencies.base import process_method_kw
 from ..dependencies.detect import get_dep_identifier
+from ..dependencies.python import BasicPythonExternalProgram
 from ..environment import detect_cpu_family
 from ..interpreter import ExternalProgramHolder, extract_required_kwarg, permitted_dependency_kwargs
 from ..interpreter import primitives as P_OBJ
@@ -53,19 +53,6 @@ if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
     from ..interpreter.kwargs import ExtractRequired
     from ..interpreterbase.interpreterbase import TYPE_var, TYPE_kwargs
-
-    class PythonIntrospectionDict(TypedDict):
-
-        install_paths: T.Dict[str, str]
-        is_pypy: bool
-        is_venv: bool
-        link_libpython: bool
-        sysconfig_paths: T.Dict[str, str]
-        paths: T.Dict[str, str]
-        platform: str
-        suffix: str
-        variables: T.Dict[str, str]
-        version: str
 
     class PyInstallKw(TypedDict):
 
@@ -91,7 +78,7 @@ mod_kwargs -= {'name_prefix', 'name_suffix'}
 
 class _PythonDependencyBase(_Base):
 
-    def __init__(self, python_holder: 'PythonExternalProgram', embed: bool):
+    def __init__(self, python_holder: 'BasicPythonExternalProgram', embed: bool):
         self.embed = embed
         self.version: str = python_holder.info['version']
         self.platform = python_holder.info['platform']
@@ -109,7 +96,7 @@ class _PythonDependencyBase(_Base):
 class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
 
     def __init__(self, name: str, environment: 'Environment',
-                 kwargs: T.Dict[str, T.Any], installation: 'PythonExternalProgram',
+                 kwargs: T.Dict[str, T.Any], installation: 'BasicPythonExternalProgram',
                  libpc: bool = False):
         if libpc:
             mlog.debug(f'Searching for {name!r} via pkgconfig lookup in LIBPC')
@@ -137,7 +124,7 @@ class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
 class PythonFrameworkDependency(ExtraFrameworkDependency, _PythonDependencyBase):
 
     def __init__(self, name: str, environment: 'Environment',
-                 kwargs: T.Dict[str, T.Any], installation: 'PythonExternalProgram'):
+                 kwargs: T.Dict[str, T.Any], installation: 'BasicPythonExternalProgram'):
         ExtraFrameworkDependency.__init__(self, name, environment, kwargs)
         _PythonDependencyBase.__init__(self, installation, kwargs.get('embed', False))
 
@@ -145,7 +132,7 @@ class PythonFrameworkDependency(ExtraFrameworkDependency, _PythonDependencyBase)
 class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
 
     def __init__(self, name: str, environment: 'Environment',
-                 kwargs: T.Dict[str, T.Any], installation: 'PythonExternalProgram'):
+                 kwargs: T.Dict[str, T.Any], installation: 'BasicPythonExternalProgram'):
         SystemDependency.__init__(self, name, environment, kwargs)
         _PythonDependencyBase.__init__(self, installation, kwargs.get('embed', False))
 
@@ -283,7 +270,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
 
 def python_factory(env: 'Environment', for_machine: 'MachineChoice',
                    kwargs: T.Dict[str, T.Any],
-                   installation: 'PythonExternalProgram') -> T.List['DependencyGenerator']:
+                   installation: 'BasicPythonExternalProgram') -> T.List['DependencyGenerator']:
     # We can't use the factory_methods decorator here, as we need to pass the
     # extra installation argument
     methods = process_method_kw({DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM}, kwargs)
@@ -298,7 +285,7 @@ def python_factory(env: 'Environment', for_machine: 'MachineChoice',
 
         # If python-X.Y.pc exists in LIBPC, we will try to use it
         def wrap_in_pythons_pc_dir(name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
-                                   installation: 'PythonExternalProgram') -> 'ExternalDependency':
+                                   installation: 'BasicPythonExternalProgram') -> 'ExternalDependency':
             if not pkg_libdir:
                 # there is no LIBPC, so we can't search in it
                 empty = ExternalDependency(DependencyTypeName('pkgconfig'), env, {})
@@ -339,66 +326,13 @@ def python_factory(env: 'Environment', for_machine: 'MachineChoice',
     return candidates
 
 
-class PythonExternalProgram(ExternalProgram):
-    def __init__(self, name: str, command: T.Optional[T.List[str]] = None,
-                 ext_prog: T.Optional[ExternalProgram] = None):
-        if ext_prog is None:
-            super().__init__(name, command=command, silent=True)
-        else:
-            self.name = name
-            self.command = ext_prog.command
-            self.path = ext_prog.path
-
-        # We want strong key values, so we always populate this with bogus data.
-        # Otherwise to make the type checkers happy we'd have to do .get() for
-        # everycall, even though we know that the introspection data will be
-        # complete
-        self.info: 'PythonIntrospectionDict' = {
-            'install_paths': {},
-            'is_pypy': False,
-            'is_venv': False,
-            'link_libpython': False,
-            'sysconfig_paths': {},
-            'paths': {},
-            'platform': 'sentinal',
-            'suffix': 'sentinel',
-            'variables': {},
-            'version': '0.0',
-        }
-        self.pure: bool = True
-
-    def _check_version(self, version: str) -> bool:
-        if self.name == 'python2':
-            return mesonlib.version_compare(version, '< 3.0')
-        elif self.name == 'python3':
-            return mesonlib.version_compare(version, '>= 3.0')
-        return True
-
+class PythonExternalProgram(BasicPythonExternalProgram):
     def sanity(self, state: T.Optional['ModuleState'] = None) -> bool:
-        # Sanity check, we expect to have something that at least quacks in tune
-
-        import importlib.resources
-
-        with importlib.resources.path('mesonbuild.scripts', 'python_info.py') as f:
-            cmd = self.get_command() + [str(f)]
-            p, stdout, stderr = mesonlib.Popen_safe(cmd)
-        try:
-            info = json.loads(stdout)
-        except json.JSONDecodeError:
-            info = None
-            mlog.debug('Could not introspect Python (%s): exit code %d' % (str(p.args), p.returncode))
-            mlog.debug('Program stdout:\n')
-            mlog.debug(stdout)
-            mlog.debug('Program stderr:\n')
-            mlog.debug(stderr)
-
-        if info is not None and self._check_version(info['version']):
-            self.info = T.cast('PythonIntrospectionDict', info)
+        ret = super().sanity()
+        if ret:
             self.platlib = self._get_path(state, 'platlib')
             self.purelib = self._get_path(state, 'purelib')
-            return True
-        else:
-            return False
+        return ret
 
     def _get_path(self, state: T.Optional['ModuleState'], key: str) -> None:
         rel_path = self.info['install_paths'][key][1:]
