@@ -18,8 +18,10 @@ from pathlib import Path
 import typing as T
 
 from .. import mesonlib, mlog
-from .base import DependencyMethods, SystemDependency
+from .base import DependencyMethods, ExternalDependency, SystemDependency
 from .factory import DependencyFactory
+from .framework import ExtraFrameworkDependency
+from .pkgconfig import PkgConfigDependency
 from ..environment import detect_cpu_family
 from ..programs import ExternalProgram
 
@@ -40,6 +42,10 @@ if T.TYPE_CHECKING:
         suffix: str
         variables: T.Dict[str, str]
         version: str
+
+    _Base = ExternalDependency
+else:
+    _Base = object
 
 
 class BasicPythonExternalProgram(ExternalProgram):
@@ -101,6 +107,59 @@ class BasicPythonExternalProgram(ExternalProgram):
             return True
         else:
             return False
+
+
+class _PythonDependencyBase(_Base):
+
+    def __init__(self, python_holder: 'BasicPythonExternalProgram', embed: bool):
+        self.embed = embed
+        self.version: str = python_holder.info['version']
+        self.platform = python_holder.info['platform']
+        self.variables = python_holder.info['variables']
+        self.paths = python_holder.info['paths']
+        self.is_pypy = python_holder.info['is_pypy']
+        self.link_libpython = python_holder.info['link_libpython']
+        self.info: T.Optional[T.Dict[str, str]] = None
+        if mesonlib.version_compare(self.version, '>= 3.0'):
+            self.major_version = 3
+        else:
+            self.major_version = 2
+
+
+class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
+
+    def __init__(self, name: str, environment: 'Environment',
+                 kwargs: T.Dict[str, T.Any], installation: 'BasicPythonExternalProgram',
+                 libpc: bool = False):
+        if libpc:
+            mlog.debug(f'Searching for {name!r} via pkgconfig lookup in LIBPC')
+        else:
+            mlog.debug(f'Searching for {name!r} via fallback pkgconfig lookup in default paths')
+
+        PkgConfigDependency.__init__(self, name, environment, kwargs)
+        _PythonDependencyBase.__init__(self, installation, kwargs.get('embed', False))
+
+        if libpc and not self.is_found:
+            mlog.debug(f'"python-{self.version}" could not be found in LIBPC, this is likely due to a relocated python installation')
+
+        # The "-embed" version of python.pc was introduced in 3.8, and distutils
+        # extension linking was changed to be considered a non embed usage. Before
+        # then, this dependency always uses the embed=True file because that is the
+        # only one that exists,
+        #
+        # On macOS and some Linux distros (Debian) distutils doesn't link extensions
+        # against libpython, even on 3.7 and below. We call into distutils and
+        # mirror its behavior. See https://github.com/mesonbuild/meson/issues/4117
+        if not self.embed and not self.link_libpython and mesonlib.version_compare(self.version, '< 3.8'):
+            self.link_args = []
+
+
+class PythonFrameworkDependency(ExtraFrameworkDependency, _PythonDependencyBase):
+
+    def __init__(self, name: str, environment: 'Environment',
+                 kwargs: T.Dict[str, T.Any], installation: 'BasicPythonExternalProgram'):
+        ExtraFrameworkDependency.__init__(self, name, environment, kwargs)
+        _PythonDependencyBase.__init__(self, installation, kwargs.get('embed', False))
 
 
 class Python3DependencySystem(SystemDependency):
