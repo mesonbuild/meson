@@ -1,0 +1,5 @@
+Name: libsoname
+Description: Library with soname
+Version: 0.0.1
+
+Libs: -L. -lsoname

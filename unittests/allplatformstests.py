@@ -1606,7 +1606,7 @@ class AllPlatformTests(BasePlatformTests):
         finally:
             os.unlink(stlibfile)
 
-    def build_shared_lib(self, compiler, source, objectfile, outfile, impfile, extra_args=None):
+    def build_shared_lib(self, compiler, source, objectfile, outfile, impfile, extra_args=None, with_soname=True):
         if extra_args is None:
             extra_args = []
         if compiler.get_argument_syntax() == 'msvc':
@@ -1617,7 +1617,7 @@ class AllPlatformTests(BasePlatformTests):
             if not (compiler.info.is_windows() or compiler.info.is_cygwin() or compiler.info.is_darwin()):
                 extra_args += ['-fPIC']
             link_cmd = compiler.get_exelist() + ['-shared', '-o', outfile, objectfile]
-            if not is_osx():
+            if with_soname and not is_osx():
                 link_cmd += ['-Wl,-soname=' + os.path.basename(outfile)]
         self.pbcompile(compiler, source, objectfile, extra_args=extra_args)
         try:
@@ -4538,3 +4538,59 @@ class AllPlatformTests(BasePlatformTests):
             'mesonbuild.scripts.test_loaded_modules'
         ]
         self.assertEqual(sorted(expected_meson_modules), sorted(meson_modules))
+
+    def _no_absolute_path_without_soname(self, use_pkconfig) -> None:
+        tdir = os.path.join(self.unit_test_dir, '110 no absolute path without soname')
+        env = get_fake_env(bdir=tdir)
+        cc = detect_c_compiler(env, MachineChoice.HOST)
+        env.coredata.set_options({OptionKey('pkg_config_path'): tdir}, subproject='')
+        env.coredata.compilers.host = {'c': cc}
+
+        source = os.path.join(tdir, 'foo.c')
+        objectfile = os.path.join(tdir, 'foo.o')
+        libsoname = os.path.join(tdir, 'libsoname.so')
+        libnosoname = os.path.join(tdir, 'libnosoname.so')
+        self.build_shared_lib(cc, source, objectfile, libsoname, None, with_soname=True)
+        self.build_shared_lib(cc, source, objectfile, libnosoname, None, with_soname=False)
+
+        try:
+            if use_pkconfig:
+                soname_dep = PkgConfigDependency('libsoname', env, {})
+                self.assertTrue(soname_dep.found())
+                soname_link_args = soname_dep.get_link_args()
+            else:
+                soname_link_args = cc.find_library('soname', env, [tdir])
+            self.assertEqual(len(soname_link_args), 1)
+            self.assertTrue(soname_link_args[0].startswith('/'))
+
+            if use_pkconfig:
+                nosoname_dep = PkgConfigDependency('libnosoname', env, {})
+                self.assertTrue(nosoname_dep.found())
+                nosoname_link_args = nosoname_dep.get_link_args();
+            else:
+                nosoname_link_args = cc.find_library('nosoname', env, [tdir])
+            self.assertEqual(len(nosoname_link_args), 2)
+            self.assertTrue(nosoname_link_args[0].startswith('-L'))
+            self.assertEqual(nosoname_link_args[1], '-lnosoname')
+        finally:
+            os.unlink(libsoname)
+            os.unlink(libnosoname)
+
+    @unittest.skipIf(is_windows() or is_cygwin() or is_osx(), 'Test only applicable to ELF platforms')
+    def test_no_absolute_path_without_soname(self) -> None:
+        '''
+        Test that find_library() returns :
+         - /path/to/libsoname.so for a library with an soname
+         - -L... -lnosoname for a library without an soname
+        '''
+        self._no_absolute_path_without_soname(False)
+
+    @skipIfNoPkgconfig
+    @unittest.skipIf(is_windows() or is_cygwin() or is_osx(), 'Test only applicable to ELF platforms')
+    def test_pkgconfig_no_absolute_path_without_soname(self) -> None:
+        '''
+        Test that a pkg-config dependency() would generate as link_args :
+         - /path/to/libsoname.so for a library with an soname
+         - -L... -lnosoname for a library without an soname
+        '''
+        self._no_absolute_path_without_soname(True)
