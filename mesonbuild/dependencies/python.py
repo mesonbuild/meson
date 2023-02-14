@@ -188,6 +188,9 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
         if mesonlib.is_windows() and self.get_windows_python_arch() == '64' and self.major_version == 2:
             self.compile_args += ['-DMS_WIN64']
 
+        if not self.clib_compiler.has_header('Python.h', '', environment, extra_args=self.compile_args):
+            self.is_found = False
+
     def find_libpy(self, environment: 'Environment') -> None:
         if self.is_pypy:
             if self.major_version == 3:
