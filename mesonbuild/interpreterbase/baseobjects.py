@@ -22,6 +22,7 @@ import textwrap
 
 import typing as T
 from abc import ABCMeta
+from contextlib import AbstractContextManager
 
 if T.TYPE_CHECKING:
     from typing_extensions import Protocol
@@ -180,3 +181,7 @@ class IterableObject(metaclass=ABCMeta):
 
     def size(self) -> int:
         raise MesonBugException(f'size not implemented for {self.__class__.__name__}')
+
+class ContextManagerObject(MesonInterpreterObject, AbstractContextManager):
+    def __init__(self, subproject: 'SubProject') -> None:
+        super().__init__(subproject=subproject)

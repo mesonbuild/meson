@@ -219,11 +219,14 @@ class DataTests(unittest.TestCase):
             name = name.replace('_', '-')
             self.assertIn(name, html)
 
+    @unittest.mock.patch.dict(os.environ)
     def test_vim_syntax_highlighting(self):
         '''
         Ensure that vim syntax highlighting files were updated for new
         functions in the global namespace in build files.
         '''
+        # Disable unit test specific syntax
+        del os.environ['MESON_RUNNING_IN_PROJECT_TESTS']
         env = get_fake_env()
         interp = Interpreter(FakeBuild(env), mock=True)
         with open('data/syntax-highlighting/vim/syntax/meson.vim', encoding='utf-8') as f:
@@ -231,11 +234,14 @@ class DataTests(unittest.TestCase):
             defined = set([a.strip() for a in res.group().split('\\')][1:])
             self.assertEqual(defined, set(chain(interp.funcs.keys(), interp.builtin.keys())))
 
+    @unittest.mock.patch.dict(os.environ)
     def test_all_functions_defined_in_ast_interpreter(self):
         '''
         Ensure that the all functions defined in the Interpreter are also defined
         in the AstInterpreter (and vice versa).
         '''
+        # Disable unit test specific syntax
+        del os.environ['MESON_RUNNING_IN_PROJECT_TESTS']
         env = get_fake_env()
         interp = Interpreter(FakeBuild(env), mock=True)
         astint = AstInterpreter('.', '', '')

@@ -18,6 +18,7 @@ __all__ = [
     'ObjectHolder',
     'IterableObject',
     'MutableInterpreterObject',
+    'ContextManagerObject',
 
     'MesonOperator',
 
@@ -80,6 +81,7 @@ from .baseobjects import (
     ObjectHolder,
     IterableObject,
     MutableInterpreterObject,
+    ContextManagerObject,
 
     TV_fw_var,
     TV_fw_args,

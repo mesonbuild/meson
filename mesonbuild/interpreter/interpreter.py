@@ -33,7 +33,7 @@ from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, noArgsFlatte
 from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
 from ..interpreterbase import Disabler, disablerIfNotFound
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs, FeatureDeprecatedKwargs
-from ..interpreterbase import ObjectHolder
+from ..interpreterbase import ObjectHolder, ContextManagerObject
 from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule
 from ..cmake import CMakeInterpreter
 from ..backend.backends import ExecutableSerialisation
@@ -416,6 +416,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                            })
         if 'MESON_UNIT_TEST' in os.environ:
             self.funcs.update({'exception': self.func_exception})
+        if 'MESON_RUNNING_IN_PROJECT_TESTS' in os.environ:
+            self.funcs.update({'expect_error': self.func_expect_error})
 
     def build_holder_map(self) -> None:
         '''
@@ -1394,6 +1396,24 @@ class Interpreter(InterpreterBase, HoldableObject):
     @noPosargs
     def func_exception(self, node, args, kwargs):
         raise RuntimeError('unit test traceback :)')
+
+    @noKwargs
+    @typed_pos_args('expect_error', str)
+    def func_expect_error(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs: TYPE_kwargs) -> ContextManagerObject:
+        class ExpectErrorObject(ContextManagerObject):
+            def __init__(self, msg: str, subproject: str) -> None:
+                super().__init__(subproject)
+                self.msg = msg
+
+            def __exit__(self, exc_type, exc_val, exc_tb):
+                if exc_val is None:
+                    raise InterpreterException('Expecting an error but code block succeeded')
+                if isinstance(exc_val, mesonlib.MesonException):
+                    msg = str(exc_val)
+                    if msg != self.msg:
+                        raise InterpreterException(f'Expecting error {self.msg!r} but got {msg!r}')
+                    return True
+        return ExpectErrorObject(args[0], self.subproject)
 
     def add_languages(self, args: T.List[str], required: bool, for_machine: MachineChoice) -> bool:
         success = self.add_languages_for(args, required, for_machine)

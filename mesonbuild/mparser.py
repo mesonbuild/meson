@@ -16,6 +16,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import re
 import codecs
+import os
 import typing as T
 from .mesonlib import MesonException
 from . import mlog
@@ -113,6 +114,9 @@ class Lexer:
                          'endif', 'and', 'or', 'not', 'foreach', 'endforeach',
                          'in', 'continue', 'break'}
         self.future_keywords = {'return'}
+        self.in_unit_test = 'MESON_RUNNING_IN_PROJECT_TESTS' in os.environ
+        if self.in_unit_test:
+            self.keywords.update({'testcase', 'endtestcase'})
         self.token_specification = [
             # Need to be sorted longest to shortest.
             ('ignore', re.compile(r'[ \t]')),
@@ -466,6 +470,12 @@ class IfClauseNode(BaseNode):
         self.ifs = []          # type: T.List[IfNode]
         self.elseblock = None  # type: T.Union[EmptyNode, CodeBlockNode]
 
+class TestCaseClauseNode(BaseNode):
+    def __init__(self, condition: BaseNode, block: CodeBlockNode):
+        super().__init__(condition.lineno, condition.colno, condition.filename)
+        self.condition = condition
+        self.block = block
+
 class UMinusNode(BaseNode):
     def __init__(self, current_location: Token, value: BaseNode):
         super().__init__(current_location.lineno, current_location.colno, current_location.filename)
@@ -808,6 +818,12 @@ class Parser:
             return self.codeblock()
         return EmptyNode(self.current.lineno, self.current.colno, self.current.filename)
 
+    def testcaseblock(self) -> TestCaseClauseNode:
+        condition = self.statement()
+        self.expect('eol')
+        block = self.codeblock()
+        return TestCaseClauseNode(condition, block)
+
     def line(self) -> BaseNode:
         block_start = self.current
         if self.current == 'eol':
@@ -824,6 +840,10 @@ class Parser:
             return ContinueNode(self.current)
         if self.accept('break'):
             return BreakNode(self.current)
+        if self.lexer.in_unit_test and self.accept('testcase'):
+            block = self.testcaseblock()
+            self.block_expect('endtestcase', block_start)
+            return block
         return self.statement()
 
     def codeblock(self) -> CodeBlockNode:
