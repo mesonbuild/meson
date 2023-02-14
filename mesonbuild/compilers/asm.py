@@ -69,7 +69,7 @@ class NasmCompiler(Compiler):
         return 'd'
 
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
-        return ['-MD', '-MQ', outtarget, '-MF', outfile]
+        return ['-MD', outfile, '-MQ', outtarget]
 
     def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
         if self.info.cpu_family not in {'x86', 'x86_64'}:
