@@ -14,19 +14,21 @@ library at the top level and headers in a subdirectory called
 `include`. The Meson build definition would look like the following.
 
 ```meson
-project('binary dep', 'c')
+project('bob', 'c')
 
 cc = meson.get_compiler('c')
-bin_dep = declare_dependency(
+bob_dep = declare_dependency(
   dependencies : cc.find_library('bob', dirs : meson.current_source_dir()),
   include_directories : include_directories('include'))
+
+meson.override_dependency('bob', bob_dep)
 ```
 
 Now you can use this subproject as if it was a Meson project:
 
 ```meson
 project('using dep', 'c')
-bob_dep = subproject('bob').get_variable('bin_dep')
+bob_dep = dependency('bob')
 executable('prog', 'prog.c', dependencies : bob_dep)
 ```
 
