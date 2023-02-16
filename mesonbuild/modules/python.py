@@ -281,7 +281,8 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
         self.compile_args += ['-I' + path for path in inc_paths if path]
 
         # https://sourceforge.net/p/mingw-w64/mailman/message/30504611/
-        if pyarch == '64' and self.major_version == 2:
+        # https://github.com/python/cpython/pull/100137
+        if pyarch == '64' and mesonlib.version_compare(self.version, '<3.12'):
             self.compile_args += ['-DMS_WIN64']
 
         self.is_found = True
