@@ -1443,7 +1443,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                         mlog.log_once('Cross compiler sanity tests disabled via the cross file.')
                     else:
                         comp.sanity_check(self.environment.get_scratch_dir(), self.environment)
-                except Exception:
+                except mesonlib.MesonException:
                     if not required:
                         mlog.log('Compiler for language',
                                  mlog.bold(lang), 'for the', machine_name,
