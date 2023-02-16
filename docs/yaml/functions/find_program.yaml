@@ -98,10 +98,10 @@ kwargs:
       instead of a not-found object.
 
   version:
-    type: str
+    type: str | list[str]
     since: 0.52.0
     description: |
-      specifies the required version, see
+      Specifies the required version, see
       [[dependency]] for argument format. The version of the program
       is determined by running `program_name --version` command. If stdout is empty
       it fallbacks to stderr. If the output contains more text than simply a version
