@@ -94,6 +94,8 @@ jobs:
   - bash: ci/intel-scripts/cache_exclude_windows.sh
     displayName: exclude unused files from cache
     condition: and(ne(variables.CACHE_RESTORED, 'true'), eq(variables.ifort, 'true'))
+  - script: choco install -y nasm
+    displayName: install NASM
   - task: UsePythonVersion@0
     inputs:
       versionSpec: '3.7'
