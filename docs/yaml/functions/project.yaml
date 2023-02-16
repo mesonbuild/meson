@@ -86,6 +86,22 @@ kwargs:
       for verifying that you abide by all licensing terms. You can access the
       value in your Meson build files with `meson.project_license()`.
 
+  license_files:
+    type: str | list[str]
+    since: 1.1.0
+    description: |
+      Takes a string or array of strings with the paths to the license file(s)
+      the code is under.
+
+      This enhances the value of the `license` kwarg by allowing to specify both
+      the short license name and the full license text. Usually this would be
+      something like `license_files: ['COPYING']`.
+
+      Note that the files are informal and are only installed with the dependency
+      manifest. Meson does not do any license validation, you are responsible
+      for verifying that you abide by all licensing terms. You can access the
+      value in your Meson build files with [[meson.project_license_files]].
+
   subproject_dir:
     type: str
     default: "'subprojects'"
