@@ -63,7 +63,6 @@ if T.TYPE_CHECKING:
     from mesonbuild.environment import Environment
     from mesonbuild._typing import Protocol
     from concurrent.futures import Future
-    from mesonbuild.modules.python import PythonIntrospectionDict
 
     class CompilerArgumentType(Protocol):
         cross_file: str
