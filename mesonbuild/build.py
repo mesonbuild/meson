@@ -706,7 +706,6 @@ class BuildTarget(Target):
         # The list of all files outputted by this target. Useful in cases such
         # as Vala which generates .vapi and .h besides the compiled output.
         self.outputs = [self.filename]
-        self.need_install = False
         self.pch: T.Dict[str, T.List[str]] = {
             'c': c_pch or [],
             'cpp': cpp_pch or [],
@@ -767,7 +766,7 @@ class BuildTarget(Target):
         return unity_opt == 'on' or (unity_opt == 'subprojects' and self.subproject != '')
 
     def validate_install(self):
-        if self.for_machine is MachineChoice.BUILD and self.need_install:
+        if self.for_machine is MachineChoice.BUILD and self.install:
             if self.environment.is_cross_build():
                 raise InvalidArguments('Tried to install a target for the build machine in a cross build.')
             else:
@@ -1002,7 +1001,6 @@ class BuildTarget(Target):
     def process_kwargs(self, kwargs):
         self.original_kwargs = kwargs
         kwargs.get('modules', [])
-        self.need_install = kwargs.get('install', self.need_install)
 
     def _extract_pic_pie(self, value: T.Optional[bool], arg: Literal['pic', 'pie']) -> bool:
         # Check if we have -fPIC, -fpic, -fPIE, or -fpie in cflags
@@ -1087,7 +1085,7 @@ class BuildTarget(Target):
         return self.generated
 
     def should_install(self) -> bool:
-        return self.need_install
+        return self.install
 
     def has_pch(self) -> bool:
         return any(self.pch.values())
@@ -1146,12 +1144,11 @@ class BuildTarget(Target):
         # More of this should move to the interpreter, but that requires both modification to the
         # buildTarget classea and InternalDependency
         for t in targets:
-            if isinstance(self, StaticLibrary) and self.need_install:
-                if isinstance(t, (CustomTarget, CustomTargetIndex)):
-                    if not t.should_install():
-                        mlog.warning(f'Try to link an installed static library target {self.name} with a'
-                                     'custom target that is not installed, this might cause problems'
-                                     'when you try to use this static library')
+            if isinstance(self, StaticLibrary) and self.install:
+                if isinstance(t, (CustomTarget, CustomTargetIndex)) and not t.should_install():
+                    mlog.warning(f'Try to link an installed static library target {self.name} with a'
+                                 'custom target that is not installed, this might cause problems'
+                                 'when you try to use this static library')
                 elif t.is_internal():
                     # When we're a static library and we link_with to an
                     # internal/convenience library, promote to link_whole.
@@ -1949,7 +1946,7 @@ class StaticLibrary(BuildTarget):
         return True
 
     def is_internal(self) -> bool:
-        return not self.need_install
+        return not self.install
 
 class SharedLibrary(BuildTarget):
 
