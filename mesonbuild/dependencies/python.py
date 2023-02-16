@@ -190,7 +190,8 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
         self.compile_args += ['-I' + path for path in inc_paths if path]
 
         # https://sourceforge.net/p/mingw-w64/mailman/message/30504611/
-        if mesonlib.is_windows() and self.get_windows_python_arch() == '64' and self.major_version == 2:
+        # https://github.com/python/cpython/pull/100137
+        if mesonlib.is_windows() and self.get_windows_python_arch() == '64' and mesonlib.version_compare(self.version, '<3.12'):
             self.compile_args += ['-DMS_WIN64']
 
         if not self.clib_compiler.has_header('Python.h', '', environment, extra_args=self.compile_args):
