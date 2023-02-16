@@ -84,7 +84,7 @@ source_suffixes = all_suffixes - header_suffixes
 # List of languages that by default consume and output libraries following the
 # C ABI; these can generally be used interchangeably
 # This must be sorted, see sort_clink().
-clib_langs = ('objcpp', 'cpp', 'objc', 'c', 'fortran')
+clib_langs = ('objcpp', 'cpp', 'objc', 'c', 'nasm', 'fortran')
 # List of languages that can be linked with C code directly by the linker
 # used in build.py:process_compilers() and build.py:get_dynamic_linker()
 # This must be sorted, see sort_clink().
