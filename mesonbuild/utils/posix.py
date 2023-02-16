@@ -34,6 +34,9 @@ class BuildDirLock(BuildDirLockBase):
         except (BlockingIOError, PermissionError):
             self.lockfile.close()
             raise MesonException('Some other Meson process is already using this build directory. Exiting.')
+        except OSError as e:
+            self.lockfile.close()
+            raise MesonException(f'Failed to lock the build directory: {e.strerror}')
 
     def __exit__(self, *args: T.Any) -> None:
         fcntl.flock(self.lockfile, fcntl.LOCK_UN)
