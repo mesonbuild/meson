@@ -224,6 +224,8 @@ class PackageDefinition:
                 self.diff_files.append(path)
 
     def parse_provide_section(self, config: configparser.ConfigParser) -> None:
+        if config.has_section('provides'):
+            raise WrapException('Unexpected "[provides]" section, did you mean "[provide]"?')
         if config.has_section('provide'):
             for k, v in config['provide'].items():
                 if k == 'dependency_names':
