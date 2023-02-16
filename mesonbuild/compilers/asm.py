@@ -1,11 +1,14 @@
 import os
 import typing as T
 
-from ..mesonlib import EnvironmentException, get_meson_command
+from ..mesonlib import EnvironmentException, OptionKey, get_meson_command
 from .compilers import Compiler
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
+    from ..linkers import DynamicLinker
+    from ..mesonlib import MachineChoice
+    from ..envconfig import MachineInfo
 
 nasm_optimization_args = {
     'plain': [],
@@ -21,6 +24,23 @@ nasm_optimization_args = {
 class NasmCompiler(Compiler):
     language = 'nasm'
     id = 'nasm'
+
+    # https://learn.microsoft.com/en-us/cpp/c-runtime-library/crt-library-features
+    crt_args: T.Dict[str, T.List[str]] = {
+        'none': [],
+        'md': ['/DEFAULTLIB:ucrt.lib', '/DEFAULTLIB:vcruntime.lib', '/DEFAULTLIB:msvcrt.lib'],
+        'mdd': ['/DEFAULTLIB:ucrtd.lib', '/DEFAULTLIB:vcruntimed.lib', '/DEFAULTLIB:msvcrtd.lib'],
+        'mt': ['/DEFAULTLIB:libucrt.lib', '/DEFAULTLIB:libvcruntime.lib', '/DEFAULTLIB:libcmt.lib'],
+        'mtd': ['/DEFAULTLIB:libucrtd.lib', '/DEFAULTLIB:libvcruntimed.lib', '/DEFAULTLIB:libcmtd.lib'],
+    }
+
+    def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str,
+                 for_machine: 'MachineChoice', info: 'MachineInfo',
+                 linker: T.Optional['DynamicLinker'] = None,
+                 full_version: T.Optional[str] = None, is_cross: bool = False):
+        super().__init__(ccache, exelist, version, for_machine, info, linker, full_version, is_cross)
+        if 'link' in self.linker.id:
+            self.base_options.add(OptionKey('b_vscrt'))
 
     def needs_static_linker(self) -> bool:
         return True
@@ -96,6 +116,35 @@ class NasmCompiler(Compiler):
 
     def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
         return []
+
+    # Linking ASM-only objects into an executable or DLL
+    # require this, otherwise it'll fail to find
+    # _WinMain or _DllMainCRTStartup.
+    def get_crt_link_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+        if not self.info.is_windows():
+            return []
+        if crt_val in self.crt_args:
+            return self.crt_args[crt_val]
+        assert crt_val in {'from_buildtype', 'static_from_buildtype'}
+        dbg = 'mdd'
+        rel = 'md'
+        if crt_val == 'static_from_buildtype':
+            dbg = 'mtd'
+            rel = 'mt'
+        # Match what build type flags used to do.
+        if buildtype == 'plain':
+            return []
+        elif buildtype == 'debug':
+            return self.crt_args[dbg]
+        elif buildtype == 'debugoptimized':
+            return self.crt_args[rel]
+        elif buildtype == 'release':
+            return self.crt_args[rel]
+        elif buildtype == 'minsize':
+            return self.crt_args[rel]
+        else:
+            assert buildtype == 'custom'
+            raise EnvironmentException('Requested C runtime based on buildtype, but buildtype is "custom".')
 
 class YasmCompiler(NasmCompiler):
     id = 'yasm'

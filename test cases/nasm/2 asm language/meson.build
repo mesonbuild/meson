@@ -5,6 +5,14 @@ if not host_machine.cpu_family().startswith('x86')
   error('MESON_SKIP_TEST: nasm only supported for x86 and x86_64')
 endif
 
+if host_machine.system() == 'windows'
+  error('MESON_SKIP_TEST: this test asm is not made for Windows')
+endif
+
+if meson.backend().startswith('vs')
+  error('MESON_SKIP_TEST: VS backend does not recognise NASM yet')
+endif
+
 if not add_languages('nasm', required: false)
   nasm = find_program('nasm', 'yasm', required: false)
   assert(not nasm.found())
