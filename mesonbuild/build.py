@@ -1075,7 +1075,7 @@ class BuildTarget(Target):
         self.add_pch('c', extract_as_list(kwargs, 'c_pch'))
         self.add_pch('cpp', extract_as_list(kwargs, 'cpp_pch'))
 
-        if not isinstance(self, Executable) or 'export_dynamic' in kwargs:
+        if not isinstance(self, Executable) or kwargs.get('export_dynamic', False):
             self.vala_header = kwargs.get('vala_header', self.name + '.h')
             self.vala_vapi = kwargs.get('vala_vapi', self.name + '.vapi')
             self.vala_gir = kwargs.get('vala_gir', None)
