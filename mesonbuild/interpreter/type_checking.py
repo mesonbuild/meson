@@ -13,7 +13,6 @@ from ..build import (CustomTarget, BuildTarget,
                      BothLibraries, SharedLibrary, StaticLibrary, Jar, Executable)
 from ..coredata import UserFeatureOption
 from ..dependencies import Dependency, InternalDependency
-from ..interpreterbase import FeatureNew
 from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo
 from ..mesonlib import (File, FileMode, MachineChoice, listify, has_path_sep,
                         OptionKey, EnvironmentVariables)
@@ -26,7 +25,6 @@ if T.TYPE_CHECKING:
     from typing_extensions import Literal
 
     from ..interpreterbase import TYPE_var
-    from ..interpreterbase.decorators import FeatureCheckBase
     from ..mesonlib import EnvInitValueType
 
     _FullEnvInitValueType = T.Union[EnvironmentVariables, T.List[str], T.List[T.List[str]], EnvInitValueType, str, None]
@@ -375,13 +373,6 @@ INCLUDE_DIRECTORIES: KwargInfo[T.List[T.Union[str, IncludeDirs]]] = KwargInfo(
     listify=True,
     default=[],
 )
-
-def include_dir_string_new(val: T.List[T.Union[str, IncludeDirs]]) -> T.Iterable[FeatureCheckBase]:
-    strs = [v for v in val if isinstance(v, str)]
-    if strs:
-        str_msg = ", ".join(f"'{s}'" for s in strs)
-        yield FeatureNew('include_directories kwarg of type string', '1.0.0',
-                         f'Use include_directories({str_msg}) instead')
 
 # for cases like default_options and override_options
 DEFAULT_OPTIONS: KwargInfo[T.List[str]] = KwargInfo(
