@@ -564,7 +564,27 @@ _meson-subprojects() {
 }
 
 _meson-help() {
-  : # Nothing to do
+  longopts=(
+    setup
+    configure
+    dist
+    install
+    introspect
+    init
+    test
+    wrap
+    subprojects
+    rewrite
+    compile
+    devenv
+    env2mfile
+  )
+
+  local cur prev
+
+  if _get_comp_words_by_ref cur prev &>/dev/null; then
+    COMPREPLY+=($(compgen -W '${longopts[*]}' -- "${cur}"))
+  fi
 }
 
 _meson-rewrite() {
@@ -572,7 +592,48 @@ _meson-rewrite() {
 }
 
 _meson-compile() {
-  : TODO
+  shortopts=(
+    h
+    C
+    j
+    l
+    v
+  )
+
+  longopts=(
+    help
+    clean
+    jobs
+    load-average
+    verbose
+    ninja-args
+    vs-args
+    xcode-args
+  )
+
+  local cur prev
+  if _get_comp_words_by_ref cur prev &>/dev/null; then
+    if [[ ${prev:0:2} == -- ]] && _meson_complete_option "${prev:2}" "$cur"; then
+      return
+    elif [[ ${prev:0:1} == - ]] && [[ ${prev:1:2} != - ]] && _meson_complete_option "${prev:1}"; then
+      return
+    fi
+  else
+    cur="${COMP_WORDS[COMP_CWORD]}"
+  fi
+
+  if ! _meson_compgen_options "$cur"; then
+    _filedir -d
+
+    if [[ -z $cur ]]; then
+      COMPREPLY+=($(compgen -P '--' -W '${longopts[*]}'))
+      COMPREPLY+=($(compgen -P '-' -W '${shortopts[*]}'))
+    fi
+
+    if [[ $COMP_CWORD == 1 ]]; then
+      COMPREPLY+=($(compgen -W "${meson_subcommands[*]}" -- "$cur"))
+    fi
+  fi
 }
 
 _meson-devenv() {
