@@ -149,6 +149,25 @@ _meson_complete_filedir() {
   return 0
 }
 
+_meson_compgen_options() {
+  local -r cur=$1
+
+  if [[ ${cur:0:2} == -- ]]; then
+    COMPREPLY+=($(compgen -P '--' -W '${longopts[*]}' -- "${cur:2}"))
+  elif [[ ${cur:0:1} == - ]]; then
+    if [[ ${#cur} == 1 ]]; then
+      # Only add longopts if cur not "-something"
+      COMPREPLY+=($(compgen -P '--' -W '${longopts[*]}' -- ""))
+    fi
+
+    COMPREPLY+=($(compgen -P '-' -W '${shortopts[*]}' -- "${cur:1}"))
+  else
+    return 1
+  fi
+
+  return 0
+}
+
 _meson-setup() {
   shortopts=(
     h
@@ -210,14 +229,16 @@ _meson-setup() {
   )
 
   local cur prev
-  if _get_comp_words_by_ref cur prev &>/dev/null &&
-    [ "${prev:0:2}" = '--' ] && _meson_complete_option "${prev:2}" "$cur"; then
-    return
-  elif _get_comp_words_by_ref cur prev &>/dev/null &&
-    [ "${prev:0:1}" = '-' ] && [ "${prev:1:2}" != '-' ] && _meson_complete_option "${prev:1}"; then
-    return
-  elif _get_comp_words_by_ref -n '=' cur prev &>/dev/null; then
-    if [ $prev == -D ]; then
+  if _get_comp_words_by_ref cur prev &>/dev/null; then
+    if [[ ${prev:0:2} == -- ]] && _meson_complete_option "${prev:2}" "$cur"; then
+      return
+    elif [[ ${prev:0:1} == - ]] && [[ ${prev:1:2} != - ]] && _meson_complete_option "${prev:1}"; then
+      return
+    fi
+  fi
+
+  if _get_comp_words_by_ref -n '=' cur prev &>/dev/null; then
+    if [[ $prev == -D ]]; then
       _meson_complete_option "$cur"
       return
     fi
@@ -225,19 +246,14 @@ _meson-setup() {
     cur="${COMP_WORDS[COMP_CWORD]}"
   fi
 
-  if [[ "$cur" == "--"* ]]; then
-    COMPREPLY+=($(compgen -P '--' -W '${longopts[*]}' -- "${cur:2}"))
-  elif [[ "$cur" == "-"* ]]; then
-    COMPREPLY+=($(compgen -P '--' -W '${longopts[*]}' -- "${cur:2}"))
-    COMPREPLY+=($(compgen -P '-' -W '${shortopts[*]}' -- "${cur:1}"))
-  else
+  if ! _meson_compgen_options "$cur"; then
     _filedir -d
-    if [ -z "$cur" ]; then
-    COMPREPLY+=($(compgen -P '--' -W '${longopts[*]}'))
-    COMPREPLY+=($(compgen -P '-' -W '${shortopts[*]}'))
+    if [[ -z $cur ]]; then
+      COMPREPLY+=($(compgen -P '--' -W '${longopts[*]}'))
+      COMPREPLY+=($(compgen -P '-' -W '${shortopts[*]}'))
     fi
 
-    if [ $COMP_CWORD -eq 1 ]; then
+    if [[ $COMP_CWORD == 1 ]]; then
       COMPREPLY+=($(compgen -W "${meson_subcommands[*]}" -- "$cur"))
     fi
   fi
@@ -298,7 +314,7 @@ _meson-configure() {
 
   local cur prev
   if _get_comp_words_by_ref -n '=' cur prev &>/dev/null; then
-    if [ $prev == -D ]; then
+    if [[ $prev == -D ]]; then
       _meson_complete_option "$cur"
       return
     fi
@@ -306,25 +322,20 @@ _meson-configure() {
     cur="${COMP_WORDS[COMP_CWORD]}"
   fi
 
-  if [[ "$cur" == "--"* ]]; then
-    COMPREPLY+=($(compgen -P '--' -W '${longopts[*]}' -- "${cur:2}"))
-  elif [[ "$cur" == "-"* ]]; then
-    COMPREPLY+=($(compgen -P '--' -W '${longopts[*]}' -- "${cur:2}"))
-    COMPREPLY+=($(compgen -P '-' -W '${shortopts[*]}' -- "${cur:1}"))
-  else
+  if ! _meson_compgen_options "$cur"; then
     for dir in "${COMP_WORDS[@]}"; do
-      if [ -d "$dir" ]; then
+      if [[ -d "$dir" ]]; then
         break
       fi
       dir=.
     done
-    if [ ! -d "$dir/meson-private" ]; then
+    if [[ ! -d "$dir/meson-private" ]]; then
       _filedir -d
     fi
 
-    if [ -z "$cur" ]; then
-    COMPREPLY+=($(compgen -P '--' -W '${longopts[*]}'))
-    COMPREPLY+=($(compgen -P '-' -W '${shortopts[*]}'))
+    if [[ -z $cur ]]; then
+      COMPREPLY+=($(compgen -P '--' -W '${longopts[*]}'))
+      COMPREPLY+=($(compgen -P '-' -W '${shortopts[*]}'))
     fi
   fi
 }
@@ -368,12 +379,7 @@ _meson-introspect() {
     cur="${COMP_WORDS[COMP_CWORD]}"
   fi
 
-  if [[ "$cur" == "--"* ]]; then
-    COMPREPLY+=($(compgen -P '--' -W '${longopts[*]}' -- "${cur:2}"))
-  elif [[ "$cur" == "-"* ]]; then
-    COMPREPLY+=($(compgen -P '--' -W '${longopts[*]}' -- "${cur:2}"))
-    COMPREPLY+=($(compgen -P '-' -W '${shortopts[*]}' -- "${cur:1}"))
-  else
+  if ! _meson_compgen_options "$cur"; then
     for dir in "${COMP_WORDS[@]}"; do
       if [ -d "$dir" ]; then
         break
@@ -416,17 +422,12 @@ _meson-init() {
     version
   )
 
-  if [[ "$cur" == "--"* ]]; then
-    COMPREPLY+=($(compgen -P '--' -W '${longopts[*]}' -- "${cur:2}"))
-  elif [[ "$cur" == "-"* && ${#cur} -gt 1 ]]; then
-    COMPREPLY+=($(compgen -P '-' -W '${shortopts[*]}' -- "${cur:1}"))
-  else
-    if [ -z "$cur" ]; then
+  if ! _meson_compgen_options "$cur"; then
+    if [[ -z $cur ]]; then
       COMPREPLY+=($(compgen -P '--' -W '${longopts[*]}'))
       COMPREPLY+=($(compgen -P '-' -W '${shortopts[*]}'))
     fi
   fi
-
 }
 
 _meson-test() {
@@ -520,11 +521,7 @@ for test in json.load(sys.stdin):
     cur="${COMP_WORDS[COMP_CWORD]}"
   fi
 
-  if [[ "$cur" == "--"* ]]; then
-    COMPREPLY+=($(compgen -P '--' -W '${longopts[*]}' -- "${cur:2}"))
-  elif [[ "$cur" == "-"* && ${#cur} -gt 1 ]]; then
-    COMPREPLY+=($(compgen -P '-' -W '${shortopts[*]}' -- "${cur:1}"))
-  else
+  if ! _meson_compgen_options "$cur"; then
     for dir in "${COMP_WORDS[@]}"; do
       if [ -d "$dir" ]; then
         break
