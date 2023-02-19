@@ -275,7 +275,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         result = self.compiler.alignment(typename, kwargs['prefix'], self.environment,
                                          extra_args=kwargs['args'],
                                          dependencies=deps)
-        mlog.log('Checking for alignment of', mlog.bold(typename, True), msg, result)
+        mlog.log('Checking for alignment of', mlog.bold(typename, True), msg, mlog.bold(str(result)))
         return result
 
     @typed_pos_args('compiler.run', (str, mesonlib.File))
@@ -421,7 +421,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=self.compiler.is_cross)
         esize = self.compiler.sizeof(element, kwargs['prefix'], self.environment,
                                      extra_args=extra_args, dependencies=deps)
-        mlog.log('Checking for size of', mlog.bold(element, True), msg, esize)
+        mlog.log('Checking for size of', mlog.bold(element, True), msg, mlog.bold(str(esize)))
         return esize
 
     @FeatureNew('compiler.get_define', '0.40.0')
