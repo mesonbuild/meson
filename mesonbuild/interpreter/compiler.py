@@ -272,10 +272,12 @@ class CompilerHolder(ObjectHolder['Compiler']):
     def alignment_method(self, args: T.Tuple[str], kwargs: 'AlignmentKw') -> int:
         typename = args[0]
         deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=self.compiler.is_cross)
-        result = self.compiler.alignment(typename, kwargs['prefix'], self.environment,
-                                         extra_args=kwargs['args'],
-                                         dependencies=deps)
-        mlog.log('Checking for alignment of', mlog.bold(typename, True), msg, mlog.bold(str(result)))
+        result, cached = self.compiler.alignment(typename, kwargs['prefix'], self.environment,
+                                                 extra_args=kwargs['args'],
+                                                 dependencies=deps)
+        cached_msg = mlog.blue('(cached)') if cached else ''
+        mlog.log('Checking for alignment of',
+                 mlog.bold(typename, True), msg, mlog.bold(str(result)), cached_msg)
         return result
 
     @typed_pos_args('compiler.run', (str, mesonlib.File))
@@ -419,9 +421,11 @@ class CompilerHolder(ObjectHolder['Compiler']):
         element = args[0]
         extra_args = functools.partial(self._determine_args, kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
         deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=self.compiler.is_cross)
-        esize = self.compiler.sizeof(element, kwargs['prefix'], self.environment,
-                                     extra_args=extra_args, dependencies=deps)
-        mlog.log('Checking for size of', mlog.bold(element, True), msg, mlog.bold(str(esize)))
+        esize, cached = self.compiler.sizeof(element, kwargs['prefix'], self.environment,
+                                             extra_args=extra_args, dependencies=deps)
+        cached_msg = mlog.blue('(cached)') if cached else ''
+        mlog.log('Checking for size of',
+                 mlog.bold(element, True), msg, mlog.bold(str(esize)), cached_msg)
         return esize
 
     @FeatureNew('compiler.get_define', '0.40.0')

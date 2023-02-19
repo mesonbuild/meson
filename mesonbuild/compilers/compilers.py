@@ -719,12 +719,12 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
 
     def sizeof(self, typename: str, prefix: str, env: 'Environment', *,
                extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
-               dependencies: T.Optional[T.List['Dependency']] = None) -> int:
+               dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[int, bool]:
         raise EnvironmentException('Language %s does not support sizeof checks.' % self.get_display_language())
 
     def alignment(self, typename: str, prefix: str, env: 'Environment', *,
                   extra_args: T.Optional[T.List[str]] = None,
-                  dependencies: T.Optional[T.List['Dependency']] = None) -> int:
+                  dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[int, bool]:
         raise EnvironmentException('Language %s does not support alignment checks.' % self.get_display_language())
 
     def has_function(self, funcname: str, prefix: str, env: 'Environment', *,
