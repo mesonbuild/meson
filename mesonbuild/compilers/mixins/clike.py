@@ -591,25 +591,26 @@ class CLikeCompiler(Compiler):
 
     def sizeof(self, typename: str, prefix: str, env: 'Environment', *,
                extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
-               dependencies: T.Optional[T.List['Dependency']] = None) -> int:
+               dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[int, bool]:
         if extra_args is None:
             extra_args = []
         if self.is_cross:
-            return self.cross_sizeof(typename, prefix, env, extra_args=extra_args,
-                                     dependencies=dependencies)
+            r = self.cross_sizeof(typename, prefix, env, extra_args=extra_args,
+                                  dependencies=dependencies)
+            return r, False
         t = f'''#include<stdio.h>
         {prefix}
         int main(void) {{
             printf("%ld\\n", (long)(sizeof({typename})));
             return 0;
         }}'''
-        res = self.run(t, env, extra_args=extra_args,
-                       dependencies=dependencies)
+        res = self.cached_run(t, env, extra_args=extra_args,
+                              dependencies=dependencies)
         if not res.compiled:
-            return -1
+            return -1, False
         if res.returncode != 0:
             raise mesonlib.EnvironmentException('Could not run sizeof test binary.')
-        return int(res.stdout)
+        return int(res.stdout), res.cached
 
     def cross_alignment(self, typename: str, prefix: str, env: 'Environment', *,
                         extra_args: T.Optional[T.List[str]] = None,
@@ -635,12 +636,13 @@ class CLikeCompiler(Compiler):
 
     def alignment(self, typename: str, prefix: str, env: 'Environment', *,
                   extra_args: T.Optional[T.List[str]] = None,
-                  dependencies: T.Optional[T.List['Dependency']] = None) -> int:
+                  dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[int, bool]:
         if extra_args is None:
             extra_args = []
         if self.is_cross:
-            return self.cross_alignment(typename, prefix, env, extra_args=extra_args,
-                                        dependencies=dependencies)
+            r = self.cross_alignment(typename, prefix, env, extra_args=extra_args,
+                                     dependencies=dependencies)
+            return r, False
         t = f'''#include <stdio.h>
         #include <stddef.h>
         {prefix}
@@ -652,8 +654,8 @@ class CLikeCompiler(Compiler):
             printf("%d", (int)offsetof(struct tmp, target));
             return 0;
         }}'''
-        res = self.run(t, env, extra_args=extra_args,
-                       dependencies=dependencies)
+        res = self.cached_run(t, env, extra_args=extra_args,
+                              dependencies=dependencies)
         if not res.compiled:
             raise mesonlib.EnvironmentException('Could not compile alignment test.')
         if res.returncode != 0:
@@ -661,7 +663,7 @@ class CLikeCompiler(Compiler):
         align = int(res.stdout)
         if align == 0:
             raise mesonlib.EnvironmentException(f'Could not determine alignment of {typename}. Sorry. You might want to file a bug.')
-        return align
+        return align, res.cached
 
     def get_define(self, dname: str, prefix: str, env: 'Environment',
                    extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]]],
@@ -1117,7 +1119,7 @@ class CLikeCompiler(Compiler):
         '''
         returns true if the output produced is 64-bit, false if 32-bit
         '''
-        return self.sizeof('void *', '', env) == 8
+        return self.sizeof('void *', '', env)[0] == 8
 
     def _find_library_real(self, libname: str, env: 'Environment', extra_dirs: T.List[str], code: str, libtype: LibType) -> T.Optional[T.List[str]]:
         # First try if we can just add the library as -l.
