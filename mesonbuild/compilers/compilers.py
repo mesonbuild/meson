@@ -456,11 +456,13 @@ class CrossNoRunException(MesonException):
 
 class RunResult(HoldableObject):
     def __init__(self, compiled: bool, returncode: int = 999,
-                 stdout: str = 'UNDEFINED', stderr: str = 'UNDEFINED'):
+                 stdout: str = 'UNDEFINED', stderr: str = 'UNDEFINED',
+                 cached: bool = False):
         self.compiled = compiled
         self.returncode = returncode
         self.stdout = stdout
         self.stderr = stderr
+        self.cached = cached
 
 
 class CompileResult(HoldableObject):
@@ -688,6 +690,32 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]], None] = None,
             dependencies: T.Optional[T.List['Dependency']] = None) -> RunResult:
         raise EnvironmentException('Language %s does not support run checks.' % self.get_display_language())
+
+    # Caching run() in general seems too risky (no way to know what the program
+    # depends on), but some callers know more about the programs they intend to
+    # run.
+    # For now we just accept code as a string, as that's what internal callers
+    # need anyway. If we wanted to accept files, the cache key would need to
+    # include mtime.
+    def cached_run(self, code: str, env: 'Environment', *,
+                   extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]], None] = None,
+                   dependencies: T.Optional[T.List['Dependency']] = None) -> RunResult:
+        run_check_cache = env.coredata.run_check_cache
+        args = self.build_wrapper_args(env, extra_args, dependencies, CompileCheckMode('link'))
+        key = (code, tuple(args))
+        if key in run_check_cache:
+            p = run_check_cache[key]
+            p.cached = True
+            mlog.debug('Using cached run result:')
+            mlog.debug('Code:\n', code)
+            mlog.debug('Args:\n', extra_args)
+            mlog.debug('Cached run returncode:\n', p.returncode)
+            mlog.debug('Cached run stdout:\n', p.stdout)
+            mlog.debug('Cached run stderr:\n', p.stderr)
+        else:
+            p = self.run(code, env, extra_args=extra_args, dependencies=dependencies)
+            run_check_cache[key] = p
+        return p
 
     def sizeof(self, typename: str, prefix: str, env: 'Environment', *,
                extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,

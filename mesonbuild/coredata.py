@@ -39,7 +39,7 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from . import dependencies
-    from .compilers.compilers import Compiler, CompileResult
+    from .compilers.compilers import Compiler, CompileResult, RunResult
     from .dependencies.detect import TV_DepID
     from .environment import Environment
     from .mesonlib import OptionOverrideProxy, FileOrString
@@ -49,6 +49,8 @@ if T.TYPE_CHECKING:
     MutableKeyedOptionDictType = T.Dict['OptionKey', 'UserOption[T.Any]']
     KeyedOptionDictType = T.Union[MutableKeyedOptionDictType, OptionOverrideProxy]
     CompilerCheckCacheKey = T.Tuple[T.Tuple[str, ...], str, FileOrString, T.Tuple[str, ...], str]
+    # code, args
+    RunCheckCacheKey = T.Tuple[str, T.Tuple[str, ...]]
 
     # typeshed
     StrOrBytesPath = T.Union[str, bytes, os.PathLike[str], os.PathLike[bytes]]
@@ -474,6 +476,7 @@ class CoreData:
             DependencyCache(self.options, MachineChoice.HOST))
 
         self.compiler_check_cache: T.Dict['CompilerCheckCacheKey', 'CompileResult'] = OrderedDict()
+        self.run_check_cache: T.Dict['RunCheckCacheKey', 'RunResult'] = OrderedDict()
 
         # CMake cache
         self.cmake_cache: PerMachine[CMakeStateCache] = PerMachine(CMakeStateCache(), CMakeStateCache())
