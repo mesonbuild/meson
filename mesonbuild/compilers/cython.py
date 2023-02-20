@@ -50,9 +50,9 @@ class CythonCompiler(Compiler):
 
     def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
         code = 'print("hello world")'
-        with self.cached_compile(code, environment.coredata) as p:
-            if p.returncode != 0:
-                raise EnvironmentException(f'Cython compiler {self.id!r} cannot compile programs')
+        p = self.cached_compile(code, environment.coredata)
+        if p.returncode != 0:
+            raise EnvironmentException(f'Cython compiler {self.id!r} cannot compile programs')
 
     def get_buildtype_args(self, buildtype: str) -> T.List[str]:
         # Cython doesn't implement this, but Meson requires an implementation

@@ -460,10 +460,10 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     @functools.lru_cache()
     def _get_search_dirs(self, env: 'Environment') -> str:
         extra_args = ['--print-search-dirs']
-        with self._build_wrapper('', env, extra_args=extra_args,
-                                 dependencies=None, mode='compile',
-                                 want_output=True) as p:
-            return p.stdout
+        p = self._build_wrapper('', env, extra_args=extra_args,
+                                dependencies=None, mode='compile',
+                                want_output=True)
+        return p.stdout
 
     def _split_fetch_real_dirs(self, pathstr: str) -> T.List[str]:
         # We need to use the path separator used by the compiler for printing
@@ -613,12 +613,12 @@ class GnuCompiler(GnuLikeCompiler):
         # For some compiler command line arguments, the GNU compilers will
         # emit a warning on stderr indicating that an option is valid for a
         # another language, but still complete with exit_success
-        with self._build_wrapper(code, env, args, None, mode) as p:
-            result = p.returncode == 0
-            if self.language in {'cpp', 'objcpp'} and 'is valid for C/ObjC' in p.stderr:
-                result = False
-            if self.language in {'c', 'objc'} and 'is valid for C++/ObjC++' in p.stderr:
-                result = False
+        p = self._build_wrapper(code, env, args, None, mode)
+        result = p.returncode == 0
+        if self.language in {'cpp', 'objcpp'} and 'is valid for C/ObjC' in p.stderr:
+            result = False
+        if self.language in {'c', 'objc'} and 'is valid for C++/ObjC++' in p.stderr:
+            result = False
         return result, p.cached
 
     def get_has_func_attribute_extra_args(self, name: str) -> T.List[str]:

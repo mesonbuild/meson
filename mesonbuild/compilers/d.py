@@ -713,19 +713,19 @@ class DCompiler(Compiler):
         if need_exe_wrapper and self.exe_wrapper is None:
             raise compilers.CrossNoRunException('Can not run test applications in this cross environment.')
         extra_args = self._get_compile_extra_args(extra_args)
-        with self._build_wrapper(code, env, extra_args, dependencies, mode='link', want_output=True) as p:
-            if p.returncode != 0:
-                mlog.debug(f'Could not compile test file {p.input_name}: {p.returncode}\n')
-                return compilers.RunResult(False)
-            if need_exe_wrapper:
-                cmdlist = self.exe_wrapper.get_command() + [p.output_name]
-            else:
-                cmdlist = [p.output_name]
-            try:
-                pe, so, se = mesonlib.Popen_safe(cmdlist)
-            except Exception as e:
-                mlog.debug(f'Could not run: {cmdlist} (error: {e})\n')
-                return compilers.RunResult(False)
+        p = self._build_wrapper(code, env, extra_args, dependencies, mode='link', want_output=True)
+        if p.returncode != 0:
+            mlog.debug(f'Could not compile test file {p.input_name}: {p.returncode}\n')
+            return compilers.RunResult(False)
+        if need_exe_wrapper:
+            cmdlist = self.exe_wrapper.get_command() + [p.output_name]
+        else:
+            cmdlist = [p.output_name]
+        try:
+            pe, so, se = mesonlib.Popen_safe(cmdlist)
+        except Exception as e:
+            mlog.debug(f'Could not run: {cmdlist} (error: {e})\n')
+            return compilers.RunResult(False)
 
         mlog.debug('Program stdout:\n')
         mlog.debug(so)
