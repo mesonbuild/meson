@@ -885,13 +885,34 @@ class LLVMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dyna
         super().__init__(exelist, for_machine, prefix_arg, always_args, version=version)
 
         # Some targets don't seem to support this argument (windows, wasm, ...)
-        _, _, e = mesonlib.Popen_safe(self.exelist + always_args + self._apply_prefix('--allow-shlib-undefined'))
-        # Versions < 9 do not have a quoted argument
-        self.has_allow_shlib_undefined = ('unknown argument: --allow-shlib-undefined' not in e) and ("unknown argument: '--allow-shlib-undefined'" not in e)
+        self.has_allow_shlib_undefined = self._supports_flag('--allow-shlib-undefined', always_args)
+        # These aren't supported by TI Arm Clang
+        self.has_as_needed = self._supports_flag('--as-needed', always_args)
+        self.has_no_undefined = self._supports_flag('--no-undefined', always_args)
+
+    def _supports_flag(self, flag: str, always_args: T.List[str]) -> bool:
+        _, _, e = mesonlib.Popen_safe(self.exelist + always_args + self._apply_prefix(flag))
+        return (
+            # Versions < 9 do not have a quoted argument
+            (f'unknown argument: {flag}' not in e) and
+            (f"unknown argument: '{flag}'" not in e) and
+            # TI Arm Clang uses a different message
+            (f'invalid option:  {flag}' not in e)
+        )
 
     def get_allow_undefined_args(self) -> T.List[str]:
         if self.has_allow_shlib_undefined:
             return self._apply_prefix('--allow-shlib-undefined')
+        return []
+
+    def get_asneeded_args(self) -> T.List[str]:
+        if self.has_as_needed:
+            return self._apply_prefix('--as-needed')
+        return []
+
+    def no_undefined_args(self) -> T.List[str]:
+        if self.has_no_undefined:
+            return self._apply_prefix('--no-undefined')
         return []
 
     def get_thinlto_cache_args(self, path: str) -> T.List[str]:
