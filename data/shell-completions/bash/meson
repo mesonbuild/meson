@@ -469,14 +469,17 @@ _meson-test() {
         # number, can't be completed
         return
         ;;
+
       --wrapper)
         _command_offset $COMP_CWORD
         return
         ;;
+
       --gdb-path | -C)
         _filedir -d
         return
         ;;
+
       --suite | --no-suite)
         for i in "${!COMP_WORDS[@]}"; do
           opt="${COMP_WORDS[i]}"
@@ -488,31 +491,40 @@ _meson-test() {
           esac
           dir=.
         done
-        suites=($(python3 -c 'import sys, json;
+
+        suites=$(meson introspect "$dir" --tests | python3 -c 'import sys, json;
 for test in json.load(sys.stdin):
   for suite in test["suite"]:
     print(suite)
-    ' <<< "$(meson introspect "$dir" --tests)"))
-# TODO
-        COMPREPLY+=($(compgen -W "${suites[*]}" -- "$cur"))
+' 2> /dev/null)
+# TODO - what?
+
+        if [[ $? == 0 ]]; then
+          COMPREPLY+=($(compgen -W "${suites[*]}" -- "$cur"))
+        fi
         return
         ;;
+
       --logbase)
         # free string, can't be completed
         return
         ;;
+
       --num-processes)
         # number, can't be completed
         return
         ;;
+
       -t | --timeout-multiplier)
         # number, can't be completed
         return
         ;;
+
       --setup)
         # TODO
         return
         ;;
+
       --test-args)
         return
         ;;
@@ -528,6 +540,7 @@ for test in json.load(sys.stdin):
       fi
       dir=.
     done
+
     if [ ! -d "$dir/meson-private" ]; then
       _filedir -d
     fi
@@ -542,11 +555,15 @@ for test in json.load(sys.stdin):
       esac
       dir=.
     done
-    tests=($(python3 -c 'import sys, json;
+
+    tests=$(meson introspect "$dir" --tests | python3 -c 'import sys, json;
 for test in json.load(sys.stdin):
   print(test["name"])
-' <<< "$(meson introspect "$dir" --tests)"))
-    COMPREPLY+=($(compgen -W "${tests[*]}" -- "$cur"))
+' 2> /dev/null)
+
+    if [[ $? == 0 ]]; then
+      COMPREPLY+=($(compgen -W "${tests[*]}" -- "$cur"))
+    fi
 
     if [ -z "$cur" ]; then
       COMPREPLY+=($(compgen -P '--' -W '${longopts[*]}' -- "${cur:2}"))
