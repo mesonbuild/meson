@@ -80,7 +80,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         output = self.init(testdir)
 
         # Check if message is not printed to stdout while configuring
-        self.assertNotIn(log_msg, output)
+        self.assertNotIn(log_msg, output or '')
 
         # Check if message is written to the meson log
         mesonlog = self.get_meson_log_raw()
@@ -121,3 +121,46 @@ class PlatformAgnosticTests(BasePlatformTests):
                     '''))
             subprocess.check_call(self.wrap_command + ['update-db'], cwd=testdir)
             self.init(testdir, workdir=testdir)
+
+    def test_subproject_unity_option_off(self):
+        testdir = os.path.join(self.unit_test_dir, '111 unity subprojects')
+        self.init(testdir)
+
+        builddir_path = Path(self.builddir)
+        self.assertFalse((builddir_path / 'mainlib.s.p' / 'mainlib-unity0.c').exists())
+        self.assertFalse((builddir_path / 'mainlib.s.p' / 'mainlib-unity1.c').exists())
+        self.assertFalse((builddir_path / 'subprojects' / 'a' / 'liba.s.p' / 'liba-unity0.c').exists())
+        self.assertFalse((builddir_path / 'subprojects' / 'a' / 'liba.s.p' / 'liba-unity1.c').exists())
+        self.assertTrue((builddir_path / 'subprojects' / 'b' / 'libb.s.p' / 'libb-unity0.c').exists())
+        self.assertTrue((builddir_path / 'subprojects' / 'b' / 'libb.s.p' / 'libb-unity1.c').exists())
+        self.assertFalse((builddir_path / 'subprojects' / 'c' / 'libc.s.p' / 'libc-unity0.c').exists())
+        self.assertFalse((builddir_path / 'subprojects' / 'c' / 'libc.s.p' / 'libc-unity1.c').exists())
+
+    def test_subproject_unity_option_subprojects(self):
+        testdir = os.path.join(self.unit_test_dir, '111 unity subprojects')
+        self.init(testdir, extra_args=['--unity', 'subprojects'])
+
+        builddir_path = Path(self.builddir)
+        self.assertFalse((builddir_path / 'mainlib.s.p' / 'mainlib-unity0.c').exists())
+        self.assertFalse((builddir_path / 'mainlib.s.p' / 'mainlib-unity1.c').exists())
+        self.assertFalse((builddir_path / 'subprojects' / 'a' / 'liba.s.p' / 'liba-unity0.c').exists())
+        self.assertFalse((builddir_path / 'subprojects' / 'a' / 'liba.s.p' / 'liba-unity1.c').exists())
+        self.assertTrue((builddir_path / 'subprojects' / 'b' / 'libb.s.p' / 'libb-unity0.c').exists())
+        self.assertTrue((builddir_path / 'subprojects' / 'b' / 'libb.s.p' / 'libb-unity1.c').exists())
+        self.assertTrue((builddir_path / 'subprojects' / 'c' / 'libc.s.p' / 'libc-unity0.c').exists())
+        self.assertTrue((builddir_path / 'subprojects' / 'c' / 'libc.s.p' / 'libc-unity1.c').exists())
+        
+    def test_subproject_unity_option_on_size_0(self):
+        testdir = os.path.join(self.unit_test_dir, '111 unity subprojects')
+        self.init(testdir, extra_args=['--unity', 'on', '--unity-size', '0'])
+
+        builddir_path = Path(self.builddir)
+        self.assertTrue((builddir_path / 'mainlib.s.p' / 'mainlib-unity0.c').exists())
+        self.assertFalse((builddir_path / 'mainlib.s.p' / 'mainlib-unity1.c').exists())
+        self.assertFalse((builddir_path / 'subprojects' / 'a' / 'liba.s.p' / 'liba-unity0.c').exists())
+        self.assertFalse((builddir_path / 'subprojects' / 'a' / 'liba.s.p' / 'liba-unity1.c').exists())
+        self.assertTrue((builddir_path / 'subprojects' / 'b' / 'libb.s.p' / 'libb-unity0.c').exists())
+        self.assertFalse((builddir_path / 'subprojects' / 'b' / 'libb.s.p' / 'libb-unity1.c').exists())
+        self.assertTrue((builddir_path / 'subprojects' / 'c' / 'libc.s.p' / 'libc-unity0.c').exists())
+        self.assertFalse((builddir_path / 'subprojects' / 'c' / 'libc.s.p' / 'libc-unity1.c').exists())
+        
