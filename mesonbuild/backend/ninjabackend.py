@@ -856,6 +856,10 @@ class NinjaBackend(backends.Backend):
             self.generate_swift_target(target)
             return
 
+        # CompileTarget compiles all its sources and does not do a final link.
+        # This is, for example, a preprocessor.
+        is_compile_target = isinstance(target, build.CompileTarget)
+
         # Preexisting target C/C++ sources to be built; dict of full path to
         # source relative to build root and the original File object.
         target_sources: T.MutableMapping[str, File]
@@ -922,6 +926,8 @@ class NinjaBackend(backends.Backend):
                 obj_list.append(rel_src)
             elif self.environment.is_library(rel_src) or modules.is_module_library(rel_src):
                 pass
+            elif is_compile_target:
+                generated_source_files.append(raw_src)
             else:
                 # Assume anything not specifically a source file is a header. This is because
                 # people generate files with weird suffixes (.inc, .fh) that they then include
@@ -992,7 +998,7 @@ class NinjaBackend(backends.Backend):
 
         # Generate compile targets for all the preexisting sources for this target
         for src in target_sources.values():
-            if not self.environment.is_header(src):
+            if not self.environment.is_header(src) or is_compile_target:
                 if self.environment.is_llvm_ir(src):
                     o, s = self.generate_llvm_ir_compile(target, src)
                     obj_list.append(o)
@@ -1015,7 +1021,7 @@ class NinjaBackend(backends.Backend):
                 obj_list.append(o)
                 compiled_sources.append(s)
                 source2object[s] = o
-        if isinstance(target, build.CompileTarget):
+        if is_compile_target:
             # Skip the link stage for this special type of target
             return
         linker, stdlib_args = self.determine_linker_and_stdlib_args(target)
