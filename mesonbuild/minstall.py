@@ -592,7 +592,7 @@ class Installer:
         self.log(f'Stripping target {fname!r}.')
         if is_osx():
             # macOS expects dynamic objects to be stripped with -x maximum.
-            # To also strip the debug info, -S must be added.
+            # To also strip the debug info, -S must be added.
             # See: https://www.unix.com/man-page/osx/1/strip/
             returncode, stdo, stde = self.Popen_safe(strip_bin + ['-S', '-x', outname])
         else:
