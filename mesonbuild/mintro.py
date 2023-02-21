@@ -146,11 +146,19 @@ def list_install_plan(installdata: backends.InstallData) -> T.Dict[str, T.Dict[s
             if key == 'headers':  # in the headers, install_path_name is the directory
                 install_path_name = os.path.join(install_path_name, os.path.basename(data.path))
 
-            plan[data_type] = plan.get(data_type, {})
-            plan[data_type][data.path] = {
+            entry = {
                 'destination': install_path_name,
                 'tag': data.tag or None,
             }
+
+            if key == 'install_subdirs':
+                exclude_files, exclude_dirs = data.exclude or ([], [])
+                entry['exclude_dirs'] = list(exclude_dirs)
+                entry['exclude_files'] = list(exclude_files)
+
+            plan[data_type] = plan.get(data_type, {})
+            plan[data_type][data.path] = entry
+
     return plan
 
 def get_target_dir(coredata: cdata.CoreData, subdir: str) -> str:
