@@ -17,6 +17,7 @@ import abc
 import contextlib, os.path, re
 import enum
 import itertools
+import subprocess
 import typing as T
 from functools import lru_cache
 from dataclasses import dataclass
@@ -463,18 +464,92 @@ class RunResult(HoldableObject):
         self.stdout = stdout
         self.stderr = stderr
 
-
-@dataclass
 class CompileResult(HoldableObject):
-    """The result of Compiler.compiles (and friends)."""
-    stdout: T.Optional[str]
-    stderr: T.Optional[str]
-    command: T.Optional[T.List[str]]
-    returncode: int = 999
-    input_name: T.Optional[str] = None
-    output_name: T.Optional[str] = None
-    output_dir: T.Optional[TemporaryDirectoryWinProof] = None
-    cached: bool = False
+    """The result of Compiler.compiles (and friends).
+
+    This is a base class that contains only the result and can be pickled into
+    the persistent cache.
+    """
+    def __init__(self, command: T.List[str],
+                 returncode: T.Optional[int] = None,
+                 stdout: T.Optional[str] = None,
+                 stderr: T.Optional[str] = None) -> None:
+        self.command = command
+        self._returncode = returncode
+        self._stdout = stdout
+        self._stderr = stderr
+        self.cached = True
+
+    @property
+    def returncode(self) -> int:
+        self._wait()
+        assert self._returncode is not None
+        return self._returncode
+
+    @property
+    def stdout(self) -> str:
+        self._wait()
+        assert self._stdout is not None
+        return self._stdout
+
+    @property
+    def stderr(self) -> str:
+        self._wait()
+        assert self._stderr is not None
+        return self._stderr
+
+    def _wait(self) -> None:
+        pass
+
+
+class CompileProcess(CompileResult):
+    """A in-progress Compiler.compiles (and friends) process.
+
+    This subclass holds in-progress compilation and blocks only when the result
+    is actually needed. This allows having multiple compilations running in
+    parallel.
+    """
+    def __init__(self, command: T.List[str], input_name: str, output_name: str,
+                 output_dir: TemporaryDirectoryWinProof, process: subprocess.Popen,
+                 code: str) -> None:
+        super().__init__(command)
+        self.input_name = input_name
+        self._output_name = output_name
+        self.output_dir = output_dir
+        self.process = process
+        self.code = code
+        self.cached = False
+        self._finished = False
+        self._cdata: T.Optional[coredata.CoreData] = None
+        self._key: T.Optional['coredata.CompilerCheckCacheKey'] = None
+
+    @property
+    def output_name(self) -> str:
+        self._wait()
+        return self._output_name
+
+    def set_cache_info(self, cdata: coredata.CoreData, key: 'coredata.CompilerCheckCacheKey') -> None:
+        self._cdata = cdata
+        self._key = key
+
+    def _wait(self) -> None:
+        if self._finished:
+            return
+        self._finished = True
+        self._stdout, self._stderr = self.process.communicate()
+        self._returncode = self.process.returncode
+        if self._cdata and self._key:
+            # Now that the result is known, we can save it into the persistent
+            # cache. Make a copy containing only needed information that can be
+            # pickled.
+            cached = CompileResult(self.command, self._returncode, self._stdout, self._stderr)
+            self._cdata.compiler_check_cache[self._key] = cached
+        mlog.debug('Running compile:')
+        mlog.debug('Working directory: ', self.output_dir.name)
+        mlog.debug('Command line: ', ' '.join(self.command), '\n')
+        mlog.debug('Code:\n', self.code)
+        mlog.debug('Compiler stdout:\n', self._stdout)
+        mlog.debug('Compiler stderr:\n', self._stderr)
 
 
 class Compiler(HoldableObject, metaclass=abc.ABCMeta):
@@ -561,8 +636,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
 
     def get_define(self, dname: str, prefix: str, env: 'Environment',
                    extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]]],
-                   dependencies: T.List['Dependency'],
-                   disable_cache: bool = False) -> T.Tuple[str, bool]:
+                   dependencies: T.List['Dependency']) -> T.Tuple[str, bool]:
         raise EnvironmentException('%s does not support get_define ' % self.get_id())
 
     def compute_int(self, expression: str, low: T.Optional[int], high: T.Optional[int],
@@ -768,13 +842,12 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         """Return an appropriate CompilerArgs instance for this class."""
         return CompilerArgs(self, args)
 
-    def compile(self, code: 'mesonlib.FileOrString',
-                extra_args: T.Union[None, CompilerArgs, T.List[str]] = None,
-                *, mode: str = 'link', want_output: bool = False,
-                temp_dir: T.Optional[str] = None) -> T.Optional[CompileResult]:
-        if extra_args is None:
-            extra_args = []
-
+    def compile(self, code: 'mesonlib.FileOrString', env: T.Optional['Environment'] = None,
+                extra_args: T.Union[None, CompilerArgs, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
+                dependencies: T.Optional[T.List['Dependency']] = None,
+                mode: str = 'link') -> CompileProcess:
+        extra_args = self.build_wrapper_args(env, extra_args, dependencies, CompileCheckMode(mode))
+        temp_dir = env.scratch_dir if env else None
         tmpdirname = TemporaryDirectoryWinProof(dir=temp_dir)
         no_ccache = False
         if isinstance(code, str):
@@ -803,39 +876,29 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         # extra_args must be last because it could contain '/link' to
         # pass args to VisualStudio's linker. In that case everything
         # in the command line after '/link' is given to the linker.
-        if extra_args:
-            commands += extra_args
+        commands += extra_args
         # Generate full command-line with the exelist
         command_list = self.get_exelist(ccache=not no_ccache) + commands.to_native()
-        mlog.debug('Running compile:')
-        mlog.debug('Working directory: ', tmpdirname.name)
-        mlog.debug('Command line: ', ' '.join(command_list), '\n')
-        mlog.debug('Code:\n', contents)
         os_env = os.environ.copy()
         os_env['LC_ALL'] = 'C'
         if no_ccache:
             os_env['CCACHE_DISABLE'] = '1'
-        p, stdo, stde = Popen_safe(command_list, cwd=tmpdirname.name, env=os_env)
-        mlog.debug('Compiler stdout:\n', stdo)
-        mlog.debug('Compiler stderr:\n', stde)
-        result = CompileResult(stdo, stde, command_list, p.returncode, input_name=srcname)
-        if want_output:
-            result.output_name = output
-            result.output_dir = tmpdirname
-        return result
+        p = subprocess.Popen(command_list, cwd=tmpdirname.name, env=os_env,
+                             universal_newlines=True,
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        return CompileProcess(command_list, srcname, output, tmpdirname, p, contents)
 
-    def cached_compile(self, code: 'mesonlib.FileOrString', cdata: coredata.CoreData, *,
-                       extra_args: T.Union[None, T.List[str], CompilerArgs] = None,
-                       mode: str = 'link',
-                       temp_dir: T.Optional[str] = None) -> T.Optional[CompileResult]:
+    def cached_compile(self, code: 'mesonlib.FileOrString', env: 'Environment',
+                       extra_args: T.Union[None, CompilerArgs, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
+                       dependencies: T.Optional[T.List['Dependency']] = None,
+                       mode: str = 'link') -> CompileResult:
         # Calculate the key
-        textra_args = tuple(extra_args) if extra_args is not None else tuple()  # type: T.Tuple[str, ...]
-        key = (tuple(self.exelist), self.version, code, textra_args, mode)  # type: coredata.CompilerCheckCacheKey
+        args = self.build_wrapper_args(env, extra_args, dependencies, CompileCheckMode(mode))
+        key: 'coredata.CompilerCheckCacheKey' = (tuple(self.exelist), self.version, code, tuple(args), mode)
 
         # Check if not cached, and generate, otherwise get from the cache
-        if key in cdata.compiler_check_cache:
-            p = cdata.compiler_check_cache[key]
-            p.cached = True
+        p = env.coredata.compiler_check_cache.get(key)
+        if p is not None:
             mlog.debug('Using cached compile:')
             mlog.debug('Cached command line: ', ' '.join(p.command), '\n')
             mlog.debug('Code:\n', code)
@@ -843,8 +906,8 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             mlog.debug('Cached compiler stderr:\n', p.stderr)
             return p
         else:
-            p = self.compile(code, extra_args=extra_args, mode=mode, want_output=False, temp_dir=temp_dir)
-            cdata.compiler_check_cache[key] = p
+            p = self.compile(code, env, extra_args, dependencies, mode)
+            p.set_cache_info(env.coredata, key)
             return p
 
     def get_colorout_args(self, colortype: str) -> T.List[str]:
@@ -1181,7 +1244,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         """Arguments to the compiler to turn off all optimizations."""
         return []
 
-    def build_wrapper_args(self, env: 'Environment',
+    def build_wrapper_args(self, env: T.Optional['Environment'],
                            extra_args: T.Union[None, CompilerArgs, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]],
                            dependencies: T.Optional[T.List['Dependency']],
                            mode: CompileCheckMode = CompileCheckMode.COMPILE) -> CompilerArgs:
@@ -1208,49 +1271,34 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                 # Add link flags needed to find dependencies
                 args += d.get_link_args()
 
-        if mode is CompileCheckMode.COMPILE:
+        if env and mode is CompileCheckMode.COMPILE:
             # Add DFLAGS from the env
             args += env.coredata.get_external_args(self.for_machine, self.language)
-        elif mode is CompileCheckMode.LINK:
+        elif env and mode is CompileCheckMode.LINK:
             # Add LDFLAGS from the env
             args += env.coredata.get_external_link_args(self.for_machine, self.language)
         # extra_args must override all other arguments, so we add them last
         args += extra_args
         return args
 
-    def _build_wrapper(self, code: 'mesonlib.FileOrString', env: 'Environment',
-                       extra_args: T.Union[None, CompilerArgs, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
-                       dependencies: T.Optional[T.List['Dependency']] = None,
-                       mode: str = 'compile', want_output: bool = False,
-                       disable_cache: bool = False,
-                       temp_dir: str = None) -> T.Optional[CompileResult]:
-        """Helper for getting a cacched value when possible.
-
-        This method isn't meant to be called externally, it's mean to be
-        wrapped by other methods like compiles() and links().
-        """
-        args = self.build_wrapper_args(env, extra_args, dependencies, CompileCheckMode(mode))
-        if disable_cache or want_output:
-            return self.compile(code, extra_args=args, mode=mode, want_output=want_output, temp_dir=env.scratch_dir)
-        else:
-            return self.cached_compile(code, env.coredata, extra_args=args, mode=mode, temp_dir=env.scratch_dir)
-
     def compiles(self, code: 'mesonlib.FileOrString', env: 'Environment', *,
                  extra_args: T.Union[None, T.List[str], CompilerArgs, T.Callable[[CompileCheckMode], T.List[str]]] = None,
                  dependencies: T.Optional[T.List['Dependency']] = None,
                  mode: str = 'compile',
                  disable_cache: bool = False) -> T.Tuple[bool, bool]:
-        p = self._build_wrapper(code, env, extra_args, dependencies, mode, disable_cache=disable_cache)
+        if disable_cache:
+            p: CompileResult = self.compile(code, env, extra_args, dependencies, mode)
+        else:
+            p = self.cached_compile(code, env, extra_args, dependencies, mode)
         return p.returncode == 0, p.cached
 
     def links(self, code: 'mesonlib.FileOrString', env: 'Environment', *,
               compiler: T.Optional['Compiler'] = None,
               extra_args: T.Union[None, T.List[str], CompilerArgs, T.Callable[[CompileCheckMode], T.List[str]]] = None,
               dependencies: T.Optional[T.List['Dependency']] = None,
-              mode: str = 'compile',
               disable_cache: bool = False) -> T.Tuple[bool, bool]:
         if compiler:
-            r = compiler._build_wrapper(code, env, dependencies=dependencies, want_output=True)
+            r = compiler.compile(code, env, dependencies=dependencies)
             objfile = mesonlib.File.from_absolute_file(r.output_name)
             return self.compiles(objfile, env, extra_args=extra_args,
                                  dependencies=dependencies, mode='link', disable_cache=True)

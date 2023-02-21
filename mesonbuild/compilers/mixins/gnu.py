@@ -460,9 +460,7 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     @functools.lru_cache()
     def _get_search_dirs(self, env: 'Environment') -> str:
         extra_args = ['--print-search-dirs']
-        p = self._build_wrapper('', env, extra_args=extra_args,
-                                dependencies=None, mode='compile',
-                                want_output=True)
+        p = self.cached_compile('', env, extra_args=extra_args)
         return p.stdout
 
     def _split_fetch_real_dirs(self, pathstr: str) -> T.List[str]:
@@ -613,7 +611,7 @@ class GnuCompiler(GnuLikeCompiler):
         # For some compiler command line arguments, the GNU compilers will
         # emit a warning on stderr indicating that an option is valid for a
         # another language, but still complete with exit_success
-        p = self._build_wrapper(code, env, args, None, mode)
+        p = self.cached_compile(code, env, args, mode=mode)
         result = p.returncode == 0
         if self.language in {'cpp', 'objcpp'} and 'is valid for C/ObjC' in p.stderr:
             result = False

@@ -475,7 +475,7 @@ class CLikeCompiler(Compiler):
         need_exe_wrapper = env.need_exe_wrapper(self.for_machine)
         if need_exe_wrapper and self.exe_wrapper is None:
             raise compilers.CrossNoRunException('Can not run test applications in this cross environment.')
-        p = self._build_wrapper(code, env, extra_args, dependencies, mode='link', want_output=True)
+        p = self.compile(code, env, extra_args, dependencies, mode='link')
         if p.returncode != 0:
             mlog.debug(f'Could not compile test file {p.input_name}: {p.returncode}\n')
             return compilers.RunResult(False)
@@ -665,8 +665,7 @@ class CLikeCompiler(Compiler):
 
     def get_define(self, dname: str, prefix: str, env: 'Environment',
                    extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]]],
-                   dependencies: T.Optional[T.List['Dependency']],
-                   disable_cache: bool = False) -> T.Tuple[str, bool]:
+                   dependencies: T.Optional[T.List['Dependency']]) -> T.Tuple[str, bool]:
         delim = '"MESON_GET_DEFINE_DELIMITER"'
         code = f'''
         {prefix}
@@ -674,12 +673,7 @@ class CLikeCompiler(Compiler):
         # define {dname}
         #endif
         {delim}\n{dname}'''
-        args = self.build_wrapper_args(env, extra_args, dependencies,
-                                       mode=CompileCheckMode.PREPROCESS).to_native()
-        if disable_cache:
-            p = self.compile(code, extra_args=args, mode='preprocess', temp_dir=env.scratch_dir)
-        else:
-            p = self.cached_compile(code, env.coredata, extra_args=args, mode='preprocess')
+        p = self.cached_compile(code, env, extra_args, dependencies, 'preprocess')
         if p.returncode != 0:
              raise mesonlib.EnvironmentException(f'Could not get define {dname!r}')
         # Get the preprocessed value after the delimiter,
@@ -916,7 +910,7 @@ class CLikeCompiler(Compiler):
         '''
         args = self.get_compiler_check_args(CompileCheckMode.COMPILE)
         n = '_symbols_have_underscore_prefix_searchbin'
-        p = self._build_wrapper(code, env, extra_args=args, mode='compile', want_output=True, temp_dir=env.scratch_dir)
+        p = self.compile(code, env, extra_args=args, mode='compile')
         if p.returncode != 0:
             raise RuntimeError(f'BUG: Unable to compile {n!r} check: {p.stderr}')
         if not os.path.isfile(p.output_name):
@@ -951,7 +945,7 @@ class CLikeCompiler(Compiler):
         #endif
         {delim}MESON_UNDERSCORE_PREFIX
         '''
-        p = self._build_wrapper(code, env, mode='preprocess', want_output=False, temp_dir=env.scratch_dir)
+        p = self.cached_compile(code, env, mode='preprocess')
         if p.returncode != 0:
             raise RuntimeError(f'BUG: Unable to preprocess _symbols_have_underscore_prefix_define check: {p.stdout}')
         symbol_prefix = p.stdout.partition(delim)[-1].rstrip()

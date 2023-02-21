@@ -713,7 +713,7 @@ class DCompiler(Compiler):
         if need_exe_wrapper and self.exe_wrapper is None:
             raise compilers.CrossNoRunException('Can not run test applications in this cross environment.')
         extra_args = self._get_compile_extra_args(extra_args)
-        p = self._build_wrapper(code, env, extra_args, dependencies, mode='link', want_output=True)
+        p = self.compile(code, env, extra_args, dependencies, mode='link')
         if p.returncode != 0:
             mlog.debug(f'Could not compile test file {p.input_name}: {p.returncode}\n')
             return compilers.RunResult(False)

@@ -50,7 +50,7 @@ class CythonCompiler(Compiler):
 
     def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
         code = 'print("hello world")'
-        p = self.cached_compile(code, environment.coredata)
+        p = self.cached_compile(code, environment)
         if p.returncode != 0:
             raise EnvironmentException(f'Cython compiler {self.id!r} cannot compile programs')
 
