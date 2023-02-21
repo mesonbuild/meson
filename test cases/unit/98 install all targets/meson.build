@@ -94,6 +94,12 @@ install_subdir('custom_files',
   install_dir: get_option('datadir'),
   install_tag: 'custom',
 )
+install_subdir('excludes',
+  install_dir: get_option('datadir'),
+  install_tag: 'custom',
+  exclude_directories: 'excluded',
+  exclude_files: 'excluded.txt',
+)
 
 # First is custom, 2nd is devel, 3rd has no tag
 custom_target('ct3',

@@ -4235,6 +4235,8 @@ class AllPlatformTests(BasePlatformTests):
             Path(installpath, 'usr/share/out3-custom.txt'),
             Path(installpath, 'usr/share/custom_files'),
             Path(installpath, 'usr/share/custom_files/data.txt'),
+            Path(installpath, 'usr/share/excludes'),
+            Path(installpath, 'usr/share/excludes/installed.txt'),
             Path(installpath, 'usr/lib'),
             Path(installpath, 'usr/lib/libbothcustom.a'),
             Path(installpath, 'usr/' + shared_lib_name('bothcustom')),
@@ -4442,7 +4444,15 @@ class AllPlatformTests(BasePlatformTests):
             'install_subdirs': {
                 f'{testdir}/custom_files': {
                     'destination': '{datadir}/custom_files',
-                    'tag': 'custom'
+                    'tag': 'custom',
+                    'exclude_dirs': [],
+                    'exclude_files': [],
+                },
+                f'{testdir}/excludes': {
+                    'destination': '{datadir}/excludes',
+                    'tag': 'custom',
+                    'exclude_dirs': ['excluded'],
+                    'exclude_files': ['excluded.txt'],
                 }
             }
         }
