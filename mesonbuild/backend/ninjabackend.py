@@ -1787,7 +1787,7 @@ class NinjaBackend(backends.Backend):
         arg_itr: T.Iterator[str] = iter(args)
         for arg in arg_itr:
             if arg == '--cfg':
-                cfg.append(next(arg))
+                cfg.append(next(arg_itr))
             elif arg.startswith('--cfg'):
                 cfg.append(arg[len('--cfg'):])
 
