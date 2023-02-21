@@ -2044,6 +2044,7 @@ class AllPlatformTests(BasePlatformTests):
         self.assertFalse(os.path.isfile(promoted_wrap))
         subprocess.check_call(self.wrap_command + ['promote', 'athing'], cwd=workdir)
         self.assertTrue(os.path.isfile(promoted_wrap))
+        self.new_builddir()  # Ensure builddir is not parent or workdir
         self.init(workdir)
         self.build()
 

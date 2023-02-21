@@ -163,6 +163,13 @@ class MesonApp:
 
     def validate_dirs(self, dir1: str, dir2: str, reconfigure: bool, wipe: bool) -> T.Tuple[str, str]:
         (src_dir, build_dir) = self.validate_core_dirs(dir1, dir2)
+
+        try:
+            if os.path.commonpath((src_dir, build_dir)) == build_dir:
+                raise SystemExit(f'builddir {build_dir} cannot be a parent of sourcedir {src_dir}')
+        except ValueError:
+            pass  # paths on different drives
+
         self.add_vcs_ignore_files(build_dir)
         priv_dir = os.path.join(build_dir, 'meson-private/coredata.dat')
         if os.path.exists(priv_dir):
