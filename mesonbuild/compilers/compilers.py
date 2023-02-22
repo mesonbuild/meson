@@ -365,10 +365,10 @@ def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler') 
     except KeyError:
         pass
     try:
-        if (options[OptionKey('b_ndebug')].value == 'true' or
-                (options[OptionKey('b_ndebug')].value == 'if-release' and
-                 options[OptionKey('buildtype')].value in {'release', 'plain'})):
-            args += compiler.get_disable_assert_args()
+        disable = (options[OptionKey('b_ndebug')].value == 'true' or
+                   (options[OptionKey('b_ndebug')].value == 'if-release' and
+                    options[OptionKey('buildtype')].value in {'release', 'plain'}))
+        args += compiler.get_assert_args(disable)
     except KeyError:
         pass
     # This does not need a try...except
@@ -1071,7 +1071,12 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def get_coverage_link_args(self) -> T.List[str]:
         return self.linker.get_coverage_args()
 
-    def get_disable_assert_args(self) -> T.List[str]:
+    def get_assert_args(self, disable: bool) -> T.List[str]:
+        """Get arguments to enable or disable assertion.
+
+        :param disable: Whether to disable assertions
+        :return: A list of string arguments for this compiler
+        """
         return []
 
     def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:

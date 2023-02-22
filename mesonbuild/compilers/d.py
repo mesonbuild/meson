@@ -855,8 +855,10 @@ class GnuDCompiler(GnuCompiler, DCompiler):
             return args
         return args + ['-shared-libphobos']
 
-    def get_disable_assert_args(self) -> T.List[str]:
-        return ['-frelease']
+    def get_assert_args(self, disable: bool) -> T.List[str]:
+        if disable:
+            return ['-frelease']
+        return []
 
 # LDC uses the DMD frontend code to parse and analyse the code.
 # It then uses LLVM for the binary code generation and optimizations.
@@ -927,8 +929,10 @@ class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
             return args
         return args + ['-link-defaultlib-shared']
 
-    def get_disable_assert_args(self) -> T.List[str]:
-        return ['--release']
+    def get_assert_args(self, disable: bool) -> T.List[str]:
+        if disable:
+            return ['--release']
+        return []
 
     def rsp_file_syntax(self) -> RSPFileSyntax:
         # We use `mesonlib.is_windows` here because we want to know what the
@@ -1015,8 +1019,10 @@ class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
             return args
         return args + ['-defaultlib=phobos2', '-debuglib=phobos2']
 
-    def get_disable_assert_args(self) -> T.List[str]:
-        return ['-release']
+    def get_assert_args(self, disable: bool) -> T.List[str]:
+        if disable:
+            return ['-release']
+        return []
 
     def rsp_file_syntax(self) -> RSPFileSyntax:
         return RSPFileSyntax.MSVC
