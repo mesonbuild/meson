@@ -334,6 +334,17 @@ def get_option_value(options: 'KeyedOptionDictType', opt: OptionKey, fallback: '
     return v
 
 
+def are_asserts_disabled(options: KeyedOptionDictType) -> bool:
+    """Should debug assertions be disabled
+
+    :param options: OptionDictionary
+    :return: whether to disable assertions or not
+    """
+    return (options[OptionKey('b_ndebug')].value == 'true' or
+            (options[OptionKey('b_ndebug')].value == 'if-release' and
+             options[OptionKey('buildtype')].value in {'release', 'plain'}))
+
+
 def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler') -> T.List[str]:
     args = []  # type T.List[str]
     try:
@@ -365,10 +376,7 @@ def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler') 
     except KeyError:
         pass
     try:
-        disable = (options[OptionKey('b_ndebug')].value == 'true' or
-                   (options[OptionKey('b_ndebug')].value == 'if-release' and
-                    options[OptionKey('buildtype')].value in {'release', 'plain'}))
-        args += compiler.get_assert_args(disable)
+        args += compiler.get_assert_args(are_asserts_disabled(options))
     except KeyError:
         pass
     # This does not need a try...except
