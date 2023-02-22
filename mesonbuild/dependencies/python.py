@@ -70,7 +70,7 @@ class BasicPythonExternalProgram(ExternalProgram):
             'link_libpython': False,
             'sysconfig_paths': {},
             'paths': {},
-            'platform': 'sentinal',
+            'platform': 'sentinel',
             'suffix': 'sentinel',
             'variables': {},
             'version': '0.0',
