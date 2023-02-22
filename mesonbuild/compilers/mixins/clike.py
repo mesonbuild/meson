@@ -1332,8 +1332,10 @@ class CLikeCompiler(Compiler):
         return self.compiles(self.attribute_check_func(name), env,
                              extra_args=self.get_has_func_attribute_extra_args(name))
 
-    def get_disable_assert_args(self) -> T.List[str]:
-        return ['-DNDEBUG']
+    def get_assert_args(self, disable: bool) -> T.List[str]:
+        if disable:
+            return ['-DNDEBUG']
+        return []
 
     @functools.lru_cache(maxsize=None)
     def can_compile(self, src: 'mesonlib.FileOrString') -> bool:
