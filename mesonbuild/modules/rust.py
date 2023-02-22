@@ -19,6 +19,7 @@ import typing as T
 from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from .. import mlog
 from ..build import BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList, IncludeDirs, CustomTarget, StructuredSources
+from ..compilers.compilers import are_asserts_disabled
 from ..dependencies import Dependency, ExternalLibrary
 from ..interpreter.type_checking import DEPENDENCIES_KW, TEST_KWS, OUTPUT_KW, INCLUDE_DIRECTORIES
 from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noPosargs
@@ -198,6 +199,8 @@ class RustModule(ExtensionModule):
             # bindgen always uses clang, so it's safe to hardcode -I here
             clang_args.extend([f'-I{x}' for x in i.to_string_list(
                 state.environment.get_source_dir(), state.environment.get_build_dir())])
+        if are_asserts_disabled(state.environment.coredata.options):
+            clang_args.append('-DNDEBUG')
 
         for de in kwargs['dependencies']:
             for i in de.get_include_dirs():
