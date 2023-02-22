@@ -125,10 +125,14 @@ class EnvironmentVariables(HoldableObject):
         curr = env.get(name, default_value)
         return separator.join(values if curr is None else values + [curr])
 
-    def get_env(self, full_env: EnvironOrDict, default_fmt: T.Optional[str] = None) -> T.Dict[str, str]:
+    def get_env(self, full_env: EnvironOrDict, default_fmt: T.Optional[str] = None,
+                relocate_from: T.Optional[str] = None,
+                relocate_to: T.Optional[str] = None) -> T.Dict[str, str]:
         env = full_env.copy()
         for method, name, values, separator in self.envvars:
             default_value = default_fmt.format(name) if default_fmt else None
+            if relocate_from and relocate_to:
+                values = [relocate_to + i[len(relocate_from):] for i in values if i.startswith(relocate_from)]
             env[name] = method(env, name, values, separator, default_value)
         return env
 

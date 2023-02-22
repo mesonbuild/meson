@@ -29,6 +29,8 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('--dump-format', default='export',
                         choices=['sh', 'export', 'vscode'],
                         help='Format used with --dump (Since 1.1.0)')
+    parser.add_argument('--relocate', default=None,
+                        help='Replace all paths starting with the source directory with a new prefix (Since 1.1.0)')
     parser.add_argument('devcmd', nargs=argparse.REMAINDER, metavar='command',
                         help='Command to run in developer environment (default: interactive shell)')
 
@@ -54,7 +56,7 @@ def reduce_winepath(env: T.Dict[str, str]) -> None:
     env['WINEPATH'] = get_wine_shortpath([winecmd], winepath.split(';'))
     mlog.log('Meson detected wine and has set WINEPATH accordingly')
 
-def get_env(b: build.Build, dump_fmt: T.Optional[str]) -> T.Tuple[T.Dict[str, str], T.Set[str]]:
+def get_env(b: build.Build, dump_fmt: T.Optional[str], relocate: T.Optional[str]) -> T.Tuple[T.Dict[str, str], T.Set[str]]:
     extra_env = build.EnvironmentVariables()
     extra_env.set('MESON_DEVENV', ['1'])
     extra_env.set('MESON_PROJECT_NAME', [b.project_name])
@@ -67,7 +69,7 @@ def get_env(b: build.Build, dump_fmt: T.Optional[str]) -> T.Tuple[T.Dict[str, st
     default_fmt = '${0}' if dump_fmt in {'sh', 'export'} else None
     varnames = set()
     for i in itertools.chain(b.devenv, {extra_env}):
-        env = i.get_env(env, default_fmt)
+        env = i.get_env(env, default_fmt, b.environment.source_dir, relocate)
         varnames |= i.get_names()
 
     reduce_winepath(env)
@@ -159,9 +161,14 @@ def run(options: argparse.Namespace) -> int:
     b = build.load(options.builddir)
     workdir = options.workdir or options.builddir
 
+    sourcedir = Path(b.environment.source_dir)
+    builddir = Path(b.environment.build_dir)
+    if options.relocate and sourcedir not in builddir.parents:
+        raise MesonException('--relocate requires build directory to be contained in source directory')
+
     setup_vsenv(b.need_vsenv)  # Call it before get_env to get vsenv vars as well
     dump_fmt = options.dump_format if options.dump else None
-    devenv, varnames = get_env(b, dump_fmt)
+    devenv, varnames = get_env(b, dump_fmt, options.relocate)
     if options.dump:
         if options.devcmd:
             raise MesonException('--dump option does not allow running other command.')
