@@ -20,13 +20,15 @@ tests and so on. All output is in JSON for simple parsing.
 Currently only works for the Ninja backend. Others use generated
 project files and don't need this info."""
 
+from contextlib import redirect_stdout
 import collections
 import json
 import os
 from pathlib import Path, PurePath
+import sys
 import typing as T
 
-from . import build, mesonlib, mlog, coredata as cdata
+from . import build, mesonlib, coredata as cdata
 from .ast import IntrospectionInterpreter, BUILD_TARGET_FUNCTIONS, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstJSONPrinter
 from .backend import backends
 from .mesonlib import OptionKey
@@ -461,13 +463,12 @@ def run(options: argparse.Namespace) -> int:
 
     if 'meson.build' in [os.path.basename(options.builddir), options.builddir]:
         # Make sure that log entries in other parts of meson don't interfere with the JSON output
-        mlog.disable()
-        backend = backends.get_backend_from_name(options.backend)
-        assert backend is not None
-        intr = IntrospectionInterpreter(sourcedir, '', backend.name, visitors = [AstIDGenerator(), AstIndentationGenerator(), AstConditionLevel()])
-        intr.analyze()
-        # Re-enable logging just in case
-        mlog.enable()
+        with redirect_stdout(sys.stderr):
+            backend = backends.get_backend_from_name(options.backend)
+            assert backend is not None
+            intr = IntrospectionInterpreter(sourcedir, '', backend.name, visitors = [AstIDGenerator(), AstIndentationGenerator(), AstConditionLevel()])
+            intr.analyze()
+
         for key, val in intro_types.items():
             if (not options.all and not getattr(options, key, False)) or not val.no_bd:
                 continue
