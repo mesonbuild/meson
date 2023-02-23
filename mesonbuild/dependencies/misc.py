@@ -61,6 +61,27 @@ def netcdf_factory(env: 'Environment',
 packages['netcdf'] = netcdf_factory
 
 
+class AtomicBuiltinDependency(BuiltinDependency):
+    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]):
+        super().__init__(name, env, kwargs)
+        self.feature_since = ('1.3.0', "consider checking for `atomic_flag_clear` with and without `find_library('atomic')`")
+
+        if self.clib_compiler.has_function('atomic_flag_clear', '#include <stdatomic.h>', env)[0]:
+            self.is_found = True
+
+
+class AtomicSystemDependency(SystemDependency):
+    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]):
+        super().__init__(name, env, kwargs)
+        self.feature_since = ('1.3.0', "consider checking for `atomic_flag_clear` with and without `find_library('atomic')`")
+
+        h = self.clib_compiler.has_header('stdatomic.h', '', env)
+        self.link_args = self.clib_compiler.find_library('atomic', env, [], self.libtype)
+
+        if h[0] and self.link_args:
+            self.is_found = True
+
+
 class DlBuiltinDependency(BuiltinDependency):
     def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]):
         super().__init__(name, env, kwargs)
@@ -534,6 +555,13 @@ def shaderc_factory(env: 'Environment',
     return candidates
 packages['shaderc'] = shaderc_factory
 
+
+packages['atomic'] = atomic_factory = DependencyFactory(
+    'atomic',
+    [DependencyMethods.BUILTIN, DependencyMethods.SYSTEM],
+    builtin_class=AtomicBuiltinDependency,
+    system_class=AtomicSystemDependency,
+)
 
 packages['cups'] = cups_factory = DependencyFactory(
     'cups',
