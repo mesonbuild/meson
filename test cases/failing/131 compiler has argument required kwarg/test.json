@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+        "line": "test cases/failing/131 compiler has argument required kwarg/meson.build:4:3: ERROR: C argument -asdfjkl; not found"
+    }
+  ]
+}

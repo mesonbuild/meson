@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+        "line": "test cases/failing/130 compiler has function required kwarg/meson.build:4:3: ERROR: C function asdfjkl; not found"
+    }
+  ]
+}

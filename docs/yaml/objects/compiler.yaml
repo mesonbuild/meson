@@ -118,6 +118,26 @@ methods:
     - compiler._no_builtin_args
     - compiler._prefix
 
+- name: _common_required
+  returns: void
+  description: You have found a bug if you can see this!
+  kwargs_inherit:
+    - compiler._args
+    - compiler._include_directories
+    - compiler._dependencies
+    - compiler._no_builtin_args
+    - compiler._prefix
+  kwargs:
+    required:
+      type: bool | feature
+      default: false
+      since: 1.1.0
+      description:
+        When set to `true`, Meson will halt if the check fails.
+
+        When set to a [`feature`](Build-options.md#features) option, the feature
+        will control if it is searched and whether to fail if not found.
+
 - name: _compiles
   returns: void
   description: You have found a bug if you can see this!
@@ -139,6 +159,20 @@ methods:
       since: 0.50.0
       description:
         When set to `true`, Meson will halt if the header check fails.
+
+        When set to a [`feature`](Build-options.md#features) option, the feature
+        will control if it is searched and whether to fail if not found.
+
+- name: _only_required
+  returns: void
+  description: You have found a bug if you can see this!
+  kwargs:
+    required:
+      type: bool | feature
+      default: false
+      since: 1.1.0
+      description:
+        When set to `true`, Meson will halt if the check fails.
 
         When set to a [`feature`](Build-options.md#features) option, the feature
         will control if it is searched and whether to fail if not found.
@@ -196,7 +230,7 @@ methods:
 - name: has_member
   returns: bool
   description: Returns true if the type has the specified member.
-  kwargs_inherit: compiler._common
+  kwargs_inherit: compiler._common_required
   posargs:
     typename:
       type: str
@@ -208,7 +242,7 @@ methods:
 - name: has_members
   returns: bool
   description: Returns `true` if the type has *all* the specified members.
-  kwargs_inherit: compiler._common
+  kwargs_inherit: compiler._common_required
   posargs:
     typename:
       type: str
@@ -225,7 +259,7 @@ methods:
     Returns true if the given function is provided
     by the standard library or a library passed in with the `args` keyword.
 
-  kwargs_inherit: compiler._common
+  kwargs_inherit: compiler._common_required
   posargs:
     funcname:
       type: str
@@ -234,7 +268,7 @@ methods:
 - name: has_type
   returns: bool
   description: Returns `true` if the specified token is a type.
-  kwargs_inherit: compiler._common
+  kwargs_inherit: compiler._common_required
   posargs:
     typename:
       type: str
@@ -452,6 +486,7 @@ methods:
     Returns `true` if the compiler accepts the specified command line argument,
     that is, can compile code without erroring out or printing a warning about
     an unknown flag.
+  kwargs_inherit: compiler._only_required
 
   posargs:
     argument:
@@ -464,6 +499,7 @@ methods:
   description: |
     the same as [[compiler.has_argument]] but takes multiple arguments
     and uses them all in a single compiler invocation.
+  kwargs_inherit: compiler._only_required
 
   varargs:
     name: arg
@@ -510,6 +546,7 @@ methods:
     about an unknown flag. Link arguments will be passed to the
     compiler, so should usually have the `-Wl,` prefix. On VisualStudio
     a `/link` argument will be prepended.
+  kwargs_inherit: compiler._only_required
 
   posargs:
     argument:
@@ -522,6 +559,7 @@ methods:
   description: |
     the same as [[compiler.has_link_argument]] but takes multiple arguments
     and uses them all in a single compiler invocation.
+  kwargs_inherit: compiler._only_required
 
   varargs:
     name: arg
@@ -568,6 +606,7 @@ methods:
     This is preferable to manual compile checks as it may be optimized for compilers that
     do not support such attributes.
     [This table](Reference-tables.md#gcc-__attribute__) lists all of the supported attributes.
+  kwargs_inherit: compiler._only_required
 
   posargs:
     name:

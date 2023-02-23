@@ -65,7 +65,7 @@ if T.TYPE_CHECKING:
         high: T.Optional[int]
         low: T.Optional[int]
 
-    class HeaderKW(CommonKW, ExtractRequired):
+    class CommonRequiredKW(CommonKW, ExtractRequired):
         pass
 
     class FindLibraryKW(ExtractRequired, ExtractSearchDirs):
@@ -74,7 +74,7 @@ if T.TYPE_CHECKING:
         has_headers: T.List[str]
         static: bool
 
-        # This list must be all of the `HeaderKW` values with `header_`
+        # This list must be all of the `CommonRequiredKW` values with `header_`
         # prepended to the key
         header_args: T.List[str]
         header_dependencies: T.List[dependencies.Dependency]
@@ -82,6 +82,9 @@ if T.TYPE_CHECKING:
         header_no_builtin_args: bool
         header_prefix: str
         header_required: T.Union[bool, coredata.UserFeatureOption]
+
+    class OnlyRequiredKW(ExtractRequired):
+        pass
 
     class PreprocessKW(TypedDict):
         output: str
@@ -164,6 +167,8 @@ _COMMON_KWS: T.List[KwargInfo] = [_ARGS_KW, _DEPENDENCIES_KW, _INCLUDE_DIRS_KW, 
 _COMPILES_KWS: T.List[KwargInfo] = [_NAME_KW, _ARGS_KW, _DEPENDENCIES_KW, _INCLUDE_DIRS_KW, _NO_BUILTIN_ARGS_KW]
 
 _HEADER_KWS: T.List[KwargInfo] = [REQUIRED_KW.evolve(since='0.50.0', default=False), *_COMMON_KWS]
+_COMMON_REQUIRED_KWS: T.List[KwargInfo] = [REQUIRED_KW.evolve(since='1.1.0', default=False), *_COMMON_KWS]
+_ONLY_REQUIRED_KWS = REQUIRED_KW.evolve(since='1.1.0', default=False)
 
 class CompilerHolder(ObjectHolder['Compiler']):
     preprocess_uid = itertools.count()
@@ -322,74 +327,98 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return self.compiler.symbols_have_underscore_prefix(self.environment)
 
     @typed_pos_args('compiler.has_member', str, str)
-    @typed_kwargs('compiler.has_member', *_COMMON_KWS)
-    def has_member_method(self, args: T.Tuple[str, str], kwargs: 'CommonKW') -> bool:
+    @typed_kwargs('compiler.has_member', *_COMMON_REQUIRED_KWS)
+    def has_member_method(self, args: T.Tuple[str, str], kwargs: 'CommonRequiredKW') -> bool:
         typename, membername = args
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled:
+            mlog.log('Type', mlog.bold(typename, True), 'has member', mlog.bold(membername, True), 'skipped: feature', mlog.bold(feature), 'disabled')
+            return False
         extra_args = functools.partial(self._determine_args, kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
         had, cached = self.compiler.has_members(typename, [membername], kwargs['prefix'],
                                                 self.environment,
                                                 extra_args=extra_args,
                                                 dependencies=deps)
-        cached_msg = mlog.blue('(cached)') if cached else ''
-        if had:
+        if required and not had:
+            raise InterpreterException(f'{self.compiler.get_display_language()} member {membername} not found in type {typename}')
+        elif had:
             hadtxt = mlog.green('YES')
         else:
             hadtxt = mlog.red('NO')
+        cached_msg = mlog.blue('(cached)') if cached else ''
         mlog.log('Checking whether type', mlog.bold(typename, True),
                  'has member', mlog.bold(membername, True), msg, hadtxt, cached_msg)
         return had
 
     @typed_pos_args('compiler.has_members', str, varargs=str, min_varargs=1)
-    @typed_kwargs('compiler.has_members', *_COMMON_KWS)
-    def has_members_method(self, args: T.Tuple[str, T.List[str]], kwargs: 'CommonKW') -> bool:
+    @typed_kwargs('compiler.has_members', *_COMMON_REQUIRED_KWS)
+    def has_members_method(self, args: T.Tuple[str, T.List[str]], kwargs: 'CommonRequiredKW') -> bool:
         typename, membernames = args
+        members = mlog.bold(', '.join([f'"{m}"' for m in membernames]))
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled:
+            mlog.log('Type', mlog.bold(typename, True), 'has members', members, 'skipped: feature', mlog.bold(feature), 'disabled')
+            return False
         extra_args = functools.partial(self._determine_args, kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
         had, cached = self.compiler.has_members(typename, membernames, kwargs['prefix'],
                                                 self.environment,
                                                 extra_args=extra_args,
                                                 dependencies=deps)
-        cached_msg = mlog.blue('(cached)') if cached else ''
-        if had:
+        if required and not had:
+            raise InterpreterException(f'{self.compiler.get_display_language()} members {members} not found in type {typename}')
+        elif had:
             hadtxt = mlog.green('YES')
         else:
             hadtxt = mlog.red('NO')
-        members = mlog.bold(', '.join([f'"{m}"' for m in membernames]))
+        cached_msg = mlog.blue('(cached)') if cached else ''
         mlog.log('Checking whether type', mlog.bold(typename, True),
                  'has members', members, msg, hadtxt, cached_msg)
         return had
 
     @typed_pos_args('compiler.has_function', str)
-    @typed_kwargs('compiler.has_function', *_COMMON_KWS)
-    def has_function_method(self, args: T.Tuple[str], kwargs: 'CommonKW') -> bool:
+    @typed_kwargs('compiler.has_function', *_COMMON_REQUIRED_KWS)
+    def has_function_method(self, args: T.Tuple[str], kwargs: 'CommonRequiredKW') -> bool:
         funcname = args[0]
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled:
+            mlog.log('Function', mlog.bold(funcname, True), 'check skipped: feature', mlog.bold(feature), 'disabled')
+            return False
         extra_args = self._determine_args(kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
         deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=False)
         had, cached = self.compiler.has_function(funcname, kwargs['prefix'], self.environment,
                                                  extra_args=extra_args,
                                                  dependencies=deps)
-        cached_msg = mlog.blue('(cached)') if cached else ''
-        if had:
+        if required and not had:
+            raise InterpreterException(f'{self.compiler.get_display_language()} function {funcname} not found')
+        elif had:
             hadtxt = mlog.green('YES')
         else:
             hadtxt = mlog.red('NO')
+        cached_msg = mlog.blue('(cached)') if cached else ''
         mlog.log('Checking for function', mlog.bold(funcname, True), msg, hadtxt, cached_msg)
         return had
 
     @typed_pos_args('compiler.has_type', str)
-    @typed_kwargs('compiler.has_type', *_COMMON_KWS)
-    def has_type_method(self, args: T.Tuple[str], kwargs: 'CommonKW') -> bool:
+    @typed_kwargs('compiler.has_type', *_COMMON_REQUIRED_KWS)
+    def has_type_method(self, args: T.Tuple[str], kwargs: 'CommonRequiredKW') -> bool:
         typename = args[0]
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled:
+            mlog.log('Type', mlog.bold(typename, True), 'check skipped: feature', mlog.bold(feature), 'disabled')
+            return False
         extra_args = functools.partial(self._determine_args, kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
         had, cached = self.compiler.has_type(typename, kwargs['prefix'], self.environment,
                                              extra_args=extra_args, dependencies=deps)
-        cached_msg = mlog.blue('(cached)') if cached else ''
-        if had:
+        if required and not had:
+            raise InterpreterException(f'{self.compiler.get_display_language()} type {typename} not found')
+        elif had:
             hadtxt = mlog.green('YES')
         else:
             hadtxt = mlog.red('NO')
+        cached_msg = mlog.blue('(cached)') if cached else ''
         mlog.log('Checking for type', mlog.bold(typename, True), msg, hadtxt, cached_msg)
         return had
 
@@ -501,7 +530,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
     @FeatureNew('compiler.check_header', '0.47.0')
     @typed_pos_args('compiler.check_header', str)
     @typed_kwargs('compiler.check_header', *_HEADER_KWS)
-    def check_header_method(self, args: T.Tuple[str], kwargs: 'HeaderKW') -> bool:
+    def check_header_method(self, args: T.Tuple[str], kwargs: 'CommonRequiredKW') -> bool:
         hname = args[0]
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
         if disabled:
@@ -522,7 +551,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         mlog.log('Check usable header', mlog.bold(hname, True), msg, h, cached_msg)
         return haz
 
-    def _has_header_impl(self, hname: str, kwargs: 'HeaderKW') -> bool:
+    def _has_header_impl(self, hname: str, kwargs: 'CommonRequiredKW') -> bool:
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
         if disabled:
             mlog.log('Has header', mlog.bold(hname, True), 'skipped: feature', mlog.bold(feature), 'disabled')
@@ -543,12 +572,12 @@ class CompilerHolder(ObjectHolder['Compiler']):
 
     @typed_pos_args('compiler.has_header', str)
     @typed_kwargs('compiler.has_header', *_HEADER_KWS)
-    def has_header_method(self, args: T.Tuple[str], kwargs: 'HeaderKW') -> bool:
+    def has_header_method(self, args: T.Tuple[str], kwargs: 'CommonRequiredKW') -> bool:
         return self._has_header_impl(args[0], kwargs)
 
     @typed_pos_args('compiler.has_header_symbol', str, str)
     @typed_kwargs('compiler.has_header_symbol', *_HEADER_KWS)
-    def has_header_symbol_method(self, args: T.Tuple[str, str], kwargs: 'HeaderKW') -> bool:
+    def has_header_symbol_method(self, args: T.Tuple[str, str], kwargs: 'CommonRequiredKW') -> bool:
         hname, symbol = args
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
         if disabled:
@@ -598,7 +627,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
 
         # This could be done with a comprehension, but that confuses the type
         # checker, and having it check this seems valuable
-        has_header_kwargs: 'HeaderKW' = {
+        has_header_kwargs: 'CommonRequiredKW' = {
             'required': required,
             'args': kwargs['header_args'],
             'dependencies': kwargs['header_dependencies'],
@@ -652,16 +681,33 @@ class CompilerHolder(ObjectHolder['Compiler']):
             cached_msg)
         return result
 
-    @noKwargs
     @typed_pos_args('compiler.has_argument', str)
-    def has_argument_method(self, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> bool:
-        return self._has_argument_impl([args[0]])
+    @typed_kwargs('compiler.has_argument', _ONLY_REQUIRED_KWS)
+    def has_argument_method(self, args: T.Tuple[str], kwargs: 'OnlyRequiredKW') -> bool:
+        argument = args[0]
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled:
+            mlog.log('Argument', mlog.bold(argument, True), 'check skipped: feature', mlog.bold(feature), 'disabled')
+            return False
+        had = self._has_argument_impl(argument)
+        if required and not had:
+            raise InterpreterException(f'{self.compiler.get_display_language()} argument {argument} not found')
+        return had
 
-    @noKwargs
     @typed_pos_args('compiler.has_multi_arguments', varargs=str)
+    @typed_kwargs('compiler.has_multi_arguments', _ONLY_REQUIRED_KWS)
     @FeatureNew('compiler.has_multi_arguments', '0.37.0')
-    def has_multi_arguments_method(self, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> bool:
-        return self._has_argument_impl(args[0])
+    def has_multi_arguments_method(self, args: T.Tuple[T.List[str]], kwargs: 'OnlyRequiredKW') -> bool:
+        argument = args[0]
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled:
+            mlog.log('Argument', mlog.bold(' '.join(argument), True), 'check skipped: feature', mlog.bold(feature), 'disabled')
+            return False
+        had = self._has_argument_impl(argument)
+        if required and not had:
+            raise InterpreterException(f'{self.compiler.get_display_language()} argument {argument} not found')
+        return had
+    #return self._has_argument_impl(args[0])
 
     @FeatureNew('compiler.get_supported_arguments', '0.43.0')
     @typed_pos_args('compiler.get_supported_arguments', varargs=str)
@@ -696,16 +742,32 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return []
 
     @FeatureNew('compiler.has_link_argument', '0.46.0')
-    @noKwargs
     @typed_pos_args('compiler.has_link_argument', str)
-    def has_link_argument_method(self, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> bool:
-        return self._has_argument_impl([args[0]], mode=_TestMode.LINKER)
+    @typed_kwargs('compiler.has_link_argument', _ONLY_REQUIRED_KWS)
+    def has_link_argument_method(self, args: T.Tuple[str], kwargs: 'OnlyRequiredKW') -> bool:
+        argument = args[0]
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled:
+            mlog.log('Argument', mlog.bold(argument, True), 'check skipped: feature', mlog.bold(feature), 'disabled')
+            return False
+        had = self._has_argument_impl(argument, mode=_TestMode.LINKER)
+        if required and not had:
+            raise InterpreterException(f'{self.compiler.get_display_language()} link argument {argument} not found')
+        return had
 
     @FeatureNew('compiler.has_multi_link_argument', '0.46.0')
-    @noKwargs
     @typed_pos_args('compiler.has_multi_link_argument', varargs=str)
-    def has_multi_link_arguments_method(self, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> bool:
-        return self._has_argument_impl(args[0], mode=_TestMode.LINKER)
+    @typed_kwargs('compiler.has_multi_link_argument', _ONLY_REQUIRED_KWS)
+    def has_multi_link_arguments_method(self, args: T.Tuple[T.List[str]], kwargs: 'OnlyRequiredKW') -> bool:
+        argument = args[0]
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled:
+            mlog.log('Argument', mlog.bold(' '.join(argument), True), 'check skipped: feature', mlog.bold(feature), 'disabled')
+            return False
+        had = self._has_argument_impl(argument, mode=_TestMode.LINKER)
+        if required and not had:
+            raise InterpreterException(f'{self.compiler.get_display_language()} link argument {argument} not found')
+        return had
 
     @FeatureNew('compiler.get_supported_link_arguments', '0.46.0')
     @noKwargs
@@ -737,10 +799,18 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return result
 
     @FeatureNew('compiler.has_function_attribute', '0.48.0')
-    @noKwargs
+    @typed_kwargs('compiler.has_function_attribute', _ONLY_REQUIRED_KWS)
     @typed_pos_args('compiler.has_function_attribute', str)
-    def has_func_attribute_method(self, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> bool:
-        return self._has_function_attribute_impl(args[0])
+    def has_func_attribute_method(self, args: T.Tuple[str], kwargs: 'OnlyRequiredKW') -> bool:
+        attr = args[0]
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled:
+            mlog.log('Function attribute', mlog.bold(attr, True), 'check skipped: feature', mlog.bold(feature), 'disabled')
+            return False
+        had = self._has_function_attribute_impl(attr)
+        if required and not had:
+            raise InterpreterException(f'{self.compiler.get_display_language()} function attribute {attr} not found')
+        return had
 
     @FeatureNew('compiler.get_supported_function_attributes', '0.48.0')
     @noKwargs
