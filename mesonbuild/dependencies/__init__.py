@@ -39,7 +39,7 @@ from .misc import (
     dl_factory, openssl_factory, libcrypto_factory, libssl_factory,
 )
 from .platform import AppleFrameworks
-from .python import python_factory as python3_factory
+from .python import python_factory as python3_factory, pybind11_factory
 from .qt import qt4_factory, qt5_factory, qt6_factory
 from .ui import GnuStepDependency, WxDependency, gl_factory, sdl2_factory, vulkan_factory
 
@@ -270,6 +270,7 @@ packages.update({
 
     # from python:
     'python3': python3_factory,
+    'pybind11': pybind11_factory,
 
     # From ui:
     'gl': gl_factory,

@@ -19,6 +19,8 @@ import typing as T
 
 from .. import mesonlib, mlog
 from .base import process_method_kw, DependencyMethods, DependencyTypeName, ExternalDependency, SystemDependency
+from .configtool import ConfigToolDependency
+from .factory import DependencyFactory
 from .framework import ExtraFrameworkDependency
 from .pkgconfig import PkgConfigDependency
 from ..environment import detect_cpu_family
@@ -47,6 +49,21 @@ if T.TYPE_CHECKING:
     _Base = ExternalDependency
 else:
     _Base = object
+
+
+class Pybind11ConfigToolDependency(ConfigToolDependency):
+
+    tools = ['pybind11-config']
+
+    # pybind11 in 2.10.4 added --version, sanity-check another flag unique to it
+    # in the meantime
+    skip_version = '--pkgconfigdir'
+
+    def __init__(self, name: str, environment: Environment, kwargs: T.Dict[str, T.Any]):
+        super().__init__(name, environment, kwargs)
+        if not self.is_found:
+            return
+        self.compile_args = self.get_config_value(['--includes'], 'compile_args')
 
 
 class BasicPythonExternalProgram(ExternalProgram):
@@ -371,3 +388,9 @@ def python_factory(env: 'Environment', for_machine: 'MachineChoice',
         candidates.append(functools.partial(PythonFrameworkDependency, 'Python', env, nkwargs, installation))
 
     return candidates
+
+pybind11_factory = DependencyFactory(
+    'pybind11',
+    [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.CMAKE],
+    configtool_class=Pybind11ConfigToolDependency,
+)

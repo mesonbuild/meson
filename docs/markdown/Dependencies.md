@@ -659,6 +659,12 @@ The `language` keyword may used.
 
 `method` may be `auto`, `config-tool` or `pkg-config`.
 
+## Pybind11
+
+*(added 1.1.0)*
+
+`method` may be `auto`, `pkg-config`, `config-tool`, or `cmake`.
+
 ## Python3
 
 Python3 is handled specially by Meson:
