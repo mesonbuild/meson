@@ -594,6 +594,8 @@ class Rewriter:
 
         # Convert the keys back to IdNode's
         arg_node.kwargs = {IdNode(Token('', '', 0, 0, 0, None, k)): v for k, v in arg_node.kwargs.items()}
+        for k, v in arg_node.kwargs.items():
+            k.level = v.level
         if num_changed > 0 and node not in self.modified_nodes:
             self.modified_nodes += [node]
 
