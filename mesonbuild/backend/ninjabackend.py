@@ -2796,16 +2796,18 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # this is actually doable, please send patches.
 
         if target.has_pch():
-            tfilename = self.get_target_filename_abs(target)
+            tfilename = self.get_target_debug_filename_abs(target)
+            if not tfilename:
+                tfilename = self.get_target_filename_abs(target)
             return compiler.get_compile_debugfile_args(tfilename, pch=True)
         else:
             return compiler.get_compile_debugfile_args(objfile, pch=False)
 
-    def get_link_debugfile_name(self, linker, target, outname) -> T.Optional[str]:
-        return linker.get_link_debugfile_name(outname)
+    def get_link_debugfile_name(self, linker, target) -> T.Optional[str]:
+        return linker.get_link_debugfile_name(self.get_target_debug_filename(target))
 
-    def get_link_debugfile_args(self, linker, target, outname):
-        return linker.get_link_debugfile_args(outname)
+    def get_link_debugfile_args(self, linker, target):
+        return linker.get_link_debugfile_args(self.get_target_debug_filename(target))
 
     def generate_llvm_ir_compile(self, target, src):
         base_proxy = target.get_options()
@@ -3437,8 +3439,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         commands += linker.get_buildtype_linker_args(target.get_option(OptionKey('buildtype')))
         # Add /DEBUG and the pdb filename when using MSVC
         if target.get_option(OptionKey('debug')):
-            commands += self.get_link_debugfile_args(linker, target, outname)
-            debugfile = self.get_link_debugfile_name(linker, target, outname)
+            commands += self.get_link_debugfile_args(linker, target)
+            debugfile = self.get_link_debugfile_name(linker, target)
             if debugfile is not None:
                 implicit_outs += [debugfile]
         # Add link args specific to this BuildTarget type, such as soname args,
