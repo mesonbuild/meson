@@ -25,7 +25,7 @@
 from __future__ import annotations
 
 from .ast import IntrospectionInterpreter, BUILD_TARGET_FUNCTIONS, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstPrinter
-from mesonbuild.mesonlib import MesonException
+from mesonbuild.mesonlib import MesonException, setup_vsenv
 from . import mlog, environment
 from functools import wraps
 from .mparser import Token, ArrayNode, ArgumentNode, AssignmentNode, BooleanNode, ElementaryNode, IdNode, FunctionNode, StringNode
@@ -1041,6 +1041,7 @@ def run(options):
         mlog.set_quiet()
 
     try:
+        setup_vsenv()
         rewriter = Rewriter(options.sourcedir, skip_errors=options.skip)
         rewriter.analyze_meson()
 
