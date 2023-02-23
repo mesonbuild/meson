@@ -197,7 +197,7 @@ This causes all subsequent builds to use this command line argument.
 
 ## Use address sanitizer
 
-Clang comes with a selection of analysis tools such as the [address
+Clang and gcc come with a selection of analysis tools such as the [address
 sanitizer](https://clang.llvm.org/docs/AddressSanitizer.html). Meson
 has native support for these with the `b_sanitize` option.
 
