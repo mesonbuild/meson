@@ -634,8 +634,11 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
         return my_id
 
     def get_id(self) -> str:
+        name = self.name
+        if getattr(self, 'name_suffix_set', False):
+            name += '.' + self.suffix
         return self.construct_id_from_path(
-            self.subdir, self.name, self.type_suffix())
+            self.subdir, name, self.type_suffix())
 
     def process_kwargs_base(self, kwargs: T.Dict[str, T.Any]) -> None:
         if 'build_by_default' in kwargs:
@@ -2013,7 +2016,14 @@ class Executable(BuildTarget):
             and self.environment.coredata.get_option(OptionKey("debug"))
         )
         if create_debug_file:
-            self.debug_filename = self.name + '.pdb'
+            # If the target is has a standard exe extension (i.e. 'foo.exe'),
+            # then the pdb name simply becomes 'foo.pdb'. If the extension is
+            # something exotic, then include that in the name for uniqueness
+            # reasons (e.g. 'foo_com.pdb').
+            name = self.name
+            if getattr(self, 'suffix', 'exe') != 'exe':
+                name += '_' + self.suffix
+            self.debug_filename = name + '.pdb'
 
     def process_kwargs(self, kwargs):
         super().process_kwargs(kwargs)

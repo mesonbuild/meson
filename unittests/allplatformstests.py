@@ -2039,6 +2039,16 @@ class AllPlatformTests(BasePlatformTests):
         original = get_opt()
         self.assertDictEqual(original, expected)
 
+    def test_executable_names(self):
+        testdir = os.path.join(self.unit_test_dir, '119 executable suffix')
+        self.init(testdir)
+        self.build()
+        exe1 = os.path.join(self.builddir, 'foo' + exe_suffix)
+        exe2 = os.path.join(self.builddir, 'foo.bin')
+        self.assertPathExists(exe1)
+        self.assertPathExists(exe2)
+        self.assertNotEqual(exe1, exe2)
+
     def opt_has(self, name, value):
         res = self.introspect('--buildoptions')
         found = False

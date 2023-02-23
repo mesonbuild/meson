@@ -3169,8 +3169,12 @@ class Interpreter(InterpreterBase, HoldableObject):
         # To permit an executable and a shared library to have the
         # same name, such as "foo.exe" and "libfoo.a".
         idname = tobj.get_id()
-        if idname in self.build.targets:
-            raise InvalidCode(f'Tried to create target "{name}", but a target of that name already exists.')
+        for t in self.build.targets.values():
+            if t.get_id() == idname:
+                raise InvalidCode(f'Tried to create target "{name}", but a target of that name already exists.')
+            if isinstance(tobj, build.Executable) and isinstance(t, build.Executable) and t.name == tobj.name:
+                FeatureNew.single_use('multiple executables with the same name but different suffixes',
+                                      '1.3.0', self.subproject, location=self.current_node)
 
         if isinstance(tobj, build.BuildTarget):
             self.add_languages(tobj.missing_languages, True, tobj.for_machine)
