@@ -737,6 +737,8 @@ class BuildTarget(Target):
         self.name_prefix_set = False
         self.name_suffix_set = False
         self.filename = 'no_name'
+        # The debugging information file this target will generate
+        self.debug_filename = None
         # The list of all files outputted by this target. Useful in cases such
         # as Vala which generates .vapi and .h besides the compiled output.
         self.outputs = [self.filename]
@@ -1261,6 +1263,14 @@ class BuildTarget(Target):
 
     def get_filename(self) -> str:
         return self.filename
+
+    def get_debug_filename(self) -> T.Optional[str]:
+        """
+        The name of debuginfo file that will be created by the compiler
+
+        Returns None if the build won't create any debuginfo file
+        """
+        return self.debug_filename
 
     def get_outputs(self) -> T.List[str]:
         return self.outputs

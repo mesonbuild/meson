@@ -316,6 +316,20 @@ class Backend:
     def get_target_filename_abs(self, target: T.Union[build.Target, build.CustomTargetIndex]) -> str:
         return os.path.join(self.environment.get_build_dir(), self.get_target_filename(target))
 
+    def get_target_debug_filename(self, target: build.BuildTarget) -> T.Optional[str]:
+        assert isinstance(target, build.BuildTarget), target
+        if target.get_debug_filename():
+            debug_filename = target.get_debug_filename()
+            return os.path.join(self.get_target_dir(target), debug_filename)
+        else:
+            return None
+
+    def get_target_debug_filename_abs(self, target: build.BuildTarget) -> T.Optional[str]:
+        assert isinstance(target, build.BuildTarget), target
+        if not target.get_debug_filename():
+            return None
+        return os.path.join(self.environment.get_build_dir(), self.get_target_debug_filename(target))
+
     def get_source_dir_include_args(self, target: build.BuildTarget, compiler: 'Compiler', *, absolute_path: bool = False) -> T.List[str]:
         curdir = target.get_subdir()
         if absolute_path:
