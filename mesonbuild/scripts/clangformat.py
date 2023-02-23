@@ -23,10 +23,9 @@ from ..mesonlib import version_compare
 from ..programs import ExternalProgram
 import typing as T
 
-def run_clang_format(fname: Path, exelist: T.List[str], check: bool) -> subprocess.CompletedProcess:
+def run_clang_format(fname: Path, exelist: T.List[str], check: bool, cformat_ver: T.Optional[str]) -> subprocess.CompletedProcess:
     clangformat_10 = False
-    if check:
-        cformat_ver = ExternalProgram('clang-format', exelist).get_version()
+    if check and cformat_ver:
         if version_compare(cformat_ver, '>=10'):
             clangformat_10 = True
             exelist = exelist + ['--dry-run', '--Werror']
@@ -58,4 +57,9 @@ def run(args: T.List[str]) -> int:
         print('Could not execute clang-format "%s"' % ' '.join(exelist))
         return 1
 
-    return run_tool('clang-format', srcdir, builddir, run_clang_format, exelist, options.check)
+    if options.check:
+        cformat_ver = ExternalProgram('clang-format', exelist, silent=True).get_version()
+    else:
+        cformat_ver = None
+
+    return run_tool('clang-format', srcdir, builddir, run_clang_format, exelist, options.check, cformat_ver)
