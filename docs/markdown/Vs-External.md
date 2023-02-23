@@ -26,7 +26,7 @@ as follows:
 |build  | `meson compile -C $(Configuration)` |
 |clean  | `meson compile -C $(Configuration) --clean` |
 |rebuild| `meson compile -C $(Configuration) --clean && meson compile -C $(Configuration)` |
-|Output | `$(Configuration)\name_of_your_executable.exe|
+|Output | `$(Configuration)\name_of_your_executable.exe` |
 
 
 Then click `Finish`.
