@@ -45,7 +45,7 @@ if T.TYPE_CHECKING:
 
 """This file contains the data files of all compilers Meson knows
 about. To support a new compiler, add its information below.
-Also add corresponding autodetection code in environment.py."""
+Also add corresponding autodetection code in detect.py."""
 
 header_suffixes = {'h', 'hh', 'hpp', 'hxx', 'H', 'ipp', 'moc', 'vapi', 'di'}
 obj_suffixes = {'o', 'obj', 'res'}
