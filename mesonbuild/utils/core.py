@@ -169,3 +169,10 @@ class ExecutableSerialisation:
         self.skip_if_destdir = False
         self.subproject = ''
         self.dry_run = False
+
+def destdir_join(d1: str, d2: str) -> str:
+    from pathlib import PurePath
+    if not d1:
+        return d2
+    # c:\destdir + c:\prefix must produce c:\destdir\prefix
+    return str(PurePath(d1, *PurePath(d2).parts[1:]))

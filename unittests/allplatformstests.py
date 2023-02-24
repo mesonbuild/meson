@@ -32,7 +32,7 @@ from mesonbuild.mesonlib import (
     DirectoryLock, DirectoryLockAction, MachineChoice, is_windows, is_osx, is_cygwin, is_dragonflybsd,
     is_sunos, windows_proof_rmtree, python_command, version_compare, split_args, quote_arg,
     relpath, is_linux, git, search_version, do_conf_file, do_conf_str, default_prefix,
-    MesonException, EnvironmentException,
+    MesonException, EnvironmentException, destdir_join,
     windows_proof_rm, first
 )
 from mesonbuild.options import OptionKey
@@ -53,7 +53,6 @@ from mesonbuild.dependencies.pkgconfig import PkgConfigDependency
 from mesonbuild.build import Target, ConfigurationData, Executable, SharedLibrary, StaticLibrary
 from mesonbuild import mtest
 import mesonbuild.modules.pkgconfig
-from mesonbuild.scripts import destdir_join
 
 from mesonbuild.wrap.wrap import PackageDefinition, WrapException
 

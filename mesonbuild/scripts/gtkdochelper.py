@@ -9,9 +9,8 @@ import shutil
 import argparse
 from ..mesonlib import (
     MesonException, Popen_safe, is_windows, is_cygwin, is_parent_path,
-    split_args,
+    split_args, destdir_join
 )
-from . import destdir_join
 import typing as T
 
 parser = argparse.ArgumentParser()
