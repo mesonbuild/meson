@@ -5,10 +5,14 @@
 # type: ignore
 # pylint: disable=deprecated-module
 
-import os.path
-import sysconfig
-import json
 import sys
+
+# do not inject mesonbuild.scripts
+# python -P would work too, but is exclusive to >=3.11
+if sys.path[0].endswith('scripts'):
+    del sys.path[0]
+
+import json, os, sysconfig
 import distutils.command.install
 
 def get_distutils_paths(scheme=None, prefix=None):
