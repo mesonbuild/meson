@@ -49,6 +49,11 @@ kwargs:
       the master project, settings in subprojects are ignored. Project
       specific options are used normally even in subprojects.
 
+      Note that some options can override the default behavior;
+      for example, using `c_args` here means that the `CFLAGS`
+      environment variable is not used. Consider using
+      [[add_project_arguments()]] instead.
+
   version:
     type: str | file
     description: |
