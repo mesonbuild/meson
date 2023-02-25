@@ -31,12 +31,13 @@ from .baseobjects import (
 )
 
 from .exceptions import (
-    InterpreterException,
-    InvalidCode,
-    InvalidArguments,
-    SubdirDoneRequest,
+    BreakRequest,
     ContinueRequest,
-    BreakRequest
+    InterpreterException,
+    InvalidArguments,
+    InvalidCode,
+    MesonException,
+    SubdirDoneRequest,
 )
 
 from .decorators import FeatureNew
@@ -70,6 +71,13 @@ if T.TYPE_CHECKING:
         str,
         T.Callable[[mparser.BaseNode, T.List[TYPE_var], T.Dict[str, TYPE_var]], TYPE_var]
     ]
+
+
+class InvalidCodeOnVoid(InvalidCode):
+
+    def __init__(self, op_type: str) -> None:
+        super().__init__(f'Cannot perform {op_type!r} operation on void statement.')
+
 
 class InterpreterBase:
     def __init__(self, source_root: str, subdir: str, subproject: 'SubProject'):
@@ -238,7 +246,10 @@ class InterpreterBase:
         def resolve_key(key: mparser.BaseNode) -> str:
             if not isinstance(key, mparser.StringNode):
                 FeatureNew.single_use('Dictionary entry using non literal key', '0.53.0', self.subproject)
-            str_key = _unholder(self.evaluate_statement(key))
+            key_holder = self.evaluate_statement(key)
+            if key_holder is None:
+                raise InvalidArguments('Key cannot be void.')
+            str_key = _unholder(key_holder)
             if not isinstance(str_key, str):
                 raise InvalidArguments('Key must be a string')
             return str_key
@@ -248,6 +259,8 @@ class InterpreterBase:
 
     def evaluate_notstatement(self, cur: mparser.NotNode) -> InterpreterObject:
         v = self.evaluate_statement(cur.value)
+        if v is None:
+            raise InvalidCodeOnVoid('not')
         if isinstance(v, Disabler):
             return v
         return self._holderify(v.operator_call(MesonOperator.NOT, None))
@@ -259,10 +272,12 @@ class InterpreterBase:
             # statement evaluation.
             self.tmp_meson_version = None
             result = self.evaluate_statement(i.condition)
+            if result is None:
+                raise InvalidCodeOnVoid('if')
             if isinstance(result, Disabler):
                 return result
             if not isinstance(result, InterpreterObject):
-                raise mesonlib.MesonBugException(f'Argument to not ({result}) is not an InterpreterObject but {type(result).__name__}.')
+                raise mesonlib.MesonBugException(f'Argument to if ({result}) is not an InterpreterObject but {type(result).__name__}.')
             res = result.operator_call(MesonOperator.BOOL, None)
             if not isinstance(res, bool):
                 raise InvalidCode(f'If clause {result!r} does not evaluate to true or false.')
@@ -281,9 +296,13 @@ class InterpreterBase:
 
     def evaluate_comparison(self, node: mparser.ComparisonNode) -> InterpreterObject:
         val1 = self.evaluate_statement(node.left)
+        if val1 is None:
+            raise MesonException('Cannot compare a void statement on the left-hand side')
         if isinstance(val1, Disabler):
             return val1
         val2 = self.evaluate_statement(node.right)
+        if val2 is None:
+            raise MesonException('Cannot compare a void statement on the right-hand side')
         if isinstance(val2, Disabler):
             return val2
 
@@ -308,30 +327,40 @@ class InterpreterBase:
 
     def evaluate_andstatement(self, cur: mparser.AndNode) -> InterpreterObject:
         l = self.evaluate_statement(cur.left)
+        if l is None:
+            raise MesonException('Cannot compare a void statement on the left-hand side')
         if isinstance(l, Disabler):
             return l
         l_bool = l.operator_call(MesonOperator.BOOL, None)
         if not l_bool:
             return self._holderify(l_bool)
         r = self.evaluate_statement(cur.right)
+        if r is None:
+            raise MesonException('Cannot compare a void statement on the right-hand side')
         if isinstance(r, Disabler):
             return r
         return self._holderify(r.operator_call(MesonOperator.BOOL, None))
 
     def evaluate_orstatement(self, cur: mparser.OrNode) -> InterpreterObject:
         l = self.evaluate_statement(cur.left)
+        if l is None:
+            raise MesonException('Cannot compare a void statement on the left-hand side')
         if isinstance(l, Disabler):
             return l
         l_bool = l.operator_call(MesonOperator.BOOL, None)
         if l_bool:
             return self._holderify(l_bool)
         r = self.evaluate_statement(cur.right)
+        if r is None:
+            raise MesonException('Cannot compare a void statement on the right-hand side')
         if isinstance(r, Disabler):
             return r
         return self._holderify(r.operator_call(MesonOperator.BOOL, None))
 
     def evaluate_uminusstatement(self, cur: mparser.UMinusNode) -> InterpreterObject:
         v = self.evaluate_statement(cur.value)
+        if v is None:
+            raise InvalidCodeOnVoid('unary minus')
         if isinstance(v, Disabler):
             return v
         v.current_node = cur
@@ -344,6 +373,8 @@ class InterpreterBase:
         r = self.evaluate_statement(cur.right)
         if isinstance(r, Disabler):
             return r
+        if l is None or r is None:
+            raise InvalidCodeOnVoid(cur.operation)
 
         mapping: T.Dict[str, MesonOperator] = {
             'add': MesonOperator.PLUS,
@@ -359,6 +390,8 @@ class InterpreterBase:
     def evaluate_ternary(self, node: mparser.TernaryNode) -> T.Optional[InterpreterObject]:
         assert isinstance(node, mparser.TernaryNode)
         result = self.evaluate_statement(node.condition)
+        if result is None:
+            raise MesonException('Cannot use a void statement as condition for ternary operator.')
         if isinstance(result, Disabler):
             return result
         result.current_node = node
@@ -424,6 +457,8 @@ class InterpreterBase:
         assert isinstance(node, mparser.PlusAssignmentNode)
         varname = node.var_name
         addition = self.evaluate_statement(node.value)
+        if addition is None:
+            raise InvalidCodeOnVoid('plus assign')
 
         # Remember that all variables are immutable. We must always create a
         # full new variable and then assign it.
@@ -435,12 +470,15 @@ class InterpreterBase:
     def evaluate_indexing(self, node: mparser.IndexNode) -> InterpreterObject:
         assert isinstance(node, mparser.IndexNode)
         iobject = self.evaluate_statement(node.iobject)
+        if iobject is None:
+            raise InterpreterException('Tried to evaluate indexing on void.')
         if isinstance(iobject, Disabler):
             return iobject
-        index = _unholder(self.evaluate_statement(node.index))
+        index_holder = self.evaluate_statement(node.index)
+        if index_holder is None:
+            raise InvalidArguments('Cannot use void statement as index.')
+        index = _unholder(index_holder)
 
-        if iobject is None:
-            raise InterpreterException('Tried to evaluate indexing on None')
         iobject.current_node = node
         return self._holderify(iobject.operator_call(MesonOperator.INDEX, index))
 
@@ -578,7 +616,7 @@ class InterpreterBase:
 
     def set_variable(self, varname: str, variable: T.Union[TYPE_var, InterpreterObject], *, holderify: bool = False) -> None:
         if variable is None:
-            raise InvalidCode('Can not assign None to variable.')
+            raise InvalidCode('Can not assign void to variable.')
         if holderify:
             variable = self._holderify(variable)
         else:
