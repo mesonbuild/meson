@@ -40,7 +40,7 @@ kwargs:
   default_options:
     type: list[str]
     description: |
-      Accecpts strings in the form `key=value`
+      Accepts strings in the form `key=value`
       which have the same format as options to `meson configure`.
       For example to set the default project type you would
       set this: `default_options : ['buildtype=debugoptimized']`. Note
