@@ -135,9 +135,11 @@ deb_cpu_family_map = {
     'mips64el': 'mips64',
     'i686': 'x86',
 }
+
 deb_cpu_map = {
     'armhf': 'arm7hlf',
-    'mips64el': 'mips64'
+    'mips64el': 'mips64',
+    'powerpc64le': 'ppc64',
 }
 
 def deb_detect_cmake(infos: MachineInfo, data: T.Dict[str, str]) -> None:
