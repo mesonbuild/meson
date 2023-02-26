@@ -2103,6 +2103,7 @@ _BUILTIN_NAMES = {
     'localedir',
     'localstatedir',
     'mandir',
+    'runstatedir',
     'sbindir',
     'sharedstatedir',
     'sysconfdir',

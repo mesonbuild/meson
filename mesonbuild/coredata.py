@@ -1213,6 +1213,7 @@ BUILTIN_DIR_OPTIONS: 'MutableKeyedOptionDictType' = OrderedDict([
     (OptionKey('sbindir'),         BuiltinOption(UserStringOption, 'System executable directory', default_sbindir())),
     (OptionKey('sharedstatedir'),  BuiltinOption(UserStringOption, 'Architecture-independent data directory', 'com')),
     (OptionKey('sysconfdir'),      BuiltinOption(UserStringOption, 'Sysconf data directory', default_sysconfdir())),
+    (OptionKey('runstatedir'),     BuiltinOption(UserStringOption, 'Runtime data directory', 'run')),
 ])
 
 BUILTIN_CORE_OPTIONS: 'MutableKeyedOptionDictType' = OrderedDict([
@@ -1263,6 +1264,7 @@ BULITIN_DIR_NOPREFIX_OPTIONS: T.Dict[OptionKey, T.Dict[str, str]] = {
     OptionKey('sysconfdir'):     {'/usr': '/etc'},
     OptionKey('localstatedir'):  {'/usr': '/var',     '/usr/local': '/var/local'},
     OptionKey('sharedstatedir'): {'/usr': '/var/lib', '/usr/local': '/var/local/lib'},
+    OptionKey('runstatedir'):    {'/usr': '/run',     '/usr/local': '/var/local/run'},
     OptionKey('platlibdir', module='python'): {},
     OptionKey('purelibdir', module='python'): {},
 }
