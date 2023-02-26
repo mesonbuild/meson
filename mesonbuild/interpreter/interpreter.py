@@ -525,6 +525,24 @@ class Interpreter(InterpreterBase, HoldableObject):
             else:
                 raise InterpreterException(f'Module returned a value of unknown type {v!r}.')
 
+    def handle_meson_version(self, pv: str, location: mparser.BaseNode) -> None:
+        if not mesonlib.version_compare(coredata.version, pv):
+            raise InterpreterException.from_node(f'Meson version is {coredata.version} but project requires {pv}', node=location)
+
+    def handle_meson_version_from_ast(self) -> None:
+        if not self.ast.lines:
+            return
+        project = self.ast.lines[0]
+        # first line is always project()
+        if not isinstance(project, mparser.FunctionNode):
+            return
+        for kw, val in project.args.kwargs.items():
+            assert isinstance(kw, mparser.IdNode), 'for mypy'
+            if kw.value == 'meson_version':
+                # mypy does not understand "and isinstance"
+                if isinstance(val, mparser.StringNode):
+                    self.handle_meson_version(val.value, val)
+
     def get_build_def_files(self) -> mesonlib.OrderedSet[str]:
         return self.build_def_files
 
@@ -1151,10 +1169,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         # This needs to be evaluated as early as possible, as meson uses this
         # for things like deprecation testing.
         if kwargs['meson_version']:
-            cv = coredata.version
-            pv = kwargs['meson_version']
-            if not mesonlib.version_compare(cv, pv):
-                raise InterpreterException(f'Meson version is {cv} but project requires {pv}')
+            self.handle_meson_version(kwargs['meson_version'], node)
             mesonlib.project_meson_versions[self.subproject] = kwargs['meson_version']
 
         if os.path.exists(self.option_file):

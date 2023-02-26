@@ -16,8 +16,7 @@
 # or an interpreter-based tool.
 from __future__ import annotations
 
-from .. import mparser, mesonlib
-from .. import environment
+from .. import environment, mparser, mesonlib
 
 from .baseobjects import (
     InterpreterObject,
@@ -103,6 +102,10 @@ class InterpreterBase:
         # current meson version target within that if-block.
         self.tmp_meson_version = None # type: T.Optional[str]
 
+    def handle_meson_version_from_ast(self, strict: bool = True) -> None:
+        # do nothing in an AST interpreter
+        return
+
     def load_root_meson_file(self) -> None:
         mesonfile = os.path.join(self.source_root, self.subdir, environment.build_filename)
         if not os.path.isfile(mesonfile):
@@ -114,8 +117,12 @@ class InterpreterBase:
         assert isinstance(code, str)
         try:
             self.ast = mparser.Parser(code, mesonfile).parse()
-        except mesonlib.MesonException as me:
+        except mparser.ParseException as me:
             me.file = mesonfile
+            # try to detect parser errors from new syntax added by future
+            # meson versions, and just tell the user to update meson
+            self.ast = me.ast
+            self.handle_meson_version_from_ast()
             raise me
 
     def parse_project(self) -> None:
