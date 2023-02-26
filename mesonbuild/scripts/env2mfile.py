@@ -160,7 +160,7 @@ def deb_compiler_lookup(infos: MachineInfo, compilerstems: T.List[T.Tuple[str, s
             pass
 
 def detect_cross_debianlike(options: T.Any) -> MachineInfo:
-    if options.debarch is None:
+    if options.debarch == 'auto':
         cmd = ['dpkg-architecture']
     else:
         cmd = ['dpkg-architecture', '-a' + options.debarch]
