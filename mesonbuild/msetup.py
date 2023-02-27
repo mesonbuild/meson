@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import typing as T
 import time
-import sys, stat
+import sys
 import datetime
 import os.path
 import platform
@@ -118,6 +118,7 @@ class MesonApp:
         return os.path.exists(fname)
 
     def validate_core_dirs(self, dir1: str, dir2: str) -> T.Tuple[str, str]:
+        invalid_msg_prefix = f'Neither source directory {dir1!r} nor build directory {dir2!r}'
         if dir1 is None:
             if dir2 is None:
                 if not os.path.exists('meson.build') and os.path.exists('../meson.build'):
@@ -129,14 +130,16 @@ class MesonApp:
             dir2 = os.getcwd()
         ndir1 = os.path.abspath(os.path.realpath(dir1))
         ndir2 = os.path.abspath(os.path.realpath(dir2))
-        if not os.path.exists(ndir1):
-            os.makedirs(ndir1)
-        if not os.path.exists(ndir2):
-            os.makedirs(ndir2)
-        if not stat.S_ISDIR(os.stat(ndir1).st_mode):
-            raise MesonException(f'{dir1} is not a directory')
-        if not stat.S_ISDIR(os.stat(ndir2).st_mode):
-            raise MesonException(f'{dir2} is not a directory')
+        if not os.path.exists(ndir1) and not os.path.exists(ndir2):
+            raise MesonException(f'{invalid_msg_prefix} exist.')
+        try:
+            os.makedirs(ndir1, exist_ok=True)
+        except FileExistsError as e:
+            raise MesonException(f'{dir1} is not a directory') from e
+        try:
+            os.makedirs(ndir2, exist_ok=True)
+        except FileExistsError as e:
+            raise MesonException(f'{dir2} is not a directory') from e
         if os.path.samefile(ndir1, ndir2):
             # Fallback to textual compare if undefined entries found
             has_undefined = any((s.st_ino == 0 and s.st_dev == 0) for s in (os.stat(ndir1), os.stat(ndir2)))
@@ -148,7 +151,7 @@ class MesonApp:
             return ndir1, ndir2
         if self.has_build_file(ndir2):
             return ndir2, ndir1
-        raise MesonException(f'Neither directory contains a build file {environment.build_filename}.')
+        raise MesonException(f'{invalid_msg_prefix} contain a build file {environment.build_filename}.')
 
     def add_vcs_ignore_files(self, build_dir: str) -> None:
         if os.listdir(build_dir):
