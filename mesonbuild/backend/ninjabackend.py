@@ -2021,10 +2021,14 @@ class NinjaBackend(backends.Backend):
             for rpath_arg in rpath_args:
                 args += ['-C', 'link-arg=' + rpath_arg + ':' + os.path.join(rustc.get_sysroot(), 'lib')]
 
-        self._add_rust_project_entry(target.name, main_rust_file, args, bool(target.subproject),
+        self._add_rust_project_entry(target.name,
+                                     os.path.abspath(os.path.join(self.environment.build_dir, main_rust_file)),
+                                     args,
+                                     bool(target.subproject),
                                      #XXX: There is a fix for this pending
                                      getattr(target, 'rust_crate_type', '') == 'procmacro',
-                                     output, project_deps)
+                                     output,
+                                     project_deps)
 
         compiler_name = self.compiler_to_rule_name(rustc)
         element = NinjaBuildElement(self.all_outputs, target_name, compiler_name, main_rust_file)
