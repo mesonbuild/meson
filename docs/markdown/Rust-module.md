@@ -41,6 +41,7 @@ libraries. This has two advantages over hand-rolling ones own with a
 
 - It handles `include_directories`, so one doesn't have to manually convert them to `-I...`
 - It automatically sets up a depfile, making the results more reliable
+- It automatically handles assertions, synchronizing Rust and C/C++ to have the same behavior
 
 
 It takes the following keyword arguments
@@ -81,3 +82,11 @@ r1 = rust.bindgen(
   output : 'out.rs',
 )
 ```
+
+
+*Since 1.1.0* Meson will synchronize assertions for Rust and C/C++  when the
+`b_ndebug` option is set (via `-DNDEBUG` for C/C++, and `-C
+debug-assertions=on` for Rust), and will pass `-DNDEBUG` as an extra argument
+to clang. This allows for reliable wrapping of `-DNDEBUG` controlled behavior
+with `#[cfg(debug_asserions)]` and or `cfg!()`. Before 1.1.0, assertions for Rust
+were never turned on by Meson.
