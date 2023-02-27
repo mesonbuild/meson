@@ -95,6 +95,8 @@ machine](#specifying-options-per-machine) section for details.
 | wrap_mode {default, nofallback,<br>nodownload, forcefallback, nopromote} | default | Wrap mode to use                 | no             | no                |
 | force_fallback_for                     | []            | Force fallback for those dependencies                          | no             | no                |
 
+#### Details for `buildtype`
+
 <a name="build-type-options"></a> For setting optimization levels and
 toggling debug, you can either set the `buildtype` option, or you can
 set the `optimization` and `debug` options which give finer control
@@ -112,6 +114,21 @@ the two-way mapping:
 | minsize        | true  | s            |
 
 All other combinations of `debug` and `optimization` set `buildtype` to `'custom'`.
+
+#### Details for `warning_level`
+
+Exact flags per warning level is compiler specific, but there is an approximative
+table for most common compilers.
+
+| Warning level | GCC/Clang                | MSVC  |
+| ------------- | ---                      | ----  |
+| 0             |                          |       |
+| 1             | -Wall                    | /W2   |
+| 2             | -Wall -Wextra            | /W3   |
+| 3             | -Wall -Wextra -Wpedantic | /W4   |
+| everything    | -Weverything             | /Wall |
+
+Clang's `-Weverything` is emulated on GCC by passing all known warning flags.
 
 ## Base options
 
