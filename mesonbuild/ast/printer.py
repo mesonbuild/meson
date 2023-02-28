@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 from .. import mparser
-from . import AstVisitor
+from .visitor import AstVisitor
 import re
 import typing as T
 

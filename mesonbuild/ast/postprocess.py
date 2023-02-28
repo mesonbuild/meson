@@ -16,7 +16,7 @@
 # or an interpreter-based tool
 from __future__ import annotations
 
-from . import AstVisitor
+from .visitor import AstVisitor
 import typing as T
 
 if T.TYPE_CHECKING:
