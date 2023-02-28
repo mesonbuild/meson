@@ -989,6 +989,11 @@ class NinjaBackend(backends.Backend):
                 obj_list.append(o)
                 compiled_sources.append(s)
                 source2object[s] = o
+        else:
+            for comp in target.compilers.values():
+                self.remove_unity_source_files(target, comp.get_default_suffix())
+
+
         if isinstance(target, build.CompileTarget):
             # Skip the link stage for this special type of target
             return
