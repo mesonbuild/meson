@@ -48,3 +48,15 @@ jobs:
         python-version: '3.x'
     - run: python -m pip install mypy types-PyYAML
     - run: python run_mypy.py
+
+  isort:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+    - uses: isort/isort-action@v1.1.0
+      with:
+        sort-paths: "mesonbuild unittests"
+
