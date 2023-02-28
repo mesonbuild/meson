@@ -13,18 +13,16 @@
 # limitations under the License.
 
 import os
-import unittest
 import pathlib
 import subprocess
+import unittest
 
-from run_tests import (
-    Backend
-)
+from mesonbuild.mesonlib import TemporaryDirectoryWinProof
+from run_tests import Backend
 
 from .allplatformstests import git_init
-
 from .baseplatformtests import BasePlatformTests
-from mesonbuild.mesonlib import TemporaryDirectoryWinProof
+
 
 class PythonTests(BasePlatformTests):
     '''

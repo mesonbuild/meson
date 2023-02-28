@@ -13,14 +13,15 @@
 # limitations under the License.
 from __future__ import annotations
 
-import os
 import argparse
 import multiprocessing
+import os
 import subprocess
-from pathlib import Path
 import typing as T
+from pathlib import Path
 
 from ..mesonlib import Popen_safe, split_args
+
 
 class ExternalProject:
     def __init__(self, options: argparse.Namespace):

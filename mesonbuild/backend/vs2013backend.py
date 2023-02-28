@@ -13,9 +13,10 @@
 # limitations under the License.
 from __future__ import annotations
 
-from .vs2010backend import Vs2010Backend
-from ..mesonlib import MesonException
 import typing as T
+
+from ..mesonlib import MesonException
+from .vs2010backend import Vs2010Backend
 
 if T.TYPE_CHECKING:
     from ..build import Build

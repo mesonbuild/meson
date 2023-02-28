@@ -16,43 +16,31 @@
 # or an interpreter-based tool.
 from __future__ import annotations
 
-from .. import mparser, mesonlib
-from .. import environment
+import copy
+import os
+import pathlib
+import re
+import textwrap
+import typing as T
 
+from .. import environment, mesonlib, mparser
+from ._unholder import _unholder
 from .baseobjects import (
-    InterpreterObject,
-    MesonInterpreterObject,
-    MutableInterpreterObject,
-    InterpreterObjectTypeVar,
-    ObjectHolder,
-    IterableObject,
-
-    HoldableTypes,
+    HoldableTypes, InterpreterObject, InterpreterObjectTypeVar, IterableObject,
+    MesonInterpreterObject, MutableInterpreterObject, ObjectHolder
 )
-
-from .exceptions import (
-    BreakRequest,
-    ContinueRequest,
-    InterpreterException,
-    InvalidArguments,
-    InvalidCode,
-    MesonException,
-    SubdirDoneRequest,
-)
-
 from .decorators import FeatureNew
 from .disabler import Disabler, is_disabled
+from .exceptions import (
+    BreakRequest, ContinueRequest, InterpreterException, InvalidArguments,
+    InvalidCode, MesonException, SubdirDoneRequest
+)
 from .helpers import default_resolve_key, flatten, resolve_second_level_holders
 from .operator import MesonOperator
-from ._unholder import _unholder
-
-import os, copy, re, pathlib
-import typing as T
-import textwrap
 
 if T.TYPE_CHECKING:
-    from .baseobjects import SubProject, TYPE_kwargs, TYPE_var
     from ..interpreter import Interpreter
+    from .baseobjects import SubProject, TYPE_kwargs, TYPE_var
 
     HolderMapType = T.Dict[
         T.Union[

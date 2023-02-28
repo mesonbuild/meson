@@ -2,6 +2,7 @@
 
 from enum import Enum
 
+
 class MesonOperator(Enum):
     # Arithmetic
     PLUS = '+'

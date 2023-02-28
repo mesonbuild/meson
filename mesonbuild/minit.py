@@ -15,19 +15,20 @@ from __future__ import annotations
 
 """Code that creates simple startup projects."""
 
-from pathlib import Path
-from enum import Enum
-import subprocess
-import shutil
-import sys
 import os
 import re
+import shutil
+import subprocess
+import sys
+import typing as T
+from enum import Enum
 from glob import glob
+from pathlib import Path
+
 from mesonbuild import build, mesonlib, mlog
 from mesonbuild.coredata import FORBIDDEN_TARGET_NAMES
 from mesonbuild.environment import detect_ninja
 from mesonbuild.templates.samplefactory import sameple_generator
-import typing as T
 
 if T.TYPE_CHECKING:
     import argparse

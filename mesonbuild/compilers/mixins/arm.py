@@ -25,8 +25,8 @@ from ..compilers import clike_debug_args
 from .clang import clang_color_args
 
 if T.TYPE_CHECKING:
-    from ...environment import Environment
     from ...compilers.compilers import Compiler
+    from ...environment import Environment
 else:
     # This is a bit clever, for mypy we pretend that these mixins descend from
     # Compiler, so we get all of the methods and attributes defined for us, but

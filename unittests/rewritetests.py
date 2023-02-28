@@ -12,14 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import subprocess
 import json
 import os
 import shutil
+import subprocess
 import unittest
 
 from mesonbuild.mesonlib import windows_proof_rmtree
+
 from .baseplatformtests import BasePlatformTests
+
 
 class RewriterTests(BasePlatformTests):
     def setUp(self):

@@ -16,48 +16,46 @@
 # or an interpreter-based tool.
 from __future__ import annotations
 
+import re
+import typing as T
 from functools import lru_cache
 from os import environ
 from pathlib import Path
-import re
-import typing as T
 
-from .common import CMakeException, CMakeTarget, language_map, cmake_get_generator_args, check_cmake_args
-from .fileapi import CMakeFileAPI
+from .. import mesonlib, mlog
+from ..compilers.compilers import (
+    assembler_suffixes, header_suffixes, is_header, lang_suffixes,
+    lib_suffixes, obj_suffixes
+)
+from ..coredata import FORBIDDEN_TARGET_NAMES
+from ..mesondata import DataFile
+from ..mesonlib import (
+    MachineChoice, OptionKey, OrderedSet, path_is_in_root,
+    relative_to_if_possible
+)
+from ..mparser import (
+    ArgumentNode, ArrayNode, AssignmentNode, BaseNode, BooleanNode,
+    CodeBlockNode, FunctionNode, IdNode, IndexNode, MethodNode, NumberNode,
+    StringNode, Token
+)
+from ..programs import ExternalProgram
+from .common import (
+    CMakeException, CMakeTarget, check_cmake_args, cmake_get_generator_args,
+    language_map
+)
 from .executor import CMakeExecutor
-from .toolchain import CMakeToolchain, CMakeExecScope
+from .fileapi import CMakeFileAPI
+from .toolchain import CMakeExecScope, CMakeToolchain
 from .traceparser import CMakeTraceParser
 from .tracetargets import resolve_cmake_trace_targets
-from .. import mlog, mesonlib
-from ..mesonlib import MachineChoice, OrderedSet, path_is_in_root, relative_to_if_possible, OptionKey
-from ..mesondata import DataFile
-from ..compilers.compilers import assembler_suffixes, lang_suffixes, header_suffixes, obj_suffixes, lib_suffixes, is_header
-from ..programs import ExternalProgram
-from ..coredata import FORBIDDEN_TARGET_NAMES
-from ..mparser import (
-    Token,
-    BaseNode,
-    CodeBlockNode,
-    FunctionNode,
-    ArrayNode,
-    ArgumentNode,
-    AssignmentNode,
-    BooleanNode,
-    StringNode,
-    IdNode,
-    IndexNode,
-    MethodNode,
-    NumberNode,
-)
-
 
 if T.TYPE_CHECKING:
+    from .._typing import ImmutableListProtocol
+    from ..backend.backends import Backend
+    from ..build import Build
+    from ..environment import Environment
     from .common import CMakeConfiguration, TargetOptions
     from .traceparser import CMakeGeneratorTarget
-    from .._typing import ImmutableListProtocol
-    from ..build import Build
-    from ..backend.backends import Backend
-    from ..environment import Environment
 
     TYPE_mixed = T.Union[str, int, bool, Path, BaseNode]
     TYPE_mixed_list = T.Union[TYPE_mixed, T.Sequence[TYPE_mixed]]

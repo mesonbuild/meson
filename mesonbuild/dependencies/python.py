@@ -13,23 +13,28 @@
 # limitations under the License.
 from __future__ import annotations
 
-import functools, json, os
-from pathlib import Path
+import functools
+import json
+import os
 import typing as T
+from pathlib import Path
 
 from .. import mesonlib, mlog
-from .base import process_method_kw, DependencyMethods, DependencyTypeName, ExternalDependency, SystemDependency
-from .framework import ExtraFrameworkDependency
-from .pkgconfig import PkgConfigDependency
 from ..environment import detect_cpu_family
 from ..programs import ExternalProgram
+from .base import (
+    DependencyMethods, DependencyTypeName, ExternalDependency,
+    SystemDependency, process_method_kw
+)
+from .framework import ExtraFrameworkDependency
+from .pkgconfig import PkgConfigDependency
 
 if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
 
-    from .factory import DependencyGenerator
     from ..environment import Environment
     from ..mesonlib import MachineChoice
+    from .factory import DependencyGenerator
 
     class PythonIntrospectionDict(TypedDict):
 

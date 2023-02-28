@@ -13,12 +13,6 @@
 # limitations under the License.
 from __future__ import annotations
 
-from collections import OrderedDict
-from dataclasses import dataclass
-from enum import Enum, unique
-from functools import lru_cache
-from pathlib import PurePath, Path
-from textwrap import dedent
 import itertools
 import json
 import os
@@ -27,34 +21,35 @@ import re
 import shlex
 import subprocess
 import typing as T
+from collections import OrderedDict
+from dataclasses import dataclass
+from enum import Enum, unique
+from functools import lru_cache
+from pathlib import Path, PurePath
+from textwrap import dedent
 
-from . import backends
-from .. import modules
-from ..modules import gnome
-from .. import environment, mesonlib
-from .. import build
-from .. import mlog
-from .. import compilers
+from .. import build, compilers, environment, mesonlib, mlog, modules
 from ..arglist import CompilerArgs
+from ..build import GeneratedList, InvalidArguments
 from ..compilers import Compiler
 from ..linkers import ArLinker, RSPFileSyntax
 from ..mesonlib import (
-    File, LibType, MachineChoice, MesonException, OrderedSet, PerMachine,
-    ProgressBar, quote_arg
+    File, LibType, MachineChoice, MesonException, OptionKey, OrderedSet,
+    PerMachine, ProgressBar, get_compiler_for_source, has_path_sep, quote_arg
 )
-from ..mesonlib import get_compiler_for_source, has_path_sep, OptionKey
+from ..modules import gnome
+from . import backends
 from .backends import CleanTrees
-from ..build import GeneratedList, InvalidArguments
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal
 
     from .._typing import ImmutableListProtocol
     from ..build import ExtractedObjects
-    from ..interpreter import Interpreter
-    from ..linkers import DynamicLinker, StaticLinker
     from ..compilers.cs import CsCompiler
     from ..compilers.fortran import FortranCompiler
+    from ..interpreter import Interpreter
+    from ..linkers import DynamicLinker, StaticLinker
 
     RUST_EDITIONS = Literal['2015', '2018', '2021']
 

@@ -2,22 +2,17 @@
 # SPDX-license-identifier: Apache-2.0
 from __future__ import annotations
 
-from ...interpreterbase import (
-    ObjectHolder,
-    MesonOperator,
-    typed_operator,
-    noKwargs,
-    noPosargs,
-
-    InvalidArguments
-)
-
 import typing as T
+
+from ...interpreterbase import (
+    InvalidArguments, MesonOperator, ObjectHolder, noKwargs, noPosargs,
+    typed_operator
+)
 
 if T.TYPE_CHECKING:
     # Object holders need the actual interpreter
     from ...interpreter import Interpreter
-    from ...interpreterbase import TYPE_var, TYPE_kwargs
+    from ...interpreterbase import TYPE_kwargs, TYPE_var
 
 class IntegerHolder(ObjectHolder[int]):
     def __init__(self, obj: int, interpreter: 'Interpreter') -> None:

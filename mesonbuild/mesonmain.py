@@ -13,21 +13,24 @@
 # limitations under the License.
 from __future__ import annotations
 
-# Work around some pathlib bugs...
+import sys
 
 from . import _pathlib
-import sys
+
+# Work around some pathlib bugs...
+
 sys.modules['pathlib'] = _pathlib
 
+import argparse
+import importlib
 # This file is an entry point for all commands, including scripts. Include the
 # strict minimum python modules for performance reasons.
 import os.path
 import platform
-import importlib
-import argparse
 
-from .utils.core import MesonException, MesonBugException
 from . import mlog
+from .utils.core import MesonBugException, MesonException
+
 
 def errorhandler(e, command):
     import traceback
@@ -70,10 +73,14 @@ def errorhandler(e, command):
 class CommandLineParser:
     def __init__(self):
         # only import these once we do full argparse processing
-        from . import mconf, mdist, minit, minstall, mintro, msetup, mtest, rewriter, msubprojects, munstable_coredata, mcompile, mdevenv
+        import shutil
+
+        from . import (
+            mcompile, mconf, mdevenv, mdist, minit, minstall, mintro, msetup,
+            msubprojects, mtest, munstable_coredata, rewriter
+        )
         from .scripts import env2mfile
         from .wrap import wraptool
-        import shutil
 
         self.term_width = shutil.get_terminal_size().columns
         self.formatter = lambda prog: argparse.HelpFormatter(prog, max_help_position=int(self.term_width / 2), width=self.term_width)

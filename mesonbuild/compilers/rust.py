@@ -13,16 +13,19 @@
 # limitations under the License.
 from __future__ import annotations
 
-import subprocess, os.path
+import os.path
+import subprocess
 import textwrap
 import typing as T
 
 from .. import coredata
-from ..mesonlib import EnvironmentException, MesonException, Popen_safe, OptionKey
-from .compilers import Compiler, rust_buildtype_args, clike_debug_args
+from ..mesonlib import (
+    EnvironmentException, MesonException, OptionKey, Popen_safe
+)
+from .compilers import Compiler, clike_debug_args, rust_buildtype_args
 
 if T.TYPE_CHECKING:
-    from ..coredata import MutableKeyedOptionDictType, KeyedOptionDictType
+    from ..coredata import KeyedOptionDictType, MutableKeyedOptionDictType
     from ..envconfig import MachineInfo
     from ..environment import Environment  # noqa: F401
     from ..linkers import DynamicLinker

@@ -15,8 +15,8 @@ from __future__ import annotations
 
 import typing as T
 
-from .vs2010backend import Vs2010Backend
 from ..mesonlib import MesonException
+from .vs2010backend import Vs2010Backend
 
 if T.TYPE_CHECKING:
     from ..build import Build

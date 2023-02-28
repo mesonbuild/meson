@@ -16,10 +16,11 @@
 # or an interpreter-based tool.
 from __future__ import annotations
 
-from ..mesonlib import MesonException, OptionKey
-from .. import mlog
-from pathlib import Path
 import typing as T
+from pathlib import Path
+
+from .. import mlog
+from ..mesonlib import MesonException, OptionKey
 
 if T.TYPE_CHECKING:
     from ..environment import Environment

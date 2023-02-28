@@ -14,10 +14,11 @@
 from __future__ import annotations
 
 import os
-import sys
-import shutil
 import pickle
+import shutil
+import sys
 import typing as T
+
 
 def rmtrees(build_dir: str, trees: T.List[str]) -> None:
     for t in trees:

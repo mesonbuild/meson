@@ -16,8 +16,11 @@ from __future__ import annotations
 '''CD into dir given as first argument and execute
 the command given in the rest of the arguments.'''
 
-import os, subprocess, sys
+import os
+import subprocess
+import sys
 import typing as T
+
 
 def run(args: T.List[str]) -> int:
     dirname = args[0]

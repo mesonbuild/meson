@@ -12,9 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from configparser import ConfigParser
-from pathlib import Path
-from unittest import mock
 import contextlib
 import io
 import json
@@ -26,36 +23,37 @@ import subprocess
 import tempfile
 import typing as T
 import unittest
+from configparser import ConfigParser
+from pathlib import Path
+from unittest import mock
 
-import mesonbuild.mlog
-import mesonbuild.depfile
 import mesonbuild.dependencies.base
 import mesonbuild.dependencies.factory
+import mesonbuild.depfile
 import mesonbuild.envconfig
 import mesonbuild.environment
+import mesonbuild.mlog
 import mesonbuild.modules.gnome
+import mesonbuild.modules.pkgconfig
 from mesonbuild import coredata
 from mesonbuild.compilers.c import ClangCCompiler, GnuCCompiler
 from mesonbuild.compilers.cpp import VisualStudioCPPCompiler
 from mesonbuild.compilers.d import DmdDCompiler
-from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, ObjectHolder
-from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, typed_kwargs, ContainerTypeInfo, KwargInfo
-from mesonbuild.mesonlib import (
-    LibType, MachineChoice, PerMachine, Version, is_windows, is_osx,
-    is_cygwin, is_openbsd, search_version, MesonException, OptionKey,
-    OptionType
-)
-from mesonbuild.interpreter.type_checking import in_set_validator, NoneType
 from mesonbuild.dependencies import PkgConfigDependency
-from mesonbuild.programs import ExternalProgram
-import mesonbuild.modules.pkgconfig
-
-
-from run_tests import (
-    FakeCompilerOptions, get_fake_env, get_fake_options
+from mesonbuild.interpreter.type_checking import NoneType, in_set_validator
+from mesonbuild.interpreterbase import (
+    ContainerTypeInfo, InvalidArguments, KwargInfo, ObjectHolder, typed_kwargs,
+    typed_pos_args
 )
+from mesonbuild.mesonlib import (
+    LibType, MachineChoice, MesonException, OptionKey, OptionType, PerMachine,
+    Version, is_cygwin, is_openbsd, is_osx, is_windows, search_version
+)
+from mesonbuild.programs import ExternalProgram
+from run_tests import FakeCompilerOptions, get_fake_env, get_fake_options
 
 from .helpers import *
+
 
 class InternalTests(unittest.TestCase):
 
@@ -1018,7 +1016,7 @@ class InternalTests(unittest.TestCase):
     def test_validate_json(self) -> None:
         """Validate the json schema for the test cases."""
         try:
-            from jsonschema import validate, ValidationError
+            from jsonschema import ValidationError, validate
         except ImportError:
             if is_ci():
                 raise

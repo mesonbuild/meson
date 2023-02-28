@@ -14,12 +14,14 @@
 from __future__ import annotations
 
 import sysconfig
-from .. import mesonlib
 
-from . import ExtensionModule, ModuleInfo
-from ..interpreterbase import typed_pos_args, noPosargs, noKwargs, permittedKwargs
+from .. import mesonlib
 from ..build import known_shmod_kwargs
+from ..interpreterbase import (
+    noKwargs, noPosargs, permittedKwargs, typed_pos_args
+)
 from ..programs import ExternalProgram
+from . import ExtensionModule, ModuleInfo
 
 
 class Python3Module(ExtensionModule):

@@ -15,8 +15,9 @@ from __future__ import annotations
 
 import os
 import subprocess
-from pathlib import Path
 import typing as T
+from pathlib import Path
+
 
 def ls_as_bytestream() -> bytes:
     if os.path.exists('.git'):

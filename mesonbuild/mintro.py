@@ -23,14 +23,19 @@ project files and don't need this info."""
 import collections
 import json
 import os
-from pathlib import Path, PurePath
 import typing as T
+from pathlib import Path, PurePath
 
-from . import build, mesonlib, mlog, coredata as cdata
-from .ast import IntrospectionInterpreter, BUILD_TARGET_FUNCTIONS, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstJSONPrinter
+from . import build
+from . import coredata as cdata
+from . import mesonlib, mlog
+from .ast import (
+    BUILD_TARGET_FUNCTIONS, AstConditionLevel, AstIDGenerator,
+    AstIndentationGenerator, AstJSONPrinter, IntrospectionInterpreter
+)
 from .backend import backends
 from .mesonlib import OptionKey
-from .mparser import FunctionNode, ArrayNode, ArgumentNode, StringNode
+from .mparser import ArgumentNode, ArrayNode, FunctionNode, StringNode
 
 if T.TYPE_CHECKING:
     import argparse

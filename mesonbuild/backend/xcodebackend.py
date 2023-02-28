@@ -13,15 +13,14 @@
 # limitations under the License.
 from __future__ import annotations
 
-import uuid, os, operator
+import operator
+import os
 import typing as T
+import uuid
 
-from . import backends
-from .. import build
-from .. import dependencies
-from .. import mesonlib
-from .. import mlog
+from .. import build, dependencies, mesonlib, mlog
 from ..mesonlib import MesonException, OptionKey
+from . import backends
 
 if T.TYPE_CHECKING:
     from ..interpreter import Interpreter

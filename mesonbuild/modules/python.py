@@ -18,34 +18,37 @@ import os
 import shutil
 import typing as T
 
-from . import ExtensionModule, ModuleInfo
-from .. import mesonlib
-from .. import mlog
-from ..coredata import UserFeatureOption
+from .. import mesonlib, mlog
 from ..build import known_shmod_kwargs
+from ..coredata import UserFeatureOption
 from ..dependencies import NotFoundDependency
 from ..dependencies.detect import get_dep_identifier
-from ..dependencies.python import BasicPythonExternalProgram, python_factory, _PythonDependencyBase
-from ..interpreter import ExternalProgramHolder, extract_required_kwarg, permitted_dependency_kwargs
+from ..dependencies.python import (
+    BasicPythonExternalProgram, _PythonDependencyBase, python_factory
+)
+from ..interpreter import (
+    ExternalProgramHolder, extract_required_kwarg, permitted_dependency_kwargs
+)
 from ..interpreter import primitives as P_OBJ
-from ..interpreter.type_checking import NoneType, PRESERVE_PATH_KW
+from ..interpreter.type_checking import PRESERVE_PATH_KW, NoneType
 from ..interpreterbase import (
-    noPosargs, noKwargs, permittedKwargs, ContainerTypeInfo,
-    InvalidArguments, typed_pos_args, typed_kwargs, KwargInfo,
-    FeatureNew, FeatureNewKwargs, disablerIfNotFound
+    ContainerTypeInfo, FeatureNew, FeatureNewKwargs, InvalidArguments,
+    KwargInfo, disablerIfNotFound, noKwargs, noPosargs, permittedKwargs,
+    typed_kwargs, typed_pos_args
 )
 from ..mesonlib import MachineChoice
 from ..programs import ExternalProgram, NonExistingExternalProgram
+from . import ExtensionModule, ModuleInfo
 
 if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
 
-    from . import ModuleState
-    from ..build import SharedModule, Data
+    from ..build import Data, SharedModule
     from ..dependencies import Dependency
     from ..interpreter import Interpreter
     from ..interpreter.kwargs import ExtractRequired
-    from ..interpreterbase.interpreterbase import TYPE_var, TYPE_kwargs
+    from ..interpreterbase.interpreterbase import TYPE_kwargs, TYPE_var
+    from . import ModuleState
 
     class PyInstallKw(TypedDict):
 

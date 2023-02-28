@@ -12,8 +12,11 @@ import sys
 if sys.path[0].endswith('scripts'):
     del sys.path[0]
 
-import json, os, sysconfig
 import distutils.command.install
+import json
+import os
+import sysconfig
+
 
 def get_distutils_paths(scheme=None, prefix=None):
     import distutils.dist

@@ -21,16 +21,19 @@ as possible for performance reasons.
 """
 
 from __future__ import annotations
-from dataclasses import dataclass
-import os
+
 import abc
+import os
 import typing as T
+from dataclasses import dataclass
 
 if T.TYPE_CHECKING:
     from hashlib import _Hash
+
     from typing_extensions import Literal
-    from ..mparser import BaseNode
+
     from .. import programs
+    from ..mparser import BaseNode
 
     EnvironOrDict = T.Union[T.Dict[str, str], os._Environ[str]]
 

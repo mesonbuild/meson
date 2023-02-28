@@ -13,20 +13,21 @@
 # limitations under the License.
 from __future__ import annotations
 
-from mesonbuild.templates.valatemplates import ValaProject
-from mesonbuild.templates.fortrantemplates import FortranProject
-from mesonbuild.templates.objcpptemplates import ObjCppProject
-from mesonbuild.templates.dlangtemplates import DlangProject
-from mesonbuild.templates.rusttemplates import RustProject
-from mesonbuild.templates.javatemplates import JavaProject
-from mesonbuild.templates.cudatemplates import CudaProject
-from mesonbuild.templates.objctemplates import ObjCProject
+import argparse
+
 from mesonbuild.templates.cpptemplates import CppProject
 from mesonbuild.templates.cstemplates import CSharpProject
 from mesonbuild.templates.ctemplates import CProject
+from mesonbuild.templates.cudatemplates import CudaProject
+from mesonbuild.templates.dlangtemplates import DlangProject
+from mesonbuild.templates.fortrantemplates import FortranProject
+from mesonbuild.templates.javatemplates import JavaProject
+from mesonbuild.templates.objcpptemplates import ObjCppProject
+from mesonbuild.templates.objctemplates import ObjCProject
+from mesonbuild.templates.rusttemplates import RustProject
 from mesonbuild.templates.sampleimpl import SampleImpl
+from mesonbuild.templates.valatemplates import ValaProject
 
-import argparse
 
 def sameple_generator(options: argparse.Namespace) -> SampleImpl:
     return {

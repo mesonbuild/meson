@@ -19,24 +19,26 @@ import shutil
 import typing as T
 import xml.etree.ElementTree as ET
 
-from . import ModuleReturnValue, ExtensionModule
-from .. import build
-from .. import coredata
-from .. import mlog
-from ..dependencies import find_external_dependency, Dependency, ExternalLibrary
-from ..mesonlib import MesonException, File, version_compare, Popen_safe
+from .. import build, coredata, mlog
+from ..dependencies import (
+    Dependency, ExternalLibrary, find_external_dependency
+)
 from ..interpreter import extract_required_kwarg
 from ..interpreter.type_checking import INSTALL_DIR_KW, INSTALL_KW, NoneType
-from ..interpreterbase import ContainerTypeInfo, FeatureDeprecated, KwargInfo, noPosargs, FeatureNew, typed_kwargs
+from ..interpreterbase import (
+    ContainerTypeInfo, FeatureDeprecated, FeatureNew, KwargInfo, noPosargs,
+    typed_kwargs
+)
+from ..mesonlib import File, MesonException, Popen_safe, version_compare
 from ..programs import NonExistingExternalProgram
+from . import ExtensionModule, ModuleReturnValue
 
 if T.TYPE_CHECKING:
-    from . import ModuleState
-    from ..dependencies.qt import QtPkgConfigDependency, QmakeQtDependency
-    from ..interpreter import Interpreter
-    from ..interpreter import kwargs
+    from ..dependencies.qt import QmakeQtDependency, QtPkgConfigDependency
+    from ..interpreter import Interpreter, kwargs
     from ..mesonlib import FileOrString
     from ..programs import ExternalProgram
+    from . import ModuleState
 
     QtDependencyType = T.Union[QtPkgConfigDependency, QmakeQtDependency]
 

@@ -13,22 +13,22 @@
 # limitations under the License.
 from __future__ import annotations
 
-from pathlib import Path
-from .traceparser import CMakeTraceParser
-from ..envconfig import CMakeSkipCompilerTest
-from .common import language_map, cmake_get_generator_args
-from .. import mlog
-
 import shutil
 import typing as T
 from enum import Enum
+from pathlib import Path
 from textwrap import dedent
 
+from .. import mlog
+from ..envconfig import CMakeSkipCompilerTest
+from .common import cmake_get_generator_args, language_map
+from .traceparser import CMakeTraceParser
+
 if T.TYPE_CHECKING:
-    from .executor import CMakeExecutor
-    from ..environment import Environment
     from ..compilers import Compiler
+    from ..environment import Environment
     from ..mesonlib import MachineChoice
+    from .executor import CMakeExecutor
 
 class CMakeExecScope(Enum):
     SUBPROJECT = 'subproject'

@@ -13,22 +13,19 @@
 # limitations under the License.
 from __future__ import annotations
 
-import typing as T
 import re
+import typing as T
 
-from ..mesonlib import version_compare
 from ..compilers.cuda import CudaCompiler
-
-from . import NewExtensionModule, ModuleInfo
-
 from ..interpreterbase import (
-    flatten, permittedKwargs, noKwargs,
-    InvalidArguments
+    InvalidArguments, flatten, noKwargs, permittedKwargs
 )
+from ..mesonlib import version_compare
+from . import ModuleInfo, NewExtensionModule
 
 if T.TYPE_CHECKING:
-    from . import ModuleState
     from ..compilers import Compiler
+    from . import ModuleState
 
 class CudaModule(NewExtensionModule):
 

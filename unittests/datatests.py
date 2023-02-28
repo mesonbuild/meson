@@ -17,30 +17,23 @@ import unittest
 from itertools import chain
 from pathlib import Path
 
-import mesonbuild.mlog
-import mesonbuild.depfile
+import mesonbuild.coredata
 import mesonbuild.dependencies.base
 import mesonbuild.dependencies.factory
+import mesonbuild.depfile
 import mesonbuild.envconfig
 import mesonbuild.environment
-import mesonbuild.coredata
+import mesonbuild.mlog
 import mesonbuild.modules.gnome
-from mesonbuild.interpreter import Interpreter
-from mesonbuild.ast import AstInterpreter
-from mesonbuild.mesonlib import (
-    MachineChoice, OptionKey
-)
-from mesonbuild.compilers import (
-    detect_c_compiler, detect_cpp_compiler
-)
 import mesonbuild.modules.pkgconfig
-
-
-from run_tests import (
-    FakeBuild, get_fake_env
-)
+from mesonbuild.ast import AstInterpreter
+from mesonbuild.compilers import detect_c_compiler, detect_cpp_compiler
+from mesonbuild.interpreter import Interpreter
+from mesonbuild.mesonlib import MachineChoice, OptionKey
+from run_tests import FakeBuild, get_fake_env
 
 from .helpers import *
+
 
 @unittest.skipIf(is_tarball(), 'Skipping because this is a tarball release')
 class DataTests(unittest.TestCase):

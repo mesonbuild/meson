@@ -13,25 +13,28 @@
 # limitations under the License.
 from __future__ import annotations
 
-
 import argparse
 import gzip
+import hashlib
 import os
-import sys
 import shlex
 import shutil
 import subprocess
+import sys
 import tarfile
 import tempfile
-import hashlib
 from glob import glob
 from pathlib import Path
+
+from mesonbuild import build, coredata, mlog
 from mesonbuild.environment import detect_ninja
-from mesonbuild.mesonlib import (MesonException, RealPathAction, quiet_git,
-                                 windows_proof_rmtree, setup_vsenv)
+from mesonbuild.mesonlib import (
+    MesonException, RealPathAction, quiet_git, setup_vsenv,
+    windows_proof_rmtree
+)
 from mesonbuild.msetup import add_arguments as msetup_argparse
 from mesonbuild.wrap import wrap
-from mesonbuild import mlog, build, coredata
+
 from .scripts.meson_exe import run_exe
 
 archive_choices = ['gztar', 'xztar', 'zip']

@@ -24,13 +24,24 @@
 # - reindent?
 from __future__ import annotations
 
-from .ast import IntrospectionInterpreter, BUILD_TARGET_FUNCTIONS, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstPrinter
-from mesonbuild.mesonlib import MesonException
-from . import mlog, environment
-from functools import wraps
-from .mparser import Token, ArrayNode, ArgumentNode, AssignmentNode, BooleanNode, ElementaryNode, IdNode, FunctionNode, StringNode
-import json, os, re, sys
+import json
+import os
+import re
+import sys
 import typing as T
+from functools import wraps
+
+from mesonbuild.mesonlib import MesonException
+
+from . import environment, mlog
+from .ast import (
+    BUILD_TARGET_FUNCTIONS, AstConditionLevel, AstIDGenerator,
+    AstIndentationGenerator, AstPrinter, IntrospectionInterpreter
+)
+from .mparser import (
+    ArgumentNode, ArrayNode, AssignmentNode, BooleanNode, ElementaryNode,
+    FunctionNode, IdNode, StringNode, Token
+)
 
 if T.TYPE_CHECKING:
     from .mparser import BaseNode

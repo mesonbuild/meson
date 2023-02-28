@@ -1,41 +1,41 @@
 from __future__ import annotations
+
+import copy
 import os
 import shlex
 import subprocess
-import copy
 import textwrap
-
+import typing as T
 from pathlib import Path, PurePath
 
-from .. import mesonlib
-from .. import coredata
-from .. import build
-from .. import mlog
-
-from ..modules import ModuleReturnValue, ModuleObject, ModuleState, ExtensionModule
+from .. import build, coredata, mesonlib, mlog
 from ..backend.backends import TestProtocol
-from ..interpreterbase import (
-                               ContainerTypeInfo, KwargInfo, MesonOperator,
-                               MesonInterpreterObject, ObjectHolder, MutableInterpreterObject,
-                               FeatureNew, FeatureDeprecated,
-                               typed_pos_args, typed_kwargs, typed_operator,
-                               noArgsFlattening, noPosargs, noKwargs, unholder_return,
-                               flatten, resolve_second_level_holders, InterpreterException, InvalidArguments, InvalidCode)
-from ..interpreter.type_checking import NoneType, ENV_SEPARATOR_KW
 from ..dependencies import Dependency, ExternalLibrary, InternalDependency
+from ..interpreter.type_checking import ENV_SEPARATOR_KW, NoneType
+from ..interpreterbase import (
+    ContainerTypeInfo, FeatureDeprecated, FeatureNew, InterpreterException,
+    InvalidArguments, InvalidCode, KwargInfo, MesonInterpreterObject,
+    MesonOperator, MutableInterpreterObject, ObjectHolder, flatten,
+    noArgsFlattening, noKwargs, noPosargs, resolve_second_level_holders,
+    typed_kwargs, typed_operator, typed_pos_args, unholder_return
+)
+from ..mesonlib import HoldableObject, OptionKey, Popen_safe, listify
+from ..modules import (
+    ExtensionModule, ModuleObject, ModuleReturnValue, ModuleState
+)
 from ..programs import ExternalProgram
-from ..mesonlib import HoldableObject, OptionKey, listify, Popen_safe
-
-import typing as T
 
 if T.TYPE_CHECKING:
-    from . import kwargs
+    from typing_extensions import TypedDict
+
     from ..cmake.interpreter import CMakeInterpreter
     from ..envconfig import MachineInfo
-    from ..interpreterbase import FeatureCheckBase, InterpreterObject, SubProject, TYPE_var, TYPE_kwargs, TYPE_nvar, TYPE_nkwargs
+    from ..interpreterbase import (
+        FeatureCheckBase, InterpreterObject, SubProject, TYPE_kwargs,
+        TYPE_nkwargs, TYPE_nvar, TYPE_var
+    )
+    from . import kwargs
     from .interpreter import Interpreter
-
-    from typing_extensions import TypedDict
 
     class EnvironmentSeparatorKW(TypedDict):
 

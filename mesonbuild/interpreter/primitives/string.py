@@ -2,30 +2,20 @@
 # SPDX-license-identifier: Apache-2.0
 from __future__ import annotations
 
-import re
 import os
-
+import re
 import typing as T
 
-from ...mesonlib import version_compare
 from ...interpreterbase import (
-    ObjectHolder,
-    MesonOperator,
-    FeatureNew,
-    typed_operator,
-    noArgsFlattening,
-    noKwargs,
-    noPosargs,
-    typed_pos_args,
-
-    InvalidArguments,
+    FeatureNew, InvalidArguments, MesonOperator, ObjectHolder,
+    noArgsFlattening, noKwargs, noPosargs, typed_operator, typed_pos_args
 )
-
+from ...mesonlib import version_compare
 
 if T.TYPE_CHECKING:
     # Object holders need the actual interpreter
     from ...interpreter import Interpreter
-    from ...interpreterbase import TYPE_var, TYPE_kwargs
+    from ...interpreterbase import TYPE_kwargs, TYPE_var
 
 class StringHolder(ObjectHolder[str]):
     def __init__(self, obj: str, interpreter: 'Interpreter') -> None:

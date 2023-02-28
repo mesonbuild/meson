@@ -16,15 +16,17 @@
 # or an interpreter-based tool.
 from __future__ import annotations
 
-import subprocess as S
-from threading import Thread
-import typing as T
-import re
 import os
+import re
+import subprocess as S
+import typing as T
+from threading import Thread
 
 from .. import mlog
-from ..mesonlib import PerMachine, Popen_safe, version_compare, is_windows, OptionKey
-from ..programs import find_external_program, NonExistingExternalProgram
+from ..mesonlib import (
+    OptionKey, PerMachine, Popen_safe, is_windows, version_compare
+)
+from ..programs import NonExistingExternalProgram, find_external_program
 
 if T.TYPE_CHECKING:
     from pathlib import Path

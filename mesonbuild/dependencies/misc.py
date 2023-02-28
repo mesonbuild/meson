@@ -19,10 +19,10 @@ import functools
 import re
 import typing as T
 
-from .. import mesonlib
-from .. import mlog
-from .base import DependencyException, DependencyMethods
-from .base import BuiltinDependency, SystemDependency
+from .. import mesonlib, mlog
+from .base import (
+    BuiltinDependency, DependencyException, DependencyMethods, SystemDependency
+)
 from .cmake import CMakeDependency
 from .configtool import ConfigToolDependency
 from .factory import DependencyFactory, factory_methods

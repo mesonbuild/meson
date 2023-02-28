@@ -13,16 +13,18 @@
 # limitations under the License.
 
 import os
-import tempfile
 import subprocess
+import tempfile
 import textwrap
-from unittest import skipIf
 from pathlib import Path
+from unittest import skipIf
+
+from mesonbuild.mesonlib import is_linux
+from mesonbuild.optinterpreter import OptionException, OptionInterpreter
 
 from .baseplatformtests import BasePlatformTests
 from .helpers import is_ci
-from mesonbuild.mesonlib import is_linux
-from mesonbuild.optinterpreter import OptionInterpreter, OptionException
+
 
 @skipIf(is_ci() and not is_linux(), "Run only on fast platforms")
 class PlatformAgnosticTests(BasePlatformTests):

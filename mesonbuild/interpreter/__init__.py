@@ -42,18 +42,14 @@ __all__ = [
     'StringHolder',
 ]
 
-from .interpreter import Interpreter, permitted_dependency_kwargs
 from .compiler import CompilerHolder
-from .interpreterobjects import (ExecutableHolder, BuildTargetHolder, CustomTargetHolder,
-                                 CustomTargetIndexHolder, MachineHolder, Test,
-                                 ConfigurationDataHolder, SubprojectHolder, DependencyHolder,
-                                 GeneratedListHolder, ExternalProgramHolder,
-                                 extract_required_kwarg)
-
+from .interpreter import Interpreter, permitted_dependency_kwargs
+from .interpreterobjects import (
+    BuildTargetHolder, ConfigurationDataHolder, CustomTargetHolder,
+    CustomTargetIndexHolder, DependencyHolder, ExecutableHolder,
+    ExternalProgramHolder, GeneratedListHolder, MachineHolder,
+    SubprojectHolder, Test, extract_required_kwarg
+)
 from .primitives import (
-    ArrayHolder,
-    BooleanHolder,
-    DictHolder,
-    IntegerHolder,
-    StringHolder,
+    ArrayHolder, BooleanHolder, DictHolder, IntegerHolder, StringHolder
 )

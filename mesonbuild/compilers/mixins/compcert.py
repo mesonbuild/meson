@@ -21,8 +21,9 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from envconfig import MachineInfo
-    from ...environment import Environment
+
     from ...compilers.compilers import Compiler
+    from ...environment import Environment
 else:
     # This is a bit clever, for mypy we pretend that these mixins descend from
     # Compiler, so we get all of the methods and attributes defined for us, but

@@ -13,11 +13,11 @@
 # limitations under the License.
 from __future__ import annotations
 
-import os
 import argparse
+import os
+import shutil
 import subprocess
 import tempfile
-import shutil
 import typing as T
 
 parser = argparse.ArgumentParser()

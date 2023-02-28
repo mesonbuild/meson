@@ -19,8 +19,8 @@ import os
 import typing as T
 
 from .. import mesonlib
-from ..mesonlib import EnvironmentException, MesonException
 from ..arglist import CompilerArgs
+from ..mesonlib import EnvironmentException, MesonException
 
 if T.TYPE_CHECKING:
     from ..coredata import KeyedOptionDictType

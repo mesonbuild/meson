@@ -18,23 +18,22 @@ from __future__ import annotations
 """Dependency finders for the Qt framework."""
 
 import abc
-import re
 import os
+import re
 import typing as T
 
+from .. import mesonlib, mlog
 from .base import DependencyException, DependencyMethods
 from .configtool import ConfigToolDependency
+from .factory import DependencyFactory
 from .framework import ExtraFrameworkDependency
 from .pkgconfig import PkgConfigDependency
-from .factory import DependencyFactory
-from .. import mlog
-from .. import mesonlib
 
 if T.TYPE_CHECKING:
     from ..compilers import Compiler
+    from ..dependencies import MissingCompiler
     from ..envconfig import MachineInfo
     from ..environment import Environment
-    from ..dependencies import MissingCompiler
 
 
 def _qt_get_private_includes(mod_inc_dir: str, module: str, mod_version: str) -> T.List[str]:

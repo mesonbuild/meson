@@ -16,18 +16,23 @@
 # or an interpreter-based tool
 
 from __future__ import annotations
+
 import argparse
 import copy
 import os
 import typing as T
 
-from .. import compilers, environment, mesonlib, optinterpreter
+from .. import compilers
 from .. import coredata as cdata
+from .. import environment, mesonlib, optinterpreter
 from ..build import Executable, Jar, SharedLibrary, SharedModule, StaticLibrary
 from ..compilers import detect_compiler_for
 from ..interpreterbase import InvalidArguments
 from ..mesonlib import MachineChoice, OptionKey
-from ..mparser import BaseNode, ArithmeticNode, ArrayNode, ElementaryNode, IdNode, FunctionNode, StringNode
+from ..mparser import (
+    ArithmeticNode, ArrayNode, BaseNode, ElementaryNode, FunctionNode, IdNode,
+    StringNode
+)
 from .interpreter import AstInterpreter
 
 if T.TYPE_CHECKING:

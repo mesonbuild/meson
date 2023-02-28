@@ -13,32 +13,31 @@
 # limitations under the License.
 from __future__ import annotations
 
-from ..mesonlib import (
-    MesonException, EnvironmentException, MachineChoice, join_args,
-    search_version, is_windows, Popen_safe, windows_proof_rm,
-)
-from ..envconfig import BinaryTable
-from .. import mlog
-
-from ..linkers import guess_win_linker, guess_nix_linker
-
-import subprocess
+import os
 import platform
 import re
 import shutil
+import subprocess
 import tempfile
-import os
 import typing as T
 
+from .. import mlog
+from ..envconfig import BinaryTable
+from ..linkers import guess_nix_linker, guess_win_linker
+from ..mesonlib import (
+    EnvironmentException, MachineChoice, MesonException, Popen_safe,
+    is_windows, join_args, search_version, windows_proof_rm
+)
+
 if T.TYPE_CHECKING:
-    from .compilers import Compiler
+    from ..environment import Environment
+    from ..linkers import StaticLinker
+    from ..programs import ExternalProgram
     from .c import CCompiler
+    from .compilers import Compiler
     from .cpp import CPPCompiler
     from .fortran import FortranCompiler
     from .rust import RustCompiler
-    from ..linkers import StaticLinker
-    from ..environment import Environment
-    from ..programs import ExternalProgram
 
 
 # Default compilers and linkers
@@ -161,8 +160,8 @@ def _handle_exceptions(
 # ===============
 
 def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker:
-    from . import d
     from ..linkers import linkers
+    from . import d
     linker = env.lookup_binary_entry(compiler.for_machine, 'ar')
     if linker is not None:
         trials = [linker]
@@ -260,8 +259,8 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
     the compiler (GCC or Clang usually) as their shared linker, to find
     the linker they need.
     """
-    from . import c, cpp
     from ..linkers import linkers
+    from . import c, cpp
     popen_exceptions: T.Dict[str, T.Union[Exception, str]] = {}
     compilers, ccache, exe_wrap = _get_compilers(env, lang, for_machine)
     if override_compiler is not None:
@@ -583,8 +582,8 @@ def detect_cpp_compiler(env: 'Environment', for_machine: MachineChoice) -> Compi
     return _detect_c_or_cpp_compiler(env, 'cpp', for_machine)
 
 def detect_cuda_compiler(env: 'Environment', for_machine: MachineChoice) -> Compiler:
-    from .cuda import CudaCompiler
     from ..linkers.linkers import CudaLinker
+    from .cuda import CudaCompiler
     popen_exceptions = {}
     is_cross = env.is_cross_build(for_machine)
     compilers, ccache, exe_wrap = _get_compilers(env, 'cuda', for_machine)
@@ -620,8 +619,8 @@ def detect_cuda_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
     raise EnvironmentException(f'Could not find suitable CUDA compiler: "{"; ".join([" ".join(c) for c in compilers])}"')
 
 def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> Compiler:
-    from . import fortran
     from ..linkers import linkers
+    from . import fortran
     popen_exceptions: T.Dict[str, T.Union[Exception, str]] = {}
     compilers, ccache, exe_wrap = _get_compilers(env, 'fortran', for_machine)
     is_cross = env.is_cross_build(for_machine)
@@ -927,8 +926,8 @@ def detect_vala_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
     raise EnvironmentException('Unknown compiler: ' + join_args(exelist))
 
 def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> RustCompiler:
-    from . import rust
     from ..linkers import linkers
+    from . import rust
     popen_exceptions = {}  # type: T.Dict[str, Exception]
     compilers, _, exe_wrap = _get_compilers(env, 'rust', for_machine)
     is_cross = env.is_cross_build(for_machine)
@@ -1216,7 +1215,7 @@ def detect_masm_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
     else:
         info = env.machines[for_machine]
 
-    from .asm import MasmCompiler, MasmARMCompiler
+    from .asm import MasmARMCompiler, MasmCompiler
     comp_class: T.Type[Compiler]
     if info.cpu_family == 'x86':
         comp = ['ml']

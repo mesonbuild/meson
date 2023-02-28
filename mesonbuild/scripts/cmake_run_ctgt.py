@@ -2,11 +2,12 @@
 from __future__ import annotations
 
 import argparse
-import subprocess
 import shutil
+import subprocess
 import sys
-from pathlib import Path
 import typing as T
+from pathlib import Path
+
 
 def run(argsv: T.List[str]) -> int:
     commands = [[]]  # type: T.List[T.List[str]]

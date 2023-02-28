@@ -17,8 +17,8 @@ import os
 import typing as T
 import xml.etree.ElementTree as ET
 
-from .vs2010backend import Vs2010Backend
 from ..mesonlib import MesonException
+from .vs2010backend import Vs2010Backend
 
 if T.TYPE_CHECKING:
     from ..build import Build

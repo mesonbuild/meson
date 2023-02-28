@@ -12,106 +12,76 @@
 # limitations under the License.
 from __future__ import annotations
 
-from .. import mparser
-from .. import environment
-from .. import coredata
-from .. import dependencies
-from .. import mlog
-from .. import build
-from .. import optinterpreter
-from .. import compilers
-from .. import envconfig
-from ..wrap import wrap, WrapMode
-from .. import mesonlib
-from ..mesonlib import (MesonBugException, HoldableObject, FileMode, MachineChoice, OptionKey,
-                        listify, extract_as_list, has_path_sep, PerMachine)
-from ..programs import ExternalProgram, NonExistingExternalProgram
+import collections
+import copy
+import importlib
+import os
+import re
+import shutil
+import stat
+import textwrap
+import typing as T
+import uuid
+from enum import Enum
+from pathlib import Path
+
+from .. import (
+    build, compilers, coredata, dependencies, envconfig, environment, mesonlib,
+    mlog, mparser, optinterpreter
+)
+from ..backend.backends import ExecutableSerialisation
+from ..cmake import CMakeInterpreter
 from ..dependencies import Dependency
 from ..depfile import DepFile
-from ..interpreterbase import ContainerTypeInfo, InterpreterBase, KwargInfo, typed_kwargs, typed_pos_args
-from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, noArgsFlattening, noSecondLevelHolderResolving, unholder_return
-from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
-from ..interpreterbase import Disabler, disablerIfNotFound
-from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs, FeatureDeprecatedKwargs
-from ..interpreterbase import ObjectHolder
-from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule
-from ..cmake import CMakeInterpreter
-from ..backend.backends import ExecutableSerialisation
-
-from . import interpreterobjects as OBJ
+from ..interpreterbase import (
+    ContainerTypeInfo, Disabler, FeatureDeprecated, FeatureDeprecatedKwargs,
+    FeatureNew, FeatureNewKwargs, InterpreterBase, InterpreterException,
+    InvalidArguments, InvalidCode, KwargInfo, ObjectHolder, SubdirDoneRequest,
+    disablerIfNotFound, noArgsFlattening, noKwargs, noPosargs,
+    noSecondLevelHolderResolving, permittedKwargs, typed_kwargs,
+    typed_pos_args, unholder_return
+)
+from ..mesonlib import (
+    FileMode, HoldableObject, MachineChoice, MesonBugException, OptionKey,
+    PerMachine, extract_as_list, has_path_sep, listify
+)
+from ..modules import (
+    ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule,
+    NotFoundExtensionModule
+)
+from ..programs import ExternalProgram, NonExistingExternalProgram
+from ..wrap import WrapMode, wrap
 from . import compiler as compilerOBJ
-from .mesonmain import MesonMain
+from . import interpreterobjects as OBJ
+from . import primitives as P_OBJ
 from .dependencyfallbacks import DependencyFallbacksHolder
 from .interpreterobjects import (
-    SubprojectHolder,
-    Test,
-    RunProcess,
-    extract_required_kwarg,
-    extract_search_dirs,
-    NullSubprojectInterpreter,
+    NullSubprojectInterpreter, RunProcess, SubprojectHolder, Test,
+    extract_required_kwarg, extract_search_dirs
 )
+from .mesonmain import MesonMain
 from .type_checking import (
-    COMMAND_KW,
-    CT_BUILD_ALWAYS,
-    CT_BUILD_ALWAYS_STALE,
-    CT_BUILD_BY_DEFAULT,
-    CT_INPUT_KW,
-    CT_INSTALL_DIR_KW,
-    MULTI_OUTPUT_KW,
-    OUTPUT_KW,
-    DEFAULT_OPTIONS,
-    DEPENDENCIES_KW,
-    DEPENDS_KW,
-    DEPEND_FILES_KW,
-    DEPFILE_KW,
-    DISABLER_KW,
-    D_MODULE_VERSIONS_KW,
-    ENV_KW,
-    ENV_METHOD_KW,
-    ENV_SEPARATOR_KW,
-    INCLUDE_DIRECTORIES,
-    INSTALL_KW,
-    INSTALL_DIR_KW,
-    INSTALL_MODE_KW,
-    LINK_WITH_KW,
-    LINK_WHOLE_KW,
-    CT_INSTALL_TAG_KW,
-    INSTALL_TAG_KW,
-    LANGUAGE_KW,
-    NATIVE_KW,
-    PRESERVE_PATH_KW,
-    REQUIRED_KW,
-    SOURCES_KW,
-    VARIABLES_KW,
-    TEST_KWS,
-    NoneType,
-    in_set_validator,
-    env_convertor_with_method
+    COMMAND_KW, CT_BUILD_ALWAYS, CT_BUILD_ALWAYS_STALE, CT_BUILD_BY_DEFAULT,
+    CT_INPUT_KW, CT_INSTALL_DIR_KW, CT_INSTALL_TAG_KW, D_MODULE_VERSIONS_KW,
+    DEFAULT_OPTIONS, DEPEND_FILES_KW, DEPENDENCIES_KW, DEPENDS_KW, DEPFILE_KW,
+    DISABLER_KW, ENV_KW, ENV_METHOD_KW, ENV_SEPARATOR_KW, INCLUDE_DIRECTORIES,
+    INSTALL_DIR_KW, INSTALL_KW, INSTALL_MODE_KW, INSTALL_TAG_KW, LANGUAGE_KW,
+    LINK_WHOLE_KW, LINK_WITH_KW, MULTI_OUTPUT_KW, NATIVE_KW, OUTPUT_KW,
+    PRESERVE_PATH_KW, REQUIRED_KW, SOURCES_KW, TEST_KWS, VARIABLES_KW,
+    NoneType, env_convertor_with_method, in_set_validator
 )
-from . import primitives as P_OBJ
-
-from pathlib import Path
-from enum import Enum
-import os
-import shutil
-import uuid
-import re
-import stat
-import collections
-import typing as T
-import textwrap
-import importlib
-import copy
 
 if T.TYPE_CHECKING:
     import argparse
 
     from typing_extensions import Literal
 
-    from . import kwargs as kwtypes
     from ..backend.backends import Backend
-    from ..interpreterbase.baseobjects import InterpreterObject, TYPE_var, TYPE_kwargs
+    from ..interpreterbase.baseobjects import (
+        InterpreterObject, TYPE_kwargs, TYPE_var
+    )
     from ..programs import OverrideProgram
+    from . import kwargs as kwtypes
 
     # Input source types passed to Targets
     SourceInputs = T.Union[mesonlib.File, build.GeneratedList, build.BuildTarget, build.BothLibraries,

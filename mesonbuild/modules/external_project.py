@@ -13,31 +13,37 @@
 # limitations under the License.
 from __future__ import annotations
 
-from pathlib import Path
 import os
 import shlex
 import subprocess
 import typing as T
+from pathlib import Path
 
-from . import ExtensionModule, ModuleReturnValue, NewExtensionModule, ModuleInfo
-from .. import mlog, build
+from .. import build, mlog
 from ..compilers.compilers import CFLAGS_MAPPING
-from ..envconfig import ENV_VAR_PROG_MAP
 from ..dependencies import InternalDependency, PkgConfigDependency
+from ..envconfig import ENV_VAR_PROG_MAP
+from ..interpreter.type_checking import DEPENDS_KW, ENV_KW
 from ..interpreterbase import FeatureNew
-from ..interpreter.type_checking import ENV_KW, DEPENDS_KW
-from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, typed_kwargs, typed_pos_args
-from ..mesonlib import (EnvironmentException, MesonException, Popen_safe, MachineChoice,
-                        get_variable_regex, do_replacement, join_args, OptionKey)
+from ..interpreterbase.decorators import (
+    ContainerTypeInfo, KwargInfo, typed_kwargs, typed_pos_args
+)
+from ..mesonlib import (
+    EnvironmentException, MachineChoice, MesonException, OptionKey, Popen_safe,
+    do_replacement, get_variable_regex, join_args
+)
+from . import (
+    ExtensionModule, ModuleInfo, ModuleReturnValue, NewExtensionModule
+)
 
 if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
 
-    from . import ModuleState
     from .._typing import ImmutableListProtocol
     from ..build import BuildTarget, CustomTarget
     from ..interpreter import Interpreter
     from ..interpreterbase import TYPE_var
+    from . import ModuleState
 
     class Dependency(TypedDict):
 

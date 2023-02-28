@@ -16,32 +16,28 @@ from __future__ import annotations
 import os.path
 import typing as T
 
-from .. import coredata
-from .. import mlog
-from ..mesonlib import MesonException, version_compare, OptionKey
+from .. import coredata, mlog
+from ..mesonlib import MesonException, OptionKey, version_compare
 from .c_function_attributes import C_FUNC_ATTRIBUTES
-from .mixins.clike import CLikeCompiler
+from .compilers import Compiler, gnu_winlibs, msvc_winlibs
+from .mixins.arm import ArmclangCompiler, ArmCompiler
 from .mixins.ccrx import CcrxCompiler
-from .mixins.xc16 import Xc16Compiler
-from .mixins.compcert import CompCertCompiler
-from .mixins.ti import TICompiler
-from .mixins.arm import ArmCompiler, ArmclangCompiler
-from .mixins.visualstudio import MSVCCompiler, ClangClCompiler
-from .mixins.gnu import GnuCompiler
-from .mixins.gnu import gnu_common_warning_args, gnu_c_warning_args
-from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
 from .mixins.clang import ClangCompiler
+from .mixins.clike import CLikeCompiler
+from .mixins.compcert import CompCertCompiler
 from .mixins.elbrus import ElbrusCompiler
-from .mixins.pgi import PGICompiler
 from .mixins.emscripten import EmscriptenMixin
-from .compilers import (
-    gnu_winlibs,
-    msvc_winlibs,
-    Compiler,
+from .mixins.gnu import (
+    GnuCompiler, gnu_c_warning_args, gnu_common_warning_args
 )
+from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
+from .mixins.pgi import PGICompiler
+from .mixins.ti import TICompiler
+from .mixins.visualstudio import ClangClCompiler, MSVCCompiler
+from .mixins.xc16 import Xc16Compiler
 
 if T.TYPE_CHECKING:
-    from ..coredata import MutableKeyedOptionDictType, KeyedOptionDictType
+    from ..coredata import KeyedOptionDictType, MutableKeyedOptionDictType
     from ..dependencies import Dependency
     from ..envconfig import MachineInfo
     from ..environment import Environment

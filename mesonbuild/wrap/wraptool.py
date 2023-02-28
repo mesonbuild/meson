@@ -13,17 +13,19 @@
 # limitations under the License.
 from __future__ import annotations
 
-import sys, os
 import configparser
+import os
 import shutil
+import sys
 import typing as T
-
 from glob import glob
-from .wrap import (open_wrapdburl, WrapException, get_releases, get_releases_data,
-                   update_wrap_file, parse_patch_url)
 from pathlib import Path
 
 from .. import mesonlib, msubprojects
+from .wrap import (
+    WrapException, get_releases, get_releases_data, open_wrapdburl,
+    parse_patch_url, update_wrap_file
+)
 
 if T.TYPE_CHECKING:
     import argparse

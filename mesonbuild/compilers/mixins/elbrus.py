@@ -16,17 +16,16 @@ from __future__ import annotations
 """Abstractions for the Elbrus family of compilers."""
 
 import os
-import typing as T
-import subprocess
 import re
+import subprocess
+import typing as T
 
-from .gnu import GnuLikeCompiler
-from .gnu import gnu_optimization_args
-from ...mesonlib import Popen_safe, OptionKey
+from ...mesonlib import OptionKey, Popen_safe
+from .gnu import GnuLikeCompiler, gnu_optimization_args
 
 if T.TYPE_CHECKING:
-    from ...environment import Environment
     from ...coredata import KeyedOptionDictType
+    from ...environment import Environment
 
 
 class ElbrusCompiler(GnuLikeCompiler):

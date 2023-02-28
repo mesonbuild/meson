@@ -13,10 +13,9 @@
 # limitations under the License.
 from __future__ import annotations
 
-from .. import mesonlib, compilers, mlog
-from .. import build
-
+from .. import build, compilers, mesonlib, mlog
 from . import ExtensionModule, ModuleInfo
+
 
 class SimdModule(ExtensionModule):
 

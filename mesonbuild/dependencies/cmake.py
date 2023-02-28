@@ -13,23 +13,30 @@
 # limitations under the License.
 from __future__ import annotations
 
-from .base import ExternalDependency, DependencyException, DependencyTypeName
-from ..mesonlib import is_windows, MesonException, PerMachine, stringlistify, extract_as_list
-from ..cmake import CMakeExecutor, CMakeTraceParser, CMakeException, CMakeToolchain, CMakeExecScope, check_cmake_args, resolve_cmake_trace_targets, cmake_is_debug
-from .. import mlog
-import importlib.resources
-from pathlib import Path
 import functools
-import re
+import importlib.resources
 import os
+import re
 import shutil
 import textwrap
 import typing as T
+from pathlib import Path
+
+from .. import mlog
+from ..cmake import (
+    CMakeException, CMakeExecScope, CMakeExecutor, CMakeToolchain,
+    CMakeTraceParser, check_cmake_args, cmake_is_debug,
+    resolve_cmake_trace_targets
+)
+from ..mesonlib import (
+    MesonException, PerMachine, extract_as_list, is_windows, stringlistify
+)
+from .base import DependencyException, DependencyTypeName, ExternalDependency
 
 if T.TYPE_CHECKING:
     from ..cmake import CMakeTarget
-    from ..environment import Environment
     from ..envconfig import MachineInfo
+    from ..environment import Environment
 
 class CMakeInfo(T.NamedTuple):
     module_paths: T.List[str]

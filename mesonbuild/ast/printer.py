@@ -16,10 +16,11 @@
 # or an interpreter-based tool
 from __future__ import annotations
 
-from .. import mparser
-from . import AstVisitor
 import re
 import typing as T
+
+from .. import mparser
+from . import AstVisitor
 
 arithmic_map = {
     'add': '+',

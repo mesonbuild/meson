@@ -1,22 +1,27 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, InitVar
-import os, subprocess
 import argparse
 import asyncio
-import threading
 import copy
+import os
 import shutil
-from concurrent.futures.thread import ThreadPoolExecutor
-from pathlib import Path
-import typing as T
+import subprocess
 import tarfile
+import threading
+import typing as T
 import zipfile
+from concurrent.futures.thread import ThreadPoolExecutor
+from dataclasses import InitVar, dataclass
+from pathlib import Path
 
 from . import mlog
-from .mesonlib import quiet_git, GitException, Popen_safe, MesonException, windows_proof_rmtree
-from .wrap.wrap import (Resolver, WrapException, ALL_TYPES, PackageDefinition,
-                        parse_patch_url, update_wrap_file, get_releases)
+from .mesonlib import (
+    GitException, MesonException, Popen_safe, quiet_git, windows_proof_rmtree
+)
+from .wrap.wrap import (
+    ALL_TYPES, PackageDefinition, Resolver, WrapException, get_releases,
+    parse_patch_url, update_wrap_file
+)
 
 if T.TYPE_CHECKING:
     from typing_extensions import Protocol

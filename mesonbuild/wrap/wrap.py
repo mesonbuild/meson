@@ -13,35 +13,34 @@
 # limitations under the License.
 from __future__ import annotations
 
-from .. import mlog
+import configparser
 import contextlib
-from dataclasses import dataclass
-import urllib.request
-import urllib.error
-import urllib.parse
-import os
 import hashlib
+import json
+import os
 import shutil
-import tempfile
 import stat
 import subprocess
 import sys
-import configparser
+import tempfile
+import textwrap
 import time
 import typing as T
-import textwrap
-import json
-
+import urllib.error
+import urllib.parse
+import urllib.request
 from base64 import b64encode
+from dataclasses import dataclass
 from netrc import netrc
 from pathlib import Path
 
+from .. import coredata, mesonlib, mlog
+from ..interpreterbase import FeatureNew, SubProject
+from ..mesonlib import (
+    GIT, MesonException, Popen_safe, ProgressBar, quiet_git,
+    windows_proof_rmtree
+)
 from . import WrapMode
-from .. import coredata
-from ..mesonlib import quiet_git, GIT, ProgressBar, MesonException, windows_proof_rmtree, Popen_safe
-from ..interpreterbase import FeatureNew
-from ..interpreterbase import SubProject
-from .. import mesonlib
 
 if T.TYPE_CHECKING:
     import http.client

@@ -20,14 +20,13 @@ import os
 import subprocess
 import typing as T
 
-from .. import mlog
-from .. import mesonlib
-from ..mesonlib import (
-    Popen_safe, extract_as_list, version_compare_many
-)
+from .. import mesonlib, mlog
 from ..environment import detect_cpu_family
-
-from .base import DependencyException, DependencyMethods, DependencyTypeName, SystemDependency
+from ..mesonlib import Popen_safe, extract_as_list, version_compare_many
+from .base import (
+    DependencyException, DependencyMethods, DependencyTypeName,
+    SystemDependency
+)
 from .configtool import ConfigToolDependency
 from .factory import DependencyFactory
 

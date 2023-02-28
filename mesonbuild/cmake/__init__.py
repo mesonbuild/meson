@@ -38,11 +38,15 @@ __all__ = [
     'ResolvedTarget',
 ]
 
-from .common import CMakeException, SingleTargetOptions, TargetOptions, cmake_defines_to_args, language_map, backend_generator_map, cmake_get_generator_args, check_cmake_args, cmake_is_debug
+from .common import (
+    CMakeException, SingleTargetOptions, TargetOptions, backend_generator_map,
+    check_cmake_args, cmake_defines_to_args, cmake_get_generator_args,
+    cmake_is_debug, language_map
+)
 from .executor import CMakeExecutor
 from .fileapi import CMakeFileAPI
 from .generator import parse_generator_expressions
 from .interpreter import CMakeInterpreter
-from .toolchain import CMakeToolchain, CMakeExecScope
+from .toolchain import CMakeExecScope, CMakeToolchain
 from .traceparser import CMakeTarget, CMakeTraceLine, CMakeTraceParser
-from .tracetargets import resolve_cmake_trace_targets, ResolvedTarget
+from .tracetargets import ResolvedTarget, resolve_cmake_trace_targets

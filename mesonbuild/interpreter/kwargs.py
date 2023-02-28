@@ -7,12 +7,11 @@ from __future__ import annotations
 
 import typing as T
 
-from typing_extensions import TypedDict, Literal, Protocol
+from typing_extensions import Literal, Protocol, TypedDict
 
-from .. import build
-from .. import coredata
+from .. import build, coredata
 from ..compilers import Compiler
-from ..mesonlib import MachineChoice, File, FileMode, FileOrString
+from ..mesonlib import File, FileMode, FileOrString, MachineChoice
 from ..modules.cmake import CMakeSubprojectOptions
 from ..programs import ExternalProgram
 

@@ -13,30 +13,26 @@
 # limitations under the License.
 from __future__ import annotations
 
-import typing as T
 import os
-
-from .. import coredata
-from .compilers import (
-    clike_debug_args,
-    Compiler,
-)
-from .mixins.clike import CLikeCompiler
-from .mixins.gnu import (
-    GnuCompiler, gnulike_buildtype_args, gnu_optimization_args
-)
-from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
-from .mixins.clang import ClangCompiler
-from .mixins.elbrus import ElbrusCompiler
-from .mixins.pgi import PGICompiler
+import typing as T
 
 from mesonbuild.mesonlib import (
-    version_compare, MesonException,
-    LibType, OptionKey,
+    LibType, MesonException, OptionKey, version_compare
 )
 
+from .. import coredata
+from .compilers import Compiler, clike_debug_args
+from .mixins.clang import ClangCompiler
+from .mixins.clike import CLikeCompiler
+from .mixins.elbrus import ElbrusCompiler
+from .mixins.gnu import (
+    GnuCompiler, gnu_optimization_args, gnulike_buildtype_args
+)
+from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
+from .mixins.pgi import PGICompiler
+
 if T.TYPE_CHECKING:
-    from ..coredata import MutableKeyedOptionDictType, KeyedOptionDictType
+    from ..coredata import KeyedOptionDictType, MutableKeyedOptionDictType
     from ..dependencies import Dependency
     from ..envconfig import MachineInfo
     from ..environment import Environment

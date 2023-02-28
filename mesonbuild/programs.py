@@ -17,15 +17,14 @@ from __future__ import annotations
 
 import functools
 import os
+import re
 import shutil
 import stat
 import sys
-import re
 import typing as T
 from pathlib import Path
 
-from . import mesonlib
-from . import mlog
+from . import mesonlib, mlog
 from .mesonlib import MachineChoice
 
 if T.TYPE_CHECKING:

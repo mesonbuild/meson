@@ -17,18 +17,19 @@ import typing as T
 
 from .. import coredata
 from ..mesonlib import OptionKey
-
-from .mixins.clike import CLikeCompiler
 from .compilers import Compiler
-from .mixins.gnu import GnuCompiler, gnu_common_warning_args, gnu_objc_warning_args
 from .mixins.clang import ClangCompiler
+from .mixins.clike import CLikeCompiler
+from .mixins.gnu import (
+    GnuCompiler, gnu_common_warning_args, gnu_objc_warning_args
+)
 
 if T.TYPE_CHECKING:
-    from ..programs import ExternalProgram
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..linkers import DynamicLinker
     from ..mesonlib import MachineChoice
+    from ..programs import ExternalProgram
 
 class ObjCPPCompiler(CLikeCompiler, Compiler):
 

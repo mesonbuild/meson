@@ -15,13 +15,14 @@ from __future__ import annotations
 
 import argparse
 import subprocess
+import typing as T
 from pathlib import Path
 
-from .run_tool import run_tool
 from ..environment import detect_clangformat
 from ..mesonlib import version_compare
 from ..programs import ExternalProgram
-import typing as T
+from .run_tool import run_tool
+
 
 def run_clang_format(fname: Path, exelist: T.List[str], check: bool, cformat_ver: T.Optional[str]) -> subprocess.CompletedProcess:
     clangformat_10 = False

@@ -13,16 +13,14 @@
 # limitations under the License.
 from __future__ import annotations
 
-from dataclasses import dataclass
 import subprocess
 import typing as T
+from dataclasses import dataclass
 from enum import Enum
-
-from . import mesonlib
-from .mesonlib import EnvironmentException, HoldableObject
-from . import mlog
 from pathlib import Path
 
+from . import mesonlib, mlog
+from .mesonlib import EnvironmentException, HoldableObject
 
 # These classes contains all the data pulled from configuration files (native
 # and cross file currently), and also assists with the reading environment

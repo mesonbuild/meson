@@ -16,8 +16,9 @@
 # or an interpreter-based tool
 from __future__ import annotations
 
-from . import AstVisitor
 import typing as T
+
+from . import AstVisitor
 
 if T.TYPE_CHECKING:
     from .. import mparser

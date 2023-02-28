@@ -13,15 +13,16 @@
 # limitations under the License.
 
 from __future__ import annotations
+
 import typing as T
 
-from . import ExtensionModule, ModuleInfo
 from ..interpreterbase import noKwargs, noPosargs
+from . import ExtensionModule, ModuleInfo
 
 if T.TYPE_CHECKING:
-    from . import ModuleState
     from ..interpreter.interpreter import Interpreter
     from ..interpreterbase.baseobjects import TYPE_kwargs, TYPE_var
+    from . import ModuleState
 
 
 class TestModule(ExtensionModule):

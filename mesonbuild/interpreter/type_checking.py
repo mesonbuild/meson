@@ -4,19 +4,24 @@
 """Helpers for strict type checking."""
 
 from __future__ import annotations
+
 import os
 import typing as T
 
 from .. import compilers
-from ..build import (CustomTarget, BuildTarget,
-                     CustomTargetIndex, ExtractedObjects, GeneratedList, IncludeDirs,
-                     BothLibraries, SharedLibrary, StaticLibrary, Jar, Executable)
+from ..build import (
+    BothLibraries, BuildTarget, CustomTarget, CustomTargetIndex, Executable,
+    ExtractedObjects, GeneratedList, IncludeDirs, Jar, SharedLibrary,
+    StaticLibrary
+)
 from ..coredata import UserFeatureOption
 from ..dependencies import Dependency, InternalDependency
 from ..interpreterbase import FeatureNew
-from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo
-from ..mesonlib import (File, FileMode, MachineChoice, listify, has_path_sep,
-                        OptionKey, EnvironmentVariables)
+from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo
+from ..mesonlib import (
+    EnvironmentVariables, File, FileMode, MachineChoice, OptionKey,
+    has_path_sep, listify
+)
 from ..programs import ExternalProgram
 
 # Helper definition for type checks that are `Optional[T]`

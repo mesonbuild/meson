@@ -13,20 +13,25 @@
 # limitations under the License.
 from __future__ import annotations
 
-from .base import ExternalDependency, DependencyException, DependencyMethods, NotFoundDependency
+import functools
+import typing as T
+
+from .. import mlog
+from ..mesonlib import MachineChoice, PerMachine, listify
+from .base import (
+    DependencyException, DependencyMethods, ExternalDependency,
+    NotFoundDependency
+)
 from .cmake import CMakeDependency
 from .dub import DubDependency
 from .framework import ExtraFrameworkDependency
 from .pkgconfig import PkgConfigDependency
 
-from ..mesonlib import listify, MachineChoice, PerMachine
-from .. import mlog
-import functools
-import typing as T
-
 if T.TYPE_CHECKING:
     from ..environment import Environment
-    from .factory import DependencyFactory, WrappedFactoryFunc, DependencyGenerator
+    from .factory import (
+        DependencyFactory, DependencyGenerator, WrappedFactoryFunc
+    )
 
     TV_DepIDEntry = T.Union[str, bool, int, T.Tuple[str, ...]]
     TV_DepID = T.Tuple[T.Tuple[str, TV_DepIDEntry], ...]

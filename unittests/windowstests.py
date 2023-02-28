@@ -12,38 +12,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import subprocess
-import re
 import os
+import re
 import shutil
-from unittest import mock, SkipTest, skipUnless, skipIf
+import subprocess
 from glob import glob
+from unittest import SkipTest, mock, skipIf, skipUnless
 
-import mesonbuild.mlog
-import mesonbuild.depfile
+import mesonbuild.coredata
+import mesonbuild.dependencies.base
 import mesonbuild.dependencies.factory
+import mesonbuild.depfile
 import mesonbuild.envconfig
 import mesonbuild.environment
-import mesonbuild.coredata
+import mesonbuild.mlog
 import mesonbuild.modules.gnome
-from mesonbuild.mesonlib import (
-    MachineChoice, is_windows, is_cygwin, python_command, version_compare,
-    EnvironmentException, OptionKey
-)
+import mesonbuild.modules.pkgconfig
 from mesonbuild.compilers import (
-    detect_c_compiler, detect_d_compiler, compiler_from_language,
+    compiler_from_language, detect_c_compiler, detect_d_compiler
+)
+from mesonbuild.mesonlib import (
+    EnvironmentException, MachineChoice, OptionKey, is_cygwin, is_windows,
+    python_command, version_compare
 )
 from mesonbuild.programs import ExternalProgram
-import mesonbuild.dependencies.base
-import mesonbuild.modules.pkgconfig
-
-
-from run_tests import (
-    Backend, get_fake_env
-)
+from run_tests import Backend, get_fake_env
 
 from .baseplatformtests import BasePlatformTests
 from .helpers import *
+
 
 @skipUnless(is_windows() or is_cygwin(), "requires Windows (or Windows via Cygwin)")
 class WindowsTests(BasePlatformTests):

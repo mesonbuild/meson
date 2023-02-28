@@ -13,8 +13,10 @@
 # limitations under the License.
 from __future__ import annotations
 
-import os, sys
+import os
+import sys
 import typing as T
+
 
 def run(args: T.List[str]) -> int:
     if len(args) != 2:

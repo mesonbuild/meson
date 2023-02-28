@@ -13,43 +13,42 @@
 # limitations under the License.
 
 from __future__ import annotations
-from collections import defaultdict, OrderedDict
-from dataclasses import dataclass, field
-from functools import lru_cache
+
 import copy
 import hashlib
-import itertools, pathlib
+import itertools
 import os
+import pathlib
 import pickle
 import re
 import textwrap
 import typing as T
+from collections import OrderedDict, defaultdict
+from dataclasses import dataclass, field
+from functools import lru_cache
 
-
-from . import environment
-from . import dependencies
-from . import mlog
-from . import programs
-from .mesonlib import (
-    HoldableObject, SecondLevelHolder,
-    File, MesonException, MachineChoice, PerMachine, OrderedSet, listify,
-    extract_as_list, typeslistify, stringlistify, classify_unity_sources,
-    get_filenames_templates_dict, substitute_values, has_path_sep,
-    OptionKey, PerMachineDefaultable, OptionOverrideProxy,
-    MesonBugException, EnvironmentVariables, pickle_load,
-)
+from . import dependencies, environment, mlog, programs
 from .compilers import (
-    is_object, clink_langs, sort_clink, all_languages,
-    is_known_suffix, detect_static_linker
+    all_languages, clink_langs, detect_static_linker, is_known_suffix,
+    is_object, sort_clink
 )
-from .interpreterbase import FeatureNew, FeatureDeprecated
+from .interpreterbase import FeatureDeprecated, FeatureNew
+from .mesonlib import (
+    EnvironmentVariables, File, HoldableObject, MachineChoice,
+    MesonBugException, MesonException, OptionKey, OptionOverrideProxy,
+    OrderedSet, PerMachine, PerMachineDefaultable, SecondLevelHolder,
+    classify_unity_sources, extract_as_list, get_filenames_templates_dict,
+    has_path_sep, listify, pickle_load, stringlistify, substitute_values,
+    typeslistify
+)
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal
+
     from ._typing import ImmutableListProtocol
     from .backend.backends import Backend, ExecutableSerialisation
     from .compilers import Compiler
-    from .interpreter.interpreter import Test, SourceOutputs, Interpreter
+    from .interpreter.interpreter import Interpreter, SourceOutputs, Test
     from .interpreterbase import SubProject
     from .linkers import StaticLinker
     from .mesonlib import FileMode, FileOrString

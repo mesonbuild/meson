@@ -18,37 +18,33 @@ import functools
 import os.path
 import typing as T
 
-from .. import coredata
-from .. import mlog
-from ..mesonlib import MesonException, version_compare, OptionKey
-
-from .compilers import (
-    gnu_winlibs,
-    msvc_winlibs,
-    Compiler,
-)
-from .c_function_attributes import CXX_FUNC_ATTRIBUTES, C_FUNC_ATTRIBUTES
-from .mixins.clike import CLikeCompiler
+from .. import coredata, mlog
+from ..mesonlib import MesonException, OptionKey, version_compare
+from .c_function_attributes import C_FUNC_ATTRIBUTES, CXX_FUNC_ATTRIBUTES
+from .compilers import Compiler, gnu_winlibs, msvc_winlibs
+from .mixins.arm import ArmclangCompiler, ArmCompiler
 from .mixins.ccrx import CcrxCompiler
-from .mixins.ti import TICompiler
-from .mixins.arm import ArmCompiler, ArmclangCompiler
-from .mixins.visualstudio import MSVCCompiler, ClangClCompiler
-from .mixins.gnu import GnuCompiler, gnu_common_warning_args, gnu_cpp_warning_args
-from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
 from .mixins.clang import ClangCompiler
+from .mixins.clike import CLikeCompiler
 from .mixins.elbrus import ElbrusCompiler
-from .mixins.pgi import PGICompiler
 from .mixins.emscripten import EmscriptenMixin
+from .mixins.gnu import (
+    GnuCompiler, gnu_common_warning_args, gnu_cpp_warning_args
+)
+from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
+from .mixins.pgi import PGICompiler
+from .mixins.ti import TICompiler
+from .mixins.visualstudio import ClangClCompiler, MSVCCompiler
 
 if T.TYPE_CHECKING:
-    from .compilers import CompileCheckMode
-    from ..coredata import MutableKeyedOptionDictType, KeyedOptionDictType
+    from ..coredata import KeyedOptionDictType, MutableKeyedOptionDictType
     from ..dependencies import Dependency
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..linkers import DynamicLinker
     from ..mesonlib import MachineChoice
     from ..programs import ExternalProgram
+    from .compilers import CompileCheckMode
     CompilerMixinBase = CLikeCompiler
 else:
     CompilerMixinBase = object

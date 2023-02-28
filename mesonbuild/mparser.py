@@ -13,12 +13,13 @@
 # limitations under the License.
 from __future__ import annotations
 
-from dataclasses import dataclass
-import re
 import codecs
+import re
 import typing as T
-from .mesonlib import MesonException
+from dataclasses import dataclass
+
 from . import mlog
+from .mesonlib import MesonException
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal

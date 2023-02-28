@@ -12,38 +12,39 @@
 # limitations under the License.
 from __future__ import annotations
 
+import argparse
+import ast
+import configparser
 import copy
-
-from . import mlog, mparser
-import pickle, os, uuid
+import enum
+import os
+import pickle
+import shlex
 import sys
+import typing as T
+import uuid
+from collections import OrderedDict
 from itertools import chain
 from pathlib import PurePath
-from collections import OrderedDict
+
+from . import mlog, mparser
 from .mesonlib import (
-    HoldableObject,
-    MesonException, EnvironmentException, MachineChoice, PerMachine,
-    PerMachineDefaultable, default_libdir, default_libexecdir,
-    default_prefix, default_datadir, default_includedir, default_infodir,
-    default_localedir, default_mandir, default_sbindir, default_sysconfdir,
-    split_args, OptionKey, OptionType, stringlistify,
-    pickle_load, replace_if_different
+    EnvironmentException, HoldableObject, MachineChoice, MesonException,
+    OptionKey, OptionType, PerMachine, PerMachineDefaultable, default_datadir,
+    default_includedir, default_infodir, default_libdir, default_libexecdir,
+    default_localedir, default_mandir, default_prefix, default_sbindir,
+    default_sysconfdir, pickle_load, replace_if_different, split_args,
+    stringlistify
 )
 from .wrap import WrapMode
-import ast
-import argparse
-import configparser
-import enum
-import shlex
-import typing as T
 
 if T.TYPE_CHECKING:
     from . import dependencies
+    from .cmake.traceparser import CMakeCacheEntry
     from .compilers.compilers import Compiler, CompileResult, RunResult
     from .dependencies.detect import TV_DepID
     from .environment import Environment
-    from .mesonlib import OptionOverrideProxy, FileOrString
-    from .cmake.traceparser import CMakeCacheEntry
+    from .mesonlib import FileOrString, OptionOverrideProxy
 
     OptionDictType = T.Union[T.Dict[str, 'UserOption[T.Any]'], OptionOverrideProxy]
     MutableKeyedOptionDictType = T.Dict['OptionKey', 'UserOption[T.Any]']
@@ -312,6 +313,7 @@ class DependencyCacheType(enum.Enum):
     @classmethod
     def from_type(cls, dep: 'dependencies.Dependency') -> 'DependencyCacheType':
         from . import dependencies
+
         # As more types gain search overrides they'll need to be added here
         if isinstance(dep, dependencies.PkgConfigDependency):
             return cls.PKG_CONFIG
@@ -889,6 +891,7 @@ class CoreData:
                       for_machine: MachineChoice, env: 'Environment') -> None:
         """Add global language arguments that are needed before compiler/linker detection."""
         from .compilers import compilers
+
         # These options are all new at this point, because the compiler is
         # responsible for adding its own options, thus calling
         # `self.options.update()`` is perfectly safe.

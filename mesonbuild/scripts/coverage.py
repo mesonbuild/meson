@@ -13,10 +13,17 @@
 # limitations under the License.
 from __future__ import annotations
 
+import argparse
+import os
+import pathlib
+import re
+import stat
+import subprocess
+import sys
+import typing as T
+
 from mesonbuild import environment, mesonlib
 
-import argparse, re, sys, os, subprocess, pathlib, stat
-import typing as T
 
 def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build_root: str, log_dir: str, use_llvm_cov: bool) -> int:
     outfiles = []

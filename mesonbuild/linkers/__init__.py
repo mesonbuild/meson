@@ -12,65 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .detect import (
-    defaults,
-    guess_win_linker,
-    guess_nix_linker,
-)
+from .detect import defaults, guess_nix_linker, guess_win_linker
 from .linkers import (
-    RSPFileSyntax,
-
-    StaticLinker,
-    VisualStudioLikeLinker,
-    VisualStudioLinker,
-    IntelVisualStudioLinker,
-    AppleArLinker,
-    ArLinker,
-    ArmarLinker,
-    DLinker,
-    CcrxLinker,
-    Xc16Linker,
-    CompCertLinker,
-    C2000Linker,
-    TILinker,
-    AIXArLinker,
-    PGIStaticLinker,
-    NvidiaHPC_StaticLinker,
-
-    DynamicLinker,
-    PosixDynamicLinkerMixin,
-    GnuLikeDynamicLinkerMixin,
-    AppleDynamicLinker,
-    GnuDynamicLinker,
-    GnuGoldDynamicLinker,
-    GnuBFDDynamicLinker,
-    LLVMDynamicLinker,
-    MoldDynamicLinker,
-    WASMDynamicLinker,
-    CcrxDynamicLinker,
-    Xc16DynamicLinker,
-    CompCertDynamicLinker,
-    C2000DynamicLinker,
-    TIDynamicLinker,
-    ArmDynamicLinker,
-    ArmClangDynamicLinker,
-    QualcommLLVMDynamicLinker,
-    PGIDynamicLinker,
-    NvidiaHPC_DynamicLinker,
-    NAGDynamicLinker,
-
-    VisualStudioLikeLinkerMixin,
-    MSVCDynamicLinker,
-    ClangClDynamicLinker,
-    XilinkDynamicLinker,
-    SolarisDynamicLinker,
-    AIXDynamicLinker,
-    OptlinkDynamicLinker,
-    CudaLinker,
-
-    prepare_rpaths,
-    order_rpaths,
-    evaluate_rpath,
+    AIXArLinker, AIXDynamicLinker, AppleArLinker, AppleDynamicLinker, ArLinker,
+    ArmarLinker, ArmClangDynamicLinker, ArmDynamicLinker, C2000DynamicLinker,
+    C2000Linker, CcrxDynamicLinker, CcrxLinker, ClangClDynamicLinker,
+    CompCertDynamicLinker, CompCertLinker, CudaLinker, DLinker, DynamicLinker,
+    GnuBFDDynamicLinker, GnuDynamicLinker, GnuGoldDynamicLinker,
+    GnuLikeDynamicLinkerMixin, IntelVisualStudioLinker, LLVMDynamicLinker,
+    MoldDynamicLinker, MSVCDynamicLinker, NAGDynamicLinker,
+    NvidiaHPC_DynamicLinker, NvidiaHPC_StaticLinker, OptlinkDynamicLinker,
+    PGIDynamicLinker, PGIStaticLinker, PosixDynamicLinkerMixin,
+    QualcommLLVMDynamicLinker, RSPFileSyntax, SolarisDynamicLinker,
+    StaticLinker, TIDynamicLinker, TILinker, VisualStudioLikeLinker,
+    VisualStudioLikeLinkerMixin, VisualStudioLinker, WASMDynamicLinker,
+    Xc16DynamicLinker, Xc16Linker, XilinkDynamicLinker, evaluate_rpath,
+    order_rpaths, prepare_rpaths
 )
 
 __all__ = [

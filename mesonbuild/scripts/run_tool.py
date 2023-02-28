@@ -13,14 +13,14 @@
 # limitations under the License.
 from __future__ import annotations
 
-import itertools
 import fnmatch
-from pathlib import Path
+import itertools
+import typing as T
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
 from ..compilers import lang_suffixes
 from ..mesonlib import Popen_safe
-import typing as T
 
 if T.TYPE_CHECKING:
     import subprocess

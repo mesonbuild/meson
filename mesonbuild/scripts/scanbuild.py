@@ -13,16 +13,18 @@
 # limitations under the License.
 from __future__ import annotations
 
-import subprocess
+import os
 import shutil
+import subprocess
 import tempfile
-from ..environment import detect_ninja, detect_scanbuild
-from ..coredata import get_cmd_line_file, CmdLineFileParser
-from ..mesonlib import windows_proof_rmtree
-from pathlib import Path
 import typing as T
 from ast import literal_eval
-import os
+from pathlib import Path
+
+from ..coredata import CmdLineFileParser, get_cmd_line_file
+from ..environment import detect_ninja, detect_scanbuild
+from ..mesonlib import windows_proof_rmtree
+
 
 def scanbuild(exelist: T.List[str], srcdir: Path, blddir: Path, privdir: Path, logdir: Path, args: T.List[str]) -> int:
     # In case of problems leave the temp directory around

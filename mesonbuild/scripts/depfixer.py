@@ -13,16 +13,15 @@
 # limitations under the License.
 from __future__ import annotations
 
-
-import sys
 import os
+import shutil
 import stat
 import struct
-import shutil
 import subprocess
+import sys
 import typing as T
 
-from ..mesonlib import OrderedSet, generate_list, Popen_safe
+from ..mesonlib import OrderedSet, Popen_safe, generate_list
 
 SHT_STRTAB = 3
 DT_NEEDED = 1

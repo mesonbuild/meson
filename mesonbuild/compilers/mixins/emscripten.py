@@ -18,15 +18,13 @@ from __future__ import annotations
 import os.path
 import typing as T
 
-from ... import coredata
-from ... import mesonlib
-from ...mesonlib import OptionKey
-from ...mesonlib import LibType
+from ... import coredata, mesonlib
+from ...mesonlib import LibType, OptionKey
 
 if T.TYPE_CHECKING:
-    from ...environment import Environment
     from ...compilers.compilers import Compiler
     from ...dependencies import Dependency
+    from ...environment import Environment
 else:
     # This is a bit clever, for mypy we pretend that these mixins descend from
     # Compiler, so we get all of the methods and attributes defined for us, but

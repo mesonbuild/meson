@@ -12,36 +12,44 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .boost import BoostDependency
-from .cuda import CudaDependency
-from .hdf5 import hdf5_factory
-from .base import Dependency, InternalDependency, ExternalDependency, NotFoundDependency, MissingCompiler
 from .base import (
-        ExternalLibrary, DependencyException, DependencyMethods,
-        BuiltinDependency, SystemDependency, get_leaf_external_dependencies)
-from .cmake import CMakeDependency
-from .configtool import ConfigToolDependency
-from .dub import DubDependency
-from .framework import ExtraFrameworkDependency
-from .pkgconfig import PkgConfigDependency
-from .factory import DependencyFactory
-from .detect import find_external_dependency, get_dep_identifier, packages, _packages_accept_language
-from .dev import (
-    ValgrindDependency, JNISystemDependency, JDKSystemDependency, gmock_factory, gtest_factory,
-    llvm_factory, zlib_factory)
-from .coarrays import coarray_factory
-from .mpi import mpi_factory
-from .scalapack import scalapack_factory
-from .misc import (
-    BlocksDependency, OpenMPDependency, cups_factory, curses_factory, gpgme_factory,
-    libgcrypt_factory, libwmf_factory, netcdf_factory, pcap_factory,
-    shaderc_factory, threads_factory, ThreadDependency, iconv_factory, intl_factory,
-    dl_factory, openssl_factory, libcrypto_factory, libssl_factory,
+    BuiltinDependency, Dependency, DependencyException, DependencyMethods,
+    ExternalDependency, ExternalLibrary, InternalDependency, MissingCompiler,
+    NotFoundDependency, SystemDependency, get_leaf_external_dependencies
 )
+from .boost import BoostDependency
+from .cmake import CMakeDependency
+from .coarrays import coarray_factory
+from .configtool import ConfigToolDependency
+from .cuda import CudaDependency
+from .detect import (
+    _packages_accept_language, find_external_dependency, get_dep_identifier,
+    packages
+)
+from .dev import (
+    JDKSystemDependency, JNISystemDependency, ValgrindDependency,
+    gmock_factory, gtest_factory, llvm_factory, zlib_factory
+)
+from .dub import DubDependency
+from .factory import DependencyFactory
+from .framework import ExtraFrameworkDependency
+from .hdf5 import hdf5_factory
+from .misc import (
+    BlocksDependency, OpenMPDependency, ThreadDependency, cups_factory,
+    curses_factory, dl_factory, gpgme_factory, iconv_factory, intl_factory,
+    libcrypto_factory, libgcrypt_factory, libssl_factory, libwmf_factory,
+    netcdf_factory, openssl_factory, pcap_factory, shaderc_factory,
+    threads_factory
+)
+from .mpi import mpi_factory
+from .pkgconfig import PkgConfigDependency
 from .platform import AppleFrameworks
 from .python import python_factory as python3_factory
 from .qt import qt4_factory, qt5_factory, qt6_factory
-from .ui import GnuStepDependency, WxDependency, gl_factory, sdl2_factory, vulkan_factory
+from .scalapack import scalapack_factory
+from .ui import (
+    GnuStepDependency, WxDependency, gl_factory, sdl2_factory, vulkan_factory
+)
 
 __all__ = [
     'Dependency',

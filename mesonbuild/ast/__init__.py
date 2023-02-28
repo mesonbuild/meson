@@ -28,7 +28,9 @@ __all__ = [
 ]
 
 from .interpreter import AstInterpreter
-from .introspection import IntrospectionInterpreter, BUILD_TARGET_FUNCTIONS
+from .introspection import BUILD_TARGET_FUNCTIONS, IntrospectionInterpreter
+from .postprocess import (
+    AstConditionLevel, AstIDGenerator, AstIndentationGenerator
+)
+from .printer import AstJSONPrinter, AstPrinter
 from .visitor import AstVisitor
-from .postprocess import AstConditionLevel, AstIDGenerator, AstIndentationGenerator
-from .printer import AstPrinter, AstJSONPrinter

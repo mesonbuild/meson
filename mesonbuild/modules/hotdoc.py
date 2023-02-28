@@ -18,19 +18,18 @@ from __future__ import annotations
 import os
 import subprocess
 
-from mesonbuild import mesonlib
-from mesonbuild import mlog, build
+from mesonbuild import build, mesonlib, mlog
 from mesonbuild.coredata import MesonException
-from . import ModuleReturnValue, ModuleInfo
-from . import ExtensionModule
+
 from ..dependencies import Dependency, InternalDependency
-from ..interpreterbase import (
-    InvalidArguments, noPosargs, noKwargs, typed_kwargs, FeatureDeprecated,
-    ContainerTypeInfo, KwargInfo, typed_pos_args
-)
 from ..interpreter import CustomTargetHolder
 from ..interpreter.type_checking import NoneType
+from ..interpreterbase import (
+    ContainerTypeInfo, FeatureDeprecated, InvalidArguments, KwargInfo,
+    noKwargs, noPosargs, typed_kwargs, typed_pos_args
+)
 from ..programs import ExternalProgram
+from . import ExtensionModule, ModuleInfo, ModuleReturnValue
 
 
 def ensure_list(value):

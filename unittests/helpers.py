@@ -1,18 +1,18 @@
-import subprocess
-import os
-import shutil
-import unittest
 import functools
+import os
 import re
+import shutil
+import subprocess
 import typing as T
+import unittest
 import zipfile
-from pathlib import Path
 from contextlib import contextmanager
+from pathlib import Path
 
-from mesonbuild.compilers import detect_c_compiler, compiler_from_language
+from mesonbuild.compilers import compiler_from_language, detect_c_compiler
 from mesonbuild.mesonlib import (
-    MachineChoice, is_osx, is_cygwin, EnvironmentException, OptionKey, MachineChoice,
-    OrderedSet
+    EnvironmentException, MachineChoice, OptionKey, OrderedSet, is_cygwin,
+    is_osx
 )
 from run_tests import get_fake_env
 

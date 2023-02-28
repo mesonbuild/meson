@@ -18,25 +18,25 @@ import os.path
 import string
 import typing as T
 
-from .. import coredata
-from .. import mlog
+from .. import coredata, mlog
 from ..mesonlib import (
-    EnvironmentException, Popen_safe, OptionOverrideProxy,
-    is_windows, LibType, OptionKey, version_compare,
+    EnvironmentException, LibType, OptionKey, OptionOverrideProxy, Popen_safe,
+    is_windows, version_compare
 )
-from .compilers import (Compiler, cuda_buildtype_args, cuda_optimization_args,
-                        cuda_debug_args)
+from .compilers import (
+    Compiler, cuda_buildtype_args, cuda_debug_args, cuda_optimization_args
+)
 
 if T.TYPE_CHECKING:
-    from .compilers import CompileCheckMode
     from ..build import BuildTarget
-    from ..coredata import MutableKeyedOptionDictType, KeyedOptionDictType
+    from ..coredata import KeyedOptionDictType, MutableKeyedOptionDictType
     from ..dependencies import Dependency
-    from ..environment import Environment  # noqa: F401
     from ..envconfig import MachineInfo
+    from ..environment import Environment  # noqa: F401
     from ..linkers import DynamicLinker
     from ..mesonlib import MachineChoice
     from ..programs import ExternalProgram
+    from .compilers import CompileCheckMode
 
 
 class _Phase(enum.Enum):

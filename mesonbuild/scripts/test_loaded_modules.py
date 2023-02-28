@@ -1,7 +1,9 @@
-import sys
 import json
+import sys
 import typing as T
+
 from . import meson_exe
+
 
 # This script is used by run_unittests.py to verify we don't load too many
 # modules when executing a wrapped command.

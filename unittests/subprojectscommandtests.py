@@ -12,21 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import subprocess
 import tempfile
 import textwrap
-import os
-from pathlib import Path
 import typing as T
+from pathlib import Path
 
-from mesonbuild.mesonlib import (
-    version_compare, git, search_version
-)
-
-
+from mesonbuild.mesonlib import git, search_version, version_compare
 
 from .baseplatformtests import BasePlatformTests
 from .helpers import *
+
 
 class SubprojectsCommandTests(BasePlatformTests):
     def setUp(self):

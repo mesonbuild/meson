@@ -13,13 +13,13 @@
 # limitations under the License.
 from __future__ import annotations
 
-from .. import mesonlib
-from .. import mlog
-from .common import cmake_is_debug
 import typing as T
 
+from .. import mesonlib, mlog
+from .common import cmake_is_debug
+
 if T.TYPE_CHECKING:
-    from .traceparser import CMakeTraceParser, CMakeTarget
+    from .traceparser import CMakeTarget, CMakeTraceParser
 
 def parse_generator_expressions(
             raw: str,

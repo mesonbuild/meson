@@ -13,24 +13,25 @@
 # limitations under the License.
 from __future__ import annotations
 
-from pathlib import Path
-
-from .base import ExternalDependency, DependencyException, sort_libpaths, DependencyTypeName
-from ..mesonlib import OptionKey, OrderedSet, PerMachine, Popen_safe
-from ..programs import find_external_program, ExternalProgram
-from .. import mlog
-from pathlib import PurePath
-import re
 import os
+import re
 import shlex
 import typing as T
+from pathlib import Path, PurePath
+
+from .. import mlog
+from ..mesonlib import OptionKey, OrderedSet, PerMachine, Popen_safe
+from ..programs import ExternalProgram, find_external_program
+from .base import (
+    DependencyException, DependencyTypeName, ExternalDependency, sort_libpaths
+)
 
 if T.TYPE_CHECKING:
+    from .._typing import ImmutableListProtocol
+    from ..build import EnvironmentVariables
     from ..environment import Environment
     from ..mesonlib import MachineChoice
     from ..utils.core import EnvironOrDict
-    from .._typing import ImmutableListProtocol
-    from ..build import EnvironmentVariables
 
 class PkgConfigDependency(ExternalDependency):
     # The class's copy of the pkg-config path. Avoids having to search for it

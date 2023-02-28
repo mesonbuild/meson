@@ -13,19 +13,15 @@
 # limitations under the License.
 
 import os
+import platform
 import shutil
 import unittest
-import platform
 
-from mesonbuild.mesonlib import (
-    is_windows, is_cygwin
-)
-from mesonbuild.mesonlib import MesonException
-
-
+from mesonbuild.mesonlib import MesonException, is_cygwin, is_windows
 
 from .baseplatformtests import BasePlatformTests
 from .helpers import *
+
 
 class BaseLinuxCrossTests(BasePlatformTests):
     # Don't pass --libdir when cross-compiling. We have tests that

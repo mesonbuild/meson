@@ -13,12 +13,14 @@
 # limitations under the License.
 from __future__ import annotations
 
-import sys, os, subprocess, shutil
+import os
 import shlex
+import shutil
+import subprocess
+import sys
 import typing as T
 
-from .. import envconfig
-from .. import mlog
+from .. import envconfig, mlog
 from ..compilers import compilers
 from ..compilers.detect import defaults as compiler_names
 

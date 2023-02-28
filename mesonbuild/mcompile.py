@@ -15,22 +15,21 @@ from __future__ import annotations
 
 """Entrypoint script for backend agnostic compile."""
 
-import os
 import json
+import os
 import re
-import sys
 import shutil
+import sys
 import typing as T
 from collections import defaultdict
 from pathlib import Path
 
-from . import mlog
-from . import mesonlib
-from . import coredata
-from .mesonlib import MesonException, RealPathAction, join_args, setup_vsenv
-from mesonbuild.environment import detect_ninja
-from mesonbuild.coredata import UserArrayOption
 from mesonbuild import build
+from mesonbuild.coredata import UserArrayOption
+from mesonbuild.environment import detect_ninja
+
+from . import coredata, mesonlib, mlog
+from .mesonlib import MesonException, RealPathAction, join_args, setup_vsenv
 
 if T.TYPE_CHECKING:
     import argparse

@@ -13,19 +13,14 @@
 # limitations under the License.
 from __future__ import annotations
 
+import collections
 import itertools
-import shutil
 import os
+import shutil
 import textwrap
 import typing as T
-import collections
 
-from . import build
-from . import coredata
-from . import environment
-from . import mesonlib
-from . import mintro
-from . import mlog
+from . import build, coredata, environment, mesonlib, mintro, mlog
 from .ast import AstIDGenerator
 from .mesonlib import MachineChoice, OptionKey
 

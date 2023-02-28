@@ -30,8 +30,8 @@
     python".
 '''
 
-import pathlib
 import os
+import pathlib
 import platform
 
 __all__ = [

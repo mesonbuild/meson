@@ -14,16 +14,16 @@
 # limitations under the License.
 from __future__ import annotations
 
-from functools import lru_cache
 import collections
 import enum
 import os
 import re
 import typing as T
+from functools import lru_cache
 
 if T.TYPE_CHECKING:
-    from .linkers import StaticLinker
     from .compilers import Compiler
+    from .linkers import StaticLinker
 
 # execinfo is a compiler lib on BSD
 UNIXY_COMPILER_INTERNAL_LIBS = ['m', 'c', 'pthread', 'dl', 'rt', 'execinfo']  # type: T.List[str]

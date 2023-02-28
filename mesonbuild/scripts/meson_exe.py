@@ -13,15 +13,16 @@
 # limitations under the License.
 from __future__ import annotations
 
-import os
-import sys
 import argparse
+import locale
+import os
 import pickle
 import subprocess
+import sys
 import typing as T
-import locale
 
 from ..utils.core import ExecutableSerialisation
+
 
 def buildparser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description='Custom executable wrapper for Meson. Do not run on your own, mmm\'kay?')

@@ -15,24 +15,25 @@
 # This file contains the base representation for import('modname')
 
 from __future__ import annotations
+
 import dataclasses
 import typing as T
 
 from .. import mesonlib
 from ..build import IncludeDirs
 from ..interpreterbase.decorators import noKwargs, noPosargs
-from ..mesonlib import relpath, HoldableObject, MachineChoice
+from ..mesonlib import HoldableObject, MachineChoice, relpath
 from ..programs import ExternalProgram
 
 if T.TYPE_CHECKING:
     from .. import build
-    from ..interpreter import Interpreter
-    from ..interpreter.interpreterobjects import MachineHolder
-    from ..interpreterbase import TYPE_var, TYPE_kwargs
-    from ..programs import OverrideProgram
-    from ..wrap import WrapMode
     from ..build import EnvironmentVariables, Executable
     from ..dependencies import Dependency
+    from ..interpreter import Interpreter
+    from ..interpreter.interpreterobjects import MachineHolder
+    from ..interpreterbase import TYPE_kwargs, TYPE_var
+    from ..programs import OverrideProgram
+    from ..wrap import WrapMode
 
 class ModuleState:
     """Object passed to all module methods.

@@ -12,29 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import subprocess
-import tempfile
 import os
 import shutil
+import subprocess
+import tempfile
 import unittest
 from contextlib import contextmanager
 
+from mesonbuild.compilers import detect_objc_compiler, detect_objcpp_compiler
 from mesonbuild.mesonlib import (
-    MachineChoice, is_windows, is_osx, windows_proof_rmtree, windows_proof_rm
+    EnvironmentException, MachineChoice, MesonException, is_osx, is_windows,
+    windows_proof_rm, windows_proof_rmtree
 )
-from mesonbuild.compilers import (
-    detect_objc_compiler, detect_objcpp_compiler
-)
-from mesonbuild.mesonlib import EnvironmentException, MesonException
 from mesonbuild.programs import ExternalProgram
-
-
-from run_tests import (
-    get_fake_env
-)
+from run_tests import get_fake_env
 
 from .baseplatformtests import BasePlatformTests
 from .helpers import *
+
 
 @contextmanager
 def no_pkgconfig():

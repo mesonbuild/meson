@@ -19,20 +19,20 @@ import functools
 import os
 import re
 import subprocess
+import typing as T
 from pathlib import Path
 
-from ..mesonlib import Popen_safe, OrderedSet, join_args
+from ..mesonlib import OrderedSet, Popen_safe, join_args
 from ..programs import ExternalProgram
 from .base import DependencyException, DependencyMethods
 from .configtool import ConfigToolDependency
-from .pkgconfig import PkgConfigDependency
 from .factory import factory_methods
-import typing as T
+from .pkgconfig import PkgConfigDependency
 
 if T.TYPE_CHECKING:
-    from .factory import DependencyGenerator
     from ..environment import Environment
     from ..mesonlib import MachineChoice
+    from .factory import DependencyGenerator
 
 
 class HDF5PkgConfigDependency(PkgConfigDependency):

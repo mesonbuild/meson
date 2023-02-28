@@ -13,21 +13,23 @@
 # limitations under the License.
 
 from __future__ import annotations
+
 import itertools
 import typing as T
 
-from . import ExtensionModule, ModuleReturnValue, ModuleInfo
-from .. import build
-from .. import mesonlib
+from .. import build, mesonlib
 from ..interpreter.type_checking import CT_INPUT_KW
-from ..interpreterbase.decorators import KwargInfo, typed_kwargs, typed_pos_args
+from ..interpreterbase.decorators import (
+    KwargInfo, typed_kwargs, typed_pos_args
+)
+from . import ExtensionModule, ModuleInfo, ModuleReturnValue
 
 if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
 
-    from . import ModuleState
     from ..interpreter import Interpreter
     from ..programs import ExternalProgram
+    from . import ModuleState
 
     class ProjectKwargs(TypedDict):
 

@@ -13,23 +13,23 @@
 # limitations under the License.
 from __future__ import annotations
 
-from .. import mesonlib, mlog
-from .disabler import Disabler
-from .exceptions import InterpreterException, InvalidArguments
-from ._unholder import _unholder
-
+import abc
+import copy
+import itertools
+import typing as T
 from dataclasses import dataclass
 from functools import wraps
-import abc
-import itertools
-import copy
-import typing as T
+
+from .. import mesonlib, mlog
+from ._unholder import _unholder
+from .disabler import Disabler
+from .exceptions import InterpreterException, InvalidArguments
 
 if T.TYPE_CHECKING:
     from typing_extensions import Protocol
 
     from .. import mparser
-    from .baseobjects import InterpreterObject, TV_func, TYPE_var, TYPE_kwargs
+    from .baseobjects import InterpreterObject, TV_func, TYPE_kwargs, TYPE_var
     from .interpreterbase import SubProject
     from .operator import MesonOperator
 

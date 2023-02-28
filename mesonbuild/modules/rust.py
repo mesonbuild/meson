@@ -16,22 +16,31 @@ from __future__ import annotations
 import os
 import typing as T
 
-from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from .. import mlog
-from ..build import BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList, IncludeDirs, CustomTarget, StructuredSources
+from ..build import (
+    BothLibraries, BuildTarget, CustomTarget, CustomTargetIndex, Executable,
+    ExtractedObjects, GeneratedList, IncludeDirs, StructuredSources
+)
 from ..dependencies import Dependency, ExternalLibrary
-from ..interpreter.type_checking import DEPENDENCIES_KW, TEST_KWS, OUTPUT_KW, INCLUDE_DIRECTORIES, include_dir_string_new
-from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noPosargs
+from ..interpreter.type_checking import (
+    DEPENDENCIES_KW, INCLUDE_DIRECTORIES, OUTPUT_KW, TEST_KWS,
+    include_dir_string_new
+)
+from ..interpreterbase import (
+    ContainerTypeInfo, InterpreterException, KwargInfo, noPosargs,
+    typed_kwargs, typed_pos_args
+)
 from ..mesonlib import File
+from . import ExtensionModule, ModuleInfo, ModuleReturnValue
 
 if T.TYPE_CHECKING:
-    from . import ModuleState
+    from typing_extensions import TypedDict
+
     from ..interpreter import Interpreter
     from ..interpreter import kwargs as _kwargs
     from ..interpreter.interpreter import SourceInputs, SourceOutputs
     from ..programs import ExternalProgram, OverrideProgram
-
-    from typing_extensions import TypedDict
+    from . import ModuleState
 
     class FuncTest(_kwargs.BaseTest):
 

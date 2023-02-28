@@ -29,7 +29,6 @@ import typing
 # We can change this to typing when we require python 3.8
 from typing_extensions import Protocol
 
-
 T = typing.TypeVar('T')
 
 

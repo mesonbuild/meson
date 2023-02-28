@@ -13,7 +13,6 @@
 # limitations under the License.
 from __future__ import annotations
 
-
 """Mixin classes to be shared between C and C++ compilers.
 
 Without this we'll end up with awful diamond inherintance problems. The goal
@@ -22,31 +21,31 @@ standalone, they only work through inheritance.
 """
 
 import collections
+import copy
 import functools
 import glob
 import itertools
 import os
 import re
 import subprocess
-import copy
 import typing as T
 from pathlib import Path
 
-from ... import arglist
-from ... import mesonlib
-from ... import mlog
-from ...linkers import GnuLikeDynamicLinkerMixin, SolarisDynamicLinker, CompCertDynamicLinker
-from ...mesonlib import LibType
+from ... import arglist, mesonlib, mlog
 from ...coredata import OptionKey
+from ...linkers import (
+    CompCertDynamicLinker, GnuLikeDynamicLinkerMixin, SolarisDynamicLinker
+)
+from ...mesonlib import LibType
 from .. import compilers
 from ..compilers import CompileCheckMode
 from .visualstudio import VisualStudioLikeCompiler
 
 if T.TYPE_CHECKING:
-    from ...dependencies import Dependency
     from ..._typing import ImmutableListProtocol
-    from ...environment import Environment
     from ...compilers.compilers import Compiler
+    from ...dependencies import Dependency
+    from ...environment import Environment
     from ...programs import ExternalProgram
 else:
     # This is a bit clever, for mypy we pretend that these mixins descend from

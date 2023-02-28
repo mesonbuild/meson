@@ -16,9 +16,9 @@ from __future__ import annotations
 import os
 import typing as T
 
-from . import ExtensionModule, ModuleInfo
 from .. import mesonlib
 from ..interpreterbase import noKwargs, typed_pos_args
+from . import ExtensionModule, ModuleInfo
 
 if T.TYPE_CHECKING:
     from ..interpreter import Interpreter

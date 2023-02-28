@@ -18,7 +18,7 @@ import typing as T
 from .baseobjects import MesonInterpreterObject
 
 if T.TYPE_CHECKING:
-    from .baseobjects import TYPE_var, TYPE_kwargs
+    from .baseobjects import TYPE_kwargs, TYPE_var
 
 class Disabler(MesonInterpreterObject):
     def method_call(self, method_name: str, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> TYPE_var:

@@ -19,11 +19,11 @@ from __future__ import annotations
 import json
 import os
 
-from . import ExtensionModule, ModuleInfo
-from .. import dependencies
-from .. import mlog
+from .. import dependencies, mlog
 from ..interpreterbase import typed_pos_args
-from ..mesonlib import Popen_safe, MesonException
+from ..mesonlib import MesonException, Popen_safe
+from . import ExtensionModule, ModuleInfo
+
 
 class DlangModule(ExtensionModule):
     class_dubbin = None

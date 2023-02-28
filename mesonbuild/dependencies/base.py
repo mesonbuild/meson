@@ -16,28 +16,32 @@
 # Custom logic for several other packages are in separate files.
 
 from __future__ import annotations
-import copy
-import os
+
 import collections
+import copy
 import itertools
+import os
 import typing as T
 from enum import Enum
 
-from .. import mlog, mesonlib
+from .. import mesonlib, mlog
 from ..compilers import clib_langs
-from ..mesonlib import LibType, MachineChoice, MesonException, HoldableObject, OptionKey
-from ..mesonlib import version_compare_many
+from ..mesonlib import (
+    HoldableObject, LibType, MachineChoice, MesonException, OptionKey,
+    version_compare_many
+)
+
 #from ..interpreterbase import FeatureDeprecated, FeatureNew
 
 if T.TYPE_CHECKING:
     from .._typing import ImmutableListProtocol
+    from ..build import (
+        CustomTarget, CustomTargetIndex, ExtractedObjects, IncludeDirs,
+        LibTypes, StaticLibrary, StructuredSources
+    )
     from ..compilers.compilers import Compiler
     from ..environment import Environment
     from ..interpreterbase import FeatureCheckBase
-    from ..build import (
-        CustomTarget, IncludeDirs, CustomTargetIndex, LibTypes,
-        StaticLibrary, StructuredSources, ExtractedObjects
-    )
     from ..mesonlib import FileOrString
 
 
@@ -331,7 +335,7 @@ class InternalDependency(Dependency):
         raise DependencyException(f'Could not get an internal variable and no default provided for {self!r}')
 
     def generate_link_whole_dependency(self) -> Dependency:
-        from ..build import SharedLibrary, CustomTarget, CustomTargetIndex
+        from ..build import CustomTarget, CustomTargetIndex, SharedLibrary
         new_dep = copy.deepcopy(self)
         for x in new_dep.libraries:
             if isinstance(x, SharedLibrary):

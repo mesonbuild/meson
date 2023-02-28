@@ -17,18 +17,19 @@ from __future__ import annotations
 import functools
 import typing as T
 
-from .base import DependencyException, DependencyMethods
-from .base import process_method_kw
-from .base import BuiltinDependency, SystemDependency
+from .base import (
+    BuiltinDependency, DependencyException, DependencyMethods,
+    SystemDependency, process_method_kw
+)
 from .cmake import CMakeDependency
 from .framework import ExtraFrameworkDependency
 from .pkgconfig import PkgConfigDependency
 
 if T.TYPE_CHECKING:
-    from .base import ExternalDependency
-    from .configtool import ConfigToolDependency
     from ..environment import Environment
     from ..mesonlib import MachineChoice
+    from .base import ExternalDependency
+    from .configtool import ConfigToolDependency
 
     DependencyGenerator = T.Callable[[], ExternalDependency]
     FactoryFunc = T.Callable[

@@ -17,21 +17,27 @@
 
 from __future__ import annotations
 
+import functools
 import glob
 import os
-import re
 import pathlib
+import re
 import shutil
 import subprocess
 import typing as T
-import functools
 
 from mesonbuild.interpreterbase.decorators import FeatureDeprecated
 
 from .. import mesonlib, mlog
 from ..environment import get_llvm_tool_names
-from ..mesonlib import version_compare, version_compare_many, search_version, stringlistify, extract_as_list
-from .base import DependencyException, DependencyMethods, detect_compiler, strip_system_libdirs, SystemDependency, ExternalDependency, DependencyTypeName
+from ..mesonlib import (
+    extract_as_list, search_version, stringlistify, version_compare,
+    version_compare_many
+)
+from .base import (
+    DependencyException, DependencyMethods, DependencyTypeName,
+    ExternalDependency, SystemDependency, detect_compiler, strip_system_libdirs
+)
 from .cmake import CMakeDependency
 from .configtool import ConfigToolDependency
 from .factory import DependencyFactory
@@ -39,10 +45,11 @@ from .misc import threads_factory
 from .pkgconfig import PkgConfigDependency
 
 if T.TYPE_CHECKING:
+    from typing_extensions import TypedDict
+
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..mesonlib import MachineChoice
-    from typing_extensions import TypedDict
 
     class JNISystemDependencyKW(TypedDict):
         modules: T.List[str]

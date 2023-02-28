@@ -20,54 +20,28 @@ import os
 import sys
 import typing as T
 
-from .. import mparser, mesonlib
-from .. import environment
-
-from ..interpreterbase import (
-    MesonInterpreterObject,
-    InterpreterBase,
-    InvalidArguments,
-    BreakRequest,
-    ContinueRequest,
-    default_resolve_key,
-)
-
+from .. import environment, mesonlib, mparser
 from ..interpreter import (
-    StringHolder,
-    BooleanHolder,
-    IntegerHolder,
-    ArrayHolder,
-    DictHolder,
+    ArrayHolder, BooleanHolder, DictHolder, IntegerHolder, StringHolder
 )
-
+from ..interpreterbase import (
+    BreakRequest, ContinueRequest, InterpreterBase, InvalidArguments,
+    MesonInterpreterObject, default_resolve_key
+)
 from ..mparser import (
-    ArgumentNode,
-    ArithmeticNode,
-    ArrayNode,
-    AssignmentNode,
-    BaseNode,
-    ElementaryNode,
-    EmptyNode,
-    IdNode,
-    MethodNode,
-    NotNode,
-    PlusAssignmentNode,
-    TernaryNode,
+    ArgumentNode, ArithmeticNode, ArrayNode, AssignmentNode, BaseNode,
+    ElementaryNode, EmptyNode, IdNode, MethodNode, NotNode, PlusAssignmentNode,
+    TernaryNode
 )
 
 if T.TYPE_CHECKING:
-    from .visitor import AstVisitor
     from ..interpreter import Interpreter
     from ..interpreterbase import TYPE_nkwargs, TYPE_nvar
     from ..mparser import (
-        AndNode,
-        ComparisonNode,
-        ForeachClauseNode,
-        IfClauseNode,
-        IndexNode,
-        OrNode,
-        UMinusNode,
+        AndNode, ComparisonNode, ForeachClauseNode, IfClauseNode, IndexNode,
+        OrNode, UMinusNode
     )
+    from .visitor import AstVisitor
 
 class DontCareObject(MesonInterpreterObject):
     pass

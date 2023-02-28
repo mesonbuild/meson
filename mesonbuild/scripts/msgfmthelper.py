@@ -14,8 +14,8 @@
 from __future__ import annotations
 
 import argparse
-import subprocess
 import os
+import subprocess
 import typing as T
 
 parser = argparse.ArgumentParser()

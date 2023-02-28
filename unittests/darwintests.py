@@ -12,25 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import subprocess
-import re
 import os
+import re
+import subprocess
 import unittest
 
-from mesonbuild.mesonlib import (
-    MachineChoice, is_osx
-)
-from mesonbuild.compilers import (
-    detect_c_compiler
-)
-
-
-from run_tests import (
-    get_fake_env
-)
+from mesonbuild.compilers import detect_c_compiler
+from mesonbuild.mesonlib import MachineChoice, is_osx
+from run_tests import get_fake_env
 
 from .baseplatformtests import BasePlatformTests
 from .helpers import *
+
 
 @unittest.skipUnless(is_osx(), "requires Darwin")
 class DarwinTests(BasePlatformTests):

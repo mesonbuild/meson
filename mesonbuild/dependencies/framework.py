@@ -13,11 +13,12 @@
 # limitations under the License.
 from __future__ import annotations
 
-from .base import DependencyTypeName, ExternalDependency, DependencyException
-from ..mesonlib import MesonException, Version, stringlistify
-from .. import mlog
-from pathlib import Path
 import typing as T
+from pathlib import Path
+
+from .. import mlog
+from ..mesonlib import MesonException, Version, stringlistify
+from .base import DependencyException, DependencyTypeName, ExternalDependency
 
 if T.TYPE_CHECKING:
     from ..environment import Environment

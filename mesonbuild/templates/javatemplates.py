@@ -13,9 +13,9 @@
 # limitations under the License.
 from __future__ import annotations
 
-from mesonbuild.templates.sampleimpl import SampleImpl
 import re
 
+from mesonbuild.templates.sampleimpl import SampleImpl
 
 hello_java_template = '''
 

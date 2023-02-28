@@ -12,51 +12,50 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import hashlib
+import os
+import re
+import shutil
 import stat
 import subprocess
-import re
 import tempfile
 import textwrap
-import os
-import shutil
-import hashlib
-from unittest import mock, skipUnless, SkipTest
+import typing as T
 from glob import glob
 from pathlib import Path
-import typing as T
+from unittest import SkipTest, mock, skipUnless
 
-import mesonbuild.mlog
-import mesonbuild.depfile
+import mesonbuild.coredata
 import mesonbuild.dependencies.base
 import mesonbuild.dependencies.factory
+import mesonbuild.depfile
 import mesonbuild.envconfig
 import mesonbuild.environment
-import mesonbuild.coredata
+import mesonbuild.mlog
 import mesonbuild.modules.gnome
-from mesonbuild.mesonlib import (
-    MachineChoice, is_windows, is_osx, is_cygwin, is_openbsd, is_haiku,
-    is_sunos, windows_proof_rmtree, version_compare, is_linux,
-    OptionKey, EnvironmentException
-)
+import mesonbuild.modules.pkgconfig
 from mesonbuild.compilers import (
-    detect_c_compiler, detect_cpp_compiler, compiler_from_language,
+    compiler_from_language, detect_c_compiler, detect_cpp_compiler
 )
 from mesonbuild.compilers.c import AppleClangCCompiler
 from mesonbuild.compilers.cpp import AppleClangCPPCompiler
 from mesonbuild.compilers.objc import AppleClangObjCCompiler
 from mesonbuild.compilers.objcpp import AppleClangObjCPPCompiler
 from mesonbuild.dependencies import PkgConfigDependency
-import mesonbuild.modules.pkgconfig
+from mesonbuild.mesonlib import (
+    EnvironmentException, MachineChoice, OptionKey, is_cygwin, is_haiku,
+    is_linux, is_openbsd, is_osx, is_sunos, is_windows, version_compare,
+    windows_proof_rmtree
+)
 
 PKG_CONFIG = os.environ.get('PKG_CONFIG', 'pkg-config')
 
 
-from run_tests import (
-    get_fake_env
-)
+from run_tests import get_fake_env
 
 from .baseplatformtests import BasePlatformTests
 from .helpers import *
+
 
 def _prepend_pkg_config_path(path: str) -> str:
     """Prepend a string value to pkg_config_path

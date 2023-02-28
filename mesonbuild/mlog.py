@@ -14,21 +14,20 @@
 from __future__ import annotations
 
 import enum
-import os
 import io
-import sys
-import time
+import os
 import platform
 import shlex
-import subprocess
 import shutil
+import subprocess
+import sys
+import time
 import typing as T
 from contextlib import contextmanager
 from pathlib import Path
 
 if T.TYPE_CHECKING:
-    from ._typing import StringProtocol, SizedStringProtocol
-
+    from ._typing import SizedStringProtocol, StringProtocol
     from .mparser import BaseNode
 
     TV_Loggable = T.Union[str, 'AnsiDecorator', StringProtocol]
@@ -44,7 +43,7 @@ def is_windows() -> bool:
 
 def _windows_ansi() -> bool:
     # windll only exists on windows, so mypy will get mad
-    from ctypes import windll, byref  # type: ignore
+    from ctypes import byref, windll  # type: ignore
     from ctypes.wintypes import DWORD
 
     kernel = windll.kernel32

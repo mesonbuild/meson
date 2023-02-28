@@ -15,16 +15,16 @@ from __future__ import annotations
 
 """Abstractions for the PGI family of compilers."""
 
-import typing as T
 import os
+import typing as T
 from pathlib import Path
 
-from ..compilers import clike_debug_args, clike_optimization_args
 from ...mesonlib import OptionKey
+from ..compilers import clike_debug_args, clike_optimization_args
 
 if T.TYPE_CHECKING:
-    from ...environment import Environment
     from ...compilers.compilers import Compiler
+    from ...environment import Environment
 else:
     # This is a bit clever, for mypy we pretend that these mixins descend from
     # Compiler, so we get all of the methods and attributes defined for us, but

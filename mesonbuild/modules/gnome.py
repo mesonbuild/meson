@@ -17,41 +17,45 @@ functionality such as gobject-introspection, gresources and gtk-doc'''
 from __future__ import annotations
 
 import copy
-import itertools
 import functools
+import itertools
 import os
 import subprocess
 import textwrap
 import typing as T
 
-from . import ExtensionModule, ModuleInfo
-from . import ModuleReturnValue
-from .. import build
-from .. import interpreter
-from .. import mesonlib
-from .. import mlog
-from ..build import CustomTarget, CustomTargetIndex, Executable, GeneratedList, InvalidArguments
-from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
-from ..interpreter.type_checking import DEPENDS_KW, DEPEND_FILES_KW, INSTALL_DIR_KW, INSTALL_KW, NoneType, SOURCES_KW, in_set_validator
-from ..interpreterbase import noPosargs, noKwargs, FeatureNew, FeatureDeprecated
-from ..interpreterbase import typed_kwargs, KwargInfo, ContainerTypeInfo
+from .. import build, interpreter, mesonlib, mlog
+from ..build import (
+    CustomTarget, CustomTargetIndex, Executable, GeneratedList,
+    InvalidArguments
+)
+from ..dependencies import Dependency, InternalDependency, PkgConfigDependency
+from ..interpreter.type_checking import (
+    DEPEND_FILES_KW, DEPENDS_KW, INSTALL_DIR_KW, INSTALL_KW, SOURCES_KW,
+    NoneType, in_set_validator
+)
+from ..interpreterbase import (
+    ContainerTypeInfo, FeatureDeprecated, FeatureNew, KwargInfo, noKwargs,
+    noPosargs, typed_kwargs
+)
 from ..interpreterbase.decorators import typed_pos_args
 from ..mesonlib import (
-    MachineChoice, MesonException, OrderedSet, Popen_safe, join_args,
+    MachineChoice, MesonException, OrderedSet, Popen_safe, join_args
 )
 from ..programs import OverrideProgram
 from ..scripts.gettext import read_linguas
+from . import ExtensionModule, ModuleInfo, ModuleReturnValue
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypedDict
 
-    from . import ModuleState
     from ..build import BuildTarget
     from ..compilers import Compiler
     from ..interpreter import Interpreter
-    from ..interpreterbase import TYPE_var, TYPE_kwargs
+    from ..interpreterbase import TYPE_kwargs, TYPE_var
     from ..mesonlib import FileOrString
     from ..programs import ExternalProgram
+    from . import ModuleState
 
     class PostInstall(TypedDict):
         glib_compile_schemas: bool

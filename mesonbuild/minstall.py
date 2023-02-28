@@ -13,8 +13,6 @@
 # limitations under the License.
 from __future__ import annotations
 
-from glob import glob
-from pathlib import Path
 import argparse
 import errno
 import os
@@ -24,13 +22,18 @@ import shutil
 import subprocess
 import sys
 import typing as T
+from glob import glob
+from pathlib import Path
 
-from . import build
-from . import environment
+from . import build, environment
 from .backend.backends import InstallData
-from .mesonlib import MesonException, Popen_safe, RealPathAction, is_windows, setup_vsenv, pickle_load, is_osx
+from .mesonlib import (
+    MesonException, Popen_safe, RealPathAction, is_osx, is_windows,
+    pickle_load, setup_vsenv
+)
 from .scripts import depfixer, destdir_join
 from .scripts.meson_exe import run_exe
+
 try:
     from __main__ import __file__ as main_file
 except ImportError:
@@ -40,10 +43,10 @@ except ImportError:
 
 if T.TYPE_CHECKING:
     from .backend.backends import (
-            ExecutableSerialisation, InstallDataBase, InstallEmptyDir,
-            InstallSymlinkData, TargetInstallData
+        ExecutableSerialisation, InstallDataBase, InstallEmptyDir,
+        InstallSymlinkData, TargetInstallData
     )
-    from .mesonlib import FileMode, EnvironOrDict
+    from .mesonlib import EnvironOrDict, FileMode
 
     try:
         from typing import Protocol

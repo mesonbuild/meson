@@ -20,8 +20,8 @@ from __future__ import annotations
 import msvcrt
 import typing as T
 
-from .universal import MesonException
 from .platform import BuildDirLock as BuildDirLockBase
+from .universal import MesonException
 
 __all__ = ['BuildDirLock']
 

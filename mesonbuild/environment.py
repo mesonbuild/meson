@@ -13,37 +13,32 @@
 # limitations under the License.
 from __future__ import annotations
 
-import itertools
-import os, platform, re, sys, shutil
-import typing as T
 import collections
-
-from . import coredata
-from . import mesonlib
-from .mesonlib import (
-    MesonException, MachineChoice, Popen_safe, PerMachine,
-    PerMachineDefaultable, PerThreeMachineDefaultable, split_args, quote_arg, OptionKey,
-    search_version, MesonBugException
-)
-from . import mlog
-from .programs import ExternalProgram
-
-from .envconfig import (
-    BinaryTable, MachineInfo, Properties, known_cpu_families, CMakeVariables,
-)
-from . import compilers
-from .compilers import (
-    Compiler,
-    is_assembly,
-    is_header,
-    is_library,
-    is_llvm_ir,
-    is_object,
-    is_source,
-)
-
+import itertools
+import os
+import platform
+import re
+import shutil
+import sys
+import typing as T
 from functools import lru_cache
+
 from mesonbuild import envconfig
+
+from . import compilers, coredata, mesonlib, mlog
+from .compilers import (
+    Compiler, is_assembly, is_header, is_library, is_llvm_ir, is_object,
+    is_source
+)
+from .envconfig import (
+    BinaryTable, CMakeVariables, MachineInfo, Properties, known_cpu_families
+)
+from .mesonlib import (
+    MachineChoice, MesonBugException, MesonException, OptionKey, PerMachine,
+    PerMachineDefaultable, PerThreeMachineDefaultable, Popen_safe, quote_arg,
+    search_version, split_args
+)
+from .programs import ExternalProgram
 
 if T.TYPE_CHECKING:
     import argparse

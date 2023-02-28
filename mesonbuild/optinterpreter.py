@@ -16,17 +16,17 @@ from __future__ import annotations
 import re
 import typing as T
 
-from . import coredata
-from . import mesonlib
-from . import mparser
-from . import mlog
-from .interpreterbase import FeatureNew, typed_pos_args, typed_kwargs, ContainerTypeInfo, KwargInfo, FeatureDeprecated
+from . import coredata, mesonlib, mlog, mparser
 from .interpreter.type_checking import NoneType, in_set_validator
+from .interpreterbase import (
+    ContainerTypeInfo, FeatureDeprecated, FeatureNew, KwargInfo, typed_kwargs,
+    typed_pos_args
+)
 
 if T.TYPE_CHECKING:
-    from .interpreterbase import TYPE_var, TYPE_kwargs
-    from .interpreterbase import SubProject
-    from typing_extensions import TypedDict, Literal
+    from typing_extensions import Literal, TypedDict
+
+    from .interpreterbase import SubProject, TYPE_kwargs, TYPE_var
 
     _DEPRECATED_ARGS = T.Union[bool, str, T.Dict[str, str], T.List[str]]
 

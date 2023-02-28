@@ -13,17 +13,16 @@
 # limitations under the License.
 from __future__ import annotations
 
-from pathlib import Path
 import functools
 import os
 import typing as T
+from pathlib import Path
 
 from ..mesonlib import OptionKey
-from .base import DependencyMethods
-from .base import DependencyException
+from .base import DependencyException, DependencyMethods
 from .cmake import CMakeDependency
-from .pkgconfig import PkgConfigDependency
 from .factory import factory_methods
+from .pkgconfig import PkgConfigDependency
 
 if T.TYPE_CHECKING:
     from ..environment import Environment, MachineChoice

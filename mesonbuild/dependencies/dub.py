@@ -13,15 +13,16 @@
 # limitations under the License.
 from __future__ import annotations
 
-from .base import ExternalDependency, DependencyException, DependencyTypeName
-from .pkgconfig import PkgConfigDependency
-from ..mesonlib import (Popen_safe, OptionKey, join_args)
-from ..programs import ExternalProgram
-from .. import mlog
-import re
-import os
 import json
+import os
+import re
 import typing as T
+
+from .. import mlog
+from ..mesonlib import OptionKey, Popen_safe, join_args
+from ..programs import ExternalProgram
+from .base import DependencyException, DependencyTypeName, ExternalDependency
+from .pkgconfig import PkgConfigDependency
 
 if T.TYPE_CHECKING:
     from ..environment import Environment

@@ -5,33 +5,32 @@ from __future__ import annotations
 
 import enum
 import functools
-import os
 import itertools
+import os
 import typing as T
 
-from .. import build
-from .. import coredata
-from .. import dependencies
-from .. import mesonlib
-from .. import mlog
+from .. import build, coredata, dependencies, mesonlib, mlog
 from ..compilers import SUFFIX_TO_LANG
 from ..compilers.compilers import CompileCheckMode
-from ..interpreterbase import (ObjectHolder, noPosargs, noKwargs,
-                               FeatureNew, disablerIfNotFound,
-                               InterpreterException)
-from ..interpreterbase.decorators import ContainerTypeInfo, typed_kwargs, KwargInfo, typed_pos_args
+from ..interpreterbase import (
+    FeatureNew, InterpreterException, ObjectHolder, disablerIfNotFound,
+    noKwargs, noPosargs
+)
+from ..interpreterbase.decorators import (
+    ContainerTypeInfo, KwargInfo, typed_kwargs, typed_pos_args
+)
 from ..mesonlib import OptionKey
-from .interpreterobjects import (extract_required_kwarg, extract_search_dirs)
-from .type_checking import REQUIRED_KW, in_set_validator, NoneType
+from .interpreterobjects import extract_required_kwarg, extract_search_dirs
+from .type_checking import REQUIRED_KW, NoneType, in_set_validator
 
 if T.TYPE_CHECKING:
-    from ..interpreter import Interpreter
-    from ..compilers import Compiler, RunResult
-    from ..interpreterbase import TYPE_var, TYPE_kwargs
-    from .kwargs import ExtractRequired, ExtractSearchDirs
-    from .interpreter.interpreter import SourceOutputs
+    from typing_extensions import Literal, TypedDict
 
-    from typing_extensions import TypedDict, Literal
+    from ..compilers import Compiler, RunResult
+    from ..interpreter import Interpreter
+    from ..interpreterbase import TYPE_kwargs, TYPE_var
+    from .interpreter.interpreter import SourceOutputs
+    from .kwargs import ExtractRequired, ExtractSearchDirs
 
     class GetSupportedArgumentKw(TypedDict):
 
