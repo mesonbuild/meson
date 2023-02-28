@@ -1778,8 +1778,8 @@ class NinjaBackend(backends.Backend):
         return orderdeps, first_file
 
     def _add_rust_project_entry(self, name: str, main_rust_file: str, args: CompilerArgs,
-                                from_subproject: bool, is_proc_macro: bool,
-                                output: str, deps: T.List[RustDep]) -> None:
+                                from_subproject: bool, proc_macro_dylib_path: T.Optional[str],
+                                deps: T.List[RustDep]) -> None:
         raw_edition: T.Optional[str] = mesonlib.first(reversed(args), lambda x: x.startswith('--edition'))
         edition: RUST_EDITIONS = '2015' if not raw_edition else raw_edition.split('=')[-1]
 
@@ -1799,8 +1799,8 @@ class NinjaBackend(backends.Backend):
             deps,
             cfg,
             is_workspace_member=not from_subproject,
-            is_proc_macro=is_proc_macro,
-            proc_macro_dylib_path=output if is_proc_macro else None,
+            is_proc_macro=proc_macro_dylib_path is not None,
+            proc_macro_dylib_path=proc_macro_dylib_path,
         )
 
         self.rust_crates[name] = crate
@@ -2021,13 +2021,15 @@ class NinjaBackend(backends.Backend):
             for rpath_arg in rpath_args:
                 args += ['-C', 'link-arg=' + rpath_arg + ':' + os.path.join(rustc.get_sysroot(), 'lib')]
 
+        proc_macro_dylib_path = None
+        if getattr(target, 'rust_crate_type', '') == 'proc-macro':
+            proc_macro_dylib_path = os.path.abspath(os.path.join(target.subdir, target.get_filename()))
+
         self._add_rust_project_entry(target.name,
                                      os.path.abspath(os.path.join(self.environment.build_dir, main_rust_file)),
                                      args,
                                      bool(target.subproject),
-                                     #XXX: There is a fix for this pending
-                                     getattr(target, 'rust_crate_type', '') == 'procmacro',
-                                     output,
+                                     proc_macro_dylib_path,
                                      project_deps)
 
         compiler_name = self.compiler_to_rule_name(rustc)
