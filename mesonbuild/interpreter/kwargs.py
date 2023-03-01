@@ -278,12 +278,13 @@ class VcsTag(TypedDict):
     output: T.List[str]
     replace_string: str
 
+ConfigureFileFormats = T.Literal['meson', 'cmake', 'cmake@', 'autoconf']
 
 class ConfigureFile(TypedDict):
 
     output: str
     capture: bool
-    format: T.Literal['meson', 'cmake', 'cmake@']
+    format: ConfigureFileFormats
     output_format: T.Literal['c', 'nasm']
     depfile: T.Optional[str]
     install: T.Optional[bool]

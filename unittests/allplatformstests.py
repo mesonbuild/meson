@@ -155,6 +155,7 @@ class AllPlatformTests(BasePlatformTests):
             self.assertEqual(conf_str(['#mesondefine VAR'], confdata, 'meson'), result)
             self.assertEqual(conf_str(['#cmakedefine VAR ${VAR}'], confdata, 'cmake'), result)
             self.assertEqual(conf_str(['#cmakedefine VAR @VAR@'], confdata, 'cmake@'), result)
+            self.assertEqual(conf_str(['#undef VAR'], confdata, 'autoconf'), result)
 
         confdata = ConfigurationData()
         # Key error as they do not exists

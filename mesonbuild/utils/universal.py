@@ -37,12 +37,11 @@ from mesonbuild import mlog
 from .core import MesonException, HoldableObject
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal
-
     from .._typing import ImmutableListProtocol
     from ..build import ConfigurationData
     from ..coredata import KeyedOptionDictType, UserOption
     from ..compilers.compilers import Compiler
+    from ..interpreter.kwargs import ConfigureFileFormats
 
 FileOrString = T.Union['File', str]
 
@@ -1154,10 +1153,12 @@ def join_args(args: T.Iterable[str]) -> str:
 
 
 def do_replacement(regex: T.Pattern[str], line: str,
-                   variable_format: Literal['meson', 'cmake', 'cmake@'],
+                   variable_format: ConfigureFileFormats,
                    confdata: T.Union[T.Dict[str, T.Tuple[str, T.Optional[str]]], 'ConfigurationData']) -> T.Tuple[str, T.Set[str]]:
     missing_variables = set()  # type: T.Set[str]
-    if variable_format == 'cmake':
+    if variable_format == 'autoconf':
+        return line, missing_variables
+    elif variable_format == 'cmake':
         start_tag = '${'
         backslash_tag = '\\${'
     else:
@@ -1192,7 +1193,7 @@ def do_replacement(regex: T.Pattern[str], line: str,
     return re.sub(regex, variable_replace, line), missing_variables
 
 def do_define(regex: T.Pattern[str], line: str, confdata: 'ConfigurationData',
-              variable_format: Literal['meson', 'cmake', 'cmake@']) -> str:
+              variable_format: ConfigureFileFormats) -> str:
     def get_cmake_define(line: str, confdata: 'ConfigurationData') -> str:
         arr = line.split()
         define_value = []
@@ -1221,7 +1222,7 @@ def do_define(regex: T.Pattern[str], line: str, confdata: 'ConfigurationData',
     elif isinstance(v, int):
         return '#define %s %d\n' % (varname, v)
     elif isinstance(v, str):
-        if variable_format == 'meson':
+        if variable_format in {'meson', 'autoconf'}:
             result = v
         else:
             result = get_cmake_define(line, confdata)
@@ -1231,7 +1232,7 @@ def do_define(regex: T.Pattern[str], line: str, confdata: 'ConfigurationData',
     else:
         raise MesonException('#mesondefine argument "%s" is of unknown type.' % varname)
 
-def get_variable_regex(variable_format: Literal['meson', 'cmake', 'cmake@'] = 'meson') -> T.Pattern[str]:
+def get_variable_regex(variable_format: ConfigureFileFormats = 'meson') -> T.Pattern[str]:
     # Only allow (a-z, A-Z, 0-9, _, -) as valid characters for a define
     # Also allow escaping '@' with '\@'
     if variable_format in {'meson', 'cmake@'}:
@@ -1241,10 +1242,13 @@ def get_variable_regex(variable_format: Literal['meson', 'cmake', 'cmake@'] = 'm
     return regex
 
 def do_conf_str(src: str, data: list, confdata: 'ConfigurationData',
-                variable_format: Literal['meson', 'cmake', 'cmake@'],
+                variable_format: ConfigureFileFormats,
                 encoding: str = 'utf-8') -> T.Tuple[T.List[str], T.Set[str], bool]:
     def line_is_valid(line: str, variable_format: str) -> bool:
-        if variable_format == 'meson':
+        if variable_format == 'autoconf':
+            if '#cmakedefine' in line or '#mesondefine' in line:
+                return False
+        elif variable_format == 'meson':
             if '#cmakedefine' in line:
                 return False
         else: # cmake format
@@ -1255,7 +1259,9 @@ def do_conf_str(src: str, data: list, confdata: 'ConfigurationData',
     regex = get_variable_regex(variable_format)
 
     search_token = '#mesondefine'
-    if variable_format != 'meson':
+    if variable_format == 'autoconf':
+        search_token = '#undef'
+    elif variable_format != 'meson':
         search_token = '#cmakedefine'
 
     result = []
@@ -1279,7 +1285,7 @@ def do_conf_str(src: str, data: list, confdata: 'ConfigurationData',
     return result, missing_variables, confdata_useless
 
 def do_conf_file(src: str, dst: str, confdata: 'ConfigurationData',
-                 variable_format: Literal['meson', 'cmake', 'cmake@'],
+                 variable_format: ConfigureFileFormats,
                  encoding: str = 'utf-8') -> T.Tuple[T.Set[str], bool]:
     try:
         with open(src, encoding=encoding, newline='') as f:

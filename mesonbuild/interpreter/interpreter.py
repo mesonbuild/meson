@@ -2486,7 +2486,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         ),
         KwargInfo('encoding', str, default='utf-8', since='0.47.0'),
         KwargInfo('format', str, default='meson', since='0.46.0',
-                  validator=in_set_validator({'meson', 'cmake', 'cmake@'})),
+                  validator=in_set_validator({'meson', 'cmake', 'cmake@', 'autoconf'}),
+                  since_values={'autoconf': '1.1.0'}),
         KwargInfo(
             'input',
             ContainerTypeInfo(list, (mesonlib.File, str)),
