@@ -228,12 +228,14 @@ kwargs:
       Set this to `[]`, or omit the keyword argument for the default behaviour.
 
   override_options:
-    type: list[str]
+    type: list[str] | dict[str]
     since: 0.40.0
     description: |
       takes an array of strings in the same format as `project`'s `default_options`
       overriding the values of these options
       for this target only.
+
+      *Since 1.1.0* a dictionary may now be passed
 
   gnu_symbol_visibility:
     type: str

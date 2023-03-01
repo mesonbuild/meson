@@ -279,21 +279,25 @@ COMMAND_KW: KwargInfo[T.List[T.Union[str, BuildTarget, CustomTarget, CustomTarge
     default=[],
 )
 
-def _override_options_convertor(raw: T.List[str]) -> T.Dict[OptionKey, str]:
-    output: T.Dict[OptionKey, str] = {}
-    for each in raw:
-        k, v = split_equal_string(each)
-        output[OptionKey.from_string(k)] = v
-    return output
+def _override_options_convertor(raw: T.Union[str, T.List[str], T.Dict[str, str]]) -> T.Dict[OptionKey, str]:
+    if isinstance(raw, str):
+        raw = [raw]
+    if isinstance(raw, list):
+        output: T.Dict[OptionKey, str] = {}
+        for each in raw:
+            k, v = split_equal_string(each)
+            output[OptionKey.from_string(k)] = v
+        return output
+    return {OptionKey.from_string(k): v for k, v in raw.items()}
 
 
-OVERRIDE_OPTIONS_KW: KwargInfo[T.List[str]] = KwargInfo(
+OVERRIDE_OPTIONS_KW: KwargInfo[T.Union[str, T.Dict[str, str], T.List[str]]] = KwargInfo(
     'override_options',
-    ContainerTypeInfo(list, str),
-    listify=True,
-    default=[],
+    (str, ContainerTypeInfo(list, str), ContainerTypeInfo(dict, str)),
+    default={},
     validator=_options_validator,
     convertor=_override_options_convertor,
+    since_values={dict: '1.1.0'},
 )
 
 

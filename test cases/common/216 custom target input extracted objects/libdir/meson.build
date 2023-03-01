@@ -18,4 +18,4 @@ subobjlib = static_library('subobject', sublibsrc)
 
 objlib = static_library('object', 'source.c', ctsrc, gensrc,
                         objects: subobjlib.extract_all_objects(recursive: false),
-                        override_options : ['unity=off'])
+                        override_options : {'unity': 'off'})
