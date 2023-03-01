@@ -38,7 +38,7 @@ varargs:
 
 kwargs:
   default_options:
-    type: list[str]
+    type: list[str] | dict[str]
     description: |
       Accepts strings in the form `key=value`
       which have the same format as options to `meson configure`.
@@ -53,6 +53,8 @@ kwargs:
       for example, using `c_args` here means that the `CFLAGS`
       environment variable is not used. Consider using
       [[add_project_arguments()]] instead.
+
+      *Since 1.1.0* a dictionary may now be passed
 
   version:
     type: str | file

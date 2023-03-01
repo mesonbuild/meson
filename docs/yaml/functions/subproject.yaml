@@ -8,12 +8,12 @@ description: |
   example a subproject called `foo` must be located in
   `${MESON_SOURCE_ROOT}/subprojects/foo`.
 
-  - `default_options` *(since 0.37.0)*: an array of default option values
-    that override those set in the subproject's `meson_options.txt`
-    (like `default_options` in `project`, they only have effect when
-    Meson is run for the first time, and command line arguments override
-    any default options in build files). *(since 0.54.0)*: `default_library`
-    built-in option can also be overridden.
+  - `default_options` *(since 0.37.0)*: an array or dict of default option
+    values that override those set in the subproject's `meson_options.txt` (like
+    `default_options` in `project`, they only have effect when Meson is run for
+    the first time, and command line arguments override any default options in
+    build files). *(since 0.54.0)*: `default_library` built-in option can also be
+    overridden. *(since 1.1.0)* A dictionary may be passed instead of array
   - `version`: works just like the same as in `dependency`.
     It specifies what version the subproject should be, as an example `>=1.0.1`
   - `required` *(since 0.48.0)*: By default, `required` is `true` and
@@ -41,7 +41,7 @@ posargs:
 
 kwargs:
   default_options:
-    type: list[str]
+    type: list[str] | dict[str]
     since: 0.37.0
     description: |
       An array of default option values
@@ -50,6 +50,8 @@ kwargs:
       Meson is run for the first time, and command line arguments override
       any default options in build files). *(since 0.54.0)*: `default_library`
       built-in option can also be overridden.
+
+      *Since 1.1.0* a dictionary may now be passed
 
   version:
     type: str

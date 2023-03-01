@@ -78,7 +78,7 @@ varargs:
 
 kwargs:
   default_options:
-    type: list[str]
+    type: list[str] | dict[str]
     since: 0.38.0
     description: |
       An array of default option values
@@ -86,6 +86,8 @@ kwargs:
       (like `default_options` in [[project]], they only have
       effect when Meson is run for the first time, and command line
       arguments override any default options in build files)
+
+      *Since 1.1.0* a dictionary may now be passed
 
   allow_fallback:
     type: bool

@@ -889,7 +889,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             mlog.log('Subproject', mlog.bold(subp_name), ':', 'skipped: feature', mlog.bold(feature), 'disabled')
             return self.disabled_subproject(subp_name, disabled_feature=feature)
 
-        default_options = coredata.create_options_dict(kwargs['default_options'], subp_name)
+        default_options = {k.evolve(subproject=subp_name): v for k, v in kwargs['default_options'].items()}
 
         if subp_name == '':
             raise InterpreterException('Subproject name must not be empty.')
@@ -1179,13 +1179,17 @@ class Interpreter(InterpreterBase, HoldableObject):
             self.coredata.update_project_options(oi.options)
             self.add_build_def_file(self.option_file)
 
+        if self.subproject:
+            self.project_default_options = {k.evolve(subproject=self.subproject): v
+                                            for k, v in kwargs['default_options'].items()}
+        else:
+            self.project_default_options = kwargs['default_options']
+
         # Do not set default_options on reconfigure otherwise it would override
         # values previously set from command line. That means that changing
         # default_options in a project will trigger a reconfigure but won't
         # have any effect.
-        self.project_default_options = coredata.create_options_dict(
-            kwargs['default_options'], self.subproject)
-
+        #
         # If this is the first invocation we always need to initialize
         # builtins, if this is a subproject that is new in a re-invocation we
         # need to initialize builtins for that
@@ -1671,7 +1675,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                  mlog.bold(' '.join(args)))
         sp_kwargs: kwtypes.DoSubproject = {
             'required': required,
-            'default_options': [],
+            'default_options': {},
             'version': [],
             'cmake_options': [],
             'options': None,
@@ -1716,10 +1720,10 @@ class Interpreter(InterpreterBase, HoldableObject):
     @FeatureNewKwargs('dependency', '0.50.0', ['not_found_message', 'cmake_module_path', 'cmake_args'])
     @FeatureNewKwargs('dependency', '0.49.0', ['disabler'])
     @FeatureNewKwargs('dependency', '0.40.0', ['method'])
-    @FeatureNewKwargs('dependency', '0.38.0', ['default_options'])
     @disablerIfNotFound
     @permittedKwargs(permitted_dependency_kwargs)
     @typed_pos_args('dependency', varargs=str, min_varargs=1)
+    @typed_kwargs('dependency', DEFAULT_OPTIONS.evolve(since='0.38.0'), allow_unknown=True)
     def func_dependency(self, node: mparser.BaseNode, args: T.Tuple[T.List[str]], kwargs) -> Dependency:
         # Replace '' by empty list of names
         names = [n for n in args[0] if n]

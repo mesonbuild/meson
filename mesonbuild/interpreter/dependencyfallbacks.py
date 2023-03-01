@@ -19,7 +19,7 @@ if T.TYPE_CHECKING:
 
 class DependencyFallbacksHolder(MesonInterpreterObject):
     def __init__(self, interpreter: 'Interpreter', names: T.List[str], allow_fallback: T.Optional[bool] = None,
-                 default_options: T.Optional[T.List[str]] = None) -> None:
+                 default_options: T.Optional[T.Dict[OptionKey, str]] = None) -> None:
         super().__init__(subproject=interpreter.subproject)
         self.interpreter = interpreter
         self.subproject = interpreter.subproject
@@ -30,7 +30,7 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         self.allow_fallback = allow_fallback
         self.subproject_name: T.Optional[str] = None
         self.subproject_varname: T.Optional[str] = None
-        self.subproject_kwargs = {'default_options': default_options or []}
+        self.subproject_kwargs = {'default_options': default_options or {}}
         self.names: T.List[str] = []
         self.forcefallback: bool = False
         self.nofallback: bool = False
@@ -114,12 +114,11 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         # dependency('foo', static: true) should implicitly add
         # default_options: ['default_library=static']
         static = kwargs.get('static')
-        default_options = stringlistify(func_kwargs.get('default_options', []))
-        if static is not None and not any('default_library' in i for i in default_options):
+        default_options = func_kwargs.get('default_options', {})
+        if static is not None and 'default_library' not in default_options:
             default_library = 'static' if static else 'shared'
-            opt = f'default_library={default_library}'
-            mlog.log(f'Building fallback subproject with {opt}')
-            default_options.append(opt)
+            mlog.log(f'Building fallback subproject with default_library={default_library}')
+            default_options[OptionKey('default_library')] = default_library
             func_kwargs['default_options'] = default_options
 
         # Configure the subproject

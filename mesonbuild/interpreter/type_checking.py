@@ -387,14 +387,7 @@ def include_dir_string_new(val: T.List[T.Union[str, IncludeDirs]]) -> T.Iterable
         yield FeatureNew('include_directories kwarg of type string', '1.0.0',
                          f'Use include_directories({str_msg}) instead')
 
-# for cases like default_options and override_options
-DEFAULT_OPTIONS: KwargInfo[T.List[str]] = KwargInfo(
-    'default_options',
-    ContainerTypeInfo(list, str),
-    listify=True,
-    default=[],
-    validator=_options_validator,
-)
+DEFAULT_OPTIONS = OVERRIDE_OPTIONS_KW.evolve(name='default_options')
 
 ENV_METHOD_KW = KwargInfo('method', str, default='set', since='0.62.0',
                           validator=in_set_validator({'set', 'prepend', 'append'}))
