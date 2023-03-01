@@ -259,6 +259,20 @@ permitted_dependency_kwargs = {
     'version',
 }
 
+def _gen_deprecated_default_options() -> T.Dict[str, T.Tuple[str, str]]:
+    ret: T.Dict[str, T.Tuple[str, str]] = {}
+    for lang, envvar in compilers.compilers.CFLAGS_MAPPING.items():
+        arg = f'{lang}_args'
+        ret[arg] = ('1.1.0', f'Settings this prevents meson from reading {envvar}, '
+                             f'and will be overriden by users passing -D{arg} on the command line. '
+                             'Consider using add_project_arguments or add_global_arguments instead')
+        arg = f'{lang}_link_args'
+        ret[arg] = ('1.1.0', 'Settings this prevents meson from reading LDFLAGS, '
+                             f'and will be overriden by users passing -D{arg} on the command line. '
+                             'Consider using add_project_arguments or add_global_arguments instead')
+    return ret
+
+
 implicit_check_false_warning = """You should add the boolean check kwarg to the run_command call.
          It currently defaults to false,
          but it will default to true in future releases of meson.
@@ -1150,7 +1164,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_pos_args('project', str, varargs=str)
     @typed_kwargs(
         'project',
-        DEFAULT_OPTIONS,
+        DEFAULT_OPTIONS.evolve(deprecated_values=_gen_deprecated_default_options()),
         KwargInfo('meson_version', (str, NoneType)),
         KwargInfo(
             'version',
