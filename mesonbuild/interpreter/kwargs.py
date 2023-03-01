@@ -12,7 +12,7 @@ from typing_extensions import TypedDict, Literal, Protocol
 from .. import build
 from .. import coredata
 from ..compilers import Compiler
-from ..mesonlib import MachineChoice, File, FileMode, FileOrString
+from ..mesonlib import MachineChoice, File, FileMode, FileOrString, OptionKey
 from ..modules.cmake import CMakeSubprojectOptions
 from ..programs import ExternalProgram
 
@@ -203,7 +203,7 @@ class Project(TypedDict):
 
     version: T.Optional[FileOrString]
     meson_version: T.Optional[str]
-    default_options: T.List[str]
+    default_options: T.Dict[OptionKey, str]
     license: T.List[str]
     subproject_dir: str
 
@@ -298,13 +298,13 @@ class ConfigureFile(TypedDict):
 
 class Subproject(ExtractRequired):
 
-    default_options: T.List[str]
+    default_options: T.Dict[OptionKey, str]
     version: T.List[str]
 
 
 class DoSubproject(ExtractRequired):
 
-    default_options: T.List[str]
+    default_options: T.Dict[OptionKey, str]
     version: T.List[str]
     cmake_options: T.List[str]
     options: T.Optional[CMakeSubprojectOptions]
