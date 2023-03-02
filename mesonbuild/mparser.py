@@ -47,7 +47,7 @@ class ParseException(MesonException):
         self.lineno = lineno
         self.colno = colno
 
-class BlockParseException(MesonException):
+class BlockParseException(ParseException):
     def __init__(
                 self,
                 text: str,
@@ -67,7 +67,7 @@ class BlockParseException(MesonException):
             # Followed by a caret to show the block start
             # Followed by underscores
             # Followed by a caret to show the block end.
-            super().__init__("{}\n{}\n{}".format(text, line, '{}^{}^'.format(' ' * start_colno, '_' * (colno - start_colno - 1))))
+            MesonException.__init__(self, "{}\n{}\n{}".format(text, line, '{}^{}^'.format(' ' * start_colno, '_' * (colno - start_colno - 1))))
         else:
             # If block start and end are on different lines, it is formatted as:
             # Error message
@@ -76,7 +76,7 @@ class BlockParseException(MesonException):
             # Followed by a message saying where the block started.
             # Followed by the line of the block start.
             # Followed by a caret for the block start.
-            super().__init__("%s\n%s\n%s\nFor a block that started at %d,%d\n%s\n%s" % (text, line, '%s^' % (' ' * colno), start_lineno, start_colno, start_line, "%s^" % (' ' * start_colno)))
+            MesonException.__init__(self, "%s\n%s\n%s\nFor a block that started at %d,%d\n%s\n%s" % (text, line, '%s^' % (' ' * colno), start_lineno, start_colno, start_line, "%s^" % (' ' * start_colno)))
         self.lineno = lineno
         self.colno = colno
 
