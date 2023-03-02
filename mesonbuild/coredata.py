@@ -40,6 +40,7 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from . import dependencies
+    from ._typing import StringProtocol
     from .compilers.compilers import Compiler, CompileResult, RunResult
     from .dependencies.detect import TV_DepID
     from .environment import Environment
@@ -66,7 +67,6 @@ backendlist = ['ninja', 'vs', 'vs2010', 'vs2012', 'vs2013', 'vs2015', 'vs2017', 
 
 DEFAULT_YIELDING = False
 
-# Can't bind this near the class method it seems, sadly.
 _T = T.TypeVar('_T')
 
 
@@ -99,8 +99,7 @@ class UserOption(T.Generic[_T], HoldableObject):
     def listify(self, value: _T) -> T.List[_T]:
         return [value]
 
-    def printable_value(self) -> T.Union[str, int, bool, T.List[T.Union[str, int, bool]]]:
-        assert isinstance(self.value, (str, int, bool, list))
+    def printable_value(self) -> StringProtocol:
         return self.value
 
     # Check that the input is a valid value and return the
@@ -210,8 +209,8 @@ class UserUmaskOption(UserOption[T.Union[str, OctalInt]], _UserIntegerValidatorM
         self.choices: T.List[str] = ['preserve', '0000-0777']
         super().__post_init__(value)
 
-    def printable_value(self) -> str:
-        if self.value == 'preserve':
+    def printable_value(self) -> StringProtocol:
+        if isinstance(self.value, str):
             return self.value
         return format(self.value, '04o')
 
@@ -1156,28 +1155,24 @@ def parse_cmd_line_options(args: argparse.Namespace) -> None:
             delattr(args, name)
 
 
-_U = T.TypeVar('_U', bound=UserOption[_T])
-
-class BuiltinOption(T.Generic[_T, _U]):
+@dataclass
+class BuiltinOption(T.Generic[_T]):
 
     """Class for a builtin option type.
 
     There are some cases that are not fully supported yet.
     """
 
-    def __init__(self, opt_type: T.Type[_U], description: str, default: T.Any, yielding: bool = True, *,
-                 choices: T.Any = None, min_value: T.Optional[int] = None,
-                 max_value: T.Optional[int] = None, readonly: bool = False):
-        self.opt_type = opt_type
-        self.description = description
-        self.default = default
-        self.choices = choices
-        self.yielding = yielding
-        self.min_value = min_value
-        self.max_value = max_value
-        self.readonly = readonly
+    opt_type: T.Type[UserOption[_T]]
+    description: str
+    default: _T
+    yielding: bool = True
+    choices: T.Optional[T.List[_T]] = None
+    min_value: T.Optional[int] = None
+    max_value: T.Optional[int] = None
+    readonly: bool = False
 
-    def init_option(self, name: 'OptionKey', value: T.Optional[T.Any], prefix: str) -> _U:
+    def init_option(self, name: 'OptionKey', value: T.Optional[_T], prefix: str) -> UserOption[_T]:
         """Create an instance of opt_type and return it."""
         if value is None:
             value = self.prefixed_default(name, prefix)
@@ -1198,37 +1193,31 @@ class BuiltinOption(T.Generic[_T, _U]):
             return 'store_true'
         return None
 
-    def _argparse_choices(self) -> T.Any:
-        if self.opt_type is UserBooleanOption:
-            return [True, False]
-        elif self.opt_type is UserFeatureOption:
-            return UserFeatureOption.choices
-        return self.choices
+    def _argparse_choices(self) -> T.List[_T]:
+        return self.choices or []
 
     @staticmethod
     def argparse_name_to_arg(name: str) -> str:
         if name == 'warning_level':
             return '--warnlevel'
-        else:
-            return '--' + name.replace('_', '-')
+        return '--' + name.replace('_', '-')
 
-    def prefixed_default(self, name: 'OptionKey', prefix: str = '') -> T.Any:
-        if self.opt_type in {UserComboOption, UserIntegerOption, UserUmaskOption}:
-            return self.default
-        try:
-            return BUILTIN_DIR_NOPREFIX_OPTIONS[name][prefix]
-        except KeyError:
-            pass
+    def prefixed_default(self, name: 'OptionKey', prefix: str = '') -> _T:
+        if self.opt_type not in {UserComboOption, UserIntegerOption, UserUmaskOption}:
+            try:
+                return BUILTIN_DIR_NOPREFIX_OPTIONS[name][prefix]
+            except KeyError:
+                pass
         return self.default
 
     def add_to_argparse(self, name: str, parser: argparse.ArgumentParser, help_suffix: str) -> None:
-        kwargs = OrderedDict()
+        kwargs: OrderedDict[str, object] = OrderedDict()
 
         c = self._argparse_choices()
         b = self._argparse_action()
         h = self.description
         if not b:
-            h = '{} (default: {}).'.format(h.rstrip('.'), self.prefixed_default(name))
+            h = '{} (default: {}).'.format(h.rstrip('.'), self.default)
         else:
             kwargs['action'] = b
         if c and not b:
