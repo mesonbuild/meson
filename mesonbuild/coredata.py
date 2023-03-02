@@ -50,6 +50,7 @@ if T.TYPE_CHECKING:
     OptionDictType = T.Union[T.Dict[str, 'UserOption[T.Any]'], OptionOverrideProxy]
     MutableKeyedOptionDictType = T.Dict['OptionKey', 'UserOption[T.Any]']
     KeyedOptionDictType = T.Union[MutableKeyedOptionDictType, OptionOverrideProxy]
+    BuiltinOptionDictType = T.Mapping[OptionKey, 'BuiltinOption']
     CompilerCheckCacheKey = T.Tuple[T.Tuple[str, ...], str, FileOrString, T.Tuple[str, ...], str]
     # code, args
     RunCheckCacheKey = T.Tuple[str, T.Tuple[str, ...]]
@@ -1231,7 +1232,7 @@ class BuiltinOption(T.Generic[_T]):
 
 # Update `docs/markdown/Builtin-options.md` after changing the options below
 # Also update mesonlib._BUILTIN_NAMES. See the comment there for why this is required.
-BUILTIN_DIR_OPTIONS: 'MutableKeyedOptionDictType' = OrderedDict([
+BUILTIN_DIR_OPTIONS: BuiltinOptionDictType = OrderedDict([
     (OptionKey('prefix'),          BuiltinOption(UserStringOption, 'Installation prefix', default_prefix())),
     (OptionKey('bindir'),          BuiltinOption(UserStringOption, 'Executable directory', 'bin')),
     (OptionKey('datadir'),         BuiltinOption(UserStringOption, 'Data file directory', default_datadir())),
@@ -1248,7 +1249,7 @@ BUILTIN_DIR_OPTIONS: 'MutableKeyedOptionDictType' = OrderedDict([
     (OptionKey('sysconfdir'),      BuiltinOption(UserStringOption, 'Sysconf data directory', default_sysconfdir())),
 ])
 
-BUILTIN_CORE_OPTIONS: 'MutableKeyedOptionDictType' = OrderedDict([
+BUILTIN_CORE_OPTIONS: BuiltinOptionDictType = OrderedDict([
     (OptionKey('auto_features'),   BuiltinOption(UserFeatureOption, "Override value of all 'auto' features", 'auto')),
     (OptionKey('backend'),         BuiltinOption(UserComboOption, 'Backend to use', 'ninja', choices=backendlist,
                                                  readonly=True)),
@@ -1289,7 +1290,7 @@ BUILTIN_CORE_OPTIONS: 'MutableKeyedOptionDictType' = OrderedDict([
 
 BUILTIN_OPTIONS = OrderedDict(chain(BUILTIN_DIR_OPTIONS.items(), BUILTIN_CORE_OPTIONS.items()))
 
-BUILTIN_OPTIONS_PER_MACHINE: 'MutableKeyedOptionDictType' = OrderedDict([
+BUILTIN_OPTIONS_PER_MACHINE: BuiltinOptionDictType = OrderedDict([
     (OptionKey('pkg_config_path'), BuiltinOption(UserArrayOption, 'List of additional paths for pkg-config to search', [])),
     (OptionKey('cmake_prefix_path'), BuiltinOption(UserArrayOption, 'List of additional prefixes for cmake to search', [])),
 ])
