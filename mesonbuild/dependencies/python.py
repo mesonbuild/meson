@@ -230,7 +230,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
                 return None
         elif self.platform == 'win32':
             return '32'
-        elif self.platform in {'win64', 'win-amd64'}:
+        elif self.platform in {'win64', 'win-amd64', 'win-arm64'}:
             return '64'
         mlog.log(f'Unknown Windows Python platform {self.platform!r}')
         return None
@@ -282,7 +282,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
         arch = detect_cpu_family(env.coredata.compilers.host)
         if arch == 'x86':
             arch = '32'
-        elif arch == 'x86_64':
+        elif arch == 'x86_64' or arch == 'aarch64':
             arch = '64'
         else:
             # We can't cross-compile Python 3 dependencies on Windows yet
