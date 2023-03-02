@@ -192,6 +192,8 @@ Displays information about a configured Meson project
 `--tests`) or about a `meson.build` file (`--ast`, `--buildoptions`,
 `--dependencies`, `--scan-dependencies`, `--projectinfo`, `--targets`).
 
+*Since 1.4.0*: `builddir` argument can be the source dir.
+
 {{ introspect_arguments.inc }}
 
 #### Examples:
