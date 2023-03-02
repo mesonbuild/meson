@@ -143,6 +143,19 @@ methods:
         When set to a [`feature`](Build-options.md#features) option, the feature
         will control if it is searched and whether to fail if not found.
 
+- name: _required
+  returns: void
+  description: You have found a bug if you can see this!
+  kwargs:
+    required:
+      type: bool | feature
+      default: false
+      since: 1.1.0
+      description:
+        When set to `true`, Meson will halt if the check fails.
+
+        When set to a [`feature`](Build-options.md#features) option, the feature
+        will control if it is searched and whether to fail if not found.
 
 # Star of the actual functions
 - name: version
@@ -196,7 +209,9 @@ methods:
 - name: has_member
   returns: bool
   description: Returns true if the type has the specified member.
-  kwargs_inherit: compiler._common
+  kwargs_inherit:
+    - compiler._common
+    - compiler._required
   posargs:
     typename:
       type: str
@@ -208,7 +223,9 @@ methods:
 - name: has_members
   returns: bool
   description: Returns `true` if the type has *all* the specified members.
-  kwargs_inherit: compiler._common
+  kwargs_inherit:
+    - compiler._common
+    - compiler._required
   posargs:
     typename:
       type: str
@@ -225,7 +242,9 @@ methods:
     Returns true if the given function is provided
     by the standard library or a library passed in with the `args` keyword.
 
-  kwargs_inherit: compiler._common
+  kwargs_inherit:
+    - compiler._common
+    - compiler._required
   posargs:
     funcname:
       type: str
@@ -234,7 +253,9 @@ methods:
 - name: has_type
   returns: bool
   description: Returns `true` if the specified token is a type.
-  kwargs_inherit: compiler._common
+  kwargs_inherit:
+    - compiler._common
+    - compiler._required
   posargs:
     typename:
       type: str
@@ -457,6 +478,8 @@ methods:
     argument:
       type: str
       description: The argument to check.
+  kwargs_inherit:
+    - compiler._required
 
 - name: has_multi_arguments
   since: 0.37.0
@@ -469,6 +492,8 @@ methods:
     name: arg
     type: str
     description: The arguments to check.
+  kwargs_inherit:
+    - compiler._required
 
 - name: get_supported_arguments
   returns: list[str]
@@ -515,6 +540,8 @@ methods:
     argument:
       type: str
       description: The argument to check.
+  kwargs_inherit:
+    - compiler._required
 
 - name: has_multi_link_arguments
   since: 0.46.0
@@ -527,6 +554,8 @@ methods:
     name: arg
     type: str
     description: The link arguments to check.
+  kwargs_inherit:
+    - compiler._required
 
 - name: get_supported_link_arguments
   returns: list[str]
@@ -556,10 +585,6 @@ methods:
     Given a list of strings, returns the first argument that passes the
     [[compiler.has_link_argument]] test or an empty array if none pass.
 
-
-
-
-
 - name: has_function_attribute
   returns: bool
   since: 0.48.0
@@ -573,6 +598,8 @@ methods:
     name:
       type: str
       description: The attribute name to check.
+  kwargs_inherit:
+    - compiler._required
 
 - name: get_supported_function_attributes
   returns: list[str]
