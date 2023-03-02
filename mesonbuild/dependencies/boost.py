@@ -663,6 +663,11 @@ class BoostDependency(SystemDependency):
                 boost_root = boost_pc.get_pkgconfig_variable('prefix', [], None)
                 if boost_root:
                     roots += [Path(boost_root)]
+                else:
+                    # If prefix is not set in boost.pc, but we already found libs,
+                    # those libs are probably located inside the boost root...
+                    roots.extend(Path(la[2:]).parent
+                                 for la in boost_pc.link_args if la.startswith('-L'))
         except DependencyException:
             pass
 
