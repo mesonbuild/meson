@@ -41,6 +41,9 @@ def decode_match(match: T.Match[str]) -> str:
     return codecs.decode(match.group(0).encode(), 'unicode_escape')
 
 class ParseException(MesonException):
+
+    ast: T.Optional[CodeBlockNode] = None
+
     def __init__(self, text: str, line: str, lineno: int, colno: int) -> None:
         # Format as error message, followed by the line with the error, followed by a caret to show the error column.
         super().__init__(mlog.code_line(text, line, colno))
@@ -548,7 +551,11 @@ class Parser:
 
     def parse(self) -> CodeBlockNode:
         block = self.codeblock()
-        self.expect('eof')
+        try:
+            self.expect('eof')
+        except ParseException as e:
+            e.ast = block
+            raise
         return block
 
     def statement(self) -> BaseNode:
@@ -838,9 +845,13 @@ class Parser:
     def codeblock(self) -> CodeBlockNode:
         block = CodeBlockNode(self.current)
         cond = True
-        while cond:
-            curline = self.line()
-            if not isinstance(curline, EmptyNode):
-                block.lines.append(curline)
-            cond = self.accept('eol')
+        try:
+            while cond:
+                curline = self.line()
+                if not isinstance(curline, EmptyNode):
+                    block.lines.append(curline)
+                cond = self.accept('eol')
+        except ParseException as e:
+            e.ast = block
+            raise
         return block
