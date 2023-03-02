@@ -37,16 +37,8 @@ ESCAPE_SEQUENCE_SINGLE_RE = re.compile(r'''
     | \\[\\'abfnrtv]      # Single-character escapes
     )''', re.UNICODE | re.VERBOSE)
 
-class MesonUnicodeDecodeError(MesonException):
-    def __init__(self, match: str) -> None:
-        super().__init__(match)
-        self.match = match
-
 def decode_match(match: T.Match[str]) -> str:
-    try:
-        return codecs.decode(match.group(0).encode(), 'unicode_escape')
-    except UnicodeDecodeError:
-        raise MesonUnicodeDecodeError(match.group(0))
+    return codecs.decode(match.group(0).encode(), 'unicode_escape')
 
 class ParseException(MesonException):
     def __init__(self, text: str, line: str, lineno: int, colno: int) -> None:
@@ -205,10 +197,7 @@ class Lexer:
                                    "This will become a hard error in a future Meson release.")
                             mlog.warning(mlog.code_line(msg, self.getline(line_start), col), location=BaseNode(lineno, col, filename))
                         value = match_text[2 if tid == 'fstring' else 1:-1]
-                        try:
-                            value = ESCAPE_SEQUENCE_SINGLE_RE.sub(decode_match, value)
-                        except MesonUnicodeDecodeError as err:
-                            raise MesonException(f"Failed to parse escape sequence: '{err.match}' in string:\n  {match_text}")
+                        value = ESCAPE_SEQUENCE_SINGLE_RE.sub(decode_match, value)
                     elif tid in {'multiline_string', 'multiline_fstring'}:
                         # For multiline strings, parse out the value and pass
                         # through the normal string logic.
