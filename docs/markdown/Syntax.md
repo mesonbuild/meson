@@ -767,7 +767,7 @@ additive_operator: "+" | "-"
 argument_list: positional_arguments ["," keyword_arguments] | keyword_arguments
 array_literal: "[" [expression_list] "]"
 assignment_statement: expression asssignment_operator expression
-assignment_operator: "=" | "*=" | "/=" | "%=" | "+=" | "-="
+assignment_operator: "=" | "+="
 binary_literal: "0b" BINARY_NUMBER
 BINARY_NUMBER: /[01]+/
 boolean_literal: "true" | "false"
