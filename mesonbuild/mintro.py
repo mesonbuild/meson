@@ -549,6 +549,7 @@ def run(options: argparse.Namespace) -> int:
     if 'meson.build' in [os.path.basename(options.builddir), options.builddir]:
         # Make sure that log entries in other parts of meson don't interfere with the JSON output
         with redirect_stdout(sys.stderr):
+            mesonlib.setup_vsenv()
             backend = backends.get_backend_from_name(options.backend)
             assert backend is not None
             intr = IntrospectionInterpreter(sourcedir, '', backend.name, visitors = [AstIDGenerator(), AstIndentationGenerator(), AstConditionLevel()])
