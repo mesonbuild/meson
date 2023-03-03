@@ -594,11 +594,12 @@ _ALL_TARGET_KWS: T.List[KwargInfo] = [
     KwargInfo('build_by_default', bool, default=True, since='0.40.0'),
     KwargInfo(
         'extra_files',
-        ContainerTypeInfo(list, (str, File)),
+        ContainerTypeInfo(list, (str, File, CustomTarget, CustomTargetIndex)),
         default=[],
         listify=True,
         since_values={
             ContainerTypeInfo(list, File): '0.41.0',
+            ContainerTypeInfo(list, (CustomTarget, CustomTargetIndex)): '1.1.0',
         },
     ),
     DEPENDENCIES_KW,
