@@ -290,11 +290,10 @@ class UserArrayOption(UserOption[T.List[str]]):
                     raise MesonException(f'malformed option {value}')
             elif value == '':
                 newvalue = []
+            elif self.split_args:
+                newvalue = split_args(value)
             else:
-                if self.split_args:
-                    newvalue = split_args(value)
-                else:
-                    newvalue = [v.strip() for v in value.split(',')]
+                newvalue = [v.strip() for v in value.split(',')]
         elif isinstance(value, list):
             newvalue = value
         else:
