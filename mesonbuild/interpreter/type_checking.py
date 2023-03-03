@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright © 2021 Intel Corporation
+# Copyright © 2021, 2023 Intel Corporation
 
 """Helpers for strict type checking."""
 
@@ -482,4 +482,32 @@ TEST_KWS: T.List[KwargInfo] = [
     DEPENDS_KW.evolve(since='0.46.0'),
     KwargInfo('suite', ContainerTypeInfo(list, str), listify=True, default=['']),  # yes, a list of empty string
     KwargInfo('verbose', bool, default=False, since='0.62.0'),
+]
+
+STATIC_LIB_KWS: T.List[KwargInfo] = [
+    OVERRIDE_OPTIONS_KW,
+]
+
+SHARED_LIB_KWS: T.List[KwargInfo] = [
+    OVERRIDE_OPTIONS_KW,
+]
+
+SHARED_MOD_KWS: T.List[KwargInfo] = [
+    OVERRIDE_OPTIONS_KW,
+]
+
+BOTH_LIB_KWS: T.List[KwargInfo] = [
+    OVERRIDE_OPTIONS_KW,
+]
+
+EXECUTABLE_KWS: T.List[KwargInfo] = [
+    OVERRIDE_OPTIONS_KW,
+]
+
+JAR_KWS: T.List[KwargInfo] = [
+    OVERRIDE_OPTIONS_KW,
+]
+
+BUILD_TARGET_KWS: T.List[KwargInfo] = [
+    OVERRIDE_OPTIONS_KW,
 ]
