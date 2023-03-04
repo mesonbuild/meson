@@ -680,6 +680,7 @@ class BuildTarget(Target):
             kwargs,
             *,
             build_by_default: bool = True,
+            build_rpath: str = '',
             dependencies: T.Optional[T.List[dependencies.Dependency]] = None,
             extra_files: T.Optional[T.List[File]] = None,
             implicit_include_directories: bool = True,
@@ -695,6 +696,7 @@ class BuildTarget(Target):
         super().__init__(name, subdir, subproject, build_by_default, for_machine, environment,
                          install, extra_files=extra_files or [], override_options=override_options)
         self.all_compilers = compilers
+        self.build_rpath = build_rpath
         self.implicit_include_directories = implicit_include_directories
         self.install_dir = install_dir if install_dir is not None else []
         self.install_mode = install_mode if install_mode is not None else FileMode()
@@ -1110,9 +1112,6 @@ class BuildTarget(Target):
         self.install_rpath: str = kwargs.get('install_rpath', '')
         if not isinstance(self.install_rpath, str):
             raise InvalidArguments('Install_rpath is not a string.')
-        self.build_rpath = kwargs.get('build_rpath', '')
-        if not isinstance(self.build_rpath, str):
-            raise InvalidArguments('Build_rpath is not a string.')
         resources = extract_as_list(kwargs, 'resources')
         for r in resources:
             if not isinstance(r, str):
@@ -1814,6 +1813,7 @@ class Executable(BuildTarget):
             kwargs,
             *,
             build_by_default: bool = True,
+            build_rpath: str = '',
             dependencies: T.Optional[T.List[dependencies.Dependency]] = None,
             extra_files: T.Optional[T.List[File]] = None,
             implicit_include_directories: bool = True,
@@ -1832,6 +1832,7 @@ class Executable(BuildTarget):
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
                          environment, compilers, kwargs,
                          build_by_default=build_by_default,
+                         build_rpath=build_rpath,
                          dependencies=dependencies,
                          extra_files=extra_files,
                          implicit_include_directories=implicit_include_directories,
@@ -1993,6 +1994,7 @@ class StaticLibrary(BuildTarget):
             kwargs,
             *,
             build_by_default: bool = True,
+            build_rpath: str = '',
             dependencies: T.Optional[T.List[dependencies.Dependency]] = None,
             extra_files: T.Optional[T.List[File]] = None,
             implicit_include_directories: bool = True,
@@ -2011,6 +2013,7 @@ class StaticLibrary(BuildTarget):
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
                          environment, compilers, kwargs,
                          build_by_default=build_by_default,
+                         build_rpath=build_rpath,
                          dependencies=dependencies,
                          extra_files=extra_files,
                          implicit_include_directories=implicit_include_directories,
@@ -2111,6 +2114,7 @@ class SharedLibrary(BuildTarget):
             kwargs,
             *,
             build_by_default: bool = True,
+            build_rpath: str = '',
             dependencies: T.Optional[T.List[dependencies.Dependency]] = None,
             extra_files: T.Optional[T.List[File]] = None,
             implicit_include_directories: bool = True,
@@ -2141,6 +2145,7 @@ class SharedLibrary(BuildTarget):
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
                          environment, compilers, kwargs,
                          build_by_default=build_by_default,
+                         build_rpath=build_rpath,
                          dependencies=dependencies,
                          extra_files=extra_files,
                          implicit_include_directories=implicit_include_directories,
@@ -2484,6 +2489,7 @@ class SharedModule(SharedLibrary):
             kwargs,
             *,
             build_by_default: bool = True,
+            build_rpath: str = '',
             dependencies: T.Optional[T.List[dependencies.Dependency]] = None,
             extra_files: T.Optional[T.List[File]] = None,
             implicit_include_directories: bool = True,
@@ -2503,6 +2509,7 @@ class SharedModule(SharedLibrary):
         super().__init__(name, subdir, subproject, for_machine, sources,
                          structured_sources, objects, environment, compilers, kwargs,
                          build_by_default=build_by_default,
+                         build_rpath=build_rpath,
                          dependencies=dependencies,
                          extra_files=extra_files,
                          implicit_include_directories=implicit_include_directories,

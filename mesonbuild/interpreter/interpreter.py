@@ -3229,6 +3229,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             name, self.subdir, self.subproject, for_machine, sources,
             struct_src, objects, self.environment, self.compilers[for_machine], kwargs,
             build_by_default=kwargs['build_by_default'],
+            build_rpath=kwargs['build_rpath'],
             dependencies=kwargs['dependencies'],
             extra_files=kwargs['extra_files'],
             implicit_include_directories=kwargs['implicit_include_directories'],
@@ -3251,6 +3252,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             name, self.subdir, self.subproject, for_machine, sources,
             struct_src, objects, self.environment, self.compilers[for_machine], kwargs,
             build_by_default=kwargs['build_by_default'],
+            build_rpath=kwargs['build_rpath'],
             dependencies=kwargs['dependencies'],
             extra_files=kwargs['extra_files'],
             implicit_include_directories=kwargs['implicit_include_directories'],
@@ -3273,6 +3275,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             name, self.subdir, self.subproject, for_machine, sources,
             struct_src, objects, self.environment, self.compilers[for_machine], kwargs,
             build_by_default=kwargs['build_by_default'],
+            build_rpath=kwargs['build_rpath'],
             dependencies=kwargs['dependencies'],
             extra_files=kwargs['extra_files'],
             implicit_include_directories=kwargs['implicit_include_directories'],
@@ -3295,6 +3298,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             name, self.subdir, self.subproject, for_machine, sources,
             struct_src, objects, self.environment, self.compilers[for_machine], kwargs,
             build_by_default=kwargs['build_by_default'],
+            build_rpath=kwargs['build_rpath'],
             dependencies=kwargs['dependencies'],
             extra_files=kwargs['extra_files'],
             implicit_include_directories=kwargs['implicit_include_directories'],
@@ -3314,7 +3318,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             kwargs: kwtypes.BuildTarget,
             targetclass: T.Type[_BuildClassType]) -> _BuildClassType:
         @FeatureNewKwargs('build target', '1.2.0', ['rust_dependency_map'])
-        @FeatureNewKwargs('build target', '0.42.0', ['rust_crate_type', 'build_rpath'])
+        @FeatureNewKwargs('build target', '0.42.0', ['rust_crate_type'])
         @FeatureNewKwargs('build target', '0.41.0', ['rust_args'])
         @FeatureNewKwargs('build target', '0.48.0', ['gnu_symbol_visibility'])
         def build_target_decorator_caller(self, node, args, kwargs):
