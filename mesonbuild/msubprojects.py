@@ -207,13 +207,16 @@ class Runner:
         self.log(self.git_output(cmd))
 
     def git_stash(self) -> None:
-        # That git command return 1 (failure) when there is something to stash.
+        # That git command return some output when there is something to stash.
         # We don't want to stash when there is nothing to stash because that would
         # print spurious "No local changes to save".
-        if not quiet_git(['diff', '--quiet', 'HEAD'], self.repo_dir)[0]:
+        if quiet_git(['status', '--porcelain', ':!/.meson-subproject-wrap-hash.txt'], self.repo_dir)[1].strip():
             # Don't pipe stdout here because we want the user to see their changes have
             # been saved.
-            self.git_verbose(['stash'])
+            # Note: `--all` is used, and not `--include-untracked`, to prevent
+            # a potential error if `.meson-subproject-wrap-hash.txt` matches a
+            # gitignore pattern.
+            self.git_verbose(['stash', 'push', '--all', ':!/.meson-subproject-wrap-hash.txt'])
 
     def git_show(self) -> None:
         commit_message = self.git_output(['show', '--quiet', '--pretty=format:%h%n%d%n%s%n[%an]'])
