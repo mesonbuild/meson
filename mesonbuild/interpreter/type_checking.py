@@ -485,24 +485,25 @@ TEST_KWS: T.List[KwargInfo] = [
     KwargInfo('verbose', bool, default=False, since='0.62.0'),
 ]
 
-STATIC_LIB_KWS: T.List[KwargInfo] = [
-    OVERRIDE_OPTIONS_KW,
-]
-
-SHARED_LIB_KWS: T.List[KwargInfo] = [
-    OVERRIDE_OPTIONS_KW,
-]
-
-SHARED_MOD_KWS: T.List[KwargInfo] = [
-    OVERRIDE_OPTIONS_KW,
-]
-
-BOTH_LIB_KWS: T.List[KwargInfo] = [
+_ALL_TARGET_KWS: T.List[KwargInfo] = [
+    KwargInfo('build_by_default', bool, default=True, since='0.40.0'),
     OVERRIDE_OPTIONS_KW,
 ]
 
 EXECUTABLE_KWS: T.List[KwargInfo] = [
-    OVERRIDE_OPTIONS_KW,
+    *_ALL_TARGET_KWS,
+]
+
+SHARED_LIB_KWS: T.List[KwargInfo] = [
+    *_ALL_TARGET_KWS,
+]
+
+SHARED_MOD_KWS: T.List[KwargInfo] = [
+    *_ALL_TARGET_KWS,
+]
+
+BOTH_LIB_KWS: T.List[KwargInfo] = [
+    *_ALL_TARGET_KWS,
 ]
 
 _EXCLUSIVE_JAVA_KWS: T.List[KwargInfo] = [
@@ -511,8 +512,8 @@ _EXCLUSIVE_JAVA_KWS: T.List[KwargInfo] = [
 ]
 
 JAR_KWS: T.List[KwargInfo] = [
+    *_ALL_TARGET_KWS,
     *_EXCLUSIVE_JAVA_KWS,
-    OVERRIDE_OPTIONS_KW,
 ]
 
 BUILD_TARGET_KWS: T.List[KwargInfo] = [
@@ -525,6 +526,7 @@ BUILD_TARGET_KWS: T.List[KwargInfo] = [
         }),
         since_values={'shared_module': '0.51.0'},
     ),
+    *_ALL_TARGET_KWS,
     *_EXCLUSIVE_JAVA_KWS,
     OVERRIDE_OPTIONS_KW,
 ]
