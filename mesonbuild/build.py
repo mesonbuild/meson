@@ -682,6 +682,7 @@ class BuildTarget(Target):
             build_by_default: bool = True,
             build_rpath: str = '',
             d_debug: T.Optional[T.List[T.Union[str, int]]] = None,
+            d_import_dirs: T.Optional[T.List[IncludeDirs]] = None,
             dependencies: T.Optional[T.List[dependencies.Dependency]] = None,
             extra_files: T.Optional[T.List[File]] = None,
             implicit_include_directories: bool = True,
@@ -700,6 +701,7 @@ class BuildTarget(Target):
         self.build_rpath = build_rpath
         self.d_features = defaultdict(list)
         self.d_features['debug'] = d_debug or []
+        self.d_features['import_dirs'] = d_import_dirs or []
         self.implicit_include_directories = implicit_include_directories
         self.install_dir = install_dir if install_dir is not None else []
         self.install_mode = install_mode if install_mode is not None else FileMode()
@@ -725,8 +727,6 @@ class BuildTarget(Target):
         self.extra_args: T.Dict[str, T.List['FileOrString']] = {}
         self.sources: T.List[File] = []
         self.generated: T.List['GeneratedTypes'] = []
-        self.extra_files: T.List[File] = []
-        self.d_features = defaultdict(list)
         self.pic = False
         self.pie = False
         # Track build_rpath entries so we can remove them at install time
@@ -1084,12 +1084,6 @@ class BuildTarget(Target):
         dfeature_versions = kwargs.get('d_module_versions', [])
         if dfeature_versions:
             self.d_features['versions'] = dfeature_versions
-        if 'd_import_dirs' in kwargs:
-            dfeature_import_dirs = extract_as_list(kwargs, 'd_import_dirs')
-            for d in dfeature_import_dirs:
-                if not isinstance(d, IncludeDirs):
-                    raise InvalidArguments('Arguments to d_import_dirs must be include_directories.')
-            self.d_features['import_dirs'] = dfeature_import_dirs
 
         if isinstance(self, Executable):
             # This kwarg is deprecated. The value of "none" means that the kwarg
@@ -1812,6 +1806,7 @@ class Executable(BuildTarget):
             build_by_default: bool = True,
             build_rpath: str = '',
             d_debug: T.Optional[T.List[T.Union[str, int]]] = None,
+            d_import_dirs: T.Optional[T.List[IncludeDirs]] = None,
             dependencies: T.Optional[T.List[dependencies.Dependency]] = None,
             extra_files: T.Optional[T.List[File]] = None,
             implicit_include_directories: bool = True,
@@ -1832,6 +1827,7 @@ class Executable(BuildTarget):
                          build_by_default=build_by_default,
                          build_rpath=build_rpath,
                          d_debug=d_debug,
+                         d_import_dirs=d_import_dirs,
                          dependencies=dependencies,
                          extra_files=extra_files,
                          implicit_include_directories=implicit_include_directories,
@@ -1995,6 +1991,7 @@ class StaticLibrary(BuildTarget):
             build_by_default: bool = True,
             build_rpath: str = '',
             d_debug: T.Optional[T.List[T.Union[str, int]]] = None,
+            d_import_dirs: T.Optional[T.List[IncludeDirs]] = None,
             dependencies: T.Optional[T.List[dependencies.Dependency]] = None,
             extra_files: T.Optional[T.List[File]] = None,
             implicit_include_directories: bool = True,
@@ -2015,6 +2012,7 @@ class StaticLibrary(BuildTarget):
                          build_by_default=build_by_default,
                          build_rpath=build_rpath,
                          d_debug=d_debug,
+                         d_import_dirs=d_import_dirs,
                          dependencies=dependencies,
                          extra_files=extra_files,
                          implicit_include_directories=implicit_include_directories,
@@ -2117,6 +2115,7 @@ class SharedLibrary(BuildTarget):
             build_by_default: bool = True,
             build_rpath: str = '',
             d_debug: T.Optional[T.List[T.Union[str, int]]] = None,
+            d_import_dirs: T.Optional[T.List[IncludeDirs]] = None,
             dependencies: T.Optional[T.List[dependencies.Dependency]] = None,
             extra_files: T.Optional[T.List[File]] = None,
             implicit_include_directories: bool = True,
@@ -2149,6 +2148,7 @@ class SharedLibrary(BuildTarget):
                          build_by_default=build_by_default,
                          build_rpath=build_rpath,
                          d_debug=d_debug,
+                         d_import_dirs=d_import_dirs,
                          dependencies=dependencies,
                          extra_files=extra_files,
                          implicit_include_directories=implicit_include_directories,
@@ -2494,6 +2494,7 @@ class SharedModule(SharedLibrary):
             build_by_default: bool = True,
             build_rpath: str = '',
             d_debug: T.Optional[T.List[T.Union[str, int]]] = None,
+            d_import_dirs: T.Optional[T.List[IncludeDirs]] = None,
             dependencies: T.Optional[T.List[dependencies.Dependency]] = None,
             extra_files: T.Optional[T.List[File]] = None,
             implicit_include_directories: bool = True,
@@ -2515,6 +2516,7 @@ class SharedModule(SharedLibrary):
                          build_by_default=build_by_default,
                          build_rpath=build_rpath,
                          d_debug=d_debug,
+                         d_import_dirs=d_import_dirs,
                          dependencies=dependencies,
                          extra_files=extra_files,
                          implicit_include_directories=implicit_include_directories,
