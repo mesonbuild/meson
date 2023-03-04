@@ -504,12 +504,16 @@ EXECUTABLE_KWS: T.List[KwargInfo] = [
     OVERRIDE_OPTIONS_KW,
 ]
 
+_EXCLUSIVE_JAVA_KWS: T.List[KwargInfo] = [
+    KwargInfo('main_class', str, default=''),
+]
+
 JAR_KWS: T.List[KwargInfo] = [
+    *_EXCLUSIVE_JAVA_KWS,
     OVERRIDE_OPTIONS_KW,
 ]
 
 BUILD_TARGET_KWS: T.List[KwargInfo] = [
-    OVERRIDE_OPTIONS_KW,
     KwargInfo(
         'target_type', str, required=True,
         validator=in_set_validator({
@@ -519,4 +523,6 @@ BUILD_TARGET_KWS: T.List[KwargInfo] = [
         }),
         since_values={'shared_module': '0.51.0'},
     ),
+    *_EXCLUSIVE_JAVA_KWS,
+    OVERRIDE_OPTIONS_KW,
 ]

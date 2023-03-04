@@ -3228,6 +3228,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         return build.Jar(
             name, self.subdir, self.subproject, MachineChoice.HOST, sources,
             self.environment, self.compilers[MachineChoice.HOST], kwargs,
+            main_class=kwargs['main_class'],
         )
 
     def __build_exe(self, name: str, sources: T.List[BuildTargetSource],
