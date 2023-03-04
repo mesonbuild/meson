@@ -3231,6 +3231,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             build_by_default=kwargs['build_by_default'],
             dependencies=kwargs['dependencies'],
             extra_files=kwargs['extra_files'],
+            include_directories=self.extract_incdirs(kwargs),
             main_class=kwargs['main_class'],
             resources=kwargs['java_resources'],
         )
@@ -3247,6 +3248,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             dependencies=kwargs['dependencies'],
             extra_files=kwargs['extra_files'],
             implicit_include_directories=kwargs['implicit_include_directories'],
+            include_directories=self.extract_incdirs(kwargs),
         )
 
     def __build_sh_lib(self, name: str, sources: T.List[BuildTargetSource],
@@ -3261,6 +3263,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             dependencies=kwargs['dependencies'],
             extra_files=kwargs['extra_files'],
             implicit_include_directories=kwargs['implicit_include_directories'],
+            include_directories=self.extract_incdirs(kwargs),
         )
 
     def __build_sh_mod(self, name: str, sources: T.List[BuildTargetSource],
@@ -3275,6 +3278,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             dependencies=kwargs['dependencies'],
             extra_files=kwargs['extra_files'],
             implicit_include_directories=kwargs['implicit_include_directories'],
+            include_directories=self.extract_incdirs(kwargs),
         )
 
     def __build_st_lib(self, name: str, sources: T.List[BuildTargetSource],
@@ -3289,6 +3293,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             dependencies=kwargs['dependencies'],
             extra_files=kwargs['extra_files'],
             implicit_include_directories=kwargs['implicit_include_directories'],
+            include_directories=self.extract_incdirs(kwargs),
         )
 
     def build_target(
@@ -3365,8 +3370,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                             f"Conflicting sources in structured sources: {', '.join(sorted(conflicts))}",
                             node=node)
                     outputs.update(o)
-
-        kwargs['include_directories'] = self.extract_incdirs(kwargs)
 
         if targetclass is build.Jar:
             target = self. __build_jar(name, srcs, struct, kwargs)
