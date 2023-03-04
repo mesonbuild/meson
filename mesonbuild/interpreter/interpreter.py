@@ -3243,6 +3243,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             install_tag=kwargs['install_tag'],
             link_args=kwargs['link_args'],
             link_depends=self.source_strings_to_files(kwargs['link_depends']) if kwargs['link_depends'] else None,
+            gnu_symbol_visibility=kwargs['gnu_symbol_visibility'],
             override_options=kwargs['override_options'],
         )
 
@@ -3269,6 +3270,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             install_tag=kwargs['install_tag'],
             link_args=kwargs['link_args'],
             link_depends=self.source_strings_to_files(kwargs['link_depends']) if kwargs['link_depends'] else None,
+            gnu_symbol_visibility=kwargs['gnu_symbol_visibility'],
             override_options=kwargs['override_options'],
         )
 
@@ -3295,6 +3297,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             install_tag=kwargs['install_tag'],
             link_args=kwargs['link_args'],
             link_depends=self.source_strings_to_files(kwargs['link_depends']) if kwargs['link_depends'] else None,
+            gnu_symbol_visibility=kwargs['gnu_symbol_visibility'],
             override_options=kwargs['override_options'],
         )
 
@@ -3321,6 +3324,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             install_tag=kwargs['install_tag'],
             link_args=kwargs['link_args'],
             link_depends=self.source_strings_to_files(kwargs['link_depends']) if kwargs['link_depends'] else None,
+            gnu_symbol_visibility=kwargs['gnu_symbol_visibility'],
             override_options=kwargs['override_options'],
         )
 
@@ -3332,7 +3336,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         @FeatureNewKwargs('build target', '1.2.0', ['rust_dependency_map'])
         @FeatureNewKwargs('build target', '0.42.0', ['rust_crate_type'])
         @FeatureNewKwargs('build target', '0.41.0', ['rust_args'])
-        @FeatureNewKwargs('build target', '0.48.0', ['gnu_symbol_visibility'])
         def build_target_decorator_caller(self, node, args, kwargs):
             return True
 
