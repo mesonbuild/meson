@@ -3230,6 +3230,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             self.environment, self.compilers[MachineChoice.HOST], kwargs,
             build_by_default=kwargs['build_by_default'],
             dependencies=kwargs['dependencies'],
+            extra_files=kwargs['extra_files'],
             main_class=kwargs['main_class'],
             resources=kwargs['java_resources'],
         )
@@ -3244,6 +3245,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             struct_src, objects, self.environment, self.compilers[for_machine], kwargs,
             build_by_default=kwargs['build_by_default'],
             dependencies=kwargs['dependencies'],
+            extra_files=kwargs['extra_files'],
         )
 
     def __build_sh_lib(self, name: str, sources: T.List[BuildTargetSource],
@@ -3256,6 +3258,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             struct_src, objects, self.environment, self.compilers[for_machine], kwargs,
             build_by_default=kwargs['build_by_default'],
             dependencies=kwargs['dependencies'],
+            extra_files=kwargs['extra_files'],
         )
 
     def __build_sh_mod(self, name: str, sources: T.List[BuildTargetSource],
@@ -3268,6 +3271,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             struct_src, objects, self.environment, self.compilers[for_machine], kwargs,
             build_by_default=kwargs['build_by_default'],
             dependencies=kwargs['dependencies'],
+            extra_files=kwargs['extra_files'],
         )
 
     def __build_st_lib(self, name: str, sources: T.List[BuildTargetSource],
@@ -3280,6 +3284,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             struct_src, objects, self.environment, self.compilers[for_machine], kwargs,
             build_by_default=kwargs['build_by_default'],
             dependencies=kwargs['dependencies'],
+            extra_files=kwargs['extra_files'],
         )
 
     def build_target(
@@ -3315,9 +3320,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         sources = self.source_strings_to_files(sources)
         objs = extract_as_list(kwargs, 'objects')
         kwargs['install_mode'] = self._get_kwarg_install_mode(kwargs)
-        if 'extra_files' in kwargs:
-            ef = extract_as_list(kwargs, 'extra_files')
-            kwargs['extra_files'] = self.source_strings_to_files(ef)
+        kwargs['extra_files'] = self.source_strings_to_files(kwargs['extra_files'])
         self.check_sources_exist(os.path.join(self.source_root, self.subdir), sources)
         if targetclass not in {build.Executable, build.SharedLibrary, build.SharedModule, build.StaticLibrary, build.Jar}:
             mlog.debug('Unknown target type:', str(targetclass))
