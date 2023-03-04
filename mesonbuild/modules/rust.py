@@ -158,7 +158,6 @@ class RustModule(ExtensionModule):
         # one
         new_target_kwargs['rust_args'] = \
             new_target_kwargs.get('rust_args', []) + kwargs['rust_args'] + ['--test']
-        new_target_kwargs['install'] = False
         new_target_kwargs['link_with'] = new_target_kwargs.get('link_with', []) + kwargs['link_with']
 
         sources = T.cast('T.List[SourceOutputs]', base_target.sources.copy())
@@ -171,6 +170,7 @@ class RustModule(ExtensionModule):
             build_by_default=True,
             dependencies=list(itertools.chain(base_target.added_deps, kwargs['dependencies'])),
             include_directories=base_target.include_dirs.copy(),
+            install=False,
         )
 
         test = self.interpreter.make_test(
