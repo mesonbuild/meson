@@ -510,6 +510,7 @@ _ALL_TARGET_KWS: T.List[KwargInfo] = [
     ),
     INSTALL_KW,
     INSTALL_TAG_KW.evolve(since='0.60.0'),
+    KwargInfo('link_args', ContainerTypeInfo(list, str), default=[], listify=True),
     OVERRIDE_OPTIONS_KW,
 ]
 

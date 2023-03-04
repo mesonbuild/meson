@@ -3213,6 +3213,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             include_directories=self.extract_incdirs(kwargs),
             install=kwargs['install'],
             install_dir=kwargs['install_dir'],
+            link_args=kwargs['link_args'],
             main_class=kwargs['main_class'],
             resources=kwargs['java_resources'],
         )
@@ -3234,6 +3235,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             install_dir=kwargs['install_dir'],
             install_mode=kwargs['install_mode'],
             install_tag=kwargs['install_tag'],
+            link_args=kwargs['link_args'],
         )
 
     def __build_sh_lib(self, name: str, sources: T.List[BuildTargetSource],
@@ -3253,6 +3255,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             install_dir=kwargs['install_dir'],
             install_mode=kwargs['install_mode'],
             install_tag=kwargs['install_tag'],
+            link_args=kwargs['link_args'],
         )
 
     def __build_sh_mod(self, name: str, sources: T.List[BuildTargetSource],
@@ -3272,6 +3275,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             install_dir=kwargs['install_dir'],
             install_mode=kwargs['install_mode'],
             install_tag=kwargs['install_tag'],
+            link_args=kwargs['link_args'],
         )
 
     def __build_st_lib(self, name: str, sources: T.List[BuildTargetSource],
@@ -3291,6 +3295,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             install_dir=kwargs['install_dir'],
             install_mode=kwargs['install_mode'],
             install_tag=kwargs['install_tag'],
+            link_args=kwargs['link_args'],
         )
 
     def build_target(
@@ -3366,6 +3371,17 @@ class Interpreter(InterpreterBase, HoldableObject):
                             f"Conflicting sources in structured sources: {', '.join(sorted(conflicts))}",
                             node=node)
                     outputs.update(o)
+
+        for l in kwargs['link_args']:
+            # TODO: this should be a compiler method, since rpath arguments vary
+            #       by compiler/linker because this needs the compiler(s) of the
+            #       target, we can't do this in a type_kwargs validator
+            if '-Wl,-rpath' in l or l.startswith('-rpath'):
+                mlog.warning(textwrap.dedent('''\
+                    Please do not define rpath with a linker argument, use install_rpath
+                    or build_rpath properties instead.
+                    This will become a hard error in a future Meson release.
+                '''), location=node)
 
         if targetclass is build.Jar:
             target = self. __build_jar(name, srcs, struct, kwargs)
