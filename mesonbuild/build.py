@@ -681,6 +681,7 @@ class BuildTarget(Target):
             *,
             build_by_default: bool = True,
             build_rpath: str = '',
+            d_debug: T.Optional[T.List[T.Union[str, int]]] = None,
             dependencies: T.Optional[T.List[dependencies.Dependency]] = None,
             extra_files: T.Optional[T.List[File]] = None,
             implicit_include_directories: bool = True,
@@ -697,6 +698,8 @@ class BuildTarget(Target):
                          install, extra_files=extra_files or [], override_options=override_options)
         self.all_compilers = compilers
         self.build_rpath = build_rpath
+        self.d_features = defaultdict(list)
+        self.d_features['debug'] = d_debug or []
         self.implicit_include_directories = implicit_include_directories
         self.install_dir = install_dir if install_dir is not None else []
         self.install_mode = install_mode if install_mode is not None else FileMode()
@@ -1075,24 +1078,18 @@ class BuildTarget(Target):
             self.vala_vapi = kwargs.get('vala_vapi', self.name + '.vapi')
             self.vala_gir = kwargs.get('vala_gir', None)
 
-        dfeatures = defaultdict(list)
         dfeature_unittest = kwargs.get('d_unittest', False)
         if dfeature_unittest:
-            dfeatures['unittest'] = dfeature_unittest
+            self.d_features['unittest'] = dfeature_unittest
         dfeature_versions = kwargs.get('d_module_versions', [])
         if dfeature_versions:
-            dfeatures['versions'] = dfeature_versions
-        dfeature_debug = kwargs.get('d_debug', [])
-        if dfeature_debug:
-            dfeatures['debug'] = dfeature_debug
+            self.d_features['versions'] = dfeature_versions
         if 'd_import_dirs' in kwargs:
             dfeature_import_dirs = extract_as_list(kwargs, 'd_import_dirs')
             for d in dfeature_import_dirs:
                 if not isinstance(d, IncludeDirs):
                     raise InvalidArguments('Arguments to d_import_dirs must be include_directories.')
-            dfeatures['import_dirs'] = dfeature_import_dirs
-        if dfeatures:
-            self.d_features = dfeatures
+            self.d_features['import_dirs'] = dfeature_import_dirs
 
         if isinstance(self, Executable):
             # This kwarg is deprecated. The value of "none" means that the kwarg
@@ -1814,6 +1811,7 @@ class Executable(BuildTarget):
             *,
             build_by_default: bool = True,
             build_rpath: str = '',
+            d_debug: T.Optional[T.List[T.Union[str, int]]] = None,
             dependencies: T.Optional[T.List[dependencies.Dependency]] = None,
             extra_files: T.Optional[T.List[File]] = None,
             implicit_include_directories: bool = True,
@@ -1833,6 +1831,7 @@ class Executable(BuildTarget):
                          environment, compilers, kwargs,
                          build_by_default=build_by_default,
                          build_rpath=build_rpath,
+                         d_debug=d_debug,
                          dependencies=dependencies,
                          extra_files=extra_files,
                          implicit_include_directories=implicit_include_directories,
@@ -1995,6 +1994,7 @@ class StaticLibrary(BuildTarget):
             *,
             build_by_default: bool = True,
             build_rpath: str = '',
+            d_debug: T.Optional[T.List[T.Union[str, int]]] = None,
             dependencies: T.Optional[T.List[dependencies.Dependency]] = None,
             extra_files: T.Optional[T.List[File]] = None,
             implicit_include_directories: bool = True,
@@ -2014,6 +2014,7 @@ class StaticLibrary(BuildTarget):
                          environment, compilers, kwargs,
                          build_by_default=build_by_default,
                          build_rpath=build_rpath,
+                         d_debug=d_debug,
                          dependencies=dependencies,
                          extra_files=extra_files,
                          implicit_include_directories=implicit_include_directories,
@@ -2115,6 +2116,7 @@ class SharedLibrary(BuildTarget):
             *,
             build_by_default: bool = True,
             build_rpath: str = '',
+            d_debug: T.Optional[T.List[T.Union[str, int]]] = None,
             dependencies: T.Optional[T.List[dependencies.Dependency]] = None,
             extra_files: T.Optional[T.List[File]] = None,
             implicit_include_directories: bool = True,
@@ -2146,6 +2148,7 @@ class SharedLibrary(BuildTarget):
                          environment, compilers, kwargs,
                          build_by_default=build_by_default,
                          build_rpath=build_rpath,
+                         d_debug=d_debug,
                          dependencies=dependencies,
                          extra_files=extra_files,
                          implicit_include_directories=implicit_include_directories,
@@ -2490,6 +2493,7 @@ class SharedModule(SharedLibrary):
             *,
             build_by_default: bool = True,
             build_rpath: str = '',
+            d_debug: T.Optional[T.List[T.Union[str, int]]] = None,
             dependencies: T.Optional[T.List[dependencies.Dependency]] = None,
             extra_files: T.Optional[T.List[File]] = None,
             implicit_include_directories: bool = True,
@@ -2510,6 +2514,7 @@ class SharedModule(SharedLibrary):
                          structured_sources, objects, environment, compilers, kwargs,
                          build_by_default=build_by_default,
                          build_rpath=build_rpath,
+                         d_debug=d_debug,
                          dependencies=dependencies,
                          extra_files=extra_files,
                          implicit_include_directories=implicit_include_directories,
