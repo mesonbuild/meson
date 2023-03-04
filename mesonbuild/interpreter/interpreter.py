@@ -3233,6 +3233,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             install=kwargs['install'],
             install_dir=kwargs['install_dir'],
             install_mode=kwargs['install_mode'],
+            install_tag=kwargs['install_tag'],
         )
 
     def __build_sh_lib(self, name: str, sources: T.List[BuildTargetSource],
@@ -3251,6 +3252,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             install=kwargs['install'],
             install_dir=kwargs['install_dir'],
             install_mode=kwargs['install_mode'],
+            install_tag=kwargs['install_tag'],
         )
 
     def __build_sh_mod(self, name: str, sources: T.List[BuildTargetSource],
@@ -3269,6 +3271,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             install=kwargs['install'],
             install_dir=kwargs['install_dir'],
             install_mode=kwargs['install_mode'],
+            install_tag=kwargs['install_tag'],
         )
 
     def __build_st_lib(self, name: str, sources: T.List[BuildTargetSource],
@@ -3287,6 +3290,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             install=kwargs['install'],
             install_dir=kwargs['install_dir'],
             install_mode=kwargs['install_mode'],
+            install_tag=kwargs['install_tag'],
         )
 
     def build_target(

@@ -508,8 +508,8 @@ _ALL_TARGET_KWS: T.List[KwargInfo] = [
         default=[],
         listify=True,
     ),
-    INCLUDE_DIRECTORIES.evolve(since_values={ContainerTypeInfo(list, str): ('0.50', 'Use include_dirctories() instead')}),
     INSTALL_KW,
+    INSTALL_TAG_KW.evolve(since='0.60.0'),
     OVERRIDE_OPTIONS_KW,
 ]
 
