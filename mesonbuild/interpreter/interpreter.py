@@ -3214,6 +3214,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             install=kwargs['install'],
             install_dir=kwargs['install_dir'],
             link_args=kwargs['link_args'],
+            link_depends=self.source_strings_to_files(kwargs['link_depends']) if kwargs['link_depends'] else None,
             main_class=kwargs['main_class'],
             resources=kwargs['java_resources'],
         )
@@ -3236,6 +3237,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             install_mode=kwargs['install_mode'],
             install_tag=kwargs['install_tag'],
             link_args=kwargs['link_args'],
+            link_depends=self.source_strings_to_files(kwargs['link_depends']) if kwargs['link_depends'] else None,
         )
 
     def __build_sh_lib(self, name: str, sources: T.List[BuildTargetSource],
@@ -3256,6 +3258,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             install_mode=kwargs['install_mode'],
             install_tag=kwargs['install_tag'],
             link_args=kwargs['link_args'],
+            link_depends=self.source_strings_to_files(kwargs['link_depends']) if kwargs['link_depends'] else None,
         )
 
     def __build_sh_mod(self, name: str, sources: T.List[BuildTargetSource],
@@ -3276,6 +3279,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             install_mode=kwargs['install_mode'],
             install_tag=kwargs['install_tag'],
             link_args=kwargs['link_args'],
+            link_depends=self.source_strings_to_files(kwargs['link_depends']) if kwargs['link_depends'] else None,
         )
 
     def __build_st_lib(self, name: str, sources: T.List[BuildTargetSource],
@@ -3296,6 +3300,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             install_mode=kwargs['install_mode'],
             install_tag=kwargs['install_tag'],
             link_args=kwargs['link_args'],
+            link_depends=self.source_strings_to_files(kwargs['link_depends']) if kwargs['link_depends'] else None,
         )
 
     def build_target(

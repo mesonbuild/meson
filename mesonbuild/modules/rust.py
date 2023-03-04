@@ -172,6 +172,7 @@ class RustModule(ExtensionModule):
             include_directories=base_target.include_dirs.copy(),
             install=False,
             link_args=base_target.link_args.copy(),
+            link_depends=base_target.link_depends.copy(),
         )
 
         test = self.interpreter.make_test(
