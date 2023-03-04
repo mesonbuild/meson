@@ -3229,6 +3229,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             name, self.subdir, self.subproject, MachineChoice.HOST, sources,
             self.environment, self.compilers[MachineChoice.HOST], kwargs,
             build_by_default=kwargs['build_by_default'],
+            dependencies=kwargs['dependencies'],
             main_class=kwargs['main_class'],
             resources=kwargs['java_resources'],
         )
@@ -3242,6 +3243,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             name, self.subdir, self.subproject, for_machine, sources,
             struct_src, objects, self.environment, self.compilers[for_machine], kwargs,
             build_by_default=kwargs['build_by_default'],
+            dependencies=kwargs['dependencies'],
         )
 
     def __build_sh_lib(self, name: str, sources: T.List[BuildTargetSource],
@@ -3253,6 +3255,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             name, self.subdir, self.subproject, for_machine, sources,
             struct_src, objects, self.environment, self.compilers[for_machine], kwargs,
             build_by_default=kwargs['build_by_default'],
+            dependencies=kwargs['dependencies'],
         )
 
     def __build_sh_mod(self, name: str, sources: T.List[BuildTargetSource],
@@ -3264,6 +3267,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             name, self.subdir, self.subproject, for_machine, sources,
             struct_src, objects, self.environment, self.compilers[for_machine], kwargs,
             build_by_default=kwargs['build_by_default'],
+            dependencies=kwargs['dependencies'],
         )
 
     def __build_st_lib(self, name: str, sources: T.List[BuildTargetSource],
@@ -3275,6 +3279,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             name, self.subdir, self.subproject, for_machine, sources,
             struct_src, objects, self.environment, self.compilers[for_machine], kwargs,
             build_by_default=kwargs['build_by_default'],
+            dependencies=kwargs['dependencies'],
         )
 
     def build_target(
@@ -3309,7 +3314,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                    if not isinstance(s, (build.BuildTarget, build.ExtractedObjects))]
         sources = self.source_strings_to_files(sources)
         objs = extract_as_list(kwargs, 'objects')
-        kwargs['dependencies'] = extract_as_list(kwargs, 'dependencies')
         kwargs['install_mode'] = self._get_kwarg_install_mode(kwargs)
         if 'extra_files' in kwargs:
             ef = extract_as_list(kwargs, 'extra_files')
