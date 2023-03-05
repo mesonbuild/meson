@@ -251,13 +251,14 @@ class MesonApp:
             # sync with the time that gets applied to any files. Thus, we dump this file as late as
             # possible, but before build files, and if any error occurs, delete it.
             cdf = env.dump_coredata()
+
+            self.finalize_postconf_hooks(b, intr)
             if self.options.profile:
                 fname = f'profile-{intr.backend.name}-backend.log'
                 fname = os.path.join(self.build_dir, 'meson-private', fname)
                 profile.runctx('intr.backend.generate()', globals(), locals(), filename=fname)
             else:
                 intr.backend.generate()
-            self._finalize_devenv(b, intr)
             build.save(b, dumpfile)
             if env.first_invocation:
                 # Use path resolved by coredata because they could have been
@@ -300,13 +301,11 @@ class MesonApp:
                     os.unlink(cdf)
             raise
 
-    def _finalize_devenv(self, b: build.Build, intr: interpreter.Interpreter) -> None:
+    def finalize_postconf_hooks(self, b: build.Build, intr: interpreter.Interpreter) -> None:
         b.devenv.append(intr.backend.get_devenv())
         b.devenv.append(PkgConfigDependency.get_env(intr.environment, MachineChoice.HOST, uninstalled=True))
         for mod in intr.modules.values():
-            devenv = mod.get_devenv()
-            if devenv:
-                b.devenv.append(devenv)
+            mod.postconf_hook(b)
 
 def run(options: T.Union[argparse.Namespace, T.List[str]]) -> int:
     if not isinstance(options, argparse.Namespace):

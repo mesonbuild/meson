@@ -31,7 +31,7 @@ if T.TYPE_CHECKING:
     from ..interpreterbase import TYPE_var, TYPE_kwargs
     from ..programs import OverrideProgram
     from ..wrap import WrapMode
-    from ..build import EnvironmentVariables, Executable
+    from ..build import Executable
     from ..dependencies import Dependency
 
 class ModuleState:
@@ -219,8 +219,8 @@ class NewExtensionModule(ModuleObject):
     def found() -> bool:
         return True
 
-    def get_devenv(self) -> T.Optional['EnvironmentVariables']:
-        return None
+    def postconf_hook(self, b: build.Build) -> None:
+        pass
 
 # FIXME: Port all modules to stop using self.interpreter and use API on
 # ModuleState instead. Modules should stop using this class and instead use
