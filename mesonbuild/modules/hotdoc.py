@@ -339,9 +339,22 @@ class HotdocTargetBuilder:
 
         install_script = None
         if install:
+            datadir = os.path.join(self.state.get_option('prefix'), self.state.get_option('datadir'))
+            devhelp = self.kwargs.get('devhelp_activate', False)
+            if not isinstance(devhelp, bool):
+                FeatureDeprecated.single_use('hotdoc.generate_doc() devhelp_activate must be boolean', '1.1.0', self.state.subproject)
+                devhelp = False
+            if devhelp:
+                install_from = os.path.join(fullname, 'devhelp')
+                install_to = os.path.join(datadir, 'devhelp')
+            else:
+                install_from = os.path.join(fullname, 'html')
+                install_to = os.path.join(datadir, 'doc', self.name, 'html')
+
             install_script = self.state.backend.get_executable_serialisation(self.build_command + [
                 "--internal", "hotdoc",
-                "--install", os.path.join(fullname, 'html'),
+                "--install", install_from,
+                "--docdir", install_to,
                 '--name', self.name,
                 '--builddir', os.path.join(self.builddir, self.subdir)] +
                 self.hotdoc.get_command() +
