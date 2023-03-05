@@ -247,7 +247,8 @@ class HotdocTargetBuilder:
         ncwd = os.path.join(self.sourcedir, self.subdir)
         mlog.log('Generating Hotdoc configuration for: ', mlog.bold(self.name))
         os.chdir(ncwd)
-        self.hotdoc.run_hotdoc(self.flatten_config_command())
+        if self.hotdoc.run_hotdoc(self.flatten_config_command()) != 0:
+            raise MesonException('hotdoc failed to configure')
         os.chdir(cwd)
 
     def ensure_file(self, value):
