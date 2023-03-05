@@ -27,6 +27,7 @@ from .. import mesonlib
 from .. import mlog
 from ..coredata import BUILTIN_DIR_OPTIONS
 from ..dependencies import ThreadDependency
+from ..dependencies.pkgconfig import PkgConfigDependency
 from ..interpreter.type_checking import D_MODULE_VERSIONS_KW, INSTALL_DIR_KW, VARIABLES_KW, NoneType
 from ..interpreterbase import FeatureNew, FeatureDeprecated
 from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, typed_kwargs, typed_pos_args
@@ -153,7 +154,7 @@ class DependenciesHelper:
                     and obj.get_id() in self.metadata):
                 self._check_generated_pc_deprecation(obj)
                 processed_reqs.append(self.metadata[obj.get_id()].filebase)
-            elif isinstance(obj, dependencies.PkgConfigDependency):
+            elif isinstance(obj, PkgConfigDependency):
                 if obj.found():
                     processed_reqs.append(obj.name)
                     self.add_version_reqs(obj.name, obj.version_reqs)
@@ -197,7 +198,7 @@ class DependenciesHelper:
                 processed_reqs.append(self.metadata[obj.get_id()].filebase)
             elif isinstance(obj, dependencies.ValgrindDependency):
                 pass
-            elif isinstance(obj, dependencies.PkgConfigDependency):
+            elif isinstance(obj, PkgConfigDependency):
                 if obj.found():
                     processed_reqs.append(obj.name)
                     self.add_version_reqs(obj.name, obj.version_reqs)
@@ -381,6 +382,7 @@ class PkgConfigModule(NewExtensionModule):
 
     # Track already generated pkg-config files This is stored as a class
     # variable so that multiple `import()`s share metadata
+    devenv: T.Optional[build.EnvironmentVariables] = None
     _metadata: T.ClassVar[T.Dict[str, MetaData]] = {}
 
     def __init__(self) -> None:
@@ -388,6 +390,9 @@ class PkgConfigModule(NewExtensionModule):
         self.methods.update({
             'generate': self.generate,
         })
+
+    def postconf_hook(self, b: build.Build) -> None:
+        b.devenv.append(self.devenv)
 
     def _get_lname(self, l: T.Union[build.SharedLibrary, build.StaticLibrary, build.CustomTarget, build.CustomTargetIndex],
                    msg: str, pcfile: str) -> str:
@@ -734,6 +739,8 @@ class PkgConfigModule(NewExtensionModule):
                 if not isinstance(lib, str) and lib.get_id() not in self._metadata:
                     self._metadata[lib.get_id()] = MetaData(
                         filebase, name, state.current_node)
+        if self.devenv is None:
+            self.devenv = PkgConfigDependency.get_env(state.environment, mesonlib.MachineChoice.HOST, uninstalled=True)
         return ModuleReturnValue(res, [res])
 
 
