@@ -609,6 +609,15 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
         default=[],
         listify=True,
     ),
+    KwargInfo(
+        'resources',
+        ContainerTypeInfo(list, str),
+        default=[],
+        listify=True,
+        validator=lambda x, _: 'Must be either a .resources, .txt, or .resx file'
+                               if os.path.splitext(x)[1] not in {'.txt', '.resx', '.resources'}
+                               else None,
+    ),
 ]
 
 EXECUTABLE_KWS: T.List[KwargInfo] = [
