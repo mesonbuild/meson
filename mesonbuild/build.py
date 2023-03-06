@@ -711,6 +711,7 @@ class BuildTarget(Target):
             name_suffix: T.Optional[str] = None,
             resources: T.Optional[T.List[File]] = None,
             override_options: T.Optional[T.Dict[OptionKey, str]] = None,
+            vala_header: T.Optional[str] = None,
             ):
         super().__init__(name, subdir, subproject, build_by_default, for_machine, environment,
                          install, extra_files=extra_files or [], override_options=override_options)
@@ -743,6 +744,7 @@ class BuildTarget(Target):
         self.suffix = name_suffix
         self.name_suffix_set = name_suffix is not None
         self.resources = resources
+        self.vala_header = vala_header or f'{name}.h'
         self.filename = 'no_name'
         # The list of all files outputted by this target. Useful in cases such
         # as Vala which generates .vapi and .h besides the compiled output.
@@ -1094,7 +1096,9 @@ class BuildTarget(Target):
         self.add_pch('cpp', extract_as_list(kwargs, 'cpp_pch'))
 
         if not isinstance(self, Executable) or kwargs.get('export_dynamic', False):
-            self.vala_header = kwargs.get('vala_header', self.name + '.h')
+            # we need `or` here because the default coming in from the
+            # interpreter is None, but we also need to handle the "not present"
+            # case
             self.vala_vapi = kwargs.get('vala_vapi', self.name + '.vapi')
             self.vala_gir = kwargs.get('vala_gir', None)
 
@@ -1800,6 +1804,7 @@ class Executable(BuildTarget):
             name_suffix: T.Optional[str] = None,
             resources: T.Optional[T.List[File]] = None,
             override_options: T.Optional[T.Dict[OptionKey, str]] = None,
+            vala_header: T.Optional[str] = None,
             ):
         key = OptionKey('b_pie')
         if 'pie' not in kwargs and key in environment.coredata.options:
@@ -1830,6 +1835,7 @@ class Executable(BuildTarget):
                          name_suffix=name_suffix,
                          override_options=override_options,
                          resources=resources,
+                         vala_header=vala_header,
                          )
         # Check for export_dynamic
         self.export_dynamic = kwargs.get('export_dynamic', False)
@@ -2005,6 +2011,7 @@ class StaticLibrary(BuildTarget):
             name_suffix: T.Optional[str] = None,
             resources: T.Optional[T.List[File]] = None,
             override_options: T.Optional[T.Dict[OptionKey, str]] = None,
+            vala_header: T.Optional[str] = None,
             ):
         self.prelink = kwargs.get('prelink', False)
         if not isinstance(self.prelink, bool):
@@ -2035,6 +2042,7 @@ class StaticLibrary(BuildTarget):
                          name_suffix=name_suffix,
                          override_options=override_options,
                          resources=resources,
+                         vala_header=vala_header,
                          )
 
     def post_init(self) -> None:
@@ -2148,6 +2156,7 @@ class SharedLibrary(BuildTarget):
             name_suffix: T.Optional[str] = None,
             resources: T.Optional[T.List[File]] = None,
             override_options: T.Optional[T.Dict[OptionKey, str]] = None,
+            vala_header: T.Optional[str] = None,
             ):
         self.soversion = None
         self.ltversion = None
@@ -2190,6 +2199,7 @@ class SharedLibrary(BuildTarget):
                          name_suffix=name_suffix,
                          override_options=override_options,
                          resources=resources,
+                         vala_header=vala_header,
                          )
 
     def post_init(self) -> None:
@@ -2541,6 +2551,7 @@ class SharedModule(SharedLibrary):
             name_suffix: T.Optional[str] = None,
             resources: T.Optional[T.List[File]] = None,
             override_options: T.Optional[T.Dict[OptionKey, str]] = None,
+            vala_header: T.Optional[str] = None,
             ):
         if 'version' in kwargs:
             raise MesonException('Shared modules must not specify the version kwarg.')
@@ -2572,6 +2583,7 @@ class SharedModule(SharedLibrary):
                          name_suffix=name_suffix,
                          override_options=override_options,
                          resources=resources,
+                         vala_header=vala_header,
                          )
         # We need to set the soname in cases where build files link the module
         # to build targets, see: https://github.com/mesonbuild/meson/issues/9492
