@@ -743,6 +743,7 @@ _EXCLUSIVE_EXECUTABLE_KWS: T.List[KwargInfo] = [
         deprecated_message="Use 'win_subsystem' instead.",
     ),
     KwargInfo('implib', (bool, str, NoneType), since='0.42.0'),
+    KwargInfo('pie', (bool, NoneType), since='0.49.0'),
     KwargInfo(
         'win_subsystem',
         (str, NoneType),
