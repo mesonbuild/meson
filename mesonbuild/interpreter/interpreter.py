@@ -1813,7 +1813,6 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_disabler(self, node, args, kwargs):
         return Disabler()
 
-    @FeatureNewKwargs('executable', '0.42.0', ['implib'])
     @permittedKwargs(build.known_exe_kwargs)
     @typed_pos_args('executable', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.StructuredSources, build.ExtractedObjects, build.BuildTarget))
     @typed_kwargs('executable', *EXECUTABLE_KWS, allow_unknown=True)
@@ -3241,7 +3240,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                     struct_src: T.Optional[build.StructuredSources],
                     objects: T.List[T.Union[mesonlib.File, build.ExtractedObjects, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]],
                     for_machine: MachineChoice,
-                    kwargs: kwtypes.Executable) -> build.Executable:
+                    kwargs: kwtypes.Executable,
+                    node: mparser.BaseNode) -> build.Executable:
         # This kwarg is deprecated. The value of "none" means that the kwarg
         # was not specified and win_subsystem should be used instead.
         if kwargs['gui_app'] is not None:
@@ -3250,6 +3250,18 @@ class Interpreter(InterpreterBase, HoldableObject):
             kwargs['win_subsystem'] = 'windows' if kwargs['gui_app'] else 'console'
         elif kwargs['win_subsystem'] is None:
             kwargs['win_subsystem'] = 'console'
+
+        implib = kwargs['implib']
+        export_dynamic = kwargs['export_dynamic']
+        if export_dynamic and implib is False:
+            raise InvalidArguments.from_node('"implib" keyword argument must not be false if "export_dynamic" is true', node=node)
+        if implib and not export_dynamic:
+            mlog.deprecation('setting "implib" to true and "export_dynamic" to false',
+                             'currently results in "export_dynamic" being set to true unconditionally,',
+                             'in the future this will change, and setting "implib" without "export_dynamic"',
+                             'will not result in an implib being generated', location=node)
+        if implib is None:
+            implib = export_dynamic
 
         return build.Executable(
             name, self.subdir, self.subproject, for_machine, sources,
@@ -3286,7 +3298,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             vala_gir=kwargs['vala_gir'],
             c_pch=kwargs['c_pch'],
             cpp_pch=kwargs['cpp_pch'],
-            export_dynamic=kwargs['export_dynamic'],
+            implib=implib,
+            export_dynamic=export_dynamic,
             win_subsystem=kwargs['win_subsystem'],
         )
 
@@ -3500,7 +3513,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         if targetclass is build.Jar:
             target = self. __build_jar(name, srcs, struct, kwargs)
         elif targetclass is build.Executable:
-            target = self.__build_exe(name, srcs, struct, objs, for_machine, kwargs)
+            target = self.__build_exe(name, srcs, struct, objs, for_machine, kwargs, node)
         elif targetclass is build.StaticLibrary:
             target = self.__build_st_lib(name, srcs, struct, objs, for_machine, kwargs)
         elif targetclass is build.SharedLibrary:
