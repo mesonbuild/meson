@@ -1933,23 +1933,13 @@ class NinjaBackend(backends.Backend):
         if main_rust_file is None:
             raise RuntimeError('A Rust target has no Rust sources. This is weird. Also a bug. Please report')
         target_name = os.path.join(target.subdir, target.get_filename())
-        if isinstance(target, build.Executable):
-            cratetype = 'bin'
-        elif hasattr(target, 'rust_crate_type'):
-            cratetype = target.rust_crate_type
-        elif isinstance(target, build.SharedLibrary):
-            cratetype = 'dylib'
-        elif isinstance(target, build.StaticLibrary):
-            cratetype = 'rlib'
-        else:
-            raise InvalidArguments('Unknown target type for rustc.')
-        args.extend(['--crate-type', cratetype])
+        args.extend(['--crate-type', target.rust_crate_type])
 
         # If we're dynamically linking, add those arguments
         #
         # Rust is super annoying, calling -C link-arg foo does not work, it has
         # to be -C link-arg=foo
-        if cratetype in {'bin', 'dylib'}:
+        if target.rust_crate_type in {'bin', 'dylib'}:
             args.extend(rustc.get_linker_always_args())
 
         args += self.generate_basic_compiler_args(target, rustc, False)
@@ -2123,7 +2113,7 @@ class NinjaBackend(backends.Backend):
                                    and dep.rust_crate_type == 'dylib'
                                    for dep in target_deps)
 
-        if cratetype in {'dylib', 'proc-macro'} or has_rust_shared_deps:
+        if target.rust_crate_type in {'dylib', 'proc-macro'} or has_rust_shared_deps:
             # add prefer-dynamic if any of the Rust libraries we link
             # against are dynamic or this is a dynamic library itself,
             # otherwise we'll end up with multiple implementations of libstd.
@@ -2155,7 +2145,7 @@ class NinjaBackend(backends.Backend):
                 args += ['-C', 'link-arg=' + rpath_arg + ':' + os.path.join(rustc.get_sysroot(), 'lib')]
 
         proc_macro_dylib_path = None
-        if getattr(target, 'rust_crate_type', '') == 'proc-macro':
+        if target.rust_crate_type == 'proc-macro':
             proc_macro_dylib_path = os.path.abspath(os.path.join(target.subdir, target.get_filename()))
 
         self._add_rust_project_entry(target.name,
@@ -2173,7 +2163,7 @@ class NinjaBackend(backends.Backend):
             element.add_dep(deps)
         element.add_item('ARGS', args)
         element.add_item('targetdep', depfile)
-        element.add_item('cratetype', cratetype)
+        element.add_item('cratetype', target.rust_crate_type)
         self.add_build(element)
         if isinstance(target, build.SharedLibrary):
             self.generate_shsym(target)

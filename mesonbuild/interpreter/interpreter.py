@@ -3270,6 +3270,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             gnu_symbol_visibility=kwargs['gnu_symbol_visibility'],
             override_options=kwargs['override_options'],
             resources=self.source_strings_to_files(kwargs['resources']),
+            rust_crate_type=kwargs['rust_crate_type'],
             vala_header=kwargs['vala_header'],
             vala_vapi=kwargs['vala_vapi'],
             vala_gir=kwargs['vala_gir'],
@@ -3309,6 +3310,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             gnu_symbol_visibility=kwargs['gnu_symbol_visibility'],
             override_options=kwargs['override_options'],
             resources=self.source_strings_to_files(kwargs['resources']),
+            rust_crate_type=kwargs['rust_crate_type'],
             vala_header=kwargs['vala_header'],
             vala_vapi=kwargs['vala_vapi'],
             vala_gir=kwargs['vala_gir'],
@@ -3348,6 +3350,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             gnu_symbol_visibility=kwargs['gnu_symbol_visibility'],
             override_options=kwargs['override_options'],
             resources=self.source_strings_to_files(kwargs['resources']),
+            rust_crate_type=kwargs['rust_crate_type'],
             vala_header=kwargs['vala_header'],
             vala_vapi=kwargs['vala_vapi'],
             vala_gir=kwargs['vala_gir'],
@@ -3387,6 +3390,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             gnu_symbol_visibility=kwargs['gnu_symbol_visibility'],
             override_options=kwargs['override_options'],
             resources=self.source_strings_to_files(kwargs['resources']),
+            rust_crate_type=kwargs['rust_crate_type'],
             vala_header=kwargs['vala_header'],
             vala_vapi=kwargs['vala_vapi'],
             vala_gir=kwargs['vala_gir'],
@@ -3400,7 +3404,6 @@ class Interpreter(InterpreterBase, HoldableObject):
             kwargs: kwtypes.BuildTarget,
             targetclass: T.Type[_BuildClassType]) -> _BuildClassType:
         @FeatureNewKwargs('build target', '1.2.0', ['rust_dependency_map'])
-        @FeatureNewKwargs('build target', '0.42.0', ['rust_crate_type'])
         def build_target_decorator_caller(self, node, args, kwargs):
             return True
 
