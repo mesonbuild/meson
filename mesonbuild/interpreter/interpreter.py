@@ -3407,6 +3407,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             vala_gir=kwargs['vala_gir'],
             c_pch=kwargs['c_pch'],
             cpp_pch=kwargs['cpp_pch'],
+            pic=kwargs['pic'],
         )
 
     def build_target(

@@ -732,10 +732,15 @@ EXECUTABLE_KWS: T.List[KwargInfo] = [
     _RUST_CRATE_TYPE_KW.evolve(default='bin', validator=in_set_validator({'bin'})),
 ]
 
+_EXCLUSIVE_STATIC_LIB_KWS: T.List[KwargInfo] = [
+    KwargInfo('pic', (bool, NoneType), since='0.36.0'),
+]
+
 STATIC_LIB_KWS: T.List[KwargInfo] = [
     *_ALL_TARGET_KWS,
     *_BUILD_TARGET_KWS,
     *_LANGUAGE_KWS,
+    *_EXCLUSIVE_STATIC_LIB_KWS,
     _LINK_WITH_KW,
     _RUST_CRATE_TYPE_KW.evolve(validator=in_set_validator({'lib', 'staticlib', 'rlib'})),
 ]
@@ -778,6 +783,8 @@ BOTH_LIB_KWS: T.List[KwargInfo] = [
     *_ALL_TARGET_KWS,
     *_BUILD_TARGET_KWS,
     *_LANGUAGE_KWS,
+    *_EXCLUSIVE_STATIC_LIB_KWS,
+    _LINK_WITH_KW,
     _RUST_CRATE_TYPE_KW.evolve(
         validator=in_set_validator({'lib', 'rlib', 'staticlib', 'cdylib', 'dylib', 'proc-macro'}),
         since_values={'proc-macro': '0.62.0'},
@@ -826,6 +833,7 @@ BUILD_TARGET_KWS: T.List[KwargInfo] = [
     *_ALL_TARGET_KWS,
     *_BUILD_TARGET_KWS,
     *_EXCLUSIVE_JAVA_KWS,
+    *_EXCLUSIVE_STATIC_LIB_KWS,
     *_LANGUAGE_KWS,
     _RUST_CRATE_TYPE_KW.evolve(
         validator=in_set_validator({'bin', 'lib', 'rlib', 'staticlib', 'cdylib', 'dylib', 'proc-macro'}),
