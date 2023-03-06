@@ -340,6 +340,7 @@ class StaticLibrary(_BuildTarget):
 
 class _SharedLibMixin(TypedDict):
 
+    darwin_versions: T.Optional[T.Tuple[str, str]]
     soversion: T.Optional[str]
     version: T.Optional[str]
 
