@@ -155,9 +155,6 @@ class RustModule(ExtensionModule):
         tkwargs['protocol'] = 'rust'
 
         new_target_kwargs = base_target.original_kwargs.copy()
-        # Don't mutate the shallow copied list, instead replace it with a new
-        # one
-        new_target_kwargs['link_with'] = new_target_kwargs.get('link_with', []) + kwargs['link_with']
 
         lang_args = copy.deepcopy(base_target.extra_args)
         lang_args['rust'].append('--test')
@@ -176,6 +173,7 @@ class RustModule(ExtensionModule):
             link_args=base_target.link_args.copy(),
             link_depends=base_target.link_depends.copy(),
             link_whole=base_target.link_whole_targets.copy(),
+            link_with=base_target.link_targets + kwargs['link_with'],
             language_args=lang_args,
         )
 
