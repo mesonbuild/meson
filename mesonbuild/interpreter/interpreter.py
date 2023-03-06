@@ -3408,6 +3408,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             c_pch=kwargs['c_pch'],
             cpp_pch=kwargs['cpp_pch'],
             pic=kwargs['pic'],
+            prelink=kwargs['prelink'],
         )
 
     def build_target(
