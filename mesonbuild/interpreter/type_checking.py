@@ -725,12 +725,18 @@ _LANGUAGE_KWS: T.List[KwargInfo[T.List[str]]] = [
 _LANGUAGE_KWS.append(KwargInfo(
     'rust_args', ContainerTypeInfo(list, str), listify=True, default=[], since='0.41.0'))
 
+
+_EXCLUSIVE_EXECUTABLE_KWS: T.List[KwargInfo] = [
+    KwargInfo('export_dynamic', bool, default=False, since='0.45.0'),
+]
+
 EXECUTABLE_KWS: T.List[KwargInfo] = [
     *_ALL_TARGET_KWS,
     *_BUILD_TARGET_KWS,
     *_LANGUAGE_KWS,
+    *_EXCLUSIVE_EXECUTABLE_KWS,
     _LINK_WITH_KW,
-    _RUST_CRATE_TYPE_KW.evolve(default='bin', validator=in_set_validator({'bin'})),
+    _RUST_CRATE_TYPE_KW.evolve(validator=in_set_validator({'bin'})),
 ]
 
 _EXCLUSIVE_STATIC_LIB_KWS: T.List[KwargInfo] = [
@@ -878,6 +884,8 @@ JAR_KWS: T.List[KwargInfo] = [
     # these, we have to deprecate them and remove then in 2.0
     *[a.evolve(deprecated='1.1.0', deprecated_message='has always been ignored, and is safe to delete')
       for a in _BUILD_TARGET_KWS if a.name not in {'sources', 'link_with'}],
+    *[a.evolve(deprecated='1.1.0', deprecated_message='has always been ignored, and is safe to delete')
+      for a in _EXCLUSIVE_EXECUTABLE_KWS],
     _RUST_CRATE_TYPE_KW.evolve(
         deprecated='1.1.0',
         deprecated_message='is not a valid argument for Jar, and should be removed. It is, and has always been, silently ignored',
@@ -899,6 +907,7 @@ BUILD_TARGET_KWS: T.List[KwargInfo] = [
     *_EXCLUSIVE_JAVA_KWS,
     *_EXCLUSIVE_STATIC_LIB_KWS,
     *_EXCLUSIVE_SHARED_LIB_KWS,
+    *_EXCLUSIVE_EXECUTABLE_KWS,
     *_LANGUAGE_KWS,
     _RUST_CRATE_TYPE_KW.evolve(
         validator=in_set_validator({'bin', 'lib', 'rlib', 'staticlib', 'cdylib', 'dylib', 'proc-macro'}),
