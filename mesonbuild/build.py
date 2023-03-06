@@ -706,6 +706,7 @@ class BuildTarget(Target):
             link_args: T.Optional[T.List[str]] = None,
             link_depends: T.Optional[T.List[T.Union[File, CustomTarget, CustomTargetIndex]]] = None,
             link_language: T.Optional[LINK_LANGUAGE] = None,
+            link_whole: T.Optional[T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]]] = None,
             override_options: T.Optional[T.Dict[OptionKey, str]] = None,
             ):
         super().__init__(name, subdir, subproject, build_by_default, for_machine, environment,
@@ -760,7 +761,8 @@ class BuildTarget(Target):
         self.process_kwargs(kwargs)
         self.missing_languages = self.process_compilers()
         self.link(extract_as_list(kwargs, 'link_with'))
-        self.link_whole(extract_as_list(kwargs, 'link_whole'))
+        if link_whole:
+            self.link_whole(link_whole)
         if not any([self.sources, self.generated, self.objects, self.link_whole_targets, self.structured_sources,
                     kwargs.pop('_allow_no_sources', False)]):
             mlog.warning(f'Build target {name} has no sources. '
@@ -1300,6 +1302,8 @@ class BuildTarget(Target):
         return False
 
     def link(self, targets):
+        # More of this should move to the interpreter, but that requires both modification to the
+        # buildTarget classea and InternalDependency
         for t in targets:
             if isinstance(self, StaticLibrary) and self.need_install:
                 if isinstance(t, (CustomTarget, CustomTargetIndex)):
@@ -1823,6 +1827,7 @@ class Executable(BuildTarget):
             link_args: T.Optional[T.List[str]] = None,
             link_depends: T.Optional[T.List[T.Union[File, CustomTarget, CustomTargetIndex]]] = None,
             link_language: T.Optional[LINK_LANGUAGE] = None,
+            link_whole: T.Optional[T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]]] = None,
             override_options: T.Optional[T.Dict[OptionKey, str]] = None,
             ):
         key = OptionKey('b_pie')
@@ -1848,6 +1853,7 @@ class Executable(BuildTarget):
                          link_args=link_args,
                          link_depends=link_depends,
                          link_language=link_language,
+                         link_whole=link_whole,
                          gnu_symbol_visibility=gnu_symbol_visibility,
                          override_options=override_options)
         # Check for export_dynamic
@@ -2018,6 +2024,7 @@ class StaticLibrary(BuildTarget):
             link_args: T.Optional[T.List[str]] = None,
             link_depends: T.Optional[T.List[T.Union[File, CustomTarget, CustomTargetIndex]]] = None,
             link_language: T.Optional[LINK_LANGUAGE] = None,
+            link_whole: T.Optional[T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]]] = None,
             override_options: T.Optional[T.Dict[OptionKey, str]] = None,
             ):
         self.prelink = kwargs.get('prelink', False)
@@ -2043,6 +2050,7 @@ class StaticLibrary(BuildTarget):
                          link_args=link_args,
                          link_depends=link_depends,
                          link_language=link_language,
+                         link_whole=link_whole,
                          gnu_symbol_visibility=gnu_symbol_visibility,
                          override_options=override_options)
 
@@ -2152,6 +2160,7 @@ class SharedLibrary(BuildTarget):
             link_args: T.Optional[T.List[str]] = None,
             link_depends: T.Optional[T.List[T.Union[File, CustomTarget, CustomTargetIndex]]] = None,
             link_language: T.Optional[LINK_LANGUAGE] = None,
+            link_whole: T.Optional[T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]]] = None,
             override_options: T.Optional[T.Dict[OptionKey, str]] = None,
             ):
         self.soversion = None
@@ -2189,6 +2198,7 @@ class SharedLibrary(BuildTarget):
                          link_args=link_args,
                          link_depends=link_depends,
                          link_language=link_language,
+                         link_whole=link_whole,
                          gnu_symbol_visibility=gnu_symbol_visibility,
                          override_options=override_options)
 
@@ -2541,6 +2551,7 @@ class SharedModule(SharedLibrary):
             link_args: T.Optional[T.List[str]] = None,
             link_depends: T.Optional[T.List[T.Union[File, CustomTarget, CustomTargetIndex]]] = None,
             link_language: T.Optional[LINK_LANGUAGE] = None,
+            link_whole: T.Optional[T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]]] = None,
             override_options: T.Optional[T.Dict[OptionKey, str]] = None,
             ):
         if 'version' in kwargs:
@@ -2567,6 +2578,7 @@ class SharedModule(SharedLibrary):
                          link_args=link_args,
                          link_depends=link_depends,
                          link_language=link_language,
+                         link_whole=link_whole,
                          gnu_symbol_visibility=gnu_symbol_visibility,
                          override_options=override_options)
         # We need to set the soname in cases where build files link the module
