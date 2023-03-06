@@ -3360,7 +3360,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         build_target_decorator_caller(self, node, args, kwargs)
 
         name, sources = args
-        for_machine = self.machine_from_native_kwarg(kwargs)
+        for_machine = kwargs['native']
         sources = sources + kwargs['sources']
         if any(isinstance(s, build.BuildTarget) for s in sources):
             FeatureBroken.single_use('passing references to built targets as a source file', '1.1.0', self.subproject,
