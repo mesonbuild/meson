@@ -13,6 +13,7 @@
 # limitations under the License.
 from __future__ import annotations
 import itertools
+import copy
 import os
 import typing as T
 
@@ -156,9 +157,10 @@ class RustModule(ExtensionModule):
         new_target_kwargs = base_target.original_kwargs.copy()
         # Don't mutate the shallow copied list, instead replace it with a new
         # one
-        new_target_kwargs['rust_args'] = \
-            new_target_kwargs.get('rust_args', []) + kwargs['rust_args'] + ['--test']
         new_target_kwargs['link_with'] = new_target_kwargs.get('link_with', []) + kwargs['link_with']
+
+        lang_args = copy.deepcopy(base_target.extra_args)
+        lang_args['rust'].append('--test')
 
         sources = T.cast('T.List[SourceOutputs]', base_target.sources.copy())
         sources.extend(base_target.generated)
@@ -174,6 +176,7 @@ class RustModule(ExtensionModule):
             link_args=base_target.link_args.copy(),
             link_depends=base_target.link_depends.copy(),
             link_whole=base_target.link_whole_targets.copy(),
+            language_args=lang_args,
         )
 
         test = self.interpreter.make_test(
