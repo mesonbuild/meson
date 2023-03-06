@@ -60,3 +60,19 @@ exe = executable('prog-ccpp', 'main2.c',
   c_args : ['-DSTATIC_COMPILATION'],
 )
 test('runtest-ccpp', exe)
+
+# Both libraries should be compiled twice with different cflags. The expected
+# value is different whether we compile against the static or shared library.
+bothlibs = both_libraries('both-diff-c-args', 'libfile.c',
+  c_args: {'static_library': ['-DTEST_VAL=43']},
+)
+exe = executable('both-shared', 'main.c',
+  link_with : bothlibs.get_shared_lib(),
+  c_args: '-DTEST_VAL=42',
+)
+test('runtest-both-shared', exe)
+exe = executable('both-static', 'main.c',
+  link_with : bothlibs.get_static_lib(),
+  c_args: '-DTEST_VAL=43',
+)
+test('runtest-both-static', exe)

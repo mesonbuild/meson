@@ -43,10 +43,15 @@ kwargs:
     description: precompiled header file to use for the given language
 
   <lang>_args:
-    type: list[str]
+    type: list[str] | dict[str, list[str]]
     description: |
       compiler flags to use for the given language;
       eg: `cpp_args` for C++
+      *Since 1.1.0* can be a dictionary mapping the target type
+      (e.g. static_library, shared_library, etc). This is useful when using
+      library() or both_libraries() to have different flags for the shared and
+      static library. In that case all object files will have to be compiled
+      twice instead of reusing them for both libraries.
 
   sources:
     type: str | file | custom_tgt | custom_idx | generated_list | structured_src

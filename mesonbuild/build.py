@@ -715,6 +715,7 @@ class BuildTarget(Target):
         self.d_features = defaultdict(list)
         self.pic = False
         self.pie = False
+        self.can_reuse_object_files = True
         # Track build_rpath entries so we can remove them at install time
         self.rpath_dirs_to_remove: T.Set[bytes] = set()
         self.process_sourcelist(sources)
@@ -1069,7 +1070,7 @@ class BuildTarget(Target):
             self.link_whole(linktarget)
 
         for lang in all_languages:
-            lang_args = extract_as_list(kwargs, f'{lang}_args')
+            lang_args = kwargs.get(f'{lang}_args', [])
             self.add_compiler_args(lang, lang_args)
 
         self.add_pch('c', extract_as_list(kwargs, 'c_pch'))
@@ -1462,7 +1463,11 @@ You probably should put it in link_with instead.''')
             ids = [IncludeDirs(x.get_curdir(), x.get_incdirs(), is_system, x.get_extra_build_dirs()) for x in ids]
         self.include_dirs += ids
 
-    def add_compiler_args(self, language: str, args: T.List['FileOrString']) -> None:
+    def add_compiler_args(self, language: str, args: T.Union[T.List['FileOrString'], T.Dict[str, T.List['FileOrString']]]) -> None:
+        if isinstance(args, dict):
+            FeatureNew.single_use('Dictionary in language args keyword argument', '1.1.0', self.subproject)
+            self.can_reuse_object_files = False
+            args = args.get(self.typename.replace(' ', '_'), [])
         args = listify(args)
         for a in args:
             if not isinstance(a, (str, File)):

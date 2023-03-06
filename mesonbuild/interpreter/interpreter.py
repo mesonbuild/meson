@@ -3133,7 +3133,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             # issue for you.
             reuse_object_files = False
         else:
-            reuse_object_files = static_lib.pic
+            reuse_object_files = shared_lib.can_reuse_object_files and static_lib.pic
 
         if reuse_object_files:
             # Replace sources with objects from the shared library to avoid
