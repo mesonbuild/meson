@@ -728,6 +728,12 @@ _LANGUAGE_KWS.append(KwargInfo(
 
 _EXCLUSIVE_EXECUTABLE_KWS: T.List[KwargInfo] = [
     KwargInfo('export_dynamic', bool, default=False, since='0.45.0'),
+    KwargInfo(
+        'gui_app',
+        (bool, NoneType),
+        deprecated='0.56.0',
+        deprecated_message="Use 'win_subsystem' instead.",
+    ),
 ]
 
 EXECUTABLE_KWS: T.List[KwargInfo] = [
@@ -885,7 +891,7 @@ JAR_KWS: T.List[KwargInfo] = [
     *[a.evolve(deprecated='1.1.0', deprecated_message='has always been ignored, and is safe to delete')
       for a in _BUILD_TARGET_KWS if a.name not in {'sources', 'link_with'}],
     *[a.evolve(deprecated='1.1.0', deprecated_message='has always been ignored, and is safe to delete')
-      for a in _EXCLUSIVE_EXECUTABLE_KWS],
+      for a in _EXCLUSIVE_EXECUTABLE_KWS if a.name not in {'gui_app'}],
     _RUST_CRATE_TYPE_KW.evolve(
         deprecated='1.1.0',
         deprecated_message='is not a valid argument for Jar, and should be removed. It is, and has always been, silently ignored',
