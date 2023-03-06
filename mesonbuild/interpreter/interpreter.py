@@ -7,7 +7,6 @@
 #     http://www.apache.org/licenses/LICENSE-2.0
 
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
@@ -3240,6 +3239,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             install=kwargs['install'],
             install_dir=kwargs['install_dir'],
             install_mode=kwargs['install_mode'],
+            install_rpath=kwargs['build_rpath'],
             install_tag=kwargs['install_tag'],
             link_args=kwargs['link_args'],
             link_depends=self.source_strings_to_files(kwargs['link_depends']) if kwargs['link_depends'] else None,
@@ -3267,6 +3267,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             install=kwargs['install'],
             install_dir=kwargs['install_dir'],
             install_mode=kwargs['install_mode'],
+            install_rpath=kwargs['build_rpath'],
             install_tag=kwargs['install_tag'],
             link_args=kwargs['link_args'],
             link_depends=self.source_strings_to_files(kwargs['link_depends']) if kwargs['link_depends'] else None,
@@ -3294,6 +3295,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             install=kwargs['install'],
             install_dir=kwargs['install_dir'],
             install_mode=kwargs['install_mode'],
+            install_rpath=kwargs['build_rpath'],
             install_tag=kwargs['install_tag'],
             link_args=kwargs['link_args'],
             link_depends=self.source_strings_to_files(kwargs['link_depends']) if kwargs['link_depends'] else None,
@@ -3321,6 +3323,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             install=kwargs['install'],
             install_dir=kwargs['install_dir'],
             install_mode=kwargs['install_mode'],
+            install_rpath=kwargs['build_rpath'],
             install_tag=kwargs['install_tag'],
             link_args=kwargs['link_args'],
             link_depends=self.source_strings_to_files(kwargs['link_depends']) if kwargs['link_depends'] else None,

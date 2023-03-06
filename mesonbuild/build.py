@@ -701,6 +701,7 @@ class BuildTarget(Target):
             install: bool = False,
             install_dir: T.Optional[T.List[T.Union[str, bool]]] = None,
             install_mode: T.Optional[FileMode] = None,
+            install_rpath: str = '',
             install_tag: T.Optional[str] = None,
             link_args: T.Optional[T.List[str]] = None,
             link_depends: T.Optional[T.List[T.Union[File, CustomTarget, CustomTargetIndex]]] = None,
@@ -728,6 +729,7 @@ class BuildTarget(Target):
         self.structured_sources = structured_sources
         self.external_deps: T.List[dependencies.Dependency] = []
         self.include_dirs = include_directories or []
+        self.install_rpath = install_rpath
         self.link_language = kwargs.get('link_language')
         self.link_targets: T.List[LibTypes] = []
         self.link_whole_targets: T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]] = []
@@ -1108,9 +1110,6 @@ class BuildTarget(Target):
             raise InvalidArguments('Argument gui_app can only be used on executables.')
         elif 'win_subsystem' in kwargs:
             raise InvalidArguments('Argument win_subsystem can only be used on executables.')
-        self.install_rpath: str = kwargs.get('install_rpath', '')
-        if not isinstance(self.install_rpath, str):
-            raise InvalidArguments('Install_rpath is not a string.')
         resources = extract_as_list(kwargs, 'resources')
         for r in resources:
             if not isinstance(r, str):
@@ -1818,6 +1817,7 @@ class Executable(BuildTarget):
             install: bool = False,
             install_dir: T.Optional[T.List[T.Union[str, bool]]] = None,
             install_mode: T.Optional[FileMode] = None,
+            install_rpath: str = '',
             install_tag: T.Optional[str] = None,
             link_args: T.Optional[T.List[str]] = None,
             link_depends: T.Optional[T.List[T.Union[File, CustomTarget, CustomTargetIndex]]] = None,
@@ -1841,6 +1841,7 @@ class Executable(BuildTarget):
                          install=install,
                          install_dir=install_dir,
                          install_mode=install_mode,
+                         install_rpath=install_rpath,
                          install_tag=install_tag,
                          link_args=link_args,
                          link_depends=link_depends,
@@ -2009,6 +2010,7 @@ class StaticLibrary(BuildTarget):
             install: bool = False,
             install_dir: T.Optional[T.List[T.Union[str, bool]]] = None,
             install_mode: T.Optional[FileMode] = None,
+            install_rpath: str = '',
             install_tag: T.Optional[str] = None,
             link_args: T.Optional[T.List[str]] = None,
             link_depends: T.Optional[T.List[T.Union[File, CustomTarget, CustomTargetIndex]]] = None,
@@ -2032,6 +2034,7 @@ class StaticLibrary(BuildTarget):
                          install=install,
                          install_dir=install_dir,
                          install_mode=install_mode,
+                         install_rpath=install_rpath,
                          install_tag=install_tag,
                          link_args=link_args,
                          link_depends=link_depends,
@@ -2139,6 +2142,7 @@ class SharedLibrary(BuildTarget):
             install: bool = False,
             install_dir: T.Optional[T.List[T.Union[str, bool]]] = None,
             install_mode: T.Optional[FileMode] = None,
+            install_rpath: str = '',
             install_tag: T.Optional[str] = None,
             link_args: T.Optional[T.List[str]] = None,
             link_depends: T.Optional[T.List[T.Union[File, CustomTarget, CustomTargetIndex]]] = None,
@@ -2174,6 +2178,7 @@ class SharedLibrary(BuildTarget):
                          install=install,
                          install_dir=install_dir,
                          install_mode=install_mode,
+                         install_rpath=install_rpath,
                          install_tag=install_tag,
                          link_args=link_args,
                          link_depends=link_depends,
@@ -2524,6 +2529,7 @@ class SharedModule(SharedLibrary):
             install: bool = False,
             install_dir: T.Optional[T.List[T.Union[str, bool]]] = None,
             install_mode: T.Optional[FileMode] = None,
+            install_rpath: str = '',
             install_tag: T.Optional[str] = None,
             link_args: T.Optional[T.List[str]] = None,
             link_depends: T.Optional[T.List[T.Union[File, CustomTarget, CustomTargetIndex]]] = None,
@@ -2548,6 +2554,7 @@ class SharedModule(SharedLibrary):
                          install=install,
                          install_dir=install_dir,
                          install_mode=install_mode,
+                         install_rpath=install_rpath,
                          install_tag=install_tag,
                          link_args=link_args,
                          link_depends=link_depends,
