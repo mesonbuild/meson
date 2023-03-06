@@ -3255,6 +3255,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             resources=self.source_strings_to_files(kwargs['resources']),
             vala_header=kwargs['vala_header'],
             vala_vapi=kwargs['vala_vapi'],
+            vala_gir=kwargs['vala_gir'],
         )
 
     def __build_sh_lib(self, name: str, sources: T.List[BuildTargetSource],
@@ -3290,6 +3291,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             resources=self.source_strings_to_files(kwargs['resources']),
             vala_header=kwargs['vala_header'],
             vala_vapi=kwargs['vala_vapi'],
+            vala_gir=kwargs['vala_gir'],
         )
 
     def __build_sh_mod(self, name: str, sources: T.List[BuildTargetSource],
@@ -3325,6 +3327,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             resources=self.source_strings_to_files(kwargs['resources']),
             vala_header=kwargs['vala_header'],
             vala_vapi=kwargs['vala_vapi'],
+            vala_gir=kwargs['vala_gir'],
         )
 
     def __build_st_lib(self, name: str, sources: T.List[BuildTargetSource],
@@ -3360,6 +3363,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             resources=self.source_strings_to_files(kwargs['resources']),
             vala_header=kwargs['vala_header'],
             vala_vapi=kwargs['vala_vapi'],
+            vala_gir=kwargs['vala_gir'],
         )
 
     def build_target(
