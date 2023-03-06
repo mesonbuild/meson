@@ -71,6 +71,16 @@ GNU_ERROR_RETURNCODE = 99
 # Exit if 3 Ctrl-C's are received within one second
 MAX_CTRLC = 3
 
+ItemType = T.TypeVar('ItemType')
+
+class UniversalSet(T.Generic[ItemType]):
+    """A set-like object that contains everything."""
+    def __contains__(self, item: ItemType) -> bool:
+        return True
+
+    def add(self, item: ItemType) -> None:
+        pass
+
 def is_windows() -> bool:
     platname = platform.system().lower()
     return platname == 'windows'
@@ -128,6 +138,10 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
                         help='Only run tests belonging to the given suite.')
     parser.add_argument('--no-suite', default=[], dest='exclude_suites', action='append', metavar='SUITE',
                         help='Do not run tests belonging to the given suite.')
+    parser.add_argument('-x', '--exclude', default=[], dest='exclude_tests', action='append', metavar='TEST',
+                        help='Do not run test with this name. "testname" to exclude all tests with that name, '
+                        '"subprojname:testname" to specifically exclude "testname" from "subprojname", '
+                        '"subprojname:" to exclude all tests defined by "subprojname".')
     parser.add_argument('--no-stdsplit', default=True, dest='split', action='store_false',
                         help='Do not split stderr and stdout in test logs.')
     parser.add_argument('--print-errorlogs', default=False, action='store_true',
@@ -1849,36 +1863,52 @@ class TestHarness:
 
         return True
 
-    def tests_from_args(self, tests: T.List[TestSerialisation]) -> T.Generator[TestSerialisation, None, None]:
+    @staticmethod
+    def make_selection_checker(patterns: T.List[str], should_match_if_no_patterns: bool = False) -> T.Callable[[TestSerialisation], bool]:
         '''
-        Allow specifying test names like "meson test foo1 foo2", where test('foo1', ...)
+        Allow specifying test names like "foo1", which will match test('foo1', ...)
 
         Also support specifying the subproject to run tests from like
-        "meson test subproj:" (all tests inside subproj) or "meson test subproj:foo1"
-        to run foo1 inside subproj. Coincidentally also "meson test :foo1" to
+        "subproj:" (all tests inside subproj) or "subproj:foo1"
+        to run foo1 inside subproj. Coincidentally also ":foo1" to
         run all tests with that name across all subprojects, which is
-        identical to "meson test foo1"
+        identical to "foo1"
         '''
-        for arg in self.options.args:
-            if ':' in arg:
-                subproj, name = arg.split(':', maxsplit=1)
+        if not patterns:
+            return lambda _: should_match_if_no_patterns
+
+        unqualified = set()  # type: T.Set[str]
+        qualified = {}  # type: T.Dict[str, T.Union[T.Set[str], UniversalSet[str]]]
+
+        for pattern in patterns:
+            if ':' in pattern:
+                subproj, name = pattern.split(':', maxsplit=1)
             else:
-                subproj, name = '', arg
-            for t in tests:
-                if subproj and t.project_name != subproj:
-                    continue
-                if name and t.name != name:
-                    continue
-                yield t
+                subproj, name = '', pattern
+
+            if subproj == '':
+                unqualified.add(name)
+            elif name == '':
+                qualified[subproj] = UniversalSet()
+            else:
+                selected_subproj_tests = qualified.get(subproj, set())
+                selected_subproj_tests.add(name)
+
+        def is_selected(t: TestSerialisation) -> bool:
+            selected_subproj_tests = qualified.get(t.project_name, set())
+
+            return (t.name in selected_subproj_tests or t.name in unqualified)
+
+        return is_selected
 
     def get_tests(self) -> T.List[TestSerialisation]:
         if not self.tests:
             print('No tests defined.')
             return []
 
-        tests = [t for t in self.tests if self.test_suitable(t)]
-        if self.options.args:
-            tests = list(self.tests_from_args(tests))
+        is_selected = TestHarness.make_selection_checker(self.options.args, should_match_if_no_patterns=True)
+        is_excluded = TestHarness.make_selection_checker(self.options.exclude_tests)
+        tests = [t for t in self.tests if self.test_suitable(t) and is_selected(t) and not is_excluded(t)]
 
         if not tests:
             print('No suitable tests defined.')

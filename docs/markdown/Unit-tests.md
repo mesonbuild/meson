@@ -153,6 +153,12 @@ Specify test(s) by name like:
 $ meson test A D
 ```
 
+Since version *1.2.0*, individual tests can be excluded from running with the `--exclude` flag:
+
+```console
+$ meson test --exclude A --exclude C
+```
+
 Tests belonging to a suite `suite` can be run as follows
 
 ```console
