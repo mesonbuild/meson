@@ -504,6 +504,49 @@ def _validate_win_subsystem(value: T.Optional[str]) -> T.Optional[str]:
             return f'Invalid value for win_subsystem: {value}.'
     return None
 
+
+def _validate_darwin_versions(darwin_versions: T.List[T.Union[str, int]]) -> T.Optional[str]:
+    if len(darwin_versions) > 2:
+        return f"Must contain between 0 and 2 elements, not {len(darwin_versions)}"
+    if len(darwin_versions) == 1:
+        darwin_versions = 2 * darwin_versions
+    for v in darwin_versions:
+        if isinstance(v, int):
+            v = str(v)
+        if not re.fullmatch(r'[0-9]+(\.[0-9]+){0,2}', v):
+            return 'must be X.Y.Z where X, Y, Z are numbers, and Y and Z are optional'
+        try:
+            parts = v.split('.')
+        except ValueError:
+            return f'badly formed value: "{v}, not in X.Y.Z form'
+        if len(parts) in {1, 2, 3} and int(parts[0]) > 65535:
+            return 'must be X.Y.Z where X is [0, 65535] and Y, Z are optional'
+        if len(parts) in {2, 3} and int(parts[1]) > 255:
+            return 'must be X.Y.Z where Y is [0, 255] and Y, Z are optional'
+        if len(parts) == 3 and int(parts[2]) > 255:
+            return 'must be X.Y.Z where Z is [0, 255] and Y, Z are optional'
+    return None
+
+
+def _convert_darwin_versions(val: T.List[T.Union[str, int]]) -> T.Optional[T.Tuple[str, str]]:
+    if not val:
+        return None
+    elif len(val) == 1:
+        v = str(val[0])
+        return (v, v)
+    return (str(val[0]), str(val[1]))
+
+
+_DARWIN_VERSIONS_KW: KwargInfo[T.List[T.Union[str, int]]] = KwargInfo(
+    'darwin_versions',
+    ContainerTypeInfo(list, (str, int)),
+    default=[],
+    listify=True,
+    validator=_validate_darwin_versions,
+    convertor=_convert_darwin_versions,
+    since='0.48.0',
+)
+
 # Arguments exclusive to Executable. These are separated to make integrating
 # them into build_target easier
 _EXCLUSIVE_EXECUTABLE_KWS: T.List[KwargInfo] = [
@@ -535,6 +578,7 @@ STATIC_LIB_KWS = [
 # Arguments exclusive to SharedLibrary. These are separated to make integrating
 # them into build_target easier
 _EXCLUSIVE_SHARED_LIB_KWS: T.List[KwargInfo] = [
+    _DARWIN_VERSIONS_KW,
     KwargInfo('soversion', (str, int, NoneType), convertor=lambda x: str(x) if x is not None else None),
     KwargInfo('version', (str, NoneType), validator=_validate_shlib_version)
 ]
