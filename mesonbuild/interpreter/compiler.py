@@ -776,6 +776,9 @@ class CompilerHolder(ObjectHolder['Compiler']):
                                   location=self.current_node)
 
         tg_counter = next(self.preprocess_uid[self.interpreter.subdir])
+        if tg_counter > 0:
+            FeatureNew.single_use('compiler.preprocess used multiple times', '1.1.0', self.subproject,
+                                  location=self.current_node)
         tg_name = f'preprocessor_{tg_counter}'
         tg = build.CompileTarget(
             tg_name,
