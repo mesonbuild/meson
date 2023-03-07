@@ -658,7 +658,7 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
         fv = cls.feature_registry[subproject]
         tv = cls.get_target_version(subproject)
         for version in sorted(fv.keys()):
-            message = ', '.join(sorted(f"'{i[0]}'" for i in fv[version]))
+            message = ', '.join(sorted({f"'{i[0]}'" for i in fv[version]}))
             if cls.check_version(tv, version):
                 notice_str += '\n * {}: {{{}}}'.format(version, message)
             else:
