@@ -44,7 +44,7 @@ from .compilers import (
 from .interpreterbase import FeatureNew, FeatureDeprecated
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal
+    from typing_extensions import Literal, TypedDict
 
     from . import environment
     from ._typing import ImmutableListProtocol
@@ -63,6 +63,13 @@ if T.TYPE_CHECKING:
     LibTypes = T.Union['SharedLibrary', 'StaticLibrary', 'CustomTarget', 'CustomTargetIndex']
     BuildTargetTypes = T.Union['BuildTarget', 'CustomTarget', 'CustomTargetIndex']
     ObjectTypes = T.Union[str, 'File', 'ExtractedObjects', 'GeneratedTypes']
+
+    class DFeatures(TypedDict):
+
+        unittest: bool
+        debug: T.List[T.Union[str, int]]
+        import_dirs: T.List[IncludeDirs]
+        versions: T.List[T.Union[str, int]]
 
 pch_kwargs = {'c_pch', 'cpp_pch'}
 
@@ -751,7 +758,12 @@ class BuildTarget(Target):
         self.sources: T.List[File] = []
         self.generated: T.List['GeneratedTypes'] = []
         self.extra_files: T.List[File] = []
-        self.d_features = defaultdict(list)
+        self.d_features: DFeatures = {
+            'debug': kwargs.get('d_debug', []),
+            'import_dirs': kwargs.get('d_import_dirs', []),
+            'versions': kwargs.get('d_module_versions', []),
+            'unittest': kwargs.get('d_unittest', False),
+        }
         self.pic = False
         self.pie = False
         # Track build_rpath entries so we can remove them at install time
@@ -1113,21 +1125,6 @@ class BuildTarget(Target):
             self.vala_header = kwargs.get('vala_header', self.name + '.h')
             self.vala_vapi = kwargs.get('vala_vapi', self.name + '.vapi')
             self.vala_gir = kwargs.get('vala_gir', None)
-
-        dfeatures = defaultdict(list)
-        dfeature_unittest = kwargs.get('d_unittest', False)
-        if dfeature_unittest:
-            dfeatures['unittest'] = dfeature_unittest
-        dfeature_versions = kwargs.get('d_module_versions', [])
-        if dfeature_versions:
-            dfeatures['versions'] = dfeature_versions
-        dfeature_debug = kwargs.get('d_debug', [])
-        if dfeature_debug:
-            dfeatures['debug'] = dfeature_debug
-        if kwargs.get('d_import_dirs') is not None:
-            dfeatures['import_dirs'] = kwargs['d_import_dirs']
-        if dfeatures:
-            self.d_features = dfeatures
 
         self.link_args = extract_as_list(kwargs, 'link_args')
         for i in self.link_args:
