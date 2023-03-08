@@ -708,6 +708,7 @@ class BuildTarget(Target):
             link_language: T.Optional[LINK_LANGUAGE] = None,
             link_whole: T.Optional[T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]]] = None,
             name_prefix: T.Optional[str] = None,
+            name_suffix: T.Optional[str] = None,
             override_options: T.Optional[T.Dict[OptionKey, str]] = None,
             ):
         super().__init__(name, subdir, subproject, build_by_default, for_machine, environment,
@@ -738,7 +739,8 @@ class BuildTarget(Target):
         self.link_whole_targets: T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]] = []
         self.prefix = name_prefix
         self.name_prefix_set = name_prefix is not None
-        self.name_suffix_set = False
+        self.suffix = name_suffix
+        self.name_suffix_set = name_suffix is not None
         self.filename = 'no_name'
         # The list of all files outputted by this target. Useful in cases such
         # as Vala which generates .vapi and .h besides the compiled output.
@@ -1123,20 +1125,6 @@ class BuildTarget(Target):
             if not os.path.isfile(trial):
                 raise InvalidArguments(f'Tried to add non-existing resource {r}.')
         self.resources = resources
-        if 'name_suffix' in kwargs:
-            name_suffix = kwargs['name_suffix']
-            if isinstance(name_suffix, list):
-                if name_suffix:
-                    raise InvalidArguments('name_suffix array must be empty to signify default.')
-            else:
-                if not isinstance(name_suffix, str):
-                    raise InvalidArguments('name_suffix must be a string.')
-                if name_suffix == '':
-                    raise InvalidArguments('name_suffix should not be an empty string. '
-                                           'If you want meson to use the default behaviour '
-                                           'for each platform pass `[]` (empty array)')
-                self.suffix = name_suffix
-                self.name_suffix_set = True
         if isinstance(self, StaticLibrary):
             # You can't disable PIC on OS X. The compiler ignores -fno-PIC.
             # PIC is always on for Windows (all code is position-independent
@@ -1821,6 +1809,7 @@ class Executable(BuildTarget):
             link_language: T.Optional[LINK_LANGUAGE] = None,
             link_whole: T.Optional[T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]]] = None,
             name_prefix: T.Optional[str] = None,
+            name_suffix: T.Optional[str] = None,
             override_options: T.Optional[T.Dict[OptionKey, str]] = None,
             ):
         key = OptionKey('b_pie')
@@ -1849,6 +1838,7 @@ class Executable(BuildTarget):
                          link_whole=link_whole,
                          gnu_symbol_visibility=gnu_symbol_visibility,
                          name_prefix=name_prefix,
+                         name_suffix=name_suffix,
                          override_options=override_options)
         # Check for export_dynamic
         self.export_dynamic = kwargs.get('export_dynamic', False)
@@ -1874,7 +1864,7 @@ class Executable(BuildTarget):
         # TODO: can this be handled in the reglar initializer?
         if self.prefix is None:
             self.prefix = ''
-        if not hasattr(self, 'suffix'):
+        if self.suffix is None:
             # Executable for Windows or C#/Mono
             if machine.is_windows() or machine.is_cygwin() or 'cs' in self.compilers:
                 self.suffix = 'exe'
@@ -2021,6 +2011,7 @@ class StaticLibrary(BuildTarget):
             link_language: T.Optional[LINK_LANGUAGE] = None,
             link_whole: T.Optional[T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]]] = None,
             name_prefix: T.Optional[str] = None,
+            name_suffix: T.Optional[str] = None,
             override_options: T.Optional[T.Dict[OptionKey, str]] = None,
             ):
         self.prelink = kwargs.get('prelink', False)
@@ -2049,6 +2040,7 @@ class StaticLibrary(BuildTarget):
                          link_whole=link_whole,
                          gnu_symbol_visibility=gnu_symbol_visibility,
                          name_prefix=name_prefix,
+                         name_suffix=name_suffix,
                          override_options=override_options)
 
     def post_init(self) -> None:
@@ -2084,7 +2076,7 @@ class StaticLibrary(BuildTarget):
         # always pass the library filename while linking anyway.
         if self.prefix is None:
             self.prefix = 'lib'
-        if not hasattr(self, 'suffix'):
+        if self.suffix is None:
             if 'rust' in self.compilers:
                 if not hasattr(self, 'rust_crate_type') or self.rust_crate_type == 'rlib':
                     # default Rust static library suffix
@@ -2159,6 +2151,7 @@ class SharedLibrary(BuildTarget):
             link_language: T.Optional[LINK_LANGUAGE] = None,
             link_whole: T.Optional[T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]]] = None,
             name_prefix: T.Optional[str] = None,
+            name_suffix: T.Optional[str] = None,
             override_options: T.Optional[T.Dict[OptionKey, str]] = None,
             ):
         self.soversion = None
@@ -2199,6 +2192,7 @@ class SharedLibrary(BuildTarget):
                          link_whole=link_whole,
                          gnu_symbol_visibility=gnu_symbol_visibility,
                          name_prefix=name_prefix,
+                         name_suffix=name_suffix,
                          override_options=override_options)
 
     def post_init(self) -> None:
@@ -2215,8 +2209,6 @@ class SharedLibrary(BuildTarget):
             if self.rust_crate_type != 'cdylib' and any(c in self.name for c in ['-', ' ', '.']):
                 raise InvalidArguments('Rust crate types "dylib" and "proc-macro" do not allow spaces, periods or dashes in the library name '
                                        'due to a limitation of rustc. Replace them with underscores, for example')
-        if not hasattr(self, 'suffix'):
-            self.suffix = None
         self.basic_filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
         self.determine_filenames()
 
@@ -2549,6 +2541,7 @@ class SharedModule(SharedLibrary):
             link_language: T.Optional[LINK_LANGUAGE] = None,
             link_whole: T.Optional[T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]]] = None,
             name_prefix: T.Optional[str] = None,
+            name_suffix: T.Optional[str] = None,
             override_options: T.Optional[T.Dict[OptionKey, str]] = None,
             ):
         if 'version' in kwargs:
@@ -2578,6 +2571,7 @@ class SharedModule(SharedLibrary):
                          link_whole=link_whole,
                          gnu_symbol_visibility=gnu_symbol_visibility,
                          name_prefix=name_prefix,
+                         name_suffix=name_suffix,
                          override_options=override_options)
         # We need to set the soname in cases where build files link the module
         # to build targets, see: https://github.com/mesonbuild/meson/issues/9492
