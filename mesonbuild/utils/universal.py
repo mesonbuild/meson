@@ -44,6 +44,7 @@ if T.TYPE_CHECKING:
     from ..coredata import KeyedOptionDictType, UserOption
     from ..environment import Environment
     from ..compilers.compilers import Compiler
+    from ..interpreterbase.baseobjects import SubProject
 
     class _EnvPickleLoadable(Protocol):
 
@@ -1205,7 +1206,7 @@ def do_replacement(regex: T.Pattern[str], line: str,
     return re.sub(regex, variable_replace, line), missing_variables
 
 def do_define(regex: T.Pattern[str], line: str, confdata: 'ConfigurationData',
-              variable_format: Literal['meson', 'cmake', 'cmake@']) -> str:
+              variable_format: Literal['meson', 'cmake', 'cmake@'], subproject: T.Optional[SubProject] = None) -> str:
     def get_cmake_define(line: str, confdata: 'ConfigurationData') -> str:
         arr = line.split()
         define_value = []
@@ -1218,8 +1219,12 @@ def do_define(regex: T.Pattern[str], line: str, confdata: 'ConfigurationData',
         return ' '.join(define_value)
 
     arr = line.split()
-    if variable_format == 'meson' and len(arr) != 2:
-        raise MesonException('#mesondefine does not contain exactly two tokens: %s' % line.strip())
+    if len(arr) != 2:
+        if variable_format == 'meson':
+            raise MesonException('#mesondefine does not contain exactly two tokens: %s' % line.strip())
+        elif subproject is not None:
+            from ..interpreterbase.decorators import FeatureNew
+            FeatureNew.single_use('cmakedefine without exactly two tokens', '0.54.1', subproject)
 
     varname = arr[1]
     try:
@@ -1255,7 +1260,7 @@ def get_variable_regex(variable_format: Literal['meson', 'cmake', 'cmake@'] = 'm
 
 def do_conf_str(src: str, data: list, confdata: 'ConfigurationData',
                 variable_format: Literal['meson', 'cmake', 'cmake@'],
-                encoding: str = 'utf-8') -> T.Tuple[T.List[str], T.Set[str], bool]:
+                encoding: str = 'utf-8', subproject: T.Optional[SubProject] = None) -> T.Tuple[T.List[str], T.Set[str], bool]:
     def line_is_valid(line: str, variable_format: str) -> bool:
         if variable_format == 'meson':
             if '#cmakedefine' in line:
@@ -1279,7 +1284,7 @@ def do_conf_str(src: str, data: list, confdata: 'ConfigurationData',
     for line in data:
         if line.startswith(search_token):
             confdata_useless = False
-            line = do_define(regex, line, confdata, variable_format)
+            line = do_define(regex, line, confdata, variable_format, subproject)
         else:
             if not line_is_valid(line, variable_format):
                 raise MesonException(f'Format error in {src}: saw "{line.strip()}" when format set to "{variable_format}"')
@@ -1293,14 +1298,14 @@ def do_conf_str(src: str, data: list, confdata: 'ConfigurationData',
 
 def do_conf_file(src: str, dst: str, confdata: 'ConfigurationData',
                  variable_format: Literal['meson', 'cmake', 'cmake@'],
-                 encoding: str = 'utf-8') -> T.Tuple[T.Set[str], bool]:
+                 encoding: str = 'utf-8', subproject: T.Optional[SubProject] = None) -> T.Tuple[T.Set[str], bool]:
     try:
         with open(src, encoding=encoding, newline='') as f:
             data = f.readlines()
     except Exception as e:
         raise MesonException(f'Could not read input file {src}: {e!s}')
 
-    (result, missing_variables, confdata_useless) = do_conf_str(src, data, confdata, variable_format, encoding)
+    (result, missing_variables, confdata_useless) = do_conf_str(src, data, confdata, variable_format, encoding, subproject)
     dst_tmp = dst + '~'
     try:
         with open(dst_tmp, 'w', encoding=encoding, newline='') as f:
