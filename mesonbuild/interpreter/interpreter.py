@@ -2533,7 +2533,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 file_encoding = kwargs['encoding']
                 missing_variables, confdata_useless = \
                     mesonlib.do_conf_file(inputs_abs[0], ofile_abs, conf,
-                                          fmt, file_encoding)
+                                          fmt, file_encoding, self.subproject)
                 if missing_variables:
                     var_list = ", ".join(repr(m) for m in sorted(missing_variables))
                     mlog.warning(
