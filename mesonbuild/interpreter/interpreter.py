@@ -1814,7 +1814,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         return Disabler()
 
     @FeatureNewKwargs('executable', '0.42.0', ['implib'])
-    @FeatureNewKwargs('executable', '0.56.0', ['win_subsystem'])
     @permittedKwargs(build.known_exe_kwargs)
     @typed_pos_args('executable', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.StructuredSources, build.ExtractedObjects, build.BuildTarget))
     @typed_kwargs('executable', *EXECUTABLE_KWS, allow_unknown=True)
@@ -3246,9 +3245,11 @@ class Interpreter(InterpreterBase, HoldableObject):
         # This kwarg is deprecated. The value of "none" means that the kwarg
         # was not specified and win_subsystem should be used instead.
         if kwargs['gui_app'] is not None:
-            if 'win_subsystem' in kwargs:
+            if kwargs['win_subsystem'] is not None:
                 raise InvalidArguments('Can specify only gui_app or win_subsystem for a target, not both.')
             kwargs['win_subsystem'] = 'windows' if kwargs['gui_app'] else 'console'
+        elif kwargs['win_subsystem'] is None:
+            kwargs['win_subsystem'] = 'console'
 
         return build.Executable(
             name, self.subdir, self.subproject, for_machine, sources,
@@ -3285,7 +3286,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             vala_gir=kwargs['vala_gir'],
             c_pch=kwargs['c_pch'],
             cpp_pch=kwargs['cpp_pch'],
-            export_dynamic=kwargs['export_dynamic']
+            export_dynamic=kwargs['export_dynamic'],
+            win_subsystem=kwargs['win_subsystem'],
         )
 
     def __build_sh_lib(self, name: str, sources: T.List[BuildTargetSource],

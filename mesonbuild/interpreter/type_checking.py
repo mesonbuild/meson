@@ -726,6 +726,14 @@ _LANGUAGE_KWS.append(KwargInfo(
     'rust_args', ContainerTypeInfo(list, str), listify=True, default=[], since='0.41.0'))
 
 
+def _win_subsystem_validator(value: T.Optional[str], _: ValidatorState) -> T.Optional[str]:
+    if value is not None:
+        value = value.lower()
+        if re.fullmatch(r'(boot_application|console|efi_application|efi_boot_service_driver|efi_rom|efi_runtime_driver|native|posix|windows)(,\d+(\.\d+)?)?', value) is None:
+            return f'Invalid value for win_subsystem: {value}.'
+    return None
+
+
 _EXCLUSIVE_EXECUTABLE_KWS: T.List[KwargInfo] = [
     KwargInfo('export_dynamic', bool, default=False, since='0.45.0'),
     KwargInfo(
@@ -733,6 +741,12 @@ _EXCLUSIVE_EXECUTABLE_KWS: T.List[KwargInfo] = [
         (bool, NoneType),
         deprecated='0.56.0',
         deprecated_message="Use 'win_subsystem' instead.",
+    ),
+    KwargInfo(
+        'win_subsystem',
+        (str, NoneType),
+        since='0.56.0',
+        validator=_win_subsystem_validator,
     ),
 ]
 
@@ -891,7 +905,7 @@ JAR_KWS: T.List[KwargInfo] = [
     *[a.evolve(deprecated='1.1.0', deprecated_message='has always been ignored, and is safe to delete')
       for a in _BUILD_TARGET_KWS if a.name not in {'sources', 'link_with'}],
     *[a.evolve(deprecated='1.1.0', deprecated_message='has always been ignored, and is safe to delete')
-      for a in _EXCLUSIVE_EXECUTABLE_KWS if a.name not in {'gui_app'}],
+      for a in _EXCLUSIVE_EXECUTABLE_KWS if a.name not in {'gui_app', 'win_subsystem'}],
     _RUST_CRATE_TYPE_KW.evolve(
         deprecated='1.1.0',
         deprecated_message='is not a valid argument for Jar, and should be removed. It is, and has always been, silently ignored',
