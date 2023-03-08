@@ -289,12 +289,9 @@ class IntrospectionInterpreter(AstInterpreter):
         kwargs_reduced = {k: v.value if isinstance(v, ElementaryNode) else v for k, v in kwargs_reduced.items()}
         kwargs_reduced = {k: v for k, v in kwargs_reduced.items() if not isinstance(v, BaseNode)}
         for_machine = MachineChoice.HOST
-        objects = []        # type: T.List[T.Any]
-        empty_sources = []  # type: T.List[T.Any]
         # Passing the unresolved sources list causes errors
-        kwargs_reduced['_allow_no_sources'] = True
-        target = targetclass(name, self.subdir, self.subproject, for_machine, empty_sources, [], objects,
-                             self.environment, self.coredata.compilers[for_machine], kwargs_reduced)
+        target = targetclass(name, self.subdir, self.subproject, for_machine, [], [], [],
+                             self.environment, self.coredata.compilers[for_machine], kwargs_reduced, _allow_no_sources=True)
         target.process_compilers_late()
 
         new_target = {
