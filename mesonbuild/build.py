@@ -1000,7 +1000,6 @@ class BuildTarget(Target):
 
     def process_kwargs(self, kwargs):
         self.original_kwargs = kwargs
-        kwargs.get('modules', [])
 
     def _extract_pic_pie(self, value: T.Optional[bool], arg: Literal['pic', 'pie']) -> bool:
         # Check if we have -fPIC, -fpic, -fPIE, or -fpie in cflags
