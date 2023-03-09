@@ -1056,9 +1056,7 @@ def major_versions_differ(v1: str, v2: str) -> bool:
 
 def load(build_dir: str) -> CoreData:
     filename = os.path.join(build_dir, 'meson-private', 'coredata.dat')
-    obj = pickle_load(filename, 'Coredata', CoreData)
-    assert isinstance(obj, CoreData), 'for mypy'
-    return obj
+    return pickle_load(filename, 'Coredata', CoreData)
 
 
 def save(obj: CoreData, build_dir: str) -> str:

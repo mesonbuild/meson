@@ -37,12 +37,25 @@ from mesonbuild import mlog
 from .core import MesonException, HoldableObject
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal
+    from typing_extensions import Literal, Protocol
 
     from .._typing import ImmutableListProtocol
     from ..build import ConfigurationData
     from ..coredata import KeyedOptionDictType, UserOption
+    from ..environment import Environment
     from ..compilers.compilers import Compiler
+
+    class _EnvPickleLoadable(Protocol):
+
+        environment: Environment
+
+    class _VerPickleLoadable(Protocol):
+
+        version: str
+
+    # A generic type for pickle_load. This allows any type that has either a
+    # .version or a .environment to be passed.
+    _PL = T.TypeVar('_PL', bound=T.Union[_EnvPickleLoadable, _VerPickleLoadable])
 
 FileOrString = T.Union['File', str]
 
@@ -2326,7 +2339,8 @@ class OptionKey:
         """Convenience method to check if this is a base option."""
         return self.type is OptionType.BASE
 
-def pickle_load(filename: str, object_name: str, object_type: T.Type) -> T.Any:
+
+def pickle_load(filename: str, object_name: str, object_type: T.Type[_PL]) -> _PL:
     load_fail_msg = f'{object_name} file {filename!r} is corrupted. Try with a fresh build tree.'
     try:
         with open(filename, 'rb') as f:
@@ -2342,11 +2356,18 @@ def pickle_load(filename: str, object_name: str, object_type: T.Type) -> T.Any:
             f'meson setup {build_dir} --wipe')
     if not isinstance(obj, object_type):
         raise MesonException(load_fail_msg)
+
+    # Because these Protocols are not available at runtime (and cannot be made
+    # available at runtime until we drop support for Python < 3.8), we have to
+    # do a bit of hackery so that mypy understands what's going on here
+    version: str
+    if hasattr(obj, 'version'):
+        version = T.cast('_VerPickleLoadable', obj).version
+    else:
+        version = T.cast('_EnvPickleLoadable', obj).environment.coredata.version
+
     from ..coredata import version as coredata_version
     from ..coredata import major_versions_differ, MesonVersionMismatchException
-    version = getattr(obj, 'version', None)
-    if version is None:
-        version = obj.environment.coredata.version
     if major_versions_differ(version, coredata_version):
         raise MesonVersionMismatchException(version, coredata_version)
     return obj
