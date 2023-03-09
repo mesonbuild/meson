@@ -131,9 +131,7 @@ class DirMaker:
 
 
 def load_install_data(fname: str) -> InstallData:
-    obj = pickle_load(fname, 'InstallData', InstallData)
-    assert isinstance(obj, InstallData), 'fo mypy'
-    return obj
+    return pickle_load(fname, 'InstallData', InstallData)
 
 def is_executable(path: str, follow_symlinks: bool = False) -> bool:
     '''Checks whether any of the "x" bits are set in the source file mode.'''
