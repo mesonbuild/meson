@@ -3,6 +3,7 @@
 # Copyright © 2021 Intel Corporation
 from __future__ import annotations
 
+import collections
 import enum
 import functools
 import os
@@ -166,7 +167,7 @@ _COMPILES_KWS: T.List[KwargInfo] = [_NAME_KW, _ARGS_KW, _DEPENDENCIES_KW, _INCLU
 _HEADER_KWS: T.List[KwargInfo] = [REQUIRED_KW.evolve(since='0.50.0', default=False), *_COMMON_KWS]
 
 class CompilerHolder(ObjectHolder['Compiler']):
-    preprocess_uid = itertools.count()
+    preprocess_uid: T.Dict[str, itertools.count] = collections.defaultdict(itertools.count)
 
     def __init__(self, compiler: 'Compiler', interpreter: 'Interpreter'):
         super().__init__(compiler, interpreter)
@@ -773,7 +774,9 @@ class CompilerHolder(ObjectHolder['Compiler']):
         if any(isinstance(s, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)) for s in sources):
             FeatureNew.single_use('compiler.preprocess with generated sources', '1.1.0', self.subproject,
                                   location=self.current_node)
-        tg_name = f'preprocessor_{next(self.preprocess_uid)}'
+
+        tg_counter = next(self.preprocess_uid[self.interpreter.subdir])
+        tg_name = f'preprocessor_{tg_counter}'
         tg = build.CompileTarget(
             tg_name,
             self.interpreter.subdir,
