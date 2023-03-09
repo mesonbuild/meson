@@ -630,7 +630,7 @@ class Backend:
 
         if isinstance(exe, (programs.ExternalProgram,
                             build.BuildTarget, build.CustomTarget)):
-            basename = exe.name
+            basename = os.path.basename(exe.name)
         elif isinstance(exe, mesonlib.File):
             basename = os.path.basename(exe.fname)
         else:
