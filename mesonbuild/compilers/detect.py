@@ -334,7 +334,7 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
         version = search_version(out)
 
         guess_gcc_or_lcc: T.Optional[str] = None
-        if 'Free Software Foundation' in out or 'xt-' in out:
+        if 'Free Software Foundation' in out or out.startswith('xt-'):
             guess_gcc_or_lcc = 'gcc'
         if 'e2k' in out and 'lcc' in out:
             guess_gcc_or_lcc = 'lcc'
