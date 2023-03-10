@@ -337,6 +337,16 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
         # AIX always returns powerpc, check here for 64-bit
         if any_compiler_has_define(compilers, '__64BIT__'):
             trial = 'ppc64'
+    # While trying to read machine infomations on iOS/watchOS/tvOS, it returns
+    # the machine model name rather than architecture, e.g. `uname -m` would get
+    # 'iPhone13,1' but not 'arm64' on iPhone 12 mini. Same thing happens on other
+    # Apple mobile devices, but `uname -p` is having correct values, so use
+    # platform.processor instead of the default platform.machine
+    elif any(appleDevices in trial for appleDevices in ['iphone', 'ipad', 'ipod', 'watch', 'appletv', 'audioaccessory']):
+        if 'arm64' in platform.processor().lower():
+            trial = 'aarch64'
+        elif 'armv7' in platform.processor().lower():
+            trial = 'arm'
 
     if trial not in known_cpu_families:
         mlog.warning(f'Unknown CPU family {trial!r}, please report this at '
@@ -380,6 +390,9 @@ def detect_cpu(compilers: CompilersDict) -> str:
         # AIX always returns powerpc, check here for 64-bit
         if any_compiler_has_define(compilers, '__64BIT__'):
             trial = 'ppc64'
+    # Same iOS detection as above, but use processor type directly
+    elif any(appleDevices in trial for appleDevices in ['iphone', 'ipad', 'ipod', 'watch', 'appletv', 'audioaccessory']):
+        trial = platform.processor().lower()
 
     # Add more quirks here as bugs are reported. Keep in sync with
     # detect_cpu_family() above.
