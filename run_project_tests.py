@@ -53,10 +53,10 @@ from mesonbuild.mesonlib import MachineChoice, Popen_safe, TemporaryDirectoryWin
 from mesonbuild.mlog import blue, bold, cyan, green, red, yellow, normal_green
 from mesonbuild.coredata import backendlist, version as meson_version
 from mesonbuild.modules.python import PythonExternalProgram
-from run_tests import get_fake_options, run_configure, get_meson_script
+from run_tests import get_fake_options, get_convincing_fake_env_and_cc, run_configure, get_meson_script
 from run_tests import get_backend_commands, get_backend_args_for_dir, Backend
 from run_tests import ensure_backend_detects_changes
-from run_tests import guess_backend
+from run_tests import guess_backend, meson_exe, muon_exe
 
 if T.TYPE_CHECKING:
     from types import FrameType
@@ -523,6 +523,8 @@ def _compare_output(expected: T.List[T.Dict[str, str]], output: str, desc: str) 
     return ''
 
 def validate_output(test: TestDef, stdo: str, stde: str) -> str:
+    if muon_exe:
+        return ''
     return _compare_output(test.stdout, stdo, 'stdout')
 
 # There are some class variables and such that cache
@@ -536,6 +538,21 @@ def clear_internal_caches() -> None:
     from mesonbuild.mesonlib import PerMachine
     mesonbuild.interpreterbase.FeatureNew.feature_registry = {}
     CMakeDependency.class_cmakeinfo = PerMachine(None, None)
+
+def run_test_external(testdir: str) -> T.Tuple[int, str, str, str]:
+    if muon_exe:
+        norebuild = ['-R']
+    else:
+        norebuild = ['--no-rebuild']
+
+    r = subprocess.run(test_commands + norebuild, cwd=testdir, text=True, capture_output=True)
+
+    test_log = ''
+    test_log_fname = Path(testdir, 'meson-logs', 'testlog.txt')
+    if test_log_fname.exists():
+        test_log = test_log_fname.read_text(encoding='utf-8', errors='ignore')
+
+    return r.returncode, r.stdout, r.stderr, test_log
 
 def run_test_inprocess(testdir: str) -> T.Tuple[int, str, str, str]:
     old_stdout = sys.stdout
@@ -557,6 +574,11 @@ def run_test_inprocess(testdir: str) -> T.Tuple[int, str, str, str]:
         sys.stderr = old_stderr
         os.chdir(old_cwd)
     return max(returncode_test, returncode_benchmark), mystdout.getvalue(), mystderr.getvalue(), test_log
+
+def run_mtest_impl(testdir: str) -> T.Tuple[int, str, str, str]:
+    if meson_exe:
+        return run_test_external(testdir)
+    return run_test_inprocess(testdir)
 
 # Build directory name must be the same so Ccache works over
 # consecutive invocations.
@@ -642,11 +664,13 @@ def _run_test(test: TestDef,
     gen_start = time.time()
     # Configure in-process
     gen_args = ['setup']
+    prefix = '/usr'
     if 'prefix' not in test.do_not_set_opts:
-        gen_args += ['--prefix', 'x:/usr'] if mesonlib.is_windows() else ['--prefix', '/usr']
+        prefix = 'x:/usr' if mesonlib.is_windows() else '/usr'
+        gen_args += ['-Dprefix='+prefix]
     if 'libdir' not in test.do_not_set_opts:
-        gen_args += ['--libdir', 'lib']
-    gen_args += [test.path.as_posix(), test_build_dir] + backend_flags + extra_args
+        gen_args += ['-Dlibdir=lib']
+    gen_args += backend_flags + extra_args
 
     nativefile, crossfile = detect_parameter_files(test, test_build_dir)
 
@@ -654,7 +678,7 @@ def _run_test(test: TestDef,
         gen_args.extend(['--native-file', nativefile.as_posix()])
     if crossfile.exists():
         gen_args.extend(['--cross-file', crossfile.as_posix()])
-    (returncode, stdo, stde) = run_configure(gen_args, env=test.env, catch_exception=True)
+    (returncode, stdo, stde) = run_configure(gen_args, test.path.as_posix(), test_build_dir, env=test.env, catch_exception=True)
     try:
         logfile = Path(test_build_dir, 'meson-logs', 'meson-log.txt')
         with logfile.open(errors='ignore', encoding='utf-8') as fid:
@@ -681,7 +705,10 @@ def _run_test(test: TestDef,
     if returncode != 0:
         testresult.fail('Generating the build system failed.')
         return testresult
-    builddata = build.load(test_build_dir)
+    if muon_exe:
+        builddata_env = get_convincing_fake_env_and_cc(test_build_dir, prefix)[0]
+    else:
+        builddata_env = build.load(test_build_dir).environment
     dir_args = get_backend_args_for_dir(backend, test_build_dir)
 
     # Build with subprocess
@@ -716,7 +743,7 @@ def _run_test(test: TestDef,
     # Test in-process
     clear_internal_caches()
     test_start = time.time()
-    (returncode, tstdo, tstde, test_log) = run_test_inprocess(test_build_dir)
+    (returncode, tstdo, tstde, test_log) = run_mtest_impl(test_build_dir)
     testresult.add_step(BuildStep.test, tstdo, tstde, test_log, time.time() - test_start)
     if should_fail == 'test':
         if returncode != 0:
@@ -750,7 +777,7 @@ def _run_test(test: TestDef,
     testresult.add_step(BuildStep.install, '', '')
     if not install_commands:
         return testresult
-    install_msg = validate_install(test, Path(install_dir), builddata.environment)
+    install_msg = validate_install(test, Path(install_dir), builddata_env)
     if install_msg:
         testresult.fail('\n' + install_msg)
         return testresult
@@ -1412,18 +1439,22 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
 def check_meson_commands_work(use_tmpdir: bool, extra_args: T.List[str]) -> None:
     global backend, compile_commands, test_commands, install_commands
     testdir = PurePath('test cases', 'common', '1 trivial').as_posix()
-    meson_commands = mesonlib.python_command + [get_meson_script()]
+    if meson_exe:
+        meson_commands = meson_exe
+    else:
+        meson_commands = mesonlib.python_command + [get_meson_script()]
     with TemporaryDirectoryWinProof(prefix='b ', dir=None if use_tmpdir else '.') as build_dir:
         print('Checking that configuring works...')
-        gen_cmd = meson_commands + ['setup' , testdir, build_dir] + backend_flags + extra_args
-        pc, o, e = Popen_safe(gen_cmd)
+        gen_cmd = meson_commands + ['setup'] + backend_flags + extra_args + [os.path.abspath(build_dir)]
+        pc, o, e = Popen_safe(gen_cmd, cwd=testdir)
         if pc.returncode != 0:
             raise RuntimeError(f'Failed to configure {testdir!r}:\n{e}\n{o}')
-        print('Checking that introspect works...')
-        pc, o, e = Popen_safe(meson_commands + ['introspect', '--targets'], cwd=build_dir)
-        json.loads(o)
-        if pc.returncode != 0:
-            raise RuntimeError(f'Failed to introspect --targets {testdir!r}:\n{e}\n{o}')
+        if not muon_exe:
+            print('Checking that introspect works...')
+            pc, o, e = Popen_safe(meson_commands + ['introspect', '--targets'], cwd=build_dir)
+            json.loads(o)
+            if pc.returncode != 0:
+                raise RuntimeError(f'Failed to introspect --targets {testdir!r}:\n{e}\n{o}')
         print('Checking that building works...')
         dir_args = get_backend_args_for_dir(backend, build_dir)
         pc, o, e = Popen_safe(compile_commands + dir_args, cwd=build_dir)
@@ -1583,9 +1614,9 @@ if __name__ == '__main__':
     options = T.cast('ArgumentType', parser.parse_args())
 
     if options.cross_file:
-        options.extra_args += ['--cross-file', options.cross_file]
+        options.extra_args += ['--cross-file', os.path.abspath(options.cross_file)]
     if options.native_file:
-        options.extra_args += ['--native-file', options.native_file]
+        options.extra_args += ['--native-file', os.path.abspath(options.native_file)]
 
     clear_transitive_files()
 
