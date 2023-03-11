@@ -13,7 +13,8 @@ description: |
     (like `default_options` in `project`, they only have effect when
     Meson is run for the first time, and command line arguments override
     any default options in build files). *(since 0.54.0)*: `default_library`
-    built-in option can also be overridden.
+    built-in option can also be overridden. *(since 1.1.0)*: `unity` built-in
+    option can also be overriden.
   - `version`: works just like the same as in `dependency`.
     It specifies what version the subproject should be, as an example `>=1.0.1`
   - `required` *(since 0.48.0)*: By default, `required` is `true` and

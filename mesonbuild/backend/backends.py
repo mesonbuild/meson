@@ -25,6 +25,7 @@ import os
 import pickle
 import re
 import shutil
+import sys
 import typing as T
 import hashlib
 
@@ -393,7 +394,9 @@ class Backend:
         abs_files: T.List[str] = []
         result: T.List[mesonlib.File] = []
         compsrcs = classify_unity_sources(target.compilers.values(), unity_src)
-        unity_size = target.get_option(OptionKey('unity_size'))
+        unity_size: int = T.cast(int, target.get_option(OptionKey('unity_size')))
+        if unity_size < 2:
+            unity_size = sys.maxsize  # generate one unity file
         assert isinstance(unity_size, int), 'for mypy'
 
         def init_language_file(suffix: str, unity_file_number: int) -> T.TextIO:
@@ -865,7 +868,9 @@ class Backend:
         if extobj.target.is_unity:
             compsrcs = classify_unity_sources(extobj.target.compilers.values(), sources)
             sources = []
-            unity_size = extobj.target.get_option(OptionKey('unity_size'))
+            unity_size: int = T.cast(int, extobj.target.get_option(OptionKey('unity_size')))
+            if unity_size < 2:
+                unity_size = sys.maxsize  # generate one unity file
             assert isinstance(unity_size, int), 'for mypy'
 
             for comp, srcs in compsrcs.items():
