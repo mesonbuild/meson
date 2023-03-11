@@ -121,3 +121,9 @@ class PlatformAgnosticTests(BasePlatformTests):
                     '''))
             subprocess.check_call(self.wrap_command + ['update-db'], cwd=testdir)
             self.init(testdir, workdir=testdir)
+
+    def test_override_compiler(self):
+        testdir = os.path.join(self.unit_test_dir, '109 override compiler')
+        self.init(testdir, workdir=testdir)
+        stdout = self.build()
+        self.assertEqual(stdout.count('Wrapper called'), 2)

@@ -1471,7 +1471,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             comp = self.coredata.compilers[for_machine].get(lang)
             if not comp:
                 try:
-                    comp = compilers.detect_compiler_for(self.environment, lang, for_machine)
+                    comp = compilers.detect_compiler_for(self.environment, lang, for_machine, self)
                     if comp is None:
                         raise InvalidArguments(f'Tried to use unknown language "{lang}".')
                     if self.should_skip_sanity_check(for_machine):
@@ -1590,12 +1590,14 @@ class Interpreter(InterpreterBase, HoldableObject):
                           required: bool = True, silent: bool = True,
                           wanted: T.Union[str, T.List[str]] = '',
                           search_dirs: T.Optional[T.List[str]] = None,
-                          version_func: T.Optional[T.Callable[[T.Union['ExternalProgram', 'build.Executable', 'OverrideProgram']], str]] = None
+                          version_func: T.Optional[T.Callable[[T.Union['ExternalProgram', 'build.Executable', 'OverrideProgram']], str]] = None,
+                          allow_system_lookup: bool = True,
                           ) -> T.Union['ExternalProgram', 'build.Executable', 'OverrideProgram']:
         args = mesonlib.listify(args)
 
         extra_info: T.List[mlog.TV_Loggable] = []
-        progobj = self.program_lookup(args, for_machine, required, search_dirs, extra_info)
+        progobj = self.program_lookup(args, for_machine, required, search_dirs, extra_info,
+                                      allow_system_lookup=allow_system_lookup)
         if progobj is None:
             progobj = self.notfound_program(args)
 
@@ -1639,7 +1641,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         return progobj
 
     def program_lookup(self, args: T.List[mesonlib.FileOrString], for_machine: MachineChoice,
-                       required: bool, search_dirs: T.List[str], extra_info: T.List[mlog.TV_Loggable]
+                       required: bool, search_dirs: T.List[str], extra_info: T.List[mlog.TV_Loggable],
+                       allow_system_lookup: bool = True
                        ) -> T.Optional[T.Union[ExternalProgram, build.Executable, OverrideProgram]]:
         progobj = self.program_from_overrides(args, extra_info)
         if progobj:
@@ -1653,7 +1656,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             return self.find_program_fallback(fallback, args, required, extra_info)
 
         progobj = self.program_from_file_for(for_machine, args)
-        if progobj is None:
+        if progobj is None and allow_system_lookup:
             progobj = self.program_from_system(args, search_dirs, extra_info)
         if progobj is None and args[0].endswith('python3'):
             prog = ExternalProgram('python3', mesonlib.python_command, silent=True)
