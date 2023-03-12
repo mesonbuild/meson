@@ -196,10 +196,12 @@ gnu_common_warning_args = {
         "-Wduplicated-branches",
     ],
     "8.1.0": [
-        "-Wattribute-alias=2",
         "-Wcast-align=strict",
         "-Wsuggest-attribute=cold",
         "-Wsuggest-attribute=malloc",
+    ],
+    "9.1.0": [
+        "-Wattribute-alias=2",
     ],
     "10.1.0": [
         "-Wanalyzer-too-complex",
