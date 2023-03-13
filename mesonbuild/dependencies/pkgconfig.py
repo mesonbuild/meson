@@ -323,7 +323,8 @@ class PkgConfigDependency(ExternalDependency):
                     continue
                 if self.clib_compiler:
                     args = self.clib_compiler.find_library(lib[2:], self.env,
-                                                           libpaths, self.libtype)
+                                                           libpaths, self.libtype,
+                                                           lib_prefix_warning=False)
                 # If the project only uses a non-clib language such as D, Rust,
                 # C#, Python, etc, all we can do is limp along by adding the
                 # arguments as-is and then adding the libpaths at the end.
