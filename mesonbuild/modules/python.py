@@ -62,6 +62,8 @@ if T.TYPE_CHECKING:
 
         subdir: NotRequired[T.Optional[str]]
 
+    MaybePythonProg = T.Union[NonExistingExternalProgram, 'PythonExternalProgram']
+
 
 mod_kwargs = {'subdir'}
 mod_kwargs.update(known_shmod_kwargs)
@@ -84,12 +86,12 @@ class PythonExternalProgram(BasicPythonExternalProgram):
             self.purelib = self._get_path(state, 'purelib')
         return ret
 
-    def _get_path(self, state: T.Optional['ModuleState'], key: str) -> None:
+    def _get_path(self, state: T.Optional['ModuleState'], key: str) -> str:
         rel_path = self.info['install_paths'][key][1:]
         if not state:
             # This happens only from run_project_tests.py
             return rel_path
-        value = state.get_option(f'{key}dir', module='python')
+        value = T.cast('str', state.get_option(f'{key}dir', module='python'))
         if value:
             if state.is_user_defined_option('install_env', module='python'):
                 raise mesonlib.MesonException(f'python.{key}dir and python.install_env are mutually exclusive')
@@ -303,7 +305,7 @@ class PythonModule(ExtensionModule):
 
     def __init__(self, interpreter: 'Interpreter') -> None:
         super().__init__(interpreter)
-        self.installations: T.Dict[str, ExternalProgram] = {}
+        self.installations: T.Dict[str, MaybePythonProg] = {}
         self.methods.update({
             'find_installation': self.find_installation,
         })
@@ -377,7 +379,7 @@ class PythonModule(ExtensionModule):
         else:
             return None
 
-    def _find_installation_impl(self, state: 'ModuleState', display_name: str, name_or_path: str, required: bool) -> ExternalProgram:
+    def _find_installation_impl(self, state: 'ModuleState', display_name: str, name_or_path: str, required: bool) -> MaybePythonProg:
         if not name_or_path:
             python = PythonExternalProgram('python3', mesonlib.python_command)
         else:
@@ -420,7 +422,7 @@ class PythonModule(ExtensionModule):
         _PURE_KW.evolve(default=True, since='0.64.0'),
     )
     def find_installation(self, state: 'ModuleState', args: T.Tuple[T.Optional[str]],
-                          kwargs: 'FindInstallationKw') -> ExternalProgram:
+                          kwargs: 'FindInstallationKw') -> MaybePythonProg:
         feature_check = FeatureNew('Passing "feature" option to find_installation', '0.48.0')
         disabled, required, feature = extract_required_kwarg(kwargs, state.subproject, feature_check)
 
@@ -482,6 +484,7 @@ class PythonModule(ExtensionModule):
                 raise mesonlib.MesonException('{} is missing modules: {}'.format(name_or_path or 'python', ', '.join(missing_modules)))
             return NonExistingExternalProgram(python.name)
         else:
+            assert isinstance(python, PythonExternalProgram), 'for mypy'
             python = copy.copy(python)
             python.pure = kwargs['pure']
             python.run_bytecompile.setdefault(python.info['version'], False)
