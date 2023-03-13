@@ -749,7 +749,7 @@ class CudaCompiler(Compiler):
         return self._to_host_flags(self.host_compiler.get_std_exe_link_args(), _Phase.LINKER)
 
     def find_library(self, libname: str, env: 'Environment', extra_dirs: T.List[str],
-                     libtype: LibType = LibType.PREFER_SHARED) -> T.Optional[T.List[str]]:
+                     libtype: LibType = LibType.PREFER_SHARED, lib_prefix_warning: bool = True) -> T.Optional[T.List[str]]:
         return ['-l' + libname] # FIXME
 
     def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:

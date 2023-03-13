@@ -752,7 +752,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         return args.copy()
 
     def find_library(self, libname: str, env: 'Environment', extra_dirs: T.List[str],
-                     libtype: LibType = LibType.PREFER_SHARED) -> T.Optional[T.List[str]]:
+                     libtype: LibType = LibType.PREFER_SHARED, lib_prefix_warning: bool = True) -> T.Optional[T.List[str]]:
         raise EnvironmentException(f'Language {self.get_display_language()} does not support library finding.')
 
     def get_library_naming(self, env: 'Environment', libtype: LibType,
