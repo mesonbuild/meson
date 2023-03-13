@@ -1,8 +1,6 @@
 index.md
 	SimpleStart.md
 	Getting-meson.md
-		Getting-meson_zh.md
-		Getting-meson_ptbr.md
 	Quick-guide.md
 	Tutorial.md
 	GuiTutorial.md
@@ -131,7 +129,6 @@ index.md
 		In-the-press.md
 		Mixing-build-systems.md
 		Pkg-config-files.md
-		Playground.md
 		Porting-from-autotools.md
 		Use-of-Python.md
 		Users.md
