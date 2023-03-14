@@ -2756,6 +2756,9 @@ class RunTarget(Target, CommandBase):
         return "@run"
 
 class AliasTarget(RunTarget):
+
+    typename = 'alias'
+
     def __init__(self, name: str, dependencies: T.Sequence['Target'],
                  subdir: str, subproject: str, environment: environment.Environment):
         super().__init__(name, [], dependencies, subdir, subproject, environment)
