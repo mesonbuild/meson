@@ -135,8 +135,7 @@ class CommandTests(unittest.TestCase):
         (bindir / 'python3').symlink_to(python_command[0])
         os.environ['PATH'] = str(bindir) + os.pathsep + os.environ['PATH']
         # use our overridden PATH-compatible python
-        path_resolved_meson_command = resolved_meson_command.copy()
-        path_resolved_meson_command[0] = str(bindir / 'python3')
+        path_resolved_meson_command = [str(bindir / 'meson')]
         # See if it works!
         meson_py = 'meson'
         meson_setup = [meson_py, 'setup']
