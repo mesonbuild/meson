@@ -290,7 +290,7 @@ def main():
         assert os.path.isabs(sys.executable)
         launcher = sys.executable
     else:
-        launcher = os.path.realpath(sys.argv[0])
+        launcher = os.path.abspath(sys.argv[0])
     return run(sys.argv[1:], launcher)
 
 if __name__ == '__main__':
