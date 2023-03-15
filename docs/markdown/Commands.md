@@ -61,7 +61,7 @@ Builds a default or a specified target of a configured Meson project.
 `TARGET` has the following syntax `[PATH/]NAME[:TYPE]`, where:
 - `NAME`: name of the target from `meson.build` (e.g. `foo` from `executable('foo', ...)`).
 - `PATH`: path to the target relative to the root `meson.build` file. Note: relative path for a target specified in the root `meson.build` is `./`.
-- `TYPE`: type of the target. Can be one of the following: 'executable', 'static_library', 'shared_library', 'shared_module', 'custom', 'run', 'jar'.
+- `TYPE`: type of the target. Can be one of the following: 'executable', 'static_library', 'shared_library', 'shared_module', 'custom', 'alias', 'run', 'jar'.
 
 `PATH` and/or `TYPE` can be omitted if the resulting `TARGET` can be
 used to uniquely identify the target in `meson.build`.
