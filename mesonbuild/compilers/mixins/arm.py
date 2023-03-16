@@ -20,7 +20,7 @@ import typing as T
 
 from ... import mesonlib
 from ...linkers import ArmClangDynamicLinker
-from ...mesonlib import OptionKey
+from ...mesonlib import OptionKey, OrderedSet
 from ..compilers import clike_debug_args
 from .clang import clang_color_args
 
@@ -155,10 +155,10 @@ class ArmclangCompiler(Compiler):
             raise mesonlib.EnvironmentException(f'Unsupported Linker {self.linker.exelist}, must be armlink')
         if not mesonlib.version_compare(self.version, '==' + self.linker.version):
             raise mesonlib.EnvironmentException('armlink version does not match with compiler version')
-        self.base_options = {
+        self.base_options = OrderedSet(
             OptionKey(o) for o in
             ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
-             'b_ndebug', 'b_staticpic', 'b_colorout']}
+             'b_ndebug', 'b_staticpic', 'b_colorout'])
         # Assembly
         self.can_compile_suffixes.add('s')
 

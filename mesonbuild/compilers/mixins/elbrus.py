@@ -22,7 +22,7 @@ import re
 
 from .gnu import GnuLikeCompiler
 from .gnu import gnu_optimization_args
-from ...mesonlib import Popen_safe, OptionKey
+from ...mesonlib import Popen_safe, OptionKey, OrderedSet
 
 if T.TYPE_CHECKING:
     from ...environment import Environment
@@ -37,7 +37,7 @@ class ElbrusCompiler(GnuLikeCompiler):
 
     def __init__(self) -> None:
         super().__init__()
-        self.base_options = {OptionKey(o) for o in ['b_pgo', 'b_coverage', 'b_ndebug', 'b_staticpic', 'b_lundef', 'b_asneeded']}
+        self.base_options = OrderedSet(OptionKey(o) for o in ['b_pgo', 'b_coverage', 'b_ndebug', 'b_staticpic', 'b_lundef', 'b_asneeded'])
         default_warn_args = ['-Wall']
         self.warn_args = {'0': [],
                           '1': default_warn_args,

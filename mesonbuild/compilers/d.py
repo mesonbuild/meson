@@ -18,6 +18,8 @@ import re
 import subprocess
 import typing as T
 
+from mesonbuild.utils.universal import OrderedSet
+
 from .. import mesonlib
 from .. import mlog
 from ..arglist import CompilerArgs
@@ -812,10 +814,10 @@ class GnuDCompiler(GnuCompiler, DCompiler):
                           'everything': (default_warn_args + ['-Wextra', '-Wpedantic'] +
                                          self.supported_warn_args(gnu_common_warning_args))}
 
-        self.base_options = {
+        self.base_options = OrderedSet(
             OptionKey(o) for o in [
              'b_colorout', 'b_sanitize', 'b_staticpic', 'b_vscrt',
-             'b_coverage', 'b_pgo', 'b_ndebug']}
+             'b_coverage', 'b_pgo', 'b_ndebug'])
 
         self._has_color_support = version_compare(self.version, '>=4.9')
         # dependencies were implemented before, but broken - support was fixed in GCC 7.1+
@@ -886,7 +888,7 @@ class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
                            exe_wrapper=exe_wrapper, linker=linker,
                            full_version=full_version, is_cross=is_cross)
         DmdLikeCompilerMixin.__init__(self, dmd_frontend_version=find_ldc_dmd_frontend_version(version_output))
-        self.base_options = {OptionKey(o) for o in ['b_coverage', 'b_colorout', 'b_vscrt', 'b_ndebug']}
+        self.base_options = OrderedSet(OptionKey(o) for o in ['b_coverage', 'b_colorout', 'b_vscrt', 'b_ndebug'])
 
     def get_colorout_args(self, colortype: str) -> T.List[str]:
         if colortype == 'always':
@@ -951,7 +953,7 @@ class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
                            exe_wrapper=exe_wrapper, linker=linker,
                            full_version=full_version, is_cross=is_cross)
         DmdLikeCompilerMixin.__init__(self, version)
-        self.base_options = {OptionKey(o) for o in ['b_coverage', 'b_colorout', 'b_vscrt', 'b_ndebug']}
+        self.base_options = OrderedSet(OptionKey(o) for o in ['b_coverage', 'b_colorout', 'b_vscrt', 'b_ndebug'])
 
     def get_colorout_args(self, colortype: str) -> T.List[str]:
         if colortype == 'always':

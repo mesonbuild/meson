@@ -26,7 +26,7 @@ import typing as T
 
 from ... import mesonlib
 from ... import mlog
-from ...mesonlib import OptionKey
+from ...mesonlib import OptionKey, OrderedSet
 
 if T.TYPE_CHECKING:
     from ..._typing import ImmutableListProtocol
@@ -378,9 +378,9 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     LINKER_PREFIX = '-Wl,'
 
     def __init__(self) -> None:
-        self.base_options = {
+        self.base_options = OrderedSet(
             OptionKey(o) for o in ['b_pch', 'b_lto', 'b_pgo', 'b_coverage',
-                                   'b_ndebug', 'b_staticpic', 'b_pie']}
+                                   'b_ndebug', 'b_staticpic', 'b_pie'])
         if not (self.info.is_windows() or self.info.is_cygwin() or self.info.is_openbsd()):
             self.base_options.add(OptionKey('b_lundef'))
         if not self.info.is_windows() or self.info.is_cygwin():
@@ -570,7 +570,7 @@ class GnuCompiler(GnuLikeCompiler):
     def __init__(self, defines: T.Optional[T.Dict[str, str]]):
         super().__init__()
         self.defines = defines or {}
-        self.base_options.update({OptionKey('b_colorout'), OptionKey('b_lto_threads')})
+        self.base_options.update([OptionKey('b_colorout'), OptionKey('b_lto_threads')])
 
     def get_colorout_args(self, colortype: str) -> T.List[str]:
         if mesonlib.version_compare(self.version, '>=4.9.0'):

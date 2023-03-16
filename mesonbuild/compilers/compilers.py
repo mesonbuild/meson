@@ -27,6 +27,7 @@ from ..mesonlib import (
     HoldableObject,
     EnvironmentException, MesonException,
     Popen_safe, LibType, TemporaryDirectoryWinProof, OptionKey,
+    OrderedSet,
 )
 
 from ..arglist import CompilerArgs
@@ -310,7 +311,7 @@ base_options: 'KeyedOptionDictType' = {
                                                    'from_buildtype'),
 }
 
-def option_enabled(boptions: T.Set[OptionKey], options: 'KeyedOptionDictType',
+def option_enabled(boptions: OrderedSet[OptionKey], options: 'KeyedOptionDictType',
                    option: OptionKey) -> bool:
     try:
         if option not in boptions:
@@ -510,12 +511,12 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         if not hasattr(self, 'file_suffixes'):
             self.file_suffixes = lang_suffixes[self.language]
         if not hasattr(self, 'can_compile_suffixes'):
-            self.can_compile_suffixes = set(self.file_suffixes)
+            self.can_compile_suffixes = OrderedSet(self.file_suffixes)
         self.default_suffix = self.file_suffixes[0]
         self.version = version
         self.full_version = full_version
         self.for_machine = for_machine
-        self.base_options: T.Set[OptionKey] = set()
+        self.base_options: OrderedSet[OptionKey] = OrderedSet()
         self.linker = linker
         self.info = info
         self.is_cross = is_cross

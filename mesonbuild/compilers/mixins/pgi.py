@@ -20,7 +20,7 @@ import os
 from pathlib import Path
 
 from ..compilers import clike_debug_args, clike_optimization_args
-from ...mesonlib import OptionKey
+from ...mesonlib import OptionKey, OrderedSet
 
 if T.TYPE_CHECKING:
     from ...environment import Environment
@@ -47,7 +47,7 @@ class PGICompiler(Compiler):
     id = 'pgi'
 
     def __init__(self) -> None:
-        self.base_options = {OptionKey('b_pch')}
+        self.base_options = OrderedSet([OptionKey('b_pch')])
 
         default_warn_args = ['-Minform=inform']
         self.warn_args: T.Dict[str, T.List[str]] = {

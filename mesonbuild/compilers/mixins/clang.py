@@ -54,8 +54,8 @@ class ClangCompiler(GnuLikeCompiler):
         super().__init__()
         self.defines = defines or {}
         self.base_options.update(
-            {OptionKey('b_colorout'), OptionKey('b_lto_threads'), OptionKey('b_lto_mode'), OptionKey('b_thinlto_cache'),
-             OptionKey('b_thinlto_cache_dir')})
+            [OptionKey('b_colorout'), OptionKey('b_lto_threads'), OptionKey('b_lto_mode'), OptionKey('b_thinlto_cache'),
+             OptionKey('b_thinlto_cache_dir')])
 
         # TODO: this really should be part of the linker base_options, but
         # linkers don't have base_options.
