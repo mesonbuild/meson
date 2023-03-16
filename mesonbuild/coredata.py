@@ -191,7 +191,7 @@ class UserUmaskOption(UserIntegerOption, UserOption[T.Union[str, OctalInt]]):
         return format(self.value, '04o')
 
     def validate_value(self, value: T.Any) -> T.Union[str, OctalInt]:
-        if value is None or value == 'preserve':
+        if value == 'preserve':
             return 'preserve'
         return OctalInt(super().validate_value(value))
 
