@@ -286,7 +286,7 @@ class ConfigureFile(TypedDict):
     output: str
     capture: bool
     format: T.Literal['meson', 'cmake', 'cmake@']
-    output_format: T.Literal['c', 'nasm']
+    output_format: T.Literal['c', 'json', 'nasm']
     depfile: T.Optional[str]
     install: T.Optional[bool]
     install_dir: T.Union[str, T.Literal[False]]

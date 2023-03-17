@@ -2594,8 +2594,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         KwargInfo('install_dir', (str, bool), default='',
                   validator=lambda x: 'must be `false` if boolean' if x is True else None),
         OUTPUT_KW,
-        KwargInfo('output_format', str, default='c', since='0.47.0',
-                  validator=in_set_validator({'c', 'nasm'})),
+        KwargInfo('output_format', str, default='c', since='0.47.0', since_values={'json': '1.3.0'},
+                  validator=in_set_validator({'c', 'json', 'nasm'})),
     )
     def func_configure_file(self, node: mparser.BaseNode, args: T.List[TYPE_var],
                             kwargs: kwtypes.ConfigureFile):
