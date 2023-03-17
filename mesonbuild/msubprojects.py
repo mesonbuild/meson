@@ -249,9 +249,10 @@ class Runner:
         return True
 
     def git_checkout(self, revision: str, create: bool = False) -> bool:
-        cmd = ['checkout', '--ignore-other-worktrees', revision, '--']
+        cmd = ['checkout', '--ignore-other-worktrees']
         if create:
-            cmd.insert(1, '-b')
+            cmd.append('-b')
+        cmd += [revision, '--']
         try:
             # Stash local changes, commits can always be found back in reflog, to
             # avoid any data lost by mistake.
