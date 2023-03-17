@@ -296,6 +296,13 @@ OVERRIDE_OPTIONS_KW: KwargInfo[T.List[str]] = KwargInfo(
 
 
 def _output_validator(outputs: T.List[str]) -> T.Optional[str]:
+    output_set = set(outputs)
+    if len(output_set) != len(outputs):
+        seen = set()
+        for el in outputs:
+            if el in seen:
+                return f"contains {el!r} multiple times, but no duplicates are allowed."
+            seen.add(el)
     for i in outputs:
         if i == '':
             return 'Output must not be empty.'
