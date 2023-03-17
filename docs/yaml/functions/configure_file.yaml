@@ -134,7 +134,7 @@ kwargs:
       The format of the output to generate when no input
       was specified. It defaults to `c`, in which case preprocessor directives
       will be prefixed with `#`, you can also use `nasm`, in which case the
-      prefix will be `%`.
+      prefix will be `%`. *(since 1.3.0)* `json` format can also be used.
 
   encoding:
     type: str
