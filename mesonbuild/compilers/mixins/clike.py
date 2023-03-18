@@ -498,8 +498,8 @@ class CLikeCompiler(Compiler):
     def _compile_int(self, expression: str, prefix: str, env: 'Environment',
                      extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]],
                      dependencies: T.Optional[T.List['Dependency']]) -> bool:
-        t = f'''#include <stdio.h>
-        {prefix}
+        t = f'''{prefix}
+        #include <stdio.h>
         int main(void) {{ static int a[1-2*!({expression})]; a[0]=0; return 0; }}'''
         return self.compiles(t, env, extra_args=extra_args,
                              dependencies=dependencies)[0]
@@ -559,8 +559,8 @@ class CLikeCompiler(Compiler):
             extra_args = []
         if self.is_cross:
             return self.cross_compute_int(expression, low, high, guess, prefix, env, extra_args, dependencies)
-        t = f'''#include<stdio.h>
-        {prefix}
+        t = f'''{prefix}
+        #include<stdio.h>
         int main(void) {{
             printf("%ld\\n", (long)({expression}));
             return 0;
@@ -578,8 +578,8 @@ class CLikeCompiler(Compiler):
                      dependencies: T.Optional[T.List['Dependency']] = None) -> int:
         if extra_args is None:
             extra_args = []
-        t = f'''#include <stdio.h>
-        {prefix}
+        t = f'''{prefix}
+        #include <stdio.h>
         int main(void) {{
             {typename} something;
             return 0;
@@ -598,8 +598,8 @@ class CLikeCompiler(Compiler):
             r = self.cross_sizeof(typename, prefix, env, extra_args=extra_args,
                                   dependencies=dependencies)
             return r, False
-        t = f'''#include<stdio.h>
-        {prefix}
+        t = f'''{prefix}
+        #include<stdio.h>
         int main(void) {{
             printf("%ld\\n", (long)(sizeof({typename})));
             return 0;
@@ -617,8 +617,8 @@ class CLikeCompiler(Compiler):
                         dependencies: T.Optional[T.List['Dependency']] = None) -> int:
         if extra_args is None:
             extra_args = []
-        t = f'''#include <stdio.h>
-        {prefix}
+        t = f'''{prefix}
+        #include <stdio.h>
         int main(void) {{
             {typename} something;
             return 0;
@@ -626,8 +626,8 @@ class CLikeCompiler(Compiler):
         if not self.compiles(t, env, extra_args=extra_args,
                              dependencies=dependencies)[0]:
             return -1
-        t = f'''#include <stddef.h>
-        {prefix}
+        t = f'''{prefix}
+        #include <stddef.h>
         struct tmp {{
             char c;
             {typename} target;
@@ -643,9 +643,9 @@ class CLikeCompiler(Compiler):
             r = self.cross_alignment(typename, prefix, env, extra_args=extra_args,
                                      dependencies=dependencies)
             return r, False
-        t = f'''#include <stdio.h>
+        t = f'''{prefix}
+        #include <stdio.h>
         #include <stddef.h>
-        {prefix}
         struct tmp {{
             char c;
             {typename} target;
