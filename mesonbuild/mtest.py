@@ -1582,12 +1582,6 @@ class TestHarness:
         if self.options.no_rebuild:
             return
 
-        if not (Path(self.options.wd) / 'build.ninja').is_file():
-            print('Only ninja backend is supported to rebuild tests before running them.')
-            # Disable, no point in trying to build anything later
-            self.options.no_rebuild = True
-            return
-
         self.ninja = environment.detect_ninja()
         if not self.ninja:
             print("Can't find ninja, can't rebuild test.")
@@ -2103,6 +2097,12 @@ def run(options: argparse.Namespace) -> int:
 
     b = build.load(options.wd)
     setup_vsenv(b.need_vsenv)
+
+    if not options.no_rebuild:
+        if not (Path(options.wd) / 'build.ninja').is_file():
+            print('Only ninja backend is supported to rebuild tests before running them.')
+            # Disable, no point in trying to build anything later
+            options.no_rebuild = True
 
     with TestHarness(options) as th:
         try:
