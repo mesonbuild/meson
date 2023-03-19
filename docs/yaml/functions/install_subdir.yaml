@@ -56,6 +56,9 @@ example: |
     new_directory/
   ```
 
+warnings:
+  - the `install_mode` kwarg ignored integer values between 0.59.0 -- 1.1.0.
+
 posargs:
   subdir_name:
     type: str

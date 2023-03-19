@@ -6,6 +6,9 @@ description: |
   argument. If the directory exists and is not empty, the contents are left in
   place.
 
+warnings:
+  - the `install_mode` kwarg ignored integer values before 1.1.0.
+
 varargs:
   name: dirpath
   type: str

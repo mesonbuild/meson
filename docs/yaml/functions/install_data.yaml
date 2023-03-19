@@ -10,6 +10,9 @@ varargs:
   type: file | str
   description: Files to install.
 
+warnings:
+  - the `install_mode` kwarg ignored integer values between 0.59.0 -- 1.1.0.
+
 kwargs:
   install_dir:
     type: str

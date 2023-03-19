@@ -20,6 +20,9 @@ description: |
   this function will copy the file provided in `input:` to a file in the
   build directory with the name `output:` in the current directory.
 
+warnings:
+  - the `install_mode` kwarg ignored integer values between 0.62 -- 1.1.0.
+
 kwargs:
   capture:
     type: bool
