@@ -95,13 +95,8 @@ def _install_mode_validator(mode: T.List[T.Union[str, bool, int]]) -> T.Optional
 
 
 def _install_mode_convertor(mode: T.Optional[T.List[T.Union[str, bool, int]]]) -> FileMode:
-    """Convert the DSL form of the `install_mode` keyword argument to `FileMode`
+    """Convert the DSL form of the `install_mode` keyword argument to `FileMode`"""
 
-    This is not required, and if not required returns None
-
-    TODO: It's not clear to me why this needs to be None and not just return an
-    empty FileMode.
-    """
     # this has already been validated by the validator
     return FileMode(*(m if isinstance(m, str) else None for m in mode))
 
