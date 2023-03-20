@@ -161,6 +161,9 @@ class GeneratorMD(GeneratorBase):
             # I know, this regex is ugly but it works.
             return len(re.sub(r'\[\[(#|@)*([^\[])', r'\2', s))
 
+        def arg_anchor(arg: ArgBase) -> str:
+            return f'{func.name}_{arg.name.replace("<", "_").replace(">", "_")}'
+
         def render_signature() -> str:
             # Skip a lot of computations if the function does not take any arguments
             if not any([func.posargs, func.optargs, func.kwargs, func.varargs]):
@@ -184,12 +187,15 @@ class GeneratorMD(GeneratorBase):
                 max_name_len = max([len(x.name) for x in all_args])
 
             # Generate some common strings
-            def prepare(arg: ArgBase) -> T.Tuple[str, str, str, str]:
+            def prepare(arg: ArgBase, link: bool = True) -> T.Tuple[str, str, str, str]:
                 type_str = render_type(arg.type, True)
                 type_len = len_stripped(type_str)
                 type_space = ' ' * (max_type_len - type_len)
                 name_space = ' ' * (max_name_len - len(arg.name))
                 name_str = f'<b>{arg.name.replace("<", "&lt;").replace(">", "&gt;")}</b>'
+                if link:
+                    name_str = f'<a href="#{arg_anchor(arg)}">{name_str}</a>'
+
                 return type_str, type_space, name_str, name_space
 
             for i in func.posargs:
@@ -201,7 +207,7 @@ class GeneratorMD(GeneratorBase):
                 signature += f'  {type_str}{type_space} [{name_str}],{name_space}   # {self.brief(i)}\n'
 
             if func.varargs:
-                type_str, type_space, name_str, name_space = prepare(func.varargs)
+                type_str, type_space, name_str, name_space = prepare(func.varargs, link=False)
                 signature += f'  {type_str}{type_space} {name_str}...,{name_space}  # {self.brief(func.varargs)}\n'
 
             # Abort if there are no kwargs
@@ -227,6 +233,7 @@ class GeneratorMD(GeneratorBase):
 
         def gen_arg_data(arg: T.Union[PosArg, Kwarg, VarArgs], *, optional: bool = False) -> T.Dict[str, PlaceholderTypes]:
             data: T.Dict[str, PlaceholderTypes] = {
+                'row-id': arg_anchor(arg),
                 'name': arg.name,
                 'type': render_type(arg.type),
                 'description': arg.description,
