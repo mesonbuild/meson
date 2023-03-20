@@ -65,6 +65,7 @@ class Xc16Compiler(Compiler):
             raise EnvironmentException('xc16 supports only cross-compilation.')
         # Assembly
         self.can_compile_suffixes.add('s')
+        self.can_compile_suffixes.add('sx')
         default_warn_args = []  # type: T.List[str]
         self.warn_args = {'0': [],
                           '1': default_warn_args,

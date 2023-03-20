@@ -389,6 +389,7 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
             self.base_options.add(OptionKey('b_sanitize'))
         # All GCC-like backends can do assembly
         self.can_compile_suffixes.add('s')
+        self.can_compile_suffixes.add('sx')
 
     def get_pic_args(self) -> T.List[str]:
         if self.info.is_windows() or self.info.is_cygwin() or self.info.is_darwin():
