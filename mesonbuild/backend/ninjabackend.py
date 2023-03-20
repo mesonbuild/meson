@@ -2375,8 +2375,12 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             self.generate_cython_compile_rules(compiler)
             return
         crstr = self.get_rule_suffix(compiler.for_machine)
+        options = self._rsp_options(compiler)
         if langname == 'fortran':
             self.generate_fortran_dep_hack(crstr)
+            # gfortran does not update the modification time of *.mod files, therefore restat is needed.
+            # See also: https://github.com/ninja-build/ninja/pull/2275
+            options['extra'] = 'restat = 1'
         rule = self.compiler_to_rule_name(compiler)
         depargs = NinjaCommandArg.list(compiler.get_dependency_gen_args('$out', '$DEPFILE'), Quoting.none)
         command = compiler.get_exelist()
@@ -2388,7 +2392,6 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         else:
             deps = 'gcc'
             depfile = '$DEPFILE'
-        options = self._rsp_options(compiler)
         self.add_rule(NinjaRule(rule, command, args, description, **options,
                                 deps=deps, depfile=depfile))
 
