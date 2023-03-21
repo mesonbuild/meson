@@ -312,6 +312,7 @@ def detect_cross_env(options: T.Any) -> MachineInfo:
         print('Detecting cross environment via environment variables.')
         infos = detect_compilers_from_envvars()
         detect_cross_system(infos, options)
+    detect_binaries_from_envvars(infos)
     return infos
 
 def add_compiler_if_missing(infos: MachineInfo, langname: str, exe_names: T.List[str]) -> None:
