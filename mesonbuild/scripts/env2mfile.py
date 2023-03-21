@@ -296,6 +296,14 @@ def detect_binaries_from_envvars(infos: MachineInfo, envvar_suffix: str = '') ->
         if binstr:
             infos.binaries[binname] = shlex.split(binstr)
 
+def detect_properties_from_envvars(infos: MachineInfo, envvar_suffix: str = '') -> None:
+    var = os.environ.get('PKG_CONFIG_LIBDIR' + envvar_suffix)
+    if var is not None:
+        infos.properties['pkg_config_libdir'] = var
+    var = os.environ.get('PKG_CONFIG_SYSROOT_DIR' + envvar_suffix)
+    if var is not None:
+        infos.properties['sys_root'] = var
+
 def detect_cross_system(infos: MachineInfo, options: T.Any) -> None:
     for optname in ('system', 'cpu', 'cpu_family', 'endian'):
         v = getattr(options, optname)
@@ -313,6 +321,7 @@ def detect_cross_env(options: T.Any) -> MachineInfo:
         infos = detect_compilers_from_envvars()
         detect_cross_system(infos, options)
     detect_binaries_from_envvars(infos)
+    detect_properties_from_envvars(infos)
     return infos
 
 def add_compiler_if_missing(infos: MachineInfo, langname: str, exe_names: T.List[str]) -> None:
@@ -358,6 +367,7 @@ def detect_native_env(options: T.Any) -> MachineInfo:
     detect_missing_native_compilers(infos)
     detect_binaries_from_envvars(infos, esuffix)
     detect_missing_native_binaries(infos)
+    detect_properties_from_envvars(infos, esuffix)
     return infos
 
 def run(options: T.Any) -> None:
