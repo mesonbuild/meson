@@ -20,8 +20,8 @@ from pathlib import Path
 from .run_tool import run_tool
 import typing as T
 
-def run_clang_tidy(fname: Path, builddir: Path) -> subprocess.CompletedProcess:
-    return subprocess.run(['clang-tidy', '-p', str(builddir), str(fname)])
+def run_clang_tidy(fname: Path, builddir: Path) -> int:
+    return subprocess.run(['clang-tidy', '-p', str(builddir), str(fname)]).returncode
 
 def run(args: T.List[str]) -> int:
     parser = argparse.ArgumentParser()

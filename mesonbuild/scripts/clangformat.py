@@ -14,33 +14,52 @@
 from __future__ import annotations
 
 import argparse
-import subprocess
+import difflib
 from pathlib import Path
 
 from .run_tool import run_tool
 from ..environment import detect_clangformat
-from ..mesonlib import version_compare
-from ..programs import ExternalProgram
+from ..mesonlib import Popen_safe
+from .. import mlog
 import typing as T
 
-def run_clang_format(fname: Path, exelist: T.List[str], check: bool, cformat_ver: T.Optional[str]) -> subprocess.CompletedProcess:
-    clangformat_10 = False
-    if check and cformat_ver:
-        if version_compare(cformat_ver, '>=10'):
-            clangformat_10 = True
-            exelist = exelist + ['--dry-run', '--Werror']
-        else:
-            original = fname.read_bytes()
-    before = fname.stat().st_mtime
-    ret = subprocess.run(exelist + ['-style=file', '-i', str(fname)])
-    after = fname.stat().st_mtime
-    if before != after:
-        print('File reformatted: ', fname)
-        if check and not clangformat_10:
-            # Restore the original if only checking.
-            fname.write_bytes(original)
-            ret.returncode = 1
-    return ret
+def run_clang_format(fname: Path, exelist: T.List[str], check: bool) -> int:
+    cmd = exelist + [str(fname)]
+    try:
+        p, o, e = Popen_safe(cmd)
+    except UnicodeDecodeError as e:
+        mlog.warning(f'Cannot format {str(fname)}: {str(e)}')
+        return 1
+    if p.returncode != 0:
+        return p.returncode
+
+    original = fname.read_text(encoding='utf-8')
+    if check:
+        old = original.splitlines(keepends=True)
+        new = o.splitlines(keepends=True)
+        diff = difflib.unified_diff(old, new,
+                                    fromfile=f'{fname}\t(original)',
+                                    tofile=f'{fname}\t(reformatted)')
+        lines = []
+        for l in diff:
+            if l.startswith('---') or l.startswith('+++'):
+                lines.append(mlog.bold(l))
+            elif l.startswith('@@'):
+                lines.append(mlog.cyan(l))
+            elif l.startswith('+'):
+                lines.append(mlog.green(l))
+            elif l.startswith('-'):
+                lines.append(mlog.red(l))
+            else:
+                lines.append(l)
+        if lines:
+            mlog.log(*lines, sep='')
+            return 1
+    elif o != original:
+        fname.write_text(o, encoding='utf-8')
+        mlog.log('File reformatted:', fname)
+
+    return 0
 
 def run(args: T.List[str]) -> int:
     parser = argparse.ArgumentParser()
@@ -57,9 +76,4 @@ def run(args: T.List[str]) -> int:
         print('Could not execute clang-format "%s"' % ' '.join(exelist))
         return 1
 
-    if options.check:
-        cformat_ver = ExternalProgram('clang-format', exelist, silent=True).get_version()
-    else:
-        cformat_ver = None
-
-    return run_tool('clang-format', srcdir, builddir, run_clang_format, exelist, options.check, cformat_ver)
+    return run_tool('clang-format', srcdir, builddir, run_clang_format, exelist, options.check)

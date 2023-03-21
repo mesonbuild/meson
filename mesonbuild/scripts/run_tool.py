@@ -22,9 +22,6 @@ from ..compilers import lang_suffixes
 from ..mesonlib import quiet_git
 import typing as T
 
-if T.TYPE_CHECKING:
-    import subprocess
-
 def parse_pattern_file(fname: Path) -> T.List[str]:
     patterns = []
     try:
@@ -37,7 +34,7 @@ def parse_pattern_file(fname: Path) -> T.List[str]:
         pass
     return patterns
 
-def run_tool(name: str, srcdir: Path, builddir: Path, fn: T.Callable[..., subprocess.CompletedProcess], *args: T.Any) -> int:
+def run_tool(name: str, srcdir: Path, builddir: Path, fn: T.Callable[..., int], *args: T.Any) -> int:
     patterns = parse_pattern_file(srcdir / f'.{name}-include')
     globs: T.Union[T.List[T.List[Path]], T.List[T.Generator[Path, None, None]]]
     if patterns:
@@ -64,5 +61,5 @@ def run_tool(name: str, srcdir: Path, builddir: Path, fn: T.Callable[..., subpro
                 continue
             futures.append(e.submit(fn, f, *args))
         if futures:
-            returncode = max(x.result().returncode for x in futures)
+            returncode = max(x.result() for x in futures)
     return returncode
