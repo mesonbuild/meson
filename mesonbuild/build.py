@@ -1268,7 +1268,7 @@ class BuildTarget(Target):
     def get_outputs(self) -> T.List[str]:
         return self.outputs
 
-    def get_extra_args(self, language):
+    def get_extra_args(self, language: str) -> T.List[str]:
         return self.extra_args.get(language, [])
 
     def get_dependencies(self, exclude=None):
@@ -1286,7 +1286,7 @@ class BuildTarget(Target):
     def get_source_subdir(self):
         return self.subdir
 
-    def get_sources(self):
+    def get_sources(self) -> T.List[File]:
         return self.sources
 
     def get_objects(self) -> T.List[T.Union[str, 'File', 'ExtractedObjects']]:
