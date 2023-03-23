@@ -61,6 +61,7 @@ class BasePlatformTests(TestCase):
         self.meson_cross_files = []
         self.meson_command = python_command + [get_meson_script()]
         self.setup_command = self.meson_command + ['setup'] + self.meson_args
+        self.setup_command_no_backend = self.meson_command + ['setup']
         self.mconf_command = self.meson_command + ['configure']
         self.mintro_command = self.meson_command + ['introspect']
         self.wrap_command = self.meson_command + ['wrap']
@@ -180,6 +181,16 @@ class BasePlatformTests(TestCase):
             raise subprocess.CalledProcessError(p.returncode, command, output=p.stdout)
         return p.stdout
 
+    def has_reconfigure(self, extra_args):
+        if extra_args is None:
+            return False
+        if not isinstance(extra_args, list):
+            extra_args = [extra_args]
+        for a in extra_args:
+            if a.startswith('--reconfigure'):
+                return True
+        return False
+
     def init(self, srcdir, *,
              extra_args=None,
              default_args=True,
@@ -194,6 +205,12 @@ class BasePlatformTests(TestCase):
         :return: the value of stdout on success, or the meson log on failure
             when :param allow_fail: is true
         """
+        if self.has_reconfigure(extra_args):
+            setup_command = self.setup_command_no_backend
+            backend_args = []
+        else:
+            setup_command = self.setup_command
+            backend_args = self.meson_args
         self.assertPathExists(srcdir)
         if extra_args is None:
             extra_args = []
@@ -211,7 +228,7 @@ class BasePlatformTests(TestCase):
         self.privatedir = os.path.join(self.builddir, 'meson-private')
         if inprocess:
             try:
-                returncode, out, err = run_configure_inprocess(['setup'] + self.meson_args + args + extra_args, override_envvars)
+                returncode, out, err = run_configure_inprocess(['setup'] + backend_args + args + extra_args, override_envvars)
             except Exception as e:
                 if not allow_fail:
                     self._print_meson_log()
@@ -237,7 +254,7 @@ class BasePlatformTests(TestCase):
                     raise RuntimeError('Configure failed')
         else:
             try:
-                out = self._run(self.setup_command + args + extra_args, override_envvars=override_envvars, workdir=workdir)
+                out = self._run(setup_command + args + extra_args, override_envvars=override_envvars, workdir=workdir)
             except SkipTest:
                 raise SkipTest('Project requested skipping: ' + srcdir)
             except Exception:

@@ -235,7 +235,20 @@ def set_meson_command(mainfile):
     from . import mesonlib
     mesonlib.set_meson_command(mainfile)
 
+def prevent_backend_change(args):
+    has_reconf = False
+    has_backend = False
+    for arg in args:
+        if arg.startswith('--reconfigure'):
+            has_reconf = True
+        if arg.startswith('--backend'):
+            has_backend = True
+    if has_reconf and has_backend:
+        sys.exit('''Setting the backend during reconfiguration is not supported.
+If you want to change the backend, you must create a new build directory.''')
+
 def run(original_args, mainfile):
+    prevent_backend_change(original_args)
     if os.environ.get('MESON_SHOW_DEPRECATIONS'):
         # workaround for https://bugs.python.org/issue34624
         import warnings
