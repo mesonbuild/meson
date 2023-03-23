@@ -17,6 +17,8 @@ import argparse
 import difflib
 import shutil
 import shlex
+import tempfile
+import os
 from pathlib import Path
 
 from . import run_tool
@@ -36,18 +38,33 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     parser.add_argument('--tool', default=None,
                         help='Command to reformat a single file passed as extra argument. ' +
                              'Must print formatted file on stdout. (Default clang-format).')
+    parser.add_argument('--retries', default=0, type=int,
+                        help='Number of times to retry formatting each file. ' +
+                             'Use this with tools that does not produce stable output on a single run.')
     parser.add_argument('files', nargs='*', type=Path,
                         help='Files to reformat (defaults to all source files).')
 
-def run_formatter(fname: Path, exelist: T.List[str], check: bool) -> int:
-    cmd = exelist + [str(fname)]
+def run_formatter(fname: Path, exelist: T.List[str], check: bool, retries: int) -> int:
+    if retries > 0:
+        tmp = tempfile.NamedTemporaryFile('w', suffix=fname.suffix, delete=False)
+        tmp.close()
     try:
-        p, o, e = Popen_safe(cmd)
-    except UnicodeDecodeError as e:
-        mlog.warning(f'Cannot format {str(fname)}: {str(e)}')
-        return 1
-    if p.returncode != 0:
-        return p.returncode
+        curfile = str(fname)
+        for i in range(retries + 1):
+            try:
+                p, o, e = Popen_safe(exelist + [curfile])
+            except UnicodeDecodeError as exp:
+                mlog.warning(f'Cannot format {str(fname)}: {str(exp)}')
+                return 1
+            if p.returncode != 0:
+                return p.returncode
+            if i < retries:
+                with open(tmp.name, 'w', encoding='utf-8') as f:
+                    f.write(o)
+                curfile = tmp.name
+    finally:
+        if retries > 0:
+            os.unlink(tmp.name)
 
     original = fname.read_text(encoding='utf-8')
     if check:
@@ -105,7 +122,7 @@ def run_cli(options: T.Any) -> int:
             ignore.add(str(Path(options.builddir, '*')))
 
     suffixes = c_suffixes | cpp_suffixes
-    return run_tool.run(globs, ignore, suffixes, run_formatter, exelist, options.check)
+    return run_tool.run(globs, ignore, suffixes, run_formatter, exelist, options.check, options.retries)
 
 def run(args: T.List[str]) -> int:
     '''Run from "ninja clang-format"'''
