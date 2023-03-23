@@ -17,13 +17,14 @@ import os
 import tempfile
 import subprocess
 import textwrap
-from unittest import skipIf
+from unittest import skipIf, SkipTest
 from pathlib import Path
 
 from .baseplatformtests import BasePlatformTests
 from .helpers import is_ci
 from mesonbuild.mesonlib import is_linux
 from mesonbuild.optinterpreter import OptionInterpreter, OptionException
+from run_tests import Backend
 
 @skipIf(is_ci() and not is_linux(), "Run only on fast platforms")
 class PlatformAgnosticTests(BasePlatformTests):
@@ -138,3 +139,27 @@ class PlatformAgnosticTests(BasePlatformTests):
             dat = json.load(f)
         for i in dat['installed']:
             self.assertPathExists(os.path.join(self.installdir, i['file']))
+
+    def test_change_backend(self):
+        if self.backend != Backend.ninja:
+            raise SkipTest('Only useful to test if backend is ninja.')
+
+        testdir = os.path.join(self.python_test_dir, '7 install path')
+        self.init(testdir)
+
+        # no-op change works
+        self.setconf(f'--backend=ninja')
+        self.init(testdir, extra_args=['--reconfigure', '--backend=ninja'])
+
+        # Change backend option is not allowed
+        with self.assertRaises(subprocess.CalledProcessError) as cm:
+            self.setconf('-Dbackend=none')
+        self.assertIn("ERROR: Tried modify read only option 'backend'", cm.exception.stdout)
+
+        # Reconfigure with a different backend is not allowed
+        with self.assertRaises(subprocess.CalledProcessError) as cm:
+            self.init(testdir, extra_args=['--reconfigure', '--backend=none'])
+        self.assertIn("ERROR: Tried modify read only option 'backend'", cm.exception.stdout)
+
+        # Wipe with a different backend is allowed
+        self.init(testdir, extra_args=['--wipe', '--backend=none'])

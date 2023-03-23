@@ -89,6 +89,7 @@ class UserOption(T.Generic[_T], HoldableObject):
             raise MesonException('Value of "yielding" must be a boolean.')
         self.yielding = yielding
         self.deprecated = deprecated
+        self.readonly = False
 
     def listify(self, value: T.Any) -> T.List[T.Any]:
         return [value]
@@ -653,7 +654,7 @@ class CoreData:
 
         raise MesonException(f'Tried to get unknown builtin option {str(key)}')
 
-    def set_option(self, key: OptionKey, value) -> bool:
+    def set_option(self, key: OptionKey, value, first_invocation: bool = False) -> bool:
         dirty = False
         if key.is_builtin():
             if key.name == 'prefix':
@@ -694,9 +695,12 @@ class CoreData:
             newname = opt.deprecated
             newkey = OptionKey.from_string(newname).evolve(subproject=key.subproject)
             mlog.deprecation(f'Option {key.name!r} is replaced by {newname!r}')
-            dirty |= self.set_option(newkey, value)
+            dirty |= self.set_option(newkey, value, first_invocation)
 
-        dirty |= opt.set_value(value)
+        changed = opt.set_value(value)
+        if changed and opt.readonly and not first_invocation:
+            raise MesonException(f'Tried modify read only option {str(key)!r}')
+        dirty |= changed
 
         if key.name == 'buildtype':
             dirty |= self._set_others_from_buildtype(value)
@@ -825,7 +829,7 @@ class CoreData:
 
         return dirty
 
-    def set_options(self, options: T.Dict[OptionKey, T.Any], subproject: str = '') -> bool:
+    def set_options(self, options: T.Dict[OptionKey, T.Any], subproject: str = '', first_invocation: bool = False) -> bool:
         dirty = False
         if not self.is_cross_build():
             options = {k: v for k, v in options.items() if k.machine is not MachineChoice.BUILD}
@@ -843,7 +847,7 @@ class CoreData:
             if k == pfk:
                 continue
             elif k in self.options:
-                dirty |= self.set_option(k, v)
+                dirty |= self.set_option(k, v, first_invocation)
             elif k.machine != MachineChoice.BUILD and k.type != OptionType.COMPILER:
                 unknown_options.append(k)
         if unknown_options:
@@ -892,7 +896,7 @@ class CoreData:
                 continue
             options[k] = v
 
-        self.set_options(options, subproject=subproject)
+        self.set_options(options, subproject=subproject, first_invocation=env.first_invocation)
 
     def add_compiler_options(self, options: 'MutableKeyedOptionDictType', lang: str, for_machine: MachineChoice,
                              env: 'Environment') -> None:
@@ -1145,12 +1149,13 @@ class BuiltinOption(T.Generic[_T, _U]):
     """
 
     def __init__(self, opt_type: T.Type[_U], description: str, default: T.Any, yielding: bool = True, *,
-                 choices: T.Any = None):
+                 choices: T.Any = None, readonly: bool = False):
         self.opt_type = opt_type
         self.description = description
         self.default = default
         self.choices = choices
         self.yielding = yielding
+        self.readonly = readonly
 
     def init_option(self, name: 'OptionKey', value: T.Optional[T.Any], prefix: str) -> _U:
         """Create an instance of opt_type and return it."""
@@ -1159,7 +1164,9 @@ class BuiltinOption(T.Generic[_T, _U]):
         keywords = {'yielding': self.yielding, 'value': value}
         if self.choices:
             keywords['choices'] = self.choices
-        return self.opt_type(self.description, **keywords)
+        o = self.opt_type(self.description, **keywords)
+        o.readonly = self.readonly
+        return o
 
     def _argparse_action(self) -> T.Optional[str]:
         # If the type is a boolean, the presence of the argument in --foo form
@@ -1232,7 +1239,8 @@ BUILTIN_DIR_OPTIONS: 'MutableKeyedOptionDictType' = OrderedDict([
 
 BUILTIN_CORE_OPTIONS: 'MutableKeyedOptionDictType' = OrderedDict([
     (OptionKey('auto_features'),   BuiltinOption(UserFeatureOption, "Override value of all 'auto' features", 'auto')),
-    (OptionKey('backend'),         BuiltinOption(UserComboOption, 'Backend to use', 'ninja', choices=backendlist)),
+    (OptionKey('backend'),         BuiltinOption(UserComboOption, 'Backend to use', 'ninja', choices=backendlist,
+                                                 readonly=True)),
     (OptionKey('buildtype'),       BuiltinOption(UserComboOption, 'Build type to use', 'debug',
                                                  choices=['plain', 'debug', 'debugoptimized', 'release', 'minsize', 'custom'])),
     (OptionKey('debug'),           BuiltinOption(UserBooleanOption, 'Enable debug symbols and other information', True)),
