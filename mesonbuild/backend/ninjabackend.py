@@ -3434,7 +3434,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         if target_name in self.all_outputs:
             return
         cmd = self.environment.get_build_command() + \
-            ['--internal', 'clang' + name, self.environment.source_dir, self.environment.build_dir] + \
+            ['--internal', 'clang' + name, '--sourcedir', self.environment.source_dir, '--builddir', self.environment.build_dir] + \
             extra_args
         elem = self.create_phony_target(self.all_outputs, target_name, 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', cmd)

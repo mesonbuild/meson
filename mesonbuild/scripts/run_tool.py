@@ -18,9 +18,11 @@ import fnmatch
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 
-from ..compilers import lang_suffixes
 from ..mesonlib import quiet_git
 import typing as T
+
+if T.TYPE_CHECKING:
+    GlobsType = T.Union[T.List[T.List[Path]], T.List[T.Generator[Path, None, None]]]
 
 def parse_pattern_file(fname: Path) -> T.List[str]:
     patterns = []
@@ -34,7 +36,7 @@ def parse_pattern_file(fname: Path) -> T.List[str]:
         pass
     return patterns
 
-def run_tool(name: str, srcdir: Path, builddir: Path, fn: T.Callable[..., int], *args: T.Any) -> int:
+def defaults(name: str, srcdir: Path) -> T.Tuple[GlobsType, T.Set[str]]:
     patterns = parse_pattern_file(srcdir / f'.{name}-include')
     globs: T.Union[T.List[T.List[Path]], T.List[T.Generator[Path, None, None]]]
     if patterns:
@@ -46,10 +48,12 @@ def run_tool(name: str, srcdir: Path, builddir: Path, fn: T.Callable[..., int], 
         else:
             globs = [srcdir.glob('**/*')]
     patterns = parse_pattern_file(srcdir / f'.{name}-ignore')
-    ignore = [str(builddir / '*')]
-    ignore.extend([str(srcdir / p) for p in patterns])
-    suffixes = set(lang_suffixes['c']).union(set(lang_suffixes['cpp']))
-    suffixes.add('h')
+    ignore = {str(srcdir / p) for p in patterns}
+    return globs, ignore
+
+def run(globs: GlobsType, ignore: T.Set[str], suffixes: T.Set[str],
+        fn: T.Callable[..., int],
+        *args: T.Any) -> int:
     suffixes = {f'.{s}' for s in suffixes}
     futures = []
     returncode = 0

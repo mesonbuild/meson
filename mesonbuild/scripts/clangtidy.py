@@ -17,7 +17,8 @@ import argparse
 import subprocess
 from pathlib import Path
 
-from .run_tool import run_tool
+from ..compilers import cpp_suffixes, c_suffixes
+from . import run_tool
 import typing as T
 
 def run_clang_tidy(fname: Path, builddir: Path) -> int:
@@ -25,11 +26,14 @@ def run_clang_tidy(fname: Path, builddir: Path) -> int:
 
 def run(args: T.List[str]) -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument('sourcedir')
-    parser.add_argument('builddir')
+    parser.add_argument('--sourcedir')
+    parser.add_argument('--builddir')
     options = parser.parse_args(args)
 
     srcdir = Path(options.sourcedir)
     builddir = Path(options.builddir)
 
-    return run_tool('clang-tidy', srcdir, builddir, run_clang_tidy, builddir)
+    globs, ignore = run_tool.defaults('clang-tidy', srcdir)
+    ignore.add(str(builddir / '*'))
+    suffixes = c_suffixes | cpp_suffixes
+    return run_tool.run(globs, ignore, suffixes, run_clang_tidy, builddir)

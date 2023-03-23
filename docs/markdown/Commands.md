@@ -376,3 +376,13 @@ format should be used. There are currently 3 formats supported:
   seems to be properly supported by vscode.
 
 {{ devenv_arguments.inc }}
+
+### format
+
+*(since 1.1.0)*
+
+{{ format_usage.inc }}
+
+Reformat source files using tools like clang-format or GNU indent.
+
+{{ format_arguments.inc }}
