@@ -713,6 +713,10 @@ class CoreData:
         self.deps.host.clear()
         self.deps.build.clear()
 
+    def clear_cache(self):
+        self.clear_deps_cache()
+        self.compiler_check_cache.clear()
+
     def get_nondefault_buildtype_args(self):
         result = []
         value = self.options[OptionKey('buildtype')].value

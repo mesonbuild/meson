@@ -475,19 +475,19 @@ class CLikeCompiler(Compiler):
         need_exe_wrapper = env.need_exe_wrapper(self.for_machine)
         if need_exe_wrapper and self.exe_wrapper is None:
             raise compilers.CrossNoRunException('Can not run test applications in this cross environment.')
-        with self._build_wrapper(code, env, extra_args, dependencies, mode='link', want_output=True) as p:
-            if p.returncode != 0:
-                mlog.debug(f'Could not compile test file {p.input_name}: {p.returncode}\n')
-                return compilers.RunResult(False)
-            if need_exe_wrapper:
-                cmdlist = self.exe_wrapper.get_command() + [p.output_name]
-            else:
-                cmdlist = [p.output_name]
-            try:
-                pe, so, se = mesonlib.Popen_safe(cmdlist)
-            except Exception as e:
-                mlog.debug(f'Could not run: {cmdlist} (error: {e})\n')
-                return compilers.RunResult(False)
+        p = self.compile(code, env, extra_args, dependencies, mode='link')
+        if p.returncode != 0:
+            mlog.debug(f'Could not compile test file {p.input_name}: {p.returncode}\n')
+            return compilers.RunResult(False)
+        if need_exe_wrapper:
+            cmdlist = self.exe_wrapper.get_command() + [p.output_name]
+        else:
+            cmdlist = [p.output_name]
+        try:
+            pe, so, se = mesonlib.Popen_safe(cmdlist)
+        except Exception as e:
+            mlog.debug(f'Could not run: {cmdlist} (error: {e})\n')
+            return compilers.RunResult(False)
 
         mlog.debug('Program stdout:\n')
         mlog.debug(so)
@@ -667,8 +667,7 @@ class CLikeCompiler(Compiler):
 
     def get_define(self, dname: str, prefix: str, env: 'Environment',
                    extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]]],
-                   dependencies: T.Optional[T.List['Dependency']],
-                   disable_cache: bool = False) -> T.Tuple[str, bool]:
+                   dependencies: T.Optional[T.List['Dependency']]) -> T.Tuple[str, bool]:
         delim = '"MESON_GET_DEFINE_DELIMITER"'
         code = f'''
         {prefix}
@@ -676,19 +675,13 @@ class CLikeCompiler(Compiler):
         # define {dname}
         #endif
         {delim}\n{dname}'''
-        args = self.build_wrapper_args(env, extra_args, dependencies,
-                                       mode=CompileCheckMode.PREPROCESS).to_native()
-        func = functools.partial(self.cached_compile, code, env.coredata, extra_args=args, mode='preprocess')
-        if disable_cache:
-            func = functools.partial(self.compile, code, extra_args=args, mode='preprocess', temp_dir=env.scratch_dir)
-        with func() as p:
-            cached = p.cached
-            if p.returncode != 0:
-                raise mesonlib.EnvironmentException(f'Could not get define {dname!r}')
+        p = self.cached_compile(code, env, extra_args, dependencies, 'preprocess')
+        if p.returncode != 0:
+             raise mesonlib.EnvironmentException(f'Could not get define {dname!r}')
         # Get the preprocessed value after the delimiter,
         # minus the extra newline at the end and
         # merge string literals.
-        return self._concatenate_string_literals(p.stdout.split(delim + '\n')[-1][:-1]), cached
+        return self._concatenate_string_literals(p.stdout.split(delim + '\n')[-1][:-1]), p.cached
 
     def get_return_value(self, fname: str, rtype: str, prefix: str,
                          env: 'Environment', extra_args: T.Optional[T.List[str]],
@@ -919,22 +912,22 @@ class CLikeCompiler(Compiler):
         '''
         args = self.get_compiler_check_args(CompileCheckMode.COMPILE)
         n = '_symbols_have_underscore_prefix_searchbin'
-        with self._build_wrapper(code, env, extra_args=args, mode='compile', want_output=True, temp_dir=env.scratch_dir) as p:
-            if p.returncode != 0:
-                raise RuntimeError(f'BUG: Unable to compile {n!r} check: {p.stderr}')
-            if not os.path.isfile(p.output_name):
-                raise RuntimeError(f'BUG: Can\'t find compiled test code for {n!r} check')
-            with open(p.output_name, 'rb') as o:
-                for line in o:
-                    # Check if the underscore form of the symbol is somewhere
-                    # in the output file.
-                    if b'_' + symbol_name in line:
-                        mlog.debug("Underscore prefix check found prefixed function in binary")
-                        return True
-                    # Else, check if the non-underscored form is present
-                    elif symbol_name in line:
-                        mlog.debug("Underscore prefix check found non-prefixed function in binary")
-                        return False
+        p = self.compile(code, env, extra_args=args, mode='compile')
+        if p.returncode != 0:
+            raise RuntimeError(f'BUG: Unable to compile {n!r} check: {p.stderr}')
+        if not os.path.isfile(p.output_name):
+            raise RuntimeError(f'BUG: Can\'t find compiled test code for {n!r} check')
+        with open(p.output_name, 'rb') as o:
+            for line in o:
+                # Check if the underscore form of the symbol is somewhere
+                # in the output file.
+                if b'_' + symbol_name in line:
+                    mlog.debug("Underscore prefix check found prefixed function in binary")
+                    return True
+                # Else, check if the non-underscored form is present
+                elif symbol_name in line:
+                    mlog.debug("Underscore prefix check found non-prefixed function in binary")
+                    return False
         raise RuntimeError(f'BUG: {n!r} check did not find symbol string in binary')
 
     def _symbols_have_underscore_prefix_define(self, env: 'Environment') -> T.Optional[bool]:
@@ -954,18 +947,17 @@ class CLikeCompiler(Compiler):
         #endif
         {delim}MESON_UNDERSCORE_PREFIX
         '''
-        with self._build_wrapper(code, env, mode='preprocess', want_output=False, temp_dir=env.scratch_dir) as p:
-            if p.returncode != 0:
-                raise RuntimeError(f'BUG: Unable to preprocess _symbols_have_underscore_prefix_define check: {p.stdout}')
-            symbol_prefix = p.stdout.partition(delim)[-1].rstrip()
-
-            mlog.debug(f'Queried compiler for function prefix: __USER_LABEL_PREFIX__ is "{symbol_prefix!s}"')
-            if symbol_prefix == '_':
-                return True
-            elif symbol_prefix == '':
-                return False
-            else:
-                return None
+        p = self.cached_compile(code, env, mode='preprocess')
+        if p.returncode != 0:
+            raise RuntimeError(f'BUG: Unable to preprocess _symbols_have_underscore_prefix_define check: {p.stdout}')
+        symbol_prefix = p.stdout.partition(delim)[-1].rstrip()
+        mlog.debug(f'Queried compiler for function prefix: __USER_LABEL_PREFIX__ is "{symbol_prefix!s}"')
+        if symbol_prefix == '_':
+            return True
+        elif symbol_prefix == '':
+            return False
+        else:
+            return None
 
     def _symbols_have_underscore_prefix_list(self, env: 'Environment') -> T.Optional[bool]:
         '''
