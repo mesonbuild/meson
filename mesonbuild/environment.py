@@ -56,6 +56,64 @@ if T.TYPE_CHECKING:
 
 build_filename = 'meson.build'
 
+def has_build_file(dirname: str) -> bool:
+    fname = os.path.join(dirname, build_filename)
+    return os.path.exists(fname)
+
+def validate_single_dir(builddir: T.Optional[str], dir1: T.Optional[str]) -> T.Tuple[T.Optional[str], T.Optional[str]]:
+    """
+    Extract builddir or sourcedir from [-C builddir] [dir1] CLI
+    - builddir and dir1 are mutually exclusive
+    - dir1 defaults to .
+    - legacy: if dir1 is a path to meson.build, use its parent
+    - one and only one of builddir or sourcedir is returned, the other is None
+    - no validation is done on builddir other than it does not contain a build file
+    Returns (sourcedir, builddir) tuple
+    """
+    if builddir:
+        if dir1:
+            raise MesonException('Build directory specified with both -C and a positional argument')
+        if has_build_file(builddir):
+            raise MesonException(f'Build directory contains a build file {build_filename}.')
+        return None, builddir
+    dir1 = dir1 or '.'
+    if os.path.basename(dir1) == build_filename:
+        return os.path.dirname(dir1) or '.', None
+    if has_build_file(dir1):
+        return dir1, None
+    return None, dir1
+
+def validate_dirs(builddir: T.Optional[str], dir1: T.Optional[str], dir2: T.Optional[str]) -> T.Tuple[str, str]:
+    """
+    Extract builddir and sourcedir from [-C builddir] [dir1 [dir2]] CLI
+    - builddir and dir2 are mutually exclusive
+    - dir1 and dir2 defaults to . and ..
+    - sourcedir is guaranteed to have a build file
+    - no validation is done on builddir other than it does not contain a build file
+    Returns (sourcedir, builddir) tuple
+    """
+    assert not dir2 or dir1
+    if builddir:
+        if dir2:
+            raise MesonException('Build directory specified with both -C and a positional argument')
+        if has_build_file(builddir):
+            raise MesonException(f'Build directory contains a build file {build_filename}.')
+        dir1 = dir1 or '.'
+        if not has_build_file(dir1):
+            raise MesonException(f'Source directory {dir1!r} does not contain a build file {build_filename}')
+        return dir1, builddir
+    if not dir1:
+        if not has_build_file('.') and has_build_file('..'):
+            return '..', '.'
+        raise MesonException('Must specify at least one directory name.')
+    dir2 = dir2 or '.'
+    if has_build_file(dir1):
+        if has_build_file(dir2):
+            raise MesonException(f'Both {dir1!r} and {dir2!r} directories contain a build file {build_filename}.')
+        return dir1, dir2
+    if has_build_file(dir2):
+        return dir2, dir1
+    raise MesonException(f'Neither {dir1!r} nor {dir2!r} directories contain a build file {build_filename}.')
 
 def _get_env_var(for_machine: MachineChoice, is_cross: bool, var_name: str) -> T.Optional[str]:
     """

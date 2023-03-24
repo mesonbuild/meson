@@ -41,8 +41,8 @@ archive_extension = {'gztar': '.tar.gz',
                      'zip': '.zip'}
 
 def add_arguments(parser):
-    parser.add_argument('-C', dest='wd', action=RealPathAction,
-                        help='directory to cd into before running')
+    parser.add_argument('-C', '-B', dest='wd', action=RealPathAction,
+                        help='The directory containing build files (default to current directory).')
     parser.add_argument('--allow-dirty', action='store_true',
                         help='Allow even when repository contains uncommitted changes.')
     parser.add_argument('--formats', default='xztar',

@@ -69,8 +69,8 @@ build definitions so that it will not break when the change happens.'''
 selinux_updates: T.List[str] = []
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument('-C', dest='wd', action=RealPathAction,
-                        help='directory to cd into before running')
+    parser.add_argument('-C', '-B', dest='wd', action=RealPathAction,
+                        help='The directory containing build files (default to current directory).')
     parser.add_argument('--profile-self', action='store_true', dest='profile',
                         help=argparse.SUPPRESS)
     parser.add_argument('--no-rebuild', default=False, action='store_true',

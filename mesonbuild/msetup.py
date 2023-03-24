@@ -70,13 +70,18 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
                         help='Wipe build directory and reconfigure using previous command line options. ' +
                              'Useful when build directory got corrupted, or when rebuilding with a ' +
                              'newer version of meson.')
-    parser.add_argument('builddir', nargs='?', default=None)
-    parser.add_argument('sourcedir', nargs='?', default=None)
+    parser.add_argument('-B', dest='builddir', default=None,
+                        help='The directory containing build files (optional).')
+    parser.add_argument('dir1', nargs='?', default=None, metavar='build or source dir',
+                        help='Directory containing build or source files (default to current directory).')
+    parser.add_argument('dir2', nargs='?', default=None, metavar='build or source dir',
+                        help='Directory containing build or source files (default to parent directory, conflicts with -C).')
 
 class MesonApp:
     def __init__(self, options: argparse.Namespace) -> None:
         (self.source_dir, self.build_dir) = self.validate_dirs(options.builddir,
-                                                               options.sourcedir,
+                                                               options.dir1,
+                                                               options.dir2,
                                                                options.reconfigure,
                                                                options.wipe)
         if options.wipe:
@@ -117,42 +122,6 @@ class MesonApp:
         fname = os.path.join(dirname, environment.build_filename)
         return os.path.exists(fname)
 
-    def validate_core_dirs(self, dir1: str, dir2: str) -> T.Tuple[str, str]:
-        invalid_msg_prefix = f'Neither source directory {dir1!r} nor build directory {dir2!r}'
-        if dir1 is None:
-            if dir2 is None:
-                if not os.path.exists('meson.build') and os.path.exists('../meson.build'):
-                    dir2 = '..'
-                else:
-                    raise MesonException('Must specify at least one directory name.')
-            dir1 = os.getcwd()
-        if dir2 is None:
-            dir2 = os.getcwd()
-        ndir1 = os.path.abspath(os.path.realpath(dir1))
-        ndir2 = os.path.abspath(os.path.realpath(dir2))
-        if not os.path.exists(ndir1) and not os.path.exists(ndir2):
-            raise MesonException(f'{invalid_msg_prefix} exist.')
-        try:
-            os.makedirs(ndir1, exist_ok=True)
-        except FileExistsError as e:
-            raise MesonException(f'{dir1} is not a directory') from e
-        try:
-            os.makedirs(ndir2, exist_ok=True)
-        except FileExistsError as e:
-            raise MesonException(f'{dir2} is not a directory') from e
-        if os.path.samefile(ndir1, ndir2):
-            # Fallback to textual compare if undefined entries found
-            has_undefined = any((s.st_ino == 0 and s.st_dev == 0) for s in (os.stat(ndir1), os.stat(ndir2)))
-            if not has_undefined or ndir1 == ndir2:
-                raise MesonException('Source and build directories must not be the same. Create a pristine build directory.')
-        if self.has_build_file(ndir1):
-            if self.has_build_file(ndir2):
-                raise MesonException(f'Both directories contain a build file {environment.build_filename}.')
-            return ndir1, ndir2
-        if self.has_build_file(ndir2):
-            return ndir2, ndir1
-        raise MesonException(f'{invalid_msg_prefix} contain a build file {environment.build_filename}.')
-
     def add_vcs_ignore_files(self, build_dir: str) -> None:
         if os.listdir(build_dir):
             return
@@ -161,8 +130,14 @@ class MesonApp:
         with open(os.path.join(build_dir, '.hgignore'), 'w', encoding='utf-8') as ofile:
             ofile.write(hg_ignore_file)
 
-    def validate_dirs(self, dir1: str, dir2: str, reconfigure: bool, wipe: bool) -> T.Tuple[str, str]:
-        (src_dir, build_dir) = self.validate_core_dirs(dir1, dir2)
+    def validate_dirs(self, builddir: T.Optional[str], dir1: T.Optional[str], dir2: T.Optional[str], reconfigure: bool, wipe: bool) -> T.Tuple[str, str]:
+        (src_dir, build_dir) = environment.validate_dirs(builddir, dir1, dir2)
+        src_dir = os.path.abspath(os.path.realpath(src_dir))
+        build_dir = os.path.abspath(os.path.realpath(build_dir))
+        try:
+            os.makedirs(build_dir, exist_ok=True)
+        except FileExistsError as e:
+            raise MesonException(f'{build_dir} is not a directory') from e
         self.add_vcs_ignore_files(build_dir)
         priv_dir = os.path.join(build_dir, 'meson-private/coredata.dat')
         if os.path.exists(priv_dir):

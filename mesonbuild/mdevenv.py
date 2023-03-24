@@ -19,8 +19,8 @@ if T.TYPE_CHECKING:
 POWERSHELL_EXES = {'pwsh.exe', 'powershell.exe'}
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument('-C', dest='builddir', type=Path, default='.',
-                        help='Path to build directory')
+    parser.add_argument('-C', '-B', dest='builddir', type=Path, default='.',
+                        help='The directory containing build files (default to current directory).')
     parser.add_argument('--workdir', '-w', type=Path, default=None,
                         help='Directory to cd into before running (default: builddir, Since 1.0.0)')
     parser.add_argument('--dump', nargs='?', const=True,
