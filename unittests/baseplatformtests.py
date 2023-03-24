@@ -55,8 +55,10 @@ class BasePlatformTests(TestCase):
         src_root = str(PurePath(__file__).parents[1])
         self.src_root = src_root
         # Get the backend
-        self.backend = getattr(Backend, os.environ['MESON_UNIT_TEST_BACKEND'])
-        self.meson_args = ['--backend=' + self.backend.name]
+        self.backend_name = os.environ['MESON_UNIT_TEST_BACKEND']
+        backend_type = 'vs' if self.backend_name.startswith('vs') else self.backend_name
+        self.backend = getattr(Backend, backend_type)
+        self.meson_args = ['--backend=' + self.backend_name]
         self.meson_native_files = []
         self.meson_cross_files = []
         self.meson_command = python_command + [get_meson_script()]
