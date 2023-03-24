@@ -3460,7 +3460,7 @@ class AllPlatformTests(BasePlatformTests):
                 subsub         : YES
 
               User defined options
-                backend        : ''' + self.backend.name + '''
+                backend        : ''' + self.backend_name + '''
                 libdir         : lib
                 prefix         : /usr
                 enabled_opt    : enabled

@@ -358,7 +358,7 @@ def main():
     parser.add_argument('--no-unittests', action='store_true', default=False)
     (options, _) = parser.parse_known_args()
     returncode = 0
-    backend, _ = guess_backend(options.backend, shutil.which('msbuild'))
+    _, backend_flags = guess_backend(options.backend, shutil.which('msbuild'))
     no_unittests = options.no_unittests
     # Running on a developer machine? Be nice!
     if not mesonlib.is_windows() and not mesonlib.is_haiku() and 'CI' not in os.environ:
@@ -394,7 +394,7 @@ def main():
         else:
             print(mlog.bold('Running unittests.'))
             print(flush=True)
-            cmd = mesonlib.python_command + ['run_unittests.py', '--backend=' + backend.name, '-v']
+            cmd = mesonlib.python_command + ['run_unittests.py', '-v'] + backend_flags
             if options.failfast:
                 cmd += ['--failfast']
             returncode += subprocess_call(cmd, env=env)
