@@ -391,7 +391,8 @@ class CmakeModule(ExtensionModule):
         if not os.path.isabs(abs_install_dir):
             abs_install_dir = os.path.join(prefix, install_dir)
 
-        PACKAGE_RELATIVE_PATH = os.path.relpath(prefix, abs_install_dir)
+        # path used in cmake scripts are POSIX even on Windows
+        PACKAGE_RELATIVE_PATH = pathlib.PurePath(os.path.relpath(prefix, abs_install_dir)).as_posix()
         extra = ''
         if re.match('^(/usr)?/lib(64)?/.+', abs_install_dir):
             extra = PACKAGE_INIT_EXT.replace('@absInstallDir@', abs_install_dir)
