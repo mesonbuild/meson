@@ -380,7 +380,8 @@ class NinjaBuildElement:
         if len(self.deps) > 0:
             line += ' | ' + ' '.join([ninja_quote(x, True) for x in sorted(self.deps)])
         if len(self.orderdeps) > 0:
-            line += ' || ' + ' '.join([ninja_quote(x, True) for x in sorted(self.orderdeps)])
+            orderdeps = [str(x) for x in self.orderdeps]
+            line += ' || ' + ' '.join([ninja_quote(x, True) for x in sorted(orderdeps)])
         line += '\n'
         # This is the only way I could find to make this work on all
         # platforms including Windows command shell. Slash is a dir separator
@@ -956,7 +957,7 @@ class NinjaBackend(backends.Backend):
         obj_targets = [t for t in od if t.uses_fortran()]
         obj_list.extend(o)
 
-        fortran_order_deps = [self.get_target_filename(t) for t in obj_targets]
+        fortran_order_deps = [File(True, *os.path.split(self.get_target_filename(t))) for t in obj_targets]
         fortran_inc_args: T.List[str] = []
         if target.uses_fortran():
             fortran_inc_args = mesonlib.listify([target.compilers['fortran'].get_include_args(
@@ -1049,7 +1050,7 @@ class NinjaBackend(backends.Backend):
         return True
 
     def generate_dependency_scan_target(self, target, compiled_sources, source2object, generated_source_files: T.List[mesonlib.File],
-                                        object_deps: T.List[str]) -> None:
+                                        object_deps: T.List['mesonlib.FileOrString']) -> None:
         if not self.should_use_dyndeps_for_target(target):
             return
         depscan_file = self.get_dep_scan_file_for(target)
@@ -2836,7 +2837,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
     def generate_single_compile(self, target: build.BuildTarget, src,
                                 is_generated=False, header_deps=None,
-                                order_deps: T.Optional[T.List[str]] = None,
+                                order_deps: T.Optional[T.List['mesonlib.FileOrString']] = None,
                                 extra_args: T.Optional[T.List[str]] = None,
                                 unity_sources: T.Optional[T.List[mesonlib.FileOrString]] = None) -> None:
         """
