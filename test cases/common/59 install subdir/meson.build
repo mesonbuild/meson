@@ -7,6 +7,12 @@ install_subdir('sub2',
   exclude_directories : ['excluded'],
   install_dir : 'share')
 
+# More exclusions
+install_subdir('sub3',
+  exclude_files : ['data/excluded.txt'],
+  exclude_directories : ['data/excluded'],
+  install_dir : 'share')
+
 subdir('subdir')
 # A subdir with write perms only for the owner
 # and read-list perms for owner and group

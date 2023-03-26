@@ -440,14 +440,15 @@ class AllPlatformTests(BasePlatformTests):
         self.init(testdir)
         intro = self.introspect('--installed')
         expected = {
-            'sub2': 'share/sub2',
-            'subdir/sub1': 'share/sub1',
-            'subdir/sub_elided': 'share',
-            'sub1': 'share/sub1',
-            'sub/sub1': 'share/sub1',
-            'sub_elided': 'share',
             'nested_elided/sub': 'share',
             'new_directory': 'share/new_directory',
+            'sub/sub1': 'share/sub1',
+            'sub1': 'share/sub1',
+            'sub2': 'share/sub2',
+            'sub3': '/usr/share/sub3',
+            'sub_elided': 'share',
+            'subdir/sub1': 'share/sub1',
+            'subdir/sub_elided': 'share',
         }
 
         self.assertEqual(len(intro), len(expected))

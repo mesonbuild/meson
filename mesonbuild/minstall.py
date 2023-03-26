@@ -482,6 +482,8 @@ class Installer:
             raise ValueError(f'dst_dir must be absolute, got {dst_dir}')
         if exclude is not None:
             exclude_files, exclude_dirs = exclude
+            exclude_files = {os.path.normpath(x) for x in exclude_files}
+            exclude_dirs = {os.path.normpath(x) for x in exclude_dirs}
         else:
             exclude_files = exclude_dirs = set()
         for root, dirs, files in os.walk(src_dir):
