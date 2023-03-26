@@ -283,7 +283,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
         # https://sourceforge.net/p/mingw-w64/mailman/message/30504611/
         # https://github.com/python/cpython/pull/100137
         if pyarch == '64' and mesonlib.version_compare(self.version, '<3.12'):
-            self.compile_args += ['-DMS_WIN64']
+            self.compile_args += ['-DMS_WIN64=']
 
         self.is_found = True
 
