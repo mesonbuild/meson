@@ -1678,6 +1678,64 @@ class LinuxlikeTests(BasePlatformTests):
         windows_proof_rmtree(os.path.join(testdir, 'subprojects', 'foo'))
         os.unlink(wrap_filename)
 
+    def test_wrap_with_file_url_and_env_expansion(self):
+        testdir = os.path.join(self.unit_test_dir, '72 wrap file url and env expansion')
+        source_filename = os.path.join(testdir, 'subprojects', 'foo.tar.xz')
+        patch_filename = os.path.join(testdir, 'subprojects', 'foo-patch.tar.xz')
+        wrap_filename = os.path.join(testdir, 'subprojects', 'foo.wrap')
+        source_hash = self.compute_sha256(source_filename)
+        patch_hash = self.compute_sha256(patch_filename)
+        wrap = textwrap.dedent("""\
+            [wrap-file]
+            basename = foo
+            directory = %(basename)s
+
+            source_url = file://${{SOURCE_FILENAME}}
+            source_filename = %(basename)s.tar.xz
+            source_hash = {}
+
+            patch_url = file://${{PATCH_FILENAME}}
+            patch_filename = %(basename)s-patch.tar.xz
+            patch_hash = {}
+            """.format(source_hash, patch_hash))
+        with open(wrap_filename, 'w', encoding='utf-8') as f:
+            f.write(wrap)
+        self.init(testdir, override_envvars={'SOURCE_FILENAME': source_filename, 'PATCH_FILENAME': patch_filename})
+        self.build()
+        self.run_tests()
+
+        windows_proof_rmtree(os.path.join(testdir, 'subprojects', 'packagecache'))
+        windows_proof_rmtree(os.path.join(testdir, 'subprojects', 'foo'))
+        os.unlink(wrap_filename)
+
+    def test_wrap_with_file_url_and_hash_url(self):
+        testdir = os.path.join(self.unit_test_dir, '72 wrap file url and hash url')
+        source_filename = os.path.join(testdir, 'subprojects', 'foo.tar.xz')
+        patch_filename = os.path.join(testdir, 'subprojects', 'foo-patch.tar.xz')
+        wrap_filename = os.path.join(testdir, 'subprojects', 'foo.wrap')
+        hash_filename = os.path.join(testdir, 'subprojects', 'foo.sha256sum')
+        wrap = textwrap.dedent("""\
+            [wrap-file]
+            directory = foo
+
+            source_url = file://{}
+            source_filename = foo.tar.xz
+            source_hash_url = file://{}
+
+            patch_url = file://{}
+            patch_filename = foo-patch.tar.xz
+            patch_hash_url = file://{}
+            """.format(source_filename, hash_filename, patch_filename, hash_filename))
+        with open(wrap_filename, 'w', encoding='utf-8') as f:
+            f.write(wrap)
+        self.init(testdir)
+        self.build()
+        self.run_tests()
+
+        windows_proof_rmtree(os.path.join(testdir, 'subprojects', 'packagecache'))
+        windows_proof_rmtree(os.path.join(testdir, 'subprojects', 'foo'))
+        os.unlink(wrap_filename)
+
     def test_no_rpath_for_static(self):
         testdir = os.path.join(self.common_test_dir, '5 linkstatic')
         self.init(testdir)

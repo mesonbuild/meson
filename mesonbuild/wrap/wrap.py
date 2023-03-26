@@ -141,6 +141,11 @@ class WrapException(MesonException):
 class WrapNotFoundException(WrapException):
     pass
 
+class EnvInterpolation(configparser.BasicInterpolation):
+    def before_get(self, parser, section, option, value, defaults):
+        value = super().before_get(parser, section, option, value, defaults)
+        return os.path.expandvars(value)
+
 class PackageDefinition:
     def __init__(self, fname: str, subproject: str = ''):
         self.filename = fname
@@ -171,7 +176,7 @@ class PackageDefinition:
 
     def parse_wrap(self) -> None:
         try:
-            config = configparser.ConfigParser(interpolation=None)
+            config = configparser.ConfigParser(interpolation=EnvInterpolation())
             config.read(self.filename, encoding='utf-8')
         except configparser.Error as e:
             raise WrapException(f'Failed to parse {self.basename}: {e!s}')
@@ -705,10 +710,34 @@ class Resolver:
             hashvalue = h.hexdigest()
         return hashvalue, tmpfile.name
 
+    def get_hash(self, what: str) -> str:
+        expected = None
+        if what + '_hash' in self.wrap.values:
+            expected = self.wrap.get(what + '_hash').lower()
+        elif what + '_hash_url' in self.wrap.values:
+            filename = self.wrap.get(what + '_filename')
+            mlog.log(f'Downloading', mlog.bold(self.packagename), what, 'hash file from', mlog.bold(self.wrap.get(what + '_hash_url')))
+            _, hashfile = self.get_data_with_backoff(self.wrap.get(what + '_hash_url'))
+            with open(hashfile, 'r', encoding='utf-8') as hashlist:
+                for line in hashlist:
+                    fhash, fname = line.strip().split()
+                    if fname == filename:
+                        expected = fhash.lower()
+                        break
+            os.remove(hashfile)
+            if expected is None:
+                raise WrapException(f'No hash found for {self.packagename} {what}')
+        else:
+            raise WrapException(f'Missing key {what}_hash or {what}_hash_url')
+        return expected
+
     def check_hash(self, what: str, path: str, hash_required: bool = True) -> None:
-        if what + '_hash' not in self.wrap.values and not hash_required:
-            return
-        expected = self.wrap.get(what + '_hash').lower()
+        try:
+            expected = self.get_hash(what)
+        except WrapException:
+            if not hash_required:
+                return
+            raise
         h = hashlib.sha256()
         with open(path, 'rb') as f:
             h.update(f.read())
@@ -728,11 +757,11 @@ class Resolver:
 
     def download(self, what: str, ofname: str, fallback: bool = False) -> None:
         self.check_can_download()
+        expected = self.get_hash(what)
         srcurl = self.wrap.get(what + ('_fallback_url' if fallback else '_url'))
         mlog.log('Downloading', mlog.bold(self.packagename), what, 'from', mlog.bold(srcurl))
         try:
             dhash, tmpfile = self.get_data_with_backoff(srcurl)
-            expected = self.wrap.get(what + '_hash').lower()
             if dhash != expected:
                 os.remove(tmpfile)
                 raise WrapException(f'Incorrect hash for {what}:\n {expected} expected\n {dhash} actual.')
