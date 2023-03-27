@@ -4,6 +4,9 @@ short-description: Videos about Meson
 
 # Videos
 
+ - [The Meson build system overview](https://www.youtube.com/watch?v=rewhp5o0xZg), PyCon US
+   2022
+
  - [Behind (and under) the scenes of the Meson build
    system](https://www.youtube.com/watch?v=iLN6wL7ExHU), Linux.conf.au
    2020
