@@ -34,7 +34,7 @@ import json
 
 from base64 import b64encode
 from netrc import netrc
-from pathlib import Path
+from pathlib import Path, PurePath
 
 from . import WrapMode
 from .. import coredata
@@ -430,10 +430,10 @@ class Resolver:
                 # Write a dummy wrap file in main project that redirect to the
                 # wrap we picked.
                 with open(main_fname, 'w', encoding='utf-8') as f:
-                    f.write(textwrap.dedent('''\
+                    f.write(textwrap.dedent(f'''\
                         [wrap-redirect]
-                        filename = {}
-                        '''.format(os.path.relpath(self.wrap.filename, self.subdir_root))))
+                        filename = {PurePath(os.path.relpath(self.wrap.filename, self.subdir_root)).as_posix()}
+                        '''))
         else:
             # No wrap file, it's a dummy package definition for an existing
             # directory. Use the source code in place.
