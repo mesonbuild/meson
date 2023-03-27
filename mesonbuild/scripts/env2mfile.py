@@ -134,6 +134,7 @@ def get_args_from_envvars(infos: MachineInfo) -> None:
 deb_cpu_family_map = {
     'mips64el': 'mips64',
     'i686': 'x86',
+    'powerpc64le': 'ppc64',
 }
 
 deb_cpu_map = {
