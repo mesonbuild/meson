@@ -2595,11 +2595,18 @@ class CustomTarget(Target, CommandBase):
                 raise InvalidArguments('Substitution in depfile for custom_target that does not have an input file.')
             return self.depfile
 
+    def is_linkable_output(self, output: str) -> bool:
+        if output.endswith(('.a', '.dll', '.lib', '.so', '.dylib')):
+            return True
+        # libfoo.so.X soname
+        if re.search(r'\.so(\.\d+)*$', output):
+            return True
+        return False
+
     def is_linkable_target(self) -> bool:
         if len(self.outputs) != 1:
             return False
-        suf = os.path.splitext(self.outputs[0])[-1]
-        return suf in {'.a', '.dll', '.lib', '.so', '.dylib'}
+        return self.is_linkable_output(self.outputs[0])
 
     def links_dynamically(self) -> bool:
         """Whether this target links dynamically or statically
@@ -2868,8 +2875,7 @@ class CustomTargetIndex(HoldableObject):
         return self.target.get_link_dep_subdirs()
 
     def is_linkable_target(self) -> bool:
-        suf = os.path.splitext(self.output)[-1]
-        return suf in {'.a', '.dll', '.lib', '.so', '.dylib'}
+        return self.target.is_linkable_output(self.output)
 
     def links_dynamically(self) -> bool:
         """Whether this target links dynamically or statically
