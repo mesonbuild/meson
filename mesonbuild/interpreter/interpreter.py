@@ -864,10 +864,9 @@ class Interpreter(InterpreterBase, HoldableObject):
         REQUIRED_KW,
         DEFAULT_OPTIONS.evolve(since='0.38.0'),
         KwargInfo('version', ContainerTypeInfo(list, str), default=[], listify=True),
-        KwargInfo('revision', ContainerTypeInfo(list, str), default=[], listify=True),
+        KwargInfo('revision', str, default=""),
     )
 
-    ##########################################################################################
     def func_subproject(self, nodes: mparser.BaseNode, args: T.Tuple[str], kwargs: kwtypes.Subproject) -> SubprojectHolder:
         kw: kwtypes.DoSubproject = {
             'required': kwargs['required'],
@@ -893,7 +892,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             return self.disabled_subproject(subp_name, disabled_feature=feature)
 
         default_options = coredata.create_options_dict(kwargs['default_options'], subp_name)
-
+        revision = ""
         if subp_name == '':
             raise InterpreterException('Subproject name must not be empty.')
         if subp_name[0] == '.':
@@ -919,9 +918,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                 if pv == 'undefined' or not mesonlib.version_compare_many(pv, wanted)[0]:
                     raise InterpreterException(f'Subproject {subp_name} version is {pv} but {wanted} required.')
             return subproject
-        revision = ""
-        if kwargs['revision']:
-            revision = kwargs['revision'][0]
+        if 'revision' in kwargs:
+            revision = kwargs['revision']
 
         r = self.environment.wrap_resolver
         try:
