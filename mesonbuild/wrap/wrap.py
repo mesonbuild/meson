@@ -34,7 +34,7 @@ import json
 
 from base64 import b64encode
 from netrc import netrc
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 from . import WrapMode
 from .. import coredata
@@ -193,7 +193,10 @@ class PackageDefinition:
                 raise WrapException('wrap-redirect filename must be a .wrap file')
             fname = dirname / fname
             if not fname.is_file():
-                raise WrapException(f'wrap-redirect {fname} filename does not exist')
+                # try as a windows path in case the redirect was generated on windows but read on posix-like os
+                fname = dirname / PureWindowsPath(self.values['filename'])
+                if not fname.is_file():
+                    raise WrapException(f'wrap-redirect {fname} filename does not exist')
             self.filename = str(fname)
             self.parse_wrap()
             self.redirected = True
