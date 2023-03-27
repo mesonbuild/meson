@@ -864,12 +864,16 @@ class Interpreter(InterpreterBase, HoldableObject):
         REQUIRED_KW,
         DEFAULT_OPTIONS.evolve(since='0.38.0'),
         KwargInfo('version', ContainerTypeInfo(list, str), default=[], listify=True),
+        KwargInfo('revision', ContainerTypeInfo(list, str), default=[], listify=True),
     )
+
+    ##########################################################################################
     def func_subproject(self, nodes: mparser.BaseNode, args: T.Tuple[str], kwargs: kwtypes.Subproject) -> SubprojectHolder:
         kw: kwtypes.DoSubproject = {
             'required': kwargs['required'],
             'default_options': kwargs['default_options'],
             'version': kwargs['version'],
+            'revision': kwargs['revision'],
             'options': None,
             'cmake_options': [],
         }
@@ -915,10 +919,13 @@ class Interpreter(InterpreterBase, HoldableObject):
                 if pv == 'undefined' or not mesonlib.version_compare_many(pv, wanted)[0]:
                     raise InterpreterException(f'Subproject {subp_name} version is {pv} but {wanted} required.')
             return subproject
+        revision = ""
+        if kwargs['revision']:
+            revision = kwargs['revision'][0]
 
         r = self.environment.wrap_resolver
         try:
-            subdir = r.resolve(subp_name, method)
+            subdir = r.resolve(subp_name, revision, method)
         except wrap.WrapException as e:
             if not required:
                 mlog.log(e)

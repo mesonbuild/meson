@@ -403,9 +403,10 @@ class Resolver:
                 return wrap_name
         return None
 
-    def resolve(self, packagename: str, method: str) -> str:
+    def resolve(self, packagename: str, revision: str, method: str) -> str:
         self.packagename = packagename
         self.directory = packagename
+        self.revision = revision
         self.wrap = self.wraps.get(packagename)
         if not self.wrap:
             self.wrap = self.get_from_wrapdb(packagename)
@@ -549,7 +550,20 @@ class Resolver:
     def get_git(self) -> None:
         if not GIT:
             raise WrapException(f'Git program not found, cannot download {self.packagename}.wrap via git.')
-        revno = self.wrap.get('revision')
+
+        # If the revision is unconditional
+        if 'revision' in self.wrap.values:
+            revno = self.wrap.get('revision')
+            if self.revision != '':
+                raise WrapException('An unconditional revision was found, but a revision was specified in subproject call')
+       
+        else:  # If the revision is dependent
+            # If the revision is found
+            if ('revision.'+self.revision) in self.wrap.values:
+                revno = self.wrap.get('revision.'+self.revision)
+            else:
+                raise WrapException(f'Could not find revision for profile: {self.revision}')
+
         checkout_cmd = ['-c', 'advice.detachedHead=false', 'checkout', revno, '--']
         is_shallow = False
         depth_option = []    # type: T.List[str]
