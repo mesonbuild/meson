@@ -281,6 +281,7 @@ class GeneratorMD(GeneratorBase):
     def _write_object(self, obj: Object) -> None:
         data = {
             'name': obj.name,
+            'title': obj.long_name if obj.obj_type == ObjectType.RETURNED else obj.name,
             'description': obj.description,
             'notes': obj.notes,
             'warnings': obj.warnings,
