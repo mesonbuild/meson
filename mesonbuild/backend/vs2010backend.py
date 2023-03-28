@@ -544,6 +544,11 @@ class Vs2010Backend(backends.Backend):
             tid = self.environment.coredata.target_guids[dep.get_id()]
             self.add_project_reference(root, vcxproj, tid)
 
+    def create_basic_project_filters(self):
+        root = ET.Element('Project', {'ToolsVersion': '4.0',
+                                      'xmlns': 'http://schemas.microsoft.com/developer/msbuild/2003'})
+        return root
+
     def create_basic_project(self, target_name, *,
                              temp_dir,
                              guid,
@@ -818,6 +823,39 @@ class Vs2010Backend(backends.Backend):
         return f'"{option}"'
 
     @staticmethod
+    def add_filter_info(list_filters_path, filter_group, sub_element, file_path, forced_filter_name=None, down=''):
+        filter_inc_cl = ET.SubElement(filter_group, sub_element, Include=file_path)
+
+        # Force the subdir
+        if forced_filter_name:
+            filter_path = forced_filter_name
+        else:
+            # Create a subdir following the placement if on the same drive
+            filter_path = Path(file_path).resolve().parent
+            if Path(file_path).drive == Path(down).drive:
+                filter_path = Path(os.path.relpath(str(filter_path), down)).as_posix().replace('../', '').replace('..', '')
+            else:
+                return  # No filter needed
+
+        # Needed to have non posix path
+        filter_path = filter_path.replace('/', '\\')
+
+        if filter_path and filter_path != '.':
+            # Remove ending backslash
+            filter_path = filter_path.rstrip('\\')
+            # Create a hierarchical level of directories
+            list_path = filter_path.split('\\')
+            new_filter_path = ''
+            for path in list_path:
+                if new_filter_path:
+                    new_filter_path = new_filter_path + '\\' + path
+                else:
+                    new_filter_path = path
+                list_filters_path.add(new_filter_path)
+            # Create a new filter node for the current file added
+            ET.SubElement(filter_inc_cl, 'Filter').text = filter_path
+
+    @staticmethod
     def split_link_args(args):
         """
         Split a list of link arguments into three lists:
@@ -927,6 +965,8 @@ class Vs2010Backend(backends.Backend):
                                                         conftype=conftype,
                                                         target_ext=tfilename[1],
                                                         target_platform=platform)
+        # vcxproj.filters file
+        root_filter = self.create_basic_project_filters()
 
         # FIXME: Should these just be set in create_basic_project(), even if
         # irrelevant for current target?
@@ -1378,31 +1418,44 @@ class Vs2010Backend(backends.Backend):
             else:
                 return False
 
+        list_filters_path = set()
+
         previous_includes = []
         if len(headers) + len(gen_hdrs) + len(target.extra_files) + len(pch_sources) > 0:
+            # Filter information
+            filter_group_include = ET.SubElement(root_filter, 'ItemGroup')
+
             inc_hdrs = ET.SubElement(root, 'ItemGroup')
             for h in headers:
                 relpath = os.path.join(down, h.rel_to_builddir(self.build_to_src))
                 if path_normalize_add(relpath, previous_includes):
+                    self.add_filter_info(list_filters_path, filter_group_include, 'ClInclude', relpath, h.subdir)
                     ET.SubElement(inc_hdrs, 'CLInclude', Include=relpath)
             for h in gen_hdrs:
                 if path_normalize_add(h, previous_includes):
+                    self.add_filter_info(list_filters_path, filter_group_include, 'ClInclude', h)
                     ET.SubElement(inc_hdrs, 'CLInclude', Include=h)
             for h in target.extra_files:
                 relpath = os.path.join(down, h.rel_to_builddir(self.build_to_src))
                 if path_normalize_add(relpath, previous_includes):
+                    self.add_filter_info(list_filters_path, filter_group_include, 'ClInclude', relpath, h.subdir)
                     ET.SubElement(inc_hdrs, 'CLInclude', Include=relpath)
             for headers in pch_sources.values():
                 path = os.path.join(proj_to_src_dir, headers[0])
                 if path_normalize_add(path, previous_includes):
+                    self.add_filter_info(list_filters_path, filter_group_include, 'ClInclude', path, 'pch')
                     ET.SubElement(inc_hdrs, 'CLInclude', Include=path)
 
         previous_sources = []
         if len(sources) + len(gen_src) + len(pch_sources) > 0:
+            # Filter information
+            filter_group_compile = ET.SubElement(root_filter, 'ItemGroup')
+
             inc_src = ET.SubElement(root, 'ItemGroup')
             for s in sources:
                 relpath = os.path.join(down, s.rel_to_builddir(self.build_to_src))
                 if path_normalize_add(relpath, previous_sources):
+                    self.add_filter_info(list_filters_path, filter_group_compile, 'CLCompile', relpath, s.subdir)
                     inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=relpath)
                     lang = Vs2010Backend.lang_from_source_file(s)
                     self.add_pch(pch_sources, lang, inc_cl)
@@ -1413,6 +1466,7 @@ class Vs2010Backend(backends.Backend):
                         self.object_filename_from_source(target, s)
             for s in gen_src:
                 if path_normalize_add(s, previous_sources):
+                    self.add_filter_info(list_filters_path, filter_group_compile, 'CLCompile', s)
                     inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=s)
                     lang = Vs2010Backend.lang_from_source_file(s)
                     self.add_pch(pch_sources, lang, inc_cl)
@@ -1425,6 +1479,7 @@ class Vs2010Backend(backends.Backend):
             for lang, headers in pch_sources.items():
                 impl = headers[1]
                 if impl and path_normalize_add(impl, previous_sources):
+                    self.add_filter_info(list_filters_path, filter_group_compile, 'CLCompile', impl, 'pch')
                     inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=impl)
                     self.create_pch(pch_sources, lang, inc_cl)
                     self.add_additional_options(lang, inc_cl, file_args)
@@ -1437,6 +1492,12 @@ class Vs2010Backend(backends.Backend):
                         inc_dirs = file_inc_dirs
                     self.add_include_dirs(lang, inc_cl, inc_dirs)
                     # XXX: Do we need to set the object file name here too?
+
+        # Filter information
+        filter_group = ET.SubElement(root_filter, 'ItemGroup')
+        for filter_dir in list_filters_path:
+            filter = ET.SubElement(filter_group, 'Filter', Include=filter_dir)
+            ET.SubElement(filter, 'UniqueIdentifier').text = '{' + str(uuid.uuid4()) + '}'
 
         previous_objects = []
         if self.has_objects(objects, additional_objects, gen_objs):
@@ -1454,6 +1515,7 @@ class Vs2010Backend(backends.Backend):
         self.add_regen_dependency(root)
         self.add_target_deps(root, target)
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
+        self._prettyprint_vcxproj_xml(ET.ElementTree(root_filter), ofname + '.filters')
 
     def gen_regenproj(self, project_name, ofname):
         guid = self.environment.coredata.regen_guid
