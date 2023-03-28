@@ -2020,7 +2020,7 @@ class AllPlatformTests(BasePlatformTests):
 
     def test_subproject_promotion(self):
         testdir = os.path.join(self.unit_test_dir, '12 promote')
-        workdir = os.path.join(self.builddir, 'work')
+        workdir = os.path.join(self.builddir, '..', 'work')
         shutil.copytree(testdir, workdir)
         spdir = os.path.join(workdir, 'subprojects')
         s3dir = os.path.join(spdir, 's3')
@@ -2049,7 +2049,7 @@ class AllPlatformTests(BasePlatformTests):
 
     def test_subproject_promotion_wrap(self):
         testdir = os.path.join(self.unit_test_dir, '43 promote wrap')
-        workdir = os.path.join(self.builddir, 'work')
+        workdir = os.path.join(self.builddir, '..', 'work')
         shutil.copytree(testdir, workdir)
         spdir = os.path.join(workdir, 'subprojects')
 

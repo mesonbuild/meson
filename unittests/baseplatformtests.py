@@ -110,7 +110,9 @@ class BasePlatformTests(TestCase):
         # In case the directory is inside a symlinked directory, find the real
         # path otherwise we might not find the srcdir from inside the builddir.
         newdir = os.path.realpath(newdir)
-        self.change_builddir(newdir)
+        builddir = os.path.join(newdir, 'build')
+        os.mkdir(builddir)
+        self.change_builddir(builddir)
 
     def new_builddir_in_tempdir(self):
         # Can't keep the builddir inside the source tree for the umask tests:

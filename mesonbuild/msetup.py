@@ -24,6 +24,7 @@ import argparse
 import tempfile
 import shutil
 import glob
+from pathlib import Path
 
 from . import environment, interpreter, mesonlib
 from . import build
@@ -161,6 +162,8 @@ class MesonApp:
 
     def validate_dirs(self, dir1: str, dir2: str, reconfigure: bool, wipe: bool) -> T.Tuple[str, str]:
         (src_dir, build_dir) = self.validate_core_dirs(dir1, dir2)
+        if Path(build_dir) in Path(src_dir).parents:
+            raise MesonException('Source directory must not be inside of the build directory.')
         if not os.listdir(build_dir):
             self.add_vcs_ignore_files(build_dir)
             return src_dir, build_dir
