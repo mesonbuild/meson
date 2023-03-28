@@ -165,16 +165,21 @@ class MesonApp:
         has_partial_build = os.path.isdir(priv_dir)
         if has_valid_build:
             if not reconfigure and not wipe:
-                print('Directory already configured.\n'
-                      '\nJust run your build command (e.g. ninja) and Meson will regenerate as necessary.\n'
+                print('Directory already configured.\n\n'
+                      'Just run your build command (e.g. ninja) and Meson will regenerate as necessary.\n'
                       'If ninja fails, run "ninja reconfigure" or "meson setup --reconfigure"\n'
-                      'to force Meson to regenerate.\n'
-                      '\nIf build failures persist, run "meson setup --wipe" to rebuild from scratch\n'
-                      'using the same options as passed when configuring the build.'
-                      '\nTo change option values, run "meson configure" instead.')
-                raise SystemExit
+                      'to force Meson to regenerate.\n\n'
+                      'If build failures persist, run "meson setup --wipe" to rebuild from scratch\n'
+                      'using the same options as passed when configuring the build.\n'
+                      'To change option values, run "meson configure" instead.')
+                # FIXME: This returns success and ignores new option values from CLI.
+                # We should either make this a hard error, or update options and
+                # return success.
+                # Note that making this an error would not be backward compatible (and also isn't
+                # universally agreed on): https://github.com/mesonbuild/meson/pull/4249.
+                raise SystemExit(0)
         elif not has_partial_build and 'MESON_RUNNING_IN_PROJECT_TESTS' not in os.environ:
-            raise SystemExit(f'Directory is not empty and does not contain a previous build:\n{build_dir}')
+            raise MesonException(f'Directory is not empty and does not contain a previous build:\n{build_dir}')
         return src_dir, build_dir
 
     def generate(self) -> None:
