@@ -507,7 +507,7 @@ class InterpreterBase:
         func_name = node.func_name
         (h_posargs, h_kwargs) = self.reduce_arguments(node.args)
         (posargs, kwargs) = self._unholder_args(h_posargs, h_kwargs)
-        if is_disabled(posargs, kwargs) and func_name not in {'get_variable', 'set_variable', 'unset_variable', 'is_disabler'}:
+        if is_disabled(posargs, kwargs) and func_name not in {'get_variable', 'set_variable', 'unset_variable', 'is_disabler', 'message', 'debug', 'warning', 'error'}:
             return Disabler()
         if func_name in self.funcs:
             func = self.funcs[func_name]

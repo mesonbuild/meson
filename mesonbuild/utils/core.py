@@ -68,6 +68,9 @@ class HoldableObject(metaclass=abc.ABCMeta):
     ''' Dummy base class for all objects that can be
         held by an interpreter.baseobjects.ObjectHolder '''
 
+    def display_repr(self) -> str:
+        return type(self).__name__ + repr(self.__dict__)
+
 class EnvironmentVariables(HoldableObject):
     def __init__(self, values: T.Optional[EnvInitValueType] = None,
                  init_method: Literal['set', 'prepend', 'append'] = 'set', separator: str = os.pathsep) -> None:

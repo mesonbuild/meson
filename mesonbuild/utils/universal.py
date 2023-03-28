@@ -456,6 +456,9 @@ class File(HoldableObject):
     def relative_name(self) -> str:
         return os.path.join(self.subdir, self.fname)
 
+    def display_repr(self) -> str:
+        return f'file<{self.relative_name()}>'
+
 
 def get_compiler_for_source(compilers: T.Iterable['Compiler'], src: 'FileOrString') -> 'Compiler':
     """Given a set of compilers and a source, find the compiler for that source type."""

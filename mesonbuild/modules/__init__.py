@@ -222,6 +222,9 @@ class NewExtensionModule(ModuleObject):
     def get_devenv(self) -> T.Optional['EnvironmentVariables']:
         return None
 
+    def display_repr(self) -> str:
+        return f'{self.__module__.rsplit(".", maxsplit=1)[-1]}-module'
+
 # FIXME: Port all modules to stop using self.interpreter and use API on
 # ModuleState instead. Modules should stop using this class and instead use
 # ModuleObject base class.

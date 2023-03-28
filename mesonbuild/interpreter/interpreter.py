@@ -110,6 +110,7 @@ if T.TYPE_CHECKING:
 
     from . import kwargs as kwtypes
     from ..backend.backends import Backend
+    from .interpreterbase import SubProject
     from ..interpreterbase.baseobjects import InterpreterObject, TYPE_var, TYPE_kwargs
     from ..programs import OverrideProgram
 
@@ -134,18 +135,19 @@ def _project_version_validator(value: T.Union[T.List, str, mesonlib.File, None])
     return None
 
 
-def stringifyUserArguments(args: T.List[T.Any], quote: bool = False) -> str:
+def stringifyUserArguments(subproject: 'SubProject', args: T.List[T.Any], quote: bool = False) -> str:
     if isinstance(args, list):
-        return '[%s]' % ', '.join([stringifyUserArguments(x, True) for x in args])
+        return '[%s]' % ', '.join([stringifyUserArguments(subproject, x, True) for x in args])
     elif isinstance(args, dict):
-        return '{%s}' % ', '.join(['{} : {}'.format(stringifyUserArguments(k, True), stringifyUserArguments(v, True)) for k, v in args.items()])
+        return '{%s}' % ', '.join(['{} : {}'.format(stringifyUserArguments(subproject, k, True), stringifyUserArguments(subproject, v, True)) for k, v in args.items()])
     elif isinstance(args, bool):
         return 'true' if args else 'false'
     elif isinstance(args, int):
         return str(args)
     elif isinstance(args, str):
         return f"'{args}'" if quote else args
-    raise InvalidArguments('Function accepts only strings, integers, bools, lists, dictionaries and lists thereof.')
+    FeatureNew.single_use('Printing of complex types', '1.1.0', subproject)
+    return args.display_repr()
 
 class Summary:
     def __init__(self, project_name: str, project_version: str):
@@ -1313,7 +1315,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_message(self, node: mparser.BaseNode, args, kwargs):
         if len(args) > 1:
             FeatureNew.single_use('message with more than one argument', '0.54.0', self.subproject, location=node)
-        args_str = [stringifyUserArguments(i) for i in args]
+        args_str = [stringifyUserArguments(self.subproject, i) for i in args]
         self.message_impl(args_str)
 
     def message_impl(self, args):
@@ -1389,7 +1391,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_warning(self, node, args, kwargs):
         if len(args) > 1:
             FeatureNew.single_use('warning with more than one argument', '0.54.0', self.subproject, location=node)
-        args_str = [stringifyUserArguments(i) for i in args]
+        args_str = [stringifyUserArguments(self.subproject, i) for i in args]
         mlog.warning(*args_str, location=node)
 
     @noArgsFlattening
@@ -1397,14 +1399,14 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_error(self, node, args, kwargs):
         if len(args) > 1:
             FeatureNew.single_use('error with more than one argument', '0.58.0', self.subproject, location=node)
-        args_str = [stringifyUserArguments(i) for i in args]
+        args_str = [stringifyUserArguments(self.subproject, i) for i in args]
         raise InterpreterException('Problem encountered: ' + ' '.join(args_str))
 
     @noArgsFlattening
     @FeatureNew('debug', '0.63.0')
     @noKwargs
     def func_debug(self, node, args, kwargs):
-        args_str = [stringifyUserArguments(i) for i in args]
+        args_str = [stringifyUserArguments(self.subproject, i) for i in args]
         mlog.debug('Debug:', *args_str)
 
     @noKwargs
