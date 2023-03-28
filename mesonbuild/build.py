@@ -1875,6 +1875,9 @@ class Executable(BuildTarget):
             elif ('c' in self.compilers and self.compilers['c'].get_id() in {'ti', 'c2000'} or
                   'cpp' in self.compilers and self.compilers['cpp'].get_id() in {'ti', 'c2000'}):
                 self.suffix = 'out'
+            elif ('c' in self.compilers and self.compilers['c'].get_id() in {'mwccarm', 'mwcceppc'} or
+                  'cpp' in self.compilers and self.compilers['cpp'].get_id() in {'mwccarm', 'mwcceppc'}):
+                self.suffix = 'nef'
             else:
                 self.suffix = machine.get_exe_suffix()
         self.filename = self.name

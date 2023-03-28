@@ -327,6 +327,28 @@ class AIXArLinker(ArLikeLinker):
     std_args = ['-csr', '-Xany']
 
 
+class MetrowerksStaticLinker(StaticLinker):
+
+    def can_linker_accept_rsp(self) -> bool:
+        return True
+
+    def get_linker_always_args(self) -> T.List[str]:
+        return ['-library']
+
+    def get_output_args(self, target: str) -> T.List[str]:
+        return ['-o', target]
+
+    def rsp_file_syntax(self) -> RSPFileSyntax:
+        return RSPFileSyntax.GCC
+
+
+class MetrowerksStaticLinkerARM(MetrowerksStaticLinker):
+    id = 'mwldarm'
+
+
+class MetrowerksStaticLinkerEmbeddedPowerPC(MetrowerksStaticLinker):
+    id = 'mwldeppc'
+
 def prepare_rpaths(raw_rpaths: T.Tuple[str, ...], build_dir: str, from_dir: str) -> T.List[str]:
     # The rpaths we write must be relative if they point to the build dir,
     # because otherwise they have different length depending on the build
@@ -1554,3 +1576,46 @@ class CudaLinker(PosixDynamicLinkerMixin, DynamicLinker):
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str, darwin_versions: T.Tuple[str, str]) -> T.List[str]:
         return []
+
+
+class MetrowerksLinker(DynamicLinker):
+
+    def __init__(self, exelist: T.List[str], for_machine: mesonlib.MachineChoice,
+                 *, version: str = 'unknown version'):
+        super().__init__(exelist, for_machine, '', [],
+                         version=version)
+
+    def fatal_warnings(self) -> T.List[str]:
+        return ['-w', 'error']
+
+    def get_allow_undefined_args(self) -> T.List[str]:
+        return []
+
+    def get_accepts_rsp(self) -> bool:
+        return True
+
+    def get_lib_prefix(self) -> str:
+        return ""
+
+    def get_linker_always_args(self) -> T.List[str]:
+        return []
+
+    def get_output_args(self, target: str) -> T.List[str]:
+        return ['-o', target]
+
+    def get_search_args(self, dirname: str) -> T.List[str]:
+        return self._apply_prefix('-L' + dirname)
+
+    def invoked_by_compiler(self) -> bool:
+        return False
+
+    def rsp_file_syntax(self) -> RSPFileSyntax:
+        return RSPFileSyntax.GCC
+
+
+class MetrowerksLinkerARM(MetrowerksLinker):
+    id = 'mwldarm'
+
+
+class MetrowerksLinkerEmbeddedPowerPC(MetrowerksLinker):
+    id = 'mwldeppc'

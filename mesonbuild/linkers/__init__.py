@@ -36,6 +36,9 @@ from .linkers import (
     AIXArLinker,
     PGIStaticLinker,
     NvidiaHPC_StaticLinker,
+    MetrowerksStaticLinker,
+    MetrowerksStaticLinkerARM,
+    MetrowerksStaticLinkerEmbeddedPowerPC,
 
     DynamicLinker,
     PosixDynamicLinkerMixin,
@@ -58,6 +61,9 @@ from .linkers import (
     PGIDynamicLinker,
     NvidiaHPC_DynamicLinker,
     NAGDynamicLinker,
+    MetrowerksLinker,
+    MetrowerksLinkerARM,
+    MetrowerksLinkerEmbeddedPowerPC,
 
     VisualStudioLikeLinkerMixin,
     MSVCDynamicLinker,
@@ -98,6 +104,9 @@ __all__ = [
     'AppleArLinker',
     'PGIStaticLinker',
     'NvidiaHPC_StaticLinker',
+    'MetrowerksStaticLinker',
+    'MetrowerksStaticLinkerARM',
+    'MetrowerksStaticLinkerEmbeddedPowerPC',
 
     'DynamicLinker',
     'PosixDynamicLinkerMixin',
@@ -120,6 +129,9 @@ __all__ = [
     'PGIDynamicLinker',
     'NvidiaHPC_DynamicLinker',
     'NAGDynamicLinker',
+    'MetrowerksLinker',
+    'MetrowerksLinkerARM',
+    'MetrowerksLinkerEmbeddedPowerPC',
 
     'VisualStudioLikeLinkerMixin',
     'MSVCDynamicLinker',

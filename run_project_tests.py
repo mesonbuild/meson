@@ -212,7 +212,9 @@ class InstalledFile:
                     suffix = '{}.{}'.format(suffix, '.'.join(self.version))
             return p.with_suffix(suffix)
         elif self.typ == 'exe':
-            if env.machines.host.is_windows() or env.machines.host.is_cygwin():
+            if 'mwcc' in canonical_compiler:
+                return p.with_suffix('.nef')
+            elif env.machines.host.is_windows() or env.machines.host.is_cygwin():
                 return p.with_suffix('.exe')
         elif self.typ == 'pdb':
             if self.version:

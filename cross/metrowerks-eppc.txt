@@ -1,0 +1,28 @@
+# This file assumes that the path to your Metrowerks toolchain
+# of choice is added to the environment(PATH) variable, so that
+# Meson can find the binaries while building.
+
+# You should also do one of the following to ensure Meson can
+# locate the .lcf linker script:
+# - Add the cross directory to PATH as well
+# - Edit c_link_args and cpp_link_args with the full
+#   path to the lcf file on your machine
+
+[binaries]
+c = 'mwcceppc'
+c_ld = 'mwldeppc'
+cpp = 'mwcceppc'
+cpp_ld = 'mwldeppc'
+ar = 'mwldeppc'
+as = 'mwasmeppc'
+
+[built-in options]
+c_args = ['-lang', 'c99', '-nosyspath']
+c_link_args = 'metrowerks.lcf'
+cpp_args = ['-lang', 'c++', '-nosyspath']
+cpp_link_args = 'metrowerks.lcf'
+
+[host_machine]
+system = 'bare metal'
+cpu_family = 'ppc'
+endian = 'little'
