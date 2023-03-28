@@ -24,6 +24,7 @@ import argparse
 import tempfile
 import shutil
 import glob
+from pathlib import Path
 
 from . import environment, interpreter, mesonlib
 from . import build
@@ -157,6 +158,8 @@ class MesonApp:
 
     def validate_dirs(self, dir1: str, dir2: str, reconfigure: bool, wipe: bool) -> T.Tuple[str, str]:
         (src_dir, build_dir) = self.validate_core_dirs(dir1, dir2)
+        if Path(build_dir) in Path(src_dir).parents:
+            raise MesonException(f'Build directory {build_dir} cannot be a parent of source directory {src_dir}')
         if not os.listdir(build_dir):
             self.add_vcs_ignore_files(build_dir)
             return src_dir, build_dir
@@ -178,7 +181,7 @@ class MesonApp:
                 # Note that making this an error would not be backward compatible (and also isn't
                 # universally agreed on): https://github.com/mesonbuild/meson/pull/4249.
                 raise SystemExit(0)
-        elif not has_partial_build and 'MESON_RUNNING_IN_PROJECT_TESTS' not in os.environ:
+        elif not has_partial_build and wipe:
             raise MesonException(f'Directory is not empty and does not contain a previous build:\n{build_dir}')
         return src_dir, build_dir
 

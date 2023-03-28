@@ -163,3 +163,38 @@ class PlatformAgnosticTests(BasePlatformTests):
 
         # Wipe with a different backend is allowed
         self.init(testdir, extra_args=['--wipe', '--backend=none'])
+
+    def test_validate_dirs(self):
+        testdir = os.path.join(self.common_test_dir, '1 trivial')
+
+        # Using parent as builddir should fail
+        self.builddir = os.path.dirname(self.builddir)
+        with self.assertRaises(subprocess.CalledProcessError) as cm:
+            self.init(testdir)
+        self.assertIn('cannot be a parent of source directory', cm.exception.stdout)
+
+        # Reconfigure of empty builddir should work
+        self.new_builddir()
+        self.init(testdir, extra_args=['--reconfigure'])
+
+        # Reconfigure of not empty builddir should work
+        self.new_builddir()
+        Path(self.builddir, 'dummy').touch()
+        self.init(testdir, extra_args=['--reconfigure'])
+
+        # Wipe of empty builddir should work
+        self.new_builddir()
+        self.init(testdir, extra_args=['--wipe'])
+
+        # Wipe of partial builddir should work
+        self.new_builddir()
+        Path(self.builddir, 'meson-private').mkdir()
+        Path(self.builddir, 'dummy').touch()
+        self.init(testdir, extra_args=['--wipe'])
+
+        # Wipe of not empty builddir should fail
+        self.new_builddir()
+        Path(self.builddir, 'dummy').touch()
+        with self.assertRaises(subprocess.CalledProcessError) as cm:
+            self.init(testdir, extra_args=['--wipe'])
+        self.assertIn('Directory is not empty', cm.exception.stdout)
