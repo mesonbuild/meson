@@ -36,7 +36,7 @@ if T.TYPE_CHECKING:
     from .cpp import CPPCompiler
     from .fortran import FortranCompiler
     from .rust import RustCompiler
-    from ..linkers import StaticLinker
+    from ..linkers import StaticLinker, DynamicLinker
     from ..environment import Environment
     from ..programs import ExternalProgram
 
@@ -237,6 +237,11 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
                 return linkers.TILinker(linker)
         if out.startswith('The CompCert'):
             return linkers.CompCertLinker(linker)
+        if out.strip().startswith('Metrowerks') or out.strip().startswith('Freescale'):
+            if 'ARM' in out:
+                return linkers.MetrowerksStaticLinkerARM(linker)
+            else:
+                return linkers.MetrowerksStaticLinkerEmbeddedPowerPC(linker)
         if p.returncode == 0:
             return linkers.ArLinker(compiler.for_machine, linker)
         if p.returncode == 1 and err.startswith('usage'): # OSX
@@ -269,6 +274,7 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
     is_cross = env.is_cross_build(for_machine)
     info = env.machines[for_machine]
     cls: T.Union[T.Type[CCompiler], T.Type[CPPCompiler]]
+    lnk: T.Union[T.Type[StaticLinker], T.Type[DynamicLinker]]
 
     for compiler in compilers:
         if isinstance(compiler, str):
@@ -529,7 +535,6 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
                 ccache, compiler, version, for_machine, is_cross, info,
                 exe_wrap, full_version=full_version, linker=l)
         if 'TMS320C2000 C/C++' in out or 'MSP430 C/C++' in out or 'TI ARM C/C++ Compiler' in out:
-            lnk: T.Union[T.Type[linkers.C2000DynamicLinker], T.Type[linkers.TIDynamicLinker]]
             if 'TMS320C2000 C/C++' in out:
                 cls = c.C2000CCompiler if lang == 'c' else cpp.C2000CPPCompiler
                 lnk = linkers.C2000DynamicLinker
@@ -542,7 +547,7 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             return cls(
                 ccache, compiler, version, for_machine, is_cross, info,
                 exe_wrap, full_version=full_version, linker=linker)
-        if 'ARM' in out:
+        if 'ARM' in out and not ('Metrowerks' in out or 'Freescale' in out):
             cls = c.ArmCCompiler if lang == 'c' else cpp.ArmCPPCompiler
             env.coredata.add_lang_args(cls.language, cls, for_machine, env)
             linker = linkers.ArmDynamicLinker(for_machine, version=version)
@@ -571,6 +576,36 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             linker = linkers.CompCertDynamicLinker(for_machine, version=version)
             return cls(
                 ccache, compiler, version, for_machine, is_cross, info,
+                exe_wrap, full_version=full_version, linker=linker)
+
+        if 'Metrowerks C/C++' in out or 'Freescale C/C++' in out:
+            if 'ARM' in out:
+                cls = c.MetrowerksCCompilerARM if lang == 'c' else cpp.MetrowerksCPPCompilerARM
+                lnk = linkers.MetrowerksLinkerARM
+            else:
+                cls = c.MetrowerksCCompilerEmbeddedPowerPC if lang == 'c' else cpp.MetrowerksCPPCompilerEmbeddedPowerPC
+                lnk = linkers.MetrowerksLinkerEmbeddedPowerPC
+
+            mwcc_ver_match = re.search(r'Version (\d+)\.(\d+)\.?(\d+)? build (\d+)', out)
+            assert mwcc_ver_match is not None, 'for mypy'  # because mypy *should* be complaning that this could be None
+            compiler_version = '.'.join(x for x in mwcc_ver_match.groups() if x is not None)
+
+            env.coredata.add_lang_args(cls.language, cls, for_machine, env)
+            ld = env.lookup_binary_entry(for_machine, cls.language + '_ld')
+
+            if ld is not None:
+                _, o_ld, _ = Popen_safe(ld + ['--version'])
+
+                mwld_ver_match = re.search(r'Version (\d+)\.(\d+)\.?(\d+)? build (\d+)', o_ld)
+                assert mwld_ver_match is not None, 'for mypy'  # because mypy *should* be complaning that this could be None
+                linker_version = '.'.join(x for x in mwld_ver_match.groups() if x is not None)
+
+                linker = lnk(ld, for_machine, version=linker_version)
+            else:
+                raise EnvironmentException(f'Failed to detect linker for {cls.id!r} compiler. Please update your cross file(s).')
+
+            return cls(
+                ccache, compiler, compiler_version, for_machine, is_cross, info,
                 exe_wrap, full_version=full_version, linker=linker)
 
     _handle_exceptions(popen_exceptions, compilers)

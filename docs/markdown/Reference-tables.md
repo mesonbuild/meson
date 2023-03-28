@@ -25,6 +25,8 @@ These are return values of the `get_id` (Compiler family) and
 | lcc       | Elbrus C/C++/Fortran Compiler    |                 |
 | llvm      | LLVM-based compiler (Swift, D)   |                 |
 | mono      | Xamarin C# compiler              |                 |
+| mwccarm   | Metrowerks C/C++ compiler for Embedded ARM         |                 |
+| mwcceppc  | Metrowerks C/C++ compiler for Embedded PowerPC     |                 |
 | msvc      | Microsoft Visual Studio          | msvc            |
 | nagfor    | The NAG Fortran compiler         |                 |
 | nvidia_hpc| NVidia HPC SDK compilers         |                 |
@@ -69,6 +71,8 @@ These are return values of the `get_linker_id` method in a compiler object.
 | pgi        | Portland/Nvidia PGI                         |
 | nvlink     | Nvidia Linker used with cuda                |
 | ccomp      | CompCert used as the linker driver          |
+| mwldarm    | The Metrowerks Linker with the ARM interface, used with mwccarm only |
+| mwldeppc   | The Metrowerks Linker with the PowerPC interface, used with mwcceppc only |
 
 For languages that don't have separate dynamic linkers such as C# and Java, the
 `get_linker_id` will return the compiler name.
