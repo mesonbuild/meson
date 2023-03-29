@@ -45,14 +45,16 @@ void increment_mmx(float arr[4]) {
      * enough to fit in int16;
      */
     int i;
+    /* This is unused due to below comment about GCC 8.
     __m64 packed = _mm_set_pi16(arr[3], arr[2], arr[1], arr[0]);
     __m64 incr = _mm_set1_pi16(1);
     __m64 result = _mm_add_pi16(packed, incr);
-    /* Should be
+    int64_t unpacker = (int64_t)(result);
+     */
+    /* The above should be
      * int64_t unpacker = _m_to_int64(result);
      * but it does not exist on 32 bit platforms for some reason.
      */
-    int64_t unpacker = (int64_t)(result);
     _mm_empty();
     for(i=0; i<4; i++) {
       /* This fails on GCC 8 when optimizations are enabled.

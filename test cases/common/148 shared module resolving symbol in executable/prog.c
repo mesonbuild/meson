@@ -30,7 +30,7 @@ int main(int argc, char **argv)
   int expected, actual;
   fptr importedfunc;
 
-  if (argc=0) {};  // noop
+  (void)argc;  // noop
 
 #ifdef _WIN32
   HMODULE h = LoadLibraryA(argv[1]);
