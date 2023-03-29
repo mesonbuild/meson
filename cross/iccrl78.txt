@@ -1,0 +1,20 @@
+# This file assumes that path to the IAR C toolchain is added
+# to the environment(PATH) variable, so that Meson can find
+# iccrl78 and ilinkrl78 while building.
+[binaries]
+c = 'iccrl78'
+cpp = 'iccrl78'
+ar = 'iarchive'
+strip = 'ilinkrl78'
+
+[built-in options]
+c_args      = []
+cpp_args    = []
+c_link_args = []
+cpp_link_args = []
+
+[host_machine]
+system = 'bare metal'
+cpu_family = 'rl78'
+cpu = 'r5f104gl'
+endian = 'little'

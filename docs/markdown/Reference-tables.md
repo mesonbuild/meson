@@ -11,6 +11,7 @@ These are return values of the `get_id` (Compiler family) and
 | armclang  | ARMCLANG compiler                |                 |
 | ccomp     | The CompCert formally-verified C compiler |        |
 | ccrx      | Renesas RX Family C/C++ compiler |                 |
+| iccrl78   | The IAR C compiler (RL78 Family) |                 |
 | clang     | The Clang compiler               | gcc             |
 | clang-cl  | The Clang compiler (MSVC compatible driver) | msvc |
 | dmd       | D lang reference compiler        |                 |
