@@ -12,6 +12,8 @@ project('include order', 'c')
 
 # Custom target dir with a built header
 subdir('ctsub')
+# Configures a header file
+subdir('inc3')
 # Defines an internal dep
 subdir('sub1')
 # Defines a per-target include path
@@ -32,5 +34,5 @@ test('eh', e)
 test('oh', f)
 
 # Test that the order in include_directories() is maintained
-incs = include_directories('inc1', 'inc2')
+incs = include_directories('inc1', 'inc2', 'inc3')
 executable('ordertest', 'ordertest.c', include_directories: incs)
