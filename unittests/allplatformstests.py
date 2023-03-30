@@ -852,7 +852,7 @@ class AllPlatformTests(BasePlatformTests):
         name = None
         for target in targets:
             for target_sources in target["target_sources"]:
-                for generated_source in target_sources["generated_sources"]:
+                for generated_source in target_sources.get("generated_sources", []):
                     if "includestuff.pyx.c" in generated_source:
                         name = generated_source
                         break
@@ -1266,6 +1266,8 @@ class AllPlatformTests(BasePlatformTests):
         # This assumes all of the targets support lto
         for t in targets:
             for s in t['target_sources']:
+                if 'linker' in s:
+                    continue
                 for e in expected:
                     self.assertIn(e, s['parameters'])
 
@@ -2984,8 +2986,11 @@ class AllPlatformTests(BasePlatformTests):
             ('benchmarks', list),
             ('buildoptions', list),
             ('buildsystem_files', list),
+            ('compilers', dict),
             ('dependencies', list),
+            ('install_plan', dict),
             ('installed', dict),
+            ('machines', dict),
             ('projectinfo', dict),
             ('targets', list),
             ('tests', list),
@@ -3027,9 +3032,15 @@ class AllPlatformTests(BasePlatformTests):
 
         dependencies_typelist = [
             ('name', str),
+            ('type', str),
             ('version', str),
             ('compile_args', list),
             ('link_args', list),
+            ('include_directories', list),
+            ('sources', list),
+            ('extra_files', list),
+            ('deps', list),
+            ('meson_variables', list),
         ]
 
         targets_typelist = [
@@ -3042,8 +3053,11 @@ class AllPlatformTests(BasePlatformTests):
             ('target_sources', list),
             ('extra_files', list),
             ('subproject', (str, None)),
+            ('dependencies', list),
             ('install_filename', (list, None)),
             ('installed', bool),
+            ('vs_module_defs', (str, None)),
+            ('win_subsystem', (str, None)),
         ]
 
         targets_sources_typelist = [
@@ -3052,6 +3066,12 @@ class AllPlatformTests(BasePlatformTests):
             ('parameters', list),
             ('sources', list),
             ('generated_sources', list),
+            ('unity_sources', (list, None)),
+        ]
+
+        target_sources_linker_typelist = [
+            ('linker', list),
+            ('parameters', list),
         ]
 
         # First load all files
@@ -3075,7 +3095,7 @@ class AllPlatformTests(BasePlatformTests):
             name_to_out.update({i['name']: i['filename']})
             for group in i['target_sources']:
                 src_to_id.update({os.path.relpath(src, testdir): i['id']
-                                  for src in group['sources']})
+                                  for src in group.get('sources', [])})
 
         # Check Tests and benchmarks
         tests_to_find = ['test case 1', 'test case 2', 'benchmark 1']
@@ -3155,8 +3175,11 @@ class AllPlatformTests(BasePlatformTests):
                 self.assertPathEqual(i['defined_in'], os.path.join(testdir, tgt[3]))
                 targets_to_find.pop(i['name'], None)
             for j in i['target_sources']:
-                assertKeyTypes(targets_sources_typelist, j)
-                self.assertEqual(j['sources'], [os.path.normpath(f) for f in tgt[4]])
+                if 'compiler' in j:
+                    assertKeyTypes(targets_sources_typelist, j)
+                    self.assertEqual(j['sources'], [os.path.normpath(f) for f in tgt[4]])
+                else:
+                    assertKeyTypes(target_sources_linker_typelist, j)
         self.assertDictEqual(targets_to_find, {})
 
     def test_introspect_file_dump_equals_all(self):
@@ -3169,9 +3192,11 @@ class AllPlatformTests(BasePlatformTests):
             'benchmarks',
             'buildoptions',
             'buildsystem_files',
+            'compilers',
             'dependencies',
             'installed',
             'install_plan',
+            'machines',
             'projectinfo',
             'targets',
             'tests',
@@ -3244,12 +3269,13 @@ class AllPlatformTests(BasePlatformTests):
         res_wb = [i for i in res_wb if i['type'] != 'custom']
         for i in res_wb:
             i['filename'] = [os.path.relpath(x, self.builddir) for x in i['filename']]
-            if 'install_filename' in i:
-                del i['install_filename']
-
+            for k in ('install_filename', 'dependencies', 'win_subsystem'):
+                if k in i:
+                    del i[k]
+                    
             sources = []
             for j in i['target_sources']:
-                sources += j['sources']
+                sources += j.get('sources', [])
             i['target_sources'] = [{
                 'language': 'unknown',
                 'compiler': [],
