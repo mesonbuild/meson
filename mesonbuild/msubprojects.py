@@ -216,7 +216,8 @@ class Runner:
             # Note: `--all` is used, and not `--include-untracked`, to prevent
             # a potential error if `.meson-subproject-wrap-hash.txt` matches a
             # gitignore pattern.
-            self.git_verbose(['stash', 'push', '--all', ':!/.meson-subproject-wrap-hash.txt'])
+            # We must add the dot in addition to the negation, because older versions of git have a bug.
+            self.git_verbose(['stash', 'push', '--all', ':!/.meson-subproject-wrap-hash.txt', '.'])
 
     def git_show(self) -> None:
         commit_message = self.git_output(['show', '--quiet', '--pretty=format:%h%n%d%n%s%n[%an]'])
