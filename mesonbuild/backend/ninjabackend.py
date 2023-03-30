@@ -746,7 +746,8 @@ class NinjaBackend(backends.Backend):
                 return False
         return True
 
-    def create_target_source_introspection(self, target: build.Target, comp: compilers.Compiler, parameters, sources, generated_sources):
+    def create_target_source_introspection(self, target: build.Target, comp: compilers.Compiler, parameters, sources, generated_sources,
+                                           unity_sources: T.Optional[T.List[mesonlib.FileOrString]] = None):
         '''
         Adds the source file introspection information for a language of a target
 
@@ -781,16 +782,40 @@ class NinjaBackend(backends.Backend):
                 'parameters': parameters,
                 'sources': [],
                 'generated_sources': [],
+                'unity_sources': [],
             }
             tgt[id_hash] = src_block
-        # Make source files absolute
-        sources = [x.absolute_path(self.source_dir, self.build_dir) if isinstance(x, File) else os.path.normpath(os.path.join(self.build_dir, x))
-                   for x in sources]
-        generated_sources = [x.absolute_path(self.source_dir, self.build_dir) if isinstance(x, File) else os.path.normpath(os.path.join(self.build_dir, x))
-                             for x in generated_sources]
-        # Add the source files
-        src_block['sources'] += sources
-        src_block['generated_sources'] += generated_sources
+
+        def compute_path(file: mesonlib.FileOrString) -> str:
+            """ Make source files absolute """
+            if isinstance(file, File):
+                return file.absolute_path(self.source_dir, self.build_dir)
+            return os.path.normpath(os.path.join(self.build_dir, file))
+
+        src_block['sources'].extend(compute_path(x) for x in sources)
+        src_block['generated_sources'].extend(compute_path(x) for x in generated_sources)
+        if unity_sources:
+            src_block['unity_sources'].extend(compute_path(x) for x in unity_sources)
+
+    def create_target_linker_introspection(self, target: build.Target, linker: T.Union[Compiler, StaticLinker], parameters):
+        tid = target.get_id()
+        tgt = self.introspection_data[tid]
+        lnk_hash = tuple(parameters)
+        lnk_block = tgt.get(lnk_hash, None)
+        if lnk_block is None:
+            if isinstance(parameters, CompilerArgs):
+                parameters = parameters.to_native(copy=True)
+
+            if isinstance(linker, Compiler):
+                linkers = linker.get_linker_exelist()
+            else:
+                linkers = linker.get_exelist()
+
+            lnk_block = {
+                'linker': linkers,
+                'parameters': parameters,
+            }
+            tgt[lnk_hash] = lnk_block
 
     def generate_target(self, target):
         try:
@@ -985,7 +1010,7 @@ class NinjaBackend(backends.Backend):
         if is_unity:
             for src in self.generate_unity_files(target, unity_src):
                 o, s = self.generate_single_compile(target, src, True, unity_deps + header_deps + d_generated_deps,
-                                                    fortran_order_deps, fortran_inc_args)
+                                                    fortran_order_deps, fortran_inc_args, unity_src)
                 obj_list.append(o)
                 compiled_sources.append(s)
                 source2object[s] = o
@@ -2809,7 +2834,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def generate_single_compile(self, target: build.BuildTarget, src,
                                 is_generated=False, header_deps=None,
                                 order_deps: T.Optional[T.List[str]] = None,
-                                extra_args: T.Optional[T.List[str]] = None) -> None:
+                                extra_args: T.Optional[T.List[str]] = None,
+                                unity_sources: T.Optional[T.List[mesonlib.FileOrString]] = None) -> None:
         """
         Compiles C/C++, ObjC/ObjC++, Fortran, and D sources
         """
@@ -2832,9 +2858,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
         # Create introspection information
         if is_generated is False:
-            self.create_target_source_introspection(target, compiler, commands, [src], [])
+            self.create_target_source_introspection(target, compiler, commands, [src], [], unity_sources)
         else:
-            self.create_target_source_introspection(target, compiler, commands, [], [src])
+            self.create_target_source_introspection(target, compiler, commands, [], [src], unity_sources)
 
         build_dir = self.environment.get_build_dir()
         if isinstance(src, File):
@@ -3360,6 +3386,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         elem = NinjaBuildElement(self.all_outputs, outname, linker_rule, obj_list, implicit_outs=implicit_outs)
         elem.add_dep(dep_targets + custom_target_libraries)
         elem.add_item('LINK_ARGS', commands)
+        self.create_target_linker_introspection(target, linker, commands)
         return elem
 
     def get_dependency_filename(self, t):
@@ -3555,13 +3582,11 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.add_build(elem)
 
     def get_introspection_data(self, target_id: str, target: build.Target) -> T.List[T.Dict[str, T.Union[bool, str, T.List[T.Union[str, T.Dict[str, T.Union[str, T.List[str], bool]]]]]]]:
-        if target_id not in self.introspection_data or len(self.introspection_data[target_id]) == 0:
+        data = self.introspection_data.get(target_id)
+        if not data:
             return super().get_introspection_data(target_id, target)
 
-        result = []
-        for i in self.introspection_data[target_id].values():
-            result += [i]
-        return result
+        return list(data.values())
 
 
 def _scan_fortran_file_deps(src: Path, srcdir: Path, dirname: Path, tdeps, compiler) -> T.List[str]:

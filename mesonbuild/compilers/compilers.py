@@ -600,7 +600,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         return self.exelist.copy() if ccache else self.exelist_no_ccache.copy()
 
     def get_linker_exelist(self) -> T.List[str]:
-        return self.linker.get_exelist()
+        return self.linker.get_exelist() if self.linker else self.get_exelist()
 
     @abc.abstractmethod
     def get_output_args(self, outputname: str) -> T.List[str]:

@@ -99,7 +99,7 @@ class Dependency(HoldableObject):
         return kwargs['include_type']
 
     def __init__(self, type_name: DependencyTypeName, kwargs: T.Dict[str, T.Any]) -> None:
-        self.name = "null"
+        self.name = f'dep{id(self)}'
         self.version:  T.Optional[str] = None
         self.language: T.Optional[str] = None # None means C-like
         self.is_found = False
