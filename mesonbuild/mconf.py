@@ -301,9 +301,7 @@ class Conf:
         for m in mismatching:
             mlog.log(f'{m[0]:21}{m[1]:10}{m[2]:10}')
 
-def run(options: argparse.Namespace) -> int:
-    coredata.parse_cmd_line_options(options)
-    builddir = os.path.abspath(os.path.realpath(options.builddir))
+def run_impl(options: argparse.Namespace, builddir: str) -> int:
     print_only = not options.cmd_line_options and not options.clearcache
     c = None
     try:
@@ -334,3 +332,8 @@ def run(options: argparse.Namespace) -> int:
         # Pager quit before we wrote everything.
         pass
     return 0
+
+def run(options: argparse.Namespace) -> int:
+    coredata.parse_cmd_line_options(options)
+    builddir = os.path.abspath(os.path.realpath(options.builddir))
+    return run_impl(options, builddir)
