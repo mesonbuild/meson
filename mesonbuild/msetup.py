@@ -55,15 +55,15 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
                         help='Wipe build directory and reconfigure using previous command line options. ' +
                              'Useful when build directory got corrupted, or when rebuilding with a ' +
                              'newer version of meson.')
+    parser.add_argument('--clearcache', action='store_true', default=False,
+                        help='Clear cached state (e.g. found dependencies). Since 1.3.0.')
     parser.add_argument('builddir', nargs='?', default=None)
     parser.add_argument('sourcedir', nargs='?', default=None)
 
 class MesonApp:
     def __init__(self, options: argparse.Namespace) -> None:
-        (self.source_dir, self.build_dir) = self.validate_dirs(options.builddir,
-                                                               options.sourcedir,
-                                                               options.reconfigure,
-                                                               options.wipe)
+        self.options = options
+        (self.source_dir, self.build_dir) = self.validate_dirs()
         if options.wipe:
             # Make a copy of the cmd line file to make sure we can always
             # restore that file if anything bad happens. For example if
@@ -95,8 +95,6 @@ class MesonApp:
                     for b, f in restore:
                         os.makedirs(os.path.dirname(f), exist_ok=True)
                         shutil.move(b, f)
-
-        self.options = options
 
     def has_build_file(self, dirname: str) -> bool:
         fname = os.path.join(dirname, environment.build_filename)
@@ -144,8 +142,8 @@ class MesonApp:
         with open(os.path.join(build_dir, '.hgignore'), 'w', encoding='utf-8') as ofile:
             ofile.write(hg_ignore_file)
 
-    def validate_dirs(self, dir1: T.Optional[str], dir2: T.Optional[str], reconfigure: bool, wipe: bool) -> T.Tuple[str, str]:
-        (src_dir, build_dir) = self.validate_core_dirs(dir1, dir2)
+    def validate_dirs(self) -> T.Tuple[str, str]:
+        (src_dir, build_dir) = self.validate_core_dirs(self.options.builddir, self.options.sourcedir)
         if Path(build_dir) in Path(src_dir).parents:
             raise MesonException(f'Build directory {build_dir} cannot be a parent of source directory {src_dir}')
         if not os.listdir(build_dir):
@@ -155,21 +153,17 @@ class MesonApp:
         has_valid_build = os.path.exists(os.path.join(priv_dir, 'coredata.dat'))
         has_partial_build = os.path.isdir(priv_dir)
         if has_valid_build:
-            if not reconfigure and not wipe:
+            if not self.options.reconfigure and not self.options.wipe:
                 print('Directory already configured.\n\n'
                       'Just run your build command (e.g. ninja) and Meson will regenerate as necessary.\n'
-                      'If ninja fails, run "ninja reconfigure" or "meson setup --reconfigure"\n'
-                      'to force Meson to regenerate.\n\n'
+                      'Run "meson setup --reconfigure to force Meson to regenerate.\n\n'
                       'If build failures persist, run "meson setup --wipe" to rebuild from scratch\n'
-                      'using the same options as passed when configuring the build.\n'
-                      'To change option values, run "meson configure" instead.')
-                # FIXME: This returns success and ignores new option values from CLI.
-                # We should either make this a hard error, or update options and
-                # return success.
-                # Note that making this an error would not be backward compatible (and also isn't
-                # universally agreed on): https://github.com/mesonbuild/meson/pull/4249.
+                      'using the same options as passed when configuring the build.')
+                if self.options.cmd_line_options:
+                    from . import mconf
+                    raise SystemExit(mconf.run_impl(self.options, build_dir))
                 raise SystemExit(0)
-        elif not has_partial_build and wipe:
+        elif not has_partial_build and self.options.wipe:
             raise MesonException(f'Directory is not empty and does not contain a previous build:\n{build_dir}')
         return src_dir, build_dir
 
@@ -179,6 +173,8 @@ class MesonApp:
         mlog.initialize(env.get_log_dir(), self.options.fatal_warnings)
         if self.options.profile:
             mlog.set_timestamp_start(time.monotonic())
+        if self.options.clearcache:
+            env.coredata.clear_cache()
         with mesonlib.BuildDirLock(self.build_dir):
             return self._generate(env, capture, vslite_ctx)
 
