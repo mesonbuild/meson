@@ -1070,8 +1070,9 @@ class Vs2010Backend(backends.Backend):
                 for i in reversed(d.get_incdirs()):
                     curdir = os.path.join(d.get_curdir(), i)
                     try:
-                        args.append('-I' + self.relpath(curdir, target.subdir)) # build dir
+                        # Add source subdir first so that the build subdir overrides it
                         args.append('-I' + os.path.join(proj_to_src_root, curdir))  # src dir
+                        args.append('-I' + self.relpath(curdir, target.subdir)) # build dir
                     except ValueError:
                         # Include is on different drive
                         args.append('-I' + os.path.normpath(curdir))
