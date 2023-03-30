@@ -4601,21 +4601,21 @@ class AllPlatformTests(BasePlatformTests):
         olddata = filename.read_bytes()
         oldmtime = os.path.getmtime(filename)
 
-        for opt in ('-Dstring=val', '--buildtype=plain', '-Dfeature=disabled'):
+        for opt in ('-Dstring=val', '--buildtype=plain', '-Dfeature=disabled', '-Dprefix=/abc'):
             self.setconf([opt])
             newdata = filename.read_bytes()
             newmtime = os.path.getmtime(filename)
-            self.assertEqual(olddata, newdata)
             self.assertEqual(oldmtime, newmtime)
+            self.assertEqual(olddata, newdata)
             olddata = newdata
             oldmtime = newmtime
 
-        for opt in ('-Dstring=abc', '--buildtype=release', '-Dfeature=enabled'):
+        for opt in ('-Dstring=abc', '--buildtype=release', '-Dfeature=enabled', '-Dprefix=/def'):
             self.setconf([opt])
             newdata = filename.read_bytes()
             newmtime = os.path.getmtime(filename)
-            self.assertNotEqual(olddata, newdata)
             self.assertGreater(newmtime, oldmtime)
+            self.assertNotEqual(olddata, newdata)
             olddata = newdata
             oldmtime = newmtime
 

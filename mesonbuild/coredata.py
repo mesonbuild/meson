@@ -837,10 +837,10 @@ class CoreData:
         pfk = OptionKey('prefix')
         if pfk in options:
             prefix = self.sanitize_prefix(options[pfk])
-            self.options[OptionKey('prefix')].set_value(prefix)
+            dirty |= self.options[OptionKey('prefix')].set_value(prefix)
             for key in BULITIN_DIR_NOPREFIX_OPTIONS:
                 if key not in options:
-                    self.options[key].set_value(BUILTIN_OPTIONS[key].prefixed_default(key, prefix))
+                    dirty |= self.options[key].set_value(BUILTIN_OPTIONS[key].prefixed_default(key, prefix))
 
         unknown_options: T.List[OptionKey] = []
         for k, v in options.items():
