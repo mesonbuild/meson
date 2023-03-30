@@ -733,6 +733,7 @@ class BuildTarget(Target):
         self.extra_args: T.Dict[str, T.List['FileOrString']] = {}
         self.sources: T.List[File] = []
         self.generated: T.List['GeneratedTypes'] = []
+        self.extra_files: T.List[File] = []
         self.d_features = defaultdict(list)
         self.pic = False
         self.pie = False
@@ -1168,10 +1169,12 @@ class BuildTarget(Target):
         extra_files = extract_as_list(kwargs, 'extra_files')
         for i in extra_files:
             assert isinstance(i, File)
+            if i in self.extra_files:
+                continue
             trial = os.path.join(self.environment.get_source_dir(), i.subdir, i.fname)
             if not os.path.isfile(trial):
                 raise InvalidArguments(f'Tried to add non-existing extra file {i}.')
-        self.extra_files = extra_files
+            self.extra_files.append(i)
         self.install_rpath: str = kwargs.get('install_rpath', '')
         if not isinstance(self.install_rpath, str):
             raise InvalidArguments('Install_rpath is not a string.')
@@ -1315,6 +1318,7 @@ class BuildTarget(Target):
             if isinstance(dep, dependencies.InternalDependency):
                 # Those parts that are internal.
                 self.process_sourcelist(dep.sources)
+                self.extra_files.extend(f for f in dep.extra_files if f not in self.extra_files)
                 self.add_include_dirs(dep.include_directories, dep.get_include_type())
                 self.objects.extend(dep.objects)
                 for l in dep.libraries:
@@ -1327,7 +1331,7 @@ class BuildTarget(Target):
                                                               [],
                                                               dep.get_compile_args(),
                                                               dep.get_link_args(),
-                                                              [], [], [], [], {}, [], [], [])
+                                                              [], [], [], [], [], {}, [], [], [])
                     self.external_deps.append(extpart)
                 # Deps of deps.
                 self.add_deps(dep.ext_deps)
