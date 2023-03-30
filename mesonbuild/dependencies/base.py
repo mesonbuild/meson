@@ -110,6 +110,7 @@ class Dependency(HoldableObject):
         # If None, self.link_args will be used
         self.raw_link_args: T.Optional[T.List[str]] = None
         self.sources: T.List[T.Union['FileOrString', 'CustomTarget', 'StructuredSources']] = []
+        self.extra_files: T.List[mesonlib.File] = []
         self.include_type = self._process_include_type_kw(kwargs)
         self.ext_deps: T.List[Dependency] = []
         self.d_features: T.DefaultDict[str, T.List[T.Any]] = collections.defaultdict(list)
@@ -170,6 +171,10 @@ class Dependency(HoldableObject):
         """Source files that need to be added to the target.
         As an example, gtest-all.cc when using GTest."""
         return self.sources
+
+    def get_extra_files(self) -> T.List[mesonlib.File]:
+        """Mostly for introspection and IDEs"""
+        return self.extra_files
 
     def get_name(self) -> str:
         return self.name
@@ -250,6 +255,7 @@ class InternalDependency(Dependency):
                  libraries: T.List[LibTypes],
                  whole_libraries: T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]],
                  sources: T.Sequence[T.Union[FileOrString, CustomTarget, StructuredSources]],
+                 extra_files: T.Sequence[mesonlib.File],
                  ext_deps: T.List[Dependency], variables: T.Dict[str, str],
                  d_module_versions: T.List[T.Union[str, int]], d_import_dirs: T.List['IncludeDirs'],
                  objects: T.List['ExtractedObjects']):
@@ -262,6 +268,7 @@ class InternalDependency(Dependency):
         self.libraries = libraries
         self.whole_libraries = whole_libraries
         self.sources = list(sources)
+        self.extra_files = list(extra_files)
         self.ext_deps = ext_deps
         self.variables = variables
         self.objects = objects
@@ -303,12 +310,14 @@ class InternalDependency(Dependency):
 
     def get_partial_dependency(self, *, compile_args: bool = False,
                                link_args: bool = False, links: bool = False,
-                               includes: bool = False, sources: bool = False) -> 'InternalDependency':
+                               includes: bool = False, sources: bool = False,
+                               extra_files: bool = False) -> InternalDependency:
         final_compile_args = self.compile_args.copy() if compile_args else []
         final_link_args = self.link_args.copy() if link_args else []
         final_libraries = self.libraries.copy() if links else []
         final_whole_libraries = self.whole_libraries.copy() if links else []
         final_sources = self.sources.copy() if sources else []
+        final_extra_files = self.extra_files.copy() if extra_files else []
         final_includes = self.include_directories.copy() if includes else []
         final_deps = [d.get_partial_dependency(
             compile_args=compile_args, link_args=link_args, links=links,
@@ -316,7 +325,7 @@ class InternalDependency(Dependency):
         return InternalDependency(
             self.version, final_includes, final_compile_args,
             final_link_args, final_libraries, final_whole_libraries,
-            final_sources, final_deps, self.variables, [], [], [])
+            final_sources, final_extra_files, final_deps, self.variables, [], [], [])
 
     def get_include_dirs(self) -> T.List['IncludeDirs']:
         return self.include_directories

@@ -274,7 +274,7 @@ class ExternalProject(NewExtensionModule):
         link_args = [f'-L{abs_libdir}', f'-l{libname}']
         sources = self.target
         dep = InternalDependency(version, [], compile_args, link_args, [],
-                                 [], [sources], [], {}, [], [], [])
+                                 [], [sources], [], [], {}, [], [], [])
         return dep
 
 
