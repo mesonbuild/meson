@@ -668,8 +668,10 @@ class NinjaBackend(backends.Backend):
         rules = []
         # TODO: Rather than an explicit list here, rules could be marked in the
         # rule store as being wanted in compdb
+        use_ccache = False
         for for_machine in MachineChoice:
             for compiler in self.environment.coredata.compilers[for_machine].values():
+                use_ccache |= compiler.use_ccache
                 rules += [f"{rule}{ext}" for rule in [self.compiler_to_rule_name(compiler)]
                           for ext in ['', '_RSP']]
                 rules += [f"{rule}{ext}" for rule in [self.compiler_to_pch_rule_name(compiler)]
@@ -679,6 +681,15 @@ class NinjaBackend(backends.Backend):
         builddir = self.environment.get_build_dir()
         try:
             jsondb = subprocess.check_output(ninja_compdb, cwd=builddir)
+            if use_ccache:
+                # vscode intellisense does not understand ccache compiler:
+                # https://github.com/microsoft/vscode-cpptools/issues/7616
+                db = json.loads(jsondb)
+                for i in db:
+                    cmd = mesonlib.split_args(i['command'])
+                    if cmd[0].endswith('ccache'):
+                        i['command'] = mesonlib.join_args(cmd[1:])
+                jsondb = json.dumps(db, indent=2).encode()
             with open(os.path.join(builddir, 'compile_commands.json'), 'wb') as f:
                 f.write(jsondb)
         except Exception:
