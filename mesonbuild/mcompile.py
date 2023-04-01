@@ -119,7 +119,7 @@ def get_target_from_intro_data(target: ParsedTargetName, builddir: Path, introsp
     elif len(found_targets) > 1:
         suggestions: T.List[str] = []
         for i in found_targets:
-            p = Path(i['filename'][0]).relative_to(resolved_bdir)
+            p = Path(i['filename'][0]).relative_to(resolved_bdir).parent / i['name']
             t = i['type'].replace(' ', '_')
             suggestions.append(f'- ./{p}:{t}')
         suggestions_str = '\n'.join(suggestions)
