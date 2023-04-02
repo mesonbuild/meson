@@ -183,8 +183,9 @@ class InterpreterBase:
             except Exception as e:
                 if getattr(e, 'lineno', None) is None:
                     # We are doing the equivalent to setattr here and mypy does not like it
-                    e.lineno = cur.lineno                                                             # type: ignore
-                    e.colno = cur.colno                                                               # type: ignore
+                    # NOTE: self.current_node is continually updated during processing
+                    e.lineno = self.current_node.lineno                                               # type: ignore
+                    e.colno = self.current_node.colno                                                 # type: ignore
                     e.file = os.path.join(self.source_root, self.subdir, environment.build_filename)  # type: ignore
                 raise e
             i += 1 # In THE FUTURE jump over blocks and stuff.
@@ -516,6 +517,7 @@ class InterpreterBase:
                 func_args = flatten(posargs)
             if not getattr(func, 'no-second-level-holder-flattening', False):
                 func_args, kwargs = resolve_second_level_holders(func_args, kwargs)
+            self.current_node = node
             res = func(node, func_args, kwargs)
             return self._holderify(res) if res is not None else None
         else:
@@ -544,7 +546,7 @@ class InterpreterBase:
                 self.validate_extraction(obj.held_object)
             elif not isinstance(obj, Disabler):
                 raise InvalidArguments(f'Invalid operation "extract_objects" on {object_display_name} of type {type(obj).__name__}')
-        obj.current_node = node
+        obj.current_node = self.current_node = node
         res = obj.method_call(method_name, args, kwargs)
         return self._holderify(res) if res is not None else None
 
@@ -598,6 +600,7 @@ class InterpreterBase:
             reduced_val = self.evaluate_statement(val)
             if reduced_val is None:
                 raise InvalidArguments(f'Value of key {reduced_key} is void.')
+            self.current_node = key
             if duplicate_key_error and reduced_key in reduced_kw:
                 raise InvalidArguments(duplicate_key_error.format(reduced_key))
             reduced_kw[reduced_key] = reduced_val

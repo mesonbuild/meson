@@ -19,7 +19,7 @@
   ],
   "stdout": [
     {
-      "line": "test cases/common/44 pkgconfig-gen/meson.build:164: WARNING: Project targets '>=0.60.0' but uses feature introduced in '0.62.0': pkgconfig.generate implicit variable for builtin directories."
+      "line": "test cases/common/44 pkgconfig-gen/meson.build:160: WARNING: Project targets '>=0.60.0' but uses feature introduced in '0.62.0': pkgconfig.generate implicit variable for builtin directories."
     },
     {
       "line": "test cases/common/44 pkgconfig-gen/meson.build:170: WARNING: Project targets '>=0.60.0' but uses feature introduced in '0.62.0': pkgconfig.generate implicit variable for builtin directories.",
