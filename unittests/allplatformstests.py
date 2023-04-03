@@ -818,6 +818,30 @@ class AllPlatformTests(BasePlatformTests):
         o = self._run(self.mtest_command + ['--list', '--no-rebuild'])
         self.assertNotIn('Regenerating build files.', o)
 
+    def test_unexisting_test_name(self):
+        testdir = os.path.join(self.unit_test_dir, '4 suite selection')
+        self.init(testdir)
+        self.build()
+
+        self.assertRaises(subprocess.CalledProcessError, self._run, self.mtest_command + ['notatest'])
+
+    def test_select_test_using_wildcards(self):
+        testdir = os.path.join(self.unit_test_dir, '4 suite selection')
+        self.init(testdir)
+        self.build()
+
+        o = self._run(self.mtest_command + ['--list', 'mainprj*'])
+        self.assertIn('mainprj-failing_test', o)
+        self.assertIn('mainprj-successful_test_no_suite', o)
+        self.assertNotIn('subprj', o)
+
+        o = self._run(self.mtest_command + ['--list', '*succ*', 'subprjm*:'])
+        self.assertIn('mainprj-successful_test_no_suite', o)
+        self.assertIn('subprjmix-failing_test', o)
+        self.assertIn('subprjmix-successful_test', o)
+        self.assertIn('subprjsucc-successful_test_no_suite', o)
+        self.assertNotIn('subprjfail-failing_test', o)
+
     def test_build_by_default(self):
         testdir = os.path.join(self.common_test_dir, '129 build by default')
         self.init(testdir)

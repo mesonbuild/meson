@@ -281,6 +281,12 @@ Run tests for the configure Meson project.
 
 See [the unit test documentation](Unit-tests.md) for more info.
 
+Since *1.2.0* you can use wildcards in *args* for test names.
+For example, "bas*" will match all test with names beginning with "bas".
+
+Since *1.2.0* it is an error to provide a test name or wildcard that
+does not match any test.
+
 #### Examples:
 
 Run tests for the project:
