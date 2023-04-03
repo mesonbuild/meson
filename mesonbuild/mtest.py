@@ -19,6 +19,7 @@ from pathlib import Path
 from collections import deque
 from contextlib import suppress
 from copy import deepcopy
+from fnmatch import fnmatch
 import argparse
 import asyncio
 import datetime
@@ -1859,17 +1860,48 @@ class TestHarness:
         run all tests with that name across all subprojects, which is
         identical to "meson test foo1"
         '''
+        patterns: T.Dict[T.Tuple[str, str], bool] = {}
         for arg in self.options.args:
+            # Replace empty components by wildcards:
+            # '' -> '*:*'
+            # 'name' -> '*:name'
+            # ':name' -> '*:name'
+            # 'proj:' -> 'proj:*'
             if ':' in arg:
                 subproj, name = arg.split(':', maxsplit=1)
+                if name == '':
+                    name = '*'
+                if subproj == '':  # in case arg was ':'
+                    subproj = '*'
             else:
-                subproj, name = '', arg
-            for t in tests:
-                if subproj and t.project_name != subproj:
-                    continue
-                if name and t.name != name:
-                    continue
-                yield t
+                subproj, name = '*', arg
+            patterns[(subproj, name)] = False
+
+        for t in tests:
+            # For each test, find the first matching pattern
+            # and mark it as used. yield the matching tests.
+            for subproj, name in list(patterns):
+                if fnmatch(t.project_name, subproj) and fnmatch(t.name, name):
+                    patterns[(subproj, name)] = True
+                    yield t
+                    break
+
+        for (subproj, name), was_used in patterns.items():
+            if not was_used:
+                # For each unused pattern...
+                arg = f'{subproj}:{name}'
+                for t in tests:
+                    # ... if it matches a test, then it wasn't used because another
+                    # pattern matched the same test before.
+                    # Report it as a warning.
+                    if fnmatch(t.project_name, subproj) and fnmatch(t.name, name):
+                        mlog.warning(f'{arg} test name is redundant and was not used')
+                        break
+                else:
+                    # If the pattern doesn't match any test,
+                    # report it as an error. We don't want the `test` command to
+                    # succeed on an invalid pattern.
+                    raise MesonException(f'{arg} test name does not match any test')
 
     def get_tests(self) -> T.List[TestSerialisation]:
         if not self.tests:
