@@ -737,20 +737,6 @@ class Backend:
     def rpaths_for_non_system_absolute_shared_libraries(self, target: build.BuildTarget, exclude_system: bool = True) -> 'ImmutableListProtocol[str]':
         paths: OrderedSet[str] = OrderedSet()
         srcdir = self.environment.get_source_dir()
-
-        def add_path(libdir: str) -> None:
-            try:
-                commonpath = os.path.commonpath((libdir, srcdir))
-            except ValueError: # when paths are on different drives on Windows
-                commonpath = ''
-
-            if commonpath == srcdir:
-                rel_to_src = libdir[len(srcdir) + 1:]
-                assert not os.path.isabs(rel_to_src), f'rel_to_src: {rel_to_src} is absolute'
-                paths.add(os.path.join(self.build_to_src, rel_to_src))
-            else:
-                paths.add(libdir)
-
         for dep in target.external_deps:
             if not isinstance(dep, (dependencies.ExternalLibrary, dependencies.PkgConfigDependency)):
                 continue
@@ -770,27 +756,17 @@ class Backend:
                 if os.path.splitext(libpath)[1] not in ['.dll', '.lib', '.so', '.dylib']:
                     continue
 
-                if mesonlib.is_windows() and libpath.endswith('.lib'):
+                try:
+                    commonpath = os.path.commonpath((libdir, srcdir))
+                except ValueError: # when paths are on different drives on Windows
+                    commonpath = ''
 
-                    if isinstance(dep, dependencies.PkgConfigDependency):
-                        # If by chance pkg-config knows the bin dir...
-                        bindir = dep.get_pkgconfig_variable('bindir', [], default='')
-                        if bindir:
-                            add_path(bindir)
-                            continue
-
-                    # If the dll is not in the same dir, try to replace 'lib' with 'bin' in the path.
-                    # This is not 100% proof, since the bin dir could be elsewhere or with a different
-                    # name, and the DLL could have a different name as well, but this is better than nothing.
-                    p = Path(libpath).with_suffix('.dll')
-                    if not p.exists():
-                        # replace last occurence:
-                        binpath = '/bin/'.join(p.as_posix().rsplit('/lib/', maxsplit=1))
-                        if Path(binpath).exists():
-                            libdir = os.path.dirname(binpath)
-
-                add_path(libdir)
-
+                if commonpath == srcdir:
+                    rel_to_src = libdir[len(srcdir) + 1:]
+                    assert not os.path.isabs(rel_to_src), f'rel_to_src: {rel_to_src} is absolute'
+                    paths.add(os.path.join(self.build_to_src, rel_to_src))
+                else:
+                    paths.add(libdir)
             # Don't remove rpaths specified by the dependency
             paths.difference_update(self.get_rpath_dirs_from_link_args(dep.link_args))
         for i in chain(target.link_targets, target.link_whole_targets):
