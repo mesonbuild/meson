@@ -737,6 +737,7 @@ class Backend:
     def rpaths_for_non_system_absolute_shared_libraries(self, target: build.BuildTarget, exclude_system: bool = True) -> 'ImmutableListProtocol[str]':
         paths: OrderedSet[str] = OrderedSet()
         srcdir = self.environment.get_source_dir()
+
         for dep in target.external_deps:
             if not isinstance(dep, (dependencies.ExternalLibrary, dependencies.PkgConfigDependency)):
                 continue
@@ -752,8 +753,9 @@ class Backend:
                 if libdir in self.get_external_rpath_dirs(target):
                     continue
                 # Windows doesn't support rpaths, but we use this function to
-                # emulate rpaths by setting PATH, so also accept DLLs here
-                if os.path.splitext(libpath)[1] not in ['.dll', '.lib', '.so', '.dylib']:
+                # emulate rpaths by setting PATH
+                # .dll is there for mingw gcc
+                if os.path.splitext(libpath)[1] not in {'.dll', '.lib', '.so', '.dylib'}:
                     continue
 
                 try:
@@ -1059,6 +1061,57 @@ class Backend:
                 paths.update(cc.get_library_dirs(self.environment))
         return list(paths)
 
+    @classmethod
+    @lru_cache(maxsize=None)
+    def extract_dll_paths(cls, target: build.BuildTarget) -> T.Set[str]:
+        """Find paths to all DLLs needed for a given target, since
+        we link against import libs, and we don't know the actual
+        path of the DLLs.
+
+        1. If there are DLLs in the same directory than the .lib dir, use it
+        2. If there is a sibbling directory named 'bin' with DLLs in it, use it
+        """
+        results = set()
+        for dep in target.external_deps:
+
+            if isinstance(dep, dependencies.PkgConfigDependency):
+                # If by chance pkg-config knows the bin dir...
+                bindir = dep.get_pkgconfig_variable('bindir', [], default='')
+                if bindir:
+                    results.add(bindir)
+
+            for link_arg in dep.link_args:
+                if link_arg.startswith(('-l', '-L')):
+                    link_arg = link_arg[2:]
+                p = Path(link_arg)
+                if not p.is_absolute():
+                    continue
+
+                try:
+                    p = p.resolve(strict=True)
+                except FileNotFoundError:
+                    continue
+
+                for _ in p.parent.glob('*.dll'):
+                    # path contains dlls
+                    results.add(str(p.parent))
+                    break
+
+                else:
+                    if p.is_file():
+                        p = p.parent
+                    # Heuristic: replace *last* occurence of '/lib'
+                    binpath = Path('/bin'.join(p.as_posix().rsplit('/lib', maxsplit=1)))
+                    for _ in binpath.glob('*.dll'):
+                        results.add(str(binpath))
+                        break
+
+        for i in chain(target.link_targets, target.link_whole_targets):
+            if isinstance(i, build.BuildTarget):
+                results.update(cls.extract_dll_paths(i))
+
+        return results
+
     def determine_windows_extra_paths(
             self, target: T.Union[build.BuildTarget, build.CustomTarget, programs.ExternalProgram, mesonlib.File, str],
             extra_bdeps: T.Sequence[T.Union[build.BuildTarget, build.CustomTarget]]) -> T.List[str]:
@@ -1073,8 +1126,8 @@ class Backend:
         if isinstance(target, build.BuildTarget):
             prospectives.update(target.get_transitive_link_deps())
             # External deps
-            for deppath in self.rpaths_for_non_system_absolute_shared_libraries(target, exclude_system=False):
-                result.add(os.path.normpath(os.path.join(self.environment.get_build_dir(), deppath)))
+            result.update(self.extract_dll_paths(target))
+
         for bdep in extra_bdeps:
             prospectives.add(bdep)
             if isinstance(bdep, build.BuildTarget):
@@ -1125,6 +1178,11 @@ class Backend:
                 if isinstance(exe, build.CustomTarget):
                     extra_bdeps = list(exe.get_transitive_build_target_deps())
                 extra_paths = self.determine_windows_extra_paths(exe, extra_bdeps)
+                for a in t.cmd_args:
+                    if isinstance(a, build.BuildTarget):
+                        for p in self.determine_windows_extra_paths(a, []):
+                            if p not in extra_paths:
+                                extra_paths.append(p)
             else:
                 extra_paths = []
 
@@ -1137,8 +1195,6 @@ class Backend:
                     depends.add(a)
                 elif isinstance(a, build.CustomTargetIndex):
                     depends.add(a.target)
-                if isinstance(a, build.BuildTarget):
-                    extra_paths += self.determine_windows_extra_paths(a, [])
 
                 if isinstance(a, mesonlib.File):
                     a = os.path.join(self.environment.get_build_dir(), a.rel_to_builddir(self.build_to_src))
