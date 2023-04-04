@@ -480,6 +480,9 @@ class ClangClCompiler(VisualStudioLikeCompiler):
     def get_colorout_args(self, colortype: str) -> T.List[str]:
         return clang_color_args[colortype][:]
 
+    def openmp_link_flags(self) -> T.List[str]:
+        return ['-openmp:llvm']
+
     def has_arguments(self, args: T.List[str], env: 'Environment', code: str, mode: str) -> T.Tuple[bool, bool]:
         if mode != 'link':
             args = args + ['-Werror=unknown-argument', '-Werror=unknown-warning-option']
