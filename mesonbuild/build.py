@@ -1860,9 +1860,13 @@ class Executable(BuildTarget):
                 else:
                     self.import_filename = self.gcc_import_filename
 
-        if machine.is_windows() and ('cs' in self.compilers or
-                                     self.uses_rust() or
-                                     self.get_using_msvc()):
+        create_debug_file = (
+            machine.is_windows()
+            and ('cs' in self.compilers or self.uses_rust() or self.get_using_msvc())
+            # .pdb file is created only when debug symbols are enabled
+            and self.environment.coredata.get_option(OptionKey("debug"))
+        )
+        if create_debug_file:
             self.debug_filename = self.name + '.pdb'
 
     def get_default_install_dir(self) -> T.Tuple[str, str]:
@@ -2081,14 +2085,14 @@ class SharedLibrary(BuildTarget):
                 prefix = ''
                 # Import library is called foo.dll.lib
                 self.import_filename = f'{self.name}.dll.lib'
-                # Debug files(.pdb) is only created with debug buildtype
+                # .pdb file is only created when debug symbols are enabled
                 create_debug_file = self.environment.coredata.get_option(OptionKey("debug"))
             elif self.get_using_msvc():
                 # Shared library is of the form foo.dll
                 prefix = ''
                 # Import library is called foo.lib
                 self.import_filename = self.vs_import_filename
-                # Debug files(.pdb) is only created with debug buildtype
+                # .pdb file is only created when debug symbols are enabled
                 create_debug_file = self.environment.coredata.get_option(OptionKey("debug"))
             # Assume GCC-compatible naming
             else:
