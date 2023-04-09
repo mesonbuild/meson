@@ -24,7 +24,7 @@ preprocessor symbol's value `"ab" "cd"` is returned as `"abcd"`.
 Cross-compilation is now supported for ARM targets using ARM compiler
 version 6 - ARMCLANG. The required ARMCLANG compiler options for
 building a shareable library are not included in the current Meson
-implementation for ARMCLANG support, so it can not build shareable
+implementation for ARMCLANG support, so it cannot build shareable
 libraries. This current Meson implementation for ARMCLANG support can
 not build assembly files with arm syntax (we need to use armasm
 instead of ARMCLANG for the `.s` files with this syntax) and only

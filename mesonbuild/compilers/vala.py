@@ -102,7 +102,7 @@ class ValaCompiler(Compiler):
             extra_flags += environment.coredata.get_external_link_args(self.for_machine, self.language)
         with self.cached_compile(code, environment.coredata, extra_args=extra_flags, mode='compile') as p:
             if p.returncode != 0:
-                msg = f'Vala compiler {self.name_string()!r} can not compile programs'
+                msg = f'Vala compiler {self.name_string()!r} cannot compile programs'
                 raise EnvironmentException(msg)
 
     def get_buildtype_args(self, buildtype: str) -> T.List[str]:

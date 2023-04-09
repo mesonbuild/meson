@@ -14,7 +14,7 @@ methods:
       distribution source has been generated but before it is
       archived. Note that this runs the script file that is in the
       _staging_ directory, not the one in the source directory. If the
-      script file can not be found in the staging directory, it is a hard
+      script file cannot be found in the staging directory, it is a hard
       error. The `MESON_DIST_ROOT` environment variables is set when dist scripts is
       run.
 

@@ -3,7 +3,7 @@ project('D Multiple Versioned Shared Libraries', 'd')
 dc = meson.get_compiler('d')
 if dc.get_id() == 'gcc'
   if dc.version().version_compare('< 8')
-    error('MESON_SKIP_TEST: GDC < 8.0 can not build shared libraries')
+    error('MESON_SKIP_TEST: GDC < 8.0 cannot build shared libraries')
   endif
 endif
 

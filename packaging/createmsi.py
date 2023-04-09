@@ -246,7 +246,7 @@ class PackageGenerator:
         })
         ET.SubElement(vcredist_feature, 'MergeRef', {'Id': 'VCRedist'})
         ET.ElementTree(self.root).write(self.main_xml, encoding='utf-8', xml_declaration=True)
-        # ElementTree can not do prettyprinting so do it manually
+        # ElementTree cannot do pretty-printing, so do it manually
         import xml.dom.minidom
         doc = xml.dom.minidom.parse(self.main_xml)
         with open(self.main_xml, 'w') as open_file:

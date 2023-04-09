@@ -100,7 +100,7 @@ class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):
         pc = subprocess.Popen(self.exelist + self.get_always_args() + [src], cwd=work_dir)
         pc.wait()
         if pc.returncode != 0:
-            raise EnvironmentException('C# compiler %s can not compile programs.' % self.name_string())
+            raise EnvironmentException('C# compiler %s cannot compile programs.' % self.name_string())
         if self.runner:
             cmdlist = [self.runner, obj]
         else:

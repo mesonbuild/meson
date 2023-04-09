@@ -12,7 +12,7 @@ is the common case.
 This page lists the Meson project's stance on mixing build systems.
 The tl/dr version is that while we do provide some functionality for
 this use case, it only works for simple cases. Anything more complex
-can not be made reliable and trying to do that would burden Meson
+cannot be made reliable and trying to do that would burden Meson
 developers with an effectively infinite maintenance burden. Thus these
 use cases are not guaranteed to work, and even if a project using them
 works today there are no guarantees that it will work in any future

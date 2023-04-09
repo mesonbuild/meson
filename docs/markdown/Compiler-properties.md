@@ -228,4 +228,4 @@ has_special_flags = [[#compiler.has_argument]]('-Wspecialthing')
 ```
 
 *Note*: some compilers silently swallow command line arguments they do
-not understand. Thus this test can not be made 100% reliable.
+not understand. Thus this test cannot be made 100% reliable.

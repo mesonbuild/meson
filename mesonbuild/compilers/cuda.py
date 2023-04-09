@@ -557,7 +557,7 @@ class CudaCompiler(Compiler):
         mlog.debug(stde)
         mlog.debug('-----')
         if pc.returncode != 0:
-            raise EnvironmentException(f'Compiler {self.name_string()} can not compile programs.')
+            raise EnvironmentException(f'Compiler {self.name_string()} cannot compile programs.')
 
         # Run sanity check (if possible)
         if self.is_cross:

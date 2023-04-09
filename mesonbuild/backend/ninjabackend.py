@@ -2602,7 +2602,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # inside it.  This can be either the final PDB (for, say,
         # foo.exe) or an object pdb (for foo.obj). If the former, then
         # each compilation step locks the pdb file for writing, which
-        # is a bottleneck and object files from one target can not be
+        # is a bottleneck and object files from one target cannot be
         # used in a different target. The latter seems to be the
         # sensible one (and what Unix does) but there is a catch.  If
         # you try to use precompiled headers MSVC will error out
@@ -3123,7 +3123,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def guess_external_link_dependencies(self, linker, target, commands, internal):
         # Ideally the linker would generate dependency information that could be used.
         # But that has 2 problems:
-        # * currently ld can not create dependency information in a way that ninja can use:
+        # * currently ld cannot create dependency information in a way that ninja can use:
         #   https://sourceware.org/bugzilla/show_bug.cgi?id=22843
         # * Meson optimizes libraries from the same build using the symbol extractor.
         #   Just letting ninja use ld generated dependencies would undo this optimization.

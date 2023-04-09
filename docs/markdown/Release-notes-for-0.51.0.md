@@ -213,7 +213,7 @@ The output of `custom_target` and `custom_target[i]` can be used in
 integrating custom code generator steps, but note that there are many
 limitations:
 
- - Meson can not know about link dependencies of the custom target. If
+ - Meson cannot know about link dependencies of the custom target. If
    the target requires further link libraries, you need to add them manually
 
  - The user is responsible for ensuring that the code produced by

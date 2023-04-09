@@ -866,7 +866,7 @@ class Vs2010Backend(backends.Backend):
         ofname_tmp = ofname + '~'
         tree.write(ofname_tmp, encoding='utf-8', xml_declaration=True)
 
-        # ElementTree can not do prettyprinting so do it manually
+        # ElementTree cannot do pretty-printing, so do it manually
         doc = xml.dom.minidom.parse(ofname_tmp)
         with open(ofname_tmp, 'w', encoding='utf-8') as of:
             of.write(doc.toprettyxml())

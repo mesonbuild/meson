@@ -9,7 +9,7 @@ if meson.backend() == 'xcode'
     #
     # No-one has reverse engineered the naming scheme so we would access them.
     # IF you feel up to the challenge, patches welcome.
-    error('MESON_SKIP_TEST, Xcode can not extract objs when they would have the same filename.')
+    error('MESON_SKIP_TEST, Xcode cannot extract objs when they would have the same filename.')
 endif
 
 sources = []

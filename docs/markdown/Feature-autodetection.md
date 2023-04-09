@@ -17,7 +17,7 @@ automatically.
 
 If you do not wish to use Ccache for some reason, just specify your
 compiler with environment variables `CC` and/or `CXX` when first
-running Meson (remember that once specified the compiler can not be
+running Meson (remember that once specified the compiler cannot be
 changed). Meson will then use the specified compiler without Ccache.
 
 Coverage

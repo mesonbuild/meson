@@ -183,7 +183,7 @@ issue the following command:
 prefix = get_option('prefix')
 ```
 
-It should be noted that you can not set option values in your Meson
+It should be noted that you cannot set option values in your Meson
 scripts. They have to be set externally with the `meson configure`
 command line tool. Running `meson configure` without arguments in a
 build dir shows you all options you can set.

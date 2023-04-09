@@ -1535,7 +1535,7 @@ class XCodeBackend(backends.Backend):
                         # add the root build dir to the search path. So add an absolute path instead.
                         # This may break reproducible builds, in which case patches are welcome.
                         lang_cargs += self.get_custom_target_dir_include_args(target, compiler, absolute_path=True)
-                    # Xcode can not handle separate compilation flags for C and ObjectiveC. They are both
+                    # Xcode cannot handle separate compilation flags for C and ObjectiveC. They are both
                     # put in OTHER_CFLAGS. Same with C++ and ObjectiveC++.
                     if lang == 'objc':
                         lang = 'c'
