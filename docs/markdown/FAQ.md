@@ -62,7 +62,7 @@ executable('myprog', sources : '*.cpp') # This does NOT work!
 ```
 
 Meson does not support this syntax and the reason for this is simple.
-This can not be made both reliable and fast. By reliable we mean that
+This cannot be made both reliable and fast. By reliable we mean that
 if the user adds a new source file to the subdirectory, Meson should
 detect that and make it part of the build automatically.
 
@@ -149,7 +149,7 @@ subdir('tests') # test binaries would link against the library here
 ## Why is there not a Make backend?
 
 Because Make is slow. This is not an implementation issue, Make simply
-can not be made fast. For further info we recommend you read [this
+cannot be made fast. For further info we recommend you read [this
 post](http://neugierig.org/software/chromium/notes/2011/02/ninja.html)
 by Evan Martin, the author of Ninja. Makefiles also have a syntax that
 is very unpleasant to write which makes them a big maintenance burden.
@@ -348,7 +348,7 @@ projects attempting to do just this:
 Meson needs to know several details about each compiler in order to
 compile code with it. These include things such as which compiler
 flags to use for each option and how to detect the compiler from its
-output. This information can not be input via a configuration file,
+output. This information cannot be input via a configuration file,
 instead it requires changes to Meson's source code that need to be
 submitted to Meson master repository. In theory you can run your own
 forked version with custom patches, but that's not good use of your

@@ -559,7 +559,7 @@ class DCompiler(Compiler):
         pc = subprocess.Popen(self.exelist + self.get_output_args(output_name) + self._get_target_arch_args() + [source_name], cwd=work_dir)
         pc.wait()
         if pc.returncode != 0:
-            raise EnvironmentException('D compiler %s can not compile programs.' % self.name_string())
+            raise EnvironmentException('D compiler %s cannot compile programs.' % self.name_string())
         if self.is_cross:
             if self.exe_wrapper is None:
                 # Can't check if the binaries run so we have to assume they do

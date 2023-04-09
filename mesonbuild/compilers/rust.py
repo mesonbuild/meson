@@ -87,7 +87,7 @@ class RustCompiler(Compiler):
         stdo = _stdo.decode('utf-8', errors='replace')
         stde = _stde.decode('utf-8', errors='replace')
         if pc.returncode != 0:
-            raise EnvironmentException('Rust compiler {} can not compile programs.\n{}\n{}'.format(
+            raise EnvironmentException('Rust compiler {} cannot compile programs.\n{}\n{}'.format(
                 self.name_string(),
                 stdo,
                 stde))

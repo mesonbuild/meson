@@ -452,7 +452,7 @@ class ExtractedObjects(HoldableObject):
 
         for comp, srcs in extracted_cmpsrcs.items():
             if set(srcs) != set(cmpsrcs[comp]):
-                raise MesonException('Single object files can not be extracted '
+                raise MesonException('Single object files cannot be extracted '
                                      'in Unity builds. You can only extract all '
                                      'the object files for each compiler at once.')
 

@@ -327,7 +327,7 @@ class CLikeCompiler(Compiler):
         mlog.debug(stde)
         mlog.debug('-----')
         if pc.returncode != 0:
-            raise mesonlib.EnvironmentException(f'Compiler {self.name_string()} can not compile programs.')
+            raise mesonlib.EnvironmentException(f'Compiler {self.name_string()} cannot compile programs.')
         # Run sanity check
         if self.is_cross:
             if self.exe_wrapper is None:

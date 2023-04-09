@@ -719,7 +719,7 @@ class CrossFileTests(BasePlatformTests):
     # The test uses mocking and thus requires that the current process is the
     # one to run the Meson steps. If we are using an external test executable
     # (most commonly in Debian autopkgtests) then the mocking won't work.
-    @skipIf('MESON_EXE' in os.environ, 'MESON_EXE is defined, can not use mocking.')
+    @skipIf('MESON_EXE' in os.environ, 'MESON_EXE is defined, cannot use mocking.')
     def test_cross_file_system_paths(self):
         if is_windows():
             raise SkipTest('system crossfile paths not defined for Windows (yet)')

@@ -1447,7 +1447,7 @@ class SingleTestRunner:
 
     async def run(self, harness: 'TestHarness') -> TestRun:
         if self.cmd is None:
-            self.stdo = 'Not run because can not execute cross compiled binaries.'
+            self.stdo = 'Not run because cannot execute cross compiled binaries.'
             harness.log_start_test(self.runobj)
             self.runobj.complete_skip()
         else:

@@ -96,7 +96,7 @@ class PkgGenerator:
                                         'version': '0', # self.version,
                                         'onConclusion': 'none'}).text = self.pkgname
         ET.ElementTree(root).write(self.distribution_file, encoding='utf-8', xml_declaration=True)
-        # ElementTree can not do prettyprinting so do it manually
+        # ElementTree cannot do pretty-printing, so do it manually
         import xml.dom.minidom
         doc = xml.dom.minidom.parse(self.distribution_file)
         with open(self.distribution_file, 'w') as open_file:
