@@ -778,10 +778,18 @@ def rebuild_all(wd: str, backend: str) -> bool:
                 orig_user = env.pop('SUDO_USER')
                 orig_uid = env.pop('SUDO_UID', 0)
                 orig_gid = env.pop('SUDO_GID', 0)
-                homedir = pwd.getpwuid(int(orig_uid)).pw_dir
+                try:
+                    homedir = pwd.getpwuid(int(orig_uid)).pw_dir
+                except KeyError:
+                    # `sudo chroot` leaves behind stale variable and builds as root without a user
+                    return None, None
             elif os.environ.get('DOAS_USER') is not None:
                 orig_user = env.pop('DOAS_USER')
-                pwdata = pwd.getpwnam(orig_user)
+                try:
+                    pwdata = pwd.getpwnam(orig_user)
+                except KeyError:
+                    # `doas chroot` leaves behind stale variable and builds as root without a user
+                    return None, None
                 orig_uid = pwdata.pw_uid
                 orig_gid = pwdata.pw_gid
                 homedir = pwdata.pw_dir
