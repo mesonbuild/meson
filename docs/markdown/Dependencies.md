@@ -43,7 +43,7 @@ You can pass the `opt_dep` variable to target construction functions
 whether the actual dependency was found or not. Meson will ignore
 non-found dependencies.
 
-Meson also allows to get variables that are defined in the
+Meson also allows one to get variables that are defined in a
 `pkg-config` file. This can be done by using the
 [[dep.get_pkgconfig_variable]] function.
 
@@ -69,8 +69,8 @@ page](#dependencies-with-custom-lookup-functionality).
 *Note* new in 0.51.0
 *new in 0.54.0, the `internal` keyword*
 
-When you need to get an arbitrary variables from a dependency that can
-be found multiple ways and you don't want to constrain the type you
+When you need to get an arbitrary variable from a dependency that can
+be found multiple ways and you don't want to constrain the type, you
 can use the generic `get_variable` method. This currently supports
 cmake, pkg-config, and config-tool based variables.
 
