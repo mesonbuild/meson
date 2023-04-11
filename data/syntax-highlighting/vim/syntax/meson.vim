@@ -150,7 +150,7 @@ hi def link mesonEscape		Special
 hi def link mesonNumber		Number
 hi def link mesonBuiltin	Function
 hi def link mesonBoolean	Boolean
-if exists("meson_space_error_higlight")
+if exists("meson_space_error_highlight")
   hi def link mesonSpaceError	Error
 endif
 
