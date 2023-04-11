@@ -1,4 +1,4 @@
-# SPDX-Licnese-Identifier: Apache-2.0
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2021 The Meson development team
 # Copyright © 2021 Intel Corporation
 from __future__ import annotations
@@ -60,7 +60,7 @@ if T.TYPE_CHECKING:
         args: T.List[str]
         dependencies: T.List[dependencies.Dependency]
 
-    class CompupteIntKW(CommonKW):
+    class ComputeIntKW(CommonKW):
 
         guess: T.Optional[int]
         high: T.Optional[int]
@@ -405,7 +405,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         KwargInfo('guess', (int, NoneType)),
         *_COMMON_KWS,
     )
-    def compute_int_method(self, args: T.Tuple[str], kwargs: 'CompupteIntKW') -> int:
+    def compute_int_method(self, args: T.Tuple[str], kwargs: 'ComputeIntKW') -> int:
         expression = args[0]
         extra_args = functools.partial(self._determine_args, kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
         deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=self.compiler.is_cross)

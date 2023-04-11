@@ -377,7 +377,7 @@ class MesonMain(MesonInterpreterObject):
     def _override_dependency_impl(self, name: str, dep: dependencies.Dependency, kwargs: 'FuncOverrideDependency',
                                   static: T.Optional[bool], permissive: bool = False) -> None:
         # We need the cast here as get_dep_identifier works on such a dict,
-        # which FuncOverrideDependency is, but mypy can't fgure that out
+        # which FuncOverrideDependency is, but mypy can't figure that out
         nkwargs = T.cast('T.Dict[str, T.Any]', kwargs.copy())
         if static is None:
             del nkwargs['static']

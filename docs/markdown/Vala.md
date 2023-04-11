@@ -112,7 +112,7 @@ executable('app_name', sources, dependencies: dependencies)
 ```
 
 Using `[GtkTemplate]` also requires the GTK+ user interface definition
-files to be built in to the binary as GResources. For completeness,
+files to be built into the binary as GResources. For completeness,
 the next example shows this:
 
 ```meson
@@ -177,7 +177,7 @@ repository](https://gitlab.gnome.org/GNOME/vala-extra-vapis) is a
 community maintained repository of VAPIs that are not distributed.
 Developers use the repository to share early work on new bindings and
 improvements to existing bindings. So the VAPIs can frequently change.
-It is recommended VAPIs from this repository are copied in to your
+It is recommended VAPIs from this repository are copied into your
 project's source files.
 
 This also works well for starting to write new bindings before they

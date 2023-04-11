@@ -18,7 +18,7 @@ assert(tool.found())
 assert(tool.full_path() != '')
 assert(tool.full_path() == tool.path())
 
-# six_meson_exe is an overritten project executable
+# six_meson_exe is an overridden project executable
 six_prog = find_program('six_meson_exe')
 assert(six_prog.found())
 assert(six_prog.full_path() != '')

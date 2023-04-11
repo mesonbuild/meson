@@ -16,7 +16,7 @@ from __future__ import annotations
 
 """Mixin classes to be shared between C and C++ compilers.
 
-Without this we'll end up with awful diamond inherintance problems. The goal
+Without this we'll end up with awful diamond inheritance problems. The goal
 of this is to have mixin's, which are classes that are designed *not* to be
 standalone, they only work through inheritance.
 """
@@ -432,7 +432,7 @@ class CLikeCompiler(Compiler):
                            extra_args: T.Union[None, arglist.CompilerArgs, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]],
                            dependencies: T.Optional[T.List['Dependency']],
                            mode: CompileCheckMode = CompileCheckMode.COMPILE) -> arglist.CompilerArgs:
-        # TODO: the caller should handle the listfing of these arguments
+        # TODO: the caller should handle the listing of these arguments
         if extra_args is None:
             extra_args = []
         else:

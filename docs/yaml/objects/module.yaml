@@ -4,7 +4,7 @@ description: |
   Base type for all modules.
 
   Modules provide their own specific implementation methods, but all modules
-  proivide the following methods:
+  provide the following methods:
 
 methods:
 - name: found

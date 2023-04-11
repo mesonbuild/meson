@@ -286,7 +286,7 @@ This old behavior is inconsistent with the way Autotools works, which
 undermines the purpose of distro-integration that is the only reason
 environment variables are supported at all in Meson. The new behavior
 is not quite the same, but doesn't conflict: Meson doesn't always
-repond to an environment when Autoconf would, but when it does it
+respond to an environment when Autoconf would, but when it does it
 interprets it as Autotools would.
 
 ## Added 'pkg_config_libdir' property

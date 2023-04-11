@@ -28,7 +28,7 @@ from pathlib import Path
 # and cross file currently), and also assists with the reading environment
 # variables.
 #
-# At this time there isn't an ironclad difference between this an other sources
+# At this time there isn't an ironclad difference between this and other sources
 # of state like `coredata`. But one rough guide is much what is in `coredata` is
 # the *output* of the configuration process: the final decisions after tests.
 # This, on the other hand has *inputs*. The config files are parsed, but
@@ -167,7 +167,7 @@ class Properties:
         return language + '_stdlib' in self.properties
 
     # Some of get_stdlib, get_root, get_sys_root are wider than is actually
-    # true, but without heterogenious dict annotations it's not practical to
+    # true, but without heterogeneous dict annotations it's not practical to
     # narrow them
     def get_stdlib(self, language: str) -> T.Union[str, T.List[str]]:
         stdlib = self.properties[language + '_stdlib']

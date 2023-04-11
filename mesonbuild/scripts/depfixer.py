@@ -350,7 +350,7 @@ class Elf(DataSizes):
             sys.exit(msg)
         # The linker does read-only string deduplication. If there is a
         # string that shares a suffix with the rpath, they might get
-        # dedupped. This means changing the rpath string might break something
+        # deduped. This means changing the rpath string might break something
         # completely unrelated. This has already happened once with X.org.
         # Thus we want to keep this change as small as possible to minimize
         # the chance of obliterating other strings. It might still happen

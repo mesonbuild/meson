@@ -144,7 +144,7 @@ These are provided by the `.system()` method call.
 | cygwin              | The Cygwin environment for Windows |
 | darwin              | Either OSX or iOS |
 | dragonfly           | DragonFly BSD |
-| emscripten          | Emscripten's Javascript environment |
+| emscripten          | Emscripten's JavaScript environment |
 | freebsd             | FreeBSD and its derivatives |
 | gnu                 | GNU Hurd |
 | haiku               | |
@@ -329,7 +329,7 @@ machine](#Environment-variables-per-machine) section for details.
 | C#            | CSC      | CSC       | The linker is the compiler                  |
 | nasm          | NASM     |           | Uses the C linker                           |
 
-*The old environment variales are still supported, but are deprecated
+*The old environment variables are still supported, but are deprecated
 and will be removed in a future version of Meson.*
 
 ## Environment variables per machine

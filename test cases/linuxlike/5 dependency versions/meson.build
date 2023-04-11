@@ -82,7 +82,7 @@ assert(fakezlib_dep.type_name() == 'internal', 'fakezlib_dep should be of type "
 # Verify that once we got a system dependency, we won't fallback if a newer
 # version is requested.
 d = dependency('zlib', version: '>= 999',
-  fallback : ['donotexist', 'fakezlib_dep'],
+  fallback : ['nonexistent', 'fakezlib_dep'],
   required: false)
 assert(not d.found(), 'version should not match and it should not fallback')
 

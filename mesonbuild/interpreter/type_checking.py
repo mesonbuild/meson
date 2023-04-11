@@ -87,9 +87,9 @@ def _install_mode_validator(mode: T.List[T.Union[str, bool, int]]) -> T.Optional
             return f'permission character 9 must be "-", "t", "T", or "x", not {perms[8]}'
 
         if len(mode) >= 2 and not isinstance(mode[1], (int, str, bool)):
-            return 'second componenent can only be a string, number, or False'
+            return 'second component can only be a string, number, or False'
         if len(mode) >= 3 and not isinstance(mode[2], (int, str, bool)):
-            return 'third componenent can only be a string, number, or False'
+            return 'third component can only be a string, number, or False'
 
     return None
 
@@ -211,7 +211,7 @@ def _env_validator(value: T.Union[EnvironmentVariables, T.List['TYPE_var'], T.Di
     return None
 
 def _options_validator(value: T.Union[EnvironmentVariables, T.List['TYPE_var'], T.Dict[str, 'TYPE_var'], str, None]) -> T.Optional[str]:
-    # Reusing the env validator is a littl overkill, but nicer than duplicating the code
+    # Reusing the env validator is a little overkill, but nicer than duplicating the code
     return _env_validator(value, allow_dict_list=False)
 
 def split_equal_string(input: str) -> T.Tuple[str, str]:

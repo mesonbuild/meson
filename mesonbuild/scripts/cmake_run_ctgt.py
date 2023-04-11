@@ -35,7 +35,7 @@ def run(argsv: T.List[str]) -> int:
             commands += [[]]
             continue
 
-        i = i.replace('"', '')  # Remove lefover quotes
+        i = i.replace('"', '')  # Remove leftover quotes
         commands[-1] += [i]
 
     # Execute

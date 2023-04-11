@@ -207,10 +207,10 @@ def set_mode(path: str, mode: T.Optional['FileMode'], default_umask: T.Union[str
         except PermissionError as e:
             print(f'{path!r}: Unable to set owner {mode.owner!r} and group {mode.group!r}: {e.strerror}, ignoring...')
         except LookupError:
-            print(f'{path!r}: Non-existent owner {mode.owner!r} or group {mode.group!r}: ignoring...')
+            print(f'{path!r}: Nonexistent owner {mode.owner!r} or group {mode.group!r}: ignoring...')
         except OSError as e:
             if e.errno == errno.EINVAL:
-                print(f'{path!r}: Non-existent numeric owner {mode.owner!r} or group {mode.group!r}: ignoring...')
+                print(f'{path!r}: Nonexistent numeric owner {mode.owner!r} or group {mode.group!r}: ignoring...')
             else:
                 raise
     # Must set permissions *after* setting owner/group otherwise the

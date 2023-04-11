@@ -146,7 +146,7 @@ def cmake_defines_to_args(raw: T.Any, permissive: bool = False) -> T.List[str]:
 
     return res
 
-# TODO: this functuin will become obsolete once the `cmake_args` kwarg is dropped
+# TODO: this function will become obsolete once the `cmake_args` kwarg is dropped
 def check_cmake_args(args: T.List[str]) -> T.List[str]:
     res = []  # type: T.List[str]
     dis = ['-D' + x for x in blacklist_cmake_defs]

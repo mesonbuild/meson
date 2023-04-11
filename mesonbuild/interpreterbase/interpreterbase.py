@@ -525,14 +525,14 @@ class InterpreterBase:
             return None
 
     def method_call(self, node: mparser.MethodNode) -> T.Optional[InterpreterObject]:
-        invokable = node.source_object
+        invocable = node.source_object
         obj: T.Optional[InterpreterObject]
-        if isinstance(invokable, mparser.IdNode):
-            object_display_name = f'variable "{invokable.value}"'
-            obj = self.get_variable(invokable.value)
+        if isinstance(invocable, mparser.IdNode):
+            object_display_name = f'variable "{invocable.value}"'
+            obj = self.get_variable(invocable.value)
         else:
-            object_display_name = invokable.__class__.__name__
-            obj = self.evaluate_statement(invokable)
+            object_display_name = invocable.__class__.__name__
+            obj = self.evaluate_statement(invocable)
         method_name = node.name
         (h_args, h_kwargs) = self.reduce_arguments(node.args)
         (args, kwargs) = self._unholder_args(h_args, h_kwargs)

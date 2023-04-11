@@ -90,7 +90,7 @@ Examples:
 x = 'foo.txt'
 y = 'sub/../foo.txt'
 z = 'bar.txt'  # a symlink pointing to foo.txt
-j = 'notafile.txt'  # non-existent file
+j = 'notafile.txt'  # nonexistent file
 
 fs.is_samepath(x, y)  # true
 fs.is_samepath(x, z)  # true
@@ -99,7 +99,7 @@ fs.is_samepath(x, j)  # false
 p = 'foo/bar'
 q = 'foo/bar/baz/..'
 r = 'buz'  # a symlink pointing to foo/bar
-s = 'notapath'  # non-existent directory
+s = 'notapath'  # nonexistent directory
 
 fs.is_samepath(p, q)  # true
 fs.is_samepath(p, r)  # true

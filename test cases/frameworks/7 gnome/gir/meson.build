@@ -4,7 +4,7 @@ libsources = ['meson-sample.c', 'meson-sample.h']
 lib2sources = ['meson-sample2.c', 'meson-sample2.h']
 
 gen_source = custom_target(
-  'meson_smaple3.h',
+  'meson_sample3.h',
   input : 'meson-sample.h',
   output : 'meson-sample3.h',
   command : [find_program('copy.py'), '@INPUT@', '@OUTPUT@'],

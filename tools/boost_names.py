@@ -277,12 +277,12 @@ def main() -> int:
         '''))
 
         for mod in modules:
-            desc_excaped = re.sub(r"'", "\\'", mod.desc)
+            desc_escaped = re.sub(r"'", "\\'", mod.desc)
             print(textwrap.indent(textwrap.dedent(f"""\
                 '{mod.key}': BoostModule(
                     name='{mod.name}',
                     key='{mod.key}',
-                    desc='{desc_excaped}',
+                    desc='{desc_escaped}',
                     libs={[x.name for x in mod.libs]},
                 ),\
             """), '    '))

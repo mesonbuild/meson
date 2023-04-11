@@ -170,6 +170,6 @@ The first command is to ensure the wrap is correctly fetched from the
 latest packagefiles. The second command configures meson and selects a
 set of subprojects to enable.
 
-The Github project contains automatic CI on pushing to run the project
+The GitHub project contains automatic CI on pushing to run the project
 and check the metadata for obvious mistakes. This can be checked from
 your fork before submitting a PR.

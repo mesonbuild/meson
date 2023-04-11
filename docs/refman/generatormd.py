@@ -105,7 +105,7 @@ class GeneratorMD(GeneratorBase):
 
     def _link_to_object(self, obj: T.Union[Function, Object], in_code_block: bool = False) -> str:
         '''
-            Generate a palaceholder tag for the the function/method/object documentation.
+            Generate a palaceholder tag for the function/method/object documentation.
             This tag is then replaced in the custom hotdoc plugin.
         '''
         prefix = '#' if in_code_block else ''

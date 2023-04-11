@@ -1,4 +1,4 @@
-project('git outcheckker', 'c')
+project('git outchecker', 'c')
 
 sp = subproject('samplesubproject')
 

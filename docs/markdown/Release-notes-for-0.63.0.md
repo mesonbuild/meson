@@ -112,7 +112,7 @@ and the resulting directory tree will look like
 ## JAR Resources
 
 The ability to add resources to a JAR has been added. Use the `java_resources`
-keyword argument. It takes a `sturctured_src` object.
+keyword argument. It takes a `structured_src` object.
 
 ```meson
 jar(
