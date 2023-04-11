@@ -728,10 +728,10 @@ your own risk.
 ## SDL2
 
 SDL2 can be located using `pkg-confg`, the `sdl2-config` config tool,
-or as an OSX framework.
+as an OSX framework, or `cmake`.
 
-`method` may be `auto`, `config-tool`, `extraframework` or
-`pkg-config`.
+`method` may be `auto`, `config-tool`, `extraframework`,
+`pkg-config` or `cmake`.
 
 ## Shaderc
 
