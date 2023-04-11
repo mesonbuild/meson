@@ -786,6 +786,10 @@ def rebuild_all(wd: str, backend: str) -> bool:
             else:
                 return None, None
 
+            if os.stat(os.path.join(wd, 'build.ninja')).st_uid != int(orig_uid):
+                # the entire build process is running with sudo, we can't drop privileges
+                return None, None
+
             env['USER'] = orig_user
             env['HOME'] = homedir
 
