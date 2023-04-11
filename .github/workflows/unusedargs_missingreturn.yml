@@ -23,7 +23,7 @@ on:
     - "test cases/linuxlike/**"
     - "test cases/objc/**"
     - "test cases/objcpp/**"
-    - "test caes/windows/**"
+    - "test cases/windows/**"
 
   pull_request:
     paths:
@@ -34,7 +34,7 @@ on:
     - "test cases/linuxlike/**"
     - "test cases/objc/**"
     - "test cases/objcpp/**"
-    - "test caes/windows/**"
+    - "test cases/windows/**"
 
 permissions:
   contents: read
