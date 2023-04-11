@@ -754,7 +754,7 @@ def detect_vcs(source_dir: T.Union[str, Path]) -> T.Optional[T.Dict[str, str]]:
             'name': 'git',
             'cmd': 'git',
             'repo_dir': '.git',
-            'get_rev': 'git describe --dirty=+',
+            'get_rev': 'git describe --dirty=+ --always',
             'rev_regex': '(.*)',
             'dep': '.git/logs/HEAD'
         },
