@@ -1,7 +1,7 @@
 name: Cross-only compilation environment
 
 concurrency:
-  group: nonative-${{ github.head_ref || github.ref }}
+  group: nonnative-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
 on:
@@ -13,13 +13,13 @@ on:
     paths:
       - "mesonbuild/**"
       - "test cases/**"
-      - ".github/workflows/nonative.yml"
+      - ".github/workflows/nonnative.yml"
       - "run*tests.py"
   pull_request:
     paths:
       - "mesonbuild/**"
       - "test cases/**"
-      - ".github/workflows/nonative.yml"
+      - ".github/workflows/nonnative.yml"
       - "run*tests.py"
 
 permissions:
