@@ -85,7 +85,7 @@ class PkgGenerator:
         ET.SubElement(root, 'pkg-ref', {'id': self.identifier})
         ET.SubElement(root, 'options', {'customize': 'never',
                                         'require-scripts': 'false',
-                                        'hostArhcitectures': 'x86_64,arm64'})
+                                        'hostArchitectures': 'x86_64,arm64'})
         choices_outline = ET.SubElement(root, 'choices-outline')
         line = ET.SubElement(choices_outline, 'line', {'choice': 'default'})
         ET.SubElement(line, 'line', {'choice': self.identifier})
