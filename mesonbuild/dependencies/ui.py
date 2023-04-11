@@ -252,8 +252,9 @@ gl_factory = DependencyFactory(
 
 sdl2_factory = DependencyFactory(
     'sdl2',
-    [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK],
+    [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK, DependencyMethods.CMAKE],
     configtool_class=SDL2DependencyConfigTool,
+    cmake_name='SDL2',
 )
 
 vulkan_factory = DependencyFactory(
