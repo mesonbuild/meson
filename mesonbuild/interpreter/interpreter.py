@@ -235,7 +235,7 @@ class InterpreterRuleRelaxation(Enum):
     generate a Meson AST via introspection, etc.
     '''
 
-    ALLOW_BUILD_DIR_FILE_REFFERENCES = 1
+    ALLOW_BUILD_DIR_FILE_REFERENCES = 1
 
 permitted_dependency_kwargs = {
     'allow_fallback',
@@ -1001,7 +1001,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         # Duplicates are possible when subproject uses files from project root
         if build_def_files:
             self.build_def_files.update(build_def_files)
-        # We always need the subi.build_def_files, to propgate sub-sub-projects
+        # We always need the subi.build_def_files, to propagate sub-sub-projects
         self.build_def_files.update(subi.build_def_files)
         self.build.merge(subi.build)
         self.build.subprojects[subp_name] = subi.project_version
@@ -1048,7 +1048,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                     [str(f) for f in cm_int.bs_files],
                     is_translated=True,
                     relaxations={
-                        InterpreterRuleRelaxation.ALLOW_BUILD_DIR_FILE_REFFERENCES,
+                        InterpreterRuleRelaxation.ALLOW_BUILD_DIR_FILE_REFERENCES,
                     }
             )
             result.cm_interpreter = cm_int
@@ -1365,7 +1365,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             section, values, kwargs['bool_yn'], kwargs['list_sep'], self.subproject)
 
     def _print_summary(self) -> None:
-        # Add automatic 'Supbrojects' section in main project.
+        # Add automatic 'Subprojects' section in main project.
         all_subprojects = collections.OrderedDict()
         for name, subp in sorted(self.subprojects.items()):
             value = subp.found()
@@ -1997,7 +1997,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 build_by_default = kwargs['build_always']
             build_always_stale = kwargs['build_by_default']
 
-        # These are are nullaable so that we can know whether they're explicitly
+        # These are nullable so that we can know whether they're explicitly
         # set or not. If they haven't been overwritten, set them to their true
         # default
         if build_by_default is None:
@@ -2019,9 +2019,9 @@ class Interpreter(InterpreterBase, HoldableObject):
             command[0] = self.find_program_impl([command[0]])
 
         if len(inputs) > 1 and kwargs['feed']:
-            raise InvalidArguments('custom_target: "feed" keyword argument can only be used used with a single input')
+            raise InvalidArguments('custom_target: "feed" keyword argument can only be used with a single input')
         if len(kwargs['output']) > 1 and kwargs['capture']:
-            raise InvalidArguments('custom_target: "capture" keyword argument can only be used used with a single output')
+            raise InvalidArguments('custom_target: "capture" keyword argument can only be used with a single output')
         if kwargs['capture'] and kwargs['console']:
             raise InvalidArguments('custom_target: "capture" and "console" keyword arguments are mutually exclusive')
         for c in command:
@@ -2370,7 +2370,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         absname = os.path.join(self.environment.get_source_dir(), buildfilename)
         if not os.path.isfile(absname):
             self.subdir = prev_subdir
-            raise InterpreterException(f"Non-existent build file '{buildfilename!s}'")
+            raise InterpreterException(f"Nonexistent build file '{buildfilename!s}'")
         with open(absname, encoding='utf-8') as f:
             code = f.read()
         assert isinstance(code, str)
@@ -3034,7 +3034,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             inputtype = 'directory'
         else:
             inputtype = 'file'
-        if InterpreterRuleRelaxation.ALLOW_BUILD_DIR_FILE_REFFERENCES in self.relaxations and builddir in norm.parents:
+        if InterpreterRuleRelaxation.ALLOW_BUILD_DIR_FILE_REFERENCES in self.relaxations and builddir in norm.parents:
             return
         if srcdir not in norm.parents:
             # Grabbing files outside the source tree is ok.

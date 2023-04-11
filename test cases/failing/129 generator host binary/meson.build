@@ -8,7 +8,7 @@ add_languages('c', native : false)
 
 exe = executable('exe', 'exe.c', native : false)
 
-gen = generator(exe, output : '@BASENAME@.c', arguments : ['@INPUT@', '@OUTPU@'])
+gen = generator(exe, output : '@BASENAME@.c', arguments : ['@INPUT@', '@OUTPUT@'])
 foo = gen.process('lib.in')
 
 library('foo', foo)

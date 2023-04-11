@@ -12,7 +12,7 @@ use, such as *debug* and *minsize*. There is also a *plain* type that
 adds nothing by default but instead makes it the user's responsibility
 to add everything by hand. This works but is a bit tedious.
 
-In this release we have added new new options to manually toggle e.g.
+In this release we have added new options to manually toggle e.g.
 optimization levels and debug info so those can be changed
 independently of other options. For example by default the debug
 buildtype has no optimization enabled at all. If you wish to use GCC's
@@ -79,7 +79,7 @@ which has special properties such as not buffering stdout and
 serializing all targets in this pool.
 
 The primary use-case for this is to be able to run external commands
-that take a long time to exeute. Without setting this, the user does
+that take a long time to execute. Without setting this, the user does
 not receive any feedback about what the program is doing.
 
 ## `dependency(version:)` now applies to all dependency types

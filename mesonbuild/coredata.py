@@ -472,7 +472,7 @@ class CoreData:
         # want to overwrite options for such subprojects.
         self.initialized_subprojects: T.Set[str] = set()
 
-        # For host == build configuraitons these caches should be the same.
+        # For host == build configurations these caches should be the same.
         self.deps: PerMachine[DependencyCache] = PerMachineDefaultable.default(
             self.is_cross_build(),
             DependencyCache(self.options, MachineChoice.BUILD),
@@ -586,7 +586,7 @@ class CoreData:
         except TypeError:
             return value
         if option.name.endswith('dir') and value.is_absolute() and \
-           option not in BULITIN_DIR_NOPREFIX_OPTIONS:
+           option not in BUILTIN_DIR_NOPREFIX_OPTIONS:
             try:
                 # Try to relativize the path.
                 value = value.relative_to(prefix)
@@ -707,7 +707,7 @@ class CoreData:
         elif key.name in {'wrap_mode', 'force_fallback_for'}:
             # We could have the system dependency cached for a dependency that
             # is now forced to use subproject fallback. We probably could have
-            # more fine grained cache invalidation, but better be safe.
+            # more fine-grained cache invalidation, but better be safe.
             self.clear_deps_cache()
             dirty = True
 
@@ -838,7 +838,7 @@ class CoreData:
         if pfk in options:
             prefix = self.sanitize_prefix(options[pfk])
             dirty |= self.options[OptionKey('prefix')].set_value(prefix)
-            for key in BULITIN_DIR_NOPREFIX_OPTIONS:
+            for key in BUILTIN_DIR_NOPREFIX_OPTIONS:
                 if key not in options:
                     dirty |= self.options[key].set_value(BUILTIN_OPTIONS[key].prefixed_default(key, prefix))
 
@@ -862,7 +862,7 @@ class CoreData:
 
     def set_default_options(self, default_options: T.MutableMapping[OptionKey, str], subproject: str, env: 'Environment') -> None:
         # Main project can set default options on subprojects, but subprojects
-        # can only set default options on themself.
+        # can only set default options on themselves.
         # Preserve order: if env.options has 'buildtype' it must come after
         # 'optimization' if it is in default_options.
         options: T.MutableMapping[OptionKey, T.Any] = OrderedDict()
@@ -1194,7 +1194,7 @@ class BuiltinOption(T.Generic[_T, _U]):
         if self.opt_type in [UserComboOption, UserIntegerOption]:
             return self.default
         try:
-            return BULITIN_DIR_NOPREFIX_OPTIONS[name][prefix]
+            return BUILTIN_DIR_NOPREFIX_OPTIONS[name][prefix]
         except KeyError:
             pass
         return self.default
@@ -1283,7 +1283,7 @@ BUILTIN_OPTIONS_PER_MACHINE: 'MutableKeyedOptionDictType' = OrderedDict([
 
 # Special prefix-dependent defaults for installation directories that reside in
 # a path outside of the prefix in FHS and common usage.
-BULITIN_DIR_NOPREFIX_OPTIONS: T.Dict[OptionKey, T.Dict[str, str]] = {
+BUILTIN_DIR_NOPREFIX_OPTIONS: T.Dict[OptionKey, T.Dict[str, str]] = {
     OptionKey('sysconfdir'):     {'/usr': '/etc'},
     OptionKey('localstatedir'):  {'/usr': '/var',     '/usr/local': '/var/local'},
     OptionKey('sharedstatedir'): {'/usr': '/var/lib', '/usr/local': '/var/local/lib'},

@@ -120,7 +120,7 @@ assert(not fs.is_samepath(f1, 'subdir/subdirfile.txt'), 'is_samepath known bad c
 assert(not fs.is_samepath('not-a-path', f2), 'is_samepath should not error if path(s) do not exist')
 
 f = files('meson.build', 'subdir/../meson.build')
-assert(fs.is_samepath(f[0], f[1]), 'is_samepath not detercting same files')
+assert(fs.is_samepath(f[0], f[1]), 'is_samepath not detecting same files')
 
 if not is_windows and build_machine.system() != 'cygwin'
   assert(fs.is_samepath(symlink, 'meson.build'), 'symlink is_samepath fail')

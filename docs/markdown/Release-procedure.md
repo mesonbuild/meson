@@ -24,7 +24,7 @@ Before a major release is made a stable branch will be made, and
 will be made, and all bugs effecting the RC will be assigned to this
 milestone. Patches fixing bugs in the milestone will be picked to the
 stable branch, and normal development will continue on the master
-branch. Every week after after this a new release candidate will be
+branch. Every week after this a new release candidate will be
 made until all bugs are resolved in that milestone. When all of the
 bugs are fixed the 0.X.0 release will be made.
 

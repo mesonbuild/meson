@@ -68,7 +68,7 @@ generated = rust.bindgen(
 )
 ```
 
-If the header depeneds on generated headers, those headers must be passed to
+If the header depends on generated headers, those headers must be passed to
 `bindgen` as well to ensure proper dependency ordering, static headers do not
 need to be passed, as a proper depfile is generated:
 

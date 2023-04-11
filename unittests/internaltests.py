@@ -1101,7 +1101,7 @@ class InternalTests(unittest.TestCase):
             _(None, mock.Mock(), ['string', 'var', 'args', 0], None)
         self.assertEqual(str(cm.exception), 'foo argument 4 was of type "int" but should have been "str"')
 
-    def test_typed_pos_args_varargs_invalid_mulitple_types(self) -> None:
+    def test_typed_pos_args_varargs_invalid_multiple_types(self) -> None:
         @typed_pos_args('foo', str, varargs=(str, list))
         def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
             self.assertTrue(False)  # should not be reachable

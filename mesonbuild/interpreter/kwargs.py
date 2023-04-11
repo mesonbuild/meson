@@ -57,7 +57,7 @@ class FuncTest(FuncBenchmark):
 
     """Keyword Arguments for `test`
 
-    `test` only adds the `is_prallel` argument over benchmark, so inherintance
+    `test` only adds the `is_parallel` argument over benchmark, so inheritance
     is helpful here.
     """
 

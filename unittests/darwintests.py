@@ -138,7 +138,7 @@ class DarwinTests(BasePlatformTests):
 
     def test_objc_versions(self):
         # Objective-C always uses the C standard version.
-        # Objecttive-C++ always uses the C++ standard version.
+        # Objective-C++ always uses the C++ standard version.
         # This is what most people seem to want and in addition
         # it is the only setup supported by Xcode.
         testdir = os.path.join(self.objc_test_dir, '1 simple')

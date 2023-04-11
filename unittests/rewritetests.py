@@ -156,7 +156,7 @@ class RewriterTests(BasePlatformTests):
         }
         self.assertDictEqual(out, expected)
 
-    def test_tatrget_add(self):
+    def test_target_add(self):
         self.prime('1 basic')
         self.rewrite(self.builddir, os.path.join(self.builddir, 'addTgt.json'))
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))

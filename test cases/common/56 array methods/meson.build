@@ -18,7 +18,7 @@ if not file_list.contains(file_a[0])
 endif
 
 if file_list.contains(file_c[0])
-  error('Contains with ObjectHolder lists found non existent object')
+  error('Contains with ObjectHolder lists found nonexistent object')
 endif
 
 if empty.contains('abc')

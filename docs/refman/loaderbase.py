@@ -108,7 +108,7 @@ class _Resolver:
         for obj in func.returns.resolved:
             obj.data_type.returned_by += [func]
 
-        # Handle kwargs inehritance
+        # Handle kwargs inheritance
         for base_name in func.kwargs_inherit:
             base_name = base_name.strip()
             assert base_name in self.func_map, f'Unknown base function `{base_name}` for {func.name}'
@@ -123,7 +123,7 @@ class _Resolver:
             missing = {k: v for k, v in base.kwargs.items() if k in base_keys - curr_keys}
             func.kwargs.update(missing)
 
-        # Handloe other args inheritance
+        # Handle other args inheritance
         _T = T.TypeVar('_T', bound=T.Union[ArgBase, T.List[PosArg]])
         def resolve_inherit(name: str, curr: _T, resolver: T.Callable[[Function], _T]) -> _T:
             if name and not curr:

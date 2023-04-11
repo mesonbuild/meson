@@ -569,27 +569,27 @@ class Rewriter:
 
             if key not in arg_node.kwargs:
                 arg_node.kwargs[key] = None
-            modifyer = kwargs_def[key](arg_node.kwargs[key])
-            if not modifyer.can_modify():
+            modifier = kwargs_def[key](arg_node.kwargs[key])
+            if not modifier.can_modify():
                 mlog.log('  -- Skipping', mlog.bold(key), 'because it is to complex to modify')
 
             # Apply the operation
             val_str = str(val)
             if cmd['operation'] == 'set':
                 mlog.log('  -- Setting', mlog.bold(key), 'to', mlog.yellow(val_str))
-                modifyer.set_value(val)
+                modifier.set_value(val)
             elif cmd['operation'] == 'add':
                 mlog.log('  -- Adding', mlog.yellow(val_str), 'to', mlog.bold(key))
-                modifyer.add_value(val)
+                modifier.add_value(val)
             elif cmd['operation'] == 'remove':
                 mlog.log('  -- Removing', mlog.yellow(val_str), 'from', mlog.bold(key))
-                modifyer.remove_value(val)
+                modifier.remove_value(val)
             elif cmd['operation'] == 'remove_regex':
                 mlog.log('  -- Removing all values matching', mlog.yellow(val_str), 'from', mlog.bold(key))
-                modifyer.remove_regex(val)
+                modifier.remove_regex(val)
 
             # Write back the result
-            arg_node.kwargs[key] = modifyer.get_node()
+            arg_node.kwargs[key] = modifier.get_node()
             num_changed += 1
 
         # Convert the keys back to IdNode's

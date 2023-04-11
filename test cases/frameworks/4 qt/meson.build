@@ -65,7 +65,7 @@ foreach qt : ['qt4', 'qt5', 'qt6']
     extra_cpp_args = []
     if meson.is_unity()
       extra_cpp_args += '-DUNITY_BUILD'
-      prep_rcc = qtmodule.preprocess(qt + '_unity_ressource', qresources : ['stuff.qrc', 'stuff2.qrc'], method : get_option('method'))
+      prep_rcc = qtmodule.preprocess(qt + '_unity_resource', qresources : ['stuff.qrc', 'stuff2.qrc'], method : get_option('method'))
     else
       prep_rcc = qtmodule.preprocess(qresources : ['stuff.qrc', 'stuff2.qrc'], method : get_option('method'))
     endif

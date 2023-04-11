@@ -1228,7 +1228,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                            mode: CompileCheckMode = CompileCheckMode.COMPILE) -> CompilerArgs:
         """Arguments to pass the build_wrapper helper.
 
-        This generally needs to be set on a per-language baises. It provides
+        This generally needs to be set on a per-language basis. It provides
         a hook for languages to handle dependencies and extra args. The base
         implementation handles the most common cases, namely adding the
         check_arguments, unwrapping dependencies, and appending extra args.
@@ -1266,7 +1266,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                        mode: str = 'compile', want_output: bool = False,
                        disable_cache: bool = False,
                        temp_dir: str = None) -> T.Iterator[T.Optional[CompileResult]]:
-        """Helper for getting a cacched value when possible.
+        """Helper for getting a cached value when possible.
 
         This method isn't meant to be called externally, it's mean to be
         wrapped by other methods like compiles() and links().
@@ -1361,7 +1361,7 @@ def get_global_options(lang: str,
         # If the compiler acts as a linker driver, and we're using the
         # environment variable flags for both the compiler and linker
         # arguments, then put the compiler flags in the linker flags as well.
-        # This is how autotools works, and the env vars freature is for
+        # This is how autotools works, and the env vars feature is for
         # autotools compatibility.
         largs.extend_value(comp_options)
 

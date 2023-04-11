@@ -354,7 +354,7 @@ class OverrideProgram(ExternalProgram):
 def find_external_program(env: 'Environment', for_machine: MachineChoice, name: str,
                           display_name: str, default_names: T.List[str],
                           allow_default_for_cross: bool = True) -> T.Generator['ExternalProgram', None, None]:
-    """Find an external program, chcking the cross file plus any default options."""
+    """Find an external program, checking the cross file plus any default options."""
     # Lookup in cross or machine file.
     potential_cmd = env.lookup_binary_entry(for_machine, name)
     if potential_cmd is not None:

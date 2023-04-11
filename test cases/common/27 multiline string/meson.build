@@ -34,4 +34,4 @@ int main(void) {
   return 0;
 }'''
 
-assert(cc.compiles(prog), 'multline test compile failed')
+assert(cc.compiles(prog), 'multiline test compile failed')

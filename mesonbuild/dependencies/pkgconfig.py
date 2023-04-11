@@ -415,7 +415,7 @@ class PkgConfigDependency(ExternalDependency):
         else:
             variable = out.strip()
 
-            # pkg-config doesn't distinguish between empty and non-existent variables
+            # pkg-config doesn't distinguish between empty and nonexistent variables
             # use the variable list to check for variable existence
             if not variable:
                 ret, out, _ = self._call_pkgbin(['--print-variables', self.name])

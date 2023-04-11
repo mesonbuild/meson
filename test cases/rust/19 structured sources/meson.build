@@ -27,7 +27,7 @@ target = executable(
   ),
 )
 
-# Should not be coppied
+# Should not be copied
 executable(
   'no_copy_target',
   structured_sources(

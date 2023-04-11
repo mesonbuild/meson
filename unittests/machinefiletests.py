@@ -140,7 +140,7 @@ class NativeFileTests(BasePlatformTests):
         return batfile
 
     def helper_for_compiler(self, lang, cb, for_machine = MachineChoice.HOST):
-        """Helper for generating tests for overriding compilers for langaugages
+        """Helper for generating tests for overriding compilers for languages
         with more than one implementation, such as C, C++, ObjC, ObjC++, and D.
         """
         env = get_fake_env()

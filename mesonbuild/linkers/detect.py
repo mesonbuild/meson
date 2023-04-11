@@ -96,7 +96,7 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
 
     if value is not None and invoked_directly:
         compiler = value
-        # We've already hanedled the non-direct case above
+        # We've already handled the non-direct case above
 
     p, o, e = Popen_safe(compiler + check_args)
     if 'LLD' in o.split('\n', maxsplit=1)[0]:

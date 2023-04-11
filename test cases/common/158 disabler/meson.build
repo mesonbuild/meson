@@ -97,7 +97,7 @@ assert(if_is_not_disabled, 'Disabler in is_variable should not skip blocks')
 get_d = get_variable('d6')
 assert(is_disabler(get_d), 'get_variable should yield a disabler')
 
-get_fallback_d = get_variable('nonexistant', disabler())
+get_fallback_d = get_variable('nonexistent', disabler())
 assert(is_disabler(get_fallback_d), 'get_variable fallback should yield a disabler')
 
 var_true = true

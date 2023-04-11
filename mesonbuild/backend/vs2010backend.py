@@ -1436,7 +1436,7 @@ class Vs2010Backend(backends.Backend):
                     else:
                         inc_dirs = file_inc_dirs
                     self.add_include_dirs(lang, inc_cl, inc_dirs)
-                    # XXX: Do we need to set the object file name name here too?
+                    # XXX: Do we need to set the object file name here too?
 
         previous_objects = []
         if self.has_objects(objects, additional_objects, gen_objs):

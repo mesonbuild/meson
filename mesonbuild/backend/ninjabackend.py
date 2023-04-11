@@ -545,7 +545,7 @@ class NinjaBackend(backends.Backend):
         # We want to match 'Note: including file: ' in the line
         # 'Note: including file: d:\MyDir\include\stdio.h', however
         # different locales have different messages with a different
-        # number of colons. Match up to the the drive name 'd:\'.
+        # number of colons. Match up to the drive name 'd:\'.
         # When used in cross compilation, the path separator is a
         # forward slash rather than a backslash so handle both; i.e.
         # the path is /MyDir/include/stdio.h.
@@ -750,7 +750,7 @@ class NinjaBackend(backends.Backend):
         '''
         Adds the source file introspection information for a language of a target
 
-        Internal introspection storage formart:
+        Internal introspection storage format:
         self.introspection_data = {
             '<target ID>': {
                 <id tuple>: {
@@ -830,7 +830,7 @@ class NinjaBackend(backends.Backend):
             self.generate_swift_target(target)
             return
 
-        # Pre-existing target C/C++ sources to be built; dict of full path to
+        # Preexisting target C/C++ sources to be built; dict of full path to
         # source relative to build root and the original File object.
         target_sources: T.MutableMapping[str, File]
 
@@ -839,7 +839,7 @@ class NinjaBackend(backends.Backend):
         generated_sources: T.MutableMapping[str, File]
 
         # List of sources that have been transpiled from a DSL (like Vala) into
-        # a language that is haneled below, such as C or C++
+        # a language that is handled below, such as C or C++
         transpiled_sources: T.List[str]
 
         if 'vala' in target.compilers:
@@ -879,7 +879,7 @@ class NinjaBackend(backends.Backend):
                 mlog.log(mlog.red('FIXME'), msg)
 
         # Get a list of all generated headers that will be needed while building
-        # this target's sources (generated sources and pre-existing sources).
+        # this target's sources (generated sources and preexisting sources).
         # This will be set as dependencies of all the target's sources. At the
         # same time, also deal with generated sources that need to be compiled.
         generated_source_files = []
@@ -964,7 +964,7 @@ class NinjaBackend(backends.Backend):
             o, s = self.generate_single_compile(target, src, 'vala', [], header_deps)
             obj_list.append(o)
 
-        # Generate compile targets for all the pre-existing sources for this target
+        # Generate compile targets for all the preexisting sources for this target
         for src in target_sources.values():
             if not self.environment.is_header(src):
                 if self.environment.is_llvm_ir(src):
@@ -1035,8 +1035,8 @@ class NinjaBackend(backends.Backend):
         rule_name = 'depscan'
         scan_sources = self.select_sources_to_scan(compiled_sources)
 
-        # Dump the sources as a json list. This avoids potential probllems where
-        # the number of sources passed to depscan exceedes the limit imposed by
+        # Dump the sources as a json list. This avoids potential problems where
+        # the number of sources passed to depscan exceeds the limit imposed by
         # the OS.
         with open(json_abs, 'w', encoding='utf-8') as f:
             json.dump(scan_sources, f)
@@ -1294,7 +1294,7 @@ class NinjaBackend(backends.Backend):
             if build.rulename in self.ruledict:
                 build.rule = self.ruledict[build.rulename]
             else:
-                mlog.warning(f"build statement for {build.outfilenames} references non-existent rule {build.rulename}")
+                mlog.warning(f"build statement for {build.outfilenames} references nonexistent rule {build.rulename}")
 
     def write_rules(self, outfile):
         for b in self.build_elements:
@@ -1505,7 +1505,7 @@ class NinjaBackend(backends.Backend):
                     T.Tuple[T.MutableMapping[str, File], T.MutableMapping]]:
         """
         Splits the target's sources into .vala, .gs, .vapi, and other sources.
-        Handles both pre-existing and generated sources.
+        Handles both preexisting and generated sources.
 
         Returns a tuple (vala, vapi, others) each of which is a dictionary with
         the keys being the path to the file (relative to the build directory)
@@ -1515,7 +1515,7 @@ class NinjaBackend(backends.Backend):
         vapi: T.MutableMapping[str, File] = OrderedDict()
         others: T.MutableMapping[str, File] = OrderedDict()
         othersgen: T.MutableMapping[str, File] = OrderedDict()
-        # Split pre-existing sources
+        # Split preexisting sources
         for s in t.get_sources():
             # BuildTarget sources are always mesonlib.File files which are
             # either in the source root, or generated with configure_file and
@@ -1928,7 +1928,7 @@ class NinjaBackend(backends.Backend):
         # before that it would treat linking two static libraries as
         # whole-archive linking. However, to make this work we have to disable
         # bundling, which can't be done until 1.63.0… So for 1.61–1.62 we just
-        # have to hope that the default cases of +whole-archive are sufficent.
+        # have to hope that the default cases of +whole-archive are sufficient.
         # See: https://github.com/rust-lang/rust/issues/99429
         if mesonlib.version_compare(rustc.version, '>= 1.63.0'):
             whole_archive = ':+whole-archive,-bundle'
@@ -2624,7 +2624,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # has pdb file called foo.pdb. So will a static library
         # foo.lib, which clobbers both foo.pdb _and_ the dll file's
         # export library called foo.lib (by default, currently we name
-        # them libfoo.a to avoidt this issue). You can give the files
+        # them libfoo.a to avoid this issue). You can give the files
         # unique names such as foo_exe.pdb but VC also generates a
         # bunch of other files which take their names from the target
         # basename (i.e. "foo") and stomp on each other.

@@ -1,4 +1,4 @@
-project('Mercurial outcheckker', 'c')
+project('Mercurial outchecker', 'c')
 
 sp = subproject('samplesubproject')
 

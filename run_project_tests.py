@@ -153,7 +153,7 @@ class InstalledFile:
         if self.language in {'c', 'cpp'}:
             has_pdb = canonical_compiler == 'msvc'
         elif self.language == 'd':
-            # dmd's optlink does not genearte pdb iles
+            # dmd's optlink does not generate pdb files
             has_pdb = env.coredata.compilers.host['d'].linker.id in {'link', 'lld-link'}
 
         # Abort if the platform does not match

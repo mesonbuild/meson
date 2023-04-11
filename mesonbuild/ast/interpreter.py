@@ -352,7 +352,7 @@ class AstInterpreter(InterpreterBase):
             return None # Loop detected
         id_loop_detect += [node.ast_id]
 
-        # Try to evealuate the value of the node
+        # Try to evaluate the value of the node
         if isinstance(node, IdNode):
             result = quick_resolve(node)
 
@@ -421,7 +421,7 @@ class AstInterpreter(InterpreterBase):
         else:
             args = [args_raw]
 
-        flattend_args = []  # type: T.List[TYPE_nvar]
+        flattened_args = []  # type: T.List[TYPE_nvar]
 
         # Resolve the contents of args
         for i in args:
@@ -430,18 +430,18 @@ class AstInterpreter(InterpreterBase):
                 if resolved is not None:
                     if not isinstance(resolved, list):
                         resolved = [resolved]
-                    flattend_args += resolved
+                    flattened_args += resolved
             elif isinstance(i, (str, bool, int, float)) or include_unknown_args:
-                flattend_args += [i]
-        return flattend_args
+                flattened_args += [i]
+        return flattened_args
 
     def flatten_kwargs(self, kwargs: T.Dict[str, TYPE_nvar], include_unknown_args: bool = False) -> T.Dict[str, TYPE_nvar]:
-        flattend_kwargs = {}
+        flattened_kwargs = {}
         for key, val in kwargs.items():
             if isinstance(val, BaseNode):
                 resolved = self.resolve_node(val, include_unknown_args)
                 if resolved is not None:
-                    flattend_kwargs[key] = resolved
+                    flattened_kwargs[key] = resolved
             elif isinstance(val, (str, bool, int, float)) or include_unknown_args:
-                flattend_kwargs[key] = val
-        return flattend_kwargs
+                flattened_kwargs[key] = val
+        return flattened_kwargs

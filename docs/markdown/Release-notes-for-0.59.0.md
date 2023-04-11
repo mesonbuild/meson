@@ -196,7 +196,7 @@ executable(
 ## New `build target` methods
 
 The [[@build_tgt]] object now supports
-the following two functions, to ensure feature compatebility with
+the following two functions, to ensure feature compatibility with
 [[@external_program]] objects:
 
 - `found()`: Always returns `true`. This function is meant
@@ -205,7 +205,7 @@ the following two functions, to ensure feature compatebility with
   use-cases where an executable is used instead of an external program.
 
 - `path()`: **(deprecated)** does the exact same as `full_path()`.
-  **NOTE:** This function is solely kept for compatebility
+  **NOTE:** This function is solely kept for compatibility
   with `external program` objects. It will be
   removed once the, also deprecated, corresponding `path()` function in the
   `external program` object is removed.
