@@ -37,11 +37,11 @@ foreach cc : compilers
 
   if cc.has_function('hfkerhisadf', prefix : '#include<stdio.h>',
                      args : unit_test_args)
-    error('Found non-existent function "hfkerhisadf".')
+    error('Found nonexistent function "hfkerhisadf".')
   endif
 
   if cc.has_function('hfkerhisadf', args : unit_test_args)
-    error('Found non-existent function "hfkerhisadf".')
+    error('Found nonexistent function "hfkerhisadf".')
   endif
 
   # With glibc (before 2.32, see below) on Linux, lchmod is a stub that will

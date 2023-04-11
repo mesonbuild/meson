@@ -26,7 +26,7 @@ mode", on the other hand, is meant to be used by external programs
 
 The rewriter itself is considered stable, however the user interface
 and the "script mode" API might change in the future. These changes
-may also break backwards comaptibility to older releases.
+may also break backwards compatibility to older releases.
 
 We are also open to suggestions for API improvements.
 

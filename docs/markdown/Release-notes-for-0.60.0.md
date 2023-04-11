@@ -286,7 +286,7 @@ be flattened.
 
 ## The qt modules now accept generated outputs as inputs for qt.compile_*
 
-This means you can uset `custom_target`, custom_target indices
+This means you can use `custom_target`, custom_target indices
 (`custom_target[0]`, for example), or the output of `generator.process` as
 inputs to the various `qt.compile_*` methods.
 
@@ -357,7 +357,7 @@ are found, and silently continue if Visual Studio activation fails.
 
 `meson setup --vsenv` command line argument can now be used to force Visual Studio
 activation even when other compilers are found. It also make Meson abort with an
-error message when activation fails. This is especially useful for Github Action
+error message when activation fails. This is especially useful for GitHub Actions
 because their Windows images have gcc in their PATH by default.
 
 `--vsenv` is set by default when using `vs` backend.

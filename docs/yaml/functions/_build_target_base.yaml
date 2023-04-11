@@ -89,7 +89,7 @@ kwargs:
     default: false
     description: |
       When set to true flags this target as a GUI application
-      on platforms where this makes a differerence, **deprecated** since
+      on platforms where this makes a difference, **deprecated** since
       0.56.0, use `win_subsystem` instead.
 
   link_args:
@@ -299,6 +299,6 @@ kwargs:
       If it is a [[shared_library]] it defaults to "lib", and may be "lib",
       "dylib", "cdylib", or "proc-macro". If "lib" then Rustc will pick a
       default, "cdylib" means a C ABI library, "dylib" means a Rust ABI, and
-      "proc-macro" is a special rust proceedural macro crate.
+      "proc-macro" is a special rust procedural macro crate.
 
       "proc-macro" is new in 0.62.0.

@@ -80,7 +80,7 @@ This method takes the following keyword arguments:
  - `ui_files`: (string | File | CustomTarget)[]: Passed the `uic` compiler
  - `moc_sources`: (string | File | CustomTarget)[]: Passed the `moc` compiler.
    These are converted into .moc files meant to be `#include`ed
- - `moc_headers`: (string | File | CustomTarget)[]: Passied the `moc` compiler.
+ - `moc_headers`: (string | File | CustomTarget)[]: Passed the `moc` compiler.
    These will be converted into .cpp files
  - `include_directories` (IncludeDirectories | string)[], the directories to add
    to header search path for `moc`

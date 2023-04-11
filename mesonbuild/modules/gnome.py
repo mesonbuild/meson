@@ -2149,7 +2149,7 @@ class GnomeModule(ExtensionModule):
         )
 
         # So to try our best to get this to just work we need:
-        # - link with with the correct library
+        # - link with the correct library
         # - include the vapi and dependent vapi files in sources
         # - add relevant directories to include dirs
         incs = [build.IncludeDirs(state.subdir, ['.'] + vapi_includes, False)]

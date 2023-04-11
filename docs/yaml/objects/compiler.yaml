@@ -485,7 +485,7 @@ methods:
       default: "'off'"
       description: |
         Supported values:
-          - `'off'`: Quietely ignore unsupported arguments
+          - `'off'`: Quietly ignore unsupported arguments
           - `'warn'`: Print a warning for unsupported arguments
           - `'require'`: Abort if at least one argument is not supported
 
@@ -544,7 +544,7 @@ methods:
   #     default: "'off'"
   #     description: |
   #       Supported values:
-  #         - `'off'`: Quietely ignore unsupported arguments
+  #         - `'off'`: Quietly ignore unsupported arguments
   #         - `'warn'`: Print a warning for unsupported arguments
   #         - `'require'`: Abort if at least one argument is not supported
 

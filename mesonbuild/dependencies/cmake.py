@@ -489,7 +489,7 @@ class CMakeDependency(ExternalDependency):
             libs_raw = [x for x in self.traceparser.get_cmake_var('PACKAGE_LIBRARIES') if x]
 
             # CMake has a "fun" API, where certain keywords describing
-            # configurations can be in the *_LIBRARIES vraiables. See:
+            # configurations can be in the *_LIBRARIES variables. See:
             # - https://github.com/mesonbuild/meson/issues/9197
             # - https://gitlab.freedesktop.org/libnice/libnice/-/issues/140
             # - https://cmake.org/cmake/help/latest/command/target_link_libraries.html#overview  (the last point in the section)
@@ -505,7 +505,7 @@ class CMakeDependency(ExternalDependency):
                     libs += [i]
                 # According to the CMake docs, a keyword only works for the
                 # directly the following item and all items without a keyword
-                # are implizitly `general`
+                # are implicitly `general`
                 cfg_matches = True
 
             # Try to use old style variables if no module is specified

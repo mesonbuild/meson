@@ -53,7 +53,7 @@ methods:
   deprecated: 0.59.0
   description: |
     Does the exact same as [[build_tgt.full_path]]. **NOTE**: This
-    function is solely kept for compatebility with [[@external_program]] objects.
+    function is solely kept for compatibility with [[@external_program]] objects.
     It will be removed once the, also deprecated, corresponding `path()`
     function in the [[@external_program]] object is removed.
 

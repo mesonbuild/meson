@@ -332,7 +332,7 @@ class CursesSystemDependency(SystemDependency):
             ('curses',  ['curses.h']),
         ]
 
-        # Not sure how else to elegently break out of both loops
+        # Not sure how else to elegantly break out of both loops
         for lib, headers in candidates:
             l = self.clib_compiler.find_library(lib, env, [])
             if l:

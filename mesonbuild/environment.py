@@ -674,7 +674,7 @@ class Environment:
                             # time) until we're instantiating that `Compiler`
                             # object. This is required so that passing
                             # `-Dc_args=` on the command line and `$CFLAGS`
-                            # have subtely different behavior. `$CFLAGS` will be
+                            # have subtly different behavior. `$CFLAGS` will be
                             # added to the linker command line if the compiler
                             # acts as a linker driver, `-Dc_args` will not.
                             #

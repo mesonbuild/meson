@@ -8,7 +8,7 @@ if build_machine.system() == 'windows'
   limit = 32767
   # NOTE: filename limit is 260 characters unless
   # 1. Python >= 3.6 is being used
-  # 2. Windows 10 registry has been edited to enable long pathnaems
+  # 2. Windows 10 registry has been edited to enable long pathnames
   # ninja backend uses absolute filenames, so we ensure they don't exceed 260.
 elif build_machine.system() == 'cygwin'
   # cygwin-to-win32: see above

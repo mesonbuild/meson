@@ -82,7 +82,7 @@ kwargs:
 
       For backwards compatibility reasons you can also pass an array of
       licenses here. This is not recommended, as it is ambiguous: `license :
-      ['Apache-2.0', 'GPL-2.0-only']` instead use an SPDX espression: `license
+      ['Apache-2.0', 'GPL-2.0-only']` instead use an SPDX expression: `license
       : 'Apache-2.0 OR GPL-2.0-only'`, which makes it clear that the license
       mean OR, not AND.
 

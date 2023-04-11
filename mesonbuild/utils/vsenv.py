@@ -70,7 +70,7 @@ def _setup_vsenv(force: bool) -> bool:
     )
     bat_info = json.loads(bat_json)
     if not bat_info:
-        # VS installer instelled but not VS itself maybe?
+        # VS installer installed but not VS itself maybe?
         raise MesonException('Could not parse vswhere.exe output')
     bat_root = pathlib.Path(bat_info[0]['installationPath'])
     if windows_detect_native_arch() == 'arm64':

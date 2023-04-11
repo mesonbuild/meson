@@ -928,7 +928,7 @@ class WASMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dyna
 
 class CcrxDynamicLinker(DynamicLinker):
 
-    """Linker for Renesis CCrx compiler."""
+    """Linker for Renesas CCrx compiler."""
 
     id = 'rlink'
 
@@ -1216,7 +1216,7 @@ NvidiaHPC_StaticLinker = PGIStaticLinker
 
 class VisualStudioLikeLinkerMixin:
 
-    """Mixin class for for dynamic linkers that act like Microsoft's link.exe."""
+    """Mixin class for dynamic linkers that act like Microsoft's link.exe."""
 
     if T.TYPE_CHECKING:
         for_machine = MachineChoice.HOST

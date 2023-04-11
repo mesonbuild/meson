@@ -288,7 +288,7 @@ class CMakeTraceParser:
         raise CMakeException(f'CMake: {function}() {error}\n{tline}')
 
     def _cmake_set(self, tline: CMakeTraceLine) -> None:
-        """Handler for the CMake set() function in all variaties.
+        """Handler for the CMake set() function in all varieties.
 
         comes in three flavors:
         set(<var> <value> [PARENT_SCOPE])
@@ -509,7 +509,7 @@ class CMakeTraceParser:
             targets += curr.split(';')
 
         if not args:
-            return self._gen_exception('set_property', 'faild to parse argument list', tline)
+            return self._gen_exception('set_property', 'failed to parse argument list', tline)
 
         if len(args) == 1:
             # Tries to set property to nothing so nothing has to be done
@@ -575,7 +575,7 @@ class CMakeTraceParser:
 
             targets.append(curr)
 
-        # Now we need to try to reconsitute the original quoted format of the
+        # Now we need to try to reconstitute the original quoted format of the
         # arguments, as a property value could have spaces in it. Unlike
         # set_property() this is not context free. There are two approaches I
         # can think of, both have drawbacks:
@@ -586,7 +586,7 @@ class CMakeTraceParser:
         #
         # Neither of these is awesome for obvious reasons. I'm going to try
         # option 1 first and fall back to 2, as 1 requires less code and less
-        # synchroniztion for cmake changes.
+        # synchronization for cmake changes.
         #
         # With the JSON output format, introduced in CMake 3.17, spaces are
         # handled properly and we don't have to do either options

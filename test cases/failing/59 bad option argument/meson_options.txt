@@ -1,1 +1,1 @@
-option('name', type : 'string', vaule : 'foo')
+option('name', type : 'string', value_ : 'foo')

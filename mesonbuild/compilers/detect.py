@@ -382,7 +382,7 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
 
         if 'Arm C/C++/Fortran Compiler' in out:
             arm_ver_match = re.search(r'version (\d+)\.(\d+)\.?(\d+)? \(build number (\d+)\)', out)
-            assert arm_ver_match is not None, 'for mypy'  # because mypy *should* be complaning that this could be None
+            assert arm_ver_match is not None, 'for mypy'  # because mypy *should* be complaining that this could be None
             version = '.'.join([x for x in arm_ver_match.groups() if x is not None])
             if lang == 'c':
                 cls = c.ArmLtdClangCCompiler
@@ -667,7 +667,7 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
             if 'Arm C/C++/Fortran Compiler' in out:
                 cls = fortran.ArmLtdFlangFortranCompiler
                 arm_ver_match = re.search(r'version (\d+)\.(\d+)\.?(\d+)? \(build number (\d+)\)', out)
-                assert arm_ver_match is not None, 'for mypy'  # because mypy *should* be complaning that this could be None
+                assert arm_ver_match is not None, 'for mypy'  # because mypy *should* be complaining that this could be None
                 version = '.'.join([x for x in arm_ver_match.groups() if x is not None])
                 linker = guess_nix_linker(env, compiler, cls, version, for_machine)
                 return cls(
@@ -1073,7 +1073,7 @@ def detect_d_compiler(env: 'Environment', for_machine: MachineChoice) -> Compile
         if 'LLVM D compiler' in out:
             cls = d.LLVMDCompiler
             # LDC seems to require a file
-            # We cannot use NamedTemproraryFile on windows, its documented
+            # We cannot use NamedTemporaryFile on windows, its documented
             # to not work for our uses. So, just use mkstemp and only have
             # one path for simplicity.
             o, f = tempfile.mkstemp('.d')
@@ -1111,7 +1111,7 @@ def detect_d_compiler(env: 'Environment', for_machine: MachineChoice) -> Compile
         elif 'The D Language Foundation' in out or 'Digital Mars' in out:
             cls = d.DmdDCompiler
             # DMD seems to require a file
-            # We cannot use NamedTemproraryFile on windows, its documented
+            # We cannot use NamedTemporaryFile on windows, its documented
             # to not work for our uses. So, just use mkstemp and only have
             # one path for simplicity.
             o, f = tempfile.mkstemp('.d')
