@@ -1240,14 +1240,14 @@ class Vs2010Backend(backends.Backend):
                 # Extend without reordering or de-dup to preserve `-L -l` sets
                 # https://github.com/mesonbuild/meson/issues/1718
                 if isinstance(dep, dependencies.OpenMPDependency):
-                    ET.SubElement(clconf, 'OpenMPSuppport').text = 'true'
+                    ET.SubElement(clconf, 'OpenMPSupport').text = 'true'
                 else:
                     extra_link_args.extend_direct(dep.get_link_args())
             for d in target.get_dependencies():
                 if isinstance(d, build.StaticLibrary):
                     for dep in d.get_external_deps():
                         if isinstance(dep, dependencies.OpenMPDependency):
-                            ET.SubElement(clconf, 'OpenMPSuppport').text = 'true'
+                            ET.SubElement(clconf, 'OpenMPSupport').text = 'true'
                         else:
                             extra_link_args.extend_direct(dep.get_link_args())
         # Add link args for c_* or cpp_* build options. Currently this only
