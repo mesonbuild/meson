@@ -339,6 +339,11 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
         # AIX always returns powerpc, check here for 64-bit
         if any_compiler_has_define(compilers, '__64BIT__'):
             trial = 'ppc64'
+    # MIPS64 is able to run MIPS32 code natively, so there is a chance that
+    # such mixture mentioned above exists.
+    elif trial == 'mips64':
+        if not any_compiler_has_define(compilers, '__mips64'):
+            trial = 'mips'
 
     if trial not in known_cpu_families:
         mlog.warning(f'Unknown CPU family {trial!r}, please report this at '
@@ -377,7 +382,10 @@ def detect_cpu(compilers: CompilersDict) -> str:
         if '64' not in trial:
             trial = 'mips'
         else:
-            trial = 'mips64'
+            if not any_compiler_has_define(compilers, '__mips64'):
+                trial = 'mips'
+            else:
+                trial = 'mips64'
     elif trial == 'ppc':
         # AIX always returns powerpc, check here for 64-bit
         if any_compiler_has_define(compilers, '__64BIT__'):
