@@ -74,7 +74,7 @@ lang_arg_kwargs |= {
 }
 
 vala_kwargs = {'vala_header', 'vala_gir', 'vala_vapi'}
-rust_kwargs = {'rust_crate_type'}
+rust_kwargs = {'rust_crate_type', 'rust_dependency_map'}
 cs_kwargs = {'resources', 'cs_args'}
 
 buildtarget_kwargs = {
@@ -1235,6 +1235,13 @@ class BuildTarget(Target):
             permitted = ['default', 'internal', 'hidden', 'protected', 'inlineshidden']
             if self.gnu_symbol_visibility not in permitted:
                 raise InvalidArguments('GNU symbol visibility arg {} not one of: {}'.format(self.gnu_symbol_visibility, ', '.join(permitted)))
+
+        rust_dependency_map = kwargs.get('rust_dependency_map', {})
+        if not isinstance(rust_dependency_map, dict):
+            raise InvalidArguments(f'Invalid rust_dependency_map "{rust_dependency_map}": must be a dictionary.')
+        if any(not isinstance(v, str) for v in rust_dependency_map.values()):
+            raise InvalidArguments(f'Invalid rust_dependency_map "{rust_dependency_map}": must be a dictionary with string values.')
+        self.rust_dependency_map = rust_dependency_map
 
     def validate_win_subsystem(self, value: str) -> str:
         value = value.lower()

@@ -3181,6 +3181,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             raise InterpreterException(f'Unknown default_library value: {default_library}.')
 
     def build_target(self, node: mparser.BaseNode, args, kwargs, targetclass):
+        @FeatureNewKwargs('build target', '1.2.0', ['rust_dependency_map'])
         @FeatureNewKwargs('build target', '0.42.0', ['rust_crate_type', 'build_rpath', 'implicit_include_directories'])
         @FeatureNewKwargs('build target', '0.41.0', ['rust_args'])
         @FeatureNewKwargs('build target', '0.38.0', ['build_by_default'])

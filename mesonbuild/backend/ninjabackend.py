@@ -50,7 +50,7 @@ if T.TYPE_CHECKING:
     from typing_extensions import Literal
 
     from .._typing import ImmutableListProtocol
-    from ..build import ExtractedObjects
+    from ..build import ExtractedObjects, LibTypes
     from ..interpreter import Interpreter
     from ..linkers import DynamicLinker, StaticLinker
     from ..compilers.cs import CsCompiler
@@ -1805,6 +1805,12 @@ class NinjaBackend(backends.Backend):
 
         self.rust_crates[name] = crate
 
+    def _get_rust_dependency_name(self, target: build.BuildTarget, dependency: LibTypes) -> str:
+        # Convert crate names with dashes to underscores by default like
+        # cargo does as dashes can't be used as parts of identifiers
+        # in Rust
+        return target.rust_dependency_map.get(dependency.name, dependency.name).replace('-', '_')
+
     def generate_rust_target(self, target: build.BuildTarget) -> None:
         rustc = target.compilers['rust']
         # Rust compiler takes only the main file as input and
@@ -1911,11 +1917,7 @@ class NinjaBackend(backends.Backend):
                 # specify `extern CRATE_NAME=OUTPUT_FILE` for each Rust
                 # dependency, so that collisions with libraries in rustc's
                 # sysroot don't cause ambiguity
-                #
-                # Also convert crate names with dashes to underscores like
-                # cargo does as dashes can't be used as parts of identifiers
-                # in Rust
-                d_name = d.name.replace('-', '_')
+                d_name = self._get_rust_dependency_name(target, d)
                 args += ['--extern', '{}={}'.format(d_name, os.path.join(d.subdir, d.filename))]
                 project_deps.append(RustDep(d_name, self.rust_crates[d.name].order))
             elif isinstance(d, build.StaticLibrary):
@@ -1954,11 +1956,7 @@ class NinjaBackend(backends.Backend):
                 # specify `extern CRATE_NAME=OUTPUT_FILE` for each Rust
                 # dependency, so that collisions with libraries in rustc's
                 # sysroot don't cause ambiguity
-                #
-                # Also convert crate names with dashes to underscores like
-                # cargo does as dashes can't be used as parts of identifiers
-                # in Rust
-                d_name = d.name.replace('-', '_')
+                d_name = self._get_rust_dependency_name(target, d)
                 args += ['--extern', '{}={}'.format(d_name, os.path.join(d.subdir, d.filename))]
                 project_deps.append(RustDep(d_name, self.rust_crates[d.name].order))
             else:
