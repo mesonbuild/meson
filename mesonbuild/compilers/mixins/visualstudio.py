@@ -8,7 +8,9 @@ interface.
 """
 
 import abc
+from functools import lru_cache
 import os
+import re
 import typing as T
 
 from ... import arglist
@@ -106,6 +108,8 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         '3': ['/W4'],
         'everything': ['/Wall'],
     }
+
+    compiler_known_args: T.Dict[str, T.Set[T.Tuple[str, bool]]] = {}
 
     INVOKES_LINKER = False
 
@@ -222,12 +226,14 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
             # -pthread is only valid for GCC
             if i in {'-mms-bitfields', '-pthread'}:
                 continue
-            if i.startswith('-LIBPATH:'):
-                i = '/LIBPATH:' + i[9:]
             elif i.startswith('-L'):
-                i = '/LIBPATH:' + i[2:]
+                if cls.match_known_arg(i[1:]):
+                    mlog.warning(f'Replacing {i} option by /{i[1:]}. Please use \'/\' prefix for MSVC specific options, to prevent confusion with -L libpath.', once=True)
+                    i = '/' + i[1:]
+                else:
+                    i = '/LIBPATH:' + i[2:]
             # Translate GNU-style -lfoo library name to the import library
-            elif i.startswith('-l'):
+            elif i.startswith('-l') and i != '-link':
                 name = i[2:]
                 if name in cls.ignore_libs:
                     # With MSVC, these are provided by the C runtime which is
@@ -380,6 +386,44 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
 
         # As a last resort, try search in a compiled binary
         return self._symbols_have_underscore_prefix_searchbin(env)
+
+    def extract_compile_args(self, output: str) -> None:
+        # Parse a command output, and extract all known args
+        # Arguments are stored in a dict with first char as key, for quicker lookup
+        # Each argument is stored along with a boolean indicating whether
+        # the argument requires options appended to it or not.
+        for line in output.splitlines():
+            m = re.match(r'\s*/([-a-zA-Z0-9]+:?)(\S*)', line)
+            if m is not None:
+                arg = m[1]
+                arglist = self.compiler_known_args.setdefault(arg[0], set())
+                options = m[2]
+                if arg.endswith(':'):
+                    arglist.add((arg, True))
+                elif options is None:
+                    arglist.add((arg, False))
+                elif options == '[-]':
+                    arglist.add((arg, False))
+                    arglist.add((arg + '-', False))
+                elif options.startswith('[:'):
+                    arglist.add((arg, False))
+                    arglist.add((arg + ':', True))
+                else:
+                    arglist.add((arg, True))
+
+    @classmethod
+    @lru_cache()
+    def match_known_arg(cls, argument: str) -> bool:
+        arglist = cls.compiler_known_args.get(argument[0], set())
+
+        if (argument, False) in arglist:
+            return True
+
+        for arg, has_options in arglist:
+            if has_options and argument.startswith(arg):
+                return True
+
+        return False
 
 
 class MSVCCompiler(VisualStudioLikeCompiler):
