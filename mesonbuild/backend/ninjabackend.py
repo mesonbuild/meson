@@ -1990,12 +1990,16 @@ class NinjaBackend(backends.Backend):
             if d == '':
                 d = '.'
             args += ['-L', d]
-        has_shared_deps = any(isinstance(dep, build.SharedLibrary) for dep in target.get_dependencies())
+        target_deps = target.get_dependencies()
+        has_shared_deps = any(isinstance(dep, build.SharedLibrary) for dep in target_deps)
         if isinstance(target, build.SharedLibrary) or has_shared_deps:
-            # add prefer-dynamic if any of the Rust libraries we link
-            # against are dynamic, otherwise we'll end up with
-            # multiple implementations of crates
-            args += ['-C', 'prefer-dynamic']
+            has_rust_shared_deps = any(isinstance(dep, build.SharedLibrary) and dep.uses_rust() and dep.rust_crate_type != 'cdylib'
+                                       for dep in target_deps)
+            if cratetype != 'cdylib' or has_rust_shared_deps:
+                # add prefer-dynamic if any of the Rust libraries we link
+                # against are dynamic or this is a dynamic library itself,
+                # otherwise we'll end up with multiple implementations of crates
+                args += ['-C', 'prefer-dynamic']
 
             # build the usual rpath arguments as well...
 
