@@ -949,7 +949,18 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
         # Clippy is a wrapper around rustc, but it doesn't have rustc in it's
         # output. We can otherwise treat it as rustc.
         if 'clippy' in out:
-            out = 'rustc'
+            # clippy returns its own version and not the rustc version by
+            # default so try harder here to get the correct version.
+            # Also replace the whole output with the rustc output in
+            # case this is later used for other purposes.
+            arg = ['--rustc', '--version']
+            try:
+                out = Popen_safe(compiler + arg)[1]
+            except OSError as e:
+                popen_exceptions[join_args(compiler + arg)] = e
+                continue
+            version = search_version(out)
+
             cls = rust.ClippyRustCompiler
 
         if 'rustc' in out:
