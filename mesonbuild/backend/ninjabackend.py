@@ -1904,7 +1904,10 @@ class NinjaBackend(backends.Backend):
         # TODO: we likely need to use verbatim to handle name_prefix and name_suffix
         for d in target.link_targets:
             linkdirs.add(d.subdir)
-            if d.uses_rust():
+            # staticlib and cdylib provide a plain C ABI, i.e. contain no Rust
+            # metadata. As such they should be treated like any other external
+            # link target
+            if d.uses_rust() and d.rust_crate_type not in ['staticlib', 'cdylib']:
                 # specify `extern CRATE_NAME=OUTPUT_FILE` for each Rust
                 # dependency, so that collisions with libraries in rustc's
                 # sysroot don't cause ambiguity
