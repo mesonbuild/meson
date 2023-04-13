@@ -81,3 +81,9 @@ r1 = rust.bindgen(
   output : 'out.rs',
 )
 ```
+
+### bindgen_version()
+
+*(new in 1.2)*
+
+This function returns the version of the `bindgen` binary used by `meson`.

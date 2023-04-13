@@ -21,7 +21,7 @@ from .. import mlog
 from ..build import BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList, IncludeDirs, CustomTarget, StructuredSources
 from ..dependencies import Dependency, ExternalLibrary
 from ..interpreter.type_checking import DEPENDENCIES_KW, TEST_KWS, OUTPUT_KW, INCLUDE_DIRECTORIES
-from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noPosargs
+from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noKwargs, noPosargs
 from ..mesonlib import File
 
 if T.TYPE_CHECKING:
@@ -60,6 +60,7 @@ class RustModule(ExtensionModule):
         self.methods.update({
             'test': self.test,
             'bindgen': self.bindgen,
+            'bindgen_version': self.bindgen_version,
         })
 
     @typed_pos_args('rust.test', str, BuildTarget)
@@ -245,6 +246,13 @@ class RustModule(ExtensionModule):
 
         return ModuleReturnValue([target], [target])
 
+    @noPosargs
+    @noKwargs
+    def bindgen_version(self, state: ModuleState, args: T.List, kwargs: T.Dict[str, T.Any]) -> str:
+        """Returns bindgen's version"""
+        if self._bindgen_bin is None:
+            self._bindgen_bin = state.find_program('bindgen')
+        return self._bindgen_bin.get_version()
 
 def initialize(interp: Interpreter) -> RustModule:
     return RustModule(interp)
