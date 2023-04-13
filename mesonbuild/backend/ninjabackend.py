@@ -1913,7 +1913,7 @@ class NinjaBackend(backends.Backend):
                 # sysroot don't cause ambiguity
                 args += ['--extern', '{}={}'.format(d.name, os.path.join(d.subdir, d.filename))]
                 project_deps.append(RustDep(d.name, self.rust_crates[d.name].order))
-            elif d.typename == 'static library':
+            elif isinstance(d, build.StaticLibrary):
                 # Rustc doesn't follow Meson's convention that static libraries
                 # are called .a, and import libraries are .lib, so we have to
                 # manually handle that.
