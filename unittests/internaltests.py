@@ -1579,12 +1579,12 @@ class InternalTests(unittest.TestCase):
             ('ppc', 'ppc'),
             ('macppc', 'ppc'),
             ('power macintosh', 'ppc'),
-            ('mips64el', 'mips64'),
-            ('mips64', 'mips64'),
+            ('mips64el', 'mips'),
+            ('mips64', 'mips'),
             ('mips', 'mips'),
             ('mipsel', 'mips'),
-            ('ip30', 'mips64'),
-            ('ip35', 'mips64'),
+            ('ip30', 'mips'),
+            ('ip35', 'mips'),
             ('parisc64', 'parisc'),
             ('sun4u', 'sparc64'),
             ('sun4v', 'sparc64'),
@@ -1602,7 +1602,7 @@ class InternalTests(unittest.TestCase):
                     self.assertEqual(actual, expected)
 
         with mock.patch('mesonbuild.environment.any_compiler_has_define', mock.Mock(return_value=True)):
-            for test, expected in [('x86_64', 'x86'), ('aarch64', 'arm'), ('ppc', 'ppc64')]:
+            for test, expected in [('x86_64', 'x86'), ('aarch64', 'arm'), ('ppc', 'ppc64'), ('mips64', 'mips64')]:
                 with self.subTest(test, has_define=True), mock_trial(test):
                     actual = mesonbuild.environment.detect_cpu_family({})
                     self.assertEqual(actual, expected)
@@ -1624,8 +1624,8 @@ class InternalTests(unittest.TestCase):
             ('x64', 'x86_64'),
             ('i86pc', 'x86_64'),
             ('earm', 'arm'),
-            ('mips64el', 'mips64'),
-            ('mips64', 'mips64'),
+            ('mips64el', 'mips'),
+            ('mips64', 'mips'),
             ('mips', 'mips'),
             ('mipsel', 'mips'),
             ('aarch64', 'aarch64'),
@@ -1639,7 +1639,7 @@ class InternalTests(unittest.TestCase):
                     self.assertEqual(actual, expected)
 
         with mock.patch('mesonbuild.environment.any_compiler_has_define', mock.Mock(return_value=True)):
-            for test, expected in [('x86_64', 'i686'), ('aarch64', 'arm'), ('ppc', 'ppc64')]:
+            for test, expected in [('x86_64', 'i686'), ('aarch64', 'arm'), ('ppc', 'ppc64'), ('mips64', 'mips64')]:
                 with self.subTest(test, has_define=True), mock_trial(test):
                     actual = mesonbuild.environment.detect_cpu({})
                     self.assertEqual(actual, expected)
