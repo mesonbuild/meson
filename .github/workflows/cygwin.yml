@@ -83,7 +83,7 @@ jobs:
       - name: Run pip
         run: |
           export PATH=/usr/bin:/usr/local/bin:$(cygpath ${SYSTEMROOT})/system32
-          python3 -m pip --disable-pip-version-check install gcovr jsonschema pefile pytest pytest-subtests pytest-xdist coverage codecov
+          python3 -m pip --disable-pip-version-check install gcovr jsonschema pefile pytest pytest-subtests pytest-xdist coverage
         shell: C:\cygwin\bin\bash.exe --noprofile --norc -o igncr -eo pipefail '{0}'
 
       - name: Run tests
@@ -103,8 +103,17 @@ jobs:
         # test log should be saved on failure
         if: ${{ !cancelled() }}
 
-      - name: Upload coverage report
+
+      - name: Aggregate coverage reports
         run: |
           export PATH=/usr/bin:/usr/local/bin:$(cygpath ${SYSTEMROOT})/system32
-          ./ci/upload_cov.sh "${{ matrix.NAME }}"
+          ./ci/combine_cov.sh
         shell: C:\cygwin\bin\bash.exe --noprofile --norc -o igncr -eo pipefail '{0}'
+
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v3
+        with:
+          files: .coverage/coverage.xml
+          name: "${{ matrix.NAME }}"
+          fail_ci_if_error: true
+          verbose: true
