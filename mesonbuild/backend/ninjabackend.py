@@ -91,12 +91,22 @@ def gcc_rsp_quote(s):
 # (see https://ninja-build.org/manual.html#ref_rule_command)
 if mesonlib.is_windows():
     quote_func = cmd_quote
-    execute_wrapper = ['cmd', '/c']  # unused
-    rmfile_prefix = ['del', '/f', '/s', '/q', '{}', '&&']
+    def get_execute_wrapper():
+        return [NinjaCommandArg('cmd /V /C', Quoting.none)]
+    def get_rmfile_command(ninja_variable: str):
+        # the del command from cmd.exe does not support paths with forward
+        # slashes (as path separators or even in actual component names).
+        # Therefore we rely on cmd.exe's support for editing content of
+        # variables to replace forward slashes with back slashes.
+        s = r'set mesonvar={}&&del /Q !mesonvar:/=\! 2>NUL'
+        s = s.format(ninja_variable)
+        return [NinjaCommandArg(s, Quoting.none)]
 else:
     quote_func = quote_arg
-    execute_wrapper = []
-    rmfile_prefix = ['rm', '-f', '{}', '&&']
+    def get_execute_wrapper():
+        return []
+    def get_rmfile_command(ninja_variable: str):
+        return ['rm', '-f', ninja_variable]
 
 
 def get_rsp_threshold():
@@ -2228,15 +2238,13 @@ class NinjaBackend(backends.Backend):
             rule = 'STATIC_LINKER{}'.format(self.get_rule_suffix(for_machine))
             cmdlist = []
             args = ['$in']
-            # FIXME: Must normalize file names with pathlib.Path before writing
-            #        them out to fix this properly on Windows. See:
-            # https://github.com/mesonbuild/meson/issues/1517
-            # https://github.com/mesonbuild/meson/issues/1526
-            if isinstance(static_linker, ArLinker) and not mesonlib.is_windows():
+            if isinstance(static_linker, ArLinker):
                 # `ar` has no options to overwrite archives. It always appends,
                 # which is never what we want. Delete an existing library first if
                 # it exists. https://github.com/mesonbuild/meson/issues/1355
-                cmdlist = execute_wrapper + [c.format('$out') for c in rmfile_prefix]
+                cmdlist += get_execute_wrapper()
+                cmdlist += get_rmfile_command('$out')
+                cmdlist += ['&&']
             cmdlist += static_linker.get_exelist()
             cmdlist += ['$LINK_ARGS']
             cmdlist += NinjaCommandArg.list(static_linker.get_output_args('$out'), Quoting.none)
