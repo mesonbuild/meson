@@ -8,6 +8,3 @@ coverage xml
 
 echo "Printing report"
 coverage report
-
-echo "Uploading to codecov..."
-codecov -f .coverage/coverage.xml -n "$1"

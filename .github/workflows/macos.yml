@@ -33,7 +33,7 @@ jobs:
         python-version: '3.x'
     - run: |
         python -m pip install --upgrade pip
-        python -m pip install pytest pytest-xdist pytest-subtests jsonschema coverage codecov
+        python -m pip install pytest pytest-xdist pytest-subtests jsonschema coverage
     - run: brew install pkg-config ninja llvm qt@5
     - env:
         CPPFLAGS: "-I/usr/local/include"
@@ -46,8 +46,17 @@ jobs:
         export PATH="$HOME/tools:/usr/local/opt/qt@5/bin:$PATH:$(brew --prefix llvm)/bin"
         export PKG_CONFIG_PATH="/usr/local/opt/qt@5/lib/pkgconfig:$PKG_CONFIG_PATH"
         ./tools/run_with_cov.py ./run_unittests.py
+
+    - name: Aggregate coverage reports
+      run: ./ci/combine_cov.sh
+
     - name: Upload coverage report
-      run: ./ci/upload_cov.sh "appleclang [unit tests]"
+      uses: codecov/codecov-action@v3
+      with:
+        files: .coverage/coverage.xml
+        name: "appleclang [unit tests]"
+        fail_ci_if_error: true
+        verbose: true
 
 
   project-tests-appleclang:
@@ -81,7 +90,7 @@ jobs:
     - run: |
         python3 -m pip install --upgrade setuptools
         python3 -m pip install --upgrade pip
-        python3 -m pip install cython coverage codecov
+        python3 -m pip install cython coverage
     - env:
         CPPFLAGS: "-I/usr/local/include"
         LDFLAGS: "-L/usr/local/lib"
@@ -94,8 +103,17 @@ jobs:
         export PKG_CONFIG_PATH="/usr/local/opt/qt@5/lib/pkgconfig:$PKG_CONFIG_PATH"
         export XML_CATALOG_FILES="/usr/local/etc/xml/catalog"
         ./tools/run_with_cov.py ./run_project_tests.py --backend=ninja
+
+    - name: Aggregate coverage reports
+      run: ./ci/combine_cov.sh
+
     - name: Upload coverage report
-      run: ./ci/upload_cov.sh "appleclang [project tests; unity=${{ matrix.unity }}]"
+      uses: codecov/codecov-action@v3
+      with:
+        files: .coverage/coverage.xml
+        name: "appleclang [project tests; unity=${{ matrix.unity }}]"
+        fail_ci_if_error: true
+        verbose: true
 
   Qt4macos:
     runs-on: macos-latest

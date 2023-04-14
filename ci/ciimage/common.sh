@@ -15,7 +15,6 @@ base_python_pkgs=(
   pytest-xdist
   pytest-subtests
   coverage
-  codecov
   jsonschema
 )
 
