@@ -918,7 +918,6 @@ class CoreData:
     def process_new_compiler(self, lang: str, comp: 'Compiler', env: 'Environment') -> None:
         from . import compilers
 
-        self.compilers[comp.for_machine][lang] = comp
         self.add_compiler_options(comp.get_options(), lang, comp.for_machine, env)
 
         enabled_opts: T.List[OptionKey] = []
