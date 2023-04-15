@@ -841,7 +841,7 @@ class AllPlatformTests(BasePlatformTests):
         testdir = os.path.join("test cases/cython", '2 generated sources')
         env = get_fake_env(testdir, self.builddir, self.prefix)
         try:
-            detect_compiler_for(env, "cython", MachineChoice.HOST)
+            detect_compiler_for(env, "cython", MachineChoice.HOST, True)
         except EnvironmentException:
             raise SkipTest("Cython is not installed")
         self.init(testdir)
@@ -866,7 +866,7 @@ class AllPlatformTests(BasePlatformTests):
         testdir = os.path.join("test cases/cython", '2 generated sources')
         env = get_fake_env(testdir, self.builddir, self.prefix)
         try:
-            cython = detect_compiler_for(env, "cython", MachineChoice.HOST)
+            cython = detect_compiler_for(env, "cython", MachineChoice.HOST, True)
             if not version_compare(cython.version, '>=0.29.33'):
                 raise SkipTest('Cython is too old')
         except EnvironmentException:
@@ -2141,7 +2141,7 @@ class AllPlatformTests(BasePlatformTests):
         env = get_fake_env()
         for l in ['cpp', 'cs', 'd', 'java', 'cuda', 'fortran', 'objc', 'objcpp', 'rust']:
             try:
-                comp = detect_compiler_for(env, l, MachineChoice.HOST)
+                comp = detect_compiler_for(env, l, MachineChoice.HOST, True)
                 with tempfile.TemporaryDirectory() as d:
                     comp.sanity_check(d, env)
                 langs.append(l)
@@ -2158,7 +2158,7 @@ class AllPlatformTests(BasePlatformTests):
                 if is_windows() and lang == 'fortran' and target_type == 'library':
                     # non-Gfortran Windows Fortran compilers do not do shared libraries in a Fortran standard way
                     # see "test cases/fortran/6 dynamic"
-                    fc = detect_compiler_for(env, 'fortran', MachineChoice.HOST)
+                    fc = detect_compiler_for(env, 'fortran', MachineChoice.HOST, True)
                     if fc.get_id() in {'intel-cl', 'pgi'}:
                         continue
                 # test empty directory
@@ -4177,18 +4177,18 @@ class AllPlatformTests(BasePlatformTests):
             env = get_fake_env()
 
             # Get the compiler so we know which compiler class to mock.
-            cc =  detect_compiler_for(env, 'c', MachineChoice.HOST)
+            cc =  detect_compiler_for(env, 'c', MachineChoice.HOST, True)
             cc_type = type(cc)
 
             # Test a compiler that acts as a linker
             with mock.patch.object(cc_type, 'INVOKES_LINKER', True):
-                cc =  detect_compiler_for(env, 'c', MachineChoice.HOST)
+                cc =  detect_compiler_for(env, 'c', MachineChoice.HOST, True)
                 link_args = env.coredata.get_external_link_args(cc.for_machine, cc.language)
                 self.assertEqual(sorted(link_args), sorted(['-DCFLAG', '-flto']))
 
             # And one that doesn't
             with mock.patch.object(cc_type, 'INVOKES_LINKER', False):
-                cc =  detect_compiler_for(env, 'c', MachineChoice.HOST)
+                cc =  detect_compiler_for(env, 'c', MachineChoice.HOST, True)
                 link_args = env.coredata.get_external_link_args(cc.for_machine, cc.language)
                 self.assertEqual(sorted(link_args), sorted(['-flto']))
 

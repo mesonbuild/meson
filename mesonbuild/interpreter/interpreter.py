@@ -1491,13 +1491,12 @@ class Interpreter(InterpreterBase, HoldableObject):
             comp = self.coredata.compilers[for_machine].get(lang)
             if not comp:
                 try:
-                    comp = compilers.detect_compiler_for(self.environment, lang, for_machine)
+                    skip_sanity_check = self.should_skip_sanity_check(for_machine)
+                    if skip_sanity_check:
+                        mlog.log_once('Cross compiler sanity tests disabled via the cross file.')
+                    comp = compilers.detect_compiler_for(self.environment, lang, for_machine, skip_sanity_check)
                     if comp is None:
                         raise InvalidArguments(f'Tried to use unknown language "{lang}".')
-                    if self.should_skip_sanity_check(for_machine):
-                        mlog.log_once('Cross compiler sanity tests disabled via the cross file.')
-                    else:
-                        comp.sanity_check(self.environment.get_scratch_dir(), self.environment)
                 except mesonlib.MesonException:
                     if not required:
                         mlog.log('Compiler for language',

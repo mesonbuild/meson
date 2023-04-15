@@ -181,7 +181,7 @@ class IntrospectionInterpreter(AstInterpreter):
             lang = lang.lower()
             if lang not in self.coredata.compilers[for_machine]:
                 try:
-                    comp = detect_compiler_for(self.environment, lang, for_machine)
+                    comp = detect_compiler_for(self.environment, lang, for_machine, True)
                 except mesonlib.MesonException:
                     # do we even care about introspecting this language?
                     if required:
