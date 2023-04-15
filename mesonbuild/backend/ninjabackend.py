@@ -1996,9 +1996,10 @@ class NinjaBackend(backends.Backend):
         target_deps = target.get_dependencies()
         has_shared_deps = any(isinstance(dep, build.SharedLibrary) for dep in target_deps)
         if isinstance(target, build.SharedLibrary) or has_shared_deps:
-            has_rust_shared_deps = any(isinstance(dep, build.SharedLibrary) and dep.uses_rust() and dep.rust_crate_type != 'cdylib'
+            has_rust_shared_deps = any(isinstance(dep, build.SharedLibrary) and dep.uses_rust()
+                                       and dep.rust_crate_type not in {'cdylib', 'proc-macro'}
                                        for dep in target_deps)
-            if cratetype != 'cdylib' or has_rust_shared_deps:
+            if cratetype not in {'cdylib', 'proc-macro'} or has_rust_shared_deps:
                 # add prefer-dynamic if any of the Rust libraries we link
                 # against are dynamic or this is a dynamic library itself,
                 # otherwise we'll end up with multiple implementations of crates
