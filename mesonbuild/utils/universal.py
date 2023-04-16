@@ -176,8 +176,8 @@ project_meson_versions = collections.defaultdict(str)  # type: T.DefaultDict[str
 
 from glob import glob
 
-if os.path.basename(sys.executable) == 'meson.exe':
-    # In Windows and using the MSI installed executable.
+if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+    # using a PyInstaller bundle, e.g. the MSI installed executable
     python_command = [sys.executable, 'runpython']
 else:
     python_command = [sys.executable]
