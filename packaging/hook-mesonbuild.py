@@ -21,7 +21,7 @@ def get_all_modules_from_dir(dirname):
     modules = ['mesonbuild.' + modname + '.' + x for x in modules if not x.startswith('_')]
     return modules
 
-datas += collect_data_files('mesonbuild.scripts')
+datas += collect_data_files('mesonbuild.scripts', include_py_files=True, excludes=['**/__pycache__'])
 datas += collect_data_files('mesonbuild.cmake.data')
 datas += collect_data_files('mesonbuild.dependencies.data')
 
