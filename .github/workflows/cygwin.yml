@@ -104,4 +104,7 @@ jobs:
         if: ${{ !cancelled() }}
 
       - name: Upload coverage report
-        run: ./ci/upload_cov.sh "${{ matrix.NAME }}"
+        run: |
+          export PATH=/usr/bin:/usr/local/bin:$(cygpath ${SYSTEMROOT})/system32
+          ./ci/upload_cov.sh "${{ matrix.NAME }}"
+        shell: C:\cygwin\bin\bash.exe --noprofile --norc -o igncr -eo pipefail '{0}'
