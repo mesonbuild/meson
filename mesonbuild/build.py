@@ -1937,6 +1937,10 @@ class StaticLibrary(BuildTarget):
             # Don't let configuration proceed with a non-static crate type
             elif self.rust_crate_type not in ['rlib', 'staticlib']:
                 raise InvalidArguments(f'Crate type "{self.rust_crate_type}" invalid for static libraries; must be "rlib" or "staticlib"')
+            # See https://github.com/rust-lang/rust/issues/110460
+            if self.rust_crate_type == 'rlib' and any(c in self.name for c in ['-', ' ']):
+                raise InvalidArguments('Rust crate types "dylib" and "proc-macro" do not allow spaces or dashes in the library name '
+                                       'due to a limitation of rustc. Replace them with underscores, for example')
         # By default a static library is named libfoo.a even on Windows because
         # MSVC does not have a consistent convention for what static libraries
         # are called. The MSVC CRT uses libfoo.lib syntax but nothing else uses
@@ -2019,6 +2023,11 @@ class SharedLibrary(BuildTarget):
             # Don't let configuration proceed with a non-dynamic crate type
             elif self.rust_crate_type not in ['dylib', 'cdylib', 'proc-macro']:
                 raise InvalidArguments(f'Crate type "{self.rust_crate_type}" invalid for dynamic libraries; must be "dylib", "cdylib", or "proc-macro"')
+            # See https://github.com/rust-lang/rust/issues/110460
+            if self.rust_crate_type != 'cdylib' and any(c in self.name for c in ['-', ' ']):
+                raise InvalidArguments('Rust crate types "dylib" and "proc-macro" do not allow spaces or dashes in the library name '
+                                       'due to a limitation of rustc. Replace them with underscores, for example')
+
         if not hasattr(self, 'prefix'):
             self.prefix = None
         if not hasattr(self, 'suffix'):
