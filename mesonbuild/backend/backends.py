@@ -499,7 +499,8 @@ class Backend:
             feed: T.Optional[bool] = None,
             env: T.Optional[build.EnvironmentVariables] = None,
             tag: T.Optional[str] = None,
-            verbose: bool = False) -> 'ExecutableSerialisation':
+            verbose: bool = False,
+            installdir_map: T.Optional[T.Dict[str, str]] = None) -> 'ExecutableSerialisation':
 
         # XXX: cmd_args either need to be lowered to strings, or need to be checked for non-string arguments, right?
         exe, *raw_cmd_args = cmd
@@ -560,7 +561,7 @@ class Backend:
         workdir = workdir or self.environment.get_build_dir()
         return ExecutableSerialisation(exe_cmd + cmd_args, env,
                                        exe_wrapper, workdir,
-                                       extra_paths, capture, feed, tag, verbose)
+                                       extra_paths, capture, feed, tag, verbose, installdir_map)
 
     def as_meson_exe_cmdline(self, exe: T.Union[str, mesonlib.File, build.BuildTarget, build.CustomTarget, programs.ExternalProgram],
                              cmd_args: T.Sequence[T.Union[str, mesonlib.File, build.BuildTarget, build.CustomTarget, programs.ExternalProgram]],

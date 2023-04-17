@@ -672,8 +672,6 @@ class Installer:
     def run_install_script(self, d: InstallData, destdir: str, fullprefix: str) -> None:
         env = {'MESON_SOURCE_ROOT': d.source_dir,
                'MESON_BUILD_ROOT': d.build_dir,
-               'MESON_INSTALL_PREFIX': d.prefix,
-               'MESON_INSTALL_DESTDIR_PREFIX': fullprefix,
                'MESONINTROSPECT': ' '.join([shlex.quote(x) for x in d.mesonintrospect]),
                }
         if self.options.quiet:
@@ -684,6 +682,15 @@ class Installer:
         for i in d.install_scripts:
             if not self.should_install(i):
                 continue
+
+            if i.installdir_map is not None:
+                mapp = i.installdir_map
+            else:
+                mapp = {'prefix': d.prefix}
+            localenv = env.copy()
+            localenv.update({'MESON_INSTALL_'+k.upper(): os.path.join(d.prefix, v) for k, v in mapp.items()})
+            localenv.update({'MESON_INSTALL_DESTDIR_'+k.upper(): get_destdir_path(destdir, fullprefix, v) for k, v in mapp.items()})
+
             name = ' '.join(i.cmd_args)
             if i.skip_if_destdir and destdir:
                 self.log(f'Skipping custom install script because DESTDIR is set {name!r}')
@@ -691,7 +698,7 @@ class Installer:
             self.did_install_something = True  # Custom script must report itself if it does nothing.
             self.log(f'Running custom install script {name!r}')
             try:
-                rc = self.run_exe(i, env)
+                rc = self.run_exe(i, localenv)
             except OSError:
                 print(f'FAILED: install script \'{name}\' could not be run, stopped')
                 # POSIX shells return 127 when a command could not be found

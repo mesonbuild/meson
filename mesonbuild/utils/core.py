@@ -152,6 +152,7 @@ class ExecutableSerialisation:
     feed: T.Optional[bool] = None
     tag: T.Optional[str] = None
     verbose: bool = False
+    installdir_map: T.Optional[T.Dict[str, str]] = None
 
     def __post_init__(self) -> None:
         self.pickled = False
