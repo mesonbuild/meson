@@ -395,17 +395,22 @@ class PythonModule(ExtensionModule):
                 else:
                     found_modules.append(mod)
 
-        msg: T.List['mlog.TV_Loggable'] = ['Program', python.name]
-        if want_modules:
-            msg.append('({})'.format(', '.join(want_modules)))
+        msg: T.List['mlog.TV_Loggable'] = ['Runtime dependency', display_name]
+
+        found_modules_msg = ', '.join(found_modules)
+        missing_modules_msg = ', '.join(missing_modules)
+        if found_modules_msg and missing_modules_msg:
+            msg.append("(found: {} | missing: {})".format(found_modules_msg, missing_modules_msg))
+        elif found_modules_msg:
+            msg.append("(found: {})".format(found_modules_msg))
+        elif missing_modules_msg:
+            msg.append("(missing: {})".format(missing_modules_msg))
+
         msg.append('found:')
         if python.found() and not missing_modules:
             msg.extend([mlog.green('YES'), '({})'.format(' '.join(python.command))])
         else:
             msg.append(mlog.red('NO'))
-        if found_modules:
-            msg.append('modules:')
-            msg.append(', '.join(found_modules))
 
         mlog.log(*msg)
 
