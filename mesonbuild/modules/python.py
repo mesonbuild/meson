@@ -322,13 +322,13 @@ class PythonModule(ExtensionModule):
 
         for t in installdata.targets:
             if should_append(t.out_name):
-                py_files.append(os.path.join(installdata.prefix, t.outdir, os.path.basename(t.fname)))
+                py_files.append((t.out_name, os.path.join(installdata.prefix, t.outdir, os.path.basename(t.fname))))
         for d in installdata.data:
             if should_append(d.install_path_name):
-                py_files.append(os.path.join(installdata.prefix, d.install_path))
+                py_files.append((d.install_path_name, os.path.join(installdata.prefix, d.install_path)))
         for d in installdata.install_subdirs:
             if should_append(d.install_path_name, True):
-                py_files.append(os.path.join(installdata.prefix, d.install_path))
+                py_files.append((d.install_path_name, os.path.join(installdata.prefix, d.install_path)))
 
         import importlib.resources
         pycompile = os.path.join(self.interpreter.environment.get_scratch_dir(), 'pycompile.py')
@@ -340,13 +340,15 @@ class PythonModule(ExtensionModule):
                 i = T.cast(PythonExternalProgram, i)
                 manifest = f'python-{i.info["version"]}-installed.json'
                 manifest_json = []
-                for f in py_files:
+                for name, f in py_files:
                     if f.startswith((os.path.join(installdata.prefix, i.platlib), os.path.join(installdata.prefix, i.purelib))):
-                        manifest_json.append(f)
+                        manifest_json.append(name)
                 with open(os.path.join(self.interpreter.environment.get_scratch_dir(), manifest), 'w', encoding='utf-8') as f:
                     json.dump(manifest_json, f)
                 cmd = i.command + [pycompile, manifest, str(optlevel)]
-                script = backend.get_executable_serialisation(cmd, verbose=True)
+
+                script = backend.get_executable_serialisation(cmd, verbose=True,
+                                                              installdir_map={'py_purelib': i.purelib, 'py_platlib': i.platlib})
                 ret.append(script)
         return ret
 

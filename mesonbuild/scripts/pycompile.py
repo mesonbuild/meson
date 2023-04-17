@@ -20,28 +20,26 @@
 import json, os, subprocess, sys
 from compileall import compile_file
 
-destdir = os.environ.get('DESTDIR')
 quiet = int(os.environ.get('MESON_INSTALL_QUIET', 0))
-
-def destdir_join(d1, d2):
-    if not d1:
-        return d2
-    # c:\destdir + c:\prefix must produce c:\destdir\prefix
-    parts = os.path.splitdrive(d2)
-    return d1 + parts[1]
 
 def compileall(files):
     for f in files:
-        if destdir is not None:
+        # f is prefixed by {py_xxxxlib}, both variants are 12 chars
+        # the key is the middle 10 chars of the prefix
+        key = f[1:11].upper()
+        f = f[12:]
+
+        ddir = None
+        fullpath = os.environ['MESON_INSTALL_DESTDIR_'+key] + f
+        f = os.environ['MESON_INSTALL_'+key] + f
+
+        if fullpath != f:
             ddir = os.path.dirname(f)
-            fullpath = destdir_join(destdir, f)
-        else:
-            ddir = None
-            fullpath = f
 
         if os.path.isdir(fullpath):
             for root, _, files in os.walk(fullpath):
-                ddir = os.path.dirname(os.path.splitdrive(f)[0] + root[len(destdir):])
+                if ddir is not None:
+                    ddir = root.replace(fullpath, f, 1)
                 for dirf in files:
                     if dirf.endswith('.py'):
                         fullpath = os.path.join(root, dirf)
