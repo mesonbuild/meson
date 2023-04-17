@@ -25,6 +25,8 @@ has_function_hfkerhisadf = false
 
 [host_machine]
 system = 'darwin'
+subsystem = 'ios'
+kernel = 'xnu'
 cpu_family = 'aarch64'
 cpu = 'aarch64'
 endian = 'little'

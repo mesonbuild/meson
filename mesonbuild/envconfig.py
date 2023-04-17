@@ -260,6 +260,8 @@ class MachineInfo(HoldableObject):
     cpu_family: str
     cpu: str
     endian: str
+    kernel: T.Optional[str]
+    subsystem: T.Optional[str]
 
     def __post_init__(self) -> None:
         self.is_64_bit: bool = self.cpu_family in CPU_FAMILIES_64_BIT
@@ -283,7 +285,11 @@ class MachineInfo(HoldableObject):
         if endian not in ('little', 'big'):
             mlog.warning(f'Unknown endian {endian}')
 
-        return cls(literal['system'], cpu_family, literal['cpu'], endian)
+        system = literal['system']
+        kernel = literal.get('kernel', None)
+        subsystem = literal.get('subsystem', None)
+
+        return cls(system, cpu_family, literal['cpu'], endian, kernel, subsystem)
 
     def is_windows(self) -> bool:
         """

@@ -639,6 +639,8 @@ class MachineHolder(ObjectHolder['MachineInfo']):
                              'cpu': self.cpu_method,
                              'cpu_family': self.cpu_family_method,
                              'endian': self.endian_method,
+                             'kernel': self.kernel_method,
+                             'subsystem': self.subsystem_method,
                              })
 
     @noPosargs
@@ -660,6 +662,21 @@ class MachineHolder(ObjectHolder['MachineInfo']):
     @noKwargs
     def endian_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.held_object.endian
+
+    @noPosargs
+    @noKwargs
+    def kernel_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
+        if self.held_object.kernel is not None:
+            return self.held_object.kernel
+        raise InterpreterException('Kernel not defined or could not be autodetected.')
+
+    @noPosargs
+    @noKwargs
+    def subsystem_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
+        if self.held_object.subsystem is not None:
+            return self.held_object.subsystem
+        raise InterpreterException('Subsystem not defined or could not be autodetected.')
+
 
 class IncludeDirsHolder(ObjectHolder[build.IncludeDirs]):
     pass

@@ -22,6 +22,8 @@ has_function_hfkerhisadf = false
 
 [host_machine]
 system = 'darwin'
+subsystem = 'tvos'
+kernel = 'xnu'
 cpu_family = 'arm'
 cpu = 'arm64'
 endian = 'little'
