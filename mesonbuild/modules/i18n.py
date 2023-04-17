@@ -23,6 +23,7 @@ from .. import mlog
 from ..interpreter.type_checking import CT_BUILD_BY_DEFAULT, CT_INPUT_KW, INSTALL_TAG_KW, OUTPUT_KW, INSTALL_DIR_KW, INSTALL_KW, NoneType, in_set_validator
 from ..interpreterbase import FeatureNew
 from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, noPosargs, typed_kwargs, typed_pos_args
+from ..programs import ExternalProgram
 from ..scripts.gettext import read_linguas
 
 if T.TYPE_CHECKING:
@@ -32,7 +33,6 @@ if T.TYPE_CHECKING:
     from ..build import Target
     from ..interpreter import Interpreter
     from ..interpreterbase import TYPE_var
-    from ..programs import ExternalProgram
 
     class MergeFile(TypedDict):
 
@@ -166,6 +166,15 @@ class I18nModule(ExtensionModule):
     def merge_file(self, state: 'ModuleState', args: T.List['TYPE_var'], kwargs: 'MergeFile') -> ModuleReturnValue:
         if self.tools['msgfmt'] is None or not self.tools['msgfmt'].found():
             self.tools['msgfmt'] = state.find_program('msgfmt', for_machine=mesonlib.MachineChoice.BUILD)
+        if isinstance(self.tools['msgfmt'], ExternalProgram):
+            try:
+                have_version = self.tools['msgfmt'].get_version()
+            except mesonlib.MesonException as e:
+                raise mesonlib.MesonException('i18n.merge_file requires GNU msgfmt') from e
+            want_version = '>=0.19' if kwargs['type'] == 'desktop' else '>=0.19.7'
+            if not mesonlib.version_compare(have_version, want_version):
+                msg = f'i18n.merge_file requires GNU msgfmt {want_version} to produce files of type: ' + kwargs['type'] + f' (got: {have_version})'
+                raise mesonlib.MesonException(msg)
         podir = path.join(state.build_to_src, state.subdir, kwargs['po_dir'])
 
         ddirs = self._get_data_dirs(state, kwargs['data_dirs'])
