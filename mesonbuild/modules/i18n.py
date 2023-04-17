@@ -285,7 +285,7 @@ class I18nModule(ExtensionModule):
                 path.join(state.subdir, l, 'LC_MESSAGES'),
                 state.subproject,
                 state.environment,
-                [self.tools['msgfmt'], '@INPUT@', '-o', '@OUTPUT@'],
+                [self.tools['msgfmt'], '-o', '@OUTPUT@', '@INPUT@'],
                 [po_file],
                 [f'{packagename}.mo'],
                 install=install,
