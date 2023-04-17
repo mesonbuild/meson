@@ -44,6 +44,10 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
                         help='Generate a native compilation file.')
     parser.add_argument('--system', default=None,
                         help='Define system for cross compilation.')
+    parser.add_argument('--subsystem', default=None,
+                        help='Define subsystem for cross compilation.')
+    parser.add_argument('--kernel', default=None,
+                        help='Define kernel for cross compilation.')
     parser.add_argument('--cpu', default=None,
                         help='Define cpu for cross compilation.')
     parser.add_argument('--cpu-family', default=None,
@@ -61,6 +65,8 @@ class MachineInfo:
         self.cmake: T.Dict[str, T.Union[str, T.List[str]]] = {}
 
         self.system: T.Optional[str] = None
+        self.subsystem: T.Optional[str] = None
+        self.kernel: T.Optional[str] = None
         self.cpu: T.Optional[str] = None
         self.cpu_family: T.Optional[str] = None
         self.endian: T.Optional[str] = None
@@ -181,6 +187,8 @@ def detect_cross_debianlike(options: T.Any) -> MachineInfo:
         data[k] = v
     host_arch = data['DEB_HOST_GNU_TYPE']
     host_os = data['DEB_HOST_ARCH_OS']
+    host_subsystem = host_os
+    host_kernel = 'linux'
     host_cpu_family = deb_cpu_family_map.get(data['DEB_HOST_GNU_CPU'],
                                              data['DEB_HOST_GNU_CPU'])
     host_cpu = deb_cpu_map.get(data['DEB_HOST_ARCH'],
@@ -213,6 +221,8 @@ def detect_cross_debianlike(options: T.Any) -> MachineInfo:
     except ValueError:
         pass
     infos.system = host_os
+    infos.subsystem = host_subsystem
+    infos.kernel = host_kernel
     infos.cpu_family = host_cpu_family
     infos.cpu = host_cpu
     infos.endian = host_endian
@@ -260,6 +270,11 @@ def write_machine_file(infos: MachineInfo, ofilename: str, write_system_info: bo
             ofile.write(f"cpu_family = '{infos.cpu_family}'\n")
             ofile.write(f"endian = '{infos.endian}'\n")
             ofile.write(f"system = '{infos.system}'\n")
+            if infos.subsystem:
+                ofile.write(f"subsystem = '{infos.subsystem}'\n")
+            if infos.kernel:
+                ofile.write(f"kernel = '{infos.kernel}'\n")
+
     os.replace(tmpfilename, ofilename)
 
 def detect_language_args_from_envvars(langname: str, envvar_suffix: str = '') -> T.Tuple[T.List[str], T.List[str]]:
@@ -306,7 +321,7 @@ def detect_properties_from_envvars(infos: MachineInfo, envvar_suffix: str = '') 
         infos.properties['sys_root'] = var
 
 def detect_cross_system(infos: MachineInfo, options: T.Any) -> None:
-    for optname in ('system', 'cpu', 'cpu_family', 'endian'):
+    for optname in ('system', 'subsystem', 'kernel', 'cpu', 'cpu_family', 'endian'):
         v = getattr(options, optname)
         if not v:
             mlog.error(f'Cross property "{optname}" missing, set it with --{optname.replace("_", "-")}.')

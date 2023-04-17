@@ -212,6 +212,8 @@ target machines look the same. Here is a sample for host machine.
 ```ini
 [host_machine]
 system = 'windows'
+subsystem = 'windows'
+kernel = 'nt'
 cpu_family = 'x86'
 cpu = 'i686'
 endian = 'little'
@@ -221,9 +223,13 @@ These values define the machines sufficiently for cross compilation
 purposes. The corresponding target definition would look the same but
 have `target_machine` in the header. These values are available in
 your Meson scripts. There are three predefined variables called,
-surprisingly, [[@build_machine]], [[@host_machine]] and [[@target_machine]].
-Determining the operating system of your host machine is simply a
-matter of calling `host_machine.system()`.
+surprisingly, [[@build_machine]], [[@host_machine]] and
+[[@target_machine]]. Determining the operating system of your host
+machine is simply a matter of calling `host_machine.system()`.
+Starting from version 1.2.0 you can get more fine grained information
+using the `.subsystem()` and `.kernel()` methods. The return values of
+these functions are documented in [the reference table
+page](Reference-tables.md).
 
 There are two different values for the CPU. The first one is
 `cpu_family`. It is a general type of the CPU. This should have a

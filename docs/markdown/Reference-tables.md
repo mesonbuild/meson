@@ -163,9 +163,44 @@ These are provided by the `.system()` method call.
 Any string not listed above is not guaranteed to remain stable in
 future releases.
 
+## Kernel names (since 1.2.0)
+
+Native names as returned by the `.kernel()` method.
+
+| Value               | Comment                         |
+| -----               | -------                         |
+| linux   | |
+| freebsd | |
+| openbsd | |
+| netbsd  | |
+| nt      | |
+| xnu                 | Kernel of various Apple OSes    |
+| sunos | |
+| dragonfly | |
+| haiku| |
+| none                 | For e.g. bare metal embedded    |
+
+
+## Subsystem names (since 1.2.0)
+
+A more specific description of the system in question. Most values are
+meant to be used in cross files only, as those platforms can not run
+Meson natively.
+
+| Value               | Comment                         |
+| -----               | -------                         |
+| macos               | Apple macOS (formerly OSX)      |
+| ios                 | Apple iOS                       |
+| ios-simulator       |                                 |
+| tvos                | Apple tvOS                      |
+| tvos-simulator      |                                 |
+| watchos             | Apple watchOS                   |
+| watchos-simulator   |                                 |
+
 ## Language arguments parameter names
 
-These are the parameter names for passing language specific arguments to your build target.
+These are the parameter names for passing language specific arguments
+to your build target.
 
 | Language      | compiler name | linker name       |
 | ------------- | ------------- | ----------------- |
