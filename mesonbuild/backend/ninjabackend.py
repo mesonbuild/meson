@@ -1892,8 +1892,8 @@ class NinjaBackend(backends.Backend):
             args.extend(rustc.get_linker_always_args())
 
         args += self.generate_basic_compiler_args(target, rustc, False)
-        # Rustc replaces - with _. spaces are not allowed, so we replace them with underscores
-        args += ['--crate-name', target.name.replace('-', '_').replace(' ', '_')]
+        # Rustc replaces - with _. spaces or dots are not allowed, so we replace them with underscores
+        args += ['--crate-name', target.name.replace('-', '_').replace(' ', '_').replace('.', '_')]
         depfile = os.path.join(target.subdir, target.name + '.d')
         args += ['--emit', f'dep-info={depfile}', '--emit', 'link']
         args += target.get_extra_args('rust')
