@@ -347,7 +347,7 @@ class PythonModule(ExtensionModule):
                     json.dump(manifest_json, f)
                 cmd = i.command + [pycompile, manifest, str(optlevel)]
 
-                script = backend.get_executable_serialisation(cmd, verbose=True,
+                script = backend.get_executable_serialisation(cmd, verbose=True, tag='python-runtime',
                                                               installdir_map={'py_purelib': i.purelib, 'py_platlib': i.platlib})
                 ret.append(script)
         return ret
