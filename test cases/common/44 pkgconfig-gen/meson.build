@@ -176,3 +176,12 @@ pkgg.generate(
   description : 'Check that variables can be single string',
   variables: 'foo=bar',
 )
+
+# without a mainlib, name/description are mandatory
+testcase expect_error('pkgconfig.generate: if a library is not passed as a positional argument, the \'name\' keyword argument is required.')
+  pkgg.generate(description: 'empty data')
+endtestcase
+
+testcase expect_error('pkgconfig.generate: if a library is not passed as a positional argument, the \'description\' keyword argument is required.')
+  pkgg.generate(name: 'foobar')
+endtestcase

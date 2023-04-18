@@ -424,8 +424,8 @@ class PkgConfigModule(NewExtensionModule):
         return ('${prefix}' / libdir).as_posix()
 
     def _generate_pkgconfig_file(self, state: ModuleState, deps: DependenciesHelper,
-                                 subdirs: T.List[str], name: T.Optional[str],
-                                 description: T.Optional[str], url: str, version: str,
+                                 subdirs: T.List[str], name: str,
+                                 description: str, url: str, version: str,
                                  pcfile: str, conflicts: T.List[str],
                                  variables: T.List[T.Tuple[str, str]],
                                  unescaped_variables: T.List[T.Tuple[str, str]],
@@ -638,11 +638,13 @@ class PkgConfigModule(NewExtensionModule):
         else:
             if kwargs['version'] is None:
                 FeatureNew.single_use('pkgconfig.generate implicit version keyword', '0.46.0', state.subproject)
+            msg = ('pkgconfig.generate: if a library is not passed as a '
+                   'positional argument, the {!r} keyword argument is '
+                   'required.')
             if kwargs['name'] is None:
-                raise build.InvalidArguments(
-                    'pkgconfig.generate: if a library is not passed as a '
-                    'positional argument, the name keyword argument is '
-                    'required.')
+                raise build.InvalidArguments(msg.format('name'))
+            if kwargs['description'] is None:
+                raise build.InvalidArguments(msg.format('description'))
 
         dataonly = kwargs['dataonly']
         if dataonly:
