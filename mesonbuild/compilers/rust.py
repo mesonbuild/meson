@@ -174,7 +174,7 @@ class RustCompiler(Compiler):
 
     def get_colorout_args(self, colortype: str) -> T.List[str]:
         if colortype in {'always', 'never', 'auto'}:
-            return [f'--color={colortype}']
+            return []
         raise MesonException(f'Invalid color type for rust {colortype}')
 
     def get_linker_always_args(self) -> T.List[str]:

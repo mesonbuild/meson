@@ -2022,6 +2022,9 @@ class StaticLibrary(BuildTarget):
                 self.suffix = 'a'
         self.filename = self.prefix + self.name + '.' + self.suffix
         self.outputs = [self.filename]
+        if hasattr(self, 'rust_crate_type') and self.rust_crate_type in {'rlib'}:
+            self.outputs.append(f'lib{self.name}.rmeta')
+            self.install_tag.append(None)
 
     def get_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:
         return {}
@@ -2103,6 +2106,9 @@ class SharedLibrary(BuildTarget):
             self.suffix = None
         self.basic_filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
         self.determine_filenames()
+        if self.rust_crate_type in {'dylib'}:
+            self.outputs.append(f'lib{self.name}.rmeta')
+            self.install_tag.append(None)
 
     def get_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:
         result: T.Dict[str, str] = {}

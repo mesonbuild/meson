@@ -1847,12 +1847,6 @@ class NinjaBackend(backends.Backend):
         args += compilers.get_base_compile_args(base_proxy, rustc)
         self.generate_generator_list_rules(target)
 
-        # dependencies need to cause a relink, they're not just for ordering
-        deps = [
-            os.path.join(t.subdir, t.get_filename())
-            for t in itertools.chain(target.link_targets, target.link_whole_targets)
-        ]
-
         # Dependencies for rust-project.json
         project_deps: T.List[RustDep] = []
 
@@ -1915,6 +1909,16 @@ class NinjaBackend(backends.Backend):
             raise InvalidArguments('Unknown target type for rustc.')
         args.extend(['--crate-type', cratetype])
 
+        # dependencies need to cause a relink, they're not just for ordering.
+        # Rust libraries have 2 outputs, the first is the lib itself and
+        # the last is the intermediary .rmeta which is enough to build a
+        # rlib or dylib target.
+        output_idx = -1 if cratetype in {'dylib', 'rlib'} else 0
+        deps = [
+            os.path.join(t.subdir, t.outputs[output_idx])
+            for t in itertools.chain(target.link_targets, target.link_whole_targets)
+        ]
+
         # If we're dynamically linking, add those arguments
         #
         # Rust is super annoying, calling -C link-arg foo does not work, it has
@@ -1943,7 +1947,7 @@ class NinjaBackend(backends.Backend):
                 # dependency, so that collisions with libraries in rustc's
                 # sysroot don't cause ambiguity
                 d_name = self._get_rust_dependency_name(target, d)
-                args += ['--extern', '{}={}'.format(d_name, os.path.join(d.subdir, d.filename))]
+                args += ['--extern', '{}={}'.format(d_name, os.path.join(d.subdir, d.outputs[output_idx]))]
                 project_deps.append(RustDep(d_name, self.rust_crates[d.name].order))
             elif isinstance(d, build.StaticLibrary):
                 # Rustc doesn't follow Meson's convention that static libraries
@@ -2074,7 +2078,8 @@ class NinjaBackend(backends.Backend):
                                      project_deps)
 
         compiler_name = self.compiler_to_rule_name(rustc)
-        element = NinjaBuildElement(self.all_outputs, target_name, compiler_name, main_rust_file)
+        outs = [os.path.join(target.subdir, i) for i in target.get_outputs()]
+        element = NinjaBuildElement(self.all_outputs, outs, compiler_name, main_rust_file)
         if orderdeps:
             element.add_orderdep(orderdeps)
         if deps:
@@ -2082,6 +2087,7 @@ class NinjaBackend(backends.Backend):
         element.add_item('ARGS', args)
         element.add_item('targetdep', depfile)
         element.add_item('cratetype', cratetype)
+        element.add_item('notifyfile', os.path.join(target.subdir, target.name + '.notify'))
         self.add_build(element)
         if isinstance(target, build.SharedLibrary):
             self.generate_shsym(target)
@@ -2343,7 +2349,8 @@ class NinjaBackend(backends.Backend):
 
     def generate_rust_compile_rules(self, compiler):
         rule = self.compiler_to_rule_name(compiler)
-        command = compiler.get_exelist() + ['$ARGS', '$in']
+        command = compiler.get_exelist() + ['--notify', '$notifyfile', '--emit', 'metadata', '--json=artifacts', '--error-format=json', '$ARGS', '$in']
+        command[0] = 'rustc-wrapper'
         description = 'Compiling Rust source $in'
         depfile = '$targetdep'
         depstyle = 'gcc'
