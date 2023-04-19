@@ -37,7 +37,10 @@ If provided, it can be:
 - One of `python2` or `python3`: in either case, the module will try
   some alternative names: `py -2` or `py -3` on Windows, and `python`
   everywhere. In the latter case, it will check whether the version
-  provided by the sysconfig module matches the required major version
+  provided by the sysconfig module matches the required major version.
+
+  *Since 1.2.0*, searching for minor version (e.g. `python3.11`) also
+  works on Windows.
 
 Keyword arguments are the following:
 
