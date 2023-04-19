@@ -73,12 +73,6 @@ jobs:
             vala
             zlib-devel
 
-      - name: work around gcovr bug https://github.com/gcovr/gcovr/pull/576
-        run: |
-          export PATH=/usr/bin:/usr/local/bin:$(cygpath ${SYSTEMROOT})/system32
-          python3 -m pip --disable-pip-version-check install 'jinja2<3.1.0'
-        shell: C:\cygwin\bin\bash.exe --noprofile --norc -o igncr -eo pipefail '{0}'
-
       - name: Run pip
         run: |
           export PATH=/usr/bin:/usr/local/bin:$(cygpath ${SYSTEMROOT})/system32
