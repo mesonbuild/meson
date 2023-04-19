@@ -8,6 +8,9 @@ if py_version.version_compare('< 3.2')
   error('MESON_SKIP_TEST python 3 required for tests')
 endif
 
+py_full_version = py.version()
+message(f'Using python version: @py_full_version@')
+
 py_purelib = py.get_path('purelib')
 if not (py_purelib.endswith('site-packages') or py_purelib.endswith('dist-packages'))
   error('Python3 purelib path seems invalid? ' + py_purelib)
