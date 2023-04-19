@@ -332,7 +332,8 @@ class PythonModule(ExtensionModule):
             # named python is available and has a compatible version, let's use
             # it
             if not python.found() and name_or_path in {'python2', 'python3'}:
-                python = PythonExternalProgram('python')
+                tmp_python = ExternalProgram.from_entry(display_name, 'python')
+                python = PythonExternalProgram(name_or_path, ext_prog=tmp_python)
 
         if python.found():
             if python.sanity(state):
