@@ -300,12 +300,12 @@ class PythonModule(ExtensionModule):
     # https://www.python.org/dev/peps/pep-0397/
     @staticmethod
     def _get_win_pythonpath(name_or_path: str) -> T.Optional[str]:
-        if name_or_path not in ['python2', 'python3']:
+        if not name_or_path.startswith(('python2', 'python3')):
             return None
         if not shutil.which('py'):
             # program not installed, return without an exception
             return None
-        ver = {'python2': '-2', 'python3': '-3'}[name_or_path]
+        ver = f'-{name_or_path[6:]}'
         cmd = ['py', ver, '-c', "import sysconfig; print(sysconfig.get_config_var('BINDIR'))"]
         _, stdout, _ = mesonlib.Popen_safe(cmd)
         directory = stdout.strip()
