@@ -36,7 +36,12 @@ llvm_dep = dependency(
 )
 
 if not llvm_dep.found()
-  error('MESON_SKIP_TEST required llvm modules not found.')
+  if method == 'cmake' and static and d.version().startswith('16.')
+    message('Silently skipping the rest of this test, LLVM 16\'s CMake files are broken, see https://github.com/mesonbuild/meson/issues/11642')
+    subdir_done()
+  else
+    error('MESON_SKIP_TEST required llvm modules not found.')
+  endif
 endif
 
 executable(
