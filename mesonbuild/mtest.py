@@ -1035,12 +1035,16 @@ class TestRunGTest(TestRunExitCode):
             filename = os.path.join(self.test.workdir, filename)
 
         try:
-            self.junit = et.parse(filename)
+            with open(filename, 'r', encoding='utf8', errors='replace') as f:
+                self.junit = et.parse(f)
         except FileNotFoundError:
             # This can happen if the test fails to run or complete for some
             # reason, like the rpath for libgtest isn't properly set. ExitCode
             # will handle the failure, don't generate a stacktrace.
             pass
+        except et.ParseError as e:
+            # ExitCode will handle the failure, don't generate a stacktrace.
+            mlog.error(f'Unable to parse {filename}: {e!s}')
 
         super().complete()
 
