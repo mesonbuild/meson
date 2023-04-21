@@ -1,6 +1,6 @@
 project('cython', 'c',
-  default_options : ['warning_level=3'])
-
+  default_options : ['warning_level=3', 'buildtype=release']
+)
 if meson.backend() != 'ninja'
   error('MESON_SKIP_TEST: Ninja backend required')
 endif
@@ -10,8 +10,7 @@ if not cython.found()
   error('MESON_SKIP_TEST: Cython3 not found.')
 endif
 
-py_mod = import('python')
-py3 = py_mod.find_installation()
+py3 = import('python').find_installation(pure: false)
 py3_dep = py3.dependency(required: false)
 if not py3_dep.found()
   error('MESON_SKIP_TEST: Python library not found.')
