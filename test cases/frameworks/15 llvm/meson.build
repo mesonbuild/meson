@@ -16,14 +16,27 @@ if(method == 'combination')
     static : static,
     method : 'config-tool',
   )
-  llvm_cm_dep = dependency(
-    'llvm',
-    modules : ['bitwriter', 'asmprinter', 'executionengine', 'target',
-              'mcjit', 'nativecodegen', 'amdgpu', 'engine'],
-    required : false,
-    static : static,
-    method : 'cmake',
-  )
+
+  # Bump the version along till the LLVM bug is fixed
+  if static and d.version().startswith('16.0') and d.version()[5].to_int() <= 2
+    message('Skipping modules with cmake, see https://github.com/mesonbuild/meson/issues/11642')
+    llvm_cm_dep = dependency(
+      'llvm',
+      required : false,
+      static : static,
+      method : 'cmake',
+    )
+  else
+    llvm_cm_dep = dependency(
+      'llvm',
+      modules : ['bitwriter', 'asmprinter', 'executionengine', 'target',
+                'mcjit', 'nativecodegen', 'amdgpu', 'engine'],
+      required : false,
+      static : static,
+      method : 'cmake',
+    )
+  endif
+
   assert(llvm_ct_dep.found() == llvm_cm_dep.found(), 'config-tool and cmake results differ')
   cm_version_major = llvm_cm_dep.version().split('.')[0].to_int()
   cm_version_minor = llvm_cm_dep.version().split('.')[1].to_int()
@@ -67,14 +80,25 @@ else
     dep_tinfo = cpp.find_library('tinfo', required: false)
   endif
 
-  llvm_dep = dependency(
-    'llvm',
-    modules : ['bitwriter', 'asmprinter', 'executionengine', 'target',
-              'mcjit', 'nativecodegen', 'amdgpu'],
-    required : false,
-    static : static,
-    method : method,
-  )
+  # Bump the version along till the LLVM bug is fixed
+  if static and method == 'cmake' and d.version().startswith('16.0') and d.version()[5].to_int() <= 2
+    message('Skipping modules with cmake, see https://github.com/mesonbuild/meson/issues/11642')
+    llvm_dep = dependency(
+      'llvm',
+      required : false,
+      static : static,
+      method : method,
+    )
+  else
+    llvm_dep = dependency(
+      'llvm',
+      modules : ['bitwriter', 'asmprinter', 'executionengine', 'target',
+                'mcjit', 'nativecodegen', 'amdgpu'],
+      required : false,
+      static : static,
+      method : method,
+    )
+  endif
 
   if not llvm_dep.found()
     error('MESON_SKIP_TEST required llvm modules not found.')
