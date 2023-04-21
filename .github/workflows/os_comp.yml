@@ -62,7 +62,7 @@ jobs:
       with:
         files: .coverage/coverage.xml
         name: "OS Comp [${{ matrix.cfg.name }}]"
-        fail_ci_if_error: true
+        fail_ci_if_error: false
         verbose: true
 
   pypy:
@@ -162,5 +162,5 @@ jobs:
         with:
           files: .coverage/coverage.xml
           name: "Ubuntu [${{ matrix.cfg.CC }} ${{ matrix.cfg.RUN_TESTS_ARGS }} ${{ matrix.cfg.MESON_ARGS }}]"
-          fail_ci_if_error: true
+          fail_ci_if_error: false
           verbose: true

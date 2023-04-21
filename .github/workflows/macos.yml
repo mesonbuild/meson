@@ -55,7 +55,7 @@ jobs:
       with:
         files: .coverage/coverage.xml
         name: "appleclang [unit tests]"
-        fail_ci_if_error: true
+        fail_ci_if_error: false
         verbose: true
 
 
@@ -112,7 +112,7 @@ jobs:
       with:
         files: .coverage/coverage.xml
         name: "appleclang [project tests; unity=${{ matrix.unity }}]"
-        fail_ci_if_error: true
+        fail_ci_if_error: false
         verbose: true
 
   Qt4macos:
