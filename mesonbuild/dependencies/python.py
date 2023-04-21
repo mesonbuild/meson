@@ -13,7 +13,7 @@
 # limitations under the License.
 from __future__ import annotations
 
-import functools, json, os
+import functools, json, os, textwrap
 from pathlib import Path
 import typing as T
 
@@ -272,6 +272,29 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
                         libpath = Path(f'python{vernum}.dll')
                 else:
                     libpath = Path('libs') / f'python{vernum}.lib'
+                    # For a debug build, pyconfig.h may force linking with
+                    # pythonX_d.lib (see meson#10776). This cannot be avoided
+                    # and won't work unless we also have a debug build of
+                    # Python itself (except with pybind11, which has an ugly
+                    # hack to work around this) - so emit a warning to explain
+                    # the cause of the expected link error.
+                    buildtype = self.env.coredata.get_option(mesonlib.OptionKey('buildtype'))
+                    assert isinstance(buildtype, str)
+                    debug = self.env.coredata.get_option(mesonlib.OptionKey('debug'))
+                    # `debugoptimized` buildtype may not set debug=True currently, see gh-11645
+                    is_debug_build = debug or buildtype == 'debug'
+                    vscrt_debug = False
+                    if mesonlib.OptionKey('b_vscrt') in self.env.coredata.options:
+                        vscrt = self.env.coredata.options[mesonlib.OptionKey('b_vscrt')].value
+                        if vscrt in {'mdd', 'mtd', 'from_buildtype', 'static_from_buildtype'}:
+                            vscrt_debug = True
+                    if is_debug_build and vscrt_debug and not self.variables.get('Py_DEBUG'):
+                        mlog.warning(textwrap.dedent('''\
+                            Using a debug build type with MSVC or an MSVC-compatible compiler
+                            when the Python interpreter is not also a debug build will almost
+                            certainly result in a failed build. Prefer using a release build
+                            type or a debug Python interpreter.
+                            '''))
             # base_prefix to allow for virtualenvs.
             lib = Path(self.variables.get('base_prefix')) / libpath
         elif self.platform == 'mingw':
