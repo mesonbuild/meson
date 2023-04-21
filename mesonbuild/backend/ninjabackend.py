@@ -2389,7 +2389,7 @@ class NinjaBackend(backends.Backend):
                 else:
                     pool = None
 
-                options = self._rsp_options(compiler)
+                options = self._rsp_options(compiler.linker if getattr(compiler.linker, 'direct', False) else compiler)
                 self.add_rule(NinjaRule(rule, command, args, description, **options, extra=pool))
             if self.environment.machines[for_machine].is_aix():
                 rule = 'AIX_LINKER{}'.format(self.get_rule_suffix(for_machine))

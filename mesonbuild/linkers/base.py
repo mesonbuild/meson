@@ -46,5 +46,5 @@ class ArLikeLinker:
     def get_output_args(self, target: str) -> T.List[str]:
         return [target]
 
-    def rsp_file_syntax(self) -> RSPFileSyntax:
+    def rsp_file_syntax(self) -> 'RSPFileSyntax':
         return RSPFileSyntax.GCC

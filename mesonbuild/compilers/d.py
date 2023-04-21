@@ -939,7 +939,7 @@ class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
             return ['--release']
         return []
 
-    def rsp_file_syntax(self) -> RSPFileSyntax:
+    def rsp_file_syntax(self) -> 'RSPFileSyntax':
         # We use `mesonlib.is_windows` here because we want to know what the
         # build machine is, not the host machine. This really means we would
         # have the Environment not the MachineInfo in the compiler.
@@ -1029,5 +1029,5 @@ class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
             return ['-release']
         return []
 
-    def rsp_file_syntax(self) -> RSPFileSyntax:
+    def rsp_file_syntax(self) -> 'RSPFileSyntax':
         return RSPFileSyntax.MSVC

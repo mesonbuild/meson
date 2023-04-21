@@ -1001,7 +1001,8 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def get_pie_link_args(self) -> T.List[str]:
         return self.linker.get_pie_args()
 
-    def get_argument_syntax(self) -> str:
+    @staticmethod
+    def get_argument_syntax() -> str:
         """Returns the argument family type.
 
         Compilers fall into families if they try to emulate the command line
@@ -1339,14 +1340,6 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.List[str]:
         raise EnvironmentException(f'{self.id} does not know how to do prelinking.')
 
-    def rsp_file_syntax(self) -> 'RSPFileSyntax':
-        """The format of the RSP file that this compiler supports.
-
-        If `self.can_linker_accept_rsp()` returns True, then this needs to
-        be implemented
-        """
-        return self.linker.rsp_file_syntax()
-
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
         """Arguments required for a debug build."""
         return []
@@ -1362,6 +1355,11 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         """Get compiler's preprocessor.
         """
         raise EnvironmentException(f'{self.get_id()} does not support preprocessor')
+
+    @staticmethod
+    def rsp_file_syntax() -> 'RSPFileSyntax':
+        from ..linkers import RSPFileSyntax
+        return RSPFileSyntax.GCC
 
 def get_global_options(lang: str,
                        comp: T.Type[Compiler],

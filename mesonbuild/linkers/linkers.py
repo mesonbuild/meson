@@ -99,7 +99,7 @@ class StaticLinker:
     def get_linker_always_args(self) -> T.List[str]:
         return []
 
-    def rsp_file_syntax(self) -> RSPFileSyntax:
+    def rsp_file_syntax(self) -> 'RSPFileSyntax':
         """The format of the RSP file that this compiler supports.
 
         If `self.can_linker_accept_rsp()` returns True, then this needs to
@@ -164,7 +164,7 @@ class DynamicLinker(metaclass=abc.ABCMeta):
         # avoid issues with quoting and max argument length
         return mesonlib.is_windows()
 
-    def rsp_file_syntax(self) -> RSPFileSyntax:
+    def rsp_file_syntax(self) -> 'RSPFileSyntax':
         """The format of the RSP file that this compiler supports.
 
         If `self.can_linker_accept_rsp()` returns True, then this needs to
@@ -341,7 +341,7 @@ class VisualStudioLikeLinker(StaticLinkerBase):
         from ..compilers.c import VisualStudioCCompiler
         return VisualStudioCCompiler.native_args_to_unix(args)
 
-    def rsp_file_syntax(self) -> RSPFileSyntax:
+    def rsp_file_syntax(self) -> 'RSPFileSyntax':
         return RSPFileSyntax.MSVC
 
 
@@ -429,7 +429,7 @@ class DLinker(StaticLinker):
             return ['-m32']
         return []
 
-    def rsp_file_syntax(self) -> RSPFileSyntax:
+    def rsp_file_syntax(self) -> 'RSPFileSyntax':
         return self.__rsp_syntax
 
 
@@ -514,7 +514,7 @@ class MetrowerksStaticLinker(StaticLinker):
     def get_output_args(self, target: str) -> T.List[str]:
         return ['-o', target]
 
-    def rsp_file_syntax(self) -> RSPFileSyntax:
+    def rsp_file_syntax(self) -> 'RSPFileSyntax':
         return RSPFileSyntax.GCC
 
 
@@ -1242,11 +1242,13 @@ class VisualStudioLikeLinkerMixin(DynamicLinkerBase):
 
     def __init__(self, exelist: T.List[str], for_machine: mesonlib.MachineChoice,
                  prefix_arg: T.Union[str, T.List[str]], always_args: T.List[str], *,
-                 version: str = 'unknown version', direct: bool = True, machine: str = 'x86'):
+                 version: str = 'unknown version', direct: bool = True, machine: str = 'x86',
+                 rsp_syntax: RSPFileSyntax = RSPFileSyntax.MSVC):
         # There's no way I can find to make mypy understand what's going on here
         super().__init__(exelist, for_machine, prefix_arg, always_args, version=version)
         self.machine = machine
         self.direct = direct
+        self.rsp_syntax = rsp_syntax
 
     def get_buildtype_args(self, buildtype: str) -> T.List[str]:
         return mesonlib.listify([self._apply_prefix(a) for a in self._BUILDTYPE_ARGS[buildtype]])
@@ -1293,8 +1295,11 @@ class VisualStudioLikeLinkerMixin(DynamicLinkerBase):
         """The command to generate the import library."""
         return self._apply_prefix(['/IMPLIB:' + implibname])
 
-    def rsp_file_syntax(self) -> RSPFileSyntax:
-        return RSPFileSyntax.MSVC
+    def can_linker_accept_rsp(self) -> bool:
+        return True
+
+    def rsp_file_syntax(self) -> 'RSPFileSyntax':
+        return self.rsp_syntax
 
 
 class MSVCDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
@@ -1307,9 +1312,10 @@ class MSVCDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
                  exelist: T.Optional[T.List[str]] = None,
                  prefix: T.Union[str, T.List[str]] = '',
                  machine: str = 'x86', version: str = 'unknown version',
-                 direct: bool = True):
+                 direct: bool = True, rsp_syntax: RSPFileSyntax = RSPFileSyntax.MSVC):
         super().__init__(exelist or ['link.exe'], for_machine,
-                         prefix, always_args, machine=machine, version=version, direct=direct)
+                         prefix, always_args, machine=machine, version=version, direct=direct,
+                         rsp_syntax=rsp_syntax)
 
     def get_always_args(self) -> T.List[str]:
         return self._apply_prefix(['/nologo', '/release']) + super().get_always_args()
@@ -1328,9 +1334,10 @@ class ClangClDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
                  exelist: T.Optional[T.List[str]] = None,
                  prefix: T.Union[str, T.List[str]] = '',
                  machine: str = 'x86', version: str = 'unknown version',
-                 direct: bool = True):
+                 direct: bool = True, rsp_syntax: RSPFileSyntax = RSPFileSyntax.MSVC):
         super().__init__(exelist or ['lld-link.exe'], for_machine,
-                         prefix, always_args, machine=machine, version=version, direct=direct)
+                         prefix, always_args, machine=machine, version=version, direct=direct,
+                         rsp_syntax=rsp_syntax)
 
     def get_output_args(self, outputname: str) -> T.List[str]:
         # If we're being driven indirectly by clang just skip /MACHINE
@@ -1600,7 +1607,7 @@ class MetrowerksLinker(DynamicLinker):
     def invoked_by_compiler(self) -> bool:
         return False
 
-    def rsp_file_syntax(self) -> RSPFileSyntax:
+    def rsp_file_syntax(self) -> 'RSPFileSyntax':
         return RSPFileSyntax.GCC
 
 
