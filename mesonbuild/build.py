@@ -115,9 +115,9 @@ known_build_target_kwargs = (
     cs_kwargs)
 
 known_exe_kwargs = known_build_target_kwargs | {'implib', 'export_dynamic', 'pie'}
-known_shlib_kwargs = known_build_target_kwargs | {'version', 'soversion', 'vs_module_defs', 'darwin_versions'}
-known_shmod_kwargs = known_build_target_kwargs | {'vs_module_defs'}
-known_stlib_kwargs = known_build_target_kwargs | {'pic', 'prelink'}
+known_shlib_kwargs = known_build_target_kwargs | {'version', 'soversion', 'vs_module_defs', 'darwin_versions', 'rust_abi'}
+known_shmod_kwargs = known_build_target_kwargs | {'vs_module_defs', 'rust_abi'}
+known_stlib_kwargs = known_build_target_kwargs | {'pic', 'prelink', 'rust_abi'}
 known_jar_kwargs = known_exe_kwargs | {'main_class', 'java_resources'}
 
 def _process_install_tag(install_tag: T.Optional[T.List[T.Optional[str]]],
@@ -1980,6 +1980,13 @@ class Executable(BuildTarget):
         if create_debug_file:
             self.debug_filename = self.name + '.pdb'
 
+    def process_kwargs(self, kwargs):
+        super().process_kwargs(kwargs)
+
+        self.rust_crate_type = kwargs.get('rust_crate_type') or 'bin'
+        if self.rust_crate_type != 'bin':
+            raise InvalidArguments('Invalid rust_crate_type: must be "bin" for executables.')
+
     def get_default_install_dir(self) -> T.Tuple[str, str]:
         return self.environment.get_bindir(), '{bindir}'
 
@@ -2052,18 +2059,12 @@ class StaticLibrary(BuildTarget):
         super().post_init()
         if 'cs' in self.compilers:
             raise InvalidArguments('Static libraries not supported for C#.')
-        if 'rust' in self.compilers:
-            # If no crate type is specified, or it's the generic lib type, use rlib
-            if not hasattr(self, 'rust_crate_type') or self.rust_crate_type == 'lib':
-                mlog.debug('Defaulting Rust static library target crate type to rlib')
-                self.rust_crate_type = 'rlib'
-            # Don't let configuration proceed with a non-static crate type
-            elif self.rust_crate_type not in ['rlib', 'staticlib']:
-                raise InvalidArguments(f'Crate type "{self.rust_crate_type}" invalid for static libraries; must be "rlib" or "staticlib"')
+        if self.uses_rust():
             # See https://github.com/rust-lang/rust/issues/110460
             if self.rust_crate_type == 'rlib' and any(c in self.name for c in ['-', ' ', '.']):
-                raise InvalidArguments('Rust crate type "rlib" does not allow spaces, periods or dashes in the library name '
-                                       'due to a limitation of rustc. Replace them with underscores, for example')
+                raise InvalidArguments(f'Rust crate {self.name} type {self.rust_crate_type} does not allow spaces, '
+                                       'periods or dashes in the library name due to a limitation of rustc. '
+                                       'Replace them with underscores, for example')
             if self.rust_crate_type == 'staticlib':
                 # FIXME: In the case of no-std we should not add those libraries,
                 # but we have no way to know currently.
@@ -2085,8 +2086,8 @@ class StaticLibrary(BuildTarget):
         if not hasattr(self, 'prefix'):
             self.prefix = 'lib'
         if not hasattr(self, 'suffix'):
-            if 'rust' in self.compilers:
-                if not hasattr(self, 'rust_crate_type') or self.rust_crate_type == 'rlib':
+            if self.uses_rust():
+                if self.rust_crate_type == 'rlib':
                     # default Rust static library suffix
                     self.suffix = 'rlib'
                 elif self.rust_crate_type == 'staticlib':
@@ -2107,12 +2108,20 @@ class StaticLibrary(BuildTarget):
 
     def process_kwargs(self, kwargs):
         super().process_kwargs(kwargs)
-        if 'rust_crate_type' in kwargs:
-            rust_crate_type = kwargs['rust_crate_type']
-            if isinstance(rust_crate_type, str):
+
+        rust_abi = kwargs.get('rust_abi')
+        rust_crate_type = kwargs.get('rust_crate_type')
+        if rust_crate_type:
+            if rust_abi:
+                raise InvalidArguments('rust_abi and rust_crate_type are mutually exclusive.')
+            if rust_crate_type == 'lib':
+                self.rust_crate_type = 'rlib'
+            elif rust_crate_type in {'rlib', 'staticlib'}:
                 self.rust_crate_type = rust_crate_type
             else:
-                raise InvalidArguments(f'Invalid rust_crate_type "{rust_crate_type}": must be a string.')
+                raise InvalidArguments(f'Crate type {rust_crate_type!r} invalid for static libraries; must be "rlib" or "staticlib"')
+        else:
+            self.rust_crate_type = 'staticlib' if rust_abi == 'c' else 'rlib'
 
     def is_linkable_target(self):
         return True
@@ -2153,18 +2162,12 @@ class SharedLibrary(BuildTarget):
 
     def post_init(self) -> None:
         super().post_init()
-        if 'rust' in self.compilers:
-            # If no crate type is specified, or it's the generic lib type, use dylib
-            if not hasattr(self, 'rust_crate_type') or self.rust_crate_type == 'lib':
-                mlog.debug('Defaulting Rust dynamic library target crate type to "dylib"')
-                self.rust_crate_type = 'dylib'
-            # Don't let configuration proceed with a non-dynamic crate type
-            elif self.rust_crate_type not in ['dylib', 'cdylib', 'proc-macro']:
-                raise InvalidArguments(f'Crate type "{self.rust_crate_type}" invalid for dynamic libraries; must be "dylib", "cdylib", or "proc-macro"')
+        if self.uses_rust():
             # See https://github.com/rust-lang/rust/issues/110460
             if self.rust_crate_type != 'cdylib' and any(c in self.name for c in ['-', ' ', '.']):
-                raise InvalidArguments('Rust crate types "dylib" and "proc-macro" do not allow spaces, periods or dashes in the library name '
-                                       'due to a limitation of rustc. Replace them with underscores, for example')
+                raise InvalidArguments(f'Rust crate {self.name} type {self.rust_crate_type} does not allow spaces, '
+                                       'periods or dashes in the library name due to a limitation of rustc. '
+                                       'Replace them with underscores, for example')
 
         if not hasattr(self, 'prefix'):
             self.prefix = None
@@ -2335,14 +2338,19 @@ class SharedLibrary(BuildTarget):
                     'a file object or a Custom Target')
             self.process_link_depends(path)
 
-        if 'rust_crate_type' in kwargs:
-            rust_crate_type = kwargs['rust_crate_type']
-            if isinstance(rust_crate_type, str):
+        rust_abi = kwargs.get('rust_abi')
+        rust_crate_type = kwargs.get('rust_crate_type')
+        if rust_crate_type:
+            if rust_abi:
+                raise InvalidArguments('rust_abi and rust_crate_type are mutually exclusive.')
+            if rust_crate_type == 'lib':
+                self.rust_crate_type = 'dylib'
+            elif rust_crate_type in {'dylib', 'cdylib', 'proc-macro'}:
                 self.rust_crate_type = rust_crate_type
             else:
-                raise InvalidArguments(f'Invalid rust_crate_type "{rust_crate_type}": must be a string.')
-            if rust_crate_type == 'proc-macro':
-                FeatureNew.single_use('Rust crate type "proc-macro"', '0.62.0', self.subproject)
+                raise InvalidArguments(f'Crate type {rust_crate_type!r} invalid for shared libraries; must be "dylib", "cdylib" or "proc-macro"')
+        else:
+            self.rust_crate_type = 'cdylib' if rust_abi == 'c' else 'dylib'
 
     def get_import_filename(self) -> T.Optional[str]:
         """

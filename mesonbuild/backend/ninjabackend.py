@@ -1937,16 +1937,7 @@ class NinjaBackend(backends.Backend):
         if main_rust_file is None:
             raise RuntimeError('A Rust target has no Rust sources. This is weird. Also a bug. Please report')
         target_name = os.path.join(target.subdir, target.get_filename())
-        if isinstance(target, build.Executable):
-            cratetype = 'bin'
-        elif hasattr(target, 'rust_crate_type'):
-            cratetype = target.rust_crate_type
-        elif isinstance(target, build.SharedLibrary):
-            cratetype = 'dylib'
-        elif isinstance(target, build.StaticLibrary):
-            cratetype = 'rlib'
-        else:
-            raise InvalidArguments('Unknown target type for rustc.')
+        cratetype = target.rust_crate_type
         args.extend(['--crate-type', cratetype])
 
         # If we're dynamically linking, add those arguments

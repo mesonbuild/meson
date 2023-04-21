@@ -289,6 +289,7 @@ kwargs:
   rust_crate_type:
     type: str
     since: 0.42.0
+    deprecated: 1.3.0
     description: |
       Set the specific type of rust crate to compile (when compiling rust).
 
@@ -305,6 +306,10 @@ kwargs:
       "proc-macro" is a special rust procedural macro crate.
 
       "proc-macro" is new in 0.62.0.
+
+      *Since 1.3.0* this is deprecated and replaced by "rust_abi" keyword argument.
+      `proc_macro` crates are now handled by the [`rust.proc_macro()`](Rust-module.md#proc_macro)
+      method.
 
   rust_dependency_map:
     type: dict[str]
