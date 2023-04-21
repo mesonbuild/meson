@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from .base import RSPFileSyntax
 from .. import mlog
 from ..mesonlib import (
     EnvironmentException,
@@ -40,6 +41,11 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     from . import linkers
     env.coredata.add_lang_args(comp_class.language, comp_class, for_machine, env)
 
+    if invoked_directly or comp_class.get_argument_syntax() == 'msvc':
+        rsp_syntax = RSPFileSyntax.MSVC
+    else:
+        rsp_syntax = RSPFileSyntax.GCC
+
     # Explicitly pass logo here so that we can get the version of link.exe
     if not use_linker_prefix or comp_class.LINKER_PREFIX is None:
         check_args = ['/logo', '--version']
@@ -71,7 +77,8 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
         elif not invoked_directly:
             return linkers.ClangClDynamicLinker(
                 for_machine, override, exelist=compiler, prefix=comp_class.LINKER_PREFIX,
-                version=search_version(o), direct=False, machine=None)
+                version=search_version(o), direct=False, machine=None,
+                rsp_syntax=rsp_syntax)
 
     if value is not None and invoked_directly:
         compiler = value
@@ -82,7 +89,8 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
         return linkers.ClangClDynamicLinker(
             for_machine, [],
             prefix=comp_class.LINKER_PREFIX if use_linker_prefix else [],
-            exelist=compiler, version=search_version(o), direct=invoked_directly)
+            exelist=compiler, version=search_version(o), direct=invoked_directly,
+            rsp_syntax=rsp_syntax)
     elif 'OPTLINK' in o:
         # Optlink's stdout *may* begin with a \r character.
         return linkers.OptlinkDynamicLinker(compiler, for_machine, version=search_version(o))
@@ -97,7 +105,8 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
         return linkers.MSVCDynamicLinker(
             for_machine, [], machine=target, exelist=compiler,
             prefix=comp_class.LINKER_PREFIX if use_linker_prefix else [],
-            version=search_version(out), direct=invoked_directly)
+            version=search_version(out), direct=invoked_directly,
+            rsp_syntax=rsp_syntax)
     elif 'GNU coreutils' in o:
         import shutil
         fullpath = shutil.which(compiler[0])
