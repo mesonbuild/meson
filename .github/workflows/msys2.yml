@@ -137,5 +137,5 @@ jobs:
         with:
           files: .coverage/coverage.xml
           name: "${{ matrix.NAME }}"
-          fail_ci_if_error: true
+          fail_ci_if_error: false
           verbose: true

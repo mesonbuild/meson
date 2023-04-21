@@ -65,7 +65,7 @@ jobs:
       with:
         files: .coverage/coverage.xml
         name: "UnusedMissingReturn"
-        fail_ci_if_error: true
+        fail_ci_if_error: false
         verbose: true
 
   windows:
@@ -94,5 +94,5 @@ jobs:
       with:
         files: .coverage/coverage.xml
         name: "UnusedMissingReturn Windows"
-        fail_ci_if_error: true
+        fail_ci_if_error: false
         verbose: true
