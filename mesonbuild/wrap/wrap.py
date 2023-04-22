@@ -139,6 +139,32 @@ def parse_patch_url(patch_url: str) -> T.Tuple[str, str]:
     else:
         raise WrapException(f'Invalid wrapdb URL {patch_url}')
 
+CRATES_IO_WRAP_TMPL = '''\
+[wrap-file]
+directory = {0}-{1}
+source_url = https://crates.io{2}
+source_filename = {0}-{1}.tar.gz
+source_hash = {3}
+
+[provide]
+dependency_names = {4}
+'''
+
+def get_crates_io_info(name: str, allow_insecure: bool) -> T.Tuple[str, str, str]:
+    url = open_url(f'https://crates.io/api/v1/crates/{name}/versions', allow_insecure)
+    try:
+        data = json.loads(url.read().decode())
+        info = data['versions'][0]
+        return info['num'], info['dl_path'], info['checksum'],
+    except:
+        raise WrapException('crate.io reply not in expected format')
+
+def update_crates_io_wrap_file(wrapfile: str, name: str, crates_io_name: str, allow_insecure: bool) -> str:
+    version, dl_path, checksum = get_crates_io_info(crates_io_name, allow_insecure)
+    with open(wrapfile, 'w', encoding='utf-8') as f:
+        f.write(CRATES_IO_WRAP_TMPL.format(crates_io_name, version, dl_path, checksum, name))
+    return version
+
 class WrapException(MesonException):
     pass
 

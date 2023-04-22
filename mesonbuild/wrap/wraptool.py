@@ -19,7 +19,7 @@ import shutil
 import typing as T
 
 from glob import glob
-from .wrap import open_wrapdburl, WrapException, get_releases, get_releases_data
+from .wrap import open_wrapdburl, WrapException, get_releases, get_releases_data, update_crates_io_wrap_file
 from pathlib import Path
 
 from .. import mesonlib, msubprojects
@@ -45,6 +45,8 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     p = subparsers.add_parser('install', help='install the specified project')
     p.add_argument('--allow-insecure', default=False, action='store_true',
                    help='Allow insecure server connections.')
+    p.add_argument('--crates-io', default=False, action='store_true',
+                   help='Use Rust projects from crates.io.')
     p.add_argument('name')
     p.set_defaults(wrap_func=install)
 
@@ -96,6 +98,8 @@ def get_latest_version(name: str, allow_insecure: bool) -> T.Tuple[str, str]:
 
 def install(options: 'argparse.Namespace') -> None:
     name = options.name
+    if options.crates_io:
+        name = name if name.endswith('-rs') else f'{name}-rs'
     if not os.path.isdir('subprojects'):
         raise SystemExit('Subprojects dir not found. Run this script in your source root directory.')
     if os.path.isdir(os.path.join('subprojects', name)):
@@ -103,11 +107,15 @@ def install(options: 'argparse.Namespace') -> None:
     wrapfile = os.path.join('subprojects', name + '.wrap')
     if os.path.exists(wrapfile):
         raise SystemExit('Wrap file already exists.')
-    (version, revision) = get_latest_version(name, options.allow_insecure)
-    url = open_wrapdburl(f'https://wrapdb.mesonbuild.com/v2/{name}_{version}-{revision}/{name}.wrap', options.allow_insecure, True)
-    with open(wrapfile, 'wb') as f:
-        f.write(url.read())
-    print(f'Installed {name} version {version} revision {revision}')
+    if options.crates_io:
+        version = update_crates_io_wrap_file(wrapfile, name, options.name, options.allow_insecure)
+        print(f'Installed {name} version {version}')
+    else:
+        (version, revision) = get_latest_version(name, options.allow_insecure)
+        url = open_wrapdburl(f'https://wrapdb.mesonbuild.com/v2/{name}_{version}-{revision}/{name}.wrap', options.allow_insecure, True)
+        with open(wrapfile, 'wb') as f:
+            f.write(url.read())
+        print(f'Installed {name} version {version} revision {revision}')
 
 def info(options: 'argparse.Namespace') -> None:
     name = options.name
