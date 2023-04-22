@@ -13,7 +13,7 @@ These are return values of the `get_id` (Compiler family) and
 | ccrx      | Renesas RX Family C/C++ compiler |                 |
 | clang     | The Clang compiler               | gcc             |
 | clang-cl  | The Clang compiler (MSVC compatible driver) | msvc |
-| dmd       | D lang reference compiler        |                 |
+| dmd       | D lang reference compiler   |                 |
 | emscripten| Emscripten WASM compiler         |                 |
 | flang     | Flang Fortran compiler           |                 |
 | g95       | The G95 Fortran compiler         |                 |
