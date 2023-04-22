@@ -144,7 +144,7 @@ class Package:
     exclude: T.List[str] = dataclasses.field(default_factory=list)
     include: T.List[str] = dataclasses.field(default_factory=list)
     publish: bool = True
-    metadata: T.Dict[str, T.Dict[str, str]] = dataclasses.field(default_factory=dict)
+    metadata: T.Dict[str, T.Any] = dataclasses.field(default_factory=dict)
     default_run: T.Optional[str] = None
     autobins: bool = True
     autoexamples: bool = True
@@ -154,6 +154,45 @@ class Package:
 
     def __post_init__(self) -> None:
         self.api = _version_to_api(self.version)
+
+@dataclasses.dataclass
+class SystemDependency:
+
+    """ Representation of a Cargo system-deps entry
+        https://docs.rs/system-deps/latest/system_deps
+    """
+
+    name: str
+    version: T.List[str]
+    optional: bool = False
+    feature: T.Optional[str] = None
+    feature_overrides: T.Dict[str, T.Dict[str, str]] = dataclasses.field(default_factory=dict)
+
+    @classmethod
+    def from_raw(cls, name: str, raw: T.Any) -> SystemDependency:
+        if isinstance(raw, str):
+            return cls(name, SystemDependency.convert_version(raw))
+        name = raw.get('name', name)
+        version = SystemDependency.convert_version(raw.get('version'))
+        optional = raw.get('optional', False)
+        feature = raw.get('feature')
+        # Everything else are overrides when certain features are enabled.
+        feature_overrides = {k: v for k, v in raw.items() if k not in {'name', 'version', 'optional', 'feature'}}
+        return cls(name, version, optional, feature, feature_overrides)
+
+    @staticmethod
+    def convert_version(version: T.Optional[str]) -> T.List[str]:
+        vers = version.split(',') if version is not None else []
+        result: T.List[str] = []
+        for v in vers:
+            v = v.strip()
+            if v[0] not in '><=':
+                v = f'>={v}'
+            result.append(v)
+        return result
+
+    def enabled(self, features: T.Set[str]) -> bool:
+        return self.feature is None or self.feature in features
 
 @dataclasses.dataclass
 class Dependency:
@@ -289,6 +328,7 @@ class Manifest:
     dependencies: T.Dict[str, Dependency]
     dev_dependencies: T.Dict[str, Dependency]
     build_dependencies: T.Dict[str, Dependency]
+    system_dependencies: T.Dict[str, SystemDependency] = dataclasses.field(init=False)
     lib: Library
     bin: T.List[Binary]
     test: T.List[Test]
@@ -300,6 +340,7 @@ class Manifest:
 
     def __post_init__(self) -> None:
         self.features.setdefault('default', [])
+        self.system_dependencies = {k: SystemDependency.from_raw(k, v) for k, v in self.package.metadata.get('system-deps', {}).items()}
 
 
 def _convert_manifest(raw_manifest: manifest.Manifest, subdir: str, path: str = '') -> Manifest:
@@ -563,7 +604,37 @@ class Interpreter:
         for depname in pkg.required_deps:
             dep = pkg.manifest.dependencies[depname]
             ast += self._create_dependency(dep, build)
+        ast.append(build.assign(build.array([]), 'system_deps_args'))
+        for name, sys_dep in pkg.manifest.system_dependencies.items():
+            if sys_dep.enabled(pkg.features):
+                ast += self._create_system_dependency(name, sys_dep, build)
         return ast
+
+    def _create_system_dependency(self, name: str, dep: SystemDependency, build: builder.Builder) -> T.List[mparser.BaseNode]:
+        kw = {
+            'version': build.array([build.string(s) for s in dep.version]),
+            'required': build.bool(not dep.optional),
+        }
+        varname = f'{fixup_meson_varname(name)}_system_dep'
+        cfg = f'system_deps_have_{fixup_meson_varname(name)}'
+        return [
+            build.assign(
+                build.function(
+                    'dependency',
+                    [build.string(dep.name)],
+                    kw,
+                ),
+                varname,
+            ),
+            build.if_(
+                build.method('found', build.identifier(varname)), build.block([
+                    build.plusassign(
+                        build.array([build.string('--cfg'), build.string(cfg)]),
+                        'system_deps_args'
+                    ),
+                ])
+            ),
+        ]
 
     def _create_dependency(self, dep: Dependency, build: builder.Builder) -> T.List[mparser.BaseNode]:
         pkg = self._dep_package(dep)
@@ -654,10 +725,14 @@ class Interpreter:
                 dep_pkg = self._dep_package(dep)
                 dep_lib_name = dep_pkg.manifest.lib.name
                 dependency_map[build.string(fixup_meson_varname(dep_lib_name))] = build.string(name)
+        for name, sys_dep in pkg.manifest.system_dependencies.items():
+            if sys_dep.enabled(pkg.features):
+                dependencies.append(build.identifier(f'{fixup_meson_varname(name)}_system_dep'))
 
         rust_args: T.List[mparser.BaseNode] = [
             build.identifier('features_args'),
-            build.identifier(_extra_args_varname())
+            build.identifier(_extra_args_varname()),
+            build.identifier('system_deps_args'),
         ]
 
         dependencies.append(build.identifier(_extra_deps_varname()))
