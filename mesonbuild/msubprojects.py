@@ -135,7 +135,7 @@ class Runner:
         return result
 
     @staticmethod
-    def pre_update_wrapdb(options: 'UpdateWrapDBArguments') -> None:
+    def pre_fetch_wrapdb(options: 'UpdateWrapDBArguments') -> None:
         options.releases = get_releases(options.allow_insecure)
 
     def _get_current_version(self) -> T.Optional[str]:
@@ -152,7 +152,7 @@ class Runner:
         except WrapException:
             return None
 
-    def update_wrapdb(self) -> bool:
+    def wrap_update(self) -> bool:
         self.log(f'Checking latest WrapDB version for {self.wrap.name}...')
         options = T.cast('UpdateWrapDBArguments', self.options)
 
@@ -182,7 +182,7 @@ class Runner:
 
         return True
 
-    def status(self) -> bool:
+    def wrap_status(self) -> bool:
         self.log(f'Checking latest WrapDB version for {self.wrap.name}...')
         options = T.cast('UpdateWrapDBArguments', self.options)
 
@@ -654,16 +654,16 @@ def add_wrap_update_parser(subparsers: 'SubParsers') -> argparse.ArgumentParser:
                    help='Update wraps that does not seems to come from WrapDB')
     add_common_arguments(p)
     add_subprojects_argument(p)
-    p.set_defaults(subprojects_func=Runner.update_wrapdb)
-    p.set_defaults(pre_func=Runner.pre_update_wrapdb)
+    p.set_defaults(subprojects_func=Runner.wrap_update)
+    p.set_defaults(pre_func=Runner.pre_fetch_wrapdb)
     return p
 
 def add_wrap_status_parser(subparsers: 'SubParsers') -> argparse.ArgumentParser:
     p = subparsers.add_parser('status', help='Show installed and available versions of your projects')
     add_common_arguments(p)
     add_subprojects_argument(p)
-    p.set_defaults(subprojects_func=Runner.status)
-    p.set_defaults(pre_func=Runner.pre_update_wrapdb)
+    p.set_defaults(subprojects_func=Runner.wrap_status)
+    p.set_defaults(pre_func=Runner.pre_fetch_wrapdb)
     return p
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
