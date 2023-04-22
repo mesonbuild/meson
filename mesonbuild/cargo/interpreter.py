@@ -150,6 +150,24 @@ class Package:
 
 
 @dataclasses.dataclass
+class SystemDependency:
+    name: T.Optional[str]
+    version: T.Optional[T.List[str]] = None
+    features: T.Dict[str, T.Dict[str, str]] = dataclasses.field(default_factory=dict)
+
+    @classmethod
+    def from_raw(cls, k: str, raw: manifest.DependencyV) -> Dependency:
+        """Create a dependency from a raw cargo dictionary"""
+        fixed = _fixup_raw_mappings(raw)
+        fixed = {
+            'name': fixed.get('name', k),
+            'version': fixed.get('version'),
+            'features': {k: v for k, v in fixed.items() if k not in ['name', 'version']}
+        }
+
+        return cls(**fixed)
+
+@dataclasses.dataclass
 class Dependency:
 
     """Representation of a Cargo Dependency Entry."""
@@ -284,6 +302,7 @@ class Manifest:
     dependencies: T.Dict[str, Dependency]
     dev_dependencies: T.Dict[str, Dependency]
     build_dependencies: T.Dict[str, Dependency]
+    system_dependencies: T.Dict[str, SystemDependency]
     lib: Library
     bin: T.List[Binary]
     test: T.List[Test]
@@ -314,6 +333,7 @@ def _convert_manifest(raw_manifest: manifest.Manifest, subdir: str, path: str = 
         {k: Dependency.from_raw(v, k) for k, v in raw_manifest.get('dependencies', {}).items()},
         {k: Dependency.from_raw(v, k) for k, v in raw_manifest.get('dev-dependencies', {}).items()},
         {k: Dependency.from_raw(v, k) for k, v in raw_manifest.get('build-dependencies', {}).items()},
+        {k: SystemDependency.from_raw(k, d) for k, d in raw_manifest['package'].get('metadata', {}).get('system-deps', {}).items()},
         Library(**lib),
         [Binary(**_fixup_raw_mappings(b)) for b in raw_manifest.get('bin', {})],
         [Test(**_fixup_raw_mappings(b)) for b in raw_manifest.get('test', {})],
@@ -682,6 +702,20 @@ def _create_dependencies(cargo: Manifest, build: builder.Builder) -> T.List[mpar
         ast.append(build.if_(cfg_to_meson(condition, build), build.block(ifblock), build.block(elseblock)))
     for name, dep in cargo.dependencies.items():
         ast += _create_dependency(name, dep, build)
+    for name, dep in cargo.system_dependencies.items():
+        kw = {}
+        if dep.version is not None:
+            kw['version'] = build.array([build.string(s) for s in dep.version])
+        ast.extend([
+            build.assign(
+                build.function(
+                    'dependency',
+                    [build.string(dep.name)],
+                    kw,
+                ),
+                f'{name}_system_dep',
+            ),
+        ])
     return ast
 
 
@@ -694,6 +728,8 @@ def _create_lib(cargo: Manifest, build: builder.Builder, crate_type: manifest.CR
         dependencies.append(build.identifier(_dependency_varname(dep.package)))
         if name != dep.package:
             dependency_map[build.string(fixup_meson_varname(dep.package))] = build.string(name)
+    for name, dep in cargo.system_dependencies.items():
+        dependencies.append(build.identifier(f'{name}_system_dep'))
 
     rust_args: T.List[mparser.BaseNode] = [
         build.identifier('features_args'),
