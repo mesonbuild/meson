@@ -19,7 +19,7 @@ import shutil
 import typing as T
 
 from glob import glob
-from .wrap import open_wrapdburl, WrapException, get_releases, get_releases_data, parse_patch_url
+from .wrap import open_wrapdburl, WrapException, get_releases, get_releases_data
 from pathlib import Path
 
 from .. import mesonlib, msubprojects
@@ -57,10 +57,8 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     p.add_argument('name')
     p.set_defaults(wrap_func=info)
 
-    p = subparsers.add_parser('status', help='show installed and available versions of your projects')
-    p.add_argument('--allow-insecure', default=False, action='store_true',
-                   help='Allow insecure server connections.')
-    p.set_defaults(wrap_func=status)
+    p = msubprojects.add_wrap_status_parser(subparsers)
+    p.set_defaults(wrap_func=msubprojects.run)
 
     p = subparsers.add_parser('promote', help='bring a subsubproject up to the master project')
     p.add_argument('project_path')
@@ -111,26 +109,6 @@ def install(options: 'argparse.Namespace') -> None:
         f.write(url.read())
     print(f'Installed {name} version {version} revision {revision}')
 
-def get_current_version(wrapfile: str) -> T.Tuple[str, str, str, str, T.Optional[str]]:
-    cp = configparser.ConfigParser(interpolation=None)
-    cp.read(wrapfile)
-    try:
-        wrap_data = cp['wrap-file']
-    except KeyError:
-        raise WrapException('Not a wrap-file, cannot have come from the wrapdb')
-    try:
-        patch_url = wrap_data['patch_url']
-    except KeyError:
-        # We assume a wrap without a patch_url is probably just an pointer to upstream's
-        # build files. The version should be in the tarball filename, even if it isn't
-        # purely guaranteed. The wrapdb revision should be 1 because it just needs uploading once.
-        branch = mesonlib.search_version(wrap_data['source_filename'])
-        revision, patch_filename = '1', None
-    else:
-        branch, revision = parse_patch_url(patch_url)
-        patch_filename = wrap_data['patch_filename']
-    return branch, revision, wrap_data['directory'], wrap_data['source_filename'], patch_filename
-
 def info(options: 'argparse.Namespace') -> None:
     name = options.name
     releases = get_releases(options.allow_insecure)
@@ -174,25 +152,6 @@ def promote(options: 'argparse.Namespace') -> None:
             print(s, file=sys.stderr)
         raise SystemExit(1)
     do_promotion(matches[0], spdir_name)
-
-def status(options: 'argparse.Namespace') -> None:
-    print('Subproject status')
-    for w in glob('subprojects/*.wrap'):
-        name = os.path.basename(w)[:-5]
-        try:
-            (latest_branch, latest_revision) = get_latest_version(name, options.allow_insecure)
-        except Exception:
-            print('', name, 'not available in wrapdb.', file=sys.stderr)
-            continue
-        try:
-            (current_branch, current_revision, _, _, _) = get_current_version(w)
-        except Exception:
-            print('', name, 'Wrap file not from wrapdb.', file=sys.stderr)
-            continue
-        if current_branch == latest_branch and current_revision == latest_revision:
-            print('', name, f'up to date. Branch {current_branch}, revision {current_revision}.')
-        else:
-            print('', name, f'not up to date. Have {current_branch} {current_revision}, but {latest_branch} {latest_revision} is available.')
 
 def update_db(options: 'argparse.Namespace') -> None:
     data = get_releases_data(options.allow_insecure)

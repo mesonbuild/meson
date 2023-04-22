@@ -138,6 +138,20 @@ class Runner:
     def pre_update_wrapdb(options: 'UpdateWrapDBArguments') -> None:
         options.releases = get_releases(options.allow_insecure)
 
+    def _get_current_version(self) -> T.Optional[str]:
+        try:
+            return self.wrap.get('wrapdb_version')
+        except WrapException:
+            pass
+        # Fallback to parsing the patch URL to determine current version.
+        # This won't work for projects that have upstream Meson support.
+        try:
+            patch_url = self.wrap.get('patch_url')
+            branch, revision = parse_patch_url(patch_url)
+            return f'{branch}-{revision}'
+        except WrapException:
+            return None
+
     def update_wrapdb(self) -> bool:
         self.log(f'Checking latest WrapDB version for {self.wrap.name}...')
         options = T.cast('UpdateWrapDBArguments', self.options)
@@ -149,30 +163,44 @@ class Runner:
             return True
 
         # Determine current version
-        try:
-            wrapdb_version = self.wrap.get('wrapdb_version')
-            branch, revision = wrapdb_version.split('-', 1)
-        except WrapException:
-            # Fallback to parsing the patch URL to determine current version.
-            # This won't work for projects that have upstream Meson support.
-            try:
-                patch_url = self.wrap.get('patch_url')
-                branch, revision = parse_patch_url(patch_url)
-            except WrapException:
-                if not options.force:
-                    self.log('  ->', mlog.red('Could not determine current version, use --force to update any way'))
-                    return False
-                branch = revision = None
+        version = self._get_current_version()
+        if version is None and not options.force:
+            self.log('  ->', mlog.red('Could not determine current version, use --force to update any way'))
+            return False
 
         # Download latest wrap if version differs
         latest_version = info['versions'][0]
-        new_branch, new_revision = latest_version.rsplit('-', 1)
-        if new_branch != branch or new_revision != revision:
+        if version != latest_version:
+            new_branch, new_revision = latest_version.rsplit('-', 1)
             filename = self.wrap.filename if self.wrap.has_wrap else f'{self.wrap.filename}.wrap'
             update_wrap_file(filename, self.wrap.name,
                              new_branch, new_revision,
                              options.allow_insecure)
-            self.log('  -> New version downloaded:', mlog.blue(latest_version))
+            self.log('  -> New version downloaded:', mlog.blue(version), '→', mlog.blue(latest_version))
+        else:
+            self.log('  -> Already at latest version:', mlog.blue(latest_version))
+
+        return True
+
+    def status(self) -> bool:
+        self.log(f'Checking latest WrapDB version for {self.wrap.name}...')
+        options = T.cast('UpdateWrapDBArguments', self.options)
+
+        # Check if this wrap is in WrapDB
+        info = options.releases.get(self.wrap.name)
+        if not info:
+            self.log('  -> Wrap not found in wrapdb')
+            return True
+
+        # Determine current version
+        version = self._get_current_version()
+        if version is None:
+            self.log('  ->', mlog.red('Could not determine current version'))
+            return False
+
+        latest_version = info['versions'][0]
+        if version != latest_version:
+            self.log('  -> New version available:', mlog.blue(version), '→', mlog.blue(latest_version))
         else:
             self.log('  -> Already at latest version:', mlog.blue(latest_version))
 
@@ -627,6 +655,14 @@ def add_wrap_update_parser(subparsers: 'SubParsers') -> argparse.ArgumentParser:
     add_common_arguments(p)
     add_subprojects_argument(p)
     p.set_defaults(subprojects_func=Runner.update_wrapdb)
+    p.set_defaults(pre_func=Runner.pre_update_wrapdb)
+    return p
+
+def add_wrap_status_parser(subparsers: 'SubParsers') -> argparse.ArgumentParser:
+    p = subparsers.add_parser('status', help='Show installed and available versions of your projects')
+    add_common_arguments(p)
+    add_subprojects_argument(p)
+    p.set_defaults(subprojects_func=Runner.status)
     p.set_defaults(pre_func=Runner.pre_update_wrapdb)
     return p
 
