@@ -3206,6 +3206,10 @@ class Interpreter(InterpreterBase, HoldableObject):
             # Feel free to submit patches to get this fixed if it is an
             # issue for you.
             reuse_object_files = False
+        elif shared_lib.uses_rust():
+            # FIXME: rustc supports generating both libraries in a single invocation,
+            # but for now compile twice.
+            reuse_object_files = False
         else:
             reuse_object_files = static_lib.pic
 
