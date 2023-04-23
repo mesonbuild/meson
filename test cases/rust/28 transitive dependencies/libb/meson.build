@@ -1,5 +1,5 @@
 libb = static_library('libb', 'lib.rs',
-  rust_abi : 'rust',
+  rust_crate_type : 'rlib',
   dependencies : [liba_dep],
 )
 

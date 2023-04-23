@@ -1947,6 +1947,27 @@ class NinjaBackend(backends.Backend):
         # in Rust
         return target.rust_dependency_map.get(dependency.name, dependency.name).replace('-', '_')
 
+    def _add_rust_indirect_dependency_linkdirs(self, linkdirs: OrderedSet[str], dependency: LibTypes):
+        # Add all the linkdirs of indirect dependencies to the linkdirs if
+        # they're rlib/proc-macro/dylib dependencies. rustc requires this to
+        # be able to find the indirect dependencies during the build.
+        indirect_rust_deps = [dependency]
+
+        # Instead of actually recursing over the dependencies use a stack here
+        while indirect_rust_deps:
+            indirect_dep = indirect_rust_deps.pop()
+            if not indirect_dep.uses_rust() or indirect_dep.rust_crate_type in {'staticlib', 'cdylib'}:
+                continue
+            for d in indirect_dep.get_external_deps():
+                if not hasattr(d, 'libraries'):
+                    continue
+                indirect_rust_deps += d.libraries
+                indirect_rust_deps += d.whole_libraries
+            indirect_rust_deps += indirect_dep.link_targets
+            indirect_rust_deps += indirect_dep.link_whole_targets
+
+            linkdirs.add(indirect_dep.subdir)
+
     def generate_rust_sources(self, target: build.BuildTarget) -> T.Tuple[T.List[str], str]:
         orderdeps: T.List[str] = []
 
@@ -2074,6 +2095,7 @@ class NinjaBackend(backends.Backend):
                 d_name = self._get_rust_dependency_name(target, d)
                 args += ['--extern', '{}={}'.format(d_name, self.get_target_filename(d))]
                 project_deps.append(RustDep(d_name, self.rust_crates[d.name].order))
+                self._add_rust_indirect_dependency_linkdirs(linkdirs, d)
                 continue
 
             # Link a C ABI library
