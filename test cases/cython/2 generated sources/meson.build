@@ -1,6 +1,6 @@
 project(
   'generated cython sources',
-  ['cython'],
+  ['cython', 'c'],
   default_options : ['buildtype=release'],
 )
 
