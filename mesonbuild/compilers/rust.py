@@ -17,8 +17,8 @@ import subprocess, os.path
 import textwrap
 import typing as T
 
-from .. import coredata
-from ..mesonlib import EnvironmentException, MesonException, Popen_safe, OptionKey
+from .. import coredata, mlog
+from ..mesonlib import EnvironmentException, MesonException, Popen_safe, OptionKey, join_args
 from .compilers import Compiler, rust_buildtype_args, clike_debug_args
 
 if T.TYPE_CHECKING:
@@ -78,7 +78,9 @@ class RustCompiler(Compiler):
                 '''fn main() {
                 }
                 '''))
-        pc = subprocess.Popen(self.exelist + ['-o', output_name, source_name],
+
+        cmdlist = self.exelist + ['-o', output_name, source_name]
+        pc = subprocess.Popen(cmdlist,
                               stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE,
                               cwd=work_dir)
@@ -87,11 +89,15 @@ class RustCompiler(Compiler):
         assert isinstance(_stde, bytes)
         stdo = _stdo.decode('utf-8', errors='replace')
         stde = _stde.decode('utf-8', errors='replace')
+
+        mlog.debug('Sanity check compiler command line:', join_args(cmdlist))
+        mlog.debug('Sanity check compile stdout:')
+        mlog.debug(stdo)
+        mlog.debug('-----\nSanity check compile stderr:')
+        mlog.debug(stde)
+        mlog.debug('-----')
         if pc.returncode != 0:
-            raise EnvironmentException('Rust compiler {} cannot compile programs.\n{}\n{}'.format(
-                self.name_string(),
-                stdo,
-                stde))
+            raise EnvironmentException(f'Rust compiler {self.name_string()} cannot compile programs.')
         if self.is_cross:
             if self.exe_wrapper is None:
                 # Can't check if the binaries run so we have to assume they do
