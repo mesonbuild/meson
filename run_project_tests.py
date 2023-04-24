@@ -148,7 +148,7 @@ class InstalledFile:
             canonical_compiler = 'msvc'
 
         python_suffix = python.info['suffix']
-
+        python_limited_suffix = python.info['limited_api_suffix']
         has_pdb = False
         if self.language in {'c', 'cpp'}:
             has_pdb = canonical_compiler == 'msvc'
@@ -167,7 +167,7 @@ class InstalledFile:
             return None
 
         # Handle the different types
-        if self.typ in {'py_implib', 'python_lib', 'python_file'}:
+        if self.typ in {'py_implib', 'py_limited_implib', 'python_lib', 'python_limited_lib', 'python_file'}:
             val = p.as_posix()
             val = val.replace('@PYTHON_PLATLIB@', python.platlib)
             val = val.replace('@PYTHON_PURELIB@', python.purelib)
@@ -176,8 +176,18 @@ class InstalledFile:
                 return p
             if self.typ == 'python_lib':
                 return p.with_suffix(python_suffix)
+            if self.typ == 'python_limited_lib':
+                return p.with_suffix(python_limited_suffix)
             if self.typ == 'py_implib':
                 p = p.with_suffix(python_suffix)
+                if env.machines.host.is_windows() and canonical_compiler == 'msvc':
+                    return p.with_suffix('.lib')
+                elif env.machines.host.is_windows() or env.machines.host.is_cygwin():
+                    return p.with_suffix('.dll.a')
+                else:
+                    return None
+            if self.typ == 'py_limited_implib':
+                p = p.with_suffix(python_limited_suffix)
                 if env.machines.host.is_windows() and canonical_compiler == 'msvc':
                     return p.with_suffix('.lib')
                 elif env.machines.host.is_windows() or env.machines.host.is_cygwin():

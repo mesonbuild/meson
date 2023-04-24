@@ -13,7 +13,7 @@
 # limitations under the License.
 from __future__ import annotations
 
-import copy, json, os, shutil
+import copy, json, os, shutil, re
 import typing as T
 
 from . import ExtensionModule, ModuleInfo
@@ -32,7 +32,7 @@ from ..interpreterbase import (
     InvalidArguments, typed_pos_args, typed_kwargs, KwargInfo,
     FeatureNew, FeatureNewKwargs, disablerIfNotFound
 )
-from ..mesonlib import MachineChoice
+from ..mesonlib import MachineChoice, OptionKey
 from ..programs import ExternalProgram, NonExistingExternalProgram
 
 if T.TYPE_CHECKING:
@@ -65,7 +65,7 @@ if T.TYPE_CHECKING:
     MaybePythonProg = T.Union[NonExistingExternalProgram, 'PythonExternalProgram']
 
 
-mod_kwargs = {'subdir'}
+mod_kwargs = {'subdir', 'limited_api'}
 mod_kwargs.update(known_shmod_kwargs)
 mod_kwargs -= {'name_prefix', 'name_suffix'}
 
@@ -114,6 +114,7 @@ class PythonExternalProgram(BasicPythonExternalProgram):
 
 _PURE_KW = KwargInfo('pure', (bool, NoneType))
 _SUBDIR_KW = KwargInfo('subdir', str, default='')
+_LIMITED_API_KW = KwargInfo('limited_api', str, default='', since='1.3.0')
 _DEFAULTABLE_SUBDIR_KW = KwargInfo('subdir', (str, NoneType))
 
 class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
@@ -124,6 +125,7 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
         assert isinstance(prefix, str), 'for mypy'
         self.variables = info['variables']
         self.suffix = info['suffix']
+        self.limited_api_suffix = info['limited_api_suffix']
         self.paths = info['paths']
         self.pure = python.pure
         self.platlib_install_path = os.path.join(prefix, python.platlib)
@@ -148,7 +150,7 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
 
     @permittedKwargs(mod_kwargs)
     @typed_pos_args('python.extension_module', str, varargs=(str, mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList, StructuredSources, ExtractedObjects, BuildTarget))
-    @typed_kwargs('python.extension_module', *_MOD_KWARGS, _DEFAULTABLE_SUBDIR_KW, allow_unknown=True)
+    @typed_kwargs('python.extension_module', *_MOD_KWARGS, _DEFAULTABLE_SUBDIR_KW, _LIMITED_API_KW, allow_unknown=True)
     def extension_module_method(self, args: T.Tuple[str, T.List[BuildTargetSource]], kwargs: ExtensionModuleKw) -> 'SharedModule':
         if 'install_dir' in kwargs:
             if kwargs['subdir'] is not None:
@@ -161,9 +163,11 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
 
             kwargs['install_dir'] = self._get_install_dir_impl(False, subdir)
 
+        target_suffix = self.suffix
+
         new_deps = mesonlib.extract_as_list(kwargs, 'dependencies')
-        has_pydep = any(isinstance(dep, _PythonDependencyBase) for dep in new_deps)
-        if not has_pydep:
+        pydep = next((dep for dep in new_deps if isinstance(dep, _PythonDependencyBase)), None)
+        if pydep is None:
             pydep = self._dependency_method_impl({})
             if not pydep.found():
                 raise mesonlib.MesonException('Python dependency not found')
@@ -171,21 +175,84 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
             FeatureNew.single_use('python_installation.extension_module with implicit dependency on python',
                                   '0.63.0', self.subproject, 'use python_installation.dependency()',
                                   self.current_node)
+
+        limited_api_version = kwargs.pop('limited_api')
+        allow_limited_api = self.interpreter.environment.coredata.get_option(OptionKey('allow_limited_api', module='python'))
+        if limited_api_version != '' and allow_limited_api:
+
+            target_suffix = self.limited_api_suffix
+
+            limited_api_version_hex = self._convert_api_version_to_py_version_hex(limited_api_version, pydep.version)
+            limited_api_definition = f'-DPy_LIMITED_API={limited_api_version_hex}'
+
+            new_c_args = mesonlib.extract_as_list(kwargs, 'c_args')
+            new_c_args.append(limited_api_definition)
+            kwargs['c_args'] = new_c_args
+
+            new_cpp_args = mesonlib.extract_as_list(kwargs, 'cpp_args')
+            new_cpp_args.append(limited_api_definition)
+            kwargs['cpp_args'] = new_cpp_args
+
+            # When compiled under MSVC, Python's PC/pyconfig.h forcibly inserts pythonMAJOR.MINOR.lib
+            # into the linker path when not running in debug mode via a series #pragma comment(lib, "")
+            # directives. We manually override these here as this interferes with the intended
+            # use of the 'limited_api' kwarg
+            for_machine = self.interpreter.machine_from_native_kwarg(kwargs)
+            compilers = self.interpreter.environment.coredata.compilers[for_machine]
+            if any(compiler.get_id() == 'msvc' for compiler in compilers.values()):
+                pydep_copy = copy.copy(pydep)
+                pydep_copy.find_libpy_windows(self.env, limited_api=True)
+                if not pydep_copy.found():
+                    raise mesonlib.MesonException('Python dependency supporting limited API not found')
+
+                new_deps.remove(pydep)
+                new_deps.append(pydep_copy)
+
+                pyver = pydep.version.replace('.', '')
+                python_windows_debug_link_exception = f'/NODEFAULTLIB:python{pyver}_d.lib'
+                python_windows_release_link_exception = f'/NODEFAULTLIB:python{pyver}.lib'
+
+                new_link_args = mesonlib.extract_as_list(kwargs, 'link_args')
+
+                is_debug = self.interpreter.environment.coredata.options[OptionKey('debug')].value
+                if is_debug:
+                    new_link_args.append(python_windows_debug_link_exception)
+                else:
+                    new_link_args.append(python_windows_release_link_exception)
+
+                kwargs['link_args'] = new_link_args
+
         kwargs['dependencies'] = new_deps
 
         # msys2's python3 has "-cpython-36m.dll", we have to be clever
         # FIXME: explain what the specific cleverness is here
-        split, suffix = self.suffix.rsplit('.', 1)
+        split, target_suffix = target_suffix.rsplit('.', 1)
         args = (args[0] + split, args[1])
 
         kwargs['name_prefix'] = ''
-        kwargs['name_suffix'] = suffix
+        kwargs['name_suffix'] = target_suffix
 
         if 'gnu_symbol_visibility' not in kwargs and \
                 (self.is_pypy or mesonlib.version_compare(self.version, '>=3.9')):
             kwargs['gnu_symbol_visibility'] = 'inlineshidden'
 
         return self.interpreter.build_target(self.current_node, args, kwargs, SharedModule)
+
+    def _convert_api_version_to_py_version_hex(self, api_version: str, detected_version: str) -> str:
+        python_api_version_format = re.compile(r'[0-9]\.[0-9]{1,2}')
+        decimal_match = python_api_version_format.fullmatch(api_version)
+        if not decimal_match:
+            raise InvalidArguments(f'Python API version invalid: "{api_version}".')
+        if mesonlib.version_compare(api_version, '<3.2'):
+            raise InvalidArguments(f'Python Limited API version invalid: {api_version} (must be greater than 3.2)')
+        if mesonlib.version_compare(api_version, '>' + detected_version):
+            raise InvalidArguments(f'Python Limited API version too high: {api_version} (detected {detected_version})')
+
+        version_components = api_version.split('.')
+        major = int(version_components[0])
+        minor = int(version_components[1])
+
+        return '0x{:02x}{:02x}0000'.format(major, minor)
 
     def _dependency_method_impl(self, kwargs: TYPE_kwargs) -> Dependency:
         for_machine = self.interpreter.machine_from_native_kwarg(kwargs)
