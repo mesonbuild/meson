@@ -92,6 +92,9 @@ There are several keyword arguments. Many of these map directly to the
 
 * `dependencies`: deps to use during introspection scanning
 * `extra_args`: command line arguments to pass to gir compiler
+* `env`: (*Added 1.2.0*) environment variables to set, such as
+  `{'NAME1': 'value1', 'NAME2': 'value2'}` or `['NAME1=value1', 'NAME2=value2']`,
+  or an [[@env]] object which allows more sophisticated environment juggling.
 * `export_packages`: extra packages the gir file exports
 * `sources`: the list of sources to be scanned for gir data
 * `nsversion`: namespace version

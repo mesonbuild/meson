@@ -23,7 +23,7 @@ endif
 
 cc = meson.get_compiler('c')
 
-add_global_arguments('-DMESON_TEST', language : 'c')
+add_global_arguments('-DMESON_TEST_1', language : 'c')
 if cc.get_id() == 'intel'
   # Ignore invalid GCC pragma warnings from glib
   # https://bugzilla.gnome.org/show_bug.cgi?id=776562
