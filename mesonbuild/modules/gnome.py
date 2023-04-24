@@ -37,7 +37,7 @@ from ..interpreterbase import noPosargs, noKwargs, FeatureNew, FeatureDeprecated
 from ..interpreterbase import typed_kwargs, KwargInfo, ContainerTypeInfo
 from ..interpreterbase.decorators import typed_pos_args
 from ..mesonlib import (
-    MachineChoice, MesonException, OrderedSet, Popen_safe, join_args,
+    MachineChoice, MesonException, OrderedSet, Popen_safe, join_args, quote_arg
 )
 from ..programs import OverrideProgram
 from ..scripts.gettext import read_linguas
@@ -979,6 +979,9 @@ class GnomeModule(ExtensionModule):
         # settings user could have set in machine file, like PKG_CONFIG_LIBDIR,
         # SYSROOT, etc.
         run_env = PkgConfigDependency.get_env(state.environment, MachineChoice.HOST, uninstalled=True)
+        # g-ir-scanner uses Python's distutils to find the compiler, which uses 'CC'
+        cc_exelist = state.environment.coredata.compilers.host['c'].get_exelist()
+        run_env.set('CC', [quote_arg(x) for x in cc_exelist], ' ')
 
         return GirTarget(
             girfile,
