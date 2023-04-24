@@ -149,6 +149,10 @@ class NasmCompiler(Compiler):
 class YasmCompiler(NasmCompiler):
     id = 'yasm'
 
+    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+        # Yasm is incompatible with Nasm optimization flags.
+        return []
+
     def get_exelist(self, ccache: bool = True) -> T.List[str]:
         # Wrap yasm executable with an internal script that will write depfile.
         exelist = super().get_exelist(ccache)
