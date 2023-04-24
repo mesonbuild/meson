@@ -32,7 +32,7 @@ from .. import mesonlib
 from .. import mlog
 from ..build import CustomTarget, CustomTargetIndex, Executable, GeneratedList, InvalidArguments
 from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
-from ..interpreter.type_checking import DEPENDS_KW, DEPEND_FILES_KW, INSTALL_DIR_KW, INSTALL_KW, NoneType, SOURCES_KW, in_set_validator
+from ..interpreter.type_checking import DEPENDS_KW, DEPEND_FILES_KW, ENV_KW, INSTALL_DIR_KW, INSTALL_KW, NoneType, SOURCES_KW, in_set_validator
 from ..interpreterbase import noPosargs, noKwargs, FeatureNew, FeatureDeprecated
 from ..interpreterbase import typed_kwargs, KwargInfo, ContainerTypeInfo
 from ..interpreterbase.decorators import typed_pos_args
@@ -982,6 +982,7 @@ class GnomeModule(ExtensionModule):
         # g-ir-scanner uses Python's distutils to find the compiler, which uses 'CC'
         cc_exelist = state.environment.coredata.compilers.host['c'].get_exelist()
         run_env.set('CC', [quote_arg(x) for x in cc_exelist], ' ')
+        run_env.merge(kwargs['env'])
 
         return GirTarget(
             girfile,
@@ -1026,6 +1027,7 @@ class GnomeModule(ExtensionModule):
             install_dir=[install_dir],
             install_tag=['typelib'],
             build_by_default=kwargs['build_by_default'],
+            env=kwargs['env'],
         )
 
     @staticmethod
@@ -1098,6 +1100,7 @@ class GnomeModule(ExtensionModule):
         INSTALL_KW,
         _BUILD_BY_DEFAULT.evolve(since='0.40.0'),
         _EXTRA_ARGS_KW,
+        ENV_KW.evolve(since='1.2.0'),
         KwargInfo('dependencies', ContainerTypeInfo(list, Dependency), default=[], listify=True),
         KwargInfo('export_packages', ContainerTypeInfo(list, str), default=[], listify=True),
         KwargInfo('fatal_warnings', bool, default=False, since='0.55.0'),
