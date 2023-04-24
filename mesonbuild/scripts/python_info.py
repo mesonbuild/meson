@@ -65,6 +65,20 @@ elif sys.version_info < (3, 8, 7):
 else:
     suffix = variables.get('EXT_SUFFIX')
 
+limited_api_suffix = None
+if sys.version_info >= (3, 2):
+    try:
+        from importlib.machinery import EXTENSION_SUFFIXES
+        limited_api_suffix = EXTENSION_SUFFIXES[1]
+    except Exception:
+        pass
+
+# pypy supports modules targetting the limited api but
+# does not use a special suffix to distinguish them:
+# https://doc.pypy.org/en/latest/cpython_differences.html#permitted-abi-tags-in-extensions
+if '__pypy__' in sys.builtin_module_names:
+    limited_api_suffix = suffix
+
 print(json.dumps({
   'variables': variables,
   'paths': paths,
@@ -76,4 +90,5 @@ print(json.dumps({
   'is_venv': sys.prefix != variables['base_prefix'],
   'link_libpython': links_against_libpython(),
   'suffix': suffix,
+  'limited_api_suffix': limited_api_suffix,
 }))

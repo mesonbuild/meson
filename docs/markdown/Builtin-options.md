@@ -370,12 +370,13 @@ install prefix. For example: if the install prefix is `/usr` and the
 
 ### Python module
 
-| Option           | Default value | Possible values             | Description |
-| ------           | ------------- | -----------------           | ----------- |
-| bytecompile      | 0             | integer from -1 to 2        | What bytecode optimization level to use (Since 1.2.0) |
-| install_env      | prefix        | {auto,prefix,system,venv}   | Which python environment to install to (Since 0.62.0) |
-| platlibdir       |               | Directory path              | Directory for site-specific, platform-specific files (Since 0.60.0) |
-| purelibdir       |               | Directory path              | Directory for site-specific, non-platform-specific files  (Since 0.60.0) |
+| Option            | Default value | Possible values             | Description |
+| ------            | ------------- | -----------------           | ----------- |
+| bytecompile       | 0             | integer from -1 to 2        | What bytecode optimization level to use (Since 1.2.0) |
+| install_env       | prefix        | {auto,prefix,system,venv}   | Which python environment to install to (Since 0.62.0) |
+| platlibdir        |               | Directory path              | Directory for site-specific, platform-specific files (Since 0.60.0) |
+| purelibdir        |               | Directory path              | Directory for site-specific, non-platform-specific files  (Since 0.60.0) |
+| allow_limited_api | true          | true, false                 | Disables project-wide use of the Python Limited API (Since 1.3.0) |
 
 *Since 0.60.0* The `python.platlibdir` and `python.purelibdir` options are used
 by the python module methods `python.install_sources()` and
@@ -405,3 +406,7 @@ python bytecode. Bytecode has 3 optimization levels:
 
 To this, Meson adds level `-1`, which is to not attempt to compile bytecode at
 all.
+
+*Since 1.3.0* The `python.allow_limited_api` option affects whether the
+`limited_api` keyword argument of the `extension_module` method is respected.
+If set to `false`, the effect of the `limited_api` argument is disabled.
