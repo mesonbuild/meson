@@ -856,9 +856,9 @@ class AllPlatformTests(BasePlatformTests):
                     if "includestuff.pyx.c" in generated_source:
                         name = generated_source
                         break
-        # Split the path (we only want the includestuff.cpython-blahblahblah)
-        name = os.path.normpath(name).split("/")[-2:]
-        name = "/".join(name)  # Glue list into a string
+        # Split the path (we only want the includestuff.cpython-blahblah.so.p/includestuff.pyx.c)
+        name = os.path.normpath(name).split(os.sep)[-2:]
+        name = os.sep.join(name)  # Glue list into a string
         self.build(target=name)
 
     def test_build_pyx_depfiles(self):
@@ -3272,7 +3272,7 @@ class AllPlatformTests(BasePlatformTests):
             for k in ('install_filename', 'dependencies', 'win_subsystem'):
                 if k in i:
                     del i[k]
-                    
+
             sources = []
             for j in i['target_sources']:
                 sources += j.get('sources', [])
