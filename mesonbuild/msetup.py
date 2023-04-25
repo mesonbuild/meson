@@ -30,6 +30,11 @@ syntax: glob
 **/*
 '''
 
+cachedir_tag_file = '''Signature: 8a477f597d28d172789f06886806bc55
+# This file is a cache directory tag created by meson.
+# For information about cache directory tags, see http://bford.info/cachedir/
+'''
+
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
     coredata.register_builtin_arguments(parser)
@@ -91,7 +96,7 @@ class MesonApp:
                         else:
                             mesonlib.windows_proof_rm(l)
                 finally:
-                    self.add_vcs_ignore_files(self.build_dir)
+                    self.add_ignore_files(self.build_dir)
                     for b, f in restore:
                         os.makedirs(os.path.dirname(f), exist_ok=True)
                         shutil.move(b, f)
@@ -138,18 +143,20 @@ class MesonApp:
             return ndir2, ndir1
         raise MesonException(f'{invalid_msg_prefix} contain a build file {environment.build_filename}.')
 
-    def add_vcs_ignore_files(self, build_dir: str) -> None:
+    def add_ignore_files(self, build_dir: str) -> None:
         with open(os.path.join(build_dir, '.gitignore'), 'w', encoding='utf-8') as ofile:
             ofile.write(git_ignore_file)
         with open(os.path.join(build_dir, '.hgignore'), 'w', encoding='utf-8') as ofile:
             ofile.write(hg_ignore_file)
+        with open(os.path.join(build_dir, 'CACHEDIR.TAG'), 'w', encoding='utf-8') as ofile:
+            ofile.write(cachedir_tag_file)
 
     def validate_dirs(self, dir1: T.Optional[str], dir2: T.Optional[str], reconfigure: bool, wipe: bool) -> T.Tuple[str, str]:
         (src_dir, build_dir) = self.validate_core_dirs(dir1, dir2)
         if Path(build_dir) in Path(src_dir).parents:
             raise MesonException(f'Build directory {build_dir} cannot be a parent of source directory {src_dir}')
         if not os.listdir(build_dir):
-            self.add_vcs_ignore_files(build_dir)
+            self.add_ignore_files(build_dir)
             return src_dir, build_dir
         priv_dir = os.path.join(build_dir, 'meson-private')
         has_valid_build = os.path.exists(os.path.join(priv_dir, 'coredata.dat'))
