@@ -116,8 +116,6 @@ import copy
 if T.TYPE_CHECKING:
     import argparse
 
-    from typing_extensions import Literal
-
     from . import kwargs as kwtypes
     from ..backend.backends import Backend
     from ..interpreterbase.baseobjects import InterpreterObject, TYPE_var, TYPE_kwargs
@@ -868,7 +866,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             'options': None,
             'cmake_options': [],
         }
-        return self.do_subproject(args[0], 'meson', kw)
+        return self.do_subproject(args[0], kw)
 
     def disabled_subproject(self, subp_name: str, disabled_feature: T.Optional[str] = None,
                             exception: T.Optional[Exception] = None) -> SubprojectHolder:
@@ -877,7 +875,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.subprojects[subp_name] = sub
         return sub
 
-    def do_subproject(self, subp_name: str, method: Literal['meson', 'cmake'], kwargs: kwtypes.DoSubproject) -> SubprojectHolder:
+    def do_subproject(self, subp_name: str, kwargs: kwtypes.DoSubproject, force_method: T.Optional[wrap.Method] = None) -> SubprojectHolder:
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
             mlog.log('Subproject', mlog.bold(subp_name), ':', 'skipped: feature', mlog.bold(feature), 'disabled')
@@ -913,7 +911,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         r = self.environment.wrap_resolver
         try:
-            subdir = r.resolve(subp_name, method)
+            subdir, method = r.resolve(subp_name, force_method)
         except wrap.WrapException as e:
             if not required:
                 mlog.log(e)
@@ -1009,8 +1007,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             prefix = self.coredata.options[OptionKey('prefix')].value
 
             from ..modules.cmake import CMakeSubprojectOptions
-            options = kwargs['options'] or CMakeSubprojectOptions()
-            cmake_options = kwargs['cmake_options'] + options.cmake_options
+            options = kwargs.get('options') or CMakeSubprojectOptions()
+            cmake_options = kwargs.get('cmake_options', []) + options.cmake_options
             cm_int = CMakeInterpreter(new_build, Path(subdir), Path(subdir_abs), Path(prefix), new_build.environment, self.backend)
             cm_int.initialise(cmake_options)
             cm_int.analyse()
@@ -1734,7 +1732,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             'cmake_options': [],
             'options': None,
         }
-        self.do_subproject(fallback, 'meson', sp_kwargs)
+        self.do_subproject(fallback, sp_kwargs)
         return self.program_from_overrides(args, extra_info)
 
     @typed_pos_args('find_program', varargs=(str, mesonlib.File), min_varargs=1)
