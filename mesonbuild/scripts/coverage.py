@@ -157,7 +157,7 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
                                    '--html-details',
                                    '--print-summary',
                                    '-o', os.path.join(htmloutdir, 'index.html'),
-                                   ])
+                                   ] + gcov_exe_args)
             outfiles.append(('Html', pathlib.Path(htmloutdir, 'index.html')))
         elif outputs:
             print('lcov/genhtml or gcovr >= 3.3 needed to generate Html coverage report')
