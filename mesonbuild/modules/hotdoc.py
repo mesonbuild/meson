@@ -20,7 +20,7 @@ import subprocess
 
 from mesonbuild import mesonlib
 from mesonbuild import mlog, build
-from mesonbuild.coredata import MesonException
+from mesonbuild.mesonlib import MesonException
 from . import ModuleReturnValue, ModuleInfo
 from . import ExtensionModule
 from ..dependencies import Dependency, InternalDependency

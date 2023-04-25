@@ -12,7 +12,7 @@ from typing_extensions import TypedDict, Literal, Protocol
 from .. import build
 from .. import coredata
 from ..compilers import Compiler
-from ..mesonlib import MachineChoice, File, FileMode, FileOrString, OptionKey
+from ..mesonlib import EnvironmentVariables, MachineChoice, File, FileMode, FileOrString, OptionKey
 from ..modules.cmake import CMakeSubprojectOptions
 from ..programs import ExternalProgram
 
@@ -42,7 +42,7 @@ class BaseTest(TypedDict):
     workdir: T.Optional[str]
     depends: T.List[T.Union[build.CustomTarget, build.BuildTarget]]
     priority: int
-    env: build.EnvironmentVariables
+    env: EnvironmentVariables
     suite: T.List[str]
 
 
@@ -164,7 +164,7 @@ class RunTarget(TypedDict):
 
     command: T.List[T.Union[str, build.BuildTarget, build.CustomTarget, ExternalProgram, File]]
     depends: T.List[T.Union[build.BuildTarget, build.CustomTarget]]
-    env: build.EnvironmentVariables
+    env: EnvironmentVariables
 
 
 class CustomTarget(TypedDict):
@@ -179,7 +179,7 @@ class CustomTarget(TypedDict):
     depend_files: T.List[FileOrString]
     depends: T.List[T.Union[build.BuildTarget, build.CustomTarget]]
     depfile: T.Optional[str]
-    env: build.EnvironmentVariables
+    env: EnvironmentVariables
     feed: bool
     input: T.List[T.Union[str, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex,
                           build.ExtractedObjects, build.GeneratedList, ExternalProgram, File]]
@@ -196,7 +196,7 @@ class AddTestSetup(TypedDict):
     timeout_multiplier: int
     is_default: bool
     exclude_suites: T.List[str]
-    env: build.EnvironmentVariables
+    env: EnvironmentVariables
 
 
 class Project(TypedDict):
@@ -240,7 +240,7 @@ class RunCommand(TypedDict):
 
     check: bool
     capture: T.Optional[bool]
-    env: build.EnvironmentVariables
+    env: EnvironmentVariables
 
 
 class FeatureOptionRequire(TypedDict):

@@ -30,13 +30,13 @@ from .factory import DependencyFactory, factory_methods
 from .pkgconfig import PkgConfigDependency
 
 if T.TYPE_CHECKING:
-    from ..environment import Environment, MachineChoice
+    from ..environment import Environment
     from .factory import DependencyGenerator
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE})
 def netcdf_factory(env: 'Environment',
-                   for_machine: 'MachineChoice',
+                   for_machine: 'mesonlib.MachineChoice',
                    kwargs: T.Dict[str, T.Any],
                    methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
     language = kwargs.get('language', 'c')
@@ -475,7 +475,7 @@ class OpensslSystemDependency(SystemDependency):
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.SYSTEM})
 def curses_factory(env: 'Environment',
-                   for_machine: 'MachineChoice',
+                   for_machine: 'mesonlib.MachineChoice',
                    kwargs: T.Dict[str, T.Any],
                    methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
     candidates: T.List['DependencyGenerator'] = []
@@ -501,7 +501,7 @@ packages['curses'] = curses_factory
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM})
 def shaderc_factory(env: 'Environment',
-                    for_machine: 'MachineChoice',
+                    for_machine: 'mesonlib.MachineChoice',
                     kwargs: T.Dict[str, T.Any],
                     methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
     """Custom DependencyFactory for ShaderC.

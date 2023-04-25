@@ -43,7 +43,7 @@ if T.TYPE_CHECKING:
     from ..dependencies import Dependency
     from ..interpreter import Interpreter
     from ..interpreter.kwargs import ExtractRequired
-    from ..interpreterbase.interpreterbase import TYPE_var, TYPE_kwargs
+    from ..interpreterbase.baseobjects import TYPE_var, TYPE_kwargs
 
     class PyInstallKw(TypedDict):
 

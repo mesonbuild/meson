@@ -203,7 +203,7 @@ class RunProcess(MesonInterpreterObject):
     def __init__(self,
                  cmd: ExternalProgram,
                  args: T.List[str],
-                 env: build.EnvironmentVariables,
+                 env: mesonlib.EnvironmentVariables,
                  source_dir: str,
                  build_dir: str,
                  subdir: str,
@@ -224,7 +224,7 @@ class RunProcess(MesonInterpreterObject):
     def run_command(self,
                     cmd: ExternalProgram,
                     args: T.List[str],
-                    env: build.EnvironmentVariables,
+                    env: mesonlib.EnvironmentVariables,
                     source_dir: str,
                     build_dir: str,
                     subdir: str,
@@ -280,9 +280,9 @@ class RunProcess(MesonInterpreterObject):
     def stderr_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self.stderr
 
-class EnvironmentVariablesHolder(ObjectHolder[build.EnvironmentVariables], MutableInterpreterObject):
+class EnvironmentVariablesHolder(ObjectHolder[mesonlib.EnvironmentVariables], MutableInterpreterObject):
 
-    def __init__(self, obj: build.EnvironmentVariables, interpreter: 'Interpreter'):
+    def __init__(self, obj: mesonlib.EnvironmentVariables, interpreter: 'Interpreter'):
         super().__init__(obj, interpreter)
         self.methods.update({'set': self.set_method,
                              'append': self.append_method,
@@ -711,7 +711,7 @@ class Test(MesonInterpreterObject):
                  depends: T.List[T.Union[build.CustomTarget, build.BuildTarget]],
                  is_parallel: bool,
                  cmd_args: T.List[T.Union[str, mesonlib.File, build.Target]],
-                 env: build.EnvironmentVariables,
+                 env: mesonlib.EnvironmentVariables,
                  should_fail: bool, timeout: int, workdir: T.Optional[str], protocol: str,
                  priority: int, verbose: bool):
         super().__init__()

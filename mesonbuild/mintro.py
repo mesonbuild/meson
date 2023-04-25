@@ -444,7 +444,7 @@ def get_test_list(testdata: T.List[backends.TestSerialisation]) -> T.List[T.Dict
         else:
             fname = t.fname
         to['cmd'] = fname + t.cmd_args
-        if isinstance(t.env, build.EnvironmentVariables):
+        if isinstance(t.env, mesonlib.EnvironmentVariables):
             to['env'] = t.env.get_env({})
         else:
             to['env'] = t.env

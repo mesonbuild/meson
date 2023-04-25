@@ -21,13 +21,12 @@ from .primitives import MesonVersionString
 from .type_checking import NATIVE_KW, NoneType
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal
-    from ..backend.backends import ExecutableSerialisation
+    from typing_extensions import Literal, TypedDict
+
     from ..compilers import Compiler
     from ..interpreterbase import TYPE_kwargs, TYPE_var
+    from ..mesonlib import ExecutableSerialisation
     from .interpreter import Interpreter
-
-    from typing_extensions import TypedDict
 
     class FuncOverrideDependency(TypedDict):
 
@@ -456,15 +455,15 @@ class MesonMain(MesonInterpreterObject):
 
     @FeatureNew('add_devenv', '0.58.0')
     @typed_kwargs('environment', ENV_METHOD_KW, ENV_SEPARATOR_KW.evolve(since='0.62.0'))
-    @typed_pos_args('add_devenv', (str, list, dict, build.EnvironmentVariables))
-    def add_devenv_method(self, args: T.Tuple[T.Union[str, list, dict, build.EnvironmentVariables]],
+    @typed_pos_args('add_devenv', (str, list, dict, mesonlib.EnvironmentVariables))
+    def add_devenv_method(self, args: T.Tuple[T.Union[str, list, dict, mesonlib.EnvironmentVariables]],
                           kwargs: 'AddDevenvKW') -> None:
         env = args[0]
         msg = ENV_KW.validator(env)
         if msg:
             raise build.InvalidArguments(f'"add_devenv": {msg}')
         converted = env_convertor_with_method(env, kwargs['method'], kwargs['separator'])
-        assert isinstance(converted, build.EnvironmentVariables)
+        assert isinstance(converted, mesonlib.EnvironmentVariables)
         self.build.devenv.append(converted)
 
     @noPosargs

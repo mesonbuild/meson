@@ -16,7 +16,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from .base import ExternalDependency, DependencyException, sort_libpaths, DependencyTypeName
-from ..mesonlib import OptionKey, OrderedSet, PerMachine, Popen_safe, Popen_safe_logged
+from ..mesonlib import EnvironmentVariables, OptionKey, OrderedSet, PerMachine, Popen_safe, Popen_safe_logged
 from ..programs import find_external_program, ExternalProgram
 from .. import mlog
 from pathlib import PurePath
@@ -30,7 +30,6 @@ if T.TYPE_CHECKING:
     from ..mesonlib import MachineChoice
     from ..utils.core import EnvironOrDict
     from .._typing import ImmutableListProtocol
-    from ..build import EnvironmentVariables
 
 class PkgConfigDependency(ExternalDependency):
     # The class's copy of the pkg-config path. Avoids having to search for it
@@ -128,7 +127,6 @@ class PkgConfigDependency(ExternalDependency):
     @staticmethod
     def get_env(environment: 'Environment', for_machine: MachineChoice,
                 uninstalled: bool = False) -> 'EnvironmentVariables':
-        from ..build import EnvironmentVariables
         env = EnvironmentVariables()
         key = OptionKey('pkg_config_path', machine=for_machine)
         extra_paths: T.List[str] = environment.coredata.options[key].value[:]

@@ -381,7 +381,7 @@ class PkgConfigModule(NewExtensionModule):
 
     # Track already generated pkg-config files This is stored as a class
     # variable so that multiple `import()`s share metadata
-    devenv: T.Optional[build.EnvironmentVariables] = None
+    devenv: T.Optional[mesonlib.EnvironmentVariables] = None
     _metadata: T.ClassVar[T.Dict[str, MetaData]] = {}
 
     def __init__(self) -> None:

@@ -202,7 +202,7 @@ class TestSerialisation:
     needs_exe_wrapper: bool
     is_parallel: bool
     cmd_args: T.List[str]
-    env: build.EnvironmentVariables
+    env: mesonlib.EnvironmentVariables
     should_fail: bool
     timeout: T.Optional[int]
     workdir: T.Optional[str]
@@ -512,7 +512,7 @@ class Backend:
             extra_bdeps: T.Optional[T.List[build.BuildTarget]] = None,
             capture: T.Optional[bool] = None,
             feed: T.Optional[bool] = None,
-            env: T.Optional[build.EnvironmentVariables] = None,
+            env: T.Optional[mesonlib.EnvironmentVariables] = None,
             tag: T.Optional[str] = None,
             verbose: bool = False,
             installdir_map: T.Optional[T.Dict[str, str]] = None) -> 'ExecutableSerialisation':
@@ -585,7 +585,7 @@ class Backend:
                              capture: T.Optional[bool] = None,
                              feed: T.Optional[bool] = None,
                              force_serialize: bool = False,
-                             env: T.Optional[build.EnvironmentVariables] = None,
+                             env: T.Optional[mesonlib.EnvironmentVariables] = None,
                              verbose: bool = False) -> T.Tuple[T.Sequence[T.Union[str, File, build.Target, programs.ExternalProgram]], str]:
         '''
         Serialize an executable for running with a generator or a custom target
@@ -1588,8 +1588,8 @@ class Backend:
         cmd = [i.replace('\\', '/') for i in cmd]
         return inputs, outputs, cmd
 
-    def get_run_target_env(self, target: build.RunTarget) -> build.EnvironmentVariables:
-        env = target.env if target.env else build.EnvironmentVariables()
+    def get_run_target_env(self, target: build.RunTarget) -> mesonlib.EnvironmentVariables:
+        env = target.env if target.env else mesonlib.EnvironmentVariables()
         if target.default_env:
             introspect_cmd = join_args(self.environment.get_build_command() + ['introspect'])
             env.set('MESON_SOURCE_ROOT', [self.environment.get_source_dir()])
@@ -1959,8 +1959,8 @@ class Backend:
 
         return []
 
-    def get_devenv(self) -> build.EnvironmentVariables:
-        env = build.EnvironmentVariables()
+    def get_devenv(self) -> mesonlib.EnvironmentVariables:
+        env = mesonlib.EnvironmentVariables()
         extra_paths = set()
         library_paths = set()
         build_machine = self.environment.machines[MachineChoice.BUILD]

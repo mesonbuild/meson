@@ -39,7 +39,7 @@ from .mesonlib import (
     MesonBugException, EnvironmentVariables, pickle_load,
 )
 from .compilers import (
-    is_object, clink_langs, sort_clink, all_languages,
+    is_header, is_object, is_source, clink_langs, sort_clink, all_languages,
     is_known_suffix, detect_static_linker
 )
 from .interpreterbase import FeatureNew, FeatureDeprecated
@@ -47,12 +47,13 @@ from .interpreterbase import FeatureNew, FeatureDeprecated
 if T.TYPE_CHECKING:
     from typing_extensions import Literal
     from ._typing import ImmutableListProtocol
-    from .backend.backends import Backend, ExecutableSerialisation
+    from .backend.backends import Backend
     from .compilers import Compiler
-    from .interpreter.interpreter import Test, SourceOutputs, Interpreter
+    from .interpreter.interpreter import SourceOutputs, Interpreter
+    from .interpreter.interpreterobjects import Test
     from .interpreterbase import SubProject
     from .linkers.linkers import StaticLinker
-    from .mesonlib import FileMode, FileOrString
+    from .mesonlib import ExecutableSerialisation, FileMode, FileOrString
     from .modules import ModuleState
     from .mparser import BaseNode
     from .wrap import WrapMode
@@ -434,7 +435,7 @@ class ExtractedObjects(HoldableObject):
                 sources.append(s)
 
         # Filter out headers and all non-source files
-        return [s for s in sources if environment.is_source(s)]
+        return [s for s in sources if is_source(s)]
 
     def classify_all_sources(self, sources: T.List[FileOrString], generated_sources: T.Sequence['GeneratedTypes']) -> T.Dict['Compiler', T.List['FileOrString']]:
         sources_ = self.get_sources(sources, generated_sources)
@@ -1494,14 +1495,14 @@ You probably should put it in link_with instead.''')
         if not pchlist:
             return
         elif len(pchlist) == 1:
-            if not environment.is_header(pchlist[0]):
+            if not is_header(pchlist[0]):
                 raise InvalidArguments(f'PCH argument {pchlist[0]} is not a header.')
         elif len(pchlist) == 2:
-            if environment.is_header(pchlist[0]):
-                if not environment.is_source(pchlist[1]):
+            if is_header(pchlist[0]):
+                if not is_source(pchlist[1]):
                     raise InvalidArguments('PCH definition must contain one header and at most one source.')
-            elif environment.is_source(pchlist[0]):
-                if not environment.is_header(pchlist[1]):
+            elif is_source(pchlist[0]):
+                if not is_header(pchlist[1]):
                     raise InvalidArguments('PCH definition must contain one header and at most one source.')
                 pchlist = [pchlist[1], pchlist[0]]
             else:

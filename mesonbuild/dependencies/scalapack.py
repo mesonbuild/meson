@@ -27,7 +27,8 @@ from .pkgconfig import PkgConfigDependency
 from .factory import factory_methods
 
 if T.TYPE_CHECKING:
-    from ..environment import Environment, MachineChoice
+    from ..environment import Environment
+    from ..mesonlib import MachineChoice
     from .factory import DependencyGenerator
 
 

@@ -23,7 +23,7 @@ from .. import compilers
 from .. import envconfig
 from ..wrap import wrap, WrapMode
 from .. import mesonlib
-from ..mesonlib import (MesonBugException, MesonException, HoldableObject,
+from ..mesonlib import (EnvironmentVariables, ExecutableSerialisation, MesonBugException, MesonException, HoldableObject,
                         FileMode, MachineChoice, OptionKey, listify,
                         extract_as_list, has_path_sep, PerMachine)
 from ..programs import ExternalProgram, NonExistingExternalProgram
@@ -36,7 +36,6 @@ from ..interpreterbase import Disabler, disablerIfNotFound
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureBroken, FeatureNewKwargs, FeatureDeprecatedKwargs
 from ..interpreterbase import ObjectHolder, ContextManagerObject
 from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule
-from ..backend.backends import ExecutableSerialisation
 
 from . import interpreterobjects as OBJ
 from . import compiler as compilerOBJ
@@ -458,7 +457,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             build.SymlinkData: OBJ.SymlinkDataHolder,
             build.InstallDir: OBJ.InstallDirHolder,
             build.IncludeDirs: OBJ.IncludeDirsHolder,
-            build.EnvironmentVariables: OBJ.EnvironmentVariablesHolder,
+            mesonlib.EnvironmentVariables: OBJ.EnvironmentVariablesHolder,
             build.StructuredSources: OBJ.StructuredSourcesHolder,
             compilers.RunResult: compilerOBJ.TryRunResultHolder,
             dependencies.ExternalLibrary: OBJ.ExternalLibraryHolder,
@@ -2166,10 +2165,10 @@ class Interpreter(InterpreterBase, HoldableObject):
                   kwargs: 'kwtypes.FuncTest') -> None:
         self.add_test(node, args, kwargs, True)
 
-    def unpack_env_kwarg(self, kwargs: T.Union[build.EnvironmentVariables, T.Dict[str, 'TYPE_var'], T.List['TYPE_var'], str]) -> build.EnvironmentVariables:
+    def unpack_env_kwarg(self, kwargs: T.Union[EnvironmentVariables, T.Dict[str, 'TYPE_var'], T.List['TYPE_var'], str]) -> EnvironmentVariables:
         envlist = kwargs.get('env')
         if envlist is None:
-            return build.EnvironmentVariables()
+            return EnvironmentVariables()
         msg = ENV_KW.validator(envlist)
         if msg:
             raise InvalidArguments(f'"env": {msg}')
@@ -2687,7 +2686,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             mlog.log('Configuring', mlog.bold(output), 'with command')
             cmd, *args = _cmd
             res = self.run_command_impl(node, (cmd, args),
-                                        {'capture': True, 'check': True, 'env': build.EnvironmentVariables()},
+                                        {'capture': True, 'check': True, 'env': EnvironmentVariables()},
                                         True)
             if kwargs['capture']:
                 dst_tmp = ofile_abs + '~'
@@ -2967,7 +2966,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_pos_args('environment', optargs=[(str, list, dict)])
     @typed_kwargs('environment', ENV_METHOD_KW, ENV_SEPARATOR_KW.evolve(since='0.62.0'))
     def func_environment(self, node: mparser.FunctionNode, args: T.Tuple[T.Union[None, str, T.List['TYPE_var'], T.Dict[str, 'TYPE_var']]],
-                         kwargs: 'TYPE_kwargs') -> build.EnvironmentVariables:
+                         kwargs: 'TYPE_kwargs') -> EnvironmentVariables:
         init = args[0]
         if init is not None:
             FeatureNew.single_use('environment positional arguments', '0.52.0', self.subproject, location=node)
@@ -2977,7 +2976,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             if isinstance(init, dict) and any(i for i in init.values() if isinstance(i, list)):
                 FeatureNew.single_use('List of string in dictionary value', '0.62.0', self.subproject, location=node)
             return env_convertor_with_method(init, kwargs['method'], kwargs['separator'])
-        return build.EnvironmentVariables()
+        return EnvironmentVariables()
 
     @typed_pos_args('join_paths', varargs=str, min_varargs=1)
     @noKwargs

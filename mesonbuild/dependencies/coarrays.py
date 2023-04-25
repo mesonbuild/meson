@@ -24,7 +24,8 @@ from .factory import factory_methods
 
 if T.TYPE_CHECKING:
     from . factory import DependencyGenerator
-    from ..environment import Environment, MachineChoice
+    from ..environment import Environment
+    from ..mesonlib import MachineChoice
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE, DependencyMethods.SYSTEM})

@@ -103,13 +103,12 @@ class ExternalProgram(mesonlib.HoldableObject):
 
     def get_version(self, interpreter: T.Optional['Interpreter'] = None) -> str:
         if not self.cached_version:
-            from . import build
             raw_cmd = self.get_command() + ['--version']
             if interpreter:
                 res = interpreter.run_command_impl(interpreter.current_node, (self, ['--version']),
                                                    {'capture': True,
                                                     'check': True,
-                                                    'env': build.EnvironmentVariables()},
+                                                    'env': mesonlib.EnvironmentVariables()},
                                                    True)
                 o, e = res.stdout, res.stderr
             else:

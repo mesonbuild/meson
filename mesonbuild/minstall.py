@@ -25,7 +25,7 @@ import sys
 import typing as T
 import re
 
-from . import build, coredata, environment
+from . import build, environment
 from .backend.backends import InstallData
 from .mesonlib import (MesonException, Popen_safe, RealPathAction, is_windows,
                        is_aix, setup_vsenv, pickle_load, is_osx, OptionKey)
@@ -40,10 +40,10 @@ except ImportError:
 
 if T.TYPE_CHECKING:
     from .backend.backends import (
-            ExecutableSerialisation, InstallDataBase, InstallEmptyDir,
+            InstallDataBase, InstallEmptyDir,
             InstallSymlinkData, TargetInstallData
     )
-    from .mesonlib import FileMode, EnvironOrDict
+    from .mesonlib import FileMode, EnvironOrDict, ExecutableSerialisation
 
     try:
         from typing import Protocol
@@ -847,7 +847,7 @@ def run(opts: 'ArgumentType') -> int:
         b = build.load(opts.wd)
         need_vsenv = T.cast('bool', b.environment.coredata.get_option(OptionKey('vsenv')))
         setup_vsenv(need_vsenv)
-        backend = T.cast('str', b.environment.coredata.get_option(coredata.OptionKey('backend')))
+        backend = T.cast('str', b.environment.coredata.get_option(OptionKey('backend')))
         if not rebuild_all(opts.wd, backend):
             sys.exit(-1)
     os.chdir(opts.wd)

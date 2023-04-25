@@ -26,7 +26,7 @@ from . import environment
 from . import mesonlib
 from . import mintro
 from . import mlog
-from .ast import AstIDGenerator
+from .ast import AstIDGenerator, IntrospectionInterpreter
 from .mesonlib import MachineChoice, OptionKey
 
 if T.TYPE_CHECKING:
@@ -81,7 +81,7 @@ class Conf:
             # Make sure that log entries in other parts of meson don't interfere with the JSON output
             with mlog.no_logging():
                 self.source_dir = os.path.abspath(os.path.realpath(self.build_dir))
-                intr = mintro.IntrospectionInterpreter(self.source_dir, '', 'ninja', visitors = [AstIDGenerator()])
+                intr = IntrospectionInterpreter(self.source_dir, '', 'ninja', visitors = [AstIDGenerator()])
                 intr.analyze()
             self.coredata = intr.coredata
             self.default_values_only = True

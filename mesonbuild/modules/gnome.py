@@ -272,7 +272,7 @@ class GnomeModule(ExtensionModule):
         self.install_gtk_update_icon_cache = False
         self.install_update_desktop_database = False
         self.install_update_mime_database = False
-        self.devenv: T.Optional[build.EnvironmentVariables] = None
+        self.devenv: T.Optional[mesonlib.EnvironmentVariables] = None
         self.native_glib_version: T.Optional[str] = None
         self.methods.update({
             'post_install': self.post_install,
@@ -328,7 +328,7 @@ class GnomeModule(ExtensionModule):
     @noPosargs
     @FeatureNew('gnome.post_install', '0.57.0')
     def post_install(self, state: 'ModuleState', args: T.List['TYPE_var'], kwargs: 'PostInstall') -> ModuleReturnValue:
-        rv: T.List['build.ExecutableSerialisation'] = []
+        rv: T.List['mesonlib.ExecutableSerialisation'] = []
         datadir_abs = os.path.join(state.environment.get_prefix(), state.environment.get_datadir())
         if kwargs['glib_compile_schemas'] and not self.install_glib_compile_schemas:
             self.install_glib_compile_schemas = True
@@ -769,7 +769,7 @@ class GnomeModule(ExtensionModule):
 
     def _devenv_prepend(self, varname: str, value: str) -> None:
         if self.devenv is None:
-            self.devenv = build.EnvironmentVariables()
+            self.devenv = mesonlib.EnvironmentVariables()
         self.devenv.prepend(varname, [value])
 
     def postconf_hook(self, b: build.Build) -> None:
@@ -1522,7 +1522,7 @@ class GnomeModule(ExtensionModule):
             check_args = (targetname + '-check', check_cmd)
             check_workdir = os.path.join(state.environment.get_build_dir(), state.subdir)
             state.test(check_args, env=check_env, workdir=check_workdir, depends=[custom_target])
-        res: T.List[T.Union[build.Target, build.ExecutableSerialisation]] = [custom_target, alias_target]
+        res: T.List[T.Union[build.Target, mesonlib.ExecutableSerialisation]] = [custom_target, alias_target]
         if kwargs['install']:
             res.append(state.backend.get_executable_serialisation(command + t_args, tag='doc'))
         return ModuleReturnValue(custom_target, res)

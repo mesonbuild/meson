@@ -28,7 +28,8 @@ from .pkgconfig import PkgConfigDependency
 from .misc import threads_factory
 
 if T.TYPE_CHECKING:
-    from ..environment import Environment, Properties
+    from ..envconfig import Properties
+    from ..environment import Environment
 
 # On windows 3 directory layouts are supported:
 # * The default layout (versioned) installed:

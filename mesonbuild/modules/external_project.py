@@ -39,6 +39,7 @@ if T.TYPE_CHECKING:
     from ..build import BuildTarget, CustomTarget
     from ..interpreter import Interpreter
     from ..interpreterbase import TYPE_var
+    from ..mesonlib import EnvironmentVariables
 
     class Dependency(TypedDict):
 
@@ -49,7 +50,7 @@ if T.TYPE_CHECKING:
         configure_options: T.List[str]
         cross_configure_options: T.List[str]
         verbose: bool
-        env: build.EnvironmentVariables
+        env: EnvironmentVariables
         depends: T.List[T.Union[BuildTarget, CustomTarget]]
 
 
@@ -62,7 +63,7 @@ class ExternalProject(NewExtensionModule):
                  configure_command: str,
                  configure_options: T.List[str],
                  cross_configure_options: T.List[str],
-                 env: build.EnvironmentVariables,
+                 env: EnvironmentVariables,
                  verbose: bool,
                  extra_depends: T.List[T.Union['BuildTarget', 'CustomTarget']]):
         super().__init__()

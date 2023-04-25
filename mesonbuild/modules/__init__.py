@@ -30,7 +30,6 @@ if T.TYPE_CHECKING:
     from ..interpreterbase import TYPE_var, TYPE_kwargs
     from ..programs import OverrideProgram
     from ..wrap import WrapMode
-    from ..build import Executable
     from ..dependencies import Dependency
 
 class ModuleState:
@@ -87,16 +86,16 @@ class ModuleState:
 
     def find_program(self, prog: T.Union[mesonlib.FileOrString, T.List[mesonlib.FileOrString]],
                      required: bool = True,
-                     version_func: T.Optional[T.Callable[[T.Union[ExternalProgram, Executable, OverrideProgram]], str]] = None,
+                     version_func: T.Optional[T.Callable[[T.Union[ExternalProgram, build.Executable, OverrideProgram]], str]] = None,
                      wanted: T.Optional[str] = None, silent: bool = False,
-                     for_machine: MachineChoice = MachineChoice.HOST) -> T.Union[ExternalProgram, Executable, OverrideProgram]:
+                     for_machine: MachineChoice = MachineChoice.HOST) -> T.Union[ExternalProgram, build.Executable, OverrideProgram]:
         if not isinstance(prog, list):
             prog = [prog]
         return self._interpreter.find_program_impl(prog, required=required, version_func=version_func,
                                                    wanted=wanted, silent=silent, for_machine=for_machine)
 
     def find_tool(self, name: str, depname: str, varname: str, required: bool = True,
-                  wanted: T.Optional[str] = None) -> T.Union['Executable', ExternalProgram, 'OverrideProgram']:
+                  wanted: T.Optional[str] = None) -> T.Union['build.Executable', ExternalProgram, 'OverrideProgram']:
         # Look in overrides in case it's built as subproject
         progobj = self._interpreter.program_from_overrides([name], [])
         if progobj is not None:
@@ -256,10 +255,10 @@ def is_module_library(fname: mesonlib.FileOrString) -> bool:
 
 class ModuleReturnValue:
     def __init__(self, return_value: T.Optional['TYPE_var'],
-                 new_objects: T.Sequence[T.Union['TYPE_var', 'build.ExecutableSerialisation']]) -> None:
+                 new_objects: T.Sequence[T.Union['TYPE_var', 'mesonlib.ExecutableSerialisation']]) -> None:
         self.return_value = return_value
         assert isinstance(new_objects, list)
-        self.new_objects: T.List[T.Union['TYPE_var', 'build.ExecutableSerialisation']] = new_objects
+        self.new_objects: T.List[T.Union['TYPE_var', 'mesonlib.ExecutableSerialisation']] = new_objects
 
 class GResourceTarget(build.CustomTarget):
     pass

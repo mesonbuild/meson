@@ -17,9 +17,8 @@ import os.path
 import typing as T
 
 from .. import mlog
-from ..mesonlib import EnvironmentException, version_compare, OptionKey
-
-from .compilers import CompileCheckMode, Compiler, LibType
+from ..mesonlib import EnvironmentException, version_compare, LibType, OptionKey
+from .compilers import CompileCheckMode, Compiler
 
 if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
