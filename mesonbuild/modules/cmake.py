@@ -435,7 +435,7 @@ class CmakeModule(ExtensionModule):
             'default_options': {},
             'version': [],
         }
-        subp = self.interpreter.do_subproject(dirname, 'cmake', kw)
+        subp = self.interpreter.do_subproject(dirname, kw, force_method='cmake')
         if not subp.found():
             return subp
         return CMakeSubproject(subp)

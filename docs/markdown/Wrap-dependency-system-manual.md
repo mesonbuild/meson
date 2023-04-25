@@ -87,6 +87,10 @@ previously reserved to `wrap-file`:
   `subprojects/packagefiles`.
 - `diff_files` - *Since 0.63.0* Comma-separated list of local diff files (see
   [Diff files](#diff-files) below).
+- `method` - *Since 1.3.0* The build system used by this subproject. Defaults to `meson`.
+  Supported methods:
+  - `meson` requires `meson.build` file.
+  - `cmake` requires `CMakeLists.txt` file. [See details](#cmake-wraps).
 
 ### Specific to wrap-file
 - `source_url` - download url to retrieve the wrap-file source archive
@@ -289,6 +293,26 @@ program_names = myprog, otherprog
 With such wrap file, `find_program('myprog')` will automatically
 fallback to use the subproject, assuming it uses
 `meson.override_find_program('myprog')`.
+
+### CMake wraps
+
+Since the CMake module does not know the public name of the provided
+dependencies, a CMake `.wrap` file cannot use the `dependency_names = foo`
+syntax. Instead, the `dep_name = <target_name>_dep` syntax should be used, where
+`<target_name>` is the name of a CMake library with all non alphanumeric
+characters replaced by underscores `_`.
+
+For example, a CMake project that contains `add_library(foo-bar ...)` in its
+`CMakeList.txt` and that applications would usually find using the dependency
+name `foo-bar-1.0` (e.g. via pkg-config) would have a wrap file like this:
+
+```ini
+[wrap-file]
+...
+method = cmake
+[provide]
+foo-bar-1.0 = foo_bar_dep
+```
 
 ## Using wrapped projects
 

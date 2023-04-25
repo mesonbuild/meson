@@ -45,6 +45,9 @@ from .. import mesonlib
 
 if T.TYPE_CHECKING:
     import http.client
+    from typing_extensions import Literal
+
+    Method = Literal['meson', 'cmake']
 
 try:
     # Importing is just done to check if SSL exists, so all warnings
@@ -406,7 +409,7 @@ class Resolver:
                 return wrap_name
         return None
 
-    def resolve(self, packagename: str, method: str) -> str:
+    def resolve(self, packagename: str, force_method: T.Optional[Method] = None) -> T.Tuple[str, Method]:
         self.packagename = packagename
         self.directory = packagename
         self.wrap = self.wraps.get(packagename)
@@ -443,17 +446,28 @@ class Resolver:
             self.dirname = self.wrap.filename
         rel_path = os.path.relpath(self.dirname, self.source_dir)
 
-        if method == 'meson':
-            buildfile = os.path.join(self.dirname, 'meson.build')
-        elif method == 'cmake':
-            buildfile = os.path.join(self.dirname, 'CMakeLists.txt')
-        else:
-            raise WrapException('Only the methods "meson" and "cmake" are supported')
+        # Map each supported method to a file that must exist at the root of source tree.
+        methods_map: T.Dict[Method, str] = {
+            'meson': 'meson.build',
+            'cmake': 'CMakeLists.txt',
+        }
+
+        # Check if this wrap forces a specific method, use meson otherwise.
+        method = T.cast('T.Optional[Method]', self.wrap.values.get('method', force_method))
+        if method and method not in methods_map:
+            allowed_methods = ', '.join(methods_map.keys())
+            raise WrapException(f'Wrap method {method!r} is not supported, must be one of: {allowed_methods}')
+        if force_method and method != force_method:
+            raise WrapException(f'Wrap method is {method!r} but we are trying to configure it with {force_method}')
+        method = method or 'meson'
+
+        def has_buildfile() -> bool:
+            return os.path.exists(os.path.join(self.dirname, methods_map[method]))
 
         # The directory is there and has meson.build? Great, use it.
-        if os.path.exists(buildfile):
+        if has_buildfile():
             self.validate()
-            return rel_path
+            return rel_path, method
 
         # Check if the subproject is a git submodule
         self.resolve_git_submodule()
@@ -491,16 +505,14 @@ class Resolver:
                 windows_proof_rmtree(self.dirname)
                 raise
 
-        # A meson.build or CMakeLists.txt file is required in the directory
-        if not os.path.exists(buildfile):
-            raise WrapException(f'Subproject exists but has no {os.path.basename(buildfile)} file')
+        if not has_buildfile():
+            raise WrapException(f'Subproject exists but has no {methods_map[method]} file.')
 
         # At this point, the subproject has been successfully resolved for the
         # first time so save off the hash of the entire wrap file for future
         # reference.
         self.wrap.update_hash_cache(self.dirname)
-
-        return rel_path
+        return rel_path, method
 
     def check_can_download(self) -> None:
         # Don't download subproject data based on wrap file if requested.

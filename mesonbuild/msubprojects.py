@@ -189,7 +189,7 @@ class Runner:
             # cached.
             windows_proof_rmtree(self.repo_dir)
             try:
-                self.wrap_resolver.resolve(self.wrap.name, 'meson')
+                self.wrap_resolver.resolve(self.wrap.name)
                 self.log('  -> New version extracted')
                 return True
             except WrapException as e:
@@ -292,7 +292,7 @@ class Runner:
                 # Delete existing directory and redownload
                 windows_proof_rmtree(self.repo_dir)
                 try:
-                    self.wrap_resolver.resolve(self.wrap.name, 'meson')
+                    self.wrap_resolver.resolve(self.wrap.name)
                     self.update_git_done()
                     return True
                 except WrapException as e:
@@ -464,7 +464,7 @@ class Runner:
             self.log('  -> Already downloaded')
             return True
         try:
-            self.wrap_resolver.resolve(self.wrap.name, 'meson')
+            self.wrap_resolver.resolve(self.wrap.name)
             self.log('  -> done')
         except WrapException as e:
             self.log('  ->', mlog.red(str(e)))
