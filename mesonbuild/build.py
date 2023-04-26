@@ -2112,7 +2112,7 @@ class SharedLibrary(BuildTarget):
 
     def get_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:
         result: T.Dict[str, str] = {}
-        mappings = self.get_transitive_link_deps_mapping(prefix)
+        mappings = self.get_transitive_link_deps_mapping(prefix).copy()
         old = get_target_macos_dylib_install_name(self)
         if old not in mappings:
             fname = self.get_filename()
