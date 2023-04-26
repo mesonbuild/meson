@@ -1280,17 +1280,36 @@ class BuildTarget(Target):
     def get_extra_args(self, language):
         return self.extra_args.get(language, [])
 
-    def get_dependencies(self, exclude=None):
-        transitive_deps = []
-        if exclude is None:
-            exclude = []
+    @lru_cache(maxsize=None)
+    def get_dependencies(self) -> OrderedSet[Target]:
+        # Get all targets needed for linking. This includes all link_with and
+        # link_whole targets, and also all dependencies of static libraries
+        # recursively. The algorithm here is closely related to what we do in
+        # get_internal_static_libraries(): Installed static libraries include
+        # objects from all their dependencies already.
+        result: OrderedSet[Target] = OrderedSet()
         for t in itertools.chain(self.link_targets, self.link_whole_targets):
-            if t in transitive_deps or t in exclude:
+            if t not in result:
+                result.add(t)
+                if isinstance(t, StaticLibrary):
+                    t.get_dependencies_recurse(result)
+        return result
+
+    def get_dependencies_recurse(self, result: OrderedSet[Target], include_internals: bool = True) -> None:
+        # self is always a static library because we don't need to pull dependencies
+        # of shared libraries. If self is installed (not internal) it already
+        # include objects extracted from all its internal dependencies so we can
+        # skip them.
+        include_internals = include_internals and self.is_internal()
+        for t in self.link_targets:
+            if t in result:
                 continue
-            transitive_deps.append(t)
+            if include_internals or not t.is_internal():
+                result.add(t)
             if isinstance(t, StaticLibrary):
-                transitive_deps += t.get_dependencies(transitive_deps + exclude)
-        return transitive_deps
+                t.get_dependencies_recurse(result, include_internals)
+        for t in self.link_whole_targets:
+            t.get_dependencies_recurse(result, include_internals)
 
     def get_source_subdir(self):
         return self.subdir
@@ -1441,15 +1460,28 @@ You probably should put it in link_with instead.''')
             if isinstance(self, StaticLibrary):
                 # When we're a static library and we link_whole: to another static
                 # library, we need to add that target's objects to ourselves.
-                self.objects += t.extract_all_objects_recurse()
+                self.objects += [t.extract_all_objects()]
+                # If we install this static library we also need to include objects
+                # from all uninstalled static libraries it depends on.
+                if self.need_install:
+                    for lib in t.get_internal_static_libraries():
+                        self.objects += [lib.extract_all_objects()]
             self.link_whole_targets.append(t)
 
-    def extract_all_objects_recurse(self) -> T.List[T.Union[str, 'ExtractedObjects']]:
-        objs = [self.extract_all_objects()]
+    @lru_cache(maxsize=None)
+    def get_internal_static_libraries(self) -> OrderedSet[Target]:
+        result: OrderedSet[Target] = OrderedSet()
+        self.get_internal_static_libraries_recurse(result)
+        return result
+
+    def get_internal_static_libraries_recurse(self, result: OrderedSet[Target]) -> None:
         for t in self.link_targets:
+            if t.is_internal() and t not in result:
+                result.add(t)
+                t.get_internal_static_libraries_recurse(result)
+        for t in self.link_whole_targets:
             if t.is_internal():
-                objs += t.extract_all_objects_recurse()
-        return objs
+                t.get_internal_static_libraries_recurse(result)
 
     def add_pch(self, language: str, pchlist: T.List[str]) -> None:
         if not pchlist:
@@ -2661,7 +2693,7 @@ class CustomTarget(Target, CommandBase):
             return False
         return CustomTargetIndex(self, self.outputs[0]).is_internal()
 
-    def extract_all_objects_recurse(self) -> T.List[T.Union[str, 'ExtractedObjects']]:
+    def extract_all_objects(self) -> T.List[T.Union[str, 'ExtractedObjects']]:
         return self.get_outputs()
 
     def type_suffix(self):
@@ -2923,8 +2955,8 @@ class CustomTargetIndex(HoldableObject):
         suf = os.path.splitext(self.output)[-1]
         return suf in {'.a', '.lib'} and not self.should_install()
 
-    def extract_all_objects_recurse(self) -> T.List[T.Union[str, 'ExtractedObjects']]:
-        return self.target.extract_all_objects_recurse()
+    def extract_all_objects(self) -> T.List[T.Union[str, 'ExtractedObjects']]:
+        return self.target.extract_all_objects()
 
     def get_custom_install_dir(self) -> T.List[T.Union[str, Literal[False]]]:
         return self.target.get_custom_install_dir()

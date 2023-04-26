@@ -1828,3 +1828,20 @@ class LinuxlikeTests(BasePlatformTests):
         with self.assertRaises(subprocess.CalledProcessError) as e:
             self.run_tests()
         self.assertNotIn('Traceback', e.exception.output)
+
+    @skipUnless(is_linux(), "Ninja file differs on different platforms")
+    def test_complex_link_cases(self):
+        testdir = os.path.join(self.unit_test_dir, '113 complex link cases')
+        self.init(testdir)
+        self.build()
+        with open(os.path.join(self.builddir, 'build.ninja'), encoding='utf-8') as f:
+            content = f.read()
+        # Verify link dependencies, see comments in meson.build.
+        self.assertIn('build libt1-s3.a: STATIC_LINKER libt1-s2.a.p/s2.c.o libt1-s3.a.p/s3.c.o\n', content)
+        self.assertIn('build t1-e1: c_LINKER t1-e1.p/main.c.o | libt1-s1.a libt1-s3.a\n', content)
+        self.assertIn('build libt2-s3.a: STATIC_LINKER libt2-s2.a.p/s2.c.o libt2-s1.a.p/s1.c.o libt2-s3.a.p/s3.c.o\n', content)
+        self.assertIn('build t2-e1: c_LINKER t2-e1.p/main.c.o | libt2-s3.a\n', content)
+        self.assertIn('build t3-e1: c_LINKER t3-e1.p/main.c.o | libt3-s3.so.p/libt3-s3.so.symbols\n', content)
+        self.assertIn('build t4-e1: c_LINKER t4-e1.p/main.c.o | libt4-s2.so.p/libt4-s2.so.symbols libt4-s3.a\n', content)
+        self.assertIn('build t5-e1: c_LINKER t5-e1.p/main.c.o | libt5-s1.so.p/libt5-s1.so.symbols libt5-s3.a\n', content)
+        self.assertIn('build t6-e1: c_LINKER t6-e1.p/main.c.o | libt6-s2.a libt6-s3.a\n', content)
