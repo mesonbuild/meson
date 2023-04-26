@@ -1019,7 +1019,10 @@ class BuildTarget(Target):
                 FeatureNew.single_use('Generated sources for extract_objects', '0.61.0', self.subproject)
                 target = src.target if isinstance(src, CustomTargetIndex) else src
                 if src not in generated_set and target not in generated_set:
-                    raise MesonException(f'Tried to extract unknown source {target.get_basename()}.')
+                    if isinstance(target, GeneratedList):
+                        raise MesonException(f'Tried to extract unknown generated source(s) {target.outfilelist}.')
+                    else:
+                        raise MesonException(f'Tried to extract unknown source {target.get_basename()}.')
                 obj_gen.append(src)
             else:
                 raise MesonException(f'Object extraction arguments must be strings, Files or targets (got {type(src).__name__}).')
