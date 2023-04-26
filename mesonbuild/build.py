@@ -2829,7 +2829,6 @@ class Jar(BuildTarget):
             raise InvalidArguments('structured sources are not supported in Java targets.')
         self.filename = self.name + '.jar'
         self.outputs = [self.filename]
-        self.java_args = kwargs.get('java_args', [])
         self.java_resources: T.Optional[StructuredSources] = kwargs.get('java_resources', None)
 
     def get_main_class(self):
@@ -2837,9 +2836,6 @@ class Jar(BuildTarget):
 
     def type_suffix(self):
         return "@jar"
-
-    def get_java_args(self):
-        return self.java_args
 
     def get_java_resources(self) -> T.Optional[StructuredSources]:
         return self.java_resources
