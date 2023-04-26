@@ -44,6 +44,8 @@ These are return values of the `get_id` (Compiler family) and
 | yasm      | The YASM compiler (Since 0.64.0) |                 |
 | ml        | Microsoft Macro Assembler for x86 and x86_64 (Since 0.64.0) | msvc |
 | armasm    | Microsoft Macro Assembler for ARM and AARCH64 (Since 0.64.0) | |
+| mwasmarm        | Metrowerks Assembler for Embedded ARM | |
+| mwasmeppc       | Metrowerks Assembler for Embedded PowerPC | |
 
 ## Linker ids
 
