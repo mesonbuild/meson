@@ -139,7 +139,7 @@ class RustModule(ExtensionModule):
         tkwargs['args'] = extra_args + ['--test', '--format', 'pretty']
         tkwargs['protocol'] = 'rust'
 
-        new_target_kwargs = base_target.kwargs.copy()
+        new_target_kwargs = base_target.original_kwargs.copy()
         # Don't mutate the shallow copied list, instead replace it with a new
         # one
         new_target_kwargs['rust_args'] = new_target_kwargs.get('rust_args', []) + ['--test']

@@ -17,7 +17,6 @@ from collections import defaultdict, OrderedDict
 from dataclasses import dataclass, field, InitVar
 from functools import lru_cache
 import abc
-import copy
 import hashlib
 import itertools, pathlib
 import os
@@ -988,18 +987,6 @@ class BuildTarget(Target):
                     'Link_depends arguments must be strings, Files, '
                     'or a Custom Target, or lists thereof.')
 
-    def get_original_kwargs(self):
-        return self.kwargs
-
-    def copy_kwargs(self, kwargs):
-        self.kwargs = copy.copy(kwargs)
-        for k, v in self.kwargs.items():
-            if isinstance(v, list):
-                self.kwargs[k] = listify(v, flatten=True)
-        for t in ['dependencies', 'link_with', 'include_directories', 'sources']:
-            if t in self.kwargs:
-                self.kwargs[t] = listify(self.kwargs[t], flatten=True)
-
     def extract_objects(self, srclist: T.List[T.Union['FileOrString', 'GeneratedTypes']]) -> ExtractedObjects:
         sources_set = set(self.sources)
         generated_set = set(self.generated)
@@ -1073,7 +1060,7 @@ class BuildTarget(Target):
 
     def process_kwargs(self, kwargs):
         self.process_kwargs_base(kwargs)
-        self.copy_kwargs(kwargs)
+        self.original_kwargs = kwargs
         kwargs.get('modules', [])
         self.need_install = kwargs.get('install', self.need_install)
         llist = extract_as_list(kwargs, 'link_with')
