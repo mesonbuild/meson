@@ -2917,6 +2917,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def add_dependency_scanner_entries_to_element(self, target, compiler, element, src):
         if not self.should_use_dyndeps_for_target(target):
             return
+        if isinstance(target, build.CompileTarget):
+            return
         extension = os.path.splitext(src.fname)[1][1:]
         if extension != 'C':
             extension = extension.lower()
