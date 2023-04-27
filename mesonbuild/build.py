@@ -1408,7 +1408,7 @@ You probably should put it in link_with instead.''')
                 msg = f"Can't link non-PIC static library {t.name!r} into shared library {self.name!r}. "
                 msg += "Use the 'pic' option to static_library to build with PIC."
                 raise InvalidArguments(msg)
-            if self.for_machine is not t.for_machine:
+            if self.for_machine is not t.for_machine and (not t.uses_rust() or t.rust_crate_type != 'proc-macro'):
                 msg = f'Tried to mix libraries for machines {self.for_machine} and {t.for_machine} in target {self.name!r}'
                 if self.environment.is_cross_build():
                     raise InvalidArguments(msg + ' This is not possible in a cross build.')
@@ -1432,7 +1432,7 @@ You probably should put it in link_with instead.''')
                 msg = f"Can't link non-PIC static library {t.name!r} into shared library {self.name!r}. "
                 msg += "Use the 'pic' option to static_library to build with PIC."
                 raise InvalidArguments(msg)
-            if self.for_machine is not t.for_machine:
+            if self.for_machine is not t.for_machine and (not t.uses_rust() or t.rust_crate_type != 'proc-macro'):
                 msg = f'Tried to mix libraries for machines {self.for_machine} and {t.for_machine} in target {self.name!r}'
                 if self.environment.is_cross_build():
                     raise InvalidArguments(msg + ' This is not possible in a cross build.')
@@ -2328,6 +2328,13 @@ class SharedLibrary(BuildTarget):
             else:
                 raise InvalidArguments(f'Invalid rust_crate_type "{rust_crate_type}": must be a string.')
             if rust_crate_type == 'proc-macro':
+                if 'native' not in kwargs:
+                    kwargs['native'] = True
+                if not kwargs.get('native', False):
+                    if self.environment.is_cross_build():
+                        raise InvalidArguments('Rust "proc-macro" crate type requires "native: true". This will fail in a cross-build.')
+                    else:
+                        mlog.warning('Rust "proc-macro" crate type requires "native: true". This will fail in a cross-build.')
                 FeatureNew.single_use('Rust crate type "proc-macro"', '0.62.0', self.subproject)
 
     def get_import_filename(self) -> T.Optional[str]:
