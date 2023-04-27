@@ -712,6 +712,7 @@ class BuildTarget(Target):
             name_suffix: T.Optional[str] = None,
             resources: T.Optional[T.List[File]] = None,
             rust_crate_type: str,  # this intentionally doesn't have a value
+            rust_dependency_map: T.Optional[T.Mapping[str, str]] = None,
             override_options: T.Optional[T.Dict[OptionKey, str]] = None,
             vala_header: T.Optional[str] = None,
             vala_vapi: T.Optional[str] = None,
@@ -742,6 +743,7 @@ class BuildTarget(Target):
         self.external_deps: T.List[dependencies.Dependency] = []
         self.include_dirs = include_directories or []
         self.install_rpath = install_rpath
+        self.rust_dependency_map = rust_dependency_map or {}
         self.link_language = link_language
         self.link_targets: T.List[LibTypes] = []
         self.link_whole_targets: T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]] = []
@@ -1132,13 +1134,6 @@ class BuildTarget(Target):
                 self.pie = True
             else:
                 self.pie = self._extract_pic_pie(kwargs, 'pie', 'b_pie')
-
-        rust_dependency_map = kwargs.get('rust_dependency_map', {})
-        if not isinstance(rust_dependency_map, dict):
-            raise InvalidArguments(f'Invalid rust_dependency_map "{rust_dependency_map}": must be a dictionary.')
-        if any(not isinstance(v, str) for v in rust_dependency_map.values()):
-            raise InvalidArguments(f'Invalid rust_dependency_map "{rust_dependency_map}": must be a dictionary with string values.')
-        self.rust_dependency_map = rust_dependency_map
 
     def validate_win_subsystem(self, value: str) -> str:
         value = value.lower()
@@ -1764,6 +1759,7 @@ class Executable(BuildTarget):
             name_suffix: T.Optional[str] = None,
             resources: T.Optional[T.List[File]] = None,
             rust_crate_type: str = 'bin',
+            rust_dependency_map: T.Optional[T.Mapping[str, str]] = None,
             override_options: T.Optional[T.Dict[OptionKey, str]] = None,
             vala_header: T.Optional[str] = None,
             vala_vapi: T.Optional[str] = None,
@@ -1802,6 +1798,7 @@ class Executable(BuildTarget):
                          override_options=override_options,
                          resources=resources,
                          rust_crate_type=rust_crate_type,
+                         rust_dependency_map=rust_dependency_map,
                          vala_header=vala_header,
                          vala_vapi=vala_vapi,
                          vala_gir=vala_gir,
@@ -1983,6 +1980,7 @@ class StaticLibrary(BuildTarget):
             name_suffix: T.Optional[str] = None,
             resources: T.Optional[T.List[File]] = None,
             rust_crate_type: str = 'rlib',
+            rust_dependency_map: T.Optional[T.Mapping[str, str]] = None,
             override_options: T.Optional[T.Dict[OptionKey, str]] = None,
             vala_header: T.Optional[str] = None,
             vala_vapi: T.Optional[str] = None,
@@ -2021,6 +2019,7 @@ class StaticLibrary(BuildTarget):
                          override_options=override_options,
                          resources=resources,
                          rust_crate_type=rust_crate_type if rust_crate_type != 'lib' else 'rlib',
+                         rust_dependency_map=rust_dependency_map,
                          vala_header=vala_header,
                          vala_vapi=vala_vapi,
                          vala_gir=vala_gir,
@@ -2120,6 +2119,7 @@ class SharedLibrary(BuildTarget):
             name_suffix: T.Optional[str] = None,
             resources: T.Optional[T.List[File]] = None,
             rust_crate_type: str = 'dylib',
+            rust_dependency_map: T.Optional[T.Mapping[str, str]] = None,
             override_options: T.Optional[T.Dict[OptionKey, str]] = None,
             vala_header: T.Optional[str] = None,
             vala_vapi: T.Optional[str] = None,
@@ -2170,6 +2170,7 @@ class SharedLibrary(BuildTarget):
                          override_options=override_options,
                          resources=resources,
                          rust_crate_type=rust_crate_type if rust_crate_type != 'lib' else 'dylib',
+                         rust_dependency_map=rust_dependency_map,
                          vala_header=vala_header,
                          vala_vapi=vala_vapi,
                          vala_gir=vala_gir,
@@ -2511,6 +2512,7 @@ class SharedModule(SharedLibrary):
             name_suffix: T.Optional[str] = None,
             resources: T.Optional[T.List[File]] = None,
             rust_crate_type: str = 'dylib',
+            rust_dependency_map: T.Optional[T.Mapping[str, str]] = None,
             override_options: T.Optional[T.Dict[OptionKey, str]] = None,
             vala_header: T.Optional[str] = None,
             vala_vapi: T.Optional[str] = None,
@@ -2550,6 +2552,7 @@ class SharedModule(SharedLibrary):
                          override_options=override_options,
                          resources=resources,
                          rust_crate_type=rust_crate_type,  # SharedLibrary will take care of this
+                         rust_dependency_map=rust_dependency_map,
                          vala_header=vala_header,
                          vala_vapi=vala_vapi,
                          vala_gir=vala_gir,
