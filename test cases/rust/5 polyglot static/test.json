@@ -1,7 +1,6 @@
 {
   "installed": [
     {"type": "exe", "file": "usr/bin/prog"},
-    {"type": "pdb", "file": "usr/bin/prog"},
-    {"type": "file", "file": "usr/lib/libclib.a"}
+    {"type": "pdb", "file": "usr/bin/prog"}
   ]
 }

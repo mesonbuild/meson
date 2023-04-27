@@ -1407,17 +1407,9 @@ You probably should put it in link_with instead.''')
                         mlog.warning(f'Try to link an installed static library target {self.name} with a'
                                      'custom target that is not installed, this might cause problems'
                                      'when you try to use this static library')
-                elif t.is_internal() and not t.uses_rust():
+                elif t.is_internal():
                     # When we're a static library and we link_with to an
                     # internal/convenience library, promote to link_whole.
-                    #
-                    # There are cases we cannot do this, however. In Rust, for
-                    # example, this can't be done with Rust ABI libraries, though
-                    # it could be done with C ABI libraries, though there are
-                    # several meson issues that need to be fixed:
-                    # https://github.com/mesonbuild/meson/issues/10722
-                    # https://github.com/mesonbuild/meson/issues/10723
-                    # https://github.com/mesonbuild/meson/issues/10724
                     return self.link_whole(t)
             if not isinstance(t, (Target, CustomTargetIndex)):
                 raise InvalidArguments(f'{t!r} is not a target.')
@@ -1442,9 +1434,6 @@ You probably should put it in link_with instead.''')
                     raise InvalidArguments(f'Custom target {t!r} is not linkable.')
                 if t.links_dynamically():
                     raise InvalidArguments('Can only link_whole custom targets that are static archives.')
-                if isinstance(self, StaticLibrary):
-                    # FIXME: We could extract the .a archive to get object files
-                    raise InvalidArguments('Cannot link_whole a custom target into a static library')
             elif not isinstance(t, StaticLibrary):
                 raise InvalidArguments(f'{t!r} is not a static library.')
             elif isinstance(self, SharedLibrary) and not t.pic:
@@ -1458,6 +1447,16 @@ You probably should put it in link_with instead.''')
                 else:
                     mlog.warning(msg + ' This will fail in cross build.')
             if isinstance(self, StaticLibrary):
+                if isinstance(t, (CustomTarget, CustomTargetIndex)) or t.uses_rust():
+                    # There are cases we cannot do this, however. In Rust, for
+                    # example, this can't be done with Rust ABI libraries, though
+                    # it could be done with C ABI libraries, though there are
+                    # several meson issues that need to be fixed:
+                    # https://github.com/mesonbuild/meson/issues/10722
+                    # https://github.com/mesonbuild/meson/issues/10723
+                    # https://github.com/mesonbuild/meson/issues/10724
+                    # FIXME: We could extract the .a archive to get object files
+                    raise InvalidArguments('Cannot link_whole a custom or Rust target into a static library')
                 # When we're a static library and we link_whole: to another static
                 # library, we need to add that target's objects to ourselves.
                 self.objects += [t.extract_all_objects()]
