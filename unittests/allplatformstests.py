@@ -4376,8 +4376,7 @@ class AllPlatformTests(BasePlatformTests):
                            structured_sources=None,
                            objects=[], environment=env, compilers=env.coredata.compilers[MachineChoice.HOST],
                            kwargs={})
-            target.process_compilers()
-            target.process_compilers_late([])
+            target.process_compilers_late()
             return target.filename
 
         shared_lib_name = lambda name: output_name(name, SharedLibrary)

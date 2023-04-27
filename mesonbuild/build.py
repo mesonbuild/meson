@@ -744,6 +744,9 @@ class BuildTarget(Target):
         # 2. Compiled objects created by and extracted from another target
         self.process_objectlist(objects)
         self.process_kwargs(kwargs)
+        self.missing_languages = self.process_compilers()
+        self.link(extract_as_list(kwargs, 'link_with'))
+        self.link_whole(extract_as_list(kwargs, 'link_whole'))
         if not any([self.sources, self.generated, self.objects, self.link_whole_targets, self.structured_sources,
                     kwargs.pop('_allow_no_sources', False)]):
             mlog.warning(f'Build target {name} has no sources. '
@@ -834,14 +837,14 @@ class BuildTarget(Target):
                 removed = True
         return removed
 
-    def process_compilers_late(self, extra_languages: T.List[str]):
+    def process_compilers_late(self):
         """Processes additional compilers after kwargs have been evaluated.
 
         This can add extra compilers that might be required by keyword
         arguments, such as link_with or dependencies. It will also try to guess
         which compiler to use if one hasn't been selected already.
         """
-        for lang in extra_languages:
+        for lang in self.missing_languages:
             self.compilers[lang] = self.all_compilers[lang]
 
         # did user override clink_langs for this target?
@@ -1063,20 +1066,6 @@ class BuildTarget(Target):
         self.original_kwargs = kwargs
         kwargs.get('modules', [])
         self.need_install = kwargs.get('install', self.need_install)
-        llist = extract_as_list(kwargs, 'link_with')
-        for linktarget in llist:
-            if isinstance(linktarget, dependencies.ExternalLibrary):
-                raise MesonException(textwrap.dedent('''\
-                    An external library was used in link_with keyword argument, which
-                    is reserved for libraries built as part of this project. External
-                    libraries must be passed using the dependencies keyword argument
-                    instead, because they are conceptually "external dependencies",
-                    just like those detected with the dependency() function.
-                '''))
-            self.link(linktarget)
-        lwhole = extract_as_list(kwargs, 'link_whole')
-        for linktarget in lwhole:
-            self.link_whole(linktarget)
 
         for lang in all_languages:
             lang_args = extract_as_list(kwargs, f'{lang}_args')
@@ -1334,10 +1323,8 @@ class BuildTarget(Target):
                 self.extra_files.extend(f for f in dep.extra_files if f not in self.extra_files)
                 self.add_include_dirs(dep.include_directories, dep.get_include_type())
                 self.objects.extend(dep.objects)
-                for l in dep.libraries:
-                    self.link(l)
-                for l in dep.whole_libraries:
-                    self.link_whole(l)
+                self.link(dep.libraries)
+                self.link_whole(dep.whole_libraries)
                 if dep.get_compile_args() or dep.get_link_args():
                     # Those parts that are external.
                     extpart = dependencies.InternalDependency('undefined',
@@ -1386,8 +1373,8 @@ You probably should put it in link_with instead.''')
     def is_internal(self) -> bool:
         return False
 
-    def link(self, target):
-        for t in listify(target):
+    def link(self, targets):
+        for t in targets:
             if isinstance(self, StaticLibrary) and self.need_install:
                 if isinstance(t, (CustomTarget, CustomTargetIndex)):
                     if not t.should_install():
@@ -1397,8 +1384,16 @@ You probably should put it in link_with instead.''')
                 elif t.is_internal():
                     # When we're a static library and we link_with to an
                     # internal/convenience library, promote to link_whole.
-                    return self.link_whole(t)
+                    return self.link_whole([t])
             if not isinstance(t, (Target, CustomTargetIndex)):
+                if isinstance(t, dependencies.ExternalLibrary):
+                    raise MesonException(textwrap.dedent('''\
+                        An external library was used in link_with keyword argument, which
+                        is reserved for libraries built as part of this project. External
+                        libraries must be passed using the dependencies keyword argument
+                        instead, because they are conceptually "external dependencies",
+                        just like those detected with the dependency() function.
+                    '''))
                 raise InvalidArguments(f'{t!r} is not a target.')
             if not t.is_linkable_target():
                 raise InvalidArguments(f"Link target '{t!s}' is not linkable.")
@@ -1414,8 +1409,8 @@ You probably should put it in link_with instead.''')
                     mlog.warning(msg + ' This will fail in cross build.')
             self.link_targets.append(t)
 
-    def link_whole(self, target):
-        for t in listify(target):
+    def link_whole(self, targets):
+        for t in targets:
             if isinstance(t, (CustomTarget, CustomTargetIndex)):
                 if not t.is_linkable_target():
                     raise InvalidArguments(f'Custom target {t!r} is not linkable.')

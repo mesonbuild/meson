@@ -3132,9 +3132,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             raise InvalidCode(f'Tried to create target "{name}", but a target of that name already exists.')
 
         if isinstance(tobj, build.BuildTarget):
-            missing_languages = tobj.process_compilers()
-            self.add_languages(missing_languages, True, tobj.for_machine)
-            tobj.process_compilers_late(missing_languages)
+            self.add_languages(tobj.missing_languages, True, tobj.for_machine)
+            tobj.process_compilers_late()
             self.add_stdlib_info(tobj)
 
         self.build.targets[idname] = tobj
