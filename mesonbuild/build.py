@@ -1428,7 +1428,7 @@ You probably should put it in link_with instead.''')
                     raise InvalidArguments(msg + ' This is not possible in a cross build.')
                 else:
                     mlog.warning(msg + ' This will fail in cross build.')
-            if isinstance(self, StaticLibrary):
+            if isinstance(self, StaticLibrary) and not self.uses_rust():
                 if isinstance(t, (CustomTarget, CustomTargetIndex)) or t.uses_rust():
                     # There are cases we cannot do this, however. In Rust, for
                     # example, this can't be done with Rust ABI libraries, though
