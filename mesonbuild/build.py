@@ -1753,7 +1753,7 @@ class Executable(BuildTarget):
         self.filename = self.name
         if self.suffix:
             self.filename += '.' + self.suffix
-        self.outputs = [self.filename]
+        self.outputs[0] = self.filename
 
         create_debug_file = (
             machine.is_windows()
@@ -1941,7 +1941,7 @@ class StaticLibrary(BuildTarget):
             else:
                 self.suffix = 'a'
         self.filename = self.prefix + self.name + '.' + self.suffix
-        self.outputs = [self.filename]
+        self.outputs[0] = self.filename
 
     def get_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:
         return {}
@@ -2811,7 +2811,7 @@ class Jar(BuildTarget):
                          rust_crate_type='lib')  # this shouldn't be necessary
 
         self.filename = self.name + '.jar'
-        self.outputs = [self.filename]
+        self.outputs[0] = self.filename
         self.java_args = java_args or []
         self.java_resources = resources
         self.main_class = main_class
