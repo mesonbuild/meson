@@ -345,7 +345,7 @@ class PythonModule(ExtensionModule):
                 else:
                     mlog.warning(sanitymsg, location=state.current_node)
 
-        return NonExistingExternalProgram()
+        return NonExistingExternalProgram(python.name)
 
     @disablerIfNotFound
     @typed_pos_args('python.find_installation', optargs=[str])
@@ -413,11 +413,11 @@ class PythonModule(ExtensionModule):
         if not python.found():
             if required:
                 raise mesonlib.MesonException('{} not found'.format(name_or_path or 'python'))
-            return NonExistingExternalProgram()
+            return NonExistingExternalProgram(python.name)
         elif missing_modules:
             if required:
                 raise mesonlib.MesonException('{} is missing modules: {}'.format(name_or_path or 'python', ', '.join(missing_modules)))
-            return NonExistingExternalProgram()
+            return NonExistingExternalProgram(python.name)
         else:
             python = copy.copy(python)
             python.pure = kwargs['pure']
