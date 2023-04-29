@@ -794,7 +794,8 @@ class Resolver:
                 raise WrapException(f'Diff file "{path}" does not exist')
             relpath = os.path.relpath(str(path), self.dirname)
             if PATCH:
-                cmd = [PATCH, '-f', '-p1', '-i', relpath]
+                # Always pass a POSIX path to patch, because on Windows it's MSYS
+                cmd = [PATCH, '-f', '-p1', '-i', str(Path(relpath).as_posix())]
             elif GIT:
                 # If the `patch` command is not available, fall back to `git
                 # apply`. The `--work-tree` is necessary in case we're inside a
