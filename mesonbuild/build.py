@@ -412,6 +412,7 @@ class ExtractedObjects(HoldableObject):
     genlist: T.List['GeneratedTypes'] = field(default_factory=list)
     objlist: T.List[T.Union[str, 'File', 'ExtractedObjects']] = field(default_factory=list)
     recursive: bool = True
+    pch: bool = False
 
     def __post_init__(self) -> None:
         if self.target.is_unity:
@@ -1017,7 +1018,7 @@ class BuildTarget(Target):
 
     def extract_all_objects(self, recursive: bool = True) -> ExtractedObjects:
         return ExtractedObjects(self, self.sources, self.generated, self.objects,
-                                recursive)
+                                recursive, pch=True)
 
     def get_all_link_deps(self) -> ImmutableListProtocol[BuildTargetTypes]:
         return self.get_transitive_link_deps()

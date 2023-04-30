@@ -842,6 +842,8 @@ class Backend:
     def _determine_ext_objs(self, extobj: 'build.ExtractedObjects', proj_dir_to_build_root: str) -> T.List[str]:
         result: T.List[str] = []
 
+        targetdir = self.get_target_private_dir(extobj.target)
+
         # Merge sources and generated sources
         raw_sources = list(extobj.srclist)
         for gensrc in extobj.genlist:
@@ -858,11 +860,17 @@ class Backend:
             elif self.environment.is_object(s):
                 result.append(s.relative_name())
 
+        # MSVC generate an object file for PCH
+        if extobj.pch:
+            for lang, pch in extobj.target.pch.items():
+                compiler = extobj.target.compilers[lang]
+                if compiler.get_argument_syntax() == 'msvc':
+                    objname = self.get_msvc_pch_objname(lang, pch)
+                    result.append(os.path.join(proj_dir_to_build_root, targetdir, objname))
+
         # extobj could contain only objects and no sources
         if not sources:
             return result
-
-        targetdir = self.get_target_private_dir(extobj.target)
 
         # With unity builds, sources don't map directly to objects,
         # we only support extracting all the objects in this mode,
@@ -897,6 +905,12 @@ class Backend:
         if p:
             args += compiler.get_pch_use_args(pchpath, p[0])
         return includeargs + args
+
+    def get_msvc_pch_objname(self, lang: str, pch: T.List[str]) -> str:
+        if len(pch) == 1:
+            # Same name as in create_msvc_pch_implementation() below.
+            return f'meson_pch-{lang}.obj'
+        return os.path.splitext(pch[1])[0] + '.obj'
 
     def create_msvc_pch_implementation(self, target: build.BuildTarget, lang: str, pch_header: str) -> str:
         # We have to include the language in the file name, otherwise

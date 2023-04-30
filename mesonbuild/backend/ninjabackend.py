@@ -3066,7 +3066,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 extradep = None
             pch_objects += objs
             rulename = self.compiler_to_pch_rule_name(compiler)
-            elem = NinjaBuildElement(self.all_outputs, dst, rulename, src)
+            elem = NinjaBuildElement(self.all_outputs, objs + [dst], rulename, src)
             if extradep is not None:
                 elem.add_dep(extradep)
             self.add_header_deps(target, elem, header_deps)
