@@ -41,7 +41,7 @@ jobs:
         run: |
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
           ssh-add - <<< "${{ secrets.WEBSITE_PRIV_KEY }}"
-        if: env.HAS_SSH_KEY == 'true'
+        if: github.ref == 'refs/heads/master' && env.HAS_SSH_KEY == 'true'
       - name: Build website
         run: |
           git config --global user.name "github-actions"
@@ -56,7 +56,7 @@ jobs:
         run: |
           cd docs
           ninja -C _build upload
-        if: env.HAS_SSH_KEY == 'true'
+        if: github.ref == 'refs/heads/master' && env.HAS_SSH_KEY == 'true'
       - name: Release the current JSON docs
         uses: svenstaro/upload-release-action@v2
         with:
@@ -71,4 +71,3 @@ jobs:
           file: docs/_build/meson-reference.3
           tag: ${{ github.ref }}
         if: ${{ github.event_name == 'release' }}
-
