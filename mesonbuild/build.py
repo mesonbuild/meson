@@ -2741,6 +2741,9 @@ class CompileTarget(BuildTarget):
         self.outputs.append(o)
         self.sources_map[f] = o
 
+    def is_linkable_output(self, output: str) -> bool:
+        return False
+
 
 class RunTarget(Target, CommandBase):
 
