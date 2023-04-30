@@ -249,7 +249,7 @@ class I18nModule(ExtensionModule):
 
         extra_args = kwargs['args']
         targets: T.List['Target'] = []
-        gmotargets: T.List['build.CustomTarget'] = []
+        gmotargets: T.List['build.Target'] = []
 
         preset = kwargs['preset']
         if preset:

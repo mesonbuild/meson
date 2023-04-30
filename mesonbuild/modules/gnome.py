@@ -1287,7 +1287,7 @@ class GnomeModule(ExtensionModule):
         media = kwargs['media']
         symlinks = kwargs['symlink_media']
         targets: T.List[T.Union['build.Target', build.Data, build.SymlinkData]] = []
-        potargets: T.List[build.RunTarget] = []
+        potargets: T.List[build.Target] = []
 
         itstool = state.find_program('itstool')
         msgmerge = state.find_program('msgmerge')

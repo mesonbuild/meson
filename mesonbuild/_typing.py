@@ -21,7 +21,8 @@ Holds typing helper classes, such as the ImmutableProtocol classes
 
 __all__ = [
     'Protocol',
-    'ImmutableListProtocol'
+    'ImmutableListProtocol',
+    'ImmutableDictProtocol'
 ]
 
 import typing
@@ -30,7 +31,12 @@ import typing
 from typing_extensions import Protocol
 
 
-T = typing.TypeVar('T')
+T = typing.TypeVar('T', covariant=True)
+U = typing.TypeVar('U')
+
+ListOrSingle = typing.Union[T, typing.List[T]]
+
+SequenceOrSingle = typing.Union[T, typing.Sequence[T]]
 
 
 class StringProtocol(Protocol):
@@ -50,6 +56,12 @@ class ImmutableListProtocol(Protocol[T]):
 
     One particular case this is important is for cached values, since python is
     a pass-by-reference language.
+
+    Like a Sequence and unlike a List, ImmutableListProtocol[A] can be casted to
+    ImmutableListProtocol[T.Union[A, B]].
+
+    You cannot cast a str to an ImmutableListProtocol[str], but you can cast a
+    str to an Sequence[str].
     """
 
     def __iter__(self) -> typing.Iterator[T]: ...
@@ -79,3 +91,28 @@ class ImmutableListProtocol(Protocol[T]):
     def index(self, item: T) -> int: ...
 
     def copy(self) -> typing.List[T]: ...
+
+class ImmutableDictProtocol(Protocol[T, U]):
+
+    """A protocol used in cases where a dict is returned, but should not be
+    mutated.
+
+    This provides all of the methods of a Mapping (except the ones I forgot), as
+    well as copy(). copy() returns a dict, which allows mutation as it's a copy
+    and that's (hopefully) safe.
+
+    One particular case this is important is for cached values, since python is
+    a pass-by-reference language.
+    """
+
+    def __iter__(self) -> typing.Iterator[T]: ...
+
+    def __getitem__(self, index: T) -> U: ...
+
+    def __contains__(self, item: T) -> bool: ...
+
+    def __reversed__(self) -> typing.Iterator[T]: ...
+
+    def __len__(self) -> int: ...
+
+    def copy(self) -> typing.Dict[T, U]: ...
