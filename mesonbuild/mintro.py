@@ -220,6 +220,7 @@ def list_targets_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[st
                 'sources': [str(x) for x in sources],
                 'generated_sources': []
             }],
+            'depends': [],
             'extra_files': [str(x) for x in extra_f],
             'subproject': None, # Subprojects are not supported
             'installed': i['installed']
@@ -263,6 +264,7 @@ def list_targets(builddata: build.Build, installdata: backends.InstallData, back
             'extra_files': [os.path.normpath(os.path.join(src_dir, x.subdir, x.fname)) for x in target.extra_files],
             'subproject': target.subproject or None,
             'dependencies': [d.name for d in getattr(target, 'external_deps', [])],
+            'depends': [lib.get_id() for lib in getattr(target, 'dependencies', [])]
         }
 
         vs_module_defs = getattr(target, 'vs_module_defs', None)
@@ -411,7 +413,8 @@ def list_deps(coredata: cdata.CoreData, backend: backends.Backend) -> T.List[T.D
             'include_directories': [i for idirs in d.get_include_dirs() for i in idirs.to_string_list(backend.source_dir)],
             'sources': [f for s in d.get_sources() for f in _src_to_str(s)],
             'extra_files': [f for s in d.get_extra_files() for f in _src_to_str(s)],
-            'deps': [e.name for e in d.ext_deps],
+            'dependencies': [e.name for e in d.ext_deps],
+            'depends': [lib.get_id() for lib in getattr(d, 'libraries', [])],
             'meson_variables': [varname] if varname else [],
         }
 
@@ -451,6 +454,7 @@ def get_test_list(testdata: T.List[backends.TestSerialisation]) -> T.List[T.Dict
         to['priority'] = t.priority
         to['protocol'] = str(t.protocol)
         to['depends'] = t.depends
+        to['extra_paths'] = t.extra_paths
         result.append(to)
     return result
 

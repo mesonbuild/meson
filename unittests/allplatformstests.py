@@ -3007,6 +3007,7 @@ class AllPlatformTests(BasePlatformTests):
             ('depends', list),
             ('workdir', (str, None)),
             ('priority', int),
+            ('extra_paths', list),
         ]
 
         buildoptions_keylist = [
@@ -3039,7 +3040,8 @@ class AllPlatformTests(BasePlatformTests):
             ('include_directories', list),
             ('sources', list),
             ('extra_files', list),
-            ('deps', list),
+            ('dependencies', list),
+            ('depends', list),
             ('meson_variables', list),
         ]
 
@@ -3054,6 +3056,7 @@ class AllPlatformTests(BasePlatformTests):
             ('extra_files', list),
             ('subproject', (str, None)),
             ('dependencies', list),
+            ('depends', list),
             ('install_filename', (list, None)),
             ('installed', bool),
             ('vs_module_defs', (str, None)),
