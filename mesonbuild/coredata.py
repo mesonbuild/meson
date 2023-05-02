@@ -1092,7 +1092,6 @@ def save(obj: CoreData, build_dir: str) -> str:
     with open(tempfilename, 'wb') as f:
         pickle.dump(obj, f)
         f.flush()
-        os.fsync(f.fileno())
     os.replace(tempfilename, filename)
     return filename
 
