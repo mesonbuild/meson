@@ -8,6 +8,10 @@ set(PACKAGE_FOUND FALSE)
 set(_packageName "${NAME}")
 string(TOUPPER "${_packageName}" PACKAGE_NAME)
 
+if("${STATIC}" STREQUAL "True")
+  set("${NAME}_USE_STATIC_LIBS" "ON")
+endif()
+
 while(TRUE)
   if ("${VERSION}" STREQUAL "")
     find_package("${NAME}" QUIET COMPONENTS ${COMPS})
