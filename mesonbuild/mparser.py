@@ -242,22 +242,23 @@ class Lexer:
 
 @dataclass
 class BaseNode:
-    lineno: int = field(hash=False)
-    colno: int = field(hash=False)
+    lineno: int
+    colno: int
     filename: str = field(hash=False)
-    end_lineno: T.Optional[int] = field(default=None, hash=False)
-    end_colno: T.Optional[int] = field(default=None, hash=False)
+    end_lineno: int = field(hash=False)
+    end_colno: int = field(hash=False)
 
-    def __post_init__(self) -> None:
-        if self.end_lineno is None:
-            self.end_lineno = self.lineno
-        if self.end_colno is None:
-            self.end_colno = self.colno
+    def __init__(self, lineno: int, colno: int, filename: str, end_lineno: T.Optional[int] = None, end_colno: T.Optional[int] = None) -> None:
+        self.lineno = lineno
+        self.colno = colno
+        self.filename = filename
+        self.end_lineno = end_lineno if end_lineno is not None else lineno
+        self.end_colno = end_colno if end_colno is not None else colno
 
         # Attributes for the visitors
-        self.level = 0            # type: int
-        self.ast_id = ''          # type: str
-        self.condition_level = 0  # type: int
+        self.level = 0
+        self.ast_id = ''
+        self.condition_level = 0
 
     def accept(self, visitor: 'AstVisitor') -> None:
         fname = 'visit_{}'.format(type(self).__name__)
@@ -266,68 +267,57 @@ class BaseNode:
             if callable(func):
                 func(self)
 
-@dataclass(init=False, unsafe_hash=True)
+@dataclass(unsafe_hash=True)
 class ElementaryNode(T.Generic[TV_TokenTypes], BaseNode):
 
-    value: TV_TokenTypes  # type: ignore[misc]
-    bytespan: T.Tuple[int, int] = field(hash=False)  # type: ignore[misc]
+    value: TV_TokenTypes
+    bytespan: T.Tuple[int, int] = field(hash=False)
 
     def __init__(self, token: Token[TV_TokenTypes]):
         super().__init__(token.lineno, token.colno, token.filename)
         self.value = token.value
         self.bytespan = token.bytespan
 
-@dataclass(init=False, unsafe_hash=True)
 class BooleanNode(ElementaryNode[bool]):
     pass
 
-@dataclass(init=False, unsafe_hash=True)
 class IdNode(ElementaryNode[str]):
-
     def __str__(self) -> str:
         return "Id node: '%s' (%d, %d)." % (self.value, self.lineno, self.colno)
 
-@dataclass(init=False, unsafe_hash=True)
 class NumberNode(ElementaryNode[int]):
     pass
 
-@dataclass(init=False, unsafe_hash=True)
 class StringNode(ElementaryNode[str]):
-
     def __str__(self) -> str:
         return "String node: '%s' (%d, %d)." % (self.value, self.lineno, self.colno)
 
-@dataclass(init=False, unsafe_hash=True)
 class FormatStringNode(ElementaryNode[str]):
-
     def __str__(self) -> str:
         return f"Format string node: '{self.value}' ({self.lineno}, {self.colno})."
 
-@dataclass(init=False, unsafe_hash=True)
 class MultilineFormatStringNode(FormatStringNode):
     def __str__(self) -> str:
         return f"Multiline Format string node: '{self.value}' ({self.lineno}, {self.colno})."
 
-@dataclass(init=False, unsafe_hash=True)
 class ContinueNode(ElementaryNode):
     pass
 
-@dataclass(init=False, unsafe_hash=True)
 class BreakNode(ElementaryNode):
     pass
 
-@dataclass(init=False)
+@dataclass(unsafe_hash=True)
 class ArgumentNode(BaseNode):
 
-    arguments: T.List[BaseNode]  # type: ignore[misc]
-    commas: T.List[Token]  # type: ignore[misc]
-    kwargs: T.Dict[BaseNode, BaseNode]  # type: ignore[misc]
+    arguments: T.List[BaseNode] = field(hash=False)
+    commas: T.List[Token] = field(hash=False)
+    kwargs: T.Dict[BaseNode, BaseNode] = field(hash=False)
 
     def __init__(self, token: Token[TV_TokenTypes]):
         super().__init__(token.lineno, token.colno, token.filename)
-        self.arguments = []  # type: T.List[BaseNode]
-        self.commas = []     # type: T.List[Token[TV_TokenTypes]]
-        self.kwargs = {}     # type: T.Dict[BaseNode, BaseNode]
+        self.arguments = []
+        self.commas = []
+        self.kwargs = {}
         self.order_error = False
 
     def prepend(self, statement: BaseNode) -> None:
@@ -363,60 +353,55 @@ class ArgumentNode(BaseNode):
     def __len__(self) -> int:
         return self.num_args() # Fixme
 
-@dataclass(init=False, unsafe_hash=True)
+@dataclass(unsafe_hash=True)
 class ArrayNode(BaseNode):
 
-    args: ArgumentNode  # type: ignore[misc]
+    args: ArgumentNode
 
     def __init__(self, args: ArgumentNode, lineno: int, colno: int, end_lineno: int, end_colno: int):
         super().__init__(lineno, colno, args.filename, end_lineno=end_lineno, end_colno=end_colno)
         self.args = args
 
-@dataclass(init=False, unsafe_hash=True)
+@dataclass(unsafe_hash=True)
 class DictNode(BaseNode):
 
-    args: ArgumentNode  # type: ignore[misc]
+    args: ArgumentNode
 
     def __init__(self, args: ArgumentNode, lineno: int, colno: int, end_lineno: int, end_colno: int):
         super().__init__(lineno, colno, args.filename, end_lineno=end_lineno, end_colno=end_colno)
         self.args = args
 
 class EmptyNode(BaseNode):
-    def __init__(self, lineno: int, colno: int, filename: str):
-        super().__init__(lineno, colno, filename)
-        self.value = None
+    pass
 
-    def __eq__(self, other: object) -> bool:
-        return isinstance(other, EmptyNode)
-
-@dataclass(init=False, unsafe_hash=True)
+@dataclass(unsafe_hash=True)
 class OrNode(BaseNode):
 
-    left: BaseNode  # type: ignore[misc]
-    right: BaseNode  # type: ignore[misc]
+    left: BaseNode
+    right: BaseNode
 
     def __init__(self, left: BaseNode, right: BaseNode):
         super().__init__(left.lineno, left.colno, left.filename)
         self.left = left
         self.right = right
 
-@dataclass(init=False, unsafe_hash=True)
+@dataclass(unsafe_hash=True)
 class AndNode(BaseNode):
 
-    left: BaseNode  # type: ignore[misc]
-    right: BaseNode  # type: ignore[misc]
+    left: BaseNode
+    right: BaseNode
 
     def __init__(self, left: BaseNode, right: BaseNode):
         super().__init__(left.lineno, left.colno, left.filename)
         self.left = left
         self.right = right
 
-@dataclass(init=False, unsafe_hash=True)
+@dataclass(unsafe_hash=True)
 class ComparisonNode(BaseNode):
 
-    left: BaseNode  # type: ignore[misc]
-    right: BaseNode  # type: ignore[misc]
-    ctype: COMPARISONS  # type: ignore[misc]
+    left: BaseNode
+    right: BaseNode
+    ctype: COMPARISONS
 
     def __init__(self, ctype: COMPARISONS, left: BaseNode, right: BaseNode):
         super().__init__(left.lineno, left.colno, left.filename)
@@ -424,13 +409,13 @@ class ComparisonNode(BaseNode):
         self.right = right
         self.ctype = ctype
 
-@dataclass(init=False, unsafe_hash=True)
+@dataclass(unsafe_hash=True)
 class ArithmeticNode(BaseNode):
 
-    left: BaseNode  # type: ignore[misc]
-    right: BaseNode  # type: ignore[misc]
+    left: BaseNode
+    right: BaseNode
     # TODO: use a Literal for operation
-    operation: str  # type: ignore[misc]
+    operation: str
 
     def __init__(self, operation: str, left: BaseNode, right: BaseNode):
         super().__init__(left.lineno, left.colno, left.filename)
@@ -439,41 +424,41 @@ class ArithmeticNode(BaseNode):
         self.operation = operation
 
 
-@dataclass(init=False, unsafe_hash=True)
+@dataclass(unsafe_hash=True)
 class NotNode(BaseNode):
 
-    value: BaseNode  # type: ignore[misc]
+    value: BaseNode
 
     def __init__(self, token: Token[TV_TokenTypes], value: BaseNode):
         super().__init__(token.lineno, token.colno, token.filename)
         self.value = value
 
-@dataclass(init=False, unsafe_hash=True)
+@dataclass(unsafe_hash=True)
 class CodeBlockNode(BaseNode):
 
-    lines: T.List[BaseNode]  # type: ignore[misc]
+    lines: T.List[BaseNode] = field(hash=False)
 
     def __init__(self, token: Token[TV_TokenTypes]):
         super().__init__(token.lineno, token.colno, token.filename)
         self.lines = []
 
-@dataclass(init=False, unsafe_hash=True)
+@dataclass(unsafe_hash=True)
 class IndexNode(BaseNode):
 
-    iobject: BaseNode  # type: ignore[misc]
-    index: BaseNode  # type: ignore[misc]
+    iobject: BaseNode
+    index: BaseNode
 
     def __init__(self, iobject: BaseNode, index: BaseNode):
         super().__init__(iobject.lineno, iobject.colno, iobject.filename)
         self.iobject = iobject
         self.index = index
 
-@dataclass(init=False, unsafe_hash=True)
+@dataclass(unsafe_hash=True)
 class MethodNode(BaseNode):
 
-    source_object: BaseNode  # type: ignore[misc]
-    name: str  # type: ignore[misc]
-    args: ArgumentNode = field(hash=False)  # type: ignore[misc]
+    source_object: BaseNode
+    name: str
+    args: ArgumentNode
 
     def __init__(self, filename: str, lineno: int, colno: int, source_object: BaseNode, name: str, args: ArgumentNode):
         super().__init__(lineno, colno, filename)
@@ -482,11 +467,11 @@ class MethodNode(BaseNode):
         assert isinstance(self.name, str)
         self.args = args
 
-@dataclass(init=False, unsafe_hash=True)
+@dataclass(unsafe_hash=True)
 class FunctionNode(BaseNode):
 
-    func_name: str  # type: ignore[misc]
-    args: ArgumentNode = field(hash=False)  # type: ignore[misc]
+    func_name: str
+    args: ArgumentNode
 
     def __init__(self, filename: str, lineno: int, colno: int, end_lineno: int, end_colno: int, func_name: str, args: ArgumentNode):
         super().__init__(lineno, colno, filename, end_lineno=end_lineno, end_colno=end_colno)
@@ -495,11 +480,11 @@ class FunctionNode(BaseNode):
         self.args = args
 
 
-@dataclass(init=False, unsafe_hash=True)
+@dataclass(unsafe_hash=True)
 class AssignmentNode(BaseNode):
 
-    var_name: str  # type: ignore[misc]
-    value: BaseNode  # type: ignore[misc]
+    var_name: str
+    value: BaseNode
 
     def __init__(self, filename: str, lineno: int, colno: int, var_name: str, value: BaseNode):
         super().__init__(lineno, colno, filename)
@@ -508,11 +493,11 @@ class AssignmentNode(BaseNode):
         self.value = value
 
 
-@dataclass(init=False, unsafe_hash=True)
+@dataclass(unsafe_hash=True)
 class PlusAssignmentNode(BaseNode):
 
-    var_name: str  # type: ignore[misc]
-    value: BaseNode  # type: ignore[misc]
+    var_name: str
+    value: BaseNode
 
     def __init__(self, filename: str, lineno: int, colno: int, var_name: str, value: BaseNode):
         super().__init__(lineno, colno, filename)
@@ -521,12 +506,12 @@ class PlusAssignmentNode(BaseNode):
         self.value = value
 
 
-@dataclass(init=False)
+@dataclass(unsafe_hash=True)
 class ForeachClauseNode(BaseNode):
 
-    varnames: T.List[str]  # type: ignore[misc]
-    items: BaseNode  # type: ignore[misc]
-    block: CodeBlockNode  # type: ignore[misc]
+    varnames: T.List[str] = field(hash=False)
+    items: BaseNode
+    block: CodeBlockNode
 
     def __init__(self, token: Token, varnames: T.List[str], items: BaseNode, block: CodeBlockNode):
         super().__init__(token.lineno, token.colno, token.filename)
@@ -535,57 +520,62 @@ class ForeachClauseNode(BaseNode):
         self.block = block
 
 
-@dataclass(init=False)
+@dataclass(unsafe_hash=True)
 class IfNode(BaseNode):
 
-    condition: BaseNode  # type: ignore[misc]
-    block: CodeBlockNode  # type: ignore[misc]
+    condition: BaseNode
+    block: CodeBlockNode
 
     def __init__(self, linenode: BaseNode, condition: BaseNode, block: CodeBlockNode):
         super().__init__(linenode.lineno, linenode.colno, linenode.filename)
-        self.condition = condition  # type: BaseNode
-        self.block = block          # type: CodeBlockNode
+        self.condition = condition
+        self.block = block
 
 
-@dataclass(init=False)
+@dataclass(unsafe_hash=True)
 class IfClauseNode(BaseNode):
 
-    ifs: T.List[IfNode]  # type: ignore[misc]
-    elseblock: T.Union[EmptyNode, CodeBlockNode]  # type: ignore[misc]
+    ifs: T.List[IfNode] = field(hash=False)
+    elseblock: T.Union[EmptyNode, CodeBlockNode]
 
     def __init__(self, linenode: BaseNode):
         super().__init__(linenode.lineno, linenode.colno, linenode.filename)
         self.ifs = []
         self.elseblock = None
 
+@dataclass(unsafe_hash=True)
 class TestCaseClauseNode(BaseNode):
+
+    condition: BaseNode
+    block: CodeBlockNode
+
     def __init__(self, condition: BaseNode, block: CodeBlockNode):
         super().__init__(condition.lineno, condition.colno, condition.filename)
         self.condition = condition
         self.block = block
 
-@dataclass(init=False)
+@dataclass(unsafe_hash=True)
 class UMinusNode(BaseNode):
 
-    value: BaseNode  # type: ignore[misc]
+    value: BaseNode
 
     def __init__(self, current_location: Token, value: BaseNode):
         super().__init__(current_location.lineno, current_location.colno, current_location.filename)
         self.value = value
 
 
-@dataclass(init=False)
+@dataclass(unsafe_hash=True)
 class TernaryNode(BaseNode):
 
-    condition: BaseNode  # type: ignore[misc]
-    trueblock: BaseNode  # type: ignore[misc]
-    falseblock: BaseNode  # type: ignore[misc]
+    condition: BaseNode
+    trueblock: BaseNode
+    falseblock: BaseNode
 
     def __init__(self, condition: BaseNode, trueblock: BaseNode, falseblock: BaseNode):
         super().__init__(condition.lineno, condition.colno, condition.filename)
-        self.condition = condition    # type: BaseNode
-        self.trueblock = trueblock    # type: BaseNode
-        self.falseblock = falseblock  # type: BaseNode
+        self.condition = condition
+        self.trueblock = trueblock
+        self.falseblock = falseblock
 
 if T.TYPE_CHECKING:
     COMPARISONS = Literal['==', '!=', '<', '<=', '>=', '>', 'in', 'notin']
