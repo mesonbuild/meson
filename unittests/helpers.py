@@ -204,3 +204,11 @@ def get_path_without_cmd(cmd: str, path: str) -> str:
         paths.discard(dirname)
         path = pathsep.join([str(p) for p in paths])
     return path
+
+def xfail_if_jobname(name: str):
+    if os.environ.get('MESON_CI_JOBNAME') == name:
+        return unittest.expectedFailure
+
+    def wrapper(func):
+        return func
+    return wrapper
