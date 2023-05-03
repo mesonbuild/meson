@@ -55,6 +55,9 @@ class Pybind11ConfigToolDependency(ConfigToolDependency):
 
     tools = ['pybind11-config']
 
+    # any version of the tool is valid, since this is header-only
+    allow_default_for_cross = True
+
     # pybind11 in 2.10.4 added --version, sanity-check another flag unique to it
     # in the meantime
     skip_version = '--pkgconfigdir'
