@@ -229,23 +229,16 @@ class UserComboOption(UserOption[str]):
 
 class UserArrayOption(UserOption[T.List[str]]):
     def __init__(self, description: str, value: T.Union[str, T.List[str]],
-                 split_args: bool = False, user_input: bool = False,
+                 split_args: bool = False,
                  allow_dups: bool = False, yielding: bool = DEFAULT_YIELDING,
                  choices: T.Optional[T.List[str]] = None,
                  deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
         super().__init__(description, choices if choices is not None else [], yielding, deprecated)
         self.split_args = split_args
         self.allow_dups = allow_dups
-        self.value = self.validate_value(value, user_input=user_input)
+        self.set_value(value)
 
-    def listify(self, value: T.Union[str, T.List[str]], user_input: bool = True) -> T.List[str]:
-        # User input is for options defined on the command line (via -D
-        # options). Users can put their input in as a comma separated
-        # string, but for defining options in meson_options.txt the format
-        # should match that of a combo
-        if not user_input and isinstance(value, str) and not value.startswith('['):
-            raise MesonException('Value does not define an array: ' + value)
-
+    def listify(self, value: T.Union[str, T.List[str]]) -> T.List[str]:
         if isinstance(value, str):
             if value.startswith('['):
                 try:
@@ -265,8 +258,8 @@ class UserArrayOption(UserOption[T.List[str]]):
             raise MesonException(f'"{value}" should be a string array, but it is not')
         return newvalue
 
-    def validate_value(self, value: T.Union[str, T.List[str]], user_input: bool = True) -> T.List[str]:
-        newvalue = self.listify(value, user_input)
+    def validate_value(self, value: T.Union[str, T.List[str]]) -> T.List[str]:
+        newvalue = self.listify(value)
 
         if not self.allow_dups and len(set(newvalue)) != len(newvalue):
             msg = 'Duplicated values in array option is deprecated. ' \
