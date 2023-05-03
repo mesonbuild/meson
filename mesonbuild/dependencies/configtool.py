@@ -43,6 +43,7 @@ class ConfigToolDependency(ExternalDependency):
     tool_name: T.Optional[str] = None
     version_arg = '--version'
     skip_version: T.Optional[str] = None
+    allow_default_for_cross = False
     __strip_version = re.compile(r'^[0-9][0-9.]+')
 
     def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None):
@@ -85,7 +86,7 @@ class ConfigToolDependency(ExternalDependency):
         best_match: T.Tuple[T.Optional[T.List[str]], T.Optional[str]] = (None, None)
         for potential_bin in find_external_program(
                 self.env, self.for_machine, self.tool_name,
-                self.tool_name, self.tools, allow_default_for_cross=False):
+                self.tool_name, self.tools, allow_default_for_cross=self.allow_default_for_cross):
             if not potential_bin.found():
                 continue
             tool = potential_bin.get_command()
