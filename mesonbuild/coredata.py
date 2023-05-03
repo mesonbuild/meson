@@ -79,17 +79,18 @@ class MesonVersionMismatchException(MesonException):
 
 
 class UserOption(T.Generic[_T], HoldableObject):
-    def __init__(self, description: str, choices: T.Optional[T.Union[str, T.List[_T]]],
+    def __init__(self, description: str,
+                 value: T.Any,
+                 choices: T.Optional[T.Union[str, T.List[_T]]],
                  yielding: bool,
-                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
+                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]]):
         super().__init__()
         self.choices = choices
         self.description = description
-        if not isinstance(yielding, bool):
-            raise MesonException('Value of "yielding" must be a boolean.')
         self.yielding = yielding
         self.deprecated = deprecated
         self.readonly = False
+        self.set_value(value)
 
     def listify(self, value: T.Any) -> T.List[T.Any]:
         return [value]
@@ -112,8 +113,7 @@ class UserOption(T.Generic[_T], HoldableObject):
 class UserStringOption(UserOption[str]):
     def __init__(self, description: str, value: T.Any, yielding: bool = DEFAULT_YIELDING,
                  deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
-        super().__init__(description, None, yielding, deprecated)
-        self.set_value(value)
+        super().__init__(description, value, None, yielding, deprecated)
 
     def validate_value(self, value: T.Any) -> str:
         if not isinstance(value, str):
@@ -123,8 +123,7 @@ class UserStringOption(UserOption[str]):
 class UserBooleanOption(UserOption[bool]):
     def __init__(self, description: str, value, yielding: bool = DEFAULT_YIELDING,
                  deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
-        super().__init__(description, [True, False], yielding, deprecated)
-        self.set_value(value)
+        super().__init__(description, value, [True, False], yielding, deprecated)
 
     def __bool__(self) -> bool:
         return self.value
@@ -152,8 +151,7 @@ class UserIntegerOption(UserOption[int]):
         if max_value is not None:
             c.append('<=' + str(max_value))
         choices = ', '.join(c)
-        super().__init__(description, choices, yielding, deprecated)
-        self.set_value(default_value)
+        super().__init__(description, default_value, choices, yielding, deprecated)
 
     def validate_value(self, value: T.Any) -> int:
         if isinstance(value, str):
@@ -205,13 +203,7 @@ class UserComboOption(UserOption[str]):
     def __init__(self, description: str, choices: T.List[str], value: T.Any,
                  yielding: bool = DEFAULT_YIELDING,
                  deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
-        super().__init__(description, choices, yielding, deprecated)
-        if not isinstance(self.choices, list):
-            raise MesonException('Combo choices must be an array.')
-        for i in self.choices:
-            if not isinstance(i, str):
-                raise MesonException('Combo choice elements must be strings.')
-        self.set_value(value)
+        super().__init__(description, value, choices, yielding, deprecated)
 
     def validate_value(self, value: T.Any) -> str:
         if value not in self.choices:
@@ -233,10 +225,9 @@ class UserArrayOption(UserOption[T.List[str]]):
                  allow_dups: bool = False, yielding: bool = DEFAULT_YIELDING,
                  choices: T.Optional[T.List[str]] = None,
                  deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
-        super().__init__(description, choices if choices is not None else [], yielding, deprecated)
         self.split_args = split_args
         self.allow_dups = allow_dups
-        self.set_value(value)
+        super().__init__(description, value, choices if choices is not None else [], yielding, deprecated)
 
     @staticmethod
     def listify_value(value: T.Union[str, T.List[str]], shlex_split_args: bool = False) -> T.List[str]:
