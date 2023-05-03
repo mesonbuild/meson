@@ -23,6 +23,7 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
+    from ..interpreterbase import TYPE_var
 
 language_map = {
     'c': 'C',
@@ -121,16 +122,11 @@ def cmake_get_generator_args(env: 'Environment') -> T.List[str]:
     assert backend_name in backend_generator_map
     return ['-G', backend_generator_map[backend_name]]
 
-def cmake_defines_to_args(raw: T.Any, permissive: bool = False) -> T.List[str]:
+def cmake_defines_to_args(raw: T.List[T.Dict[str, TYPE_var]], permissive: bool = False) -> T.List[str]:
     res = []  # type: T.List[str]
-    if not isinstance(raw, list):
-        raw = [raw]
 
     for i in raw:
-        if not isinstance(i, dict):
-            raise MesonException('Invalid CMake defines. Expected a dict, but got a {}'.format(type(i).__name__))
         for key, val in i.items():
-            assert isinstance(key, str)
             if key in blacklist_cmake_defs:
                 mlog.warning('Setting', mlog.bold(key), 'is not supported. See the meson docs for cross compilation support:')
                 mlog.warning('  - URL: https://mesonbuild.com/CMake-module.html#cross-compilation')

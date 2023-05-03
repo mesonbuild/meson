@@ -205,36 +205,30 @@ class CMakeSubprojectOptions(ModuleObject):
             return self.target_options[kwargs['target']]
         return self.target_options.global_options
 
+    @typed_pos_args('subproject_options.add_cmake_defines', varargs=dict)
     @noKwargs
     def add_cmake_defines(self, state, args, kwargs) -> None:
-        self.cmake_options += cmake_defines_to_args(args)
+        self.cmake_options += cmake_defines_to_args(args[0])
 
-    @stringArgs
+    @typed_pos_args('subproject_options.set_override_option', str, str)
     @permittedKwargs({'target'})
     def set_override_option(self, state, args, kwargs) -> None:
-        if len(args) != 2:
-            raise InvalidArguments('set_override_option takes exactly 2 positional arguments')
         self._get_opts(kwargs).set_opt(args[0], args[1])
 
+    @typed_pos_args('subproject_options.set_install', bool)
     @permittedKwargs({'target'})
     def set_install(self, state, args, kwargs) -> None:
-        if len(args) != 1 or not isinstance(args[0], bool):
-            raise InvalidArguments('set_install takes exactly 1 boolean argument')
         self._get_opts(kwargs).set_install(args[0])
 
-    @stringArgs
+    @typed_pos_args('subproject_options.append_compile_args', str, varargs=str, min_varargs=1)
     @permittedKwargs({'target'})
     def append_compile_args(self, state, args, kwargs) -> None:
-        if len(args) < 2:
-            raise InvalidArguments('append_compile_args takes at least 2 positional arguments')
-        self._get_opts(kwargs).append_args(args[0], args[1:])
+        self._get_opts(kwargs).append_args(args[0], args[1])
 
-    @stringArgs
+    @typed_pos_args('subproject_options.append_compile_args', varargs=str, min_varargs=1)
     @permittedKwargs({'target'})
     def append_link_args(self, state, args, kwargs) -> None:
-        if not args:
-            raise InvalidArguments('append_link_args takes at least 1 positional argument')
-        self._get_opts(kwargs).append_link_args(args)
+        self._get_opts(kwargs).append_link_args(args[0])
 
     @noPosargs
     @noKwargs
