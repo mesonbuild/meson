@@ -238,7 +238,8 @@ class UserArrayOption(UserOption[T.List[str]]):
         self.allow_dups = allow_dups
         self.set_value(value)
 
-    def listify(self, value: T.Union[str, T.List[str]]) -> T.List[str]:
+    @staticmethod
+    def listify_value(value: T.Union[str, T.List[str]], shlex_split_args: bool = False) -> T.List[str]:
         if isinstance(value, str):
             if value.startswith('['):
                 try:
@@ -248,7 +249,7 @@ class UserArrayOption(UserOption[T.List[str]]):
             elif value == '':
                 newvalue = []
             else:
-                if self.split_args:
+                if shlex_split_args:
                     newvalue = split_args(value)
                 else:
                     newvalue = [v.strip() for v in value.split(',')]
@@ -257,6 +258,9 @@ class UserArrayOption(UserOption[T.List[str]]):
         else:
             raise MesonException(f'"{value}" should be a string array, but it is not')
         return newvalue
+
+    def listify(self, value: T.Any) -> T.List[T.Any]:
+        return self.listify_value(value, self.split_args)
 
     def validate_value(self, value: T.Union[str, T.List[str]]) -> T.List[str]:
         newvalue = self.listify(value)
