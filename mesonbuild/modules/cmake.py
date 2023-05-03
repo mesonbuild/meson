@@ -315,12 +315,12 @@ class CmakeModule(ExtensionModule):
 
         version_file = os.path.join(state.environment.scratch_dir, f'{name}ConfigVersion.cmake')
 
-        conf = {
-            'CVF_VERSION': (version, ''),
-            'CMAKE_SIZEOF_VOID_P': (str(self.detect_voidp_size(state.environment)), ''),
-            'CVF_ARCH_INDEPENDENT': (arch_independent, ''),
+        conf: T.Dict[str, T.Union[str, bool, int]] = {
+            'CVF_VERSION': version,
+            'CMAKE_SIZEOF_VOID_P': str(self.detect_voidp_size(state.environment)),
+            'CVF_ARCH_INDEPENDENT': arch_independent,
         }
-        mesonlib.do_conf_file(template_file, version_file, conf, 'meson')
+        mesonlib.do_conf_file(template_file, version_file, build.ConfigurationData(conf), 'meson')
 
         res = build.Data([mesonlib.File(True, state.environment.get_scratch_dir(), version_file)], pkgroot, pkgroot_name, None, state.subproject)
         return ModuleReturnValue(res, [res])
