@@ -132,9 +132,8 @@ class FortranCompiler(CLikeCompiler, Compiler):
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         opts.update({
             key: coredata.UserComboOption(
-                'Fortran language standard to use',
+                'Fortran language standard to use', 'none',
                 ['none'],
-                'none',
             ),
         })
         return opts

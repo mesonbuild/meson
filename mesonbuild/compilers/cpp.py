@@ -204,9 +204,8 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
         key = OptionKey('key', machine=self.for_machine, lang=self.language)
         opts.update({
             key.evolve('eh'): coredata.UserComboOption(
-                'C++ exception handling type.',
+                'C++ exception handling type.', 'default',
                 ['none', 'default', 'a', 's', 'sc'],
-                'default',
             ),
             key.evolve('rtti'): coredata.UserBooleanOption('Enable RTTI', True),
         })
@@ -327,9 +326,8 @@ class ArmclangCPPCompiler(ArmclangCompiler, CPPCompiler):
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         opts.update({
             key.evolve('eh'): coredata.UserComboOption(
-                'C++ exception handling type.',
+                'C++ exception handling type.', 'default',
                 ['none', 'default', 'a', 's', 'sc'],
-                'default',
             ),
         })
         std_opt = opts[key]
@@ -375,9 +373,8 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
         opts = CPPCompiler.get_options(self)
         opts.update({
             key.evolve('eh'): coredata.UserComboOption(
-                'C++ exception handling type.',
+                'C++ exception handling type.', 'default',
                 ['none', 'default', 'a', 's', 'sc'],
-                'default',
             ),
             key.evolve('rtti'): coredata.UserBooleanOption('Enable RTTI', True),
             key.evolve('debugstl'): coredata.UserBooleanOption(
@@ -499,9 +496,8 @@ class ElbrusCPPCompiler(ElbrusCompiler, CPPCompiler):
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         opts.update({
             key.evolve('eh'): coredata.UserComboOption(
-                'C++ exception handling type.',
+                'C++ exception handling type.', 'default',
                 ['none', 'default', 'a', 's', 'sc'],
-                'default',
             ),
             key.evolve('debugstl'): coredata.UserBooleanOption(
                 'STL debug mode',
@@ -577,9 +573,8 @@ class IntelCPPCompiler(IntelGnuLikeCompiler, CPPCompiler):
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         opts.update({
             key.evolve('eh'): coredata.UserComboOption(
-                'C++ exception handling type.',
+                'C++ exception handling type.', 'default',
                 ['none', 'default', 'a', 's', 'sc'],
-                'default',
             ),
             key.evolve('rtti'): coredata.UserBooleanOption('Enable RTTI', True),
             key.evolve('debugstl'): coredata.UserBooleanOption('STL debug mode', False),
@@ -643,9 +638,8 @@ class VisualStudioLikeCPPCompilerMixin(CompilerMixinBase):
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         opts.update({
             key.evolve('eh'): coredata.UserComboOption(
-                'C++ exception handling type.',
+                'C++ exception handling type.', 'default',
                 ['none', 'default', 'a', 's', 'sc'],
-                'default',
             ),
             key.evolve('rtti'): coredata.UserBooleanOption('Enable RTTI', True),
             key.evolve('winlibs'): coredata.UserArrayOption(

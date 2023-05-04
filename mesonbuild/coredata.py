@@ -200,7 +200,7 @@ class UserUmaskOption(UserIntegerOption, UserOption[T.Union[str, OctalInt]]):
             raise MesonException(f'Invalid mode: {e}')
 
 class UserComboOption(UserOption[str]):
-    def __init__(self, description: str, choices: T.List[str], value: T.Any,
+    def __init__(self, description: str, value: T.Any, choices: T.List[str],
                  yielding: bool = DEFAULT_YIELDING,
                  deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
         super().__init__(description, value, choices, yielding, deprecated)
@@ -281,7 +281,7 @@ class UserFeatureOption(UserComboOption):
 
     def __init__(self, description: str, value: T.Any, yielding: bool = DEFAULT_YIELDING,
                  deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
-        super().__init__(description, self.static_choices, value, yielding, deprecated)
+        super().__init__(description, value, self.static_choices, yielding, deprecated)
         self.name: T.Optional[str] = None  # TODO: Refactor options to all store their name
 
     def is_enabled(self) -> bool:
@@ -312,7 +312,7 @@ class UserStdOption(UserComboOption):
         self.all_stds = ['none'] + all_stds
         # Map a deprecated std to its replacement. e.g. gnu11 -> c11.
         self.deprecated_stds: T.Dict[str, str] = {}
-        super().__init__(f'{lang} language standard to use', ['none'], 'none')
+        super().__init__(f'{lang} language standard to use', 'none', ['none'])
 
     def set_versions(self, versions: T.List[str], gnu: bool = False, gnu_deprecated: bool = False) -> None:
         assert all(std in self.all_stds for std in versions)

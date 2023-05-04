@@ -239,7 +239,7 @@ class OptionInterpreter:
         value = kwargs['value']
         if value is None:
             value = kwargs['choices'][0]
-        return coredata.UserComboOption(description, choices, value, *args)
+        return coredata.UserComboOption(description, value, choices, *args)
 
     @typed_kwargs(
         'integer option',
