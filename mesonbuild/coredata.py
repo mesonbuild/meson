@@ -83,13 +83,14 @@ class UserOption(T.Generic[_T], HoldableObject):
                  value: T.Any,
                  choices: T.Optional[T.Union[str, T.List[_T]]],
                  yielding: bool,
-                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]]):
+                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]],
+                 readonly: bool):
         super().__init__()
         self.choices = choices
         self.description = description
         self.yielding = yielding
         self.deprecated = deprecated
-        self.readonly = False
+        self.readonly = readonly
         self.set_value(value)
 
     def listify(self, value: T.Any) -> T.List[T.Any]:
@@ -112,8 +113,9 @@ class UserOption(T.Generic[_T], HoldableObject):
 
 class UserStringOption(UserOption[str]):
     def __init__(self, description: str, value: T.Any, yielding: bool = DEFAULT_YIELDING,
-                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
-        super().__init__(description, value, None, yielding, deprecated)
+                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False,
+                 readonly: bool = False):
+        super().__init__(description, value, None, yielding, deprecated, readonly)
 
     def validate_value(self, value: T.Any) -> str:
         if not isinstance(value, str):
@@ -122,8 +124,9 @@ class UserStringOption(UserOption[str]):
 
 class UserBooleanOption(UserOption[bool]):
     def __init__(self, description: str, value, yielding: bool = DEFAULT_YIELDING,
-                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
-        super().__init__(description, value, [True, False], yielding, deprecated)
+                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False,
+                 readonly: bool = False):
+        super().__init__(description, value, [True, False], yielding, deprecated, readonly)
 
     def __bool__(self) -> bool:
         return self.value
@@ -141,7 +144,8 @@ class UserBooleanOption(UserOption[bool]):
 
 class UserIntegerOption(UserOption[int]):
     def __init__(self, description: str, value: T.Any, yielding: bool = DEFAULT_YIELDING,
-                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
+                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False,
+                 readonly: bool = False):
         min_value, max_value, default_value = value
         self.min_value = min_value
         self.max_value = max_value
@@ -151,7 +155,7 @@ class UserIntegerOption(UserOption[int]):
         if max_value is not None:
             c.append('<=' + str(max_value))
         choices = ', '.join(c)
-        super().__init__(description, default_value, choices, yielding, deprecated)
+        super().__init__(description, default_value, choices, yielding, deprecated, readonly)
 
     def validate_value(self, value: T.Any) -> int:
         if isinstance(value, str):
@@ -179,8 +183,9 @@ class OctalInt(int):
 
 class UserUmaskOption(UserIntegerOption, UserOption[T.Union[str, OctalInt]]):
     def __init__(self, description: str, value: T.Any, yielding: bool = DEFAULT_YIELDING,
-                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
-        super().__init__(description, (0, 0o777, value), yielding, deprecated)
+                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False,
+                 readonly: bool = False):
+        super().__init__(description, (0, 0o777, value), yielding, deprecated, readonly)
         self.choices = ['preserve', '0000-0777']
 
     def printable_value(self) -> str:
@@ -202,8 +207,9 @@ class UserUmaskOption(UserIntegerOption, UserOption[T.Union[str, OctalInt]]):
 class UserComboOption(UserOption[str]):
     def __init__(self, description: str, value: T.Any, choices: T.List[str],
                  yielding: bool = DEFAULT_YIELDING,
-                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
-        super().__init__(description, value, choices, yielding, deprecated)
+                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False,
+                 readonly: bool = False):
+        super().__init__(description, value, choices, yielding, deprecated, readonly)
 
     def validate_value(self, value: T.Any) -> str:
         if value not in self.choices:
@@ -224,10 +230,11 @@ class UserArrayOption(UserOption[T.List[str]]):
                  split_args: bool = False,
                  allow_dups: bool = False, yielding: bool = DEFAULT_YIELDING,
                  choices: T.Optional[T.List[str]] = None,
-                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
+                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False,
+                 readonly: bool = False):
         self.split_args = split_args
         self.allow_dups = allow_dups
-        super().__init__(description, value, choices if choices is not None else [], yielding, deprecated)
+        super().__init__(description, value, choices if choices is not None else [], yielding, deprecated, readonly)
 
     @staticmethod
     def listify_value(value: T.Union[str, T.List[str]], shlex_split_args: bool = False) -> T.List[str]:
@@ -280,8 +287,9 @@ class UserFeatureOption(UserComboOption):
     static_choices = ['enabled', 'disabled', 'auto']
 
     def __init__(self, description: str, value: T.Any, yielding: bool = DEFAULT_YIELDING,
-                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
-        super().__init__(description, value, self.static_choices, yielding, deprecated)
+                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False,
+                 readonly: bool = False):
+        super().__init__(description, value, self.static_choices, yielding, deprecated, readonly)
         self.name: T.Optional[str] = None  # TODO: Refactor options to all store their name
 
     def is_enabled(self) -> bool:
@@ -1202,12 +1210,10 @@ class BuiltinOption(T.Generic[_T, _U]):
         """Create an instance of opt_type and return it."""
         if value is None:
             value = self.prefixed_default(name, prefix)
-        keywords = {'yielding': self.yielding, 'value': value}
+        keywords = {'yielding': self.yielding, 'value': value, 'readonly': self.readonly}
         if self.choices:
             keywords['choices'] = self.choices
-        o = self.opt_type(self.description, **keywords)
-        o.readonly = self.readonly
-        return o
+        return self.opt_type(self.description, **keywords)
 
     def _argparse_action(self) -> T.Optional[str]:
         # If the type is a boolean, the presence of the argument in --foo form
