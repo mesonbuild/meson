@@ -83,32 +83,35 @@ class CommandLineParser:
         self.parser = argparse.ArgumentParser(prog='meson', formatter_class=self.formatter)
         self.subparsers = self.parser.add_subparsers(title='Commands', dest='command',
                                                      description='If no command is specified it defaults to the "setup" command.')
-        self.add_command('setup', msetup.add_arguments, msetup.run,
-                         help_msg='Configure the project')
+        # The most common commands, alphabetically sorted
+        self.add_command('compile', mcompile.add_arguments, mcompile.run,
+                         help_msg='Build the project')
         self.add_command('configure', mconf.add_arguments, mconf.run,
                          help_msg='Change project options',)
         self.add_command('dist', mdist.add_arguments, mdist.run,
                          help_msg='Generate release archive',)
         self.add_command('install', minstall.add_arguments, minstall.run,
                          help_msg='Install the project')
-        self.add_command('introspect', mintro.add_arguments, mintro.run,
-                         help_msg='Introspect project')
-        self.add_command('init', minit.add_arguments, minit.run,
-                         help_msg='Create a new project')
+        self.add_command('setup', msetup.add_arguments, msetup.run,
+                         help_msg='Configure the project')
         self.add_command('test', mtest.add_arguments, mtest.run,
                          help_msg='Run tests')
-        self.add_command('wrap', wraptool.add_arguments, wraptool.run,
-                         help_msg='Wrap tools')
-        self.add_command('subprojects', msubprojects.add_arguments, msubprojects.run,
-                         help_msg='Manage subprojects')
-        self.add_command('rewrite', lambda parser: rewriter.add_arguments(parser, self.formatter), rewriter.run,
-                         help_msg='Modify the project definition')
-        self.add_command('compile', mcompile.add_arguments, mcompile.run,
-                         help_msg='Build the project')
+
+        # More advanced commands, alphabetically sorted
         self.add_command('devenv', mdevenv.add_arguments, mdevenv.run,
                          help_msg='Run commands in developer environment')
         self.add_command('env2mfile', env2mfile.add_arguments, env2mfile.run,
                          help_msg='Convert current environment to a cross or native file')
+        self.add_command('init', minit.add_arguments, minit.run,
+                         help_msg='Create a new project')
+        self.add_command('introspect', mintro.add_arguments, mintro.run,
+                         help_msg='Introspect project')
+        self.add_command('rewrite', lambda parser: rewriter.add_arguments(parser, self.formatter), rewriter.run,
+                         help_msg='Modify the project definition')
+        self.add_command('subprojects', msubprojects.add_arguments, msubprojects.run,
+                         help_msg='Manage subprojects')
+        self.add_command('wrap', wraptool.add_arguments, wraptool.run,
+                         help_msg='Wrap tools')
         # Add new commands above this line to list them in help command
         self.add_command('help', self.add_help_arguments, self.run_help_command,
                          help_msg='Print help of a subcommand')
