@@ -188,7 +188,6 @@
       "mesonbuild.dependencies",
       "mesonbuild.dependencies.base",
       "mesonbuild.dependencies.detect",
-      "mesonbuild.dependencies.pkgconfig",
       "mesonbuild.depfile",
       "mesonbuild.envconfig",
       "mesonbuild.environment",
@@ -223,13 +222,11 @@
       "mesonbuild.mintro",
       "mesonbuild.mlog",
       "mesonbuild.modules",
-      "mesonbuild.modules.gnome",
       "mesonbuild.mparser",
       "mesonbuild.msetup",
       "mesonbuild.optinterpreter",
       "mesonbuild.programs",
       "mesonbuild.scripts",
-      "mesonbuild.scripts.gettext",
       "mesonbuild.scripts.meson_exe",
       "mesonbuild.utils",
       "mesonbuild.utils.core",
@@ -240,6 +237,6 @@
       "mesonbuild.wrap",
       "mesonbuild.wrap.wrap"
     ],
-    "count": 71
+    "count": 68
   }
 }
