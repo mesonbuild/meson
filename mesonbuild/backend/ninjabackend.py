@@ -37,7 +37,7 @@ from .. import mlog
 from .. import compilers
 from ..arglist import CompilerArgs
 from ..compilers import Compiler
-from ..linkers import ArLinker, RSPFileSyntax
+from ..linkers import ArLikeLinker, RSPFileSyntax
 from ..mesonlib import (
     File, LibType, MachineChoice, MesonException, OrderedSet, PerMachine,
     ProgressBar, quote_arg
@@ -2272,7 +2272,7 @@ class NinjaBackend(backends.Backend):
             #        them out to fix this properly on Windows. See:
             # https://github.com/mesonbuild/meson/issues/1517
             # https://github.com/mesonbuild/meson/issues/1526
-            if isinstance(static_linker, ArLinker) and not mesonlib.is_windows():
+            if isinstance(static_linker, ArLikeLinker) and not mesonlib.is_windows():
                 # `ar` has no options to overwrite archives. It always appends,
                 # which is never what we want. Delete an existing library first if
                 # it exists. https://github.com/mesonbuild/meson/issues/1355
