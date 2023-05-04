@@ -209,7 +209,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
 
         # https://sourceforge.net/p/mingw-w64/mailman/message/30504611/
         # https://github.com/python/cpython/pull/100137
-        if mesonlib.is_windows() and self.get_windows_python_arch() == '64' and mesonlib.version_compare(self.version, '<3.12'):
+        if mesonlib.is_windows() and self.get_windows_python_arch().endswith('64') and mesonlib.version_compare(self.version, '<3.12'):
             self.compile_args += ['-DMS_WIN64=']
 
         if not self.clib_compiler.has_header('Python.h', '', environment, extra_args=self.compile_args):
@@ -240,16 +240,18 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
         if self.platform == 'mingw':
             pycc = self.variables.get('CC')
             if pycc.startswith('x86_64'):
-                return '64'
+                return 'x86_64'
             elif pycc.startswith(('i686', 'i386')):
-                return '32'
+                return 'x86'
             else:
                 mlog.log(f'MinGW Python built with unknown CC {pycc!r}, please file a bug')
                 return None
         elif self.platform == 'win32':
-            return '32'
+            return 'x86'
         elif self.platform in {'win64', 'win-amd64'}:
-            return '64'
+            return 'x86_64'
+        elif self.platform in {'win-arm64'}:
+            return 'aarch64'
         mlog.log(f'Unknown Windows Python platform {self.platform!r}')
         return None
 
@@ -321,19 +323,8 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
             self.is_found = False
             return
         arch = detect_cpu_family(env.coredata.compilers.host)
-        if arch == 'x86':
-            arch = '32'
-        elif arch == 'x86_64':
-            arch = '64'
-        else:
-            # We can't cross-compile Python 3 dependencies on Windows yet
-            mlog.log(f'Unknown architecture {arch!r} for',
-                     mlog.bold(self.name))
-            self.is_found = False
-            return
-        # Pyarch ends in '32' or '64'
         if arch != pyarch:
-            mlog.log('Need', mlog.bold(self.name), f'for {arch}-bit, but found {pyarch}-bit')
+            mlog.log('Need', mlog.bold(self.name), f'for {arch}, but found {pyarch}')
             self.is_found = False
             return
         # This can fail if the library is not found
