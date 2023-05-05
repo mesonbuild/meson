@@ -1359,11 +1359,13 @@ def get_global_options(lang: str,
 
     cargs = coredata.UserArrayOption(
         description + ' compiler',
-        comp_options, split_args=True, allow_dups=True)
+        [], split_args=True, allow_dups=True)
+    cargs.set_value(comp_options)
 
     largs = coredata.UserArrayOption(
         description + ' linker',
-        link_options, split_args=True, allow_dups=True)
+        [], split_args=True, allow_dups=True)
+    largs.set_value(link_options)
 
     if comp.INVOKES_LINKER and comp_key == envkey:
         # If the compiler acts as a linker driver, and we're using the

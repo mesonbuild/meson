@@ -38,6 +38,7 @@ import shlex
 import typing as T
 
 if T.TYPE_CHECKING:
+    from typing_extensions import Literal
     from . import dependencies
     from .compilers.compilers import Compiler, CompileResult, RunResult
     from .dependencies.detect import TV_DepID
@@ -45,8 +46,9 @@ if T.TYPE_CHECKING:
     from .mesonlib import OptionOverrideProxy, FileOrString
     from .cmake.traceparser import CMakeCacheEntry
 
-    OptionDictType = T.Union[T.Dict[str, 'UserOption[T.Any]'], OptionOverrideProxy]
-    MutableKeyedOptionDictType = T.Dict['OptionKey', 'UserOption[T.Any]']
+    UserOptionTypes = T.Union[str, bool, int, T.List[str]]
+    OptionDictType = T.Union[T.Dict[str, 'UserOption'], OptionOverrideProxy]
+    MutableKeyedOptionDictType = T.Dict['OptionKey', 'UserOption']
     KeyedOptionDictType = T.Union[MutableKeyedOptionDictType, OptionOverrideProxy]
     CompilerCheckCacheKey = T.Tuple[T.Tuple[str, ...], str, FileOrString, T.Tuple[str, ...], str]
     # code, args
@@ -66,7 +68,7 @@ backendlist = ['ninja', 'vs', 'vs2010', 'vs2012', 'vs2013', 'vs2015', 'vs2017', 
 DEFAULT_YIELDING = False
 
 # Can't bind this near the class method it seems, sadly.
-_T = T.TypeVar('_T')
+_T = T.TypeVar('_T', str, int, bool, T.List[str], T.Union['OctalInt', Literal['preserve']])
 
 
 class MesonVersionMismatchException(MesonException):
@@ -80,58 +82,61 @@ class MesonVersionMismatchException(MesonException):
 
 class UserOption(T.Generic[_T], HoldableObject):
     def __init__(self, description: str,
-                 value: T.Any,
-                 choices: T.Optional[T.Union[str, T.List[_T]]],
+                 value: UserOptionTypes,
+                 choices: T.List[str],
                  yielding: bool,
                  deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]],
-                 readonly: bool):
+                 readonly: bool) -> None:
         super().__init__()
         self.choices = choices
         self.description = description
         self.yielding = yielding
         self.deprecated = deprecated
         self.readonly = readonly
-        self.set_value(value)
+        self.value: _T = self.validate_value(value)
 
-    def listify(self, value: T.Any) -> T.List[T.Any]:
-        return [value]
+    def listify(self, value: UserOptionTypes) -> T.List[str]:
+        # This is used to check if value is deprecated but we can only check
+        # string representation.
+        if isinstance(value, bool):
+            value = 'true' if value else 'false'
+        return [str(value)]
 
-    def printable_value(self) -> T.Union[str, int, bool, T.List[T.Union[str, int, bool]]]:
-        assert isinstance(self.value, (str, int, bool, list))
+    def printable_value(self) -> T.Union[str, int, bool, T.List[str]]:
         return self.value
 
     # Check that the input is a valid value and return the
     # "cleaned" or "native" version. For example the Boolean
     # option could take the string "true" and return True.
-    def validate_value(self, value: T.Any) -> _T:
+    def validate_value(self, value: UserOptionTypes) -> _T:
         raise RuntimeError('Derived option class did not override validate_value.')
 
-    def set_value(self, newvalue: T.Any) -> bool:
-        oldvalue = getattr(self, 'value', None)
+    def set_value(self, newvalue: UserOptionTypes) -> bool:
+        oldvalue = self.value
         self.value = self.validate_value(newvalue)
         return self.value != oldvalue
 
 class UserStringOption(UserOption[str]):
-    def __init__(self, description: str, value: T.Any, yielding: bool = DEFAULT_YIELDING,
+    def __init__(self, description: str, value: str, yielding: bool = DEFAULT_YIELDING,
                  deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False,
                  readonly: bool = False):
-        super().__init__(description, value, None, yielding, deprecated, readonly)
+        super().__init__(description, value, [], yielding, deprecated, readonly)
 
-    def validate_value(self, value: T.Any) -> str:
+    def validate_value(self, value: UserOptionTypes) -> str:
         if not isinstance(value, str):
             raise MesonException('Value "%s" for string option is not a string.' % str(value))
         return value
 
 class UserBooleanOption(UserOption[bool]):
-    def __init__(self, description: str, value, yielding: bool = DEFAULT_YIELDING,
+    def __init__(self, description: str, value: T.Union[str, bool], yielding: bool = DEFAULT_YIELDING,
                  deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False,
                  readonly: bool = False):
-        super().__init__(description, value, [True, False], yielding, deprecated, readonly)
+        super().__init__(description, value, ['true', 'false'], yielding, deprecated, readonly)
 
     def __bool__(self) -> bool:
         return self.value
 
-    def validate_value(self, value: T.Any) -> bool:
+    def validate_value(self, value: UserOptionTypes) -> bool:
         if isinstance(value, bool):
             return value
         if not isinstance(value, str):
@@ -143,7 +148,7 @@ class UserBooleanOption(UserOption[bool]):
         raise MesonException('Value %s is not boolean (true or false).' % value)
 
 class UserIntegerOption(UserOption[int]):
-    def __init__(self, description: str, value: T.Any, yielding: bool = DEFAULT_YIELDING,
+    def __init__(self, description: str, value: T.Tuple[int, int, int], yielding: bool = DEFAULT_YIELDING,
                  deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False,
                  readonly: bool = False):
         min_value, max_value, default_value = value
@@ -154,10 +159,10 @@ class UserIntegerOption(UserOption[int]):
             c.append('>=' + str(min_value))
         if max_value is not None:
             c.append('<=' + str(max_value))
-        choices = ', '.join(c)
+        choices = [', '.join(c)]
         super().__init__(description, default_value, choices, yielding, deprecated, readonly)
 
-    def validate_value(self, value: T.Any) -> int:
+    def validate_value(self, value: UserOptionTypes) -> int:
         if isinstance(value, str):
             value = self.toint(value)
         if not isinstance(value, int):
@@ -178,40 +183,45 @@ class OctalInt(int):
     # NinjaBackend.get_user_option_args uses str() to converts it to a command line option
     # UserUmaskOption.toint() uses int(str, 8) to convert it to an integer
     # So we need to use oct instead of dec here if we do not want values to be misinterpreted.
-    def __str__(self):
+    def __str__(self) -> str:
         return oct(int(self))
 
-class UserUmaskOption(UserIntegerOption, UserOption[T.Union[str, OctalInt]]):
-    def __init__(self, description: str, value: T.Any, yielding: bool = DEFAULT_YIELDING,
+class UserUmaskOption(UserOption[T.Union[Literal['preserve'], OctalInt]]):
+    def __init__(self, description: str, value: T.Union[Literal['preserve'], int], yielding: bool = DEFAULT_YIELDING,
                  deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False,
                  readonly: bool = False):
-        super().__init__(description, (0, 0o777, value), yielding, deprecated, readonly)
-        self.choices = ['preserve', '0000-0777']
+        super().__init__(description, value, ['preserve', '0000-0777'], yielding, deprecated, readonly)
 
     def printable_value(self) -> str:
         if self.value == 'preserve':
             return self.value
         return format(self.value, '04o')
 
-    def validate_value(self, value: T.Any) -> T.Union[str, OctalInt]:
-        if value is None or value == 'preserve':
+    def validate_value(self, value: UserOptionTypes) -> T.Union[Literal['preserve'], OctalInt]:
+        if value == 'preserve':
             return 'preserve'
-        return OctalInt(super().validate_value(value))
+        if isinstance(value, str):
+            value = self.toint(value)
+        if not isinstance(value, int):
+            raise MesonException('Mode must be integer or "preserve".')
+        if value < 0 or value > 0o777:
+            raise MesonException(f'Mode must be between 0 and 0o777')
+        return OctalInt(value)
 
-    def toint(self, valuestring: T.Union[str, OctalInt]) -> int:
+    def toint(self, valuestring: str) -> int:
         try:
             return int(valuestring, 8)
         except ValueError as e:
             raise MesonException(f'Invalid mode: {e}')
 
 class UserComboOption(UserOption[str]):
-    def __init__(self, description: str, value: T.Any, choices: T.List[str],
+    def __init__(self, description: str, value: str, choices: T.List[str],
                  yielding: bool = DEFAULT_YIELDING,
                  deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False,
                  readonly: bool = False):
         super().__init__(description, value, choices, yielding, deprecated, readonly)
 
-    def validate_value(self, value: T.Any) -> str:
+    def validate_value(self, value: UserOptionTypes) -> str:
         if value not in self.choices:
             if isinstance(value, bool):
                 _type = 'boolean'
@@ -223,6 +233,7 @@ class UserComboOption(UserOption[str]):
             raise MesonException('Value "{}" (of type "{}") for combo option "{}" is not one of the choices.'
                                  ' Possible choices are (as string): {}.'.format(
                                      value, _type, self.description, optionsstring))
+        assert isinstance(value, str) # for mypy, value is in self.choices which is list[str]
         return value
 
 class UserArrayOption(UserOption[T.List[str]]):
@@ -237,39 +248,36 @@ class UserArrayOption(UserOption[T.List[str]]):
         super().__init__(description, value, choices if choices is not None else [], yielding, deprecated, readonly)
 
     @staticmethod
-    def listify_value(value: T.Union[str, T.List[str]], shlex_split_args: bool = False) -> T.List[str]:
+    def listify_value(value: UserOptionTypes, shlex_split_args: bool = False) -> T.List[str]:
         if isinstance(value, str):
             if value.startswith('['):
                 try:
-                    newvalue = ast.literal_eval(value)
+                    value = ast.literal_eval(value)
                 except ValueError:
                     raise MesonException(f'malformed option {value}')
             elif value == '':
-                newvalue = []
+                return []
+            elif shlex_split_args:
+                return split_args(value)
             else:
-                if shlex_split_args:
-                    newvalue = split_args(value)
-                else:
-                    newvalue = [v.strip() for v in value.split(',')]
-        elif isinstance(value, list):
-            newvalue = value
-        else:
-            raise MesonException(f'"{value}" should be a string array, but it is not')
-        return newvalue
+                return [v.strip() for v in value.split(',')]
+        if isinstance(value, list):
+            for i in value:
+                if not isinstance(i, str):
+                    raise MesonException(f'String array element "{value!s}" is not a string.')
+            return value
+        raise MesonException(f'"{value}" should be a string array, but it is not')
 
-    def listify(self, value: T.Any) -> T.List[T.Any]:
+    def listify(self, value: UserOptionTypes) -> T.List[str]:
         return self.listify_value(value, self.split_args)
 
-    def validate_value(self, value: T.Union[str, T.List[str]]) -> T.List[str]:
+    def validate_value(self, value: UserOptionTypes) -> T.List[str]:
         newvalue = self.listify(value)
 
         if not self.allow_dups and len(set(newvalue)) != len(newvalue):
             msg = 'Duplicated values in array option is deprecated. ' \
                   'This will become a hard error in the future.'
             mlog.deprecation(msg)
-        for i in newvalue:
-            if not isinstance(i, str):
-                raise MesonException(f'String array element "{newvalue!s}" is not a string.')
         if self.choices:
             bad = [x for x in newvalue if x not in self.choices]
             if bad:
@@ -277,14 +285,13 @@ class UserArrayOption(UserOption[T.List[str]]):
                     ', '.join(bad), ', '.join(self.choices)))
         return newvalue
 
-    def extend_value(self, value: T.Union[str, T.List[str]]) -> None:
+    def extend_value(self, value: UserOptionTypes) -> None:
         """Extend the value with an additional value."""
         new = self.validate_value(value)
         self.set_value(self.value + new)
 
-
 class UserFeatureOption(UserComboOption):
-    def __init__(self, description: str, value: T.Any, yielding: bool = DEFAULT_YIELDING,
+    def __init__(self, description: str, value: str, yielding: bool = DEFAULT_YIELDING,
                  deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False,
                  readonly: bool = False):
         super().__init__(description, value, ['enabled', 'disabled', 'auto'], yielding, deprecated, readonly)
@@ -331,7 +338,7 @@ class UserStdOption(UserComboOption):
             else:
                 self.choices += gnu_stds_map.keys()
 
-    def validate_value(self, value: T.Union[str, T.List[str]]) -> str:
+    def validate_value(self, value: UserOptionTypes) -> str:
         candidates = UserArrayOption.listify_value(value)
         unknown = [std for std in candidates if std not in self.all_stds]
         if unknown:
@@ -405,7 +412,7 @@ class DependencyCache:
         self.__cmake_key = OptionKey('cmake_prefix_path', machine=for_machine)
 
     def __calculate_subkey(self, type_: DependencyCacheType) -> T.Tuple[str, ...]:
-        data: T.Dict[str, T.List[str]] = {
+        data: T.Dict[DependencyCacheType, T.List[str]] = {
             DependencyCacheType.PKG_CONFIG: stringlistify(self.__builtins[self.__pkg_conf_key].value),
             DependencyCacheType.CMAKE: stringlistify(self.__builtins[self.__cmake_key].value),
             DependencyCacheType.OTHER: [],
@@ -478,7 +485,7 @@ class CMakeStateCache:
     def items(self) -> T.Iterator[T.Tuple[str, T.Dict[str, T.List[str]]]]:
         return iter(self.__cache.items())
 
-    def update(self, language: str, variables: T.Dict[str, T.List[str]]):
+    def update(self, language: str, variables: T.Dict[str, T.List[str]]) -> None:
         if language not in self.__cache:
             self.__cache[language] = {}
         self.__cache[language].update(variables)
@@ -509,7 +516,7 @@ class CoreData:
         self.regen_guid = str(uuid.uuid4()).upper()
         self.install_guid = str(uuid.uuid4()).upper()
         self.meson_command = meson_command
-        self.target_guids = {}
+        self.target_guids: T.Dict[str, str] = {}
         self.version = version
         self.options: 'MutableKeyedOptionDictType' = {}
         self.cross_files = self.__load_config_files(options, scratch_dir, 'cross')
@@ -595,14 +602,14 @@ class CoreData:
             raise MesonException(f'Cannot find specified {ftype} file: {f}')
         return real
 
-    def builtin_options_libdir_cross_fixup(self):
+    def builtin_options_libdir_cross_fixup(self) -> None:
         # By default set libdir to "lib" when cross compiling since
         # getting the "system default" is always wrong on multiarch
         # platforms as it gets a value like lib/x86_64-linux-gnu.
         if self.cross_files:
             BUILTIN_OPTIONS[OptionKey('libdir')].set_value('lib')
 
-    def sanitize_prefix(self, prefix):
+    def sanitize_prefix(self, prefix: str) -> str:
         prefix = os.path.expanduser(prefix)
         if not os.path.isabs(prefix):
             raise MesonException(f'prefix value {prefix!r} must be an absolute path')
@@ -619,7 +626,7 @@ class CoreData:
                 prefix = prefix[:-1]
         return prefix
 
-    def sanitize_dir_option_value(self, prefix: str, option: OptionKey, value: T.Any) -> T.Any:
+    def sanitize_dir_option_value(self, prefix: str, option: OptionKey, value: str) -> str:
         '''
         If the option is an installation directory option, the value is an
         absolute path and resides within prefix, return the value
@@ -630,26 +637,26 @@ class CoreData:
         should not be relied upon.
         '''
         try:
-            value = PurePath(value)
+            path = PurePath(value)
         except TypeError:
             return value
-        if option.name.endswith('dir') and value.is_absolute() and \
+        if option.name.endswith('dir') and path.is_absolute() and \
            option not in BUILTIN_DIR_NOPREFIX_OPTIONS:
             try:
                 # Try to relativize the path.
-                value = value.relative_to(prefix)
+                path = path.relative_to(prefix)
             except ValueError:
                 # Path is not relative, let’s keep it as is.
                 pass
-            if '..' in value.parts:
+            if '..' in path.parts:
                 raise MesonException(
-                    f'The value of the \'{option}\' option is \'{value}\' but '
+                    f'The value of the \'{option}\' option is \'{path}\' but '
                     'directory options are not allowed to contain \'..\'.\n'
                     f'If you need a path outside of the {prefix!r} prefix, '
                     'please use an absolute path.'
                 )
         # .as_posix() keeps the posix-like file separators Meson uses.
-        return value.as_posix()
+        return path.as_posix()
 
     def init_builtins(self, subproject: str) -> None:
         # Create builtin options with default values
@@ -697,7 +704,7 @@ class CoreData:
 
         raise MesonException(f'Tried to get unknown builtin option {str(key)}')
 
-    def set_option(self, key: OptionKey, value, first_invocation: bool = False) -> bool:
+    def set_option(self, key: OptionKey, value: UserOptionTypes, first_invocation: bool = False) -> bool:
         dirty = False
         if key.is_builtin():
             if key.name == 'prefix':
@@ -718,7 +725,8 @@ class CoreData:
                 if v in opt.deprecated:
                     mlog.deprecation(f'Option {key.name!r} value {v!r} is deprecated')
         elif isinstance(opt.deprecated, dict):
-            def replace(v):
+            def replace(v: str) -> str:
+                assert isinstance(opt.deprecated, dict) # mypy
                 newvalue = opt.deprecated.get(v)
                 if newvalue is not None:
                     mlog.deprecation(f'Option {key.name!r} value {v!r} is replaced by {newvalue!r}')
@@ -756,12 +764,12 @@ class CoreData:
 
         return dirty
 
-    def clear_deps_cache(self):
+    def clear_deps_cache(self) -> None:
         self.deps.host.clear()
         self.deps.build.clear()
 
-    def get_nondefault_buildtype_args(self):
-        result = []
+    def get_nondefault_buildtype_args(self) -> T.List[T.Tuple[str, str, T.Union[str, bool]]]:
+        result: T.List[T.Tuple[str, str, T.Union[str, bool]]] = []
         value = self.options[OptionKey('buildtype')].value
         if value == 'plain':
             opt = 'plain'
@@ -823,10 +831,14 @@ class CoreData:
         return optname.lang is not None
 
     def get_external_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
-        return self.options[OptionKey('args', machine=for_machine, lang=lang)].value
+        opt = self.options[OptionKey('args', machine=for_machine, lang=lang)]
+        assert isinstance(opt, UserArrayOption)
+        return opt.value
 
     def get_external_link_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
-        return self.options[OptionKey('link_args', machine=for_machine, lang=lang)].value
+        opt = self.options[OptionKey('link_args', machine=for_machine, lang=lang)]
+        assert isinstance(opt, UserArrayOption)
+        return opt.value
 
     def update_project_options(self, options: 'MutableKeyedOptionDictType') -> None:
         for key, value in options.items():
@@ -872,7 +884,7 @@ class CoreData:
 
         return dirty
 
-    def set_options(self, options: T.Dict[OptionKey, T.Any], subproject: str = '', first_invocation: bool = False) -> bool:
+    def set_options(self, options: T.Dict[OptionKey, UserOptionTypes], subproject: str = '', first_invocation: bool = False) -> bool:
         dirty = False
         if not self.is_cross_build():
             options = {k: v for k, v in options.items() if k.machine is not MachineChoice.BUILD}
@@ -904,12 +916,12 @@ class CoreData:
 
         return dirty
 
-    def set_default_options(self, default_options: T.MutableMapping[OptionKey, str], subproject: str, env: 'Environment') -> None:
+    def set_default_options(self, default_options: T.MutableMapping[OptionKey, UserOptionTypes], subproject: str, env: 'Environment') -> None:
         # Main project can set default options on subprojects, but subprojects
         # can only set default options on themselves.
         # Preserve order: if env.options has 'buildtype' it must come after
         # 'optimization' if it is in default_options.
-        options: T.MutableMapping[OptionKey, T.Any] = OrderedDict()
+        options: T.MutableMapping[OptionKey, UserOptionTypes] = OrderedDict()
         for k, v in default_options.items():
             if not subproject or k.subproject == subproject:
                 options[k] = v
@@ -997,8 +1009,8 @@ class CmdLineFileParser(configparser.ConfigParser):
 class MachineFileParser():
     def __init__(self, filenames: T.List[str]) -> None:
         self.parser = CmdLineFileParser()
-        self.constants = {'True': True, 'False': False}
-        self.sections = {}
+        self.constants: T.Dict[str, UserOptionTypes] = {'True': True, 'False': False}
+        self.sections: T.Dict[str, T.Dict[str, UserOptionTypes]] = {}
 
         self.parser.read(filenames)
 
@@ -1011,7 +1023,7 @@ class MachineFileParser():
                 continue
             self.sections[s] = self._parse_section(s)
 
-    def _parse_section(self, s):
+    def _parse_section(self, s: str) -> T.Dict[str, UserOptionTypes]:
         self.scope = self.constants.copy()
         section = {}
         for entry, value in self.parser.items(s):
@@ -1030,7 +1042,7 @@ class MachineFileParser():
             self.scope[entry] = res
         return section
 
-    def _evaluate_statement(self, node):
+    def _evaluate_statement(self, node: mparser.BaseNode) -> UserOptionTypes:
         if isinstance(node, (mparser.StringNode)):
             return node.value
         elif isinstance(node, mparser.BooleanNode):
@@ -1038,24 +1050,36 @@ class MachineFileParser():
         elif isinstance(node, mparser.NumberNode):
             return node.value
         elif isinstance(node, mparser.ArrayNode):
-            return [self._evaluate_statement(arg) for arg in node.args.arguments]
+            val = [self._evaluate_statement(arg) for arg in node.args.arguments]
+            if all(isinstance(i, str) for i in val):
+                return T.cast('T.List[str]', val)
         elif isinstance(node, mparser.IdNode):
             return self.scope[node.value]
         elif isinstance(node, mparser.ArithmeticNode):
             l = self._evaluate_statement(node.left)
             r = self._evaluate_statement(node.right)
             if node.operation == 'add':
-                if (isinstance(l, str) and isinstance(r, str)) or \
-                   (isinstance(l, list) and isinstance(r, list)):
+                if (isinstance(l, str) and isinstance(r, str)):
+                    return l + r
+                if (isinstance(l, list) and isinstance(r, list)):
                     return l + r
             elif node.operation == 'div':
                 if isinstance(l, str) and isinstance(r, str):
                     return os.path.join(l, r)
         raise EnvironmentException('Unsupported node type')
 
-def parse_machine_files(filenames):
-    parser = MachineFileParser(filenames)
-    return parser.sections
+    def get(self, entry: str) -> T.Dict[str, UserOptionTypes]:
+        return self.sections.get(entry, {})
+
+    def items(self) -> T.ItemsView[str, T.Dict[str, UserOptionTypes]]:
+        return self.sections.items()
+
+    def __contains__(self, entry: str) -> bool:
+        return entry in self.sections
+
+
+def parse_machine_files(filenames: T.List[str]) -> MachineFileParser:
+    return MachineFileParser(filenames)
 
 def get_cmd_line_file(build_dir: str) -> str:
     return os.path.join(build_dir, 'meson-private', 'cmd_line.txt')
@@ -1097,7 +1121,7 @@ def write_cmd_line_file(build_dir: str, options: argparse.Namespace) -> None:
     with open(filename, 'w', encoding='utf-8') as f:
         config.write(f)
 
-def update_cmd_line_file(build_dir: str, options: argparse.Namespace):
+def update_cmd_line_file(build_dir: str, options: argparse.Namespace) -> None:
     filename = get_cmd_line_file(build_dir)
     config = CmdLineFileParser()
     config.read(filename)
@@ -1190,21 +1214,20 @@ def argparse_name_to_arg(name: str) -> str:
 
 def add_to_argparse(parser: argparse.ArgumentParser, key: OptionKey, opt: UserOption, help_suffix: str) -> None:
     name = str(key)
-    kwargs = OrderedDict()
+    action: T.Optional[str] = None
+    kwargs: T.Dict[str, T.Any] = {}
     # If the type is a boolean, the presence of the argument in --foo form
     # is to enable it. Disabling happens by using -Dfoo=false, which is
     # parsed under `args.projectoptions` and does not hit this codepath.
     if isinstance(opt, UserBooleanOption):
         h = opt.description
-        kwargs['action'] = 'store_true'
+        action = 'store_true'
     else:
         h = f'''{opt.description.rstrip('.')} (default: {opt.value}).'''
         if opt.choices:
             kwargs['choices'] = opt.choices
-    kwargs['default'] = argparse.SUPPRESS
-    kwargs['dest'] = name
     cmdline_name = argparse_name_to_arg(name)
-    parser.add_argument(cmdline_name, help=h + help_suffix, **kwargs)
+    parser.add_argument(cmdline_name, help=h + help_suffix, default=argparse.SUPPRESS, dest=name, action=action, **kwargs)
 
 
 # Update `docs/markdown/Builtin-options.md` after changing the options below
@@ -1237,7 +1260,7 @@ BUILTIN_CORE_OPTIONS: 'MutableKeyedOptionDictType' = OrderedDict([
                                                       choices=['shared', 'static', 'both'],
                                                       yielding=False)),
     (OptionKey('errorlogs'),          UserBooleanOption("Whether to print the logs from failing tests", True)),
-    (OptionKey('install_umask'),      UserUmaskOption('Default umask to apply on permissions of installed files', '022')),
+    (OptionKey('install_umask'),      UserUmaskOption('Default umask to apply on permissions of installed files', 0o22)),
     (OptionKey('layout'),             UserComboOption('Build directory layout', 'mirror',
                                                       choices=['mirror', 'flat'])),
     (OptionKey('optimization'),       UserComboOption('Optimization level', '0',
