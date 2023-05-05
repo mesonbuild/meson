@@ -466,7 +466,8 @@ class MesonMain(MesonInterpreterObject):
             env,
             ValidatorState(self.interpreter.subdir,
                            self.interpreter.environment.get_source_dir(),
-                           self.interpreter.environment.get_build_dir()))
+                           self.interpreter.environment.get_build_dir(),
+                           self.interpreter.subproject_dir))
         if msg:
             raise build.InvalidArguments(f'"add_devenv": {msg}')
         converted = env_convertor_with_method(env, kwargs['method'], kwargs['separator'])
