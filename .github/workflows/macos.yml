@@ -90,6 +90,10 @@ jobs:
         find /usr/local/bin -lname '*/Library/Frameworks/Python.framework/*' -delete
         sudo rm -rf /Library/Frameworks/Python.framework/
         brew install --force python3 && brew unlink python3 && brew unlink python3 && brew link --overwrite python3
+        # Delete nonsensical PEP 668 breakage. It is the wrong solution to the problem and isn't designed to be
+        # productive -- only victim blaming -- however it bites particularly badly because this is a container/VM
+        # See commit 5c479d7a13a518c18ccb4dc3b6bdd7bfc2a9bdb5 for a more thorough analysis.
+        find /usr/local/Cellar/python* -name EXTERNALLY-MANAGED -print0 | xargs -0 rm -vf
     # use python3 from homebrew because it is a valid framework, unlike the actions one:
     # https://github.com/actions/setup-python/issues/58
     - run: brew install pkg-config ninja llvm qt@5 boost ldc hdf5 openmpi lapack scalapack sdl2 boost-python3 gtk-doc
