@@ -17,7 +17,7 @@ library at the top level and headers in a subdirectory called
 project('bob', 'c')
 
 # Do some sanity checking so that meson can fail early instead of at final link time
-if not (host_machine.system() == 'windows' or host_machine.cpu_family() == 'x86_64')
+if not (host_machine.system() == 'windows' and host_machine.cpu_family() == 'x86_64')
   error('This wrap of libbob is a binary wrap for x64_64 Windows, and will not work on your system')
 endif
 
