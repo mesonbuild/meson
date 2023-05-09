@@ -52,7 +52,19 @@ if T.TYPE_CHECKING:
 @dataclass
 class ValidatorState:
 
+    """State used by Validators and Convertors
+
+    :param subdir: The current subdir
+    :param root_subdir: The root subdir for the current subproject
+    :param source_root: the source root for the root project
+    :param build_root: the build root for the root project
+    :param subproject_dir: The directory that holds all of the subprojects
+    :param relaxations: Any relaxations to the normal interpreter rules
+    :param build: The Build object for the current subproject
+    """
+
     subdir: str
+    root_subdir: str
     source_root: str
     build_root: str
     subproject_dir: str
@@ -76,12 +88,12 @@ def _get_validator_state(obj: T.Union[Interpreter, MesonMain, ObjectHolder, Modu
         # In this case we have an OptionInterpreter, which doesn't have the
         # necessary information. Fortunately we don't need it in this case, so
         # we can just return a dummy instance
-        return ValidatorState('', '', '', '')
+        return ValidatorState('', '', '', '', '')
     else:
         raise MesonBugException('Unhandled input for getting validator state')
 
     return ValidatorState(
-        obj.subdir, obj.environment.get_source_dir(), obj.environment.get_build_dir(),
+        obj.subdir, obj.root_subdir, obj.environment.get_source_dir(), obj.environment.get_build_dir(),
         obj.subproject_dir, obj.relaxations, obj.build)
 
 

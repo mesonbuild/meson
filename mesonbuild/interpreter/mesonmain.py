@@ -465,6 +465,7 @@ class MesonMain(MesonInterpreterObject):
         msg = ENV_KW.validator(
             env,
             ValidatorState(self.interpreter.subdir,
+                           self.interpreter.root_subdir,
                            self.interpreter.environment.get_source_dir(),
                            self.interpreter.environment.get_build_dir(),
                            self.interpreter.subproject_dir))
