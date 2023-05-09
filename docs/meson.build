@@ -17,6 +17,7 @@ docs_gen = custom_target(
 
 sitemap = files('sitemap.txt')
 
+yaml_loader = get_option('unsafe_yaml') ? 'fastyaml' : 'yaml'
 genrefman = find_program('./genrefman.py')
 refman_binary = custom_target(
     'gen_refman_bin',
@@ -25,7 +26,7 @@ refman_binary = custom_target(
     depfile: 'reman_dep.d',
     command: [
         genrefman,
-        '-l', 'yaml',
+        '-l', yaml_loader,
         '-g', 'pickle',
         '-o', '@OUTPUT@',
         '--depfile', '@DEPFILE@',

@@ -1,0 +1,2 @@
+option('unsafe_yaml', type: 'boolean', value: false,
+    description: 'disable safety checks and use a faster, but less correct YAML loader')
