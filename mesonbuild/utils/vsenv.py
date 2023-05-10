@@ -92,7 +92,8 @@ def _setup_vsenv(force: bool) -> bool:
     bat_file.write(bat_contents)
     bat_file.flush()
     bat_file.close()
-    bat_output = subprocess.check_output(bat_file.name, universal_newlines=True)
+    bat_output = subprocess.check_output(bat_file.name, universal_newlines=True,
+                                         encoding='utf8', errors='replace')
     os.unlink(bat_file.name)
     bat_lines = bat_output.split('\n')
     bat_separator_seen = False
