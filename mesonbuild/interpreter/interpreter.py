@@ -103,6 +103,7 @@ import typing as T
 import textwrap
 import importlib
 import copy
+import contextlib
 
 if T.TYPE_CHECKING:
     import argparse
@@ -2496,7 +2497,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         exclude = (set(kwargs['exclude_files']), set(kwargs['exclude_directories']))
 
         srcdir = os.path.join(self.environment.source_dir, self.subdir, args[0])
-        if not os.path.isdir(srcdir) or not any(os.scandir(srcdir)):
+        if not os.path.isdir(srcdir) or not any(os.listdir(srcdir)):
             FeatureNew.single_use('install_subdir with empty directory', '0.47.0', self.subproject, location=node)
             FeatureDeprecated.single_use('install_subdir with empty directory', '0.60.0', self.subproject,
                                          'It worked by accident and is buggy. Use install_emptydir instead.', node)
