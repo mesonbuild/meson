@@ -838,7 +838,7 @@ class Environment:
     def get_datadir(self) -> str:
         return self.coredata.get_option(OptionKey('datadir'))
 
-    def get_compiler_system_dirs(self, for_machine: MachineChoice):
+    def get_compiler_system_lib_dirs(self, for_machine: MachineChoice):
         for comp in self.coredata.compilers[for_machine].values():
             if comp.id == 'clang':
                 index = 1
@@ -856,6 +856,18 @@ class Environment:
             raise mesonlib.MesonException('Could not calculate system search dirs')
         out = out.split('\n')[index].lstrip('libraries: =').split(':')
         return [os.path.normpath(p) for p in out]
+
+    def get_compiler_system_include_dirs(self, for_machine: MachineChoice):
+        for comp in self.coredata.compilers[for_machine].values():
+            if comp.id == 'clang':
+                break
+            elif comp.id == 'gcc':
+                break
+        else:
+            # This option is only supported by gcc and clang. If we don't get a
+            # GCC or Clang compiler return and empty list.
+            return []
+        return comp.get_default_include_dirs()
 
     def need_exe_wrapper(self, for_machine: MachineChoice = MachineChoice.HOST):
         value = self.properties[for_machine].get('needs_exe_wrapper', None)

@@ -31,7 +31,7 @@ from mesonbuild.interpreterbase.decorators import FeatureDeprecated
 from .. import mesonlib, mlog
 from ..environment import get_llvm_tool_names
 from ..mesonlib import version_compare, version_compare_many, search_version, stringlistify, extract_as_list
-from .base import DependencyException, DependencyMethods, detect_compiler, strip_system_libdirs, SystemDependency, ExternalDependency, DependencyTypeName
+from .base import DependencyException, DependencyMethods, detect_compiler, strip_system_includedirs, strip_system_libdirs, SystemDependency, ExternalDependency, DependencyTypeName
 from .cmake import CMakeDependency
 from .configtool import ConfigToolDependency
 from .factory import DependencyFactory
@@ -438,6 +438,7 @@ class LLVMDependencyCMake(CMakeDependency):
             defs = defs[0].split(' ')
         temp = ['-I' + x for x in inc_dirs] + defs
         self.compile_args += [x for x in temp if x not in self.compile_args]
+        self.compile_args = strip_system_includedirs(env, self.for_machine, self.compile_args)
         if not self._add_sub_dependency(threads_factory(env, self.for_machine, {})):
             self.is_found = False
             return

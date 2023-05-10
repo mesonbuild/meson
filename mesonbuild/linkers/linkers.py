@@ -1487,9 +1487,9 @@ class AIXDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
             all_paths.add(os.path.join(build_dir, p))
         # We should consider allowing the $LIBPATH environment variable
         # to override sys_path.
-        sys_path = env.get_compiler_system_dirs(self.for_machine)
+        sys_path = env.get_compiler_system_lib_dirs(self.for_machine)
         if len(sys_path) == 0:
-            # get_compiler_system_dirs doesn't support our compiler.
+            # get_compiler_system_lib_dirs doesn't support our compiler.
             # Use the default system library path
             all_paths.update(['/usr/lib', '/lib'])
         else:
