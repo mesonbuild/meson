@@ -51,6 +51,8 @@ refman_man = custom_target(
         '--force-color',
         '--no-modules',
     ],
+    install: true,
+    install_dir: get_option('mandir') / 'man3',
 )
 
 # Everything past here is HTML resources.
