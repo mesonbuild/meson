@@ -8,6 +8,10 @@ Minimum required version of hotdoc is *0.8.9*.
 
 Instructions on how to install hotdoc are [here](https://hotdoc.github.io/installing.html).
 
+Our custom hotdoc extensions require:
+- [chevron](https://pypi.org/project/chevron)
+- [strictyaml](https://pypi.org/project/strictyaml)
+
 ## Building the documentation
 
 From the Meson repository root dir:

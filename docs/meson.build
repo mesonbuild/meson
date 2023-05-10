@@ -1,5 +1,11 @@
 project('Meson documentation', version: '1.0')
 
+yaml_modname = get_option('unsafe_yaml') ? 'yaml' : 'strictyaml'
+py = import('python').find_installation('python3', modules: [yaml_modname], required: false)
+if not py.found()
+    error(f'Cannot build documentation without yaml support')
+endif
+
 cur_bdir = meson.current_build_dir()
 
 sitemap = files('sitemap.txt')
@@ -105,6 +111,10 @@ genrelnotes = custom_target(
 sitemap = genrelnotes[0]
 
 hotdoc_prog = find_program('hotdoc', version: '>=0.13.7')
+py = import('python').find_installation('python3', modules: ['chevron'], required: false)
+if not py.found()
+    error('Building the HTML docs requires the chevron module to render generated markdown pages')
+endif
 
 hotdoc = import('hotdoc')
 documentation = hotdoc.generate_doc(meson.project_name(),
