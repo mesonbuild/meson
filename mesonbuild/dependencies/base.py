@@ -552,8 +552,19 @@ def strip_system_libdirs(environment: 'Environment', for_machine: MachineChoice,
     in the system path, and a different version not in the system path if they
     want to link against the non-system path version.
     """
-    exclude = {f'-L{p}' for p in environment.get_compiler_system_dirs(for_machine)}
+    exclude = {f'-L{p}' for p in environment.get_compiler_system_lib_dirs(for_machine)}
     return [l for l in link_args if l not in exclude]
+
+def strip_system_includedirs(environment: 'Environment', for_machine: MachineChoice, include_args: T.List[str]) -> T.List[str]:
+    """Remove -I<system path> arguments.
+
+    leaving these in will break builds where user want dependencies with system
+    include-type used in rust.bindgen targets as if will cause system headers
+    to not be found.
+    """
+
+    exclude = {f'-I{p}' for p in environment.get_compiler_system_include_dirs(for_machine)}
+    return [i for i in include_args if i not in exclude]
 
 def process_method_kw(possible: T.Iterable[DependencyMethods], kwargs: T.Dict[str, T.Any]) -> T.List[DependencyMethods]:
     method = kwargs.get('method', 'auto')  # type: T.Union[DependencyMethods, str]
