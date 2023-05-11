@@ -456,6 +456,7 @@ class QtBaseModule(ExtensionModule):
         compile_args: T.List[str] = []
         for dep in kwargs['dependencies']:
             compile_args.extend([a for a in dep.get_all_compile_args() if a.startswith(('-I', '-D'))])
+            compile_args.extend([a.replace('-isystem', '-I', 1) for a in dep.get_all_compile_args() if a.startswith(('-isystem'))])
 
         output: T.List[build.GeneratedList] = []
 
