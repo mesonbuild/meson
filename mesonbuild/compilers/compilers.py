@@ -223,6 +223,7 @@ BASE_OPTIONS: T.Mapping[OptionKey, options.AnyOptionType] = {
         options.UserBooleanOption('b_thinlto_cache', 'Use LLVM ThinLTO caching for faster incremental builds', False),
         options.UserStringOption('b_thinlto_cache_dir', 'Directory to store ThinLTO cache objects', ''),
         options.UserStringArrayOption('b_sanitize', 'Code sanitizer to use', []),
+        options.UserBooleanOption('b_legal_code', 'Whether to ban dangerous constructs in a language', True),
         options.UserBooleanOption('b_lundef', 'Use -Wl,--no-undefined when linking', True),
         options.UserBooleanOption('b_asneeded', 'Use -Wl,--as-needed when linking', True),
         options.UserComboOption(
@@ -299,6 +300,7 @@ def get_base_compile_args(target: 'BuildTarget', compiler: 'Compiler', env: 'Env
                 mode=ltomode))
     except (KeyError, AttributeError):
         pass
+
     try:
         clrout = env.coredata.get_option_for_target(target, 'b_colorout')
         assert isinstance(clrout, str)
@@ -1040,6 +1042,9 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                 continue
             ret.append(arg)
         return ret
+
+    def get_legal_code_compiler_args(self) -> T.List[str]:
+        return []
 
     def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
         return []
