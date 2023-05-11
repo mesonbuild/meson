@@ -149,6 +149,14 @@ class ClangCCompiler(_ClangCStds, ClangCompiler, CCompiler):
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = super().get_options()
+
+        opts.update({
+            OptionKey('legal_code', machine=self.for_machine, lang=self.language): coredata.UserBooleanOption(
+                'Ban use of dangerous constructs',
+                True
+            )
+        })
+
         if self.info.is_windows() or self.info.is_cygwin():
             opts.update({
                 OptionKey('winlibs', machine=self.for_machine, lang=self.language): coredata.UserArrayOption(
@@ -160,9 +168,15 @@ class ClangCCompiler(_ClangCStds, ClangCompiler, CCompiler):
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []
-        std = options[OptionKey('std', machine=self.for_machine, lang=self.language)]
+        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        std = options[key]
         if std.value != 'none':
             args.append('-std=' + std.value)
+
+        if options[key.evolve('legal_code')].value:
+            if version_compare(self.version, '>=3.3.0') and std.value not in ('c89', 'c90', 'gnu89', 'gnu90'):
+                args.extend(('-Werror=implicit', '-Werror=int-conversion', '-Werror=incompatible-pointer-types', '-Wno-error=incompatible-pointer-types-discards-qualifiers'))
+
         return args
 
     def get_option_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
@@ -284,6 +298,11 @@ class GnuCCompiler(GnuCompiler, CCompiler):
         std_opt = opts[key]
         assert isinstance(std_opt, coredata.UserStdOption), 'for mypy'
         std_opt.set_versions(stds, gnu=True)
+
+        opts.update({
+            key.evolve('legal_code'): coredata.UserBooleanOption('Ban use of dangerous constructs', True),
+        })
+
         if self.info.is_windows() or self.info.is_cygwin():
             opts.update({
                 key.evolve('winlibs'): coredata.UserArrayOption(
@@ -295,9 +314,15 @@ class GnuCCompiler(GnuCompiler, CCompiler):
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []
-        std = options[OptionKey('std', lang=self.language, machine=self.for_machine)]
+        key = OptionKey('std', lang=self.language, machine=self.for_machine)
+        std = options[key]
         if std.value != 'none':
             args.append('-std=' + std.value)
+
+        if options[key.evolve('legal_code')].value:
+            if version_compare(self.version, '>=5.1.0') and version_compare(self.version, '<14.0.0') and std.value not in ('c89', 'c90', 'gnu89', 'gnu90'):
+                args.extend(('-Werror=implicit', '-Werror=int-conversion', '-Werror=incompatible-pointer-types'))
+
         return args
 
     def get_option_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
