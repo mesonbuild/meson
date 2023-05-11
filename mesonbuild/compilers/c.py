@@ -138,6 +138,10 @@ class ClangCCompiler(ClangCStds, ClangCompiler, CCompiler):
         assert isinstance(std, str)
         if std != 'none':
             args.append('-std=' + std)
+
+        maybe_legal_code = (std == 'none') or (std not in {'c89', 'c90', 'gnu89', 'gnu90'})
+        if maybe_legal_code and target and env.coredata.get_option_for_target(target, 'b_legal_code'):
+            args.extend(self.get_legal_code_compiler_args())
         return args
 
     def get_option_link_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
@@ -271,6 +275,10 @@ class GnuCCompiler(GnuCStds, GnuCompiler, CCompiler):
         assert isinstance(std, str)
         if std != 'none':
             args.append('-std=' + std)
+
+        maybe_legal_code = (std == 'none') or (std not in {'c89', 'c90', 'gnu89', 'gnu90'})
+        if maybe_legal_code and target and env.coredata.get_option_for_target(target, 'b_legal_code'):
+            args.extend(self.get_legal_code_compiler_args())
         return args
 
     def get_option_link_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
