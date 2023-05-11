@@ -279,6 +279,7 @@ def get_base_compile_args(target: 'BuildTarget', compiler: 'Compiler', env: 'Env
                 mode=ltomode))
     except (KeyError, AttributeError):
         pass
+
     try:
         clrout = env.coredata.get_option_for_target(target, 'b_colorout')
         assert isinstance(clrout, str)
@@ -1030,6 +1031,9 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                 continue
             ret.append(arg)
         return ret
+
+    def get_legal_code_compiler_args(self) -> T.List[str]:
+        return []
 
     def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
         return []

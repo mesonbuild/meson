@@ -78,7 +78,8 @@ class ClangCompiler(GnuLikeCompiler):
         super().__init__()
         self.defines = defines or {}
         self.base_options.update(
-            {OptionKey('b_colorout'), OptionKey('b_lto_threads'), OptionKey('b_lto_mode'), OptionKey('b_thinlto_cache'),
+            {OptionKey('b_colorout'), OptionKey('b_legal_code'),
+             OptionKey('b_lto_threads'), OptionKey('b_lto_mode'), OptionKey('b_thinlto_cache'),
              OptionKey('b_thinlto_cache_dir')})
 
         # TODO: this really should be part of the linker base_options, but
@@ -210,6 +211,21 @@ class ClangCompiler(GnuLikeCompiler):
 
     def get_coverage_link_args(self) -> T.List[str]:
         return ['--coverage']
+
+    def get_legal_code_compiler_args(self) -> T.List[str]:
+        args: T.List[str] = []
+
+        if self.language in {'c', 'objc'} and mesonlib.version_compare(self.version, '>=3.3.0'):
+            args.extend(('-Werror=incompatible-pointer-types',
+                         '-Wno-error=incompatible-pointer-types-discards-qualifiers'))
+
+            # Clang doesn't yet error out by default on incompatible-pointer-types, but
+            # conditionalize the rest to make command line length smaller.
+            # https://github.com/llvm/llvm-project/issues/74605
+            if mesonlib.version_compare(self.version, '<16.0.0'):
+                args.extend(('-Werror=implicit', '-Werror=int-conversion'))
+
+        return args
 
     def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
         args: T.List[str] = []

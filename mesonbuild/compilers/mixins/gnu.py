@@ -491,6 +491,9 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
                 return self._split_fetch_real_dirs(line.split('=', 1)[1])
         return []
 
+    def get_legal_code_compiler_args(self) -> T.List[str]:
+        return []
+
     def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
         # This provides a base for many compilers, GCC and Clang override this
         # for their specific arguments
@@ -550,7 +553,7 @@ class GnuCompiler(GnuLikeCompiler):
     def __init__(self, defines: T.Optional[T.Dict[str, str]]):
         super().__init__()
         self.defines = defines or {}
-        self.base_options.update({OptionKey('b_colorout'), OptionKey('b_lto_threads')})
+        self.base_options.update({OptionKey('b_colorout'), OptionKey('b_legal_code'), OptionKey('b_lto_threads')})
         self._has_color_support = mesonlib.version_compare(self.version, '>=4.9.0')
         self._has_wpedantic_support = mesonlib.version_compare(self.version, '>=4.8.0')
         self._has_lto_auto_support = mesonlib.version_compare(self.version, '>=10.0')
@@ -613,6 +616,14 @@ class GnuCompiler(GnuLikeCompiler):
 
     def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.Tuple[T.List[str], T.List[str]]:
         return [prelink_name], ['-r', '-o', prelink_name] + obj_list
+
+    def get_legal_code_compiler_args(self) -> T.List[str]:
+        args: T.List[str] = []
+
+        if self.language in {'c', 'objc'} and mesonlib.version_compare_many(self.version, ['>=5.1.0', '<14.0.0'])[0]:
+            args.extend(('-Werror=implicit', '-Werror=int-conversion',
+                         '-Werror=incompatible-pointer-types'))
+        return args
 
     def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
         if threads == 0:
