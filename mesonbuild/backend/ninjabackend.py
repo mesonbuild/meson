@@ -2854,10 +2854,16 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
         # Include PCH header as first thing as it must be the first one or it will be
         # ignored by gcc https://gcc.gnu.org/bugzilla/show_bug.cgi?id=100462
-        if self.environment.coredata.options.get(OptionKey('b_pch')) and is_generated != 'pch':
+        use_pch = self.environment.coredata.options.get(OptionKey('b_pch')) and is_generated != 'pch'
+        if use_pch and 'mw' not in compiler.id:
             commands += self.get_pch_include_args(compiler, target)
 
         commands += self._generate_single_compile_target_args(target, compiler, is_generated)
+
+        # Metrowerks compilers require PCH include args to come after intraprocedural analysis args
+        if use_pch and 'mw' in compiler.id:
+            commands += self.get_pch_include_args(compiler, target)
+
         commands = commands.compiler.compiler_args(commands)
 
         # Create introspection information
