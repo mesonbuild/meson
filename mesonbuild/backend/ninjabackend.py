@@ -2011,6 +2011,9 @@ class NinjaBackend(backends.Backend):
                 external_deps.extend(d.external_deps)
         for e in external_deps:
             for a in e.get_link_args():
+                if a in rustc.native_static_libs:
+                    # Exclude link args that rustc already add by default
+                    continue
                 if a.endswith(('.dll', '.so', '.dylib')):
                     dir_, lib = os.path.split(a)
                     linkdirs.add(dir_)

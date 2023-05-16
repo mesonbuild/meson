@@ -2005,6 +2005,14 @@ class StaticLibrary(BuildTarget):
             if self.rust_crate_type == 'rlib' and any(c in self.name for c in ['-', ' ', '.']):
                 raise InvalidArguments('Rust crate type "rlib" does not allow spaces, periods or dashes in the library name '
                                        'due to a limitation of rustc. Replace them with underscores, for example')
+            if self.rust_crate_type == 'staticlib':
+                # FIXME: In the case of no-std we should not add those libraries,
+                # but we have no way to know currently.
+                rustc = self.compilers['rust']
+                d = dependencies.InternalDependency('undefined', [], [],
+                                                    rustc.native_static_libs,
+                                                    [], [], [], [], [], {}, [], [], [])
+                self.external_deps.append(d)
         # By default a static library is named libfoo.a even on Windows because
         # MSVC does not have a consistent convention for what static libraries
         # are called. The MSVC CRT uses libfoo.lib syntax but nothing else uses
