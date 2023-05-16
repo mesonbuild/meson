@@ -80,16 +80,7 @@ class RustCompiler(Compiler):
                 '''))
 
         cmdlist = self.exelist + ['-o', output_name, source_name]
-        pc = subprocess.Popen(cmdlist,
-                              stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE,
-                              cwd=work_dir)
-        _stdo, _stde = pc.communicate()
-        assert isinstance(_stdo, bytes)
-        assert isinstance(_stde, bytes)
-        stdo = _stdo.decode('utf-8', errors='replace')
-        stde = _stde.decode('utf-8', errors='replace')
-
+        pc, stdo, stde = Popen_safe(cmdlist, cwd=work_dir)
         mlog.debug('Sanity check compiler command line:', join_args(cmdlist))
         mlog.debug('Sanity check compile stdout:')
         mlog.debug(stdo)
@@ -108,7 +99,7 @@ class RustCompiler(Compiler):
         pe = subprocess.Popen(cmdlist, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         pe.wait()
         if pe.returncode != 0:
-            raise EnvironmentException('Executables created by Rust compiler %s are not runnable.' % self.name_string())
+            raise EnvironmentException(f'Executables created by Rust compiler {self.name_string()} are not runnable.')
 
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
         return ['--dep-info', outfile]
