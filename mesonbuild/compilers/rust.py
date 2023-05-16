@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import subprocess, os.path
 import textwrap
+import re
 import typing as T
 
 from .. import coredata, mlog
@@ -66,6 +67,7 @@ class RustCompiler(Compiler):
         self.base_options.update({OptionKey(o) for o in ['b_colorout', 'b_ndebug']})
         if 'link' in self.linker.id:
             self.base_options.add(OptionKey('b_vscrt'))
+        self.native_static_libs: T.List[str] = []
 
     def needs_static_linker(self) -> bool:
         return False
@@ -100,6 +102,18 @@ class RustCompiler(Compiler):
         pe.wait()
         if pe.returncode != 0:
             raise EnvironmentException(f'Executables created by Rust compiler {self.name_string()} are not runnable.')
+        # Get libraries needed to link with a Rust staticlib
+        cmdlist = self.exelist + ['--crate-type', 'staticlib', '--print', 'native-static-libs', source_name]
+        p, stdo, stde = Popen_safe(cmdlist, cwd=work_dir)
+        if p.returncode == 0:
+            match = re.search('native-static-libs: (.*)$', stde, re.MULTILINE)
+            if match:
+                # Exclude some well known libraries that we don't need because they
+                # are always part of C/C++ linkers. Rustc probably should not print
+                # them, pkg-config for example never specify them.
+                # FIXME: https://github.com/rust-lang/rust/issues/55120
+                exclude = {'-lc', '-lgcc_s', '-lkernel32', '-ladvapi32'}
+                self.native_static_libs = [i for i in match.group(1).split() if i not in exclude]
 
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
         return ['--dep-info', outfile]
