@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+
+from ..build.include_dirs import IncludeDirs
 from .base import ExternalDependency, DependencyException, DependencyTypeName
 from .pkgconfig import PkgConfigDependency
 from ..mesonlib import (Popen_safe, OptionKey, join_args, version_compare)
@@ -230,8 +232,8 @@ class DubDependency(ExternalDependency):
         for flag in bs['dflags']:
             self.compile_args.append(flag)
 
-        for path in bs['importPaths']:
-            self.compile_args.append('-I' + path)
+        if bs['importPaths']:
+            self.include_directories.append(IncludeDirs(None, bs['importPaths']))
 
         for path in bs['stringImportPaths']:
             if 'import_dir' not in d_feature_args[self.compiler.id]:
