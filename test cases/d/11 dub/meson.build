@@ -1,5 +1,7 @@
 project('dub-example', 'd')
 
+error('MESON_SKIP_TEST: Dub support is broken at the moment (#11773)')
+
 dub_exe = find_program('dub', required : false)
 if not dub_exe.found()
   error('MESON_SKIP_TEST: Dub not found')
