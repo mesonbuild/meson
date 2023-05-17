@@ -46,7 +46,7 @@ class DubDependency(ExternalDependency):
 
         if DubDependency.class_dubbin is None and not DubDependency.class_dubbin_searched:
             DubDependency.class_dubbin = self._check_dub()
-
+            DubDependency.class_dubbin_searched = True
         if DubDependency.class_dubbin is None:
             if self.required:
                 raise DependencyException('DUB not found.')
@@ -421,8 +421,6 @@ class DubDependency(ExternalDependency):
                 return None
 
             return (dubbin, dubver)
-
-        DubDependency.class_dubbin_searched = True
 
         found = find()
 
