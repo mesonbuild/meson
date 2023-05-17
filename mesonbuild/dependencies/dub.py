@@ -27,8 +27,9 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
 
 class DubDependency(ExternalDependency):
-    # dubbin program and version
+    # dub program and version
     class_dubbin: T.Optional[T.Tuple[ExternalProgram, str]] = None
+    class_dubbin_searched = False
 
     def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
         super().__init__(DependencyTypeName('dub'), environment, kwargs, language='d')
@@ -42,17 +43,16 @@ class DubDependency(ExternalDependency):
         if 'required' in kwargs:
             self.required = kwargs.get('required')
 
-        if DubDependency.class_dubbin is None:
+        if DubDependency.class_dubbin is None and not DubDependency.class_dubbin_searched:
             DubDependency.class_dubbin = self._check_dub()
 
-        if DubDependency.class_dubbin:
-            (self.dubbin, dubver) = DubDependency.class_dubbin
-
-        if not self.dubbin:
+        if DubDependency.class_dubbin is None:
             if self.required:
                 raise DependencyException('DUB not found.')
             self.is_found = False
             return
+
+        (self.dubbin, dubver) = DubDependency.class_dubbin
 
         assert isinstance(self.dubbin, ExternalProgram)
 
@@ -389,37 +389,35 @@ class DubDependency(ExternalDependency):
         p, out, err = Popen_safe(self.compiler.get_exelist() + args, env=env)
         return p.returncode, out.strip(), err.strip()
 
-    def _check_dub(self) -> T.Union[bool, T.Tuple[ExternalProgram, str]]:
-        dubbin: T.Union[bool, ExternalProgram] = ExternalProgram('dub', silent=True)
-        assert isinstance(dubbin, ExternalProgram)
-        if dubbin.found():
-            try:
-                p, out = Popen_safe(dubbin.get_command() + ['--version'])[0:2]
-                if p.returncode != 0:
-                    mlog.warning('Found dub {!r} but couldn\'t run it'
-                                 ''.format(' '.join(dubbin.get_command())))
-                    # Set to False instead of None to signify that we've already
-                    # searched for it and not found it
-                    dubbin = False
-            except (FileNotFoundError, PermissionError):
-                dubbin = False
-        else:
-            dubbin = False
+    def _check_dub(self) -> T.Optional[T.Tuple[ExternalProgram, str]]:
+        DubDependency.class_dubbin_searched = True
 
-        if isinstance(dubbin, ExternalProgram):
-            dubver = re.search(r'DUB version (\d+\.\d+\.\d+.*), ', out.strip())
-            if dubver:
-                dubver = dubver.group(1)
-                mlog.log('Found DUB:', mlog.bold(dubbin.get_path()),
-                        '(version %s)' % dubver)
-            else:
-                mlog.log('Found DUB:', mlog.bold(dubbin.get_path()))
-                mlog.warning('Could not parse DUB version in ' + out.strip())
-                dubbin = False
-        else:
+        def fail() -> T.Optional[T.Tuple[ExternalProgram, str]]:
             mlog.log('Found DUB:', mlog.red('NO'))
 
-        if not dubbin:
-            return False
+        dubbin = ExternalProgram('dub', silent=True)
+
+        if not dubbin.found():
+            return fail()
+
+        try:
+            p, out = Popen_safe(dubbin.get_command() + ['--version'])[0:2]
+            if p.returncode != 0:
+                mlog.warning('Found dub {!r} but couldn\'t run it'
+                             ''.format(' '.join(dubbin.get_command())))
+                return fail()
+
+        except (FileNotFoundError, PermissionError):
+            return fail()
+
+        vermatch = re.search(r'DUB version (\d+\.\d+\.\d+.*), ', out.strip())
+        if vermatch:
+            dubver = vermatch.group(1)
+        else:
+            mlog.warning(f"Found dub {' '.join(dubbin.get_command())} but couldn't parse version in {out.strip()}")
+            return fail()
+
+        mlog.log('Found DUB:', mlog.bold(dubbin.get_path()),
+                 '(version %s)' % dubver)
 
         return (dubbin, dubver)
