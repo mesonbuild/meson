@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from .base import ExternalDependency, DependencyException, DependencyTypeName
 from .pkgconfig import PkgConfigDependency
-from ..mesonlib import (Popen_safe, OptionKey, join_args)
+from ..mesonlib import (Popen_safe, OptionKey, join_args, version_compare)
 from ..programs import ExternalProgram
 from .. import mlog
 import re
@@ -55,6 +55,14 @@ class DubDependency(ExternalDependency):
             return
 
         assert isinstance(self.dubbin, ExternalProgram)
+
+        # Check if Dub version is compatible with Meson
+        if version_compare(dubver, '>1.31.1'):
+            if self.required:
+                raise DependencyException(f"DUB version {dubver} is not compatible with Meson (can't locate artifacts in Dub cache)")
+            self.is_found = False
+            return
+
         mlog.debug('Determining dependency {!r} with DUB executable '
                    '{!r}'.format(name, self.dubbin.get_path()))
 
