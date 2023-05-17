@@ -26,6 +26,7 @@ import typing as T
 if T.TYPE_CHECKING:
     from ..environment import Environment
 
+
 class DubDependency(ExternalDependency):
     # dub program and version
     class_dubbin: T.Optional[T.Tuple[ExternalProgram, str]] = None
@@ -59,7 +60,8 @@ class DubDependency(ExternalDependency):
         # Check if Dub version is compatible with Meson
         if version_compare(dubver, '>1.31.1'):
             if self.required:
-                raise DependencyException(f"DUB version {dubver} is not compatible with Meson (can't locate artifacts in Dub cache)")
+                raise DependencyException(
+                    f"DUB version {dubver} is not compatible with Meson (can't locate artifacts in Dub cache)")
             self.is_found = False
             return
 
@@ -134,13 +136,16 @@ class DubDependency(ExternalDependency):
                 elif 'compiler' not in compatibilities:
                     mlog.error(mlog.bold(pack_id), 'found but not compiled with ', mlog.bold(dub_comp_id))
                 elif dub_comp_id != 'gdc' and 'compiler_version' not in compatibilities:
-                    mlog.error(mlog.bold(pack_id), 'found but not compiled with', mlog.bold(f'{dub_comp_id}-{self.compiler.version}'))
+                    mlog.error(mlog.bold(pack_id), 'found but not compiled with',
+                               mlog.bold(f'{dub_comp_id}-{self.compiler.version}'))
                 elif 'arch' not in compatibilities:
                     mlog.error(mlog.bold(pack_id), 'found but not compiled for', mlog.bold(dub_arch))
                 elif 'platform' not in compatibilities:
-                    mlog.error(mlog.bold(pack_id), 'found but not compiled for', mlog.bold(description['platform'].join('.')))
+                    mlog.error(mlog.bold(pack_id), 'found but not compiled for',
+                               mlog.bold(description['platform'].join('.')))
                 elif 'configuration' not in compatibilities:
-                    mlog.error(mlog.bold(pack_id), 'found but not compiled for the', mlog.bold(pkg['configuration']), 'configuration')
+                    mlog.error(mlog.bold(pack_id), 'found but not compiled for the',
+                               mlog.bold(pkg['configuration']), 'configuration')
                 else:
                     mlog.error(mlog.bold(pack_id), 'not found')
 
@@ -177,7 +182,7 @@ class DubDependency(ExternalDependency):
                 self.is_found = False
                 return
 
-            ## check that the main dependency is indeed a library
+            # check that the main dependency is indeed a library
             if pkg['name'] == name:
                 self.is_found = True
 
@@ -327,11 +332,12 @@ class DubDependency(ExternalDependency):
             if ret != 0:
                 mlog.error('Failed to run {!r}', mlog.bold(dub_comp_id))
                 return (None, None)
-            d_ver_reg = re.search('v[0-9].[0-9][0-9][0-9].[0-9]', res) # Ex.: v2.081.2
+            d_ver_reg = re.search('v[0-9].[0-9][0-9][0-9].[0-9]', res)  # Ex.: v2.081.2
 
             if d_ver_reg is not None:
                 frontend_version = d_ver_reg.group()
-                frontend_id = frontend_version.rsplit('.', 1)[0].replace('v', '').replace('.', '') # Fix structure. Ex.: 2081
+                frontend_id = frontend_version.rsplit('.', 1)[0].replace(
+                    'v', '').replace('.', '')  # Fix structure. Ex.: 2081
                 comp_versions.extend([frontend_version, frontend_id])
 
         compatibilities: T.Set[str] = set()
@@ -390,34 +396,41 @@ class DubDependency(ExternalDependency):
         return p.returncode, out.strip(), err.strip()
 
     def _check_dub(self) -> T.Optional[T.Tuple[ExternalProgram, str]]:
+
+        def find() -> T.Optional[T.Tuple[ExternalProgram, str]]:
+            dubbin = ExternalProgram('dub', silent=True)
+
+            if not dubbin.found():
+                return None
+
+            try:
+                p, out = Popen_safe(dubbin.get_command() + ['--version'])[0:2]
+                if p.returncode != 0:
+                    mlog.warning('Found dub {!r} but couldn\'t run it'
+                                 ''.format(' '.join(dubbin.get_command())))
+                    return None
+
+            except (FileNotFoundError, PermissionError):
+                return None
+
+            vermatch = re.search(r'DUB version (\d+\.\d+\.\d+.*), ', out.strip())
+            if vermatch:
+                dubver = vermatch.group(1)
+            else:
+                mlog.warning(f"Found dub {' '.join(dubbin.get_command())} but couldn't parse version in {out.strip()}")
+                return None
+
+            return (dubbin, dubver)
+
         DubDependency.class_dubbin_searched = True
 
-        def fail() -> T.Optional[T.Tuple[ExternalProgram, str]]:
+        found = find()
+
+        if found is None:
             mlog.log('Found DUB:', mlog.red('NO'))
-
-        dubbin = ExternalProgram('dub', silent=True)
-
-        if not dubbin.found():
-            return fail()
-
-        try:
-            p, out = Popen_safe(dubbin.get_command() + ['--version'])[0:2]
-            if p.returncode != 0:
-                mlog.warning('Found dub {!r} but couldn\'t run it'
-                             ''.format(' '.join(dubbin.get_command())))
-                return fail()
-
-        except (FileNotFoundError, PermissionError):
-            return fail()
-
-        vermatch = re.search(r'DUB version (\d+\.\d+\.\d+.*), ', out.strip())
-        if vermatch:
-            dubver = vermatch.group(1)
         else:
-            mlog.warning(f"Found dub {' '.join(dubbin.get_command())} but couldn't parse version in {out.strip()}")
-            return fail()
+            (dubbin, dubver) = found
+            mlog.log('Found DUB:', mlog.bold(dubbin.get_path()),
+                     '(version %s)' % dubver)
 
-        mlog.log('Found DUB:', mlog.bold(dubbin.get_path()),
-                 '(version %s)' % dubver)
-
-        return (dubbin, dubver)
+        return found
