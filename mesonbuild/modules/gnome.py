@@ -661,9 +661,9 @@ class GnomeModule(ExtensionModule):
                 if girdir:
                     assert isinstance(girdir, str), 'for mypy'
                     gi_includes.update([girdir])
-            if isinstance(dep, InternalDependency):
                 cflags.update(dep.get_compile_args())
                 cflags.update(state.get_include_args(dep.include_directories))
+            if isinstance(dep, InternalDependency):
                 for lib in dep.libraries:
                     if isinstance(lib, build.SharedLibrary):
                         _ld, depends = self._get_link_args(state, lib, depends, include_rpath)
@@ -688,7 +688,6 @@ class GnomeModule(ExtensionModule):
                                             source.get_subdir())])
             # This should be any dependency other than an internal one.
             elif isinstance(dep, Dependency):
-                cflags.update(dep.get_compile_args())
                 ldflags = iter(dep.get_link_args(raw=True))
                 for flag in ldflags:
                     if (os.path.isabs(flag) and
