@@ -27,7 +27,8 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
 
 class DubDependency(ExternalDependency):
-    class_dubbin = None
+    # dubbin program and version
+    class_dubbin: T.Optional[T.Tuple[ExternalProgram, str]] = None
 
     def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
         super().__init__(DependencyTypeName('dub'), environment, kwargs, language='d')
@@ -42,10 +43,10 @@ class DubDependency(ExternalDependency):
             self.required = kwargs.get('required')
 
         if DubDependency.class_dubbin is None:
-            self.dubbin = self._check_dub()
-            DubDependency.class_dubbin = self.dubbin
-        else:
-            self.dubbin = DubDependency.class_dubbin
+            DubDependency.class_dubbin = self._check_dub()
+
+        if DubDependency.class_dubbin:
+            (self.dubbin, dubver) = DubDependency.class_dubbin
 
         if not self.dubbin:
             if self.required:
@@ -380,7 +381,7 @@ class DubDependency(ExternalDependency):
         p, out, err = Popen_safe(self.compiler.get_exelist() + args, env=env)
         return p.returncode, out.strip(), err.strip()
 
-    def _check_dub(self) -> T.Union[bool, ExternalProgram]:
+    def _check_dub(self) -> T.Union[bool, T.Tuple[ExternalProgram, str]]:
         dubbin: T.Union[bool, ExternalProgram] = ExternalProgram('dub', silent=True)
         assert isinstance(dubbin, ExternalProgram)
         if dubbin.found():
@@ -396,9 +397,21 @@ class DubDependency(ExternalDependency):
                 dubbin = False
         else:
             dubbin = False
+
         if isinstance(dubbin, ExternalProgram):
-            mlog.log('Found DUB:', mlog.bold(dubbin.get_path()),
-                     '(%s)' % out.strip())
+            dubver = re.search(r'DUB version (\d+\.\d+\.\d+.*), ', out.strip())
+            if dubver:
+                dubver = dubver.group(1)
+                mlog.log('Found DUB:', mlog.bold(dubbin.get_path()),
+                        '(version %s)' % dubver)
+            else:
+                mlog.log('Found DUB:', mlog.bold(dubbin.get_path()))
+                mlog.warning('Could not parse DUB version in ' + out.strip())
+                dubbin = False
         else:
             mlog.log('Found DUB:', mlog.red('NO'))
-        return dubbin
+
+        if not dubbin:
+            return False
+
+        return (dubbin, dubver)
