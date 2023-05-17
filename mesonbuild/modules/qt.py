@@ -48,6 +48,7 @@ if T.TYPE_CHECKING:
         sources: T.Sequence[T.Union[FileOrString, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
         extra_args: T.List[str]
         method: str
+        preserve_paths: bool
 
     class MocCompilerKwArgs(TypedDict):
 
@@ -59,6 +60,7 @@ if T.TYPE_CHECKING:
         method: str
         include_directories: T.List[T.Union[str, build.IncludeDirs]]
         dependencies: T.List[T.Union[Dependency, ExternalLibrary]]
+        preserve_paths: bool
 
     class PreprocessKwArgs(TypedDict):
 
@@ -73,6 +75,7 @@ if T.TYPE_CHECKING:
         include_directories: T.List[T.Union[str, build.IncludeDirs]]
         dependencies: T.List[T.Union[Dependency, ExternalLibrary]]
         method: str
+        preserve_paths: bool
 
     class HasToolKwArgs(kwargs.ExtractRequired):
 
@@ -376,9 +379,10 @@ class QtBaseModule(ExtensionModule):
             required=True,
         ),
         KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
-        KwargInfo('method', str, default='auto')
+        KwargInfo('method', str, default='auto'),
+        KwargInfo('preserve_paths', bool, default=False, since='1.4.0'),
     )
-    def compile_ui(self, state: 'ModuleState', args: T.Tuple, kwargs: 'UICompilerKwArgs') -> ModuleReturnValue:
+    def compile_ui(self, state: ModuleState, args: T.Tuple, kwargs: UICompilerKwArgs) -> ModuleReturnValue:
         """Compile UI resources into cpp headers."""
         if any(isinstance(s, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)) for s in kwargs['sources']):
             FeatureNew.single_use('qt.compile_ui: custom_target or generator for "sources" keyword argument',
@@ -386,7 +390,7 @@ class QtBaseModule(ExtensionModule):
         out = self._compile_ui_impl(state, kwargs)
         return ModuleReturnValue(out, [out])
 
-    def _compile_ui_impl(self, state: 'ModuleState', kwargs: 'UICompilerKwArgs') -> build.GeneratedList:
+    def _compile_ui_impl(self, state: ModuleState, kwargs: UICompilerKwArgs) -> build.GeneratedList:
         # Avoid the FeatureNew when dispatching from preprocess
         self._detect_tools(state, kwargs['method'])
         if not self.tools['uic'].found():
@@ -394,13 +398,14 @@ class QtBaseModule(ExtensionModule):
                        "please check your qt{2} installation")
             raise MesonException(err_msg.format('UIC', f'uic-qt{self.qt_version}', self.qt_version))
 
+        preserve_path_from = os.path.join(state.source_root, state.subdir) if kwargs['preserve_paths'] else None
         # TODO: This generator isn't added to the generator list in the Interpreter
         gen = build.Generator(
             self.tools['uic'],
             kwargs['extra_args'] + ['-o', '@OUTPUT@', '@INPUT@'],
             ['ui_@BASENAME@.h'],
             name=f'Qt{self.qt_version} ui')
-        return gen.process_files(kwargs['sources'], state)
+        return gen.process_files(kwargs['sources'], state, preserve_path_from)
 
     @FeatureNew('qt.compile_moc', '0.59.0')
     @noPosargs
@@ -422,8 +427,9 @@ class QtBaseModule(ExtensionModule):
         KwargInfo('method', str, default='auto'),
         KwargInfo('include_directories', ContainerTypeInfo(list, (build.IncludeDirs, str)), listify=True, default=[]),
         KwargInfo('dependencies', ContainerTypeInfo(list, (Dependency, ExternalLibrary)), listify=True, default=[]),
+        KwargInfo('preserve_paths', bool, default=False, since='1.4.0'),
     )
-    def compile_moc(self, state: 'ModuleState', args: T.Tuple, kwargs: 'MocCompilerKwArgs') -> ModuleReturnValue:
+    def compile_moc(self, state: ModuleState, args: T.Tuple, kwargs: MocCompilerKwArgs) -> ModuleReturnValue:
         if any(isinstance(s, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)) for s in kwargs['headers']):
             FeatureNew.single_use('qt.compile_moc: custom_target or generator for "headers" keyword argument',
                                   '0.60.0', state.subproject, location=state.current_node)
@@ -433,7 +439,7 @@ class QtBaseModule(ExtensionModule):
         out = self._compile_moc_impl(state, kwargs)
         return ModuleReturnValue(out, [out])
 
-    def _compile_moc_impl(self, state: 'ModuleState', kwargs: 'MocCompilerKwArgs') -> T.List[build.GeneratedList]:
+    def _compile_moc_impl(self, state: ModuleState, kwargs: MocCompilerKwArgs) -> T.List[build.GeneratedList]:
         # Avoid the FeatureNew when dispatching from preprocess
         self._detect_tools(state, kwargs['method'])
         if not self.tools['moc'].found():
@@ -458,18 +464,19 @@ class QtBaseModule(ExtensionModule):
         DEPFILE_ARGS: T.List[str] = ['--output-dep-file'] if self._moc_supports_depfiles else []
 
         arguments = kwargs['extra_args'] + DEPFILE_ARGS + inc + compile_args + ['@INPUT@', '-o', '@OUTPUT@']
+        preserve_path_from = os.path.join(state.source_root, state.subdir) if kwargs['preserve_paths'] else None
         if kwargs['headers']:
             moc_gen = build.Generator(
                 self.tools['moc'], arguments, ['moc_@BASENAME@.cpp'],
                 depfile='moc_@BASENAME@.cpp.d',
                 name=f'Qt{self.qt_version} moc header')
-            output.append(moc_gen.process_files(kwargs['headers'], state))
+            output.append(moc_gen.process_files(kwargs['headers'], state, preserve_path_from))
         if kwargs['sources']:
             moc_gen = build.Generator(
                 self.tools['moc'], arguments, ['@BASENAME@.moc'],
                 depfile='@BASENAME@.moc.d',
                 name=f'Qt{self.qt_version} moc source')
-            output.append(moc_gen.process_files(kwargs['sources'], state))
+            output.append(moc_gen.process_files(kwargs['sources'], state, preserve_path_from))
 
         return output
 
@@ -487,8 +494,9 @@ class QtBaseModule(ExtensionModule):
         KwargInfo('method', str, default='auto'),
         KwargInfo('include_directories', ContainerTypeInfo(list, (build.IncludeDirs, str)), listify=True, default=[]),
         KwargInfo('dependencies', ContainerTypeInfo(list, (Dependency, ExternalLibrary)), listify=True, default=[]),
+        KwargInfo('preserve_paths', bool, default=False, since='1.4.0'),
     )
-    def preprocess(self, state: 'ModuleState', args: T.List[T.Union[str, File]], kwargs: 'PreprocessKwArgs') -> ModuleReturnValue:
+    def preprocess(self, state: ModuleState, args: T.List[T.Union[str, File]], kwargs: PreprocessKwArgs) -> ModuleReturnValue:
         _sources = args[1:]
         if _sources:
             FeatureDeprecated.single_use('qt.preprocess positional sources', '0.59', state.subproject, location=state.current_node)
@@ -502,7 +510,7 @@ class QtBaseModule(ExtensionModule):
 
         if kwargs['qresources']:
             # custom output name set? -> one output file, multiple otherwise
-            rcc_kwargs: 'ResourceCompilerKwArgs' = {'name': '', 'sources': kwargs['qresources'], 'extra_args': kwargs['rcc_extra_arguments'], 'method': method}
+            rcc_kwargs: ResourceCompilerKwArgs = {'name': '', 'sources': kwargs['qresources'], 'extra_args': kwargs['rcc_extra_arguments'], 'method': method}
             if args:
                 name = args[0]
                 if not isinstance(name, str):
@@ -511,17 +519,23 @@ class QtBaseModule(ExtensionModule):
             sources.extend(self._compile_resources_impl(state, rcc_kwargs))
 
         if kwargs['ui_files']:
-            ui_kwargs: 'UICompilerKwArgs' = {'sources': kwargs['ui_files'], 'extra_args': kwargs['uic_extra_arguments'], 'method': method}
+            ui_kwargs: UICompilerKwArgs = {
+                'sources': kwargs['ui_files'],
+                'extra_args': kwargs['uic_extra_arguments'],
+                'method': method,
+                'preserve_paths': kwargs['preserve_paths'],
+            }
             sources.append(self._compile_ui_impl(state, ui_kwargs))
 
         if kwargs['moc_headers'] or kwargs['moc_sources']:
-            moc_kwargs: 'MocCompilerKwArgs' = {
+            moc_kwargs: MocCompilerKwArgs = {
                 'extra_args': kwargs['moc_extra_arguments'],
                 'sources': kwargs['moc_sources'],
                 'headers': kwargs['moc_headers'],
                 'include_directories': kwargs['include_directories'],
                 'dependencies': kwargs['dependencies'],
                 'method': method,
+                'preserve_paths': kwargs['preserve_paths'],
             }
             sources.extend(self._compile_moc_impl(state, moc_kwargs))
 

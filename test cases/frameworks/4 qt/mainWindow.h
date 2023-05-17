@@ -3,7 +3,7 @@
 
 #include <QObject>
 #include <QMainWindow>
-#include "ui_mainWindow.h"
+#include "ui/ui_mainWindow.h"
 
 class NotificationModel;
 

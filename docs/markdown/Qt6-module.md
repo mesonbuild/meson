@@ -39,6 +39,11 @@ It takes no positional arguments, and the following keyword arguments:
     *New in 0.60.0*: support for custom_target, custom_target_index, and generator_output.
   - `extra_args` string[]: Extra arguments to pass directly to `qt-uic`
   - `method` string: The method to use to detect Qt, see [[dependency]]
+  - `preserve_paths` bool: *New in 1.4.0*. If `true`, specifies that the output
+    files need to maintain their directory structure inside the target temporary
+    directory. For instance, when a file called `subdir/one.input` is processed
+    it generates a file `{target private directory}/subdir/one.out` when `true`,
+    and `{target private directory}/one.out` when `false` (default).
 
 ## compile_moc
 
@@ -59,6 +64,11 @@ It takes no positional arguments, and the following keyword arguments:
   - `dependencies`: dependency objects whose include directories are used by moc.
   - `include_directories` (string | IncludeDirectory)[]: A list of `include_directory()`
     objects used when transpiling the .moc files
+  - `preserve_paths` bool: *New in 1.4.0*. If `true`, specifies that the output
+    files need to maintain their directory structure inside the target temporary
+    directory. For instance, when a file called `subdir/one.input` is processed
+    it generates a file `{target private directory}/subdir/one.out` when `true`,
+    and `{target private directory}/one.out` when `false` (default).
 
 ## preprocess
 
@@ -96,7 +106,12 @@ This method takes the following keyword arguments:
  - `dependencies` Dependency[]: dependency objects needed by moc.
  - *Deprecated in 0.59.0.*: `sources`: a list of extra sources, which are added
    to the output unchanged.
-
+ - `preserve_paths` bool: *Since 1.4.0*. If `true`, specifies that the output
+   files need to maintain their directory structure inside the target temporary
+   directory. For instance, when a file called `subdir/one.input` is processed
+   it generates a file `{target private directory}/subdir/one.out` when `true`,
+   and `{target private directory}/one.out` when `false` (default).
+    
 It returns an array of targets and sources to pass to a compilation target.
 
 ## compile_translations
