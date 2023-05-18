@@ -138,6 +138,9 @@ methods:
     warnings:
       - A bug present until 0.50.1 results in the above behavior
         not working correctly.
+      - Due to implementation details, using "includes" with external
+        dependencies would not work prior to 1.2.0, use compile_args
+        to get includes for Meson < 1.2.0
 
     kwargs:
       compile_args:
