@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2015 The Meson development team
-# Copyright © 2021-2023 Intel Corporation
+# Copyright © 2021-2024 Intel Corporation
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from . import ModuleReturnValue, ExtensionModule
 from .. import build
 from .. import coredata
 from .. import mlog
-from ..dependencies import find_external_dependency, Dependency, ExternalLibrary, InternalDependency
+from ..dependencies import find_external_dependency, Dependency, ExternalLibrary
 from ..mesonlib import MesonException, File, version_compare, Popen_safe
 from ..interpreter import extract_required_kwarg
 from ..interpreter.type_checking import INSTALL_DIR_KW, INSTALL_KW, NoneType
@@ -453,10 +453,9 @@ class QtBaseModule(ExtensionModule):
         inc = state.get_include_args(include_dirs=kwargs['include_directories'])
         compile_args: T.List[str] = []
         for dep in kwargs['dependencies']:
-            compile_args.extend(a for a in dep.get_all_compile_args() if a.startswith(('-I', '-D')))
-            if isinstance(dep, InternalDependency):
-                for incl in dep.include_directories:
-                    compile_args.extend(f'-I{i}' for i in incl.to_string_list(self.interpreter.source_root, self.interpreter.environment.build_dir))
+            # The -I is left here because it's possible that an InternalDependency has -I options in it
+            compile_args.extend([a for a in dep.get_all_compile_args() if a.startswith(('-I', '-D'))])
+            inc.extend(state.get_include_args(dep.get_all_include_dirs()))
 
         output: T.List[build.GeneratedList] = []
 

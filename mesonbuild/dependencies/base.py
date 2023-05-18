@@ -175,6 +175,15 @@ class Dependency(HoldableObject):
         return list(itertools.chain(self.get_compile_args(),
                                     *(d.get_all_compile_args() for d in self.ext_deps)))
 
+    def get_all_include_dirs(self) -> T.Iterable[IncludeDirs]:
+        """Recursively get all include directories from this dependency and its dependencies
+
+        :yield: include directories objects.
+        """
+        yield from self.get_include_dirs()
+        for d in self.ext_deps:
+            yield from d.get_include_dirs()
+
     def get_link_args(self, language: T.Optional[str] = None, raw: bool = False) -> T.List[str]:
         if raw and self.raw_link_args is not None:
             return self.raw_link_args
