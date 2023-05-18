@@ -26,11 +26,60 @@ import typing as T
 if T.TYPE_CHECKING:
     from ..environment import Environment
 
+    # Definition of what `dub describe` returns (only the fields used by Meson)
+    class DubDescription(T.TypedDict):
+        platform: T.List[str]
+        architecture: T.List[str]
+        buildType: str
+        packages: T.List[DubPackDesc]
+        targets: T.List[DubTargetDesc]
+
+    class DubPackDesc(T.TypedDict):
+        name: str
+        version: str
+        active: bool
+        configuration: str
+        path: str
+        targetType: str
+        targetFileName: str
+
+    class DubTargetDesc(T.TypedDict):
+        rootPackage: str
+        linkDependencies: T.List[str]
+        buildSettings: DubBuildSettings
+
+    class DubBuildSettings(T.TypedDict):
+        importPaths: T.List[str]
+        stringImportPaths: T.List[str]
+        versions: T.List[str]
+        mainSourceFile: str
+        sourceFiles: T.List[str]
+        dflags: T.List[str]
+        libs: T.List[str]
+        lflags: T.List[str]
+
+    class DubCacheDbEntry(T.TypedDict):
+        package: str
+        version: str
+        configuration: str
+        platform: T.List[str]
+        architecture: T.List[str]
+        buildType: str
+        compiler: str
+        compilerBinary: str
+        compilerVersion: str
+        buildId: str
+        targetBinaryPath: str
+
+    class FindTargetEntry(T.TypedDict):
+        search: str
+        artifactPath: str
 
 class DubDependency(ExternalDependency):
     # dub program and version
     class_dubbin: T.Optional[T.Tuple[ExternalProgram, str]] = None
     class_dubbin_searched = False
+    class_cache_dir = ''
 
     def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
         super().__init__(DependencyTypeName('dub'), environment, kwargs, language='d')
@@ -58,10 +107,17 @@ class DubDependency(ExternalDependency):
         assert isinstance(self.dubbin, ExternalProgram)
 
         # Check if Dub version is compatible with Meson
-        if version_compare(dubver, '>1.31.1'):
+        self.use_old_cache_structure = version_compare(dubver, '<=1.31.1')
+        self.use_cache_db = version_compare(dubver, '>=1.34.0')
+
+        if not self.use_old_cache_structure and not self.use_cache_db:
             if self.required:
                 raise DependencyException(
-                    f"DUB version {dubver} is not compatible with Meson (can't locate artifacts in Dub cache)")
+                    f'DUB version {dubver} is not compatible with Meson'
+                    " (can't locate artifacts in DUB's cache)")
+            else:
+                mlog.warning(f'DUB dependency {name} not found because Dub {dubver} '
+                             "is not compatible with Meson. (Can't locate artifacts in DUB's cache)")
             self.is_found = False
             return
 
@@ -115,24 +171,25 @@ class DubDependency(ExternalDependency):
             return join_args(cmd)
 
         dub_comp_id = self.compiler.get_id().replace('llvm', 'ldc').replace('gcc', 'gdc')
-        description = json.loads(res)
+        description: DubDescription = json.loads(res)
 
         self.compile_args = []
         self.link_args = self.raw_link_args = []
 
         show_buildtype_warning = False
 
-        def find_package_target(pkg: T.Dict[str, str]) -> bool:
+        def find_package_target(pkg: DubPackDesc) -> bool:
             nonlocal show_buildtype_warning
             # try to find a static library in a DUB folder corresponding to
             # version, configuration, compiler, arch and build-type
             # if can find, add to link_args.
             # link_args order is meaningful, so this function MUST be called in the right order
             pack_id = f'{pkg["name"]}@{pkg["version"]}'
-            (tgt_file, compatibilities) = self._find_compatible_package_target(description, pkg, dub_comp_id)
+            (tgt_file, compatibilities) = self._find_target_in_cache(description, pkg, dub_comp_id)
             if tgt_file is None:
                 if not compatibilities:
-                    mlog.error(mlog.bold(pack_id), 'not found')
+                    search_dir = "cache" if self.use_cache_db else "packages"
+                    mlog.error(mlog.bold(pack_id), 'not found in', mlog.bold(os.path.join(self._find_dub_home(), search_dir)))
                 elif 'compiler' not in compatibilities:
                     mlog.error(mlog.bold(pack_id), 'found but not compiled with ', mlog.bold(dub_comp_id))
                 elif dub_comp_id != 'gdc' and 'compiler_version' not in compatibilities:
@@ -142,7 +199,7 @@ class DubDependency(ExternalDependency):
                     mlog.error(mlog.bold(pack_id), 'found but not compiled for', mlog.bold(dub_arch))
                 elif 'platform' not in compatibilities:
                     mlog.error(mlog.bold(pack_id), 'found but not compiled for',
-                               mlog.bold(description['platform'].join('.')))
+                               mlog.bold('.'.join(description['platform'])))
                 elif 'configuration' not in compatibilities:
                     mlog.error(mlog.bold(pack_id), 'found but not compiled for the',
                                mlog.bold(pkg['configuration']), 'configuration')
@@ -170,7 +227,7 @@ class DubDependency(ExternalDependency):
 
         # 1
         self.is_found = False
-        packages = {}
+        packages: T.Dict[str, DubPackDesc] = {}
         for pkg in description['packages']:
             packages[pkg['name']] = pkg
 
@@ -300,13 +357,11 @@ class DubDependency(ExternalDependency):
     # compiler, architecture, configuration...
     # It returns (target|None, {compatibilities})
     # If None is returned for target, compatibilities will list what other targets were found without full compatibility
-    def _find_compatible_package_target(self, jdesc: T.Dict[str, str], jpack: T.Dict[str, str], dub_comp_id: str) -> T.Tuple[str, T.Set[str]]:
-        dub_build_path = os.path.join(jpack['path'], '.dub', 'build')
+    def _find_target_in_cache(self, desc: DubDescription, pkg_desc: DubPackDesc, dub_comp_id: str) -> T.Tuple[str, T.Set[str]]:
 
-        if not os.path.exists(dub_build_path):
-            return (None, None)
+        mlog.debug('Searching in DUB cache for compatible', pkg_desc['targetFileName'])
 
-        # try to find a dir like library-debug-linux.posix-x86_64-ldc_2081-EF934983A3319F8F8FF2F0E107A363BA
+        # try to find a string like library-debug-linux.posix-x86_64-ldc_2081-EF934983A3319F8F8FF2F0E107A363BA
 
         # fields are:
         #  - configuration
@@ -316,40 +371,21 @@ class DubDependency(ExternalDependency):
         #  - compiler id (dmd, ldc, gdc)
         #  - compiler version or frontend id or frontend version?
 
-        conf = jpack['configuration']
-        build_type = jdesc['buildType']
-        platforms = jdesc['platform']
-        archs = jdesc['architecture']
+        comp_versions = self._get_comp_versions_to_find(dub_comp_id)
 
-        # Get D frontend version implemented in the compiler, or the compiler version itself
-        # gdc doesn't support this
-        comp_versions = []
-
-        if dub_comp_id != 'gdc':
-            comp_versions.append(self.compiler.version)
-
-            ret, res = self._call_compbin(['--version'])[0:2]
-            if ret != 0:
-                mlog.error('Failed to run {!r}', mlog.bold(dub_comp_id))
-                return (None, None)
-            d_ver_reg = re.search('v[0-9].[0-9][0-9][0-9].[0-9]', res)  # Ex.: v2.081.2
-
-            if d_ver_reg is not None:
-                frontend_version = d_ver_reg.group()
-                frontend_id = frontend_version.rsplit('.', 1)[0].replace(
-                    'v', '').replace('.', '')  # Fix structure. Ex.: 2081
-                comp_versions.extend([frontend_version, frontend_id])
-
-        compatibilities: T.Set[str] = set()
+        if self.use_cache_db:
+            entries = self._cache_db_entries(pkg_desc)
+        else:
+            entries = self._old_cache_entries(pkg_desc)
 
         # build_type is not in check_list because different build types might be compatible.
         # We do show a WARNING that the build type is not the same.
         # It might be critical in release builds, and acceptable otherwise
-        check_list = ('configuration', 'platform', 'arch', 'compiler', 'compiler_version')
+        check_list = {'configuration', 'platform', 'arch', 'compiler', 'compiler_version'}
+        compatibilities: T.Set[str] = set()
 
-        for entry in os.listdir(dub_build_path):
-
-            target = os.path.join(dub_build_path, entry, jpack['targetFileName'])
+        for entry in entries:
+            target = entry['artifactPath']
             if not os.path.exists(target):
                 # unless Dub and Meson are racing, the target file should be present
                 # when the directory is present
@@ -361,30 +397,124 @@ class DubDependency(ExternalDependency):
             # otherwise we could miss the WARNING about build_type
             comps = set()
 
-            if conf in entry:
+            search = entry['search']
+
+            mlog.debug('searching compatibility in ' + search)
+            mlog.debug('compiler_versions', comp_versions)
+
+            if pkg_desc['configuration'] in search:
                 comps.add('configuration')
 
-            if build_type in entry:
+            if desc['buildType'] in search:
                 comps.add('build_type')
 
-            if all(platform in entry for platform in platforms):
+            if all(platform in search for platform in desc['platform']):
                 comps.add('platform')
 
-            if all(arch in entry for arch in archs):
+            if all(arch in search for arch in desc['architecture']):
                 comps.add('arch')
 
-            if dub_comp_id in entry:
+            if dub_comp_id in search:
                 comps.add('compiler')
 
-            if dub_comp_id == 'gdc' or any(cv in entry for cv in comp_versions):
+            if not comp_versions or any(cv in search for cv in comp_versions):
                 comps.add('compiler_version')
 
             if all(key in comps for key in check_list):
+                mlog.debug('Found', target)
                 return (target, comps)
             else:
                 compatibilities = set.union(compatibilities, comps)
 
         return (None, compatibilities)
+
+    def _cache_db_entries(self, pkg_desc: DubPackDesc) -> T.List[FindTargetEntry]:
+        # The cache database is a JSON file written by newer versions of Dub to help to locate builds
+        # artifact in the cache.
+        # The JSON file path is ~/.dub/cache/pkg/version/[+subpkg/]db.json
+
+        if not DubDependency.class_cache_dir:
+            DubDependency.class_cache_dir = self._find_cache_dir()
+        cache_dir = DubDependency.class_cache_dir
+
+        pkg = pkg_desc['name']
+        subpkg = None
+        if ':' in pkg:
+            [pkg, subpkg] = pkg.split(':')
+        pkg_cache_dir = os.path.join(cache_dir, pkg, pkg_desc['version'])
+        if subpkg is not None:
+            pkg_cache_dir = os.path.join(pkg_cache_dir, f'+{subpkg}')
+        db_file = os.path.join(pkg_cache_dir, 'db.json')
+
+        if not os.path.exists(pkg_cache_dir):
+            mlog.warning('No such cache folder', pkg_cache_dir)
+            return []
+        if not os.path.exists(db_file):
+            mlog.warning('No cache database (db.json) in ' + pkg_cache_dir)
+            return []
+
+        mlog.debug('Retrieving entries in DUB cache database', db_file)
+
+        with open(db_file, encoding='utf-8') as f:
+            db: T.List[DubCacheDbEntry] = json.load(f)
+            return [
+                {
+                    'search': '{}-{}-{}-{}-{}_{}'.format(
+                        dbe['configuration'],
+                        dbe['buildType'],
+                        '.'.join(dbe['platform']),
+                        '.'.join(dbe['architecture']),
+                        dbe['compiler'],
+                        dbe['compilerVersion']),
+                    'artifactPath': dbe['targetBinaryPath']
+                }
+                for dbe in db
+            ]
+
+    def _old_cache_entries(self, pkg_desc: DubPackDesc) -> T.List[FindTargetEntry]:
+        # the "old" cache is the `.dub` directory in every package of ~/.dub/packages
+        dub_build_path = os.path.join(pkg_desc['path'], '.dub', 'build')
+
+        if not os.path.exists(dub_build_path):
+            mlog.warning('No such cache folder:', dub_build_path)
+            return []
+
+        mlog.debug('Checking in DUB cache folder', dub_build_path)
+
+        return [
+            {
+                'search': dir_entry,
+                'artifactPath': os.path.join(dub_build_path, dir_entry, pkg_desc['targetFileName'])
+            }
+            for dir_entry in os.listdir(dub_build_path)
+        ]
+
+    def _get_comp_versions_to_find(self, dub_comp_id: str) -> T.List[str]:
+        # Get D frontend version implemented in the compiler, or the compiler version itself
+        # gdc doesn't support this
+
+        if dub_comp_id == 'gdc':
+            return []
+
+        comp_versions = [self.compiler.version]
+
+        if self.use_cache_db:
+            # that's it for cache database
+            return comp_versions
+
+        ret, res = self._call_compbin(['--version'])[0:2]
+        if ret != 0:
+            mlog.error('Failed to run {!r}', mlog.bold(dub_comp_id))
+            return []
+        d_ver_reg = re.search('v[0-9].[0-9][0-9][0-9].[0-9]', res)  # Ex.: v2.081.2
+
+        if d_ver_reg is not None:
+            frontend_version = d_ver_reg.group()
+            frontend_id = frontend_version.rsplit('.', 1)[0].replace(
+                'v', '').replace('.', '')  # Fix structure. Ex.: 2081
+            comp_versions.extend([frontend_version, frontend_id])
+
+        return comp_versions
 
     def _call_dubbin(self, args: T.List[str], env: T.Optional[T.Dict[str, str]] = None) -> T.Tuple[int, str, str]:
         assert isinstance(self.dubbin, ExternalProgram)
@@ -432,3 +562,32 @@ class DubDependency(ExternalDependency):
                      '(version %s)' % dubver)
 
         return found
+
+    def _find_dub_home(self) -> str:
+        # first check environment
+        dubhome = os.environ.get('DUB_HOME')
+        if dubhome is not None:
+            return dubhome
+        dpath = os.environ.get('DPATH')
+        if dpath is not None:
+            return os.path.join(dpath, 'dub')
+
+        # default value
+        is_windows = self.env.machines.host.is_windows()
+        if is_windows:
+            appdata = os.environ.get('LOCALAPPDATA')
+            if appdata is None:
+                # LOCALAPPDATA is not defined before Vista
+                appdata = os.environ.get('APPDATA')
+            assert isinstance(appdata, str)
+            return os.path.join(appdata, 'dub')
+        else:
+            home = os.environ.get('HOME')
+            assert isinstance(home, str)
+            return os.path.join(home, '.dub')
+
+    def _find_cache_dir(self) -> str:
+        dubhome = self._find_dub_home()
+        # TODO: handle (rare) case where dubhome is overriden
+        # in Dub's settings file.
+        return os.path.join(dubhome, 'cache')
