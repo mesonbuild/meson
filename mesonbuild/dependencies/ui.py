@@ -23,7 +23,7 @@ import typing as T
 from .. import mlog
 from .. import mesonlib
 from ..mesonlib import (
-    Popen_safe, extract_as_list, version_compare_many
+    Popen_safe, extract_as_list, version_compare_many, MachineChoice
 )
 from ..environment import detect_cpu_family
 
@@ -210,7 +210,11 @@ class VulkanDependencySystem(SystemDependency):
                 lib_name = 'vulkan-1'
                 lib_dir = 'Lib32'
                 inc_dir = 'Include'
-                if detect_cpu_family(self.env.coredata.compilers.host) == 'x86_64':
+                if self.for_machine is MachineChoice.HOST and self.env.is_cross_build():
+                    arch = self.env.machines.host.cpu_family
+                else:
+                    arch = detect_cpu_family(self.env.coredata.compilers.build)
+                if arch == 'x86_64':
                     lib_dir = 'Lib'
 
             # make sure header and lib are valid

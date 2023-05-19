@@ -1094,8 +1094,11 @@ def detect_d_compiler(env: 'Environment', for_machine: MachineChoice) -> Compile
         c_compiler = {}
 
     # Import here to avoid circular imports
-    from ..environment import detect_cpu_family
-    arch = detect_cpu_family(c_compiler)
+    if for_machine is MachineChoice.HOST and env.is_cross_build():
+        arch = env.machines.host.cpu_family
+    else:
+        from ..environment import detect_cpu_family
+        arch = detect_cpu_family(c_compiler)
     if is_msvc and arch == 'x86':
         arch = 'x86_mscoff'
 
@@ -1226,11 +1229,11 @@ def detect_nasm_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
 
     # We need a C compiler to properly detect the machine info and linker
     cc = detect_c_compiler(env, for_machine)
-    if not is_cross:
+    if for_machine is MachineChoice.HOST and env.is_cross_build():
+        info = env.machines.host
+    else:
         from ..environment import detect_machine_info
         info = detect_machine_info({'c': cc})
-    else:
-        info = env.machines[for_machine]
 
     popen_exceptions: T.Dict[str, Exception] = {}
     for comp in compilers:
@@ -1270,11 +1273,11 @@ def detect_masm_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
     # We need a C compiler to properly detect the machine info and linker
     is_cross = env.is_cross_build(for_machine)
     cc = detect_c_compiler(env, for_machine)
-    if not is_cross:
+    if for_machine is MachineChoice.HOST and env.is_cross_build():
+        info = env.machines.host
+    else:
         from ..environment import detect_machine_info
         info = detect_machine_info({'c': cc})
-    else:
-        info = env.machines[for_machine]
 
     from .asm import MasmCompiler, MasmARMCompiler
     comp_class: T.Type[Compiler]
