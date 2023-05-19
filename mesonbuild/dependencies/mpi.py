@@ -18,7 +18,6 @@ import typing as T
 import os
 import re
 
-from ..environment import detect_cpu_family, MachineChoice
 from .base import DependencyMethods, detect_compiler, SystemDependency
 from .configtool import ConfigToolDependency
 from .factory import factory_methods
@@ -26,7 +25,7 @@ from .pkgconfig import PkgConfigDependency
 
 if T.TYPE_CHECKING:
     from .factory import DependencyGenerator
-    from ..environment import Environment
+    from ..environment import Environment, MachineChoice
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.SYSTEM})
@@ -217,10 +216,7 @@ class MSMPIDependency(SystemDependency):
             return
 
         incdir = os.environ.get('MSMPI_INC')
-        if self.for_machine is MachineChoice.HOST and self.env.is_cross_build():
-            arch = self.env.machines.host.cpu_family
-        else:
-            arch = detect_cpu_family(self.env.coredata.compilers.build)
+        arch = env.machines[self.for_machine].cpu_family
         libdir = None
         if arch == 'x86':
             libdir = os.environ.get('MSMPI_LIB32')
