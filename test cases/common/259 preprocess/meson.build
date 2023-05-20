@@ -17,6 +17,13 @@ dep = declare_dependency(compile_args: '-DPLOP=0')
 
 pp_files = cc.preprocess('foo.c', bar_c, output: '@PLAINNAME@', dependencies: dep)
 
+gen = generator(
+  find_program('create-source.py'),
+  arguments: ['@INPUT@'],
+  output: '@BASENAME@_gen.c',
+  capture: true
+)
+
 foreach f : pp_files
   message(f.full_path())
 endforeach
@@ -24,3 +31,4 @@ endforeach
 subdir('src')
 
 test('test-foo', executable('app', pp_files, link_depends: file_map))
+test('test-custom-preprocess-generator', executable('custom-preprocess-generator', gen.process(pp_files[0])))

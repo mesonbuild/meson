@@ -20,7 +20,7 @@ from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from .. import build
 from .. import mesonlib
 from .. import mlog
-from ..interpreter.type_checking import CT_BUILD_BY_DEFAULT, CT_INPUT_KW, INSTALL_TAG_KW, OUTPUT_KW, INSTALL_DIR_KW, INSTALL_KW, NoneType, in_set_validator
+from ..interpreter.type_checking import CT_BUILD_BY_DEFAULT, INSTALL_TAG_KW, OUTPUT_KW, INSTALL_DIR_KW, INSTALL_KW, NoneType, in_set_validator
 from ..interpreterbase import FeatureNew
 from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, noPosargs, typed_kwargs, typed_pos_args
 from ..scripts.gettext import read_linguas
@@ -37,9 +37,7 @@ if T.TYPE_CHECKING:
     class MergeFile(TypedDict):
 
         input: T.List[T.Union[
-            str, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex,
-            build.ExtractedObjects, build.GeneratedList, ExternalProgram,
-            mesonlib.File]]
+            str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
         output: str
         build_by_default: bool
         install: bool
@@ -62,9 +60,7 @@ if T.TYPE_CHECKING:
     class ItsJoinFile(TypedDict):
 
         input: T.List[T.Union[
-            str, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex,
-            build.ExtractedObjects, build.GeneratedList, ExternalProgram,
-            mesonlib.File]]
+            str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
         output: str
         build_by_default: bool
         install: bool
@@ -86,6 +82,13 @@ _DATA_DIRS: KwargInfo[T.List[str]] = KwargInfo(
     ContainerTypeInfo(list, str),
     default=[],
     listify=True
+)
+
+I18N_INPUT_KW: KwargInfo[T.List[T.Union[str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]] = KwargInfo(
+    'input',
+    ContainerTypeInfo(list, (str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)),
+    listify=True,
+    default=[],
 )
 
 PRESET_ARGS = {
@@ -153,7 +156,7 @@ class I18nModule(ExtensionModule):
     @typed_kwargs(
         'i18n.merge_file',
         CT_BUILD_BY_DEFAULT,
-        CT_INPUT_KW,
+        I18N_INPUT_KW,
         KwargInfo('install_dir', (str, NoneType)),
         INSTALL_TAG_KW,
         OUTPUT_KW,
@@ -246,7 +249,7 @@ class I18nModule(ExtensionModule):
 
         extra_args = kwargs['args']
         targets: T.List['Target'] = []
-        gmotargets: T.List['build.CustomTarget'] = []
+        gmotargets: T.List['build.Target'] = []
 
         preset = kwargs['preset']
         if preset:
@@ -327,7 +330,7 @@ class I18nModule(ExtensionModule):
     @typed_kwargs(
         'i18n.itstool_join',
         CT_BUILD_BY_DEFAULT,
-        CT_INPUT_KW,
+        I18N_INPUT_KW,
         KwargInfo('install_dir', (str, NoneType)),
         INSTALL_TAG_KW,
         OUTPUT_KW,

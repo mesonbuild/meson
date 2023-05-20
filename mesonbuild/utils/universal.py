@@ -89,6 +89,7 @@ __all__ = [
     'RealPathAction',
     'TemporaryDirectoryWinProof',
     'Version',
+    'add_lists',
     'check_direntry_issues',
     'classify_unity_sources',
     'current_vs_supports_modules',
@@ -1406,7 +1407,7 @@ def extract_as_list(dict_object: T.Dict[_T, _U], key: _T, pop: bool = False) -> 
 
 
 def typeslistify(item: 'T.Union[_T, T.Sequence[_T]]',
-                 types: 'T.Union[T.Type[_T], T.Tuple[T.Type[_T]]]') -> T.List[_T]:
+                 types: 'T.Union[T.Type, T.Tuple[T.Type, ...]]') -> T.List[_T]:
     '''
     Ensure that type(@item) is one of @types or a
     list of items all of which are of type @types
@@ -2391,3 +2392,8 @@ def first(iter: T.Iterable[_T], predicate: T.Callable[[_T], bool]) -> T.Optional
         if predicate(i):
             return i
     return None
+
+
+# same as lhs + rhs, but makes mypy happy
+def add_lists(lhs: T.List[_T], rhs: ImmutableListProtocol[_T]) -> T.List[_T]:
+    return lhs + T.cast('T.List[_T]', rhs)

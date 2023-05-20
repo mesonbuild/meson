@@ -41,7 +41,7 @@ from ..mesonlib import (
 )
 
 if T.TYPE_CHECKING:
-    from .._typing import ImmutableListProtocol
+    from .._typing import ImmutableListProtocol, ImmutableDictProtocol
     from ..arglist import CompilerArgs
     from ..compilers import Compiler
     from ..environment import Environment
@@ -141,7 +141,7 @@ class TargetInstallData:
     outdir: str
     outdir_name: InitVar[T.Optional[str]]
     strip: bool
-    install_name_mappings: T.Mapping[str, str]
+    install_name_mappings: ImmutableDictProtocol[str, str]
     rpath_dirs_to_remove: T.Set[bytes]
     install_rpath: str
     # TODO: install_mode should just always be a FileMode object
@@ -1643,15 +1643,18 @@ class Backend:
         for t in self.build.get_targets().values():
             if not t.should_install():
                 continue
-            outdirs, install_dir_names, custom_install_dir = t.get_install_dir()
+            outdirs_unchecked, install_dir_names, custom_install_dir = t.get_install_dir()
             # Sanity-check the outputs and install_dirs
-            num_outdirs, num_out = len(outdirs), len(t.get_outputs())
+            num_outdirs, num_out = len(outdirs_unchecked), len(t.get_outputs())
             if num_outdirs not in {1, num_out}:
                 m = 'Target {!r} has {} outputs: {!r}, but only {} "install_dir"s were found.\n' \
                     "Pass 'false' for outputs that should not be installed and 'true' for\n" \
                     'using the default installation directory for an output.'
                 raise MesonException(m.format(t.name, num_out, t.get_outputs(), num_outdirs))
             assert len(t.install_tag) == num_out
+            for x in outdirs_unchecked:
+                assert x is not True
+            outdirs = T.cast('T.List[T.Union[str, T.Literal[False]]]', outdirs_unchecked)
             install_mode = t.get_custom_install_mode()
             # because mypy gets confused type narrowing in lists
             first_outdir = outdirs[0]

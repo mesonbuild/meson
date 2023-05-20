@@ -24,6 +24,7 @@ modules = [
     # specific files
     'mesonbuild/arglist.py',
     'mesonbuild/backend/backends.py',
+    'mesonbuild/build.py',
     # 'mesonbuild/coredata.py',
     'mesonbuild/depfile.py',
     'mesonbuild/envconfig.py',

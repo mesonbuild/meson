@@ -26,6 +26,7 @@ from ..programs import ExternalProgram
 
 if T.TYPE_CHECKING:
     from .. import build
+    from ..environment import Environment
     from ..interpreter import Interpreter
     from ..interpreter.interpreterobjects import MachineHolder
     from ..interpreterbase import TYPE_var, TYPE_kwargs
@@ -40,6 +41,9 @@ class ModuleState:
     This is a WIP API provided to modules, it should be extended to have everything
     needed so modules does not touch any other part of Meson internal APIs.
     """
+
+    environment: 'Environment'
+    subdir: 'str'
 
     def __init__(self, interpreter: 'Interpreter') -> None:
         # Keep it private, it should be accessed only through methods.

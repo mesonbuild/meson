@@ -1,0 +1,7 @@
+{
+    "stdout": [
+        {
+            "line": "test cases/failing/132 extract foreign gen source/meson.build:14:28: ERROR: Tried to extract unknown generated source(s) ['main_gen.c']."
+        }
+    ]
+}

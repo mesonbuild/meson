@@ -1472,7 +1472,7 @@ class NinjaBackend(backends.Backend):
         args += compiler.get_buildtype_args(target.get_option(OptionKey('buildtype')))
         args += self.build.get_global_args(compiler, target.for_machine)
         args += self.build.get_project_args(compiler, target.subproject, target.for_machine)
-        args += target.get_java_args()
+        args += target.extra_args.get('java', [])
         args += compiler.get_output_args(self.get_target_private_dir(target))
         args += target.get_classpath_args()
         curdir = target.get_subdir()
