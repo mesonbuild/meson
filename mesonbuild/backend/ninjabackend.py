@@ -2513,6 +2513,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         return args
 
     def generate_genlist_for_target(self, genlist: build.GeneratedList, target: build.BuildTarget) -> None:
+        for x in genlist.depends:
+            if isinstance(x, build.GeneratedList):
+                self.generate_genlist_for_target(x, target)
         generator = genlist.get_generator()
         subdir = genlist.subdir
         exe = generator.get_exe()
@@ -2524,7 +2527,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 sole_output = os.path.join(self.get_target_private_dir(target), outfilelist[i])
             else:
                 sole_output = f'{curfile}'
-            infilename = curfile.rel_to_builddir(self.build_to_src)
+            infilename = curfile.rel_to_builddir(self.build_to_src, self.get_target_private_dir(target))
             base_args = generator.get_arglist(infilename)
             outfiles = genlist.get_outputs_for(curfile)
             outfiles = [os.path.join(self.get_target_private_dir(target), of) for of in outfiles]

@@ -1668,6 +1668,34 @@ You probably should put it in link_with instead.''')
                                      'use shared_library() with `override_options: [\'b_lundef=false\']` instead.')
                     link_target.force_soname = True
 
+class FileInTargetPrivateDir:
+    """Represents a file with the path '/path/to/build/target_private_dir/fname'.
+       target_private_dir is the return value of get_target_private_dir which is e.g. 'subdir/target.p'.
+    """
+
+    def __init__(self, fname: str):
+        self.fname = fname
+
+class FileMaybeInTargetPrivateDir:
+    """Union between 'File' and 'FileInTargetPrivateDir'"""
+
+    def __init__(self, inner: T.Union[File, FileInTargetPrivateDir]):
+        self.inner = inner
+
+    @property
+    def fname(self) -> str:
+        return self.inner.fname
+
+    def rel_to_builddir(self, build_to_src: str, target_private_dir: str) -> str:
+        if isinstance(self.inner, FileInTargetPrivateDir):
+            return os.path.join(target_private_dir, self.inner.fname)
+        return self.inner.rel_to_builddir(build_to_src)
+
+    def absolute_path(self, srcdir: str, builddir: str) -> str:
+        if isinstance(self.inner, FileInTargetPrivateDir):
+            raise RuntimeError('Unreachable code')
+        return self.inner.absolute_path(srcdir, builddir)
+
 class Generator(HoldableObject):
     def __init__(self, exe: T.Union['Executable', programs.ExternalProgram],
                  arguments: T.List[str],
@@ -1727,10 +1755,14 @@ class Generator(HoldableObject):
                 output.depends.add(e)
             if isinstance(e, CustomTargetIndex):
                 output.depends.add(e.target)
-
-            if isinstance(e, (CustomTarget, CustomTargetIndex, GeneratedList)):
+            if isinstance(e, (CustomTarget, CustomTargetIndex)):
                 output.depends.add(e)
                 fs = [File.from_built_file(state.subdir, f) for f in e.get_outputs()]
+            elif isinstance(e, GeneratedList):
+                if preserve_path_from:
+                    raise InvalidArguments("generator.process: 'preserve_path_from' is not allowed if one input is a 'generated_list'.")
+                output.depends.add(e)
+                fs = [FileInTargetPrivateDir(f) for f in e.get_outputs()]
             elif isinstance(e, str):
                 fs = [File.from_source_file(state.environment.source_dir, state.subdir, e)]
             else:
@@ -1741,6 +1773,7 @@ class Generator(HoldableObject):
                     abs_f = f.absolute_path(state.environment.source_dir, state.environment.build_dir)
                     if not self.is_parent_path(preserve_path_from, abs_f):
                         raise InvalidArguments('generator.process: When using preserve_path_from, all input files must be in a subdirectory of the given dir.')
+                f = FileMaybeInTargetPrivateDir(f)
                 output.add_file(f, state)
         return output
 
@@ -1758,9 +1791,9 @@ class GeneratedList(HoldableObject):
     def __post_init__(self) -> None:
         self.name = self.generator.exe
         self.depends: T.Set[GeneratedTypes] = set()
-        self.infilelist: T.List['File'] = []
+        self.infilelist: T.List[FileMaybeInTargetPrivateDir] = []
         self.outfilelist: T.List[str] = []
-        self.outmap: T.Dict[File, T.List[str]] = {}
+        self.outmap: T.Dict[FileMaybeInTargetPrivateDir, T.List[str]] = {}
         self.extra_depends = []  # XXX: Doesn't seem to be used?
         self.depend_files: T.List[File] = []
 
@@ -1776,7 +1809,7 @@ class GeneratedList(HoldableObject):
                 # know the absolute path of
                 self.depend_files.append(File.from_absolute_file(path))
 
-    def add_preserved_path_segment(self, infile: File, outfiles: T.List[str], state: T.Union['Interpreter', 'ModuleState']) -> T.List[str]:
+    def add_preserved_path_segment(self, infile: FileMaybeInTargetPrivateDir, outfiles: T.List[str], state: T.Union['Interpreter', 'ModuleState']) -> T.List[str]:
         result: T.List[str] = []
         in_abs = infile.absolute_path(state.environment.source_dir, state.environment.build_dir)
         assert os.path.isabs(self.preserve_path_from)
@@ -1786,7 +1819,7 @@ class GeneratedList(HoldableObject):
             result.append(os.path.join(path_segment, of))
         return result
 
-    def add_file(self, newfile: File, state: T.Union['Interpreter', 'ModuleState']) -> None:
+    def add_file(self, newfile: FileMaybeInTargetPrivateDir, state: T.Union['Interpreter', 'ModuleState']) -> None:
         self.infilelist.append(newfile)
         outfiles = self.generator.get_base_outnames(newfile.fname)
         if self.preserve_path_from:
@@ -1794,13 +1827,13 @@ class GeneratedList(HoldableObject):
         self.outfilelist += outfiles
         self.outmap[newfile] = outfiles
 
-    def get_inputs(self) -> T.List['File']:
+    def get_inputs(self) -> T.List[FileMaybeInTargetPrivateDir]:
         return self.infilelist
 
     def get_outputs(self) -> T.List[str]:
         return self.outfilelist
 
-    def get_outputs_for(self, filename: 'File') -> T.List[str]:
+    def get_outputs_for(self, filename: FileMaybeInTargetPrivateDir) -> T.List[str]:
         return self.outmap[filename]
 
     def get_generator(self) -> 'Generator':

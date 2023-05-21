@@ -118,67 +118,74 @@ class Vs2010Backend(backends.Backend):
     def get_target_private_dir(self, target):
         return os.path.join(self.get_target_dir(target), target.get_id())
 
+    def generate_genlist_for_target(self, genlist: T.Union[build.GeneratedList, build.CustomTarget, build.CustomTargetIndex], target: build.BuildTarget, parent_node: ET.Element, generator_output_files: T.List[str], custom_target_include_dirs: T.List[str], custom_target_output_files: T.List[str]) -> None:
+        if isinstance(genlist, build.GeneratedList):
+            for x in genlist.depends:
+                self.generate_genlist_for_target(x, target, parent_node, [], [], [])
+        target_private_dir = self.relpath(self.get_target_private_dir(target), self.get_target_dir(target))
+        down = self.target_to_build_root(target)
+        if isinstance(genlist, (build.CustomTarget, build.CustomTargetIndex)):
+            for i in genlist.get_outputs():
+                # Path to the generated source from the current vcxproj dir via the build root
+                ipath = os.path.join(down, self.get_target_dir(genlist), i)
+                custom_target_output_files.append(ipath)
+            idir = self.relpath(self.get_target_dir(genlist), self.get_target_dir(target))
+            if idir not in custom_target_include_dirs:
+                custom_target_include_dirs.append(idir)
+        else:
+            generator = genlist.get_generator()
+            exe = generator.get_exe()
+            infilelist = genlist.get_inputs()
+            outfilelist = genlist.get_outputs()
+            source_dir = os.path.join(down, self.build_to_src, genlist.subdir)
+            idgroup = ET.SubElement(parent_node, 'ItemGroup')
+            samelen = len(infilelist) == len(outfilelist)
+            for i, curfile in enumerate(infilelist):
+                if samelen:
+                    sole_output = os.path.join(target_private_dir, outfilelist[i])
+                else:
+                    sole_output = ''
+                infilename = os.path.join(down, curfile.rel_to_builddir(self.build_to_src, target_private_dir))
+                deps = self.get_custom_target_depend_files(genlist, True)
+                base_args = generator.get_arglist(infilename)
+                outfiles_rel = genlist.get_outputs_for(curfile)
+                outfiles = [os.path.join(target_private_dir, of) for of in outfiles_rel]
+                generator_output_files += outfiles
+                args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', sole_output)
+                        for x in base_args]
+                args = self.replace_outputs(args, target_private_dir, outfiles_rel)
+                args = [x.replace("@SOURCE_DIR@", self.environment.get_source_dir())
+                        .replace("@BUILD_DIR@", target_private_dir)
+                        for x in args]
+                args = [x.replace("@CURRENT_SOURCE_DIR@", source_dir) for x in args]
+                args = [x.replace("@SOURCE_ROOT@", self.environment.get_source_dir())
+                        .replace("@BUILD_ROOT@", self.environment.get_build_dir())
+                        for x in args]
+                args = [x.replace('\\', '/') for x in args]
+                # Always use a wrapper because MSBuild eats random characters when
+                # there are many arguments.
+                tdir_abs = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
+                cmd, _ = self.as_meson_exe_cmdline(
+                    exe,
+                    self.replace_extra_args(args, genlist),
+                    workdir=tdir_abs,
+                    capture=outfiles[0] if generator.capture else None,
+                    force_serialize=True
+                )
+                deps = cmd[-1:] + deps
+                abs_pdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
+                os.makedirs(abs_pdir, exist_ok=True)
+                cbs = ET.SubElement(idgroup, 'CustomBuild', Include=infilename)
+                ET.SubElement(cbs, 'Command').text = ' '.join(self.quote_arguments(cmd))
+                ET.SubElement(cbs, 'Outputs').text = ';'.join(outfiles)
+                ET.SubElement(cbs, 'AdditionalInputs').text = ';'.join(deps)
+
     def generate_custom_generator_commands(self, target, parent_node):
         generator_output_files = []
         custom_target_include_dirs = []
         custom_target_output_files = []
-        target_private_dir = self.relpath(self.get_target_private_dir(target), self.get_target_dir(target))
-        down = self.target_to_build_root(target)
         for genlist in target.get_generated_sources():
-            if isinstance(genlist, (build.CustomTarget, build.CustomTargetIndex)):
-                for i in genlist.get_outputs():
-                    # Path to the generated source from the current vcxproj dir via the build root
-                    ipath = os.path.join(down, self.get_target_dir(genlist), i)
-                    custom_target_output_files.append(ipath)
-                idir = self.relpath(self.get_target_dir(genlist), self.get_target_dir(target))
-                if idir not in custom_target_include_dirs:
-                    custom_target_include_dirs.append(idir)
-            else:
-                generator = genlist.get_generator()
-                exe = generator.get_exe()
-                infilelist = genlist.get_inputs()
-                outfilelist = genlist.get_outputs()
-                source_dir = os.path.join(down, self.build_to_src, genlist.subdir)
-                idgroup = ET.SubElement(parent_node, 'ItemGroup')
-                for i, curfile in enumerate(infilelist):
-                    if len(infilelist) == len(outfilelist):
-                        sole_output = os.path.join(target_private_dir, outfilelist[i])
-                    else:
-                        sole_output = ''
-                    infilename = os.path.join(down, curfile.rel_to_builddir(self.build_to_src))
-                    deps = self.get_custom_target_depend_files(genlist, True)
-                    base_args = generator.get_arglist(infilename)
-                    outfiles_rel = genlist.get_outputs_for(curfile)
-                    outfiles = [os.path.join(target_private_dir, of) for of in outfiles_rel]
-                    generator_output_files += outfiles
-                    args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', sole_output)
-                            for x in base_args]
-                    args = self.replace_outputs(args, target_private_dir, outfiles_rel)
-                    args = [x.replace("@SOURCE_DIR@", self.environment.get_source_dir())
-                             .replace("@BUILD_DIR@", target_private_dir)
-                            for x in args]
-                    args = [x.replace("@CURRENT_SOURCE_DIR@", source_dir) for x in args]
-                    args = [x.replace("@SOURCE_ROOT@", self.environment.get_source_dir())
-                             .replace("@BUILD_ROOT@", self.environment.get_build_dir())
-                            for x in args]
-                    args = [x.replace('\\', '/') for x in args]
-                    # Always use a wrapper because MSBuild eats random characters when
-                    # there are many arguments.
-                    tdir_abs = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
-                    cmd, _ = self.as_meson_exe_cmdline(
-                        exe,
-                        self.replace_extra_args(args, genlist),
-                        workdir=tdir_abs,
-                        capture=outfiles[0] if generator.capture else None,
-                        force_serialize=True
-                    )
-                    deps = cmd[-1:] + deps
-                    abs_pdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
-                    os.makedirs(abs_pdir, exist_ok=True)
-                    cbs = ET.SubElement(idgroup, 'CustomBuild', Include=infilename)
-                    ET.SubElement(cbs, 'Command').text = ' '.join(self.quote_arguments(cmd))
-                    ET.SubElement(cbs, 'Outputs').text = ';'.join(outfiles)
-                    ET.SubElement(cbs, 'AdditionalInputs').text = ';'.join(deps)
+            self.generate_genlist_for_target(genlist, target, parent_node, generator_output_files, custom_target_include_dirs, custom_target_output_files)
         return generator_output_files, custom_target_output_files, custom_target_include_dirs
 
     def generate(self):
