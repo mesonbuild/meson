@@ -1293,7 +1293,9 @@ class NinjaBackend(backends.Backend):
             ['--internal',
              'regenerate',
              self.environment.get_source_dir(),
-             self.environment.get_build_dir()]
+             # Ninja always runs from the build_dir. This includes cases where the user moved the
+             # build directory and invalidated most references. Make sure it still regenerates.
+             '.']
         self.add_rule(NinjaRule('REGENERATE_BUILD',
                                 c, [],
                                 'Regenerating build files.',
