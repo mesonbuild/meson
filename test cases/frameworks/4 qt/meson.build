@@ -152,7 +152,8 @@ foreach qt : ['qt4', 'qt5', 'qt6']
     endif
 
     # Check we can apply a version constraint
-    dependency(qt, modules: qt_modules, version: '>=@0@'.format(qtdep.version()), method : get_option('method'))
+    accept_versions = ['>=@0@'.format(qtdep.version()), '<@0@'.format(qtdep.version()[0].to_int() + 1)]
+    dependency(qt, modules: qt_modules, version: accept_versions, method : get_option('method'))
 
   endif
 endforeach

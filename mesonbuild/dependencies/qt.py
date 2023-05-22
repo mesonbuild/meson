@@ -252,11 +252,11 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=abc.ABCMeta):
 
     """Find Qt using Qmake as a config-tool."""
 
-    tool_name = 'qmake'
     version_arg = '-v'
 
     def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]):
         _QtBase.__init__(self, name, kwargs)
+        self.tool_name = f'qmake{self.qtver}'
         self.tools = [f'qmake{self.qtver}', f'qmake-{self.name}', 'qmake']
 
         # Add additional constraints that the Qt version is met, but preserve
