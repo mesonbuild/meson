@@ -887,6 +887,9 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
 
     @noPosargs
     @noKwargs
+    @FeatureDeprecated('BuildTarget.get_id', '1.2.0',
+                       'This was never formally documented and does not seem to have a real world use. ' +
+                       'See https://github.com/mesonbuild/meson/pull/6061')
     def get_id_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self._target_object.get_id()
 
