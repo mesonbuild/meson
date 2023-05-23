@@ -300,6 +300,7 @@ class GnomeModule(ExtensionModule):
             'genmarshal': self.genmarshal,
             'generate_vapi': self.generate_vapi,
         })
+        self.__last_project_name: T.Optional[str] = None
 
     def _get_native_glib_version(self, state: 'ModuleState') -> str:
         if self.native_glib_version is None:
@@ -790,10 +791,23 @@ class GnomeModule(ExtensionModule):
 
     def _get_gir_dep(self, state: 'ModuleState') -> T.Tuple[Dependency, T.Union[build.Executable, 'ExternalProgram', 'OverrideProgram'],
                                                             T.Union[build.Executable, 'ExternalProgram', 'OverrideProgram']]:
+        # gobject-introspection requires internally the 'gobject-introspection-no-typelibs-1.0'
+        # dependency to be able use gnome.generate_gir before creating all the typelibs targets.
+        # The cached dependency is reset so that other projects will use the final
+        # 'gobject-introspection-1.0' dependency
+        if self.__last_project_name == 'gobject-introspection' and state.project_name != 'gobject-introspection':
+            self.gir_dep = None
+
         if not self.gir_dep:
-            self.gir_dep = state.dependency('gobject-introspection-1.0')
-            self.giscanner = state.find_tool('g-ir-scanner', 'gobject-introspection-1.0', 'g_ir_scanner')
-            self.gicompiler = state.find_tool('g-ir-compiler', 'gobject-introspection-1.0', 'g_ir_compiler')
+            if state.project_name == 'gobject-introspection':
+                dep_name = 'gobject-introspection-no-typelibs-1.0'
+            else:
+                dep_name = 'gobject-introspection-1.0'
+            self.gir_dep = state.dependency(dep_name)
+            self.giscanner = state.find_tool('g-ir-scanner', dep_name, 'g_ir_scanner')
+            self.gicompiler = state.find_tool('g-ir-compiler', dep_name, 'g_ir_compiler')
+            self.__last_project_name = state.project_name
+
         return self.gir_dep, self.giscanner, self.gicompiler
 
     @functools.lru_cache(maxsize=None)
@@ -1140,14 +1154,14 @@ class GnomeModule(ExtensionModule):
         builddir = os.path.join(state.environment.get_build_dir(), state.subdir)
 
         depends: T.List[T.Union['FileOrString', 'build.GeneratedTypes', build.BuildTarget, build.StructuredSources]] = []
-        depends.extend(gir_dep.sources)
+        depends.extend(gir_dep.libraries)
         depends.extend(girtargets)
 
         langs_compilers = self._get_girtargets_langs_compilers(girtargets)
         cflags, internal_ldflags, external_ldflags = self._get_langs_compilers_flags(state, langs_compilers)
         deps = self._get_gir_targets_deps(girtargets)
         deps += kwargs['dependencies']
-        deps += [gir_dep]
+        deps += gir_dep.ext_deps
         typelib_includes, depends = self._gather_typelib_includes_and_update_depends(state, deps, depends)
         # ldflags will be misinterpreted by gir scanner (showing
         # spurious dependencies) but building GStreamer fails if they
@@ -1212,6 +1226,7 @@ class GnomeModule(ExtensionModule):
             scan_command.append('--warn-error')
 
         generated_files = [f for f in libsources if isinstance(f, (GeneratedList, CustomTarget, CustomTargetIndex))]
+        generated_files += gir_dep.sources
 
         scan_target = self._make_gir_target(
             state, girfile, scan_command, generated_files, depends,
