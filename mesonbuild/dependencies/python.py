@@ -323,10 +323,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
         if pyarch is None:
             self.is_found = False
             return
-        if self.for_machine is MachineChoice.HOST and self.env.is_cross_build():
-            arch = self.env.machines.host.cpu_family
-        else:
-            arch = detect_cpu_family(self.env.coredata.compilers.build)
+        arch = env.machines[self.for_machine].cpu_family
         if arch != pyarch:
             mlog.log('Need', mlog.bold(self.name), f'for {arch}, but found {pyarch}')
             self.is_found = False
