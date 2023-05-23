@@ -23,14 +23,13 @@ from .configtool import ConfigToolDependency
 from .factory import DependencyFactory
 from .framework import ExtraFrameworkDependency
 from .pkgconfig import PkgConfigDependency
-from ..environment import detect_cpu_family, MachineChoice
 from ..programs import ExternalProgram
 
 if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
 
     from .factory import DependencyGenerator
-    from ..environment import Environment
+    from ..environment import Environment, MachineChoice
 
     class PythonIntrospectionDict(TypedDict):
 
@@ -194,7 +193,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
         # match pkg-config behavior
         if self.link_libpython:
             # link args
-            if mesonlib.is_windows():
+            if environment.machines[self.for_machine].is_windows():
                 self.find_libpy_windows(environment)
             else:
                 self.find_libpy(environment)
@@ -211,7 +210,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
 
         # https://sourceforge.net/p/mingw-w64/mailman/message/30504611/
         # https://github.com/python/cpython/pull/100137
-        if mesonlib.is_windows() and self.get_windows_python_arch().endswith('64') and mesonlib.version_compare(self.version, '<3.12'):
+        if environment.machines[self.for_machine].is_windows() and self.get_windows_python_arch().endswith('64') and mesonlib.version_compare(self.version, '<3.12'):
             self.compile_args += ['-DMS_WIN64=']
 
         if not self.clib_compiler.has_header('Python.h', '', environment, extra_args=self.compile_args):
