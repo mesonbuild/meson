@@ -466,7 +466,7 @@ class MachineInfo(HoldableObject):
         if endian not in ('little', 'big'):
             mlog.warning(f'Unknown endian {endian}')
 
-        return cls(literal['system'], cpu_family, literal['cpu'], endian)
+        return cls(literal['system'], cpu_family, literal['cpu'], endian, False)
 
     @classmethod
     def detect(cls, compilers: T.Optional[CompilersDict] = None) -> MachineInfo:

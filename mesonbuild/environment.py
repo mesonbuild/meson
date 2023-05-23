@@ -342,7 +342,6 @@ class Environment:
         self.machines = machines.default_missing()
         if not self.first_invocation:
             self.machines.build.redetect(self.coredata.compilers.build)
-            self.machines.host.redetect(self.coredata.compilers.host)
 
         self.binaries = binaries.default_missing()
         self.properties = properties.default_missing()
