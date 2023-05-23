@@ -40,6 +40,8 @@ takes two positional arguments. The first one is the name of the
 resource and the second is the XML file containing the resource
 definitions. If the name is `foobar`, Meson will generate a header
 file called `foobar.h`, which you can then include in your sources.
+The resources specified are automatically added as dependencies of the
+generated target.
 
 * `c_name`: passed to the resource compiler as an argument after
   `--c-name`
