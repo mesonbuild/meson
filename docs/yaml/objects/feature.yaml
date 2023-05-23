@@ -100,7 +100,7 @@ methods:
 
     ```
     use_llvm = get_option('llvm').enable_if(with_clang).enable_if(with_llvm_libs)
-    dep_llvm = dependency('llvm', require : use_llvm)
+    dep_llvm = dependency('llvm', required: use_llvm)
     ```
 
   posargs:
@@ -132,7 +132,7 @@ methods:
     ```
     use_os_feature = get_option('foo') \
       .disable_if(host_machine.system() == 'darwin', error_message : 'os feature not supported on MacOS')
-    dep_os_feature = dependency('os_feature', require : use_os_feature)
+    dep_os_feature = dependency('os_feature', required: use_os_feature)
     ```
 
   posargs:
