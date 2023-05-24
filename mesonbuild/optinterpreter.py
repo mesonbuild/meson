@@ -20,7 +20,7 @@ from . import coredata
 from . import mesonlib
 from . import mparser
 from . import mlog
-from .interpreterbase import FeatureNew, typed_pos_args, typed_kwargs, ContainerTypeInfo, KwargInfo
+from .interpreterbase import FeatureNew, FeatureDeprecated, typed_pos_args, typed_kwargs, ContainerTypeInfo, KwargInfo
 from .interpreter.type_checking import NoneType, in_set_validator
 
 if T.TYPE_CHECKING:
@@ -239,7 +239,7 @@ class OptionInterpreter:
         value = kwargs['value']
         if value is None:
             value = kwargs['choices'][0]
-        return coredata.UserComboOption(description, choices, value, *args)
+        return coredata.UserComboOption(description, value, choices, *args)
 
     @typed_kwargs(
         'integer option',
@@ -266,6 +266,11 @@ class OptionInterpreter:
     def string_array_parser(self, description: str, args: T.Tuple[bool, _DEPRECATED_ARGS], kwargs: StringArrayArgs) -> coredata.UserOption:
         choices = kwargs['choices']
         value = kwargs['value'] if kwargs['value'] is not None else choices
+        if isinstance(value, str):
+            if value.startswith('['):
+                FeatureDeprecated('String value for array option', '1.2.0').use(self.subproject)
+            else:
+                raise mesonlib.MesonException('Value does not define an array: ' + value)
         return coredata.UserArrayOption(description, value,
                                         choices=choices,
                                         yielding=args[0],

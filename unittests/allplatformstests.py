@@ -4679,3 +4679,36 @@ class AllPlatformTests(BasePlatformTests):
             'mesonbuild.scripts.test_loaded_modules'
         ]
         self.assertEqual(sorted(expected_meson_modules), sorted(meson_modules))
+
+    def test_c_cpp_stds(self):
+        testdir = os.path.join(self.unit_test_dir, '114 c cpp stds')
+        self.init(testdir)
+        # Invalid values should fail whatever compiler we have
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.setconf('-Dc_std=invalid')
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.setconf('-Dc_std=c89,invalid')
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.setconf('-Dc_std=c++11')
+        env = get_fake_env()
+        cc = detect_c_compiler(env, MachineChoice.HOST)
+        if cc.get_id() == 'msvc':
+            # default_option should have selected those
+            self.assertEqual(self.getconf('c_std'), 'c89')
+            self.assertEqual(self.getconf('cpp_std'), 'vc++11')
+            # This is deprecated but works for C
+            self.setconf('-Dc_std=gnu99')
+            self.assertEqual(self.getconf('c_std'), 'c99')
+            # C++ however never accepted that fallback
+            with self.assertRaises(subprocess.CalledProcessError):
+                self.setconf('-Dcpp_std=gnu++11')
+            # The first supported std should be selected
+            self.setconf('-Dcpp_std=gnu++11,vc++11,c++11')
+            self.assertEqual(self.getconf('cpp_std'), 'vc++11')
+        elif cc.get_id() == 'gcc':
+            # default_option should have selected those
+            self.assertEqual(self.getconf('c_std'), 'gnu89')
+            self.assertEqual(self.getconf('cpp_std'), 'gnu++98')
+            # The first supported std should be selected
+            self.setconf('-Dcpp_std=c++11,gnu++11,vc++11')
+            self.assertEqual(self.getconf('cpp_std'), 'c++11')

@@ -301,6 +301,13 @@ class BasePlatformTests(TestCase):
             ensure_backend_detects_changes(self.backend)
         self._run(self.mconf_command + arg + [self.builddir])
 
+    def getconf(self, optname: str):
+        opts = self.introspect('--buildoptions')
+        for x in opts:
+            if x.get('name') == optname:
+                return x.get('value')
+        self.fail(f'Option {optname} not found')
+
     def wipe(self):
         windows_proof_rmtree(self.builddir)
 

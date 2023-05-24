@@ -95,9 +95,8 @@ class ClangObjCPPCompiler(ClangCompiler, ObjCPPCompiler):
         opts = super().get_options()
         opts.update({
             OptionKey('std', machine=self.for_machine, lang='cpp'): coredata.UserComboOption(
-                'C++ language standard to use',
+                'C++ language standard to use', 'none',
                 ['none', 'c++98', 'c++11', 'c++14', 'c++17', 'gnu++98', 'gnu++11', 'gnu++14', 'gnu++17'],
-                'none',
             )
         })
         return opts

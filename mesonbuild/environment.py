@@ -47,7 +47,6 @@ from mesonbuild import envconfig
 
 if T.TYPE_CHECKING:
     import argparse
-    from configparser import ConfigParser
 
     from .wrap.wrap import Resolver
 
@@ -82,7 +81,7 @@ def _get_env_var(for_machine: MachineChoice, is_cross: bool, var_name: str) -> T
     return value
 
 
-def detect_gcovr(min_version='3.3', log=False):
+def detect_gcovr(min_version: str = '3.3', log: bool = False) -> T.Tuple[T.Optional[str], T.Optional[str]]:
     gcovr_exe = 'gcovr'
     try:
         p, found = Popen_safe([gcovr_exe, '--version'])[0:2]
@@ -96,7 +95,7 @@ def detect_gcovr(min_version='3.3', log=False):
         return gcovr_exe, found
     return None, None
 
-def detect_llvm_cov():
+def detect_llvm_cov() -> T.Optional[str]:
     tools = get_llvm_tool_names('llvm-cov')
     for tool in tools:
         if mesonlib.exe_exists([tool, '--version']):
@@ -122,7 +121,7 @@ def detect_ninja(version: str = '1.8.2', log: bool = False) -> T.List[str]:
     r = detect_ninja_command_and_version(version, log)
     return r[0] if r else None
 
-def detect_ninja_command_and_version(version: str = '1.8.2', log: bool = False) -> T.Tuple[T.List[str], str]:
+def detect_ninja_command_and_version(version: str = '1.8.2', log: bool = False) -> T.Optional[T.Tuple[T.List[str], str]]:
     env_ninja = os.environ.get('NINJA', None)
     for n in [env_ninja] if env_ninja else ['ninja', 'ninja-build', 'samu']:
         prog = ExternalProgram(n, silent=True)
@@ -148,6 +147,7 @@ def detect_ninja_command_and_version(version: str = '1.8.2', log: bool = False) 
                 mlog.log('Found {}-{} at {}'.format(name, found,
                          ' '.join([quote_arg(x) for x in prog.command])))
             return (prog.command, found)
+    return None
 
 def get_llvm_tool_names(tool: str) -> T.List[str]:
     # Ordered list of possible suffixes of LLVM executables to try. Start with
@@ -270,7 +270,7 @@ def detect_windows_arch(compilers: CompilersDict) -> str:
             return 'x86'
     return os_arch
 
-def any_compiler_has_define(compilers: CompilersDict, define):
+def any_compiler_has_define(compilers: CompilersDict, define: str) -> bool:
     for c in compilers.values():
         try:
             if c.has_builtin_define(define):
@@ -419,7 +419,7 @@ def detect_machine_info(compilers: T.Optional[CompilersDict] = None) -> MachineI
 
 # TODO make this compare two `MachineInfo`s purely. How important is the
 # `detect_cpu_family({})` distinction? It is the one impediment to that.
-def machine_info_can_run(machine_info: MachineInfo):
+def machine_info_can_run(machine_info: MachineInfo) -> bool:
     """Whether we can run binaries for this machine on the current machine.
 
     Can almost always run 32-bit binaries on 64-bit natively if the host
@@ -508,15 +508,15 @@ class Environment:
         #
         # Note that order matters because of 'buildtype', if it is after
         # 'optimization' and 'debug' keys, it override them.
-        self.options: T.MutableMapping[OptionKey, T.Union[str, T.List[str]]] = collections.OrderedDict()
+        self.options: T.MutableMapping[OptionKey, coredata.UserOptionTypes] = collections.OrderedDict()
 
         ## Read in native file(s) to override build machine configuration
 
         if self.coredata.config_files is not None:
             config = coredata.parse_machine_files(self.coredata.config_files)
-            binaries.build = BinaryTable(config.get('binaries', {}))
-            properties.build = Properties(config.get('properties', {}))
-            cmakevars.build = CMakeVariables(config.get('cmake', {}))
+            binaries.build = BinaryTable(config.get('binaries'))
+            properties.build = Properties(config.get('properties'))
+            cmakevars.build = CMakeVariables(config.get('cmake'))
             self._load_machine_file_options(
                 config, properties.build,
                 MachineChoice.BUILD if self.coredata.cross_files else MachineChoice.HOST)
@@ -525,13 +525,13 @@ class Environment:
 
         if self.coredata.cross_files:
             config = coredata.parse_machine_files(self.coredata.cross_files)
-            properties.host = Properties(config.get('properties', {}))
-            binaries.host = BinaryTable(config.get('binaries', {}))
-            cmakevars.host = CMakeVariables(config.get('cmake', {}))
+            properties.host = Properties(config.get('properties'))
+            binaries.host = BinaryTable(config.get('binaries'))
+            cmakevars.host = CMakeVariables(config.get('cmake'))
             if 'host_machine' in config:
-                machines.host = MachineInfo.from_literal(config['host_machine'])
+                machines.host = MachineInfo.from_literal(config.get('host_machine'))
             if 'target_machine' in config:
-                machines.target = MachineInfo.from_literal(config['target_machine'])
+                machines.target = MachineInfo.from_literal(config.get('target_machine'))
             # Keep only per machine options from the native file. The cross
             # file takes precedence over all other options.
             for key, value in list(self.options.items()):
@@ -575,7 +575,7 @@ class Environment:
         self.default_pkgconfig = ['pkg-config']
         self.wrap_resolver: T.Optional['Resolver'] = None
 
-    def _load_machine_file_options(self, config: 'ConfigParser', properties: Properties, machine: MachineChoice) -> None:
+    def _load_machine_file_options(self, config: coredata.MachineFileParser, properties: Properties, machine: MachineChoice) -> None:
         """Read the contents of a Machine file and put it in the options store."""
 
         # Look for any options in the deprecated paths section, warn about
@@ -778,7 +778,7 @@ class Environment:
         return is_object(fname)
 
     @lru_cache(maxsize=None)
-    def is_library(self, fname):
+    def is_library(self, fname: 'mesonlib.FileOrString') -> bool:
         return is_library(fname)
 
     def lookup_binary_entry(self, for_machine: MachineChoice, name: str) -> T.Optional[T.List[str]]:
@@ -838,7 +838,7 @@ class Environment:
     def get_datadir(self) -> str:
         return self.coredata.get_option(OptionKey('datadir'))
 
-    def get_compiler_system_dirs(self, for_machine: MachineChoice):
+    def get_compiler_system_dirs(self, for_machine: MachineChoice) -> T.List[str]:
         for comp in self.coredata.compilers[for_machine].values():
             if comp.id == 'clang':
                 index = 1
@@ -854,10 +854,10 @@ class Environment:
         p, out, _ = Popen_safe(comp.get_exelist() + ['-print-search-dirs'])
         if p.returncode != 0:
             raise mesonlib.MesonException('Could not calculate system search dirs')
-        out = out.split('\n')[index].lstrip('libraries: =').split(':')
-        return [os.path.normpath(p) for p in out]
+        paths = out.split('\n')[index].lstrip('libraries: =').split(':')
+        return [os.path.normpath(p) for p in paths]
 
-    def need_exe_wrapper(self, for_machine: MachineChoice = MachineChoice.HOST):
+    def need_exe_wrapper(self, for_machine: MachineChoice = MachineChoice.HOST) -> bool:
         value = self.properties[for_machine].get('needs_exe_wrapper', None)
         if value is not None:
             return value

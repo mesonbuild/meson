@@ -159,9 +159,9 @@ class CMakeSkipCompilerTest(Enum):
 class Properties:
     def __init__(
             self,
-            properties: T.Optional[T.Dict[str, T.Optional[T.Union[str, bool, int, T.List[str]]]]] = None,
+            properties: T.Optional[T.Dict[str, T.Union[str, bool, int, T.List[str]]]] = None,
     ):
-        self.properties = properties or {}  # type: T.Dict[str, T.Optional[T.Union[str, bool, int, T.List[str]]]]
+        self.properties: T.Dict[str, T.Union[str, bool, int, T.List[str]]] = properties or {}
 
     def has_stdlib(self, language: str) -> bool:
         return language + '_stdlib' in self.properties
@@ -268,22 +268,24 @@ class MachineInfo(HoldableObject):
         return f'<MachineInfo: {self.system} {self.cpu_family} ({self.cpu})>'
 
     @classmethod
-    def from_literal(cls, literal: T.Dict[str, str]) -> 'MachineInfo':
-        minimum_literal = {'cpu', 'cpu_family', 'endian', 'system'}
-        if set(literal) < minimum_literal:
-            raise EnvironmentException(
-                f'Machine info is currently {literal}\n' +
-                'but is missing {}.'.format(minimum_literal - set(literal)))
+    def from_literal(cls, literal: T.Dict[str, T.Union[str, bool, int, T.List[str]]]) -> 'MachineInfo':
+        def get_value(key: str) -> str:
+            val = literal.get(key)
+            if val is None:
+                raise EnvironmentException(f'Machine info is missing {key!r} field')
+            if not isinstance(val, str):
+                raise EnvironmentException(f'Machine info {key!r} field must be strings')
+            return val
 
-        cpu_family = literal['cpu_family']
+        cpu_family = get_value('cpu_family')
         if cpu_family not in known_cpu_families:
             mlog.warning(f'Unknown CPU family {cpu_family}, please report this at https://github.com/mesonbuild/meson/issues/new')
 
-        endian = literal['endian']
+        endian = get_value('endian')
         if endian not in ('little', 'big'):
             mlog.warning(f'Unknown endian {endian}')
 
-        return cls(literal['system'], cpu_family, literal['cpu'], endian)
+        return cls(get_value('system'), cpu_family, get_value('cpu'), endian)
 
     def is_windows(self) -> bool:
         """
@@ -377,7 +379,7 @@ class BinaryTable:
 
     def __init__(
             self,
-            binaries: T.Optional[T.Dict[str, T.Union[str, T.List[str]]]] = None,
+            binaries: T.Optional[T.Dict[str, T.Union[str, bool, int, T.List[str]]]] = None,
     ):
         self.binaries: T.Dict[str, T.List[str]] = {}
         if binaries:
