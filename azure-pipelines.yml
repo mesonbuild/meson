@@ -19,7 +19,7 @@ trigger:
     include:
     - 'master'
     # Release branches
-    - '0.*'
+    - '1.*'
   paths:
     include:
       - 'mesonbuild'
