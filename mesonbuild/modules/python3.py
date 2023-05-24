@@ -13,7 +13,6 @@
 # limitations under the License.
 from __future__ import annotations
 
-from mesonbuild.mesonlib.universal import MachineChoice
 import sysconfig
 from .. import mesonlib
 
@@ -21,6 +20,7 @@ from . import ExtensionModule, ModuleInfo
 from ..interpreterbase import typed_pos_args, noPosargs, noKwargs, permittedKwargs
 from ..build import known_shmod_kwargs
 from ..programs import ExternalProgram
+from ..mesonlib import MachineChoice
 
 
 class Python3Module(ExtensionModule):
