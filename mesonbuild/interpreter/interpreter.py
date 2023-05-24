@@ -799,7 +799,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                           'configuration')
         expanded_args: T.List[str] = []
         if isinstance(cmd, build.Executable):
-            for name, exe in self.build.find_overrides.items():
+            for name, exe in self.build.build_overrides.items():
                 if cmd == exe:
                     progname = name
                     break
@@ -1601,7 +1601,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         if name in self.build.searched_programs[for_machine]:
             raise InterpreterException(f'Tried to override finding of executable "{name}" for the '
                                        f'{for_machine.get_lower_case_name()} machine which has already been found.')
-        if name in self.build.find_overrides[for_machine]:
+        if name in self.build.program_overrides[for_machine]:
             raise InterpreterException(f'Tried to override executable "{name}" for the {for_machine.get_lower_case_name()} machine '
                                        'which has already been overridden.')
         self.build.program_overrides[for_machine][name] = exe
