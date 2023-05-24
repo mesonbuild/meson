@@ -1893,17 +1893,20 @@ class ProgressBarFallback:  # lgtm [py/iter-returns-non-self]
     __iter__ method' warning.
     '''
     def __init__(self, iterable: T.Optional[T.Iterable[str]] = None, total: T.Optional[int] = None,
-                 bar_type: T.Optional[str] = None, desc: T.Optional[str] = None):
+                 bar_type: T.Optional[str] = None, desc: T.Optional[str] = None,
+                 disable: T.Optional[bool] = None):
         if iterable is not None:
             self.iterable = iter(iterable)
             return
         self.total = total
         self.done = 0
         self.printed_dots = 0
-        if self.total and bar_type == 'download':
-            print('Download size:', self.total)
-        if desc:
-            print(f'{desc}: ', end='')
+        self.disable = not mlog.colorize_console() if disable is None else disable
+        if not self.disable:
+            if self.total and bar_type == 'download':
+                print('Download size:', self.total)
+            if desc:
+                print(f'{desc}: ', end='')
 
     # Pretend to be an iterator when called as one and don't print any
     # progress
@@ -1914,8 +1917,9 @@ class ProgressBarFallback:  # lgtm [py/iter-returns-non-self]
         return next(self.iterable)
 
     def print_dot(self) -> None:
-        print('.', end='')
-        sys.stdout.flush()
+        if not self.disable:
+            print('.', end='')
+            sys.stdout.flush()
         self.printed_dots += 1
 
     def update(self, progress: int) -> None:
@@ -1929,7 +1933,8 @@ class ProgressBarFallback:  # lgtm [py/iter-returns-non-self]
             self.print_dot()
 
     def close(self) -> None:
-        print('')
+        if not self.disable:
+            print()
 
 try:
     from tqdm import tqdm
@@ -1940,10 +1945,17 @@ else:
     class ProgressBarTqdm(tqdm):
         def __init__(self, *args: T.Any, bar_type: T.Optional[str] = None, **kwargs: T.Any) -> None:
             if bar_type == 'download':
-                kwargs.update({'unit': 'bytes', 'leave': True})
+                kwargs.update({'unit': 'B',
+                               'unit_scale': True,
+                               'unit_divisor': 1024,
+                               'leave': True,
+                               'bar_format': '{l_bar}{bar}| {n_fmt}/{total_fmt} {rate_fmt} eta {remaining}',
+                               })
+
             else:
-                kwargs.update({'leave': False})
-            kwargs['ncols'] = 100
+                kwargs.update({'leave': False,
+                               'bar_format': '{l_bar}{bar}| {n_fmt}/{total_fmt} eta {remaining}',
+                               })
             super().__init__(*args, **kwargs)
 
     ProgressBar = ProgressBarTqdm

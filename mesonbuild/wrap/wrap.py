@@ -285,6 +285,7 @@ class Resolver:
     wrap_mode: WrapMode = WrapMode.default
     wrap_frontend: bool = False
     allow_insecure: bool = False
+    silent: bool = False
 
     def __post_init__(self) -> None:
         self.subdir_root = os.path.join(self.source_dir, self.subdir)
@@ -695,7 +696,8 @@ class Resolver:
                 return hashvalue, tmpfile.name
             sys.stdout.flush()
             progress_bar = ProgressBar(bar_type='download', total=dlsize,
-                                       desc='Downloading')
+                                       desc='Downloading',
+                                       disable=(self.silent or None))
             while True:
                 block = resp.read(blocksize)
                 if block == b'':
