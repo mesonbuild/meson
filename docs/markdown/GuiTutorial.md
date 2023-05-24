@@ -95,6 +95,18 @@ going to go into how it works. Merely replace the contents of
 ```c
 #include "SDL.h"
 
+//FIX WINMAIN ISSUE ON COMPILE
+#ifdef _WIN32
+#ifdef _WIN64
+#define SDL_MAIN_HANDLED
+
+int WinMain(int argc, char* argv[]) {
+    SDL_SetMainReady();
+    return main(argc, argv);
+}
+#endif
+#endif
+
 int main(int argc, char *argv[])
 {
     SDL_Window *window;
