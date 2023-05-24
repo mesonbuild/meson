@@ -131,6 +131,8 @@ if T.TYPE_CHECKING:
 
     BuildTargetSource = T.Union[mesonlib.FileOrString, build.GeneratedTypes, build.StructuredSources]
 
+    ProgramVersionFunc = T.Callable[[T.Union[ExternalProgram, build.Executable, OverrideProgram]], str]
+
 
 def _project_version_validator(value: T.Union[T.List, str, mesonlib.File, None]) -> T.Optional[str]:
     if isinstance(value, list):
@@ -1621,45 +1623,22 @@ class Interpreter(InterpreterBase, HoldableObject):
                           required: bool = True, silent: bool = True,
                           wanted: T.Union[str, T.List[str]] = '',
                           search_dirs: T.Optional[T.List[str]] = None,
-                          version_func: T.Optional[T.Callable[[T.Union['ExternalProgram', 'build.Executable', 'OverrideProgram']], str]] = None
+                          version_func: T.Optional[ProgramVersionFunc] = None
                           ) -> T.Union['ExternalProgram', 'build.Executable', 'OverrideProgram']:
         args = mesonlib.listify(args)
 
         extra_info: T.List[mlog.TV_Loggable] = []
-        progobj = self.program_lookup(args, for_machine, default_options, required, search_dirs, extra_info)
-        if progobj is None:
+        progobj = self.program_lookup(args, for_machine, default_options, required, search_dirs, wanted, version_func, extra_info)
+        if progobj is None or not self.check_program_version(progobj, wanted, version_func, extra_info):
             progobj = self.notfound_program(args)
 
         if isinstance(progobj, ExternalProgram) and not progobj.found():
             if not silent:
-                mlog.log('Program', mlog.bold(progobj.get_name()), 'found:', mlog.red('NO'))
+                mlog.log('Program', mlog.bold(progobj.get_name()), 'found:', mlog.red('NO'), *extra_info)
             if required:
                 m = 'Program {!r} not found or not executable'
                 raise InterpreterException(m.format(progobj.get_name()))
             return progobj
-
-        if wanted:
-            if version_func:
-                version = version_func(progobj)
-            elif isinstance(progobj, build.Executable):
-                if progobj.subproject:
-                    interp = self.subprojects[progobj.subproject].held_object
-                else:
-                    interp = self
-                assert isinstance(interp, Interpreter)
-                version = interp.project_version
-            else:
-                version = progobj.get_version(self)
-            is_found, not_found, _ = mesonlib.version_compare_many(version, wanted)
-            if not is_found:
-                mlog.log('Program', mlog.bold(progobj.name), 'found:', mlog.red('NO'),
-                         'found', mlog.normal_cyan(version), 'but need:',
-                         mlog.bold(', '.join([f"'{e}'" for e in not_found])), *extra_info)
-                if required:
-                    m = 'Invalid version of program, need {!r} {!r} found {!r}.'
-                    raise InterpreterException(m.format(progobj.name, not_found, version))
-                return self.notfound_program(args)
-            extra_info.insert(0, mlog.normal_cyan(version))
 
         # Only store successful lookups
         self.store_name_lookups(args)
@@ -1671,7 +1650,11 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     def program_lookup(self, args: T.List[mesonlib.FileOrString], for_machine: MachineChoice,
                        default_options: T.Optional[T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]],
-                       required: bool, search_dirs: T.List[str], extra_info: T.List[mlog.TV_Loggable]
+                       required: bool,
+                       search_dirs: T.List[str],
+                       wanted: T.Union[str, T.List[str]],
+                       version_func: T.Optional[ProgramVersionFunc],
+                       extra_info: T.List[mlog.TV_Loggable]
                        ) -> T.Optional[T.Union[ExternalProgram, build.Executable, OverrideProgram]]:
         progobj = self.program_from_overrides(args, extra_info)
         if progobj:
@@ -1694,10 +1677,41 @@ class Interpreter(InterpreterBase, HoldableObject):
         if progobj is None and args[0].endswith('python3'):
             prog = ExternalProgram('python3', mesonlib.python_command, silent=True)
             progobj = prog if prog.found() else None
+
+        if progobj and not self.check_program_version(progobj, wanted, version_func, extra_info):
+            progobj = None
+
         if progobj is None and fallback and required:
+            progobj = self.notfound_program(args)
+            mlog.log('Program', mlog.bold(progobj.get_name()), 'found:', mlog.red('NO'), *extra_info)
+            extra_info.clear()
             progobj = self.find_program_fallback(fallback, args, default_options, required, extra_info)
 
         return progobj
+
+    def check_program_version(self, progobj: T.Union[ExternalProgram, build.Executable, OverrideProgram],
+                              wanted: T.Union[str, T.List[str]],
+                              version_func: T.Optional[ProgramVersionFunc],
+                              extra_info: T.List[mlog.TV_Loggable]) -> bool:
+        if wanted:
+            if version_func:
+                version = version_func(progobj)
+            elif isinstance(progobj, build.Executable):
+                if progobj.subproject:
+                    interp = self.subprojects[progobj.subproject].held_object
+                else:
+                    interp = self
+                assert isinstance(interp, Interpreter)
+                version = interp.project_version
+            else:
+                version = progobj.get_version(self)
+            is_found, not_found, _ = mesonlib.version_compare_many(version, wanted)
+            if not is_found:
+                extra_info[:0] = ['found', mlog.normal_cyan(version), 'but need:',
+                                  mlog.bold(', '.join([f"'{e}'" for e in not_found]))]
+                return False
+            extra_info.insert(0, mlog.normal_cyan(version))
+        return True
 
     def find_program_fallback(self, fallback: str, args: T.List[mesonlib.FileOrString],
                               default_options: T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]],
