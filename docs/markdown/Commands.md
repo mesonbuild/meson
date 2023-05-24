@@ -293,6 +293,11 @@ Run only `specific_test_1` and `specific_test_2`:
 meson test -C builddir specific_test_1 specific_test_2
 ```
 
+Run all tests except for `specific_test_1` and `specific_test_2` *(since 1.2.0)*:
+```
+meson test -C builddir --exclude specific_test_1 --exclude specific_test_2
+```
+
 ### wrap
 
 {{ wrap_usage.inc }}
