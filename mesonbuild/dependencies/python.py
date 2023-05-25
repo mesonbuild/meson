@@ -79,6 +79,7 @@ class BasicPythonExternalProgram(ExternalProgram):
             self.command = ext_prog.command
             self.path = ext_prog.path
             self.cached_version = None
+            self.for_machine = ext_prog.for_machine
 
         # We want strong key values, so we always populate this with bogus data.
         # Otherwise to make the type checkers happy we'd have to do .get() for
