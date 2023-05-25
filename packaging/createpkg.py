@@ -16,6 +16,7 @@
 
 import subprocess
 import shutil, sys, os
+from glob import glob
 
 import xml.etree.ElementTree as ET
 
@@ -41,7 +42,10 @@ class PkgGenerator:
         if os.path.exists(self.pkg_dir):
             shutil.rmtree(self.pkg_dir)
         os.mkdir(self.pkg_dir)
-        pyinstaller_bin = '/Users/jpakkane/Library/Python/3.8/bin/pyinstaller'
+        pyinstaller_bin = glob('/Users/jpakkane/Library/Python/*/bin/pyinstaller')
+        if len(pyinstaller_bin) != 1:
+            sys.exit('Could not determine unique installer.')
+        pyinstaller_bin = pyinstaller_bin[0]
         pyinst_cmd = [pyinstaller_bin,
                       '--clean',
                       '--additional-hooks-dir=packaging',
