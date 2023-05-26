@@ -141,6 +141,7 @@ format files
  - [qboot](https://github.com/bonzini/qboot), a minimal x86 firmware for booting Linux kernels
  - [QEMU](https://qemu.org), a processor emulator and virtualizer
  - [radare2](https://github.com/radare/radare2), unix-like reverse engineering framework and commandline tools (not the default)
+ - [refivar](https://github.com/nvinson/refivar), A reimplementation of efivar in Rust.
  - [Rizin](https://rizin.re), Free and Open Source Reverse Engineering Framework
  - [rmw](https://remove-to-waste.info), safe-remove utility for the command line
  - [RxDock](https://gitlab.com/rxdock/rxdock), a protein-ligand docking software designed for high throughput virtual screening (fork of rDock)
