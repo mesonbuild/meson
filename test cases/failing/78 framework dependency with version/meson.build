@@ -5,4 +5,4 @@ if host_machine.system() != 'darwin'
 endif
 
 # do individual frameworks have a meaningful version to test?  And multiple frameworks might be listed...
-dep = dependency('appleframeworks', modules: 'foundation', version: '>0')
+dep = dependency('appleframeworks', modules: 'Foundation', version: '>0')
