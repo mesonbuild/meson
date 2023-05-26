@@ -86,12 +86,8 @@ class OptionInterpreter:
         }
 
     def process(self, option_file: str) -> None:
-        try:
-            with open(option_file, encoding='utf-8') as f:
-                ast = mparser.Parser(f.read(), option_file).parse()
-        except mesonlib.MesonException as me:
-            me.file = option_file
-            raise me
+        with open(option_file, encoding='utf-8') as f:
+            ast = mparser.Parser(f.read(), option_file).parse()
         if not isinstance(ast, mparser.CodeBlockNode):
             e = OptionException('Option file is malformed.')
             e.lineno = ast.lineno()

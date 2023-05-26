@@ -119,7 +119,6 @@ class InterpreterBase:
             self.ast = mparser.Parser(code, mesonfile).parse()
             self.handle_meson_version_from_ast()
         except mparser.ParseException as me:
-            me.file = mesonfile
             # try to detect parser errors from new syntax added by future
             # meson versions, and just tell the user to update meson
             self.ast = me.ast

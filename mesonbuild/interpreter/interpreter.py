@@ -2376,11 +2376,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         with open(absname, encoding='utf-8') as f:
             code = f.read()
         assert isinstance(code, str)
-        try:
-            codeblock = mparser.Parser(code, absname).parse()
-        except mesonlib.MesonException as me:
-            me.file = absname
-            raise me
+        codeblock = mparser.Parser(code, absname).parse()
         try:
             self.evaluate_codeblock(codeblock)
         except SubdirDoneRequest:

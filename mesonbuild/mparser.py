@@ -44,15 +44,14 @@ class ParseException(MesonException):
 
     ast: T.Optional[CodeBlockNode] = None
 
-    def __init__(self, text: str, line: str, lineno: int, colno: int) -> None:
+    def __init__(self, text: str, file: str, line: str, lineno: int, colno: int) -> None:
         # Format as error message, followed by the line with the error, followed by a caret to show the error column.
-        super().__init__(mlog.code_line(text, line, colno))
-        self.lineno = lineno
-        self.colno = colno
+        super().__init__(mlog.code_line(text, line, colno), file=file, lineno=lineno, colno=colno)
 
 class BlockParseException(ParseException):
     def __init__(
                 self,
+                file: str,
                 text: str,
                 line: str,
                 lineno: int,
@@ -70,7 +69,7 @@ class BlockParseException(ParseException):
             # Followed by a caret to show the block start
             # Followed by underscores
             # Followed by a caret to show the block end.
-            MesonException.__init__(self, "{}\n{}\n{}".format(text, line, '{}^{}^'.format(' ' * start_colno, '_' * (colno - start_colno - 1))))
+            MesonException.__init__(self, "{}\n{}\n{}".format(text, line, '{}^{}^'.format(' ' * start_colno, '_' * (colno - start_colno - 1))), file=file)
         else:
             # If block start and end are on different lines, it is formatted as:
             # Error message
@@ -79,7 +78,7 @@ class BlockParseException(ParseException):
             # Followed by a message saying where the block started.
             # Followed by the line of the block start.
             # Followed by a caret for the block start.
-            MesonException.__init__(self, "%s\n%s\n%s\nFor a block that started at %d,%d\n%s\n%s" % (text, line, '%s^' % (' ' * colno), start_lineno, start_colno, start_line, "%s^" % (' ' * start_colno)))
+            MesonException.__init__(self, "%s\n%s\n%s\nFor a block that started at %d,%d\n%s\n%s" % (text, line, '%s^' % (' ' * colno), start_lineno, start_colno, start_line, "%s^" % (' ' * start_colno)), file=file)
         self.lineno = lineno
         self.colno = colno
 
@@ -191,7 +190,7 @@ class Lexer:
                     elif tid == 'rcurl':
                         curl_count -= 1
                     elif tid == 'dblquote':
-                        raise ParseException('Double quotes are not supported. Use single quotes.', self.getline(line_start), lineno, col)
+                        raise ParseException('Double quotes are not supported. Use single quotes.', filename, self.getline(line_start), lineno, col)
                     elif tid in {'string', 'fstring'}:
                         # Handle here and not on the regexp to give a better error message.
                         if match_text.find("\n") != -1:
@@ -238,7 +237,7 @@ class Lexer:
                     yield Token(tid, filename, curline_start, curline, col, bytespan, value)
                     break
             if not matched:
-                raise ParseException('lexer', self.getline(line_start), lineno, col)
+                raise ParseException('lexer', filename, self.getline(line_start), lineno, col)
 
 @dataclass
 class BaseNode:
@@ -610,7 +609,7 @@ class Parser:
     def __init__(self, code: str, filename: str):
         self.lexer = Lexer(code)
         self.stream = self.lexer.lex(filename)
-        self.current = Token('eof', '', 0, 0, 0, (0, 0), None)  # type: Token
+        self.current: Token = Token('eof', filename, 0, 0, 0, (0, 0), '')
         self.getsym()
         self.in_ternary = False
 
@@ -618,7 +617,7 @@ class Parser:
         try:
             self.current = next(self.stream)
         except StopIteration:
-            self.current = Token('eof', '', self.current.line_start, self.current.lineno, self.current.colno + self.current.bytespan[1] - self.current.bytespan[0], (0, 0), None)
+            self.current = Token('eof', self.current.filename, self.current.line_start, self.current.lineno, self.current.colno + self.current.bytespan[1] - self.current.bytespan[0], (0, 0), None)
 
     def getline(self) -> str:
         return self.lexer.getline(self.current.line_start)
@@ -639,12 +638,12 @@ class Parser:
     def expect(self, s: str) -> bool:
         if self.accept(s):
             return True
-        raise ParseException(f'Expecting {s} got {self.current.tid}.', self.getline(), self.current.lineno, self.current.colno)
+        raise ParseException(f'Expecting {s} got {self.current.tid}.', self.current.filename, self.getline(), self.current.lineno, self.current.colno)
 
     def block_expect(self, s: str, block_start: Token) -> bool:
         if self.accept(s):
             return True
-        raise BlockParseException(f'Expecting {s} got {self.current.tid}.', self.getline(), self.current.lineno, self.current.colno, self.lexer.getline(block_start.line_start), block_start.lineno, block_start.colno)
+        raise BlockParseException(f'Expecting {s} got {self.current.tid}.', self.current.filename, self.getline(), self.current.lineno, self.current.colno, self.lexer.getline(block_start.line_start), block_start.lineno, block_start.colno)
 
     def parse(self) -> CodeBlockNode:
         block = self.codeblock()
@@ -663,19 +662,19 @@ class Parser:
         if self.accept('plusassign'):
             value = self.e1()
             if not isinstance(left, IdNode):
-                raise ParseException('Plusassignment target must be an id.', self.getline(), left.lineno, left.colno)
+                raise ParseException('Plusassignment target must be an id.', left.filename, self.getline(), left.lineno, left.colno)
             assert isinstance(left.value, str)
             return PlusAssignmentNode(left.filename, left.lineno, left.colno, left.value, value)
         elif self.accept('assign'):
             value = self.e1()
             if not isinstance(left, IdNode):
-                raise ParseException('Assignment target must be an id.',
+                raise ParseException('Assignment target must be an id.', left.filename,
                                      self.getline(), left.lineno, left.colno)
             assert isinstance(left.value, str)
             return AssignmentNode(left.filename, left.lineno, left.colno, left.value, value)
         elif self.accept('questionmark'):
             if self.in_ternary:
-                raise ParseException('Nested ternary operators are not allowed.',
+                raise ParseException('Nested ternary operators are not allowed.', left.filename,
                                      self.getline(), left.lineno, left.colno)
             self.in_ternary = True
             trueblock = self.e1()
@@ -689,7 +688,7 @@ class Parser:
         left = self.e3()
         while self.accept('or'):
             if isinstance(left, EmptyNode):
-                raise ParseException('Invalid or clause.',
+                raise ParseException('Invalid or clause.', left.filename,
                                      self.getline(), left.lineno, left.colno)
             left = OrNode(left, self.e3())
         return left
@@ -698,7 +697,7 @@ class Parser:
         left = self.e4()
         while self.accept('and'):
             if isinstance(left, EmptyNode):
-                raise ParseException('Invalid and clause.',
+                raise ParseException('Invalid and clause.', left.filename,
                                      self.getline(), left.lineno, left.colno)
             left = AndNode(left, self.e4())
         return left
@@ -759,7 +758,7 @@ class Parser:
             self.block_expect('rparen', block_start)
             if not isinstance(left, IdNode):
                 raise ParseException('Function call must be applied to plain id',
-                                     self.getline(), left.lineno, left.colno)
+                                     left.filename, self.getline(), left.lineno, left.colno)
             assert isinstance(left.value, str)
             left = FunctionNode(left.filename, left.lineno, left.colno, self.current.lineno, self.current.colno, left.value, args)
         go_again = True
@@ -823,7 +822,7 @@ class Parser:
                 a.commas.append(potential)
             else:
                 raise ParseException('Only key:value pairs are valid in dict construction.',
-                                     self.getline(), s.lineno, s.colno)
+                                     s.filename, self.getline(), s.lineno, s.colno)
             s = self.statement()
         return a
 
@@ -839,7 +838,7 @@ class Parser:
             elif self.accept('colon'):
                 if not isinstance(s, IdNode):
                     raise ParseException('Dictionary key must be a plain identifier.',
-                                         self.getline(), s.lineno, s.colno)
+                                         s.filename, self.getline(), s.lineno, s.colno)
                 a.set_kwarg(s, self.statement())
                 potential = self.current
                 if not self.accept('comma'):
@@ -855,7 +854,7 @@ class Parser:
         methodname = self.e9()
         if not isinstance(methodname, IdNode):
             raise ParseException('Method name must be plain id',
-                                 self.getline(), self.current.lineno, self.current.colno)
+                                 self.current.filename, self.getline(), self.current.lineno, self.current.colno)
         assert isinstance(methodname.value, str)
         self.expect('lparen')
         args = self.args()
