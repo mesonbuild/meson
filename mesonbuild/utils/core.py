@@ -47,6 +47,15 @@ class MesonException(Exception):
         self.lineno = lineno
         self.colno = colno
 
+    def update_position(self, node: BaseNode) -> None:
+        """Set file and line information from a node
+
+        :param node: A node object to get the information from
+        """
+        self.file = node.filename
+        self.lineno = node.lineno
+        self.colno = node.colno
+
     @classmethod
     def from_node(cls, *args: object, node: BaseNode) -> MesonException:
         """Create a MesonException with location data from a BaseNode
