@@ -2131,24 +2131,25 @@ class AllPlatformTests(BasePlatformTests):
             ('97 subdir parse error', os.path.join('subdir', 'meson.build')),
             ('98 invalid option file', 'meson_options.txt'),
         ]:
-            tdir = os.path.join(self.src_root, 'test cases', 'failing', t)
+            with self.subTest(msg=f'{t}: {f}'):
+                tdir = os.path.join(self.src_root, 'test cases', 'failing', t)
 
-            for wd in [
-                self.src_root,
-                self.builddir,
-                os.getcwd(),
-            ]:
-                try:
-                    self.init(tdir, workdir=wd)
-                except subprocess.CalledProcessError as e:
-                    expected = os.path.join('test cases', 'failing', t, f)
-                    relwd = relpath(self.src_root, wd)
-                    if relwd != '.':
-                        expected = os.path.join(relwd, expected)
-                    expected = '\n' + expected + ':'
-                    self.assertIn(expected, e.output)
-                else:
-                    self.fail('configure unexpectedly succeeded')
+                for wd in [
+                    self.src_root,
+                    self.builddir,
+                    os.getcwd(),
+                ]:
+                    try:
+                        self.init(tdir, workdir=wd)
+                    except subprocess.CalledProcessError as e:
+                        expected = os.path.join('test cases', 'failing', t, f)
+                        relwd = relpath(self.src_root, wd)
+                        if relwd != '.':
+                            expected = os.path.join(relwd, expected)
+                        expected = '\n' + expected + ':'
+                        self.assertIn(expected, e.output)
+                    else:
+                        self.fail('configure unexpectedly succeeded')
 
     def test_permitted_method_kwargs(self):
         tdir = os.path.join(self.unit_test_dir, '25 non-permitted kwargs')
