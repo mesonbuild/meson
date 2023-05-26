@@ -4,7 +4,7 @@ project('multiframework', 'objc')
 # that causes a build failure when defining two modules. The
 # arguments for the latter module overwrote the arguments for
 # the first one rather than adding to them.
-cocoa_dep = dependency('appleframeworks', modules : ['AppKit', 'foundation'])
+cocoa_dep = dependency('appleframeworks', modules : ['AppKit', 'Foundation'])
 
 executable('deptester',
   'main.m',
