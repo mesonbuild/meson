@@ -707,9 +707,11 @@ class CoreData:
 
         return dirty
 
-    def clear_deps_cache(self):
+    def clear_cache(self):
         self.deps.host.clear()
         self.deps.build.clear()
+        self.compiler_check_cache.clear()
+        self.run_check_cache.clear()
 
     def get_nondefault_buildtype_args(self):
         result = []
