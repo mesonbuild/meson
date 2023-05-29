@@ -1,0 +1,3 @@
+option('feature_en', type: 'feature', value: 'enabled')
+option('feature_dis', type: 'feature', value: 'disabled')
+option('feature_auto', type: 'feature', value: 'auto')

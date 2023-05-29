@@ -305,6 +305,34 @@ class UserFeatureOption(UserComboOption):
     def is_auto(self) -> bool:
         return self.value == 'auto'
 
+    def not_(self) -> UserFeatureOption:
+        value = 'auto' if self.value == 'disabled' else 'disabled'
+        return UserFeatureOption(self.description, value, self.yielding, self.deprecated)
+
+    def and_(self, other: UserFeatureOption) -> UserFeatureOption:
+        if self.value == 'disabled':
+            return self
+
+        if other.value == 'disabled':
+            return other
+
+        if self.value == 'enabled':
+            return self
+
+        return other  # self.value == 'auto'
+
+    def or_(self, other: UserFeatureOption) -> UserFeatureOption:
+        if self.value == 'enabled':
+            return self
+
+        if other.value == 'enabled':
+            return other
+
+        if self.value == 'auto':
+            return self
+
+        return other  # self.value == 'disabled'
+
 
 class DependencyCacheType(enum.Enum):
 

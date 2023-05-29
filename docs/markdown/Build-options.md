@@ -128,6 +128,46 @@ only the few they don't want, if any.
 
 This type is available since version 0.47.0
 
+#### Logical operations
+
+*Since 1.2.0*, it is possible to derive a new feature from logical
+operations on existing features. For instance, to enable a dependency
+if 'feature_a' or 'feature_b' is enabled, you can do:
+
+```meson
+dependency('mydep', required: get_option('feature_a') or get_option('feature_b'))
+```
+
+The truth tables are the following:
+
+
+| a        | b        | a or b   |
+| -------- | -------- | -------- |
+| enabled  | enabled  | enabled  |
+| enabled  | disabled | enabled  |
+| enabled  | auto     | enabled  |
+| auto     | auto     | auto     |
+| auto     | disabled | auto     |
+| disabled | disabled | disabled |
+
+
+| a        | b        | a and b  |
+| -------- | -------- | -------- |
+| enabled  | enabled  | enabled  |
+| enabled  | disabled | disabled |
+| enabled  | auto     | enabled  |
+| auto     | auto     | auto     |
+| auto     | disabled | disabled |
+| disabled | disabled | disabled |
+
+
+| a        | not a    |
+| -------- | -------- |
+| enabled  | disabled |
+| auto     | disabled |
+| disabled | auto     |
+
+
 ## Deprecated options
 
 Since *0.60.0*

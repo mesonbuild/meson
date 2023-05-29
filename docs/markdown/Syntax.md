@@ -631,6 +631,9 @@ endif
 
 Logical operations work only on boolean values.
 
+*Since 1.2.0*, logical operations also work on `feature` objects.
+
+
 ## Foreach statements
 
 To do an operation on all elements of an iterable, use the `foreach`

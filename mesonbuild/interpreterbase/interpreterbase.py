@@ -45,6 +45,7 @@ from .disabler import Disabler, is_disabled
 from .helpers import default_resolve_key, flatten, resolve_second_level_holders
 from .operator import MesonOperator
 from ._unholder import _unholder
+from .. import coredata
 
 import os, copy, re, pathlib
 import typing as T
@@ -347,12 +348,22 @@ class InterpreterBase:
         val1.current_node = node
         return self._holderify(val1.operator_call(operator, _unholder(val2)))
 
+    @staticmethod
+    def is_feature_option_holder(obj: T.Any) -> bool:
+        return isinstance(obj, ObjectHolder) and isinstance(obj.held_object, coredata.UserFeatureOption)
+
     def evaluate_andstatement(self, cur: mparser.AndNode) -> InterpreterObject:
         l = self.evaluate_statement(cur.left)
         if l is None:
             raise MesonException('Cannot compare a void statement on the left-hand side')
         if isinstance(l, Disabler):
             return l
+
+        if self.is_feature_option_holder(l):
+            r = self.evaluate_statement(cur.right)
+            if self.is_feature_option_holder(r):
+                return self._holderify(T.cast(ObjectHolder, l).held_object.and_(T.cast(ObjectHolder, r).held_object))
+
         l_bool = l.operator_call(MesonOperator.BOOL, None)
         if not l_bool:
             return self._holderify(l_bool)
@@ -369,6 +380,12 @@ class InterpreterBase:
             raise MesonException('Cannot compare a void statement on the left-hand side')
         if isinstance(l, Disabler):
             return l
+
+        if self.is_feature_option_holder(l):
+            r = self.evaluate_statement(cur.right)
+            if self.is_feature_option_holder(r):
+                return self._holderify(T.cast(ObjectHolder, l).held_object.or_(T.cast(ObjectHolder, r).held_object))
+
         l_bool = l.operator_call(MesonOperator.BOOL, None)
         if l_bool:
             return self._holderify(l_bool)

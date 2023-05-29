@@ -104,6 +104,10 @@ class FeatureOptionHolder(ObjectHolder[coredata.UserFeatureOption]):
                              'enable_if': self.enable_if_method,
                              })
 
+        self.trivial_operators.update({
+            MesonOperator.NOT: (None, lambda x: self.held_object.not_()),
+        })
+
     @property
     def value(self) -> str:
         return 'disabled' if not self.held_object else self.held_object.value
