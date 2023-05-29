@@ -220,6 +220,8 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
                 mlog.log('Dependency', mlog.bold(self._display_name),
                          'found:', mlog.red('NO'), *info)
                 return cached_dep
+        elif self.forcefallback and self.subproject_name:
+            cached_dep = None
         else:
             info = [mlog.blue('(cached)')]
             cached_dep = self.coredata.deps[for_machine].get(identifier)

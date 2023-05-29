@@ -704,12 +704,6 @@ class CoreData:
 
         if key.name == 'buildtype':
             dirty |= self._set_others_from_buildtype(value)
-        elif key.name in {'wrap_mode', 'force_fallback_for'}:
-            # We could have the system dependency cached for a dependency that
-            # is now forced to use subproject fallback. We probably could have
-            # more fine-grained cache invalidation, but better be safe.
-            self.clear_deps_cache()
-            dirty = True
 
         return dirty
 
