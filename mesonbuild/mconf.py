@@ -210,7 +210,7 @@ class Conf:
 
         def print_default_values_warning():
             mlog.warning('The source directory instead of the build directory was specified.')
-            mlog.warning('Only the default values for the project are printed, and all command line parameters are ignored.')
+            mlog.warning('Only the default values for the project are printed.')
 
         if self.default_values_only:
             print_default_values_warning()
@@ -299,10 +299,13 @@ class Conf:
 def run(options):
     coredata.parse_cmd_line_options(options)
     builddir = os.path.abspath(os.path.realpath(options.builddir))
+    print_only = not options.cmd_line_options and not options.clearcache
     c = None
     try:
         c = Conf(builddir)
-        if c.default_values_only:
+        if c.default_values_only and not print_only:
+            raise mesonlib.MesonException('No valid build directory found, cannot modify options.')
+        if c.default_values_only or print_only:
             c.print_conf(options.pager)
             return 0
 
@@ -310,11 +313,9 @@ def run(options):
         if options.cmd_line_options:
             save = c.set_options(options.cmd_line_options)
             coredata.update_cmd_line_file(builddir, options)
-        elif options.clearcache:
+        if options.clearcache:
             c.clear_cache()
             save = True
-        else:
-            c.print_conf(options.pager)
         if save:
             c.save()
             mintro.update_build_options(c.coredata, c.build.environment.info_dir)
