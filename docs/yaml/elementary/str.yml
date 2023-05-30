@@ -14,6 +14,10 @@ methods:
 
     See [the Meson syntax entry](Syntax.md#string-formatting) for more
     information.
+
+    *Since 1.3.0* values other than strings, integers, bools, options,
+    dictionaries and lists thereof are deprecated. They were previously printing
+    the internal representation of the raw Python object.
   example: |
     ```meson
     template = 'string: @0@, number: @1@, bool: @2@'
