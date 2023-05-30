@@ -40,7 +40,7 @@ from .exceptions import (
 
 from .decorators import FeatureNew
 from .disabler import Disabler, is_disabled
-from .helpers import default_resolve_key, flatten, resolve_second_level_holders
+from .helpers import default_resolve_key, flatten, resolve_second_level_holders, stringifyUserArguments
 from .operator import MesonOperator
 from ._unholder import _unholder
 
@@ -433,11 +433,12 @@ class InterpreterBase:
             var = str(match.group(1))
             try:
                 val = _unholder(self.variables[var])
-                if not isinstance(val, (str, int, float, bool)):
-                    raise InvalidCode(f'Identifier "{var}" does not name a formattable variable ' +
-                                      '(has to be an integer, a string, a floating point number or a boolean).')
-
-                return str(val)
+                if isinstance(val, (list, dict)):
+                    FeatureNew.single_use('List or dictionary in f-string', '1.3.0', self.subproject, location=self.current_node)
+                try:
+                    return stringifyUserArguments(val, self.subproject)
+                except InvalidArguments as e:
+                    raise InvalidArguments(f'f-string: {str(e)}')
             except KeyError:
                 raise InvalidCode(f'Identifier "{var}" does not name a variable.')
 

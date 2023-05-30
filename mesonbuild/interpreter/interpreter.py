@@ -35,6 +35,7 @@ from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCod
 from ..interpreterbase import Disabler, disablerIfNotFound
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureBroken, FeatureNewKwargs
 from ..interpreterbase import ObjectHolder, ContextManagerObject
+from ..interpreterbase import stringifyUserArguments
 from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule
 
 from . import interpreterobjects as OBJ
@@ -138,20 +139,6 @@ def _project_version_validator(value: T.Union[T.List, str, mesonlib.File, None])
         elif not isinstance(value[0], mesonlib.File):
             return 'when passed as array must contain a File'
     return None
-
-
-def stringifyUserArguments(args: T.List[T.Any], quote: bool = False) -> str:
-    if isinstance(args, list):
-        return '[%s]' % ', '.join([stringifyUserArguments(x, True) for x in args])
-    elif isinstance(args, dict):
-        return '{%s}' % ', '.join(['{} : {}'.format(stringifyUserArguments(k, True), stringifyUserArguments(v, True)) for k, v in args.items()])
-    elif isinstance(args, bool):
-        return 'true' if args else 'false'
-    elif isinstance(args, int):
-        return str(args)
-    elif isinstance(args, str):
-        return f"'{args}'" if quote else args
-    raise InvalidArguments('Function accepts only strings, integers, bools, lists, dictionaries and lists thereof.')
 
 class Summary:
     def __init__(self, project_name: str, project_version: str):
@@ -1343,12 +1330,18 @@ class Interpreter(InterpreterBase, HoldableObject):
             success &= self.add_languages(langs, required, MachineChoice.HOST)
             return success
 
+    def _stringify_user_arguments(self, args: T.List[TYPE_var], func_name: str) -> T.List[str]:
+        try:
+            return [stringifyUserArguments(i, self.subproject) for i in args]
+        except InvalidArguments as e:
+            raise InvalidArguments(f'{func_name}(): {str(e)}')
+
     @noArgsFlattening
     @noKwargs
     def func_message(self, node: mparser.BaseNode, args, kwargs):
         if len(args) > 1:
             FeatureNew.single_use('message with more than one argument', '0.54.0', self.subproject, location=node)
-        args_str = [stringifyUserArguments(i) for i in args]
+        args_str = self._stringify_user_arguments(args, 'message')
         self.message_impl(args_str)
 
     def message_impl(self, args):
@@ -1427,7 +1420,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_warning(self, node, args, kwargs):
         if len(args) > 1:
             FeatureNew.single_use('warning with more than one argument', '0.54.0', self.subproject, location=node)
-        args_str = [stringifyUserArguments(i) for i in args]
+        args_str = self._stringify_user_arguments(args, 'warning')
         mlog.warning(*args_str, location=node)
 
     @noArgsFlattening
@@ -1435,14 +1428,14 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_error(self, node, args, kwargs):
         if len(args) > 1:
             FeatureNew.single_use('error with more than one argument', '0.58.0', self.subproject, location=node)
-        args_str = [stringifyUserArguments(i) for i in args]
+        args_str = self._stringify_user_arguments(args, 'error')
         raise InterpreterException('Problem encountered: ' + ' '.join(args_str))
 
     @noArgsFlattening
     @FeatureNew('debug', '0.63.0')
     @noKwargs
     def func_debug(self, node, args, kwargs):
-        args_str = [stringifyUserArguments(i) for i in args]
+        args_str = self._stringify_user_arguments(args, 'debug')
         mlog.debug('Debug:', *args_str)
 
     @noKwargs

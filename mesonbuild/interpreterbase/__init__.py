@@ -35,6 +35,7 @@ __all__ = [
     'default_resolve_key',
     'flatten',
     'resolve_second_level_holders',
+    'stringifyUserArguments',
 
     'noPosargs',
     'noKwargs',
@@ -134,6 +135,11 @@ from .exceptions import (
 )
 
 from .disabler import Disabler, is_disabled
-from .helpers import default_resolve_key, flatten, resolve_second_level_holders
+from .helpers import (
+    default_resolve_key,
+    flatten,
+    resolve_second_level_holders,
+    stringifyUserArguments,
+)
 from .interpreterbase import InterpreterBase
 from .operator import MesonOperator
