@@ -52,17 +52,18 @@ def errorhandler(e, command):
 
     if command == 'runpython':
         return 2
-    elif isinstance(e, OSError):
+
+    if isinstance(e, OSError):
         mlog.exception("Unhandled python OSError. This is probably not a Meson bug, "
                        "but an issue with your build environment.")
         return e.errno
-    else: # Exception
-        msg = 'Unhandled python exception'
-        if all(getattr(e, a, None) is not None for a in ['file', 'lineno', 'colno']):
-            e = MesonBugException(msg, e.file, e.lineno, e.colno) # type: ignore
-        else:
-            e = MesonBugException(msg)
-        mlog.exception(e)
+
+    msg = 'Unhandled python exception'
+    if all(getattr(e, a, None) is not None for a in ['file', 'lineno', 'colno']):
+        e = MesonBugException(msg, e.file, e.lineno, e.colno) # type: ignore
+    else:
+        e = MesonBugException(msg)
+    mlog.exception(e)
     return 2
 
 # Note: when adding arguments, please also add them to the completion
