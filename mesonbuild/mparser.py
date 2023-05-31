@@ -69,7 +69,7 @@ class BlockParseException(ParseException):
             # Followed by a caret to show the block start
             # Followed by underscores
             # Followed by a caret to show the block end.
-            MesonException.__init__(self, "{}\n{}\n{}".format(text, line, '{}^{}^'.format(' ' * start_colno, '_' * (colno - start_colno - 1))), file=file)
+            msg = '{}\n{}\n{}^{}^'.format(text, line, "_" * start_colno, "_" * (colno - start_colno - 1))
         else:
             # If block start and end are on different lines, it is formatted as:
             # Error message
@@ -78,9 +78,9 @@ class BlockParseException(ParseException):
             # Followed by a message saying where the block started.
             # Followed by the line of the block start.
             # Followed by a caret for the block start.
-            MesonException.__init__(self, "%s\n%s\n%s\nFor a block that started at %d,%d\n%s\n%s" % (text, line, '%s^' % (' ' * colno), start_lineno, start_colno, start_line, "%s^" % (' ' * start_colno)), file=file)
-        self.lineno = lineno
-        self.colno = colno
+            msg = '{}\n{}\n{}^\nFor a block that started at {},{}\n{}\n{}^'.format(
+                text, line, " " * colno, start_lineno, start_colno, start_line, " " * start_colno)
+        MesonException.__init__(self, msg, file=file, lineno=lineno, colno=colno)
 
 TV_TokenTypes = T.TypeVar('TV_TokenTypes', int, str, bool)
 
