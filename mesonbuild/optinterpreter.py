@@ -88,8 +88,6 @@ class OptionInterpreter:
     def process(self, option_file: str) -> None:
         with open(option_file, encoding='utf-8') as f:
             ast = mparser.Parser(f.read(), option_file).parse()
-        if not isinstance(ast, mparser.CodeBlockNode):
-            raise OptionException('Option file is malformed.', option_file, ast.lineno())
         for cur in ast.lines:
             self.current_node = cur
             try:
