@@ -97,7 +97,7 @@ class OptionInterpreter:
                     e.update_position(self.current_node)
                 raise
             except Exception as e:
-                raise mesonlib.MesonException.from_node(str(e), node=self.current_node)
+                raise mesonlib.MesonExceptionWrapper.from_node(e, self.current_node)
 
     def reduce_single(self, arg: T.Union[str, mparser.BaseNode]) -> 'TYPE_var':
         if isinstance(arg, str):

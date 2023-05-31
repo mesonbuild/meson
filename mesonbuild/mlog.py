@@ -369,11 +369,10 @@ class _Logger:
             prefix = red('ERROR:')
         self.log()
         args = []  # type: T.List[T.Union[AnsiDecorator, str]]
-        if all(getattr(e, a, None) is not None for a in ['file', 'lineno', 'colno']):
-            # Mypy doesn't follow hasattr, and it's pretty easy to visually inspect
-            # that this is correct, so we'll just ignore it.
-            path = get_relative_path(Path(e.file), Path(os.getcwd()))  # type: ignore
-            args.append(f'{path}:{e.lineno}:{e.colno}:')  # type: ignore
+        from .utils.core import MesonException, MesonExceptionWrapper
+        if isinstance(e, (MesonException, MesonExceptionWrapper)) and e.file is not None:
+            path = get_relative_path(Path(e.file), Path(os.getcwd()))
+            args.append(f'{path}:{e.lineno}:{e.colno}:')
         if prefix:
             args.append(prefix)
         args.append(str(e))

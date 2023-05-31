@@ -172,18 +172,18 @@ class InterpreterBase:
         statements = node.lines[start:end]
         i = 0
         while i < len(statements):
+            # NOTE: self.current_node is updated in self.evaluate_statement, while cur is not
             cur = statements[i]
             self.current_lineno = cur.lineno
             try:
                 self.evaluate_statement(cur)
+            except MesonException as e:
+                # Assume that if file is set, then the information in the exception is correct
+                if e.file is None:
+                    e.update_position(self.current_node)
+                raise
             except Exception as e:
-                if getattr(e, 'lineno', None) is None:
-                    # We are doing the equivalent to setattr here and mypy does not like it
-                    # NOTE: self.current_node is continually updated during processing
-                    e.lineno = self.current_node.lineno                                               # type: ignore
-                    e.colno = self.current_node.colno                                                 # type: ignore
-                    e.file = os.path.join(self.source_root, self.subdir, environment.build_filename)  # type: ignore
-                raise e
+                raise mesonlib.MesonExceptionWrapper.from_node(e, self.current_node)
             i += 1 # In THE FUTURE jump over blocks and stuff.
 
     def evaluate_statement(self, cur: mparser.BaseNode) -> T.Optional[InterpreterObject]:
