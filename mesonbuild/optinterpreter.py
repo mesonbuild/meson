@@ -89,22 +89,17 @@ class OptionInterpreter:
         with open(option_file, encoding='utf-8') as f:
             ast = mparser.Parser(f.read(), option_file).parse()
         if not isinstance(ast, mparser.CodeBlockNode):
-            e = OptionException('Option file is malformed.')
-            e.lineno = ast.lineno()
-            e.file = option_file
-            raise e
+            raise OptionException('Option file is malformed.', option_file, ast.lineno())
         for cur in ast.lines:
+            self.current_node = cur
             try:
-                self.current_node = cur
                 self.evaluate_statement(cur)
             except mesonlib.MesonException as e:
-                e.lineno = cur.lineno
-                e.colno = cur.colno
-                e.file = option_file
-                raise e
+                if e.file is None:
+                    e.update_position(self.current_node)
+                raise
             except Exception as e:
-                raise mesonlib.MesonException(
-                    str(e), lineno=cur.lineno, colno=cur.colno, file=option_file)
+                raise mesonlib.MesonException.from_node(str(e), node=self.current_node)
 
     def reduce_single(self, arg: T.Union[str, mparser.BaseNode]) -> 'TYPE_var':
         if isinstance(arg, str):

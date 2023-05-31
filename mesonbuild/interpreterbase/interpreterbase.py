@@ -168,16 +168,13 @@ class InterpreterBase:
         if node is None:
             return
         if not isinstance(node, mparser.CodeBlockNode):
-            e = InvalidCode('Tried to execute a non-codeblock. Possibly a bug in the parser.')
-            e.lineno = node.lineno
-            e.colno = node.colno
-            raise e
+            raise InvalidCode.from_node('Tried to execute a non-codeblock. Possibly a bug in the parser.', node=node)
         statements = node.lines[start:end]
         i = 0
         while i < len(statements):
             cur = statements[i]
+            self.current_lineno = cur.lineno
             try:
-                self.current_lineno = cur.lineno
                 self.evaluate_statement(cur)
             except Exception as e:
                 if getattr(e, 'lineno', None) is None:
