@@ -457,7 +457,13 @@ def _create_lib(cargo: Manifest, build: builder.Builder, crate_type: manifest.CR
     ]
 
 
-def interpret(cargo: Manifest, env: Environment) -> mparser.CodeBlockNode:
+def interpret(subp_name: str, subdir: str, env: Environment) -> mparser.CodeBlockNode:
+    package_name = subp_name[:-3] if subp_name.endswith('-rs') else subp_name
+    manifests = _load_manifests(os.path.join(env.source_dir, subdir))
+    cargo = manifests.get(package_name)
+    if not cargo:
+        raise MesonException(f'Cargo package {package_name!r} not found in {subdir}')
+
     filename = os.path.join(cargo.subdir, cargo.path, 'Cargo.toml')
     build = builder.Builder(filename)
 
