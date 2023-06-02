@@ -72,6 +72,17 @@ class Builder:
         args.arguments = value
         return mparser.ArrayNode(self._symbol('['), args, self._symbol(']'))
 
+    def dict(self, value: T.Dict[mparser.BaseNode, mparser.BaseNode]) -> mparser.DictNode:
+        """Build an Dictionary Node
+
+        :param value: A dict of nodes to insert into the dictionary
+        :return: An DictNode built from the arguments
+        """
+        args = mparser.ArgumentNode(self._token('dict', 'unused'))
+        for key, val in value.items():
+            args.set_kwarg_no_check(key, val)
+        return mparser.DictNode(self._symbol('{'), args, self._symbol('}'))
+
     def identifier(self, value: str) -> mparser.IdNode:
         """Build A IdNode
 
