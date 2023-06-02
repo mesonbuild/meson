@@ -930,13 +930,14 @@ class Interpreter(InterpreterBase, HoldableObject):
             m += ['method', mlog.bold(method)]
         mlog.log(*m, '\n', nested=False)
 
+        methods_map: T.Dict[wrap.Method, T.Callable[[str, str, T.Dict[OptionKey, str, kwtypes.DoSubproject]], SubprojectHolder]] = {
+            'meson': self._do_subproject_meson,
+            'cmake': self._do_subproject_cmake,
+            'cargo': self._do_subproject_cargo,
+        }
+
         try:
-            if method == 'meson':
-                return self._do_subproject_meson(subp_name, subdir, default_options, kwargs)
-            elif method == 'cmake':
-                return self._do_subproject_cmake(subp_name, subdir, default_options, kwargs)
-            else:
-                raise mesonlib.MesonBugException(f'The method {method} is invalid for the subproject {subp_name}')
+            return methods_map[method](subp_name, subdir, default_options, kwargs)
         # Invalid code is always an error
         except InvalidCode:
             raise
@@ -1037,6 +1038,18 @@ class Interpreter(InterpreterBase, HoldableObject):
             )
             result.cm_interpreter = cm_int
         return result
+
+    def _do_subproject_cargo(self, subp_name: str, subdir: str,
+                             default_options: T.Dict[OptionKey, str],
+                             kwargs: kwtypes.DoSubproject) -> SubprojectHolder:
+        from .. import cargo
+        FeatureNew.single_use('Cargo subproject', '1.3.0', self.subproject, location=self.current_node)
+        with mlog.nested(subp_name):
+            ast = cargo.interpret(subp_name, subdir, self.environment)
+            return self._do_subproject_meson(
+                subp_name, subdir, default_options, kwargs, ast,
+                # FIXME: Are there other files used by cargo interpreter?
+                [os.path.join(subdir, 'Cargo.toml')])
 
     def get_option_internal(self, optname: str) -> coredata.UserOption:
         key = OptionKey.from_string(optname).evolve(subproject=self.subproject)

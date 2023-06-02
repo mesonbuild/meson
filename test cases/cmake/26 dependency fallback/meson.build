@@ -9,7 +9,7 @@ test('test1', exe1)
 # to meson but wrap force cmake.
 subproject('force_cmake')
 
-testcase expect_error('Wrap method \'notfound\' is not supported, must be one of: meson, cmake')
+testcase expect_error('Wrap method \'notfound\' is not supported, must be one of: meson, cmake, cargo')
   subproject('broken_method')
 endtestcase
 

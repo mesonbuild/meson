@@ -91,6 +91,7 @@ previously reserved to `wrap-file`:
   Supported methods:
   - `meson` requires `meson.build` file.
   - `cmake` requires `CMakeLists.txt` file. [See details](#cmake-wraps).
+  - `cargo` requires `Cargo.toml` file. [See details](#cargo-wraps).
 
 ### Specific to wrap-file
 - `source_url` - download url to retrieve the wrap-file source archive
@@ -312,6 +313,26 @@ name `foo-bar-1.0` (e.g. via pkg-config) would have a wrap file like this:
 method = cmake
 [provide]
 foo-bar-1.0 = foo_bar_dep
+```
+### Cargo wraps
+
+Cargo subprojects automatically override the `<package_name>-rs` dependency name.
+`package_name` is defined in `[package] name = ...` section of the `Cargo.toml`
+and `-rs` suffix is added. That means the `.wrap` file should have
+`dependency_names = foo-rs` in their `[provide]` section when `Cargo.toml` has
+package name `foo`.
+
+Cargo subprojects require a toml parser. Python >= 3.11 have one built-in, older
+Python versions require either the external `tomli` module or `toml2json` program.
+
+For example, a Cargo project with the package name `foo-bar` would have a wrap
+file like that:
+```ini
+[wrap-file]
+...
+method = cargo
+[provide]
+dependency_names = foo-bar-rs
 ```
 
 ## Using wrapped projects
