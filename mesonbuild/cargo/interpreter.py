@@ -380,6 +380,7 @@ def _create_project(cargo: Manifest, build: builder.Builder, env: Environment) -
 def _create_dependencies(cargo: Manifest, build: builder.Builder) -> T.List[mparser.BaseNode]:
     ast: T.List[mparser.BaseNode] = []
     for name, dep in cargo.dependencies.items():
+        package_name = dep.package or name
         kw = {
             'version': build.array([build.string(s) for s in dep.version]),
         }
@@ -387,20 +388,23 @@ def _create_dependencies(cargo: Manifest, build: builder.Builder) -> T.List[mpar
             build.assign(
                 build.function(
                     'dependency',
-                    [build.string(_dependency_name(name))],
+                    [build.string(_dependency_name(package_name))],
                     kw,
                 ),
-                _dependency_varname(name),
+                _dependency_varname(package_name),
             ),
         ])
     return ast
 
 
 def _create_lib(cargo: Manifest, build: builder.Builder) -> T.List[mparser.BaseNode]:
-    kw: T.Dict[str, mparser.BaseNode] = {}
-    if cargo.dependencies:
-        ids = [build.identifier(_dependency_varname(n)) for n in cargo.dependencies]
-        kw['dependencies'] = build.array(ids)
+    dependencies: T.List[mparser.BaseNode] = []
+    dependency_map: T.Dict[mparser.BaseNode, mparser.BaseNode] = {}
+    for name, dep in cargo.dependencies.items():
+        package_name = dep.package or name
+        dependencies.append(build.identifier(_dependency_varname(package_name)))
+        if name != package_name:
+            dependency_map[build.string(fixup_meson_varname(package_name))] = build.string(name)
 
     # FIXME: currently assuming that an rlib is being generated, which is
     # the most common.
@@ -412,14 +416,19 @@ def _create_lib(cargo: Manifest, build: builder.Builder) -> T.List[mparser.BaseN
                     build.string(fixup_meson_varname(cargo.package.name)),
                     build.string(os.path.join('src', 'lib.rs')),
                 ],
-                kw,
+                {
+                    'dependencies': build.array(dependencies),
+                    'rust_dependency_map': build.dict(dependency_map),
+                },
             ),
             'lib'
         ),
         build.assign(
             build.function(
                 'declare_dependency',
-                kw={'link_with': build.identifier('lib'), **kw},
+                kw={
+                    'link_with': build.identifier('lib'),
+                },
             ),
             'dep'
         ),
