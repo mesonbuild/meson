@@ -340,6 +340,14 @@ def _load_manifests(subdir: str) -> T.Dict[str, Manifest]:
     return manifests
 
 
+def _dependency_name(package_name: str) -> str:
+    return package_name if package_name.endswith('-rs') else f'{package_name}-rs'
+
+
+def _dependency_varname(package_name: str) -> str:
+    return f'{fixup_meson_varname(package_name)}_dep'
+
+
 def _create_project(cargo: Manifest, build: builder.Builder, env: Environment) -> T.List[mparser.BaseNode]:
     """Create a function call
 
@@ -370,22 +378,19 @@ def _create_project(cargo: Manifest, build: builder.Builder, env: Environment) -
 
 
 def _create_dependencies(cargo: Manifest, build: builder.Builder) -> T.List[mparser.BaseNode]:
-    ast: T.List[mparser.BaseNode] = [
-        build.assign(build.function('import', [build.string('rust')]), 'rust')
-    ]
+    ast: T.List[mparser.BaseNode] = []
     for name, dep in cargo.dependencies.items():
         kw = {
             'version': build.array([build.string(s) for s in dep.version]),
         }
         ast.extend([
             build.assign(
-                build.method(
-                    'cargo',
-                    build.identifier('rust'),
-                    [build.string(name)],
+                build.function(
+                    'dependency',
+                    [build.string(_dependency_name(name))],
                     kw,
                 ),
-                f'dep_{fixup_meson_varname(name)}',
+                _dependency_varname(name),
             ),
         ])
     return ast
@@ -394,9 +399,8 @@ def _create_dependencies(cargo: Manifest, build: builder.Builder) -> T.List[mpar
 def _create_lib(cargo: Manifest, build: builder.Builder) -> T.List[mparser.BaseNode]:
     kw: T.Dict[str, mparser.BaseNode] = {}
     if cargo.dependencies:
-        ids = [build.identifier(f'dep_{n}') for n in cargo.dependencies]
-        kw['dependencies'] = build.array(
-            [build.method('get_variable', i, [build.string('dep')]) for i in ids])
+        ids = [build.identifier(_dependency_varname(n)) for n in cargo.dependencies]
+        kw['dependencies'] = build.array(ids)
 
     # FIXME: currently assuming that an rlib is being generated, which is
     # the most common.
@@ -418,7 +422,15 @@ def _create_lib(cargo: Manifest, build: builder.Builder) -> T.List[mparser.BaseN
                 kw={'link_with': build.identifier('lib'), **kw},
             ),
             'dep'
-        )
+        ),
+        build.method(
+            'override_dependency',
+            build.identifier('meson'),
+            [
+                build.string(_dependency_name(cargo.package.name)),
+                build.identifier('dep'),
+            ],
+        ),
     ]
 
 
