@@ -21,7 +21,6 @@ import typing as T
 
 from . import builder
 from . import version
-from .._pathlib import Path
 from ..mesonlib import MesonException, Popen_safe
 
 if T.TYPE_CHECKING:
@@ -366,19 +365,6 @@ def _load_manifests(subdir: str) -> T.Dict[str, Manifest]:
             man = _convert_manifest(raw_manifest, subdir, m)
             manifests[man.package.name] = man
 
-    return manifests
-
-
-def load_all_manifests(subproject_dir: str) -> T.Dict[str, Manifest]:
-    """Find all cargo subprojects, and load them
-
-    :param subproject_dir: Directory to look for subprojects in
-    :return: A dictionary of rust project names to Manifests
-    """
-    manifests: T.Dict[str, Manifest] = {}
-    for p in Path(subproject_dir).iterdir():
-        if p.is_dir() and (p / 'Cargo.toml').exists():
-            manifests.update(_load_manifests(str(p)))
     return manifests
 
 
