@@ -953,12 +953,24 @@ class Interpreter(InterpreterBase, HoldableObject):
                              kwargs: kwtypes.DoSubproject,
                              ast: T.Optional[mparser.CodeBlockNode] = None,
                              build_def_files: T.Optional[T.List[str]] = None,
-                             is_translated: bool = False,
                              relaxations: T.Optional[T.Set[InterpreterRuleRelaxation]] = None) -> SubprojectHolder:
         with mlog.nested(subp_name):
+            if ast:
+                # Debug print the generated meson file
+                from ..ast import AstIndentationGenerator, AstPrinter
+                printer = AstPrinter(update_ast_line_nos=True)
+                ast.accept(AstIndentationGenerator())
+                ast.accept(printer)
+                printer.post_process()
+                meson_filename = os.path.join(self.build.environment.get_build_dir(), subdir, 'meson.build')
+                with open(meson_filename, "w", encoding='utf-8') as f:
+                    f.write(printer.result)
+                mlog.log('Generated Meson AST:', meson_filename)
+                mlog.cmd_ci_include(meson_filename)
+
             new_build = self.build.copy()
             subi = Interpreter(new_build, self.backend, subp_name, subdir, self.subproject_dir,
-                               default_options, ast=ast, is_translated=is_translated,
+                               default_options, ast=ast, is_translated=(ast is not None),
                                relaxations=relaxations,
                                user_defined_options=self.user_defined_options)
             # Those lists are shared by all interpreters. That means that
@@ -1013,37 +1025,15 @@ class Interpreter(InterpreterBase, HoldableObject):
 
             # Generate a meson ast and execute it with the normal do_subproject_meson
             ast = cm_int.pretend_to_be_meson(options.target_options)
-
-            mlog.log()
-            with mlog.nested('cmake-ast'):
-                mlog.log('Processing generated meson AST')
-
-                # Debug print the generated meson file
-                from ..ast import AstIndentationGenerator, AstPrinter
-                printer = AstPrinter(update_ast_line_nos=True)
-                ast.accept(AstIndentationGenerator())
-                ast.accept(printer)
-                printer.post_process()
-                meson_filename = os.path.join(self.build.environment.get_build_dir(), subdir, 'meson.build')
-                with open(meson_filename, "w", encoding='utf-8') as f:
-                    f.write(printer.result)
-
-                mlog.log('Build file:', meson_filename)
-                mlog.cmd_ci_include(meson_filename)
-                mlog.log()
-
             result = self._do_subproject_meson(
                     subp_name, subdir, default_options,
                     kwargs, ast,
                     [str(f) for f in cm_int.bs_files],
-                    is_translated=True,
                     relaxations={
                         InterpreterRuleRelaxation.ALLOW_BUILD_DIR_FILE_REFERENCES,
                     }
             )
             result.cm_interpreter = cm_int
-
-        mlog.log()
         return result
 
     def get_option_internal(self, optname: str) -> coredata.UserOption:
