@@ -375,7 +375,7 @@ class PythonModule(ExtensionModule):
             tmp_python = ExternalProgram.from_entry(display_name, name_or_path)
             python = PythonExternalProgram(display_name, ext_prog=tmp_python)
 
-            if not python.found() and mesonlib.is_windows():
+            if not python.found() and state.environment.machines.build.is_windows():
                 pythonpath = self._get_win_pythonpath(name_or_path)
                 if pythonpath is not None:
                     name_or_path = pythonpath

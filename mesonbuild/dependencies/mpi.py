@@ -18,7 +18,6 @@ import typing as T
 import os
 import re
 
-from ..environment import detect_cpu_family
 from .base import DependencyMethods, detect_compiler, SystemDependency
 from .configtool import ConfigToolDependency
 from .factory import factory_methods
@@ -217,7 +216,7 @@ class MSMPIDependency(SystemDependency):
             return
 
         incdir = os.environ.get('MSMPI_INC')
-        arch = detect_cpu_family(self.env.coredata.compilers.host)
+        arch = env.machines[self.for_machine].cpu_family
         libdir = None
         if arch == 'x86':
             libdir = os.environ.get('MSMPI_LIB32')

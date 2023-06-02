@@ -14,7 +14,7 @@
 from __future__ import annotations
 
 import itertools
-import os, platform, re, sys, shutil
+import os, re, shutil
 import typing as T
 import collections
 
@@ -29,7 +29,7 @@ from . import mlog
 from .programs import ExternalProgram
 
 from .envconfig import (
-    BinaryTable, MachineInfo, Properties, known_cpu_families, CMakeVariables,
+    BinaryTable, MachineInfo, Properties, CMakeVariables,
 )
 from . import compilers
 from .compilers import (
@@ -230,210 +230,8 @@ def detect_clangformat() -> T.List[str]:
             return [path]
     return []
 
-def detect_windows_arch(compilers: CompilersDict) -> str:
-    """
-    Detecting the 'native' architecture of Windows is not a trivial task. We
-    cannot trust that the architecture that Python is built for is the 'native'
-    one because you can run 32-bit apps on 64-bit Windows using WOW64 and
-    people sometimes install 32-bit Python on 64-bit Windows.
-
-    We also can't rely on the architecture of the OS itself, since it's
-    perfectly normal to compile and run 32-bit applications on Windows as if
-    they were native applications. It's a terrible experience to require the
-    user to supply a cross-info file to compile 32-bit applications on 64-bit
-    Windows. Thankfully, the only way to compile things with Visual Studio on
-    Windows is by entering the 'msvc toolchain' environment, which can be
-    easily detected.
-
-    In the end, the sanest method is as follows:
-    1. Check environment variables that are set by Windows and WOW64 to find out
-       if this is x86 (possibly in WOW64), if so use that as our 'native'
-       architecture.
-    2. If the compiler toolchain target architecture is x86, use that as our
-      'native' architecture.
-    3. Otherwise, use the actual Windows architecture
-
-    """
-    os_arch = mesonlib.windows_detect_native_arch()
-    if os_arch == 'x86':
-        return os_arch
-    # If we're on 64-bit Windows, 32-bit apps can be compiled without
-    # cross-compilation. So if we're doing that, just set the native arch as
-    # 32-bit and pretend like we're running under WOW64. Else, return the
-    # actual Windows architecture that we deduced above.
-    for compiler in compilers.values():
-        if compiler.id == 'msvc' and (compiler.target in {'x86', '80x86'}):
-            return 'x86'
-        if compiler.id == 'clang-cl' and compiler.target == 'x86':
-            return 'x86'
-        if compiler.id == 'gcc' and compiler.has_builtin_define('__i386__'):
-            return 'x86'
-    return os_arch
-
-def any_compiler_has_define(compilers: CompilersDict, define):
-    for c in compilers.values():
-        try:
-            if c.has_builtin_define(define):
-                return True
-        except mesonlib.MesonException:
-            # Ignore compilers that do not support has_builtin_define.
-            pass
-    return False
-
-def detect_cpu_family(compilers: CompilersDict) -> str:
-    """
-    Python is inconsistent in its platform module.
-    It returns different values for the same cpu.
-    For x86 it might return 'x86', 'i686' or somesuch.
-    Do some canonicalization.
-    """
-    if mesonlib.is_windows():
-        trial = detect_windows_arch(compilers)
-    elif mesonlib.is_freebsd() or mesonlib.is_netbsd() or mesonlib.is_openbsd() or mesonlib.is_qnx() or mesonlib.is_aix():
-        trial = platform.processor().lower()
-    else:
-        trial = platform.machine().lower()
-    if trial.startswith('i') and trial.endswith('86'):
-        trial = 'x86'
-    elif trial == 'bepc':
-        trial = 'x86'
-    elif trial == 'arm64':
-        trial = 'aarch64'
-    elif trial.startswith('aarch64'):
-        # This can be `aarch64_be`
-        trial = 'aarch64'
-    elif trial.startswith('arm') or trial.startswith('earm'):
-        trial = 'arm'
-    elif trial.startswith(('powerpc64', 'ppc64')):
-        trial = 'ppc64'
-    elif trial.startswith(('powerpc', 'ppc')) or trial in {'macppc', 'power macintosh'}:
-        trial = 'ppc'
-    elif trial in {'amd64', 'x64', 'i86pc'}:
-        trial = 'x86_64'
-    elif trial in {'sun4u', 'sun4v'}:
-        trial = 'sparc64'
-    elif trial.startswith('mips'):
-        if '64' not in trial:
-            trial = 'mips'
-        else:
-            trial = 'mips64'
-    elif trial in {'ip30', 'ip35'}:
-        trial = 'mips64'
-
-    # On Linux (and maybe others) there can be any mixture of 32/64 bit code in
-    # the kernel, Python, system, 32-bit chroot on 64-bit host, etc. The only
-    # reliable way to know is to check the compiler defines.
-    if trial == 'x86_64':
-        if any_compiler_has_define(compilers, '__i386__'):
-            trial = 'x86'
-    elif trial == 'aarch64':
-        if any_compiler_has_define(compilers, '__arm__'):
-            trial = 'arm'
-    # Add more quirks here as bugs are reported. Keep in sync with detect_cpu()
-    # below.
-    elif trial == 'parisc64':
-        # ATM there is no 64 bit userland for PA-RISC. Thus always
-        # report it as 32 bit for simplicity.
-        trial = 'parisc'
-    elif trial == 'ppc':
-        # AIX always returns powerpc, check here for 64-bit
-        if any_compiler_has_define(compilers, '__64BIT__'):
-            trial = 'ppc64'
-    # MIPS64 is able to run MIPS32 code natively, so there is a chance that
-    # such mixture mentioned above exists.
-    elif trial == 'mips64':
-        if not any_compiler_has_define(compilers, '__mips64'):
-            trial = 'mips'
-
-    if trial not in known_cpu_families:
-        mlog.warning(f'Unknown CPU family {trial!r}, please report this at '
-                     'https://github.com/mesonbuild/meson/issues/new with the '
-                     'output of `uname -a` and `cat /proc/cpuinfo`')
-
-    return trial
-
-def detect_cpu(compilers: CompilersDict) -> str:
-    if mesonlib.is_windows():
-        trial = detect_windows_arch(compilers)
-    elif mesonlib.is_freebsd() or mesonlib.is_netbsd() or mesonlib.is_openbsd() or mesonlib.is_aix():
-        trial = platform.processor().lower()
-    else:
-        trial = platform.machine().lower()
-
-    if trial in {'amd64', 'x64', 'i86pc'}:
-        trial = 'x86_64'
-    if trial == 'x86_64':
-        # Same check as above for cpu_family
-        if any_compiler_has_define(compilers, '__i386__'):
-            trial = 'i686' # All 64 bit cpus have at least this level of x86 support.
-    elif trial.startswith('aarch64') or trial.startswith('arm64'):
-        # Same check as above for cpu_family
-        if any_compiler_has_define(compilers, '__arm__'):
-            trial = 'arm'
-        else:
-            # for aarch64_be
-            trial = 'aarch64'
-    elif trial.startswith('earm'):
-        trial = 'arm'
-    elif trial == 'e2k':
-        # Make more precise CPU detection for Elbrus platform.
-        trial = platform.processor().lower()
-    elif trial.startswith('mips'):
-        if '64' not in trial:
-            trial = 'mips'
-        else:
-            if not any_compiler_has_define(compilers, '__mips64'):
-                trial = 'mips'
-            else:
-                trial = 'mips64'
-    elif trial == 'ppc':
-        # AIX always returns powerpc, check here for 64-bit
-        if any_compiler_has_define(compilers, '__64BIT__'):
-            trial = 'ppc64'
-
-    # Add more quirks here as bugs are reported. Keep in sync with
-    # detect_cpu_family() above.
-    return trial
-
-def detect_system() -> str:
-    if sys.platform == 'cygwin':
-        return 'cygwin'
-    return platform.system().lower()
-
 def detect_msys2_arch() -> T.Optional[str]:
     return os.environ.get('MSYSTEM_CARCH', None)
-
-def detect_machine_info(compilers: T.Optional[CompilersDict] = None) -> MachineInfo:
-    """Detect the machine we're running on
-
-    If compilers are not provided, we cannot know as much. None out those
-    fields to avoid accidentally depending on partial knowledge. The
-    underlying ''detect_*'' method can be called to explicitly use the
-    partial information.
-    """
-    return MachineInfo(
-        detect_system(),
-        detect_cpu_family(compilers) if compilers is not None else None,
-        detect_cpu(compilers) if compilers is not None else None,
-        sys.byteorder)
-
-# TODO make this compare two `MachineInfo`s purely. How important is the
-# `detect_cpu_family({})` distinction? It is the one impediment to that.
-def machine_info_can_run(machine_info: MachineInfo):
-    """Whether we can run binaries for this machine on the current machine.
-
-    Can almost always run 32-bit binaries on 64-bit natively if the host
-    and build systems are the same. We don't pass any compilers to
-    detect_cpu_family() here because we always want to know the OS
-    architecture, not what the compiler environment tells us.
-    """
-    if machine_info.system != detect_system():
-        return False
-    true_build_cpu_family = detect_cpu_family({})
-    return \
-        (machine_info.cpu_family == true_build_cpu_family) or \
-        ((true_build_cpu_family == 'x86_64') and (machine_info.cpu_family == 'x86')) or \
-        ((true_build_cpu_family == 'aarch64') and (machine_info.cpu_family == 'arm'))
 
 class Environment:
     private_dir = 'meson-private'
@@ -497,7 +295,7 @@ class Environment:
         ## Setup build machine defaults
 
         # Will be fully initialized later using compilers later.
-        machines.build = detect_machine_info()
+        machines.build = MachineInfo.detect()
 
         # Just uses hard-coded defaults and environment variables. Might be
         # overwritten by a native file.
@@ -542,6 +340,9 @@ class Environment:
         ## "freeze" now initialized configuration, and "save" to the class.
 
         self.machines = machines.default_missing()
+        if not self.first_invocation:
+            self.machines.build.redetect(self.coredata.compilers.build)
+
         self.binaries = binaries.default_missing()
         self.properties = properties.default_missing()
         self.cmakevars = cmakevars.default_missing()
@@ -861,7 +662,7 @@ class Environment:
         value = self.properties[for_machine].get('needs_exe_wrapper', None)
         if value is not None:
             return value
-        return not machine_info_can_run(self.machines[for_machine])
+        return not self.machines[for_machine].can_run()
 
     def get_exe_wrapper(self) -> T.Optional[ExternalProgram]:
         if not self.need_exe_wrapper():

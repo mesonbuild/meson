@@ -21,7 +21,6 @@ from pathlib import Path
 
 from .. import mesonlib
 from .. import mlog
-from ..environment import detect_cpu_family
 from .base import DependencyException, SystemDependency
 
 
@@ -218,8 +217,8 @@ class CudaDependency(SystemDependency):
         return '.'.join(version.split('.')[:2])
 
     def _detect_arch_libdir(self) -> str:
-        arch = detect_cpu_family(self.env.coredata.compilers.host)
         machine = self.env.machines[self.for_machine]
+        arch = machine.cpu_family
         msg = '{} architecture is not supported in {} version of the CUDA Toolkit.'
         if machine.is_windows():
             libdirs = {'x86': 'Win32', 'x86_64': 'x64'}
