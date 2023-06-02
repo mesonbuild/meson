@@ -169,14 +169,10 @@ class InterpreterBase:
             return
         if not isinstance(node, mparser.CodeBlockNode):
             raise InvalidCode.from_node('Tried to execute a non-codeblock. Possibly a bug in the parser.', node=node)
-        statements = node.lines[start:end]
-        i = 0
-        while i < len(statements):
-            # NOTE: self.current_node is updated in self.evaluate_statement, while cur is not
-            cur = statements[i]
-            self.current_lineno = cur.lineno
+        for self.current_node in node.lines[start:end]:
+            self.current_lineno = self.current_node.lineno
             try:
-                self.evaluate_statement(cur)
+                self.evaluate_statement(self.current_node)
             except MesonException as e:
                 # Assume that if file is set, then the information in the exception is correct
                 if e.file is None:
@@ -184,7 +180,6 @@ class InterpreterBase:
                 raise
             except Exception as e:
                 raise mesonlib.MesonExceptionWrapper.from_node(e, self.current_node)
-            i += 1 # In THE FUTURE jump over blocks and stuff.
 
     def evaluate_statement(self, cur: mparser.BaseNode) -> T.Optional[InterpreterObject]:
         self.current_node = cur

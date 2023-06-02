@@ -88,10 +88,9 @@ class OptionInterpreter:
     def process(self, option_file: str) -> None:
         with open(option_file, encoding='utf-8') as f:
             ast = mparser.Parser(f.read(), option_file).parse()
-        for cur in ast.lines:
-            self.current_node = cur
+        for self.current_node in ast.lines:
             try:
-                self.evaluate_statement(cur)
+                self.evaluate_statement(self.current_node)
             except mesonlib.MesonException as e:
                 if e.file is None:
                     e.update_position(self.current_node)
