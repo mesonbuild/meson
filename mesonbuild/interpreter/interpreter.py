@@ -919,7 +919,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                 return self.disabled_subproject(subp_name, exception=e)
             raise e
 
-        subdir_abs = os.path.join(self.environment.get_source_dir(), subdir)
         os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
         self.global_args_frozen = True
 
@@ -933,7 +932,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             if method == 'meson':
                 return self._do_subproject_meson(subp_name, subdir, default_options, kwargs)
             elif method == 'cmake':
-                return self._do_subproject_cmake(subp_name, subdir, subdir_abs, default_options, kwargs)
+                return self._do_subproject_cmake(subp_name, subdir, default_options, kwargs)
             else:
                 raise mesonlib.MesonBugException(f'The method {method} is invalid for the subproject {subp_name}')
         # Invalid code is always an error
@@ -998,18 +997,17 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.build.subprojects[subp_name] = subi.project_version
         return self.subprojects[subp_name]
 
-    def _do_subproject_cmake(self, subp_name: str, subdir: str, subdir_abs: str,
+    def _do_subproject_cmake(self, subp_name: str, subdir: str,
                              default_options: T.Dict[OptionKey, str],
                              kwargs: kwtypes.DoSubproject) -> SubprojectHolder:
         from ..cmake import CMakeInterpreter
         with mlog.nested(subp_name):
-            new_build = self.build.copy()
             prefix = self.coredata.options[OptionKey('prefix')].value
 
             from ..modules.cmake import CMakeSubprojectOptions
             options = kwargs.get('options') or CMakeSubprojectOptions()
             cmake_options = kwargs.get('cmake_options', []) + options.cmake_options
-            cm_int = CMakeInterpreter(new_build, Path(subdir), Path(subdir_abs), Path(prefix), new_build.environment, self.backend)
+            cm_int = CMakeInterpreter(Path(subdir), Path(prefix), self.build.environment, self.backend)
             cm_int.initialise(cmake_options)
             cm_int.analyse()
 
