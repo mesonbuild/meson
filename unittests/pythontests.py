@@ -23,6 +23,7 @@ from .baseplatformtests import BasePlatformTests
 from .helpers import *
 
 from mesonbuild.mesonlib import MachineChoice, TemporaryDirectoryWinProof
+from mesonbuild.modules.python import PythonModule
 
 class PythonTests(BasePlatformTests):
     '''
@@ -75,25 +76,25 @@ python = pymod.find_installation('python3', required: true)
                 realfile = os.path.join(root, file)
                 if file.endswith('.py'):
                     cached = glob.glob(realfile+'?') + glob.glob(os.path.join(root, '__pycache__', os.path.splitext(file)[0] + '*.pyc'))
-                    if cc.get_id() == 'msvc':
+                    if py2 and cc.get_id() == 'msvc':
                         # MSVC python installs python2/python3 into the same directory
                         self.assertLength(cached, 4)
                     else:
                         self.assertLength(cached, 2)
                     count += 1
         # there are 5 files x 2 installations
-        if py2:
+        if py2 and not cc.get_id() == 'msvc':
             self.assertEqual(count, 10)
         else:
             self.assertEqual(count, 5)
 
     @xfail_if_jobname('msys2-clangx64ninja')
     def test_bytecompile_multi(self):
-        if not shutil.which('python2'):
+        if not shutil.which('python2') and not PythonModule._get_win_pythonpath('python2'):
             raise self.skipTest('python2 not installed')
         self._test_bytecompile(True)
 
     def test_bytecompile_single(self):
-        if shutil.which('python2'):
+        if shutil.which('python2') or PythonModule._get_win_pythonpath('python2'):
             raise self.skipTest('python2 installed, already tested')
         self._test_bytecompile()
