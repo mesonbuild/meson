@@ -1665,6 +1665,10 @@ class Interpreter(InterpreterBase, HoldableObject):
         if progobj:
             return progobj
 
+        if args[0] == 'meson':
+            # Override find_program('meson') to return what we were invoked with
+            return ExternalProgram('meson', self.environment.get_build_command(), silent=True)
+
         fallback = None
         wrap_mode = self.coredata.get_option(OptionKey('wrap_mode'))
         if wrap_mode != WrapMode.nofallback and self.environment.wrap_resolver:
