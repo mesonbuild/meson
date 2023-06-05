@@ -42,6 +42,9 @@ description: |
   setcap = find_program(['setcap', '/usr/sbin/setcap', '/sbin/setcap'], required : false)
   ```
 
+  *Since 1.2.0* `find_program('meson')` is automatically overridden to the Meson
+  command used to execute the build script.
+
   The returned [[@external_program]] object also has documented methods.
 
 posargs:
