@@ -203,6 +203,18 @@ class PkgConfigDependency(ExternalDependency):
     def _split_args(self, cmd: str) -> T.List[str]:
         # pkg-config paths follow Unix conventions, even on Windows; split the
         # output using shlex.split rather than mesonlib.split_args
+
+        # Due to https://gitea.treehouse.systems/ariadne/pkgconf/issues/238
+        # it's possible for us to end up with an escape character that escapes
+        # nothing. This means that a space hasn't been properly escaped, and
+        # things are probably going to fail. We can at least give a nice warning
+        # and not give a traceback
+        if 'MSYSTEM' in os.environ and cmd.endswith("\\"):
+            # TODO: possibly pending fix: https://gitea.treehouse.systems/ariadne/pkgconf/pulls/249
+            mlog.warning("pkgconf on msys/mingw doesn't handle escaped spaces correctly, "
+                         "it looks like that has happened. Compilation may fail", once=True)
+            cmd = cmd[:-1]
+
         return shlex.split(cmd)
 
     def _set_cargs(self) -> None:
