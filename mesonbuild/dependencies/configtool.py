@@ -144,6 +144,11 @@ class ConfigToolDependency(ExternalDependency):
 
     def get_config_value(self, args: T.List[str], stage: str) -> T.List[str]:
         p, out, err = Popen_safe(self.config + args)
+        mlog.debug(f'Called `{mesonlib.join_args(self.config+args)}` -> {p.returncode}')
+        if out:
+            mlog.debug(f'stdout:\n{out}\n-----------')
+        if err:
+            mlog.debug(f'stderr:\n{err}\n-----------')
         if p.returncode != 0:
             if self.required:
                 raise DependencyException(f'Could not generate {stage} for {self.name}.\n{err}')
