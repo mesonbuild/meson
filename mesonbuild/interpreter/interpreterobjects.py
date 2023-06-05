@@ -562,10 +562,19 @@ class DependencyHolder(ObjectHolder[Dependency]):
 class ExternalProgramHolder(ObjectHolder[ExternalProgram]):
     def __init__(self, ep: ExternalProgram, interpreter: 'Interpreter') -> None:
         super().__init__(ep, interpreter)
-        self.methods.update({'found': self.found_method,
+        self.methods.update({'cmd_array': self.cmd_array_method,
+                             'found': self.found_method,
                              'path': self.path_method,
                              'version': self.version_method,
                              'full_path': self.full_path_method})
+
+    @noPosargs
+    @noKwargs
+    @FeatureNew('ExternalProgram.cmd_array', '1.2.0')
+    def cmd_array_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.List[str]:
+        if not self.found():
+            raise InterpreterException('Unable to get the command array of a not-found external program')
+        return self.held_object.get_command()
 
     @noPosargs
     @noKwargs
