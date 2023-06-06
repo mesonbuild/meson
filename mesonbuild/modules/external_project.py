@@ -24,7 +24,7 @@ from .. import mlog, build
 from ..compilers.compilers import CFLAGS_MAPPING
 from ..envconfig import ENV_VAR_PROG_MAP
 from ..dependencies import InternalDependency
-from ..dependencies.pkgconfig import PkgConfigDependency
+from ..dependencies.pkgconfig import PkgConfigCLI
 from ..interpreterbase import FeatureNew
 from ..interpreter.type_checking import ENV_KW, DEPENDS_KW
 from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, typed_kwargs, typed_pos_args
@@ -165,8 +165,8 @@ class ExternalProject(NewExtensionModule):
         self.run_env['LDFLAGS'] = self._quote_and_join(link_args)
 
         self.run_env = self.user_env.get_env(self.run_env)
-        self.run_env = PkgConfigDependency.setup_env(self.run_env, self.env, MachineChoice.HOST,
-                                                     uninstalled=True)
+        self.run_env = PkgConfigCLI.setup_env(self.run_env, self.env, MachineChoice.HOST,
+                                              uninstalled=True)
 
         self.build_dir.mkdir(parents=True, exist_ok=True)
         self._run('configure', configure_cmd, workdir)

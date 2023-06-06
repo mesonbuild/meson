@@ -47,7 +47,7 @@ from mesonbuild.mesonlib import (
     OptionType
 )
 from mesonbuild.interpreter.type_checking import in_set_validator, NoneType
-from mesonbuild.dependencies.pkgconfig import PkgConfigDependency
+from mesonbuild.dependencies.pkgconfig import PkgConfigDependency, PkgConfigInterface, PkgConfigCLI
 from mesonbuild.programs import ExternalProgram
 import mesonbuild.modules.pkgconfig
 
@@ -640,22 +640,19 @@ class InternalTests(unittest.TestCase):
             create_static_lib(p1 / 'libdl.a')
             create_static_lib(p1 / 'librt.a')
 
-            def fake_call_pkgbin(self, args, env=None):
-                if '--libs' not in args:
-                    return 0, '', ''
-                if args[-1] == 'foo':
-                    return 0, f'-L{p2.as_posix()} -lfoo -L{p1.as_posix()} -lbar', ''
-                if args[-1] == 'bar':
-                    return 0, f'-L{p2.as_posix()} -lbar', ''
-                if args[-1] == 'internal':
-                    return 0, f'-L{p1.as_posix()} -lpthread -lm -lc -lrt -ldl', ''
+            class FakeInstance(PkgConfigCLI):
+                def _call_pkgbin(self, args, env=None):
+                    if '--libs' not in args:
+                        return 0, '', ''
+                    if args[-1] == 'foo':
+                        return 0, f'-L{p2.as_posix()} -lfoo -L{p1.as_posix()} -lbar', ''
+                    if args[-1] == 'bar':
+                        return 0, f'-L{p2.as_posix()} -lbar', ''
+                    if args[-1] == 'internal':
+                        return 0, f'-L{p1.as_posix()} -lpthread -lm -lc -lrt -ldl', ''
 
-            old_call = PkgConfigDependency._call_pkgbin
-            old_check = PkgConfigDependency.check_pkgconfig
-            PkgConfigDependency._call_pkgbin = fake_call_pkgbin
-            PkgConfigDependency.check_pkgconfig = lambda x, _: pkgbin
-            # Test begins
-            try:
+            with mock.patch.object(PkgConfigInterface, 'instance') as instance_method:
+                instance_method.return_value = FakeInstance(env, MachineChoice.HOST, silent=True)
                 kwargs = {'required': True, 'silent': True}
                 foo_dep = PkgConfigDependency('foo', env, kwargs)
                 self.assertEqual(foo_dep.get_link_args(),
@@ -670,13 +667,6 @@ class InternalTests(unittest.TestCase):
                     for link_arg in link_args:
                         for lib in ('pthread', 'm', 'c', 'dl', 'rt'):
                             self.assertNotIn(f'lib{lib}.a', link_arg, msg=link_args)
-            finally:
-                # Test ends
-                PkgConfigDependency._call_pkgbin = old_call
-                PkgConfigDependency.check_pkgconfig = old_check
-                # Reset dependency class to ensure that in-process configure doesn't mess up
-                PkgConfigDependency.pkgbin_cache = {}
-                PkgConfigDependency.class_pkgbin = PerMachine(None, None)
 
     def test_version_compare(self):
         comparefunc = mesonbuild.mesonlib.version_compare_many

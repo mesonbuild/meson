@@ -34,7 +34,7 @@ from .. import mesonlib
 from .. import mlog
 from ..build import CustomTarget, CustomTargetIndex, Executable, GeneratedList, InvalidArguments
 from ..dependencies import Dependency, InternalDependency
-from ..dependencies.pkgconfig import PkgConfigDependency
+from ..dependencies.pkgconfig import PkgConfigDependency, PkgConfigCLI
 from ..interpreter.type_checking import DEPENDS_KW, DEPEND_FILES_KW, ENV_KW, INSTALL_DIR_KW, INSTALL_KW, NoneType, SOURCES_KW, in_set_validator
 from ..interpreterbase import noPosargs, noKwargs, FeatureNew, FeatureDeprecated
 from ..interpreterbase import typed_kwargs, KwargInfo, ContainerTypeInfo
@@ -967,7 +967,7 @@ class GnomeModule(ExtensionModule):
         # -uninstalled.pc files Meson generated. It also must respect pkgconfig
         # settings user could have set in machine file, like PKG_CONFIG_LIBDIR,
         # SYSROOT, etc.
-        run_env = PkgConfigDependency.get_env(state.environment, MachineChoice.HOST, uninstalled=True)
+        run_env = PkgConfigCLI.get_env(state.environment, MachineChoice.HOST, uninstalled=True)
         # g-ir-scanner uses Python's distutils to find the compiler, which uses 'CC'
         cc_exelist = state.environment.coredata.compilers.host['c'].get_exelist()
         run_env.set('CC', [quote_arg(x) for x in cc_exelist], ' ')
