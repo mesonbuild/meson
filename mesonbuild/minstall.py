@@ -23,6 +23,7 @@ import shutil
 import subprocess
 import sys
 import typing as T
+import re
 
 from . import build, coredata, environment
 from .backend.backends import InstallData
@@ -709,6 +710,13 @@ class Installer:
 
     def install_targets(self, d: InstallData, dm: DirMaker, destdir: str, fullprefix: str) -> None:
         for t in d.targets:
+            #In AIX, we archive our shared libraries. During install section we need to install the
+            #archive in which the shared library exists. Hence in the below code we change the
+            #shared library install that can have both so_version and lt_version to archive install.
+            if mesonlib.is_aix():
+                if '.so' in t.fname:
+                    aix_fname = re.sub('[.][a]([.]?([0-9]+))*([.]?([a-z]+))*','.a',t.fname.replace ('.so', '.a'))
+                    t.fname = aix_fname
             if not self.should_install(t):
                 continue
             if not os.path.exists(t.fname):
