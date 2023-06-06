@@ -314,7 +314,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
         if not lib.exists():
             mlog.log('Could not find Python3 library {!r}'.format(str(lib)))
             return None
-        return [str(lib)]
+        return [f'/LIBPATH:{lib.parent}', lib.name]
 
     def find_libpy_windows(self, env: 'Environment') -> None:
         '''
