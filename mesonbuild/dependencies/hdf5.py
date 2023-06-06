@@ -18,15 +18,13 @@ from __future__ import annotations
 import functools
 import os
 import re
-import subprocess
 from pathlib import Path
 
-from ..mesonlib import Popen_safe, OrderedSet, join_args
-from ..programs import ExternalProgram
+from ..mesonlib import OrderedSet, join_args
 from .base import DependencyException, DependencyMethods
 from .configtool import ConfigToolDependency
 from .detect import packages
-from .pkgconfig import PkgConfigDependency
+from .pkgconfig import PkgConfigDependency, PkgConfigInterface
 from .factory import factory_methods
 import typing as T
 
@@ -157,19 +155,14 @@ def hdf5_factory(env: 'Environment', for_machine: 'MachineChoice',
     if DependencyMethods.PKGCONFIG in methods:
         # Use an ordered set so that these remain the first tried pkg-config files
         pkgconfig_files = OrderedSet(['hdf5', 'hdf5-serial'])
-        PCEXE = PkgConfigDependency._detect_pkgbin(False, env, for_machine)
-        pcenv = PkgConfigDependency.setup_env(os.environ, env, for_machine)
-        if PCEXE:
-            assert isinstance(PCEXE, ExternalProgram)
+        pkg = PkgConfigInterface.instance(env, for_machine, silent=False)
+        if pkg:
             # some distros put hdf5-1.2.3.pc with version number in .pc filename.
-            ret, stdout, _ = Popen_safe(PCEXE.get_command() + ['--list-all'], stderr=subprocess.DEVNULL, env=pcenv)
-            if ret.returncode == 0:
-                for pkg in stdout.split('\n'):
-                    if pkg.startswith('hdf5'):
-                        pkgconfig_files.add(pkg.split(' ', 1)[0])
-
-        for pkg in pkgconfig_files:
-            candidates.append(functools.partial(HDF5PkgConfigDependency, pkg, env, kwargs, language))
+            for mod in pkg.list_all():
+                if mod.startswith('hdf5'):
+                    pkgconfig_files.add(mod)
+        for mod in pkgconfig_files:
+            candidates.append(functools.partial(HDF5PkgConfigDependency, mod, env, kwargs, language))
 
     if DependencyMethods.CONFIG_TOOL in methods:
         candidates.append(functools.partial(HDF5ConfigToolDependency, 'hdf5', env, kwargs, language))

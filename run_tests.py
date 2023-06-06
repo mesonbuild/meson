@@ -36,7 +36,7 @@ import typing as T
 
 from mesonbuild.compilers.c import CCompiler
 from mesonbuild.compilers.detect import detect_c_compiler
-from mesonbuild.dependencies.pkgconfig import PkgConfigDependency
+from mesonbuild.dependencies.pkgconfig import PkgConfigCLI
 from mesonbuild import mesonlib
 from mesonbuild import mesonmain
 from mesonbuild import mtest
@@ -302,8 +302,8 @@ def run_mtest_inprocess(commandlist: T.List[str]) -> T.Tuple[int, str, str]:
 def clear_meson_configure_class_caches() -> None:
     CCompiler.find_library_cache = {}
     CCompiler.find_framework_cache = {}
-    PkgConfigDependency.pkgbin_cache = {}
-    PkgConfigDependency.class_pkgbin = mesonlib.PerMachine(None, None)
+    PkgConfigCLI.pkgbin_cache = {}
+    PkgConfigCLI.class_pkgbin = mesonlib.PerMachine(None, None)
     mesonlib.project_meson_versions = collections.defaultdict(str)
 
 def run_configure_inprocess(commandlist: T.List[str], env: T.Optional[T.Dict[str, str]] = None, catch_exception: bool = False) -> T.Tuple[int, str, str]:
