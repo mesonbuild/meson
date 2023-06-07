@@ -3,15 +3,23 @@ project('llvmtest', ['c', 'cpp'], default_options : ['c_std=c99'])
 method = get_option('method')
 static = get_option('link-static')
 
+d = dependency('llvm', required : false, static : static)
+if not d.found()
+  error('MESON_SKIP_TEST llvm not found.')
+endif
+
+modules_to_find = [
+  'bitwriter', 'asmprinter', 'executionengine', 'mcjit', 'target',
+  'nativecodegen', 'amdgpu', 'engine'
+]
+
 if(method == 'combination')
-  d = dependency('llvm', version : static ? '>0.1' : '>=7.0', required : false, static : static)
-  if not d.found()
-    error('MESON_SKIP_TEST llvm not found or llvm version is too low')
+  if not d.version().version_compare(static ? '>0.1' : '>=7.0')
+    error('MESON_SKIP_TEST: llvm version is too low')
   endif
   llvm_ct_dep = dependency(
     'llvm',
-    modules : ['bitwriter', 'asmprinter', 'executionengine', 'target',
-              'mcjit', 'nativecodegen', 'amdgpu', 'engine'],
+    modules : modules_to_find,
     required : false,
     static : static,
     method : 'config-tool',
@@ -29,8 +37,7 @@ if(method == 'combination')
   else
     llvm_cm_dep = dependency(
       'llvm',
-      modules : ['bitwriter', 'asmprinter', 'executionengine', 'target',
-                'mcjit', 'nativecodegen', 'amdgpu', 'engine'],
+      modules : modules_to_find,
       required : false,
       static : static,
       method : 'cmake',
@@ -45,11 +52,6 @@ if(method == 'combination')
   assert(cm_version_major == ct_version_major, 'config-tool and cmake returns different major versions')
   assert(cm_version_minor == ct_version_minor, 'config-tool and cmake returns different minor versions')
 else
-  d = dependency('llvm', required : false, method : method, static : static)
-  if not d.found()
-    error('MESON_SKIP_TEST llvm not found.')
-  endif
-
   if(not static and method == 'cmake')
     d = dependency('llvm', version : '>=7.0', required : false, static : static)
     if not d.found()
@@ -92,8 +94,7 @@ else
   else
     llvm_dep = dependency(
       'llvm',
-      modules : ['bitwriter', 'asmprinter', 'executionengine', 'target',
-                'mcjit', 'nativecodegen', 'amdgpu'],
+      modules : modules_to_find,
       required : false,
       static : static,
       method : method,
