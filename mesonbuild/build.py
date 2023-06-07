@@ -762,6 +762,10 @@ class BuildTarget(Target):
             raise MesonException('cannot mix structured sources and unstructured sources')
         if self.structured_sources and 'rust' not in self.compilers:
             raise MesonException('structured sources are only supported in Rust targets')
+        if self.uses_rust():
+            # relocation-model=pic is rustc's default and Meson does not
+            # currently have a way to disable PIC.
+            self.pic = True
 
     def __repr__(self):
         repr_str = "<{0} {1}: {2}>"
