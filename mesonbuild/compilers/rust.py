@@ -207,8 +207,8 @@ class RustCompiler(Compiler):
         return self._WARNING_LEVELS["0"]
 
     def get_pic_args(self) -> T.List[str]:
-        # This defaults to
-        return ['-C', 'relocation-model=pic']
+        # relocation-model=pic is rustc's default already.
+        return []
 
     def get_pie_args(self) -> T.List[str]:
         # Rustc currently has no way to toggle this, it's controlled by whether
