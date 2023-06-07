@@ -13,7 +13,7 @@ modules_to_find = [
   'nativecodegen', 'amdgpu', 'engine'
 ]
 
-if(method == 'combination')
+if method == 'combination'
   if not d.version().version_compare(static ? '>0.1' : '>=7.0')
     error('MESON_SKIP_TEST: llvm version is too low')
   endif
@@ -51,7 +51,7 @@ if(method == 'combination')
   assert(cm_version_major == ct_version_major, 'config-tool and cmake returns different major versions')
   assert(cm_version_minor == ct_version_minor, 'config-tool and cmake returns different minor versions')
 else
-  if(not static and method == 'cmake')
+  if not static and method == 'cmake'
     d = dependency('llvm', version : '>=7.0', required : false, static : static)
     if not d.found()
       error('MESON_SKIP_TEST llvm version is too low for cmake dynamic link.')
