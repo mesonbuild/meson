@@ -25,9 +25,8 @@ if(method == 'combination')
     method : 'config-tool',
   )
 
-  # Bump the version along till the LLVM bug is fixed
-  if static and d.version().startswith('16.0') and d.version()[5].to_int() <= 4
-    message('Skipping modules with cmake, see https://github.com/mesonbuild/meson/issues/11642')
+  if static and d.version().startswith('16.0') and d.version()[5].to_int() <= 6
+    message('Skipping modules with cmake due to an LLVM bug, see https://github.com/mesonbuild/meson/issues/11642')
     llvm_cm_dep = dependency(
       'llvm',
       required : false,
@@ -82,9 +81,8 @@ else
     dep_tinfo = cpp.find_library('tinfo', required: false)
   endif
 
-  # Bump the version along till the LLVM bug is fixed
-  if static and method == 'cmake' and d.version().startswith('16.0') and d.version()[5].to_int() <= 4
-    message('Skipping modules with cmake, see https://github.com/mesonbuild/meson/issues/11642')
+  if static and method == 'cmake' and d.version().startswith('16.0') and d.version()[5].to_int() <= 5
+    message('Skipping modules with cmake due to an LLVM bug, see https://github.com/mesonbuild/meson/issues/11642')
     llvm_dep = dependency(
       'llvm',
       required : false,
