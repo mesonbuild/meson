@@ -59,6 +59,9 @@ if ($env:arch -eq 'x64') {
     Expand-Archive $env:AGENT_WORKFOLDER\pypy38.zip -DestinationPath $env:AGENT_WORKFOLDER\pypy38
     $ENV:Path = $ENV:Path + ";$ENV:AGENT_WORKFOLDER\pypy38\pypy3.8-v7.3.9-win64;$ENV:AGENT_WORKFOLDER\pypy38\pypy3.8-v7.3.9-win64\Scripts"
     pypy3 -m ensurepip
+
+    DownloadFile -Source https://www.python.org/ftp/python/2.7.18/python-2.7.18.amd64.msi -Destination $env:AGENT_WORKFOLDER\python27.msi
+    Start-Process msiexec.exe -Wait -ArgumentList "/I $env:AGENT_WORKFOLDER\python27.msi /quiet"
 }
 
 
