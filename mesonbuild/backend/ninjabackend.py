@@ -1032,8 +1032,8 @@ class NinjaBackend(backends.Backend):
         elem = self.generate_link(target, outname, final_obj_list, linker, pch_objects, stdlib_args=stdlib_args)
         self.generate_dependency_scan_target(target, compiled_sources, source2object, generated_source_files, fortran_order_deps)
         self.add_build(elem)
-        #In AIX, we archive shared libraries. If the instance is a shared library, we add a command to archive the shared library
-        #object and create the build element.
+        # In AIX, we archive shared libraries. If the instance is a shared library, we add a command to archive the shared library
+        # object and create the build element.
         if self.environment.machines[target.for_machine].is_aix() and isinstance(target, build.SharedLibrary):
             x_outname = outname.replace('.so', '.a')
             aix_outname = re.sub('[.][a]([.]?([0-9]+))*([.]?([a-z]+))*', '.a', x_outname)
@@ -2313,7 +2313,7 @@ class NinjaBackend(backends.Backend):
                 self.add_rule(NinjaRule(rule, command, args, description, **options, extra=pool))
             if self.environment.machines[for_machine].is_aix():
                 rule = 'AIX_LINKER{}'.format(self.get_rule_suffix(for_machine))
-                #Archive the shared library and remove the shared library since it is already there in the archive.
+                # Archive the shared library and remove the shared library since it is already there in the archive.
                 cmdlist = ['ar']
                 cmdlist += ['-q', '-v']
                 #Remove the shared library since it is already there in the archive.
@@ -3394,8 +3394,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         else:
             dependencies = target.get_dependencies()
         internal = self.build_target_link_arguments(linker, dependencies)
-        #In AIX since shared libraries are archived the dependencies must
-        #depend on .a file with the .so and not directly on the .so file.
+        # In AIX since shared libraries are archived the dependencies must
+        # depend on .a file with the .so and not directly on the .so file.
         if self.environment.machines[target.for_machine].is_aix():
             for i, val in enumerate(internal):
                 val = val.replace('.so', '.a')
@@ -3600,7 +3600,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             for t in deps.values():
                 # Add the first output of each target to the 'all' target so that
                 # they are all built
-                #Add archive file if shared library in AIX for build all.
+                # Add archive file if shared library in AIX for build all.
                 if self.environment.machines[t.for_machine].is_aix(): 
                     aix_tmp = re.sub('[.][a]([.]?([0-9]+))*([.]?([a-z]+))*','.a', t.get_outputs()[0].replace('.so','.a'))
                     targetlist.append(os.path.join(self.get_target_dir(t), t.get_outputs()[0] if not(t.get_outputs()[0].endswith('.so')) else aix_tmp))
