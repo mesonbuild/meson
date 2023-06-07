@@ -308,17 +308,15 @@ class Dependency(HoldableObject):
         return self
 
     def generate_link_whole_dependency(self) -> T.Tuple[Dependency, T.List[ExtractArchives]]:
-        new_dep = copy.copy(self)
-        new_dep.link_args = []
         archives: T.List[ExtractArchives] = []
+        link_args: T.List[str] = []
         for arg in self.link_args:
-            if any(arg.endswith(i) for i in {'.a', '.lib'}):
-                objects = ar.extract(arg, dry_run=True)
-                if objects:
-                    t = ExtractArchives(arg, objects)
-                    archives.append(t)
-                    continue
-            new_dep.link_args.append(arg)
+            if any(arg.endswith(i) for i in {'.a', '.lib'}) and len(archives) == 0:
+                archives.append(ExtractArchives(arg, []))
+            else:
+                link_args.append(arg)
+
+        new_dep = InternalDependency(self.version, [], self.compile_args, link_args, [], [], self.sources, [], self.ext_deps, None, [], [], self.objects)
         return new_dep, archives
 
 class InternalDependency(Dependency):

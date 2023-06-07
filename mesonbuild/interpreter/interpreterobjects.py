@@ -607,23 +607,24 @@ class DependencyHolder(ObjectHolder[Dependency]):
         if not isinstance(self.held_object, InternalDependency):
             FeatureNew('as_link_whole on external dependency', '1.1.0').use(self.subproject)
         new_dep, archives = self.held_object.generate_link_whole_dependency()
-        new_dep.objects = new_dep.objects.copy()
-        for a in archives:
-            basename = os.path.basename(a.archive_filename)
-            outdir = os.path.join(self.interpreter.environment.get_scratch_dir(), f'{basename}.p')
+        for archive in archives:
+            basename = os.path.basename(archive.archive_filename)
+            outdir = os.path.join(self.interpreter.environment.get_scratch_dir(), f'{basename}.as_link_whole')
+            outfile = os.path.join(outdir, basename)
             cmd = self.interpreter.environment.get_build_command() + [
-                '--internal', 'ar', '--outdir', outdir, a.archive_filename,
+                '--internal', 'copy', archive.archive_filename, outfile,
             ]
-            outputs = [os.path.join(outdir, i) for i in a.objects]
-            t = build.CustomTarget(f'{basename} objects',
+            t = build.CustomTarget(f'{basename} as-link-whole',
                                    self.interpreter.subdir,
                                    self.interpreter.subproject,
                                    self.interpreter.environment,
                                    cmd,
-                                   [a.archive_filename],
-                                   outputs)
-            self.interpreter.add_target(t.name, t)
-            new_dep.objects.append(t)
+                                   [archive.archive_filename],
+                                   [outfile])
+
+            if t.get_id() not in self.interpreter.build.targets:
+                self.interpreter.add_target(t.name, t)
+                new_dep.whole_libraries.append(t)
         return new_dep
 
     @FeatureNew('dependency.as_static', '1.6.0')
