@@ -1032,11 +1032,11 @@ class NinjaBackend(backends.Backend):
         elem = self.generate_link(target, outname, final_obj_list, linker, pch_objects, stdlib_args=stdlib_args)
         self.generate_dependency_scan_target(target, compiled_sources, source2object, generated_source_files, fortran_order_deps)
         self.add_build(elem)
-        #In AIX, we archive shared library. If the instance is a shared library we add a command to archive the shared library
+        #In AIX, we archive shared libraries. If the instance is a shared library, we add a command to archive the shared library
         #object and create the build element.
-        if mesonlib.is_aix() and isinstance(target, build.SharedLibrary):
-            x_outname = outname.replace ('.so', '.a')
-            aix_outname = re.sub('[.][a]([.]?([0-9]+))*([.]?([a-z]+))*','.a',x_outname)
+        if self.environment.machines[target.for_machine].is_aix() and isinstance(target, build.SharedLibrary):
+            x_outname = outname.replace('.so', '.a')
+            aix_outname = re.sub('[.][a]([.]?([0-9]+))*([.]?([a-z]+))*', '.a', x_outname)
             aix_final_obj_list = [outname]
             elem = NinjaBuildElement(self.all_outputs, aix_outname, 'AIX_LINKER', aix_final_obj_list)
             self.add_build(elem)
@@ -2311,14 +2311,14 @@ class NinjaBackend(backends.Backend):
 
                 options = self._rsp_options(compiler)
                 self.add_rule(NinjaRule(rule, command, args, description, **options, extra=pool))
-            if mesonlib.is_aix(): 
+            if self.environment.machines[for_machine].is_aix():
                 rule = 'AIX_LINKER{}'.format(self.get_rule_suffix(for_machine))
                 #Archive the shared library and remove the shared library since it is already there in the archive.
                 cmdlist = ['ar']
                 cmdlist += ['-q', '-v']
                 #Remove the shared library since it is already there in the archive.
                 description = 'Archiving AIX shared library'
-                cmdlist+=['$out', '$in', '&&', 'rm', '-f', '$in']
+                cmdlist += ['$out', '$in', '&&', 'rm', '-f', '$in']
                 args = []
                 options = {} 
                 self.add_rule(NinjaRule(rule, cmdlist, args, description, **options, extra=None)) 
@@ -3396,10 +3396,10 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         internal = self.build_target_link_arguments(linker, dependencies)
         #In AIX since shared libraries are archived the dependencies must
         #depend on .a file with the .so and not directly on the .so file.
-        if mesonlib.is_aix ():
+        if self.environment.machines[target.for_machine].is_aix():
             for i, val in enumerate(internal):
-                internal[i] = internal[i].replace ('.so', '.a')
-                internal[i] = re.sub ('[.][a]([.]?([0-9]+))*([.]?([a-z]+))*','.a', internal[i])
+                val = val.replace('.so', '.a')
+                internal[i] = re.sub('[.][a]([.]?([0-9]+))*([.]?([a-z]+))*', '.a', val)
         commands += internal
         # Only non-static built targets need link args and link dependencies
         if not isinstance(target, build.StaticLibrary):
@@ -3601,9 +3601,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 # Add the first output of each target to the 'all' target so that
                 # they are all built
                 #Add archive file if shared library in AIX for build all.
-                if mesonlib.is_aix():
-                    aix_tmp = re.sub ('[.][a]([.]?([0-9]+))*([.]?([a-z]+))*','.a', t.get_outputs()[0].replace ('.so','.a'))
-                    targetlist.append(os.path.join(self.get_target_dir(t), t.get_outputs()[0] if mesonlib.is_aix() and not(t.get_outputs()[0].endswith('.so')) else aix_tmp))
+                if self.environment.machines[t.for_machine].is_aix(): 
+                    aix_tmp = re.sub('[.][a]([.]?([0-9]+))*([.]?([a-z]+))*','.a', t.get_outputs()[0].replace('.so','.a'))
+                    targetlist.append(os.path.join(self.get_target_dir(t), t.get_outputs()[0] if not(t.get_outputs()[0].endswith('.so')) else aix_tmp))
                 else:
                     targetlist.append(os.path.join(self.get_target_dir(t), t.get_outputs()[0]))
 
