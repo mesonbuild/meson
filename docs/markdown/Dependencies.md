@@ -350,7 +350,7 @@ use those to link against your targets.
 If your boost headers or libraries are in non-standard locations you
 can set the `BOOST_ROOT`, or the `BOOST_INCLUDEDIR` and
 `BOOST_LIBRARYDIR` environment variables. *(added in 0.56.0)* You can
-also set these parameters as `boost_root`, `boost_include`, and
+also set these parameters as `boost_root`, `boost_includedir`, and
 `boost_librarydir` in your native or cross machine file. Note that
 machine file variables are preferred to environment variables, and
 that specifying any of these disables system-wide search for boost.
