@@ -80,8 +80,7 @@ def convert(cargo_ver: str) -> T.List[str]:
                     max_.append(str(int(v_) + 1))
                     bumped = True
                 else:
-                    if not (bumped and v_ == '0'):
-                        min_.append(v_)
+                    min_.append(v_)
                     if not bumped:
                         max_.append('0')
 
