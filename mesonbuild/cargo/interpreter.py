@@ -116,7 +116,7 @@ class Package:
 
     name: str
     version: str
-    description: str
+    description: T.Optional[str] = None
     resolver: T.Optional[str] = None
     authors: T.List[str] = dataclasses.field(default_factory=list)
     edition: manifest.EDITION = '2015'
