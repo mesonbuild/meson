@@ -397,21 +397,33 @@ def _create_dependencies(cargo: Manifest, build: builder.Builder) -> T.List[mpar
     return ast
 
 
-def _create_lib(cargo: Manifest, build: builder.Builder) -> T.List[mparser.BaseNode]:
+def _create_lib(cargo: Manifest, build: builder.Builder, crate_type: manifest.CRATE_TYPE) -> T.List[mparser.BaseNode]:
     dependencies: T.List[mparser.BaseNode] = []
     dependency_map: T.Dict[mparser.BaseNode, mparser.BaseNode] = {}
+    rust_args: T.List[mparser.BaseNode] = []
     for name, dep in cargo.dependencies.items():
         package_name = dep.package or name
         dependencies.append(build.identifier(_dependency_varname(package_name)))
         if name != package_name:
             dependency_map[build.string(fixup_meson_varname(package_name))] = build.string(name)
 
-    # FIXME: currently assuming that an rlib is being generated, which is
-    # the most common.
+    if cargo.lib.proc_macro:
+        crate_type = 'proc-macro'
+
+    if crate_type == 'proc-macro':
+        rust_args += [build.string('--extern'), build.string('proc_macro')]
+
+    if crate_type in {'lib', 'rlib', 'staticlib'}:
+        target_type = 'static_library'
+    elif crate_type in {'dylib', 'cdylib', 'proc-macro'}:
+        target_type = 'shared_library'
+    else:
+        raise MesonException(f'Unsupported crate type {crate_type}')
+
     return [
         build.assign(
             build.function(
-                'static_library',
+                target_type,
                 [
                     build.string(fixup_meson_varname(cargo.package.name)),
                     build.string(os.path.join('src', 'lib.rs')),
@@ -419,6 +431,8 @@ def _create_lib(cargo: Manifest, build: builder.Builder) -> T.List[mparser.BaseN
                 {
                     'dependencies': build.array(dependencies),
                     'rust_dependency_map': build.dict(dependency_map),
+                    'rust_crate_type': build.string(crate_type),
+                    'rust_args': build.array(rust_args)
                 },
             ),
             'lib'
@@ -453,6 +467,7 @@ def interpret(cargo: Manifest, env: Environment) -> mparser.CodeBlockNode:
     # Libs are always auto-discovered and there's no other way to handle them,
     # which is unfortunate for reproducability
     if os.path.exists(os.path.join(env.source_dir, cargo.subdir, cargo.path, 'src', 'lib.rs')):
-        ast.extend(_create_lib(cargo, build))
+        for crate_type in cargo.lib.crate_type:
+            ast.extend(_create_lib(cargo, build, crate_type))
 
     return build.block(ast)
