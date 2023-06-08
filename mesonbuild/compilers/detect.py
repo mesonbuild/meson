@@ -378,7 +378,7 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
                 cmd = compiler + [cls.LINKER_PREFIX + "--version", f.name]
                 _, o, _ = Popen_safe(cmd)
 
-            linker = linkers.WASMDynamicLinker(
+            linker = linkers.EmscriptenWASMDynamicLinker(
                 compiler, for_machine, cls.LINKER_PREFIX,
                 [], version=search_version(o))
             return cls(

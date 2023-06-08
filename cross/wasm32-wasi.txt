@@ -1,0 +1,34 @@
+[constants]
+# Any LLVM/Clang installation is able to build WASM/WASI,
+# but you'll need, at least, the WASI sysroot together with
+# the WASM builtins, which you can easily get from https://github.com/WebAssembly/wasi-sdk
+sdk = '/usr/share/wasi-sdk'
+
+[binaries]
+c = [sdk / 'bin/clang', '--target=wasm32-wasi']
+cpp = [sdk / 'bin/clang++', '--target=wasm32-wasi']
+ar = sdk / 'bin/llvm-ar'
+strip = sdk / 'bin/llvm-strip'
+
+# [built-in options]
+# The WASI libc doesn't support exceptions yet, so you might need this
+# cpp_args = ['-fno-exceptions']
+#
+# You may not ship a main() entrypoint. In this case, tell the linker not
+# to include startup files.
+# c_link_args = ['-nostartfiles']
+# cpp_link_args = ['-nostartfiles']
+#
+# If you are not shipping a _start() entrypoint either, tell the linker not to
+# look for an entrypoint at all
+# c_link_args = ['-nostartfiles', '-Wl,--no-entry']
+# cpp_link_args = ['-nostartfiles', '-Wl,--no-entry']
+
+[properties]
+sys_root = sdk / 'share/wasi-sysroot'
+
+[host_machine]
+system = 'wasi'
+cpu_family = 'wasm32'
+cpu = 'wasm32'
+endian = 'little'

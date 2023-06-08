@@ -63,6 +63,7 @@ These are return values of the `get_linker_id` method in a compiler object.
 | ld64.lld   | The LLVM linker, with the ld64 interface    |
 | link       | MSVC linker                                 |
 | lld-link   | The LLVM linker, with the MSVC interface    |
+| wasm-ld    | The LLVM linker, with the WASM interface    |
 | xilink     | Used with Intel-cl only, MSVC like          |
 | optlink    | optlink (used with DMD)                     |
 | rlink      | The Renesas linker, used with CCrx only     |
@@ -157,6 +158,7 @@ These are provided by the `.system()` method call.
 | linux               | |
 | netbsd              | |
 | openbsd             | |
+| wasi                | WebAssembly System Interface |
 | windows             | Any version of Windows |
 | sunos               | illumos and Solaris |
 

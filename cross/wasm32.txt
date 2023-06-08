@@ -1,0 +1,20 @@
+[binaries]
+c = ['clang', '--target=wasm32-unknown-unknown']
+cpp = ['clang++', '--target=wasm32-unknown-unknown']
+ar = 'llvm-ar'
+strip = 'llvm-strip'
+
+[built-in options]
+c_link_args = ['-nostdlib']
+cpp_link_args = ['-nostdlib']
+
+# You may not ship a _start() entrypoint. In this case, tell the linker not
+# to look for an entrypoint.
+# c_link_args = ['-nostdlib', '-Wl,--no-entry']
+# cpp_link_args = ['-nostdlib', '-Wl,--no-entry']
+
+[host_machine]
+system = 'wasm'
+cpu_family = 'wasm32'
+cpu = 'wasm32'
+endian = 'little'

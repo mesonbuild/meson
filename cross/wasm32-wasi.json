@@ -1,0 +1,7 @@
+{
+  "file": "wasm32-wasi.txt",
+  "tests": ["wasi"],
+  "env": {
+    "WASI": "1"
+  }
+}
