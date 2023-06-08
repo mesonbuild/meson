@@ -28,7 +28,7 @@ import re
 from . import build, coredata, environment
 from .backend.backends import InstallData
 from .mesonlib import (MesonException, Popen_safe, RealPathAction, is_windows,
-                       setup_vsenv, pickle_load, is_osx, OptionKey)
+                       is_aix, setup_vsenv, pickle_load, is_osx, OptionKey)
 from .scripts import depfixer, destdir_join
 from .scripts.meson_exe import run_exe
 try:
@@ -713,7 +713,7 @@ class Installer:
             # In AIX, we archive our shared libraries.  When we install any package in AIX we need to
             # install the archive in which the shared library exists. The below code does the same.
             # We change the .so files having lt_version or so_version to archive file install. 
-            if self.environment.machines[t.for_machine].is_aix():
+            if is_aix():
                 if '.so' in t.fname:
                     aix_fname = re.sub('[.][a]([.]?([0-9]+))*([.]?([a-z]+))*', '.a', t.fname.replace ('.so', '.a'))
                     t.fname = aix_fname

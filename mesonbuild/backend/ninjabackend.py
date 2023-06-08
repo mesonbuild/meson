@@ -3602,8 +3602,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 # they are all built
                 # Add archive file if shared library in AIX for build all.
                 if self.environment.machines[t.for_machine].is_aix(): 
-                    aix_tmp = re.sub('[.][a]([.]?([0-9]+))*([.]?([a-z]+))*','.a', t.get_outputs()[0].replace('.so','.a'))
-                    targetlist.append(os.path.join(self.get_target_dir(t), t.get_outputs()[0] if not(t.get_outputs()[0].endswith('.so')) else aix_tmp))
+                    aix_tmp = re.sub('[.][a]([.]?([0-9]+))*([.]?([a-z]+))*', '.a', t.get_outputs()[0].replace('.so','.a'))
+                    targetlist.append(os.path.join(self.get_target_dir(t), aix_tmp))
                 else:
                     targetlist.append(os.path.join(self.get_target_dir(t), t.get_outputs()[0]))
 
