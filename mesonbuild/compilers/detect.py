@@ -115,7 +115,8 @@ def detect_compiler_for(env: 'Environment', lang: str, for_machine: MachineChoic
 # Helpers
 # =======
 
-def _get_compilers(env: 'Environment', lang: str, for_machine: MachineChoice) -> T.Tuple[T.List[T.List[str]], T.List[str]]:
+def _get_compilers(env: 'Environment', lang: str, for_machine: MachineChoice,
+                   allow_build_machine: bool = False) -> T.Tuple[T.List[T.List[str]], T.List[str]]:
     '''
     The list of compilers is detected in the exact same way for
     C, C++, ObjC, ObjC++, Fortran, CS so consolidate it here.
@@ -127,7 +128,9 @@ def _get_compilers(env: 'Environment', lang: str, for_machine: MachineChoice) ->
         compilers = [comp]
     else:
         if not env.machines.matches_build_machine(for_machine):
-            raise EnvironmentException(f'{lang!r} compiler binary not defined in cross or native file')
+            if allow_build_machine:
+                return _get_compilers(env, lang, MachineChoice.BUILD)
+            raise EnvironmentException(f'{lang!r} compiler binary not defined in cross file [binaries] section')
         compilers = [[x] for x in defaults[lang]]
         ccache = BinaryTable.detect_compiler_cache()
 
@@ -1230,8 +1233,11 @@ def detect_swift_compiler(env: 'Environment', for_machine: MachineChoice) -> Com
 
 def detect_nasm_compiler(env: 'Environment', for_machine: MachineChoice) -> Compiler:
     from .asm import NasmCompiler, YasmCompiler, MetrowerksAsmCompilerARM, MetrowerksAsmCompilerEmbeddedPowerPC
-    compilers, _ = _get_compilers(env, 'nasm', for_machine)
     is_cross = env.is_cross_build(for_machine)
+
+    # When cross compiling and nasm is not defined in the cross file we can
+    # fallback to the build machine nasm.
+    compilers, _ = _get_compilers(env, 'nasm', for_machine, allow_build_machine=True)
 
     # We need a C compiler to properly detect the machine info and linker
     cc = detect_c_compiler(env, for_machine)
