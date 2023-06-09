@@ -203,7 +203,7 @@ class Project(TypedDict):
 
     version: T.Optional[FileOrString]
     meson_version: T.Optional[str]
-    default_options: T.Dict[OptionKey, str]
+    default_options: T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]
     license: T.List[str]
     subproject_dir: str
 
@@ -298,13 +298,13 @@ class ConfigureFile(TypedDict):
 
 class Subproject(ExtractRequired):
 
-    default_options: T.Dict[OptionKey, str]
+    default_options: T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]
     version: T.List[str]
 
 
 class DoSubproject(ExtractRequired):
 
-    default_options: T.Dict[OptionKey, str]
+    default_options: T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]
     version: T.List[str]
     cmake_options: T.List[str]
     options: T.Optional[CMakeSubprojectOptions]

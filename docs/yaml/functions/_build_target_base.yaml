@@ -228,7 +228,7 @@ kwargs:
       Set this to `[]`, or omit the keyword argument for the default behaviour.
 
   override_options:
-    type: list[str] | dict[str]
+    type: list[str] | dict[str | bool | int | list[str]]
     since: 0.40.0
     description: |
       takes an array of strings in the same format as `project`'s `default_options`

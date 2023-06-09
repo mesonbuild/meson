@@ -38,7 +38,7 @@ varargs:
 
 kwargs:
   default_options:
-    type: list[str] | dict[str]
+    type: list[str] | dict[str | bool | int | list[str]]
     description: |
       Accepts strings in the form `key=value`
       which have the same format as options to `meson configure`.

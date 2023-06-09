@@ -184,7 +184,7 @@ REQUIRED_KW: KwargInfo[T.Union[bool, UserFeatureOption]] = KwargInfo(
 DISABLER_KW: KwargInfo[bool] = KwargInfo('disabler', bool, default=False)
 
 def _env_validator(value: T.Union[EnvironmentVariables, T.List['TYPE_var'], T.Dict[str, 'TYPE_var'], str, None],
-                   allow_dict_list: bool = True) -> T.Optional[str]:
+                   only_dict_str: bool = True) -> T.Optional[str]:
     def _splitter(v: str) -> T.Optional[str]:
         split = v.split('=', 1)
         if len(split) == 1:
@@ -205,18 +205,21 @@ def _env_validator(value: T.Union[EnvironmentVariables, T.List['TYPE_var'], T.Di
     elif isinstance(value, dict):
         # We don't need to spilt here, just do the type checking
         for k, dv in value.items():
-            if allow_dict_list:
+            if only_dict_str:
                 if any(i for i in listify(dv) if not isinstance(i, str)):
                     return f"Dictionary element {k} must be a string or list of strings not {dv!r}"
-            elif not isinstance(dv, str):
-                return f"Dictionary element {k} must be a string not {dv!r}"
+            elif isinstance(dv, list):
+                if any(not isinstance(i, str) for i in dv):
+                    return f"Dictionary element {k} must be a string, bool, integer or list of strings, not {dv!r}"
+            elif not isinstance(dv, (str, bool, int)):
+                return f"Dictionary element {k} must be a string, bool, integer or list of strings, not {dv!r}"
     # We know that otherwise we have an EnvironmentVariables object or None, and
     # we're okay at this point
     return None
 
 def _options_validator(value: T.Union[EnvironmentVariables, T.List['TYPE_var'], T.Dict[str, 'TYPE_var'], str, None]) -> T.Optional[str]:
     # Reusing the env validator is a little overkill, but nicer than duplicating the code
-    return _env_validator(value, allow_dict_list=False)
+    return _env_validator(value, only_dict_str=False)
 
 def split_equal_string(input: str) -> T.Tuple[str, str]:
     """Split a string in the form `x=y`
@@ -281,11 +284,11 @@ COMMAND_KW: KwargInfo[T.List[T.Union[str, BuildTarget, CustomTarget, CustomTarge
     default=[],
 )
 
-def _override_options_convertor(raw: T.Union[str, T.List[str], T.Dict[str, str]]) -> T.Dict[OptionKey, str]:
+def _override_options_convertor(raw: T.Union[str, T.List[str], T.Dict[str, T.Union[str, int, bool, T.List[str]]]]) -> T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]:
     if isinstance(raw, str):
         raw = [raw]
     if isinstance(raw, list):
-        output: T.Dict[OptionKey, str] = {}
+        output: T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]] = {}
         for each in raw:
             k, v = split_equal_string(each)
             output[OptionKey.from_string(k)] = v
@@ -293,9 +296,9 @@ def _override_options_convertor(raw: T.Union[str, T.List[str], T.Dict[str, str]]
     return {OptionKey.from_string(k): v for k, v in raw.items()}
 
 
-OVERRIDE_OPTIONS_KW: KwargInfo[T.Union[str, T.Dict[str, str], T.List[str]]] = KwargInfo(
+OVERRIDE_OPTIONS_KW: KwargInfo[T.Union[str, T.Dict[str, T.Union[str, int, bool, T.List[str]]], T.List[str]]] = KwargInfo(
     'override_options',
-    (str, ContainerTypeInfo(list, str), ContainerTypeInfo(dict, str)),
+    (str, ContainerTypeInfo(list, str), ContainerTypeInfo(dict, (str, int, bool, list))),
     default={},
     validator=_options_validator,
     convertor=_override_options_convertor,
