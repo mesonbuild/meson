@@ -78,7 +78,7 @@ varargs:
 
 kwargs:
   default_options:
-    type: list[str] | dict[str]
+    type: list[str] | dict[str | bool | int | list[str]]
     since: 0.38.0
     description: |
       An array of default option values
