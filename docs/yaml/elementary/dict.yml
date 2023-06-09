@@ -8,8 +8,9 @@ description: |
   You can also iterate over dictionaries with the [`foreach`
   statement](Syntax.md#foreach-statements).
 
-  *(since 0.48.0)* Dictionaries can be added (e.g. `d1 = d2 + d3` and `d1 += d2`).
+  *(since 0.48.0)*: Dictionaries can be added (e.g. `d1 = d2 + d3` and `d1 += d2`).
   Values from the second dictionary overrides values from the first.
+  *(since 0.62.0)*: Dictionary order is guaranteed to be insertion order.
 
 
 methods:
