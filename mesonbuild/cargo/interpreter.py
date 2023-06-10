@@ -445,7 +445,4 @@ def interpret(cargo: Manifest, env: Environment) -> mparser.CodeBlockNode:
     if os.path.exists(os.path.join(env.source_dir, cargo.subdir, cargo.path, 'src', 'lib.rs')):
         ast.extend(_create_lib(cargo, build))
 
-    # XXX: make this not awful
-    block = builder.block(filename)
-    block.lines = ast
-    return block
+    return build.block(ast)

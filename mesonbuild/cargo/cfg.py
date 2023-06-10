@@ -130,7 +130,6 @@ class IR:
 
     """Base IR node for Cargo CFG."""
 
-    filename: str
 
 @dataclasses.dataclass
 class String(IR):
@@ -169,7 +168,7 @@ class Not(IR):
     value: IR
 
 
-def _parse(ast: _LEX_STREAM_AH, filename: str) -> IR:
+def _parse(ast: _LEX_STREAM_AH) -> IR:
     (token, value), n_stream = next(ast)
     if n_stream is not None:
         ntoken, _ = n_stream
@@ -179,12 +178,12 @@ def _parse(ast: _LEX_STREAM_AH, filename: str) -> IR:
     stream: T.List[_LEX_TOKEN]
     if token is TokenType.IDENTIFIER:
         if ntoken is TokenType.EQUAL:
-            return Equal(filename, Identifier(filename, value), _parse(ast, filename))
+            return Equal(Identifier(value), _parse(ast))
     if token is TokenType.STRING:
-        return String(filename, value)
+        return String(value)
     if token is TokenType.EQUAL:
         # In this case the previous caller already has handled the equal
-        return _parse(ast, filename)
+        return _parse(ast)
     if token in {TokenType.ANY, TokenType.ALL}:
         type_ = All if token is TokenType.ALL else Any
         assert ntoken is TokenType.LPAREN
@@ -194,13 +193,13 @@ def _parse(ast: _LEX_STREAM_AH, filename: str) -> IR:
         while token is not TokenType.RPAREN:
             (token, value), _ = next(ast)
             if token is TokenType.COMMA:
-                args.append(_parse(lookahead(iter(stream)), filename))
+                args.append(_parse(lookahead(iter(stream))))
                 stream.clear()
             else:
                 stream.append((token, value))
         if stream:
-            args.append(_parse(lookahead(iter(stream)), filename))
-        return type_(filename, args)
+            args.append(_parse(lookahead(iter(stream))))
+        return type_(args)
     if token is TokenType.NOT:
         next(ast)  # advance the iterator to get rid of the LPAREN
         stream = []
@@ -208,69 +207,68 @@ def _parse(ast: _LEX_STREAM_AH, filename: str) -> IR:
         while token is not TokenType.RPAREN:  # type: ignore
             (token, value), _ = next(ast)
             stream.append((token, value))
-        return Not(filename, _parse(lookahead(iter(stream)), filename))
+        return Not(_parse(lookahead(iter(stream))))
 
     raise MesonBugException(f'Unhandled Cargo token: {token}')
 
 
-def parse(ast: _LEX_STREAM, filename: str) -> IR:
+def parse(ast: _LEX_STREAM) -> IR:
     """Parse the tokenized list into Meson AST.
 
     :param ast: An iterable of Tokens
-    :param filename: The name of the file being parsed
     :return: An mparser Node to be used as a conditional
     """
     ast_i: _LEX_STREAM_AH = lookahead(iter(ast))
-    return _parse(ast_i, filename)
+    return _parse(ast_i)
 
 
 @functools.singledispatch
-def ir_to_meson(ir: T.Any) -> mparser.BaseNode:
+def ir_to_meson(ir: T.Any, build: builder.Builder) -> mparser.BaseNode:
     raise NotImplementedError
 
 
 @ir_to_meson.register
-def _(ir: String) -> mparser.BaseNode:
-    return builder.string(ir.value, ir.filename)
+def _(ir: String, build: builder.Builder) -> mparser.BaseNode:
+    return build.string(ir.value)
 
 
 @ir_to_meson.register
-def _(ir: Identifier) -> mparser.BaseNode:
-    host_machine = builder.identifier('host_machine', ir.filename)
+def _(ir: Identifier, build: builder.Builder) -> mparser.BaseNode:
+    host_machine = build.identifier('host_machine')
     if ir.value == "target_arch":
-        return builder.method('cpu_family', host_machine)
+        return build.method('cpu_family', host_machine)
     elif ir.value in {"target_os", "target_family"}:
-        return builder.method('system', host_machine)
+        return build.method('system', host_machine)
     elif ir.value == "target_endian":
-        return builder.method('endian', host_machine)
+        return build.method('endian', host_machine)
     raise MesonBugException(f"Unhandled Cargo identifier: {ir.value}")
 
 
 @ir_to_meson.register
-def _(ir: Equal) -> mparser.BaseNode:
-    return builder.equal(ir_to_meson(ir.lhs), ir_to_meson(ir.rhs))
+def _(ir: Equal, build: builder.Builder) -> mparser.BaseNode:
+    return build.equal(ir_to_meson(ir.lhs, build), ir_to_meson(ir.rhs, build))
 
 
 @ir_to_meson.register
-def _(ir: Not) -> mparser.BaseNode:
-    return builder.not_(ir_to_meson(ir.value), ir.filename)
+def _(ir: Not, build: builder.Builder) -> mparser.BaseNode:
+    return build.not_(ir_to_meson(ir.value, build))
 
 
 @ir_to_meson.register
-def _(ir: Any) -> mparser.BaseNode:
+def _(ir: Any, build: builder.Builder) -> mparser.BaseNode:
     args = iter(reversed(ir.args))
     last = next(args)
-    cur = builder.or_(ir_to_meson(next(args)), ir_to_meson(last))
+    cur = build.or_(ir_to_meson(next(args), build), ir_to_meson(last, build))
     for a in args:
-        cur = builder.or_(ir_to_meson(a), cur)
+        cur = build.or_(ir_to_meson(a, build), cur)
     return cur
 
 
 @ir_to_meson.register
-def _(ir: All) -> mparser.BaseNode:
+def _(ir: All, build: builder.Builder) -> mparser.BaseNode:
     args = iter(reversed(ir.args))
     last = next(args)
-    cur = builder.and_(ir_to_meson(next(args)), ir_to_meson(last))
+    cur = build.and_(ir_to_meson(next(args), build), ir_to_meson(last, build))
     for a in args:
-        cur = builder.and_(ir_to_meson(a), cur)
+        cur = build.and_(ir_to_meson(a, build), cur)
     return cur
