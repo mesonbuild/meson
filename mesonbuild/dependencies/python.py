@@ -105,6 +105,10 @@ class BasicPythonExternalProgram(ExternalProgram):
             return mesonlib.version_compare(version, '>= 3.0')
         return True
 
+    def strip_buggy_debug_info(self, text: str) -> str:
+        # https://github.com/microsoft/debugpy/issues/1100
+        return '\n'.join([x for x in text.split('\n') if 'PyInt_FromLong not found' not in x])
+
     def sanity(self) -> bool:
         # Sanity check, we expect to have something that at least quacks in tune
 
@@ -115,7 +119,7 @@ class BasicPythonExternalProgram(ExternalProgram):
             p, stdout, stderr = mesonlib.Popen_safe(cmd)
 
         try:
-            info = json.loads(stdout)
+            info = json.loads(self.strip_buggy_debug_info(stdout))
         except json.JSONDecodeError:
             info = None
             mlog.debug('Could not introspect Python (%s): exit code %d' % (str(p.args), p.returncode))
