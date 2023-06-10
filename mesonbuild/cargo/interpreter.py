@@ -17,11 +17,13 @@ import itertools
 import json
 import os
 import shutil
+import collections
 import typing as T
 
 from . import builder
 from . import version
-from ..mesonlib import MesonException, Popen_safe
+from ..mesonlib import MesonException, Popen_safe, OptionKey
+from .. import coredata
 
 if T.TYPE_CHECKING:
     from types import ModuleType
@@ -29,6 +31,7 @@ if T.TYPE_CHECKING:
     from . import manifest
     from .. import mparser
     from ..environment import Environment
+    from ..coredata import KeyedOptionDictType
 
 # tomllib is present in python 3.11, before that it is a pypi module called tomli,
 # we try to import tomllib, then tomli,
@@ -156,7 +159,7 @@ class Dependency:
     path: T.Optional[str] = None
     optional: bool = False
     package: T.Optional[str] = None
-    default_features: bool = False
+    default_features: bool = True
     features: T.List[str] = dataclasses.field(default_factory=list)
 
     @classmethod
@@ -269,6 +272,9 @@ class Manifest:
     subdir: str
     path: str = ''
 
+    def __post_init__(self) -> None:
+        self.features.setdefault('default', [])
+
 
 def _convert_manifest(raw_manifest: manifest.Manifest, subdir: str, path: str = '') -> Manifest:
     # This cast is a bit of a hack to deal with proc-macro
@@ -348,6 +354,15 @@ def _dependency_varname(package_name: str) -> str:
     return f'{fixup_meson_varname(package_name)}_dep'
 
 
+def _option_name(feature: str) -> str:
+    # Add a prefix to avoid collision with Meson reserved options (e.g. "debug")
+    return f'feature-{feature}'
+
+
+def _options_varname(depname: str) -> str:
+    return f'{fixup_meson_varname(depname)}_options'
+
+
 def _create_project(cargo: Manifest, build: builder.Builder) -> T.List[mparser.BaseNode]:
     """Create a function call
 
@@ -376,13 +391,97 @@ def _create_project(cargo: Manifest, build: builder.Builder) -> T.List[mparser.B
     return [build.function('project', args, kwargs)]
 
 
+def _process_feature(cargo: Manifest, feature: str) -> T.Tuple[T.Set[str], T.Dict[str, T.Set[str]], T.Set[str]]:
+    # Set of features that must also be enabled if this feature is enabled.
+    features: T.Set[str] = set()
+    # Map dependency name to a set of features that must also be enabled on that
+    # dependency if this feature is enabled.
+    dep_features: T.Dict[str, T.Set[str]] = collections.defaultdict(set)
+    # Set of dependencies that are required if this feature is enabled.
+    required_deps: T.Set[str] = set()
+    # Set of features that must be processed recursively.
+    to_process: T.Set[str] = {feature}
+    while to_process:
+        f = to_process.pop()
+        if '/' in f:
+            dep, dep_f = f.split('/', 1)
+            if dep[-1] == '?':
+                dep = dep[:-1]
+            else:
+                required_deps.add(dep)
+            dep_features[dep].add(dep_f)
+        elif f.startswith('dep:'):
+            required_deps.add(f[4:])
+        elif f not in features:
+            features.add(f)
+            to_process.update(cargo.features.get(f, []))
+            # A feature can also be a dependency
+            if f in cargo.dependencies:
+                required_deps.add(f)
+    return features, dep_features, required_deps
+
+
+def _create_features(cargo: Manifest, build: builder.Builder) -> T.List[mparser.BaseNode]:
+    # https://doc.rust-lang.org/cargo/reference/features.html#the-features-section
+
+    # Declare a dict that map enabled features to true. One for current project
+    # and one per dependency.
+    ast: T.List[mparser.BaseNode] = []
+    ast.append(build.assign(build.dict({}), 'features'))
+    for depname in cargo.dependencies:
+        ast.append(build.assign(build.dict({}), _options_varname(depname)))
+
+    # Declare a dict that map required dependencies to true
+    ast.append(build.assign(build.dict({}), 'required_deps'))
+
+    for feature in cargo.features:
+        # if get_option(feature)
+        #   required_deps += {'dep': true, ...}
+        #   features += {'foo': true, ...}
+        #   xxx_options += {'feature-foo': true, ...}
+        #   ...
+        # endif
+        features, dep_features, required_deps = _process_feature(cargo, feature)
+        lines: T.List[mparser.BaseNode] = [
+            build.plusassign(
+                build.dict({build.string(d): build.bool(True) for d in required_deps}),
+                'required_deps'),
+            build.plusassign(
+                build.dict({build.string(f): build.bool(True) for f in features}),
+                'features'),
+        ]
+        for depname, enabled_features in dep_features.items():
+            lines.append(build.plusassign(
+                build.dict({build.string(_option_name(f)): build.bool(True) for f in enabled_features}),
+                _options_varname(depname)))
+
+        ast.append(build.if_(build.function('get_option', [build.string(_option_name(feature))]), build.block(lines)))
+
+    return ast
+
+
 def _create_dependencies(cargo: Manifest, build: builder.Builder) -> T.List[mparser.BaseNode]:
     ast: T.List[mparser.BaseNode] = []
     for name, dep in cargo.dependencies.items():
         package_name = dep.package or name
+
+        # xxx_options += {'feature-default': true, ...}
+        extra_options: T.Dict[mparser.BaseNode, mparser.BaseNode] = {
+            build.string(_option_name('default')): build.bool(dep.default_features),
+        }
+        for f in dep.features:
+            extra_options[build.string(_option_name(f))] = build.bool(True)
+        ast.append(build.plusassign(build.dict(extra_options), _options_varname(name)))
+
         kw = {
             'version': build.array([build.string(s) for s in dep.version]),
+            'default_options': build.identifier(_options_varname(name)),
         }
+        if dep.optional:
+            kw['required'] = build.method('get', build.identifier('required_deps'), [
+                build.string(name), build.bool(False)
+            ])
+
         ast.extend([
             build.assign(
                 build.function(
@@ -405,6 +504,8 @@ def _create_lib(cargo: Manifest, build: builder.Builder, crate_type: manifest.CR
         if name != package_name:
             dependency_map[build.string(fixup_meson_varname(package_name))] = build.string(name)
 
+    rust_args: T.List[mparser.BaseNode] = [build.identifier('features_args')]
+
     posargs: T.List[mparser.BaseNode] = [
         build.string(fixup_meson_varname(cargo.package.name)),
         build.string(os.path.join('src', 'lib.rs')),
@@ -413,6 +514,7 @@ def _create_lib(cargo: Manifest, build: builder.Builder, crate_type: manifest.CR
     kwargs: T.Dict[str, mparser.BaseNode] = {
         'dependencies': build.array(dependencies),
         'rust_dependency_map': build.dict(dependency_map),
+        'rust_args': build.array(rust_args),
     }
 
     lib: mparser.BaseNode
@@ -429,7 +531,24 @@ def _create_lib(cargo: Manifest, build: builder.Builder, crate_type: manifest.CR
             kwargs['rust_abi'] = build.string('c')
         lib = build.function(target_type, posargs, kwargs)
 
+    # features_args = []
+    # foreach f, _ : features
+    #   features_args += ['--cfg', 'feature="' + f + '"']
+    # endforeach
+    # lib = xxx_library()
+    # dep = declare_dependency()
+    # meson.override_dependency()
     return [
+        build.assign(build.array([]), 'features_args'),
+        build.foreach(['f', '_'], build.identifier('features'), build.block([
+            build.plusassign(
+                build.array([
+                    build.string('--cfg'),
+                    build.plus(build.string('feature="'), build.plus(build.identifier('f'), build.string('"'))),
+                ]),
+                'features_args')
+            ])
+        ),
         build.assign(lib, 'lib'),
         build.assign(
             build.function(
@@ -451,7 +570,7 @@ def _create_lib(cargo: Manifest, build: builder.Builder, crate_type: manifest.CR
     ]
 
 
-def interpret(subp_name: str, subdir: str, env: Environment) -> mparser.CodeBlockNode:
+def interpret(subp_name: str, subdir: str, env: Environment) -> T.Tuple[mparser.CodeBlockNode, KeyedOptionDictType]:
     package_name = subp_name[:-3] if subp_name.endswith('-rs') else subp_name
     manifests = _load_manifests(os.path.join(env.source_dir, subdir))
     cargo = manifests.get(package_name)
@@ -461,8 +580,16 @@ def interpret(subp_name: str, subdir: str, env: Environment) -> mparser.CodeBloc
     filename = os.path.join(cargo.subdir, cargo.path, 'Cargo.toml')
     build = builder.Builder(filename)
 
+    # Generate project options
+    options: T.Dict[OptionKey, coredata.UserOption] = {}
+    for feature in cargo.features:
+        key = OptionKey(_option_name(feature), subproject=subp_name)
+        enabled = feature == 'default'
+        options[key] = coredata.UserBooleanOption(f'Cargo {feature} feature', enabled)
+
     ast = _create_project(cargo, build)
     ast += [build.assign(build.function('import', [build.string('rust')]), 'rust')]
+    ast += _create_features(cargo, build)
     ast += _create_dependencies(cargo, build)
 
     # Libs are always auto-discovered and there's no other way to handle them,
@@ -471,4 +598,4 @@ def interpret(subp_name: str, subdir: str, env: Environment) -> mparser.CodeBloc
         for crate_type in cargo.lib.crate_type:
             ast.extend(_create_lib(cargo, build, crate_type))
 
-    return build.block(ast)
+    return build.block(ast), options

@@ -335,6 +335,26 @@ method = cargo
 dependency_names = foo-bar-rs
 ```
 
+Cargo features are exposed as Meson boolean options, with the `feature-` prefix.
+For example the `default` feature is named `feature-default` and can be set from
+the command line with `-Dfoo-rs:feature-default=false`. When a cargo subproject
+depends on another cargo subproject, it will automatically enable features it
+needs using the `dependency('foo-rs', default_options: ...)` mechanism. However,
+unlike Cargo, the set of enabled features is not managed globally. Let's assume
+the main project depends on `foo-rs` and `bar-rs`, and they both depend on
+`common-rs`. The main project will first look up `foo-rs` which itself will
+configure `common-rs` with a set of features. Later, when `bar-rs` does a lookup
+for `common-rs` it has already been configured and the set of features cannot be
+changed. It is currently the responsability of the main project to resolve those
+issues by enabling extra features on each subproject:
+```meson
+project(...,
+  default_options: {
+    'common-rs:feature-something': true,
+  },
+)
+```
+
 ## Using wrapped projects
 
 Wraps provide a convenient way of obtaining a project into your

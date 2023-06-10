@@ -1034,7 +1034,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         from .. import cargo
         FeatureNew.single_use('Cargo subproject', '1.3.0', self.subproject, location=self.current_node)
         with mlog.nested(subp_name):
-            ast = cargo.interpret(subp_name, subdir, self.environment)
+            ast, options = cargo.interpret(subp_name, subdir, self.environment)
+            self.coredata.update_project_options(options)
             return self._do_subproject_meson(
                 subp_name, subdir, default_options, kwargs, ast,
                 # FIXME: Are there other files used by cargo interpreter?
