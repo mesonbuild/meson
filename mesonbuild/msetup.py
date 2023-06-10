@@ -185,8 +185,27 @@ class MesonApp:
             raise MesonException(f'Directory is not empty and does not contain a previous build:\n{build_dir}')
         return src_dir, build_dir
 
+    def purge_stray_files(self, builddir: str) -> None:
+        # If you are in the build directory and reset your build directory like this:
+        #
+        # rm -rf *
+        # meson <args>
+        #
+        # Then dotfiles used by Ninja are not deleted and get used in the new build.
+        # This can lead to very confusing and unexpected behaviour.
+        try:
+            os.unlink(os.path.join(builddir, '.ninja_deps'))
+        except FileNotFoundError:
+            pass
+        try:
+            os.unlink(os.path.join(builddir, '.ninja_log'))
+        except FileNotFoundError:
+            pass
+
     def generate(self) -> None:
         env = environment.Environment(self.source_dir, self.build_dir, self.options)
+        if env.first_invocation:
+            self.purge_stray_files(self.build_dir)
         mlog.initialize(env.get_log_dir(), self.options.fatal_warnings)
         if self.options.profile:
             mlog.set_timestamp_start(time.monotonic())
