@@ -77,6 +77,7 @@ def fixup_meson_varname(name: str) -> str:
     """
     return name.replace('-', '_')
 
+
 # Pylance can figure out that these do not, in fact, overlap, but mypy can't
 @T.overload
 def _fixup_raw_mappings(d: manifest.BuildTarget) -> manifest.FixedBuildTarget: ...  # type: ignore
@@ -269,35 +270,6 @@ class Manifest:
     path: str = ''
 
 
-def _create_project(package: Package, build: builder.Builder, env: Environment) -> mparser.FunctionNode:
-    """Create a function call
-
-    :param package: The Cargo package to generate from
-    :param filename: The full path to the file
-    :param meson_version: The generating meson version
-    :return: a FunctionNode
-    """
-    args: T.List[mparser.BaseNode] = []
-    args.extend([
-        build.string(package.name),
-        build.string('rust'),
-    ])
-    kwargs: T.Dict[str, mparser.BaseNode] = {
-        'version': build.string(package.version),
-        # Always assume that the generated meson is using the latest features
-        # This will warn when when we generate deprecated code, which is helpful
-        # for the upkeep of the module
-        'meson_version': build.string(f'>= {env.coredata.version}'),
-        'default_options': build.array([build.string(f'rust_std={package.edition}')]),
-    }
-    if package.license:
-        kwargs['license'] = build.string(package.license)
-    elif package.license_file:
-        kwargs['license_files'] = build.string(package.license_file)
-
-    return build.function('project', args, kwargs)
-
-
 def _convert_manifest(raw_manifest: manifest.Manifest, subdir: str, path: str = '') -> Manifest:
     # This cast is a bit of a hack to deal with proc-macro
     lib = _fixup_raw_mappings(raw_manifest.get('lib', {}))
@@ -368,6 +340,57 @@ def _load_manifests(subdir: str) -> T.Dict[str, Manifest]:
     return manifests
 
 
+def _create_project(cargo: Manifest, build: builder.Builder, env: Environment) -> T.List[mparser.BaseNode]:
+    """Create a function call
+
+    :param cargo: The Manifest to generate from
+    :param build: The AST builder
+    :param env: Meson environment
+    :return: a list nodes
+    """
+    args: T.List[mparser.BaseNode] = []
+    args.extend([
+        build.string(cargo.package.name),
+        build.string('rust'),
+    ])
+    kwargs: T.Dict[str, mparser.BaseNode] = {
+        'version': build.string(cargo.package.version),
+        # Always assume that the generated meson is using the latest features
+        # This will warn when when we generate deprecated code, which is helpful
+        # for the upkeep of the module
+        'meson_version': build.string(f'>= {env.coredata.version}'),
+        'default_options': build.array([build.string(f'rust_std={cargo.package.edition}')]),
+    }
+    if cargo.package.license:
+        kwargs['license'] = build.string(cargo.package.license)
+    elif cargo.package.license_file:
+        kwargs['license_files'] = build.string(cargo.package.license_file)
+
+    return [build.function('project', args, kwargs)]
+
+
+def _create_dependencies(cargo: Manifest, build: builder.Builder) -> T.List[mparser.BaseNode]:
+    ast: T.List[mparser.BaseNode] = [
+        build.assign(build.function('import', [build.string('rust')]), 'rust')
+    ]
+    for name, dep in cargo.dependencies.items():
+        kw = {
+            'version': build.array([build.string(s) for s in dep.version]),
+        }
+        ast.extend([
+            build.assign(
+                build.method(
+                    'cargo',
+                    build.identifier('rust'),
+                    [build.string(name)],
+                    kw,
+                ),
+                f'dep_{fixup_meson_varname(name)}',
+            ),
+        ])
+    return ast
+
+
 def _create_lib(cargo: Manifest, build: builder.Builder) -> T.List[mparser.BaseNode]:
     kw: T.Dict[str, mparser.BaseNode] = {}
     if cargo.dependencies:
@@ -389,7 +412,6 @@ def _create_lib(cargo: Manifest, build: builder.Builder) -> T.List[mparser.BaseN
             ),
             'lib'
         ),
-
         build.assign(
             build.function(
                 'declare_dependency',
@@ -404,27 +426,8 @@ def interpret(cargo: Manifest, env: Environment) -> mparser.CodeBlockNode:
     filename = os.path.join(cargo.subdir, cargo.path, 'Cargo.toml')
     build = builder.Builder(filename)
 
-    ast: T.List[mparser.BaseNode] = [
-        _create_project(cargo.package, build, env),
-        build.assign(build.function('import', [build.string('rust')]), 'rust'),
-    ]
-
-    if cargo.dependencies:
-        for name, dep in cargo.dependencies.items():
-            kw = {
-                'version': build.array([build.string(s) for s in dep.version]),
-            }
-            ast.extend([
-                build.assign(
-                    build.method(
-                        'cargo',
-                        build.identifier('rust'),
-                        [build.string(name)],
-                        kw,
-                    ),
-                    f'dep_{fixup_meson_varname(name)}',
-                ),
-            ])
+    ast = _create_project(cargo, build, env)
+    ast += _create_dependencies(cargo, build)
 
     # Libs are always auto-discovered and there's no other way to handle them,
     # which is unfortunate for reproducability
