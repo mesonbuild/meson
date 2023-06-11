@@ -488,6 +488,7 @@ class NinjaBackend(backends.Backend):
         self.introspection_data = {}
         self.created_llvm_ir_rule = PerMachine(False, False)
         self.rust_crates: T.Dict[str, RustCrate] = {}
+        self.implicit_meson_outs = []
 
     def create_phony_target(self, all_outputs, dummy_outfile, rulename, phony_infilename, implicit_outs=None):
         '''
@@ -3439,17 +3440,20 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
     def generate_shlib_aliases(self, target, outdir):
         for alias, to, tag in target.get_aliases():
-            aliasfile = os.path.join(self.environment.get_build_dir(), outdir, alias)
+            aliasfile = os.path.join(outdir, alias)
+            abs_aliasfile = os.path.join(self.environment.get_build_dir(), outdir, alias)
             try:
-                os.remove(aliasfile)
+                os.remove(abs_aliasfile)
             except Exception:
                 pass
             try:
-                os.symlink(to, aliasfile)
+                os.symlink(to, abs_aliasfile)
             except NotImplementedError:
                 mlog.debug("Library versioning disabled because symlinks are not supported.")
             except OSError:
                 mlog.debug("Library versioning disabled because we do not have symlink creation privileges.")
+            else:
+                self.implicit_meson_outs.append(aliasfile)
 
     def generate_custom_target_clean(self, trees: T.List[str]) -> str:
         e = self.create_phony_target(self.all_outputs, 'clean-ctlist', 'CUSTOM_COMMAND', 'PHONY')
@@ -3610,6 +3614,12 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         elem = NinjaBuildElement(self.all_outputs, 'build.ninja', 'REGENERATE_BUILD', deps)
         elem.add_item('pool', 'console')
         self.add_build(elem)
+
+        # If these files used to be explicitly created, they need to appear on the build graph somehow,
+        # otherwise cleandead deletes them. See https://github.com/ninja-build/ninja/issues/2299
+        if self.implicit_meson_outs:
+            elem = NinjaBuildElement(self.all_outputs, 'meson-implicit-outs', 'phony', self.implicit_meson_outs)
+            self.add_build(elem)
 
         elem = NinjaBuildElement(self.all_outputs, 'reconfigure', 'REGENERATE_BUILD', 'PHONY')
         elem.add_item('pool', 'console')
