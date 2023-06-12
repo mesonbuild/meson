@@ -356,6 +356,14 @@ project(...,
 )
 ```
 
+In addition, if the file `meson/meson.build` exists, Meson will call `subdir('meson')`
+where the project can add manual logic that would usually be part of `build.rs`.
+Some naming conventions need to be respected:
+- The `extra_args` variable is pre-defined and can be used to add any Rust arguments.
+  This is typically used as `extra_args += ['--cfg', 'foo']`.
+- The `extra_deps` variable is pre-defined and can be used to add extra dependencies.
+  This is typically used as `extra_deps += dependency('foo')`.
+
 ## Using wrapped projects
 
 Wraps provide a convenient way of obtaining a project into your

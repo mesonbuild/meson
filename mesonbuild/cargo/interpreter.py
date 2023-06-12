@@ -366,6 +366,14 @@ def _options_varname(depname: str) -> str:
     return f'{fixup_meson_varname(depname)}_options'
 
 
+def _extra_args_varname() -> str:
+    return 'extra_args'
+
+
+def _extra_deps_varname() -> str:
+    return 'extra_deps'
+
+
 def _create_project(cargo: Manifest, build: builder.Builder) -> T.List[mparser.BaseNode]:
     """Create a function call
 
@@ -561,6 +569,25 @@ def _create_dependencies(cargo: Manifest, build: builder.Builder) -> T.List[mpar
     return ast
 
 
+def _create_meson_subdir(cargo: Manifest, build: builder.Builder) -> T.List[mparser.BaseNode]:
+    # Allow Cargo subprojects to add extra Rust args in meson/meson.build file.
+    # This is used to replace build.rs logic.
+
+    # extra_args = []
+    # extra_deps = []
+    # fs = import('fs')
+    # if fs.is_dir('meson')
+    #  subdir('meson')
+    # endif
+    return [
+        build.assign(build.array([]), _extra_args_varname()),
+        build.assign(build.array([]), _extra_deps_varname()),
+        build.assign(build.function('import', [build.string('fs')]), 'fs'),
+        build.if_(build.method('is_dir', build.identifier('fs'), [build.string('meson')]),
+                  build.block([build.function('subdir', [build.string('meson')])]))
+    ]
+
+
 def _create_lib(cargo: Manifest, build: builder.Builder, crate_type: manifest.CRATE_TYPE) -> T.List[mparser.BaseNode]:
     dependencies: T.List[mparser.BaseNode] = []
     dependency_map: T.Dict[mparser.BaseNode, mparser.BaseNode] = {}
@@ -570,7 +597,12 @@ def _create_lib(cargo: Manifest, build: builder.Builder, crate_type: manifest.CR
         if name != package_name:
             dependency_map[build.string(fixup_meson_varname(package_name))] = build.string(name)
 
-    rust_args: T.List[mparser.BaseNode] = [build.identifier('features_args')]
+    rust_args: T.List[mparser.BaseNode] = [
+        build.identifier('features_args'),
+        build.identifier(_extra_args_varname())
+    ]
+
+    dependencies.append(build.identifier(_extra_deps_varname()))
 
     posargs: T.List[mparser.BaseNode] = [
         build.string(fixup_meson_varname(cargo.package.name)),
@@ -660,6 +692,7 @@ def interpret(subp_name: str, subdir: str, env: Environment) -> T.Tuple[mparser.
     ast += [build.assign(build.function('import', [build.string('rust')]), 'rust')]
     ast += _create_features(cargo, build)
     ast += _create_dependencies(cargo, build)
+    ast += _create_meson_subdir(cargo, build)
 
     # Libs are always auto-discovered and there's no other way to handle them,
     # which is unfortunate for reproducability
