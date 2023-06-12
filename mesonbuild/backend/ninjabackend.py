@@ -56,6 +56,7 @@ if T.TYPE_CHECKING:
     from ..compilers.cs import CsCompiler
     from ..compilers.fortran import FortranCompiler
 
+    CommandArgOrStr = T.List[T.Union['NinjaCommandArg', str]]
     RUST_EDITIONS = Literal['2015', '2018', '2021']
 
 
@@ -64,20 +65,20 @@ FORTRAN_MODULE_PAT = r"^\s*\bmodule\b\s+(\w+)\s*(?:!+.*)*$"
 FORTRAN_SUBMOD_PAT = r"^\s*\bsubmodule\b\s*\((\w+:?\w+)\)\s*(\w+)"
 FORTRAN_USE_PAT = r"^\s*use,?\s*(?:non_intrinsic)?\s*(?:::)?\s*(\w+)"
 
-def cmd_quote(s):
+def cmd_quote(arg: str) -> str:
     # see: https://docs.microsoft.com/en-us/windows/desktop/api/shellapi/nf-shellapi-commandlinetoargvw#remarks
 
     # backslash escape any existing double quotes
     # any existing backslashes preceding a quote are doubled
-    s = re.sub(r'(\\*)"', lambda m: '\\' * (len(m.group(1)) * 2 + 1) + '"', s)
+    arg = re.sub(r'(\\*)"', lambda m: '\\' * (len(m.group(1)) * 2 + 1) + '"', arg)
     # any terminal backslashes likewise need doubling
-    s = re.sub(r'(\\*)$', lambda m: '\\' * (len(m.group(1)) * 2), s)
+    arg = re.sub(r'(\\*)$', lambda m: '\\' * (len(m.group(1)) * 2), arg)
     # and double quote
-    s = f'"{s}"'
+    arg = f'"{arg}"'
 
-    return s
+    return arg
 
-def gcc_rsp_quote(s):
+def gcc_rsp_quote(s: str) -> str:
     # see: the function buildargv() in libiberty
     #
     # this differs from sh-quoting in that a backslash *always* escapes the
@@ -99,7 +100,7 @@ else:
     rmfile_prefix = ['rm', '-f', '{}', '&&']
 
 
-def get_rsp_threshold():
+def get_rsp_threshold() -> int:
     '''Return a conservative estimate of the commandline size in bytes
     above which a response file should be used.  May be overridden for
     debugging by setting environment variable MESON_RSP_THRESHOLD.'''
@@ -129,7 +130,7 @@ raw_names = {'DEPFILE_UNQUOTED', 'DESC', 'pool', 'description', 'targetdep', 'dy
 NINJA_QUOTE_BUILD_PAT = re.compile(r"[$ :\n]")
 NINJA_QUOTE_VAR_PAT = re.compile(r"[$ \n]")
 
-def ninja_quote(text: str, is_build_line=False) -> str:
+def ninja_quote(text: str, is_build_line: bool = False) -> str:
     if is_build_line:
         quote_re = NINJA_QUOTE_BUILD_PAT
     else:
@@ -159,22 +160,22 @@ class Quoting(Enum):
     none = 3
 
 class NinjaCommandArg:
-    def __init__(self, s, quoting = Quoting.both):
+    def __init__(self, s: str, quoting: Quoting = Quoting.both) -> None:
         self.s = s
         self.quoting = quoting
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.s
 
     @staticmethod
-    def list(l, q):
+    def list(l: str, q: Quoting) -> T.List[NinjaCommandArg]:
         return [NinjaCommandArg(i, q) for i in l]
 
 @dataclass
 class NinjaComment:
     comment: str
 
-    def write(self, outfile):
+    def write(self, outfile: T.TextIO) -> None:
         for l in self.comment.split('\n'):
             outfile.write('# ')
             outfile.write(l)
@@ -182,11 +183,12 @@ class NinjaComment:
         outfile.write('\n')
 
 class NinjaRule:
-    def __init__(self, rule, command, args, description,
-                 rspable = False, deps = None, depfile = None, extra = None,
+    def __init__(self, rule: str, command: CommandArgOrStr, args: CommandArgOrStr,
+                 description: str, rspable: bool = False, deps: T.Optional[str] = None,
+                 depfile: T.Optional[str] = None, extra: T.Optional[str] = None,
                  rspfile_quote_style: RSPFileSyntax = RSPFileSyntax.GCC):
 
-        def strToCommandArg(c):
+        def strToCommandArg(c: T.Union[NinjaCommandArg, str]) -> NinjaCommandArg:
             if isinstance(c, NinjaCommandArg):
                 return c
 
@@ -209,8 +211,8 @@ class NinjaRule:
             return NinjaCommandArg(c)
 
         self.name = rule
-        self.command = [strToCommandArg(c) for c in command]  # includes args which never go into a rspfile
-        self.args = [strToCommandArg(a) for a in args]  # args which will go into a rspfile, if used
+        self.command: T.List[NinjaCommandArg] = [strToCommandArg(c) for c in command]  # includes args which never go into a rspfile
+        self.args: T.List[NinjaCommandArg] = [strToCommandArg(a) for a in args]  # args which will go into a rspfile, if used
         self.description = description
         self.deps = deps  # depstyle 'gcc' or 'msvc'
         self.depfile = depfile
@@ -235,7 +237,7 @@ class NinjaRule:
             # fallthrough
         return ninja_quote(qf(str(x)))
 
-    def write(self, outfile):
+    def write(self, outfile: T.TextIO) -> None:
         if self.rspfile_quote_style is RSPFileSyntax.MSVC:
             rspfile_quote_func = cmd_quote
         else:
