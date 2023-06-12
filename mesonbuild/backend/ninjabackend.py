@@ -114,7 +114,7 @@ def get_rsp_threshold():
         # single argument; see MAX_ARG_STRLEN
         limit = 131072
     # Be conservative
-    limit = limit / 2
+    limit = limit // 2
     return int(os.environ.get('MESON_RSP_THRESHOLD', limit))
 
 # a conservative estimate of the command-line length limit
