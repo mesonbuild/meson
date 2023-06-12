@@ -34,8 +34,10 @@ from ..mesonlib import (
 from ..environment import Environment, build_filename
 
 if T.TYPE_CHECKING:
+    from ..arglist import CompilerArgs
     from ..interpreter import Interpreter
 
+    Project = T.Tuple[str, Path, str, MachineChoice]
 
 def autodetect_vs_version(build: T.Optional[build.Build], interpreter: T.Optional[Interpreter]) -> backends.Backend:
     vs_version = os.getenv('VisualStudioVersion', None)
@@ -72,7 +74,7 @@ def autodetect_vs_version(build: T.Optional[build.Build], interpreter: T.Optiona
                          'Please specify the exact backend to use.'.format(vs_version, vs_install_dir))
 
 
-def split_o_flags_args(args):
+def split_o_flags_args(args: T.List[str]) -> T.List[str]:
     """
     Splits any /O args and returns them. Does not take care of flags overriding
     previous ones. Skips non-O flag arguments.
@@ -94,7 +96,7 @@ def split_o_flags_args(args):
     return o_flags
 
 
-def generate_guid_from_path(path, path_type):
+def generate_guid_from_path(path, path_type) -> str:
     return str(uuid.uuid5(uuid.NAMESPACE_URL, 'meson-vs-' + path_type + ':' + str(path))).upper()
 
 def detect_microsoft_gdk(platform: str) -> bool:
@@ -188,7 +190,7 @@ class Vs2010Backend(backends.Backend):
             self.generate_genlist_for_target(genlist, target, parent_node, generator_output_files, custom_target_include_dirs, custom_target_output_files)
         return generator_output_files, custom_target_output_files, custom_target_include_dirs
 
-    def generate(self):
+    def generate(self) -> None:
         target_machine = self.interpreter.builtin['target_machine'].cpu_family_method(None, None)
         if target_machine in {'64', 'x86_64'}:
             # amd64 or x86_64
@@ -350,7 +352,7 @@ class Vs2010Backend(backends.Backend):
         ret.update(all_deps)
         return ret
 
-    def generate_solution_dirs(self, ofile, parents):
+    def generate_solution_dirs(self, ofile: str, parents: T.Sequence[Path]) -> None:
         prj_templ = 'Project("{%s}") = "%s", "%s", "{%s}"\n'
         iterpaths = reversed(parents)
         # Skip first path
@@ -370,7 +372,7 @@ class Vs2010Backend(backends.Backend):
                 ofile.write(prj_line)
                 ofile.write('EndProject\n')
 
-    def generate_solution(self, sln_filename, projlist):
+    def generate_solution(self, sln_filename: str, projlist: T.List[Project]) -> None:
         default_projlist = self.get_build_by_default_targets()
         default_projlist.update(self.get_testlike_targets())
         sln_filename_tmp = sln_filename + '~'
@@ -472,9 +474,9 @@ class Vs2010Backend(backends.Backend):
             ofile.write('EndGlobal\n')
         replace_if_different(sln_filename, sln_filename_tmp)
 
-    def generate_projects(self):
+    def generate_projects(self) -> T.List[Project]:
         startup_project = self.environment.coredata.options[OptionKey('backend_startup_project')].value
-        projlist = []
+        projlist: T.List[Project] = []
         startup_idx = 0
         for (i, (name, target)) in enumerate(self.build.targets.items()):
             if startup_project and startup_project == target.get_basename():
@@ -530,7 +532,7 @@ class Vs2010Backend(backends.Backend):
     def quote_arguments(self, arr):
         return ['"%s"' % i for i in arr]
 
-    def add_project_reference(self, root, include, projid, link_outputs=False):
+    def add_project_reference(self, root: ET.Element, include: str, projid: str, link_outputs: bool = False) -> None:
         ig = ET.SubElement(root, 'ItemGroup')
         pref = ET.SubElement(ig, 'ProjectReference', Include=include)
         ET.SubElement(pref, 'Project').text = '{%s}' % projid
@@ -540,7 +542,7 @@ class Vs2010Backend(backends.Backend):
             # objects and .lib files manually.
             ET.SubElement(pref, 'LinkLibraryDependencies').text = 'false'
 
-    def add_target_deps(self, root, target):
+    def add_target_deps(self, root: ET.Element, target):
         target_dict = {target.get_id(): target}
         for dep in self.get_target_deps(target_dict).values():
             if dep.get_id() in self.handled_target_deps[target.get_id()]:
@@ -551,7 +553,7 @@ class Vs2010Backend(backends.Backend):
             tid = self.environment.coredata.target_guids[dep.get_id()]
             self.add_project_reference(root, vcxproj, tid)
 
-    def create_basic_project_filters(self):
+    def create_basic_project_filters(self) -> ET.Element:
         root = ET.Element('Project', {'ToolsVersion': '4.0',
                                       'xmlns': 'http://schemas.microsoft.com/developer/msbuild/2003'})
         return root
@@ -561,7 +563,7 @@ class Vs2010Backend(backends.Backend):
                              guid,
                              conftype='Utility',
                              target_ext=None,
-                             target_platform=None):
+                             target_platform=None) -> T.Tuple[ET.Element, ET.Element]:
         root = ET.Element('Project', {'DefaultTargets': "Build",
                                       'ToolsVersion': '4.0',
                                       'xmlns': 'http://schemas.microsoft.com/developer/msbuild/2003'})
@@ -625,7 +627,7 @@ class Vs2010Backend(backends.Backend):
 
         return (root, type_config)
 
-    def gen_run_target_vcxproj(self, target, ofname, guid):
+    def gen_run_target_vcxproj(self, target: build.RunTarget, ofname: str, guid: str) -> None:
         (root, type_config) = self.create_basic_project(target.name,
                                                         temp_dir=target.get_id(),
                                                         guid=guid)
@@ -655,7 +657,7 @@ class Vs2010Backend(backends.Backend):
         self.add_target_deps(root, target)
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
-    def gen_custom_target_vcxproj(self, target, ofname, guid):
+    def gen_custom_target_vcxproj(self, target: build.CustomTarget, ofname: str, guid: str) -> None:
         if target.for_machine is MachineChoice.BUILD:
             platform = self.build_platform
         else:
@@ -695,7 +697,7 @@ class Vs2010Backend(backends.Backend):
         self.add_target_deps(root, target)
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
-    def gen_compile_target_vcxproj(self, target, ofname, guid):
+    def gen_compile_target_vcxproj(self, target: build.CompileTarget, ofname: str, guid: str) -> None:
         if target.for_machine is MachineChoice.BUILD:
             platform = self.build_platform
         else:
@@ -805,7 +807,7 @@ class Vs2010Backend(backends.Backend):
         return
 
     @staticmethod
-    def escape_preprocessor_define(define):
+    def escape_preprocessor_define(define: str) -> str:
         # See: https://msdn.microsoft.com/en-us/library/bb383819.aspx
         table = str.maketrans({'%': '%25', '$': '%24', '@': '%40',
                                "'": '%27', ';': '%3B', '?': '%3F', '*': '%2A',
@@ -816,7 +818,7 @@ class Vs2010Backend(backends.Backend):
         return define.translate(table)
 
     @staticmethod
-    def escape_additional_option(option):
+    def escape_additional_option(option: str) -> str:
         # See: https://msdn.microsoft.com/en-us/library/bb383819.aspx
         table = str.maketrans({'%': '%25', '$': '%24', '@': '%40',
                                "'": '%27', ';': '%3B', '?': '%3F', '*': '%2A', ' ': '%20'})
@@ -907,7 +909,7 @@ class Vs2010Backend(backends.Backend):
                     return c
         raise MesonException('Could not find a C or C++ compiler. MSVC can only build C/C++ projects.')
 
-    def _prettyprint_vcxproj_xml(self, tree, ofname):
+    def _prettyprint_vcxproj_xml(self, tree: ET.ElementTree, ofname: str) -> None:
         ofname_tmp = ofname + '~'
         tree.write(ofname_tmp, encoding='utf-8', xml_declaration=True)
 
@@ -917,7 +919,7 @@ class Vs2010Backend(backends.Backend):
             of.write(doc.toprettyxml())
         replace_if_different(ofname, ofname_tmp)
 
-    def gen_vcxproj(self, target, ofname, guid):
+    def gen_vcxproj(self, target: build.BuildTarget, ofname: str, guid: str) -> None:
         mlog.debug(f'Generating vcxproj {target.name}.')
         subsystem = 'Windows'
         self.handled_target_deps[target.get_id()] = []
@@ -1066,7 +1068,7 @@ class Vs2010Backend(backends.Backend):
         #
         # file_args is also later split out into defines and include_dirs in
         # case someone passed those in there
-        file_args = {l: c.compiler_args() for l, c in target.compilers.items()}
+        file_args: T.Dict[str, CompilerArgs] = {l: c.compiler_args() for l, c in target.compilers.items()}
         file_defines = {l: [] for l in target.compilers}
         file_inc_dirs = {l: [] for l in target.compilers}
         # The order in which these compile args are added must match
@@ -1203,7 +1205,7 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(clconf, 'PreprocessorDefinitions').text = ';'.join(target_defines)
         ET.SubElement(clconf, 'FunctionLevelLinking').text = 'true'
         # Warning level
-        warning_level = target.get_option(OptionKey('warning_level'))
+        warning_level = T.cast('str', target.get_option(OptionKey('warning_level')))
         ET.SubElement(clconf, 'WarningLevel').text = 'Level' + str(1 + int(warning_level))
         if target.get_option(OptionKey('werror')):
             ET.SubElement(clconf, 'TreatWarningAsError').text = 'true'
@@ -1598,7 +1600,8 @@ class Vs2010Backend(backends.Backend):
         self.add_regen_dependency(root)
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
-    def add_custom_build(self, node, rulename, command, deps=None, outputs=None, msg=None, verify_files=True):
+    def add_custom_build(self, node: ET.Element, rulename: str, command: str, deps: T.Optional[T.List[str]] = None,
+                         outputs: T.Optional[T.List[str]] = None, msg: T.Optional[str] = None, verify_files: bool = True) -> None:
         igroup = ET.SubElement(node, 'ItemGroup')
         rulefile = os.path.join(self.environment.get_scratch_dir(), rulename + '.rule')
         if not os.path.exists(rulefile):
@@ -1628,20 +1631,20 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(custombuild, 'AdditionalInputs').text = ';'.join(deps)
 
     @staticmethod
-    def nonexistent_file(prefix):
+    def nonexistent_file(prefix: str) -> str:
         i = 0
         file = prefix
         while os.path.exists(file):
             file = '%s%d' % (prefix, i)
         return file
 
-    def generate_debug_information(self, link):
+    def generate_debug_information(self, link: ET.Element) -> None:
         # valid values for vs2015 is 'false', 'true', 'DebugFastLink'
         ET.SubElement(link, 'GenerateDebugInformation').text = 'true'
 
-    def add_regen_dependency(self, root):
+    def add_regen_dependency(self, root: ET.Element) -> None:
         regen_vcxproj = os.path.join(self.environment.get_build_dir(), 'REGEN.vcxproj')
         self.add_project_reference(root, regen_vcxproj, self.environment.coredata.regen_guid)
 
-    def generate_lang_standard_info(self, file_args, clconf):
+    def generate_lang_standard_info(self, file_args: T.Dict[str, CompilerArgs], clconf: ET.Element) -> None:
         pass
