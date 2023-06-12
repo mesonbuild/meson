@@ -138,12 +138,9 @@ class PbxDict:
     def has_item(self, key):
         return key in self.keys
 
-    def add_comment(self, comment: T.Union[str, PbxComment]) -> None:
-        if isinstance(comment, str):
-            self.items.append(PbxComment(str))
-        else:
-            assert isinstance(comment, PbxComment)
-            self.items.append(comment)
+    def add_comment(self, comment: PbxComment) -> None:
+        assert isinstance(comment, PbxComment)
+        self.items.append(comment)
 
     def write(self, ofile: T.TextIO, indent_level: int) -> None:
         ofile.write('{\n')
