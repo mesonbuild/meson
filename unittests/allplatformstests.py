@@ -58,6 +58,7 @@ from mesonbuild.compilers import (
 
 from mesonbuild.dependencies import PkgConfigDependency
 from mesonbuild.build import Target, ConfigurationData, Executable, SharedLibrary, StaticLibrary
+from mesonbuild import mtest
 import mesonbuild.modules.pkgconfig
 from mesonbuild.scripts import destdir_join
 
@@ -396,6 +397,56 @@ class AllPlatformTests(BasePlatformTests):
         self.assertTrue(compdb[2]['file'].endswith("libfile3.c"))
         self.assertTrue(compdb[3]['file'].endswith("libfile4.c"))
         # FIXME: We don't have access to the linker command
+
+    def test_replace_unencodable_xml_chars(self):
+        '''
+        Test that unencodable xml chars are replaced with their
+        printable representation
+        https://github.com/mesonbuild/meson/issues/9894
+        '''
+        # Create base string(\nHello Meson\n) to see valid chars are not replaced
+        base_string_invalid = '\n\x48\x65\x6c\x6c\x6f\x20\x4d\x65\x73\x6f\x6e\n'
+        base_string_valid = '\nHello Meson\n'
+        # Create invalid input from all known unencodable chars
+        invalid_string = (
+            '\x00\x01\x02\x03\x04\x05\x06\x07\x08\x0b\x0c\x0e\x0f\x10\x11'
+            '\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x7f'
+            '\x80\x81\x82\x83\x84\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f'
+            '\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e'
+            '\x9f\ufdd0\ufdd1\ufdd2\ufdd3\ufdd4\ufdd5\ufdd6\ufdd7\ufdd8'
+            '\ufdd9\ufdda\ufddb\ufddc\ufddd\ufdde\ufddf\ufde0\ufde1'
+            '\ufde2\ufde3\ufde4\ufde5\ufde6\ufde7\ufde8\ufde9\ufdea'
+            '\ufdeb\ufdec\ufded\ufdee\ufdef\ufffe\uffff')
+        if sys.maxunicode >= 0x10000:
+            invalid_string = invalid_string + (
+                '\U0001fffe\U0001ffff\U0002fffe\U0002ffff'
+                '\U0003fffe\U0003ffff\U0004fffe\U0004ffff'
+                '\U0005fffe\U0005ffff\U0006fffe\U0006ffff'
+                '\U0007fffe\U0007ffff\U0008fffe\U0008ffff'
+                '\U0009fffe\U0009ffff\U000afffe\U000affff'
+                '\U000bfffe\U000bffff\U000cfffe\U000cffff'
+                '\U000dfffe\U000dffff\U000efffe\U000effff'
+                '\U000ffffe\U000fffff\U0010fffe\U0010ffff')
+
+        valid_string = base_string_valid + repr(invalid_string)[1:-1] + base_string_valid
+        invalid_string = base_string_invalid + invalid_string + base_string_invalid
+        broken_xml_stream = invalid_string.encode()
+        decoded_broken_stream = mtest.decode(broken_xml_stream)
+        self.assertEqual(decoded_broken_stream, valid_string)
+
+    def test_replace_unencodable_xml_chars_unit(self):
+        '''
+        Test that unencodable xml chars are replaced with their
+        printable representation
+        https://github.com/mesonbuild/meson/issues/9894
+        '''
+        if not shutil.which('xmllint'):
+            raise SkipTest('xmllint not installed.')
+        testdir = os.path.join(self.unit_test_dir, '110 replace unencodable xml chars')
+        self.init(testdir)
+        self.run_tests()
+        junit_xml_logs = Path(self.logdir, 'testlog.junit.xml')
+        subprocess.run(['xmllint', junit_xml_logs], check=True)
 
     def test_run_target_files_path(self):
         '''
