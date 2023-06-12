@@ -170,9 +170,9 @@ class NinjaCommandArg:
     def list(l, q):
         return [NinjaCommandArg(i, q) for i in l]
 
+@dataclass
 class NinjaComment:
-    def __init__(self, comment):
-        self.comment = comment
+    comment: str
 
     def write(self, outfile):
         for l in self.comment.split('\n'):
