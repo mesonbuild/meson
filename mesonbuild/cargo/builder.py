@@ -91,7 +91,7 @@ class Builder:
         """
         return mparser.IdNode(self._token('id', value))
 
-    def method(self, name: str, id_: mparser.IdNode,
+    def method(self, name: str, id_: mparser.BaseNode,
                pos: T.Optional[T.List[mparser.BaseNode]] = None,
                kw: T.Optional[T.Mapping[str, mparser.BaseNode]] = None,
                ) -> mparser.MethodNode:
