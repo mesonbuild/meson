@@ -68,7 +68,7 @@ stable_version = version
 if stable_version.endswith('.99'):
     stable_version_array = stable_version.split('.')
     stable_version_array[-1] = '0'
-    stable_version_array[-2] = str(int(version[-2]) + 1)
+    stable_version_array[-2] = str(int(stable_version_array[-2]) + 1)
     stable_version = '.'.join(stable_version_array)
 
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2012', 'vs2013', 'vs2015', 'vs2017', 'vs2019', 'vs2022', 'xcode', 'none']
