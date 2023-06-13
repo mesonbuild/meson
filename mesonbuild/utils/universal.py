@@ -144,6 +144,7 @@ __all__ = [
     'path_is_in_root',
     'pickle_load',
     'Popen_safe',
+    'Popen_safe_logged',
     'quiet_git',
     'quote_arg',
     'relative_to_if_possible',
@@ -1509,6 +1510,21 @@ def Popen_safe_legacy(args: T.List[str], write: T.Optional[str] = None,
             e = e.decode(encoding=sys.stderr.encoding, errors='replace').replace('\r\n', '\n')
         else:
             e = e.decode(errors='replace').replace('\r\n', '\n')
+    return p, o, e
+
+
+def Popen_safe_logged(args: T.List[str], msg: str = 'Called', **kwargs: T.Any) -> T.Tuple['subprocess.Popen[str]', str, str]:
+    '''
+    Wrapper around Popen_safe that assumes standard piped o/e and logs this to the meson log.
+    '''
+    p, o, e = Popen_safe(args, **kwargs)
+    rc, out, err = p.returncode, o.strip(), e.strip()
+    mlog.debug('-----------')
+    mlog.debug(f'{msg}: `{join_args(args)}` -> {rc}')
+    if out:
+        mlog.debug(f'stdout:\n{out}\n-----------')
+    if err:
+        mlog.debug(f'stderr:\n{err}\n-----------')
     return p, o, e
 
 

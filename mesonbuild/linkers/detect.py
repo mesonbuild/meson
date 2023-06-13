@@ -17,7 +17,7 @@ from __future__ import annotations
 from .. import mlog
 from ..mesonlib import (
     EnvironmentException,
-    Popen_safe, join_args, search_version
+    Popen_safe, Popen_safe_logged, join_args, search_version
 )
 from .linkers import (
     AppleDynamicLinker,
@@ -157,11 +157,7 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
         check_args += override
 
     mlog.debug('-----')
-    mlog.debug(f'Detecting linker via: {join_args(compiler + check_args)}')
-    p, o, e = Popen_safe(compiler + check_args)
-    mlog.debug(f'linker returned {p}')
-    mlog.debug(f'linker stdout:\n{o}')
-    mlog.debug(f'linker stderr:\n{e}')
+    p, o, e = Popen_safe_logged(compiler + check_args, msg='Detecting linker via')
 
     v = search_version(o + e)
     linker: DynamicLinker
@@ -170,11 +166,7 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
             cmd = compiler + override + [comp_class.LINKER_PREFIX + '-v'] + extra_args
         else:
             cmd = compiler + override + comp_class.LINKER_PREFIX + ['-v'] + extra_args
-        mlog.debug('-----')
-        mlog.debug(f'Detecting LLD linker via: {join_args(cmd)}')
-        _, newo, newerr = Popen_safe(cmd)
-        mlog.debug(f'linker stdout:\n{newo}')
-        mlog.debug(f'linker stderr:\n{newerr}')
+        _, newo, newerr = Popen_safe_logged(cmd, msg='Detecting LLD linker via')
 
         lld_cls: T.Type[DynamicLinker]
         if 'ld64.lld' in newerr:
@@ -211,11 +203,7 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
             cmd = compiler + [comp_class.LINKER_PREFIX + '-v'] + extra_args
         else:
             cmd = compiler + comp_class.LINKER_PREFIX + ['-v'] + extra_args
-        mlog.debug('-----')
-        mlog.debug(f'Detecting Apple linker via: {join_args(cmd)}')
-        _, newo, newerr = Popen_safe(cmd)
-        mlog.debug(f'linker stdout:\n{newo}')
-        mlog.debug(f'linker stderr:\n{newerr}')
+        _, newo, newerr = Popen_safe_logged(cmd, msg='Detecting Apple linker via')
 
         for line in newerr.split('\n'):
             if 'PROJECT:ld' in line:

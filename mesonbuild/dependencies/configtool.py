@@ -14,7 +14,7 @@
 from __future__ import annotations
 
 from .base import ExternalDependency, DependencyException, DependencyTypeName
-from ..mesonlib import listify, Popen_safe, split_args, version_compare, version_compare_many
+from ..mesonlib import listify, Popen_safe, Popen_safe_logged, split_args, version_compare, version_compare_many
 from ..programs import find_external_program
 from .. import mlog
 import re
@@ -143,12 +143,7 @@ class ConfigToolDependency(ExternalDependency):
         return self.config is not None
 
     def get_config_value(self, args: T.List[str], stage: str) -> T.List[str]:
-        p, out, err = Popen_safe(self.config + args)
-        mlog.debug(f'Called `{mesonlib.join_args(self.config+args)}` -> {p.returncode}')
-        if out:
-            mlog.debug(f'stdout:\n{out}\n-----------')
-        if err:
-            mlog.debug(f'stderr:\n{err}\n-----------')
+        p, out, err = Popen_safe_logged(self.config + args)
         if p.returncode != 0:
             if self.required:
                 raise DependencyException(f'Could not generate {stage} for {self.name}.\n{err}')

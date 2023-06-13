@@ -33,7 +33,7 @@ import mesonbuild.environment
 import mesonbuild.coredata
 import mesonbuild.modules.gnome
 from mesonbuild.mesonlib import (
-    is_cygwin, join_args, windows_proof_rmtree, python_command
+    is_cygwin, join_args, split_args, windows_proof_rmtree, python_command
 )
 import mesonbuild.modules.pkgconfig
 
@@ -343,9 +343,10 @@ class BasePlatformTests(TestCase):
         Fetch a list command-lines run by meson for compiler checks.
         Each command-line is returned as a list of arguments.
         '''
-        prefix = 'Command line:'
+        prefix = 'Command line: `'
+        suffix = '` -> 0\n'
         with self._open_meson_log() as log:
-            cmds = [l[len(prefix):].split() for l in log if l.startswith(prefix)]
+            cmds = [split_args(l[len(prefix):-len(suffix)]) for l in log if l.startswith(prefix)]
             return cmds
 
     def get_meson_log_sanitychecks(self):

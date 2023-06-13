@@ -16,7 +16,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from .base import ExternalDependency, DependencyException, sort_libpaths, DependencyTypeName
-from ..mesonlib import OptionKey, OrderedSet, PerMachine, Popen_safe
+from ..mesonlib import OptionKey, OrderedSet, PerMachine, Popen_safe, Popen_safe_logged
 from ..programs import find_external_program, ExternalProgram
 from .. import mlog
 from pathlib import PurePath
@@ -122,15 +122,8 @@ class PkgConfigDependency(ExternalDependency):
     def _call_pkgbin_real(self, args: T.List[str], env: T.Dict[str, str]) -> T.Tuple[int, str, str]:
         assert isinstance(self.pkgbin, ExternalProgram)
         cmd = self.pkgbin.get_command() + args
-        p, out, err = Popen_safe(cmd, env=env)
-        rc, out, err = p.returncode, out.strip(), err.strip()
-        call = ' '.join(cmd)
-        mlog.debug(f"Called `{call}` -> {rc}")
-        if out:
-            mlog.debug(f'stdout:\n{out}\n-----------')
-        if err:
-            mlog.debug(f'stderr:\n{err}\n-----------')
-        return rc, out, err
+        p, out, err = Popen_safe_logged(cmd, env=env)
+        return p.returncode, out.strip(), err.strip()
 
     @staticmethod
     def get_env(environment: 'Environment', for_machine: MachineChoice,

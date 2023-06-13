@@ -26,7 +26,7 @@ from .. import mesonlib
 from ..mesonlib import (
     HoldableObject,
     EnvironmentException, MesonException,
-    Popen_safe, LibType, TemporaryDirectoryWinProof, OptionKey,
+    Popen_safe_logged, LibType, TemporaryDirectoryWinProof, OptionKey,
 )
 
 from ..arglist import CompilerArgs
@@ -855,15 +855,12 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             command_list = self.get_exelist(ccache=not no_ccache) + commands.to_native()
             mlog.debug('Running compile:')
             mlog.debug('Working directory: ', tmpdirname)
-            mlog.debug('Command line: ', ' '.join(command_list), '\n')
             mlog.debug('Code:\n', contents)
             os_env = os.environ.copy()
             os_env['LC_ALL'] = 'C'
             if no_ccache:
                 os_env['CCACHE_DISABLE'] = '1'
-            p, stdo, stde = Popen_safe(command_list, cwd=tmpdirname, env=os_env)
-            mlog.debug('Compiler stdout:\n', stdo)
-            mlog.debug('Compiler stderr:\n', stde)
+            p, stdo, stde = Popen_safe_logged(command_list, msg='Command line', cwd=tmpdirname, env=os_env)
 
             result = CompileResult(stdo, stde, command_list, p.returncode, input_name=srcname)
             if want_output:

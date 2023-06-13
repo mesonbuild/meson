@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from ..mesonlib import (
     MesonException, EnvironmentException, MachineChoice, join_args,
-    search_version, is_windows, Popen_safe, windows_proof_rm,
+    search_version, is_windows, Popen_safe, Popen_safe_logged, windows_proof_rm,
 )
 from ..envconfig import BinaryTable
 from .. import mlog
@@ -327,12 +327,7 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
 
         cmd = compiler + [arg]
         try:
-            mlog.debug('-----')
-            mlog.debug(f'Detecting compiler via: {join_args(cmd)}')
-            p, out, err = Popen_safe(cmd)
-            mlog.debug(f'compiler returned {p}')
-            mlog.debug(f'compiler stdout:\n{out}')
-            mlog.debug(f'compiler stderr:\n{err}')
+            p, out, err = Popen_safe_logged(cmd, msg='Detecting compiler via')
         except OSError as e:
             popen_exceptions[join_args(cmd)] = e
             continue
