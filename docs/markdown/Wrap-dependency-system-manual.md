@@ -345,7 +345,8 @@ the main project depends on `foo-rs` and `bar-rs`, and they both depend on
 `common-rs`. The main project will first look up `foo-rs` which itself will
 configure `common-rs` with a set of features. Later, when `bar-rs` does a lookup
 for `common-rs` it has already been configured and the set of features cannot be
-changed. It is currently the responsability of the main project to resolve those
+changed. If `bar-rs` wants extra features from `common-rs`, Meson will error out.
+It is currently the responsability of the main project to resolve those
 issues by enabling extra features on each subproject:
 ```meson
 project(...,
