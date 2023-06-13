@@ -86,7 +86,8 @@ class WindowsModule(ExtensionModule):
 
         if not rescomp or not rescomp.found():
             comp = self.detect_compiler(state.environment.coredata.compilers[for_machine])
-            if comp.id in {'msvc', 'clang-cl', 'intel-cl'}:
+            if comp.id in {'msvc', 'clang-cl', 'intel-cl'} or (comp.linker and comp.linker.id in {'link', 'lld-link'}):
+                # Microsoft compilers uses rc irrespective of the frontend
                 rescomp = ExternalProgram('rc', silent=True)
             else:
                 rescomp = ExternalProgram('windres', silent=True)
