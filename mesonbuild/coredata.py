@@ -61,6 +61,16 @@ if T.TYPE_CHECKING:
 # But the corresponding Git tag needs to be '0.1.0rc1'
 version = '1.1.99'
 
+# The next stable version when we are in dev. This is used to allow projects to
+# require meson version >=1.2.0 when using 1.1.99. FeatureNew won't warn when
+# using a feature introduced in 1.2.0 when using Meson 1.1.99.
+stable_version = version
+if stable_version.endswith('.99'):
+    stable_version_array = stable_version.split('.')
+    stable_version_array[-1] = '0'
+    stable_version_array[-2] = str(int(version[-2]) + 1)
+    stable_version = '.'.join(stable_version_array)
+
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2012', 'vs2013', 'vs2015', 'vs2017', 'vs2019', 'vs2022', 'xcode', 'none']
 
 DEFAULT_YIELDING = False

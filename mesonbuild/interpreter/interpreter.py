@@ -526,7 +526,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 raise InterpreterException(f'Module returned a value of unknown type {v!r}.')
 
     def handle_meson_version(self, pv: str, location: mparser.BaseNode) -> None:
-        if not mesonlib.version_compare(coredata.version, pv):
+        if not mesonlib.version_compare(coredata.stable_version, pv):
             raise InterpreterException.from_node(f'Meson version is {coredata.version} but project requires {pv}', node=location)
         mesonlib.project_meson_versions[self.subproject] = pv
 
