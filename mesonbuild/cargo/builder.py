@@ -137,6 +137,33 @@ class Builder:
         """
         return mparser.ComparisonNode('==', lhs, self._symbol('=='), rhs)
 
+    def not_equal(self, lhs: mparser.BaseNode, rhs: mparser.BaseNode) -> mparser.ComparisonNode:
+        """Create an inequality operation
+
+        :param lhs: The left hand side of the "!="
+        :param rhs: the right hand side of the "!="
+        :return: A compraison node
+        """
+        return mparser.ComparisonNode('!=', lhs, self._symbol('!='), rhs)
+
+    def in_(self, lhs: mparser.BaseNode, rhs: mparser.BaseNode) -> mparser.ComparisonNode:
+        """Create an "in" operation
+
+        :param lhs: The left hand side of the "in"
+        :param rhs: the right hand side of the "in"
+        :return: A compraison node
+        """
+        return mparser.ComparisonNode('in', lhs, self._symbol('in'), rhs)
+
+    def not_in(self, lhs: mparser.BaseNode, rhs: mparser.BaseNode) -> mparser.ComparisonNode:
+        """Create an "not in" operation
+
+        :param lhs: The left hand side of the "not in"
+        :param rhs: the right hand side of the "not in"
+        :return: A compraison node
+        """
+        return mparser.ComparisonNode('notin', lhs, self._symbol('not in'), rhs)
+
     def or_(self, lhs: mparser.BaseNode, rhs: mparser.BaseNode) -> mparser.OrNode:
         """Create and OrNode
 
