@@ -348,12 +348,11 @@ def _dependency_varname(package_name: str) -> str:
     return f'{fixup_meson_varname(package_name)}_dep'
 
 
-def _create_project(cargo: Manifest, build: builder.Builder, env: Environment) -> T.List[mparser.BaseNode]:
+def _create_project(cargo: Manifest, build: builder.Builder) -> T.List[mparser.BaseNode]:
     """Create a function call
 
     :param cargo: The Manifest to generate from
     :param build: The AST builder
-    :param env: Meson environment
     :return: a list nodes
     """
     args: T.List[mparser.BaseNode] = []
@@ -366,7 +365,7 @@ def _create_project(cargo: Manifest, build: builder.Builder, env: Environment) -
         # Always assume that the generated meson is using the latest features
         # This will warn when when we generate deprecated code, which is helpful
         # for the upkeep of the module
-        'meson_version': build.string(f'>= {env.coredata.version}'),
+        'meson_version': build.string(f'>= {coredata.stable_version}'),
         'default_options': build.array([build.string(f'rust_std={cargo.package.edition}')]),
     }
     if cargo.package.license:
@@ -462,7 +461,7 @@ def interpret(subp_name: str, subdir: str, env: Environment) -> mparser.CodeBloc
     filename = os.path.join(cargo.subdir, cargo.path, 'Cargo.toml')
     build = builder.Builder(filename)
 
-    ast = _create_project(cargo, build, env)
+    ast = _create_project(cargo, build)
     ast += [build.assign(build.function('import', [build.string('rust')]), 'rust')]
     ast += _create_dependencies(cargo, build)
 
