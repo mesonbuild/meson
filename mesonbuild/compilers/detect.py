@@ -209,7 +209,7 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
         else:
             arg = '--version'
         try:
-            p, out, err = Popen_safe(linker + [arg])
+            p, out, err = Popen_safe_logged(linker + [arg], msg='Detecting linker via')
         except OSError as e:
             popen_exceptions[join_args(linker + [arg])] = e
             continue
@@ -626,7 +626,7 @@ def detect_cuda_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
     for compiler in compilers:
         arg = '--version'
         try:
-            p, out, err = Popen_safe(compiler + [arg])
+            p, out, err = Popen_safe_logged(compiler + [arg], msg='Detecting compiler via')
         except OSError as e:
             popen_exceptions[join_args(compiler + [arg])] = e
             continue
@@ -664,7 +664,7 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
     for compiler in compilers:
         for arg in ['--version', '-V']:
             try:
-                p, out, err = Popen_safe(compiler + [arg])
+                p, out, err = Popen_safe_logged(compiler + [arg], msg='Detecting compiler via')
             except OSError as e:
                 popen_exceptions[join_args(compiler + [arg])] = e
                 continue
@@ -827,7 +827,7 @@ def _detect_objc_or_objcpp_compiler(env: 'Environment', lang: str, for_machine: 
     for compiler in compilers:
         arg = ['--version']
         try:
-            p, out, err = Popen_safe(compiler + arg)
+            p, out, err = Popen_safe_logged(compiler + arg, msg='Detecting compiler via')
         except OSError as e:
             popen_exceptions[join_args(compiler + arg)] = e
             continue
@@ -877,7 +877,7 @@ def detect_java_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
         exelist = [defaults['java'][0]]
 
     try:
-        p, out, err = Popen_safe(exelist + ['-version'])
+        p, out, err = Popen_safe_logged(exelist + ['-version'], msg='Detecting compiler via')
     except OSError:
         raise EnvironmentException('Could not execute Java compiler: {}'.format(join_args(exelist)))
     if 'javac' in out or 'javac' in err:
@@ -898,7 +898,7 @@ def detect_cs_compiler(env: 'Environment', for_machine: MachineChoice) -> Compil
     info = env.machines[for_machine]
     for comp in compilers:
         try:
-            p, out, err = Popen_safe(comp + ['--version'])
+            p, out, err = Popen_safe_logged(comp + ['--version'], msg='Detecting compiler via')
         except OSError as e:
             popen_exceptions[join_args(comp + ['--version'])] = e
             continue
@@ -927,7 +927,7 @@ def detect_cython_compiler(env: 'Environment', for_machine: MachineChoice) -> Co
     popen_exceptions: T.Dict[str, Exception] = {}
     for comp in compilers:
         try:
-            err = Popen_safe(comp + ['-V'])[2]
+            err = Popen_safe_logged(comp + ['-V'], msg='Detecting compiler via')[2]
         except OSError as e:
             popen_exceptions[join_args(comp + ['-V'])] = e
             continue
@@ -950,7 +950,7 @@ def detect_vala_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
         exelist = [defaults['vala'][0]]
 
     try:
-        p, out = Popen_safe(exelist + ['--version'])[0:2]
+        p, out = Popen_safe_logged(exelist + ['--version'], msg='Detecting compiler via')[0:2]
     except OSError:
         raise EnvironmentException('Could not execute Vala compiler: {}'.format(join_args(exelist)))
     version = search_version(out)
@@ -975,7 +975,7 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
     for compiler in compilers:
         arg = ['--version']
         try:
-            out = Popen_safe(compiler + arg)[1]
+            out = Popen_safe_logged(compiler + arg, msg='Detecting compiler via')[1]
         except OSError as e:
             popen_exceptions[join_args(compiler + arg)] = e
             continue
@@ -1198,7 +1198,7 @@ def detect_swift_compiler(env: 'Environment', for_machine: MachineChoice) -> Com
         exelist = [defaults['swift'][0]]
 
     try:
-        p, _, err = Popen_safe(exelist + ['-v'])
+        p, _, err = Popen_safe_logged(exelist + ['-v'], msg='Detecting compiler via')
     except OSError:
         raise EnvironmentException('Could not execute Swift compiler: {}'.format(join_args(exelist)))
     version = search_version(err)
@@ -1234,7 +1234,7 @@ def detect_nasm_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
             default_path = os.path.join(os.environ['ProgramFiles'], 'NASM')
             comp[0] = shutil.which(comp[0], path=default_path) or comp[0]
         try:
-            output = Popen_safe(comp + ['--version'])[1]
+            output = Popen_safe_logged(comp + ['--version'], msg='Detecting compiler via')[1]
         except OSError as e:
             popen_exceptions[' '.join(comp + ['--version'])] = e
             continue
