@@ -702,6 +702,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         srcdir = Path(self.environment.source_dir)
         # convert variables which refer to an -uninstalled.pc style datadir
         for k, v in variables.items():
+            if not v:
+                FeatureNew.single_use('empty variable value in declare_dependency', '1.4.0', self.subproject, location=node)
             try:
                 p = Path(v)
             except ValueError:
