@@ -749,7 +749,7 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
                     compiler, version, for_machine, is_cross, info,
                     exe_wrap, full_version=full_version, linker=linker)
 
-            if 'ifx (IFORT)' in out:
+            if 'ifx (IFORT)' in out or 'ifx (IFX)' in out:
                 cls = fortran.IntelLLVMFortranCompiler
                 linker = guess_nix_linker(env, compiler, cls, version, for_machine)
                 return cls(
