@@ -193,6 +193,7 @@ class AstPrinter(AstVisitor):
             i.accept(self)
         if not isinstance(node.elseblock, mparser.EmptyNode):
             self.append('else', node)
+            self.newline()
             node.elseblock.accept(self)
         self.append('endif', node)
 
