@@ -4633,7 +4633,10 @@ class AllPlatformTests(BasePlatformTests):
         symlinked_subproject = os.path.join(testdir, 'subprojects', 'symlinked_subproject')
         if not os.path.exists(subproject_dir):
             os.mkdir(subproject_dir)
-        os.symlink(subproject, symlinked_subproject)
+        try:
+            os.symlink(subproject, symlinked_subproject)
+        except OSError:
+            raise SkipTest("Symlinks are not available on this machine")
         self.addCleanup(os.remove, symlinked_subproject)
 
         self.init(testdir)
