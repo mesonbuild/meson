@@ -95,6 +95,7 @@ class BasePlatformTests(TestCase):
             # VS doesn't have a stable output when no changes are done
             # XCode backend is untested with unit tests, help welcome!
             self.no_rebuild_stdout = [f'UNKNOWN BACKEND {self.backend.name!r}']
+        os.environ['COLUMNS'] = '80'
 
         self.builddirs = []
         self.new_builddir()
