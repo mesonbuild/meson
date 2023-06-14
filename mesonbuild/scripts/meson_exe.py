@@ -19,9 +19,9 @@ import argparse
 import pickle
 import subprocess
 import typing as T
-import locale
 
 from ..utils.core import ExecutableSerialisation
+from ..utils.universal import getencoding
 
 def buildparser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description='Custom executable wrapper for Meson. Do not run on your own, mmm\'kay?')
@@ -80,7 +80,7 @@ def run_exe(exe: ExecutableSerialisation, extra_env: T.Optional[T.Dict[str, str]
             print(f'while executing {cmd_args!r}')
         if exe.verbose:
             return p.returncode
-        encoding = locale.getpreferredencoding()
+        encoding = getencoding()
         if not exe.capture:
             print('--- stdout ---')
             print(stdout.decode(encoding=encoding, errors='replace'))

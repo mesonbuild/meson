@@ -47,7 +47,7 @@ from . import mlog
 from .coredata import MesonVersionMismatchException, OptionKey, major_versions_differ
 from .coredata import version as coredata_version
 from .mesonlib import (MesonException, OrderedSet, RealPathAction,
-                       get_wine_shortpath, join_args, split_args, setup_vsenv)
+                       get_wine_shortpath, join_args, split_args, setup_vsenv, getencoding)
 from .mintro import get_infodir, load_info_file
 from .programs import ExternalProgram
 from .backend.backends import TestProtocol, TestSerialisation
@@ -525,7 +525,7 @@ class ConsoleLogger(TestLogger):
         self.sub = self.RTRI
         self.spinner = self.SPINNER
         try:
-            self.output_start.encode(sys.stdout.encoding or 'ascii')
+            self.output_start.encode(getencoding() or 'ascii')
         except UnicodeEncodeError:
             self.output_start = dashes('8<', '-', self.cols - 2)
             self.output_end = dashes('', '-', self.cols - 2)

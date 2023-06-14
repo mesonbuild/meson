@@ -33,7 +33,7 @@ import mesonbuild.environment
 import mesonbuild.coredata
 import mesonbuild.modules.gnome
 from mesonbuild.mesonlib import (
-    is_cygwin, join_args, split_args, windows_proof_rmtree, python_command
+    join_args, split_args, windows_proof_rmtree, python_command, getencoding
 )
 import mesonbuild.modules.pkgconfig
 
@@ -176,7 +176,7 @@ class BasePlatformTests(TestCase):
         p = subprocess.run(command, stdout=subprocess.PIPE,
                            stderr=subprocess.STDOUT if stderr else subprocess.PIPE,
                            env=env,
-                           encoding='utf-8',
+                           encoding=getencoding(),
                            text=True, cwd=workdir, timeout=60 * 5)
         print('$', join_args(command))
         print('stdout:')
@@ -255,7 +255,7 @@ class BasePlatformTests(TestCase):
                     self._print_meson_log()
                     raise
                 out = self._get_meson_log()  # best we can do here
-        return out
+        return out or ''
 
     def build(self, target=None, *, extra_args=None, override_envvars=None, stderr=True):
         if extra_args is None:
@@ -365,14 +365,16 @@ class BasePlatformTests(TestCase):
         if isinstance(args, str):
             args = [args]
         out = subprocess.check_output(self.mintro_command + args + [self.builddir],
-                                      universal_newlines=True)
+                                      universal_newlines=True,
+                                      encoding=getencoding())
         return json.loads(out)
 
     def introspect_directory(self, directory, args):
         if isinstance(args, str):
             args = [args]
         out = subprocess.check_output(self.mintro_command + args + [directory],
-                                      universal_newlines=True)
+                                      universal_newlines=True,
+                                      encoding=getencoding())
         try:
             obj = json.loads(out)
         except Exception as e:
