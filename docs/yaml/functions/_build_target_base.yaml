@@ -123,8 +123,10 @@ kwargs:
     type: list[lib | custom_tgt | custom_idx]
     since: 0.40.0
     description: |
-      Links all contents of the given static libraries
-      whether they are used by not, equivalent to the `-Wl,--whole-archive` argument flag of GCC.
+      Links all contents of the given static libraries whether they are used or
+      not, equivalent to the `-Wl,--whole-archive` argument flag of GCC, or the
+      '/WHOLEARCHIVE' MSVC linker option. This allows the linked target to
+      re-export symbols from all objects in the static libraries.
 
       *(since 0.41.0)* If passed a list that list will be flattened.
 
