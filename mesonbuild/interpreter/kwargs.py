@@ -202,7 +202,7 @@ class AddTestSetup(TypedDict):
 class Project(TypedDict):
 
     version: T.Optional[FileOrString]
-    meson_version: T.Optional[str]
+    meson_version: str
     default_options: T.List[str]
     license: T.List[str]
     subproject_dir: str
