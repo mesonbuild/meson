@@ -703,7 +703,7 @@ class FeatureNew(FeatureCheckBase):
     # Class variable, shared across all instances
     #
     # Format: {subproject: {feature_version: set(feature_names)}}
-    feature_registry = {}  # type: T.ClassVar[T.Dict[str, T.Dict[str, T.Set[T.Tuple[str, T.Optional[mparser.BaseNode]]]]]]
+    feature_registry = {}
 
     @staticmethod
     def check_version(target_version: str, feature_version: str) -> bool:
@@ -734,7 +734,7 @@ class FeatureDeprecated(FeatureCheckBase):
     # Class variable, shared across all instances
     #
     # Format: {subproject: {feature_version: set(feature_names)}}
-    feature_registry = {}  # type: T.ClassVar[T.Dict[str, T.Dict[str, T.Set[T.Tuple[str, T.Optional[mparser.BaseNode]]]]]]
+    feature_registry = {}
     emit_notice = True
 
     @staticmethod
