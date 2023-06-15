@@ -3,13 +3,8 @@
 from __future__ import annotations
 
 from ...interpreterbase import (
-    ObjectHolder,
-    MesonOperator,
-    typed_operator,
-    noKwargs,
-    noPosargs,
-
-    InvalidArguments
+    FeatureBroken, InvalidArguments, MesonOperator, ObjectHolder,
+    noKwargs, noPosargs, typed_operator,
 )
 
 import typing as T
@@ -52,6 +47,13 @@ class IntegerHolder(ObjectHolder[int]):
 
     def display_name(self) -> str:
         return 'int'
+
+    def operator_call(self, operator: MesonOperator, other: TYPE_var) -> TYPE_var:
+        if isinstance(other, bool):
+            FeatureBroken.single_use('int operations with non-int', '1.2.0', self.subproject,
+                                     'It is not commutative and only worked because of leaky Python abstractions.',
+                                     location=self.current_node)
+        return super().operator_call(operator, other)
 
     @noKwargs
     @noPosargs
