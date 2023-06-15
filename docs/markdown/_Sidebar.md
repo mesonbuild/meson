@@ -9,6 +9,7 @@
 
 ### [Modules](Module-reference.md)
 
+* [features](Features-module.md)
 * [gnome](Gnome-module.md)
 * [i18n](i18n-module.md)
 * [pkgconfig](Pkgconfig-module.md)

@@ -41,6 +41,7 @@ index.md
 			Cuda-module.md
 			Dlang-module.md
 			External-Project-module.md
+			Features-module.md
 			Fs-module.md
 			Gnome-module.md
 			Hotdoc-module.md
