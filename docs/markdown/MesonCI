@@ -1,4 +1,4 @@
-# Meson CI setup
+# Meson I setup
 
 This document is aimed for Meson contributors and documents the CI
 setup used for testing Meson itself. The Meson project uses multiple
