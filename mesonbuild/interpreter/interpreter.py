@@ -1178,6 +1178,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         # for things like deprecation testing.
         if kwargs['meson_version']:
             self.handle_meson_version(kwargs['meson_version'], node)
+        else:
+            mesonlib.project_meson_versions[self.subproject] = mesonlib.NoProjectVersion()
 
         # Load "meson.options" before "meson_options.txt", and produce a warning if
         # it is being used with an old version. I have added check that if both

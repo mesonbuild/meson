@@ -57,6 +57,7 @@ _U = T.TypeVar('_U')
 __all__ = [
     'GIT',
     'python_command',
+    'NoProjectVersion',
     'project_meson_versions',
     'SecondLevelHolder',
     'File',
@@ -157,10 +158,13 @@ __all__ = [
 ]
 
 
+class NoProjectVersion:
+    pass
+
 # TODO: this is such a hack, this really should be either in coredata or in the
 # interpreter
 # {subproject: project_meson_version}
-project_meson_versions: T.DefaultDict[str, str] = collections.defaultdict(str)
+project_meson_versions: T.Dict[str, T.Union[str, NoProjectVersion]] = {}
 
 
 from glob import glob
