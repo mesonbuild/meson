@@ -1014,7 +1014,7 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
                 mlog.warning(
                     'Please do not put -C linker= in your compiler '
                     'command, set rust_ld=command in your cross file '
-                    'or use the RUST_LD environment variable, otherwise meson '
+                    'or use the RUSTC_LD environment variable, otherwise meson '
                     'will override your selection.')
 
             compiler = compiler.copy()  # avoid mutating the original list
