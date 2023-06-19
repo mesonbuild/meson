@@ -46,9 +46,11 @@ class IntrospectionHelper(argparse.Namespace):
     # mimic an argparse namespace
     def __init__(self, cross_file: str):
         super().__init__()
-        self.cross_file = cross_file  # type: str
-        self.native_file = None       # type: str
-        self.cmd_line_options = {}    # type: T.Dict[str, str]
+        self.cross_file = cross_file     # type: str
+        self.cross_files_constants = {}  # type: T.Dict[str, str]
+        self.native_file = None          # type: str
+        self.native_files_constants = {} # type: T.Dict[str, str]
+        self.cmd_line_options = {}       # type: T.Dict[str, str]
 
     def __eq__(self, other: object) -> bool:
         return NotImplemented

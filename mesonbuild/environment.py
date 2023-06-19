@@ -513,7 +513,9 @@ class Environment:
         ## Read in native file(s) to override build machine configuration
 
         if self.coredata.config_files is not None:
-            config = coredata.parse_machine_files(self.coredata.config_files)
+            config = coredata.parse_machine_files(self.coredata.config_files,
+                                                  self.coredata.config_files_constants,
+                                                  'native')
             binaries.build = BinaryTable(config.get('binaries', {}))
             properties.build = Properties(config.get('properties', {}))
             cmakevars.build = CMakeVariables(config.get('cmake', {}))
@@ -524,7 +526,9 @@ class Environment:
         ## Read in cross file(s) to override host machine configuration
 
         if self.coredata.cross_files:
-            config = coredata.parse_machine_files(self.coredata.cross_files)
+            config = coredata.parse_machine_files(self.coredata.cross_files,
+                                                  self.coredata.cross_files_constants,
+                                                  'cross')
             properties.host = Properties(config.get('properties', {}))
             binaries.host = BinaryTable(config.get('binaries', {}))
             cmakevars.host = CMakeVariables(config.get('cmake', {}))
