@@ -577,6 +577,7 @@ class Runner:
                 self.log('  -> Not downloaded yet')
                 return True
             self.wrap_resolver.apply_patch()
+            self.wrap_resolver.apply_diff_files()
             return True
         if options.save:
             if 'patch_directory' not in self.wrap.values:
