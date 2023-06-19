@@ -234,7 +234,14 @@ class Vs2010Backend(backends.Backend):
             self.generate_genlist_for_target(genlist, target, parent_node, generator_output_files, custom_target_include_dirs, custom_target_output_files)
         return generator_output_files, custom_target_output_files, custom_target_include_dirs
 
-    def generate(self, captured_compile_args_per_buildtype_and_target: dict = None) -> None:
+    def generate(
+        self,
+        capture: bool = False,
+        captured_compile_args_per_buildtype_and_target: dict = None
+    ) -> T.Optional[dict]:
+        # Check for (currently) unexpected capture arg use cases -
+        if capture:
+            raise MesonException('We do not expect any vs backend to generate with \'capture = True\'')
         target_machine = self.interpreter.builtin['target_machine'].cpu_family_method(None, None)
         if target_machine in {'64', 'x86_64'}:
             # amd64 or x86_64

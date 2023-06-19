@@ -575,7 +575,15 @@ class NinjaBackend(backends.Backend):
 
         raise MesonException(f'Could not determine vs dep dependency prefix string. output: {stderr} {stdout}')
 
-    def generate(self, captured_compile_args_per_buildtype_and_target: dict = None):
+    def generate(
+        self,
+        capture: bool = False,
+        captured_compile_args_per_buildtype_and_target: dict = None
+    ) -> T.Optional[dict]:
+        if captured_compile_args_per_buildtype_and_target:
+            # We don't yet have a use case where we'd expect to make use of this,
+            # so no harm in catching and reporting something unexpected.
+            raise MesonException('We do not expect the ninja backend to be given a valid \'captured_compile_args_per_buildtype_and_target\'')
         ninja = environment.detect_ninja_command_and_version(log=True)
         if self.environment.coredata.get_option(OptionKey('vsenv')):
             builddir = Path(self.environment.get_build_dir())
@@ -615,12 +623,12 @@ class NinjaBackend(backends.Backend):
             self.generate_phony()
             self.add_build_comment(NinjaComment('Build rules for targets'))
 
-            # Optionally capture compile args per buildtype and target, for later use (i.e. VisStudio project's NMake intellisense include dirs, defines, and compile options).
-            if captured_compile_args_per_buildtype_and_target is not None:
+            # Optionally capture compile args per target, for later use (i.e. VisStudio project's NMake intellisense include dirs, defines, and compile options).
+            if capture:
+                captured_compile_args_per_target = {}
                 for target in self.build.get_targets().values():
                     if isinstance(target, build.BuildTarget):
-                        buildtype = target.get_option(OptionKey('buildtype'))
-                        captured_compile_args_per_buildtype_and_target[buildtype][target.get_id()] = self.generate_common_compile_args_per_src_type(target)
+                        captured_compile_args_per_target[target.get_id()] = self.generate_common_compile_args_per_src_type(target)
 
             for t in ProgressBar(self.build.get_targets().values(), desc='Generating targets'):
                 self.generate_target(t)
@@ -659,6 +667,9 @@ class NinjaBackend(backends.Backend):
             subprocess.call(self.ninja_command + ['-t', 'cleandead'])
         self.generate_compdb()
         self.generate_rust_project_json()
+
+        if capture:
+            return captured_compile_args_per_target
 
     def generate_rust_project_json(self) -> None:
         """Generate a rust-analyzer compatible rust-project.json file."""
