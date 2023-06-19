@@ -38,6 +38,7 @@ class StringHolder(ObjectHolder[str]):
             'join': self.join_method,
             'replace': self.replace_method,
             'split': self.split_method,
+            'splitlines': self.splitlines_method,
             'strip': self.strip_method,
             'substring': self.substring_method,
             'to_int': self.to_int_method,
@@ -103,6 +104,12 @@ class StringHolder(ObjectHolder[str]):
             return arg_strings[idx]
 
         return re.sub(r'@(\d+)@', arg_replace, self.held_object)
+
+    @noKwargs
+    @noPosargs
+    @FeatureNew('str.splitlines', '1.2.0')
+    def splitlines_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.List[str]:
+        return self.held_object.splitlines()
 
     @noKwargs
     @typed_pos_args('str.join', varargs=str)

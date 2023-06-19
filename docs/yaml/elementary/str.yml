@@ -204,6 +204,28 @@ methods:
       type: str
       description: Specifies the character / substring where to split the string.
 
+- name: splitlines
+  returns: list[str]
+  since: 1.2.0
+  description: |
+    Splits the string into an array of lines.
+    Unlike .split('\n'), the empty string produced an empty array,
+    and if the string ends in a newline, splitlines() doesn't split
+    on that last newline.
+    '\n', '\r' and '\r\n' are all considered newlines.
+
+  example: |
+    ```meson
+    output = 'hello\nworld\n'.splitlines()
+    # Output value is ['hello', 'world']
+    output = ''.splitlines()
+    # Output value is []
+    fs = import('fs')
+    paths = fs.read('my_paths.list').splitlines()
+    # paths is now the paths listed in 'my_paths.list', or an empty list
+    # if 'my_paths.list' is empty
+    ```
+
 # str.join()
 - name: join
   returns: str
