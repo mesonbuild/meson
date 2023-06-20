@@ -154,6 +154,10 @@ class CPPCompiler(CLikeCompiler, Compiler):
             'gnu++17': 'gnu++1z',
             'c++20': 'c++2a',
             'gnu++20': 'gnu++2a',
+            'c++23': 'c++2b',
+            'gnu++23': 'gnu++2b',
+            'c++26': 'c++2c',
+            'gnu++26': 'gnu++2c',
         }
 
         # Currently, remapping is only supported for Clang, Elbrus and GCC
