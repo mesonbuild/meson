@@ -216,8 +216,9 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
         })
         opts[key.evolve('std')].choices = [
             'none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'c++1z',
-            'c++2a', 'c++20', 'gnu++11', 'gnu++14', 'gnu++17', 'gnu++1z',
-            'gnu++2a', 'gnu++20',
+            'c++2a', 'c++20', 'c++2b', 'c++23', 'c++2c', 'c++26', 'gnu++11',
+            'gnu++14', 'gnu++17', 'gnu++1z', 'gnu++2a', 'gnu++20', 'gnu++2b',
+            'gnu++23', 'gnu++2c', 'gnu++26'
         ]
         if self.info.is_windows() or self.info.is_cygwin():
             opts.update({
@@ -392,8 +393,9 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
         })
         cppstd_choices = [
             'none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'c++1z',
-            'c++2a', 'c++20', 'gnu++03', 'gnu++11', 'gnu++14', 'gnu++17',
-            'gnu++1z', 'gnu++2a', 'gnu++20',
+            'c++2a', 'c++20', 'c++2b', 'c++23', 'c++2c', 'c++26', 'gnu++03',
+            'gnu++11', 'gnu++14', 'gnu++17', 'gnu++1z', 'gnu++2a', 'gnu++20',
+            'gnu++2b', 'gnu++23', 'gnu++2c', 'gnu++26'
         ]
         if version_compare(self.version, '>=12.2.0'):
             cppstd_choices.append('c++23')
