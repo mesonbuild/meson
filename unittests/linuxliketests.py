@@ -517,6 +517,12 @@ class LinuxlikeTests(BasePlatformTests):
         has_cpp20 = (compiler.get_id() not in {'clang', 'gcc'} or
                      compiler.get_id() == 'clang' and _clang_at_least(compiler, '>=10.0.0', None) or
                      compiler.get_id() == 'gcc' and version_compare(compiler.version, '>=10.0.0'))
+        has_cpp23 = (compiler.get_id() not in {'clang', 'gcc'} or
+                     compiler.get_id() == 'clang' and _clang_at_least(compiler, '>=12.0.0', None) or
+                     compiler.get_id() == 'gcc' and version_compare(compiler.version, '>=11.0.0'))
+        has_cpp26 = (compiler.get_id() not in {'clang', 'gcc'} or
+                     compiler.get_id() == 'clang' and _clang_at_least(compiler, '>=17.0.0', None) or
+                     compiler.get_id() == 'gcc' and version_compare(compiler.version, '>=14.0.0'))
         has_c18 = (compiler.get_id() not in {'clang', 'gcc'} or
                    compiler.get_id() == 'clang' and _clang_at_least(compiler, '>=8.0.0', '>=11.0') or
                    compiler.get_id() == 'gcc' and version_compare(compiler.version, '>=8.0.0'))
@@ -532,6 +538,10 @@ class LinuxlikeTests(BasePlatformTests):
             elif '++2a' in v and not has_cpp2a_c17:  # https://en.cppreference.com/w/cpp/compiler_support
                 continue
             elif '++20' in v and not has_cpp20:
+                continue
+            elif ('++23' in v or '++2b' in v) and not has_cpp23:
+                continue
+            elif ('++26' in v or '++2c' in v) and not has_cpp26:
                 continue
             # now C
             elif '17' in v and not has_cpp2a_c17:
