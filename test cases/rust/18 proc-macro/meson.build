@@ -13,7 +13,8 @@ pm = shared_library(
 main = executable(
   'main',
   'use.rs',
-  link_with : pm
+  link_with : pm,
+  rust_args : ['-C', 'panic=abort'],
 )
 
 test('main_test', main)

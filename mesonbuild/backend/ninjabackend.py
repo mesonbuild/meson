@@ -2041,16 +2041,17 @@ class NinjaBackend(backends.Backend):
             args += ['-L', d]
         target_deps = target.get_dependencies()
         has_shared_deps = any(isinstance(dep, build.SharedLibrary) for dep in target_deps)
-        if isinstance(target, build.SharedLibrary) or has_shared_deps:
-            has_rust_shared_deps = any(isinstance(dep, build.SharedLibrary) and dep.uses_rust()
-                                       and dep.rust_crate_type not in {'cdylib', 'proc-macro'}
-                                       for dep in target_deps)
-            if cratetype not in {'cdylib', 'proc-macro'} or has_rust_shared_deps:
-                # add prefer-dynamic if any of the Rust libraries we link
-                # against are dynamic or this is a dynamic library itself,
-                # otherwise we'll end up with multiple implementations of crates
-                args += ['-C', 'prefer-dynamic']
+        has_rust_shared_deps = any(dep.uses_rust()
+                                   and dep.rust_crate_type == 'dylib'
+                                   for dep in target_deps)
 
+        if cratetype in {'dylib', 'proc-macro'} or has_rust_shared_deps:
+            # add prefer-dynamic if any of the Rust libraries we link
+            # against are dynamic or this is a dynamic library itself,
+            # otherwise we'll end up with multiple implementations of libstd.
+            args += ['-C', 'prefer-dynamic']
+
+        if isinstance(target, build.SharedLibrary) or has_shared_deps:
             # build the usual rpath arguments as well...
 
             # Set runtime-paths so we can run executables without needing to set
