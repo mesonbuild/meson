@@ -65,3 +65,11 @@ be configured to use the file as it's not in the source root (Meson does not
 write files into the source directory). [See the upstream
 docs](https://rust-analyzer.github.io/manual.html#non-cargo-based-projects) for
 more information on how to configure that.
+
+## Linking with standard libraries
+
+Meson will link the Rust standard libraries (e.g. libstd) statically, unless the
+target is a proc macro or dylib, or it depends on a dylib, in which case [`-C
+prefer-dynamic`](https://doc.rust-lang.org/rustc/codegen-options/index.html#prefer-dynamic)
+will be passed to the Rust compiler, and the standard libraries will be
+dynamically linked.
