@@ -69,11 +69,6 @@ class FileTreeEntry:
         self.subdirs = {}
         self.targets = []
 
-class PbxItem:
-    def __init__(self, value, comment = ''):
-        self.value = value
-        self.comment = comment
-
 class PbxArray:
     def __init__(self) -> None:
         self.items = []
