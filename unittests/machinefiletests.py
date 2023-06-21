@@ -33,7 +33,7 @@ import mesonbuild.environment
 import mesonbuild.coredata
 import mesonbuild.modules.gnome
 from mesonbuild.mesonlib import (
-    MachineChoice, is_windows, is_osx, is_cygwin, is_haiku, is_sunos
+    MachineChoice, is_windows, is_osx, is_cygwin, is_haiku, is_sunos, quote_arg
 )
 from mesonbuild.compilers import (
     detect_swift_compiler, compiler_from_language
@@ -136,7 +136,7 @@ class NativeFileTests(BasePlatformTests):
         # invokes our python wrapper
         batfile = os.path.join(self.builddir, f'binary_wrapper{self.current_wrapper}.bat')
         with open(batfile, 'wt', encoding='utf-8') as f:
-            f.write(fr'@{sys.executable} {filename} %*')
+            f.write(fr'@{quote_arg(sys.executable)} {filename} %*')
         return batfile
 
     def helper_for_compiler(self, lang, cb, for_machine = MachineChoice.HOST):
