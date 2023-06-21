@@ -18,7 +18,7 @@ like Meson, rather than Meson work more like rust.
 
 ## Functions
 
-### test(name: string, target: library | executable, dependencies: []Dependency)
+### test(name: string, target: library | executable, dependencies: []Dependency, link_with: []targets)
 
 This function creates a new rust unittest target from an existing rust
 based target, which may be a library or executable. It does this by
@@ -32,6 +32,9 @@ that automatically.
 
 Additional, test only dependencies may be passed via the dependencies
 argument.
+
+*(since 1.2.0)* the link_with argument can be used to pass additional build
+targets to link with
 
 ### bindgen(*, input: string | BuildTarget | [](string | BuildTarget), output: string, include_directories: [](include_directories | string), c_args: []string, args: []string, dependencies: []Dependency)
 

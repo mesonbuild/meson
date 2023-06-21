@@ -41,3 +41,7 @@ rust.test('rust_test_from_static', lib, args: ['--skip', 'test_add_intentional_f
 
 lib = shared_library('rust_shared', ['test.rs'])
 rust.test('rust_test_from_shared', lib, args: ['--skip', 'test_add_intentional_fail'])
+
+helper = static_library('helper', 'helper.rs')
+lib = static_library('rust_link_with', 'test3.rs')
+rust.test('rust_test_link_with', lib, link_with : helper)
