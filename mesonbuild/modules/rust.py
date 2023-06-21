@@ -201,7 +201,10 @@ class RustModule(ExtensionModule):
             else:
                 depends.append(d)
 
-        clang_args: T.List[str] = []
+        # Copy to avoid subsequent calls mutating the original
+        # TODO: if we want this to be per-machine we'll need a native kwarg
+        clang_args = state.environment.properties.host.get_bindgen_clang_args().copy()
+
         for i in state.process_include_dirs(kwargs['include_directories']):
             # bindgen always uses clang, so it's safe to hardcode -I here
             clang_args.extend([f'-I{x}' for x in i.to_string_list(

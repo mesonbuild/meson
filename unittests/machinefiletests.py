@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
 import subprocess
 import tempfile
 import textwrap
@@ -67,7 +69,7 @@ class NativeFileTests(BasePlatformTests):
         self.current_config = 0
         self.current_wrapper = 0
 
-    def helper_create_native_file(self, values):
+    def helper_create_native_file(self, values: T.Dict[str, T.Dict[str, T.Union[str, int, float, bool, T.Sequence[T.Union[str, int, float, bool]]]]]) -> str:
         """Create a config file as a temporary file.
 
         values should be a nested dictionary structure of {section: {key:
@@ -81,10 +83,10 @@ class NativeFileTests(BasePlatformTests):
                 for k, v in entries.items():
                     if isinstance(v, (bool, int, float)):
                         f.write(f"{k}={v}\n")
-                    elif isinstance(v, list):
-                        f.write("{}=[{}]\n".format(k, ', '.join([f"'{w}'" for w in v])))
-                    else:
+                    elif isinstance(v, str):
                         f.write(f"{k}='{v}'\n")
+                    else:
+                        f.write("{}=[{}]\n".format(k, ', '.join([f"'{w}'" for w in v])))
         return filename
 
     def helper_create_binary_wrapper(self, binary, dir_=None, extra_args=None, **kwargs):
@@ -621,6 +623,29 @@ class NativeFileTests(BasePlatformTests):
                 break
         else:
             self.fail('Did not find bindir in build options?')
+
+    @skip_if_not_language('rust')
+    def test_bindgen_clang_arguments(self) -> None:
+        if self.backend is not Backend.ninja:
+            raise SkipTest('Rust is only supported with Ninja')
+
+        testcase = os.path.join(self.rust_test_dir, '12 bindgen')
+        config = self.helper_create_native_file({
+            'properties': {'bindgen_clang_arguments': 'sentinal'}
+        })
+
+        self.init(testcase, extra_args=['--native-file', config])
+        targets: T.List[T.Dict[str, T.Any]] = self.introspect('--targets')
+        for t in targets:
+            if t['id'].startswith('rustmod-bindgen'):
+                args: T.List[str] = t['target_sources'][0]['compiler']
+                self.assertIn('sentinal', args, msg="Did not find machine file value")
+                cargs_start = args.index('--')
+                sent_arg = args.index('sentinal')
+                self.assertLess(cargs_start, sent_arg, msg='sentinal argument does not come after "--"')
+                break
+        else:
+            self.fail('Did not find a bindgen target')
 
 
 class CrossFileTests(BasePlatformTests):

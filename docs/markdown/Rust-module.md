@@ -86,10 +86,17 @@ r1 = rust.bindgen(
 )
 ```
 
-
 *Since 1.1.0* Meson will synchronize assertions for Rust and C/C++  when the
 `b_ndebug` option is set (via `-DNDEBUG` for C/C++, and `-C
 debug-assertions=on` for Rust), and will pass `-DNDEBUG` as an extra argument
 to clang. This allows for reliable wrapping of `-DNDEBUG` controlled behavior
 with `#[cfg(debug_asserions)]` and or `cfg!()`. Before 1.1.0, assertions for Rust
 were never turned on by Meson.
+
+*Since 1.2.0* Additional arguments to pass to clang may be specified in a
+*machine file in the properties section:
+
+```ini
+[properties]
+bindgen_clang_arguments = ['--target', 'x86_64-linux-gnu']
+```

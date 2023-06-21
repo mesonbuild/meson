@@ -237,6 +237,12 @@ class Properties:
         value = T.cast('T.Optional[str]', self.properties.get('java_home'))
         return Path(value) if value else None
 
+    def get_bindgen_clang_args(self) -> T.List[str]:
+        value = mesonlib.listify(self.properties.get('bindgen_clang_arguments', []))
+        if not all(isinstance(v, str) for v in value):
+            raise EnvironmentException('bindgen_clang_arguments must be a string or an array of strings')
+        return T.cast('T.List[str]', value)
+
     def __eq__(self, other: object) -> bool:
         if isinstance(other, type(self)):
             return self.properties == other.properties
