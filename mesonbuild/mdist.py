@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 
+import abc
 import argparse
 import gzip
 import os
@@ -38,6 +39,7 @@ from mesonbuild import mlog, build, coredata
 from .scripts.meson_exe import run_exe
 
 if T.TYPE_CHECKING:
+    from ._typing import ImmutableListProtocol
     from .mesonlib import ExecutableSerialisation
 
 archive_choices = ['gztar', 'xztar', 'zip']
@@ -46,7 +48,7 @@ archive_extension = {'gztar': '.tar.gz',
                      'xztar': '.tar.xz',
                      'zip': '.zip'}
 
-def add_arguments(parser):
+def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('-C', dest='wd', action=RealPathAction,
                         help='directory to cd into before running')
     parser.add_argument('--allow-dirty', action='store_true',
@@ -59,7 +61,7 @@ def add_arguments(parser):
                         help='Do not build and test generated packages.')
 
 
-def create_hash(fname):
+def create_hash(fname: str) -> None:
     hashname = fname + '.sha256sum'
     m = hashlib.sha256()
     m.update(open(fname, 'rb').read())
@@ -71,26 +73,26 @@ def create_hash(fname):
 
 msg_uncommitted_changes = 'Repository has uncommitted changes that will not be included in the dist tarball'
 
-def handle_dirty_opt(msg, allow_dirty: bool):
+def handle_dirty_opt(msg: str, allow_dirty: bool) -> None:
     if allow_dirty:
         mlog.warning(msg)
     else:
         mlog.error(msg + '\n' + 'Use --allow-dirty to ignore the warning and proceed anyway')
         sys.exit(1)
 
-def is_git(src_root):
+def is_git(src_root: str) -> bool:
     '''
     Checks if meson.build file at the root source directory is tracked by git.
     It could be a subproject part of the parent project git repository.
     '''
     return quiet_git(['ls-files', '--error-unmatch', 'meson.build'], src_root)[0]
 
-def is_hg(src_root):
+def is_hg(src_root: str) -> bool:
     return os.path.isdir(os.path.join(src_root, '.hg'))
 
 
 @dataclass
-class Dist:
+class Dist(metaclass=abc.ABCMeta):
     dist_name: str
     src_root: str
     bld_root: str
@@ -98,11 +100,15 @@ class Dist:
     subprojects: T.Dict[str, str]
     options: argparse.Namespace
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.dist_sub = os.path.join(self.bld_root, 'meson-dist')
         self.distdir = os.path.join(self.dist_sub, self.dist_name)
 
-    def run_dist_scripts(self):
+    @abc.abstractmethod
+    def create_dist(self, archives: T.List[str]) -> T.List[str]:
+        pass
+
+    def run_dist_scripts(self) -> None:
         assert os.path.isabs(self.distdir)
         env = {}
         env['MESON_DIST_ROOT'] = self.distdir
@@ -127,7 +133,7 @@ class Dist:
 
 
 class GitDist(Dist):
-    def git_root(self, dir_):
+    def git_root(self, dir_: str) -> Path:
         # Cannot use --show-toplevel here because git in our CI prints cygwin paths
         # that python cannot resolve. Workaround this by taking parent of src_root.
         prefix = quiet_git(['rev-parse', '--show-prefix'], dir_, check=True)[1].strip()
@@ -136,12 +142,13 @@ class GitDist(Dist):
         prefix_level = len(Path(prefix).parents)
         return Path(dir_).parents[prefix_level - 1]
 
-    def have_dirty_index(self):
+    def have_dirty_index(self) -> bool:
         '''Check whether there are uncommitted changes in git'''
         ret = subprocess.call(['git', '-C', self.src_root, 'diff-index', '--quiet', 'HEAD'])
         return ret == 1
 
-    def copy_git(self, src, distdir, revision='HEAD', prefix=None, subdir=None):
+    def copy_git(self, src: T.Union[str, os.PathLike], distdir: str, revision: str = 'HEAD',
+                 prefix: T.Optional[str] = None, subdir: T.Optional[str] = None) -> None:
         cmd = ['git', 'archive', '--format', 'tar', revision]
         if prefix is not None:
             cmd.insert(2, f'--prefix={prefix}/')
@@ -153,7 +160,7 @@ class GitDist(Dist):
             t = tarfile.open(fileobj=f) # [ignore encoding]
             t.extractall(path=distdir)
 
-    def process_git_project(self, src_root, distdir):
+    def process_git_project(self, src_root: str, distdir: str) -> None:
         if self.have_dirty_index():
             handle_dirty_opt(msg_uncommitted_changes, self.options.allow_dirty)
         if os.path.exists(distdir):
@@ -173,7 +180,7 @@ class GitDist(Dist):
             windows_proof_rmtree(tmp_distdir)
         self.process_submodules(src_root, distdir)
 
-    def process_submodules(self, src, distdir):
+    def process_submodules(self, src: str, distdir: str) -> None:
         module_file = os.path.join(src, '.gitmodules')
         if not os.path.exists(module_file):
             return
@@ -192,7 +199,7 @@ class GitDist(Dist):
 
             self.copy_git(os.path.join(src, subpath), distdir, revision=sha1, prefix=subpath)
 
-    def create_dist(self, archives):
+    def create_dist(self, archives: T.List[str]) -> T.List[str]:
         self.process_git_project(self.src_root, self.distdir)
         for path in self.subprojects.values():
             sub_src_root = os.path.join(self.src_root, path)
@@ -214,12 +221,12 @@ class GitDist(Dist):
 
 
 class HgDist(Dist):
-    def have_dirty_index(self):
+    def have_dirty_index(self) -> bool:
         '''Check whether there are uncommitted changes in hg'''
         out = subprocess.check_output(['hg', '-R', self.src_root, 'summary'])
         return b'commit: (clean)' not in out
 
-    def create_dist(self, archives):
+    def create_dist(self, archives: T.List[str]) -> T.List[str]:
         if self.have_dirty_index():
             handle_dirty_opt(msg_uncommitted_changes, self.options.allow_dirty)
         if self.dist_scripts:
@@ -257,7 +264,7 @@ class HgDist(Dist):
         return output_names
 
 
-def run_dist_steps(meson_command, unpacked_src_dir, builddir, installdir, ninja_args):
+def run_dist_steps(meson_command: T.List[str], unpacked_src_dir: str, builddir: str, installdir: str, ninja_args: T.List[str]) -> int:
     if subprocess.call(meson_command + ['--backend=ninja', unpacked_src_dir, builddir]) != 0:
         print('Running Meson on distribution package failed')
         return 1
@@ -274,7 +281,7 @@ def run_dist_steps(meson_command, unpacked_src_dir, builddir, installdir, ninja_
         return 1
     return 0
 
-def check_dist(packagename, meson_command, extra_meson_args, bld_root, privdir):
+def check_dist(packagename: str, meson_command: ImmutableListProtocol[str], extra_meson_args: T.List[str], bld_root: str, privdir: str) -> int:
     print(f'Testing distribution package {packagename}')
     unpackdir = os.path.join(privdir, 'dist-unpack')
     builddir = os.path.join(privdir, 'dist-build')
@@ -302,7 +309,7 @@ def check_dist(packagename, meson_command, extra_meson_args, bld_root, privdir):
         print(f'Distribution package {packagename} tested')
     return ret
 
-def create_cmdline_args(bld_root):
+def create_cmdline_args(bld_root: str) -> T.List[str]:
     parser = argparse.ArgumentParser()
     msetup_argparse(parser)
     args = parser.parse_args([])
@@ -311,7 +318,7 @@ def create_cmdline_args(bld_root):
     args.cmd_line_options.pop(OptionKey('backend'), '')
     return shlex.split(coredata.format_cmd_line_options(args))
 
-def determine_archives_to_generate(options):
+def determine_archives_to_generate(options: argparse.Namespace) -> T.List[str]:
     result = []
     for i in options.formats.split(','):
         if i not in archive_choices:
@@ -321,7 +328,7 @@ def determine_archives_to_generate(options):
         sys.exit('No archive types specified.')
     return result
 
-def run(options):
+def run(options: argparse.Namespace) -> int:
     buildfile = Path(options.wd) / 'meson-private' / 'build.dat'
     if not buildfile.is_file():
         raise MesonException(f'Directory {options.wd!r} does not seem to be a Meson build directory.')
@@ -348,6 +355,7 @@ def run(options):
             subprojects[sub] = os.path.join(b.subproject_dir, directory)
         extra_meson_args.append('-Dwrap_mode=nodownload')
 
+    cls: T.Type[Dist]
     if is_git(src_root):
         cls = GitDist
     elif is_hg(src_root):
