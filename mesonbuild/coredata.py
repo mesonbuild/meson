@@ -959,7 +959,10 @@ class MachineFileParser():
         self.constants = {'True': True, 'False': False}
         self.sections = {}
 
-        self.parser.read(filenames)
+        try:
+            self.parser.read(filenames)
+        except configparser.Error as e:
+            raise EnvironmentException(f'Malformed cross or native file: {e}')
 
         # Parse [constants] first so they can be used in other sections
         if self.parser.has_section('constants'):
