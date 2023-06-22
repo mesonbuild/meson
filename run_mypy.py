@@ -37,6 +37,7 @@ modules = [
     'mesonbuild/utils/core.py',
     'mesonbuild/utils/platform.py',
     'mesonbuild/utils/universal.py',
+    'mesonbuild/mconf.py',
     'mesonbuild/mdist.py',
     'mesonbuild/minit.py',
     'mesonbuild/minstall.py',

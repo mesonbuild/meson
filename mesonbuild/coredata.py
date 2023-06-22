@@ -717,13 +717,13 @@ class CoreData:
 
         return dirty
 
-    def clear_cache(self):
+    def clear_cache(self) -> None:
         self.deps.host.clear()
         self.deps.build.clear()
         self.compiler_check_cache.clear()
         self.run_check_cache.clear()
 
-    def get_nondefault_buildtype_args(self):
+    def get_nondefault_buildtype_args(self) -> T.List[T.Union[T.Tuple[str, str, str], T.Tuple[str, bool, bool]]]:
         result = []
         value = self.options[OptionKey('buildtype')].value
         if value == 'plain':
