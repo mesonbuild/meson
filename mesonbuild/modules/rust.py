@@ -40,6 +40,7 @@ if T.TYPE_CHECKING:
         dependencies: T.List[T.Union[Dependency, ExternalLibrary]]
         is_parallel: bool
         link_with: T.List[LibTypes]
+        rust_args: T.List[str]
 
     class FuncBindgen(TypedDict):
 
@@ -71,6 +72,13 @@ class RustModule(ExtensionModule):
         *TEST_KWS,
         DEPENDENCIES_KW,
         LINK_WITH_KW.evolve(since='1.2.0'),
+        KwargInfo(
+            'rust_args',
+            ContainerTypeInfo(list, str),
+            listify=True,
+            default=[],
+            since='1.2.0',
+        ),
         KwargInfo('is_parallel', bool, default=False),
     )
     def test(self, state: ModuleState, args: T.Tuple[str, BuildTarget], kwargs: FuncTest) -> ModuleReturnValue:
@@ -148,7 +156,8 @@ class RustModule(ExtensionModule):
         new_target_kwargs = base_target.kwargs.copy()
         # Don't mutate the shallow copied list, instead replace it with a new
         # one
-        new_target_kwargs['rust_args'] = new_target_kwargs.get('rust_args', []) + ['--test']
+        new_target_kwargs['rust_args'] = \
+            new_target_kwargs.get('rust_args', []) + kwargs['rust_args'] + ['--test']
         new_target_kwargs['install'] = False
         new_target_kwargs['dependencies'] = new_target_kwargs.get('dependencies', []) + kwargs['dependencies']
         new_target_kwargs['link_with'] = new_target_kwargs.get('link_with', []) + kwargs['link_with']

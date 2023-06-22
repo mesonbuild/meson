@@ -8,6 +8,13 @@ mod tests {
 
         use super::*;
 
+        // This is an intentinally broken test that should be turned off by extra rust arguments
+        #[cfg(not(broken = "false"))]
+        #[test]
+        fn test_broken() {
+                assert_eq!(0, 5);
+        }
+
         #[test]
         fn test_add_sub() {
                 let x = helper::subtract(6, 5);
