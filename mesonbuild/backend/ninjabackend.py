@@ -2040,6 +2040,11 @@ class NinjaBackend(backends.Backend):
             if d == '':
                 d = '.'
             args += ['-L', d]
+
+        # Because of the way rustc links, this must come after any potential
+        # library need to link with their stdlibs (C++ and Fortran, for example)
+        args.extend(target.get_used_stdlib_args('rust'))
+
         target_deps = target.get_dependencies()
         has_shared_deps = any(isinstance(dep, build.SharedLibrary) for dep in target_deps)
         has_rust_shared_deps = any(dep.uses_rust()
