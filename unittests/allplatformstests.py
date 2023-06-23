@@ -1777,6 +1777,7 @@ class AllPlatformTests(BasePlatformTests):
             raise SkipTest('Did not find the underscore prefix define __USER_LABEL_PREFIX__')
 
     @skipIfNoPkgconfig
+    @skip_if_env_set("MSYSTEM")  # msys/mingw doesn't handle \ escaped correctly
     def test_pkgconfig_static(self):
         '''
         Test that the we prefer static libraries when `static: true` is
@@ -1818,6 +1819,7 @@ class AllPlatformTests(BasePlatformTests):
                         os.unlink(fname)
 
     @skipIfNoPkgconfig
+    @skip_if_env_set("MSYSTEM")  # msys/mingw doesn't handle \ escaped correctly
     @mock.patch.dict(os.environ)
     def test_pkgconfig_gen_escaping(self):
         testdir = os.path.join(self.common_test_dir, '44 pkgconfig-gen')
@@ -4708,6 +4710,8 @@ class AllPlatformTests(BasePlatformTests):
         ]
         self.assertEqual(sorted(expected_meson_modules), sorted(meson_modules))
 
+    @skipIfNoPkgconfig
+    @skip_if_env_set("MSYSTEM")  # msys/mingw doesn't handle \ escaped correctly
     def test_pkg_config_partial_dependency(self) -> None:
         testdir = os.path.join(self.common_test_dir, '183 partial dependency')
         with tempfile.TemporaryDirectory() as d:
