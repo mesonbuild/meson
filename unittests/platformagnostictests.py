@@ -14,6 +14,7 @@
 
 import json
 import os
+import pickle
 import tempfile
 import subprocess
 import textwrap
@@ -22,7 +23,7 @@ from pathlib import Path
 
 from .baseplatformtests import BasePlatformTests
 from .helpers import is_ci
-from mesonbuild.mesonlib import is_linux
+from mesonbuild.mesonlib import EnvironmentVariables, ExecutableSerialisation, is_linux, python_command
 from mesonbuild.optinterpreter import OptionInterpreter, OptionException
 from run_tests import Backend
 
@@ -198,3 +199,31 @@ class PlatformAgnosticTests(BasePlatformTests):
         with self.assertRaises(subprocess.CalledProcessError) as cm:
             self.init(testdir, extra_args=['--wipe'])
         self.assertIn('Directory is not empty', cm.exception.stdout)
+
+    def test_scripts_loaded_modules(self):
+        '''
+        Simulate a wrapped command, as done for custom_target() that capture
+        output. The script will print all python modules loaded and we verify
+        that it contains only an acceptable subset. Loading too many modules
+        slows down the build when many custom targets get wrapped.
+        '''
+        es = ExecutableSerialisation(python_command + ['-c', 'exit(0)'], env=EnvironmentVariables())
+        p = Path(self.builddir, 'exe.dat')
+        with p.open('wb') as f:
+            pickle.dump(es, f)
+        cmd = self.meson_command + ['--internal', 'test_loaded_modules', '--unpickle', str(p)]
+        p = subprocess.run(cmd, stdout=subprocess.PIPE)
+        all_modules = json.loads(p.stdout.splitlines()[0])
+        meson_modules = [m for m in all_modules if m.startswith('mesonbuild')]
+        expected_meson_modules = [
+            'mesonbuild',
+            'mesonbuild._pathlib',
+            'mesonbuild.utils',
+            'mesonbuild.utils.core',
+            'mesonbuild.mesonmain',
+            'mesonbuild.mlog',
+            'mesonbuild.scripts',
+            'mesonbuild.scripts.meson_exe',
+            'mesonbuild.scripts.test_loaded_modules'
+        ]
+        self.assertEqual(sorted(expected_meson_modules), sorted(meson_modules))
