@@ -4358,6 +4358,9 @@ class AllPlatformTests(BasePlatformTests):
             Path(installpath, 'usr/share/foo2.h'),
             Path(installpath, 'usr/share/out1.txt'),
             Path(installpath, 'usr/share/out2.txt'),
+            Path(installpath, 'usr/share/install tag'),
+            Path(installpath, 'usr/share/install tag/aaa.txt'),
+            Path(installpath, 'usr/share/install tag/bbb.txt'),
         }
 
         def do_install(tags, expected_files, expected_scripts):
@@ -4417,140 +4420,182 @@ class AllPlatformTests(BasePlatformTests):
                 f'{self.builddir}/out1-notag.txt': {
                     'destination': '{datadir}/out1-notag.txt',
                     'tag': None,
+                    'subproject': None,
                 },
                 f'{self.builddir}/out2-notag.txt': {
                     'destination': '{datadir}/out2-notag.txt',
                     'tag': None,
+                    'subproject': None,
                 },
                 f'{self.builddir}/libstatic.a': {
                     'destination': '{libdir_static}/libstatic.a',
                     'tag': 'devel',
+                    'subproject': None,
                 },
                 f'{self.builddir}/' + exe_name('app'): {
                     'destination': '{bindir}/' + exe_name('app'),
                     'tag': 'runtime',
+                    'subproject': None,
                 },
                 f'{self.builddir}/' + exe_name('app-otherdir'): {
                     'destination': '{prefix}/otherbin/' + exe_name('app-otherdir'),
                     'tag': 'runtime',
+                    'subproject': None,
                 },
                 f'{self.builddir}/subdir/' + exe_name('app2'): {
                     'destination': '{bindir}/' + exe_name('app2'),
                     'tag': 'runtime',
+                    'subproject': None,
                 },
                 f'{self.builddir}/' + shared_lib_name('shared'): {
                     'destination': '{libdir_shared}/' + shared_lib_name('shared'),
                     'tag': 'runtime',
+                    'subproject': None,
                 },
                 f'{self.builddir}/' + shared_lib_name('both'): {
                     'destination': '{libdir_shared}/' + shared_lib_name('both'),
                     'tag': 'runtime',
+                    'subproject': None,
                 },
                 f'{self.builddir}/' + static_lib_name('both'): {
                     'destination': '{libdir_static}/' + static_lib_name('both'),
                     'tag': 'devel',
+                    'subproject': None,
                 },
                 f'{self.builddir}/' + shared_lib_name('bothcustom'): {
                     'destination': '{libdir_shared}/' + shared_lib_name('bothcustom'),
                     'tag': 'custom',
+                    'subproject': None,
                 },
                 f'{self.builddir}/' + static_lib_name('bothcustom'): {
                     'destination': '{libdir_static}/' + static_lib_name('bothcustom'),
                     'tag': 'custom',
+                    'subproject': None,
                 },
                 f'{self.builddir}/subdir/' + shared_lib_name('both2'): {
                     'destination': '{libdir_shared}/' + shared_lib_name('both2'),
                     'tag': 'runtime',
+                    'subproject': None,
                 },
                 f'{self.builddir}/subdir/' + static_lib_name('both2'): {
                     'destination': '{libdir_static}/' + static_lib_name('both2'),
                     'tag': 'devel',
+                    'subproject': None,
                 },
                 f'{self.builddir}/out1-custom.txt': {
                     'destination': '{datadir}/out1-custom.txt',
                     'tag': 'custom',
+                    'subproject': None,
                 },
                 f'{self.builddir}/out2-custom.txt': {
                     'destination': '{datadir}/out2-custom.txt',
                     'tag': 'custom',
+                    'subproject': None,
                 },
                 f'{self.builddir}/out3-custom.txt': {
                     'destination': '{datadir}/out3-custom.txt',
                     'tag': 'custom',
+                    'subproject': None,
                 },
                 f'{self.builddir}/subdir/out1.txt': {
                     'destination': '{datadir}/out1.txt',
                     'tag': None,
+                    'subproject': None,
                 },
                 f'{self.builddir}/subdir/out2.txt': {
                     'destination': '{datadir}/out2.txt',
                     'tag': None,
+                    'subproject': None,
                 },
                 f'{self.builddir}/out-devel.h': {
                     'destination': '{includedir}/out-devel.h',
                     'tag': 'devel',
+                    'subproject': None,
                 },
                 f'{self.builddir}/out3-notag.txt': {
                     'destination': '{datadir}/out3-notag.txt',
                     'tag': None,
+                    'subproject': None,
                 },
             },
             'configure': {
                 f'{self.builddir}/foo-notag.h': {
                     'destination': '{datadir}/foo-notag.h',
                     'tag': None,
+                    'subproject': None,
                 },
                 f'{self.builddir}/foo2-devel.h': {
                     'destination': '{includedir}/foo2-devel.h',
                     'tag': 'devel',
+                    'subproject': None,
                 },
                 f'{self.builddir}/foo-custom.h': {
                     'destination': '{datadir}/foo-custom.h',
                     'tag': 'custom',
+                    'subproject': None,
                 },
                 f'{self.builddir}/subdir/foo2.h': {
                     'destination': '{datadir}/foo2.h',
                     'tag': None,
+                    'subproject': None,
                 },
             },
             'data': {
                 f'{testdir}/bar-notag.txt': {
                     'destination': '{datadir}/bar-notag.txt',
                     'tag': None,
+                    'subproject': None,
                 },
                 f'{testdir}/bar-devel.h': {
                     'destination': '{includedir}/bar-devel.h',
                     'tag': 'devel',
+                    'subproject': None,
                 },
                 f'{testdir}/bar-custom.txt': {
                     'destination': '{datadir}/bar-custom.txt',
                     'tag': 'custom',
+                    'subproject': None,
                 },
                 f'{testdir}/subdir/bar2-devel.h': {
                     'destination': '{includedir}/bar2-devel.h',
                     'tag': 'devel',
+                    'subproject': None,
+                },
+                f'{testdir}/subprojects/subproject/aaa.txt': {
+                    'destination': '{datadir}/install tag/aaa.txt',
+                    'tag': None,
+                    'subproject': 'subproject',
+                },
+                f'{testdir}/subprojects/subproject/bbb.txt': {
+                    'destination': '{datadir}/install tag/bbb.txt',
+                    'tag': 'data',
+                    'subproject': 'subproject',
                 },
             },
             'headers': {
                 f'{testdir}/foo1-devel.h': {
                     'destination': '{includedir}/foo1-devel.h',
                     'tag': 'devel',
+                    'subproject': None,
                 },
                 f'{testdir}/subdir/foo3-devel.h': {
                     'destination': '{includedir}/foo3-devel.h',
                     'tag': 'devel',
+                    'subproject': None,
                 },
             },
             'install_subdirs': {
                 f'{testdir}/custom_files': {
                     'destination': '{datadir}/custom_files',
                     'tag': 'custom',
+                    'subproject': None,
                     'exclude_dirs': [],
                     'exclude_files': [],
                 },
                 f'{testdir}/excludes': {
                     'destination': '{datadir}/excludes',
                     'tag': 'custom',
+                    'subproject': None,
                     'exclude_dirs': ['excluded'],
                     'exclude_files': ['excluded.txt'],
                 }

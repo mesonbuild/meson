@@ -137,6 +137,7 @@ def list_install_plan(installdata: backends.InstallData) -> T.Dict[str, T.Dict[s
             os.path.join(installdata.build_dir, target.fname): {
                 'destination': target.out_name,
                 'tag': target.tag or None,
+                'subproject': target.subproject or None,
             }
             for target in installdata.targets
         },
@@ -157,6 +158,7 @@ def list_install_plan(installdata: backends.InstallData) -> T.Dict[str, T.Dict[s
             entry = {
                 'destination': install_path_name,
                 'tag': data.tag or None,
+                'subproject': data.subproject or None,
             }
 
             if key == 'install_subdirs':

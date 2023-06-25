@@ -1,5 +1,7 @@
 project('install tag', 'c')
 
+subproject('subproject')
+
 subdir('subdir')
 
 # Those files should not be tagged
