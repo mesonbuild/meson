@@ -233,7 +233,7 @@ class MesonApp:
         logger_fun('Target machine cpu:', mlog.bold(target_machine.cpu_method([], {})))
         try:
             if self.options.profile:
-                fname = os.path.join(self.build_dir, 'meson-private', 'profile-interpreter.log')
+                fname = os.path.join(self.build_dir, 'meson-logs', 'profile-interpreter.log')
                 profile.runctx('intr.run()', globals(), locals(), filename=fname)
             else:
                 intr.run()
@@ -255,7 +255,7 @@ class MesonApp:
             self.finalize_postconf_hooks(b, intr)
             if self.options.profile:
                 fname = f'profile-{intr.backend.name}-backend.log'
-                fname = os.path.join(self.build_dir, 'meson-private', fname)
+                fname = os.path.join(self.build_dir, 'meson-logs', fname)
                 profile.runctx('intr.backend.generate()', globals(), locals(), filename=fname)
             else:
                 intr.backend.generate()
@@ -271,7 +271,7 @@ class MesonApp:
 
             # Generate an IDE introspection file with the same syntax as the already existing API
             if self.options.profile:
-                fname = os.path.join(self.build_dir, 'meson-private', 'profile-introspector.log')
+                fname = os.path.join(self.build_dir, 'meson-logs', 'profile-introspector.log')
                 profile.runctx('mintro.generate_introspection_file(b, intr.backend)', globals(), locals(), filename=fname)
             else:
                 mintro.generate_introspection_file(b, intr.backend)
