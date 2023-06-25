@@ -206,6 +206,9 @@ class PlatformAgnosticTests(BasePlatformTests):
         output. The script will print all python modules loaded and we verify
         that it contains only an acceptable subset. Loading too many modules
         slows down the build when many custom targets get wrapped.
+
+        This list must not be edited without a clear rationale for why it is
+        acceptable to do so!
         '''
         es = ExecutableSerialisation(python_command + ['-c', 'exit(0)'], env=EnvironmentVariables())
         p = Path(self.builddir, 'exe.dat')
@@ -227,3 +230,27 @@ class PlatformAgnosticTests(BasePlatformTests):
             'mesonbuild.scripts.test_loaded_modules'
         ]
         self.assertEqual(sorted(expected_meson_modules), sorted(meson_modules))
+
+    def test_setup_loaded_modules(self):
+        '''
+        Execute a very basic meson.build and capture a list of all python
+        modules loaded. We verify that it contains only an acceptable subset.
+        Loading too many modules slows down `meson setup` startup time and
+        gives a perception that meson is slow.
+
+        Adding more modules to the default startup flow is not an unreasonable
+        thing to do as new features are added, but keeping track of them is
+        good.
+        '''
+        testdir = os.path.join(self.unit_test_dir, '113 empty project')
+
+        self.init(testdir)
+        self._run(self.meson_command + ['--internal', 'regenerate', '--profile-self', testdir, self.builddir])
+        with open(os.path.join(self.builddir, 'meson-logs', 'profile-startup-modules.json')) as f:
+                data = json.load(f)['meson']
+
+        with open(os.path.join(testdir, 'expected_mods.json')) as f:
+            expected = json.load(f)['meson']['modules']
+
+        self.assertEqual(data['modules'], expected)
+        self.assertEqual(data['count'], 98)
