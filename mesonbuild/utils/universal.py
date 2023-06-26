@@ -1405,7 +1405,7 @@ def extract_as_list(dict_object: T.Dict[_T, _U], key: _T, pop: bool = False) -> 
     return listify(fetch(key) or [])
 
 
-def typeslistify(item: 'T.Union[_T, T.Sequence[_T]]',
+def typeslistify(item: 'T.Union[_T, T.List[_T]]',
                  types: 'T.Union[T.Type[_T], T.Tuple[T.Type[_T]]]') -> T.List[_T]:
     '''
     Ensure that type(@item) is one of @types or a
@@ -1421,7 +1421,7 @@ def typeslistify(item: 'T.Union[_T, T.Sequence[_T]]',
     return item
 
 
-def stringlistify(item: T.Union[T.Any, T.Sequence[T.Any]]) -> T.List[str]:
+def stringlistify(item: T.Union[T.Any, T.List[T.Any]]) -> T.List[str]:
     return typeslistify(item, str)
 
 
