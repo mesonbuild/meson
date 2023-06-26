@@ -715,7 +715,7 @@ class Installer:
             # We change the .so files having lt_version or so_version to archive file install.
             if is_aix():
                 if '.so' in t.fname:
-                    t.fname = re.sub('[.][a]([.]?([0-9]+))*([.]?([a-z]+))*', '.a', t.fname.replace ('.so', '.a'))
+                    t.fname = re.sub('[.][a]([.]?([0-9]+))*([.]?([a-z]+))*', '.a', t.fname.replace('.so', '.a'))
             if not self.should_install(t):
                 continue
             if not os.path.exists(t.fname):

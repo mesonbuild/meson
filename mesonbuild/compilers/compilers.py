@@ -940,13 +940,13 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         return self.linker.build_rpath_args(
             env, build_dir, from_dir, rpath_paths, build_rpath, install_rpath)
 
-    def get_archive_name(self, filename):
+    def get_archive_name(self, filename: str) -> str:
         return self.linker.get_archive_name(filename)
 
-    def get_command_to_archive_shlib(self):
+    def get_command_to_archive_shlib(self) -> T.List[str]:
         return self.linker.get_command_to_archive_shlib() 
 
-    def linker_needs_to_archive(self):
+    def linker_needs_to_archive(self) -> bool:
         return self.linker.linker_needs_to_archive()
 
     def thread_flags(self, env: 'Environment') -> T.List[str]:

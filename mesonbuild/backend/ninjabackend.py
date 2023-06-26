@@ -1034,7 +1034,7 @@ class NinjaBackend(backends.Backend):
         self.add_build(elem)
         #In AIX, we archive shared libraries. If the instance is a shared library, we add a command to archive the shared library
         #object and create the build element.
-        if isinstance(target, build.SharedLibrary) and linker.linker_needs_to_archive(): 
+        if isinstance(target, build.SharedLibrary) and linker.linker_needs_to_archive():
             elem = NinjaBuildElement(self.all_outputs, linker.get_archive_name(outname), 'AIX_LINKER', [outname])
             self.add_build(elem)
 
@@ -2313,8 +2313,8 @@ class NinjaBackend(backends.Backend):
                 description = 'Archiving AIX shared library'
                 cmdlist = compiler.get_command_to_archive_shlib()
                 args = []
-                options = {} 
-                self.add_rule(NinjaRule(rule, cmdlist, args, description, **options, extra=None)) 
+                options = {}
+                self.add_rule(NinjaRule(rule, cmdlist, args, description, **options, extra=None))
 
         args = self.environment.get_build_command() + \
             ['--internal',
@@ -3594,9 +3594,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 # they are all built
                 #Add archive file if shared library in AIX for build all.
                 if isinstance(t, build.SharedLibrary):
-                     linker, stdlib_args = self.determine_linker_and_stdlib_args(t)
-                     if isinstance(t, build.SharedLibrary) and linker.linker_needs_to_archive(): 
-                         t.get_outputs()[0] = linker.get_archive_name(t.get_outputs()[0])
+                    if self.environment.machines[t.for_machine].is_aix():
+                        linker, stdlib_args = self.determine_linker_and_stdlib_args(t)
+                        t.get_outputs()[0] = linker.get_archive_name(t.get_outputs()[0])
                 targetlist.append(os.path.join(self.get_target_dir(t), t.get_outputs()[0]))
 
             elem = NinjaBuildElement(self.all_outputs, targ, 'phony', targetlist)

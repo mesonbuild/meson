@@ -570,13 +570,13 @@ class DynamicLinker(metaclass=abc.ABCMeta):
                         suffix: str, soversion: str, darwin_versions: T.Tuple[str, str]) -> T.List[str]:
         return []
 
-    def get_archive_name(self, filename):
+    def get_archive_name(self, filename: str) -> str:
         return []
 
-    def linker_needs_to_archive(self):
-        return False 
+    def linker_needs_to_archive(self) -> bool:
+        return False
 
-    def get_command_to_archive_shlib(self):
+    def get_command_to_archive_shlib(self) -> T.List[str]:
         return []
 
 
@@ -1478,22 +1478,22 @@ class AIXDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
     def get_allow_undefined_args(self) -> T.List[str]:
         return self._apply_prefix(['-berok'])
 
-    def get_archive_name(self, filename):
+    def get_archive_name(self, filename: str) -> str:
         # In AIX we allow the shared library name to have the lt_version and so_version.
-        # But the archive name must just be .a . 
+        # But the archive name must just be .a .
         # For Example shared object can have the name libgio.so.0.7200.1 but the archive
-        # must have the name libgio.a having libgio.a (libgio.so.0.7200.1) in the 
-        # archive. This regular expression is to do the same. 
+        # must have the name libgio.a having libgio.a (libgio.so.0.7200.1) in the
+        # archive. This regular expression is to do the same.
         filename = re.sub('[.][a]([.]?([0-9]+))*([.]?([a-z]+))*', '.a', filename.replace ('.so', '.a'))
         return filename
 
-    def linker_needs_to_archive(self):
+    def linker_needs_to_archive(self) -> bool:
         return True
 
-    def get_command_to_archive_shlib(self):
+    def get_command_to_archive_shlib(self) -> T.List[str]:
         # Archive shared library object and remove the shared library object,
-        # since it already exists in the archive. 
-        command = ['ar', '-q', '-v', '$out', '$in', '&&', 'rm', '-f', '$in'] 
+        # since it already exists in the archive.
+        command = ['ar', '-q', '-v', '$out', '$in', '&&', 'rm', '-f', '$in']
         return command
 
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
