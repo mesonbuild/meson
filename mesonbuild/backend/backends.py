@@ -1866,9 +1866,6 @@ class Backend:
             assert isinstance(de, build.Data)
             subdir = de.install_dir
             subdir_name = de.install_dir_name
-            if not subdir:
-                subdir = os.path.join(self.environment.get_datadir(), self.interpreter.build.project_name)
-                subdir_name = os.path.join('{datadir}', self.interpreter.build.project_name)
             for src_file, dst_name in zip(de.sources, de.rename):
                 assert isinstance(src_file, mesonlib.File)
                 dst_abs = os.path.join(subdir, dst_name)

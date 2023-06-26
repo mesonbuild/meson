@@ -4130,7 +4130,8 @@ class AllPlatformTests(BasePlatformTests):
         ]
         bar_expected = [
             'bar',
-            'share/foo/bar.dat',
+            'share/bar',
+            'share/bar/bar.dat',
             'include/bar.h',
             'bin/bar' + exe_suffix,
             'bar/barfile'
@@ -4410,9 +4411,9 @@ class AllPlatformTests(BasePlatformTests):
             Path(installpath, 'usr/share/foo2.h'),
             Path(installpath, 'usr/share/out1.txt'),
             Path(installpath, 'usr/share/out2.txt'),
-            Path(installpath, 'usr/share/install tag'),
-            Path(installpath, 'usr/share/install tag/aaa.txt'),
-            Path(installpath, 'usr/share/install tag/bbb.txt'),
+            Path(installpath, 'usr/share/subproject'),
+            Path(installpath, 'usr/share/subproject/aaa.txt'),
+            Path(installpath, 'usr/share/subproject/bbb.txt'),
         }
 
         def do_install(tags, expected_files, expected_scripts):
@@ -4613,12 +4614,12 @@ class AllPlatformTests(BasePlatformTests):
                     'subproject': None,
                 },
                 f'{testdir}/subprojects/subproject/aaa.txt': {
-                    'destination': '{datadir}/install tag/aaa.txt',
+                    'destination': '{datadir}/subproject/aaa.txt',
                     'tag': None,
                     'subproject': 'subproject',
                 },
                 f'{testdir}/subprojects/subproject/bbb.txt': {
-                    'destination': '{datadir}/install tag/bbb.txt',
+                    'destination': '{datadir}/subproject/bbb.txt',
                     'tag': 'data',
                     'subproject': 'subproject',
                 },

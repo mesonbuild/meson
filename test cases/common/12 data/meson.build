@@ -22,3 +22,7 @@ install_data(sources : ['vanishing/to_be_renamed_2.txt', 'to_be_renamed_3.txt'],
              install_dir : 'share/renamed',
              rename : ['renamed 2.txt', 'renamed 3.txt'])
 install_data(sources : 'to_be_renamed_4.txt', rename : 'some/nested/path.txt')
+
+install_data('subdir/data.txt', preserve_path : true)
+
+subproject('moredata')
