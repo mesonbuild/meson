@@ -1378,18 +1378,17 @@ def replace_if_different(dst: str, dst_tmp: str) -> None:
         os.unlink(dst_tmp)
 
 
-def listify(item: T.Any, flatten: bool = True) -> T.List[T.Any]:
+def listify(item: T.Any) -> T.List[T.Any]:
     '''
     Returns a list with all args embedded in a list if they are not a list.
     This function preserves order.
-    @flatten: Convert lists of lists to a flat list
     '''
     if not isinstance(item, list):
         return [item]
     result = []  # type: T.List[T.Any]
     for i in item:
-        if flatten and isinstance(i, list):
-            result += listify(i, flatten=True)
+        if isinstance(i, list):
+            result += listify(i)
         else:
             result.append(i)
     return result
@@ -1403,7 +1402,7 @@ def extract_as_list(dict_object: T.Dict[_T, _U], key: _T, pop: bool = False) -> 
     if pop:
         fetch = dict_object.pop
     # If there's only one key, we don't return a list with one element
-    return listify(fetch(key) or [], flatten=True)
+    return listify(fetch(key) or [])
 
 
 def typeslistify(item: 'T.Union[_T, T.Sequence[_T]]',

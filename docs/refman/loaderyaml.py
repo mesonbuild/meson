@@ -306,7 +306,7 @@ class LoaderYAML(LoaderBase):
                     [self._load_object(ObjectType.RETURNED, x) for x in self.objs_dir.iterdir()],
                     [self._load_object(ObjectType.BUILTIN, x) for x in self.builtin_dir.iterdir()],
                     [self._load_module(x) for x in self.modules_dir.iterdir()]
-                ], flatten=True)
+                ])
             )
 
             if not self.strict:
