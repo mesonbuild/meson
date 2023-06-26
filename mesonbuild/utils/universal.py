@@ -1416,9 +1416,10 @@ def typeslistify(item: 'T.Union[_T, T.List[_T]]',
     if not isinstance(item, list):
         raise MesonException(f'must be an either {types!r}, or an array thereof, not {type(item)!r}')
 
-    for i in item:
-        if not isinstance(i, types):
-            raise MesonException(f'must be an either {types!r}, or an array thereof, not {type(i)!r}')
+    bad = [i for i in item if not isinstance(i, types)]
+    if bad:
+        raise MesonException(f'must be an either {types!r}, or an array thereof, but contains the following unexpected types:',
+                             ', '.join(repr(b) for b in bad))
     return item
 
 
