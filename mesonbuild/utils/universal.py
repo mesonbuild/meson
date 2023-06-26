@@ -1405,26 +1405,31 @@ def extract_as_list(dict_object: T.Dict[_T, _U], key: _T, pop: bool = False) -> 
     return listify(fetch(key) or [])
 
 
-def typeslistify(item: 'T.Union[_T, T.List[_T]]',
-                 types: 'T.Union[T.Type[_T], T.Tuple[T.Type[_T]]]') -> T.List[_T]:
-    '''
-    Ensure that type(@item) is one of @types or a
-    list of items all of which are of type @types
-    '''
+def typeslistify(item: T.Union[_T, T.List[_T]],
+                 types: T.Union[T.Type[_T], T.Tuple[T.Type[_T]]],
+                 prefix: T.Optional[str] = None) -> T.List[_T]:
+    """Ensure that an item is of types _T or a list thereof.
+
+    :param item: An scalar or list of scalars to check
+    :param types: any value valid to pass to the second paramter of isinstance()
+    :param prefix: An error prefix add to any exceptions raised
+    :raises MesonException: When any value is not of :param:types
+    :returns: item if if item is a list, otherwise a list with item as its only member
+    """
     if isinstance(item, types):
         item = T.cast('T.List[_T]', [item])
     if not isinstance(item, list):
-        raise MesonException(f'must be an either {types!r}, or an array thereof, not {type(item)!r}')
+        raise MesonException(prefix or '', f'must be an either {types!r}, or an array thereof, not {type(item)!r}')
 
     bad = [i for i in item if not isinstance(i, types)]
     if bad:
-        raise MesonException(f'must be an either {types!r}, or an array thereof, but contains the following unexpected types:',
+        raise MesonException(prefix or '', f'must be an either {types!r}, or an array thereof, but contains the following unexpected types:',
                              ', '.join(repr(b) for b in bad))
     return item
 
 
-def stringlistify(item: T.Union[T.Any, T.List[T.Any]]) -> T.List[str]:
-    return typeslistify(item, str)
+def stringlistify(item: T.Union[T.Any, T.List[T.Any]], prefix: T.Optional[str] = None) -> T.List[str]:
+    return typeslistify(item, str, prefix)
 
 
 def expand_arguments(args: T.Iterable[str]) -> T.Optional[T.List[str]]:
