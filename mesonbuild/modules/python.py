@@ -224,7 +224,6 @@ class PythonInstallation(ExternalProgramHolder):
             self.interpreter.source_strings_to_files(args[0]),
             install_dir,
             mesonlib.FileMode(), rename=None, tag=tag, install_data_type='python',
-            install_dir_name=install_dir.optname,
             preserve_path=kwargs['preserve_path'])
 
     @noPosargs

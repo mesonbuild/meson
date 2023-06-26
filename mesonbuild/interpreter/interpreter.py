@@ -2467,24 +2467,31 @@ class Interpreter(InterpreterBase, HoldableObject):
                     '"rename" and "sources" argument lists must be the same length if "rename" is given. '
                     f'Rename has {len(rename)} elements and sources has {len(sources)}.')
 
+        install_dir = kwargs['install_dir']
+        if not install_dir:
+            subdir = self.active_projectname
+            install_dir = P_OBJ.OptionString(os.path.join(self.environment.get_datadir(), subdir), os.path.join('{datadir}', subdir))
+            if self.is_subproject():
+                FeatureNew.single_use('install_data() without install_dir inside of a subproject', '1.3.0', self.subproject,
+                                      'This was broken and would install to the project name of the parent project instead',
+                                      node)
+            if kwargs['preserve_path']:
+                FeatureNew.single_use('install_data() with preserve_path and without install_dir', '1.3.0', self.subproject,
+                                      'This was broken and would not add the project name to the install path',
+                                      node)
+
         install_mode = self._warn_kwarg_install_mode_sticky(kwargs['install_mode'])
-        return self.install_data_impl(sources, kwargs['install_dir'], install_mode,
-                                      rename, kwargs['install_tag'],
+        return self.install_data_impl(sources, install_dir, install_mode, rename, kwargs['install_tag'],
                                       preserve_path=kwargs['preserve_path'])
 
-    def install_data_impl(self, sources: T.List[mesonlib.File], install_dir: T.Optional[str],
+    def install_data_impl(self, sources: T.List[mesonlib.File], install_dir: str,
                           install_mode: FileMode, rename: T.Optional[str],
                           tag: T.Optional[str],
-                          install_dir_name: T.Optional[str] = None,
                           install_data_type: T.Optional[str] = None,
                           preserve_path: bool = False) -> build.Data:
+        install_dir_name = install_dir.optname if isinstance(install_dir, P_OBJ.OptionString) else install_dir
 
-        idir = install_dir or ''
-        idir_name = install_dir_name or idir or '{datadir}'
-        if isinstance(idir_name, P_OBJ.OptionString):
-            idir_name = idir_name.optname
         dirs = collections.defaultdict(list)
-        ret_data = []
         if preserve_path:
             for file in sources:
                 dirname = os.path.dirname(file.fname)
@@ -2492,8 +2499,9 @@ class Interpreter(InterpreterBase, HoldableObject):
         else:
             dirs[''].extend(sources)
 
+        ret_data = []
         for childdir, files in dirs.items():
-            d = build.Data(files, os.path.join(idir, childdir), os.path.join(idir_name, childdir),
+            d = build.Data(files, os.path.join(install_dir, childdir), os.path.join(install_dir_name, childdir),
                            install_mode, self.subproject, rename, tag, install_data_type)
             ret_data.append(d)
 
