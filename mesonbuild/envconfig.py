@@ -351,7 +351,7 @@ class MachineInfo(HoldableObject):
         """
         return self.system == 'gnu'
 
-    def is_aix(self)  -> bool:
+    def is_aix(self) -> bool:
         """
         Machine is aix?
         """

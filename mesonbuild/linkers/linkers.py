@@ -571,12 +571,11 @@ class DynamicLinker(metaclass=abc.ABCMeta):
         return []
 
     def get_archive_name(self, filename: str) -> str:
+        #Only used by AIX.
         return []
 
-    def linker_needs_to_archive(self) -> bool:
-        return False
-
     def get_command_to_archive_shlib(self) -> T.List[str]:
+        #Only used by AIX.
         return []
 
 
@@ -1484,11 +1483,8 @@ class AIXDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         # For Example shared object can have the name libgio.so.0.7200.1 but the archive
         # must have the name libgio.a having libgio.a (libgio.so.0.7200.1) in the
         # archive. This regular expression is to do the same.
-        filename = re.sub('[.][a]([.]?([0-9]+))*([.]?([a-z]+))*', '.a', filename.replace ('.so', '.a'))
+        filename = re.sub('[.][a]([.]?([0-9]+))*([.]?([a-z]+))*', '.a', filename.replace('.so', '.a'))
         return filename
-
-    def linker_needs_to_archive(self) -> bool:
-        return True
 
     def get_command_to_archive_shlib(self) -> T.List[str]:
         # Archive shared library object and remove the shared library object,

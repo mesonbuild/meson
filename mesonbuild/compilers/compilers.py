@@ -944,10 +944,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         return self.linker.get_archive_name(filename)
 
     def get_command_to_archive_shlib(self) -> T.List[str]:
-        return self.linker.get_command_to_archive_shlib() 
-
-    def linker_needs_to_archive(self) -> bool:
-        return self.linker.linker_needs_to_archive()
+        return self.linker.get_command_to_archive_shlib()
 
     def thread_flags(self, env: 'Environment') -> T.List[str]:
         return []

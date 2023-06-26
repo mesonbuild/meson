@@ -1034,7 +1034,7 @@ class NinjaBackend(backends.Backend):
         self.add_build(elem)
         #In AIX, we archive shared libraries. If the instance is a shared library, we add a command to archive the shared library
         #object and create the build element.
-        if isinstance(target, build.SharedLibrary) and linker.linker_needs_to_archive():
+        if isinstance(target, build.SharedLibrary) and self.environment.machines[target.for_machine].is_aix():
             elem = NinjaBuildElement(self.all_outputs, linker.get_archive_name(outname), 'AIX_LINKER', [outname])
             self.add_build(elem)
 
