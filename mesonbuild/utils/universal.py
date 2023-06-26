@@ -26,6 +26,7 @@ import platform, subprocess, operator, os, shlex, shutil, re
 import collections
 from functools import lru_cache, wraps, total_ordering
 from itertools import tee
+import locale
 from tempfile import TemporaryDirectory, NamedTemporaryFile
 import typing as T
 import textwrap
@@ -117,6 +118,7 @@ __all__ = [
     'get_filenames_templates_dict',
     'get_variable_regex',
     'get_wine_shortpath',
+    'getencoding',
     'git',
     'has_path_sep',
     'is_aix',
@@ -183,6 +185,24 @@ if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
 else:
     python_command = [sys.executable]
 _meson_command: T.Optional['ImmutableListProtocol[str]'] = None
+
+
+@lru_cache()
+def getencoding() -> str:
+    if sys.platform == 'win32' and '\\msys64\\' not in os.environ['PATH']:
+        from ctypes import windll
+
+        try:
+            # This seems the only reliable way to get current console encoding
+            # See https://stackoverflow.com/a/66137691/16234629
+            return "cp" + str(windll.kernel32.GetConsoleOutputCP())
+        except Exception:
+            pass
+
+    if sys.version_info >= (3, 11):
+        return locale.getencoding()
+    else:
+        return locale.getpreferredencoding()
 
 
 class EnvironmentException(MesonException):
@@ -254,12 +274,11 @@ def is_ascii_string(astring: T.Union[str, bytes]) -> bool:
 
 
 def check_direntry_issues(direntry_array: T.Union[T.Iterable[T.Union[str, bytes]], str, bytes]) -> None:
-    import locale
     # Warn if the locale is not UTF-8. This can cause various unfixable issues
     # such as os.stat not being able to decode filenames with unicode in them.
     # There is no way to reset both the preferred encoding and the filesystem
     # encoding, so we can just warn about it.
-    e = locale.getpreferredencoding()
+    e = getencoding()
     if e.upper() != 'UTF-8' and not is_windows():
         if isinstance(direntry_array, (str, bytes)):
             direntry_array = [direntry_array]
@@ -1462,8 +1481,7 @@ def Popen_safe(args: T.List[str], write: T.Optional[str] = None,
                stdout: T.Union[T.TextIO, T.BinaryIO, int] = subprocess.PIPE,
                stderr: T.Union[T.TextIO, T.BinaryIO, int] = subprocess.PIPE,
                **kwargs: T.Any) -> T.Tuple['subprocess.Popen[str]', str, str]:
-    import locale
-    encoding = locale.getpreferredencoding()
+    encoding = getencoding()
     # Stdin defaults to DEVNULL otherwise the command run by us here might mess
     # up the console and ANSI colors will stop working on Windows.
     # If write is not None, set stdin to PIPE so data can be sent.

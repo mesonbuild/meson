@@ -18,7 +18,7 @@ import os
 import shutil
 import unittest
 
-from mesonbuild.mesonlib import windows_proof_rmtree
+from mesonbuild.mesonlib import windows_proof_rmtree, getencoding
 from .baseplatformtests import BasePlatformTests
 
 class RewriterTests(BasePlatformTests):
@@ -35,7 +35,7 @@ class RewriterTests(BasePlatformTests):
         if isinstance(args, str):
             args = [args]
         command = self.rewrite_command + ['--verbose', '--skip', '--sourcedir', directory] + args
-        p = subprocess.run(command, capture_output=True, text=True, timeout=60)
+        p = subprocess.run(command, capture_output=True, text=True, timeout=60, encoding=getencoding())
         print('STDOUT:')
         print(p.stdout)
         print('STDERR:')

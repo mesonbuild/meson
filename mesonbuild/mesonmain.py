@@ -27,6 +27,7 @@ import importlib
 import argparse
 
 from .utils.core import MesonException, MesonBugException
+from .utils.universal import getencoding
 from . import mlog
 
 def errorhandler(e, command):
@@ -227,8 +228,9 @@ def run_script_command(script_name, script_args):
         return 1
 
 def ensure_stdout_accepts_unicode():
-    if sys.stdout.encoding and not sys.stdout.encoding.upper().startswith('UTF-'):
-        sys.stdout.reconfigure(errors='surrogateescape')
+    # Ensure stdout encoding is same as everywhere else
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding=getencoding(), errors='surrogateescape')
 
 def set_meson_command(mainfile):
     # Set the meson command that will be used to run scripts and so on

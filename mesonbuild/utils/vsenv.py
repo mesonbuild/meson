@@ -8,7 +8,7 @@ import shutil
 import tempfile
 
 from .. import mlog
-from .universal import MesonException, is_windows, windows_detect_native_arch
+from .universal import MesonException, is_windows, windows_detect_native_arch, getencoding
 
 
 __all__ = [
@@ -92,7 +92,7 @@ def _setup_vsenv(force: bool) -> bool:
     bat_file.write(bat_contents)
     bat_file.flush()
     bat_file.close()
-    bat_output = subprocess.check_output(bat_file.name, universal_newlines=True)
+    bat_output = subprocess.check_output(bat_file.name, universal_newlines=True, encoding=getencoding())
     os.unlink(bat_file.name)
     bat_lines = bat_output.split('\n')
     bat_separator_seen = False

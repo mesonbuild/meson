@@ -42,7 +42,7 @@ from mesonbuild.mesonlib import (
     is_sunos, windows_proof_rmtree, python_command, version_compare, split_args, quote_arg,
     relpath, is_linux, git, search_version, do_conf_file, do_conf_str, default_prefix,
     MesonException, EnvironmentException, OptionKey, ExecutableSerialisation, EnvironmentVariables,
-    windows_proof_rm
+    windows_proof_rm, getencoding
 )
 from mesonbuild.programs import ExternalProgram
 
@@ -3677,11 +3677,11 @@ class AllPlatformTests(BasePlatformTests):
         self.init(testdir)
 
         build_ninja = os.path.join(self.builddir, 'build.ninja')
-        with open(build_ninja, encoding='utf-8') as f:
+        with open(build_ninja, 'rb') as f:
             contents = f.read()
 
-        self.assertRegex(contents, r'build main(\.exe)?.*: c_LINKER')
-        self.assertRegex(contents, r'build (lib|cyg)?mylib.*: c_LINKER')
+        self.assertRegex(contents, rb'build main(\.exe)?.*: c_LINKER')
+        self.assertRegex(contents, rb'build (lib|cyg)?mylib.*: c_LINKER')
 
     def test_commands_documented(self):
         '''
@@ -4144,7 +4144,7 @@ class AllPlatformTests(BasePlatformTests):
         cmd = self.meson_command + ['devenv', '-C', self.builddir, '--dump', fname]
         o = self._run(cmd)
         self.assertEqual(o, '')
-        o = Path(fname).read_text()
+        o = Path(fname).read_text(encoding='utf-8')
         expected = os.pathsep.join(['/prefix', '$TEST_C', '/suffix'])
         self.assertIn(f'TEST_C="{expected}"', o)
         self.assertIn('export TEST_C', o)
@@ -4699,6 +4699,7 @@ class AllPlatformTests(BasePlatformTests):
             'mesonbuild._pathlib',
             'mesonbuild.utils',
             'mesonbuild.utils.core',
+            'mesonbuild.utils.universal',
             'mesonbuild.mesonmain',
             'mesonbuild.mlog',
             'mesonbuild.scripts',
