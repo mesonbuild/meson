@@ -572,7 +572,7 @@ class DynamicLinker(metaclass=abc.ABCMeta):
 
     def get_archive_name(self, filename: str) -> str:
         #Only used by AIX.
-        return []
+        return str()
 
     def get_command_to_archive_shlib(self) -> T.List[str]:
         #Only used by AIX.
