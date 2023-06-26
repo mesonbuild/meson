@@ -17,6 +17,8 @@ import functools, json, os, textwrap
 from pathlib import Path
 import typing as T
 
+from mesonbuild.build.include_dirs import IncludeDirs
+
 from .. import mesonlib, mlog
 from .base import process_method_kw, DependencyMethods, DependencyTypeName, ExternalDependency, SystemDependency
 from .configtool import ConfigToolDependency
@@ -208,7 +210,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
             self.paths.get('include'),
             self.paths.get('platinclude')])
 
-        self.compile_args += ['-I' + path for path in inc_paths if path]
+        self.include_directories.append(IncludeDirs(None, [i for i in inc_paths if i]))
 
         # https://sourceforge.net/p/mingw-w64/mailman/message/30504611/
         # https://github.com/python/cpython/pull/100137

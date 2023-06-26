@@ -189,7 +189,7 @@ class BasePlatformTests(TestCase):
         return p.stdout
 
     def init(self, srcdir, *,
-             extra_args=None,
+             extra_args: T.Optional[T.List[str]] = None,
              default_args=True,
              inprocess=False,
              override_envvars: T.Optional[T.Mapping[str, str]] = None,

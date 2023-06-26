@@ -26,12 +26,13 @@ import re
 import textwrap
 import typing as T
 
-from . import coredata
-from . import environment
-from . import dependencies
-from . import mlog
-from . import programs
-from .mesonlib import (
+from .include_dirs import IncludeDirs
+from .. import coredata
+from .. import environment
+from .. import dependencies
+from .. import mlog
+from .. import programs
+from ..mesonlib import (
     HoldableObject, SecondLevelHolder,
     File, MesonException, MachineChoice, PerMachine, OrderedSet, listify,
     extract_as_list, typeslistify, stringlistify, classify_unity_sources,
@@ -39,24 +40,24 @@ from .mesonlib import (
     OptionKey, PerMachineDefaultable, OptionOverrideProxy,
     MesonBugException, EnvironmentVariables, pickle_load,
 )
-from .compilers import (
+from ..compilers import (
     is_object, clink_langs, sort_clink, all_languages,
     is_known_suffix, detect_static_linker
 )
-from .interpreterbase import FeatureNew, FeatureDeprecated
+from ..interpreterbase import FeatureNew, FeatureDeprecated
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal
-    from ._typing import ImmutableListProtocol
-    from .backend.backends import Backend, ExecutableSerialisation
-    from .compilers import Compiler
-    from .interpreter.interpreter import Test, SourceOutputs, Interpreter
-    from .interpreterbase import SubProject
-    from .linkers import StaticLinker
-    from .mesonlib import FileMode, FileOrString
-    from .modules import ModuleState
-    from .mparser import BaseNode
-    from .wrap import WrapMode
+    from .._typing import ImmutableListProtocol
+    from ..backend.backends import Backend, ExecutableSerialisation
+    from ..compilers import Compiler
+    from ..interpreter.interpreter import Test, SourceOutputs, Interpreter
+    from ..interpreterbase import SubProject
+    from ..linkers import StaticLinker
+    from ..mesonlib import FileMode, FileOrString
+    from ..modules import ModuleState
+    from ..mparser import BaseNode
+    from ..wrap import WrapMode
 
     GeneratedTypes = T.Union['CustomTarget', 'CustomTargetIndex', 'GeneratedList']
     LibTypes = T.Union['SharedLibrary', 'StaticLibrary', 'CustomTarget', 'CustomTargetIndex']
@@ -362,46 +363,6 @@ class Build:
             return []
 
         return link_args.get(compiler.get_language(), [])
-
-@dataclass(eq=False)
-class IncludeDirs(HoldableObject):
-
-    """Internal representation of an include_directories call."""
-
-    curdir: str
-    incdirs: T.List[str]
-    is_system: bool
-    # Interpreter has validated that all given directories
-    # actually exist.
-    extra_build_dirs: T.List[str] = field(default_factory=list)
-
-    def __repr__(self) -> str:
-        r = '<{} {}/{}>'
-        return r.format(self.__class__.__name__, self.curdir, self.incdirs)
-
-    def get_curdir(self) -> str:
-        return self.curdir
-
-    def get_incdirs(self) -> T.List[str]:
-        return self.incdirs
-
-    def get_extra_build_dirs(self) -> T.List[str]:
-        return self.extra_build_dirs
-
-    def to_string_list(self, sourcedir: str, builddir: T.Optional[str] = None) -> T.List[str]:
-        """Convert IncludeDirs object to a list of strings.
-
-        :param sourcedir: The absolute source directory
-        :param builddir: The absolute build directory, option, build dir will not
-            be added if this is unset
-        :returns: A list of strings (without compiler argument)
-        """
-        strlist: T.List[str] = []
-        for idir in self.incdirs:
-            strlist.append(os.path.join(sourcedir, self.curdir, idir))
-            if builddir:
-                strlist.append(os.path.join(builddir, self.curdir, idir))
-        return strlist
 
 @dataclass(eq=False)
 class ExtractedObjects(HoldableObject):
@@ -1492,11 +1453,10 @@ You probably should put it in link_with instead.''')
             if not isinstance(a, IncludeDirs):
                 raise InvalidArguments('Include directory to be added is not an include directory object.')
             ids.append(a)
-        if set_is_system is None:
-            set_is_system = 'preserve'
-        if set_is_system != 'preserve':
-            is_system = set_is_system == 'system'
-            ids = [IncludeDirs(x.get_curdir(), x.get_incdirs(), is_system, x.get_extra_build_dirs()) for x in ids]
+        if set_is_system == 'system':
+            ids = [x.to_system() for x in ids]
+        elif set_is_system == 'non-system':
+            ids = [x.to_non_system() for x in ids]
         self.include_dirs += ids
 
     def add_compiler_args(self, language: str, args: T.List['FileOrString']) -> None:

@@ -204,6 +204,8 @@ class RustModule(ExtensionModule):
 
         for de in kwargs['dependencies']:
             for i in de.get_include_dirs():
+                if i.is_system:
+                    continue
                 clang_args.extend([f'-I{x}' for x in i.to_string_list(
                     state.environment.get_source_dir(), state.environment.get_build_dir())])
             clang_args.extend(de.get_all_compile_args())

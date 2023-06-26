@@ -455,7 +455,9 @@ class QtBaseModule(ExtensionModule):
         inc = state.get_include_args(include_dirs=kwargs['include_directories'])
         compile_args: T.List[str] = []
         for dep in kwargs['dependencies']:
+            # The -I is left here because it's possible that an InternalDependency has -I options in it
             compile_args.extend([a for a in dep.get_all_compile_args() if a.startswith(('-I', '-D'))])
+            inc.extend(state.get_include_args(dep.get_all_include_dirs()))
 
         output: T.List[build.GeneratedList] = []
 

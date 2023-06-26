@@ -22,13 +22,14 @@ import re
 import os
 import typing as T
 
+from .. import mesonlib
+from .. import mlog
+from ..build.include_dirs import IncludeDirs
 from .base import DependencyException, DependencyMethods
 from .configtool import ConfigToolDependency
+from .factory import DependencyFactory
 from .framework import ExtraFrameworkDependency
 from .pkgconfig import PkgConfigDependency
-from .factory import DependencyFactory
-from .. import mlog
-from .. import mesonlib
 
 if T.TYPE_CHECKING:
     from ..compilers import Compiler
@@ -110,14 +111,14 @@ class QtExtraFrameworkDependency(ExtraFrameworkDependency):
         self.mod_name = name[2:]
         self.qt_extra_include_directory = qvars['QT_INSTALL_HEADERS']
 
-    def get_compile_args(self, with_private_headers: bool = False, qt_version: str = "0") -> T.List[str]:
+    def get_include_args(self, with_private_headers: bool = False, qt_version: str = "0") -> T.List[str]:
         if self.found():
             mod_inc_dir = os.path.join(self.framework_path, 'Headers')
-            args = ['-I' + mod_inc_dir]
+            args = [mod_inc_dir]
             if with_private_headers:
-                args += ['-I' + dirname for dirname in _qt_get_private_includes(mod_inc_dir, self.mod_name, qt_version)]
+                args.extend(_qt_get_private_includes(mod_inc_dir, self.mod_name, qt_version))
             if self.qt_extra_include_directory:
-                args += ['-I' + self.qt_extra_include_directory]
+                args.extend(self.qt_extra_include_directory)
             return args
         return []
 
@@ -207,8 +208,7 @@ class QtPkgConfigDependency(_QtBase, PkgConfigDependency, metaclass=abc.ABCMeta)
                     # the Qt + m_name there is not a symlink, it's a file
                     mod_private_dir = qt_inc_dir
                 mod_private_inc = _qt_get_private_includes(mod_private_dir, m, mod.version)
-                for directory in mod_private_inc:
-                    mod.compile_args.append('-I' + directory)
+                mod.include_directories.append(IncludeDirs(None, mod_private_inc))
             self._add_sub_dependency([lambda: mod])
 
         if self.env.machines[self.for_machine].is_windows() and self.qtmain:
@@ -296,7 +296,7 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=abc.ABCMeta):
             else:
                 mlog.debug("Building for macOS, couldn't find framework, falling back to library search")
         incdir = qvars['QT_INSTALL_HEADERS']
-        self.compile_args.append('-I' + incdir)
+        inc = [incdir]
         libdir = qvars['QT_INSTALL_LIBS']
         # Used by qt.compilers_detect()
         self.bindir = get_qmake_host_bins(qvars)
@@ -312,7 +312,7 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=abc.ABCMeta):
 
         for module in self.requested_modules:
             mincdir = os.path.join(incdir, 'Qt' + module)
-            self.compile_args.append('-I' + mincdir)
+            inc.append(mincdir)
 
             if module == 'QuickTest':
                 define_base = 'QMLTEST'
@@ -324,8 +324,7 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=abc.ABCMeta):
 
             if self.private_headers:
                 priv_inc = self.get_private_includes(mincdir, module)
-                for directory in priv_inc:
-                    self.compile_args.append('-I' + directory)
+                inc.extend(priv_inc)
             libfiles = self.clib_compiler.find_library(
                 self.qtpkgname + module + modules_lib_suffix, self.env,
                 mesonlib.listify(libdir)) # TODO: shouldn't be necessary
@@ -342,6 +341,8 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=abc.ABCMeta):
         if self.env.machines[self.for_machine].is_windows() and self.qtmain:
             if not self._link_with_qt_winmain(is_debug, libdir):
                 self.is_found = False
+
+        self.include_directories.append(IncludeDirs(None, inc))
 
     def _sanitize_version(self, version: str) -> str:
         m = re.search(rf'({self.qtver}(\.\d+)+)', version)
@@ -367,8 +368,8 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=abc.ABCMeta):
             fwdep = QtExtraFrameworkDependency(fname, self.env, fw_kwargs, qvars, language=self.language)
             if fwdep.found():
                 self.compile_args.append('-F' + libdir)
-                self.compile_args += fwdep.get_compile_args(with_private_headers=self.private_headers,
-                                                            qt_version=self.version)
+                self.include_directories.append(IncludeDirs(
+                    None, fwdep.get_include_args(with_private_headers=self.private_headers, qt_version=self.version)))
                 self.link_args += fwdep.get_link_args()
             else:
                 self.is_found = False

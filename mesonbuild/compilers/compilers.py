@@ -1061,6 +1061,20 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def get_dependency_compile_args(self, dep: 'Dependency') -> T.List[str]:
         return dep.get_compile_args()
 
+    def get_dependency_include_args(self, dep: 'Dependency') -> T.List[str]:
+        """Convert include arguments to strings.
+
+        This needs to add the relavent argument (such as -I or -isystem)
+
+        :param dep: The dependency to generate includes from
+        :return: A string list of includes, with the arguments
+        """
+        inc: T.List[str] = []
+        for i in dep.include_directories:
+            for p in i.incdirs:
+                inc.extend(self.get_include_args(p, i.is_system))
+        return inc
+
     def get_dependency_link_args(self, dep: 'Dependency') -> T.List[str]:
         return dep.get_link_args()
 
@@ -1255,6 +1269,8 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         for d in dependencies:
             # Add compile flags needed by dependencies
             args += d.get_compile_args()
+            for i in d.include_directories:
+                args.extend(f'-I{x}' for x in i.to_string_list(env.source_dir, env.build_dir))
             if mode is CompileCheckMode.LINK:
                 # Add link flags needed to find dependencies
                 args += d.get_link_args()

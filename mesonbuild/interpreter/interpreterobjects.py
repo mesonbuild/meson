@@ -28,6 +28,8 @@ from ..mesonlib import HoldableObject, OptionKey, listify, Popen_safe
 
 import typing as T
 
+from mesonbuild import dependencies
+
 if T.TYPE_CHECKING:
     from . import kwargs
     from ..cmake.interpreter import CMakeInterpreter
@@ -511,6 +513,9 @@ class DependencyHolder(ObjectHolder[Dependency]):
     @noPosargs
     @typed_kwargs('dependency.partial_dependency', *_PARTIAL_DEP_KWARGS)
     def partial_dependency_method(self, args: T.List[TYPE_nvar], kwargs: 'kwargs.DependencyMethodPartialDependency') -> Dependency:
+        if kwargs['includes'] and not isinstance(self.held_object, dependencies.InternalDependency):
+            FeatureNew.single_use('dependency.partial_depencency with "includes" for exteranl dependencies', '1.2.0', self.subproject,
+                                  'use "compile_args: True" for meson < 1.2.0 to get include directories', self.current_node)
         pdep = self.held_object.get_partial_dependency(**kwargs)
         return pdep
 

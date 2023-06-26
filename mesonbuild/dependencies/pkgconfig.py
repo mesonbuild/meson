@@ -16,6 +16,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from .base import ExternalDependency, DependencyException, sort_libpaths, DependencyTypeName
+from ..build.include_dirs import IncludeDirs
 from ..mesonlib import OptionKey, OrderedSet, PerMachine, Popen_safe, Popen_safe_logged
 from ..programs import find_external_program, ExternalProgram
 from .. import mlog
@@ -202,6 +203,18 @@ class PkgConfigDependency(ExternalDependency):
     def _split_args(self, cmd: str) -> T.List[str]:
         # pkg-config paths follow Unix conventions, even on Windows; split the
         # output using shlex.split rather than mesonlib.split_args
+
+        # Due to https://gitea.treehouse.systems/ariadne/pkgconf/issues/238
+        # it's possible for us to end up with an escape character that escapes
+        # nothing. This means that a space hasn't been properly escaped, and
+        # things are probably going to fail. We can at least give a nice warning
+        # and not give a traceback
+        if 'MSYSTEM' in os.environ and cmd.endswith("\\"):
+            # TODO: possibly pending fix: https://gitea.treehouse.systems/ariadne/pkgconf/pulls/249
+            mlog.warning("pkgconf on msys/mingw doesn't handle escaped spaces correctly, "
+                         "it looks like that has happened. Compilation may fail", once=True)
+            cmd = cmd[:-1]
+
         return shlex.split(cmd)
 
     def _set_cargs(self) -> None:
@@ -211,10 +224,16 @@ class PkgConfigDependency(ExternalDependency):
             # so don't allow pkg-config to suppress -I flags for system paths
             env = os.environ.copy()
             env['PKG_CONFIG_ALLOW_SYSTEM_CFLAGS'] = '1'
-        ret, out, err = self._call_pkgbin(['--cflags', self.name], env=env)
+        ret, out, err = self._call_pkgbin(['--cflags-only-other', self.name], env=env)
         if ret != 0:
-            raise DependencyException(f'Could not generate cargs for {self.name}:\n{err}\n')
+            raise DependencyException(f'Could not generate compile arguments for {self.name}:\n{err}\n')
         self.compile_args = self._convert_mingw_paths(self._split_args(out))
+
+        ret, out, err = self._call_pkgbin(['--cflags-only-I', self.name], env=env)
+        if ret != 0:
+            raise DependencyException(f'Could not generate include directory arguments for {self.name}:\n{err}\n')
+        self.include_directories.append(
+            IncludeDirs(None, [i[2:] for i in self._convert_mingw_paths(self._split_args(out))]))
 
     def _search_libs(self, out: str, out_raw: str) -> T.Tuple[T.List[str], T.List[str]]:
         '''
