@@ -1414,10 +1414,10 @@ def typeslistify(item: 'T.Union[_T, T.List[_T]]',
     if isinstance(item, types):
         item = T.cast('T.List[_T]', [item])
     if not isinstance(item, list):
-        raise MesonException('Item must be a list or one of {!r}, not {!r}'.format(types, type(item)))
+        raise MesonException(f'must be an either {types!r}, or an array thereof, not {type(item)!r}')
     for i in item:
         if i is not None and not isinstance(i, types):
-            raise MesonException('List item must be one of {!r}, not {!r}'.format(types, type(i)))
+            raise MesonException(f'must be an either {types!r}, or an array thereof, not {type(i)!r}')
     return item
 
 
