@@ -103,7 +103,6 @@ import typing as T
 import textwrap
 import importlib
 import copy
-import contextlib
 
 if T.TYPE_CHECKING:
     import argparse
