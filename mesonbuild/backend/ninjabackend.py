@@ -1034,6 +1034,11 @@ class NinjaBackend(backends.Backend):
         elem = self.generate_link(target, outname, final_obj_list, linker, pch_objects, stdlib_args=stdlib_args)
         self.generate_dependency_scan_target(target, compiled_sources, source2object, generated_source_files, fortran_order_deps)
         self.add_build(elem)
+        #In AIX, we archive shared libraries. If the instance is a shared library, we add a command to archive the shared library
+        #object and create the build element.
+        if isinstance(target, build.SharedLibrary) and self.environment.machines[target.for_machine].is_aix():
+            elem = NinjaBuildElement(self.all_outputs, linker.get_archive_name(outname), 'AIX_LINKER', [outname])
+            self.add_build(elem)
 
     def should_use_dyndeps_for_target(self, target: 'build.BuildTarget') -> bool:
         if mesonlib.version_compare(self.ninja_version, '<1.10.0'):
@@ -2306,6 +2311,13 @@ class NinjaBackend(backends.Backend):
 
                 options = self._rsp_options(compiler)
                 self.add_rule(NinjaRule(rule, command, args, description, **options, extra=pool))
+            if self.environment.machines[for_machine].is_aix():
+                rule = 'AIX_LINKER{}'.format(self.get_rule_suffix(for_machine))
+                description = 'Archiving AIX shared library'
+                cmdlist = compiler.get_command_to_archive_shlib()
+                args = []
+                options = {}
+                self.add_rule(NinjaRule(rule, cmdlist, args, description, **options, extra=None))
 
         args = self.environment.get_build_command() + \
             ['--internal',
@@ -3378,6 +3390,11 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         else:
             dependencies = target.get_dependencies()
         internal = self.build_target_link_arguments(linker, dependencies)
+        #In AIX since shared libraries are archived the dependencies must
+        #depend on .a file with the .so and not directly on the .so file.
+        if self.environment.machines[target.for_machine].is_aix():
+            for i, val in enumerate(internal):
+                internal[i] = linker.get_archive_name(val)
         commands += internal
         # Only non-static built targets need link args and link dependencies
         if not isinstance(target, build.StaticLibrary):
@@ -3581,6 +3598,11 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             for t in deps.values():
                 # Add the first output of each target to the 'all' target so that
                 # they are all built
+                #Add archive file if shared library in AIX for build all.
+                if isinstance(t, build.SharedLibrary):
+                    if self.environment.machines[t.for_machine].is_aix():
+                        linker, stdlib_args = self.determine_linker_and_stdlib_args(t)
+                        t.get_outputs()[0] = linker.get_archive_name(t.get_outputs()[0])
                 targetlist.append(os.path.join(self.get_target_dir(t), t.get_outputs()[0]))
 
             elem = NinjaBuildElement(self.all_outputs, targ, 'phony', targetlist)

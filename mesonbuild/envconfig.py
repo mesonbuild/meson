@@ -357,6 +357,12 @@ class MachineInfo(HoldableObject):
         """
         return self.system == 'gnu'
 
+    def is_aix(self) -> bool:
+        """
+        Machine is aix?
+        """
+        return self.system == 'aix'
+
     def is_irix(self) -> bool:
         """Machine is IRIX?"""
         return self.system.startswith('irix')

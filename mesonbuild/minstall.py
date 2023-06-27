@@ -23,11 +23,12 @@ import shutil
 import subprocess
 import sys
 import typing as T
+import re
 
 from . import build, coredata, environment
 from .backend.backends import InstallData
 from .mesonlib import (MesonException, Popen_safe, RealPathAction, is_windows,
-                       setup_vsenv, pickle_load, is_osx, OptionKey)
+                       is_aix, setup_vsenv, pickle_load, is_osx, OptionKey)
 from .scripts import depfixer, destdir_join
 from .scripts.meson_exe import run_exe
 try:
@@ -709,6 +710,12 @@ class Installer:
 
     def install_targets(self, d: InstallData, dm: DirMaker, destdir: str, fullprefix: str) -> None:
         for t in d.targets:
+            # In AIX, we archive our shared libraries.  When we install any package in AIX we need to
+            # install the archive in which the shared library exists. The below code does the same.
+            # We change the .so files having lt_version or so_version to archive file install.
+            if is_aix():
+                if '.so' in t.fname:
+                    t.fname = re.sub('[.][a]([.]?([0-9]+))*([.]?([a-z]+))*', '.a', t.fname.replace('.so', '.a'))
             if not self.should_install(t):
                 continue
             if not os.path.exists(t.fname):

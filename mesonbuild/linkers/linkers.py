@@ -16,6 +16,7 @@ from __future__ import annotations
 import abc
 import os
 import typing as T
+import re
 
 from .base import ArLikeLinker, RSPFileSyntax
 from .. import mesonlib
@@ -539,6 +540,14 @@ class DynamicLinker(metaclass=abc.ABCMeta):
 
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str, darwin_versions: T.Tuple[str, str]) -> T.List[str]:
+        return []
+
+    def get_archive_name(self, filename: str) -> str:
+        #Only used by AIX.
+        return str()
+
+    def get_command_to_archive_shlib(self) -> T.List[str]:
+        #Only used by AIX.
         return []
 
 
@@ -1439,6 +1448,21 @@ class AIXDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
     def get_allow_undefined_args(self) -> T.List[str]:
         return self._apply_prefix(['-berok'])
+
+    def get_archive_name(self, filename: str) -> str:
+        # In AIX we allow the shared library name to have the lt_version and so_version.
+        # But the archive name must just be .a .
+        # For Example shared object can have the name libgio.so.0.7200.1 but the archive
+        # must have the name libgio.a having libgio.a (libgio.so.0.7200.1) in the
+        # archive. This regular expression is to do the same.
+        filename = re.sub('[.][a]([.]?([0-9]+))*([.]?([a-z]+))*', '.a', filename.replace('.so', '.a'))
+        return filename
+
+    def get_command_to_archive_shlib(self) -> T.List[str]:
+        # Archive shared library object and remove the shared library object,
+        # since it already exists in the archive.
+        command = ['ar', '-q', '-v', '$out', '$in', '&&', 'rm', '-f', '$in']
+        return command
 
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
         # AIX's linker always links the whole archive: "The ld command
