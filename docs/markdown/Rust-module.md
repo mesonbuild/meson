@@ -18,7 +18,7 @@ like Meson, rather than Meson work more like rust.
 
 ## Functions
 
-### test(name: string, target: library | executable, dependencies: []Dependency)
+### test(name: string, target: library | executable, dependencies: []Dependency, link_with: []targets, rust_args: []string)
 
 This function creates a new rust unittest target from an existing rust
 based target, which may be a library or executable. It does this by
@@ -32,6 +32,11 @@ that automatically.
 
 Additional, test only dependencies may be passed via the dependencies
 argument.
+
+*(since 1.2.0)* the link_with argument can be used to pass additional build
+targets to link with
+*(since 1.2.0)* the `rust_args` keyword argument can be ussed to pass extra
+arguments to the Rust compiler.
 
 ### bindgen(*, input: string | BuildTarget | [](string | BuildTarget), output: string, include_directories: [](include_directories | string), c_args: []string, args: []string, dependencies: []Dependency)
 
@@ -83,10 +88,17 @@ r1 = rust.bindgen(
 )
 ```
 
-
 *Since 1.1.0* Meson will synchronize assertions for Rust and C/C++  when the
 `b_ndebug` option is set (via `-DNDEBUG` for C/C++, and `-C
 debug-assertions=on` for Rust), and will pass `-DNDEBUG` as an extra argument
 to clang. This allows for reliable wrapping of `-DNDEBUG` controlled behavior
 with `#[cfg(debug_asserions)]` and or `cfg!()`. Before 1.1.0, assertions for Rust
 were never turned on by Meson.
+
+*Since 1.2.0* Additional arguments to pass to clang may be specified in a
+*machine file in the properties section:
+
+```ini
+[properties]
+bindgen_clang_arguments = ['--target', 'x86_64-linux-gnu']
+```

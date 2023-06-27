@@ -1,4 +1,4 @@
-# Copyright © 2020-2022 Intel Corporation
+# Copyright © 2020-2023 Intel Corporation
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,15 +18,16 @@ import typing as T
 
 from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from .. import mlog
-from ..build import BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList, IncludeDirs, CustomTarget, StructuredSources
+from ..build import BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList, IncludeDirs, CustomTarget, InvalidArguments, Jar, StructuredSources
 from ..compilers.compilers import are_asserts_disabled
 from ..dependencies import Dependency, ExternalLibrary
-from ..interpreter.type_checking import DEPENDENCIES_KW, TEST_KWS, OUTPUT_KW, INCLUDE_DIRECTORIES
+from ..interpreter.type_checking import DEPENDENCIES_KW, LINK_WITH_KW, TEST_KWS, OUTPUT_KW, INCLUDE_DIRECTORIES
 from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noPosargs
 from ..mesonlib import File
 
 if T.TYPE_CHECKING:
     from . import ModuleState
+    from ..build import LibTypes
     from ..interpreter import Interpreter
     from ..interpreter import kwargs as _kwargs
     from ..interpreter.interpreter import SourceInputs, SourceOutputs
@@ -38,6 +39,8 @@ if T.TYPE_CHECKING:
 
         dependencies: T.List[T.Union[Dependency, ExternalLibrary]]
         is_parallel: bool
+        link_with: T.List[LibTypes]
+        rust_args: T.List[str]
 
     class FuncBindgen(TypedDict):
 
@@ -68,6 +71,14 @@ class RustModule(ExtensionModule):
         'rust.test',
         *TEST_KWS,
         DEPENDENCIES_KW,
+        LINK_WITH_KW.evolve(since='1.2.0'),
+        KwargInfo(
+            'rust_args',
+            ContainerTypeInfo(list, str),
+            listify=True,
+            default=[],
+            since='1.2.0',
+        ),
         KwargInfo('is_parallel', bool, default=False),
     )
     def test(self, state: ModuleState, args: T.Tuple[str, BuildTarget], kwargs: FuncTest) -> ModuleReturnValue:
@@ -112,6 +123,9 @@ class RustModule(ExtensionModule):
         rust.test('rust_lib_test', rust_lib)
         ```
         """
+        if any(isinstance(t, Jar) for t in kwargs.get('link_with', [])):
+            raise InvalidArguments('Rust tests cannot link with Jar targets')
+
         name = args[0]
         base_target: BuildTarget = args[1]
         if not base_target.uses_rust():
@@ -142,9 +156,11 @@ class RustModule(ExtensionModule):
         new_target_kwargs = base_target.kwargs.copy()
         # Don't mutate the shallow copied list, instead replace it with a new
         # one
-        new_target_kwargs['rust_args'] = new_target_kwargs.get('rust_args', []) + ['--test']
+        new_target_kwargs['rust_args'] = \
+            new_target_kwargs.get('rust_args', []) + kwargs['rust_args'] + ['--test']
         new_target_kwargs['install'] = False
         new_target_kwargs['dependencies'] = new_target_kwargs.get('dependencies', []) + kwargs['dependencies']
+        new_target_kwargs['link_with'] = new_target_kwargs.get('link_with', []) + kwargs['link_with']
 
         sources = T.cast('T.List[SourceOutputs]', base_target.sources.copy())
         sources.extend(base_target.generated)
@@ -194,7 +210,10 @@ class RustModule(ExtensionModule):
             else:
                 depends.append(d)
 
-        clang_args: T.List[str] = []
+        # Copy to avoid subsequent calls mutating the original
+        # TODO: if we want this to be per-machine we'll need a native kwarg
+        clang_args = state.environment.properties.host.get_bindgen_clang_args().copy()
+
         for i in state.process_include_dirs(kwargs['include_directories']):
             # bindgen always uses clang, so it's safe to hardcode -I here
             clang_args.extend([f'-I{x}' for x in i.to_string_list(

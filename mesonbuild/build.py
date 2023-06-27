@@ -698,6 +698,15 @@ class BuildTarget(Target):
 
     install_dir: T.List[T.Union[str, Literal[False]]]
 
+    # This set contains all the languages a linker can link natively
+    # without extra flags. For instance, nvcc (cuda) can link C++
+    # without injecting -lc++/-lstdc++, see
+    #   https://github.com/mesonbuild/meson/issues/10570
+    _MASK_LANGS: T.FrozenSet[T.Tuple[str, str]] = frozenset([
+        # (language, linker)
+        ('cpp', 'cuda'),
+    ])
+
     def __init__(
             self,
             name: str,
@@ -1579,14 +1588,6 @@ You probably should put it in link_with instead.''')
         # Languages used by dependencies
         dep_langs = self.get_langs_used_by_deps()
 
-        # This set contains all the languages a linker can link natively
-        # without extra flags. For instance, nvcc (cuda) can link C++
-        # without injecting -lc++/-lstdc++, see
-        #   https://github.com/mesonbuild/meson/issues/10570
-        MASK_LANGS = frozenset([
-            # (language, linker)
-            ('cpp', 'cuda'),
-        ])
         # Pick a compiler based on the language priority-order
         for l in clink_langs:
             if l in self.compilers or l in dep_langs:
@@ -1597,10 +1598,7 @@ You probably should put it in link_with instead.''')
                         f'Could not get a dynamic linker for build target {self.name!r}. '
                         f'Requires a linker for language "{l}", but that is not '
                         'a project language.')
-                stdlib_args: T.List[str] = []
-                for dl in itertools.chain(self.compilers, dep_langs):
-                    if dl != linker.language and (dl, linker.language) not in MASK_LANGS:
-                        stdlib_args += all_compilers[dl].language_stdlib_only_link_flags(self.environment)
+                stdlib_args: T.List[str] = self.get_used_stdlib_args(linker.language)
                 # Type of var 'linker' is Compiler.
                 # Pretty hard to fix because the return value is passed everywhere
                 return linker, stdlib_args
@@ -1615,6 +1613,15 @@ You probably should put it in link_with instead.''')
                 pass
 
         raise AssertionError(f'Could not get a dynamic linker for build target {self.name!r}')
+
+    def get_used_stdlib_args(self, link_language: str) -> T.List[str]:
+        all_compilers = self.environment.coredata.compilers[self.for_machine]
+        all_langs = set(all_compilers).union(self.get_langs_used_by_deps())
+        stdlib_args: T.List[str] = []
+        for dl in all_langs:
+            if dl != link_language and (dl, link_language) not in self._MASK_LANGS:
+                stdlib_args.extend(all_compilers[dl].language_stdlib_only_link_flags(self.environment))
+        return stdlib_args
 
     def uses_rust(self) -> bool:
         return 'rust' in self.compilers
