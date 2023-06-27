@@ -1128,7 +1128,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         # The backend is already set when parsing subprojects
         if self.backend is not None:
             return
-        backend_name = self.coredata.get_option(OptionKey('backend'))
         from ..backend import backends
 
         if OptionKey('genvslite') in self.user_defined_options.cmd_line_options.keys():
@@ -1137,6 +1136,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             backend_name = self.coredata.get_option(OptionKey('genvslite'))
             self.backend = backends.get_genvslite_backend(backend_name, self.build, self)
         else:
+            backend_name = self.coredata.get_option(OptionKey('backend'))
             self.backend = backends.get_backend_from_name(backend_name, self.build, self)
 
         if self.backend is None:
