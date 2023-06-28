@@ -170,55 +170,52 @@ class Properties:
     # true, but without heterogeneous dict annotations it's not practical to
     # narrow them
     def get_stdlib(self, language: str) -> T.Union[str, T.List[str]]:
-        stdlib = self.properties[language + '_stdlib']
-        if isinstance(stdlib, str):
-            return stdlib
-        assert isinstance(stdlib, list)
-        for i in stdlib:
-            assert isinstance(i, str)
-        return stdlib
+        return mesonlib.stringlistify(self.properties[language + '_stdlib'], prefix=f'In machine file, {language}_stdlib')
 
     def get_root(self) -> T.Optional[str]:
         root = self.properties.get('root', None)
-        assert root is None or isinstance(root, str)
+        if root is None:
+            return None
+        if not isinstance(root, str):
+            raise EnvironmentException('Machine file "root" must be a string')
         return root
 
     def get_sys_root(self) -> T.Optional[str]:
         sys_root = self.properties.get('sys_root', None)
-        assert sys_root is None or isinstance(sys_root, str)
+        if sys_root is None:
+            return None
+        if not isinstance(sys_root, str):
+            raise EnvironmentException('Machine file "sys_root" must be a string')
         return sys_root
 
     def get_pkg_config_libdir(self) -> T.Optional[T.List[str]]:
-        p = self.properties.get('pkg_config_libdir', None)
-        if p is None:
-            return p
-        res = mesonlib.listify(p)
-        for i in res:
-            assert isinstance(i, str)
-        return res
+        p = mesonlib.stringlistify(mesonlib.listify(self.properties.get('pkg_config_libdir', [])),
+                                   prefix='In machine file, "pkg_config_libdir"')
+        return p if p else None
 
     def get_cmake_defaults(self) -> bool:
-        if 'cmake_defaults' not in self.properties:
-            return True
-        res = self.properties['cmake_defaults']
-        assert isinstance(res, bool)
+        res = self.properties.get('cmake_defaults', True)
+        if not isinstance(res, bool):
+            raise EnvironmentException('Machine file "cmake_defaults" must be a boolean')
         return res
 
     def get_cmake_toolchain_file(self) -> T.Optional[Path]:
-        if 'cmake_toolchain_file' not in self.properties:
+        raw = self.properties.get('cmake_toolchain_file')
+        if raw is None:
             return None
-        raw = self.properties['cmake_toolchain_file']
-        assert isinstance(raw, str)
+        if not isinstance(raw, str):
+            raise EnvironmentException('Machine file "cmake_toolchain_file" must be a string')
         cmake_toolchain_file = Path(raw)
         if not cmake_toolchain_file.is_absolute():
             raise EnvironmentException(f'cmake_toolchain_file ({raw}) is not absolute')
         return cmake_toolchain_file
 
     def get_cmake_skip_compiler_test(self) -> CMakeSkipCompilerTest:
-        if 'cmake_skip_compiler_test' not in self.properties:
-            return CMakeSkipCompilerTest.DEP_ONLY
-        raw = self.properties['cmake_skip_compiler_test']
-        assert isinstance(raw, str)
+        raw = self.properties.get('cmake_skip_compiler_test')
+        if raw is None:
+            return None
+        if not isinstance(raw, str):
+            raise EnvironmentException('Machine file "cmake_skip_compiler_test" must be a string')
         try:
             return CMakeSkipCompilerTest(raw)
         except ValueError:
@@ -227,15 +224,18 @@ class Properties:
                 .format(raw, [e.value for e in CMakeSkipCompilerTest]))
 
     def get_cmake_use_exe_wrapper(self) -> bool:
-        if 'cmake_use_exe_wrapper' not in self.properties:
-            return True
-        res = self.properties['cmake_use_exe_wrapper']
-        assert isinstance(res, bool)
+        res = self.properties.get('cmake_use_exe_wrapper', True)
+        if not isinstance(res, bool):
+            raise EnvironmentException('Machine file "cmake_use_exe_wrapper" must be a boolean')
         return res
 
     def get_java_home(self) -> T.Optional[Path]:
-        value = T.cast('T.Optional[str]', self.properties.get('java_home'))
-        return Path(value) if value else None
+        value = self.properties.get('java_home')
+        if value is None:
+            return None
+        if not isinstance(value, str):
+            raise EnvironmentException('Machine file "java_home" must be a string')
+        return Path(value)
 
     def get_bindgen_clang_args(self) -> T.List[str]:
         value = mesonlib.listify(self.properties.get('bindgen_clang_arguments', []))

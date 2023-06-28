@@ -1008,10 +1008,10 @@ class BuildTarget(Target):
         self.kwargs = copy.copy(kwargs)
         for k, v in self.kwargs.items():
             if isinstance(v, list):
-                self.kwargs[k] = listify(v, flatten=True)
+                self.kwargs[k] = listify(v)
         for t in ['dependencies', 'link_with', 'include_directories', 'sources']:
             if t in self.kwargs:
-                self.kwargs[t] = listify(self.kwargs[t], flatten=True)
+                self.kwargs[t] = listify(self.kwargs[t])
 
     def extract_objects(self, srclist: T.List[T.Union['FileOrString', 'GeneratedTypes']]) -> ExtractedObjects:
         sources_set = set(self.sources)

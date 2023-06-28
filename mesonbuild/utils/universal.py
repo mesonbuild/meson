@@ -1378,18 +1378,17 @@ def replace_if_different(dst: str, dst_tmp: str) -> None:
         os.unlink(dst_tmp)
 
 
-def listify(item: T.Any, flatten: bool = True) -> T.List[T.Any]:
+def listify(item: T.Any) -> T.List[T.Any]:
     '''
     Returns a list with all args embedded in a list if they are not a list.
     This function preserves order.
-    @flatten: Convert lists of lists to a flat list
     '''
     if not isinstance(item, list):
         return [item]
     result = []  # type: T.List[T.Any]
     for i in item:
-        if flatten and isinstance(i, list):
-            result += listify(i, flatten=True)
+        if isinstance(i, list):
+            result += listify(i)
         else:
             result.append(i)
     return result
@@ -1403,27 +1402,34 @@ def extract_as_list(dict_object: T.Dict[_T, _U], key: _T, pop: bool = False) -> 
     if pop:
         fetch = dict_object.pop
     # If there's only one key, we don't return a list with one element
-    return listify(fetch(key) or [], flatten=True)
+    return listify(fetch(key) or [])
 
 
-def typeslistify(item: 'T.Union[_T, T.Sequence[_T]]',
-                 types: 'T.Union[T.Type[_T], T.Tuple[T.Type[_T]]]') -> T.List[_T]:
-    '''
-    Ensure that type(@item) is one of @types or a
-    list of items all of which are of type @types
-    '''
+def typeslistify(item: T.Union[_T, T.List[_T]],
+                 types: T.Union[T.Type[_T], T.Tuple[T.Type[_T]]],
+                 prefix: T.Optional[str] = None) -> T.List[_T]:
+    """Ensure that an item is of types _T or a list thereof.
+
+    :param item: An scalar or list of scalars to check
+    :param types: any value valid to pass to the second paramter of isinstance()
+    :param prefix: An error prefix add to any exceptions raised
+    :raises MesonException: When any value is not of :param:types
+    :returns: item if if item is a list, otherwise a list with item as its only member
+    """
     if isinstance(item, types):
         item = T.cast('T.List[_T]', [item])
     if not isinstance(item, list):
-        raise MesonException('Item must be a list or one of {!r}, not {!r}'.format(types, type(item)))
-    for i in item:
-        if i is not None and not isinstance(i, types):
-            raise MesonException('List item must be one of {!r}, not {!r}'.format(types, type(i)))
+        raise MesonException(prefix or '', f'must be an either {types!r}, or an array thereof, not {type(item)!r}')
+
+    bad = [i for i in item if not isinstance(i, types)]
+    if bad:
+        raise MesonException(prefix or '', f'must be an either {types!r}, or an array thereof, but contains the following unexpected types:',
+                             ', '.join(repr(b) for b in bad))
     return item
 
 
-def stringlistify(item: T.Union[T.Any, T.Sequence[T.Any]]) -> T.List[str]:
-    return typeslistify(item, str)
+def stringlistify(item: T.Union[T.Any, T.List[T.Any]], prefix: T.Optional[str] = None) -> T.List[str]:
+    return typeslistify(item, str, prefix)
 
 
 def expand_arguments(args: T.Iterable[str]) -> T.Optional[T.List[str]]:

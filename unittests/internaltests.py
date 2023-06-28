@@ -490,7 +490,6 @@ class InternalTests(unittest.TestCase):
         # Test flattening
         self.assertEqual([1, 2, 3], listify([1, [2, 3]]))
         self.assertEqual([1, 2, 3], listify([1, [2, [3]]]))
-        self.assertEqual([1, [2, [3]]], listify([1, [2, [3]]], flatten=False))
         # Test flattening and unholdering
         class TestHeldObj(mesonbuild.mesonlib.HoldableObject):
             def __init__(self, val: int) -> None:

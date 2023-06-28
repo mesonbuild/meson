@@ -221,7 +221,7 @@ class HotdocTargetBuilder:
 
     def flatten_config_command(self):
         cmd = []
-        for arg in mesonlib.listify(self.cmd, flatten=True):
+        for arg in mesonlib.listify(self.cmd):
             if isinstance(arg, mesonlib.File):
                 arg = arg.absolute_path(self.state.environment.get_source_dir(),
                                         self.state.environment.get_build_dir())
