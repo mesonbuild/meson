@@ -38,7 +38,7 @@ from ..arglist import CompilerArgs
 from ..compilers import Compiler
 from ..linkers import ArLikeLinker, RSPFileSyntax
 from ..mesonlib import (
-    File, LibType, MachineChoice, MesonException, OrderedSet, PerMachine,
+    File, LibType, MachineChoice, MesonBugException, MesonException, OrderedSet, PerMachine,
     ProgressBar, quote_arg
 )
 from ..mesonlib import get_compiler_for_source, has_path_sep, OptionKey
@@ -583,7 +583,7 @@ class NinjaBackend(backends.Backend):
         if captured_compile_args_per_buildtype_and_target:
             # We don't yet have a use case where we'd expect to make use of this,
             # so no harm in catching and reporting something unexpected.
-            raise MesonException('We do not expect the ninja backend to be given a valid \'captured_compile_args_per_buildtype_and_target\'')
+            raise MesonBugException('We do not expect the ninja backend to be given a valid \'captured_compile_args_per_buildtype_and_target\'')
         ninja = environment.detect_ninja_command_and_version(log=True)
         if self.environment.coredata.get_option(OptionKey('vsenv')):
             builddir = Path(self.environment.get_build_dir())

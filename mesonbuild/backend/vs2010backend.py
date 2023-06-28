@@ -30,7 +30,7 @@ from .. import mlog
 from .. import compilers
 from .. import mesonlib
 from ..mesonlib import (
-    File, MesonException, replace_if_different, OptionKey, version_compare, MachineChoice
+    File, MesonBugException, MesonException, replace_if_different, OptionKey, version_compare, MachineChoice
 )
 from ..environment import Environment, build_filename
 from .. import coredata
@@ -241,7 +241,7 @@ class Vs2010Backend(backends.Backend):
     ) -> T.Optional[dict]:
         # Check for (currently) unexpected capture arg use cases -
         if capture:
-            raise MesonException('We do not expect any vs backend to generate with \'capture = True\'')
+            raise MesonBugException('We do not expect any vs backend to generate with \'capture = True\'')
         target_machine = self.interpreter.builtin['target_machine'].cpu_family_method(None, None)
         if target_machine in {'64', 'x86_64'}:
             # amd64 or x86_64
