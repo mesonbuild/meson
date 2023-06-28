@@ -76,6 +76,7 @@ machine](#specifying-options-per-machine) section for details.
 | -------------------------------------- | ------------- | -----------                                                    | -------------- | ----------------- |
 | auto_features {enabled, disabled, auto} | auto         | Override value of all 'auto' features                          | no             | no                |
 | backend {ninja, vs,<br>vs2010, vs2012, vs2013, vs2015, vs2017, vs2019, vs2022, xcode, none} | ninja | Backend to use    | no             | no                |
+| genvslite {vs2022}                     | vs2022        | Setup multi-builtype ninja build directories and Visual Studio solution | no | no |
 | buildtype {plain, debug,<br>debugoptimized, release, minsize, custom} | debug | Build type to use                       | no             | no                |
 | debug                                  | true          | Enable debug symbols and other information                     | no             | no                |
 | default_library {shared, static, both} | shared        | Default library type                                           | no             | yes               |
@@ -105,6 +106,26 @@ Visual Studio for Windows, and xcode for macOS. It is also possible to
 configure with no backend at all, which is an error if you have targets to
 build, but for projects that need configuration + testing + installation allows
 for a lighter automated build pipeline.
+
+#### Details for `genvslite`
+
+Setup multiple buildtype-suffixed, ninja-backend build directories (e.g.
+[builddir]_[debug/release/etc.]) and generate [builddir]_vs containing a Visual
+Studio solution with multiple configurations that invoke a meson compile of the
+setup build directories, as appropriate for the current configuration (builtype).
+
+This has the effect of a simple setup macro of multiple 'meson setup ...'
+invocations with a set of different buildtype values.  E.g.
+`meson setup ... --genvslite vs2022 somebuilddir` does the following -
+```
+meson setup ... --backend ninja --buildtype debug somebuilddir_debug
+meson setup ... --backend ninja --buildtype debugoptimized somebuilddir_debugoptimized
+meson setup ... --backend ninja --buildtype release somebuilddir_release
+```
+and additionally creates another 'somebuilddir_vs' directory that contains
+a generated multi-configuration visual studio solution and project(s) that are
+set to build/compile with the somebuilddir_[...] that's appropriate for the
+solution's selected buildtype configuration.
 
 #### Details for `buildtype`
 

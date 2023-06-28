@@ -72,11 +72,17 @@ if stable_version.endswith('.99'):
     stable_version = '.'.join(stable_version_array)
 
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2012', 'vs2013', 'vs2015', 'vs2017', 'vs2019', 'vs2022', 'xcode', 'none']
+genvslitelist = ['vs2022']
+buildtypelist = ['plain', 'debug', 'debugoptimized', 'release', 'minsize', 'custom']
 
 DEFAULT_YIELDING = False
 
 # Can't bind this near the class method it seems, sadly.
 _T = T.TypeVar('_T')
+
+
+def get_genvs_default_buildtype_list() -> list:
+    return buildtypelist[1:-2] # just debug, debugoptimized, and release for now but this should probably be configurable through some extra option, alongside --genvslite.
 
 
 class MesonVersionMismatchException(MesonException):
@@ -1248,8 +1254,17 @@ BUILTIN_CORE_OPTIONS: 'MutableKeyedOptionDictType' = OrderedDict([
     (OptionKey('auto_features'),   BuiltinOption(UserFeatureOption, "Override value of all 'auto' features", 'auto')),
     (OptionKey('backend'),         BuiltinOption(UserComboOption, 'Backend to use', 'ninja', choices=backendlist,
                                                  readonly=True)),
+    (OptionKey('genvslite'),
+     BuiltinOption(
+         UserComboOption,
+         'Setup multiple buildtype-suffixed ninja-backend build directories (e.g. builddir_[debug/release/etc.]) '
+         'and generate [builddir]_vs containing a Visual Studio solution with multiple configurations that invoke a meson compile of the newly '
+         'setup build directories, as appropriate for the current build configuration (buildtype)',
+         'vs2022',
+         choices=genvslitelist)
+     ),
     (OptionKey('buildtype'),       BuiltinOption(UserComboOption, 'Build type to use', 'debug',
-                                                 choices=['plain', 'debug', 'debugoptimized', 'release', 'minsize', 'custom'])),
+                                                 choices=buildtypelist)),
     (OptionKey('debug'),           BuiltinOption(UserBooleanOption, 'Enable debug symbols and other information', True)),
     (OptionKey('default_library'), BuiltinOption(UserComboOption, 'Default library type', 'shared', choices=['shared', 'static', 'both'],
                                                  yielding=False)),

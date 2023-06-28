@@ -21,7 +21,7 @@ from .. import build
 from .. import dependencies
 from .. import mesonlib
 from .. import mlog
-from ..mesonlib import MesonException, OptionKey
+from ..mesonlib import MesonBugException, MesonException, OptionKey
 
 if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
@@ -254,7 +254,14 @@ class XCodeBackend(backends.Backend):
         obj_path = f'{project}.build/{buildtype}/{tname}.build/Objects-normal/{arch}/{stem}.o'
         return obj_path
 
-    def generate(self):
+    def generate(self,
+                 capture: bool = False,
+                 captured_compile_args_per_buildtype_and_target: dict = None) -> T.Optional[dict]:
+        # Check for (currently) unexpected capture arg use cases -
+        if capture:
+            raise MesonBugException('We do not expect the xcode backend to generate with \'capture = True\'')
+        if captured_compile_args_per_buildtype_and_target:
+            raise MesonBugException('We do not expect the xcode backend to be given a valid \'captured_compile_args_per_buildtype_and_target\'')
         self.serialize_tests()
         # Cache the result as the method rebuilds the array every time it is called.
         self.build_targets = self.build.get_build_targets()
