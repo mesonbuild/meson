@@ -295,11 +295,9 @@ class Backend:
     # 'captured_compile_args_per_buildtype_and_target' is only provided when
     # we expect this backend setup/generation to make use of previously captured
     # compile args (as is the case when using '--genvslite').
-    def generate(
-        self,
-        capture: bool = False,
-        captured_compile_args_per_buildtype_and_target: dict = None
-    ) -> T.Optional[dict]:
+    def generate(self,
+                 capture: bool = False,
+                 captured_compile_args_per_buildtype_and_target: dict = None) -> T.Optional[dict]:
         raise RuntimeError(f'generate is not implemented in {type(self).__name__}')
 
     def get_target_filename(self, t: T.Union[build.Target, build.CustomTargetIndex], *, warn_multi_output: bool = True) -> str:

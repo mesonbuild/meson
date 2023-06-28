@@ -575,11 +575,9 @@ class NinjaBackend(backends.Backend):
 
         raise MesonException(f'Could not determine vs dep dependency prefix string. output: {stderr} {stdout}')
 
-    def generate(
-        self,
-        capture: bool = False,
-        captured_compile_args_per_buildtype_and_target: dict = None
-    ) -> T.Optional[dict]:
+    def generate(self,
+                 capture: bool = False,
+                 captured_compile_args_per_buildtype_and_target: dict = None) -> T.Optional[dict]:
         if captured_compile_args_per_buildtype_and_target:
             # We don't yet have a use case where we'd expect to make use of this,
             # so no harm in catching and reporting something unexpected.

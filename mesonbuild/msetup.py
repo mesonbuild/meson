@@ -174,11 +174,9 @@ class MesonApp:
         return src_dir, build_dir
 
     # See class Backend's 'generate' for comments on capture args and returned dictionary.
-    def generate(
-        self,
-        capture: bool = False,
-        captured_compile_args_per_buildtype_and_target: dict = None
-    ) -> T.Optional[dict]:
+    def generate(self,
+                 capture: bool = False,
+                 captured_compile_args_per_buildtype_and_target: dict = None) -> T.Optional[dict]:
         env = environment.Environment(self.source_dir, self.build_dir, self.options)
         mlog.initialize(env.get_log_dir(), self.options.fatal_warnings)
         if self.options.profile:
@@ -186,12 +184,10 @@ class MesonApp:
         with mesonlib.BuildDirLock(self.build_dir):
             return self._generate(env, capture = capture, captured_compile_args_per_buildtype_and_target = captured_compile_args_per_buildtype_and_target)
 
-    def _generate(
-        self,
-        env: environment.Environment,
-        capture: bool,
-        captured_compile_args_per_buildtype_and_target: dict
-    ) -> T.Optional[dict]:
+    def _generate(self,
+                  env: environment.Environment,
+                  capture: bool,
+                  captured_compile_args_per_buildtype_and_target: dict) -> T.Optional[dict]:
         # Get all user defined options, including options that have been defined
         # during a previous invocation or using meson configure.
         user_defined_options = argparse.Namespace(**vars(self.options))

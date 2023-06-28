@@ -254,11 +254,9 @@ class XCodeBackend(backends.Backend):
         obj_path = f'{project}.build/{buildtype}/{tname}.build/Objects-normal/{arch}/{stem}.o'
         return obj_path
 
-    def generate(
-        self,
-        capture: bool = False,
-        captured_compile_args_per_buildtype_and_target: dict = None
-    ) -> T.Optional[dict]:
+    def generate(self,
+                 capture: bool = False,
+                 captured_compile_args_per_buildtype_and_target: dict = None) -> T.Optional[dict]:
         # Check for (currently) unexpected capture arg use cases -
         if capture:
             raise MesonBugException('We do not expect the xcode backend to generate with \'capture = True\'')

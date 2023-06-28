@@ -127,11 +127,9 @@ def get_primary_source_lang(target_sources: T.List[File], custom_sources: T.List
 # (pre-processor defines, include paths, additional compiler options)
 # fields to use to fill in the respective intellisense fields of sources that can't simply
 # reference and re-use the shared 'primary' language intellisense fields of the vcxproj.
-def get_non_primary_lang_intellisense_fields(
-    captured_compile_args_per_buildtype_and_target: dict,
-    target_id: str,
-    primary_src_lang: str
-) -> T.Dict[str, T.Dict[str, T.Tuple[str, str, str]]]:
+def get_non_primary_lang_intellisense_fields(captured_compile_args_per_buildtype_and_target: dict,
+                                             target_id: str,
+                                             primary_src_lang: str) -> T.Dict[str, T.Dict[str, T.Tuple[str, str, str]]]:
     defs_paths_opts_per_lang_and_buildtype = {}
     for buildtype in coredata.get_genvs_default_buildtype_list():
         captured_build_args = captured_compile_args_per_buildtype_and_target[buildtype][target_id] # Results in a 'Src types to compile args' dict
@@ -234,11 +232,9 @@ class Vs2010Backend(backends.Backend):
             self.generate_genlist_for_target(genlist, target, parent_node, generator_output_files, custom_target_include_dirs, custom_target_output_files)
         return generator_output_files, custom_target_output_files, custom_target_include_dirs
 
-    def generate(
-        self,
-        capture: bool = False,
-        captured_compile_args_per_buildtype_and_target: dict = None
-    ) -> T.Optional[dict]:
+    def generate(self,
+                 capture: bool = False,
+                 captured_compile_args_per_buildtype_and_target: dict = None) -> T.Optional[dict]:
         # Check for (currently) unexpected capture arg use cases -
         if capture:
             raise MesonBugException('We do not expect any vs backend to generate with \'capture = True\'')
@@ -1258,16 +1254,14 @@ class Vs2010Backend(backends.Backend):
 
         return (nmake_base_meson_command, exe_search_paths)
 
-    def add_gen_lite_makefile_vcxproj_elements(
-            self,
-            root: ET.Element,
-            platform: str,
-            target_ext: str,
-            captured_compile_args_per_buildtype_and_target: dict,
-            target,
-            proj_to_build_root: str,
-            primary_src_lang: T.Optional[str]
-            ) -> None:
+    def add_gen_lite_makefile_vcxproj_elements(self,
+                                               root: ET.Element,
+                                               platform: str,
+                                               target_ext: str,
+                                               captured_compile_args_per_buildtype_and_target: dict,
+                                               target,
+                                               proj_to_build_root: str,
+                                               primary_src_lang: T.Optional[str]) -> None:
         ET.SubElement(root, 'ImportGroup', Label='ExtensionSettings')
         ET.SubElement(root, 'ImportGroup', Label='Shared')
         prop_sheets_grp = ET.SubElement(root, 'ImportGroup', Label='PropertySheets')
