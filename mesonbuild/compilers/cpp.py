@@ -254,9 +254,7 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
         # be passed to a different compiler with a different set of default
         # search paths, such as when using Clang for C/C++ and gfortran for
         # fortran,
-        search_dirs: T.List[str] = []
-        for d in self.get_compiler_dirs(env, 'libraries'):
-            search_dirs.append(f'-L{d}')
+        search_dirs = [f'-L{d}' for d in self.get_compiler_dirs(env, 'libraries')]
         return search_dirs + ['-lstdc++']
 
 
@@ -271,9 +269,7 @@ class AppleClangCPPCompiler(ClangCPPCompiler):
         # be passed to a different compiler with a different set of default
         # search paths, such as when using Clang for C/C++ and gfortran for
         # fortran,
-        search_dirs: T.List[str] = []
-        for d in self.get_compiler_dirs(env, 'libraries'):
-            search_dirs.append(f'-L{d}')
+        search_dirs = [f'-L{d}' for d in self.get_compiler_dirs(env, 'libraries')]
         return search_dirs + ['-lc++']
 
 
@@ -439,9 +435,7 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
         # be passed to a different compiler with a different set of default
         # search paths, such as when using Clang for C/C++ and gfortran for
         # fortran,
-        search_dirs: T.List[str] = []
-        for d in self.get_compiler_dirs(env, 'libraries'):
-            search_dirs.append(f'-L{d}')
+        search_dirs = [f'-L{d}' for d in self.get_compiler_dirs(env, 'libraries')]
         return search_dirs + ['-lstdc++']
 
 
