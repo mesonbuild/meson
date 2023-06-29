@@ -183,7 +183,20 @@ class CPPCompiler(CLikeCompiler, Compiler):
         return opts
 
 
-class ClangCPPCompiler(ClangCompiler, CPPCompiler):
+class _StdCPPLibMixin(CompilerMixinBase):
+
+    """Detect whether to use libc++ or libstdc++."""
+
+    def language_stdlib_only_link_flags(self, env: 'Environment') -> T.List[str]:
+        # We need to apply the search prefix here, as these link arguments may
+        # be passed to a different compiler with a different set of default
+        # search paths, such as when using Clang for C/C++ and gfortran for
+        # fortran,
+        search_dirs = [f'-L{d}' for d in self.get_compiler_dirs(env, 'libraries')]
+        return search_dirs + ['-lstdc++']
+
+
+class ClangCPPCompiler(_StdCPPLibMixin, ClangCompiler, CPPCompiler):
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
                  info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
                  linker: T.Optional['DynamicLinker'] = None,
@@ -248,14 +261,6 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
                 assert isinstance(l, str)
             return libs
         return []
-
-    def language_stdlib_only_link_flags(self, env: 'Environment') -> T.List[str]:
-        # We need to apply the search prefix here, as these link arguments may
-        # be passed to a different compiler with a different set of default
-        # search paths, such as when using Clang for C/C++ and gfortran for
-        # fortran,
-        search_dirs = [f'-L{d}' for d in self.get_compiler_dirs(env, 'libraries')]
-        return search_dirs + ['-lstdc++']
 
 
 class ArmLtdClangCPPCompiler(ClangCPPCompiler):
@@ -349,7 +354,7 @@ class ArmclangCPPCompiler(ArmclangCompiler, CPPCompiler):
         return []
 
 
-class GnuCPPCompiler(GnuCompiler, CPPCompiler):
+class GnuCPPCompiler(_StdCPPLibMixin, GnuCompiler, CPPCompiler):
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
                  info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
                  linker: T.Optional['DynamicLinker'] = None,
@@ -429,14 +434,6 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
 
     def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
         return ['-fpch-preprocess', '-include', os.path.basename(header)]
-
-    def language_stdlib_only_link_flags(self, env: 'Environment') -> T.List[str]:
-        # We need to apply the search prefix here, as these link arguments may
-        # be passed to a different compiler with a different set of default
-        # search paths, such as when using Clang for C/C++ and gfortran for
-        # fortran,
-        search_dirs = [f'-L{d}' for d in self.get_compiler_dirs(env, 'libraries')]
-        return search_dirs + ['-lstdc++']
 
 
 class PGICPPCompiler(PGICompiler, CPPCompiler):
