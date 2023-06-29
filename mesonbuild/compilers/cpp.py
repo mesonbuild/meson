@@ -442,7 +442,7 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
         search_dirs: T.List[str] = []
         for d in self.get_compiler_dirs(env, 'libraries'):
             search_dirs.append(f'-L{d}')
-        return ['-lstdc++']
+        return search_dirs + ['-lstdc++']
 
 
 class PGICPPCompiler(PGICompiler, CPPCompiler):
