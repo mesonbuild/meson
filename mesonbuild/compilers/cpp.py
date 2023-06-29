@@ -187,13 +187,41 @@ class _StdCPPLibMixin(CompilerMixinBase):
 
     """Detect whether to use libc++ or libstdc++."""
 
-    def language_stdlib_only_link_flags(self, env: 'Environment') -> T.List[str]:
+    @functools.lru_cache(None)
+    def language_stdlib_only_link_flags(self, env: Environment) -> T.List[str]:
+        """Detect the C++ stdlib and default search dirs
+
+        As an optimization, this method will cache the value, to avoid building the same values over and over
+
+        :param env: An Environment object
+        :raises MesonException: If a stdlib cannot be determined
+        """
+
         # We need to apply the search prefix here, as these link arguments may
         # be passed to a different compiler with a different set of default
         # search paths, such as when using Clang for C/C++ and gfortran for
-        # fortran,
+        # fortran.
         search_dirs = [f'-L{d}' for d in self.get_compiler_dirs(env, 'libraries')]
-        return search_dirs + ['-lstdc++']
+
+        machine = env.machines[self.for_machine]
+        assert machine is not None, 'for mypy'
+
+        # We need to determine whether to us libc++ or libstdc++ In some cases
+        # we know the answer, so we'll hardcode those cases.  There are other
+        # cases where we can't know the answer just by looking at the OS, namely
+        # on Linux. In that case we have to fallback to manually checking
+        stdlib: str
+        if machine.system in {'android', 'darwin', 'dragonfly', 'freebsd', 'netbsd', 'openbsd'}:
+            stdlib = 'c++'
+        elif self.find_library('c++', env, []) is not None:
+            stdlib = 'c++'
+        elif self.find_library('stdc++', env, []) is not None:
+            stdlib = 'stdc++'
+        else:
+            # TODO: maybe a bug exception?
+            raise MesonException('Could not detect either libc++ or libstdc++ as your C++ stdlib implementation.')
+
+        return search_dirs + [f'-l{stdlib}']
 
 
 class ClangCPPCompiler(_StdCPPLibMixin, ClangCompiler, CPPCompiler):
