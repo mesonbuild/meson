@@ -688,7 +688,7 @@ class CLikeCompiler(Compiler):
         # Get the preprocessed value after the delimiter,
         # minus the extra newline at the end and
         # merge string literals.
-        return self._concatenate_string_literals(p.stdout.split(delim + '\n')[-1][:-1]), cached
+        return self._concatenate_string_literals(p.stdout.split(delim + '\n')[-1][:-1]).strip(), cached
 
     def get_return_value(self, fname: str, rtype: str, prefix: str,
                          env: 'Environment', extra_args: T.Optional[T.List[str]],
