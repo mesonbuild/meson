@@ -403,12 +403,23 @@ KERNEL_MAPPINGS: T.Mapping[str, str] = {'freebsd': 'freebsd',
                                         'linux': 'linux',
                                         'cygwin': 'nt',
                                         'darwin': 'xnu',
-                                        'sunos': 'sunos',
                                         'dragonfly': 'dragonfly',
                                         'haiku': 'haiku',
                                         }
 
 def detect_kernel(system: str) -> T.Optional[str]:
+    if system == 'sunos':
+        # This needs to be /usr/bin/uname because gnu-uname could be installed and
+        # won't provide the necessary information
+        p, out, _ = Popen_safe(['/usr/bin/uname', '-o'])
+        if p.returncode != 0:
+            raise MesonException('Failed to run "/usr/bin/uname -o"')
+        out = out.lower().strip()
+        if out not in {'illumos', 'solaris'}:
+            mlog.warning(f'Got an unexpected value for kernel on a SunOS derived platform, expcted either "illumos" or "solaris", but got "{out}".'
+                         "Please open a Meson issue with the OS you're running and the value detected for your kernel.")
+            return None
+        return out
     return KERNEL_MAPPINGS.get(system, None)
 
 def detect_subsystem(system: str) -> T.Optional[str]:
