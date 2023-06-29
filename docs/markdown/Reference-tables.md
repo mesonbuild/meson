@@ -175,7 +175,8 @@ Native names as returned by the `.kernel()` method.
 | netbsd  | |
 | nt      | |
 | xnu                 | Kernel of various Apple OSes    |
-| sunos | |
+| illumos             | Kernel derived from OpenSolaris by community efforts |
+| solaris             | Kernel derived from OpenSolaris by Oracle |
 | dragonfly | |
 | haiku| |
 | none                 | For e.g. bare metal embedded    |
