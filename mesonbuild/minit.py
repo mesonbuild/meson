@@ -11,9 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import annotations
 
 """Code that creates simple startup projects."""
+
+from __future__ import annotations
 
 from pathlib import Path
 from enum import Enum
