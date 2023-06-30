@@ -13,6 +13,8 @@
 # limitations under the License.
 from __future__ import annotations
 
+import typing as T
+
 from mesonbuild.templates.valatemplates import ValaProject
 from mesonbuild.templates.fortrantemplates import FortranProject
 from mesonbuild.templates.objcpptemplates import ObjCppProject
@@ -26,9 +28,11 @@ from mesonbuild.templates.cstemplates import CSharpProject
 from mesonbuild.templates.ctemplates import CProject
 from mesonbuild.templates.sampleimpl import SampleImpl
 
-import argparse
+if T.TYPE_CHECKING:
+    from ..minit import Arguments
 
-def sameple_generator(options: argparse.Namespace) -> SampleImpl:
+
+def sameple_generator(options: Arguments) -> SampleImpl:
     return {
         'c': CProject,
         'cpp': CppProject,
