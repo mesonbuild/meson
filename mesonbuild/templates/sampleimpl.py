@@ -13,8 +13,18 @@
 # limitations under the License.
 from __future__ import annotations
 
+import typing as T
+
+if T.TYPE_CHECKING:
+    from ..minit import Arguments
+
 
 class SampleImpl:
+
+    def __init__(self, args: Arguments):
+        self.name = args.name
+        self.version = args.version
+
     def create_executable(self) -> None:
         raise NotImplementedError('Sample implementation for "executable" not implemented!')
 

@@ -13,8 +13,9 @@
 # limitations under the License.
 from __future__ import annotations
 
-from mesonbuild.templates.sampleimpl import SampleImpl
 import re
+
+from mesonbuild.templates.sampleimpl import SampleImpl
 
 
 lib_rust_template = '''#![crate_name = "{crate_file}"]
@@ -74,10 +75,6 @@ test('basic', exe)
 
 
 class RustProject(SampleImpl):
-    def __init__(self, options):
-        super().__init__()
-        self.name = options.name
-        self.version = options.version
 
     def create_executable(self) -> None:
         lowercase_token = re.sub(r'[^a-z0-9]', '_', self.name.lower())
