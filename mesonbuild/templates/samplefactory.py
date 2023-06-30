@@ -29,10 +29,10 @@ from mesonbuild.templates.ctemplates import CProject
 
 if T.TYPE_CHECKING:
     from ..minit import Arguments
-    from .sampleimpl import ClassImpl, SampleImpl
+    from .sampleimpl import ClassImpl, FileHeaderImpl, FileImpl, SampleImpl
 
 
-_IMPL: T.Mapping[str, T.Union[T.Type[ClassImpl], T.Type[SampleImpl]]] = {
+_IMPL: T.Mapping[str, T.Union[T.Type[ClassImpl], T.Type[FileHeaderImpl], T.Type[FileImpl]]] = {
     'c': CProject,
     'cpp': CppProject,
     'cs': CSharpProject,
