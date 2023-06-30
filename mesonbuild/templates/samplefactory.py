@@ -29,20 +29,23 @@ from mesonbuild.templates.ctemplates import CProject
 
 if T.TYPE_CHECKING:
     from ..minit import Arguments
-    from .sampleimpl import SampleImpl
+    from .sampleimpl import ClassImpl, SampleImpl
+
+
+_IMPL: T.Mapping[str, T.Union[T.Type[ClassImpl], T.Type[SampleImpl]]] = {
+    'c': CProject,
+    'cpp': CppProject,
+    'cs': CSharpProject,
+    'cuda': CudaProject,
+    'objc': ObjCProject,
+    'objcpp': ObjCppProject,
+    'java': JavaProject,
+    'd': DlangProject,
+    'rust': RustProject,
+    'fortran': FortranProject,
+    'vala': ValaProject,
+}
 
 
 def sample_generator(options: Arguments) -> SampleImpl:
-    return {
-        'c': CProject,
-        'cpp': CppProject,
-        'cs': CSharpProject,
-        'cuda': CudaProject,
-        'objc': ObjCProject,
-        'objcpp': ObjCppProject,
-        'java': JavaProject,
-        'd': DlangProject,
-        'rust': RustProject,
-        'fortran': FortranProject,
-        'vala': ValaProject
-    }[options.language](options)
+    return _IMPL[options.language](options)
