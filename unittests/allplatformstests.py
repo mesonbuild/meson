@@ -2231,31 +2231,32 @@ class AllPlatformTests(BasePlatformTests):
 
         for lang in langs:
             for target_type in ('executable', 'library'):
-                if is_windows() and lang == 'fortran' and target_type == 'library':
-                    # non-Gfortran Windows Fortran compilers do not do shared libraries in a Fortran standard way
-                    # see "test cases/fortran/6 dynamic"
-                    fc = detect_compiler_for(env, 'fortran', MachineChoice.HOST, True)
-                    if fc.get_id() in {'intel-cl', 'pgi'}:
-                        continue
-                # test empty directory
-                with tempfile.TemporaryDirectory() as tmpdir:
-                    self._run(self.meson_command + ['init', '--language', lang, '--type', target_type],
-                              workdir=tmpdir)
-                    self._run(self.setup_command + ['--backend=ninja', 'builddir'],
-                              workdir=tmpdir)
-                    self._run(ninja,
-                              workdir=os.path.join(tmpdir, 'builddir'))
-            # test directory with existing code file
-            if lang in {'c', 'cpp', 'd'}:
-                with tempfile.TemporaryDirectory() as tmpdir:
-                    with open(os.path.join(tmpdir, 'foo.' + lang), 'w', encoding='utf-8') as f:
-                        f.write('int main(void) {}')
-                    self._run(self.meson_command + ['init', '-b'], workdir=tmpdir)
-            elif lang in {'java'}:
-                with tempfile.TemporaryDirectory() as tmpdir:
-                    with open(os.path.join(tmpdir, 'Foo.' + lang), 'w', encoding='utf-8') as f:
-                        f.write('public class Foo { public static void main() {} }')
-                    self._run(self.meson_command + ['init', '-b'], workdir=tmpdir)
+                with self.subTest(f'Language: {lang}; type: {target_type}'):
+                    if is_windows() and lang == 'fortran' and target_type == 'library':
+                        # non-Gfortran Windows Fortran compilers do not do shared libraries in a Fortran standard way
+                        # see "test cases/fortran/6 dynamic"
+                        fc = detect_compiler_for(env, 'fortran', MachineChoice.HOST, True)
+                        if fc.get_id() in {'intel-cl', 'pgi'}:
+                            continue
+                    # test empty directory
+                    with tempfile.TemporaryDirectory() as tmpdir:
+                        self._run(self.meson_command + ['init', '--language', lang, '--type', target_type],
+                                  workdir=tmpdir)
+                        self._run(self.setup_command + ['--backend=ninja', 'builddir'],
+                                  workdir=tmpdir)
+                        self._run(ninja,
+                                  workdir=os.path.join(tmpdir, 'builddir'))
+                # test directory with existing code file
+                if lang in {'c', 'cpp', 'd'}:
+                    with tempfile.TemporaryDirectory() as tmpdir:
+                        with open(os.path.join(tmpdir, 'foo.' + lang), 'w', encoding='utf-8') as f:
+                            f.write('int main(void) {}')
+                        self._run(self.meson_command + ['init', '-b'], workdir=tmpdir)
+                elif lang in {'java'}:
+                    with tempfile.TemporaryDirectory() as tmpdir:
+                        with open(os.path.join(tmpdir, 'Foo.' + lang), 'w', encoding='utf-8') as f:
+                            f.write('public class Foo { public static void main() {} }')
+                        self._run(self.meson_command + ['init', '-b'], workdir=tmpdir)
 
     def test_compiler_run_command(self):
         '''
