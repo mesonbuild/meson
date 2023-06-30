@@ -20,6 +20,7 @@ modules = [
     'mesonbuild/interpreterbase/',
     'mesonbuild/linkers/',
     'mesonbuild/scripts/',
+    'mesonbuild/templates/',
     'mesonbuild/wrap/',
 
     # specific files
