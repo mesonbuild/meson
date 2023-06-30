@@ -27,16 +27,13 @@ from glob import glob
 from mesonbuild import build, mesonlib, mlog
 from mesonbuild.coredata import FORBIDDEN_TARGET_NAMES
 from mesonbuild.environment import detect_ninja
+from mesonbuild.templates.mesontemplates import create_meson_build
 from mesonbuild.templates.samplefactory import sameple_generator
 import typing as T
 
 if T.TYPE_CHECKING:
     import argparse
 
-'''
-we currently have one meson template at this time.
-'''
-from mesonbuild.templates.mesontemplates import create_meson_build
 
 FORTRAN_SUFFIXES = {'.f', '.for', '.F', '.f90', '.F90'}
 LANG_SUFFIXES = {'.c', '.cc', '.cpp', '.cs', '.cu', '.d', '.m', '.mm', '.rs', '.java', '.vala'} | FORTRAN_SUFFIXES
