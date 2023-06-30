@@ -24,15 +24,32 @@ import sys
 import os
 import re
 from glob import glob
+import typing as T
+
 from mesonbuild import build, mesonlib, mlog
 from mesonbuild.coredata import FORBIDDEN_TARGET_NAMES
 from mesonbuild.environment import detect_ninja
 from mesonbuild.templates.mesontemplates import create_meson_build
 from mesonbuild.templates.samplefactory import sameple_generator
-import typing as T
 
 if T.TYPE_CHECKING:
     import argparse
+
+    from typing_extensions import Protocol, Literal
+
+    class Arguments(Protocol):
+
+        srcfiles: T.List[Path]
+        wd: str
+        name: str
+        executable: str
+        deps: str
+        language: Literal['c', 'cpp', 'cs', 'cuda', 'd', 'fortran', 'java', 'rust', 'objc', 'objcpp', 'vala']
+        build: bool
+        builddir: str
+        force: bool
+        type: Literal['executable', 'library']
+        version: str
 
 
 FORTRAN_SUFFIXES = {'.f', '.for', '.F', '.f90', '.F90'}
@@ -53,7 +70,7 @@ meson compile -C builddir
 '''
 
 
-def create_sample(options: 'argparse.Namespace') -> None:
+def create_sample(options: Arguments) -> None:
     '''
     Based on what arguments are passed we check for a match in language
     then check for project type and create new Meson samples project.
@@ -67,7 +84,7 @@ def create_sample(options: 'argparse.Namespace') -> None:
         raise RuntimeError('Unreachable code')
     print(INFO_MESSAGE)
 
-def autodetect_options(options: 'argparse.Namespace', sample: bool = False) -> None:
+def autodetect_options(options: Arguments, sample: bool = False) -> None:
     '''
     Here we autodetect options for args not passed in so don't have to
     think about it.
@@ -88,7 +105,7 @@ def autodetect_options(options: 'argparse.Namespace', sample: bool = False) -> N
         # The rest of the autodetection is not applicable to generating sample projects.
         return
     if not options.srcfiles:
-        srcfiles = []
+        srcfiles: T.List[Path] = []
         for f in (f for f in Path().iterdir() if f.is_file()):
             if f.suffix in LANG_SUFFIXES:
                 srcfiles.append(f)
@@ -97,7 +114,6 @@ def autodetect_options(options: 'argparse.Namespace', sample: bool = False) -> N
                              'Run meson init in an empty directory to create a sample project.')
         options.srcfiles = srcfiles
         print("Detected source files: " + ' '.join(str(s) for s in srcfiles))
-    options.srcfiles = [Path(f) for f in options.srcfiles]
     if not options.language:
         for f in options.srcfiles:
             if f.suffix == '.c':
@@ -142,7 +158,7 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     Here we add args for that the user can passed when making a new
     Meson project.
     '''
-    parser.add_argument("srcfiles", metavar="sourcefile", nargs="*", help="source files. default: all recognized files in current directory")
+    parser.add_argument("srcfiles", metavar="sourcefile", nargs="*", type=Path, help="source files. default: all recognized files in current directory")
     parser.add_argument('-C', dest='wd', action=mesonlib.RealPathAction,
                         help='directory to cd into before running')
     parser.add_argument("-n", "--name", help="project name. default: name of current directory")
@@ -155,7 +171,7 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     parser.add_argument('--type', default=DEFAULT_PROJECT, choices=('executable', 'library'), help=f"project type. default: {DEFAULT_PROJECT} based project")
     parser.add_argument('--version', default=DEFAULT_VERSION, help=f"project version. default: {DEFAULT_VERSION}")
 
-def run(options: 'argparse.Namespace') -> int:
+def run(options: Arguments) -> int:
     '''
     Here we generate the new Meson sample project.
     '''

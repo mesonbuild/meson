@@ -13,7 +13,10 @@
 # limitations under the License.
 from __future__ import annotations
 
-import argparse
+import typing as T
+
+if T.TYPE_CHECKING:
+    from ..minit import Arguments
 
 meson_executable_template = '''project('{project_name}', {language},
   version : '{version}',
@@ -36,7 +39,7 @@ jar('{executable}',
 '''
 
 
-def create_meson_build(options: argparse.Namespace) -> None:
+def create_meson_build(options: Arguments) -> None:
     if options.type != 'executable':
         raise SystemExit('\nGenerating a meson.build file from existing sources is\n'
                          'supported only for project type "executable".\n'
