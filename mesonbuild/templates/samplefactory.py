@@ -26,10 +26,10 @@ from mesonbuild.templates.objctemplates import ObjCProject
 from mesonbuild.templates.cpptemplates import CppProject
 from mesonbuild.templates.cstemplates import CSharpProject
 from mesonbuild.templates.ctemplates import CProject
-from mesonbuild.templates.sampleimpl import SampleImpl
 
 if T.TYPE_CHECKING:
     from ..minit import Arguments
+    from .sampleimpl import SampleImpl
 
 
 def sameple_generator(options: Arguments) -> SampleImpl:
