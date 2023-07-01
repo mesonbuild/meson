@@ -487,6 +487,7 @@ class Environment:
             os.makedirs(self.scratch_dir, exist_ok=True)
             os.makedirs(self.log_dir, exist_ok=True)
             os.makedirs(self.info_dir, exist_ok=True)
+            coredata.read_cmd_line_file(self.build_dir, options)
             try:
                 self.coredata = coredata.load(self.get_build_dir())  # type: coredata.CoreData
                 self.first_invocation = False
@@ -495,7 +496,6 @@ class Environment:
             except coredata.MesonVersionMismatchException as e:
                 # This is routine, but tell the user the update happened
                 mlog.log('Regenerating configuration from scratch:', str(e))
-                coredata.read_cmd_line_file(self.build_dir, options)
                 self.create_new_coredata(options)
             except MesonException as e:
                 # If we stored previous command line options, we can recover from
@@ -503,7 +503,6 @@ class Environment:
                 if os.path.isfile(coredata.get_cmd_line_file(self.build_dir)):
                     mlog.warning('Regenerating configuration from scratch.', fatal=False)
                     mlog.log('Reason:', mlog.red(str(e)))
-                    coredata.read_cmd_line_file(self.build_dir, options)
                     self.create_new_coredata(options)
                 else:
                     raise e
