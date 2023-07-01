@@ -440,6 +440,7 @@ class NativeFileTests(BasePlatformTests):
         testcase = os.path.join(self.common_test_dir, '40 options')
         config = self.helper_create_native_file({'project options': {'other_one': True}})
         self.init(testcase, extra_args=['--native-file', config, '-Dother_one=false'])
+        self.init(testcase, extra_args=['--reconfigure'])
 
     def test_user_options_subproject(self):
         testcase = os.path.join(self.unit_test_dir, '78 user options for subproject')
