@@ -88,7 +88,6 @@ python = pymod.find_installation('python3', required: true)
         else:
             self.assertEqual(count, 5)
 
-    @xfail_if_jobname('msys2-clangx64ninja')
     def test_bytecompile_multi(self):
         if not shutil.which('python2') and not PythonModule._get_win_pythonpath('python2'):
             raise self.skipTest('python2 not installed')
