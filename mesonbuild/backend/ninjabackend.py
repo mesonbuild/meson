@@ -575,13 +575,11 @@ class NinjaBackend(backends.Backend):
 
         raise MesonException(f'Could not determine vs dep dependency prefix string. output: {stderr} {stdout}')
 
-    def generate(self,
-                 capture: bool = False,
-                 captured_compile_args_per_buildtype_and_target: dict = None) -> T.Optional[dict]:
-        if captured_compile_args_per_buildtype_and_target:
+    def generate(self, capture: bool = False, vslite_ctx: dict = None) -> T.Optional[dict]:
+        if vslite_ctx:
             # We don't yet have a use case where we'd expect to make use of this,
             # so no harm in catching and reporting something unexpected.
-            raise MesonBugException('We do not expect the ninja backend to be given a valid \'captured_compile_args_per_buildtype_and_target\'')
+            raise MesonBugException('We do not expect the ninja backend to be given a valid \'vslite_ctx\'')
         ninja = environment.detect_ninja_command_and_version(log=True)
         if self.environment.coredata.get_option(OptionKey('vsenv')):
             builddir = Path(self.environment.get_build_dir())

@@ -25,14 +25,12 @@ class NoneBackend(Backend):
 
     name = 'none'
 
-    def generate(self,
-                 capture: bool = False,
-                 captured_compile_args_per_buildtype_and_target: dict = None) -> T.Optional[dict]:
+    def generate(self, capture: bool = False, vslite_ctx: dict = None) -> T.Optional[dict]:
         # Check for (currently) unexpected capture arg use cases -
         if capture:
             raise MesonBugException('We do not expect the none backend to generate with \'capture = True\'')
-        if captured_compile_args_per_buildtype_and_target:
-            raise MesonBugException('We do not expect the none backend to be given a valid \'captured_compile_args_per_buildtype_and_target\'')
+        if vslite_ctx:
+            raise MesonBugException('We do not expect the none backend to be given a valid \'vslite_ctx\'')
 
         if self.build.get_targets():
             raise MesonBugException('None backend cannot generate target rules, but should have failed earlier.')

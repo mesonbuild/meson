@@ -127,12 +127,12 @@ def get_primary_source_lang(target_sources: T.List[File], custom_sources: T.List
 # (pre-processor defines, include paths, additional compiler options)
 # fields to use to fill in the respective intellisense fields of sources that can't simply
 # reference and re-use the shared 'primary' language intellisense fields of the vcxproj.
-def get_non_primary_lang_intellisense_fields(captured_compile_args_per_buildtype_and_target: dict,
+def get_non_primary_lang_intellisense_fields(vslite_ctx: dict,
                                              target_id: str,
                                              primary_src_lang: str) -> T.Dict[str, T.Dict[str, T.Tuple[str, str, str]]]:
     defs_paths_opts_per_lang_and_buildtype = {}
     for buildtype in coredata.get_genvs_default_buildtype_list():
-        captured_build_args = captured_compile_args_per_buildtype_and_target[buildtype][target_id] # Results in a 'Src types to compile args' dict
+        captured_build_args = vslite_ctx[buildtype][target_id] # Results in a 'Src types to compile args' dict
         non_primary_build_args_per_src_lang = [(lang, build_args) for lang, build_args in captured_build_args.items() if lang != primary_src_lang] # Only need to individually populate intellisense fields for sources of non-primary types.
         for src_lang, args_list in non_primary_build_args_per_src_lang:
             if src_lang not in defs_paths_opts_per_lang_and_buildtype:
@@ -234,7 +234,7 @@ class Vs2010Backend(backends.Backend):
 
     def generate(self,
                  capture: bool = False,
-                 captured_compile_args_per_buildtype_and_target: dict = None) -> T.Optional[dict]:
+                 vslite_ctx: dict = None) -> T.Optional[dict]:
         # Check for (currently) unexpected capture arg use cases -
         if capture:
             raise MesonBugException('We do not expect any vs backend to generate with \'capture = True\'')
@@ -286,7 +286,7 @@ class Vs2010Backend(backends.Backend):
         except MesonException:
             self.sanitize = 'none'
         sln_filename = os.path.join(self.environment.get_build_dir(), self.build.project_name + '.sln')
-        projlist = self.generate_projects(captured_compile_args_per_buildtype_and_target)
+        projlist = self.generate_projects(vslite_ctx)
         self.gen_testproj()
         self.gen_installproj()
         self.gen_regenproj()
@@ -541,7 +541,7 @@ class Vs2010Backend(backends.Backend):
             ofile.write('EndGlobal\n')
         replace_if_different(sln_filename, sln_filename_tmp)
 
-    def generate_projects(self, captured_compile_args_per_buildtype_and_target: dict = None) -> T.List[Project]:
+    def generate_projects(self, vslite_ctx: dict = None) -> T.List[Project]:
         startup_project = self.environment.coredata.options[OptionKey('backend_startup_project')].value
         projlist: T.List[Project] = []
         startup_idx = 0
@@ -558,7 +558,7 @@ class Vs2010Backend(backends.Backend):
             relname = target_dir / fname
             projfile_path = outdir / fname
             proj_uuid = self.environment.coredata.target_guids[name]
-            generated = self.gen_vcxproj(target, str(projfile_path), proj_uuid, captured_compile_args_per_buildtype_and_target)
+            generated = self.gen_vcxproj(target, str(projfile_path), proj_uuid, vslite_ctx)
             if generated:
                 projlist.append((name, relname, proj_uuid, target.for_machine))
 
@@ -1258,7 +1258,7 @@ class Vs2010Backend(backends.Backend):
                                                root: ET.Element,
                                                platform: str,
                                                target_ext: str,
-                                               captured_compile_args_per_buildtype_and_target: dict,
+                                               vslite_ctx: dict,
                                                target,
                                                proj_to_build_root: str,
                                                primary_src_lang: T.Optional[str]) -> None:
@@ -1288,7 +1288,7 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(per_config_prop_group, 'IntDir').text = f'{proj_to_build_dir_for_buildtype}\\'
             ET.SubElement(per_config_prop_group, 'NMakeBuildCommandLine').text = f'{nmake_base_meson_command} compile -C "{proj_to_build_dir_for_buildtype}"'
             ET.SubElement(per_config_prop_group, 'NMakeOutput').text = f'$(OutDir){target.name}{target_ext}'
-            captured_build_args = captured_compile_args_per_buildtype_and_target[buildtype][target.get_id()]
+            captured_build_args = vslite_ctx[buildtype][target.get_id()]
             # 'captured_build_args' is a dictionary, mapping from each src file type to a list of compile args to use for that type.
             # Usually, there's just one but we could have multiple src types.  However, since there's only one field for the makefile
             # project's NMake... preprocessor/include intellisense fields, we'll just use the first src type we have to fill in
@@ -1632,7 +1632,7 @@ class Vs2010Backend(backends.Backend):
     # Returns bool indicating whether the .vcxproj has been generated.
     # Under some circumstances, it's unnecessary to create some .vcxprojs, so, when generating the .sln,
     # we need to respect that not all targets will have generated a project.
-    def gen_vcxproj(self, target: build.BuildTarget, ofname: str, guid: str, captured_compile_args_per_buildtype_and_target: dict = None) -> bool:
+    def gen_vcxproj(self, target: build.BuildTarget, ofname: str, guid: str, vslite_ctx: dict = None) -> bool:
         mlog.debug(f'Generating vcxproj {target.name}.')
         subsystem = 'Windows'
         self.handled_target_deps[target.get_id()] = []
@@ -1712,9 +1712,9 @@ class Vs2010Backend(backends.Backend):
             target, compiler, generated_files_include_dirs, proj_to_src_root, proj_to_src_dir, build_args)
 
         if self.gen_lite:
-            assert captured_compile_args_per_buildtype_and_target is not None
+            assert vslite_ctx is not None
             primary_src_lang = get_primary_source_lang(target.sources, custom_src)
-            self.add_gen_lite_makefile_vcxproj_elements(root, platform, tfilename[1], captured_compile_args_per_buildtype_and_target, target, proj_to_build_root, primary_src_lang)
+            self.add_gen_lite_makefile_vcxproj_elements(root, platform, tfilename[1], vslite_ctx, target, proj_to_build_root, primary_src_lang)
         else:
             self.add_non_makefile_vcxproj_elements(root, type_config, target, platform, subsystem, build_args, target_args, target_defines, target_inc_dirs, file_args)
 
@@ -1789,7 +1789,7 @@ class Vs2010Backend(backends.Backend):
             if self.gen_lite:
                 # Get data to fill in intellisense fields for sources that can't reference the project-wide values
                 defs_paths_opts_per_lang_and_buildtype = get_non_primary_lang_intellisense_fields(
-                    captured_compile_args_per_buildtype_and_target,
+                    vslite_ctx,
                     target.get_id(),
                     primary_src_lang)
                 if gen_src:
