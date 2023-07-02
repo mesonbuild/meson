@@ -82,7 +82,9 @@ _T = T.TypeVar('_T')
 
 
 def get_genvs_default_buildtype_list() -> list:
-    return buildtypelist[1:-2] # just debug, debugoptimized, and release for now but this should probably be configurable through some extra option, alongside --genvslite.
+    # just debug, debugoptimized, and release for now
+    # but this should probably be configurable through some extra option, alongside --genvslite.
+    return buildtypelist[1:-2]
 
 
 class MesonVersionMismatchException(MesonException):

@@ -330,7 +330,9 @@ def run_genvslite_setup(options: argparse.Namespace) -> None:
     k_backend = mesonlib.OptionKey('backend')
     if k_backend in options.cmd_line_options.keys():
         if options.cmd_line_options[k_backend] != 'ninja':
-            raise MesonException('Explicitly specifying a backend option with \'genvslite\' is not necessary (the ninja backend is always used) but specifying a non-ninja backend conflicts with a \'genvslite\' setup')
+            raise MesonException('Explicitly specifying a backend option with \'genvslite\' is not necessary '
+                                 '(the ninja backend is always used) but specifying a non-ninja backend '
+                                 'conflicts with a \'genvslite\' setup')
     else:
         options.cmd_line_options[k_backend] = 'ninja'
     buildtypes_list = coredata.get_genvs_default_buildtype_list()
