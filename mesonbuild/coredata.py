@@ -1257,9 +1257,8 @@ BUILTIN_CORE_OPTIONS: 'MutableKeyedOptionDictType' = OrderedDict([
     (OptionKey('genvslite'),
      BuiltinOption(
          UserComboOption,
-         'Setup multiple buildtype-suffixed ninja-backend build directories (e.g. builddir_[debug/release/etc.]) '
-         'and generate [builddir]_vs containing a Visual Studio solution with multiple configurations that invoke a meson compile of the newly '
-         'setup build directories, as appropriate for the current build configuration (buildtype)',
+         'Setup multiple buildtype-suffixed ninja-backend build directories, '
+         'and a [builddir]_vs containing a Visual Studio meta-backend with multiple configurations that calls into them',
          'vs2022',
          choices=genvslitelist)
      ),
