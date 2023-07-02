@@ -2158,6 +2158,7 @@ _BUILTIN_NAMES = {
     'debug',
     'default_library',
     'errorlogs',
+    'genvslite',
     'install_umask',
     'layout',
     'optimization',
