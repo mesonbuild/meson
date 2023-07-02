@@ -231,7 +231,7 @@ class MesonApp:
             raise
 
         cdf: T.Optional[str] = None
-        captured_compile_args = None
+        captured_compile_args: T.Optional[dict] = None
         try:
             dumpfile = os.path.join(env.get_scratch_dir(), 'build.dat')
             # We would like to write coredata as late as possible since we use the existence of
@@ -246,7 +246,9 @@ class MesonApp:
             if self.options.profile:
                 fname = f'profile-{intr.backend.name}-backend.log'
                 fname = os.path.join(self.build_dir, 'meson-logs', fname)
-                profile.runctx('intr.backend.generate()', globals(), locals(), filename=fname)
+                profile.runctx('gen_result = intr.backend.generate(capture, vslite_ctx)', globals(), locals(), filename=fname)
+                captured_compile_args = locals()['gen_result']
+                assert captured_compile_args is None or isinstance(captured_compile_args, dict)
             else:
                 captured_compile_args = intr.backend.generate(capture, vslite_ctx)
 
