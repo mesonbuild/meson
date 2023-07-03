@@ -1757,3 +1757,6 @@ class OS2DynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str, darwin_versions: T.Tuple[str, str]) -> T.List[str]:
         return []
+
+    def get_always_args(self) -> T.List[str]:
+        return ['-Zomf']
