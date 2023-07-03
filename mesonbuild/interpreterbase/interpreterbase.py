@@ -22,7 +22,6 @@ from .baseobjects import (
     InterpreterObject,
     MesonInterpreterObject,
     MutableInterpreterObject,
-    InterpreterObjectTypeVar,
     ObjectHolder,
     IterableObject,
     ContextManagerObject,
@@ -50,7 +49,7 @@ import typing as T
 import textwrap
 
 if T.TYPE_CHECKING:
-    from .baseobjects import SubProject, TYPE_kwargs, TYPE_var
+    from .baseobjects import InterpreterObjectTypeVar, SubProject, TYPE_kwargs, TYPE_var
     from ..interpreter import Interpreter
 
     HolderMapType = T.Dict[

@@ -21,7 +21,6 @@ import typing as T
 
 from . import builder
 from . import version
-from .. import mparser
 from .._pathlib import Path
 from ..mesonlib import MesonException, Popen_safe
 
@@ -29,6 +28,7 @@ if T.TYPE_CHECKING:
     from types import ModuleType
 
     from . import manifest
+    from .. import mparser
     from ..environment import Environment
 
 # tomllib is present in python 3.11, before that it is a pypi module called tomli,

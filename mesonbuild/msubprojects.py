@@ -16,11 +16,13 @@ import zipfile
 from . import mlog
 from .ast import IntrospectionInterpreter, AstIDGenerator
 from .mesonlib import quiet_git, GitException, Popen_safe, MesonException, windows_proof_rmtree
-from .wrap.wrap import (Resolver, WrapException, ALL_TYPES, PackageDefinition,
+from .wrap.wrap import (Resolver, WrapException, ALL_TYPES,
                         parse_patch_url, update_wrap_file, get_releases)
 
 if T.TYPE_CHECKING:
     from typing_extensions import Protocol
+
+    from .wrap.wrap import PackageDefinition
 
     SubParsers = argparse._SubParsersAction[argparse.ArgumentParser]
 

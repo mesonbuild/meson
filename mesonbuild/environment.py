@@ -33,7 +33,6 @@ from .envconfig import (
 )
 from . import compilers
 from .compilers import (
-    Compiler,
     is_assembly,
     is_header,
     is_library,
@@ -49,6 +48,7 @@ if T.TYPE_CHECKING:
     import argparse
     from configparser import ConfigParser
 
+    from .compilers import Compiler
     from .wrap.wrap import Resolver
 
     CompilersDict = T.Dict[str, Compiler]

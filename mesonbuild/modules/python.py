@@ -333,7 +333,7 @@ class PythonModule(ExtensionModule):
 
         for i in self.installations.values():
             if isinstance(i, PythonExternalProgram) and i.run_bytecompile[i.info['version']]:
-                i = T.cast(PythonExternalProgram, i)
+                i = T.cast('PythonExternalProgram', i)
                 manifest = f'python-{i.info["version"]}-installed.json'
                 manifest_json = []
                 for name, f in py_files:

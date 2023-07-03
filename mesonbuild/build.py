@@ -26,7 +26,6 @@ import textwrap
 import typing as T
 
 from . import coredata
-from . import environment
 from . import dependencies
 from . import mlog
 from . import programs
@@ -46,6 +45,8 @@ from .interpreterbase import FeatureNew, FeatureDeprecated
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal
+
+    from . import environment
     from ._typing import ImmutableListProtocol
     from .backend.backends import Backend
     from .compilers import Compiler

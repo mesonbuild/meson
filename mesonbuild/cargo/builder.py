@@ -8,11 +8,13 @@ build descriptions easier.
 """
 
 from __future__ import annotations
-import builtins
 import dataclasses
 import typing as T
 
 from .. import mparser
+
+if T.TYPE_CHECKING:
+    import builtins
 
 
 def _token(tid: str, filename: str, value: mparser.TV_TokenTypes) -> mparser.Token[mparser.TV_TokenTypes]:

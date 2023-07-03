@@ -18,16 +18,16 @@ import typing as T
 
 from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from .. import mlog
-from ..build import BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList, IncludeDirs, CustomTarget, InvalidArguments, Jar, StructuredSources
+from ..build import BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList, CustomTarget, InvalidArguments, Jar, StructuredSources
 from ..compilers.compilers import are_asserts_disabled
-from ..dependencies import Dependency, ExternalLibrary
 from ..interpreter.type_checking import DEPENDENCIES_KW, LINK_WITH_KW, TEST_KWS, OUTPUT_KW, INCLUDE_DIRECTORIES
 from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noPosargs
 from ..mesonlib import File
 
 if T.TYPE_CHECKING:
     from . import ModuleState
-    from ..build import LibTypes
+    from ..build import IncludeDirs, LibTypes
+    from ..dependencies import Dependency, ExternalLibrary
     from ..interpreter import Interpreter
     from ..interpreter import kwargs as _kwargs
     from ..interpreter.interpreter import SourceInputs, SourceOutputs
