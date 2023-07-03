@@ -2528,7 +2528,7 @@ class SharedLibrary(BuildTarget):
             filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
             create_debug_file = True
         # C, C++, Swift, Vala
-        # Only Windows uses a separate import library for linking
+        # Only Windows and OS/2 uses a separate import library for linking
         # For all other targets/platforms import_filename stays None
         elif self.environment.machines[self.for_machine].is_windows():
             suffix = suffix if suffix is not None else 'dll'
@@ -2587,6 +2587,19 @@ class SharedLibrary(BuildTarget):
             suffix = suffix if suffix is not None else 'so'
             # Android doesn't support shared_library versioning
             filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+        elif self.environment.machines[self.for_machine].is_os2():
+            # Shared library is of the form foo.dll
+            prefix = prefix if prefix is not None else ''
+            suffix = suffix if suffix is not None else 'dll'
+            # Import library is called foo_dll.a
+            import_suffix = import_suffix if import_suffix is not None else '_dll.a'
+            import_filename_tpl = '{0.prefix}{0.name}' + import_suffix
+            if self.soversion:
+                # fooX.dll
+                filename_tpl = '{0.prefix}{0.name}{0.soversion}.{0.suffix}'
+            else:
+                # No versioning, foo.dll
+                filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
         else:
             prefix = prefix if prefix is not None else 'lib'
             suffix = suffix if suffix is not None else 'so'
@@ -2612,7 +2625,7 @@ class SharedLibrary(BuildTarget):
         which are needed while generating .so shared libraries for Linux.
 
         Besides this, there's also the import library name (self.import_filename),
-        which is only used on Windows since on that platform the linker uses a
+        which is only used on Windows and OS/2 since on that platform the linker uses a
         separate library called the "import library" during linking instead of
         the shared library (DLL).
         """
@@ -2623,6 +2636,14 @@ class SharedLibrary(BuildTarget):
             self.suffix = suffix
         self.filename_tpl = filename_tpl
         self.filename = self.filename_tpl.format(self)
+        if self.environment.machines[self.for_machine].is_os2():
+            # OS/2 does not allow a longer DLL name than 8 chars
+            name = os.path.splitext(self.filename)[0]
+            if len(name) > 8:
+                name = name[:8]
+                if self.soversion:
+                    name = name[:-len(self.soversion)] + self.soversion
+            self.filename = '{}.{}'.format(name, self.suffix)
         if import_filename_tpl:
             self.import_filename = import_filename_tpl.format(self)
         # There may have been more outputs added by the time we get here, so
