@@ -309,6 +309,13 @@ class DynamicLinker(metaclass=abc.ABCMeta):
         return []
 
 
+if T.TYPE_CHECKING:
+    StaticLinkerBase = StaticLinker
+    DynamicLinkerBase = DynamicLinker
+else:
+    StaticLinkerBase = DynamicLinkerBase = object
+
+
 class VisualStudioLikeLinker:
     always_args = ['/NOLOGO']
 
@@ -1218,7 +1225,7 @@ class PGIStaticLinker(StaticLinker):
 NvidiaHPC_StaticLinker = PGIStaticLinker
 
 
-class VisualStudioLikeLinkerMixin:
+class VisualStudioLikeLinkerMixin(DynamicLinkerBase):
 
     """Mixin class for dynamic linkers that act like Microsoft's link.exe."""
 
@@ -1241,7 +1248,7 @@ class VisualStudioLikeLinkerMixin:
                  prefix_arg: T.Union[str, T.List[str]], always_args: T.List[str], *,
                  version: str = 'unknown version', direct: bool = True, machine: str = 'x86'):
         # There's no way I can find to make mypy understand what's going on here
-        super().__init__(exelist, for_machine, prefix_arg, always_args, version=version)  # type: ignore
+        super().__init__(exelist, for_machine, prefix_arg, always_args, version=version)
         self.machine = machine
         self.direct = direct
 
@@ -1255,8 +1262,8 @@ class VisualStudioLikeLinkerMixin:
         return self._apply_prefix(['/MACHINE:' + self.machine, '/OUT:' + outputname])
 
     def get_always_args(self) -> T.List[str]:
-        parent = super().get_always_args() # type: ignore
-        return self._apply_prefix('/nologo') + T.cast('T.List[str]', parent)
+        parent = super().get_always_args()
+        return self._apply_prefix('/nologo') + parent
 
     def get_search_args(self, dirname: str) -> T.List[str]:
         return self._apply_prefix('/LIBPATH:' + dirname)
