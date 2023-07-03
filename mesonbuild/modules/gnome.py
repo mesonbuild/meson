@@ -1744,7 +1744,7 @@ class GnomeModule(ExtensionModule):
                         'identifier_prefix', 'symbol_prefix',
                         'vhead', 'vprod', 'vtail']
         for arg in known_kwargs:
-            # mypy can't figure this out
+            # Mypy can't figure out that this TypedDict index is correct, without repeating T.Literal for the entire list
             if kwargs[arg]:                                         # type: ignore
                 cmd += ['--' + arg.replace('_', '-'), kwargs[arg]]  # type: ignore
 
@@ -1966,7 +1966,7 @@ class GnomeModule(ExtensionModule):
                              mlog.bold('https://github.com/mesonbuild/meson/pull/2049'),
                              once=True, fatal=False)
         for k in ['internal', 'nostdinc', 'skip_source', 'stdinc', 'valist_marshallers']:
-            # Mypy can't figure out that this is correct
+            # Mypy can't figure out that this TypedDict index is correct, without repeating T.Literal for the entire list
             if kwargs[k]:                                            # type: ignore
                 cmd.append(f'--{k.replace("_", "-")}')
 
