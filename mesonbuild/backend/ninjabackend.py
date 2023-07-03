@@ -2481,6 +2481,13 @@ class NinjaBackend(backends.Backend):
                 args = []
                 options = {}
                 self.add_rule(NinjaRule(rule, cmdlist, args, description, **options, extra=None))
+            if self.environment.machines[for_machine].is_os2() and complist:
+                rule = 'IMPORTLIB{}'.format(self.get_rule_suffix(for_machine))
+                description = 'Generating import library $out'
+                command = ['emximp']
+                args = ['-o', '$out', '$in']
+                options = {}
+                self.add_rule(NinjaRule(rule, command, args, description, **options, extra=None))
 
         args = self.environment.get_build_command() + \
             ['--internal',
@@ -3415,7 +3422,12 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         return os.path.join(targetdir, target.get_filename() + '.symbols')
 
     def generate_shsym(self, target) -> None:
-        target_file = self.get_target_filename(target)
+        # On OS/2, an import library is generated after linking a DLL, so
+        # if a DLL is used as a target, import library is not generated.
+        if self.environment.machines[target.for_machine].is_os2():
+            target_file = self.get_target_filename_for_linking(target)
+        else:
+            target_file = self.get_target_filename(target)
         if isinstance(target, build.SharedLibrary) and target.aix_so_archive:
             if self.environment.machines[target.for_machine].is_aix():
                 linker, stdlib_args = target.get_clink_dynamic_linker_and_stdlibs()
@@ -3632,6 +3644,11 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             linker_base = linker.get_language() # Fixme.
         if isinstance(target, build.SharedLibrary):
             self.generate_shsym(target)
+            if self.environment.machines[target.for_machine].is_os2():
+                target_file = self.get_target_filename(target)
+                import_name = self.get_import_filename(target)
+                elem = NinjaBuildElement(self.all_outputs, import_name, 'IMPORTLIB', target_file)
+                self.add_build(elem)
         crstr = self.get_rule_suffix(target.for_machine)
         linker_rule = linker_base + '_LINKER' + crstr
         # Create an empty commands list, and start adding link arguments from
