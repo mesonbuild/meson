@@ -316,7 +316,7 @@ else:
     StaticLinkerBase = DynamicLinkerBase = object
 
 
-class VisualStudioLikeLinker:
+class VisualStudioLikeLinker(StaticLinkerBase):
     always_args = ['/NOLOGO']
 
     def __init__(self, machine: str):
@@ -559,7 +559,7 @@ def evaluate_rpath(p: str, build_dir: str, from_dir: str) -> str:
         return os.path.relpath(os.path.join(build_dir, p), os.path.join(build_dir, from_dir))
 
 
-class PosixDynamicLinkerMixin:
+class PosixDynamicLinkerMixin(DynamicLinkerBase):
 
     """Mixin class for POSIX-ish linkers.
 
@@ -578,7 +578,7 @@ class PosixDynamicLinkerMixin:
         return ['-L' + dirname]
 
 
-class GnuLikeDynamicLinkerMixin:
+class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
 
     """Mixin class for dynamic linkers that provides gnu-like interface.
 
