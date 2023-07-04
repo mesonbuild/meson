@@ -931,6 +931,12 @@ class Backend:
         mesonlib.replace_if_different(pch_file, pch_file_tmp)
         return pch_rel_to_build
 
+    def target_uses_pch(self, target: build.BuildTarget) -> bool:
+        try:
+            return T.cast('bool', target.get_option(OptionKey('b_pch')))
+        except KeyError:
+            return False
+
     @staticmethod
     def escape_extra_args(args: T.List[str]) -> T.List[str]:
         # all backslashes in defines are doubly-escaped

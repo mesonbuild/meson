@@ -970,7 +970,7 @@ class NinjaBackend(backends.Backend):
             if s.split('.')[-1] in compilers.lang_suffixes['d']:
                 d_generated_deps.append(o)
 
-        use_pch = self.environment.coredata.options.get(OptionKey('b_pch'))
+        use_pch = self.target_uses_pch(target)
         if use_pch and target.has_pch():
             pch_objects = self.generate_pch(target, header_deps=header_deps)
         else:
@@ -1068,7 +1068,7 @@ class NinjaBackend(backends.Backend):
         cpp = target.compilers['cpp']
         if cpp.get_id() != 'msvc':
             return False
-        cppversion = self.environment.coredata.options[OptionKey('std', machine=target.for_machine, lang='cpp')].value
+        cppversion = target.get_option(OptionKey('std', machine=target.for_machine, lang='cpp'))
         if cppversion not in ('latest', 'c++latest', 'vc++latest'):
             return False
         if not mesonlib.current_vs_supports_modules():
@@ -1662,7 +1662,7 @@ class NinjaBackend(backends.Backend):
             valac_outputs.append(vala_c_file)
 
         args = self.generate_basic_compiler_args(target, valac)
-        args += valac.get_colorout_args(self.environment.coredata.options.get(OptionKey('b_colorout')).value)
+        args += valac.get_colorout_args(target.get_option(OptionKey('b_colorout')))
         # Tell Valac to output everything in our private directory. Sadly this
         # means it will also preserve the directory components of Vala sources
         # found inside the build tree (generated sources).
@@ -1984,8 +1984,8 @@ class NinjaBackend(backends.Backend):
 
         crt_link_args: T.List[str] = []
         try:
-            buildtype = self.environment.coredata.options[OptionKey('buildtype')].value
-            crt = self.environment.coredata.options[OptionKey('b_vscrt')].value
+            buildtype = target.get_option(OptionKey('buildtype'))
+            crt = target.get_option(OptionKey('b_vscrt'))
             is_debug = buildtype == 'debug'
 
             if crt == 'from_buildtype':
@@ -2943,7 +2943,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def generate_common_compile_args_per_src_type(self, target: build.BuildTarget) -> dict[str, list[str]]:
         src_type_to_args = {}
 
-        use_pch = self.environment.coredata.options.get(OptionKey('b_pch'))
+        use_pch = self.target_uses_pch(target)
 
         for src_type_str in target.compilers.keys():
             compiler = target.compilers[src_type_str]
@@ -2984,7 +2984,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
         # Include PCH header as first thing as it must be the first one or it will be
         # ignored by gcc https://gcc.gnu.org/bugzilla/show_bug.cgi?id=100462
-        use_pch = self.environment.coredata.options.get(OptionKey('b_pch')) and is_generated != 'pch'
+        use_pch = self.target_uses_pch(target) and is_generated != 'pch'
         if use_pch and 'mw' not in compiler.id:
             commands += self.get_pch_include_args(compiler, target)
 
@@ -3023,7 +3023,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         commands += self.get_compile_debugfile_args(compiler, target, rel_obj)
 
         # PCH handling
-        if self.environment.coredata.options.get(OptionKey('b_pch')):
+        if self.target_uses_pch(target):
             pchlist = target.get_pch(compiler.language)
         else:
             pchlist = []
@@ -3245,8 +3245,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 commands += linker.get_pie_link_args()
         elif isinstance(target, build.SharedLibrary):
             if isinstance(target, build.SharedModule):
-                options = self.environment.coredata.options
-                commands += linker.get_std_shared_module_link_args(options)
+                commands += linker.get_std_shared_module_link_args(target.get_options())
             else:
                 commands += linker.get_std_shared_lib_link_args()
             # All shared libraries are PIC
@@ -3528,7 +3527,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             #
             # We shouldn't check whether we are making a static library, because
             # in the LTO case we do use a real compiler here.
-            commands += linker.get_option_link_args(self.environment.coredata.options)
+            commands += linker.get_option_link_args(target.get_options())
 
         dep_targets = []
         dep_targets.extend(self.guess_external_link_dependencies(linker, target, commands, internal))
