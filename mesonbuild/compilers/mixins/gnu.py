@@ -327,18 +327,18 @@ gnu_objc_warning_args = {
     ],
 }  # type: T.Dict[str, T.List[str]]
 
+_LANG_MAP = {
+    'c': 'c',
+    'cpp': 'c++',
+    'objc': 'objective-c',
+    'objcpp': 'objective-c++'
+}
 
 @functools.lru_cache(maxsize=None)
 def gnulike_default_include_dirs(compiler: T.Tuple[str, ...], lang: str) -> 'ImmutableListProtocol[str]':
-    lang_map = {
-        'c': 'c',
-        'cpp': 'c++',
-        'objc': 'objective-c',
-        'objcpp': 'objective-c++'
-    }
-    if lang not in lang_map:
+    if lang not in _LANG_MAP:
         return []
-    lang = lang_map[lang]
+    lang = _LANG_MAP[lang]
     env = os.environ.copy()
     env["LC_ALL"] = 'C'
     cmd = list(compiler) + [f'-x{lang}', '-E', '-v', '-']
@@ -558,7 +558,8 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         # We want to allow preprocessing files with any extension, such as
         # foo.c.in. In that case we need to tell GCC/CLANG to treat them as
         # assembly file.
-        return self.get_preprocess_only_args() + ['-x', 'assembler-with-cpp']
+        lang = _LANG_MAP.get(self.language, 'assembler-with-cpp')
+        return self.get_preprocess_only_args() + [f'-x{lang}']
 
 
 class GnuCompiler(GnuLikeCompiler):
