@@ -1059,8 +1059,7 @@ class Vs2010Backend(backends.Backend):
         # Compile args added from the env or cross file: CFLAGS/CXXFLAGS, etc. We want these
         # to override all the defaults, but not the per-target compile args.
         for l in file_args.keys():
-            opts = self.environment.coredata.options[OptionKey('args', machine=target.for_machine, lang=l)]
-            file_args[l] += opts.value
+            file_args[l] += target.get_option(OptionKey('args', machine=target.for_machine, lang=l))
         for args in file_args.values():
             # This is where Visual Studio will insert target_args, target_defines,
             # etc, which are added later from external deps (see below).
@@ -1355,29 +1354,29 @@ class Vs2010Backend(backends.Backend):
         if True in ((dep.name == 'openmp') for dep in target.get_external_deps()):
             ET.SubElement(clconf, 'OpenMPSupport').text = 'true'
         # CRT type; debug or release
-        vscrt_type = self.environment.coredata.options[OptionKey('b_vscrt')]
-        if vscrt_type.value == 'from_buildtype':
+        vscrt_type = target.get_option(OptionKey('b_vscrt'))
+        if vscrt_type == 'from_buildtype':
             if self.buildtype == 'debug':
                 ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
                 ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDebugDLL'
             else:
                 ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
                 ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDLL'
-        elif vscrt_type.value == 'static_from_buildtype':
+        elif vscrt_type == 'static_from_buildtype':
             if self.buildtype == 'debug':
                 ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
                 ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDebug'
             else:
                 ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
                 ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreaded'
-        elif vscrt_type.value == 'mdd':
+        elif vscrt_type == 'mdd':
             ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
             ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDebugDLL'
-        elif vscrt_type.value == 'mt':
+        elif vscrt_type == 'mt':
             # FIXME, wrong
             ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
             ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreaded'
-        elif vscrt_type.value == 'mtd':
+        elif vscrt_type == 'mtd':
             # FIXME, wrong
             ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
             ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDebug'
@@ -1406,12 +1405,12 @@ class Vs2010Backend(backends.Backend):
         # Exception handling has to be set in the xml in addition to the "AdditionalOptions" because otherwise
         # cl will give warning D9025: overriding '/Ehs' with cpp_eh value
         if 'cpp' in target.compilers:
-            eh = self.environment.coredata.options[OptionKey('eh', machine=target.for_machine, lang='cpp')]
-            if eh.value == 'a':
+            eh = target.get_option(OptionKey('eh', machine=target.for_machine, lang='cpp'))
+            if eh == 'a':
                 ET.SubElement(clconf, 'ExceptionHandling').text = 'Async'
-            elif eh.value == 's':
+            elif eh == 's':
                 ET.SubElement(clconf, 'ExceptionHandling').text = 'SyncCThrow'
-            elif eh.value == 'none':
+            elif eh == 'none':
                 ET.SubElement(clconf, 'ExceptionHandling').text = 'false'
             else:  # 'sc' or 'default'
                 ET.SubElement(clconf, 'ExceptionHandling').text = 'Sync'
@@ -1470,8 +1469,7 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(link, 'GenerateDebugInformation').text = 'false'
         if not isinstance(target, build.StaticLibrary):
             if isinstance(target, build.SharedModule):
-                options = self.environment.coredata.options
-                extra_link_args += compiler.get_std_shared_module_link_args(options)
+                extra_link_args += compiler.get_std_shared_module_link_args(target.get_options())
             # Add link args added using add_project_link_arguments()
             extra_link_args += self.build.get_project_link_args(compiler, target.subproject, target.for_machine)
             # Add link args added using add_global_link_arguments()
@@ -1504,7 +1502,7 @@ class Vs2010Backend(backends.Backend):
         # to be after all internal and external libraries so that unresolved
         # symbols from those can be found here. This is needed when the
         # *_winlibs that we want to link to are static mingw64 libraries.
-        extra_link_args += compiler.get_option_link_args(self.environment.coredata.options)
+        extra_link_args += compiler.get_option_link_args(target.get_options())
         (additional_libpaths, additional_links, extra_link_args) = self.split_link_args(extra_link_args.to_native())
 
         # Add more libraries to be linked if needed
@@ -1605,7 +1603,7 @@ class Vs2010Backend(backends.Backend):
         # /nologo
         ET.SubElement(link, 'SuppressStartupBanner').text = 'true'
         # /release
-        if not self.environment.coredata.get_option(OptionKey('debug')):
+        if not target.get_option(OptionKey('debug')):
             ET.SubElement(link, 'SetChecksum').text = 'true'
 
     # Visual studio doesn't simply allow the src files of a project to be added with the 'Condition=...' attribute,
@@ -1732,7 +1730,7 @@ class Vs2010Backend(backends.Backend):
                 return False
 
         pch_sources = {}
-        if self.environment.coredata.options.get(OptionKey('b_pch')):
+        if self.target_uses_pch(target):
             for lang in ['c', 'cpp']:
                 pch = target.get_pch(lang)
                 if not pch:

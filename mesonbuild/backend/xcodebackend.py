@@ -1495,8 +1495,7 @@ class XCodeBackend(backends.Backend):
                     else:
                         raise RuntimeError(o)
             if isinstance(target, build.SharedModule):
-                options = self.environment.coredata.options
-                ldargs += linker.get_std_shared_module_link_args(options)
+                ldargs += linker.get_std_shared_module_link_args(target.get_options())
             elif isinstance(target, build.SharedLibrary):
                 ldargs += linker.get_std_shared_lib_link_args()
             ldstr = ' '.join(ldargs)
