@@ -17,7 +17,6 @@ from collections import defaultdict, OrderedDict
 from dataclasses import dataclass, field, InitVar
 from functools import lru_cache
 import abc
-import copy
 import hashlib
 import itertools, pathlib
 import os
@@ -413,6 +412,7 @@ class ExtractedObjects(HoldableObject):
     genlist: T.List['GeneratedTypes'] = field(default_factory=list)
     objlist: T.List[T.Union[str, 'File', 'ExtractedObjects']] = field(default_factory=list)
     recursive: bool = True
+    pch: bool = False
 
     def __post_init__(self) -> None:
         if self.target.is_unity:
@@ -754,6 +754,9 @@ class BuildTarget(Target):
         # 2. Compiled objects created by and extracted from another target
         self.process_objectlist(objects)
         self.process_kwargs(kwargs)
+        self.missing_languages = self.process_compilers()
+        self.link(extract_as_list(kwargs, 'link_with'))
+        self.link_whole(extract_as_list(kwargs, 'link_whole'))
         if not any([self.sources, self.generated, self.objects, self.link_whole_targets, self.structured_sources,
                     kwargs.pop('_allow_no_sources', False)]):
             mlog.warning(f'Build target {name} has no sources. '
@@ -848,14 +851,14 @@ class BuildTarget(Target):
                 removed = True
         return removed
 
-    def process_compilers_late(self, extra_languages: T.List[str]):
+    def process_compilers_late(self):
         """Processes additional compilers after kwargs have been evaluated.
 
         This can add extra compilers that might be required by keyword
         arguments, such as link_with or dependencies. It will also try to guess
         which compiler to use if one hasn't been selected already.
         """
-        for lang in extra_languages:
+        for lang in self.missing_languages:
             self.compilers[lang] = self.all_compilers[lang]
 
         # did user override clink_langs for this target?
@@ -1001,18 +1004,6 @@ class BuildTarget(Target):
                     'Link_depends arguments must be strings, Files, '
                     'or a Custom Target, or lists thereof.')
 
-    def get_original_kwargs(self):
-        return self.kwargs
-
-    def copy_kwargs(self, kwargs):
-        self.kwargs = copy.copy(kwargs)
-        for k, v in self.kwargs.items():
-            if isinstance(v, list):
-                self.kwargs[k] = listify(v, flatten=True)
-        for t in ['dependencies', 'link_with', 'include_directories', 'sources']:
-            if t in self.kwargs:
-                self.kwargs[t] = listify(self.kwargs[t], flatten=True)
-
     def extract_objects(self, srclist: T.List[T.Union['FileOrString', 'GeneratedTypes']]) -> ExtractedObjects:
         sources_set = set(self.sources)
         generated_set = set(self.generated)
@@ -1040,7 +1031,7 @@ class BuildTarget(Target):
 
     def extract_all_objects(self, recursive: bool = True) -> ExtractedObjects:
         return ExtractedObjects(self, self.sources, self.generated, self.objects,
-                                recursive)
+                                recursive, pch=True)
 
     def get_all_link_deps(self) -> ImmutableListProtocol[BuildTargetTypes]:
         return self.get_transitive_link_deps()
@@ -1086,23 +1077,9 @@ class BuildTarget(Target):
 
     def process_kwargs(self, kwargs):
         self.process_kwargs_base(kwargs)
-        self.copy_kwargs(kwargs)
+        self.original_kwargs = kwargs
         kwargs.get('modules', [])
         self.need_install = kwargs.get('install', self.need_install)
-        llist = extract_as_list(kwargs, 'link_with')
-        for linktarget in llist:
-            if isinstance(linktarget, dependencies.ExternalLibrary):
-                raise MesonException(textwrap.dedent('''\
-                    An external library was used in link_with keyword argument, which
-                    is reserved for libraries built as part of this project. External
-                    libraries must be passed using the dependencies keyword argument
-                    instead, because they are conceptually "external dependencies",
-                    just like those detected with the dependency() function.
-                '''))
-            self.link(linktarget)
-        lwhole = extract_as_list(kwargs, 'link_whole')
-        for linktarget in lwhole:
-            self.link_whole(linktarget)
 
         for lang in all_languages:
             lang_args = extract_as_list(kwargs, f'{lang}_args')
@@ -1293,17 +1270,36 @@ class BuildTarget(Target):
     def get_extra_args(self, language):
         return self.extra_args.get(language, [])
 
-    def get_dependencies(self, exclude=None):
-        transitive_deps = []
-        if exclude is None:
-            exclude = []
+    @lru_cache(maxsize=None)
+    def get_dependencies(self) -> OrderedSet[Target]:
+        # Get all targets needed for linking. This includes all link_with and
+        # link_whole targets, and also all dependencies of static libraries
+        # recursively. The algorithm here is closely related to what we do in
+        # get_internal_static_libraries(): Installed static libraries include
+        # objects from all their dependencies already.
+        result: OrderedSet[Target] = OrderedSet()
         for t in itertools.chain(self.link_targets, self.link_whole_targets):
-            if t in transitive_deps or t in exclude:
+            if t not in result:
+                result.add(t)
+                if isinstance(t, StaticLibrary):
+                    t.get_dependencies_recurse(result)
+        return result
+
+    def get_dependencies_recurse(self, result: OrderedSet[Target], include_internals: bool = True) -> None:
+        # self is always a static library because we don't need to pull dependencies
+        # of shared libraries. If self is installed (not internal) it already
+        # include objects extracted from all its internal dependencies so we can
+        # skip them.
+        include_internals = include_internals and self.is_internal()
+        for t in self.link_targets:
+            if t in result:
                 continue
-            transitive_deps.append(t)
+            if include_internals or not t.is_internal():
+                result.add(t)
             if isinstance(t, StaticLibrary):
-                transitive_deps += t.get_dependencies(transitive_deps + exclude)
-        return transitive_deps
+                t.get_dependencies_recurse(result, include_internals)
+        for t in self.link_whole_targets:
+            t.get_dependencies_recurse(result, include_internals)
 
     def get_source_subdir(self):
         return self.subdir
@@ -1341,10 +1337,8 @@ class BuildTarget(Target):
                 self.extra_files.extend(f for f in dep.extra_files if f not in self.extra_files)
                 self.add_include_dirs(dep.include_directories, dep.get_include_type())
                 self.objects.extend(dep.objects)
-                for l in dep.libraries:
-                    self.link(l)
-                for l in dep.whole_libraries:
-                    self.link_whole(l)
+                self.link(dep.libraries)
+                self.link_whole(dep.whole_libraries)
                 if dep.get_compile_args() or dep.get_link_args():
                     # Those parts that are external.
                     extpart = dependencies.InternalDependency('undefined',
@@ -1393,27 +1387,27 @@ You probably should put it in link_with instead.''')
     def is_internal(self) -> bool:
         return False
 
-    def link(self, target):
-        for t in listify(target):
+    def link(self, targets):
+        for t in targets:
             if isinstance(self, StaticLibrary) and self.need_install:
                 if isinstance(t, (CustomTarget, CustomTargetIndex)):
                     if not t.should_install():
                         mlog.warning(f'Try to link an installed static library target {self.name} with a'
                                      'custom target that is not installed, this might cause problems'
                                      'when you try to use this static library')
-                elif t.is_internal() and not t.uses_rust():
+                elif t.is_internal():
                     # When we're a static library and we link_with to an
                     # internal/convenience library, promote to link_whole.
-                    #
-                    # There are cases we cannot do this, however. In Rust, for
-                    # example, this can't be done with Rust ABI libraries, though
-                    # it could be done with C ABI libraries, though there are
-                    # several meson issues that need to be fixed:
-                    # https://github.com/mesonbuild/meson/issues/10722
-                    # https://github.com/mesonbuild/meson/issues/10723
-                    # https://github.com/mesonbuild/meson/issues/10724
-                    return self.link_whole(t)
+                    return self.link_whole([t])
             if not isinstance(t, (Target, CustomTargetIndex)):
+                if isinstance(t, dependencies.ExternalLibrary):
+                    raise MesonException(textwrap.dedent('''\
+                        An external library was used in link_with keyword argument, which
+                        is reserved for libraries built as part of this project. External
+                        libraries must be passed using the dependencies keyword argument
+                        instead, because they are conceptually "external dependencies",
+                        just like those detected with the dependency() function.
+                    '''))
                 raise InvalidArguments(f'{t!r} is not a target.')
             if not t.is_linkable_target():
                 raise InvalidArguments(f"Link target '{t!s}' is not linkable.")
@@ -1429,16 +1423,13 @@ You probably should put it in link_with instead.''')
                     mlog.warning(msg + ' This will fail in cross build.')
             self.link_targets.append(t)
 
-    def link_whole(self, target):
-        for t in listify(target):
+    def link_whole(self, targets):
+        for t in targets:
             if isinstance(t, (CustomTarget, CustomTargetIndex)):
                 if not t.is_linkable_target():
                     raise InvalidArguments(f'Custom target {t!r} is not linkable.')
                 if t.links_dynamically():
                     raise InvalidArguments('Can only link_whole custom targets that are static archives.')
-                if isinstance(self, StaticLibrary):
-                    # FIXME: We could extract the .a archive to get object files
-                    raise InvalidArguments('Cannot link_whole a custom target into a static library')
             elif not isinstance(t, StaticLibrary):
                 raise InvalidArguments(f'{t!r} is not a static library.')
             elif isinstance(self, SharedLibrary) and not t.pic:
@@ -1451,18 +1442,41 @@ You probably should put it in link_with instead.''')
                     raise InvalidArguments(msg + ' This is not possible in a cross build.')
                 else:
                     mlog.warning(msg + ' This will fail in cross build.')
-            if isinstance(self, StaticLibrary):
+            if isinstance(self, StaticLibrary) and not self.uses_rust():
+                if isinstance(t, (CustomTarget, CustomTargetIndex)) or t.uses_rust():
+                    # There are cases we cannot do this, however. In Rust, for
+                    # example, this can't be done with Rust ABI libraries, though
+                    # it could be done with C ABI libraries, though there are
+                    # several meson issues that need to be fixed:
+                    # https://github.com/mesonbuild/meson/issues/10722
+                    # https://github.com/mesonbuild/meson/issues/10723
+                    # https://github.com/mesonbuild/meson/issues/10724
+                    # FIXME: We could extract the .a archive to get object files
+                    raise InvalidArguments('Cannot link_whole a custom or Rust target into a static library')
                 # When we're a static library and we link_whole: to another static
                 # library, we need to add that target's objects to ourselves.
-                self.objects += t.extract_all_objects_recurse()
+                self.objects += [t.extract_all_objects()]
+                # If we install this static library we also need to include objects
+                # from all uninstalled static libraries it depends on.
+                if self.need_install:
+                    for lib in t.get_internal_static_libraries():
+                        self.objects += [lib.extract_all_objects()]
             self.link_whole_targets.append(t)
 
-    def extract_all_objects_recurse(self) -> T.List[T.Union[str, 'ExtractedObjects']]:
-        objs = [self.extract_all_objects()]
+    @lru_cache(maxsize=None)
+    def get_internal_static_libraries(self) -> OrderedSet[Target]:
+        result: OrderedSet[Target] = OrderedSet()
+        self.get_internal_static_libraries_recurse(result)
+        return result
+
+    def get_internal_static_libraries_recurse(self, result: OrderedSet[Target]) -> None:
         for t in self.link_targets:
+            if t.is_internal() and t not in result:
+                result.add(t)
+                t.get_internal_static_libraries_recurse(result)
+        for t in self.link_whole_targets:
             if t.is_internal():
-                objs += t.extract_all_objects_recurse()
-        return objs
+                t.get_internal_static_libraries_recurse(result)
 
     def add_pch(self, language: str, pchlist: T.List[str]) -> None:
         if not pchlist:
@@ -2713,7 +2727,7 @@ class CustomTarget(Target, CommandBase):
             return False
         return CustomTargetIndex(self, self.outputs[0]).is_internal()
 
-    def extract_all_objects_recurse(self) -> T.List[T.Union[str, 'ExtractedObjects']]:
+    def extract_all_objects(self) -> T.List[T.Union[str, 'ExtractedObjects']]:
         return self.get_outputs()
 
     def type_suffix(self):
@@ -2975,8 +2989,8 @@ class CustomTargetIndex(HoldableObject):
         suf = os.path.splitext(self.output)[-1]
         return suf in {'.a', '.lib'} and not self.should_install()
 
-    def extract_all_objects_recurse(self) -> T.List[T.Union[str, 'ExtractedObjects']]:
-        return self.target.extract_all_objects_recurse()
+    def extract_all_objects(self) -> T.List[T.Union[str, 'ExtractedObjects']]:
+        return self.target.extract_all_objects()
 
     def get_custom_install_dir(self) -> T.List[T.Union[str, Literal[False]]]:
         return self.target.get_custom_install_dir()

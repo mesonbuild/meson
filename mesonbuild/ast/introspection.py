@@ -283,8 +283,7 @@ class IntrospectionInterpreter(AstInterpreter):
         kwargs_reduced['_allow_no_sources'] = True
         target = targetclass(name, self.subdir, self.subproject, for_machine, empty_sources, [], objects,
                              self.environment, self.coredata.compilers[for_machine], kwargs_reduced)
-        target.process_compilers()
-        target.process_compilers_late([])
+        target.process_compilers_late()
 
         new_target = {
             'name': target.get_basename(),
