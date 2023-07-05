@@ -195,7 +195,7 @@ class WindowsTests(BasePlatformTests):
         if self.backend is not Backend.ninja:
             raise SkipTest('Test only applies when using the Ninja backend')
 
-        testdir = os.path.join(self.unit_test_dir, '114 genvslite')
+        testdir = os.path.join(self.unit_test_dir, '115 genvslite')
 
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = detect_c_compiler(env, MachineChoice.HOST)
