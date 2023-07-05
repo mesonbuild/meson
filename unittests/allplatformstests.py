@@ -2939,6 +2939,12 @@ class AllPlatformTests(BasePlatformTests):
         self.assertIn('cttest.cpp:4:20', out)
         self.assertNotIn(dummydir, out)
 
+        self.setconf('--werror')
+        with self.assertRaises(subprocess.CalledProcessError) as cm:
+            self.run_target('clang-tidy')
+        self.assertIn('cttest.cpp:4:20', cm.exception.output)
+        self.assertNotIn(dummydir, cm.exception.output)
+
     def test_identity_cross(self):
         testdir = os.path.join(self.unit_test_dir, '69 cross')
         # Do a build to generate a cross file where the host is this target
