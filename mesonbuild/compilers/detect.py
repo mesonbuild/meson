@@ -204,8 +204,6 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
 
         if any(os.path.basename(x) in {'lib', 'lib.exe', 'llvm-lib', 'llvm-lib.exe', 'xilib', 'xilib.exe'} for x in linker):
             arg = '/?'
-        elif linker_name in {'ar2000', 'ar2000.exe', 'ar430', 'ar430.exe', 'armar', 'armar.exe'}:
-            arg = '?'
         else:
             arg = '--version'
         try:
@@ -234,7 +232,7 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
             return linkers.CcrxLinker(linker)
         if out.startswith('GNU ar') and 'xc16-ar' in linker_name:
             return linkers.Xc16Linker(linker)
-        if 'Texas Instruments Incorporated' in out:
+        if "-->  error: bad option 'e'" in err: # TI
             if 'ar2000' in linker_name:
                 return linkers.C2000Linker(linker)
             else:
