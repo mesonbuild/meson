@@ -206,22 +206,19 @@ class _StdCPPLibMixin(CompilerMixinBase):
         machine = env.machines[self.for_machine]
         assert machine is not None, 'for mypy'
 
-        # We need to determine whether to us libc++ or libstdc++ In some cases
-        # we know the answer, so we'll hardcode those cases.  There are other
-        # cases where we can't know the answer just by looking at the OS, namely
-        # on Linux. In that case we have to fallback to manually checking
-        stdlib: str
+        # We need to determine whether to use libc++ or libstdc++. We can't
+        # really know the answer in most cases, only the most likely answer,
+        # because a user can install things themselves or build custom images.
+        search_order: T.List[str] = []
         if machine.system in {'android', 'darwin', 'dragonfly', 'freebsd', 'netbsd', 'openbsd'}:
-            stdlib = 'c++'
-        elif self.find_library('c++', env, []) is not None:
-            stdlib = 'c++'
-        elif self.find_library('stdc++', env, []) is not None:
-            stdlib = 'stdc++'
+            search_order = ['c++', 'stdc++']
         else:
-            # TODO: maybe a bug exception?
-            raise MesonException('Could not detect either libc++ or libstdc++ as your C++ stdlib implementation.')
-
-        return search_dirs + [f'-l{stdlib}']
+            search_order = ['stdc++', 'c++']
+        for lib in search_order:
+            if self.find_library(lib, env, []) is not None:
+                return search_dirs + [f'-l{lib}']
+        # TODO: maybe a bug exception?
+        raise MesonException('Could not detect either libc++ or libstdc++ as your C++ stdlib implementation.')
 
 
 class ClangCPPCompiler(_StdCPPLibMixin, ClangCompiler, CPPCompiler):
