@@ -568,12 +568,6 @@ class Resolver:
             revno = self.wrap.get('revision')
             verbose_git(['fetch', *depth_option, 'origin', revno], self.dirname, check=True)
             verbose_git(checkout_cmd, self.dirname, check=True)
-            if self.wrap.values.get('clone-recursive', '').lower() == 'true':
-                verbose_git(['submodule', 'update', '--init', '--checkout',
-                             '--recursive', *depth_option], self.dirname, check=True)
-            push_url = self.wrap.values.get('push-url')
-            if push_url:
-                verbose_git(['remote', 'set-url', '--push', 'origin', push_url], self.dirname, check=True)
         else:
             if not is_shallow:
                 verbose_git(['clone', self.wrap.get('url'), self.directory], self.subdir_root, check=True)
@@ -587,12 +581,12 @@ class Resolver:
                     args += ['--branch', revno]
                 args += [self.wrap.get('url'), self.directory]
                 verbose_git(args, self.subdir_root, check=True)
-            if self.wrap.values.get('clone-recursive', '').lower() == 'true':
-                verbose_git(['submodule', 'update', '--init', '--checkout', '--recursive', *depth_option],
-                            self.dirname, check=True)
-            push_url = self.wrap.values.get('push-url')
-            if push_url:
-                verbose_git(['remote', 'set-url', '--push', 'origin', push_url], self.dirname, check=True)
+        if self.wrap.values.get('clone-recursive', '').lower() == 'true':
+            verbose_git(['submodule', 'update', '--init', '--checkout', '--recursive', *depth_option],
+                        self.dirname, check=True)
+        push_url = self.wrap.values.get('push-url')
+        if push_url:
+            verbose_git(['remote', 'set-url', '--push', 'origin', push_url], self.dirname, check=True)
 
     def validate(self) -> None:
         # This check is only for subprojects with wraps.
