@@ -92,6 +92,7 @@ buildtarget_kwargs = {
     'install_rpath',
     'install_dir',
     'install_mode',
+    'install_name',
     'install_tag',
     'name_prefix',
     'name_suffix',
@@ -519,6 +520,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
     build_always_stale: bool = False
     extra_files: T.List[File] = field(default_factory=list)
     override_options: InitVar[T.Optional[T.Dict[OptionKey, str]]] = None
+    install_name: T.Optional[str] = None
 
     @abc.abstractproperty
     def typename(self) -> str:
@@ -563,6 +565,12 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
         if not isinstance(other, Target):
             return NotImplemented
         return self.get_id() >= other.get_id()
+
+    def get_install_fname(self) -> str:
+        return self.get_install_name()
+
+    def get_install_name(self) -> str:
+        return self.install_name
 
     def get_default_install_dir(self) -> T.Tuple[str, str]:
         raise NotImplementedError
@@ -1136,6 +1144,7 @@ class BuildTarget(Target):
         self.install_dir = typeslistify(kwargs.get('install_dir', []),
                                         (str, bool))
         self.install_mode = kwargs.get('install_mode', None)
+        self.install_name = kwargs.get('install_name', None)
         self.install_tag = stringlistify(kwargs.get('install_tag', [None]))
         main_class = kwargs.get('main_class', '')
         if not isinstance(main_class, str):
@@ -1263,6 +1272,18 @@ class BuildTarget(Target):
 
     def get_filename(self) -> str:
         return self.filename
+
+    def get_install_fname(self) -> str:
+        install_name = self.get_install_name()
+        if not install_name:
+            return None
+        install_fname = ''
+        if self.name_prefix_set:
+            install_fname = self.prefix
+        install_fname += self.install_name
+        if self.name_suffix_set:
+            install_fname += '.' + self.suffix
+        return install_fname
 
     def get_outputs(self) -> T.List[str]:
         return self.outputs
@@ -1980,6 +2001,15 @@ class Executable(BuildTarget):
     def get_default_install_dir(self) -> T.Tuple[str, str]:
         return self.environment.get_bindir(), '{bindir}'
 
+    def get_install_fname(self) -> str:
+        install_name = self.get_install_name()
+        if not install_name:
+            return None
+        install_fname = install_name
+        if self.suffix:
+            install_fname += '.' + self.suffix
+        return install_fname
+
     def description(self):
         '''Human friendly description of the executable'''
         return self.name
@@ -2095,6 +2125,12 @@ class StaticLibrary(BuildTarget):
         self.filename = self.prefix + self.name + '.' + self.suffix
         self.outputs = [self.filename]
 
+    def get_install_fname(self) -> str:
+        install_name = self.get_install_name()
+        if not install_name:
+            return None
+        return self.prefix + install_name + '.' + self.suffix
+
     def get_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:
         return {}
 
@@ -2173,7 +2209,7 @@ class SharedLibrary(BuildTarget):
             self.prefix = None
         if not hasattr(self, 'suffix'):
             self.suffix = None
-        self.basic_filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+        self.basic_filename_tpl = '{0.prefix}{1}.{0.suffix}'
         self.determine_filenames()
 
     def get_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:
@@ -2221,7 +2257,7 @@ class SharedLibrary(BuildTarget):
         if 'cs' in self.compilers:
             prefix = ''
             suffix = 'dll'
-            self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+            self.filename_tpl = '{0.prefix}{1}.{0.suffix}'
             create_debug_file = True
         # C, C++, Swift, Vala
         # Only Windows uses a separate import library for linking
@@ -2252,9 +2288,9 @@ class SharedLibrary(BuildTarget):
                 self.import_filename = self.gcc_import_filename
             # Shared library has the soversion if it is defined
             if self.soversion:
-                self.filename_tpl = '{0.prefix}{0.name}-{0.soversion}.{0.suffix}'
+                self.filename_tpl = '{0.prefix}{1}-{0.soversion}.{0.suffix}'
             else:
-                self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+                self.filename_tpl = '{0.prefix}{1}.{0.suffix}'
         elif self.environment.machines[self.for_machine].is_cygwin():
             suffix = 'dll'
             self.gcc_import_filename = '{}{}.dll.a'.format(self.prefix if self.prefix is not None else 'lib', self.name)
@@ -2264,46 +2300,52 @@ class SharedLibrary(BuildTarget):
             # Import library is called libfoo.dll.a
             self.import_filename = self.gcc_import_filename
             if self.soversion:
-                self.filename_tpl = '{0.prefix}{0.name}-{0.soversion}.{0.suffix}'
+                self.filename_tpl = '{0.prefix}{1}-{0.soversion}.{0.suffix}'
             else:
-                self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+                self.filename_tpl = '{0.prefix}{1}.{0.suffix}'
         elif self.environment.machines[self.for_machine].is_darwin():
             prefix = 'lib'
             suffix = 'dylib'
             # On macOS, the filename can only contain the major version
             if self.soversion:
                 # libfoo.X.dylib
-                self.filename_tpl = '{0.prefix}{0.name}.{0.soversion}.{0.suffix}'
+                self.filename_tpl = '{0.prefix}{1}.{0.soversion}.{0.suffix}'
             else:
                 # libfoo.dylib
-                self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+                self.filename_tpl = '{0.prefix}{1}.{0.suffix}'
         elif self.environment.machines[self.for_machine].is_android():
             prefix = 'lib'
             suffix = 'so'
             # Android doesn't support shared_library versioning
-            self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+            self.filename_tpl = '{0.prefix}{1}.{0.suffix}'
         else:
             prefix = 'lib'
             suffix = 'so'
             if self.ltversion:
                 # libfoo.so.X[.Y[.Z]] (.Y and .Z are optional)
-                self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}.{0.ltversion}'
+                self.filename_tpl = '{0.prefix}{1}.{0.suffix}.{0.ltversion}'
             elif self.soversion:
                 # libfoo.so.X
-                self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}.{0.soversion}'
+                self.filename_tpl = '{0.prefix}{1}.{0.suffix}.{0.soversion}'
             else:
                 # No versioning, libfoo.so
-                self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+                self.filename_tpl = '{0.prefix}{1}.{0.suffix}'
         if self.prefix is None:
             self.prefix = prefix
         if self.suffix is None:
             self.suffix = suffix
-        self.filename = self.filename_tpl.format(self)
+        self.filename = self.filename_tpl.format(self, self.name)
         # There may have been more outputs added by the time we get here, so
         # only replace the first entry
         self.outputs[0] = self.filename
         if create_debug_file:
             self.debug_filename = os.path.splitext(self.filename)[0] + '.pdb'
+
+    def get_install_fname(self) -> str:
+        install_name = self.get_install_name()
+        if not install_name:
+            return None
+        return self.filename_tpl.format(self, install_name)
 
     @staticmethod
     def _validate_darwin_versions(darwin_versions):
@@ -2445,7 +2487,7 @@ class SharedLibrary(BuildTarget):
         # Where libfoo.so.0.100.0 is the actual library
         if self.suffix == 'so' and self.ltversion and self.ltversion != self.soversion:
             alias_tpl = self.filename_tpl.replace('ltversion', 'soversion')
-            ltversion_filename = alias_tpl.format(self)
+            ltversion_filename = alias_tpl.format(self, self.name)
             tag = self.install_tag[0] or 'runtime'
             aliases.append((ltversion_filename, self.filename, tag))
         # libfoo.so.0/libfoo.0.dylib is the actual library
@@ -2455,7 +2497,7 @@ class SharedLibrary(BuildTarget):
         #  libfoo.so -> libfoo.so.0
         #  libfoo.dylib -> libfoo.0.dylib
         tag = self.install_tag[0] or 'devel'
-        aliases.append((self.basic_filename_tpl.format(self), ltversion_filename, tag))
+        aliases.append((self.basic_filename_tpl.format(self, self.name), ltversion_filename, tag))
         return aliases
 
     def type_suffix(self):
@@ -2583,6 +2625,7 @@ class CustomTarget(Target, CommandBase):
                  install_tag: T.Optional[T.List[T.Optional[str]]] = None,
                  absolute_paths: bool = False,
                  backend: T.Optional['Backend'] = None,
+                 install_name: T.Optional[str] = None,
                  ):
         # TODO expose keyword arg to make MachineChoice.HOST configurable
         super().__init__(name, subdir, subproject, False, MachineChoice.HOST, environment,
@@ -2605,6 +2648,7 @@ class CustomTarget(Target, CommandBase):
         self.feed = feed
         self.install_dir = list(install_dir or [])
         self.install_mode = install_mode
+        self.install_name = install_name
         self.install_tag = _process_install_tag(install_tag, len(self.outputs))
         self.name = name if name else self.outputs[0]
 
@@ -2924,6 +2968,12 @@ class Jar(BuildTarget):
     def get_default_install_dir(self) -> T.Tuple[str, str]:
         return self.environment.get_jar_dir(), '{jardir}'
 
+    def get_install_fname(self) -> str:
+        install_name = self.get_install_name()
+        if not install_name:
+            return None
+        return install_name + '.jar'
+
 @dataclass(eq=False)
 class CustomTargetIndex(HoldableObject):
 
@@ -2956,6 +3006,9 @@ class CustomTargetIndex(HoldableObject):
 
     def get_filename(self) -> str:
         return self.output
+
+    def get_install_fname(self) -> str:
+        return self.target.get_install_fname()
 
     def get_id(self) -> str:
         return self.target.get_id()
