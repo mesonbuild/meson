@@ -54,7 +54,7 @@ try:
 except ImportError:
     has_ssl = False
 
-REQ_TIMEOUT = 600.0
+REQ_TIMEOUT = 30.0
 WHITELIST_SUBDOMAIN = 'wrapdb.mesonbuild.com'
 
 ALL_TYPES = ['file', 'git', 'hg', 'svn']
