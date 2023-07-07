@@ -14,6 +14,7 @@ import tarfile
 import zipfile
 
 from . import mlog
+from .ast import IntrospectionInterpreter, AstIDGenerator
 from .mesonlib import quiet_git, GitException, Popen_safe, MesonException, windows_proof_rmtree
 from .wrap.wrap import (Resolver, WrapException, ALL_TYPES, PackageDefinition,
                         parse_patch_url, update_wrap_file, get_releases)
@@ -689,10 +690,16 @@ def run(options: 'Arguments') -> int:
     if not os.path.isfile(os.path.join(source_dir, 'meson.build')):
         mlog.error('Directory', mlog.bold(source_dir), 'does not seem to be a Meson source directory.')
         return 1
-    if not os.path.isdir(os.path.join(source_dir, 'subprojects')):
+    with mlog.no_logging():
+        intr = IntrospectionInterpreter(source_dir, '', 'none', visitors = [AstIDGenerator()])
+        intr.load_root_meson_file()
+        intr.sanity_check_ast()
+        intr.parse_project()
+    subproject_dir = intr.subproject_dir
+    if not os.path.isdir(os.path.join(source_dir, subproject_dir)):
         mlog.log('Directory', mlog.bold(source_dir), 'does not seem to have subprojects.')
         return 0
-    r = Resolver(source_dir, 'subprojects', wrap_frontend=True, allow_insecure=options.allow_insecure, silent=True)
+    r = Resolver(source_dir, subproject_dir, wrap_frontend=True, allow_insecure=options.allow_insecure, silent=True)
     if options.subprojects:
         wraps = [wrap for name, wrap in r.wraps.items() if name in options.subprojects]
     else:
@@ -713,7 +720,7 @@ def run(options: 'Arguments') -> int:
         pre_func(options)
     logger = Logger(len(wraps))
     for wrap in wraps:
-        dirname = Path(subprojects_dir, wrap.directory).as_posix()
+        dirname = Path(subproject_dir, wrap.directory).as_posix()
         runner = Runner(logger, r, wrap, dirname, options)
         task = loop.run_in_executor(executor, runner.run)
         tasks.append(task)
