@@ -37,6 +37,7 @@ from .mesonlib import (
     get_filenames_templates_dict, substitute_values, has_path_sep,
     OptionKey, PerMachineDefaultable, OptionOverrideProxy,
     MesonBugException, EnvironmentVariables, pickle_load,
+    flatten_path,
 )
 from .compilers import (
     is_object, clink_langs, sort_clink, all_languages,
@@ -538,12 +539,14 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
             ovr = {}
         self.options = OptionOverrideProxy(ovr, self.environment.coredata.options, self.subproject)
         # XXX: this should happen in the interpreter
+        self.install_name_auto = None
         if has_path_sep(self.name):
-            # Fix failing test 53 when this becomes an error.
             mlog.warning(textwrap.dedent(f'''\
                 Target "{self.name}" has a path separator in its name.
                 This is not supported, it can cause unexpected failures and will become
-                a hard error in the future.'''))
+                a hard error in the future. Consider using the install_name property instead'''))
+            self.install_name_auto = os.path.basename(self.name)
+            self.name = flatten_path(self.name)
 
     # dataclass comparators?
     def __lt__(self, other: object) -> bool:
@@ -570,7 +573,16 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
         return self.get_install_name()
 
     def get_install_name(self) -> str:
-        return self.install_name
+        if self.install_name:
+            return self.install_name
+        if not self.install_name_auto:
+            return None
+        prefix = None
+        if getattr(self, 'name_prefix_set', False) or hasattr(self, 'prefix'):
+            prefix = self.prefix
+        if prefix and self.install_name_auto.startswith(prefix):
+            return self.install_name_auto[len(prefix):]
+        return self.install_name_auto
 
     def get_default_install_dir(self) -> T.Tuple[str, str]:
         raise NotImplementedError
