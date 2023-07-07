@@ -685,15 +685,14 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     p.set_defaults(subprojects_func=Runner.packagefiles)
 
 def run(options: 'Arguments') -> int:
-    src_dir = os.path.relpath(os.path.realpath(options.sourcedir))
-    if not os.path.isfile(os.path.join(src_dir, 'meson.build')):
-        mlog.error('Directory', mlog.bold(src_dir), 'does not seem to be a Meson source directory.')
+    source_dir = os.path.relpath(os.path.realpath(options.sourcedir))
+    if not os.path.isfile(os.path.join(source_dir, 'meson.build')):
+        mlog.error('Directory', mlog.bold(source_dir), 'does not seem to be a Meson source directory.')
         return 1
-    subprojects_dir = os.path.join(src_dir, 'subprojects')
-    if not os.path.isdir(subprojects_dir):
-        mlog.log('Directory', mlog.bold(src_dir), 'does not seem to have subprojects.')
+    if not os.path.isdir(os.path.join(source_dir, 'subprojects')):
+        mlog.log('Directory', mlog.bold(source_dir), 'does not seem to have subprojects.')
         return 0
-    r = Resolver(src_dir, 'subprojects', wrap_frontend=True, allow_insecure=options.allow_insecure, silent=True)
+    r = Resolver(source_dir, 'subprojects', wrap_frontend=True, allow_insecure=options.allow_insecure, silent=True)
     if options.subprojects:
         wraps = [wrap for name, wrap in r.wraps.items() if name in options.subprojects]
     else:
