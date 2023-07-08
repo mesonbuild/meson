@@ -1398,7 +1398,8 @@ You probably should put it in link_with instead.''')
                 elif t.is_internal():
                     # When we're a static library and we link_with to an
                     # internal/convenience library, promote to link_whole.
-                    return self.link_whole([t])
+                    self.link_whole([t])
+                    continue
             if not isinstance(t, (Target, CustomTargetIndex)):
                 if isinstance(t, dependencies.ExternalLibrary):
                     raise MesonException(textwrap.dedent('''\
