@@ -1606,9 +1606,11 @@ class TestHarness:
             # happen before rebuild_deps(), because we need the correct list of
             # tests and their dependencies to compute
             if not self.options.no_rebuild:
-                ret = subprocess.run(self.ninja + ['build.ninja']).returncode
-                if ret != 0:
-                    raise TestException(f'Could not configure {self.options.wd!r}')
+                teststdo = subprocess.run(self.ninja + ['-n', 'build.ninja'], capture_output=True).stdout
+                if b'ninja: no work to do.' not in teststdo and b'samu: nothing to do' not in teststdo:
+                    ret = subprocess.run(self.ninja + ['build.ninja'])
+                    if ret.returncode != 0:
+                        raise TestException(f'Could not configure {self.options.wd!r}')
 
             self.build_data = build.load(os.getcwd())
             if not self.options.setup:
