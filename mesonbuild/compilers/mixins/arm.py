@@ -158,7 +158,7 @@ class ArmclangCompiler(Compiler):
             raise mesonlib.EnvironmentException('armlink version does not match with compiler version')
         self.base_options = {
             OptionKey(o) for o in
-            ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
+            ['b_pch', 'b_lto', 'b_pgo', 'b_profile', 'b_sanitize', 'b_coverage',
              'b_ndebug', 'b_staticpic', 'b_colorout']}
         # Assembly
         self.can_compile_suffixes.add('s')
