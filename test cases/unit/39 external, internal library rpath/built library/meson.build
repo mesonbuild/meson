@@ -2,6 +2,8 @@ project('built library', 'c')
 
 cc = meson.get_compiler('c')
 
+import('python').find_installation().install_sources('foo.py')
+
 if host_machine.system() != 'cygwin'
   # bar_in_system has undefined symbols, but still must be found
   bar_system_dep = cc.find_library('bar_in_system')
