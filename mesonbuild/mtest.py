@@ -1906,9 +1906,9 @@ class TestHarness:
                     # succeed on an invalid pattern.
                     raise MesonException(f'{arg} test name does not match any test')
 
-    def get_tests(self) -> T.List[TestSerialisation]:
+    def get_tests(self, errorfile: T.Optional[T.IO] = sys.stdout) -> T.List[TestSerialisation]:
         if not self.tests:
-            print('No tests defined.')
+            print('No tests defined.', file=errorfile)
             return []
 
         tests = [t for t in self.tests if self.test_suitable(t)]
@@ -1916,7 +1916,7 @@ class TestHarness:
             tests = list(self.tests_from_args(tests))
 
         if not tests:
-            print('No suitable tests defined.')
+            print('No suitable tests defined.', file=errorfile)
             return []
 
         return tests
@@ -2074,7 +2074,7 @@ class TestHarness:
                 await l.finish(self)
 
 def list_tests(th: TestHarness) -> bool:
-    tests = th.get_tests()
+    tests = th.get_tests(errorfile=sys.stderr)
     for t in tests:
         print(th.get_pretty_suite(t))
     return not tests
