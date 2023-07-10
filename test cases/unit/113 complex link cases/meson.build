@@ -47,3 +47,14 @@ s1 = static_library('t7-s1', 's1.c')
 s2 = static_library('t7-s2', 's2.c')
 s3 = static_library('t7-s3', 's3.c', link_with: [s1, s2], install: true)
 e = executable('t7-e1', 'main.c', link_with: s3)
+
+# Regression test: s3 should come last in the linker command. This seems to be
+# required for at least backward compatibility reasons:
+# https://github.com/mesonbuild/meson/pull/11957#issuecomment-1629243208
+s1 = static_library('t8-s1', 's1.c')
+s2 = static_library('t8-s2', 's2.c')
+s3 = static_library('t8-s3', 's3.c')
+e = executable('t8-e1', 'main.c',
+  link_with: [s1, s2],
+  dependencies: declare_dependency(link_with: s3),
+)
