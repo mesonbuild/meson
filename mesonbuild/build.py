@@ -1716,6 +1716,9 @@ class FileInTargetPrivateDir:
     def __init__(self, fname: str):
         self.fname = fname
 
+    def __str__(self) -> str:
+        return self.fname
+
 class FileMaybeInTargetPrivateDir:
     """Union between 'File' and 'FileInTargetPrivateDir'"""
 
@@ -1735,6 +1738,9 @@ class FileMaybeInTargetPrivateDir:
         if isinstance(self.inner, FileInTargetPrivateDir):
             raise RuntimeError('Unreachable code')
         return self.inner.absolute_path(srcdir, builddir)
+
+    def __str__(self) -> str:
+        return self.fname
 
 class Generator(HoldableObject):
     def __init__(self, exe: T.Union['Executable', programs.ExternalProgram],
