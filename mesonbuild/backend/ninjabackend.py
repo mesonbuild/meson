@@ -2659,10 +2659,10 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 what = f'{sole_output!r}'
             else:
                 # since there are multiple outputs, we log the source that caused the rebuild
-                what = f'from {sole_output!r}.'
+                what = f'from {sole_output!r}'
             if reason:
                 reason = f' (wrapped by meson {reason})'
-            elem.add_item('DESC', f'Generating {what}{reason}.')
+            elem.add_item('DESC', f'Generating {what}{reason}')
 
             if isinstance(exe, build.BuildTarget):
                 elem.add_dep(self.get_target_filename(exe))
