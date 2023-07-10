@@ -1608,7 +1608,8 @@ class TestHarness:
             if not self.options.no_rebuild:
                 teststdo = subprocess.run(self.ninja + ['-n', 'build.ninja'], capture_output=True).stdout
                 if b'ninja: no work to do.' not in teststdo and b'samu: nothing to do' not in teststdo:
-                    ret = subprocess.run(self.ninja + ['build.ninja'])
+                    stdo = sys.stderr if self.options.list else sys.stdout
+                    ret = subprocess.run(self.ninja + ['build.ninja'], stdout=stdo.fileno())
                     if ret.returncode != 0:
                         raise TestException(f'Could not configure {self.options.wd!r}')
 
