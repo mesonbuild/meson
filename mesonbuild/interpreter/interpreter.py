@@ -14,9 +14,11 @@ from .. import compilers
 from .. import envconfig
 from ..wrap import wrap, WrapMode
 from .. import mesonlib
-from ..mesonlib import (EnvironmentVariables, ExecutableSerialisation, MesonBugException, MesonException, HoldableObject,
-                        FileMode, MachineChoice, OptionKey, listify,
-                        extract_as_list, has_path_sep, path_is_in_root, PerMachine)
+from ..mesonlib import (EnvironmentVariables, ExecutableSerialisation,
+                        MesonBugException, MesonException, HoldableObject,
+                        InterpreterMachineChoice, FileMode, MachineChoice,
+                        OptionKey, listify, extract_as_list, has_path_sep,
+                        path_is_in_root, PerMachine)
 from ..programs import ExternalProgram, NonExistingExternalProgram
 from ..dependencies import Dependency
 from ..depfile import DepFile
@@ -76,6 +78,7 @@ from .type_checking import (
     INSTALL_TAG_KW,
     LANGUAGE_KW,
     NATIVE_KW,
+    NATIVE_BOTH_KW,
     PRESERVE_PATH_KW,
     REQUIRED_KW,
     SHARED_LIB_KWS,
@@ -1303,7 +1306,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         if not self.is_subproject():
             self.check_stdlibs()
 
-    @typed_kwargs('add_languages', KwargInfo('native', (bool, NoneType), since='0.54.0'), REQUIRED_KW)
+    @typed_kwargs('add_languages', NATIVE_BOTH_KW.evolve(default='both', since='0.54.0'), REQUIRED_KW)
     @typed_pos_args('add_languages', varargs=str)
     def func_add_languages(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwtypes.FuncAddLanguages') -> bool:
         langs = args[0]
@@ -1314,18 +1317,11 @@ class Interpreter(InterpreterBase, HoldableObject):
             for lang in sorted(langs, key=compilers.sort_clink):
                 mlog.log('Compiler for language', mlog.bold(lang), 'skipped: feature', mlog.bold(feature), 'disabled')
             return False
-        if native is not None:
-            return self.add_languages(langs, required, self.machine_from_native_kwarg(kwargs))
-        else:
-            # absent 'native' means 'both' for backwards compatibility
-            tv = FeatureNew.get_target_version(self.subproject)
-            if FeatureNew.check_version(tv, '0.54.0'):
-                mlog.warning('add_languages is missing native:, assuming languages are wanted for both host and build.',
-                             location=node)
-
-            success = self.add_languages(langs, False, MachineChoice.BUILD)
-            success &= self.add_languages(langs, required, MachineChoice.HOST)
-            return success
+        if native is not InterpreterMachineChoice.BOTH:
+            return self.add_languages(langs, required, native.as_machinechoice())
+        success = self.add_languages(langs, False, MachineChoice.BUILD)
+        success &= self.add_languages(langs, required, MachineChoice.HOST)
+        return success
 
     def _stringify_user_arguments(self, args: T.List[TYPE_var], func_name: str) -> T.List[str]:
         try:

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright © 2021 The Meson Developers
-# Copyright © 2021 Intel Corporation
+# Copyright 2021 The Meson Developers
+# Copyright © 2021-2023 Intel Corporation
 from __future__ import annotations
 
 """Keyword Argument type annotations."""
@@ -9,11 +9,11 @@ import typing as T
 
 from typing_extensions import TypedDict, Literal, Protocol, NotRequired
 
-from .. import build
+import build
 from .. import coredata
 from ..compilers import Compiler
 from ..dependencies.base import Dependency
-from ..mesonlib import EnvironmentVariables, MachineChoice, File, FileMode, FileOrString, OptionKey
+from ..mesonlib import EnvironmentVariables, MachineChoice, File, FileMode, FileOrString, OptionKey, InterpreterMachineChoice
 from ..modules.cmake import CMakeSubprojectOptions
 from ..programs import ExternalProgram
 from .type_checking import PkgConfigDefineType, SourcesVarargsType
@@ -163,7 +163,7 @@ class FuncIncludeDirectories(TypedDict):
 
 class FuncAddLanguages(ExtractRequired):
 
-    native: T.Optional[bool]
+    native: InterpreterMachineChoice
 
 class RunTarget(TypedDict):
 
