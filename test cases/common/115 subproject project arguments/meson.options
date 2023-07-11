@@ -1,0 +1,1 @@
+option('machine', type : 'string', value : 'host')

@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2021 The Meson development team
+# Copyright © 2023 Intel Corporation
 
 from __future__ import annotations
 
@@ -2858,29 +2859,49 @@ class Interpreter(InterpreterBase, HoldableObject):
                                                              kwargs['exclude_suites'])
 
     @typed_pos_args('add_global_arguments', varargs=str)
-    @typed_kwargs('add_global_arguments', NATIVE_KW, LANGUAGE_KW)
+    @typed_kwargs('add_global_arguments', NATIVE_BOTH_KW, LANGUAGE_KW)
     def func_add_global_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
-        self._add_global_arguments(node, self.build.global_args[kwargs['native']], args[0], kwargs)
+        native = kwargs['native']
+        if native is InterpreterMachineChoice.BOTH:
+            self._add_global_arguments(node, self.build.global_args[MachineChoice.HOST], args[0], kwargs)
+            self._add_global_arguments(node, self.build.global_args[MachineChoice.BUILD], args[0], kwargs)
+        else:
+            self._add_global_arguments(node, self.build.global_args[native.as_machinechoice()], args[0], kwargs)
 
     @typed_pos_args('add_global_link_arguments', varargs=str)
-    @typed_kwargs('add_global_arguments', NATIVE_KW, LANGUAGE_KW)
+    @typed_kwargs('add_global_arguments', NATIVE_BOTH_KW, LANGUAGE_KW)
     def func_add_global_link_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
-        self._add_global_arguments(node, self.build.global_link_args[kwargs['native']], args[0], kwargs)
+        native = kwargs['native']
+        if native is InterpreterMachineChoice.BOTH:
+            self._add_global_arguments(node, self.build.global_link_args[MachineChoice.HOST], args[0], kwargs)
+            self._add_global_arguments(node, self.build.global_link_args[MachineChoice.BUILD], args[0], kwargs)
+        else:
+            self._add_global_arguments(node, self.build.global_link_args[native.as_machinechoice()], args[0], kwargs)
 
     @typed_pos_args('add_project_arguments', varargs=str)
-    @typed_kwargs('add_project_arguments', NATIVE_KW, LANGUAGE_KW)
+    @typed_kwargs('add_project_arguments', NATIVE_BOTH_KW, LANGUAGE_KW)
     def func_add_project_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
-        self._add_project_arguments(node, self.build.projects_args[kwargs['native']], args[0], kwargs)
+        native = kwargs['native']
+        if native is InterpreterMachineChoice.BOTH:
+            self._add_project_arguments(node, self.build.projects_args[MachineChoice.BUILD], args[0], kwargs)
+            self._add_project_arguments(node, self.build.projects_args[MachineChoice.HOST], args[0], kwargs)
+        else:
+            self._add_project_arguments(node, self.build.projects_args[native.as_machinechoice()], args[0], kwargs)
 
     @typed_pos_args('add_project_link_arguments', varargs=str)
-    @typed_kwargs('add_global_arguments', NATIVE_KW, LANGUAGE_KW)
+    @typed_kwargs('add_global_arguments', NATIVE_BOTH_KW, LANGUAGE_KW)
     def func_add_project_link_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
-        self._add_project_arguments(node, self.build.projects_link_args[kwargs['native']], args[0], kwargs)
+        native = kwargs['native']
+        if native is InterpreterMachineChoice.BOTH:
+            self._add_project_arguments(node, self.build.projects_link_args[MachineChoice.BUILD], args[0], kwargs)
+            self._add_project_arguments(node, self.build.projects_link_args[MachineChoice.HOST], args[0], kwargs)
+        else:
+            self._add_project_arguments(node, self.build.projects_link_args[native.as_machinechoice()], args[0], kwargs)
 
     @FeatureNew('add_project_dependencies', '0.63.0')
     @typed_pos_args('add_project_dependencies', varargs=dependencies.Dependency)
     @typed_kwargs('add_project_dependencies', NATIVE_KW, LANGUAGE_KW)
-    def func_add_project_dependencies(self, node: mparser.FunctionNode, args: T.Tuple[T.List[dependencies.Dependency]], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
+    def func_add_project_dependencies(self, node: mparser.FunctionNode, args: T.Tuple[T.List[dependencies.Dependency]], kwargs: kwtypes.FuncAddProjectDeps) -> None:
         for_machine = kwargs['native']
         for lang in kwargs['language']:
             if lang not in self.compilers[for_machine]:

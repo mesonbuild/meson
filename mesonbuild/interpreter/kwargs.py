@@ -29,6 +29,12 @@ class FuncAddProjectArgs(TypedDict):
     a MachineChoice instance already.
     """
 
+    native: InterpreterMachineChoice
+    language: T.List[str]
+
+
+class FuncAddProjectDeps(TypedDict):
+
     native: MachineChoice
     language: T.List[str]
 
