@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright © 2021 Intel Corporation
+# Copyright © 2021-2023 Intel Corporation
 
 """Helpers for strict type checking."""
 
@@ -14,7 +14,7 @@ from ..build import (CustomTarget, BuildTarget,
 from ..coredata import UserFeatureOption
 from ..dependencies import Dependency, InternalDependency
 from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo
-from ..mesonlib import (File, FileMode, MachineChoice, listify, has_path_sep,
+from ..mesonlib import (File, FileMode, MachineChoice, InterpreterMachineChoice, listify, has_path_sep,
                         OptionKey, EnvironmentVariables)
 from ..programs import ExternalProgram
 
@@ -167,6 +167,23 @@ NATIVE_KW = KwargInfo(
     'native', bool,
     default=False,
     convertor=lambda n: MachineChoice.BUILD if n else MachineChoice.HOST)
+
+_NATIVE_BOTH: T.Mapping[T.Union[bool, Literal['both']], InterpreterMachineChoice] = {
+    True: InterpreterMachineChoice.BUILD,
+    False: InterpreterMachineChoice.HOST,
+    'both': InterpreterMachineChoice.BOTH,
+}
+
+# We can't annotate the type below as Literal, but the validator will do that for us
+# So, we need the type ignore, otherwise mypy complains about the `str`
+NATIVE_BOTH_KW: KwargInfo[T.Union[bool, Literal['both']]] = KwargInfo(
+    'native',
+    (bool, str),  # type: ignore[arg-type]
+    default=False,
+    validator=lambda x: 'must be either a boolean or the literal "both"' if isinstance(x, str) and x != 'both' else None,
+    convertor=lambda x: _NATIVE_BOTH[x],
+    since_values={str: '1.4.0'},
+)
 
 LANGUAGE_KW = KwargInfo(
     'language', ContainerTypeInfo(list, str, allow_empty=False),

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2020 The Meson development team
-
+# Copyright © 2023 Intel Corporation
 
 """A library of random helper functionality."""
 
@@ -24,7 +24,7 @@ import errno
 import json
 
 from mesonbuild import mlog
-from .core import MesonException, HoldableObject
+from .core import MesonBugException, MesonException, HoldableObject
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, Protocol
@@ -61,6 +61,7 @@ __all__ = [
     'File',
     'FileMode',
     'GitException',
+    'InterpreterMachineChoice',
     'LibType',
     'MachineChoice',
     'EnvironmentException',
@@ -484,6 +485,33 @@ class MachineChoice(enum.IntEnum):
 
     def get_prefix(self) -> str:
         return PerMachine('build.', '')[self]
+
+
+class InterpreterMachineChoice(enum.Enum):
+
+    """Machine Choices for the interpreter.
+
+    This includes the option of having a "both" value, which the interpreter
+    will turn into two calls, one for the build and one for the host machine (in
+    a cross build situation)
+    """
+
+    BUILD = enum.auto()
+    HOST = enum.auto()
+    BOTH = enum.auto()
+
+    def as_machinechoice(self) -> MachineChoice:
+        """Convert to a normal MachineChoice
+
+        a Both value cannot be converted, it is expected that the interpreter
+        will handle any logic duplication required to handle both cases.
+
+        :raises MesonBugException: if a value of BOTH is converted
+        :return: A MachineChoiceValue
+        """
+        if self.value == self.BOTH.value:
+            raise MesonBugException('Tried to get a MachineChoice for "both"')
+        return MachineChoice.HOST if self.value == self.HOST.value else MachineChoice.BUILD
 
 
 class PerMachine(T.Generic[_T]):
