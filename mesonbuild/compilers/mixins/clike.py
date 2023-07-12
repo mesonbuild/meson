@@ -680,7 +680,7 @@ class CLikeCompiler(Compiler):
                                        mode=CompileCheckMode.PREPROCESS).to_native()
         func = functools.partial(self.cached_compile, code, env.coredata, extra_args=args, mode=CompileCheckMode.PREPROCESS)
         if disable_cache:
-            func = functools.partial(self.compile, code, extra_args=args, mode=CompileCheckMode.PREPROCESS, temp_dir=env.scratch_dir)
+            func = functools.partial(self.compile, code, extra_args=args, mode=CompileCheckMode.PREPROCESS)
         with func() as p:
             cached = p.cached
             if p.returncode != 0:
@@ -919,7 +919,7 @@ class CLikeCompiler(Compiler):
         '''
         args = self.get_compiler_check_args(CompileCheckMode.COMPILE)
         n = '_symbols_have_underscore_prefix_searchbin'
-        with self._build_wrapper(code, env, extra_args=args, mode=CompileCheckMode.COMPILE, want_output=True, temp_dir=env.scratch_dir) as p:
+        with self._build_wrapper(code, env, extra_args=args, mode=CompileCheckMode.COMPILE, want_output=True) as p:
             if p.returncode != 0:
                 raise RuntimeError(f'BUG: Unable to compile {n!r} check: {p.stderr}')
             if not os.path.isfile(p.output_name):
@@ -954,7 +954,7 @@ class CLikeCompiler(Compiler):
         #endif
         {delim}MESON_UNDERSCORE_PREFIX
         '''
-        with self._build_wrapper(code, env, mode=CompileCheckMode.PREPROCESS, want_output=False, temp_dir=env.scratch_dir) as p:
+        with self._build_wrapper(code, env, mode=CompileCheckMode.PREPROCESS, want_output=False) as p:
             if p.returncode != 0:
                 raise RuntimeError(f'BUG: Unable to preprocess _symbols_have_underscore_prefix_define check: {p.stdout}')
             symbol_prefix = p.stdout.partition(delim)[-1].rstrip()

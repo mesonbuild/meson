@@ -1299,8 +1299,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                        extra_args: T.Union[None, CompilerArgs, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
                        dependencies: T.Optional[T.List['Dependency']] = None,
                        mode: CompileCheckMode = CompileCheckMode.COMPILE, want_output: bool = False,
-                       disable_cache: bool = False,
-                       temp_dir: str = None) -> T.Iterator[T.Optional[CompileResult]]:
+                       disable_cache: bool = False) -> T.Iterator[T.Optional[CompileResult]]:
         """Helper for getting a cached value when possible.
 
         This method isn't meant to be called externally, it's mean to be
