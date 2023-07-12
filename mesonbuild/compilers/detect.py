@@ -927,13 +927,19 @@ def detect_cython_compiler(env: 'Environment', for_machine: MachineChoice) -> Co
     popen_exceptions: T.Dict[str, Exception] = {}
     for comp in compilers:
         try:
-            err = Popen_safe_logged(comp + ['-V'], msg='Detecting compiler via')[2]
+            _, out, err = Popen_safe_logged(comp + ['-V'], msg='Detecting compiler via')
         except OSError as e:
             popen_exceptions[join_args(comp + ['-V'])] = e
             continue
 
-        version = search_version(err)
-        if 'Cython' in err:
+        version: T.Optional[str] = None
+        # 3.0
+        if 'Cython' in out:
+            version = search_version(out)
+        # older
+        elif 'Cython' in err:
+            version = search_version(err)
+        if version is not None:
             comp_class = CythonCompiler
             env.coredata.add_lang_args(comp_class.language, comp_class, for_machine, env)
             return comp_class([], comp, version, for_machine, info, is_cross=is_cross)
