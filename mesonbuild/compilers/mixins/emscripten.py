@@ -48,9 +48,7 @@ def wrap_js_includes(args: T.List[str]) -> T.List[str]:
 class EmscriptenMixin(Compiler):
 
     def _get_compile_output(self, dirname: str, mode: CompileCheckMode) -> str:
-        # In pre-processor mode, the output is sent to stdout and discarded
-        if mode == CompileCheckMode.PREPROCESS:
-            return None
+        assert mode != CompileCheckMode.PREPROCESS, 'In pre-processor mode, the output is sent to stdout and discarded'
         # Unlike sane toolchains, emcc infers the kind of output from its name.
         # This is the only reason why this method is overridden; compiler tests
         # do not work well with the default exe/obj suffices.

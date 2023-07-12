@@ -800,9 +800,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         return self.linker.has_multi_arguments(args, env)
 
     def _get_compile_output(self, dirname: str, mode: CompileCheckMode) -> str:
-        # In pre-processor mode, the output is sent to stdout and discarded
-        if mode == CompileCheckMode.PREPROCESS:
-            return None
+        assert mode != CompileCheckMode.PREPROCESS, 'In pre-processor mode, the output is sent to stdout and discarded'
         # Extension only matters if running results; '.exe' is
         # guaranteed to be executable on every platform.
         if mode == CompileCheckMode.LINK:
@@ -832,6 +830,10 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                 *, mode: CompileCheckMode = CompileCheckMode.LINK, want_output: bool = False,
                 temp_dir: T.Optional[str] = None) -> T.Iterator[T.Optional[CompileResult]]:
         # TODO: there isn't really any reason for this to be a contextmanager
+
+        if mode == CompileCheckMode.PREPROCESS:
+            assert not want_output, 'In pre-processor mode, the output is sent to stdout and discarded'
+
         if extra_args is None:
             extra_args = []
 
@@ -858,8 +860,8 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             commands.append(srcname)
 
             # Preprocess mode outputs to stdout, so no output args
-            output = self._get_compile_output(tmpdirname, mode)
             if mode != CompileCheckMode.PREPROCESS:
+                output = self._get_compile_output(tmpdirname, mode)
                 commands += self.get_output_args(output)
             commands.extend(self.get_compiler_args_for_mode(CompileCheckMode(mode)))
 
