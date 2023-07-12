@@ -92,12 +92,12 @@ clib_langs = ('objcpp', 'cpp', 'objc', 'c', 'nasm', 'fortran')
 clink_langs = ('d', 'cuda') + clib_langs
 
 SUFFIX_TO_LANG = dict(itertools.chain(*(
-    [(suffix, lang) for suffix in v] for lang, v in lang_suffixes.items()))) # type: T.Dict[str, str]
+    [(suffix, lang) for suffix in v] for lang, v in lang_suffixes.items())))
 
 # Languages that should use LDFLAGS arguments when linking.
-LANGUAGES_USING_LDFLAGS = {'objcpp', 'cpp', 'objc', 'c', 'fortran', 'd', 'cuda'}  # type: T.Set[str]
+LANGUAGES_USING_LDFLAGS = {'objcpp', 'cpp', 'objc', 'c', 'fortran', 'd', 'cuda'}
 # Languages that should use CPPFLAGS arguments when linking.
-LANGUAGES_USING_CPPFLAGS = {'c', 'cpp', 'objc', 'objcpp'}  # type: T.Set[str]
+LANGUAGES_USING_CPPFLAGS = {'c', 'cpp', 'objc', 'objcpp'}
 soregex = re.compile(r'.*\.so(\.[0-9]+)?(\.[0-9]+)?(\.[0-9]+)?$')
 
 # Environment variables that each lang uses.
@@ -190,99 +190,105 @@ class CompileCheckMode(enum.Enum):
     LINK = 'link'
 
 
-cuda_buildtype_args = {'plain': [],
+cuda_buildtype_args: T.Dict[str, T.List[str]] = {'plain': [],
                        'debug': ['-g', '-G'],
                        'debugoptimized': ['-g', '-lineinfo'],
                        'release': [],
                        'minsize': [],
                        'custom': [],
-                       }  # type: T.Dict[str, T.List[str]]
-java_buildtype_args = {'plain': [],
+                       }
+java_buildtype_args: T.Dict[str, T.List[str]] = {'plain': [],
                        'debug': ['-g'],
                        'debugoptimized': ['-g'],
                        'release': [],
                        'minsize': [],
                        'custom': [],
-                       }  # type: T.Dict[str, T.List[str]]
+                       }
 
-rust_buildtype_args = {'plain': [],
+rust_buildtype_args: T.Dict[str, T.List[str]] = {'plain': [],
                        'debug': [],
                        'debugoptimized': [],
                        'release': [],
                        'minsize': [],
                        'custom': [],
-                       }  # type: T.Dict[str, T.List[str]]
+                       }
 
-d_gdc_buildtype_args = {'plain': [],
+d_gdc_buildtype_args: T.Dict[str, T.List[str]] = {'plain': [],
                         'debug': [],
                         'debugoptimized': ['-finline-functions'],
                         'release': ['-finline-functions'],
                         'minsize': [],
                         'custom': [],
-                        }  # type: T.Dict[str, T.List[str]]
+                        }
 
-d_ldc_buildtype_args = {'plain': [],
+d_ldc_buildtype_args: T.Dict[str, T.List[str]] = {'plain': [],
                         'debug': [],
                         'debugoptimized': ['-enable-inlining', '-Hkeep-all-bodies'],
                         'release': ['-enable-inlining', '-Hkeep-all-bodies'],
                         'minsize': [],
                         'custom': [],
-                        }  # type: T.Dict[str, T.List[str]]
+                        }
 
-d_dmd_buildtype_args = {'plain': [],
+d_dmd_buildtype_args: T.Dict[str, T.List[str]] = {'plain': [],
                         'debug': [],
                         'debugoptimized': ['-inline'],
                         'release': ['-inline'],
                         'minsize': [],
                         'custom': [],
-                        }  # type: T.Dict[str, T.List[str]]
+                        }
 
-mono_buildtype_args = {'plain': [],
+mono_buildtype_args: T.Dict[str, T.List[str]] = {'plain': [],
                        'debug': [],
                        'debugoptimized': ['-optimize+'],
                        'release': ['-optimize+'],
                        'minsize': [],
                        'custom': [],
-                       }  # type: T.Dict[str, T.List[str]]
+                       }
 
-swift_buildtype_args = {'plain': [],
+swift_buildtype_args: T.Dict[str, T.List[str]] = {'plain': [],
                         'debug': [],
                         'debugoptimized': [],
                         'release': [],
                         'minsize': [],
                         'custom': [],
-                        }  # type: T.Dict[str, T.List[str]]
+                        }
 
 gnu_winlibs = ['-lkernel32', '-luser32', '-lgdi32', '-lwinspool', '-lshell32',
-               '-lole32', '-loleaut32', '-luuid', '-lcomdlg32', '-ladvapi32']  # type: T.List[str]
+               '-lole32', '-loleaut32', '-luuid', '-lcomdlg32', '-ladvapi32']
 
 msvc_winlibs = ['kernel32.lib', 'user32.lib', 'gdi32.lib',
                 'winspool.lib', 'shell32.lib', 'ole32.lib', 'oleaut32.lib',
-                'uuid.lib', 'comdlg32.lib', 'advapi32.lib']  # type: T.List[str]
+                'uuid.lib', 'comdlg32.lib', 'advapi32.lib']
 
-clike_optimization_args = {'plain': [],
-                           '0': [],
-                           'g': [],
-                           '1': ['-O1'],
-                           '2': ['-O2'],
-                           '3': ['-O3'],
-                           's': ['-Os'],
-                           }  # type: T.Dict[str, T.List[str]]
+clike_optimization_args: T.Dict[str, T.List[str]] = {
+    'plain': [],
+    '0': [],
+    'g': [],
+    '1': ['-O1'],
+    '2': ['-O2'],
+    '3': ['-O3'],
+    's': ['-Os'],
+}
 
-cuda_optimization_args = {'plain': [],
-                          '0': [],
-                          'g': ['-O0'],
-                          '1': ['-O1'],
-                          '2': ['-O2'],
-                          '3': ['-O3'],
-                          's': ['-O3']
-                          }  # type: T.Dict[str, T.List[str]]
+cuda_optimization_args: T.Dict[str, T.List[str]] = {
+    'plain': [],
+    '0': [],
+    'g': ['-O0'],
+    '1': ['-O1'],
+    '2': ['-O2'],
+    '3': ['-O3'],
+    's': ['-O3']
+}
 
-cuda_debug_args = {False: [],
-                   True: ['-g']}  # type: T.Dict[bool, T.List[str]]
+cuda_debug_args: T.Dict[bool, T.List[str]] = {
+    False: [],
+    True: ['-g']
+}
 
-clike_debug_args = {False: [],
-                    True: ['-g']}  # type: T.Dict[bool, T.List[str]]
+clike_debug_args: T.Dict[bool, T.List[str]] = {
+    False: [],
+    True: ['-g']
+}
 
 base_options: 'KeyedOptionDictType' = {
     OptionKey('b_pch'): coredata.UserBooleanOption('Use precompiled headers', True),
@@ -350,7 +356,7 @@ def are_asserts_disabled(options: KeyedOptionDictType) -> bool:
 
 
 def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler') -> T.List[str]:
-    args = []  # type T.List[str]
+    args: T.List[str] = []
     try:
         if options[OptionKey('b_lto')].value:
             args.extend(compiler.get_lto_compile_args(
@@ -399,7 +405,7 @@ def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler') 
 
 def get_base_link_args(options: 'KeyedOptionDictType', linker: 'Compiler',
                        is_shared_module: bool, build_dir: str) -> T.List[str]:
-    args = []  # type: T.List[str]
+    args: T.List[str] = []
     try:
         if options[OptionKey('b_lto')].value:
             thinlto_cache_dir = None
@@ -499,12 +505,12 @@ class CompileResult(HoldableObject):
 class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     # Libraries to ignore in find_library() since they are provided by the
     # compiler or the C library. Currently only used for MSVC.
-    ignore_libs = []  # type: T.List[str]
+    ignore_libs: T.List[str] = []
     # Libraries that are internal compiler implementations, and must not be
     # manually searched.
-    internal_libs = []  # type: T.List[str]
+    internal_libs: T.List[str] = []
 
-    LINKER_PREFIX = None  # type: T.Union[None, str, T.List[str]]
+    LINKER_PREFIX: T.Union[None, str, T.List[str]] = None
     INVOKES_LINKER = True
 
     language: str
@@ -799,7 +805,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
 
     def get_compiler_args_for_mode(self, mode: CompileCheckMode) -> T.List[str]:
         # TODO: mode should really be an enum
-        args = []  # type: T.List[str]
+        args: T.List[str] = []
         args += self.get_always_args()
         if mode is CompileCheckMode.COMPILE:
             args += self.get_compile_only_args()
@@ -879,8 +885,8 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         # TODO: There's isn't really any reason for this to be a context manager
 
         # Calculate the key
-        textra_args = tuple(extra_args) if extra_args is not None else tuple()  # type: T.Tuple[str, ...]
-        key = (tuple(self.exelist), self.version, code, textra_args, mode)  # type: coredata.CompilerCheckCacheKey
+        textra_args: T.Tuple[str, ...] = tuple(extra_args) if extra_args is not None else tuple()
+        key: coredata.CompilerCheckCacheKey = (tuple(self.exelist), self.version, code, textra_args, mode)
 
         # Check if not cached, and generate, otherwise get from the cache
         if key in cdata.compiler_check_cache:
