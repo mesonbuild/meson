@@ -713,7 +713,7 @@ class DCompiler(Compiler):
         if need_exe_wrapper and self.exe_wrapper is None:
             raise compilers.CrossNoRunException('Can not run test applications in this cross environment.')
         extra_args = self._get_compile_extra_args(extra_args)
-        with self._build_wrapper(code, env, extra_args, dependencies, mode='link', want_output=True) as p:
+        with self._build_wrapper(code, env, extra_args, dependencies, mode=CompileCheckMode.LINK, want_output=True) as p:
             if p.returncode != 0:
                 mlog.debug(f'Could not compile test file {p.input_name}: {p.returncode}\n')
                 return compilers.RunResult(False)
@@ -786,7 +786,7 @@ class DCompiler(Compiler):
         import {hname};
         '''
         return self.compiles(code, env, extra_args=extra_args,
-                             dependencies=dependencies, mode='compile', disable_cache=disable_cache)
+                             dependencies=dependencies, mode=CompileCheckMode.COMPILE, disable_cache=disable_cache)
 
 class GnuDCompiler(GnuCompiler, DCompiler):
 

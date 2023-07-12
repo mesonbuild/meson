@@ -516,7 +516,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     language: str
     id: str
     warn_args: T.Dict[str, T.List[str]]
-    mode: str = 'COMPILER'
+    mode = CompileCheckMode.COMPILE
 
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str,
                  for_machine: MachineChoice, info: 'MachineInfo',
@@ -790,21 +790,19 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def has_multi_link_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
         return self.linker.has_multi_arguments(args, env)
 
-    def _get_compile_output(self, dirname: str, mode: str) -> str:
-        # TODO: mode should really be an enum
+    def _get_compile_output(self, dirname: str, mode: CompileCheckMode) -> str:
         # In pre-processor mode, the output is sent to stdout and discarded
-        if mode == 'preprocess':
+        if mode == CompileCheckMode.PREPROCESS:
             return None
         # Extension only matters if running results; '.exe' is
         # guaranteed to be executable on every platform.
-        if mode == 'link':
+        if mode == CompileCheckMode.LINK:
             suffix = 'exe'
         else:
             suffix = 'obj'
         return os.path.join(dirname, 'output.' + suffix)
 
     def get_compiler_args_for_mode(self, mode: CompileCheckMode) -> T.List[str]:
-        # TODO: mode should really be an enum
         args: T.List[str] = []
         args += self.get_always_args()
         if mode is CompileCheckMode.COMPILE:
@@ -822,7 +820,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     @contextlib.contextmanager
     def compile(self, code: 'mesonlib.FileOrString',
                 extra_args: T.Union[None, CompilerArgs, T.List[str]] = None,
-                *, mode: str = 'link', want_output: bool = False,
+                *, mode: CompileCheckMode = CompileCheckMode.LINK, want_output: bool = False,
                 temp_dir: T.Optional[str] = None) -> T.Iterator[T.Optional[CompileResult]]:
         # TODO: there isn't really any reason for this to be a contextmanager
         if extra_args is None:
@@ -852,7 +850,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
 
             # Preprocess mode outputs to stdout, so no output args
             output = self._get_compile_output(tmpdirname, mode)
-            if mode != 'preprocess':
+            if mode != CompileCheckMode.PREPROCESS:
                 commands += self.get_output_args(output)
             commands.extend(self.get_compiler_args_for_mode(CompileCheckMode(mode)))
 
@@ -880,7 +878,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     @contextlib.contextmanager
     def cached_compile(self, code: 'mesonlib.FileOrString', cdata: coredata.CoreData, *,
                        extra_args: T.Union[None, T.List[str], CompilerArgs] = None,
-                       mode: str = 'link',
+                       mode: CompileCheckMode = CompileCheckMode.LINK,
                        temp_dir: T.Optional[str] = None) -> T.Iterator[T.Optional[CompileResult]]:
         # TODO: There's isn't really any reason for this to be a context manager
 
@@ -1289,7 +1287,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def _build_wrapper(self, code: 'mesonlib.FileOrString', env: 'Environment',
                        extra_args: T.Union[None, CompilerArgs, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
                        dependencies: T.Optional[T.List['Dependency']] = None,
-                       mode: str = 'compile', want_output: bool = False,
+                       mode: CompileCheckMode = CompileCheckMode.COMPILE, want_output: bool = False,
                        disable_cache: bool = False,
                        temp_dir: str = None) -> T.Iterator[T.Optional[CompileResult]]:
         """Helper for getting a cached value when possible.
@@ -1297,7 +1295,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         This method isn't meant to be called externally, it's mean to be
         wrapped by other methods like compiles() and links().
         """
-        args = self.build_wrapper_args(env, extra_args, dependencies, CompileCheckMode(mode))
+        args = self.build_wrapper_args(env, extra_args, dependencies, mode)
         if disable_cache or want_output:
             with self.compile(code, extra_args=args, mode=mode, want_output=want_output, temp_dir=env.scratch_dir) as r:
                 yield r
@@ -1308,7 +1306,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def compiles(self, code: 'mesonlib.FileOrString', env: 'Environment', *,
                  extra_args: T.Union[None, T.List[str], CompilerArgs, T.Callable[[CompileCheckMode], T.List[str]]] = None,
                  dependencies: T.Optional[T.List['Dependency']] = None,
-                 mode: str = 'compile',
+                 mode: CompileCheckMode = CompileCheckMode.COMPILE,
                  disable_cache: bool = False) -> T.Tuple[bool, bool]:
         with self._build_wrapper(code, env, extra_args, dependencies, mode, disable_cache=disable_cache) as p:
             return p.returncode == 0, p.cached
@@ -1317,16 +1315,15 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
               compiler: T.Optional['Compiler'] = None,
               extra_args: T.Union[None, T.List[str], CompilerArgs, T.Callable[[CompileCheckMode], T.List[str]]] = None,
               dependencies: T.Optional[T.List['Dependency']] = None,
-              mode: str = 'compile',
               disable_cache: bool = False) -> T.Tuple[bool, bool]:
         if compiler:
             with compiler._build_wrapper(code, env, dependencies=dependencies, want_output=True) as r:
                 objfile = mesonlib.File.from_absolute_file(r.output_name)
                 return self.compiles(objfile, env, extra_args=extra_args,
-                                     dependencies=dependencies, mode='link', disable_cache=True)
+                                     dependencies=dependencies, mode=CompileCheckMode.LINK, disable_cache=True)
 
         return self.compiles(code, env, extra_args=extra_args,
-                             dependencies=dependencies, mode='link', disable_cache=disable_cache)
+                             dependencies=dependencies, mode=CompileCheckMode.LINK, disable_cache=disable_cache)
 
     def get_feature_args(self, kwargs: T.Dict[str, T.Any], build_to_src: str) -> T.List[str]:
         """Used by D for extra language features."""

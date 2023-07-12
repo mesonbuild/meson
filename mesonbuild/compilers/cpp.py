@@ -26,6 +26,7 @@ from .compilers import (
     gnu_winlibs,
     msvc_winlibs,
     Compiler,
+    CompileCheckMode,
 )
 from .c_function_attributes import CXX_FUNC_ATTRIBUTES, C_FUNC_ATTRIBUTES
 from .mixins.clike import CLikeCompiler
@@ -43,7 +44,6 @@ from .mixins.metrowerks import MetrowerksCompiler
 from .mixins.metrowerks import mwccarm_instruction_set_args, mwcceppc_instruction_set_args
 
 if T.TYPE_CHECKING:
-    from .compilers import CompileCheckMode
     from ..coredata import MutableKeyedOptionDictType, KeyedOptionDictType
     from ..dependencies import Dependency
     from ..envconfig import MachineInfo
@@ -129,7 +129,7 @@ class CPPCompiler(CLikeCompiler, Compiler):
         # 2. even if it did have an env object, that might contain another more
         #    recent -std= argument, which might lead to a cascaded failure.
         CPP_TEST = 'int i = static_cast<int>(0);'
-        with self.compile(CPP_TEST, extra_args=[cpp_std_value], mode='compile') as p:
+        with self.compile(CPP_TEST, extra_args=[cpp_std_value], mode=CompileCheckMode.COMPILE) as p:
             if p.returncode == 0:
                 mlog.debug(f'Compiler accepts {cpp_std_value}:', 'YES')
                 return True

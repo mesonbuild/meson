@@ -27,6 +27,7 @@ import typing as T
 from ... import mesonlib
 from ... import mlog
 from ...mesonlib import OptionKey
+from mesonbuild.compilers.compilers import CompileCheckMode
 
 if T.TYPE_CHECKING:
     from ..._typing import ImmutableListProtocol
@@ -464,7 +465,7 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     def _get_search_dirs(self, env: 'Environment') -> str:
         extra_args = ['--print-search-dirs']
         with self._build_wrapper('', env, extra_args=extra_args,
-                                 dependencies=None, mode='compile',
+                                 dependencies=None, mode=CompileCheckMode.COMPILE,
                                  want_output=True) as p:
             return p.stdout
 
@@ -613,7 +614,7 @@ class GnuCompiler(GnuLikeCompiler):
         return ['-fopenmp']
 
     def has_arguments(self, args: T.List[str], env: 'Environment', code: str,
-                      mode: str) -> T.Tuple[bool, bool]:
+                      mode: CompileCheckMode) -> T.Tuple[bool, bool]:
         # For some compiler command line arguments, the GNU compilers will
         # emit a warning on stderr indicating that an option is valid for a
         # another language, but still complete with exit_success

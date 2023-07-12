@@ -39,7 +39,7 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from . import dependencies
-    from .compilers.compilers import Compiler, CompileResult, RunResult
+    from .compilers.compilers import Compiler, CompileResult, RunResult, CompileCheckMode
     from .dependencies.detect import TV_DepID
     from .environment import Environment
     from .mesonlib import OptionOverrideProxy, FileOrString
@@ -48,7 +48,7 @@ if T.TYPE_CHECKING:
     OptionDictType = T.Union[T.Dict[str, 'UserOption[T.Any]'], OptionOverrideProxy]
     MutableKeyedOptionDictType = T.Dict['OptionKey', 'UserOption[T.Any]']
     KeyedOptionDictType = T.Union[MutableKeyedOptionDictType, OptionOverrideProxy]
-    CompilerCheckCacheKey = T.Tuple[T.Tuple[str, ...], str, FileOrString, T.Tuple[str, ...], str]
+    CompilerCheckCacheKey = T.Tuple[T.Tuple[str, ...], str, FileOrString, T.Tuple[str, ...], CompileCheckMode]
     # code, args
     RunCheckCacheKey = T.Tuple[str, T.Tuple[str, ...]]
 

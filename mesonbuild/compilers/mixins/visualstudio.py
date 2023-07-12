@@ -24,6 +24,7 @@ import typing as T
 from ... import arglist
 from ... import mesonlib
 from ... import mlog
+from mesonbuild.compilers.compilers import CompileCheckMode
 
 if T.TYPE_CHECKING:
     from ...environment import Environment
@@ -181,7 +182,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         return ['/fsanitize=address']
 
     def get_output_args(self, target: str) -> T.List[str]:
-        if self.mode == 'PREPROCESSOR':
+        if self.mode == CompileCheckMode.PREPROCESS:
             return ['/Fi' + target]
         if target.endswith('.exe'):
             return ['/Fe' + target]
@@ -307,8 +308,8 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     # Visual Studio is special. It ignores some arguments it does not
     # understand and you can't tell it to error out on those.
     # http://stackoverflow.com/questions/15259720/how-can-i-make-the-microsoft-c-compiler-treat-unknown-flags-as-errors-rather-t
-    def has_arguments(self, args: T.List[str], env: 'Environment', code: str, mode: str) -> T.Tuple[bool, bool]:
-        warning_text = '4044' if mode == 'link' else '9002'
+    def has_arguments(self, args: T.List[str], env: 'Environment', code: str, mode: CompileCheckMode) -> T.Tuple[bool, bool]:
+        warning_text = '4044' if mode == CompileCheckMode.LINK else '9002'
         with self._build_wrapper(code, env, extra_args=args, mode=mode) as p:
             if p.returncode != 0:
                 return False, p.cached
@@ -471,8 +472,8 @@ class ClangClCompiler(VisualStudioLikeCompiler):
         self.can_compile_suffixes.add('s')
         self.can_compile_suffixes.add('sx')
 
-    def has_arguments(self, args: T.List[str], env: 'Environment', code: str, mode: str) -> T.Tuple[bool, bool]:
-        if mode != 'link':
+    def has_arguments(self, args: T.List[str], env: 'Environment', code: str, mode: CompileCheckMode) -> T.Tuple[bool, bool]:
+        if mode != CompileCheckMode.LINK:
             args = args + ['-Werror=unknown-argument', '-Werror=unknown-warning-option']
         return super().has_arguments(args, env, code, mode)
 

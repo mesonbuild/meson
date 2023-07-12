@@ -22,6 +22,7 @@ from ... import coredata
 from ... import mesonlib
 from ...mesonlib import OptionKey
 from ...mesonlib import LibType
+from mesonbuild.compilers.compilers import CompileCheckMode
 
 if T.TYPE_CHECKING:
     from ...environment import Environment
@@ -46,14 +47,14 @@ def wrap_js_includes(args: T.List[str]) -> T.List[str]:
 
 class EmscriptenMixin(Compiler):
 
-    def _get_compile_output(self, dirname: str, mode: str) -> str:
+    def _get_compile_output(self, dirname: str, mode: CompileCheckMode) -> str:
         # In pre-processor mode, the output is sent to stdout and discarded
-        if mode == 'preprocess':
+        if mode == CompileCheckMode.PREPROCESS:
             return None
         # Unlike sane toolchains, emcc infers the kind of output from its name.
         # This is the only reason why this method is overridden; compiler tests
         # do not work well with the default exe/obj suffices.
-        if mode == 'link':
+        if mode == CompileCheckMode.LINK:
             suffix = 'js'
         else:
             suffix = 'o'

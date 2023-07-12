@@ -20,6 +20,7 @@ from .. import coredata
 from .compilers import (
     clike_debug_args,
     Compiler,
+    CompileCheckMode,
 )
 from .mixins.clike import CLikeCompiler
 from .mixins.gnu import (
@@ -43,7 +44,6 @@ if T.TYPE_CHECKING:
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
     from ..programs import ExternalProgram
-    from .compilers import CompileCheckMode
 
 
 class FortranCompiler(CLikeCompiler, Compiler):
@@ -207,7 +207,7 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
         '''
         code = f'{prefix}\n#include <{hname}>'
         return self.compiles(code, env, extra_args=extra_args,
-                             dependencies=dependencies, mode='preprocess', disable_cache=disable_cache)
+                             dependencies=dependencies, mode=CompileCheckMode.PREPROCESS, disable_cache=disable_cache)
 
 
 class ElbrusFortranCompiler(ElbrusCompiler, FortranCompiler):
