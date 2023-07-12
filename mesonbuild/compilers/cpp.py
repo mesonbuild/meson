@@ -867,8 +867,8 @@ class CcrxCPPCompiler(CcrxCompiler, CPPCompiler):
     def get_compile_only_args(self) -> T.List[str]:
         return []
 
-    def get_output_args(self, target: str) -> T.List[str]:
-        return [f'-output=obj={target}']
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        return [f'-output=obj={outputname}']
 
     def get_option_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         return []

@@ -529,8 +529,8 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
             args.append('-fno-omit-frame-pointer')
         return args
 
-    def get_output_args(self, target: str) -> T.List[str]:
-        return ['-o', target]
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        return ['-o', outputname]
 
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
         return ['-MD', '-MQ', outtarget, '-MF', outfile]

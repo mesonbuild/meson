@@ -955,12 +955,12 @@ class CmdLineFileParser(configparser.ConfigParser):
         # storing subproject options like "subproject:option=value"
         super().__init__(delimiters=['='], interpolation=None)
 
-    def read(self, filenames: T.Union['StrOrBytesPath', T.Iterable['StrOrBytesPath']], encoding: str = 'utf-8') -> T.List[str]:
+    def read(self, filenames: T.Union['StrOrBytesPath', T.Iterable['StrOrBytesPath']], encoding: T.Optional[str] = 'utf-8') -> T.List[str]:
         return super().read(filenames, encoding)
 
-    def optionxform(self, option: str) -> str:
+    def optionxform(self, optionstr: str) -> str:
         # Don't call str.lower() on keys
-        return option
+        return optionstr
 
 class MachineFileParser():
     def __init__(self, filenames: T.List[str]) -> None:

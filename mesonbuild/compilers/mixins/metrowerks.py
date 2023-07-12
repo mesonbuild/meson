@@ -249,8 +249,8 @@ class MetrowerksCompiler(Compiler):
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return mwcc_optimization_args[optimization_level]
 
-    def get_output_args(self, target: str) -> T.List[str]:
-        return ['-o', target]
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        return ['-o', outputname]
 
     def get_pic_args(self) -> T.List[str]:
         return ['-pic']

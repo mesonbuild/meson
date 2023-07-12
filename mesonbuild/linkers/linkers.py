@@ -479,7 +479,7 @@ class DynamicLinker(metaclass=abc.ABCMeta):
             f'Linker {self.id} does not support allow undefined')
 
     @abc.abstractmethod
-    def get_output_args(self, outname: str) -> T.List[str]:
+    def get_output_args(self, outputname: str) -> T.List[str]:
         pass
 
     def get_coverage_args(self) -> T.List[str]:
@@ -560,8 +560,8 @@ class PosixDynamicLinkerMixin:
     GNU-like that it makes sense to split this out.
     """
 
-    def get_output_args(self, outname: str) -> T.List[str]:
-        return ['-o', outname]
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        return ['-o', outputname]
 
     def get_std_shared_lib_args(self) -> T.List[str]:
         return ['-shared']
@@ -1596,8 +1596,8 @@ class MetrowerksLinker(DynamicLinker):
     def get_linker_always_args(self) -> T.List[str]:
         return []
 
-    def get_output_args(self, target: str) -> T.List[str]:
-        return ['-o', target]
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        return ['-o', outputname]
 
     def get_search_args(self, dirname: str) -> T.List[str]:
         return self._apply_prefix('-L' + dirname)

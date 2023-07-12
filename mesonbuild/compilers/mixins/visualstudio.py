@@ -147,8 +147,8 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     def get_pch_suffix(self) -> str:
         return 'pch'
 
-    def get_pch_name(self, header: str) -> str:
-        chopped = os.path.basename(header).split('.')[:-1]
+    def get_pch_name(self, name: str) -> str:
+        chopped = os.path.basename(name).split('.')[:-1]
         chopped.append(self.get_pch_suffix())
         pchname = '.'.join(chopped)
         return pchname
@@ -181,12 +181,12 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
             raise mesonlib.MesonException('VS only supports address sanitizer at the moment.')
         return ['/fsanitize=address']
 
-    def get_output_args(self, target: str) -> T.List[str]:
+    def get_output_args(self, outputname: str) -> T.List[str]:
         if self.mode == CompileCheckMode.PREPROCESS:
-            return ['/Fi' + target]
-        if target.endswith('.exe'):
-            return ['/Fe' + target]
-        return ['/Fo' + target]
+            return ['/Fi' + outputname]
+        if outputname.endswith('.exe'):
+            return ['/Fe' + outputname]
+        return ['/Fo' + outputname]
 
     def get_buildtype_args(self, buildtype: str) -> T.List[str]:
         return []

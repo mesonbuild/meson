@@ -113,8 +113,8 @@ class TICompiler(Compiler):
     def get_no_optimization_args(self) -> T.List[str]:
         return ['-Ooff']
 
-    def get_output_args(self, target: str) -> T.List[str]:
-        return [f'--output_file={target}']
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        return [f'--output_file={outputname}']
 
     def get_werror_args(self) -> T.List[str]:
         return ['--emit_warnings_as_errors']

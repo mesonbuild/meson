@@ -46,7 +46,7 @@ class ValaCompiler(Compiler):
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
         return ['--debug'] if is_debug else []
 
-    def get_output_args(self, target: str) -> T.List[str]:
+    def get_output_args(self, outputname: str) -> T.List[str]:
         return [] # Because compiles into C.
 
     def get_compile_only_args(self) -> T.List[str]:
@@ -64,7 +64,7 @@ class ValaCompiler(Compiler):
     def get_always_args(self) -> T.List[str]:
         return ['-C']
 
-    def get_warn_args(self, warning_level: str) -> T.List[str]:
+    def get_warn_args(self, level: str) -> T.List[str]:
         return []
 
     def get_no_warn_args(self) -> T.List[str]:

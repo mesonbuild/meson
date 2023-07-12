@@ -1983,7 +1983,7 @@ class RealPathAction(argparse.Action):
         super().__init__(option_strings, dest, nargs=None, default=default, **kwargs)
 
     def __call__(self, parser: argparse.ArgumentParser, namespace: argparse.Namespace,
-                 values: T.Union[str, T.Sequence[T.Any], None], option_string: str = None) -> None:
+                 values: T.Union[str, T.Sequence[T.Any], None], option_string: T.Optional[str] = None) -> None:
         assert isinstance(values, str)
         setattr(namespace, self.dest, os.path.abspath(os.path.realpath(values)))
 

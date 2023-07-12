@@ -89,8 +89,8 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
         return ['-pch', '-pch_dir', os.path.join(pch_dir), '-x',
                 self.lang_header, '-include', header, '-x', 'none']
 
-    def get_pch_name(self, header_name: str) -> str:
-        return os.path.basename(header_name) + '.' + self.get_pch_suffix()
+    def get_pch_name(self, name: str) -> str:
+        return os.path.basename(name) + '.' + self.get_pch_suffix()
 
     def openmp_flags(self) -> T.List[str]:
         if mesonlib.version_compare(self.version, '>=15.0.0'):
