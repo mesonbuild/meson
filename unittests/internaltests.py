@@ -453,7 +453,7 @@ class InternalTests(unittest.TestCase):
         # Can not be used as context manager because we need to
         # open it a second time and this is not possible on
         # Windows.
-        configfile = tempfile.NamedTemporaryFile(mode='w+', delete=False)
+        configfile = tempfile.NamedTemporaryFile(mode='w+', delete=False, encoding='utf-8')
         configfilename = configfile.name
         config.write(configfile)
         configfile.flush()
@@ -469,7 +469,7 @@ class InternalTests(unittest.TestCase):
             'needs_exe_wrapper': 'true' if desired_value else 'false'
         }
 
-        configfile = tempfile.NamedTemporaryFile(mode='w+', delete=False)
+        configfile = tempfile.NamedTemporaryFile(mode='w+', delete=False, encoding='utf-8')
         configfilename = configfile.name
         config.write(configfile)
         configfile.close()

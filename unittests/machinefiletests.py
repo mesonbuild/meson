@@ -754,7 +754,7 @@ class CrossFileTests(BasePlatformTests):
         with tempfile.TemporaryDirectory() as d:
             dir_ = os.path.join(d, 'meson', 'cross')
             os.makedirs(dir_)
-            with tempfile.NamedTemporaryFile('w', dir=dir_, delete=False) as f:
+            with tempfile.NamedTemporaryFile('w', dir=dir_, delete=False, encoding='utf-8') as f:
                 f.write(cross_content)
             name = os.path.basename(f.name)
 
@@ -770,7 +770,7 @@ class CrossFileTests(BasePlatformTests):
         with tempfile.TemporaryDirectory() as d:
             dir_ = os.path.join(d, '.local', 'share', 'meson', 'cross')
             os.makedirs(dir_)
-            with tempfile.NamedTemporaryFile('w', dir=dir_, delete=False) as f:
+            with tempfile.NamedTemporaryFile('w', dir=dir_, delete=False, encoding='utf-8') as f:
                 f.write(cross_content)
             name = os.path.basename(f.name)
 

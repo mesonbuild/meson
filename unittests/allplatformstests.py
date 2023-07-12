@@ -2718,7 +2718,7 @@ class AllPlatformTests(BasePlatformTests):
     def test_native_dep_pkgconfig(self):
         testdir = os.path.join(self.unit_test_dir,
                                '45 native dep pkgconfig var')
-        with tempfile.NamedTemporaryFile(mode='w', delete=False) as crossfile:
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as crossfile:
             crossfile.write(textwrap.dedent(
                 '''[binaries]
                 pkgconfig = '{}'
@@ -2745,7 +2745,7 @@ class AllPlatformTests(BasePlatformTests):
     def test_pkg_config_libdir(self):
         testdir = os.path.join(self.unit_test_dir,
                                '45 native dep pkgconfig var')
-        with tempfile.NamedTemporaryFile(mode='w', delete=False) as crossfile:
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as crossfile:
             crossfile.write(textwrap.dedent(
                 '''[binaries]
                 pkgconfig = 'pkg-config'
@@ -4196,7 +4196,7 @@ class AllPlatformTests(BasePlatformTests):
         cmd = self.meson_command + ['devenv', '-C', self.builddir, '--dump', fname]
         o = self._run(cmd)
         self.assertEqual(o, '')
-        o = Path(fname).read_text()
+        o = Path(fname).read_text(encoding='utf-8')
         expected = os.pathsep.join(['/prefix', '$TEST_C', '/suffix'])
         self.assertIn(f'TEST_C="{expected}"', o)
         self.assertIn('export TEST_C', o)
@@ -4697,7 +4697,7 @@ class AllPlatformTests(BasePlatformTests):
 
         testdir = os.path.join(self.unit_test_dir, '102 rlib linkage')
         gen_file = os.path.join(testdir, 'lib.rs')
-        with open(gen_file, 'w') as f:
+        with open(gen_file, 'w', encoding='utf-8') as f:
             f.write(template.format(0))
         self.addCleanup(windows_proof_rm, gen_file)
 
@@ -4705,7 +4705,7 @@ class AllPlatformTests(BasePlatformTests):
         self.build()
         self.run_tests()
 
-        with open(gen_file, 'w') as f:
+        with open(gen_file, 'w', encoding='utf-8') as f:
             f.write(template.format(39))
 
         self.build()
