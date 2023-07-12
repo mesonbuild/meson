@@ -81,7 +81,7 @@ DEFAULT_YIELDING = False
 _T = T.TypeVar('_T')
 
 
-def get_genvs_default_buildtype_list() -> list:
+def get_genvs_default_buildtype_list() -> list[str]:
     # just debug, debugoptimized, and release for now
     # but this should probably be configurable through some extra option, alongside --genvslite.
     return buildtypelist[1:-2]
@@ -374,7 +374,7 @@ class DependencyCache:
         self.__cmake_key = OptionKey('cmake_prefix_path', machine=for_machine)
 
     def __calculate_subkey(self, type_: DependencyCacheType) -> T.Tuple[str, ...]:
-        data: T.Dict[str, T.List[str]] = {
+        data: T.Dict[DependencyCacheType, T.List[str]] = {
             DependencyCacheType.PKG_CONFIG: stringlistify(self.__builtins[self.__pkg_conf_key].value),
             DependencyCacheType.CMAKE: stringlistify(self.__builtins[self.__cmake_key].value),
             DependencyCacheType.OTHER: [],
