@@ -190,68 +190,77 @@ class CompileCheckMode(enum.Enum):
     LINK = 'link'
 
 
-cuda_buildtype_args: T.Dict[str, T.List[str]] = {'plain': [],
-                       'debug': ['-g', '-G'],
-                       'debugoptimized': ['-g', '-lineinfo'],
-                       'release': [],
-                       'minsize': [],
-                       'custom': [],
-                       }
-java_buildtype_args: T.Dict[str, T.List[str]] = {'plain': [],
-                       'debug': ['-g'],
-                       'debugoptimized': ['-g'],
-                       'release': [],
-                       'minsize': [],
-                       'custom': [],
-                       }
+cuda_buildtype_args: T.Dict[str, T.List[str]] = {
+    'plain': [],
+    'debug': ['-g', '-G'],
+    'debugoptimized': ['-g', '-lineinfo'],
+    'release': [],
+    'minsize': [],
+    'custom': [],
+}
 
-rust_buildtype_args: T.Dict[str, T.List[str]] = {'plain': [],
-                       'debug': [],
-                       'debugoptimized': [],
-                       'release': [],
-                       'minsize': [],
-                       'custom': [],
-                       }
+java_buildtype_args: T.Dict[str, T.List[str]] = {
+    'plain': [],
+    'debug': ['-g'],
+    'debugoptimized': ['-g'],
+    'release': [],
+    'minsize': [],
+    'custom': [],
+}
 
-d_gdc_buildtype_args: T.Dict[str, T.List[str]] = {'plain': [],
-                        'debug': [],
-                        'debugoptimized': ['-finline-functions'],
-                        'release': ['-finline-functions'],
-                        'minsize': [],
-                        'custom': [],
-                        }
+rust_buildtype_args: T.Dict[str, T.List[str]] = {
+    'plain': [],
+    'debug': [],
+    'debugoptimized': [],
+    'release': [],
+    'minsize': [],
+    'custom': [],
+}
 
-d_ldc_buildtype_args: T.Dict[str, T.List[str]] = {'plain': [],
-                        'debug': [],
-                        'debugoptimized': ['-enable-inlining', '-Hkeep-all-bodies'],
-                        'release': ['-enable-inlining', '-Hkeep-all-bodies'],
-                        'minsize': [],
-                        'custom': [],
-                        }
+d_gdc_buildtype_args: T.Dict[str, T.List[str]] = {
+    'plain': [],
+    'debug': [],
+    'debugoptimized': ['-finline-functions'],
+    'release': ['-finline-functions'],
+    'minsize': [],
+    'custom': [],
+}
 
-d_dmd_buildtype_args: T.Dict[str, T.List[str]] = {'plain': [],
-                        'debug': [],
-                        'debugoptimized': ['-inline'],
-                        'release': ['-inline'],
-                        'minsize': [],
-                        'custom': [],
-                        }
+d_ldc_buildtype_args: T.Dict[str, T.List[str]] = {
+    'plain': [],
+    'debug': [],
+    'debugoptimized': ['-enable-inlining', '-Hkeep-all-bodies'],
+    'release': ['-enable-inlining', '-Hkeep-all-bodies'],
+    'minsize': [],
+    'custom': [],
+}
 
-mono_buildtype_args: T.Dict[str, T.List[str]] = {'plain': [],
-                       'debug': [],
-                       'debugoptimized': ['-optimize+'],
-                       'release': ['-optimize+'],
-                       'minsize': [],
-                       'custom': [],
-                       }
+d_dmd_buildtype_args: T.Dict[str, T.List[str]] = {
+    'plain': [],
+    'debug': [],
+    'debugoptimized': ['-inline'],
+    'release': ['-inline'],
+    'minsize': [],
+    'custom': [],
+}
 
-swift_buildtype_args: T.Dict[str, T.List[str]] = {'plain': [],
-                        'debug': [],
-                        'debugoptimized': [],
-                        'release': [],
-                        'minsize': [],
-                        'custom': [],
-                        }
+mono_buildtype_args: T.Dict[str, T.List[str]] = {
+    'plain': [],
+    'debug': [],
+    'debugoptimized': ['-optimize+'],
+    'release': ['-optimize+'],
+    'minsize': [],
+    'custom': [],
+}
+
+swift_buildtype_args: T.Dict[str, T.List[str]] = {
+    'plain': [],
+    'debug': [],
+    'debugoptimized': [],
+    'release': [],
+    'minsize': [],
+    'custom': [],
+}
 
 gnu_winlibs = ['-lkernel32', '-luser32', '-lgdi32', '-lwinspool', '-lshell32',
                '-lole32', '-loleaut32', '-luuid', '-lcomdlg32', '-ladvapi32']
@@ -1017,7 +1026,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         rm_exact = ('-headerpad_max_install_names',)
         rm_prefixes = ('-Wl,', '-L',)
         rm_next = ('-L', '-framework',)
-        ret = []  # T.List[str]
+        ret: T.List[str] = []
         iargs = iter(args)
         for arg in iargs:
             # Remove this argument

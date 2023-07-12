@@ -488,7 +488,7 @@ class Environment:
             os.makedirs(self.log_dir, exist_ok=True)
             os.makedirs(self.info_dir, exist_ok=True)
             try:
-                self.coredata = coredata.load(self.get_build_dir())  # type: coredata.CoreData
+                self.coredata: coredata.CoreData = coredata.load(self.get_build_dir())
                 self.first_invocation = False
             except FileNotFoundError:
                 self.create_new_coredata(options)
@@ -521,13 +521,13 @@ class Environment:
 
         # Similar to coredata.compilers, but lower level in that there is no
         # meta data, only names/paths.
-        binaries = PerMachineDefaultable()  # type: PerMachineDefaultable[BinaryTable]
+        binaries: PerMachineDefaultable[BinaryTable] = PerMachineDefaultable()
 
         # Misc other properties about each machine.
-        properties = PerMachineDefaultable()  # type: PerMachineDefaultable[Properties]
+        properties: PerMachineDefaultable[Properties] = PerMachineDefaultable()
 
         # CMake toolchain variables
-        cmakevars = PerMachineDefaultable()  # type: PerMachineDefaultable[CMakeVariables]
+        cmakevars: PerMachineDefaultable[CMakeVariables] = PerMachineDefaultable()
 
         ## Setup build machine defaults
 

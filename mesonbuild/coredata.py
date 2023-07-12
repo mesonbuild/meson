@@ -368,7 +368,7 @@ class DependencyCache:
     """
 
     def __init__(self, builtins: 'KeyedOptionDictType', for_machine: MachineChoice):
-        self.__cache = OrderedDict()  # type: T.MutableMapping[TV_DepID, DependencySubCache]
+        self.__cache: T.MutableMapping[TV_DepID, DependencySubCache] = OrderedDict()
         self.__builtins = builtins
         self.__pkg_conf_key = OptionKey('pkg_config_path', machine=for_machine)
         self.__cmake_key = OptionKey('cmake_prefix_path', machine=for_machine)
@@ -482,7 +482,7 @@ class CoreData:
         self.version = version
         self.options: 'MutableKeyedOptionDictType' = {}
         self.cross_files = self.__load_config_files(options, scratch_dir, 'cross')
-        self.compilers = PerMachine(OrderedDict(), OrderedDict())  # type: PerMachine[T.Dict[str, Compiler]]
+        self.compilers: PerMachine[T.Dict[str, Compiler]] = PerMachine(OrderedDict(), OrderedDict())
 
         # Set of subprojects that have already been initialized once, this is
         # required to be stored and reloaded with the coredata, as we don't
@@ -518,9 +518,9 @@ class CoreData:
         if not filenames:
             return []
 
-        found_invalid = []  # type: T.List[str]
-        missing = []        # type: T.List[str]
-        real = []           # type: T.List[str]
+        found_invalid: T.List[str] = []
+        missing: T.List[str] = []
+        real: T.List[str] = []
         for i, f in enumerate(filenames):
             f = os.path.expanduser(os.path.expandvars(f))
             if os.path.exists(f):

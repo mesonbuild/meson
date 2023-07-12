@@ -50,40 +50,46 @@ if T.TYPE_CHECKING:
 else:
     CompilerMixinBase = object
 
-d_feature_args = {'gcc':  {'unittest': '-funittest',
-                           'debug': '-fdebug',
-                           'version': '-fversion',
-                           'import_dir': '-J'
-                           },
-                  'llvm': {'unittest': '-unittest',
-                           'debug': '-d-debug',
-                           'version': '-d-version',
-                           'import_dir': '-J'
-                           },
-                  'dmd':  {'unittest': '-unittest',
-                           'debug': '-debug',
-                           'version': '-version',
-                           'import_dir': '-J'
-                           }
-                  }  # type: T.Dict[str, T.Dict[str, str]]
+d_feature_args: T.Dict[str, T.Dict[str, str]] = {
+    'gcc':  {
+        'unittest': '-funittest',
+        'debug': '-fdebug',
+        'version': '-fversion',
+        'import_dir': '-J'
+    },
+    'llvm': {
+        'unittest': '-unittest',
+        'debug': '-d-debug',
+        'version': '-d-version',
+        'import_dir': '-J'
+    },
+    'dmd':  {
+        'unittest': '-unittest',
+        'debug': '-debug',
+        'version': '-version',
+        'import_dir': '-J'
+    }
+}
 
-ldc_optimization_args = {'plain': [],
-                         '0': [],
-                         'g': [],
-                         '1': ['-O1'],
-                         '2': ['-O2'],
-                         '3': ['-O3'],
-                         's': ['-Oz'],
-                         }  # type: T.Dict[str, T.List[str]]
+ldc_optimization_args: T.Dict[str, T.List[str]] = {
+    'plain': [],
+    '0': [],
+    'g': [],
+    '1': ['-O1'],
+    '2': ['-O2'],
+    '3': ['-O3'],
+    's': ['-Oz'],
+}
 
-dmd_optimization_args = {'plain': [],
-                         '0': [],
-                         'g': [],
-                         '1': ['-O'],
-                         '2': ['-O'],
-                         '3': ['-O'],
-                         's': ['-O'],
-                         }  # type: T.Dict[str, T.List[str]]
+dmd_optimization_args: T.Dict[str, T.List[str]] = {
+    'plain': [],
+    '0': [],
+    'g': [],
+    '1': ['-O'],
+    '2': ['-O'],
+    '3': ['-O'],
+    's': ['-O'],
+}
 
 
 class DmdLikeCompilerMixin(CompilerMixinBase):
@@ -102,7 +108,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
             self._dmd_has_depfile = version_compare(dmd_frontend_version, ">=2.095.0")
 
     if T.TYPE_CHECKING:
-        mscrt_args = {}  # type: T.Dict[str, T.List[str]]
+        mscrt_args: T.Dict[str, T.List[str]] = {}
 
         def _get_target_arch_args(self) -> T.List[str]: ...
 
@@ -301,7 +307,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
         ]
         for arg in args:
             # Translate OS specific arguments first.
-            osargs = []  # type: T.List[str]
+            osargs: T.List[str] = []
             if info.is_windows():
                 osargs = cls.translate_arg_to_windows(arg)
             elif info.is_darwin():

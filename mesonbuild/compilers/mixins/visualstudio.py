@@ -37,7 +37,7 @@ else:
     # do). This gives up DRYer type checking, with no runtime impact
     Compiler = object
 
-vs32_instruction_set_args = {
+vs32_instruction_set_args: T.Dict[str, T.Optional[T.List[str]]] = {
     'mmx': ['/arch:SSE'], # There does not seem to be a flag just for MMX
     'sse': ['/arch:SSE'],
     'sse2': ['/arch:SSE2'],
@@ -47,10 +47,10 @@ vs32_instruction_set_args = {
     'avx': ['/arch:AVX'],
     'avx2': ['/arch:AVX2'],
     'neon': None,
-}  # T.Dicst[str, T.Optional[T.List[str]]]
+}
 
 # The 64 bit compiler defaults to /arch:avx.
-vs64_instruction_set_args = {
+vs64_instruction_set_args: T.Dict[str, T.Optional[T.List[str]]] = {
     'mmx': ['/arch:AVX'],
     'sse': ['/arch:AVX'],
     'sse2': ['/arch:AVX'],
@@ -61,9 +61,9 @@ vs64_instruction_set_args = {
     'avx': ['/arch:AVX'],
     'avx2': ['/arch:AVX2'],
     'neon': None,
-}  # T.Dicst[str, T.Optional[T.List[str]]]
+}
 
-msvc_optimization_args = {
+msvc_optimization_args: T.Dict[str, T.List[str]] = {
     'plain': [],
     '0': ['/Od'],
     'g': [], # No specific flag to optimize debugging, /Zi or /ZI will create debug information
@@ -71,12 +71,12 @@ msvc_optimization_args = {
     '2': ['/O2'],
     '3': ['/O2', '/Gw'],
     's': ['/O1', '/Gw'],
-}  # type: T.Dict[str, T.List[str]]
+}
 
-msvc_debug_args = {
+msvc_debug_args: T.Dict[bool, T.List[str]] = {
     False: [],
     True: ['/Zi']
-}  # type: T.Dict[bool, T.List[str]]
+}
 
 
 class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
@@ -92,15 +92,15 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     std_warn_args = ['/W3']
     std_opt_args = ['/O2']
     ignore_libs = arglist.UNIXY_COMPILER_INTERNAL_LIBS + ['execinfo']
-    internal_libs = []  # type: T.List[str]
+    internal_libs: T.List[str] = []
 
-    crt_args = {
+    crt_args: T.Dict[str, T.List[str]] = {
         'none': [],
         'md': ['/MD'],
         'mdd': ['/MDd'],
         'mt': ['/MT'],
         'mtd': ['/MTd'],
-    }  # type: T.Dict[str, T.List[str]]
+    }
 
     # /showIncludes is needed for build dependency tracking in Ninja
     # See: https://ninja-build.org/manual.html#_deps
@@ -109,13 +109,13 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     # It is also dropped if Visual Studio 2013 or earlier is used, since it would
     # not be supported in that case.
     always_args = ['/nologo', '/showIncludes', '/utf-8']
-    warn_args = {
+    warn_args: T.Dict[str, T.List[str]] = {
         '0': [],
         '1': ['/W2'],
         '2': ['/W3'],
         '3': ['/W4'],
         'everything': ['/Wall'],
-    }  # type: T.Dict[str, T.List[str]]
+    }
 
     INVOKES_LINKER = False
 

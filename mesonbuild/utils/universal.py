@@ -172,7 +172,7 @@ __all__ = [
 # TODO: this is such a hack, this really should be either in coredata or in the
 # interpreter
 # {subproject: project_meson_version}
-project_meson_versions = collections.defaultdict(str)  # type: T.DefaultDict[str, str]
+project_meson_versions: T.DefaultDict[str, str] = collections.defaultdict(str)
 
 
 from glob import glob
@@ -514,7 +514,7 @@ class PerMachine(T.Generic[_T]):
         machines, we can elaborate the original and then redefault them and thus
         avoid repeating the elaboration explicitly.
         """
-        unfreeze = PerMachineDefaultable() # type: PerMachineDefaultable[T.Optional[_T]]
+        unfreeze: PerMachineDefaultable[T.Optional[_T]] = PerMachineDefaultable()
         unfreeze.build = self.build
         unfreeze.host = self.host
         if unfreeze.host == unfreeze.build:
@@ -543,7 +543,7 @@ class PerThreeMachine(PerMachine[_T]):
         machines, we can elaborate the original and then redefault them and thus
         avoid repeating the elaboration explicitly.
         """
-        unfreeze = PerThreeMachineDefaultable() # type: PerThreeMachineDefaultable[T.Optional[_T]]
+        unfreeze: PerThreeMachineDefaultable[T.Optional[_T]] = PerThreeMachineDefaultable()
         unfreeze.build = self.build
         unfreeze.host = self.host
         unfreeze.target = self.target
@@ -1171,7 +1171,7 @@ def join_args(args: T.Iterable[str]) -> str:
 def do_replacement(regex: T.Pattern[str], line: str,
                    variable_format: Literal['meson', 'cmake', 'cmake@'],
                    confdata: T.Union[T.Dict[str, T.Tuple[str, T.Optional[str]]], 'ConfigurationData']) -> T.Tuple[str, T.Set[str]]:
-    missing_variables = set()  # type: T.Set[str]
+    missing_variables: T.Set[str] = set()
     if variable_format == 'cmake':
         start_tag = '${'
         backslash_tag = '\\${'
@@ -1386,7 +1386,7 @@ def listify(item: T.Any, flatten: bool = True) -> T.List[T.Any]:
     '''
     if not isinstance(item, list):
         return [item]
-    result = []  # type: T.List[T.Any]
+    result: T.List[T.Any] = []
     for i in item:
         if flatten and isinstance(i, list):
             result += listify(i, flatten=True)
@@ -1427,7 +1427,7 @@ def stringlistify(item: T.Union[T.Any, T.Sequence[T.Any]]) -> T.List[str]:
 
 
 def expand_arguments(args: T.Iterable[str]) -> T.Optional[T.List[str]]:
-    expended_args = []  # type: T.List[str]
+    expended_args: T.List[str] = []
     for arg in args:
         if not arg.startswith('@'):
             expended_args.append(arg)
@@ -1546,8 +1546,8 @@ def iter_regexin_iter(regexiter: T.Iterable[str], initer: T.Iterable[str]) -> T.
 
 def _substitute_values_check_errors(command: T.List[str], values: T.Dict[str, T.Union[str, T.List[str]]]) -> None:
     # Error checking
-    inregex = ['@INPUT([0-9]+)?@', '@PLAINNAME@', '@BASENAME@']  # type: T.List[str]
-    outregex = ['@OUTPUT([0-9]+)?@', '@OUTDIR@']                 # type: T.List[str]
+    inregex: T.List[str] = ['@INPUT([0-9]+)?@', '@PLAINNAME@', '@BASENAME@']
+    outregex: T.List[str] = ['@OUTPUT([0-9]+)?@', '@OUTDIR@']
     if '@INPUT@' not in values:
         # Error out if any input-derived templates are present in the command
         match = iter_regexin_iter(inregex, command)
@@ -1611,7 +1611,7 @@ def substitute_values(command: T.List[str], values: T.Dict[str, T.Union[str, T.L
     _substitute_values_check_errors(command, values)
 
     # Substitution
-    outcmd = []  # type: T.List[str]
+    outcmd: T.List[str] = []
     rx_keys = [re.escape(key) for key in values if key not in ('@INPUT@', '@OUTPUT@')]
     value_rx = re.compile('|'.join(rx_keys)) if rx_keys else None
     for vv in command:
@@ -1677,7 +1677,7 @@ def get_filenames_templates_dict(inputs: T.List[str], outputs: T.List[str]) -> T
 
     @OUTPUT0@, @OUTPUT1@, ... one for each output file
     '''
-    values = {}  # type: T.Dict[str, T.Union[str, T.List[str]]]
+    values: T.Dict[str, T.Union[str, T.List[str]]] = {}
     # Gather values derived from the input
     if inputs:
         # We want to substitute all the inputs.
@@ -1956,7 +1956,7 @@ try:
     from tqdm import tqdm
 except ImportError:
     # ideally we would use a typing.Protocol here, but it's part of typing_extensions until 3.8
-    ProgressBar = ProgressBarFallback  # type: T.Union[T.Type[ProgressBarFallback], T.Type[ProgressBarTqdm]]
+    ProgressBar: T.Union[T.Type[ProgressBarFallback], T.Type[ProgressBarTqdm]] = ProgressBarFallback
 else:
     class ProgressBarTqdm(tqdm):
         def __init__(self, *args: T.Any, bar_type: T.Optional[str] = None, **kwargs: T.Any) -> None:
@@ -2056,7 +2056,7 @@ def get_wine_shortpath(winecmd: T.List[str], wine_paths: T.List[str],
 
 
 def run_once(func: T.Callable[..., _T]) -> T.Callable[..., _T]:
-    ret = []  # type: T.List[_T]
+    ret: T.List[_T] = []
 
     @wraps(func)
     def wrapper(*args: T.Any, **kwargs: T.Any) -> _T:

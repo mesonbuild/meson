@@ -30,16 +30,16 @@ else:
     # do). This gives up DRYer type checking, with no runtime impact
     Compiler = object
 
-mwcc_buildtype_args = {
+mwcc_buildtype_args: T.Dict[str, T.List[str]] = {
     'plain': [],
     'debug': ['-g'],
     'debugoptimized': ['-g', '-O4'],
     'release': ['-O4,p'],
     'minsize': ['-Os'],
     'custom': [],
-}  # type: T.Dict[str, T.List[str]]
+}
 
-mwccarm_instruction_set_args = {
+mwccarm_instruction_set_args: T.Dict[str, T.List[str]] = {
     'generic': ['-proc', 'generic'],
     'v4': ['-proc', 'v4'],
     'v4t': ['-proc', 'v4t'],
@@ -69,9 +69,9 @@ mwccarm_instruction_set_args = {
     'pxa261': ['-proc', 'pxa261'],
     'pxa262': ['-proc', 'pxa262'],
     'pxa263': ['-proc', 'pxa263']
-}  # type: T.Dict[str, T.List[str]]
+}
 
-mwcceppc_instruction_set_args = {
+mwcceppc_instruction_set_args: T.Dict[str, T.List[str]] = {
     'generic': ['-proc', 'generic'],
     '401': ['-proc', '401'],
     '403': ['-proc', '403'],
@@ -97,9 +97,9 @@ mwcceppc_instruction_set_args = {
     '8260': ['-proc', '8260'],
     'e500': ['-proc', 'e500'],
     'gekko': ['-proc', 'gekko'],
-}  # type: T.Dict[str, T.List[str]]
+}
 
-mwasmarm_instruction_set_args = {
+mwasmarm_instruction_set_args: T.Dict[str, T.List[str]] = {
     'arm4': ['-proc', 'arm4'],
     'arm4t': ['-proc', 'arm4t'],
     'arm4xm': ['-proc', 'arm4xm'],
@@ -112,9 +112,9 @@ mwasmarm_instruction_set_args = {
     'arm5TExP': ['-proc', 'arm5TExP'],
     'arm6': ['-proc', 'arm6'],
     'xscale': ['-proc', 'xscale']
-}  # type: T.Dict[str, T.List[str]]
+}
 
-mwasmeppc_instruction_set_args = {
+mwasmeppc_instruction_set_args: T.Dict[str, T.List[str]] = {
     '401': ['-proc', '401'],
     '403': ['-proc', '403'],
     '505': ['-proc', '505'],
@@ -165,9 +165,9 @@ mwasmeppc_instruction_set_args = {
     '5674': ['-proc', '5674'],
     'gekko': ['-proc', 'gekko'],
     'generic': ['-proc', 'generic'],
-}  # type: T.Dict[str, T.List[str]]
+}
 
-mwcc_optimization_args = {
+mwcc_optimization_args: T.Dict[str, T.List[str]] = {
     'plain': [],
     '0': ['-O0'],
     'g': ['-Op'],
@@ -175,12 +175,12 @@ mwcc_optimization_args = {
     '2': ['-O2'],
     '3': ['-O3'],
     's': ['-Os']
-}  # type: T.Dict[str, T.List[str]]
+}
 
-mwcc_debug_args = {
+mwcc_debug_args: T.Dict[bool, T.List[str]] = {
     False: [],
     True: ['-g']
-}  # type: T.Dict[bool, T.List[str]]
+}
 
 
 class MetrowerksCompiler(Compiler):
@@ -197,12 +197,13 @@ class MetrowerksCompiler(Compiler):
         self.base_options = {
             OptionKey(o) for o in ['b_pch', 'b_ndebug']}
 
-        default_warn_args = []  # type: T.List[str]
-        self.warn_args = {'0': ['-w', 'off'],
-                          '1': default_warn_args,
-                          '2': default_warn_args + ['-w', 'most'],
-                          '3': default_warn_args + ['-w', 'all'],
-                          'everything': default_warn_args + ['-w', 'full']}  # type: T.Dict[str, T.List[str]]
+        default_warn_args: T.List[str] = []
+        self.warn_args: T.Dict[str, T.List[str]] = {
+            '0': ['-w', 'off'],
+            '1': default_warn_args,
+            '2': default_warn_args + ['-w', 'most'],
+            '3': default_warn_args + ['-w', 'all'],
+            'everything': default_warn_args + ['-w', 'full']}
 
     def depfile_for_object(self, objfile: str) -> T.Optional[str]:
         # Earlier versions of these compilers do not support specifying

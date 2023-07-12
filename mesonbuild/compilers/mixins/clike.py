@@ -103,7 +103,7 @@ class CLikeCompilerArgs(arglist.CompilerArgs):
         default_dirs = self.compiler.get_default_include_dirs()
         if default_dirs:
             real_default_dirs = [self._cached_realpath(i) for i in default_dirs]
-            bad_idx_list = []  # type: T.List[int]
+            bad_idx_list: T.List[int] = []
             for i, each in enumerate(new):
                 if not each.startswith('-isystem'):
                     continue
@@ -136,11 +136,11 @@ class CLikeCompiler(Compiler):
     """Shared bits for the C and CPP Compilers."""
 
     if T.TYPE_CHECKING:
-        warn_args = {}  # type: T.Dict[str, T.List[str]]
+        warn_args: T.Dict[str, T.List[str]] = {}
 
     # TODO: Replace this manual cache with functools.lru_cache
-    find_library_cache = {}    # type: T.Dict[T.Tuple[T.Tuple[str, ...], str, T.Tuple[str, ...], str, LibType], T.Optional[T.List[str]]]
-    find_framework_cache = {}  # type: T.Dict[T.Tuple[T.Tuple[str, ...], str, T.Tuple[str, ...], bool], T.Optional[T.List[str]]]
+    find_library_cache: T.Dict[T.Tuple[T.Tuple[str, ...], str, T.Tuple[str, ...], str, LibType], T.Optional[T.List[str]]] = {}
+    find_framework_cache: T.Dict[T.Tuple[T.Tuple[str, ...], str, T.Tuple[str, ...], bool], T.Optional[T.List[str]]] = {}
     internal_libs = arglist.UNIXY_COMPILER_INTERNAL_LIBS
 
     def __init__(self, exe_wrapper: T.Optional['ExternalProgram'] = None):
@@ -389,8 +389,8 @@ class CLikeCompiler(Compiler):
                              dependencies=dependencies)
 
     def _get_basic_compiler_args(self, env: 'Environment', mode: CompileCheckMode) -> T.Tuple[T.List[str], T.List[str]]:
-        cargs = []  # type: T.List[str]
-        largs = []  # type: T.List[str]
+        cargs: T.List[str] = []
+        largs: T.List[str] = []
         if mode is CompileCheckMode.LINK:
             # Sometimes we need to manually select the CRT to use with MSVC.
             # One example is when trying to do a compiler check that involves
@@ -446,8 +446,8 @@ class CLikeCompiler(Compiler):
             # TODO: we want to ensure the front end does the listifing here
             dependencies = [dependencies]
         # Collect compiler arguments
-        cargs = self.compiler_args()  # type: arglist.CompilerArgs
-        largs = []  # type: T.List[str]
+        cargs: arglist.CompilerArgs = self.compiler_args()
+        largs: T.List[str] = []
         for d in dependencies:
             # Add compile flags needed by dependencies
             cargs += d.get_compile_args()
@@ -805,7 +805,7 @@ class CLikeCompiler(Compiler):
         #
         # class StrProto(typing.Protocol):
         #    def __str__(self) -> str: ...
-        fargs = {'prefix': prefix, 'func': funcname}  # type: T.Dict[str, T.Union[str, bool, int]]
+        fargs: T.Dict[str, T.Union[str, bool, int]] = {'prefix': prefix, 'func': funcname}
 
         # glibc defines functions that are not available on Linux as stubs that
         # fail with ENOSYS (such as e.g. lchmod). In this case we want to fail
@@ -1002,7 +1002,7 @@ class CLikeCompiler(Compiler):
         return self._symbols_have_underscore_prefix_searchbin(env)
 
     def _get_patterns(self, env: 'Environment', prefixes: T.List[str], suffixes: T.List[str], shared: bool = False) -> T.List[str]:
-        patterns = []  # type: T.List[str]
+        patterns: T.List[str] = []
         for p in prefixes:
             for s in suffixes:
                 patterns.append(p + '{}.' + s)
@@ -1066,7 +1066,7 @@ class CLikeCompiler(Compiler):
 
     @staticmethod
     def _sort_shlibs_openbsd(libs: T.List[str]) -> T.List[str]:
-        filtered = []  # type: T.List[str]
+        filtered: T.List[str] = []
         for lib in libs:
             # Validate file as a shared library of type libfoo.so.X.Y
             ret = lib.rsplit('.so.', maxsplit=1)
@@ -1205,7 +1205,7 @@ class CLikeCompiler(Compiler):
         os_env = os.environ.copy()
         os_env['LC_ALL'] = 'C'
         _, _, stde = mesonlib.Popen_safe(commands, env=os_env, stdin=subprocess.PIPE)
-        paths = []  # T.List[str]
+        paths: T.List[str] = []
         for line in stde.split('\n'):
             if '(framework directory)' not in line:
                 continue
@@ -1273,7 +1273,7 @@ class CLikeCompiler(Compiler):
         return self.compiles(code, env, extra_args=args, mode=mode)
 
     def _has_multi_arguments(self, args: T.List[str], env: 'Environment', code: str) -> T.Tuple[bool, bool]:
-        new_args = []  # type: T.List[str]
+        new_args: T.List[str] = []
         for arg in args:
             # some compilers, e.g. GCC, don't warn for unsupported warning-disable
             # flags, so when we are testing a flag like "-Wno-forgotten-towel", also

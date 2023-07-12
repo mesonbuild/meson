@@ -122,7 +122,7 @@ class VisualStudioLikeLinker:
         return self.always_args.copy()
 
     def get_output_args(self, target: str) -> T.List[str]:
-        args = []  # type: T.List[str]
+        args: T.List[str] = []
         if self.machine:
             args += ['/MACHINE:' + self.machine]
         args += ['/OUT:' + target]
@@ -355,14 +355,14 @@ class DynamicLinker(metaclass=abc.ABCMeta):
 
     """Base class for dynamic linkers."""
 
-    _BUILDTYPE_ARGS = {
+    _BUILDTYPE_ARGS: T.Dict[str, T.List[str]] = {
         'plain': [],
         'debug': [],
         'debugoptimized': [],
         'release': [],
         'minsize': [],
         'custom': [],
-    }  # type: T.Dict[str, T.List[str]]
+    }
 
     @abc.abstractproperty
     def id(self) -> str:
@@ -387,7 +387,7 @@ class DynamicLinker(metaclass=abc.ABCMeta):
         self.version = version
         self.prefix_arg = prefix_arg
         self.always_args = always_args
-        self.machine = None  # type: T.Optional[str]
+        self.machine: T.Optional[str] = None
 
     def __repr__(self) -> str:
         return '<{}: v{} `{}`>'.format(type(self).__name__, self.version, ' '.join(self.exelist))
@@ -582,16 +582,16 @@ class GnuLikeDynamicLinkerMixin:
         for_machine = MachineChoice.HOST
         def _apply_prefix(self, arg: T.Union[str, T.List[str]]) -> T.List[str]: ...
 
-    _BUILDTYPE_ARGS = {
+    _BUILDTYPE_ARGS: T.Dict[str, T.List[str]] = {
         'plain': [],
         'debug': [],
         'debugoptimized': [],
         'release': ['-O1'],
         'minsize': [],
         'custom': [],
-    }  # type: T.Dict[str, T.List[str]]
+    }
 
-    _SUBSYSTEMS = {
+    _SUBSYSTEMS: T.Dict[str, str] = {
         "native": "1",
         "windows": "windows",
         "console": "console",
@@ -601,7 +601,7 @@ class GnuLikeDynamicLinkerMixin:
         "efi_runtime_driver": "12",
         "efi_rom": "13",
         "boot_application": "16",
-    }  # type: T.Dict[str, str]
+    }
 
     def get_buildtype_args(self, buildtype: str) -> T.List[str]:
         # We can override these in children by just overriding the
@@ -769,7 +769,7 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         return []
 
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
-        result = []  # type: T.List[str]
+        result: T.List[str] = []
         for a in args:
             result.extend(self._apply_prefix('-force_load'))
             result.append(a)
@@ -1225,7 +1225,7 @@ class VisualStudioLikeLinkerMixin:
         for_machine = MachineChoice.HOST
         def _apply_prefix(self, arg: T.Union[str, T.List[str]]) -> T.List[str]: ...
 
-    _BUILDTYPE_ARGS = {
+    _BUILDTYPE_ARGS: T.Dict[str, T.List[str]] = {
         'plain': [],
         'debug': [],
         'debugoptimized': [],
@@ -1234,7 +1234,7 @@ class VisualStudioLikeLinkerMixin:
         'release': ['/OPT:REF'],
         'minsize': ['/INCREMENTAL:NO', '/OPT:REF'],
         'custom': [],
-    }  # type: T.Dict[str, T.List[str]]
+    }
 
     def __init__(self, exelist: T.List[str], for_machine: mesonlib.MachineChoice,
                  prefix_arg: T.Union[str, T.List[str]], always_args: T.List[str], *,
@@ -1273,7 +1273,7 @@ class VisualStudioLikeLinkerMixin:
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
         # Only since VS2015
         args = mesonlib.listify(args)
-        l = []  # T.List[str]
+        l: T.List[str] = []
         for a in args:
             l.extend(self._apply_prefix('/WHOLEARCHIVE:' + a))
         return l
@@ -1473,7 +1473,7 @@ class AIXDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: T.Tuple[str, ...], build_rpath: str,
                          install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
-        all_paths = mesonlib.OrderedSet() # type: mesonlib.OrderedSet[str]
+        all_paths: mesonlib.OrderedSet[str] = mesonlib.OrderedSet()
         # install_rpath first, followed by other paths, and the system path last
         if install_rpath != '':
             all_paths.add(install_rpath)
