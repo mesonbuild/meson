@@ -7,6 +7,14 @@ Since 0.59.0, all functions accept `files()` objects if they can do something
 useful with them (this excludes `exists`, `is_dir`, `is_file`, `is_absolute`
 since a `files()` object is always the absolute path to an existing file).
 
+## Usage
+
+The module may be imported as follows:
+
+``` meson
+fs = [[#import]]('fs')
+```
+
 ## File lookup rules
 
 Non-absolute paths are looked up relative to the directory where the
