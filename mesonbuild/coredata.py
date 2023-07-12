@@ -139,7 +139,7 @@ class UserStringOption(UserOption[str]):
         return value
 
 class UserBooleanOption(UserOption[bool]):
-    def __init__(self, description: str, value, yielding: bool = DEFAULT_YIELDING,
+    def __init__(self, description: str, value: bool, yielding: bool = DEFAULT_YIELDING,
                  deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
         super().__init__(description, [True, False], yielding, deprecated)
         self.set_value(value)
@@ -571,7 +571,7 @@ class CoreData:
         if self.cross_files:
             BUILTIN_OPTIONS[OptionKey('libdir')].default = 'lib'
 
-    def sanitize_prefix(self, prefix):
+    def sanitize_prefix(self, prefix: str) -> str:
         prefix = os.path.expanduser(prefix)
         if not os.path.isabs(prefix):
             raise MesonException(f'prefix value {prefix!r} must be an absolute path')

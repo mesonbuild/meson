@@ -82,7 +82,7 @@ def _get_env_var(for_machine: MachineChoice, is_cross: bool, var_name: str) -> T
     return value
 
 
-def detect_gcovr(min_version='3.3', log=False):
+def detect_gcovr(min_version: str = '3.3', log: bool = False):
     gcovr_exe = 'gcovr'
     try:
         p, found = Popen_safe([gcovr_exe, '--version'])[0:2]
@@ -271,7 +271,7 @@ def detect_windows_arch(compilers: CompilersDict) -> str:
             return 'x86'
     return os_arch
 
-def any_compiler_has_define(compilers: CompilersDict, define):
+def any_compiler_has_define(compilers: CompilersDict, define: str) -> bool:
     for c in compilers.values():
         try:
             if c.has_builtin_define(define):
@@ -814,7 +814,7 @@ class Environment:
         return is_object(fname)
 
     @lru_cache(maxsize=None)
-    def is_library(self, fname):
+    def is_library(self, fname: mesonlib.FileOrString):
         return is_library(fname)
 
     def lookup_binary_entry(self, for_machine: MachineChoice, name: str) -> T.Optional[T.List[str]]:
@@ -874,7 +874,7 @@ class Environment:
     def get_datadir(self) -> str:
         return self.coredata.get_option(OptionKey('datadir'))
 
-    def get_compiler_system_lib_dirs(self, for_machine: MachineChoice):
+    def get_compiler_system_lib_dirs(self, for_machine: MachineChoice) -> T.List[str]:
         for comp in self.coredata.compilers[for_machine].values():
             if comp.id == 'clang':
                 index = 1
@@ -893,7 +893,7 @@ class Environment:
         out = out.split('\n')[index].lstrip('libraries: =').split(':')
         return [os.path.normpath(p) for p in out]
 
-    def get_compiler_system_include_dirs(self, for_machine: MachineChoice):
+    def get_compiler_system_include_dirs(self, for_machine: MachineChoice) -> T.List[str]:
         for comp in self.coredata.compilers[for_machine].values():
             if comp.id == 'clang':
                 break
