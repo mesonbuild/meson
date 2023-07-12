@@ -921,7 +921,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def get_compile_debugfile_args(self, rel_obj: str, pch: bool = False) -> T.List[str]:
         return []
 
-    def get_link_debugfile_name(self, targetfile: str) -> str:
+    def get_link_debugfile_name(self, targetfile: str) -> T.Optional[str]:
         return self.linker.get_debugfile_name(targetfile)
 
     def get_link_debugfile_args(self, targetfile: str) -> T.List[str]:

@@ -2797,7 +2797,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         else:
             return compiler.get_compile_debugfile_args(objfile, pch=False)
 
-    def get_link_debugfile_name(self, linker, target, outname):
+    def get_link_debugfile_name(self, linker, target, outname) -> T.Optional[str]:
         return linker.get_link_debugfile_name(outname)
 
     def get_link_debugfile_args(self, linker, target, outname):

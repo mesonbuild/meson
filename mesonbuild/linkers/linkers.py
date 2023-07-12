@@ -86,7 +86,7 @@ class StaticLinker:
     def native_args_to_unix(cls, args: T.List[str]) -> T.List[str]:
         return args[:]
 
-    def get_link_debugfile_name(self, targetfile: str) -> str:
+    def get_link_debugfile_name(self, targetfile: str) -> T.Optional[str]:
         return None
 
     def get_link_debugfile_args(self, targetfile: str) -> T.List[str]:
@@ -428,7 +428,7 @@ class DynamicLinker(metaclass=abc.ABCMeta):
     def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
         raise EnvironmentException(f'Language {self.id} does not support has_multi_link_arguments.')
 
-    def get_debugfile_name(self, targetfile: str) -> str:
+    def get_debugfile_name(self, targetfile: str) -> T.Optional[str]:
         '''Name of debug file written out (see below)'''
         return None
 

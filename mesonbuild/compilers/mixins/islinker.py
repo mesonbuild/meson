@@ -120,8 +120,8 @@ class BasicLinkerIsCompilerMixin(Compiler):
     def get_buildtype_linker_args(self, buildtype: str) -> T.List[str]:
         return []
 
-    def get_link_debugfile_name(self, targetfile: str) -> str:
-        return ''
+    def get_link_debugfile_name(self, targetfile: str) -> T.Optional[str]:
+        return None
 
     def thread_flags(self, env: 'Environment') -> T.List[str]:
         return []
