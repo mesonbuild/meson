@@ -69,7 +69,7 @@ class NasmCompiler(Compiler):
         return ['-o', outputname]
 
     def unix_args_to_native(self, args: T.List[str]) -> T.List[str]:
-        outargs = []
+        outargs: T.List[str] = []
         for arg in args:
             if arg == '-pthread':
                 continue

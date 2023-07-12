@@ -537,7 +537,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         if not hasattr(self, 'file_suffixes'):
             self.file_suffixes = lang_suffixes[self.language]
         if not hasattr(self, 'can_compile_suffixes'):
-            self.can_compile_suffixes = set(self.file_suffixes)
+            self.can_compile_suffixes: T.Set[str] = set(self.file_suffixes)
         self.default_suffix = self.file_suffixes[0]
         self.version = version
         self.full_version = full_version

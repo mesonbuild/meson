@@ -178,7 +178,7 @@ def get_llvm_tool_names(tool: str) -> T.List[str]:
         '-15',    # Debian development snapshot
         '-devel', # FreeBSD development snapshot
     ]
-    names = []
+    names: T.List[str] = []
     for suffix in suffixes:
         names.append(tool + suffix)
     return names
@@ -197,15 +197,16 @@ def detect_scanbuild() -> T.List[str]:
     Return: a single-element list of the found scan-build binary ready to be
         passed to Popen()
     """
-    exelist = []
+    exelist: T.List[str] = []
     if 'SCANBUILD' in os.environ:
         exelist = split_args(os.environ['SCANBUILD'])
 
     else:
         tools = get_llvm_tool_names('scan-build')
         for tool in tools:
-            if shutil.which(tool) is not None:
-                exelist = [shutil.which(tool)]
+            which = shutil.which(tool)
+            if which is not None:
+                exelist = [which]
                 break
 
     if exelist:

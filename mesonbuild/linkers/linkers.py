@@ -374,7 +374,7 @@ class DynamicLinker(metaclass=abc.ABCMeta):
             return args
         elif isinstance(self.prefix_arg, str):
             return [self.prefix_arg + arg for arg in args]
-        ret = []
+        ret: T.List[str] = []
         for arg in args:
             ret += self.prefix_arg + [arg]
         return ret
@@ -670,14 +670,14 @@ class GnuLikeDynamicLinkerMixin:
             return ([], set())
         if not rpath_paths and not install_rpath and not build_rpath:
             return ([], set())
-        args = []
+        args: T.List[str] = []
         origin_placeholder = '$ORIGIN'
         processed_rpaths = prepare_rpaths(rpath_paths, build_dir, from_dir)
         # Need to deduplicate rpaths, as macOS's install_name_tool
         # is *very* allergic to duplicate -delete_rpath arguments
         # when calling depfixer on installation.
         all_paths = mesonlib.OrderedSet([os.path.join(origin_placeholder, p) for p in processed_rpaths])
-        rpath_dirs_to_remove = set()
+        rpath_dirs_to_remove: T.Set[bytes] = set()
         for p in all_paths:
             rpath_dirs_to_remove.add(p.encode('utf8'))
         # Build_rpath is used as-is (it is usually absolute).
@@ -812,7 +812,7 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
                          install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
         if not rpath_paths and not install_rpath and not build_rpath:
             return ([], set())
-        args = []
+        args: T.List[str] = []
         # @loader_path is the equivalent of $ORIGIN on macOS
         # https://stackoverflow.com/q/26280738
         origin_placeholder = '@loader_path'
@@ -1152,7 +1152,7 @@ class NAGDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
                          install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
         if not rpath_paths and not install_rpath and not build_rpath:
             return ([], set())
-        args = []
+        args: T.List[str] = []
         origin_placeholder = '$ORIGIN'
         processed_rpaths = prepare_rpaths(rpath_paths, build_dir, from_dir)
         all_paths = mesonlib.OrderedSet([os.path.join(origin_placeholder, p) for p in processed_rpaths])
@@ -1409,7 +1409,7 @@ class SolarisDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
             return ([], set())
         processed_rpaths = prepare_rpaths(rpath_paths, build_dir, from_dir)
         all_paths = mesonlib.OrderedSet([os.path.join('$ORIGIN', p) for p in processed_rpaths])
-        rpath_dirs_to_remove = set()
+        rpath_dirs_to_remove: T.Set[bytes] = set()
         for p in all_paths:
             rpath_dirs_to_remove.add(p.encode('utf8'))
         if build_rpath != '':

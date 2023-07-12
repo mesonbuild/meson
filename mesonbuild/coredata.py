@@ -164,7 +164,7 @@ class UserIntegerOption(UserOption[int]):
         min_value, max_value, default_value = value
         self.min_value = min_value
         self.max_value = max_value
-        c = []
+        c: T.List[str] = []
         if min_value is not None:
             c.append('>=' + str(min_value))
         if max_value is not None:
@@ -419,7 +419,7 @@ class DependencyCache:
 
     def items(self) -> T.Iterator[T.Tuple['TV_DepID', T.List['dependencies.Dependency']]]:
         for k, v in self.__cache.items():
-            vs = []
+            vs: T.List[dependencies.Dependency] = []
             for t in v.types:
                 subkey = self.__calculate_subkey(t)
                 if subkey in v:
@@ -731,7 +731,7 @@ class CoreData:
         self.run_check_cache.clear()
 
     def get_nondefault_buildtype_args(self) -> T.List[T.Union[T.Tuple[str, str, str], T.Tuple[str, bool, bool]]]:
-        result = []
+        result: T.List[T.Union[T.Tuple[str, str, str], T.Tuple[str, bool, bool]]] = []
         value = self.options[OptionKey('buildtype')].value
         if value == 'plain':
             opt = 'plain'

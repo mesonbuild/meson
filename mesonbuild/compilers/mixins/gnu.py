@@ -483,7 +483,7 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         # pathlib treats empty paths as '.', so filter those out
         paths = [p for p in pathstr.split(pathsep) if p]
 
-        result = []
+        result: T.List[str] = []
         for p in paths:
             # GCC returns paths like this:
             # /usr/lib/gcc/x86_64-linux-gnu/8/../../../../x86_64-linux-gnu/lib
@@ -590,7 +590,7 @@ class GnuCompiler(GnuLikeCompiler):
         return args
 
     def supported_warn_args(self, warn_args_by_version: T.Dict[str, T.List[str]]) -> T.List[str]:
-        result = []
+        result: T.List[str] = []
         for version, warn_args in warn_args_by_version.items():
             if mesonlib.version_compare(self.version, '>=' + version):
                 result += warn_args

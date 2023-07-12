@@ -277,7 +277,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
 
     @classmethod
     def native_args_to_unix(cls, args: T.List[str]) -> T.List[str]:
-        result = []
+        result: T.List[str] = []
         for arg in args:
             if arg.startswith(('/LIBPATH:', '-LIBPATH:')):
                 result.append('-L' + arg[9:])
@@ -491,7 +491,7 @@ class ClangClCompiler(VisualStudioLikeCompiler):
 
     def get_dependency_compile_args(self, dep: 'Dependency') -> T.List[str]:
         if dep.get_include_type() == 'system':
-            converted = []
+            converted: T.List[str] = []
             for i in dep.get_compile_args():
                 if i.startswith('-isystem'):
                     converted += ['/clang:' + i]

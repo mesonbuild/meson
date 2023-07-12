@@ -913,8 +913,8 @@ def version_compare(vstr1: str, vstr2: str) -> bool:
 def version_compare_many(vstr1: str, conditions: T.Union[str, T.Iterable[str]]) -> T.Tuple[bool, T.List[str], T.List[str]]:
     if isinstance(conditions, str):
         conditions = [conditions]
-    found = []
-    not_found = []
+    found: T.List[str] = []
+    not_found: T.List[str] = []
     for req in conditions:
         if not version_compare(vstr1, req):
             not_found.append(req)
@@ -1123,7 +1123,7 @@ if is_windows():
         return result
 
     def split_args(cmd: str) -> T.List[str]:
-        result = []
+        result: T.List[str] = []
         arg = ''
         num_backslashes = 0
         num_quotes = 0
@@ -1210,7 +1210,7 @@ def do_define(regex: T.Pattern[str], line: str, confdata: 'ConfigurationData',
               variable_format: Literal['meson', 'cmake', 'cmake@'], subproject: T.Optional[SubProject] = None) -> str:
     def get_cmake_define(line: str, confdata: 'ConfigurationData') -> str:
         arr = line.split()
-        define_value = []
+        define_value: T.List[str] = []
         for token in arr[2:]:
             try:
                 (v, desc) = confdata.get(token)
@@ -1277,8 +1277,8 @@ def do_conf_str(src: str, data: list, confdata: 'ConfigurationData',
     if variable_format != 'meson':
         search_token = '#cmakedefine'
 
-    result = []
-    missing_variables = set()
+    result: T.List[str] = []
+    missing_variables: T.Set[str] = set()
     # Detect when the configuration data is empty and no tokens were found
     # during substitution so we can warn the user to use the `copy:` kwarg.
     confdata_useless = not confdata.keys()
@@ -2017,9 +2017,9 @@ def get_wine_shortpath(winecmd: T.List[str], wine_paths: T.List[str],
         return wine_path
 
     # Check paths that can be reduced by making them relative to workdir.
-    rel_paths = []
+    rel_paths: T.List[str] = []
     if workdir:
-        abs_paths = []
+        abs_paths: T.List[str] = []
         for p in wine_paths:
             try:
                 rel = Path(p).relative_to(workdir)

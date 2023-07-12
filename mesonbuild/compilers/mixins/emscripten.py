@@ -37,7 +37,7 @@ else:
 
 
 def wrap_js_includes(args: T.List[str]) -> T.List[str]:
-    final_args = []
+    final_args: T.List[str] = []
     for i in args:
         if i.endswith('.js') and not i.startswith('-'):
             final_args += ['--js-library', i]

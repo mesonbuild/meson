@@ -226,7 +226,7 @@ class CLikeCompiler(Compiler):
         # system directories aren't mixed, we only need to check one file for each
         # directory and go by that. If we can't check the file for some reason, assume
         # the compiler knows what it's doing, and accept the directory anyway.
-        retval = []
+        retval: T.List[str] = []
         for d in dirs:
             files = [f for f in os.listdir(d) if f.endswith('.so') and os.path.isfile(os.path.join(d, f))]
             # if no files, accept directory and move on
@@ -1216,7 +1216,7 @@ class CLikeCompiler(Compiler):
 
     def _find_framework_real(self, name: str, env: 'Environment', extra_dirs: T.List[str], allow_system: bool) -> T.Optional[T.List[str]]:
         code = 'int main(void) { return 0; }'
-        link_args = []
+        link_args: T.List[str] = []
         for d in extra_dirs:
             link_args += ['-F' + d]
         # We can pass -Z to disable searching in the system frameworks, but
