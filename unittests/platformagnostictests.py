@@ -246,10 +246,10 @@ class PlatformAgnosticTests(BasePlatformTests):
 
         self.init(testdir)
         self._run(self.meson_command + ['--internal', 'regenerate', '--profile-self', testdir, self.builddir])
-        with open(os.path.join(self.builddir, 'meson-logs', 'profile-startup-modules.json')) as f:
+        with open(os.path.join(self.builddir, 'meson-logs', 'profile-startup-modules.json'), encoding='utf-8') as f:
                 data = json.load(f)['meson']
 
-        with open(os.path.join(testdir, 'expected_mods.json')) as f:
+        with open(os.path.join(testdir, 'expected_mods.json'), encoding='utf-8') as f:
             expected = json.load(f)['meson']['modules']
 
         self.assertEqual(data['modules'], expected)
