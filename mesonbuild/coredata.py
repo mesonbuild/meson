@@ -965,8 +965,8 @@ class CmdLineFileParser(configparser.ConfigParser):
 class MachineFileParser():
     def __init__(self, filenames: T.List[str]) -> None:
         self.parser = CmdLineFileParser()
-        self.constants = {'True': True, 'False': False}
-        self.sections = {}
+        self.constants: T.Dict[str, T.Union[str, bool, int, T.List[str]]] = {'True': True, 'False': False}
+        self.sections: T.Dict[str, T.Dict[str, T.Union[str, bool, int, T.List[str]]]] = {}
 
         try:
             self.parser.read(filenames)
@@ -982,9 +982,9 @@ class MachineFileParser():
                 continue
             self.sections[s] = self._parse_section(s)
 
-    def _parse_section(self, s):
+    def _parse_section(self, s: str) -> T.Dict[str, T.Union[str, bool, int, T.List[str]]]:
         self.scope = self.constants.copy()
-        section = {}
+        section: T.Dict[str, T.Union[str, bool, int, T.List[str]]] = {}
         for entry, value in self.parser.items(s):
             if ' ' in entry or '\t' in entry or "'" in entry or '"' in entry:
                 raise EnvironmentException(f'Malformed variable name {entry!r} in machine file.')
@@ -1001,7 +1001,7 @@ class MachineFileParser():
             self.scope[entry] = res
         return section
 
-    def _evaluate_statement(self, node):
+    def _evaluate_statement(self, node: mparser.BaseNode) -> T.Union[str, bool, int, T.List[str]]:
         if isinstance(node, (mparser.StringNode)):
             return node.value
         elif isinstance(node, mparser.BooleanNode):
@@ -1009,6 +1009,7 @@ class MachineFileParser():
         elif isinstance(node, mparser.NumberNode):
             return node.value
         elif isinstance(node, mparser.ArrayNode):
+            # TODO: This is where recursive types would come in handy
             return [self._evaluate_statement(arg) for arg in node.args.arguments]
         elif isinstance(node, mparser.IdNode):
             return self.scope[node.value]
@@ -1024,7 +1025,7 @@ class MachineFileParser():
                     return os.path.join(l, r)
         raise EnvironmentException('Unsupported node type')
 
-def parse_machine_files(filenames):
+def parse_machine_files(filenames: T.List[str]):
     parser = MachineFileParser(filenames)
     return parser.sections
 
@@ -1057,7 +1058,7 @@ def write_cmd_line_file(build_dir: str, options: argparse.Namespace) -> None:
     filename = get_cmd_line_file(build_dir)
     config = CmdLineFileParser()
 
-    properties = OrderedDict()
+    properties: OrderedDict[str, str] = OrderedDict()
     if options.cross_file:
         properties['cross_file'] = options.cross_file
     if options.native_file:
