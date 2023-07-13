@@ -490,6 +490,15 @@ class PkgConfigDependency(ExternalDependency):
                 if self.clib_compiler:
                     args = self.clib_compiler.find_library(
                         lib[2:], libpaths, self.libtype, lib_prefix_warning=False)
+
+                    # BEGIN - PEXHACK: avoid linking statically against any system/platform library
+                    if self.static:
+                        for pr in system_libpaths:
+                            if args and args[0].startswith(pr):
+                                args = [lib] 
+                                break
+                    # END - PEXHACK
+
                 # If the project only uses a non-clib language such as D, Rust,
                 # C#, Python, etc, all we can do is limp along by adding the
                 # arguments as-is and then adding the libpaths at the end.
