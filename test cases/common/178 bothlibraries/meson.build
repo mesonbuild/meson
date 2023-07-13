@@ -55,9 +55,17 @@ test('runtest-both-2', exe_both2)
 # the executable linking using the C compiler.
 # https://github.com/Netflix/vmaf/issues/1107
 libccpp = both_libraries('ccpp', 'foo.cpp', 'libfile.c',
-  cpp_args : ['-std=c++11'])
+  cpp_args : ['-std=c++11'],
+  c_static_args : ['-DSTATIC_COMPILATION'],
+  cpp_static_args : ['-DSTATIC_COMPILATION'],
+)
 exe = executable('prog-ccpp', 'main2.c',
   link_with: libccpp.get_static_lib(),
   c_args : ['-DSTATIC_COMPILATION'],
 )
 test('runtest-ccpp', exe)
+
+exe = executable('prog-ccpp-shared', 'main2.c',
+  link_with: libccpp.get_shared_lib(),
+)
+test('runtest-ccpp-shared', exe)

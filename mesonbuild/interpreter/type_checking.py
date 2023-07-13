@@ -665,7 +665,7 @@ STATIC_LIB_KWS = [
 _EXCLUSIVE_SHARED_LIB_KWS: T.List[KwargInfo] = [
     _DARWIN_VERSIONS_KW,
     KwargInfo('soversion', (str, int, NoneType), convertor=lambda x: str(x) if x is not None else None),
-    KwargInfo('version', (str, NoneType), validator=_validate_shlib_version)
+    KwargInfo('version', (str, NoneType), validator=_validate_shlib_version),
 ]
 
 # The total list of arguments used by SharedLibrary
@@ -712,6 +712,13 @@ JAR_KWS = [
       for a in _LANGUAGE_KWS],
 ]
 
+_SHARED_STATIC_ARGS: T.List[KwargInfo[T.List[str]]] = [
+    *[l.evolve(name=l.name.replace('_', '_static_'), since='1.3.0')
+      for l in _LANGUAGE_KWS],
+    *[l.evolve(name=l.name.replace('_', '_shared_'), since='1.3.0')
+      for l in _LANGUAGE_KWS],
+]
+
 # Arguments used by both_library and library
 LIBRARY_KWS = [
     *_BUILD_TARGET_KWS,
@@ -719,6 +726,7 @@ LIBRARY_KWS = [
     *_EXCLUSIVE_SHARED_LIB_KWS,
     *_EXCLUSIVE_SHARED_MOD_KWS,
     *_EXCLUSIVE_STATIC_LIB_KWS,
+    *_SHARED_STATIC_ARGS,
     _VS_MODULE_DEFS_KW,
     _JAVA_LANG_KW,
 ]
@@ -730,6 +738,7 @@ BUILD_TARGET_KWS = [
     *_EXCLUSIVE_SHARED_MOD_KWS,
     *_EXCLUSIVE_STATIC_LIB_KWS,
     *_EXCLUSIVE_EXECUTABLE_KWS,
+    *_SHARED_STATIC_ARGS,
     *[a.evolve(deprecated='1.3.0', deprecated_message='The use of "jar" in "build_target()" is deprecated, and this argument is only used by jar()')
       for a in _EXCLUSIVE_JAR_KWS],
     KwargInfo(

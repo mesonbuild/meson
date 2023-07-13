@@ -216,7 +216,9 @@ class Summary:
 
 known_library_kwargs = (
     build.known_shlib_kwargs |
-    build.known_stlib_kwargs
+    build.known_stlib_kwargs |
+    {f'{l}_shared_args' for l in compilers.all_languages - {'java'}} |
+    {f'{l}_static_args' for l in compilers.all_languages - {'java'}}
 )
 
 known_build_target_kwargs = (
@@ -3202,6 +3204,9 @@ class Interpreter(InterpreterBase, HoldableObject):
             # FIXME: rustc supports generating both libraries in a single invocation,
             # but for now compile twice.
             reuse_object_files = False
+        elif any(k.endswith(('static_args', 'shared_args')) and v for k, v in kwargs.items()):
+            # Ensure not just the keyword arguments exist, but that they are non-empty.
+            reuse_object_files = False
         else:
             reuse_object_files = static_lib.pic
 
@@ -3336,6 +3341,16 @@ class Interpreter(InterpreterBase, HoldableObject):
             raise RuntimeError('Unreachable code')
         self.kwarg_strings_to_includedirs(kwargs)
         self.__process_language_args(kwargs)
+        if targetclass is build.StaticLibrary:
+            for lang in compilers.all_languages - {'java'}:
+                deps, args = self.__convert_file_args(kwargs.get(f'{lang}_static_args', []))
+                kwargs['language_args'][lang].extend(args)
+                kwargs['depend_files'].extend(deps)
+        elif targetclass is build.SharedLibrary:
+            for lang in compilers.all_languages - {'java'}:
+                deps, args = self.__convert_file_args(kwargs.get(f'{lang}_shared_args', []))
+                kwargs['language_args'][lang].extend(args)
+                kwargs['depend_files'].extend(deps)
 
         # Filter out kwargs from other target types. For example 'soversion'
         # passed to library() when default_library == 'static'.

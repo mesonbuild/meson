@@ -397,6 +397,35 @@ class Library(_BuildTarget, _SharedLibMixin, _StaticLibMixin, _LibraryMixin):
 
     """For library, both_library, and as a base for build_target"""
 
+    c_static_args: NotRequired[T.List[str]]
+    c_shared_args: NotRequired[T.List[str]]
+    cpp_static_args: NotRequired[T.List[str]]
+    cpp_shared_args: NotRequired[T.List[str]]
+    cuda_static_args: NotRequired[T.List[str]]
+    cuda_shared_args: NotRequired[T.List[str]]
+    fortran_static_args: NotRequired[T.List[str]]
+    fortran_shared_args: NotRequired[T.List[str]]
+    d_static_args: NotRequired[T.List[str]]
+    d_shared_args: NotRequired[T.List[str]]
+    objc_static_args: NotRequired[T.List[str]]
+    objc_shared_args: NotRequired[T.List[str]]
+    objcpp_static_args: NotRequired[T.List[str]]
+    objcpp_shared_args: NotRequired[T.List[str]]
+    rust_static_args: NotRequired[T.List[str]]
+    rust_shared_args: NotRequired[T.List[str]]
+    vala_static_args: NotRequired[T.List[T.Union[str, File]]]  # Yes, Vala is really special
+    vala_shared_args: NotRequired[T.List[T.Union[str, File]]]  # Yes, Vala is really special
+    cs_static_args: NotRequired[T.List[str]]
+    cs_shared_args: NotRequired[T.List[str]]
+    swift_static_args: NotRequired[T.List[str]]
+    swift_shared_args: NotRequired[T.List[str]]
+    cython_static_args: NotRequired[T.List[str]]
+    cython_shared_args: NotRequired[T.List[str]]
+    nasm_static_args: NotRequired[T.List[str]]
+    nasm_shared_args: NotRequired[T.List[str]]
+    masm_static_args: NotRequired[T.List[str]]
+    masm_shared_args: NotRequired[T.List[str]]
+
 
 class BuildTarget(Library):
 
