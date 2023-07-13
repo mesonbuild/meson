@@ -217,7 +217,7 @@ class RustCompiler(Compiler):
 
     def get_assert_args(self, disable: bool) -> T.List[str]:
         action = "no" if disable else "yes"
-        return ['-C', f'debug-assertions={action}']
+        return ['-C', f'debug-assertions={action}', '-C', 'overflow-checks=no']
 
 
 class ClippyRustCompiler(RustCompiler):

@@ -17,3 +17,10 @@ e = executable('prog', 'prog.c',
                link_with : l,
                install : true)
 test('polyglottest', e)
+
+# Create a version that has overflow-checks on, then run a test to ensure that
+# the overflow-checks is larger than the other version by some ammount
+r2 = static_library('stuff2', 'stuff.rs', rust_crate_type : 'staticlib', rust_args : ['-C', 'overflow-checks=on'])
+l2 = static_library('clib2', 'clib.c')
+e2 = executable('prog2', 'prog.c', link_with : [r2, l2])
+test('overflow-checks', find_program('overflow_size_checks.py'), args : [e, e2])
