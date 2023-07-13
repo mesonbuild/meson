@@ -448,9 +448,12 @@ class CompilerHolder(ObjectHolder['Compiler']):
     def compiles_method(self, args: T.Tuple['mesonlib.FileOrString'], kwargs: 'CompileKW') -> bool:
         code = args[0]
         if isinstance(code, mesonlib.File):
+            if code.is_built:
+                FeatureNew.single_use('compiler.compiles with file created at setup time', '1.2.0', self.subproject,
+                                      'It was broken and either errored or returned false.', self.current_node)
             self.interpreter.add_build_def_file(code)
             code = mesonlib.File.from_absolute_file(
-                code.rel_to_builddir(self.environment.source_dir))
+                code.absolute_path(self.environment.source_dir, self.environment.build_dir))
         testname = kwargs['name']
         extra_args = functools.partial(self._determine_args, kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
         deps, msg = self._determine_dependencies(kwargs['dependencies'], endl=None)
@@ -472,9 +475,12 @@ class CompilerHolder(ObjectHolder['Compiler']):
         code = args[0]
         compiler = None
         if isinstance(code, mesonlib.File):
+            if code.is_built:
+                FeatureNew.single_use('compiler.links with file created at setup time', '1.2.0', self.subproject,
+                                      'It was broken and either errored or returned false.', self.current_node)
             self.interpreter.add_build_def_file(code)
             code = mesonlib.File.from_absolute_file(
-                code.rel_to_builddir(self.environment.source_dir))
+                code.absolute_path(self.environment.source_dir, self.environment.build_dir))
             suffix = code.suffix
             if suffix not in self.compiler.file_suffixes:
                 for_machine = self.compiler.for_machine
