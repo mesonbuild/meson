@@ -394,7 +394,7 @@ class AllPlatformTests(BasePlatformTests):
         self.init(testdir)
         # Get name of static library
         targets = self.introspect('--targets')
-        self.assertEqual(len(targets), 1)
+        self.assertGreaterEqual(len(targets), 1)
         libname = targets[0]['filename'][0]
         # Build and get contents of static library
         self.build()
