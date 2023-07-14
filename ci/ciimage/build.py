@@ -74,6 +74,12 @@ class Builder(BuilderBase):
         # Also add /ci to PATH
         out_data += 'export PATH="/ci:$PATH"\n'
 
+        out_data += '''
+            if [ -f "$HOME/.cargo/env" ]; then
+                source "$HOME/.cargo/env"
+            fi
+        '''
+
         out_file.write_text(out_data, encoding='utf-8')
 
         # make it executable
