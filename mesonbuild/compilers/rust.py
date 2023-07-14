@@ -74,12 +74,17 @@ class RustCompiler(Compiler):
 
     def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
         source_name = os.path.join(work_dir, 'sanity.rs')
-        output_name = os.path.join(work_dir, 'rusttest')
         with open(source_name, 'w', encoding='utf-8') as ofile:
             ofile.write(textwrap.dedent(
                 '''fn main() {
                 }
                 '''))
+
+        output_name = os.path.join(work_dir, 'rusttest')
+        if self.is_cross:
+            output_name += '_cross'
+        # Required for Windows, allowed everywhere else.
+        output_name += '.exe'
 
         cmdlist = self.exelist + ['-o', output_name, source_name]
         pc, stdo, stde = Popen_safe(cmdlist, cwd=work_dir)
