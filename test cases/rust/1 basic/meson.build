@@ -17,4 +17,5 @@ test(
     override_options : ['b_ndebug=false'],
   ),
   should_fail : true,
+  protocol : default(),
 )
