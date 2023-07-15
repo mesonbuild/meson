@@ -2479,7 +2479,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                           install_data_type: T.Optional[str] = None,
                           preserve_path: bool = False) -> build.Data:
 
-        """Just the implementation with no validation."""
         idir = install_dir or ''
         idir_name = install_dir_name or idir or '{datadir}'
         if isinstance(idir_name, P_OBJ.OptionString):
