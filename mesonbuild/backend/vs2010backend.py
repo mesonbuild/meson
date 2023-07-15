@@ -137,10 +137,7 @@ def get_non_primary_lang_intellisense_fields(vslite_ctx: dict,
         for src_lang, args_list in non_primary_build_args_per_src_lang:
             if src_lang not in defs_paths_opts_per_lang_and_buildtype:
                 defs_paths_opts_per_lang_and_buildtype[src_lang] = {}
-            defs = Vs2010Backend.extract_nmake_preprocessor_defs(args_list)
-            paths = Vs2010Backend.extract_nmake_include_paths(args_list)
-            opts = Vs2010Backend.extract_intellisense_additional_compiler_options(args_list)
-            defs_paths_opts_per_lang_and_buildtype[src_lang][buildtype] = (defs, paths, opts)
+            defs_paths_opts_per_lang_and_buildtype[src_lang][buildtype] = Vs2010Backend._extract_nmake_fields(args_list)
     return defs_paths_opts_per_lang_and_buildtype
 
 class Vs2010Backend(backends.Backend):
@@ -1172,44 +1169,39 @@ class Vs2010Backend(backends.Backend):
 
         return build_args
 
-    #Convert a list of compile arguments from -
-    #   [ '-I..\\some\\dir\\include', '-I../../some/other/dir', '/MDd', '/W2', '/std:c++17', '/Od', '/Zi', '-DSOME_DEF=1', '-DANOTHER_DEF=someval', ...]
-    #to -
-    #   'SOME_DEF=1;ANOTHER_DEF=someval;'
-    #which is the format required by the visual studio project's NMakePreprocessorDefinitions field.
+    # Used in populating a simple nmake-style project's intellisense fields.
+    # Given a list of compile args, for example -
+    #    [ '-I..\\some\\dir\\include', '-I../../some/other/dir', '/MDd', '/W2', '/std:c++17', '/Od', '/Zi', '-DSOME_DEF=1', '-DANOTHER_DEF=someval', ...]
+    # returns a tuple of pre-processor defs (for this example) -
+    #    'SOME_DEF=1;ANOTHER_DEF=someval;'
+    # and include paths, e.g. -
+    #    '..\\some\\dir\\include;../../some/other/dir;'
+    # and finally any remaining compiler options, e.g. -
+    #    '/MDd;/W2;/std:c++17;/Od/Zi'
     @staticmethod
-    def extract_nmake_preprocessor_defs(captured_build_args: list[str]) -> str:
+    def _extract_nmake_fields(captured_build_args: list[str]) -> T.Tuple[str, str, str]:
+        include_dir_options = [
+            '-I',
+            '/I',
+            '-isystem', # regular gcc / clang option to denote system header include search paths
+            '/clang:-isystem', # clang-cl (msvc 'cl'-style clang wrapper) option to pass '-isystem' option to clang driver
+            '/imsvc', # clang-cl option to 'Add directory to system include search path'
+            '/external:I', # msvc cl option to add 'external' include search paths
+        ]
+
         defs = ''
+        paths = ''
+        additional_opts = ''
         for arg in captured_build_args:
             if arg.startswith(('-D', '/D')):
                 defs += arg[2:] + ';'
-        return defs
-
-    #Convert a list of compile arguments from -
-    #   [ '-I..\\some\\dir\\include', '-I../../some/other/dir', '/MDd', '/W2', '/std:c++17', '/Od', '/Zi', '-DSOME_DEF=1', '-DANOTHER_DEF=someval', ...]
-    #to -
-    #   '..\\some\\dir\\include;../../some/other/dir;'
-    #which is the format required by the visual studio project's NMakePreprocessorDefinitions field.
-    @staticmethod
-    def extract_nmake_include_paths(captured_build_args: list[str]) -> str:
-        paths = ''
-        for arg in captured_build_args:
-            if arg.startswith(('-I', '/I')):
-                paths += arg[2:] + ';'
-        return paths
-
-    #Convert a list of compile arguments from -
-    #   [ '-I..\\some\\dir\\include', '-I../../some/other/dir', '/MDd', '/W2', '/std:c++17', '/Od', '/Zi', '-DSOME_DEF=1', '-DANOTHER_DEF=someval', ...]
-    #to -
-    #   '/MDd;/W2;/std:c++17;/Od/Zi'
-    #which is the format required by the visual studio project's NMakePreprocessorDefinitions field.
-    @staticmethod
-    def extract_intellisense_additional_compiler_options(captured_build_args: list[str]) -> str:
-        additional_opts = ''
-        for arg in captured_build_args:
-            if (not arg.startswith(('-D', '/D', '-I', '/I'))) and arg.startswith(('-', '/')):
-                additional_opts += arg + ';'
-        return additional_opts
+            else:
+                opt_match = next((opt for opt in include_dir_options if arg.startswith(opt)), None)
+                if opt_match:
+                    paths += arg[len(opt_match):] + ';'
+                elif arg.startswith(('-', '/')):
+                    additional_opts += arg + ';'
+        return (defs, paths, additional_opts)
 
     @staticmethod
     def get_nmake_base_meson_command_and_exe_search_paths() -> T.Tuple[str, str]:
@@ -1300,9 +1292,10 @@ class Vs2010Backend(backends.Backend):
             # We may not have any src files and so won't have a primary src language.  In which case, we've nothing to fill in for this target's intellisense fields -
             if primary_src_lang:
                 primary_src_type_build_args = captured_build_args[primary_src_lang]
-                ET.SubElement(per_config_prop_group, 'NMakePreprocessorDefinitions').text = Vs2010Backend.extract_nmake_preprocessor_defs(primary_src_type_build_args)
-                ET.SubElement(per_config_prop_group, 'NMakeIncludeSearchPath').text = Vs2010Backend.extract_nmake_include_paths(primary_src_type_build_args)
-                ET.SubElement(per_config_prop_group, 'AdditionalOptions').text = Vs2010Backend.extract_intellisense_additional_compiler_options(primary_src_type_build_args)
+                preproc_defs, inc_paths, other_compile_opts = Vs2010Backend._extract_nmake_fields(primary_src_type_build_args)
+                ET.SubElement(per_config_prop_group, 'NMakePreprocessorDefinitions').text = preproc_defs
+                ET.SubElement(per_config_prop_group, 'NMakeIncludeSearchPath').text = inc_paths
+                ET.SubElement(per_config_prop_group, 'AdditionalOptions').text = other_compile_opts
 
             # Unless we explicitly specify the following empty path elements, the project is assigned a load of nasty defaults that fill these
             # with values like -
