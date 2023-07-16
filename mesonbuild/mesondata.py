@@ -17,7 +17,13 @@ class DataFile:
 
     def write_once(self, path: Path) -> None:
         if not path.exists():
-            data = importlib.resources.read_text( # [ignore encoding] it's on the next lines, Mr. Lint
+            import sys
+            if sys.version_info >= (3, 9):
+                data = importlib.resources.files(
+                    ('mesonbuild' / self.path.parent).as_posix().replace('/', '.')
+                ).joinpath(self.path.name).read_text(encoding='utf-8')
+            else:
+                data = importlib.resources.read_text( # [ignore encoding] it's on the next lines, Mr. Lint
                     ('mesonbuild' / self.path.parent).as_posix().replace('/', '.'),
                     self.path.name,
                     encoding='utf-8')
