@@ -30,16 +30,16 @@ else:
     # do). This gives up DRYer type checking, with no runtime impact
     Compiler = object
 
-ccomp_buildtype_args = {
+ccomp_buildtype_args: T.Dict[str, T.List[str]] = {
     'plain': [''],
     'debug': ['-O0', '-g'],
     'debugoptimized': ['-O0', '-g'],
     'release': ['-O3'],
     'minsize': ['-Os'],
     'custom': ['-Obranchless'],
-}  # type: T.Dict[str, T.List[str]]
+}
 
-ccomp_optimization_args = {
+ccomp_optimization_args: T.Dict[str, T.List[str]] = {
     'plain': [],
     '0': ['-O0'],
     'g': ['-O0'],
@@ -47,19 +47,19 @@ ccomp_optimization_args = {
     '2': ['-O2'],
     '3': ['-O3'],
     's': ['-Os']
-}  # type: T.Dict[str, T.List[str]]
+}
 
-ccomp_debug_args = {
+ccomp_debug_args: T.Dict[bool, T.List[str]] = {
     False: [],
     True: ['-g']
-}  # type: T.Dict[bool, T.List[str]]
+}
 
 # As of CompCert 20.04, these arguments should be passed to the underlying gcc linker (via -WUl,<arg>)
 # There are probably (many) more, but these are those used by picolibc
-ccomp_args_to_wul = [
+ccomp_args_to_wul: T.List[str] = [
         r"^-ffreestanding$",
         r"^-r$"
-] # type: T.List[str]
+]
 
 class CompCertCompiler(Compiler):
 
@@ -69,12 +69,13 @@ class CompCertCompiler(Compiler):
         # Assembly
         self.can_compile_suffixes.add('s')
         self.can_compile_suffixes.add('sx')
-        default_warn_args = []  # type: T.List[str]
-        self.warn_args = {'0': [],
-                          '1': default_warn_args,
-                          '2': default_warn_args + [],
-                          '3': default_warn_args + [],
-                          'everything': default_warn_args + []}  # type: T.Dict[str, T.List[str]]
+        default_warn_args: T.List[str] = []
+        self.warn_args: T.Dict[str, T.List[str]] = {
+            '0': [],
+            '1': default_warn_args,
+            '2': default_warn_args + [],
+            '3': default_warn_args + [],
+            'everything': default_warn_args + []}
 
     def get_always_args(self) -> T.List[str]:
         return []
@@ -95,7 +96,7 @@ class CompCertCompiler(Compiler):
     @classmethod
     def _unix_args_to_native(cls, args: T.List[str], info: MachineInfo) -> T.List[str]:
         "Always returns a copy that can be independently mutated"
-        patched_args = []  # type: T.List[str]
+        patched_args: T.List[str] = []
         for arg in args:
             added = 0
             for ptrn in ccomp_args_to_wul:

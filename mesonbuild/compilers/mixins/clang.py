@@ -30,13 +30,13 @@ if T.TYPE_CHECKING:
     from ...environment import Environment
     from ...dependencies import Dependency  # noqa: F401
 
-clang_color_args = {
+clang_color_args: T.Dict[str, T.List[str]] = {
     'auto': ['-fcolor-diagnostics'],
     'always': ['-fcolor-diagnostics'],
     'never': ['-fno-color-diagnostics'],
-}  # type: T.Dict[str, T.List[str]]
+}
 
-clang_optimization_args = {
+clang_optimization_args: T.Dict[str, T.List[str]] = {
     'plain': [],
     '0': ['-O0'],
     'g': ['-Og'],
@@ -44,7 +44,7 @@ clang_optimization_args = {
     '2': ['-O2'],
     '3': ['-O3'],
     's': ['-Oz'],
-}  # type: T.Dict[str, T.List[str]]
+}
 
 class ClangCompiler(GnuLikeCompiler):
 

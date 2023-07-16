@@ -39,7 +39,7 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from . import dependencies
-    from .compilers.compilers import Compiler, CompileResult, RunResult
+    from .compilers.compilers import Compiler, CompileResult, RunResult, CompileCheckMode
     from .dependencies.detect import TV_DepID
     from .environment import Environment
     from .mesonlib import OptionOverrideProxy, FileOrString
@@ -48,7 +48,7 @@ if T.TYPE_CHECKING:
     OptionDictType = T.Union[T.Dict[str, 'UserOption[T.Any]'], OptionOverrideProxy]
     MutableKeyedOptionDictType = T.Dict['OptionKey', 'UserOption[T.Any]']
     KeyedOptionDictType = T.Union[MutableKeyedOptionDictType, OptionOverrideProxy]
-    CompilerCheckCacheKey = T.Tuple[T.Tuple[str, ...], str, FileOrString, T.Tuple[str, ...], str]
+    CompilerCheckCacheKey = T.Tuple[T.Tuple[str, ...], str, FileOrString, T.Tuple[str, ...], CompileCheckMode]
     # code, args
     RunCheckCacheKey = T.Tuple[str, T.Tuple[str, ...]]
 
@@ -81,7 +81,7 @@ DEFAULT_YIELDING = False
 _T = T.TypeVar('_T')
 
 
-def get_genvs_default_buildtype_list() -> list:
+def get_genvs_default_buildtype_list() -> list[str]:
     # just debug, debugoptimized, and release for now
     # but this should probably be configurable through some extra option, alongside --genvslite.
     return buildtypelist[1:-2]
@@ -139,7 +139,7 @@ class UserStringOption(UserOption[str]):
         return value
 
 class UserBooleanOption(UserOption[bool]):
-    def __init__(self, description: str, value, yielding: bool = DEFAULT_YIELDING,
+    def __init__(self, description: str, value: bool, yielding: bool = DEFAULT_YIELDING,
                  deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
         super().__init__(description, [True, False], yielding, deprecated)
         self.set_value(value)
@@ -164,7 +164,7 @@ class UserIntegerOption(UserOption[int]):
         min_value, max_value, default_value = value
         self.min_value = min_value
         self.max_value = max_value
-        c = []
+        c: T.List[str] = []
         if min_value is not None:
             c.append('>=' + str(min_value))
         if max_value is not None:
@@ -368,13 +368,13 @@ class DependencyCache:
     """
 
     def __init__(self, builtins: 'KeyedOptionDictType', for_machine: MachineChoice):
-        self.__cache = OrderedDict()  # type: T.MutableMapping[TV_DepID, DependencySubCache]
+        self.__cache: T.MutableMapping[TV_DepID, DependencySubCache] = OrderedDict()
         self.__builtins = builtins
         self.__pkg_conf_key = OptionKey('pkg_config_path', machine=for_machine)
         self.__cmake_key = OptionKey('cmake_prefix_path', machine=for_machine)
 
     def __calculate_subkey(self, type_: DependencyCacheType) -> T.Tuple[str, ...]:
-        data: T.Dict[str, T.List[str]] = {
+        data: T.Dict[DependencyCacheType, T.List[str]] = {
             DependencyCacheType.PKG_CONFIG: stringlistify(self.__builtins[self.__pkg_conf_key].value),
             DependencyCacheType.CMAKE: stringlistify(self.__builtins[self.__cmake_key].value),
             DependencyCacheType.OTHER: [],
@@ -419,7 +419,7 @@ class DependencyCache:
 
     def items(self) -> T.Iterator[T.Tuple['TV_DepID', T.List['dependencies.Dependency']]]:
         for k, v in self.__cache.items():
-            vs = []
+            vs: T.List[dependencies.Dependency] = []
             for t in v.types:
                 subkey = self.__calculate_subkey(t)
                 if subkey in v:
@@ -482,7 +482,7 @@ class CoreData:
         self.version = version
         self.options: 'MutableKeyedOptionDictType' = {}
         self.cross_files = self.__load_config_files(options, scratch_dir, 'cross')
-        self.compilers = PerMachine(OrderedDict(), OrderedDict())  # type: PerMachine[T.Dict[str, Compiler]]
+        self.compilers: PerMachine[T.Dict[str, Compiler]] = PerMachine(OrderedDict(), OrderedDict())
 
         # Set of subprojects that have already been initialized once, this is
         # required to be stored and reloaded with the coredata, as we don't
@@ -518,9 +518,9 @@ class CoreData:
         if not filenames:
             return []
 
-        found_invalid = []  # type: T.List[str]
-        missing = []        # type: T.List[str]
-        real = []           # type: T.List[str]
+        found_invalid: T.List[str] = []
+        missing: T.List[str] = []
+        real: T.List[str] = []
         for i, f in enumerate(filenames):
             f = os.path.expanduser(os.path.expandvars(f))
             if os.path.exists(f):
@@ -571,7 +571,7 @@ class CoreData:
         if self.cross_files:
             BUILTIN_OPTIONS[OptionKey('libdir')].default = 'lib'
 
-    def sanitize_prefix(self, prefix):
+    def sanitize_prefix(self, prefix: str) -> str:
         prefix = os.path.expanduser(prefix)
         if not os.path.isabs(prefix):
             raise MesonException(f'prefix value {prefix!r} must be an absolute path')
@@ -731,7 +731,7 @@ class CoreData:
         self.run_check_cache.clear()
 
     def get_nondefault_buildtype_args(self) -> T.List[T.Union[T.Tuple[str, str, str], T.Tuple[str, bool, bool]]]:
-        result = []
+        result: T.List[T.Union[T.Tuple[str, str, str], T.Tuple[str, bool, bool]]] = []
         value = self.options[OptionKey('buildtype')].value
         if value == 'plain':
             opt = 'plain'
@@ -955,18 +955,18 @@ class CmdLineFileParser(configparser.ConfigParser):
         # storing subproject options like "subproject:option=value"
         super().__init__(delimiters=['='], interpolation=None)
 
-    def read(self, filenames: T.Union['StrOrBytesPath', T.Iterable['StrOrBytesPath']], encoding: str = 'utf-8') -> T.List[str]:
+    def read(self, filenames: T.Union['StrOrBytesPath', T.Iterable['StrOrBytesPath']], encoding: T.Optional[str] = 'utf-8') -> T.List[str]:
         return super().read(filenames, encoding)
 
-    def optionxform(self, option: str) -> str:
+    def optionxform(self, optionstr: str) -> str:
         # Don't call str.lower() on keys
-        return option
+        return optionstr
 
 class MachineFileParser():
     def __init__(self, filenames: T.List[str]) -> None:
         self.parser = CmdLineFileParser()
-        self.constants = {'True': True, 'False': False}
-        self.sections = {}
+        self.constants: T.Dict[str, T.Union[str, bool, int, T.List[str]]] = {'True': True, 'False': False}
+        self.sections: T.Dict[str, T.Dict[str, T.Union[str, bool, int, T.List[str]]]] = {}
 
         try:
             self.parser.read(filenames)
@@ -982,9 +982,9 @@ class MachineFileParser():
                 continue
             self.sections[s] = self._parse_section(s)
 
-    def _parse_section(self, s):
+    def _parse_section(self, s: str) -> T.Dict[str, T.Union[str, bool, int, T.List[str]]]:
         self.scope = self.constants.copy()
-        section = {}
+        section: T.Dict[str, T.Union[str, bool, int, T.List[str]]] = {}
         for entry, value in self.parser.items(s):
             if ' ' in entry or '\t' in entry or "'" in entry or '"' in entry:
                 raise EnvironmentException(f'Malformed variable name {entry!r} in machine file.')
@@ -1001,7 +1001,7 @@ class MachineFileParser():
             self.scope[entry] = res
         return section
 
-    def _evaluate_statement(self, node):
+    def _evaluate_statement(self, node: mparser.BaseNode) -> T.Union[str, bool, int, T.List[str]]:
         if isinstance(node, (mparser.StringNode)):
             return node.value
         elif isinstance(node, mparser.BooleanNode):
@@ -1009,6 +1009,7 @@ class MachineFileParser():
         elif isinstance(node, mparser.NumberNode):
             return node.value
         elif isinstance(node, mparser.ArrayNode):
+            # TODO: This is where recursive types would come in handy
             return [self._evaluate_statement(arg) for arg in node.args.arguments]
         elif isinstance(node, mparser.IdNode):
             return self.scope[node.value]
@@ -1024,7 +1025,7 @@ class MachineFileParser():
                     return os.path.join(l, r)
         raise EnvironmentException('Unsupported node type')
 
-def parse_machine_files(filenames):
+def parse_machine_files(filenames: T.List[str]):
     parser = MachineFileParser(filenames)
     return parser.sections
 
@@ -1057,7 +1058,7 @@ def write_cmd_line_file(build_dir: str, options: argparse.Namespace) -> None:
     filename = get_cmd_line_file(build_dir)
     config = CmdLineFileParser()
 
-    properties = OrderedDict()
+    properties: OrderedDict[str, str] = OrderedDict()
     if options.cross_file:
         properties['cross_file'] = options.cross_file
     if options.native_file:

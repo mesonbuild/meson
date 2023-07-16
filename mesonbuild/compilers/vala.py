@@ -19,7 +19,7 @@ import typing as T
 from .. import mlog
 from ..mesonlib import EnvironmentException, version_compare, OptionKey
 
-from .compilers import Compiler, LibType
+from .compilers import CompileCheckMode, Compiler, LibType
 
 if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
@@ -46,7 +46,7 @@ class ValaCompiler(Compiler):
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
         return ['--debug'] if is_debug else []
 
-    def get_output_args(self, target: str) -> T.List[str]:
+    def get_output_args(self, outputname: str) -> T.List[str]:
         return [] # Because compiles into C.
 
     def get_compile_only_args(self) -> T.List[str]:
@@ -64,7 +64,7 @@ class ValaCompiler(Compiler):
     def get_always_args(self) -> T.List[str]:
         return ['-C']
 
-    def get_warn_args(self, warning_level: str) -> T.List[str]:
+    def get_warn_args(self, level: str) -> T.List[str]:
         return []
 
     def get_no_warn_args(self) -> T.List[str]:
@@ -100,7 +100,7 @@ class ValaCompiler(Compiler):
             extra_flags += self.get_compile_only_args()
         else:
             extra_flags += environment.coredata.get_external_link_args(self.for_machine, self.language)
-        with self.cached_compile(code, environment.coredata, extra_args=extra_flags, mode='compile') as p:
+        with self.cached_compile(code, environment.coredata, extra_args=extra_flags, mode=CompileCheckMode.COMPILE) as p:
             if p.returncode != 0:
                 msg = f'Vala compiler {self.name_string()!r} cannot compile programs'
                 raise EnvironmentException(msg)
@@ -122,7 +122,7 @@ class ValaCompiler(Compiler):
             args += env.coredata.get_external_args(self.for_machine, self.language)
             vapi_args = ['--pkg', libname]
             args += vapi_args
-            with self.cached_compile(code, env.coredata, extra_args=args, mode='compile') as p:
+            with self.cached_compile(code, env.coredata, extra_args=args, mode=CompileCheckMode.COMPILE) as p:
                 if p.returncode == 0:
                     return vapi_args
         # Not found? Try to find the vapi file itself.

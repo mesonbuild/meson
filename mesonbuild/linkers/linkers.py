@@ -86,7 +86,7 @@ class StaticLinker:
     def native_args_to_unix(cls, args: T.List[str]) -> T.List[str]:
         return args[:]
 
-    def get_link_debugfile_name(self, targetfile: str) -> str:
+    def get_link_debugfile_name(self, targetfile: str) -> T.Optional[str]:
         return None
 
     def get_link_debugfile_args(self, targetfile: str) -> T.List[str]:
@@ -122,7 +122,7 @@ class VisualStudioLikeLinker:
         return self.always_args.copy()
 
     def get_output_args(self, target: str) -> T.List[str]:
-        args = []  # type: T.List[str]
+        args: T.List[str] = []
         if self.machine:
             args += ['/MACHINE:' + self.machine]
         args += ['/OUT:' + target]
@@ -355,14 +355,14 @@ class DynamicLinker(metaclass=abc.ABCMeta):
 
     """Base class for dynamic linkers."""
 
-    _BUILDTYPE_ARGS = {
+    _BUILDTYPE_ARGS: T.Dict[str, T.List[str]] = {
         'plain': [],
         'debug': [],
         'debugoptimized': [],
         'release': [],
         'minsize': [],
         'custom': [],
-    }  # type: T.Dict[str, T.List[str]]
+    }
 
     @abc.abstractproperty
     def id(self) -> str:
@@ -374,7 +374,7 @@ class DynamicLinker(metaclass=abc.ABCMeta):
             return args
         elif isinstance(self.prefix_arg, str):
             return [self.prefix_arg + arg for arg in args]
-        ret = []
+        ret: T.List[str] = []
         for arg in args:
             ret += self.prefix_arg + [arg]
         return ret
@@ -387,7 +387,7 @@ class DynamicLinker(metaclass=abc.ABCMeta):
         self.version = version
         self.prefix_arg = prefix_arg
         self.always_args = always_args
-        self.machine = None  # type: T.Optional[str]
+        self.machine: T.Optional[str] = None
 
     def __repr__(self) -> str:
         return '<{}: v{} `{}`>'.format(type(self).__name__, self.version, ' '.join(self.exelist))
@@ -428,7 +428,7 @@ class DynamicLinker(metaclass=abc.ABCMeta):
     def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
         raise EnvironmentException(f'Language {self.id} does not support has_multi_link_arguments.')
 
-    def get_debugfile_name(self, targetfile: str) -> str:
+    def get_debugfile_name(self, targetfile: str) -> T.Optional[str]:
         '''Name of debug file written out (see below)'''
         return None
 
@@ -479,7 +479,7 @@ class DynamicLinker(metaclass=abc.ABCMeta):
             f'Linker {self.id} does not support allow undefined')
 
     @abc.abstractmethod
-    def get_output_args(self, outname: str) -> T.List[str]:
+    def get_output_args(self, outputname: str) -> T.List[str]:
         pass
 
     def get_coverage_args(self) -> T.List[str]:
@@ -560,8 +560,8 @@ class PosixDynamicLinkerMixin:
     GNU-like that it makes sense to split this out.
     """
 
-    def get_output_args(self, outname: str) -> T.List[str]:
-        return ['-o', outname]
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        return ['-o', outputname]
 
     def get_std_shared_lib_args(self) -> T.List[str]:
         return ['-shared']
@@ -582,16 +582,16 @@ class GnuLikeDynamicLinkerMixin:
         for_machine = MachineChoice.HOST
         def _apply_prefix(self, arg: T.Union[str, T.List[str]]) -> T.List[str]: ...
 
-    _BUILDTYPE_ARGS = {
+    _BUILDTYPE_ARGS: T.Dict[str, T.List[str]] = {
         'plain': [],
         'debug': [],
         'debugoptimized': [],
         'release': ['-O1'],
         'minsize': [],
         'custom': [],
-    }  # type: T.Dict[str, T.List[str]]
+    }
 
-    _SUBSYSTEMS = {
+    _SUBSYSTEMS: T.Dict[str, str] = {
         "native": "1",
         "windows": "windows",
         "console": "console",
@@ -601,7 +601,7 @@ class GnuLikeDynamicLinkerMixin:
         "efi_runtime_driver": "12",
         "efi_rom": "13",
         "boot_application": "16",
-    }  # type: T.Dict[str, str]
+    }
 
     def get_buildtype_args(self, buildtype: str) -> T.List[str]:
         # We can override these in children by just overriding the
@@ -670,14 +670,14 @@ class GnuLikeDynamicLinkerMixin:
             return ([], set())
         if not rpath_paths and not install_rpath and not build_rpath:
             return ([], set())
-        args = []
+        args: T.List[str] = []
         origin_placeholder = '$ORIGIN'
         processed_rpaths = prepare_rpaths(rpath_paths, build_dir, from_dir)
         # Need to deduplicate rpaths, as macOS's install_name_tool
         # is *very* allergic to duplicate -delete_rpath arguments
         # when calling depfixer on installation.
         all_paths = mesonlib.OrderedSet([os.path.join(origin_placeholder, p) for p in processed_rpaths])
-        rpath_dirs_to_remove = set()
+        rpath_dirs_to_remove: T.Set[bytes] = set()
         for p in all_paths:
             rpath_dirs_to_remove.add(p.encode('utf8'))
         # Build_rpath is used as-is (it is usually absolute).
@@ -769,7 +769,7 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         return []
 
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
-        result = []  # type: T.List[str]
+        result: T.List[str] = []
         for a in args:
             result.extend(self._apply_prefix('-force_load'))
             result.append(a)
@@ -812,7 +812,7 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
                          install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
         if not rpath_paths and not install_rpath and not build_rpath:
             return ([], set())
-        args = []
+        args: T.List[str] = []
         # @loader_path is the equivalent of $ORIGIN on macOS
         # https://stackoverflow.com/q/26280738
         origin_placeholder = '@loader_path'
@@ -1152,7 +1152,7 @@ class NAGDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
                          install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
         if not rpath_paths and not install_rpath and not build_rpath:
             return ([], set())
-        args = []
+        args: T.List[str] = []
         origin_placeholder = '$ORIGIN'
         processed_rpaths = prepare_rpaths(rpath_paths, build_dir, from_dir)
         all_paths = mesonlib.OrderedSet([os.path.join(origin_placeholder, p) for p in processed_rpaths])
@@ -1225,7 +1225,7 @@ class VisualStudioLikeLinkerMixin:
         for_machine = MachineChoice.HOST
         def _apply_prefix(self, arg: T.Union[str, T.List[str]]) -> T.List[str]: ...
 
-    _BUILDTYPE_ARGS = {
+    _BUILDTYPE_ARGS: T.Dict[str, T.List[str]] = {
         'plain': [],
         'debug': [],
         'debugoptimized': [],
@@ -1234,7 +1234,7 @@ class VisualStudioLikeLinkerMixin:
         'release': ['/OPT:REF'],
         'minsize': ['/INCREMENTAL:NO', '/OPT:REF'],
         'custom': [],
-    }  # type: T.Dict[str, T.List[str]]
+    }
 
     def __init__(self, exelist: T.List[str], for_machine: mesonlib.MachineChoice,
                  prefix_arg: T.Union[str, T.List[str]], always_args: T.List[str], *,
@@ -1273,7 +1273,7 @@ class VisualStudioLikeLinkerMixin:
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
         # Only since VS2015
         args = mesonlib.listify(args)
-        l = []  # T.List[str]
+        l: T.List[str] = []
         for a in args:
             l.extend(self._apply_prefix('/WHOLEARCHIVE:' + a))
         return l
@@ -1409,7 +1409,7 @@ class SolarisDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
             return ([], set())
         processed_rpaths = prepare_rpaths(rpath_paths, build_dir, from_dir)
         all_paths = mesonlib.OrderedSet([os.path.join('$ORIGIN', p) for p in processed_rpaths])
-        rpath_dirs_to_remove = set()
+        rpath_dirs_to_remove: T.Set[bytes] = set()
         for p in all_paths:
             rpath_dirs_to_remove.add(p.encode('utf8'))
         if build_rpath != '':
@@ -1473,7 +1473,7 @@ class AIXDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: T.Tuple[str, ...], build_rpath: str,
                          install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
-        all_paths = mesonlib.OrderedSet() # type: mesonlib.OrderedSet[str]
+        all_paths: mesonlib.OrderedSet[str] = mesonlib.OrderedSet()
         # install_rpath first, followed by other paths, and the system path last
         if install_rpath != '':
             all_paths.add(install_rpath)
@@ -1596,8 +1596,8 @@ class MetrowerksLinker(DynamicLinker):
     def get_linker_always_args(self) -> T.List[str]:
         return []
 
-    def get_output_args(self, target: str) -> T.List[str]:
-        return ['-o', target]
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        return ['-o', outputname]
 
     def get_search_args(self, dirname: str) -> T.List[str]:
         return self._apply_prefix('-L' + dirname)

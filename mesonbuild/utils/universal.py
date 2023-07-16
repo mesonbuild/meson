@@ -41,7 +41,7 @@ if T.TYPE_CHECKING:
 
     from .._typing import ImmutableListProtocol
     from ..build import ConfigurationData
-    from ..coredata import KeyedOptionDictType, UserOption
+    from ..coredata import KeyedOptionDictType, UserOption, StrOrBytesPath
     from ..environment import Environment
     from ..compilers.compilers import Compiler
     from ..interpreterbase.baseobjects import SubProject
@@ -172,7 +172,7 @@ __all__ = [
 # TODO: this is such a hack, this really should be either in coredata or in the
 # interpreter
 # {subproject: project_meson_version}
-project_meson_versions = collections.defaultdict(str)  # type: T.DefaultDict[str, str]
+project_meson_versions: T.DefaultDict[str, str] = collections.defaultdict(str)
 
 
 from glob import glob
@@ -194,14 +194,15 @@ class GitException(MesonException):
         self.output = output.strip() if output else ''
 
 GIT = shutil.which('git')
-def git(cmd: T.List[str], workingdir: T.Union[str, bytes, os.PathLike], check: bool = False, **kwargs: T.Any) -> T.Tuple[subprocess.Popen, str, str]:
-    cmd = [GIT] + cmd
+def git(cmd: T.List[str], workingdir: StrOrBytesPath, check: bool = False, **kwargs: T.Any) -> T.Tuple[subprocess.Popen[str], str, str]:
+    assert GIT is not None, 'Callers should make sure it exists'
+    cmd = [GIT, *cmd]
     p, o, e = Popen_safe(cmd, cwd=workingdir, **kwargs)
     if check and p.returncode != 0:
         raise GitException('Git command failed: ' + str(cmd), e)
     return p, o, e
 
-def quiet_git(cmd: T.List[str], workingdir: T.Union[str, bytes, os.PathLike], check: bool = False) -> T.Tuple[bool, str]:
+def quiet_git(cmd: T.List[str], workingdir: StrOrBytesPath, check: bool = False) -> T.Tuple[bool, str]:
     if not GIT:
         m = 'Git program not found.'
         if check:
@@ -212,7 +213,7 @@ def quiet_git(cmd: T.List[str], workingdir: T.Union[str, bytes, os.PathLike], ch
         return False, e
     return True, o
 
-def verbose_git(cmd: T.List[str], workingdir: T.Union[str, bytes, os.PathLike], check: bool = False) -> bool:
+def verbose_git(cmd: T.List[str], workingdir: StrOrBytesPath, check: bool = False) -> bool:
     if not GIT:
         m = 'Git program not found.'
         if check:
@@ -514,7 +515,7 @@ class PerMachine(T.Generic[_T]):
         machines, we can elaborate the original and then redefault them and thus
         avoid repeating the elaboration explicitly.
         """
-        unfreeze = PerMachineDefaultable() # type: PerMachineDefaultable[T.Optional[_T]]
+        unfreeze: PerMachineDefaultable[T.Optional[_T]] = PerMachineDefaultable()
         unfreeze.build = self.build
         unfreeze.host = self.host
         if unfreeze.host == unfreeze.build:
@@ -543,7 +544,7 @@ class PerThreeMachine(PerMachine[_T]):
         machines, we can elaborate the original and then redefault them and thus
         avoid repeating the elaboration explicitly.
         """
-        unfreeze = PerThreeMachineDefaultable() # type: PerThreeMachineDefaultable[T.Optional[_T]]
+        unfreeze: PerThreeMachineDefaultable[T.Optional[_T]] = PerThreeMachineDefaultable()
         unfreeze.build = self.build
         unfreeze.host = self.host
         unfreeze.target = self.target
@@ -595,7 +596,7 @@ class PerMachineDefaultable(PerMachine[T.Optional[_T]]):
         return m.default_missing()
 
 
-class PerThreeMachineDefaultable(PerMachineDefaultable, PerThreeMachine[T.Optional[_T]]):
+class PerThreeMachineDefaultable(PerMachineDefaultable[T.Optional[_T]], PerThreeMachine[T.Optional[_T]]):
     """Extends `PerThreeMachine` with the ability to default from `None`s.
     """
     def __init__(self) -> None:
@@ -921,8 +922,8 @@ def version_compare(vstr1: str, vstr2: str) -> bool:
 def version_compare_many(vstr1: str, conditions: T.Union[str, T.Iterable[str]]) -> T.Tuple[bool, T.List[str], T.List[str]]:
     if isinstance(conditions, str):
         conditions = [conditions]
-    found = []
-    not_found = []
+    found: T.List[str] = []
+    not_found: T.List[str] = []
     for req in conditions:
         if not version_compare(vstr1, req):
             not_found.append(req)
@@ -1131,7 +1132,7 @@ if is_windows():
         return result
 
     def split_args(cmd: str) -> T.List[str]:
-        result = []
+        result: T.List[str] = []
         arg = ''
         num_backslashes = 0
         num_quotes = 0
@@ -1179,7 +1180,7 @@ def join_args(args: T.Iterable[str]) -> str:
 def do_replacement(regex: T.Pattern[str], line: str,
                    variable_format: Literal['meson', 'cmake', 'cmake@'],
                    confdata: T.Union[T.Dict[str, T.Tuple[str, T.Optional[str]]], 'ConfigurationData']) -> T.Tuple[str, T.Set[str]]:
-    missing_variables = set()  # type: T.Set[str]
+    missing_variables: T.Set[str] = set()
     if variable_format == 'cmake':
         start_tag = '${'
         backslash_tag = '\\${'
@@ -1218,10 +1219,10 @@ def do_define(regex: T.Pattern[str], line: str, confdata: 'ConfigurationData',
               variable_format: Literal['meson', 'cmake', 'cmake@'], subproject: T.Optional[SubProject] = None) -> str:
     def get_cmake_define(line: str, confdata: 'ConfigurationData') -> str:
         arr = line.split()
-        define_value = []
+        define_value: T.List[str] = []
         for token in arr[2:]:
             try:
-                (v, desc) = confdata.get(token)
+                v, _ = confdata.get(token)
                 define_value += [str(v)]
             except KeyError:
                 define_value += [token]
@@ -1237,7 +1238,7 @@ def do_define(regex: T.Pattern[str], line: str, confdata: 'ConfigurationData',
 
     varname = arr[1]
     try:
-        (v, desc) = confdata.get(varname)
+        v, _ = confdata.get(varname)
     except KeyError:
         return '/* #undef %s */\n' % varname
     if isinstance(v, bool):
@@ -1253,7 +1254,7 @@ def do_define(regex: T.Pattern[str], line: str, confdata: 'ConfigurationData',
         else:
             result = get_cmake_define(line, confdata)
         result = f'#define {varname} {result}\n'
-        (result, missing_variable) = do_replacement(regex, result, variable_format, confdata)
+        result, _ = do_replacement(regex, result, variable_format, confdata)
         return result
     else:
         raise MesonException('#mesondefine argument "%s" is of unknown type.' % varname)
@@ -1267,9 +1268,9 @@ def get_variable_regex(variable_format: Literal['meson', 'cmake', 'cmake@'] = 'm
         regex = re.compile(r'(?:\\\\)+(?=\\?\$)|\\\${|\${([-a-zA-Z0-9_]+)}')
     return regex
 
-def do_conf_str(src: str, data: list, confdata: 'ConfigurationData',
+def do_conf_str(src: str, data: T.List[str], confdata: 'ConfigurationData',
                 variable_format: Literal['meson', 'cmake', 'cmake@'],
-                encoding: str = 'utf-8', subproject: T.Optional[SubProject] = None) -> T.Tuple[T.List[str], T.Set[str], bool]:
+                subproject: T.Optional[SubProject] = None) -> T.Tuple[T.List[str], T.Set[str], bool]:
     def line_is_valid(line: str, variable_format: str) -> bool:
         if variable_format == 'meson':
             if '#cmakedefine' in line:
@@ -1285,8 +1286,8 @@ def do_conf_str(src: str, data: list, confdata: 'ConfigurationData',
     if variable_format != 'meson':
         search_token = '#cmakedefine'
 
-    result = []
-    missing_variables = set()
+    result: T.List[str] = []
+    missing_variables: T.Set[str] = set()
     # Detect when the configuration data is empty and no tokens were found
     # during substitution so we can warn the user to use the `copy:` kwarg.
     confdata_useless = not confdata.keys()
@@ -1314,7 +1315,7 @@ def do_conf_file(src: str, dst: str, confdata: 'ConfigurationData',
     except Exception as e:
         raise MesonException(f'Could not read input file {src}: {e!s}')
 
-    (result, missing_variables, confdata_useless) = do_conf_str(src, data, confdata, variable_format, encoding, subproject)
+    (result, missing_variables, confdata_useless) = do_conf_str(src, data, confdata, variable_format, subproject)
     dst_tmp = dst + '~'
     try:
         with open(dst_tmp, 'w', encoding=encoding, newline='') as f:
@@ -1394,7 +1395,7 @@ def listify(item: T.Any, flatten: bool = True) -> T.List[T.Any]:
     '''
     if not isinstance(item, list):
         return [item]
-    result = []  # type: T.List[T.Any]
+    result: T.List[T.Any] = []
     for i in item:
         if flatten and isinstance(i, list):
             result += listify(i, flatten=True)
@@ -1435,7 +1436,7 @@ def stringlistify(item: T.Union[T.Any, T.Sequence[T.Any]]) -> T.List[str]:
 
 
 def expand_arguments(args: T.Iterable[str]) -> T.Optional[T.List[str]]:
-    expended_args = []  # type: T.List[str]
+    expended_args: T.List[str] = []
     for arg in args:
         if not arg.startswith('@'):
             expended_args.append(arg)
@@ -1554,8 +1555,8 @@ def iter_regexin_iter(regexiter: T.Iterable[str], initer: T.Iterable[str]) -> T.
 
 def _substitute_values_check_errors(command: T.List[str], values: T.Dict[str, T.Union[str, T.List[str]]]) -> None:
     # Error checking
-    inregex = ['@INPUT([0-9]+)?@', '@PLAINNAME@', '@BASENAME@']  # type: T.List[str]
-    outregex = ['@OUTPUT([0-9]+)?@', '@OUTDIR@']                 # type: T.List[str]
+    inregex: T.List[str] = ['@INPUT([0-9]+)?@', '@PLAINNAME@', '@BASENAME@']
+    outregex: T.List[str] = ['@OUTPUT([0-9]+)?@', '@OUTDIR@']
     if '@INPUT@' not in values:
         # Error out if any input-derived templates are present in the command
         match = iter_regexin_iter(inregex, command)
@@ -1619,7 +1620,7 @@ def substitute_values(command: T.List[str], values: T.Dict[str, T.Union[str, T.L
     _substitute_values_check_errors(command, values)
 
     # Substitution
-    outcmd = []  # type: T.List[str]
+    outcmd: T.List[str] = []
     rx_keys = [re.escape(key) for key in values if key not in ('@INPUT@', '@OUTPUT@')]
     value_rx = re.compile('|'.join(rx_keys)) if rx_keys else None
     for vv in command:
@@ -1685,7 +1686,7 @@ def get_filenames_templates_dict(inputs: T.List[str], outputs: T.List[str]) -> T
 
     @OUTPUT0@, @OUTPUT1@, ... one for each output file
     '''
-    values = {}  # type: T.Dict[str, T.Union[str, T.List[str]]]
+    values: T.Dict[str, T.Union[str, T.List[str]]] = {}
     # Gather values derived from the input
     if inputs:
         # We want to substitute all the inputs.
@@ -1964,7 +1965,7 @@ try:
     from tqdm import tqdm
 except ImportError:
     # ideally we would use a typing.Protocol here, but it's part of typing_extensions until 3.8
-    ProgressBar = ProgressBarFallback  # type: T.Union[T.Type[ProgressBarFallback], T.Type[ProgressBarTqdm]]
+    ProgressBar: T.Union[T.Type[ProgressBarFallback], T.Type[ProgressBarTqdm]] = ProgressBarFallback
 else:
     class ProgressBarTqdm(tqdm):
         def __init__(self, *args: T.Any, bar_type: T.Optional[str] = None, **kwargs: T.Any) -> None:
@@ -1991,7 +1992,7 @@ class RealPathAction(argparse.Action):
         super().__init__(option_strings, dest, nargs=None, default=default, **kwargs)
 
     def __call__(self, parser: argparse.ArgumentParser, namespace: argparse.Namespace,
-                 values: T.Union[str, T.Sequence[T.Any], None], option_string: str = None) -> None:
+                 values: T.Union[str, T.Sequence[T.Any], None], option_string: T.Optional[str] = None) -> None:
         assert isinstance(values, str)
         setattr(namespace, self.dest, os.path.abspath(os.path.realpath(values)))
 
@@ -2025,9 +2026,9 @@ def get_wine_shortpath(winecmd: T.List[str], wine_paths: T.List[str],
         return wine_path
 
     # Check paths that can be reduced by making them relative to workdir.
-    rel_paths = []
+    rel_paths: T.List[str] = []
     if workdir:
-        abs_paths = []
+        abs_paths: T.List[str] = []
         for p in wine_paths:
             try:
                 rel = Path(p).relative_to(workdir)
@@ -2064,7 +2065,7 @@ def get_wine_shortpath(winecmd: T.List[str], wine_paths: T.List[str],
 
 
 def run_once(func: T.Callable[..., _T]) -> T.Callable[..., _T]:
-    ret = []  # type: T.List[_T]
+    ret: T.List[_T] = []
 
     @wraps(func)
     def wrapper(*args: T.Any, **kwargs: T.Any) -> _T:

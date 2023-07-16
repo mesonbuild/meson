@@ -11,7 +11,7 @@ if T.TYPE_CHECKING:
     from ..mesonlib import MachineChoice
     from ..envconfig import MachineInfo
 
-nasm_optimization_args = {
+nasm_optimization_args: T.Dict[str, T.List[str]] = {
     'plain': [],
     '0': ['-O0'],
     'g': ['-O0'],
@@ -19,7 +19,7 @@ nasm_optimization_args = {
     '2': ['-Ox'],
     '3': ['-Ox'],
     's': ['-Ox'],
-}  # type: T.Dict[str, T.List[str]]
+}
 
 
 class NasmCompiler(Compiler):
@@ -69,7 +69,7 @@ class NasmCompiler(Compiler):
         return ['-o', outputname]
 
     def unix_args_to_native(self, args: T.List[str]) -> T.List[str]:
-        outargs = []
+        outargs: T.List[str] = []
         for arg in args:
             if arg == '-pthread':
                 continue
@@ -295,7 +295,12 @@ class MetrowerksAsmCompiler(MetrowerksCompiler, Compiler):
         Compiler.__init__(self, ccache, exelist, version, for_machine, info, linker, full_version, is_cross)
         MetrowerksCompiler.__init__(self)
 
-        self.warn_args = {'0': [], '1': [], '2': [], '3': [], 'everything': []}  # type: T.Dict[str, T.List[str]]
+        self.warn_args: T.Dict[str, T.List[str]] = {
+            '0': [],
+            '1': [],
+            '2': [],
+            '3': [],
+            'everything': []}
         self.can_compile_suffixes.add('s')
 
     def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:

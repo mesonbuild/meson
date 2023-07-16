@@ -50,40 +50,46 @@ if T.TYPE_CHECKING:
 else:
     CompilerMixinBase = object
 
-d_feature_args = {'gcc':  {'unittest': '-funittest',
-                           'debug': '-fdebug',
-                           'version': '-fversion',
-                           'import_dir': '-J'
-                           },
-                  'llvm': {'unittest': '-unittest',
-                           'debug': '-d-debug',
-                           'version': '-d-version',
-                           'import_dir': '-J'
-                           },
-                  'dmd':  {'unittest': '-unittest',
-                           'debug': '-debug',
-                           'version': '-version',
-                           'import_dir': '-J'
-                           }
-                  }  # type: T.Dict[str, T.Dict[str, str]]
+d_feature_args: T.Dict[str, T.Dict[str, str]] = {
+    'gcc':  {
+        'unittest': '-funittest',
+        'debug': '-fdebug',
+        'version': '-fversion',
+        'import_dir': '-J'
+    },
+    'llvm': {
+        'unittest': '-unittest',
+        'debug': '-d-debug',
+        'version': '-d-version',
+        'import_dir': '-J'
+    },
+    'dmd':  {
+        'unittest': '-unittest',
+        'debug': '-debug',
+        'version': '-version',
+        'import_dir': '-J'
+    }
+}
 
-ldc_optimization_args = {'plain': [],
-                         '0': [],
-                         'g': [],
-                         '1': ['-O1'],
-                         '2': ['-O2'],
-                         '3': ['-O3'],
-                         's': ['-Oz'],
-                         }  # type: T.Dict[str, T.List[str]]
+ldc_optimization_args: T.Dict[str, T.List[str]] = {
+    'plain': [],
+    '0': [],
+    'g': [],
+    '1': ['-O1'],
+    '2': ['-O2'],
+    '3': ['-O3'],
+    's': ['-Oz'],
+}
 
-dmd_optimization_args = {'plain': [],
-                         '0': [],
-                         'g': [],
-                         '1': ['-O'],
-                         '2': ['-O'],
-                         '3': ['-O'],
-                         's': ['-O'],
-                         }  # type: T.Dict[str, T.List[str]]
+dmd_optimization_args: T.Dict[str, T.List[str]] = {
+    'plain': [],
+    '0': [],
+    'g': [],
+    '1': ['-O'],
+    '2': ['-O'],
+    '3': ['-O'],
+    's': ['-O'],
+}
 
 
 class DmdLikeCompilerMixin(CompilerMixinBase):
@@ -102,7 +108,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
             self._dmd_has_depfile = version_compare(dmd_frontend_version, ">=2.095.0")
 
     if T.TYPE_CHECKING:
-        mscrt_args = {}  # type: T.Dict[str, T.List[str]]
+        mscrt_args: T.Dict[str, T.List[str]] = {}
 
         def _get_target_arch_args(self) -> T.List[str]: ...
 
@@ -166,7 +172,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
 
     def get_feature_args(self, kwargs: T.Dict[str, T.Any], build_to_src: str) -> T.List[str]:
         # TODO: using a TypeDict here would improve this
-        res = []
+        res: T.List[str] = []
         # get_feature_args can be called multiple times for the same target when there is generated source
         # so we have to copy the kwargs (target.d_features) dict before popping from it
         kwargs = kwargs.copy()
@@ -271,7 +277,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
             # The way that dmd and ldc pass rpath to gcc is different than we would
             # do directly, each argument -rpath and the value to rpath, need to be
             # split into two separate arguments both prefaced with the -L=.
-            args = []
+            args: T.List[str] = []
             (rpath_args, rpath_dirs_to_remove) = super().build_rpath_args(
                     env, build_dir, from_dir, rpath_paths, build_rpath, install_rpath)
             for r in rpath_args:
@@ -292,7 +298,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
         # can understand.
         # The flags might have been added by pkg-config files,
         # and are therefore out of the user's control.
-        dcargs = []
+        dcargs: T.List[str] = []
         # whether we hit a linker argument that expect another arg
         # see the comment in the "-L" section
         link_expect_arg = False
@@ -301,7 +307,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
         ]
         for arg in args:
             # Translate OS specific arguments first.
-            osargs = []  # type: T.List[str]
+            osargs: T.List[str] = []
             if info.is_windows():
                 osargs = cls.translate_arg_to_windows(arg)
             elif info.is_darwin():
@@ -415,7 +421,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
 
     @classmethod
     def translate_arg_to_windows(cls, arg: str) -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         if arg.startswith('-Wl,'):
             # Translate linker arguments here.
             linkargs = arg[arg.index(',') + 1:].split(',')
@@ -441,7 +447,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
 
     @classmethod
     def _translate_arg_to_osx(cls, arg: str) -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         if arg.startswith('-install_name'):
             args.append('-L=' + arg)
         return args
@@ -494,15 +500,14 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
 
         # LDC and DMD actually do use a linker, but they proxy all of that with
         # their own arguments
+        soargs: T.List[str] = []
         if self.linker.id.startswith('ld.'):
-            soargs = []
             for arg in sargs:
                 a, b = arg.split(',', maxsplit=1)
                 soargs.append(a)
                 soargs.append(self.LINKER_PREFIX + b)
             return soargs
         elif self.linker.id.startswith('ld64'):
-            soargs = []
             for arg in sargs:
                 if not arg.startswith(self.LINKER_PREFIX):
                     soargs.append(self.LINKER_PREFIX + arg)
@@ -583,7 +588,7 @@ class DCompiler(Compiler):
 
     def get_feature_args(self, kwargs: T.Dict[str, T.Any], build_to_src: str) -> T.List[str]:
         # TODO: using a TypeDict here would improve this
-        res = []
+        res: T.List[str] = []
         # get_feature_args can be called multiple times for the same target when there is generated source
         # so we have to copy the kwargs (target.d_features) dict before popping from it
         kwargs = kwargs.copy()
@@ -713,7 +718,7 @@ class DCompiler(Compiler):
         if need_exe_wrapper and self.exe_wrapper is None:
             raise compilers.CrossNoRunException('Can not run test applications in this cross environment.')
         extra_args = self._get_compile_extra_args(extra_args)
-        with self._build_wrapper(code, env, extra_args, dependencies, mode='link', want_output=True) as p:
+        with self._build_wrapper(code, env, extra_args, dependencies, mode=CompileCheckMode.LINK, want_output=True) as p:
             if p.returncode != 0:
                 mlog.debug(f'Could not compile test file {p.input_name}: {p.returncode}\n')
                 return compilers.RunResult(False)
@@ -786,7 +791,7 @@ class DCompiler(Compiler):
         import {hname};
         '''
         return self.compiles(code, env, extra_args=extra_args,
-                             dependencies=dependencies, mode='compile', disable_cache=disable_cache)
+                             dependencies=dependencies, mode=CompileCheckMode.COMPILE, disable_cache=disable_cache)
 
 class GnuDCompiler(GnuCompiler, DCompiler):
 

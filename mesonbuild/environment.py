@@ -82,7 +82,7 @@ def _get_env_var(for_machine: MachineChoice, is_cross: bool, var_name: str) -> T
     return value
 
 
-def detect_gcovr(min_version='3.3', log=False):
+def detect_gcovr(min_version: str = '3.3', log: bool = False):
     gcovr_exe = 'gcovr'
     try:
         p, found = Popen_safe([gcovr_exe, '--version'])[0:2]
@@ -178,7 +178,7 @@ def get_llvm_tool_names(tool: str) -> T.List[str]:
         '-15',    # Debian development snapshot
         '-devel', # FreeBSD development snapshot
     ]
-    names = []
+    names: T.List[str] = []
     for suffix in suffixes:
         names.append(tool + suffix)
     return names
@@ -197,15 +197,16 @@ def detect_scanbuild() -> T.List[str]:
     Return: a single-element list of the found scan-build binary ready to be
         passed to Popen()
     """
-    exelist = []
+    exelist: T.List[str] = []
     if 'SCANBUILD' in os.environ:
         exelist = split_args(os.environ['SCANBUILD'])
 
     else:
         tools = get_llvm_tool_names('scan-build')
         for tool in tools:
-            if shutil.which(tool) is not None:
-                exelist = [shutil.which(tool)]
+            which = shutil.which(tool)
+            if which is not None:
+                exelist = [which]
                 break
 
     if exelist:
@@ -270,7 +271,7 @@ def detect_windows_arch(compilers: CompilersDict) -> str:
             return 'x86'
     return os_arch
 
-def any_compiler_has_define(compilers: CompilersDict, define):
+def any_compiler_has_define(compilers: CompilersDict, define: str) -> bool:
     for c in compilers.values():
         try:
             if c.has_builtin_define(define):
@@ -488,7 +489,7 @@ class Environment:
             os.makedirs(self.log_dir, exist_ok=True)
             os.makedirs(self.info_dir, exist_ok=True)
             try:
-                self.coredata = coredata.load(self.get_build_dir())  # type: coredata.CoreData
+                self.coredata: coredata.CoreData = coredata.load(self.get_build_dir())
                 self.first_invocation = False
             except FileNotFoundError:
                 self.create_new_coredata(options)
@@ -521,13 +522,13 @@ class Environment:
 
         # Similar to coredata.compilers, but lower level in that there is no
         # meta data, only names/paths.
-        binaries = PerMachineDefaultable()  # type: PerMachineDefaultable[BinaryTable]
+        binaries: PerMachineDefaultable[BinaryTable] = PerMachineDefaultable()
 
         # Misc other properties about each machine.
-        properties = PerMachineDefaultable()  # type: PerMachineDefaultable[Properties]
+        properties: PerMachineDefaultable[Properties] = PerMachineDefaultable()
 
         # CMake toolchain variables
-        cmakevars = PerMachineDefaultable()  # type: PerMachineDefaultable[CMakeVariables]
+        cmakevars: PerMachineDefaultable[CMakeVariables] = PerMachineDefaultable()
 
         ## Setup build machine defaults
 
@@ -813,7 +814,7 @@ class Environment:
         return is_object(fname)
 
     @lru_cache(maxsize=None)
-    def is_library(self, fname):
+    def is_library(self, fname: mesonlib.FileOrString):
         return is_library(fname)
 
     def lookup_binary_entry(self, for_machine: MachineChoice, name: str) -> T.Optional[T.List[str]]:
@@ -873,7 +874,7 @@ class Environment:
     def get_datadir(self) -> str:
         return self.coredata.get_option(OptionKey('datadir'))
 
-    def get_compiler_system_lib_dirs(self, for_machine: MachineChoice):
+    def get_compiler_system_lib_dirs(self, for_machine: MachineChoice) -> T.List[str]:
         for comp in self.coredata.compilers[for_machine].values():
             if comp.id == 'clang':
                 index = 1
@@ -892,7 +893,7 @@ class Environment:
         out = out.split('\n')[index].lstrip('libraries: =').split(':')
         return [os.path.normpath(p) for p in out]
 
-    def get_compiler_system_include_dirs(self, for_machine: MachineChoice):
+    def get_compiler_system_include_dirs(self, for_machine: MachineChoice) -> T.List[str]:
         for comp in self.coredata.compilers[for_machine].values():
             if comp.id == 'clang':
                 break

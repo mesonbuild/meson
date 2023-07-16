@@ -92,12 +92,12 @@ clib_langs = ('objcpp', 'cpp', 'objc', 'c', 'nasm', 'fortran')
 clink_langs = ('d', 'cuda') + clib_langs
 
 SUFFIX_TO_LANG = dict(itertools.chain(*(
-    [(suffix, lang) for suffix in v] for lang, v in lang_suffixes.items()))) # type: T.Dict[str, str]
+    [(suffix, lang) for suffix in v] for lang, v in lang_suffixes.items())))
 
 # Languages that should use LDFLAGS arguments when linking.
-LANGUAGES_USING_LDFLAGS = {'objcpp', 'cpp', 'objc', 'c', 'fortran', 'd', 'cuda'}  # type: T.Set[str]
+LANGUAGES_USING_LDFLAGS = {'objcpp', 'cpp', 'objc', 'c', 'fortran', 'd', 'cuda'}
 # Languages that should use CPPFLAGS arguments when linking.
-LANGUAGES_USING_CPPFLAGS = {'c', 'cpp', 'objc', 'objcpp'}  # type: T.Set[str]
+LANGUAGES_USING_CPPFLAGS = {'c', 'cpp', 'objc', 'objcpp'}
 soregex = re.compile(r'.*\.so(\.[0-9]+)?(\.[0-9]+)?(\.[0-9]+)?$')
 
 # Environment variables that each lang uses.
@@ -190,99 +190,114 @@ class CompileCheckMode(enum.Enum):
     LINK = 'link'
 
 
-cuda_buildtype_args = {'plain': [],
-                       'debug': ['-g', '-G'],
-                       'debugoptimized': ['-g', '-lineinfo'],
-                       'release': [],
-                       'minsize': [],
-                       'custom': [],
-                       }  # type: T.Dict[str, T.List[str]]
-java_buildtype_args = {'plain': [],
-                       'debug': ['-g'],
-                       'debugoptimized': ['-g'],
-                       'release': [],
-                       'minsize': [],
-                       'custom': [],
-                       }  # type: T.Dict[str, T.List[str]]
+cuda_buildtype_args: T.Dict[str, T.List[str]] = {
+    'plain': [],
+    'debug': ['-g', '-G'],
+    'debugoptimized': ['-g', '-lineinfo'],
+    'release': [],
+    'minsize': [],
+    'custom': [],
+}
 
-rust_buildtype_args = {'plain': [],
-                       'debug': [],
-                       'debugoptimized': [],
-                       'release': [],
-                       'minsize': [],
-                       'custom': [],
-                       }  # type: T.Dict[str, T.List[str]]
+java_buildtype_args: T.Dict[str, T.List[str]] = {
+    'plain': [],
+    'debug': ['-g'],
+    'debugoptimized': ['-g'],
+    'release': [],
+    'minsize': [],
+    'custom': [],
+}
 
-d_gdc_buildtype_args = {'plain': [],
-                        'debug': [],
-                        'debugoptimized': ['-finline-functions'],
-                        'release': ['-finline-functions'],
-                        'minsize': [],
-                        'custom': [],
-                        }  # type: T.Dict[str, T.List[str]]
+rust_buildtype_args: T.Dict[str, T.List[str]] = {
+    'plain': [],
+    'debug': [],
+    'debugoptimized': [],
+    'release': [],
+    'minsize': [],
+    'custom': [],
+}
 
-d_ldc_buildtype_args = {'plain': [],
-                        'debug': [],
-                        'debugoptimized': ['-enable-inlining', '-Hkeep-all-bodies'],
-                        'release': ['-enable-inlining', '-Hkeep-all-bodies'],
-                        'minsize': [],
-                        'custom': [],
-                        }  # type: T.Dict[str, T.List[str]]
+d_gdc_buildtype_args: T.Dict[str, T.List[str]] = {
+    'plain': [],
+    'debug': [],
+    'debugoptimized': ['-finline-functions'],
+    'release': ['-finline-functions'],
+    'minsize': [],
+    'custom': [],
+}
 
-d_dmd_buildtype_args = {'plain': [],
-                        'debug': [],
-                        'debugoptimized': ['-inline'],
-                        'release': ['-inline'],
-                        'minsize': [],
-                        'custom': [],
-                        }  # type: T.Dict[str, T.List[str]]
+d_ldc_buildtype_args: T.Dict[str, T.List[str]] = {
+    'plain': [],
+    'debug': [],
+    'debugoptimized': ['-enable-inlining', '-Hkeep-all-bodies'],
+    'release': ['-enable-inlining', '-Hkeep-all-bodies'],
+    'minsize': [],
+    'custom': [],
+}
 
-mono_buildtype_args = {'plain': [],
-                       'debug': [],
-                       'debugoptimized': ['-optimize+'],
-                       'release': ['-optimize+'],
-                       'minsize': [],
-                       'custom': [],
-                       }  # type: T.Dict[str, T.List[str]]
+d_dmd_buildtype_args: T.Dict[str, T.List[str]] = {
+    'plain': [],
+    'debug': [],
+    'debugoptimized': ['-inline'],
+    'release': ['-inline'],
+    'minsize': [],
+    'custom': [],
+}
 
-swift_buildtype_args = {'plain': [],
-                        'debug': [],
-                        'debugoptimized': [],
-                        'release': [],
-                        'minsize': [],
-                        'custom': [],
-                        }  # type: T.Dict[str, T.List[str]]
+mono_buildtype_args: T.Dict[str, T.List[str]] = {
+    'plain': [],
+    'debug': [],
+    'debugoptimized': ['-optimize+'],
+    'release': ['-optimize+'],
+    'minsize': [],
+    'custom': [],
+}
+
+swift_buildtype_args: T.Dict[str, T.List[str]] = {
+    'plain': [],
+    'debug': [],
+    'debugoptimized': [],
+    'release': [],
+    'minsize': [],
+    'custom': [],
+}
 
 gnu_winlibs = ['-lkernel32', '-luser32', '-lgdi32', '-lwinspool', '-lshell32',
-               '-lole32', '-loleaut32', '-luuid', '-lcomdlg32', '-ladvapi32']  # type: T.List[str]
+               '-lole32', '-loleaut32', '-luuid', '-lcomdlg32', '-ladvapi32']
 
 msvc_winlibs = ['kernel32.lib', 'user32.lib', 'gdi32.lib',
                 'winspool.lib', 'shell32.lib', 'ole32.lib', 'oleaut32.lib',
-                'uuid.lib', 'comdlg32.lib', 'advapi32.lib']  # type: T.List[str]
+                'uuid.lib', 'comdlg32.lib', 'advapi32.lib']
 
-clike_optimization_args = {'plain': [],
-                           '0': [],
-                           'g': [],
-                           '1': ['-O1'],
-                           '2': ['-O2'],
-                           '3': ['-O3'],
-                           's': ['-Os'],
-                           }  # type: T.Dict[str, T.List[str]]
+clike_optimization_args: T.Dict[str, T.List[str]] = {
+    'plain': [],
+    '0': [],
+    'g': [],
+    '1': ['-O1'],
+    '2': ['-O2'],
+    '3': ['-O3'],
+    's': ['-Os'],
+}
 
-cuda_optimization_args = {'plain': [],
-                          '0': [],
-                          'g': ['-O0'],
-                          '1': ['-O1'],
-                          '2': ['-O2'],
-                          '3': ['-O3'],
-                          's': ['-O3']
-                          }  # type: T.Dict[str, T.List[str]]
+cuda_optimization_args: T.Dict[str, T.List[str]] = {
+    'plain': [],
+    '0': [],
+    'g': ['-O0'],
+    '1': ['-O1'],
+    '2': ['-O2'],
+    '3': ['-O3'],
+    's': ['-O3']
+}
 
-cuda_debug_args = {False: [],
-                   True: ['-g']}  # type: T.Dict[bool, T.List[str]]
+cuda_debug_args: T.Dict[bool, T.List[str]] = {
+    False: [],
+    True: ['-g']
+}
 
-clike_debug_args = {False: [],
-                    True: ['-g']}  # type: T.Dict[bool, T.List[str]]
+clike_debug_args: T.Dict[bool, T.List[str]] = {
+    False: [],
+    True: ['-g']
+}
 
 base_options: 'KeyedOptionDictType' = {
     OptionKey('b_pch'): coredata.UserBooleanOption('Use precompiled headers', True),
@@ -350,7 +365,7 @@ def are_asserts_disabled(options: KeyedOptionDictType) -> bool:
 
 
 def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler') -> T.List[str]:
-    args = []  # type T.List[str]
+    args: T.List[str] = []
     try:
         if options[OptionKey('b_lto')].value:
             args.extend(compiler.get_lto_compile_args(
@@ -399,7 +414,7 @@ def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler') 
 
 def get_base_link_args(options: 'KeyedOptionDictType', linker: 'Compiler',
                        is_shared_module: bool, build_dir: str) -> T.List[str]:
-    args = []  # type: T.List[str]
+    args: T.List[str] = []
     try:
         if options[OptionKey('b_lto')].value:
             thinlto_cache_dir = None
@@ -499,18 +514,18 @@ class CompileResult(HoldableObject):
 class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     # Libraries to ignore in find_library() since they are provided by the
     # compiler or the C library. Currently only used for MSVC.
-    ignore_libs = []  # type: T.List[str]
+    ignore_libs: T.List[str] = []
     # Libraries that are internal compiler implementations, and must not be
     # manually searched.
-    internal_libs = []  # type: T.List[str]
+    internal_libs: T.List[str] = []
 
-    LINKER_PREFIX = None  # type: T.Union[None, str, T.List[str]]
+    LINKER_PREFIX: T.Union[None, str, T.List[str]] = None
     INVOKES_LINKER = True
 
     language: str
     id: str
     warn_args: T.Dict[str, T.List[str]]
-    mode: str = 'COMPILER'
+    mode = CompileCheckMode.COMPILE
 
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str,
                  for_machine: MachineChoice, info: 'MachineInfo',
@@ -522,7 +537,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         if not hasattr(self, 'file_suffixes'):
             self.file_suffixes = lang_suffixes[self.language]
         if not hasattr(self, 'can_compile_suffixes'):
-            self.can_compile_suffixes = set(self.file_suffixes)
+            self.can_compile_suffixes: T.Set[str] = set(self.file_suffixes)
         self.default_suffix = self.file_suffixes[0]
         self.version = version
         self.full_version = full_version
@@ -784,22 +799,18 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def has_multi_link_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
         return self.linker.has_multi_arguments(args, env)
 
-    def _get_compile_output(self, dirname: str, mode: str) -> str:
-        # TODO: mode should really be an enum
-        # In pre-processor mode, the output is sent to stdout and discarded
-        if mode == 'preprocess':
-            return None
+    def _get_compile_output(self, dirname: str, mode: CompileCheckMode) -> str:
+        assert mode != CompileCheckMode.PREPROCESS, 'In pre-processor mode, the output is sent to stdout and discarded'
         # Extension only matters if running results; '.exe' is
         # guaranteed to be executable on every platform.
-        if mode == 'link':
+        if mode == CompileCheckMode.LINK:
             suffix = 'exe'
         else:
             suffix = 'obj'
         return os.path.join(dirname, 'output.' + suffix)
 
     def get_compiler_args_for_mode(self, mode: CompileCheckMode) -> T.List[str]:
-        # TODO: mode should really be an enum
-        args = []  # type: T.List[str]
+        args: T.List[str] = []
         args += self.get_always_args()
         if mode is CompileCheckMode.COMPILE:
             args += self.get_compile_only_args()
@@ -816,9 +827,13 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     @contextlib.contextmanager
     def compile(self, code: 'mesonlib.FileOrString',
                 extra_args: T.Union[None, CompilerArgs, T.List[str]] = None,
-                *, mode: str = 'link', want_output: bool = False,
+                *, mode: CompileCheckMode = CompileCheckMode.LINK, want_output: bool = False,
                 temp_dir: T.Optional[str] = None) -> T.Iterator[T.Optional[CompileResult]]:
         # TODO: there isn't really any reason for this to be a contextmanager
+
+        if mode == CompileCheckMode.PREPROCESS:
+            assert not want_output, 'In pre-processor mode, the output is sent to stdout and discarded'
+
         if extra_args is None:
             extra_args = []
 
@@ -845,8 +860,8 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             commands.append(srcname)
 
             # Preprocess mode outputs to stdout, so no output args
-            output = self._get_compile_output(tmpdirname, mode)
-            if mode != 'preprocess':
+            if mode != CompileCheckMode.PREPROCESS:
+                output = self._get_compile_output(tmpdirname, mode)
                 commands += self.get_output_args(output)
             commands.extend(self.get_compiler_args_for_mode(CompileCheckMode(mode)))
 
@@ -874,13 +889,13 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     @contextlib.contextmanager
     def cached_compile(self, code: 'mesonlib.FileOrString', cdata: coredata.CoreData, *,
                        extra_args: T.Union[None, T.List[str], CompilerArgs] = None,
-                       mode: str = 'link',
+                       mode: CompileCheckMode = CompileCheckMode.LINK,
                        temp_dir: T.Optional[str] = None) -> T.Iterator[T.Optional[CompileResult]]:
         # TODO: There's isn't really any reason for this to be a context manager
 
         # Calculate the key
-        textra_args = tuple(extra_args) if extra_args is not None else tuple()  # type: T.Tuple[str, ...]
-        key = (tuple(self.exelist), self.version, code, textra_args, mode)  # type: coredata.CompilerCheckCacheKey
+        textra_args: T.Tuple[str, ...] = tuple(extra_args) if extra_args is not None else tuple()
+        key: coredata.CompilerCheckCacheKey = (tuple(self.exelist), self.version, code, textra_args, mode)
 
         # Check if not cached, and generate, otherwise get from the cache
         if key in cdata.compiler_check_cache:
@@ -906,7 +921,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def get_compile_debugfile_args(self, rel_obj: str, pch: bool = False) -> T.List[str]:
         return []
 
-    def get_link_debugfile_name(self, targetfile: str) -> str:
+    def get_link_debugfile_name(self, targetfile: str) -> T.Optional[str]:
         return self.linker.get_debugfile_name(targetfile)
 
     def get_link_debugfile_args(self, targetfile: str) -> T.List[str]:
@@ -1013,7 +1028,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         rm_exact = ('-headerpad_max_install_names',)
         rm_prefixes = ('-Wl,', '-L',)
         rm_next = ('-L', '-framework',)
-        ret = []  # T.List[str]
+        ret: T.List[str] = []
         iargs = iter(args)
         for arg in iargs:
             # Remove this argument
@@ -1283,15 +1298,14 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def _build_wrapper(self, code: 'mesonlib.FileOrString', env: 'Environment',
                        extra_args: T.Union[None, CompilerArgs, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
                        dependencies: T.Optional[T.List['Dependency']] = None,
-                       mode: str = 'compile', want_output: bool = False,
-                       disable_cache: bool = False,
-                       temp_dir: str = None) -> T.Iterator[T.Optional[CompileResult]]:
+                       mode: CompileCheckMode = CompileCheckMode.COMPILE, want_output: bool = False,
+                       disable_cache: bool = False) -> T.Iterator[T.Optional[CompileResult]]:
         """Helper for getting a cached value when possible.
 
         This method isn't meant to be called externally, it's mean to be
         wrapped by other methods like compiles() and links().
         """
-        args = self.build_wrapper_args(env, extra_args, dependencies, CompileCheckMode(mode))
+        args = self.build_wrapper_args(env, extra_args, dependencies, mode)
         if disable_cache or want_output:
             with self.compile(code, extra_args=args, mode=mode, want_output=want_output, temp_dir=env.scratch_dir) as r:
                 yield r
@@ -1302,7 +1316,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def compiles(self, code: 'mesonlib.FileOrString', env: 'Environment', *,
                  extra_args: T.Union[None, T.List[str], CompilerArgs, T.Callable[[CompileCheckMode], T.List[str]]] = None,
                  dependencies: T.Optional[T.List['Dependency']] = None,
-                 mode: str = 'compile',
+                 mode: CompileCheckMode = CompileCheckMode.COMPILE,
                  disable_cache: bool = False) -> T.Tuple[bool, bool]:
         with self._build_wrapper(code, env, extra_args, dependencies, mode, disable_cache=disable_cache) as p:
             return p.returncode == 0, p.cached
@@ -1311,16 +1325,15 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
               compiler: T.Optional['Compiler'] = None,
               extra_args: T.Union[None, T.List[str], CompilerArgs, T.Callable[[CompileCheckMode], T.List[str]]] = None,
               dependencies: T.Optional[T.List['Dependency']] = None,
-              mode: str = 'compile',
               disable_cache: bool = False) -> T.Tuple[bool, bool]:
         if compiler:
             with compiler._build_wrapper(code, env, dependencies=dependencies, want_output=True) as r:
                 objfile = mesonlib.File.from_absolute_file(r.output_name)
                 return self.compiles(objfile, env, extra_args=extra_args,
-                                     dependencies=dependencies, mode='link', disable_cache=True)
+                                     dependencies=dependencies, mode=CompileCheckMode.LINK, disable_cache=True)
 
         return self.compiles(code, env, extra_args=extra_args,
-                             dependencies=dependencies, mode='link', disable_cache=disable_cache)
+                             dependencies=dependencies, mode=CompileCheckMode.LINK, disable_cache=disable_cache)
 
     def get_feature_args(self, kwargs: T.Dict[str, T.Any], build_to_src: str) -> T.List[str]:
         """Used by D for extra language features."""

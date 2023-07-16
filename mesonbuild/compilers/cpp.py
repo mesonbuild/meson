@@ -26,6 +26,7 @@ from .compilers import (
     gnu_winlibs,
     msvc_winlibs,
     Compiler,
+    CompileCheckMode,
 )
 from .c_function_attributes import CXX_FUNC_ATTRIBUTES, C_FUNC_ATTRIBUTES
 from .mixins.clike import CLikeCompiler
@@ -43,7 +44,6 @@ from .mixins.metrowerks import MetrowerksCompiler
 from .mixins.metrowerks import mwccarm_instruction_set_args, mwcceppc_instruction_set_args
 
 if T.TYPE_CHECKING:
-    from .compilers import CompileCheckMode
     from ..coredata import MutableKeyedOptionDictType, KeyedOptionDictType
     from ..dependencies import Dependency
     from ..envconfig import MachineInfo
@@ -82,8 +82,8 @@ class CPPCompiler(CLikeCompiler, Compiler):
                           full_version=full_version)
         CLikeCompiler.__init__(self, exe_wrapper)
 
-    @staticmethod
-    def get_display_language() -> str:
+    @classmethod
+    def get_display_language(cls) -> str:
         return 'C++'
 
     def get_no_stdinc_args(self) -> T.List[str]:
@@ -129,7 +129,7 @@ class CPPCompiler(CLikeCompiler, Compiler):
         # 2. even if it did have an env object, that might contain another more
         #    recent -std= argument, which might lead to a cascaded failure.
         CPP_TEST = 'int i = static_cast<int>(0);'
-        with self.compile(CPP_TEST, extra_args=[cpp_std_value], mode='compile') as p:
+        with self.compile(CPP_TEST, extra_args=[cpp_std_value], mode=CompileCheckMode.COMPILE) as p:
             if p.returncode == 0:
                 mlog.debug(f'Compiler accepts {cpp_std_value}:', 'YES')
                 return True
@@ -263,7 +263,7 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCompiler, CPPCompiler):
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         std = options[key]
         if std.value != 'none':
@@ -315,7 +315,7 @@ class EmscriptenCPPCompiler(EmscriptenMixin, ClangCPPCompiler):
                                   defines=defines, full_version=full_version)
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         std = options[key]
         if std.value != 'none':
@@ -359,7 +359,7 @@ class ArmclangCPPCompiler(ArmclangCompiler, CPPCompiler):
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         std = options[key]
         if std.value != 'none':
@@ -425,7 +425,7 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCompiler, CPPCompiler):
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         std = options[key]
         if std.value != 'none':
@@ -536,7 +536,7 @@ class ElbrusCPPCompiler(ElbrusCompiler, CPPCompiler):
 
     # Elbrus C++ compiler does not support RTTI, so don't check for it.
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         std = options[key]
         if std.value != 'none':
@@ -597,7 +597,7 @@ class IntelCPPCompiler(IntelGnuLikeCompiler, CPPCompiler):
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         std = options[key]
         if std.value != 'none':
@@ -664,7 +664,7 @@ class VisualStudioLikeCPPCompilerMixin(CompilerMixinBase):
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
 
         eh = options[key.evolve('eh')]
@@ -829,7 +829,7 @@ class ArmCPPCompiler(ArmCompiler, CPPCompiler):
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         std = options[key]
         if std.value == 'c++11':
@@ -864,8 +864,8 @@ class CcrxCPPCompiler(CcrxCompiler, CPPCompiler):
     def get_compile_only_args(self) -> T.List[str]:
         return []
 
-    def get_output_args(self, target: str) -> T.List[str]:
-        return [f'-output=obj={target}']
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        return [f'-output=obj={outputname}']
 
     def get_option_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         return []
@@ -889,7 +889,7 @@ class TICPPCompiler(TICompiler, CPPCompiler):
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         std = options[key]
         if std.value != 'none':
@@ -928,7 +928,7 @@ class MetrowerksCPPCompilerARM(MetrowerksCompiler, CPPCompiler):
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         std = options[OptionKey('std', machine=self.for_machine, lang=self.language)]
         if std.value != 'none':
             args.append('-lang')
@@ -957,7 +957,7 @@ class MetrowerksCPPCompilerEmbeddedPowerPC(MetrowerksCompiler, CPPCompiler):
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         std = options[OptionKey('std', machine=self.for_machine, lang=self.language)]
         if std.value != 'none':
             args.append('-lang ' + std.value)
