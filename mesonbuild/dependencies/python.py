@@ -113,8 +113,15 @@ class BasicPythonExternalProgram(ExternalProgram):
         # Sanity check, we expect to have something that at least quacks in tune
 
         import importlib.resources
+        import sys
+        if sys.version_info >= (3, 9):
+            ctx = importlib.resources.as_file(
+                importlib.resources.files('mesonbuild.scripts').joinpath('python_info.py')
+            )
+        else:
+            ctx = importlib.resources.path('mesonbuild.scripts', 'python_info.py')
 
-        with importlib.resources.path('mesonbuild.scripts', 'python_info.py') as f:
+        with ctx as f:
             cmd = self.get_command() + [str(f)]
             env = os.environ.copy()
             env['SETUPTOOLS_USE_DISTUTILS'] = 'stdlib'

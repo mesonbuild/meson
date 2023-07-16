@@ -398,7 +398,11 @@ class PythonModule(ExtensionModule):
         import importlib.resources
         pycompile = os.path.join(self.interpreter.environment.get_scratch_dir(), 'pycompile.py')
         with open(pycompile, 'wb') as f:
-            f.write(importlib.resources.read_binary('mesonbuild.scripts', 'pycompile.py'))
+            import sys
+            if sys.version_info >= (3, 9):
+                f.write(importlib.resources.files('mesonbuild.scripts').joinpath('pycompile.py').read_bytes())
+            else:
+                f.write(importlib.resources.read_binary('mesonbuild.scripts', 'pycompile.py'))
 
         for i in self.installations.values():
             if isinstance(i, PythonExternalProgram) and i.run_bytecompile[i.info['version']]:
