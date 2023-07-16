@@ -3,7 +3,7 @@ project('meson-d-sample', 'd',
 )
 
 my_dep = declare_dependency(
-    d_module_versions: ['TestVersion', 1],
+    d_module_versions: ['TestVersion'],
     d_import_dirs: include_directories('views'),
 )
 
