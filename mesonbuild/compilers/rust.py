@@ -63,7 +63,10 @@ class RustCompiler(Compiler):
         super().__init__([], exelist, version, for_machine, info,
                          is_cross=is_cross, full_version=full_version,
                          linker=linker)
-        self.exe_wrapper = exe_wrapper
+        if not exe_wrapper or not exe_wrapper.found() or not exe_wrapper.get_command():
+            self.exe_wrapper = None
+        else:
+            self.exe_wrapper = exe_wrapper
         self.base_options.update({OptionKey(o) for o in ['b_colorout', 'b_ndebug']})
         if 'link' in self.linker.id:
             self.base_options.add(OptionKey('b_vscrt'))
