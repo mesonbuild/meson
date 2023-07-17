@@ -143,13 +143,6 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
             elif Path(arg).is_file():
                 self.link_args.append(arg)
 
-        # If the language is not C we need to add C as a subdependency
-        if language != 'c':
-            nkwargs = kwargs.copy()
-            nkwargs['language'] = 'c'
-            # I'm being too clever for mypy and pylint
-            self.is_found = self._add_sub_dependency(hdf5_factory(environment, for_machine, nkwargs))  # pylint: disable=no-value-for-parameter
-
     def _sanitize_version(self, ver: str) -> str:
         v = re.search(r'\s*HDF5 Version: (\d+\.\d+\.\d+)', ver)
         return v.group(1)
