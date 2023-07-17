@@ -98,12 +98,15 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
 
         if language == 'c':
             cenv = 'CC'
+            lenv = 'C'
             tools = ['h5cc', 'h5pcc']
         elif language == 'cpp':
             cenv = 'CXX'
+            lenv = 'CXX'
             tools = ['h5c++', 'h5pc++']
         elif language == 'fortran':
             cenv = 'FC'
+            lenv = 'F'
             tools = ['h5fc', 'h5pfc']
         else:
             raise DependencyException('How did you get here?')
@@ -120,11 +123,11 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
         compiler = environment.coredata.compilers[for_machine][language]
         try:
             os.environ[f'HDF5_{cenv}'] = join_args(compiler.get_exelist())
-            os.environ[f'HDF5_{cenv}LINKER'] = join_args(compiler.get_linker_exelist())
+            os.environ[f'HDF5_{lenv}LINKER'] = join_args(compiler.get_linker_exelist())
             super().__init__(name, environment, nkwargs, language)
         finally:
             del os.environ[f'HDF5_{cenv}']
-            del os.environ[f'HDF5_{cenv}LINKER']
+            del os.environ[f'HDF5_{lenv}LINKER']
         if not self.is_found:
             return
 
