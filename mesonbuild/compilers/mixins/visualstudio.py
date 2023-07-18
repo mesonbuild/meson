@@ -182,7 +182,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         return ['/fsanitize=address']
 
     def get_output_args(self, outputname: str) -> T.List[str]:
-        if self.mode == CompileCheckMode.PREPROCESS:
+        if self.mode == 'PREPROCESSOR':
             return ['/Fi' + outputname]
         if outputname.endswith('.exe'):
             return ['/Fe' + outputname]

@@ -1359,7 +1359,7 @@ class CLikeCompiler(Compiler):
     @functools.lru_cache(maxsize=None)
     def can_compile(self, src: 'mesonlib.FileOrString') -> bool:
         # Files we preprocess can be anything, e.g. .in
-        if self.mode == CompileCheckMode.PREPROCESS:
+        if self.mode == 'PREPROCESSOR':
             return True
         return super().can_compile(src)
 
@@ -1367,6 +1367,6 @@ class CLikeCompiler(Compiler):
         if not self.preprocessor:
             self.preprocessor = copy.copy(self)
             self.preprocessor.exelist = self.exelist + self.get_preprocess_to_file_args()
-            self.preprocessor.mode = CompileCheckMode.PREPROCESS
+            self.preprocessor.mode = 'PREPROCESSOR'
             self.modes.append(self.preprocessor)
         return self.preprocessor
