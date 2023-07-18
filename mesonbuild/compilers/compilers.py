@@ -527,7 +527,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     language: str
     id: str
     warn_args: T.Dict[str, T.List[str]]
-    mode = CompileCheckMode.COMPILE
+    mode = 'COMPILER'
 
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str,
                  for_machine: MachineChoice, info: 'MachineInfo',
