@@ -327,7 +327,8 @@ class _BuildTarget(_BaseBuildTarget):
 
 
 class Executable(_BuildTarget):
-    pass
+
+    gui_app: T.Optional[bool]
 
 
 class StaticLibrary(_BuildTarget):

@@ -492,7 +492,9 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
 
 # Arguments exclusive to Executable. These are separated to make integrating
 # them into build_target easier
-_EXCLUSIVE_EXECUTABLE_KWS: T.List[KwargInfo] = []
+_EXCLUSIVE_EXECUTABLE_KWS: T.List[KwargInfo] = [
+    KwargInfo('gui_app', (bool, NoneType), deprecated='0.56.0', deprecated_message="Use 'win_subsystem' instead")
+]
 
 # The total list of arguments used by Executable
 EXECUTABLE_KWS = [

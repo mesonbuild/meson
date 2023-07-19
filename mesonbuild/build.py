@@ -1151,12 +1151,10 @@ class BuildTarget(Target):
             # This kwarg is deprecated. The value of "none" means that the kwarg
             # was not specified and win_subsystem should be used instead.
             self.gui_app = None
-            if 'gui_app' in kwargs:
+            if kwargs.get('gui_app') is not None:
                 if 'win_subsystem' in kwargs:
                     raise InvalidArguments('Can specify only gui_app or win_subsystem for a target, not both.')
                 self.gui_app = kwargs['gui_app']
-                if not isinstance(self.gui_app, bool):
-                    raise InvalidArguments('Argument gui_app must be boolean.')
             self.win_subsystem = self.validate_win_subsystem(kwargs.get('win_subsystem', 'console'))
         elif 'gui_app' in kwargs:
             raise InvalidArguments('Argument gui_app can only be used on executables.')
