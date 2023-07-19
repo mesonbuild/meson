@@ -1,5 +1,7 @@
 project('complex link cases', 'c')
 
+cc = meson.get_compiler('c')
+
 # In all tests, e1 uses s3 which uses s2 which uses s1.
 
 # Executable links with s3 and s1 but not s2 because it is included in s3.
@@ -58,3 +60,52 @@ e = executable('t8-e1', 'main.c',
   link_with: [s1, s2],
   dependencies: declare_dependency(link_with: s3),
 )
+
+if cc.get_argument_syntax() == 'gcc'
+  # s1 is an internal static library, using custom target.
+  s1_o = custom_target(
+    input: 's1.c',
+    output: 's1.c.o',
+    command: [cc.cmd_array(), '-c', '-o', '@OUTPUT@', '@INPUT@']
+  )
+  s1 = custom_target(
+      output: 'libt9-s1.a',
+      command: ['ar', 'rcs', '@OUTPUT@', s1_o],
+  )
+
+  # Executable needs to link with s1, s2 and s3.
+  s2 = static_library('t9-s2', 's2.c', link_with: s1)
+  s3 = static_library('t9-s3', 's3.c', link_with: s2)
+  e = executable('t9-e1', 'main.c', link_with: s3)
+
+  # s2 cannot be installed because s1 is not being installed and Meson cannot
+  # extract object files from the custom target.
+  testcase expect_error('Cannot link_whole a custom or Rust target \'libt9-s1.a\' into a static library \'t10-s2\'. Instead, pass individual object files with the "objects:" keyword argument if possible. Meson had to promote link to link_whole because \'t10-s2\' is installed but not \'libt9-s1.a\', and thus has to include objects from \'libt9-s1.a\' to be usable.')
+    s2 = static_library('t10-s2', 's2.c', link_with: s1, install: true)
+  endtestcase
+
+  # s3 cannot be installed because s1 is not being installed and Meson cannot
+  # extract object files from the custom target.
+  testcase expect_error('Cannot link_whole a custom or Rust target \'libt9-s1.a\' into a static library \'t11-s3\'. Instead, pass individual object files with the "objects:" keyword argument if possible. Meson had to promote link to link_whole because \'t11-s3\' is installed but not \'libt9-s1.a\', and thus has to include objects from \'libt9-s1.a\' to be usable.')
+      s2 = static_library('t11-s2', 's2.c', link_with: s1)
+      s3 = static_library('t11-s3', 's3.c', link_with: s2, install: true)
+  endtestcase
+
+  # s1 is an installed static library, using custom target.
+  s1 = custom_target(
+      output: 'libt12-s1.a',
+      command: ['ar', 'rcs', '@OUTPUT@', s1_o],
+      install: true,
+      install_dir: get_option('libdir'),
+  )
+
+  # Executable needs to link with s1, s2 and s3.
+  s2 = static_library('t12-s2', 's2.c', link_with: s1, install: true)
+  s3 = static_library('t12-s3', 's3.c', link_with: s2)
+  e = executable('t12-e1', 'main.c', link_with: s3)
+
+  # Executable links with s3 and s1 but not s2 because it is included in s3.
+  s2 = static_library('t13-s2', 's2.c', link_with: s1)
+  s3 = static_library('t13-s3', 's3.c', link_with: s2, install: true)
+  e = executable('t13-e1', 'main.c', link_with: s3)
+endif
