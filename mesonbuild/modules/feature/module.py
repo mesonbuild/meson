@@ -390,7 +390,13 @@ class Module(NewExtensionModule):
             ' \\\n'.join(dispatch_calls),
             '',
         ]
-        config_path = os.path.join(state.backend.src_to_build, state.subdir, config_name)
+
+        src_dir = state.environment.source_dir
+        sub_dir = state.subdir
+        if sub_dir:
+            src_dir = os.path.join(src_dir, state.subdir)
+        config_path = os.path.abspath(os.path.join(src_dir, config_name))
+
         mlog.log(
             "Generating", config_name, 'into path', config_path,
             "based on the specifed targets"
