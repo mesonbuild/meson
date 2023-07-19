@@ -348,7 +348,9 @@ class Library(_BuildTarget):
 
 
 class BuildTarget(Library):
-    pass
+
+    target_type: Literal['executable', 'shared_library', 'static_library',
+                         'shared_module', 'both_libraries', 'library', 'jar']
 
 
 class Jar(_BaseBuildTarget):
