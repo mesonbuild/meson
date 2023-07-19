@@ -50,12 +50,16 @@ from .interpreterobjects import (
     NullSubprojectInterpreter,
 )
 from .type_checking import (
+    BUILD_TARGET_KWS,
     COMMAND_KW,
     CT_BUILD_ALWAYS,
     CT_BUILD_ALWAYS_STALE,
     CT_BUILD_BY_DEFAULT,
     CT_INPUT_KW,
     CT_INSTALL_DIR_KW,
+    EXECUTABLE_KWS,
+    JAR_KWS,
+    LIBRARY_KWS,
     MULTI_OUTPUT_KW,
     OUTPUT_KW,
     DEFAULT_OPTIONS,
@@ -78,10 +82,12 @@ from .type_checking import (
     INSTALL_TAG_KW,
     LANGUAGE_KW,
     NATIVE_KW,
-    OVERRIDE_OPTIONS_KW,
     PRESERVE_PATH_KW,
     REQUIRED_KW,
+    SHARED_LIB_KWS,
+    SHARED_MOD_KWS,
     SOURCES_KW,
+    STATIC_LIB_KWS,
     VARIABLES_KW,
     TEST_KWS,
     NoneType,
@@ -1805,7 +1811,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @FeatureDeprecatedKwargs('executable', '0.56.0', ['gui_app'], extra_message="Use 'win_subsystem' instead.")
     @permittedKwargs(build.known_exe_kwargs)
     @typed_pos_args('executable', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.StructuredSources, build.ExtractedObjects, build.BuildTarget))
-    @typed_kwargs('executable', OVERRIDE_OPTIONS_KW, allow_unknown=True)
+    @typed_kwargs('executable', *EXECUTABLE_KWS, allow_unknown=True)
     def func_executable(self, node: mparser.BaseNode,
                         args: T.Tuple[str, T.List[BuildTargetSource]],
                         kwargs: kwtypes.Executable) -> build.Executable:
@@ -1813,7 +1819,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     @permittedKwargs(build.known_stlib_kwargs)
     @typed_pos_args('static_library', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.StructuredSources, build.ExtractedObjects, build.BuildTarget))
-    @typed_kwargs('static_library', OVERRIDE_OPTIONS_KW, allow_unknown=True)
+    @typed_kwargs('static_library', *STATIC_LIB_KWS, allow_unknown=True)
     def func_static_lib(self, node: mparser.BaseNode,
                         args: T.Tuple[str, T.List[BuildTargetSource]],
                         kwargs: kwtypes.StaticLibrary) -> build.StaticLibrary:
@@ -1821,7 +1827,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     @permittedKwargs(build.known_shlib_kwargs)
     @typed_pos_args('shared_library', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.StructuredSources, build.ExtractedObjects, build.BuildTarget))
-    @typed_kwargs('shared_library', OVERRIDE_OPTIONS_KW, allow_unknown=True)
+    @typed_kwargs('shared_library', *SHARED_LIB_KWS, allow_unknown=True)
     def func_shared_lib(self, node: mparser.BaseNode,
                         args: T.Tuple[str, T.List[BuildTargetSource]],
                         kwargs: kwtypes.SharedLibrary) -> build.SharedLibrary:
@@ -1831,7 +1837,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     @permittedKwargs(known_library_kwargs)
     @typed_pos_args('both_libraries', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.StructuredSources, build.ExtractedObjects, build.BuildTarget))
-    @typed_kwargs('both_libraries', OVERRIDE_OPTIONS_KW, allow_unknown=True)
+    @typed_kwargs('both_libraries', *LIBRARY_KWS, allow_unknown=True)
     def func_both_lib(self, node: mparser.BaseNode,
                       args: T.Tuple[str, T.List[BuildTargetSource]],
                       kwargs: kwtypes.Library) -> build.BothLibraries:
@@ -1840,7 +1846,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @FeatureNew('shared_module', '0.37.0')
     @permittedKwargs(build.known_shmod_kwargs)
     @typed_pos_args('shared_module', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.StructuredSources, build.ExtractedObjects, build.BuildTarget))
-    @typed_kwargs('shared_module', OVERRIDE_OPTIONS_KW, allow_unknown=True)
+    @typed_kwargs('shared_module', *SHARED_MOD_KWS, allow_unknown=True)
     def func_shared_module(self, node: mparser.BaseNode,
                            args: T.Tuple[str, T.List[BuildTargetSource]],
                            kwargs: kwtypes.SharedModule) -> build.SharedModule:
@@ -1848,7 +1854,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     @permittedKwargs(known_library_kwargs)
     @typed_pos_args('library', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.StructuredSources, build.ExtractedObjects, build.BuildTarget))
-    @typed_kwargs('library', OVERRIDE_OPTIONS_KW, allow_unknown=True)
+    @typed_kwargs('library', *LIBRARY_KWS, allow_unknown=True)
     def func_library(self, node: mparser.BaseNode,
                      args: T.Tuple[str, T.List[BuildTargetSource]],
                      kwargs: kwtypes.Library) -> build.Executable:
@@ -1856,7 +1862,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     @permittedKwargs(build.known_jar_kwargs)
     @typed_pos_args('jar', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.ExtractedObjects, build.BuildTarget))
-    @typed_kwargs('jar', OVERRIDE_OPTIONS_KW, allow_unknown=True)
+    @typed_kwargs('jar', *JAR_KWS, allow_unknown=True)
     def func_jar(self, node: mparser.BaseNode,
                  args: T.Tuple[str, T.List[T.Union[str, mesonlib.File, build.GeneratedTypes]]],
                  kwargs: kwtypes.Jar) -> build.Jar:
@@ -1865,7 +1871,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @FeatureNewKwargs('build_target', '0.40.0', ['link_whole', 'override_options'])
     @permittedKwargs(known_build_target_kwargs)
     @typed_pos_args('build_target', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.StructuredSources, build.ExtractedObjects, build.BuildTarget))
-    @typed_kwargs('build_target', OVERRIDE_OPTIONS_KW, allow_unknown=True)
+    @typed_kwargs('build_target', *BUILD_TARGET_KWS, allow_unknown=True)
     def func_build_target(self, node: mparser.BaseNode,
                           args: T.Tuple[str, T.List[BuildTargetSource]],
                           kwargs: kwtypes.BuildTarget
