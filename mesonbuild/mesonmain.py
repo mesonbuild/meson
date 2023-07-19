@@ -82,7 +82,7 @@ class CommandLineParser:
         self.hidden_commands = []
         self.parser = argparse.ArgumentParser(prog='meson', formatter_class=self.formatter)
         self.subparsers = self.parser.add_subparsers(title='Commands', dest='command',
-                                                     description='If no command is specified it defaults to setup command.')
+                                                     description='If no command is specified it defaults to the "setup" command.')
         self.add_command('setup', msetup.add_arguments, msetup.run,
                          help_msg='Configure the project')
         self.add_command('configure', mconf.add_arguments, mconf.run,
