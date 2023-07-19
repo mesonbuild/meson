@@ -279,10 +279,6 @@ class DynamicLinker(metaclass=abc.ABCMeta):
         # Only used by the Apple linker
         return []
 
-    def get_gui_app_args(self, value: bool) -> T.List[str]:
-        # Only used by VisualStudioLikeLinkers
-        return []
-
     def get_win_subsystem_args(self, value: str) -> T.List[str]:
         # Only used if supported by the dynamic linker and
         # only when targeting Windows
@@ -1318,9 +1314,6 @@ class MSVCDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
     def get_always_args(self) -> T.List[str]:
         return self._apply_prefix(['/nologo', '/release']) + super().get_always_args()
 
-    def get_gui_app_args(self, value: bool) -> T.List[str]:
-        return self.get_win_subsystem_args("windows" if value else "console")
-
     def get_win_subsystem_args(self, value: str) -> T.List[str]:
         return self._apply_prefix([f'/SUBSYSTEM:{value.upper()}'])
 
@@ -1347,9 +1340,6 @@ class ClangClDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
 
         return super().get_output_args(outputname)
 
-    def get_gui_app_args(self, value: bool) -> T.List[str]:
-        return self.get_win_subsystem_args("windows" if value else "console")
-
     def get_win_subsystem_args(self, value: str) -> T.List[str]:
         return self._apply_prefix([f'/SUBSYSTEM:{value.upper()}'])
 
@@ -1369,9 +1359,6 @@ class XilinkDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
                  machine: str = 'x86', version: str = 'unknown version',
                  direct: bool = True):
         super().__init__(['xilink.exe'], for_machine, '', always_args, version=version)
-
-    def get_gui_app_args(self, value: bool) -> T.List[str]:
-        return self.get_win_subsystem_args("windows" if value else "console")
 
     def get_win_subsystem_args(self, value: str) -> T.List[str]:
         return self._apply_prefix([f'/SUBSYSTEM:{value.upper()}'])

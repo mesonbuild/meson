@@ -3280,6 +3280,18 @@ class Interpreter(InterpreterBase, HoldableObject):
                     outputs.update(o)
 
         kwargs['include_directories'] = self.extract_incdirs(kwargs)
+
+        if targetclass is build.Executable:
+            if kwargs['gui_app'] is not None:
+                if kwargs['win_subsystem'] is not None:
+                    raise InvalidArguments.from_node(
+                        'Executable got both "gui_app", and "win_subsystem" arguments, which are mutually exclusive',
+                        node=node)
+                if kwargs['gui_app']:
+                    kwargs['win_subsystem'] = 'windows'
+            if kwargs['win_subsystem'] is None:
+                kwargs['win_subsystem'] = 'console'
+
         target = targetclass(name, self.subdir, self.subproject, for_machine, srcs, struct, objs,
                              self.environment, self.compilers[for_machine], kwargs)
 
