@@ -1808,7 +1808,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_kwargs('executable', OVERRIDE_OPTIONS_KW, allow_unknown=True)
     def func_executable(self, node: mparser.BaseNode,
                         args: T.Tuple[str, T.List[BuildTargetSource]],
-                        kwargs) -> build.Executable:
+                        kwargs: kwtypes.Executable) -> build.Executable:
         return self.build_target(node, args, kwargs, build.Executable)
 
     @permittedKwargs(build.known_stlib_kwargs)
@@ -1816,7 +1816,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_kwargs('static_library', OVERRIDE_OPTIONS_KW, allow_unknown=True)
     def func_static_lib(self, node: mparser.BaseNode,
                         args: T.Tuple[str, T.List[BuildTargetSource]],
-                        kwargs) -> build.StaticLibrary:
+                        kwargs: kwtypes.StaticLibrary) -> build.StaticLibrary:
         return self.build_target(node, args, kwargs, build.StaticLibrary)
 
     @permittedKwargs(build.known_shlib_kwargs)
@@ -1824,7 +1824,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_kwargs('shared_library', OVERRIDE_OPTIONS_KW, allow_unknown=True)
     def func_shared_lib(self, node: mparser.BaseNode,
                         args: T.Tuple[str, T.List[BuildTargetSource]],
-                        kwargs) -> build.SharedLibrary:
+                        kwargs: kwtypes.SharedLibrary) -> build.SharedLibrary:
         holder = self.build_target(node, args, kwargs, build.SharedLibrary)
         holder.shared_library_only = True
         return holder
@@ -1834,7 +1834,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_kwargs('both_libraries', OVERRIDE_OPTIONS_KW, allow_unknown=True)
     def func_both_lib(self, node: mparser.BaseNode,
                       args: T.Tuple[str, T.List[BuildTargetSource]],
-                      kwargs) -> build.BothLibraries:
+                      kwargs: kwtypes.Library) -> build.BothLibraries:
         return self.build_both_libraries(node, args, kwargs)
 
     @FeatureNew('shared_module', '0.37.0')
@@ -1843,7 +1843,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_kwargs('shared_module', OVERRIDE_OPTIONS_KW, allow_unknown=True)
     def func_shared_module(self, node: mparser.BaseNode,
                            args: T.Tuple[str, T.List[BuildTargetSource]],
-                           kwargs) -> build.SharedModule:
+                           kwargs: kwtypes.SharedModule) -> build.SharedModule:
         return self.build_target(node, args, kwargs, build.SharedModule)
 
     @permittedKwargs(known_library_kwargs)
@@ -1851,7 +1851,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_kwargs('library', OVERRIDE_OPTIONS_KW, allow_unknown=True)
     def func_library(self, node: mparser.BaseNode,
                      args: T.Tuple[str, T.List[BuildTargetSource]],
-                     kwargs) -> build.Executable:
+                     kwargs: kwtypes.Library) -> build.Executable:
         return self.build_library(node, args, kwargs)
 
     @permittedKwargs(build.known_jar_kwargs)
@@ -1859,7 +1859,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_kwargs('jar', OVERRIDE_OPTIONS_KW, allow_unknown=True)
     def func_jar(self, node: mparser.BaseNode,
                  args: T.Tuple[str, T.List[T.Union[str, mesonlib.File, build.GeneratedTypes]]],
-                 kwargs) -> build.Jar:
+                 kwargs: kwtypes.Jar) -> build.Jar:
         return self.build_target(node, args, kwargs, build.Jar)
 
     @FeatureNewKwargs('build_target', '0.40.0', ['link_whole', 'override_options'])
@@ -1868,8 +1868,9 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_kwargs('build_target', OVERRIDE_OPTIONS_KW, allow_unknown=True)
     def func_build_target(self, node: mparser.BaseNode,
                           args: T.Tuple[str, T.List[BuildTargetSource]],
-                          kwargs) -> T.Union[build.Executable, build.StaticLibrary, build.SharedLibrary,
-                                             build.SharedModule, build.BothLibraries, build.Jar]:
+                          kwargs: kwtypes.BuildTarget
+                          ) -> T.Union[build.Executable, build.StaticLibrary, build.SharedLibrary,
+                                       build.SharedModule, build.BothLibraries, build.Jar]:
         if 'target_type' not in kwargs:
             raise InterpreterException('Missing target_type keyword argument')
         target_type = kwargs.pop('target_type')
