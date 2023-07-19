@@ -403,13 +403,15 @@ class Installer:
                 append_to_log(self.lf, f'# Preserving old file {to_file}\n')
                 self.preserved_file_count += 1
                 return False
+            self.log(f'Installing {from_file} to {outdir}')
             self.remove(to_file)
-        elif makedirs:
-            # Unpack tuple
-            dirmaker, outdir = makedirs
-            # Create dirs if needed
-            dirmaker.makedirs(outdir, exist_ok=True)
-        self.log(f'Installing {from_file} to {outdir}')
+        else:
+            self.log(f'Installing {from_file} to {outdir}')
+            if makedirs:
+                # Unpack tuple
+                dirmaker, outdir = makedirs
+                # Create dirs if needed
+                dirmaker.makedirs(outdir, exist_ok=True)
         if os.path.islink(from_file):
             if not os.path.exists(from_file):
                 # Dangling symlink. Replicate as is.
