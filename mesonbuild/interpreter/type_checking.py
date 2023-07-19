@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 import os
+import re
 import typing as T
 
 from .. import compilers
@@ -490,10 +491,22 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
     *_ALL_TARGET_KWS,
 ]
 
+def _validate_win_subsystem(value: T.Optional[str]) -> T.Optional[str]:
+    if value is not None:
+        if re.fullmatch(r'(boot_application|console|efi_application|efi_boot_service_driver|efi_rom|efi_runtime_driver|native|posix|windows)(,\d+(\.\d+)?)?', value) is None:
+            return f'Invalid value for win_subsystem: {value}.'
+    return None
+
 # Arguments exclusive to Executable. These are separated to make integrating
 # them into build_target easier
 _EXCLUSIVE_EXECUTABLE_KWS: T.List[KwargInfo] = [
-    KwargInfo('gui_app', (bool, NoneType), deprecated='0.56.0', deprecated_message="Use 'win_subsystem' instead")
+    KwargInfo('gui_app', (bool, NoneType), deprecated='0.56.0', deprecated_message="Use 'win_subsystem' instead"),
+    KwargInfo(
+        'win_subsystem',
+        (str, NoneType),
+        convertor=lambda x: x.lower() if isinstance(x, str) else None,
+        validator=_validate_win_subsystem,
+    ),
 ]
 
 # The total list of arguments used by Executable

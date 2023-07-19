@@ -1807,7 +1807,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         return Disabler()
 
     @FeatureNewKwargs('executable', '0.42.0', ['implib'])
-    @FeatureNewKwargs('executable', '0.56.0', ['win_subsystem'])
     @permittedKwargs(build.known_exe_kwargs)
     @typed_pos_args('executable', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.StructuredSources, build.ExtractedObjects, build.BuildTarget))
     @typed_kwargs('executable', *EXECUTABLE_KWS, allow_unknown=True)

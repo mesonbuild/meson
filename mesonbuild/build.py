@@ -1152,10 +1152,10 @@ class BuildTarget(Target):
             # was not specified and win_subsystem should be used instead.
             self.gui_app = None
             if kwargs.get('gui_app') is not None:
-                if 'win_subsystem' in kwargs:
+                if kwargs.get('win_subsystem') is not None:
                     raise InvalidArguments('Can specify only gui_app or win_subsystem for a target, not both.')
                 self.gui_app = kwargs['gui_app']
-            self.win_subsystem = self.validate_win_subsystem(kwargs.get('win_subsystem', 'console'))
+            self.win_subsystem = kwargs.get('win_subsystem', 'console')
         elif 'gui_app' in kwargs:
             raise InvalidArguments('Argument gui_app can only be used on executables.')
         elif 'win_subsystem' in kwargs:
@@ -1239,12 +1239,6 @@ class BuildTarget(Target):
         if any(not isinstance(v, str) for v in rust_dependency_map.values()):
             raise InvalidArguments(f'Invalid rust_dependency_map "{rust_dependency_map}": must be a dictionary with string values.')
         self.rust_dependency_map = rust_dependency_map
-
-    def validate_win_subsystem(self, value: str) -> str:
-        value = value.lower()
-        if re.fullmatch(r'(boot_application|console|efi_application|efi_boot_service_driver|efi_rom|efi_runtime_driver|native|posix|windows)(,\d+(\.\d+)?)?', value) is None:
-            raise InvalidArguments(f'Invalid value for win_subsystem: {value}.')
-        return value
 
     def _extract_pic_pie(self, kwargs, arg: str, option: str):
         # Check if we have -fPIC, -fpic, -fPIE, or -fpie in cflags
