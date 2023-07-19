@@ -7,7 +7,7 @@ r = static_library('stuff', 'stuff.rs', rust_crate_type : 'staticlib')
 # as it would do with C libraries, but then cannot extract objects from stuff and
 # thus should error out.
 # FIXME: We should support this use-case in the future.
-testcase expect_error('Cannot link_whole a custom or Rust target into a static library')
+testcase expect_error('Cannot link_whole a custom or Rust target \'stuff\' into a static library \'clib\'. Instead, pass individual object files with the "objects:" keyword argument if possible. Meson had to promote link to link_whole because \'clib\' is installed but not \'stuff\', and thus has to include objects from \'stuff\' to be usable.')
   l = static_library('clib', 'clib.c', link_with : r, install : true)
 endtestcase
 
