@@ -308,3 +308,48 @@ class DoSubproject(ExtractRequired):
     version: T.List[str]
     cmake_options: T.List[str]
     options: T.Optional[CMakeSubprojectOptions]
+
+
+class _BaseBuildTarget(TypedDict):
+
+    """Arguments used by all BuildTarget like functions.
+
+    This really exists because Jar is so different than all of the other
+    BuildTarget functions.
+    """
+
+    override_options: T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]
+
+
+class _BuildTarget(_BaseBuildTarget):
+
+    """Arguments shared by non-JAR functions"""
+
+
+class Executable(_BuildTarget):
+    pass
+
+
+class StaticLibrary(_BuildTarget):
+    pass
+
+
+class SharedLibrary(_BuildTarget):
+    pass
+
+
+class SharedModule(_BuildTarget):
+    pass
+
+
+class Library(_BuildTarget):
+
+    """For library, both_library, and as a base for build_target"""
+
+
+class BuildTarget(Library):
+    pass
+
+
+class Jar(_BaseBuildTarget):
+    pass
