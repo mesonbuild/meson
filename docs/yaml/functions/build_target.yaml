@@ -12,7 +12,7 @@ description: |
   - `static_library` (see [[static_library]])
   - `both_libraries` (see [[both_libraries]])
   - `library` (see [[library]])
-  - `jar` (see [[jar]])
+  - `jar` (see [[jar]])*
 
   This declaration:
 
@@ -32,6 +32,9 @@ description: |
 
   The returned object also has methods that are documented in [[@build_tgt]].
 
+  *"jar" is deprecated because it is fundementally a different thing than the
+  other build_target types.
+
 posargs_inherit: _build_target_base
 varargs_inherit: _build_target_base
 kwargs_inherit:
@@ -42,4 +45,4 @@ kwargs_inherit:
 kwargs:
   target_type:
     type: str
-    description: The actual target to build
+    description: The actual target type to build

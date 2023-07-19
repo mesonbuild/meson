@@ -555,7 +555,8 @@ LIBRARY_KWS = [
 BUILD_TARGET_KWS = [
     *LIBRARY_KWS,
     *_EXCLUSIVE_EXECUTABLE_KWS,
-    *_EXCLUSIVE_JAR_KWS,
+    *[a.evolve(deprecated='1.3.0', deprecated_message='The use of "jar" in "build_target()" is deprecated, and this argument is only used by jar()')
+      for a in _EXCLUSIVE_JAR_KWS],
     KwargInfo(
         'target_type',
         str,
@@ -566,6 +567,9 @@ BUILD_TARGET_KWS = [
         }),
         since_values={
             'shared_module': '0.51.0',
+        },
+        deprecated_values={
+            'jar': ('1.3.0', 'use the "jar()" function directly'),
         }
     )
 ]
