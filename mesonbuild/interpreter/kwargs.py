@@ -352,4 +352,5 @@ class BuildTarget(Library):
 
 
 class Jar(_BaseBuildTarget):
-    pass
+
+    main_class: str
