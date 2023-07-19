@@ -1147,19 +1147,12 @@ class BuildTarget(Target):
                                         (str, bool))
         self.install_mode = kwargs.get('install_mode', None)
         self.install_tag = stringlistify(kwargs.get('install_tag', [None]))
-        if isinstance(self, Executable):
-            # This kwarg is deprecated. The value of "none" means that the kwarg
-            # was not specified and win_subsystem should be used instead.
-            self.gui_app = None
+        if not isinstance(self, Executable):
+            # build_target will always populate these as `None`, which is fine
             if kwargs.get('gui_app') is not None:
-                if kwargs.get('win_subsystem') is not None:
-                    raise InvalidArguments('Can specify only gui_app or win_subsystem for a target, not both.')
-                self.gui_app = kwargs['gui_app']
-            self.win_subsystem = kwargs.get('win_subsystem', 'console')
-        elif 'gui_app' in kwargs:
-            raise InvalidArguments('Argument gui_app can only be used on executables.')
-        elif 'win_subsystem' in kwargs:
-            raise InvalidArguments('Argument win_subsystem can only be used on executables.')
+                raise InvalidArguments('Argument gui_app can only be used on executables.')
+            if kwargs.get('win_subsystem') is not None:
+                raise InvalidArguments('Argument win_subsystem can only be used on executables.')
         extra_files = extract_as_list(kwargs, 'extra_files')
         for i in extra_files:
             assert isinstance(i, File)
@@ -1901,6 +1894,7 @@ class Executable(BuildTarget):
             kwargs['pie'] = environment.coredata.options[key].value
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
                          environment, compilers, kwargs)
+        self.win_subsystem = kwargs.get('win_subsystem') or 'console'
         # Check for export_dynamic
         self.export_dynamic = kwargs.get('export_dynamic', False)
         if not isinstance(self.export_dynamic, bool):
