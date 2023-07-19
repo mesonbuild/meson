@@ -354,3 +354,4 @@ class BuildTarget(Library):
 class Jar(_BaseBuildTarget):
 
     main_class: str
+    java_resources: T.Optional[build.StructuredSources]
