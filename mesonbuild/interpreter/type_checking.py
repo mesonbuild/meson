@@ -556,4 +556,16 @@ BUILD_TARGET_KWS = [
     *LIBRARY_KWS,
     *_EXCLUSIVE_EXECUTABLE_KWS,
     *_EXCLUSIVE_JAR_KWS,
+    KwargInfo(
+        'target_type',
+        str,
+        required=True,
+        validator=in_set_validator({
+            'executable', 'shared_library', 'static_library', 'shared_module',
+            'both_libraries', 'library', 'jar'
+        }),
+        since_values={
+            'shared_module': '0.51.0',
+        }
+    )
 ]
