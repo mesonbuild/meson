@@ -532,7 +532,9 @@ SHARED_MOD_KWS = [
 
 # Arguments exclusive to JAR. These are separated to make integrating
 # them into build_target easier
-_EXCLUSIVE_JAR_KWS: T.List[KwargInfo] = []
+_EXCLUSIVE_JAR_KWS: T.List[KwargInfo] = [
+    KwargInfo('main_class', str, default=''),
+]
 
 # The total list of arguments used by JAR
 JAR_KWS = [
