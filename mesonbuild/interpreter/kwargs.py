@@ -329,6 +329,7 @@ class _BuildTarget(_BaseBuildTarget):
 class Executable(_BuildTarget):
 
     gui_app: T.Optional[bool]
+    win_subsystem: T.Optional[str]
 
 
 class StaticLibrary(_BuildTarget):
