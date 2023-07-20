@@ -513,24 +513,37 @@ RUST_ABI_KW: KwargInfo[T.Union[str, None]] = KwargInfo(
     since='1.3.0',
     validator=in_set_validator({'rust', 'c'}))
 
+_BASE_LANG_KW: KwargInfo[T.List[str]] = KwargInfo(
+    'UNKNOWN',
+    ContainerTypeInfo(list, (str)),
+    listify=True,
+    default=[],
+)
+
 _LANGUAGE_KWS: T.List[KwargInfo[T.List[str]]] = [
-    KwargInfo(f'{lang}_args', ContainerTypeInfo(list, (str, File)), listify=True, default=[])
-    for lang in compilers.all_languages - {'rust', 'vala'}
+    _BASE_LANG_KW.evolve(name=f'{lang}_args')
+    for lang in compilers.all_languages - {'rust', 'vala', 'java'}
 ]
-_LANGUAGE_KWS.append(KwargInfo(
+_LANGUAGE_KWS.append(KwargInfo( # cannot use _BASE_LANG_KW because type is not evolveable
     'vala_args', ContainerTypeInfo(list, (str, File)), listify=True, default=[]))
-_LANGUAGE_KWS.append(KwargInfo(
-    'rust_args', ContainerTypeInfo(list, str), listify=True, default=[], since='0.41.0'))
+_LANGUAGE_KWS.append(_BASE_LANG_KW.evolve(name='rust_args', since='0.41.0'))
+
+# We need this deprecated values more than the non-deprecated values. So we'll evolve them out elsewhere.
+_JAVA_LANG_KW: KwargInfo[T.List[str]] = _BASE_LANG_KW.evolve(
+    name='java_args',
+    deprecated='1.3.0',
+    deprecated_message='This does not, and never has, done anything. It should be removed'
+)
 
 # Applies to all build_target like classes
 _ALL_TARGET_KWS: T.List[KwargInfo] = [
-    *_LANGUAGE_KWS,
     OVERRIDE_OPTIONS_KW,
 ]
 
 # Applies to all build_target classes except jar
 _BUILD_TARGET_KWS: T.List[KwargInfo] = [
     *_ALL_TARGET_KWS,
+    *_LANGUAGE_KWS,
     RUST_CRATE_TYPE_KW,
 ]
 
@@ -599,6 +612,7 @@ _EXCLUSIVE_EXECUTABLE_KWS: T.List[KwargInfo] = [
 EXECUTABLE_KWS = [
     *_BUILD_TARGET_KWS,
     *_EXCLUSIVE_EXECUTABLE_KWS,
+    _JAVA_LANG_KW,
 ]
 
 # Arguments exclusive to library types
@@ -615,6 +629,7 @@ STATIC_LIB_KWS = [
     *_BUILD_TARGET_KWS,
     *_EXCLUSIVE_STATIC_LIB_KWS,
     *_EXCLUSIVE_LIB_KWS,
+    _JAVA_LANG_KW,
 ]
 
 # Arguments exclusive to SharedLibrary. These are separated to make integrating
@@ -630,6 +645,7 @@ SHARED_LIB_KWS = [
     *_BUILD_TARGET_KWS,
     *_EXCLUSIVE_SHARED_LIB_KWS,
     *_EXCLUSIVE_LIB_KWS,
+    _JAVA_LANG_KW,
 ]
 
 # Arguments exclusive to SharedModule. These are separated to make integrating
@@ -641,6 +657,7 @@ SHARED_MOD_KWS = [
     *_BUILD_TARGET_KWS,
     *_EXCLUSIVE_SHARED_MOD_KWS,
     *_EXCLUSIVE_LIB_KWS,
+    _JAVA_LANG_KW,
 ]
 
 # Arguments exclusive to JAR. These are separated to make integrating
@@ -648,12 +665,16 @@ SHARED_MOD_KWS = [
 _EXCLUSIVE_JAR_KWS: T.List[KwargInfo] = [
     KwargInfo('main_class', str, default=''),
     KwargInfo('java_resources', (StructuredSources, NoneType), since='0.62.0'),
+    _JAVA_LANG_KW.evolve(deprecated=None, deprecated_message=None),
 ]
 
 # The total list of arguments used by JAR
 JAR_KWS = [
     *_ALL_TARGET_KWS,
     *_EXCLUSIVE_JAR_KWS,
+    *[a.evolve(deprecated='1.3.0', deprecated_message='This argument has never done anything in jar(), and should be removed')
+      for a in _LANGUAGE_KWS],
+    # This is the only not deprecated case
 ]
 
 # Arguments used by both_library and library
@@ -663,11 +684,15 @@ LIBRARY_KWS = [
     *_EXCLUSIVE_SHARED_LIB_KWS,
     *_EXCLUSIVE_SHARED_MOD_KWS,
     *_EXCLUSIVE_STATIC_LIB_KWS,
+    _JAVA_LANG_KW,
 ]
 
 # Arguments used by build_Target
 BUILD_TARGET_KWS = [
-    *LIBRARY_KWS,
+    *_BUILD_TARGET_KWS,
+    *_EXCLUSIVE_SHARED_LIB_KWS,
+    *_EXCLUSIVE_SHARED_MOD_KWS,
+    *_EXCLUSIVE_STATIC_LIB_KWS,
     *_EXCLUSIVE_EXECUTABLE_KWS,
     *[a.evolve(deprecated='1.3.0', deprecated_message='The use of "jar" in "build_target()" is deprecated, and this argument is only used by jar()')
       for a in _EXCLUSIVE_JAR_KWS],
