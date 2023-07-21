@@ -200,9 +200,9 @@ class _Logger:
         self.log_file = open(os.path.join(logdir, self._LOG_FNAME), 'w', encoding='utf-8')
         self.log_fatal_warnings = fatal_warnings
 
-    def process_markup(self, args: T.Sequence[TV_Loggable], keep: bool) -> T.List[str]:
+    def process_markup(self, args: T.Sequence[TV_Loggable], keep: bool, display_timestamp: bool = True) -> T.List[str]:
         arr = []  # type: T.List[str]
-        if self.log_timestamp_start is not None:
+        if self.log_timestamp_start is not None and display_timestamp:
             arr = ['[{:.3f}]'.format(time.monotonic() - self.log_timestamp_start)]
         for arg in args:
             if arg is None:
@@ -240,21 +240,21 @@ class _Logger:
             print(cleaned, end='')
 
     def debug(self, *args: TV_Loggable, sep: T.Optional[str] = None,
-              end: T.Optional[str] = None) -> None:
-        arr = process_markup(args, False)
+              end: T.Optional[str] = None, display_timestamp: bool = True) -> None:
+        arr = process_markup(args, False, display_timestamp)
         if self.log_file is not None:
             print(*arr, file=self.log_file, sep=sep, end=end)
             self.log_file.flush()
 
     def _log(self, *args: TV_Loggable, is_error: bool = False,
              nested: bool = True, sep: T.Optional[str] = None,
-             end: T.Optional[str] = None) -> None:
-        arr = process_markup(args, False)
+             end: T.Optional[str] = None, display_timestamp: bool = True) -> None:
+        arr = process_markup(args, False, display_timestamp)
         if self.log_file is not None:
             print(*arr, file=self.log_file, sep=sep, end=end)
             self.log_file.flush()
         if colorize_console():
-            arr = process_markup(args, True)
+            arr = process_markup(args, True, display_timestamp)
         if not self.log_errors_only or is_error:
             force_print(*arr, nested=nested, sep=sep, end=end)
 
@@ -270,11 +270,12 @@ class _Logger:
     def log(self, *args: TV_Loggable, is_error: bool = False,
             once: bool = False, nested: bool = True,
             sep: T.Optional[str] = None,
-            end: T.Optional[str] = None) -> None:
+            end: T.Optional[str] = None,
+            display_timestamp: bool = True) -> None:
         if once:
-            self._log_once(*args, is_error=is_error, nested=nested, sep=sep, end=end)
+            self._log_once(*args, is_error=is_error, nested=nested, sep=sep, end=end, display_timestamp=display_timestamp)
         else:
-            self._log(*args, is_error=is_error, nested=nested, sep=sep, end=end)
+            self._log(*args, is_error=is_error, nested=nested, sep=sep, end=end, display_timestamp=display_timestamp)
 
     def log_timestamp(self, *args: TV_Loggable) -> None:
         if self.log_timestamp_start:
@@ -282,7 +283,7 @@ class _Logger:
 
     def _log_once(self, *args: TV_Loggable, is_error: bool = False,
                   nested: bool = True, sep: T.Optional[str] = None,
-                  end: T.Optional[str] = None) -> None:
+                  end: T.Optional[str] = None, display_timestamp: bool = True) -> None:
         """Log variant that only prints a given message one time per meson invocation.
 
         This considers ansi decorated values by the values they wrap without
@@ -298,7 +299,7 @@ class _Logger:
         if t in self.logged_once:
             return
         self.logged_once.add(t)
-        self._log(*args, is_error=is_error, nested=nested, sep=sep, end=end)
+        self._log(*args, is_error=is_error, nested=nested, sep=sep, end=end, display_timestamp=display_timestamp)
 
     def _log_error(self, severity: _Severity, *rargs: TV_Loggable,
                    once: bool = False, fatal: bool = True,
