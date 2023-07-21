@@ -2253,8 +2253,12 @@ class SharedLibrary(BuildTarget):
             if self.uses_rust():
                 # Shared library is of the form foo.dll
                 prefix = ''
-                # Import library is called foo.dll.lib
-                self.import_filename = f'{self.name}.dll.lib'
+                if self.get_using_msvc():
+                    # Import library is called foo.dll.lib when using MSVC linker
+                    self.import_filename = f'{self.name}.dll.lib'
+                else:
+                    # Import library is called libfoo.dll.a when using GCC linker
+                    self.import_filename = f'lib{self.name}.dll.a'
                 # .pdb file is only created when debug symbols are enabled
                 create_debug_file = self.environment.coredata.get_option(OptionKey("debug"))
             elif self.get_using_msvc():
