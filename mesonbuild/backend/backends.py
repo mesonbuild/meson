@@ -1176,6 +1176,12 @@ class Backend:
         if (isinstance(target, build.BuildTarget) and
                 not self.environment.machines.matches_build_machine(target.for_machine)):
             result.update(self.get_mingw_extra_paths(target))
+        # If any target uses Rust we need to add the location of rust-std DLLs.
+        for t in chain([target], prospectives):
+            rustc = t.compilers.get('rust')
+            if rustc:
+                result.add(rustc.get_target_libdir())
+                break
         return list(result)
 
     def write_benchmark_file(self, datafile: T.BinaryIO) -> None:

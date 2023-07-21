@@ -134,6 +134,11 @@ class RustCompiler(Compiler):
         p, stdo, stde = Popen_safe(cmd)
         return stdo.split('\n', maxsplit=1)[0]
 
+    def get_target_libdir(self) -> str:
+        cmd = self.get_exelist(ccache=False) + ['--print', 'target-libdir']
+        p, stdo, stde = Popen_safe(cmd)
+        return stdo.split('\n', maxsplit=1)[0]
+
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
         return clike_debug_args[is_debug]
 
