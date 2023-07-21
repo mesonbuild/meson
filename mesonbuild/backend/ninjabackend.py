@@ -628,11 +628,15 @@ class NinjaBackend(backends.Backend):
 
             for t in ProgressBar(self.build.get_targets().values(), desc='Generating targets'):
                 self.generate_target(t)
+            mlog.log_timestamp("Targets generated")
             self.add_build_comment(NinjaComment('Test rules'))
             self.generate_tests()
+            mlog.log_timestamp("Tests generated")
             self.add_build_comment(NinjaComment('Install rules'))
             self.generate_install()
+            mlog.log_timestamp("Install generated")
             self.generate_dist()
+            mlog.log_timestamp("Dist generated")
             key = OptionKey('b_coverage')
             if (key in self.environment.coredata.options and
                     self.environment.coredata.options[key].value):
@@ -640,12 +644,14 @@ class NinjaBackend(backends.Backend):
                 if gcovr_exe or (lcov_exe and genhtml_exe):
                     self.add_build_comment(NinjaComment('Coverage rules'))
                     self.generate_coverage_rules(gcovr_exe, gcovr_version)
+                    mlog.log_timestamp("Coverage rules generated")
                 else:
                     # FIXME: since we explicitly opted in, should this be an error?
                     # The docs just say these targets will be created "if possible".
                     mlog.warning('Need gcovr or lcov/genhtml to generate any coverage reports')
             self.add_build_comment(NinjaComment('Suffix'))
             self.generate_utils()
+            mlog.log_timestamp("Utils generated")
             self.generate_ending()
 
             self.write_rules(outfile)
@@ -1363,6 +1369,7 @@ class NinjaBackend(backends.Backend):
     def write_builds(self, outfile):
         for b in ProgressBar(self.build_elements, desc='Writing build.ninja'):
             b.write(outfile)
+        mlog.log_timestamp("build.ninja generated")
 
     def generate_phony(self):
         self.add_build_comment(NinjaComment('Phony build target, always out of date'))
