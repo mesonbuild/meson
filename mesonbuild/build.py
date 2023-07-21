@@ -1088,7 +1088,6 @@ class BuildTarget(Target):
     def process_kwargs(self, kwargs):
         self.process_kwargs_base(kwargs)
         self.original_kwargs = kwargs
-        kwargs.get('modules', [])
 
         for lang in all_languages:
             lang_args = extract_as_list(kwargs, f'{lang}_args')
