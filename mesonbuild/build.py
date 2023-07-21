@@ -2402,7 +2402,7 @@ class SharedLibrary(BuildTarget):
             elif isinstance(path, File):
                 # When passing a generated file.
                 self.vs_module_defs = path
-            elif hasattr(path, 'get_filename'):
+            elif isinstance(path, CustomTarget):
                 # When passing output of a Custom Target
                 self.vs_module_defs = File.from_built_file(path.subdir, path.get_filename())
             else:
