@@ -204,7 +204,7 @@ class Summary:
     def dump_value(self, arr, list_sep, indent):
         lines_sep = '\n' + ' ' * indent
         if list_sep is None:
-            mlog.log(*arr, sep=lines_sep)
+            mlog.log(*arr, sep=lines_sep, display_timestamp=False)
             return
         max_len = shutil.get_terminal_size().columns
         line = []
@@ -218,7 +218,7 @@ class Summary:
                 line = []
             line.append(v)
             line_len += v_len
-        mlog.log(*line, sep=list_sep)
+        mlog.log(*line, sep=list_sep, display_timestamp=False)
 
 known_library_kwargs = (
     build.known_shlib_kwargs |
