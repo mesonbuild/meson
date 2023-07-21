@@ -719,7 +719,7 @@ class BuildTarget(Target):
             environment: environment.Environment,
             compilers: T.Dict[str, 'Compiler'],
             kwargs):
-        super().__init__(name, subdir, subproject, True, for_machine, environment)
+        super().__init__(name, subdir, subproject, True, for_machine, environment, install=kwargs.get('install', False))
         self.all_compilers = compilers
         self.compilers = OrderedDict() # type: OrderedDict[str, Compiler]
         self.objects: T.List[ObjectTypes] = []
@@ -737,7 +737,6 @@ class BuildTarget(Target):
         # The list of all files outputted by this target. Useful in cases such
         # as Vala which generates .vapi and .h besides the compiled output.
         self.outputs = [self.filename]
-        self.need_install = False
         self.pch: T.Dict[str, T.List[str]] = {}
         self.extra_args: T.Dict[str, T.List['FileOrString']] = {}
         self.sources: T.List[File] = []
@@ -803,7 +802,7 @@ class BuildTarget(Target):
         return unity_opt == 'on' or (unity_opt == 'subprojects' and self.subproject != '')
 
     def validate_install(self):
-        if self.for_machine is MachineChoice.BUILD and self.need_install:
+        if self.for_machine is MachineChoice.BUILD and self.install:
             if self.environment.is_cross_build():
                 raise InvalidArguments('Tried to install a target for the build machine in a cross build.')
             else:
@@ -1090,7 +1089,6 @@ class BuildTarget(Target):
         self.process_kwargs_base(kwargs)
         self.original_kwargs = kwargs
         kwargs.get('modules', [])
-        self.need_install = kwargs.get('install', self.need_install)
 
         for lang in all_languages:
             lang_args = extract_as_list(kwargs, f'{lang}_args')
@@ -1325,7 +1323,7 @@ class BuildTarget(Target):
         return self.generated
 
     def should_install(self) -> bool:
-        return self.need_install
+        return self.install
 
     def has_pch(self) -> bool:
         return bool(self.pch)
@@ -1400,7 +1398,7 @@ You probably should put it in link_with instead.''')
 
     def link(self, targets):
         for t in targets:
-            if isinstance(self, StaticLibrary) and self.need_install:
+            if isinstance(self, StaticLibrary) and self.install:
                 if isinstance(t, (CustomTarget, CustomTargetIndex)):
                     if not t.should_install():
                         mlog.warning(f'Try to link an installed static library target {self.name} with a'
@@ -1470,7 +1468,7 @@ You probably should put it in link_with instead.''')
                 self.objects += [t.extract_all_objects()]
                 # If we install this static library we also need to include objects
                 # from all uninstalled static libraries it depends on.
-                if self.need_install:
+                if self.install:
                     for lib in t.get_internal_static_libraries():
                         self.objects += [lib.extract_all_objects()]
             self.link_whole_targets.append(t)
@@ -2135,7 +2133,7 @@ class StaticLibrary(BuildTarget):
         return True
 
     def is_internal(self) -> bool:
-        return not self.need_install
+        return not self.install
 
 class SharedLibrary(BuildTarget):
     known_kwargs = known_shlib_kwargs
