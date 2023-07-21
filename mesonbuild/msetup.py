@@ -293,6 +293,8 @@ class MesonApp:
                 with open(fname, 'w', encoding='utf-8') as f:
                     json.dump(data, f)
 
+                mlog.log("meson setup completed")  # Display timestamp
+
         except Exception as e:
             mintro.write_meson_info_file(b, [e])
             if cdf is not None:

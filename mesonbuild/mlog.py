@@ -276,6 +276,10 @@ class _Logger:
         else:
             self._log(*args, is_error=is_error, nested=nested, sep=sep, end=end)
 
+    def log_timestamp(self, *args: TV_Loggable) -> None:
+        if self.log_timestamp_start:
+            self.log(*args)
+
     def _log_once(self, *args: TV_Loggable, is_error: bool = False,
                   nested: bool = True, sep: T.Optional[str] = None,
                   end: T.Optional[str] = None) -> None:
@@ -419,6 +423,7 @@ get_log_dir = _logger.get_log_dir
 get_warning_count = _logger.get_warning_count
 initialize = _logger.initialize
 log = _logger.log
+log_timestamp = _logger.log_timestamp
 nested = _logger.nested
 nested_warnings = _logger.nested_warnings
 no_logging = _logger.no_logging
