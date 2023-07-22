@@ -16,6 +16,12 @@ kwargs:
       `libfoo.1.1.0.dylib`. If this is not specified, `soversion` is used
       instead (see above).
 
+      *(since 0.64.0)* The shared library version may contain build
+      metadata specified by adding `+` and a series of dot-separated
+      identifiers after the version string. Identifiers must contain
+      only ASCII alphanumeric characters and hyphens. For example:
+      `1.1.0+master.g21a338e`.
+
   soversion:
     type: str | int
     description: |

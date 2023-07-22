@@ -1,0 +1,7 @@
+{
+    "stdout": [
+        {
+            "line": "test cases/failing/129 shared version meta only plus/meson.build:3:0: ERROR: Invalid Shared library version \"1.0.0+\". Must be of the form X[.Y[.Z]][+META] where X, Y, Z are numbers"
+        }
+    ]
+}
