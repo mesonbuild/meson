@@ -117,7 +117,6 @@ class InterpreterBase:
             self.ast = mparser.Parser(code, mesonfile).parse()
             self.handle_meson_version_from_ast()
         except mparser.ParseException as me:
-            me.file = mesonfile
             # try to detect parser errors from new syntax added by future
             # meson versions, and just tell the user to update meson
             self.ast = me.ast
@@ -167,26 +166,18 @@ class InterpreterBase:
         if node is None:
             return
         if not isinstance(node, mparser.CodeBlockNode):
-            e = InvalidCode('Tried to execute a non-codeblock. Possibly a bug in the parser.')
-            e.lineno = node.lineno
-            e.colno = node.colno
-            raise e
-        statements = node.lines[start:end]
-        i = 0
-        while i < len(statements):
-            cur = statements[i]
+            raise InvalidCode.from_node('Tried to execute a non-codeblock. Possibly a bug in the parser.', node=node)
+        for self.current_node in node.lines[start:end]:
+            self.current_lineno = self.current_node.lineno
             try:
-                self.current_lineno = cur.lineno
-                self.evaluate_statement(cur)
+                self.evaluate_statement(self.current_node)
+            except MesonException as e:
+                # Assume that if file is set, then the information in the exception is correct
+                if e.file is None:
+                    e.update_position(self.current_node)
+                raise
             except Exception as e:
-                if getattr(e, 'lineno', None) is None:
-                    # We are doing the equivalent to setattr here and mypy does not like it
-                    # NOTE: self.current_node is continually updated during processing
-                    e.lineno = self.current_node.lineno                                               # type: ignore
-                    e.colno = self.current_node.colno                                                 # type: ignore
-                    e.file = os.path.join(self.source_root, self.subdir, environment.build_filename)  # type: ignore
-                raise e
-            i += 1 # In THE FUTURE jump over blocks and stuff.
+                raise mesonlib.MesonExceptionWrapper.from_node(e, self.current_node)
 
     def evaluate_statement(self, cur: mparser.BaseNode) -> T.Optional[InterpreterObject]:
         self.current_node = cur

@@ -47,6 +47,15 @@ class MesonException(Exception):
         self.lineno = lineno
         self.colno = colno
 
+    def update_position(self, node: BaseNode) -> None:
+        """Set file and line information from a node
+
+        :param node: A node object to get the information from
+        """
+        self.file = node.filename
+        self.lineno = node.lineno
+        self.colno = node.colno
+
     @classmethod
     def from_node(cls, *args: object, node: BaseNode) -> MesonException:
         """Create a MesonException with location data from a BaseNode
@@ -55,6 +64,46 @@ class MesonException(Exception):
         :return: A Meson Exception instance
         """
         return cls(*args, file=node.filename, lineno=node.lineno, colno=node.colno)
+
+
+class MesonExceptionWrapper(Exception):
+
+    """Exception that wraps a non-meson exception with parser information.
+
+    This allows use to store parsing information for non-meson exception (the
+    file, line and colum numbers), without resorting to adding new attributes
+    and calling hasattr/getattr everywhere.
+    """
+
+    def __init__(self, e: Exception, file: T.Optional[str] = None,
+                 lineno: T.Optional[int] = None, colno: T.Optional[int] = None):
+        super().__init__('Unhandled python exception')
+        # Force python to not show the MesonExceptionWrapper as a cause for the wrapped exception
+        # See: https://peps.python.org/pep-3134/#open-issue-suppressing-context
+        # for why this happens
+        e.__cause__ = None
+
+        self.wrapped = e
+        self.file = file
+        self.lineno = lineno
+        self.colno = colno
+
+    @classmethod
+    def from_node(cls, e: Exception, node: BaseNode) -> MesonExceptionWrapper:
+        """Create a MesonExceptionWrapper with location data from a BaseNode
+
+        :param node: A BaseNode to set location data from
+        :return: A MesonExceptionWrapper instance
+        """
+        return cls(e, file=node.filename, lineno=node.lineno, colno=node.colno)
+
+    def __str__(self) -> str:
+        # We always want to return the string value of the wrapped error
+        return super().__str__()
+
+    def __repr__(self) -> str:
+        return f'MesonExceptionWrapper({self.wrapped!r}, {self.file!r}, {self.lineno!r}, {self.colno!r})'
+
 
 class MesonBugException(MesonException):
     '''Exceptions thrown when there is a clear Meson bug that should be reported'''

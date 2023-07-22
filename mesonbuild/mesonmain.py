@@ -21,15 +21,16 @@ sys.modules['pathlib'] = _pathlib
 
 # This file is an entry point for all commands, including scripts. Include the
 # strict minimum python modules for performance reasons.
-import os.path
+import os
 import platform
 import importlib
 import argparse
+import typing as T
 
-from .utils.core import MesonException, MesonBugException
+from .utils.core import MesonException, MesonBugException, MesonExceptionWrapper
 from . import mlog
 
-def errorhandler(e, command):
+def errorhandler(e: Exception, command: str) -> int:
     import traceback
     if isinstance(e, MesonException):
         mlog.exception(e)
@@ -39,31 +40,39 @@ def errorhandler(e, command):
         if os.environ.get('MESON_FORCE_BACKTRACE'):
             raise e
         return 1
-    else:
-        # We assume many types of traceback are Meson logic bugs, but most
-        # particularly anything coming from the interpreter during `setup`.
-        # Some things definitely aren't:
-        # - PermissionError is always a problem in the user environment
-        # - runpython doesn't run Meson's own code, even though it is
-        #   dispatched by our run()
-        if os.environ.get('MESON_FORCE_BACKTRACE'):
-            raise e
-        traceback.print_exc()
 
-        if command == 'runpython':
-            return 2
-        elif isinstance(e, OSError):
-            mlog.exception("Unhandled python OSError. This is probably not a Meson bug, "
-                           "but an issue with your build environment.")
-            return e.errno
-        else: # Exception
-            msg = 'Unhandled python exception'
-            if all(getattr(e, a, None) is not None for a in ['file', 'lineno', 'colno']):
-                e = MesonBugException(msg, e.file, e.lineno, e.colno) # type: ignore
-            else:
-                e = MesonBugException(msg)
-            mlog.exception(e)
+    # If we have a wrapper which gives us parsing info, store that separately
+    # and extract the original exception
+    node: T.Optional[MesonExceptionWrapper] = None
+    if isinstance(e, MesonExceptionWrapper):
+        node = e
+        e = e.wrapped
+
+    # We assume many types of traceback are Meson logic bugs, but most
+    # particularly anything coming from the interpreter during `setup`.
+    # Some things definitely aren't:
+    # - PermissionError is always a problem in the user environment
+    # - runpython doesn't run Meson's own code, even though it is
+    #   dispatched by our run()
+    if os.environ.get('MESON_FORCE_BACKTRACE'):
+        raise e
+    traceback.print_exception(None, value=e, tb=e.__traceback__)  # TODO: in Python 3.10 this can be simplified
+
+    if command == 'runpython':
         return 2
+
+    if isinstance(e, OSError):
+        mlog.exception("Unhandled python OSError. This is probably not a Meson bug, "
+                       "but an issue with your build environment.")
+        return e.errno
+
+    msg = 'Unhandled python exception'
+    if node:
+        e = MesonBugException(msg, node.file, node.lineno, node.colno)
+    else:
+        e = MesonBugException(msg)
+    mlog.exception(e)
+    return 2
 
 # Note: when adding arguments, please also add them to the completion
 # scripts in $MESONSRC/data/shell-completions/
