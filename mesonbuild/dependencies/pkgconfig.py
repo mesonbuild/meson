@@ -396,7 +396,7 @@ class PkgConfigDependency(ExternalDependency):
         options = ['--variable=' + variable_name, self.name]
 
         if define_variable:
-            options = ['--define-variable=' + '='.join(define_variable)] + options
+            options = [f'--define-variable={define_variable[i]}={define_variable[i+1]}' for i in range(0, len(define_variable), 2)] + options
 
         ret, out, err = self._call_pkgbin(options)
         variable = ''

@@ -34,9 +34,11 @@ methods:
         type: list[str]
         since: 0.44.0
         description: |
-          You can also redefine a
-          variable by passing a list to this kwarg
+          You can also redefine variables
+          by passing a list to this kwarg
           that can affect the retrieved variable: `['prefix', '/'])`.
+          Since 0.64.0, multiple variables can be overridden:
+          `['prefix', '/', 'datadir', '/usr/share']`.
 
       default:
         type: str
