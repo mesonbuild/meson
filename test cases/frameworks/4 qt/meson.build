@@ -2,6 +2,7 @@ project('qt4, qt5, and qt6 build test', 'cpp',
   # Qt6 requires C++ 17 support
   default_options : ['cpp_std=c++17'])
 
+fs = import('fs')
 qt5_modules = ['Widgets']
 qt6_modules = ['Widgets']
 foreach qt : ['qt4', 'qt5', 'qt6']
@@ -155,5 +156,21 @@ foreach qt : ['qt4', 'qt5', 'qt6']
     accept_versions = ['>=@0@'.format(qtdep.version()), '<@0@'.format(qtdep.version()[0].to_int() + 1)]
     dependency(qt, modules: qt_modules, version: accept_versions, method : get_option('method'))
 
+    if qt == 'qt6'
+      genclient = qt.compile_qwayland(
+        source: 'test.xml',
+        client: true,
+      )
+      assert(genclient.length() == 2)
+      assert(fs.name(genclient[0].full_path()) == 'qwayland-test.cpp')
+      assert(fs.name(genclient[1].full_path()) == 'qwayland-test.h')
+      genserver = qt.compile_qwayland(
+        source: 'test.xml',
+        server: true,
+      )
+      assert(genclient.length() == 2)
+      assert(fs.name(genclient[0].full_path()) == 'qwayland-server-test.cpp')
+      assert(fs.name(genclient[1].full_path()) == 'qwayland-server-test.h')
+    endif
   endif
 endforeach

@@ -46,3 +46,12 @@ assert(fs.name(gen[0].full_path()) == 'test-protocol.c')
 assert(fs.name(gen[1].full_path()) == 'test-client-protocol.h')
 exe = executable('local', 'local.c', gen, dependencies : wl_client_dep)
 test('local', exe)
+
+# prefix xml
+custon_xmls = files('test.xml')
+gen = wl_mod.scan_xml(custon_xmls, custon_prefix: 'wayland')
+assert(gen.length() == 2)
+assert(fs.name(gen[0].full_path()) == 'wayland-test-protocol.c')
+assert(fs.name(gen[1].full_path()) == 'wayland-test-client-protocol.h')
+exe = executable('custon_prefix', 'custon_prefix.c', gen, dependencies : wl_client_dep)
+test('local', exe)
