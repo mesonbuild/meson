@@ -13,8 +13,10 @@
 # limitations under the License.
 from __future__ import annotations
 
+
 from .. import mesonlib, mlog
 from .disabler import Disabler
+from .baseobjects import DefaultObject
 from .exceptions import InterpreterException, InvalidArguments
 from ._unholder import _unholder
 
@@ -553,6 +555,15 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
             for info in types:
                 types_tuple = info.types if isinstance(info.types, tuple) else (info.types,)
                 value = kwargs.get(info.name)
+                if isinstance(value, DefaultObject):
+                    # If we have a `default()` object passed to a required
+                    # argument give a more helpful error message than the
+                    # default. Otherwise, set the value to None so that we'll
+                    # go down the path to use the default value.
+                    if info.required:
+                        raise InvalidArguments(f'{name} got a default() value for the required keyword argument "{info.name}", default() is not valid for such an argument')
+                    value = None
+
                 if value is not None:
                     if info.since:
                         feature_name = info.name + ' arg in ' + name

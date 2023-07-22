@@ -35,6 +35,7 @@ from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCod
 from ..interpreterbase import Disabler, disablerIfNotFound
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureBroken, FeatureNewKwargs, FeatureDeprecatedKwargs
 from ..interpreterbase import ObjectHolder, ContextManagerObject
+from ..interpreterbase.baseobjects import DefaultObject
 from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule
 
 from . import interpreterobjects as OBJ
@@ -374,6 +375,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                            'custom_target': self.func_custom_target,
                            'debug': self.func_debug,
                            'declare_dependency': self.func_declare_dependency,
+                           'default': self.func_default,
                            'dependency': self.func_dependency,
                            'disabler': self.func_disabler,
                            'environment': self.func_environment,
@@ -1805,6 +1807,12 @@ class Interpreter(InterpreterBase, HoldableObject):
     @noPosargs
     def func_disabler(self, node, args, kwargs):
         return Disabler()
+
+    @FeatureNew('default', '1.3.0')
+    @noKwargs
+    @noPosargs
+    def func_default(self, node: mparser.BaseNode, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> DefaultObject:
+        return DefaultObject()
 
     @FeatureNewKwargs('executable', '0.42.0', ['implib'])
     @FeatureNewKwargs('executable', '0.56.0', ['win_subsystem'])

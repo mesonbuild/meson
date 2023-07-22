@@ -185,3 +185,6 @@ class IterableObject(metaclass=ABCMeta):
 class ContextManagerObject(MesonInterpreterObject, AbstractContextManager):
     def __init__(self, subproject: 'SubProject') -> None:
         super().__init__(subproject=subproject)
+
+class DefaultObject(MesonInterpreterObject):
+    """Represents a default Value to a keyword argument."""
