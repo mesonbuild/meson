@@ -128,6 +128,9 @@ class InterpreterObject:
             self._throw_comp_exception(other, '!=')
         return self != other
 
+    def display_repr(self) -> str:
+        return type(self).__name__ + repr(self.__dict__)
+
 class MesonInterpreterObject(InterpreterObject):
     ''' All non-elementary objects and non-object-holders should be derived from this '''
 

@@ -26,6 +26,9 @@ class Disabler(MesonInterpreterObject):
             return False
         return Disabler()
 
+    def display_repr(self) -> str:
+        return 'disabler'
+
 def _is_arg_disabled(arg: T.Any) -> bool:
     if isinstance(arg, Disabler):
         return True
