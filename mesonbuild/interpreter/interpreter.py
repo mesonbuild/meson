@@ -2216,7 +2216,9 @@ class Interpreter(InterpreterBase, HoldableObject):
                     kwargs['priority'],
                     kwargs['verbose'])
 
-    def add_test(self, node: mparser.BaseNode, args: T.List, kwargs: T.Dict[str, T.Any], is_base_test: bool):
+    def add_test(self, node: mparser.BaseNode,
+                 args: T.Tuple[str, T.Union[build.Executable, build.Jar, ExternalProgram, mesonlib.File]],
+                 kwargs: T.Dict[str, T.Any], is_base_test: bool):
         t = self.make_test(node, args, kwargs)
         if is_base_test:
             self.build.tests.append(t)
