@@ -270,7 +270,7 @@ def typed_pos_args(name: str, *types: T.Union[T.Type, T.Tuple[T.Type, ...]],
                     diff = num_types + len(optargs) - num_args
                     nargs[i] = tuple(list(args) + [None] * diff)
                 else:
-                    nargs[i] = args
+                    nargs[i] = tuple(args)
             else:
                 nargs[i] = tuple(args)
             return f(*nargs, **wrapped_kwargs)
