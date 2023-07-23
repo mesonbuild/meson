@@ -167,7 +167,7 @@ class NinjaCommandArg:
         return self.s
 
     @staticmethod
-    def list(l: str, q: Quoting) -> T.List[NinjaCommandArg]:
+    def list(l: T.List[str], q: Quoting) -> T.List[NinjaCommandArg]:
         return [NinjaCommandArg(i, q) for i in l]
 
 @dataclass
@@ -317,7 +317,7 @@ class NinjaBuildElement:
         self.all_outputs = all_outputs
         self.output_errors = ''
 
-    def add_dep(self, dep):
+    def add_dep(self, dep: T.Union[str, T.List[str]]) -> None:
         if isinstance(dep, list):
             self.deps.update(dep)
         else:
@@ -329,7 +329,7 @@ class NinjaBuildElement:
         else:
             self.orderdeps.add(dep)
 
-    def add_item(self, name, elems):
+    def add_item(self, name: str, elems: T.Union[str, T.List[str, CompilerArgs]]) -> None:
         # Always convert from GCC-style argument naming to the naming used by the
         # current compiler. Also filter system include paths, deduplicate, etc.
         if isinstance(elems, CompilerArgs):
@@ -491,7 +491,7 @@ class NinjaBackend(backends.Backend):
         self.rust_crates: T.Dict[str, RustCrate] = {}
         self.implicit_meson_outs = []
 
-    def create_phony_target(self, dummy_outfile, rulename, phony_infilename):
+    def create_phony_target(self, dummy_outfile: str, rulename: str, phony_infilename: str) -> NinjaBuildElement:
         '''
         We need to use aliases for targets that might be used as directory
         names to workaround a Ninja bug that breaks `ninja -t clean`.
@@ -1083,7 +1083,7 @@ class NinjaBackend(backends.Backend):
             return False
         return True
 
-    def generate_dependency_scan_target(self, target, compiled_sources, source2object, generated_source_files: T.List[mesonlib.File],
+    def generate_dependency_scan_target(self, target: build.BuildTarget, compiled_sources, source2object, generated_source_files: T.List[mesonlib.File],
                                         object_deps: T.List['mesonlib.FileOrString']) -> None:
         if not self.should_use_dyndeps_for_target(target):
             return
@@ -1335,19 +1335,19 @@ class NinjaBackend(backends.Backend):
                                 'Regenerating build files.',
                                 extra='generator = 1'))
 
-    def add_rule_comment(self, comment):
+    def add_rule_comment(self, comment: NinjaComment) -> None:
         self.rules.append(comment)
 
-    def add_build_comment(self, comment):
+    def add_build_comment(self, comment: NinjaComment) -> None:
         self.build_elements.append(comment)
 
-    def add_rule(self, rule):
+    def add_rule(self, rule: NinjaRule) -> None:
         if rule.name in self.ruledict:
             raise MesonException(f'Tried to add rule {rule.name} twice.')
         self.rules.append(rule)
         self.ruledict[rule.name] = rule
 
-    def add_build(self, build):
+    def add_build(self, build: NinjaBuildElement) -> None:
         build.check_outputs()
         self.build_elements.append(build)
 
@@ -1358,7 +1358,7 @@ class NinjaBackend(backends.Backend):
             else:
                 mlog.warning(f"build statement for {build.outfilenames} references nonexistent rule {build.rulename}")
 
-    def write_rules(self, outfile):
+    def write_rules(self, outfile: T.TextIO) -> None:
         for b in self.build_elements:
             if isinstance(b, NinjaBuildElement):
                 b.count_rule_references()
@@ -1366,12 +1366,12 @@ class NinjaBackend(backends.Backend):
         for r in self.rules:
             r.write(outfile)
 
-    def write_builds(self, outfile):
+    def write_builds(self, outfile: T.TextIO) -> None:
         for b in ProgressBar(self.build_elements, desc='Writing build.ninja'):
             b.write(outfile)
         mlog.log_timestamp("build.ninja generated")
 
-    def generate_phony(self):
+    def generate_phony(self) -> None:
         self.add_build_comment(NinjaComment('Phony build target, always out of date'))
         elem = NinjaBuildElement(self.all_outputs, 'PHONY', 'phony', '')
         self.add_build(elem)
@@ -3095,7 +3095,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         assert isinstance(rel_src, str)
         return (rel_obj, rel_src.replace('\\', '/'))
 
-    def add_dependency_scanner_entries_to_element(self, target, compiler, element, src):
+    def add_dependency_scanner_entries_to_element(self, target: build.BuildTarget, compiler, element, src):
         if not self.should_use_dyndeps_for_target(target):
             return
         if isinstance(target, build.CompileTarget):
@@ -3109,7 +3109,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         element.add_item('dyndep', dep_scan_file)
         element.add_orderdep(dep_scan_file)
 
-    def get_dep_scan_file_for(self, target):
+    def get_dep_scan_file_for(self, target: build.BuildTarget) -> str:
         return os.path.join(self.get_target_private_dir(target), 'depscan.dd')
 
     def add_header_deps(self, target, ninja_element, header_deps):
@@ -3120,7 +3120,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 d = os.path.join(self.get_target_private_dir(target), d)
             ninja_element.add_dep(d)
 
-    def has_dir_part(self, fname):
+    def has_dir_part(self, fname: mesonlib.FileOrString) -> bool:
         # FIXME FIXME: The usage of this is a terrible and unreliable hack
         if isinstance(fname, File):
             return fname.subdir != ''
@@ -3593,7 +3593,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             pickle.dump(d, ofile)
         return 'clean-ctlist'
 
-    def generate_gcov_clean(self):
+    def generate_gcov_clean(self) -> None:
         gcno_elem = self.create_phony_target('clean-gcno', 'CUSTOM_COMMAND', 'PHONY')
         gcno_elem.add_item('COMMAND', mesonlib.get_meson_command() + ['--internal', 'delwithsuffix', '.', 'gcno'])
         gcno_elem.add_item('description', 'Deleting gcno files')
@@ -3614,14 +3614,14 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # affect behavior in any other way.
         return sorted(cmds)
 
-    def generate_dist(self):
+    def generate_dist(self) -> None:
         elem = self.create_phony_target('dist', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('DESC', 'Creating source packages')
         elem.add_item('COMMAND', self.environment.get_build_command() + ['dist'])
         elem.add_item('pool', 'console')
         self.add_build(elem)
 
-    def generate_scanbuild(self):
+    def generate_scanbuild(self) -> None:
         if not environment.detect_scanbuild():
             return
         if 'scan-build' in self.all_outputs:
@@ -3634,7 +3634,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         elem.add_item('pool', 'console')
         self.add_build(elem)
 
-    def generate_clangtool(self, name, extra_arg=None):
+    def generate_clangtool(self, name: str, extra_arg: T.Optional[str] = None) -> None:
         target_name = 'clang-' + name
         extra_args = []
         if extra_arg:
@@ -3653,19 +3653,19 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         elem.add_item('pool', 'console')
         self.add_build(elem)
 
-    def generate_clangformat(self):
+    def generate_clangformat(self) -> None:
         if not environment.detect_clangformat():
             return
         self.generate_clangtool('format')
         self.generate_clangtool('format', 'check')
 
-    def generate_clangtidy(self):
+    def generate_clangtidy(self) -> None:
         import shutil
         if not shutil.which('clang-tidy'):
             return
         self.generate_clangtool('tidy')
 
-    def generate_tags(self, tool, target_name):
+    def generate_tags(self, tool: str, target_name: str) -> None:
         import shutil
         if not shutil.which(tool):
             return
@@ -3679,7 +3679,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.add_build(elem)
 
     # For things like scan-build and other helper tools we might have.
-    def generate_utils(self):
+    def generate_utils(self) -> None:
         self.generate_scanbuild()
         self.generate_clangformat()
         self.generate_clangtidy()
@@ -3692,7 +3692,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         elem.add_item('pool', 'console')
         self.add_build(elem)
 
-    def generate_ending(self):
+    def generate_ending(self) -> None:
         for targ, deps in [
                 ('all', self.get_build_by_default_targets()),
                 ('meson-test-prereq', self.get_testlike_targets()),
