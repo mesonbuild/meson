@@ -102,7 +102,7 @@ class MesonApp:
         fname = os.path.join(dirname, environment.build_filename)
         return os.path.exists(fname)
 
-    def validate_core_dirs(self, dir1: str, dir2: str) -> T.Tuple[str, str]:
+    def validate_core_dirs(self, dir1: T.Optional[str], dir2: T.Optional[str]) -> T.Tuple[str, str]:
         invalid_msg_prefix = f'Neither source directory {dir1!r} nor build directory {dir2!r}'
         if dir1 is None:
             if dir2 is None:
@@ -144,7 +144,7 @@ class MesonApp:
         with open(os.path.join(build_dir, '.hgignore'), 'w', encoding='utf-8') as ofile:
             ofile.write(hg_ignore_file)
 
-    def validate_dirs(self, dir1: str, dir2: str, reconfigure: bool, wipe: bool) -> T.Tuple[str, str]:
+    def validate_dirs(self, dir1: T.Optional[str], dir2: T.Optional[str], reconfigure: bool, wipe: bool) -> T.Tuple[str, str]:
         (src_dir, build_dir) = self.validate_core_dirs(dir1, dir2)
         if Path(build_dir) in Path(src_dir).parents:
             raise MesonException(f'Build directory {build_dir} cannot be a parent of source directory {src_dir}')
@@ -174,7 +174,7 @@ class MesonApp:
         return src_dir, build_dir
 
     # See class Backend's 'generate' for comments on capture args and returned dictionary.
-    def generate(self, capture: bool = False, vslite_ctx: dict = None) -> T.Optional[dict]:
+    def generate(self, capture: bool = False, vslite_ctx: T.Optional[dict] = None) -> T.Optional[dict]:
         env = environment.Environment(self.source_dir, self.build_dir, self.options)
         mlog.initialize(env.get_log_dir(), self.options.fatal_warnings)
         if self.options.profile:
@@ -182,7 +182,7 @@ class MesonApp:
         with mesonlib.BuildDirLock(self.build_dir):
             return self._generate(env, capture, vslite_ctx)
 
-    def _generate(self, env: environment.Environment, capture: bool, vslite_ctx: dict) -> T.Optional[dict]:
+    def _generate(self, env: environment.Environment, capture: bool, vslite_ctx: T.Optional[dict]) -> T.Optional[dict]:
         # Get all user defined options, including options that have been defined
         # during a previous invocation or using meson configure.
         user_defined_options = argparse.Namespace(**vars(self.options))

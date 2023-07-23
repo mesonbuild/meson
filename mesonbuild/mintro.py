@@ -503,7 +503,7 @@ def list_projinfo_from_source(intr: IntrospectionInterpreter) -> T.Dict[str, T.U
     intr.project_data['subproject_dir'] = intr.subproject_dir
     return intr.project_data
 
-def print_results(options: argparse.Namespace, results: T.Sequence[T.Tuple[str, T.Union[dict, T.List[T.Any]]]], indent: int) -> int:
+def print_results(options: argparse.Namespace, results: T.Sequence[T.Tuple[str, T.Union[dict, T.List[T.Any]]]], indent: T.Optional[int]) -> int:
     if not results and not options.force_dict:
         print('No command specified')
         return 1
