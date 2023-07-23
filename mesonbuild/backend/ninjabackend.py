@@ -491,7 +491,7 @@ class NinjaBackend(backends.Backend):
         self.rust_crates: T.Dict[str, RustCrate] = {}
         self.implicit_meson_outs = []
 
-    def create_phony_target(self, all_outputs, dummy_outfile, rulename, phony_infilename, implicit_outs=None):
+    def create_phony_target(self, dummy_outfile, rulename, phony_infilename):
         '''
         We need to use aliases for targets that might be used as directory
         names to workaround a Ninja bug that breaks `ninja -t clean`.
@@ -503,10 +503,10 @@ class NinjaBackend(backends.Backend):
             raise AssertionError(f'Invalid usage of create_phony_target with {dummy_outfile!r}')
 
         to_name = f'meson-internal__{dummy_outfile}'
-        elem = NinjaBuildElement(all_outputs, dummy_outfile, 'phony', to_name)
+        elem = NinjaBuildElement(self.all_outputs, dummy_outfile, 'phony', to_name)
         self.add_build(elem)
 
-        return NinjaBuildElement(all_outputs, to_name, rulename, phony_infilename, implicit_outs)
+        return NinjaBuildElement(self.all_outputs, to_name, rulename, phony_infilename)
 
     def detect_vs_dep_prefix(self, tempfilename):
         '''VS writes its dependency in a locale dependent format.
@@ -1209,7 +1209,7 @@ class NinjaBackend(backends.Backend):
                                                               env=target_env,
                                                               verbose=True)
             cmd_type = f' (wrapped by meson {reason})' if reason else ''
-            elem = self.create_phony_target(self.all_outputs, target_name, 'CUSTOM_COMMAND', [])
+            elem = self.create_phony_target(target_name, 'CUSTOM_COMMAND', [])
             elem.add_item('COMMAND', meson_exe_cmd)
             elem.add_item('description', f'Running external command {target.name}{cmd_type}')
             elem.add_item('pool', 'console')
@@ -1240,38 +1240,38 @@ class NinjaBackend(backends.Backend):
                       (['--use_llvm_cov'] if use_llvm_cov else []))
 
     def generate_coverage_rules(self, gcovr_exe: T.Optional[str], gcovr_version: T.Optional[str]):
-        e = self.create_phony_target(self.all_outputs, 'coverage', 'CUSTOM_COMMAND', 'PHONY')
+        e = self.create_phony_target('coverage', 'CUSTOM_COMMAND', 'PHONY')
         self.generate_coverage_command(e, [])
         e.add_item('description', 'Generates coverage reports')
         self.add_build(e)
         self.generate_coverage_legacy_rules(gcovr_exe, gcovr_version)
 
     def generate_coverage_legacy_rules(self, gcovr_exe: T.Optional[str], gcovr_version: T.Optional[str]):
-        e = self.create_phony_target(self.all_outputs, 'coverage-html', 'CUSTOM_COMMAND', 'PHONY')
+        e = self.create_phony_target('coverage-html', 'CUSTOM_COMMAND', 'PHONY')
         self.generate_coverage_command(e, ['--html'])
         e.add_item('description', 'Generates HTML coverage report')
         self.add_build(e)
 
         if gcovr_exe:
-            e = self.create_phony_target(self.all_outputs, 'coverage-xml', 'CUSTOM_COMMAND', 'PHONY')
+            e = self.create_phony_target('coverage-xml', 'CUSTOM_COMMAND', 'PHONY')
             self.generate_coverage_command(e, ['--xml'])
             e.add_item('description', 'Generates XML coverage report')
             self.add_build(e)
 
-            e = self.create_phony_target(self.all_outputs, 'coverage-text', 'CUSTOM_COMMAND', 'PHONY')
+            e = self.create_phony_target('coverage-text', 'CUSTOM_COMMAND', 'PHONY')
             self.generate_coverage_command(e, ['--text'])
             e.add_item('description', 'Generates text coverage report')
             self.add_build(e)
 
             if mesonlib.version_compare(gcovr_version, '>=4.2'):
-                e = self.create_phony_target(self.all_outputs, 'coverage-sonarqube', 'CUSTOM_COMMAND', 'PHONY')
+                e = self.create_phony_target('coverage-sonarqube', 'CUSTOM_COMMAND', 'PHONY')
                 self.generate_coverage_command(e, ['--sonarqube'])
                 e.add_item('description', 'Generates Sonarqube XML coverage report')
                 self.add_build(e)
 
     def generate_install(self):
         self.create_install_data_files()
-        elem = self.create_phony_target(self.all_outputs, 'install', 'CUSTOM_COMMAND', 'PHONY')
+        elem = self.create_phony_target('install', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_dep('all')
         elem.add_item('DESC', 'Installing files.')
         elem.add_item('COMMAND', self.environment.get_build_command() + ['install', '--no-rebuild'])
@@ -1285,7 +1285,7 @@ class NinjaBackend(backends.Backend):
             cmd += ['--no-stdsplit']
         if self.environment.coredata.get_option(OptionKey('errorlogs')):
             cmd += ['--print-errorlogs']
-        elem = self.create_phony_target(self.all_outputs, 'test', 'CUSTOM_COMMAND', ['all', 'PHONY'])
+        elem = self.create_phony_target('test', 'CUSTOM_COMMAND', ['all', 'PHONY'])
         elem.add_item('COMMAND', cmd)
         elem.add_item('DESC', 'Running all tests.')
         elem.add_item('pool', 'console')
@@ -1295,7 +1295,7 @@ class NinjaBackend(backends.Backend):
         cmd = self.environment.get_build_command(True) + [
             'test', '--benchmark', '--logbase',
             'benchmarklog', '--num-processes=1', '--no-rebuild']
-        elem = self.create_phony_target(self.all_outputs, 'benchmark', 'CUSTOM_COMMAND', ['all', 'PHONY'])
+        elem = self.create_phony_target('benchmark', 'CUSTOM_COMMAND', ['all', 'PHONY'])
         elem.add_item('COMMAND', cmd)
         elem.add_item('DESC', 'Running benchmark suite.')
         elem.add_item('pool', 'console')
@@ -3582,7 +3582,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 self.implicit_meson_outs.append(aliasfile)
 
     def generate_custom_target_clean(self, trees: T.List[str]) -> str:
-        e = self.create_phony_target(self.all_outputs, 'clean-ctlist', 'CUSTOM_COMMAND', 'PHONY')
+        e = self.create_phony_target('clean-ctlist', 'CUSTOM_COMMAND', 'PHONY')
         d = CleanTrees(self.environment.get_build_dir(), trees)
         d_file = os.path.join(self.environment.get_scratch_dir(), 'cleantrees.dat')
         e.add_item('COMMAND', self.environment.get_build_command() + ['--internal', 'cleantrees', d_file])
@@ -3594,12 +3594,12 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         return 'clean-ctlist'
 
     def generate_gcov_clean(self):
-        gcno_elem = self.create_phony_target(self.all_outputs, 'clean-gcno', 'CUSTOM_COMMAND', 'PHONY')
+        gcno_elem = self.create_phony_target('clean-gcno', 'CUSTOM_COMMAND', 'PHONY')
         gcno_elem.add_item('COMMAND', mesonlib.get_meson_command() + ['--internal', 'delwithsuffix', '.', 'gcno'])
         gcno_elem.add_item('description', 'Deleting gcno files')
         self.add_build(gcno_elem)
 
-        gcda_elem = self.create_phony_target(self.all_outputs, 'clean-gcda', 'CUSTOM_COMMAND', 'PHONY')
+        gcda_elem = self.create_phony_target('clean-gcda', 'CUSTOM_COMMAND', 'PHONY')
         gcda_elem.add_item('COMMAND', mesonlib.get_meson_command() + ['--internal', 'delwithsuffix', '.', 'gcda'])
         gcda_elem.add_item('description', 'Deleting gcda files')
         self.add_build(gcda_elem)
@@ -3615,7 +3615,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         return sorted(cmds)
 
     def generate_dist(self):
-        elem = self.create_phony_target(self.all_outputs, 'dist', 'CUSTOM_COMMAND', 'PHONY')
+        elem = self.create_phony_target('dist', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('DESC', 'Creating source packages')
         elem.add_item('COMMAND', self.environment.get_build_command() + ['dist'])
         elem.add_item('pool', 'console')
@@ -3629,7 +3629,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         cmd = self.environment.get_build_command() + \
             ['--internal', 'scanbuild', self.environment.source_dir, self.environment.build_dir] + \
             self.environment.get_build_command() + self.get_user_option_args()
-        elem = self.create_phony_target(self.all_outputs, 'scan-build', 'CUSTOM_COMMAND', 'PHONY')
+        elem = self.create_phony_target('scan-build', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', cmd)
         elem.add_item('pool', 'console')
         self.add_build(elem)
@@ -3648,7 +3648,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         cmd = self.environment.get_build_command() + \
             ['--internal', 'clang' + name, self.environment.source_dir, self.environment.build_dir] + \
             extra_args
-        elem = self.create_phony_target(self.all_outputs, target_name, 'CUSTOM_COMMAND', 'PHONY')
+        elem = self.create_phony_target(target_name, 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', cmd)
         elem.add_item('pool', 'console')
         self.add_build(elem)
@@ -3673,7 +3673,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             return
         cmd = self.environment.get_build_command() + \
             ['--internal', 'tags', tool, self.environment.source_dir]
-        elem = self.create_phony_target(self.all_outputs, target_name, 'CUSTOM_COMMAND', 'PHONY')
+        elem = self.create_phony_target(target_name, 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', cmd)
         elem.add_item('pool', 'console')
         self.add_build(elem)
@@ -3687,7 +3687,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.generate_tags('ctags', 'ctags')
         self.generate_tags('cscope', 'cscope')
         cmd = self.environment.get_build_command() + ['--internal', 'uninstall']
-        elem = self.create_phony_target(self.all_outputs, 'uninstall', 'CUSTOM_COMMAND', 'PHONY')
+        elem = self.create_phony_target('uninstall', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', cmd)
         elem.add_item('pool', 'console')
         self.add_build(elem)
@@ -3715,7 +3715,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             elem = NinjaBuildElement(self.all_outputs, targ, 'phony', targetlist)
             self.add_build(elem)
 
-        elem = self.create_phony_target(self.all_outputs, 'clean', 'CUSTOM_COMMAND', 'PHONY')
+        elem = self.create_phony_target('clean', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', self.ninja_command + ['-t', 'clean'])
         elem.add_item('description', 'Cleaning')
 
