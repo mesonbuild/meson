@@ -3284,7 +3284,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         kwargs['include_directories'] = self.extract_incdirs(kwargs)
         target = targetclass(name, self.subdir, self.subproject, for_machine, srcs, struct, objs,
                              self.environment, self.compilers[for_machine], kwargs)
-        target.project_version = self.project_version
 
         self.add_target(name, target)
         self.project_args_frozen = True
