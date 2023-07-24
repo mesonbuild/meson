@@ -299,7 +299,7 @@ class NinjaRule:
         return estimate
 
 class NinjaBuildElement:
-    def __init__(self, all_outputs, outfilenames, rulename, infilenames, implicit_outs=None):
+    def __init__(self, all_outputs: T.Set[str], outfilenames, rulename, infilenames, implicit_outs=None):
         self.implicit_outfilenames = implicit_outs or []
         if isinstance(outfilenames, str):
             self.outfilenames = [outfilenames]
@@ -426,7 +426,7 @@ class NinjaBuildElement:
         for n in self.outfilenames:
             if n in self.all_outputs:
                 self.output_errors = f'Multiple producers for Ninja target "{n}". Please rename your targets.'
-            self.all_outputs[n] = True
+            self.all_outputs.add(n)
 
 @dataclass
 class RustDep:
@@ -485,7 +485,7 @@ class NinjaBackend(backends.Backend):
         self.name = 'ninja'
         self.ninja_filename = 'build.ninja'
         self.fortran_deps = {}
-        self.all_outputs = {}
+        self.all_outputs: T.Set[str] = set()
         self.introspection_data = {}
         self.created_llvm_ir_rule = PerMachine(False, False)
         self.rust_crates: T.Dict[str, RustCrate] = {}
