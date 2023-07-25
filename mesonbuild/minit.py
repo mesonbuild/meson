@@ -30,7 +30,7 @@ from mesonbuild import build, mesonlib, mlog
 from mesonbuild.coredata import FORBIDDEN_TARGET_NAMES
 from mesonbuild.environment import detect_ninja
 from mesonbuild.templates.mesontemplates import create_meson_build
-from mesonbuild.templates.samplefactory import sameple_generator
+from mesonbuild.templates.samplefactory import sample_generator
 
 if T.TYPE_CHECKING:
     import argparse
@@ -75,7 +75,7 @@ def create_sample(options: Arguments) -> None:
     Based on what arguments are passed we check for a match in language
     then check for project type and create new Meson samples project.
     '''
-    sample_gen = sameple_generator(options)
+    sample_gen = sample_generator(options)
     if options.type == DEFAULT_TYPES['EXE'].value:
         sample_gen.create_executable()
     elif options.type == DEFAULT_TYPES['LIB'].value:
