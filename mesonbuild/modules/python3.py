@@ -17,13 +17,17 @@ import sysconfig
 import typing as T
 
 from .. import mesonlib
-from . import ExtensionModule, ModuleInfo
+from . import ExtensionModule, ModuleInfo, ModuleState
+from ..build import (
+    BuildTarget, CustomTarget, CustomTargetIndex, ExtractedObjects,
+    GeneratedList, SharedModule, StructuredSources, known_shmod_kwargs
+)
 from ..interpreter.type_checking import SHARED_MOD_KWS
 from ..interpreterbase import typed_kwargs, typed_pos_args, noPosargs, noKwargs, permittedKwargs
-from ..build import known_shmod_kwargs
 from ..programs import ExternalProgram
 
 if T.TYPE_CHECKING:
+    from ..interpreter.interpreter import BuildTargetSource
     from ..interpreter.kwargs import SharedModule as SharedModuleKW
 
 
@@ -44,8 +48,9 @@ class Python3Module(ExtensionModule):
         })
 
     @permittedKwargs(known_shmod_kwargs)
+    @typed_pos_args('python3.extension_module', str, varargs=(str, mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList, StructuredSources, ExtractedObjects, BuildTarget))
     @typed_kwargs('python3.extension_module', *_MOD_KWARGS, allow_unknown=True)
-    def extension_module(self, state, args, kwargs: SharedModuleKW):
+    def extension_module(self, state: ModuleState, args: T.Tuple[str, T.List[BuildTargetSource]], kwargs: SharedModuleKW):
         if 'name_prefix' in kwargs:
             raise mesonlib.MesonException('Name_prefix is set automatically, specifying it is forbidden.')
         if 'name_suffix' in kwargs:
@@ -61,7 +66,7 @@ class Python3Module(ExtensionModule):
             suffix = []
         kwargs['name_prefix'] = ''
         kwargs['name_suffix'] = suffix
-        return self.interpreter.func_shared_module(None, args, kwargs)
+        return self.interpreter.build_target(state.current_node, args, kwargs, SharedModule)
 
     @noPosargs
     @noKwargs
